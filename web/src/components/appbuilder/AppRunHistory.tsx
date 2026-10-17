@@ -54,7 +54,7 @@ function ReadOnlyValue({ value }: { value: unknown }): React.ReactElement {
         );
       }
       if (media.data.type === "video") {
-        return <VideoPlayer locator={locator} />;
+        return <VideoPlayer locator={locator} label="Historical output" />;
       }
       return <AudioPlayback locator={locator} />;
     }

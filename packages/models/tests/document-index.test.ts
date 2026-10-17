@@ -13,6 +13,7 @@ import { eq } from "drizzle-orm";
 import { getPortableDb, getRawDb, initTestDb } from "../src/db.js";
 import { scripts as scriptsTable } from "../src/schema/scripts.js";
 import { storyboards as storyboardsTable } from "../src/schema/storyboards.js";
+import { games as gamesTable } from "../src/schema/games.js";
 import { Application } from "../src/application.js";
 import { Asset } from "../src/asset.js";
 import { listDocumentIndex } from "../src/document-index.js";
@@ -82,6 +83,24 @@ async function seedOneOfEach(): Promise<void> {
     content_type: "image/png",
     metadata: marker("Keeper")
   });
+  await Asset.create<Asset>({
+    user_id: OWNER,
+    project_id: PROJECT,
+    name: "Notes.md",
+    content_type: "text/markdown"
+  });
+  const now = new Date().toISOString();
+  await getPortableDb().insert(gamesTable).values({
+    id: "game-1",
+    user_id: OWNER,
+    project_id: PROJECT,
+    workspace_id: "ws-1",
+    name: "Platformer",
+    source_root: "/tmp/game-1",
+    current_revision: "r1",
+    created_at: now,
+    updated_at: now
+  });
 }
 
 describe("listDocumentIndex", () => {
@@ -105,6 +124,8 @@ describe("listDocumentIndex", () => {
       storyboard: "Board",
       timeline: "Cut",
       jsscript: "Normalize brief",
+      game: "Platformer",
+      text: "Notes.md",
       entity: "Keeper"
     });
   });
@@ -261,6 +282,54 @@ describe("listDocumentIndex", () => {
     );
   });
 
+  it("lists the project's text files, not run output or other assets", async () => {
+    await Asset.create<Asset>({
+      user_id: OWNER,
+      project_id: PROJECT,
+      name: "Notes.md",
+      content_type: "text/markdown"
+    });
+    await Asset.create<Asset>({
+      user_id: OWNER,
+      project_id: PROJECT,
+      name: "config.yaml",
+      content_type: "application/x-yaml"
+    });
+    await Asset.create<Asset>({
+      user_id: OWNER,
+      project_id: PROJECT,
+      name: "photo.png",
+      content_type: "image/png"
+    });
+    await Asset.create<Asset>({
+      user_id: OWNER,
+      project_id: PROJECT,
+      name: "Notes folder",
+      content_type: "folder"
+    });
+    await Asset.create<Asset>({
+      user_id: OWNER,
+      project_id: PROJECT,
+      name: "run-output.txt",
+      content_type: "text/plain",
+      job_id: "job-1"
+    });
+    await Asset.create<Asset>({
+      user_id: OWNER,
+      project_id: "p2",
+      name: "Elsewhere.md",
+      content_type: "text/markdown"
+    });
+
+    const { documents } = await listDocumentIndex(OWNER, PROJECT);
+
+    expect(documents.every((d) => d.type === "text")).toBe(true);
+    expect(documents.map((d) => d.name).sort()).toEqual([
+      "Notes.md",
+      "config.yaml"
+    ]);
+  });
+
   it("keeps the kinds that answered when one kind's read fails", async () => {
     await seedOneOfEach();
     // What a deployment whose schema lags the shipped code does to one kind.
@@ -272,9 +341,11 @@ describe("listDocumentIndex", () => {
     expect(documents.map((d) => d.type).sort()).toEqual([
       "application",
       "entity",
+      "game",
       "script",
       "sketch",
       "storyboard",
+      "text",
       "timeline",
       "workflow"
     ]);
@@ -290,6 +361,7 @@ describe("listDocumentIndex", () => {
       "storyboards",
       "timeline_sequences",
       "js_scripts",
+      "games",
       "nodetool_assets"
     ]) {
       getRawDb().exec(`DROP TABLE ${table}`);

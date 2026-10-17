@@ -237,7 +237,7 @@ describe("script ReviewStep", () => {
     expect(linesOf()).toHaveLength(3);
 
     await user.click(
-      screen.getByRole("button", { name: "Remove 1 empty line" })
+      screen.getByRole("button", { name: "Delete 1 empty line" })
     );
     expect(linesOf()).toHaveLength(2);
   });
@@ -281,7 +281,7 @@ describe("script ReviewStep", () => {
       screen.getByRole("button", { name: "Add a line to Intro" })
     ).toBeDisabled();
     expect(
-      screen.queryByRole("button", { name: /^Remove “/ })
+      screen.queryByRole("button", { name: /^Delete “/ })
     ).not.toBeInTheDocument();
   });
 
@@ -376,7 +376,7 @@ describe("script ReviewStep", () => {
     renderStep();
 
     await user.click(
-      screen.getByRole("button", { name: "Remove “Welcome back.”" })
+      screen.getByRole("button", { name: "Delete “Welcome back.”" })
     );
 
     expect(

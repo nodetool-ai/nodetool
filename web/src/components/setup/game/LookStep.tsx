@@ -20,7 +20,8 @@ import {
   FormField,
   GAP,
   Text,
-  TextInput
+  TextInput,
+  LoadingSpinner
 } from "../../ui_primitives";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import { PresetTileGrid, type PresetTile } from "../PresetTileGrid";
@@ -89,7 +90,7 @@ const LookStepInternal: React.FC<GameLookStepProps> = ({
 
       <FormField label="Art style">
         {presetsLoading && presets.length === 0 ? (
-          <Caption color="secondary">Loading the styles</Caption>
+          <LoadingSpinner size="small" text="Loading the styles" />
         ) : (
           <PresetTileGrid
             label="Art style"

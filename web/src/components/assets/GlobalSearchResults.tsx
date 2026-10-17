@@ -371,7 +371,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         <div className="global-search-results-container search-results-container">
           <div className="global-search-results-header search-results-header">
             <Text className="global-search-results-title search-results-title">
-              Search Results
+              Search results
             </Text>
             <Text className="global-search-results-count search-results-count">
               {isSearching
@@ -407,7 +407,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       <div className="global-search-results-container search-results-container">
         <div className="global-search-results-header search-results-header">
           <Text className="global-search-results-title search-results-title">
-            Search Results
+            Search results
           </Text>
           <Text className="global-search-results-count search-results-count">
             {results.length} result{results.length !== 1 ? "s" : ""} for &quot;

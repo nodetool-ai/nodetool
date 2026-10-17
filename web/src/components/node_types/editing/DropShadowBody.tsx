@@ -167,7 +167,7 @@ const DropShadowBodyInner: React.FC<DropShadowBodyProps> = ({
       </div>
 
       <FlexRow className="color-row" align="center" justify="space-between">
-        <span className="color-label">Shadow Color</span>
+        <span className="color-label">Shadow color</span>
         <ColorPicker
           color={shadowColor}
           onColorChange={handleColorChange}

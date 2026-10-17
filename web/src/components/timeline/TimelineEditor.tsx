@@ -32,7 +32,6 @@ import type { Theme } from "@mui/material/styles";
 import {
   AlertBanner,
   Button,
-  Caption,
   ConflictBanner,
   Dialog,
   EditorButton,
@@ -50,6 +49,7 @@ import {
 } from "../ui_primitives";
 import { isElectron, isLocalhost } from "../../lib/env";
 import ReportBugButton from "../support/ReportBugButton";
+import ErrorBanner from "../support/ErrorBanner";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
@@ -313,9 +313,15 @@ const PreviewRegion: React.FC<{
             ) : null}
           </FlexRow>
           {createSequenceErrorMessage ? (
-            <Caption sx={{ color: "error.main", textAlign: "center" }}>
+            <ErrorBanner
+              report={{
+                source: "operation-failure",
+                summary: "Creating a sequence failed",
+                errorText: createSequenceErrorMessage
+              }}
+            >
               {createSequenceErrorMessage}
-            </Caption>
+            </ErrorBanner>
           ) : null}
         </FlexColumn>
       ) : (

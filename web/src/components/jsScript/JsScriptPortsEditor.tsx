@@ -119,7 +119,7 @@ const JsScriptPortsEditor = ({
             </Box>
             {!readOnly && (
               <DeleteButton
-                ariaLabel={`Remove ${label} ${index + 1}`}
+                ariaLabel={`Delete ${label} ${index + 1}`}
                 onClick={() => remove(index)}
               />
             )}

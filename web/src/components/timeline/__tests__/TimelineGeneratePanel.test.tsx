@@ -132,7 +132,7 @@ async function chooseSpeech() {
 
 async function pickSpeechModel() {
   await userEvent.click(
-    screen.getByRole("button", { name: "Select TTS Model" })
+    screen.getByRole("button", { name: "Select TTS model" })
   );
   await userEvent.click(
     screen.getByRole("button", { name: "Pick speech model" })
@@ -170,7 +170,7 @@ describe("TimelineGeneratePanel", () => {
         screen.getByRole("button", { name: "Generate music" })
       ).toBeDisabled();
       await userEvent.click(
-        screen.getByRole("button", { name: "Select Music Model" })
+        screen.getByRole("button", { name: "Select music model" })
       );
       await userEvent.click(
         screen.getByRole("button", { name: "Pick music model" })

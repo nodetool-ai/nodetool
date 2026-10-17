@@ -32,7 +32,7 @@ const NEXT_STEP: Readonly<
     detail: "Adjust inputs or run the workflow from the canvas."
   },
   app: {
-    label: "Create Mini App",
+    label: "Create mini app",
     detail: "Create and open a Mini App backed by this workflow."
   },
   trigger: {

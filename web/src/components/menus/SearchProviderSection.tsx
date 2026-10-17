@@ -47,6 +47,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
       (field) => settingValues[field] && settingValues[field].trim().length > 0
     );
   }, [config, settingValues]);
+  const credentialTone = hasAllCredentials ? "success" : "warning";
 
   const handleProviderChange = useCallback(
     (value: string) => {
@@ -83,7 +84,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
   return (
     <div className="settings-section">
       <Text size="big" id="search-provider" className="settings-heading">
-        Search Provider
+        Search provider
       </Text>
 
       <div className="settings-item large">
@@ -101,28 +102,25 @@ const SearchProviderSection = memo(function SearchProviderSection({
           sx={{
             gap: getSpacingPx(SPACING.md),
             padding: getSpacingPx(SPACING.lg),
-            backgroundColor:
-              hasAllCredentials ?
-                theme.palette.success.light :
-                theme.palette.warning.light,
+            // Tinted fill + main-colour text from theme.vars so the banner
+            // follows the active light/dark scheme.
+            backgroundColor: `rgb(${theme.vars.palette[credentialTone].mainChannel} / 0.12)`,
             borderRadius: BORDER_RADIUS.sm
           }}
         >
           {hasAllCredentials ? (
             <CheckCircleIcon
-              sx={{ color: theme.palette.success.dark, fontSize: "1.2em" }}
+              sx={{ color: theme.vars.palette.success.main, fontSize: "1.2em" }}
             />
           ) : (
             <ErrorIcon
-              sx={{ color: theme.palette.warning.dark, fontSize: "1.2em" }}
+              sx={{ color: theme.vars.palette.warning.main, fontSize: "1.2em" }}
             />
           )}
           <Text
             size="small"
             sx={{
-              color: hasAllCredentials ?
-                theme.palette.success.dark :
-                theme.palette.warning.dark,
+              color: theme.vars.palette[credentialTone].main,
               margin: 0
             }}
           >
@@ -160,11 +158,10 @@ const SearchProviderSection = memo(function SearchProviderSection({
                   icon={<CheckCircleIcon />}
                   label="Configured"
                   size="small"
+                  color="success"
                   sx={{
                     marginTop: getSpacingPx(SPACING.md),
-                    height: "24px",
-                    backgroundColor: theme.palette.success.light,
-                    color: theme.palette.success.dark
+                    height: "24px"
                   }}
                 />
               )}

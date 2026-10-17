@@ -55,7 +55,6 @@ The UI primitives provide:
 - **ExpandCollapseButton** - Toggle button for expand/collapse content
 - **RefreshButton** - Refresh/reset button with loading state
 - **SelectionControls** - Bulk selection controls (select all/clear)
-- **ViewModeToggle** - Toggle button group for view mode switching
 
 ### State & Toggle Buttons (New)
 

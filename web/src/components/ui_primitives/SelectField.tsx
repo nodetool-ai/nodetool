@@ -254,7 +254,7 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
           <Typography
             variant="body2"
             sx={{
-              color: theme.palette.text.secondary,
+              color: theme.vars.palette.text.secondary,
               mt: 1,
               fontSize: theme.fontSizeSmaller,
               lineHeight: 1.4

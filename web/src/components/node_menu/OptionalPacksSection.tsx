@@ -309,15 +309,16 @@ const OptionalPacksSection = () => {
                             </Text>
                           </span>
                         ) : (
-                          <TextLink
-                            asButton
-                            onClick={openApiKeys}
+                          <Tooltip
                             title={`Add ${getSecretDisplayName(
                               provider.requiredKey
                             )}`}
+                            describeChild
                           >
-                            Add API key
-                          </TextLink>
+                            <TextLink asButton onClick={openApiKeys}>
+                              Add API key
+                            </TextLink>
+                          </Tooltip>
                         )}
                       </FlexRow>
                     );

@@ -435,14 +435,14 @@ describe("ApplicationSurface", () => {
     );
     renderSurface();
 
-    const openButton = screen.getByRole("button", { name: "Ask Agent" });
+    const openButton = screen.getByRole("button", { name: "Ask agent" });
     await user.click(openButton);
     expect(
       screen.getByRole("dialog", { name: "App builder assistant" })
     ).toHaveFocus();
 
     await user.click(screen.getByRole("button", { name: "Close agent" }));
-    expect(screen.getByRole("button", { name: "Ask Agent" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Ask agent" })).toHaveFocus();
   });
 
   it("links its workflows without opening one", () => {

@@ -169,13 +169,13 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle className="dialog-title" id="alert-dialog-title">
-          {"Create Folder"}
+          {"Create folder"}
         </DialogTitle>
         <DialogContent className="dialog-content">
           <TextInput
             className="input-field"
             inputRef={inputRef}
-            placeholder="Folder Name"
+            placeholder="Folder name"
             autoFocus
             spellCheck={false}
             autoComplete="off"
@@ -186,7 +186,7 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
         <DialogActionButtons
           onCancel={handleCloseMenu}
           onConfirm={handleCreateFolder}
-          confirmText="Create Folder"
+          confirmText="Create folder"
         />
       </Popover>
     </>

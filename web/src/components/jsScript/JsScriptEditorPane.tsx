@@ -7,11 +7,11 @@ import { memo, useCallback, useEffect, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Box,
   FlexColumn,
   LoadingSpinner,
-  Text,
   BORDER_RADIUS,
   SPACING,
   TYPOGRAPHY
@@ -94,9 +94,15 @@ const JsScriptEditorPane = ({
             options={editorOptions}
           />
         ) : !deterministicReadOnly && monacoLoadError ? (
-          <Text size="small" color="error">
+          <ErrorBanner
+            report={{
+              source: "panel-crash",
+              summary: "JS script editor could not start",
+              errorText: monacoLoadError
+            }}
+          >
             {monacoLoadError}
-          </Text>
+          </ErrorBanner>
         ) : !deterministicReadOnly && isMonacoLoading ? (
           <LoadingSpinner />
         ) : (

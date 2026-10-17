@@ -133,7 +133,7 @@ describe("ClipVersionHistory", () => {
     getTimelineTemporal().clear();
     renderHistory(clipId);
 
-    fireEvent.click(screen.getAllByLabelText("Preview Candidate")[0]!);
+    fireEvent.click(screen.getAllByLabelText("Preview candidate")[0]!);
 
     const clip = useTimelineStore.getState().clips.find((c) => c.id === clipId)!;
     expect(clip.currentAssetId).toBe("asset_2");
@@ -147,8 +147,8 @@ describe("ClipVersionHistory", () => {
   it("returns to the original preview when the explicit Original control is used", () => {
     const clipId = seedClipWithTwoTakes();
     renderHistory(clipId);
-    fireEvent.click(screen.getAllByLabelText("Preview Candidate")[0]!);
-    fireEvent.click(screen.getByLabelText("Preview Original"));
+    fireEvent.click(screen.getAllByLabelText("Preview candidate")[0]!);
+    fireEvent.click(screen.getByLabelText("Preview original"));
 
     expect(useTimelineUIStore.getState().audition).toBeNull();
   });

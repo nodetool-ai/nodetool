@@ -22,7 +22,7 @@ import {
   SKETCH_COLORS,
   SKETCH_SIZE
 } from "./sketchStyles";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { SystemStyleObject } from "@mui/system";
 
@@ -293,7 +293,7 @@ const styles = (theme: Theme) =>
          keeping the layer's own thumbnail and name the focus. */
       "&.active": {
         backgroundColor: theme.vars.palette.action.selected,
-        boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.7)}`
+        boxShadow: `inset 0 0 0 1px rgb(${theme.vars.palette.primary.mainChannel} / 0.7)`
       },
       "&.selected-secondary": {
         backgroundColor: theme.vars.palette.action.selected,
@@ -314,14 +314,14 @@ const styles = (theme: Theme) =>
       /* Matches Lock Transparency toolbar control (IconButton color=info when on). */
       "&.alpha-lock": {
         boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}`,
-        backgroundColor: alpha(theme.palette.info.main, 0.1)
+        backgroundColor: `rgb(${theme.vars.palette.info.mainChannel} / 0.1)`
       },
       "&.alpha-lock:hover": {
-        backgroundColor: alpha(theme.palette.info.main, 0.18)
+        backgroundColor: `rgb(${theme.vars.palette.info.mainChannel} / 0.18)`
       },
       "&.alpha-lock.active": {
         backgroundColor: theme.vars.palette.action.selected,
-        boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}, inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.7)}`
+        boxShadow: `inset 3px 0 0 0 ${theme.vars.palette.info.main}, inset 0 0 0 1px rgb(${theme.vars.palette.primary.mainChannel} / 0.7)`
       },
       "&.alpha-lock.selected-secondary": {
         backgroundColor: theme.vars.palette.action.selected,
@@ -336,10 +336,10 @@ const styles = (theme: Theme) =>
         gap: theme.spacing(0.5),
         paddingTop: 0,
         paddingBottom: 0,
-        backgroundColor: alpha(theme.palette.common.white, 0.04),
+        backgroundColor: `rgb(${theme.vars.palette.common.onBackgroundChannel} / 0.04)`,
 
         "&:hover": {
-          backgroundColor: alpha(theme.palette.common.white, 0.075)
+          backgroundColor: `rgb(${theme.vars.palette.common.onBackgroundChannel} / 0.075)`
         },
 
       }
@@ -1052,7 +1052,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             title="New layer generated from a text prompt"
           >
             <Button
-              aria-label="Add Text-to-Image Layer"
+              aria-label="Add text-to-image layer"
               onClick={() => addDirectGenLayer("text-to-image")}
               data-testid="layers-panel-add-text-to-image"
               startIcon={
@@ -1067,7 +1067,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             title="New layer generated from the layers below it"
           >
             <Button
-              aria-label="Add Image-to-Image Layer"
+              aria-label="Add image-to-image layer"
               onClick={() => addDirectGenLayer("image-to-image")}
               data-testid="layers-panel-add-image-to-image"
               startIcon={
@@ -1240,15 +1240,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         <Tooltip
           title={
             maskLayerId === activeLayerId
-              ? "Remove Mask Designation"
-              : "Set as Mask Layer"
+              ? "Remove mask designation"
+              : "Set as mask layer"
           }
         >
           <IconButton
             aria-label={
               maskLayerId === activeLayerId
-                ? "Remove Mask Designation"
-                : "Set as Mask Layer"
+                ? "Remove mask designation"
+                : "Set as mask layer"
             }
             size="small"
             onClick={() =>
@@ -1266,14 +1266,14 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
         <Tooltip
           title={
-            activeLayer?.alphaLock ? "Unlock Transparency" : "Lock Transparency"
+            activeLayer?.alphaLock ? "Unlock transparency" : "Lock transparency"
           }
         >
           <IconButton
             aria-label={
               activeLayer?.alphaLock
-                ? "Unlock Transparency"
-                : "Lock Transparency"
+                ? "Unlock transparency"
+                : "Lock transparency"
             }
             size="small"
             onClick={() => onToggleAlphaLock(activeLayerId)}
@@ -1302,10 +1302,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         {/* Lifecycle, right-aligned: Duplicate · Delete */}
         <FlexRow align="center" gap={0.5} sx={{ ml: "auto" }}>
           <Tooltip
-            title="Duplicate Layer"
+            title="Duplicate layer"
           >
             <IconButton
-              aria-label="Duplicate Layer"
+              aria-label="Duplicate layer"
               size="small"
               onClick={() => onDuplicateLayer(activeLayerId)}
               sx={OPS_ICON_SX}
@@ -1315,12 +1315,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </Tooltip>
           <Tooltip
             title={
-              hasMultiLayerSelection ? "Remove selected layers" : "Remove Layer"
+              hasMultiLayerSelection ? "Delete selected layers" : "Delete layer"
             }
           >
             <span>
               <IconButton
-                aria-label="Remove active layer"
+                aria-label="Delete active layer"
                 size="small"
                 onClick={() =>
                   hasMultiLayerSelection
@@ -1652,7 +1652,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             ) : null}
             <MenuItemPrimitive
-              label="Remove"
+              label="Delete"
               color="error"
               dividerBefore
               onClick={handleCtxDelete}

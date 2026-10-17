@@ -15,7 +15,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   FONT_SIZE_SANS,
-  getSpacingPx
+  getSpacingPx,
+  EmptyState
 } from "../../ui_primitives";
 import type { TodoItem } from "../../../stores/ApiTypes";
 
@@ -32,10 +33,12 @@ const styles = (theme: Theme) =>
     height: "100%",
     borderLeft: `1px solid ${theme.vars.palette.divider}`,
     // A 20% black rail reads as a grey slab on the light shell.
-    background:
-      theme.palette.mode === "light"
-        ? theme.vars.palette.c_overlay_subtle
-        : `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`,
+    // theme.palette.mode is fixed to the default scheme under the CSS-vars
+    // theme, so the dark rail goes through the `.dark` color-scheme selector.
+    background: theme.vars.palette.c_overlay_subtle,
+    [theme.getColorSchemeSelector("dark")]: {
+      background: `rgb(${theme.vars.palette.common.blackChannel} / 0.20)`
+    },
     display: "flex",
     flexDirection: "column",
     minHeight: 0,
@@ -90,11 +93,6 @@ const styles = (theme: Theme) =>
       textDecoration: "line-through",
       opacity: 0.55
     },
-    ".empty-state": {
-      padding: theme.spacing(8, 6),
-      textAlign: "center",
-      opacity: 0.55
-    }
   });
 
 const STATUS_ICONS = {
@@ -131,11 +129,11 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
       </FlexRow>
       <ScrollArea className="todo-list">
         {todos.length === 0 ? (
-          <div className="empty-state">
-            <Text size="small">
-              No tasks yet. The agent will list its plan here as it works.
-            </Text>
-          </div>
+          <EmptyState
+            size="small"
+            title="No tasks yet"
+            description="The agent will list its plan here as it works."
+          />
         ) : (
           <FlexColumn gap={0}>
             {todos.map((todo, i) => {

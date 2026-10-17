@@ -1,4 +1,5 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../test-utils/doubles";
 import {
   workflowSharingQueryKey,
   sharedWithMeQueryKey,
@@ -42,21 +43,25 @@ import {
   useSharedWithMe
 } from "../useWorkflowSharing";
 
-const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>;
-const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>;
+const mockUseQuery = jest.mocked(useQuery);
+const mockUseMutation = jest.mocked(useMutation);
 
 describe("useWorkflowSharing", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseQuery.mockReturnValue({
+    mockUseQuery.mockReturnValue(
+        stub<ReturnType<typeof useQuery>>({
       data: undefined,
       isLoading: false,
       error: null
-    } as any);
-    mockUseMutation.mockReturnValue({
+    })
+      );
+    mockUseMutation.mockReturnValue(
+        stub<ReturnType<typeof useMutation>>({
       mutateAsync: jest.fn(),
       isPending: false
-    } as any);
+    })
+      );
   });
 
   describe("query keys", () => {

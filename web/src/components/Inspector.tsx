@@ -27,7 +27,8 @@ import {
   reducedMotion,
   ScrollArea,
   Tooltip,
-  Box
+  Box,
+  EmptyState
 } from "./ui_primitives";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import FalPricingFooter from "./node/FalPricingFooter";
@@ -165,59 +166,9 @@ const styles = (theme: Theme) =>
 
     /* ---------- Tabs ---------- */
     ".inspector-tabs": {
-      display: "flex",
-      alignItems: "stretch",
-      gap: 0,
-      padding: `0 ${theme.spacing(SPACING.lg)}`,
+      flexShrink: 0,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.background.default
-    },
-    ".inspector-tab": {
-      position: "relative",
-      minHeight: 28,
-      background: "transparent",
-      border: "none",
-      cursor: "pointer",
-      padding: `${theme.spacing(1)} ${theme.spacing(1.5)} ${theme.spacing(1)} 0`,
-      marginRight: theme.spacing(2),
-      color: theme.vars.palette.text.secondary,
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 500,
-      letterSpacing: "-0.005em",
-      lineHeight: 1.2,
-      display: "inline-flex",
-      alignItems: "baseline",
-      gap: getSpacingPx(SPACING.sm),
-      transition: `color ${MOTION.fast}`,
-      ...reducedMotion({ transition: MOTION.none }),
-      "&:hover": { color: theme.vars.palette.text.primary },
-      "&:focus-visible": {
-        outline: `2px solid ${theme.vars.palette.primary.main}`,
-        outlineOffset: 2
-      }
-    },
-    ".inspector-tab .tab-count": {
-      fontFamily: theme.fontFamily2,
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.disabled,
-      fontVariantNumeric: "tabular-nums"
-    },
-    ".inspector-tab.is-active": {
-      color: theme.vars.palette.text.primary
-    },
-    ".inspector-tab.is-active::after": {
-      content: '""',
-      position: "absolute",
-      left: 0,
-      right: theme.spacing(1.5),
-      bottom: -1,
-      height: 2,
-      backgroundColor: theme.vars.palette.primary.main,
-      borderRadius: BORDER_RADIUS.xs
-    },
-    ".inspector-tab.is-active .tab-count": {
-      color: theme.vars.palette.primary.main
     },
 
     /* ---------- Scrolling tab body ---------- */
@@ -738,7 +689,7 @@ const Inspector: React.FC = () => {
       <Box className="inspector" css={inspectorStyles}>
         <div className="inspector-head">
           <div className="inspector-head-text">
-            <div className="inspector-title">No node selected</div>
+            <div className="inspector-title">Inspector</div>
           </div>
           <div className="inspector-head-close">
             <CloseButton
@@ -749,6 +700,11 @@ const Inspector: React.FC = () => {
             />
           </div>
         </div>
+        <EmptyState
+          size="small"
+          title="No node selected"
+          description="Select a node to edit its settings here."
+        />
       </Box>
     );
   }

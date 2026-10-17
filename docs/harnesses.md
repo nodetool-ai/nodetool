@@ -1494,7 +1494,8 @@ produce a confident-looking BPM from nothing.
 
 The math is pure and lives apart from the capability:
 `packages/agents/src/analysis/audio-dsp.ts` (FFT, spectral features, K-weighted
-gated loudness, silence, onsets, tempo) and `video-frames.ts` (per-frame
+gated loudness, silence) with onsets and tempo in
+`packages/timeline/src/audioOnsets.ts`, and `video-frames.ts` (per-frame
 statistics, histograms, motion, palettes, cuts), both tested on signals whose
 answers are known analytically. `media-decode.ts` is the Mediabunny seam.
 

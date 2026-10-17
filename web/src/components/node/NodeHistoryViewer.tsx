@@ -33,6 +33,7 @@ import { serializeDragData } from "../../lib/dragdrop/serialization";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import {
   CopyButton,
+  CountBadge,
   Dialog,
   ScrollArea,
   StatusIndicator,
@@ -45,6 +46,13 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
+
+/** Pins the pick-order badge to the tile's top-left corner. */
+const PICK_BADGE_SX = {
+  position: "absolute",
+  top: getSpacingPx(SPACING.micro),
+  left: getSpacingPx(SPACING.micro)
+} as const;
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { MediaOverlaySuppressProvider } from "./MediaOverlayContext";
 import OutputQuickActionButtons from "./OutputQuickActionButtons";
@@ -261,24 +269,6 @@ const styles = (theme: Theme) =>
     // so neither cascade rule clobbers the other.
     ".thumb.selected.in-set": {
       boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}, inset 0 0 0 2px ${theme.vars.palette.secondary.main}`
-    },
-    // Pick-order badge: the 1-based position of a tile within the export set.
-    ".pick-badge": {
-      position: "absolute",
-      top: 2,
-      left: 2,
-      minWidth: 16,
-      height: 16,
-      padding: `0 ${getSpacingPx(SPACING.xs)}`,
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.secondary.main,
-      color: theme.vars.palette.secondary.contrastText,
-      fontSize: theme.fontSizeSmaller,
-      fontVariantNumeric: "tabular-nums",
-      lineHeight: 1
     },
     ".downstream-caption": {
       position: "absolute",
@@ -786,7 +776,18 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           <div style={fallbackThumbStyle}>{kind || "asset"}</div>
         )}
         {label ? <span className="thumb-label">{label}</span> : null}
-        {inSet ? <span className="pick-badge">{pick}</span> : null}
+        {inSet ? (
+          // Pick-order badge: the 1-based position of the tile in the export set.
+          <CountBadge
+            className="pick-badge"
+            count={pick}
+            showZero
+            size="small"
+            color="secondary"
+            ariaLabel={`Pick ${pick}`}
+            sx={PICK_BADGE_SX}
+          />
+        ) : null}
       </div>
     );
   };

@@ -31,12 +31,12 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Box,
   Card,
   Caption,
   Dialog,
-  EditorButton,
   FlexColumn,
   FlexRow,
   MagicGenerationFill,
@@ -489,11 +489,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               ? CLIP_COLOR
               : "divider",
         boxShadow: dropTarget
-          ? `0 0 0 2px ${theme.palette.primary.main}`
+          ? `0 0 0 2px ${theme.vars.palette.primary.main}`
           : isGenerating
             ? `0 0 0 1px ${CLIP_COLOR}`
             : selected
-              ? `0 0 0 1px ${theme.palette.primary.main}`
+              ? `0 0 0 1px ${theme.vars.palette.primary.main}`
               : undefined,
         cursor: draggable ? "grab" : undefined
       }}
@@ -704,30 +704,19 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
       </FlexColumn>
 
       {failed && (
-        <FlexRow
-          align="center"
-          justify="space-between"
-          gap={SPACING.sm}
-          sx={{ p: SPACING.lg, minWidth: 0 }}
+        <ErrorBanner
+          data-testid="shot-render-error"
+          sx={{ m: SPACING.lg, minWidth: 0 }}
+          onRetry={readOnly ? undefined : handleRetry}
+          retryLabel="Retry"
+          report={{
+            source: "job-failure",
+            summary: "Storyboard shot render failed",
+            errorText: renderError ?? undefined
+          }}
         >
-          <Caption
-            role="alert"
-            data-testid="shot-render-error"
-            sx={{ color: "error.main", minWidth: 0 }}
-          >
-            {renderError ?? "The render failed. Try again."}
-          </Caption>
-          {!readOnly && (
-            <EditorButton
-              size="small"
-              variant="outlined"
-              onClick={handleRetry}
-              sx={{ flexShrink: 0 }}
-            >
-              Retry
-            </EditorButton>
-          )}
-        </FlexRow>
+          {renderError ?? "The render failed. Try again."}
+        </ErrorBanner>
       )}
       <ShotMediaViewer
         boardId={boardId}

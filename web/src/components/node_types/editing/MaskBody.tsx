@@ -33,8 +33,8 @@ import { MASK_NODE_TYPE } from "../../../constants/nodeTypes";
 type MaskTab = "image1" | "image2" | "mask" | "result";
 
 const TAB_PLACEHOLDERS = {
-  image1: "Connect Image 1",
-  image2: "Connect Image 2",
+  image1: "Connect image 1",
+  image2: "Connect image 2",
   mask: "Connect a mask",
   result: "Run the node to composite"
 } satisfies Record<MaskTab, string>;

@@ -609,7 +609,7 @@ export const PROVIDER_META: ProviderMeta[] = [
     mono: true,
     fields: [
       { key: "GITHUB_CLIENT_ID", label: "Client ID" },
-      { key: "GITHUB_CLIENT_SECRET", label: "Client Secret", secret: true }
+      { key: "GITHUB_CLIENT_SECRET", label: "Client secret", secret: true }
     ]
   },
   {
@@ -628,7 +628,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "SERVER_AUTH_TOKEN",
-    name: "Server Auth Token",
+    name: "Server auth token",
     description: "Bearer token to secure NodeTool server endpoints.",
     section: "advanced",
     docsUrl: "https://github.com/nodetool-ai/nodetool"

@@ -144,7 +144,7 @@ describe("WorkflowLoader cycles", () => {
     const host = openWorkflow("A", {});
 
     await renderLoader(host);
-    fireEvent.mouseDown(screen.getByLabelText("Select Workflow"));
+    fireEvent.mouseDown(screen.getByLabelText("Select workflow"));
 
     expect(screen.queryByRole("option", { name: "Workflow A" })).toBeNull();
     await act(async () => {

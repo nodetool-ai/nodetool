@@ -755,21 +755,22 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           <div css={topRowStyles}>
             {!compact && (
               <>
-                <div
-                  css={dragHandleCss}
-                  draggable
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  onPointerDown={stopPointerPropagation}
-                  onContextMenu={stopPointerPropagation}
-                  aria-label={`Reorder ${track.name}`}
-                  role="button"
-                  tabIndex={-1}
-                  title="Drag to reorder track"
-                  data-testid={`track-drag-handle-${track.id}`}
-                >
-                  <DragIndicatorIcon />
-                </div>
+                <Tooltip title="Drag to reorder track">
+                  <div
+                    css={dragHandleCss}
+                    draggable
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onPointerDown={stopPointerPropagation}
+                    onContextMenu={stopPointerPropagation}
+                    aria-label={`Reorder ${track.name}`}
+                    role="button"
+                    tabIndex={-1}
+                    data-testid={`track-drag-handle-${track.id}`}
+                  >
+                    <DragIndicatorIcon />
+                  </div>
+                </Tooltip>
                 <div css={typeGlyphCss} aria-hidden title={meta.label}>
                   <TypeIcon />
                 </div>
@@ -922,12 +923,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               </Tooltip>
             )}
 
-            <Tooltip title="Remove track">
+            <Tooltip title="Delete track">
               <button
                 type="button"
                 css={iconButtonOnCss}
                 onClick={() => setConfirmRemoveOpen(true)}
-                aria-label="Remove track"
+                aria-label="Delete track"
               >
                 <DeleteOutlineOutlinedIcon />
               </button>
@@ -1010,7 +1011,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             onClick={handleMenuInsertBelow}
           />
           <MenuItemPrimitive
-            label="Remove track"
+            label="Delete track"
             icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
             onClick={handleMenuRemove}
             color="error"
@@ -1025,13 +1026,13 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               useNotificationStore.getState().addNotification({
                 type: "warning",
                 alert: true,
-                content: `Unlock track "${track.name}" and its clips to remove it`
+                content: `Unlock track "${track.name}" and its clips to delete it`
               });
             }
           }}
-          title="Remove track?"
-          content={`Track "${track.name}" and all its clips are removed.`}
-          confirmText="Remove"
+          title="Delete track?"
+          content={`Track "${track.name}" and all its clips are deleted.`}
+          confirmText="Delete"
           cancelText="Cancel"
           destructive
         />

@@ -116,7 +116,7 @@ const listStyles = (theme: Theme) =>
     ".favorite-indicator": {
       flexShrink: 0
     },
-    ".workflow:hover .date-container": {
+    ".workflow:hover .date-container, .workflow:focus-within .date-container": {
       opacity: 0
     },
     ".date": {
@@ -157,8 +157,14 @@ const listStyles = (theme: Theme) =>
         }
       }
     },
-    ".workflow:hover .actions": {
+    // Keyboard focus on the row (or on an action inside it) reveals the
+    // actions too, and a touch screen, which never hovers, shows them outright.
+    ".workflow:hover .actions, .workflow:focus-within .actions": {
       opacity: 1
+    },
+    "@media (hover: none)": {
+      ".workflow .actions": { opacity: 1 },
+      ".workflow .date-container": { opacity: 0 }
     },
     // Preview mode - actions overlay on top of preview with background
     ".workflow.with-preview .actions": {

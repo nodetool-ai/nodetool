@@ -62,7 +62,7 @@ describe("Alert", () => {
     renderWithStore([notification]);
     expect(screen.getByText("Error message")).toBeInTheDocument();
     const btn = await screen.findByRole("button", {
-      name: "Copy to clipboard"
+      name: "Copy message"
     });
     fireEvent.click(btn);
     expect(mockWriteClipboard).toHaveBeenCalledWith("Error message", true);
@@ -85,7 +85,7 @@ describe("Alert", () => {
     expect(screen.getByRole("button", { name: "Show" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Copy to clipboard" })
+      screen.queryByRole("button", { name: "Copy message" })
     ).not.toBeInTheDocument();
   });
 

@@ -212,7 +212,8 @@ const styles = (theme: Theme) =>
       borderBottomLeftRadius: BORDER_RADIUS.xs,
       backgroundColor: theme.vars.palette.c_scrim,
       backdropFilter: "blur(4px)",
-      color: theme.vars.palette.grey[100],
+      // Fixed light text: the scrim is dark in both schemes.
+      color: theme.vars.palette.common.white,
       fontSize: theme.fontSizeSmaller,
       fontWeight: FONT_WEIGHT.normal
     },
@@ -684,7 +685,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               size="smaller"
               title={asset.content_type || "Unknown content type"}
               style={{
-                color: `var(--c_${assetType}, var(--palette-grey-100))`,
+                color: `var(--c_${assetType}, var(--palette-common-white))`,
                 textTransform: "uppercase",
                 zIndex: Z_INDEX.raised
               }}

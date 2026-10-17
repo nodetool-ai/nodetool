@@ -251,10 +251,10 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   const busy = runtime.status === "loading" || runtime.status === "streaming";
   const menuCommands = useMemo<ContextCommand[]>(() => {
     const commands: ContextCommand[] = [
-      { id: "new-chat", label: "New Chat", run: handleNewChat }
+      { id: "new-chat", label: "New chat", run: handleNewChat }
     ];
     if (busy) {
-      commands.push({ id: "stop", label: "Stop Generating", run: handleStop });
+      commands.push({ id: "stop", label: "Stop generating", run: handleStop });
     }
     return commands;
   }, [busy, handleNewChat, handleStop]);

@@ -13,7 +13,7 @@ describe("runControlTooltip", () => {
     const { container } = render(<>{runControlTooltip(idle)}</>);
 
     expect(container.textContent).not.toContain("[object Object]");
-    expect(screen.getByText("Run Workflow")).toBeInTheDocument();
+    expect(screen.getByText("Run workflow")).toBeInTheDocument();
     expect(screen.getByText("Execute the current workflow")).toBeInTheDocument();
   });
 

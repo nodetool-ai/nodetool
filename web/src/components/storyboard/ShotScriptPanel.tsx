@@ -16,8 +16,8 @@ import type { Shot } from "@nodetool-ai/protocol";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
-  Box,
   Caption,
   Card,
   Chip,
@@ -214,9 +214,15 @@ const LinkedScriptSection: React.FC<ShotScriptPanelProps> = ({
         )}
 
         {error && (
-          <Box>
-            <Caption color="error">{error}</Caption>
-          </Box>
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Shot script action failed",
+              errorText: error
+            }}
+          >
+            {error}
+          </ErrorBanner>
         )}
       </FlexColumn>
     </Card>

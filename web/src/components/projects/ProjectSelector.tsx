@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
   BORDER_RADIUS,
   Caption,
@@ -15,7 +16,8 @@ import {
   MOTION,
   SearchInput,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  LoadingSpinner
 } from "../ui_primitives";
 import {
   LOOSE_PROJECT_ID,
@@ -278,14 +280,19 @@ const ProjectSelector = ({
           onClick={selectPersonal}
         />
         {isPending && (
-          <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
-            Loading projects…
-          </Caption>
+          <LoadingSpinner size="small" text="Loading projects" />
         )}
         {error && (
-          <Caption color="error" sx={{ px: SPACING.lg, py: SPACING.sm }}>
+          <ErrorBanner
+            sx={{ mx: SPACING.sm, my: SPACING.xs }}
+            report={{
+              source: "operation-failure",
+              summary: "Project list failed to load",
+              errorText: error.message
+            }}
+          >
             Could not load projects
-          </Caption>
+          </ErrorBanner>
         )}
         {visibleProjects.map((project) => (
           <MenuItemPrimitive

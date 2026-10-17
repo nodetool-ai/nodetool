@@ -10,7 +10,7 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import ReactDOM from "react-dom";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import DrawOutlinedIcon from "@mui/icons-material/DrawOutlined";
@@ -115,7 +115,7 @@ interface SketchModalProps {
 
 const SketchModal: React.FC<SketchModalProps> = ({
   open,
-  title = "Image Editor",
+  title = "Image editor",
   initialDocument,
   onClose,
   onDocumentChange,
@@ -415,14 +415,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
             </Tooltip>
           )}
 
-          <Tooltip title="Export Image" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" aria-label="Export Image" onClick={() => editorRef.current?.exportPng()}>
+          <Tooltip title="Export image" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <IconButton size="small" aria-label="Export image" onClick={() => editorRef.current?.exportPng()}>
               <SaveAltIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
 
           {!confirmDiscard && (
-            <Tooltip title="Save & Close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <Tooltip title="Save & close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
               <IconButton size="small" aria-label="Save and close" onClick={handleRequestClose} sx={{ color: "success.light" }}>
                 <CheckIcon fontSize="small" />
               </IconButton>
@@ -457,7 +457,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 position: "absolute",
                 inset: 0,
                 zIndex: SKETCH_Z_INDEX.overlay,
-                backgroundColor: alpha(theme.palette.common.black, 0.45)
+                backgroundColor: `rgb(${theme.vars.palette.common.blackChannel} / 0.45)`
               }}
             />
             <FlexColumn

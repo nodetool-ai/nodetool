@@ -1,5 +1,5 @@
 // APP
-export const VERSION = "0.8.3";
+export const VERSION = "0.8.4";
 
 // Build provenance injected by Vite at build time (see web/vite.config.ts).
 // In non-Vite contexts (e.g. Jest), the defines are absent — fall back to a
@@ -82,20 +82,20 @@ export const IMAGE_SIZE_PRESETS: PresetOption[] = [
     { label: "8K DCI Cinema", width: 8192, height: 4320, aspectRatio: "1.9:1", category: "8K", description: "" },
 
     // Vertical Video
-    { label: "9:16 Social Media", width: 1080, height: 1920, aspectRatio: "9:16", category: "Vertical Video", description: "" },
-    { label: "4K Vertical", width: 2160, height: 3840, aspectRatio: "9:16", category: "Vertical Video", description: "" },
+    { label: "9:16 Social Media", width: 1080, height: 1920, aspectRatio: "9:16", category: "Vertical video", description: "" },
+    { label: "4K Vertical", width: 2160, height: 3840, aspectRatio: "9:16", category: "Vertical video", description: "" },
 
     // Specialty Ratios
-    { label: "2.39:1 Cinema Anamorphic", width: 2048, height: 858, aspectRatio: "2.39:1", category: "Specialty Ratios", description: "" },
-    { label: "1.85:1 Cinema", width: 1998, height: 1080, aspectRatio: "1.85:1", category: "Specialty Ratios", description: "" },
-    { label: "2.39:1 Cinema 4K", width: 4096, height: 1716, aspectRatio: "2.39:1", category: "Specialty Ratios", description: "" },
+    { label: "2.39:1 Cinema Anamorphic", width: 2048, height: 858, aspectRatio: "2.39:1", category: "Specialty ratios", description: "" },
+    { label: "1.85:1 Cinema", width: 1998, height: 1080, aspectRatio: "1.85:1", category: "Specialty ratios", description: "" },
+    { label: "2.39:1 Cinema 4K", width: 4096, height: 1716, aspectRatio: "2.39:1", category: "Specialty ratios", description: "" },
 
     // Devices (Phone)
     { label: "iPhone 16 Pro Max", width: 440, height: 956, aspectRatio: "19.5:9", category: "Phone", description: "" },
     { label: "iPhone 16 Pro", width: 402, height: 874, aspectRatio: "19.5:9", category: "Phone", description: "" },
     { label: "iPhone 16", width: 390, height: 844, aspectRatio: "19.5:9", category: "Phone", description: "" },
     { label: "iPhone SE", width: 375, height: 667, aspectRatio: "16:9", category: "Phone", description: "" },
-    { label: "Android Large", width: 360, height: 800, aspectRatio: "20:9", category: "Phone", description: "" },
+    { label: "Android large", width: 360, height: 800, aspectRatio: "20:9", category: "Phone", description: "" },
 
     // Tablet
     { label: "iPad Pro 13\"", width: 1032, height: 1376, aspectRatio: "3:4", category: "Tablet", description: "" },
@@ -109,10 +109,10 @@ export const IMAGE_SIZE_PRESETS: PresetOption[] = [
     { label: "iMac 24\"", width: 2240, height: 1260, aspectRatio: "16:9", category: "Desktop", description: "" },
 
     // Social Media
-    { label: "Instagram Post", width: 1080, height: 1080, aspectRatio: "1:1", category: "Social Media", description: "" },
-    { label: "Facebook Post", width: 1200, height: 630, aspectRatio: "1.91:1", category: "Social Media", description: "" },
-    { label: "Twitter Post", width: 1200, height: 675, aspectRatio: "16:9", category: "Social Media", description: "" },
-    { label: "YouTube Thumbnail", width: 1280, height: 720, aspectRatio: "16:9", category: "Social Media", description: "" },
+    { label: "Instagram post", width: 1080, height: 1080, aspectRatio: "1:1", category: "Social media", description: "" },
+    { label: "Facebook post", width: 1200, height: 630, aspectRatio: "1.91:1", category: "Social media", description: "" },
+    { label: "Twitter post", width: 1200, height: 675, aspectRatio: "16:9", category: "Social media", description: "" },
+    { label: "YouTube thumbnail", width: 1280, height: 720, aspectRatio: "16:9", category: "Social media", description: "" },
 
     // Paper
     { label: "A4", width: 595, height: 842, aspectRatio: "1:1.414", category: "Paper", description: "" },

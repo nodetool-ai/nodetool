@@ -60,20 +60,17 @@ const styles = (theme: Theme) =>
     minHeight: 0,
     borderRadius: BORDER_RADIUS.xxl,
     overflow: "hidden",
-    background:
-      theme.palette.mode === "light"
-        ? theme.vars.palette.background.paper
-        : theme.vars.palette.grey[900],
+    // theme.palette.mode is fixed to the default scheme under the CSS-vars
+    // theme, so the dark look goes through the `.dark` color-scheme selector.
+    background: theme.vars.palette.background.paper,
     backdropFilter: "blur(16px)",
-    border: `1px solid ${
-      theme.palette.mode === "light"
-        ? theme.vars.palette.grey[600]
-        : theme.vars.palette.divider
-    }`,
-    boxShadow:
-      theme.palette.mode === "light"
-        ? "0 1px 2px rgba(26,23,21,0.04), 0 8px 24px rgba(26,23,21,0.08)"
-        : "0 10px 40px rgba(0,0,0,0.45)",
+    border: `1px solid ${theme.vars.palette.grey[600]}`,
+    boxShadow: `0 1px 2px rgb(${theme.vars.palette.common.blackChannel} / 0.04), 0 8px 24px rgb(${theme.vars.palette.common.blackChannel} / 0.08)`,
+    [theme.getColorSchemeSelector("dark")]: {
+      background: theme.vars.palette.grey[900],
+      border: `1px solid ${theme.vars.palette.divider}`,
+      boxShadow: `0 10px 40px rgb(${theme.vars.palette.common.blackChannel} / 0.45)`
+    },
 
     ".convo-overlay-header": {
       display: "flex",
@@ -180,10 +177,10 @@ const styles = (theme: Theme) =>
       zIndex: Z_INDEX.overlay,
       display: "flex",
       flexDirection: "column",
-      background:
-        theme.palette.mode === "light"
-          ? theme.vars.palette.background.paper
-          : theme.vars.palette.grey[900]
+      background: theme.vars.palette.background.paper,
+      [theme.getColorSchemeSelector("dark")]: {
+        background: theme.vars.palette.grey[900]
+      }
     },
     ".convo-threads-head": {
       display: "flex",

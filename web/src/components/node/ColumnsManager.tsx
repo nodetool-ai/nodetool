@@ -228,7 +228,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     <div css={cssStyles}>
       <div className="labels">
         <Label className="label-name">Name</Label>
-        <Label className="label-datatype">Data Type</Label>
+        <Label className="label-datatype">Data type</Label>
       </div>
       {localColumns.map((field, index) => (
         <Column

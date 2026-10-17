@@ -19,11 +19,16 @@ import {
 import { useContextCommands } from "../../hooks/useContextCommands";
 import type { ContextCommand } from "../../stores/CommandMenuStore";
 import { isMac } from "../../utils/platform";
+import {
+  toggleBold,
+  toggleBulletList,
+  toggleHeading
+} from "../../utils/markdownFormatting";
 import MonacoPane from "./MonacoPane";
 import DataTable from "../node/DataTable/DataTable";
 import EditorToolbar from "../textEditor/EditorToolbar";
+import ErrorBanner from "../support/ErrorBanner";
 import {
-  Caption,
   EditorButton,
   FlexColumn,
   FlexRow,
@@ -97,6 +102,7 @@ const TextDocumentEditor = ({
   const language = useMemo(() => languageFromAsset(asset), [asset]);
   const kind = previewKind(asset);
   const isCsv = kind === "csv";
+  const isMarkdown = language === "markdown";
   const getUrl = asset.get_url ?? undefined;
 
   const [content, setContent] = useState<string | null>(null);
@@ -234,9 +240,75 @@ const TextDocumentEditor = ({
       editorRef.current = editor;
       updateHistoryState();
       editor.onDidChangeModelContent(updateHistoryState);
+      // A new file opens empty; put the caret in it so typing just works.
+      if (editor.getModel()?.getValueLength() === 0) {
+        editor.focus();
+      }
     },
     [updateHistoryState]
   );
+
+  // Markdown buttons for people who do not know the syntax (study-7-I3).
+  const formatLines = useCallback(
+    (transform: (lines: readonly string[]) => string[]) => {
+      const editor = editorRef.current;
+      const model = editor?.getModel();
+      const selection = editor?.getSelection();
+      if (!editor || !model || !selection) {
+        return;
+      }
+      const first = selection.startLineNumber;
+      const last = selection.endLineNumber;
+      const lines: string[] = [];
+      for (let line = first; line <= last; line++) {
+        lines.push(model.getLineContent(line));
+      }
+      editor.executeEdits("toolbar", [
+        {
+          range: {
+            startLineNumber: first,
+            startColumn: 1,
+            endLineNumber: last,
+            endColumn: model.getLineMaxColumn(last)
+          },
+          text: transform(lines).join(model.getEOL())
+        }
+      ]);
+      editor.focus();
+    },
+    []
+  );
+
+  const handleHeading = useCallback(
+    () => formatLines(toggleHeading),
+    [formatLines]
+  );
+
+  const handleBulletList = useCallback(
+    () => formatLines(toggleBulletList),
+    [formatLines]
+  );
+
+  const handleBold = useCallback(() => {
+    const editor = editorRef.current;
+    const model = editor?.getModel();
+    const selection = editor?.getSelection();
+    if (!editor || !model || !selection) {
+      return;
+    }
+    const selected = model.getValueInRange(selection);
+    editor.executeEdits("toolbar", [
+      { range: selection, text: toggleBold(selected) }
+    ]);
+    if (selected === "") {
+      // Leave the caret between the markers, ready for the bold words.
+      editor.setPosition({
+        lineNumber: selection.startLineNumber,
+        column: selection.startColumn + 2
+      });
+    }
+    editor.focus();
+  }, []);
 
   const handleUndo = useCallback(() => {
     editorRef.current?.trigger("toolbar", "undo", null);
@@ -274,7 +346,7 @@ const TextDocumentEditor = ({
       );
       commands.push({
         id: "word-wrap",
-        label: wordWrap ? "Turn Off Word Wrap" : "Turn On Word Wrap",
+        label: wordWrap ? "Turn off word wrap" : "Turn on word wrap",
         run: () => setWordWrap((wrap) => !wrap)
       });
     }
@@ -323,9 +395,15 @@ const TextDocumentEditor = ({
           fullHeight
           sx={{ alignItems: "center", justifyContent: "center" }}
         >
-          <Caption sx={{ color: "error.main" }}>
-            Failed to load text content
-          </Caption>
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Text document failed to load",
+              errorText: textError.message
+            }}
+          >
+            Could not load this text file.
+          </ErrorBanner>
         </FlexColumn>
       );
     }
@@ -372,6 +450,11 @@ const TextDocumentEditor = ({
           value={content}
           language={language ?? "plaintext"}
           wordWrap={wordWrap}
+          placeholder={
+            isMarkdown
+              ? "Start writing. Use the buttons above for headings, bold and lists."
+              : undefined
+          }
           onChange={setContent}
           onSave={handleSave}
           onEditorMount={handleEditorMount}
@@ -391,6 +474,9 @@ const TextDocumentEditor = ({
             onUndo={handleUndo}
             onRedo={handleRedo}
             onToggleWordWrap={() => setWordWrap((w) => !w)}
+            onHeading={isMarkdown ? handleHeading : undefined}
+            onBold={isMarkdown ? handleBold : undefined}
+            onBulletList={isMarkdown ? handleBulletList : undefined}
             canUndo={canUndo}
             canRedo={canRedo}
             wordWrapEnabled={wordWrap}

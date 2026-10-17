@@ -81,7 +81,7 @@ describe("GradientEditor", () => {
     render(<Harness initial={[{ t: 0, color: "#ff0000" }]} maxStops={2} onChange={onChange} />);
     fireEvent.keyDown(stopHandle(1), { key: "Backspace" });
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Remove stop" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete stop" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Add stop" }));
     expect(onChange).toHaveBeenLastCalledWith([{ t: 0, color: "#ff0000" }, { t: 0.5, color: "#ff0000" }]);
     expect(screen.getByRole("button", { name: "Add stop" })).toBeDisabled();
@@ -195,7 +195,7 @@ describe("GradientEditor", () => {
     fireEvent.doubleClick(bar, { clientX: 50, clientY: 12 });
     expect(screen.getByLabelText("Stop 1 colour")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Add stop" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Remove stop" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Delete stop" })).toBeDisabled();
     expect(onChange).not.toHaveBeenCalled();
   });
 

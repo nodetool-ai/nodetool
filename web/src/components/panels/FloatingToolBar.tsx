@@ -778,7 +778,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             toolbar within a phone-width row. */}
         {editorViewMode === "graph" && !isMobile && (
           <Tooltip
-            title="Auto Layout"
+            title="Auto layout"
             placement="top"
           >
             <button

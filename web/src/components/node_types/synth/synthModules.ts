@@ -93,7 +93,7 @@ export const SYNTH_MODULE_CONFIGS: Readonly<Record<string, SynthModuleConfig>> =
           max: 0.95,
           default: 0.5
         },
-        { name: "fm_amount", label: "FM Amt", min: 0, max: 10, default: 0 }
+        { name: "fm_amount", label: "FM amt", min: 0, max: 10, default: 0 }
       ]
     },
     "nodetool.audio.synth.LFO": {
@@ -193,7 +193,7 @@ export const SYNTH_MODULE_CONFIGS: Readonly<Record<string, SynthModuleConfig>> =
           unit: "hz"
         },
         { name: "q", label: "Res", min: 0.1, max: 10, default: 0.707 },
-        { name: "cv_amount", label: "CV Amt", min: 0, max: 5, default: 1 }
+        { name: "cv_amount", label: "CV amt", min: 0, max: 5, default: 1 }
       ]
     },
     "nodetool.audio.synth.Attenuverter": {

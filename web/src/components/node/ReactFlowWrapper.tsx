@@ -94,7 +94,8 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { trpcClient } from "../../trpc/client";
-import { Text, LoadingSpinner } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
+import { LoadingSpinner } from "../ui_primitives";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
@@ -330,7 +331,9 @@ const ReactFlowWrapper = ({
   } | null>(null);
   const ghostRafRef = useRef<number | null>(null);
   const ghostTheme = useMemo(() => {
-    const isDark = theme.palette.mode === "dark";
+    // theme.palette.mode is fixed to the default scheme under the CSS-vars
+    // theme; the `dark` class on <html> is the live mode.
+    const isDark = isDarkMode;
     return {
       textColor: isDark
         ? "rgba(226, 232, 255, 0.95)"
@@ -352,7 +355,7 @@ const ReactFlowWrapper = ({
       // Fixed drag preview: above canvas/panels, below the node menu.
       zIndex: theme.zIndex.floating
     };
-  }, [theme.palette.mode, theme.vars.palette.primary.main, theme.zIndex.floating]);
+  }, [isDarkMode, theme.vars.palette.primary.main, theme.zIndex.floating]);
 
   const backgroundStyle = useMemo(
     () => ({
@@ -1005,16 +1008,23 @@ const ReactFlowWrapper = ({
   if (!workflowExistsLocally && isLoading) {
     return (
       <div className="loading-overlay">
-        <LoadingSpinner /> Loading workflow…
+        <LoadingSpinner text="Loading workflow" />
       </div>
     );
   }
   if (!workflowExistsLocally && error) {
     return (
       <div className="loading-overlay">
-        <Text color="error">
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "Workflow failed to load",
+            errorText: error.message,
+            workflowId
+          }}
+        >
           {error.message}
-        </Text>
+        </ErrorBanner>
       </div>
     );
   }

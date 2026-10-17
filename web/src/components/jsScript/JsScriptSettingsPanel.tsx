@@ -12,6 +12,7 @@ import {
   FlexColumn,
   LabeledSwitch,
   ScrollArea,
+  NumberField,
   TextInput,
   SPACING
 } from "../ui_primitives";
@@ -128,10 +129,11 @@ const JsScriptSettingsPanel = ({
         </FlexColumn>
 
         <Divider />
-        <TextInput
+        <NumberField
           label={`Timeout (seconds, max ${JS_SCRIPT_MAX_TIMEOUT_SECONDS})`}
           size="small"
-          type="number"
+          min={0}
+          max={JS_SCRIPT_MAX_TIMEOUT_SECONDS}
           value={String(document.timeoutSeconds)}
           disabled={readOnly}
           onChange={(event) => {

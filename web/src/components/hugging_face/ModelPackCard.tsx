@@ -229,10 +229,10 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             }}
           >
             {allDownloaded
-              ? "All Downloaded"
+              ? "All downloaded"
               : someDownloaded
                 ? `Download ${pack.models.length - downloadedModels.size} Remaining`
-                : "Download All"}
+                : "Download all"}
           </EditorButton>
         </Tooltip>
 

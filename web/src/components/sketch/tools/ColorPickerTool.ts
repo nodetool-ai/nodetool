@@ -51,7 +51,7 @@ export class ColorPickerTool implements ToolHandler {
 
 export const definition: ToolDefinition = {
   tool: "eyedropper",
-  label: "Color Picker",
+  label: "Color picker",
   Icon: ColorizeIcon,
   group: "painting"
 };

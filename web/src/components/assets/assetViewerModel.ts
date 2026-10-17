@@ -67,7 +67,7 @@ export function editActionFor(
           kind: "tab",
           tabType: "image",
           title: asset.name || "Image",
-          tooltip: "Edit Image"
+          tooltip: "Edit image"
         };
   }
   if (media.isModel3D) {
@@ -75,7 +75,7 @@ export function editActionFor(
       kind: "tab",
       tabType: "model3d",
       title: asset.name || "3D model",
-      tooltip: "Edit in 3D Editor"
+      tooltip: "Edit in 3D editor"
     };
   }
   if (media.isAudio) {
@@ -83,15 +83,15 @@ export function editActionFor(
       kind: "tab",
       tabType: "audio",
       title: asset.name || "Audio",
-      tooltip: "Edit Audio"
+      tooltip: "Edit audio"
     };
   }
   if (media.isVideo) {
     return {
       kind: "video",
       tooltip: asset.timeline_id
-        ? "Edit Timeline"
-        : "Create Timeline from Video"
+        ? "Edit timeline"
+        : "Create timeline from video"
     };
   }
   if (isSpreadsheetAsset(asset) || previewKind(asset) === "csv") {
@@ -99,7 +99,7 @@ export function editActionFor(
       kind: "tab",
       tabType: "text",
       title: asset.name || "Table",
-      tooltip: "Edit Table"
+      tooltip: "Edit table"
     };
   }
   return null;
@@ -111,15 +111,15 @@ export function copyTooltip(contentType: string, copied: boolean): string {
     return "Copied!";
   }
   if (contentType.startsWith("image/")) {
-    return "Copy Image";
+    return "Copy image";
   }
   if (contentType.startsWith("video/")) {
-    return "Copy Video Info";
+    return "Copy video info";
   }
   if (contentType.startsWith("audio/")) {
-    return "Copy Audio Info";
+    return "Copy audio info";
   }
-  return "Copy Content";
+  return "Copy content";
 }
 
 export type FilmstripThumb = { asset: Asset; index: number };

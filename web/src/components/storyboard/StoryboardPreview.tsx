@@ -16,7 +16,8 @@ import {
   FlexColumn,
   FlexRow,
   PADDING,
-  SPACING
+  SPACING,
+  EmptyState
 } from "../ui_primitives";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { buildPreviewSequence, previewSignature } from "./previewSequence";
@@ -74,9 +75,11 @@ const StoryboardPreviewInner: React.FC<StoryboardPreviewProps> = ({
   if (!preview) {
     return (
       <Box sx={emptySx} className="storyboard-preview storyboard-preview--empty">
-        <Caption color="secondary">
-          Nothing to preview yet — generate stills or clips first.
-        </Caption>
+        <EmptyState
+          size="small"
+          title="Nothing to preview yet"
+          description="Generate stills or clips first."
+        />
       </Box>
     );
   }

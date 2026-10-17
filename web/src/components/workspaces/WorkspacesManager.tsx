@@ -19,9 +19,9 @@ import {
   WORKSPACES_QUERY_KEY
 } from "../../hooks/useWorkspaces";
 import { useFolderPicker } from "./useFolderPicker";
+import ErrorBanner from "../support/ErrorBanner";
 import { ConfirmDialog, EmptyState } from "../ui_primitives";
 import {
-  Box,
   Chip,
   EditorButton,
   FlexColumn,
@@ -229,17 +229,17 @@ const WorkspacesManager: React.FC = () => {
               <LoadingSpinner size="medium" />
             </FlexRow>
           ) : error ? (
-            <Box className="empty-state">
-              <Text color="error" sx={{ mb: 1 }}>
-                Unable to load workspaces
-              </Text>
-              <Text size="small" color="secondary" sx={{ mb: 2 }}>
-                Check your connection and try again
-              </Text>
-              <EditorButton variant="outlined" onClick={handleRetry}>
-                Retry
-              </EditorButton>
-            </Box>
+            <ErrorBanner
+              title="Could not load workspaces"
+              onRetry={handleRetry}
+              report={{
+                source: "operation-failure",
+                summary: "Workspaces failed to load",
+                errorText: error instanceof Error ? error.message : String(error)
+              }}
+            >
+              Check your connection and try again.
+            </ErrorBanner>
           ) : workspaces.length > 0 ? (
             <List className="workspace-list">
               {workspaces.map((workspace) => (

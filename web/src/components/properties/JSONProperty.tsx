@@ -199,7 +199,7 @@ const JSONProperty = (props: PropertyProps<JSONValue | null>) => {
       <>
         <ToolbarIconButton
           className="inspector-supplemental-action"
-          tooltip="Open Editor"
+          tooltip="Open editor"
           icon={<OpenInFullIcon />}
           onClick={toggleExpand}
           size="small"
@@ -240,7 +240,7 @@ const JSONProperty = (props: PropertyProps<JSONValue | null>) => {
         {!props.isInspector && isHovered ? (
           <div className="json-action-buttons">
             <ToolbarIconButton
-              tooltip="Open Editor"
+              tooltip="Open editor"
               icon={<OpenInFullIcon />}
               onClick={toggleExpand}
               size="small"

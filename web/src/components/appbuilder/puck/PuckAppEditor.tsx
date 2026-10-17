@@ -215,7 +215,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               onClick={onToggleData}
               aria-pressed={dataOpen}
             >
-              App Data
+              App data
             </EditorButton>
           )}
           {onClose && (

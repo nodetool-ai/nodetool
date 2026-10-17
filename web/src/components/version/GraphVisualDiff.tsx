@@ -7,7 +7,7 @@ import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
-import { Caption, FlexColumn, FlexRow, Surface, Tooltip, StatusDot } from "../ui_primitives";
+import { Caption, FlexColumn, FlexRow, Surface, Tooltip, StatusDot, EmptyState } from "../ui_primitives";
 
 interface GraphVisualDiffProps {
   diff: GraphDiff;
@@ -29,12 +29,15 @@ interface MiniNodeProps {
 const MiniNode: React.FC<MiniNodeProps> = memo(function MiniNode({ node, x, y, status, width, height }) {
   const theme = useTheme();
 
-  const colors = useMemo(() => ({
-    added: { bg: theme.palette.success.main, border: theme.palette.success.dark, text: theme.palette.success.contrastText },
-    removed: { bg: theme.palette.error.main, border: theme.palette.error.dark, text: theme.palette.error.contrastText },
-    modified: { bg: theme.palette.warning.main, border: theme.palette.warning.dark, text: theme.palette.warning.contrastText },
-    unchanged: { bg: theme.palette.action.selected, border: theme.palette.divider, text: theme.palette.text.secondary }
-  }), [theme.palette.success.main, theme.palette.success.dark, theme.palette.success.contrastText, theme.palette.error.main, theme.palette.error.dark, theme.palette.error.contrastText, theme.palette.warning.main, theme.palette.warning.dark, theme.palette.warning.contrastText, theme.palette.action.selected, theme.palette.divider, theme.palette.text.secondary]);
+  // theme.vars (CSS variables) so the colours follow the active light/dark
+  // scheme; theme.palette is baked from one scheme at createTheme time.
+  const palette = theme.vars.palette;
+  const colors = {
+    added: { bg: palette.success.main, border: palette.success.dark, text: palette.success.contrastText },
+    removed: { bg: palette.error.main, border: palette.error.dark, text: palette.error.contrastText },
+    modified: { bg: palette.warning.main, border: palette.warning.dark, text: palette.warning.contrastText },
+    unchanged: { bg: palette.action.selected, border: palette.divider, text: palette.text.secondary }
+  };
 
   const color = colors[status];
 
@@ -80,7 +83,7 @@ const MiniEdge: React.FC<{
   status: "added" | "removed" | "unchanged";
 }> = memo(function MiniEdge({ x1, y1, x2, y2, status }) {
   const theme = useTheme();
-  const color = status === "added" ? theme.palette.success.main : status === "removed" ? theme.palette.error.main : theme.palette.text.disabled;
+  const color = status === "added" ? theme.vars.palette.success.main : status === "removed" ? theme.vars.palette.error.main : theme.vars.palette.text.disabled;
   const strokeWidth = status !== "unchanged" ? 2 : 1;
   const opacity = status === "removed" ? 0.4 : 1;
 
@@ -219,7 +222,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
         sx={{
           width,
           height,
-          bgcolor: theme.palette.action.hover,
+          bgcolor: theme.vars.palette.action.hover,
         }}
       >
         <FlexColumn
@@ -228,9 +231,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           align="center"
           justify="center"
         >
-          <Caption color="secondary">
-            No changes to display
-          </Caption>
+          <EmptyState variant="no-data" size="small" title="No changes to display" />
         </FlexColumn>
       </Surface>
     );
@@ -241,7 +242,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
       sx={{
         width,
         height,
-        bgcolor: theme.palette.action.hover,
+        bgcolor: theme.vars.palette.action.hover,
         overflow: "hidden",
         position: "relative"
       }}
@@ -257,7 +258,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
               refY="2"
               orient="auto"
             >
-              <polygon points="0 0, 6 2, 0 4" fill={theme.palette.success.main} />
+              <polygon points="0 0, 6 2, 0 4" fill={theme.vars.palette.success.main} />
             </marker>
             <marker
               id="arrowhead-removed"
@@ -267,7 +268,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
               refY="2"
               orient="auto"
             >
-              <polygon points="0 0, 6 2, 0 4" fill={theme.palette.error.main} />
+              <polygon points="0 0, 6 2, 0 4" fill={theme.vars.palette.error.main} />
             </marker>
             <marker
               id="arrowhead-unchanged"
@@ -277,7 +278,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
               refY="2"
               orient="auto"
             >
-              <polygon points="0 0, 6 2, 0 4" fill={theme.palette.text.disabled} />
+              <polygon points="0 0, 6 2, 0 4" fill={theme.vars.palette.text.disabled} />
             </marker>
           </defs>
 

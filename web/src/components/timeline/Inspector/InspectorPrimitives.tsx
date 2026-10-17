@@ -14,10 +14,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
+  Card,
   Divider,
-  EYEBROW,
   FlexRow,
+  SectionHeader,
   Slider,
   ToolbarIconButton,
   CONTROL,
@@ -94,55 +94,56 @@ interface InspectorHeaderProps {
   actions?: InspectorHeaderAction[];
 }
 
-/** Eyebrow label + trailing action icon row (e.g. `+`, `✂`, `🗑`). */
+/**
+ * Eyebrow label + trailing action icon row (e.g. `+`, `✂`, `🗑`): the shared
+ * `SectionHeader size="small"` at the inspector's control height.
+ */
 export const InspectorHeader: React.FC<InspectorHeaderProps> = memo(
   ({ eyebrow, actions }) => (
-    <FlexRow align="center" gap={SPACING.md} sx={{ height: CONTROL.height.md, px: SPACING.xs }}>
-      <Box component="span" sx={{ ...EYEBROW, flex: "1 1 auto", color: "text.secondary", userSelect: "none" }}>
-        {eyebrow}
-      </Box>
-      {actions && actions.length > 0 && (
-        <FlexRow align="center" gap={SPACING.micro}>
-          {actions.map((action) => (
-            <ToolbarIconButton
-              key={action.label}
-              icon={action.icon}
-              tooltip={action.label}
-              size="small"
-              variant={action.variant === "danger" ? "error" : "default"}
-              onClick={action.onClick}
-              disabled={action.disabled}
-            />
-          ))}
-        </FlexRow>
-      )}
-    </FlexRow>
+    <SectionHeader
+      title={eyebrow}
+      size="small"
+      sx={{ height: CONTROL.height.md, py: SPACING.none, px: SPACING.xs, gap: SPACING.md, userSelect: "none" }}
+      action={
+        actions && actions.length > 0 ? (
+          <FlexRow align="center" gap={SPACING.micro}>
+            {actions.map((action) => (
+              <ToolbarIconButton
+                key={action.label}
+                icon={action.icon}
+                tooltip={action.label}
+                size="small"
+                variant={action.variant === "danger" ? "error" : "default"}
+                onClick={action.onClick}
+                disabled={action.disabled}
+              />
+            ))}
+          </FlexRow>
+        ) : undefined
+      }
+    />
   )
 );
 InspectorHeader.displayName = "InspectorHeader";
 
 // ── Identity card ──────────────────────────────────────────────────────────
 
-// A card sets the identity block (a clip, a shot) apart from the section list
-// below it.
-const inspectorCardStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    flexDirection: "column",
-    gap: getSpacingPx(SPACING.xs),
-    padding: getSpacingPx(SPACING.md),
-    marginBottom: getSpacingPx(SPACING.md),
-    backgroundColor: theme.vars.palette.background.paper,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: BORDER_RADIUS.lg
-  });
-
-/** The card at the top of an inspector panel that names what it edits. */
+/**
+ * The card at the top of an inspector panel that names what it edits (a clip,
+ * a shot): the shared outlined `Card`, setting the identity block apart from
+ * the section list below it.
+ */
 export const InspectorCard: React.FC<{ children: React.ReactNode }> = memo(
-  ({ children }) => {
-    const theme = useTheme();
-    return <div css={inspectorCardStyles(theme)}>{children}</div>;
-  }
+  ({ children }) => (
+    <Card
+      variant="outlined"
+      radius="lg"
+      padding={SPACING.md}
+      sx={{ display: "flex", flexDirection: "column", gap: SPACING.xs, mb: SPACING.md }}
+    >
+      {children}
+    </Card>
+  )
 );
 InspectorCard.displayName = "InspectorCard";
 
@@ -224,28 +225,7 @@ InspectorRow.displayName = "InspectorRow";
 
 // ── Static value ───────────────────────────────────────────────────────────
 
-const staticValueStyles = (theme: Theme) =>
-  css({
-    ...TYPOGRAPHY.mono.code,
-    color: theme.vars.palette.text.secondary,
-    maxWidth: 160,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap"
-  });
-
-/** Read-only mono value for rows that display but don't edit (type, IDs). */
-export const InspectorStaticValue: React.FC<{ value: string }> = memo(
-  ({ value }) => {
-    const theme = useTheme();
-    return (
-      <span css={staticValueStyles(theme)} title={value}>
-        {value}
-      </span>
-    );
-  }
-);
-InspectorStaticValue.displayName = "InspectorStaticValue";
+export { InspectorStaticValue } from "../../ui_primitives";
 
 // ── Shared inspector controls ─────────────────────────────────────────────
 

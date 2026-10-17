@@ -116,9 +116,10 @@ const tileStyles = (theme: Theme) =>
       transition: `transform ${MOTION.slow}`,
       "& svg": {
         fontSize: "var(--fontSizeBig)",
-        filter: theme.palette.mode === "dark"
-          ? `drop-shadow(0 3px 5px ${theme.vars.palette.c_scrim_soft})`
-          : "none"
+        filter: "none",
+        [theme.getColorSchemeSelector("dark")]: {
+          filter: `drop-shadow(0 3px 5px ${theme.vars.palette.c_scrim_soft})`
+        }
       }
     },
     ".tile-label": {
@@ -307,7 +308,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   return (
     <div css={memoizedStyles}>
       <div className="tiles-header">
-        <Text size="normal" weight={600}>Recent Nodes</Text>
+        <Text size="normal" weight={600}>Recent nodes</Text>
         <ToolbarIconButton
           icon={<ClearIcon fontSize="small" />}
           tooltip="Clear recent nodes"

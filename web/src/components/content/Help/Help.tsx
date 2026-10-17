@@ -216,7 +216,7 @@ const Help = ({
             <TabPanel value="datatypes" activeValue={activeTab} className="tabpanel">
               <Box className="tabpanel-content">
                 <DataTypesList
-                  title="Nodetool Data Types"
+                  title="NodeTool data types"
                   dataTypes={nodetoolTypes}
                   expanded={expandedNodetool}
                   onChange={handleAccordionChange("nodetool")}

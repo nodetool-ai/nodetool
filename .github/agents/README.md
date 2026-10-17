@@ -14,7 +14,7 @@ All AI agents should follow these steps to set up and run E2E tests:
 ### 1. Build Backend
 
 ```bash
-nvm use                    # Activate Node 22
+nvm use                    # Activate the Node version in .nvmrc
 npm install
 npm run build:packages     # Build all TS packages in dependency order
 ```
@@ -37,13 +37,13 @@ npm run test:e2e
 The Playwright configuration automatically:
 - Starts the real backend (`packages/websocket/src/screenshot-server.ts`) on port 7777 via `tests/globalSetup.ts`
 - Starts the frontend dev server on port 3000
-- Runs all e2e tests
+- Runs the documentation screenshot suite (`tests/benchmarks/screenshots.spec.ts` and `studio-screenshots.spec.ts`)
 - Cleans up servers after tests complete
 
 ### 4. Test Structure
 
 - **Unit/Integration Tests**: `web/src/**/__tests__/**/*.test.ts(x)`
-- **E2E Tests**: `web/tests/**/*.spec.ts` — `npm run test:e2e` ignores `tests/e2e-runner/` and `tests/journeys/`, which have their own configs (`npm run test:e2e-runner`, `npm run test:journeys`)
+- **E2E Tests**: `web/tests/**/*.spec.ts` — `npm run test:e2e` matches only the screenshot specs in `tests/benchmarks/`. Other suites have their own configs, for example `npm run test:e2e-runner` and `npm run test:journeys`
 
 ### 5. Debugging
 

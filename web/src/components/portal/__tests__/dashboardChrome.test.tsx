@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-import { DashboardSearchBox } from "../dashboardChrome";
+import { DashboardSearchBox, DashboardSectionHeader } from "../dashboardChrome";
 
 const renderBox = (
   props: Partial<React.ComponentProps<typeof DashboardSearchBox>> = {}
@@ -79,5 +79,23 @@ describe("DashboardSearchBox", () => {
     );
     screen.getByText("focus").click();
     expect(screen.getByLabelText("Search")).toHaveFocus();
+  });
+});
+
+describe("DashboardSectionHeader", () => {
+  it("renders the shared SectionHeader with a heading, count and actions", () => {
+    const { container } = render(
+      <ThemeProvider theme={mockTheme}>
+        <DashboardSectionHeader title="Recipes" count="12">
+          <button type="button">Browse all</button>
+        </DashboardSectionHeader>
+      </ThemeProvider>
+    );
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Recipes" })
+    ).toHaveClass("section-header-title");
+    expect(screen.getByText("12")).toHaveClass("section-header-count");
+    expect(screen.getByRole("button", { name: "Browse all" })).toBeInTheDocument();
+    expect(container.querySelectorAll("h2")).toHaveLength(1);
   });
 });

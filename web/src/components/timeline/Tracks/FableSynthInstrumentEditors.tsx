@@ -23,7 +23,8 @@ import {
   EditorButton,
   FlexRow,
   Label,
-  SPACING
+  SPACING,
+  Tooltip
 } from "../../ui_primitives";
 import { useBatchedGesture } from "../../../hooks/timeline/useBatchedGesture";
 
@@ -136,57 +137,61 @@ const Knob: React.FC<KnobProps> = ({
             transform={`rotate(${degrees} 40 40)`}
           />
         </svg>
-        <input
-          type="range"
-          aria-label={def.label}
-          aria-valuetext={def.fmt?.(value) ?? String(value)}
+        <Tooltip
           title="Drag up or down. Shift for fine adjustment. Double-click to reset."
-          min="0"
-          max="1"
-          step={def.curve === "int" ? 1 / (def.max - def.min) : 0.01}
-          value={norm}
-          onChange={(event) =>
-            onChange(normToValue(def, Number(event.target.value)))
-          }
-          onPointerDown={(event) => {
-            if (event.button !== 0) return;
-            event.preventDefault();
-            event.currentTarget.focus();
-            event.currentTarget.setPointerCapture(event.pointerId);
-            drag.current = { y: event.clientY, norm };
-            gesture.begin();
-          }}
-          onPointerMove={(event) => {
-            if (!drag.current) return;
-            const next = Math.min(
-              1,
-              Math.max(
-                0,
-                drag.current.norm +
-                  (drag.current.y - event.clientY) *
-                    (event.shiftKey ? 0.001 : 0.005)
-              )
-            );
-            drag.current = { y: event.clientY, norm: next };
-            gesture.schedule(normToValue(def, next));
-          }}
-          onPointerUp={(event) => {
-            drag.current = null;
-            gesture.commit();
-            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-              event.currentTarget.releasePointerCapture(event.pointerId);
+          describeChild
+        >
+          <input
+            type="range"
+            aria-label={def.label}
+            aria-valuetext={def.fmt?.(value) ?? String(value)}
+            min="0"
+            max="1"
+            step={def.curve === "int" ? 1 / (def.max - def.min) : 0.01}
+            value={norm}
+            onChange={(event) =>
+              onChange(normToValue(def, Number(event.target.value)))
             }
-          }}
-          onLostPointerCapture={() => {
-            drag.current = null;
-            gesture.commit();
-          }}
-          onPointerCancel={() => {
-            drag.current = null;
-            gesture.commit();
-          }}
-          onDoubleClick={() => onChange(def.def)}
-        />
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              event.preventDefault();
+              event.currentTarget.focus();
+              event.currentTarget.setPointerCapture(event.pointerId);
+              drag.current = { y: event.clientY, norm };
+              gesture.begin();
+            }}
+            onPointerMove={(event) => {
+              if (!drag.current) return;
+              const next = Math.min(
+                1,
+                Math.max(
+                  0,
+                  drag.current.norm +
+                    (drag.current.y - event.clientY) *
+                      (event.shiftKey ? 0.001 : 0.005)
+                )
+              );
+              drag.current = { y: event.clientY, norm: next };
+              gesture.schedule(normToValue(def, next));
+            }}
+            onPointerUp={(event) => {
+              drag.current = null;
+              gesture.commit();
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }
+            }}
+            onLostPointerCapture={() => {
+              drag.current = null;
+              gesture.commit();
+            }}
+            onPointerCancel={() => {
+              drag.current = null;
+              gesture.commit();
+            }}
+            onDoubleClick={() => onChange(def.def)}
+          />
+        </Tooltip>
       </span>
       <span className="fs-k-label">{def.label}</span>
       <span className="fs-k-value">{def.fmt?.(value) ?? value.toFixed(2)}</span>

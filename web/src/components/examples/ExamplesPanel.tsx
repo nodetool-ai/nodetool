@@ -21,7 +21,8 @@ import {
   getSpacingPx,
   listPanelStyles,
   selectableTileStyles,
-  selectedTileStyles
+  selectedTileStyles,
+  Tooltip
 } from "../ui_primitives";
 import {
   useExampleGroups,
@@ -106,45 +107,50 @@ const ExampleCard = memo(function ExampleCard({
   const handleThumbError = useCallback(() => setThumbFailed(true), []);
 
   return (
-    <button
-      type="button"
-      className={opening ? "example-card active" : "example-card"}
-      title={entry.secondary || undefined}
-      aria-busy={opening}
-      draggable={drag !== undefined}
-      onDragStart={drag ? handleDragStart : undefined}
-      onDragEnd={drag ? clearDrag : undefined}
-      onClick={handleOpen}
+    <Tooltip
+      title={entry.secondary ?? ""}
+      disabled={!entry.secondary}
+      describeChild
     >
-      <span className="example-thumb" aria-hidden>
-        {thumbnail && !thumbFailed ? (
-          <ResponsiveImage
-            locator={thumbnail}
-            alt=""
-            aspectRatio="16 / 9"
-            loading="lazy"
-            preferThumbnail
-            showErrorFallback={false}
-            onError={handleThumbError}
-          />
-        ) : (
-          <Icon />
-        )}
-        {opening && (
-          <span className="example-busy">
-            <LoadingSpinner size="small" />
-          </span>
-        )}
-      </span>
-      <span className="example-body">
-        <TruncatedText sx={TYPOGRAPHY.sans.label}>
-          {entry.name || "Untitled example"}
-        </TruncatedText>
-        <Caption color="secondary" noWrap>
-          {opening ? "Adding a copy…" : entry.secondary}
-        </Caption>
-      </span>
-    </button>
+      <button
+        type="button"
+        className={opening ? "example-card active" : "example-card"}
+        aria-busy={opening}
+        draggable={drag !== undefined}
+        onDragStart={drag ? handleDragStart : undefined}
+        onDragEnd={drag ? clearDrag : undefined}
+        onClick={handleOpen}
+      >
+        <span className="example-thumb" aria-hidden>
+          {thumbnail && !thumbFailed ? (
+            <ResponsiveImage
+              locator={thumbnail}
+              alt=""
+              aspectRatio="16 / 9"
+              loading="lazy"
+              preferThumbnail
+              showErrorFallback={false}
+              onError={handleThumbError}
+            />
+          ) : (
+            <Icon />
+          )}
+          {opening && (
+            <span className="example-busy">
+              <LoadingSpinner size="small" />
+            </span>
+          )}
+        </span>
+        <span className="example-body">
+          <TruncatedText sx={TYPOGRAPHY.sans.label}>
+            {entry.name || "Untitled example"}
+          </TruncatedText>
+          <Caption color="secondary" noWrap>
+            {opening ? "Adding a copy…" : entry.secondary}
+          </Caption>
+        </span>
+      </button>
+    </Tooltip>
   );
 });
 

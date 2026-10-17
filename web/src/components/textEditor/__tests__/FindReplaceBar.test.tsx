@@ -118,7 +118,20 @@ jest.mock("../../ui_primitives", () => ({
       maxLength={slotProps?.htmlInput?.maxLength}
     />
   ),
-  Box: ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>
+  Box: ({ children, ...props }: React.ComponentProps<"div">) => <div {...props}>{children}</div>,
+  Toolbar: ({
+    children,
+    className,
+    role,
+    "aria-label": ariaLabel
+  }: React.ComponentProps<"div">) => (
+    <div className={className} role={role} aria-label={ariaLabel} data-testid="toolbar">
+      {children}
+    </div>
+  ),
+  ToolbarGroup: ({ children, className }: React.ComponentProps<"div">) => (
+    <div className={className}>{children}</div>
+  )
 }));
 
 describe("FindReplaceBar", () => {
@@ -167,6 +180,13 @@ describe("FindReplaceBar", () => {
     expect(screen.getByTestId("arrow-down-icon")).toBeInTheDocument();
   });
 
+  it("renders as a labelled toolbar", () => {
+    renderWithTheme();
+    expect(
+      screen.getByRole("toolbar", { name: "Find and replace" })
+    ).toBeInTheDocument();
+  });
+
   it("renders close button", () => {
     renderWithTheme();
     expect(screen.getByTestId("close-button")).toBeInTheDocument();
@@ -205,13 +225,13 @@ describe("FindReplaceBar", () => {
 
   it("shows replace section when toggle replace button is clicked", () => {
     renderWithTheme();
-    expect(screen.queryByPlaceholderText("Replace with...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Replace with…")).not.toBeInTheDocument();
 
     const buttons = screen.getAllByTestId("toolbar-icon-button");
     const toggleButton = buttons[2];
     fireEvent.click(toggleButton);
 
-    expect(screen.getByPlaceholderText("Replace with...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Replace with…")).toBeInTheDocument();
   });
 
   it("calls onFind when search input changes with debounce", () => {
@@ -303,16 +323,16 @@ describe("FindReplaceBar", () => {
   it("maintains replace visibility state correctly", () => {
     renderWithTheme();
 
-    expect(screen.queryByPlaceholderText("Replace with...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Replace with…")).not.toBeInTheDocument();
 
     const buttons = screen.getAllByTestId("toolbar-icon-button");
     const toggleButton = buttons[2];
     fireEvent.click(toggleButton);
 
-    expect(screen.getByPlaceholderText("Replace with...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Replace with…")).toBeInTheDocument();
 
     fireEvent.click(toggleButton);
 
-    expect(screen.queryByPlaceholderText("Replace with...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Replace with…")).not.toBeInTheDocument();
   });
 });

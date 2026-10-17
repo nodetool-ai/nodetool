@@ -13,6 +13,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import EditIcon from "@mui/icons-material/Edit";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -826,6 +827,17 @@ function FileBrowserDialog({
                 separator="slash"
                 onNavigate={handleBreadcrumbNavigate}
               />
+              {/* Clicking the bar edits the path; this is the keyboard way. */}
+              <ToolbarIconButton
+                tooltip="Type a path"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleStartEditPath();
+                }}
+                icon={<EditIcon fontSize="small" />}
+                size="small"
+                sx={{ ml: "auto" }}
+              />
             </FlexRow>
           )}
 
@@ -963,6 +975,13 @@ function FileBrowserDialog({
                         selected={isSelected}
                         onClick={() => handleFileClick(file)}
                         onDoubleClick={() => handleFileDoubleClick(file)}
+                        // Space selects (the row's own button); Enter also
+                        // opens, like a double-click.
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            handleFileDoubleClick(file);
+                          }
+                        }}
                         icon={
                           file.is_dir ? (
                             <FolderIcon color="primary" fontSize="small" />

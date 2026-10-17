@@ -114,10 +114,7 @@ const ConnectedAccountsSettings = () => {
         </FlexRow>
 
         {isLoading && (
-          <FlexRow align="center" gap={SPACING.md}>
-            <LoadingSpinner />
-            <Caption>Loading connected accounts…</Caption>
-          </FlexRow>
+          <LoadingSpinner text="Loading connected accounts" />
         )}
 
         {!isLoading && linked && (
@@ -206,7 +203,7 @@ const ConnectedAccountsSettings = () => {
               <Text size="small" family="secondary">
                 {showPending.code}
               </Text>
-              <CopyButton value={showPending.code} tooltip="Copy the link code" />
+              <CopyButton value={showPending.code} tooltip="Copy link code" />
             </FlexRow>
             <FlexRow align="center" gap={SPACING.md}>
               <LoadingSpinner />

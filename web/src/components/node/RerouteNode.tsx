@@ -24,10 +24,10 @@ import { edgesTargeting } from "../../hooks/nodes/edgeIndex";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_DESCRIPTION_DELAY } from "../../config/constants";
 
+// Paper channel from theme.vars so the pill follows the active light/dark
+// scheme (theme.palette.mode is fixed to the default scheme).
 const rerouteBackground = (theme: Theme, alpha: number): string =>
-  theme.palette.mode === "dark"
-    ? `rgba(30 30 30 / ${alpha})`
-    : `rgba(255 255 255 / ${alpha})`;
+  `rgb(${theme.vars.palette.background.paperChannel} / ${alpha})`;
 
 const styles = (theme: Theme) =>
   css({

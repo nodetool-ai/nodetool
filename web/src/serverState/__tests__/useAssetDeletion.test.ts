@@ -1,5 +1,18 @@
 import { renderHook, act } from "@testing-library/react";
 
+type DeletionMutationConfig = {
+  mutationFn: (ids: string[]) => Promise<{ deleted_asset_ids: string[] }>;
+  onSuccess: (data: { deleted_asset_ids: string[] }) => void;
+  onError: (error: Error) => void;
+};
+
+let mockMutationConfig: DeletionMutationConfig | undefined;
+const mutationConfig = (): DeletionMutationConfig => {
+  if (mockMutationConfig === undefined) {
+    throw new Error("useAssetDeletion did not call useMutation");
+  }
+  return mockMutationConfig;
+};
 const mockDeleteAsset = jest.fn();
 const mockAddNotification = jest.fn();
 const mockMutate = jest.fn();
@@ -23,15 +36,18 @@ jest.mock("../../stores/NotificationStore", () => ({
 
 jest.mock("@tanstack/react-query", () => ({
   __esModule: true,
-  useMutation: jest.fn((config: { mutationFn: unknown }) => ({
-    mutateAsync: config.mutationFn,
-    mutate: mockMutate,
-    reset: mockReset,
-    isPending: false,
-    isError: false,
-    isSuccess: false,
-    ...config
-  }))
+  useMutation: jest.fn((config: DeletionMutationConfig) => {
+    mockMutationConfig = config;
+    return {
+      mutateAsync: config.mutationFn,
+      mutate: mockMutate,
+      reset: mockReset,
+      isPending: false,
+      isError: false,
+      isSuccess: false,
+      ...config
+    };
+  })
 }));
 
 import { useAssetDeletion } from "../useAssetDeletion";
@@ -111,8 +127,8 @@ describe("useAssetDeletion", () => {
         tab("workflow:a", "workflow", "a")
       ]
     });
-    const { result } = renderHook(() => useAssetDeletion());
-    const config = result.current.mutation as any;
+    renderHook(() => useAssetDeletion());
+    const config = mutationConfig();
 
     config.onSuccess({ deleted_asset_ids: ["a", "b"] });
 
@@ -124,16 +140,16 @@ describe("useAssetDeletion", () => {
 
   it("leaves the success toast to the caller", () => {
     useWorkspaceTabsStore.setState({ tabs: [] });
-    const { result } = renderHook(() => useAssetDeletion());
-    const config = result.current.mutation as any;
+    renderHook(() => useAssetDeletion());
+    const config = mutationConfig();
 
     config.onSuccess({ deleted_asset_ids: ["a"] });
     expect(mockAddNotification).not.toHaveBeenCalled();
   });
 
   it("configures onError to show error notification", () => {
-    const { result } = renderHook(() => useAssetDeletion());
-    const config = result.current.mutation as any;
+    renderHook(() => useAssetDeletion());
+    const config = mutationConfig();
 
     config.onError(new Error("fail"));
     expect(mockAddNotification).toHaveBeenCalledWith(

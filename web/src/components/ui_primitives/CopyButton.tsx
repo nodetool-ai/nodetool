@@ -7,7 +7,7 @@
  * @example
  * <CopyButton
  *   value="Text to copy"
- *   tooltip="Copy to clipboard"
+ *   tooltip="Copy prompt"
  * />
  */
 
@@ -36,7 +36,7 @@ export interface CopyButtonProps {
   value: unknown;
   /**
    * Tooltip text when not copied
-   * @default "Copy to clipboard"
+   * @default "Copy"
    */
   tooltip?: string;
   /**
@@ -98,7 +98,7 @@ export const CopyButton = memo(
     (
       {
         value,
-        tooltip = "Copy to clipboard",
+        tooltip = "Copy",
         tooltipPlacement = "bottom",
         buttonSize = "small",
         nodrag = true,

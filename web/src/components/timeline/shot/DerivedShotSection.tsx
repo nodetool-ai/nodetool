@@ -11,6 +11,7 @@
 import { memo, useCallback, useState } from "react";
 import { MAX_DERIVED_FRAMES } from "@nodetool-ai/timeline";
 
+import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
   EditorButton,
@@ -109,9 +110,15 @@ const DerivedShotSectionInner = ({ clipId }: DerivedShotSectionProps) => {
         {working ? "Taking frames…" : "Create derived shot"}
       </EditorButton>
       {error && (
-        <Caption color="error" sx={{ textAlign: "center" }}>
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "Creating a derived shot failed",
+            errorText: error
+          }}
+        >
           {error}
-        </Caption>
+        </ErrorBanner>
       )}
       {derived && (
         <ShotRenderDialog

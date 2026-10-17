@@ -396,7 +396,7 @@ describe("MediaChatComposer", () => {
     useMediaGenerationStore.setState({ mode: "image" });
     renderComposer(jest.fn());
 
-    expect(screen.getByRole("button", { name: "Select Model" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Select model" })).toBeVisible();
     expect(screen.getByRole("button", { name: "1K" })).toBeVisible();
     expect(screen.getByRole("button", { name: "16:9" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Generate" })).toBeDisabled();

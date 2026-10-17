@@ -40,7 +40,8 @@ const DOCUMENT_NOUN: Record<ProjectDocument["type"], [string, string]> = {
   application: ["app", "apps"],
   game: ["game", "games"],
   jsscript: ["JS script", "JS scripts"],
-  workflow: ["workflow", "workflows"]
+  workflow: ["workflow", "workflows"],
+  text: ["text file", "text files"]
 };
 
 interface DocumentKindCount {

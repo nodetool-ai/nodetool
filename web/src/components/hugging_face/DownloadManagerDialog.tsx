@@ -46,11 +46,11 @@ const DownloadManagerDialog: React.FC = () => {
   ) : (
     <FlexColumn gap={SPACING.xs}>
       <span>
-        Download models using the <strong>Recommended Models</strong> button
+        Download models using the <strong>Recommended models</strong> button
         inside nodes.
       </span>
       <span>
-        The <strong>Model Manager</strong> in the top right panel shows all
+        The <strong>Model manager</strong> in the top right panel shows all
         available models.
       </span>
     </FlexColumn>

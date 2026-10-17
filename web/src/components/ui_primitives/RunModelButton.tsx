@@ -74,7 +74,7 @@ export interface RunModelButtonProps {
 const RunModelButtonInner = forwardRef<
   HTMLButtonElement,
   RunModelButtonProps
->(({ label = "Run Model", isRunning = false, disabled = false, onClick, className }, ref) => {
+>(({ label = "Run model", isRunning = false, disabled = false, onClick, className }, ref) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 

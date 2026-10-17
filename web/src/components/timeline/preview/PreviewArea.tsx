@@ -46,6 +46,7 @@ import {
   Slider,
   SelectField,
   ToolbarIconButton,
+  focusRing,
   SPACING,
   TYPOGRAPHY,
   Z_INDEX
@@ -166,6 +167,9 @@ const containerStyles = (theme: Theme) =>
     flexDirection: "column",
     overflow: "hidden",
     outline: "none",
+    // The area takes focus for its playback keys; show it when it does. Inset,
+    // because the area clips its overflow.
+    "&:focus-visible": focusRing(theme),
     "&[data-expanded='true']": {
       position: "fixed",
       inset: 0,

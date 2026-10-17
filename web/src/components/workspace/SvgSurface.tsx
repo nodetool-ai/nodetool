@@ -13,6 +13,7 @@ import {
   useWorkspaceTabsStore,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   Caption,
   EditorButton,
@@ -20,8 +21,8 @@ import {
   FlexRow,
   LoadingSpinner,
   SaveState,
-  Text,
-  Toolbar
+  Toolbar,
+  EmptyState
 } from "../ui_primitives";
 import MonacoPane from "./MonacoPane";
 import SvgPreview from "./SvgPreview";
@@ -171,9 +172,23 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
   if (error || !asset) {
     return (
       <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <Text size="normal" weight={600}>
-          {error ? "Failed to load SVG" : "SVG not found"}
-        </Text>
+        {error ? (
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "SVG asset failed to load",
+              errorText: error.message
+            }}
+          >
+            Could not load this SVG.
+          </ErrorBanner>
+        ) : (
+          <EmptyState
+            variant="no-data"
+            title="SVG not found"
+            description="It may have been deleted."
+          />
+        )}
       </FlexColumn>
     );
   }
@@ -181,9 +196,15 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
   if (markupError) {
     return (
       <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <Caption sx={{ color: "error.main" }}>
-          Failed to load SVG content
-        </Caption>
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: "SVG content failed to load",
+            errorText: markupError.message
+          }}
+        >
+          Could not load the SVG content.
+        </ErrorBanner>
       </FlexColumn>
     );
   }

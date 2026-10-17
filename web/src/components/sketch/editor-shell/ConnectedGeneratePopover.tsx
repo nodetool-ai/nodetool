@@ -295,7 +295,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
             <MediaControlChip
               ref={imageModelAnchorRef}
               icon={<ImageIcon fontSize="small" />}
-              label={modelName || "Select Model"}
+              label={modelName || "Select model"}
               active={imageModelOpen}
               onClick={() => setImageModelOpen(true)}
               truncate

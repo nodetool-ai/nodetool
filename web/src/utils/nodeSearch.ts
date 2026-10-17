@@ -440,7 +440,7 @@ export function computeSearchResults(
     return {
       sortedResults,
       groupedResults: [
-        { title: selectedPathString || "All Nodes", nodes: sortedResults }
+        { title: selectedPathString || "All nodes", nodes: sortedResults }
       ],
       allMatches: sortedResults
     };

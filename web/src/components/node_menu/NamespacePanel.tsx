@@ -243,11 +243,6 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
             }}
             role="button"
             tabIndex={0}
-            title={
-              searchTerm.length > minSearchTermLength
-                ? "Show all results"
-                : "Home"
-            }
           >
             <div className="namespace-item">
               <HomeNamespaceIcon />

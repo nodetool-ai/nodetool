@@ -32,6 +32,7 @@ import {
   Box,
   Caption,
   Chip,
+  DropZone,
   FlexColumn,
   FlexRow,
   GAP,
@@ -47,6 +48,7 @@ import { useSetupMediaImport } from "../../../hooks/timeline/useSetupMediaImport
 import type { SetupMediaImportResult } from "../../../hooks/timeline/useSetupMediaImport";
 import { assetIdFromLocator } from "../../../utils/mediaRef";
 import ReportBugButton from "../../support/ReportBugButton";
+import ErrorBanner from "../../support/ErrorBanner";
 import { ExampleBriefs } from "../ExampleBriefs";
 import { GalleryFrame } from "../MediaGallery";
 import { AlternativesColumn } from "../AlternativesColumn";
@@ -282,7 +284,10 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   );
 
   return (
-    <Box
+    <DropZone
+      overlay
+      over={dragging}
+      overlayLabel="Drop to place your media"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -293,10 +298,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           md: "minmax(0, 2fr) minmax(240px, 1fr)"
         },
         gap: GAP.spacious,
-        alignItems: "start",
-        borderRadius: BORDER_RADIUS.md,
-        outline: dragging ? "2px dashed" : "none",
-        outlineColor: "primary.main"
+        alignItems: "start"
       }}
     >
       <FlexColumn gap={GAP.comfortable}>
@@ -376,23 +378,22 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   {imported.placed.map((asset) => asset.name).join(" · ")}
                 </Caption>
               ) : null}
-              {imported.failed.map((failure) => (
-                <Caption key={failure.name} component="span" color="error">
-                  {`${failure.name} did not upload: ${failure.reason}`}
-                </Caption>
-              ))}
               {imported.failed.length > 0 ? (
-                <Box>
-                  <ReportBugButton
-                    context={{
-                      source: "operation-failure",
-                      summary: "Video media upload failed",
-                      errorText: imported.failed
-                        .map((failure) => `${failure.name}: ${failure.reason}`)
-                        .join("\n")
-                    }}
-                  />
-                </Box>
+                <ErrorBanner
+                  report={{
+                    source: "operation-failure",
+                    summary: "Video media upload failed",
+                    errorText: imported.failed
+                      .map((failure) => `${failure.name}: ${failure.reason}`)
+                      .join("\n")
+                  }}
+                >
+                  {imported.failed.map((failure) => (
+                    <div key={failure.name}>
+                      {`${failure.name} did not upload: ${failure.reason}`}
+                    </div>
+                  ))}
+                </ErrorBanner>
               ) : null}
               {skippedNames.length > 0 ? (
                 <Caption component="span" color="secondary">
@@ -491,7 +492,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         aria-label="Drop your media"
         onChange={handlePicked}
       />
-    </Box>
+    </DropZone>
   );
 };
 

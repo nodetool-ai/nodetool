@@ -425,7 +425,7 @@ const LayoutCommands = memo(function LayoutCommands() {
   const selectionActions = useSelectionActions();
 
   return (
-    <Command.Group heading="Layout & Alignment">
+    <Command.Group heading="Layout & alignment">
       <Command.Item
         onSelect={() =>
           runCommandAndClose(() => alignNodes({ arrangeSpacing: false }))
@@ -479,13 +479,13 @@ const ViewCommands = memo(function ViewCommands() {
         onSelect={() => runCommandAndClose(toggleVisible)}
       >
         {visible ? <MapOutlinedIcon /> : <MapRoundedIcon />}
-        {visible ? "Hide Mini Map" : "Show Mini Map"}
+        {visible ? "Hide mini map" : "Show mini map"}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => setSnapToGrid(!snapToGrid))}
       >
         {snapToGrid ? <GridOffRoundedIcon /> : <GridOnRoundedIcon />}
-        {snapToGrid ? "Turn Off Snap to Grid" : "Snap to Grid"}
+        {snapToGrid ? "Turn off snap to grid" : "Snap to grid"}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => handleFitView({ padding: 0.5 }))}

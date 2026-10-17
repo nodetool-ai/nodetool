@@ -9,18 +9,15 @@
 
 import { z } from "zod";
 
+import { projectSummaryDocumentType } from "./projects.js";
+
 /**
- * The kinds the navigator opens, spelled as the workspace tab type where one
- * exists. `entity` has no tab — it opens an editor in place.
+ * The kinds the navigator lists: every project document kind, spelled as the
+ * workspace tab type that opens it, plus `entity`, which has no tab — it opens
+ * an editor in place.
  */
 export const documentIndexType = z.enum([
-  "workflow",
-  "application",
-  "sketch",
-  "script",
-  "storyboard",
-  "timeline",
-  "jsscript",
+  ...projectSummaryDocumentType.options,
   "entity"
 ]);
 export type DocumentIndexType = z.infer<typeof documentIndexType>;

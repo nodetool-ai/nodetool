@@ -7,7 +7,9 @@ import type { SerializedStyles } from "@emotion/react";
 import {
   MOTION,
   BORDER_RADIUS,
+  FlexRow,
   SearchInput,
+  SectionHeader,
   SPACING,
   TYPOGRAPHY,
   focusRing,
@@ -33,55 +35,33 @@ export const useSectionWrap = (): SerializedStyles => {
   return wrapStyles(theme);
 };
 
-const headerStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: `${theme.spacing(1)}`,
-    paddingBottom: `${theme.spacing(1)}`,
-    flexWrap: "wrap",
-    ".sec-title": {
-      display: "flex",
-      alignItems: "baseline",
-      gap: `${theme.spacing(1)}`
-    },
-    ".sec-title h2": {
-      ...TYPOGRAPHY.sans.title,
-      margin: 0,
-      color: theme.vars.palette.text.primary
-    },
-    ".sec-count": {
-      ...TYPOGRAPHY.mono.caption,
-      color: theme.vars.palette.text.disabled
-    },
-    ".sec-actions": {
-      display: "flex",
-      alignItems: "center",
-      gap: `${theme.spacing(1)}`
-    }
-  });
-
 interface DashboardSectionHeaderProps {
   title: string;
   count?: string;
   children?: ReactNode;
 }
 
+/** A dashboard section's title row: the shared large `SectionHeader`. */
 export const DashboardSectionHeader = memo(function DashboardSectionHeader({
   title,
   count,
   children
 }: DashboardSectionHeaderProps) {
-  const theme = useTheme();
   return (
-    <div css={headerStyles(theme)}>
-      <div className="sec-title">
-        <h2>{title}</h2>
-        {count && <span className="sec-count">{count}</span>}
-      </div>
-      {children && <div className="sec-actions">{children}</div>}
-    </div>
+    <SectionHeader
+      title={title}
+      titleComponent="h2"
+      size="large"
+      count={count}
+      action={
+        children ? (
+          <FlexRow align="center" gap={SPACING.xs}>
+            {children}
+          </FlexRow>
+        ) : undefined
+      }
+      sx={{ alignItems: "flex-end", flexWrap: "wrap", gap: SPACING.xs, pt: SPACING.none, pb: SPACING.xs }}
+    />
   );
 });
 

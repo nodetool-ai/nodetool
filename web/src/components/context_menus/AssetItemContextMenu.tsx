@@ -16,11 +16,15 @@ import MovieEditIcon from "@mui/icons-material/Movie";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
+import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
+import { assetToEntity } from "../../serverState/useEntities";
+import { openPageTab } from "../workspace/openPageTab";
 import { assetTabType } from "../workspace/assetTabType";
 import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { useSetAssetFavorite } from "../../serverState/useAssetFavorite";
@@ -228,6 +232,22 @@ const AssetItemContextMenu = () => {
   const singleAsset =
     selectedAssets.length === 1 ? selectedAssets[0] : null;
 
+  // A single image that is not yet an entity can start the guided "Add
+  // entity" flow with itself as the reference (study-7: the Entities empty
+  // state points here).
+  const entityCandidate =
+    singleAsset?.content_type?.startsWith("image/") &&
+    !assetToEntity(singleAsset)
+      ? singleAsset
+      : null;
+
+  const handleUseAsEntity = withMenuClose(() => {
+    if (entityCandidate) {
+      useEntityLibraryStore.getState().requestCreate(entityCandidate.id);
+      openPageTab("entities");
+    }
+  });
+
   if (!menuPosition) {return null;}
   if (sendingToWorkflow) {
     return (
@@ -292,6 +312,14 @@ const AssetItemContextMenu = () => {
             tooltip="Add the selected media to a workflow canvas as constant nodes"
           />
         )}
+        {entityCandidate && (
+          <ContextMenuItem
+            onClick={handleUseAsEntity}
+            label="Use as entity…"
+            IconComponent={<PersonAddAltOutlinedIcon />}
+            tooltip="Tag this image as a character, location, style, or prop to reuse it across shots"
+          />
+        )}
         {singleVideo && (
           <ContextMenuItem
             onClick={handleEditVideo}
@@ -343,12 +371,12 @@ const AssetItemContextMenu = () => {
             IconComponent={<ContentCopyIcon />}
             tooltip={
               selectedAssets[0]?.content_type?.startsWith("image/")
-                ? "Copy image to clipboard"
+                ? "Copy image"
                 : selectedAssets[0]?.content_type?.startsWith("video/")
-                ? "Copy video URL and metadata to clipboard"
+                ? "Copy video URL and metadata"
                 : selectedAssets[0]?.content_type?.startsWith("audio/")
-                ? "Copy audio URL and metadata to clipboard"
-                : "Copy content to clipboard"
+                ? "Copy audio URL and metadata"
+                : "Copy content"
             }
           />
         )}

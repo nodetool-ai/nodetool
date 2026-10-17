@@ -200,7 +200,7 @@ const PanelRight: React.FC = () => {
             min={130}
             max={600}
             invert
-            ariaLabel="Resize Inspector panel"
+            ariaLabel="Resize inspector panel"
             onResize={handlePanelResize}
             onResizeStart={() => setPanelDragging(true)}
             onResizeEnd={() => {

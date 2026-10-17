@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "zustand";
+import { asMock, installGlobal, removeGlobal, stub } from "../../test-utils/doubles";
 import type { Workflow } from "../../stores/ApiTypes";
 
 jest.mock("../../trpc/client", () => ({
@@ -48,6 +49,13 @@ jest.mock("../../components/appbuilder/runtime/appRuntimeStore", () =>
   jest.requireActual("../../test-utils/workflowManagerMocks").appRuntimeStoreMock()
 );
 
+const mockAssetDelete = jest.fn();
+jest.mock("../../stores/AssetStore", () => ({
+  useAssetStore: Object.assign(jest.fn(), {
+    getState: () => ({ delete: mockAssetDelete })
+  })
+}));
+
 import type { WorkflowManagerStore } from "../../stores/WorkflowManagerStore";
 
 let mockManager: WorkflowManagerStore;
@@ -62,10 +70,10 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { trpcClient } from "../../trpc/client";
 import { useDeleteDocument } from "../useDeleteDocument";
 
-const deleteMutate = trpcClient.workflows.delete.mutate as jest.Mock;
-const getQuery = trpcClient.workflows.get.query as jest.Mock;
+const deleteMutate = asMock(trpcClient.workflows.delete.mutate);
+const getQuery = asMock(trpcClient.workflows.get.query);
 
-const workflow = {
+const workflow = stub<Workflow>({
   id: "0f3a6c2d9b8e4f1a8c7d6e5f4a3b2c1d",
   name: "Brief",
   description: "",
@@ -74,7 +82,7 @@ const workflow = {
   settings: { shortcut: "CommandOrControl+Shift+B" },
   created_at: "2026-10-01T00:00:00Z",
   updated_at: "2026-10-01T00:00:00Z"
-} as unknown as Workflow;
+});
 
 const setup = () => {
   const queryClient = new QueryClient({
@@ -100,13 +108,13 @@ describe("useDeleteDocument for an open workflow", () => {
     localStorage.clear();
     useFavoriteWorkflowsStore.setState({ favoriteWorkflowIds: [] });
     useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
-    window.api = {
+    installGlobal("api", {
       onDeleteWorkflow: jest.fn().mockResolvedValue(undefined)
-    } as unknown as typeof window.api;
+    });
   });
 
   afterEach(() => {
-    delete (window as { api?: unknown }).api;
+    removeGlobal("api");
   });
 
   it("deletes once and disposes the workflow, its tab, and its favorite", async () => {
@@ -173,5 +181,37 @@ describe("useDeleteDocument for an open workflow", () => {
     expect(window.api.onDeleteWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ settings: workflow.settings })
     );
+  });
+});
+
+describe("useDeleteDocument for a text file", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
+  });
+
+  it("deletes the text file's asset and closes its tab", async () => {
+    mockAssetDelete.mockResolvedValue(["text-1"]);
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false } }
+    });
+    mockManager = createWorkflowManagerStore(queryClient);
+    const tabId = useWorkspaceTabsStore
+      .getState()
+      .openTab({ type: "text", ref: "text-1", title: "Notes.md" });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useDeleteDocument(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ id: "text-1", type: "text" });
+    });
+
+    expect(mockAssetDelete).toHaveBeenCalledWith("text-1");
+    expect(deleteMutate).not.toHaveBeenCalled();
+    expect(
+      useWorkspaceTabsStore.getState().tabs.some((tab) => tab.id === tabId)
+    ).toBe(false);
   });
 });

@@ -251,7 +251,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
             <ToolbarIconButton ariaLabel="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} tooltip="Move down" icon={<ArrowDownwardIcon sx={{ fontSize: 18 }} />} />
             <Box sx={{ flex: 1 }} />
             <ToolbarIconButton ariaLabel="Duplicate node" size="small" onClick={onDuplicate} tooltip="Duplicate" icon={<ContentCopyIcon sx={{ fontSize: 18 }} />} />
-            <ToolbarIconButton ariaLabel="Remove node" size="small" onClick={onRemove} tooltip="Remove" icon={<DeleteOutlineIcon sx={{ fontSize: 18 }} />} sx={{ color: theme.vars.palette.error.main }} />
+            <ToolbarIconButton ariaLabel="Delete node" size="small" onClick={onRemove} tooltip="Delete" icon={<DeleteOutlineIcon sx={{ fontSize: 18 }} />} sx={{ color: theme.vars.palette.error.main }} />
           </FlexRow>
         </FlexColumn>
       </Collapse>

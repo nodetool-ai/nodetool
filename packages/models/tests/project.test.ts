@@ -796,6 +796,12 @@ describe("summarizeProjectDocumentPage", () => {
     });
     await Application.create<Application>(doc("u1"));
     await Workflow.create<Workflow>({ ...doc("u1"), name: "Flow" });
+    await Asset.create<Asset>({
+      user_id: "u1",
+      project_id: "p1",
+      name: "Notes.md",
+      content_type: "text/markdown"
+    });
     // Neither another project's documents nor another user's reach the page.
     await Storyboard.create<Storyboard>(doc("u1", "p2"));
     await Storyboard.create<Storyboard>(doc("u2", "u2-p1"));
@@ -816,7 +822,8 @@ describe("summarizeProjectDocumentPage", () => {
       pages.push(...page.documents);
     }
 
-    expect(overview.documents).toHaveLength(7);
+    expect(overview.documents).toHaveLength(8);
+    expect(overview.documents.map((d) => d.type)).toContain("text");
     expect(pages).toEqual(overview.documents);
   });
 
@@ -838,7 +845,7 @@ describe("summarizeProjectDocumentPage", () => {
       limit: 4
     });
     expect(page.documents).toEqual([]);
-    expect(page.total).toBe(7);
+    expect(page.total).toBe(8);
   });
 
   it("marks the listing partial when a table fills its cap", async () => {

@@ -254,16 +254,17 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           ariaLabel="Workflow name"
           sx={inputSx}
         >
-          <Text
-            className="name"
-            size="small"
-            weight={500}
-            sx={{ lineHeight: 1.35 }}
-            onDoubleClick={handleNameDoubleClick}
-            title="Double-click to rename"
-          >
-            {workflow.name}
-          </Text>
+          <Tooltip title="Double-click to rename" describeChild>
+            <Text
+              className="name"
+              size="small"
+              weight={500}
+              sx={{ lineHeight: 1.35 }}
+              onDoubleClick={handleNameDoubleClick}
+            >
+              {workflow.name}
+            </Text>
+          </Tooltip>
         </InlineEditableText>
         <Box className="actions">
           <FavoriteButton

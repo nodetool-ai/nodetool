@@ -2,8 +2,8 @@ import { useModelProviderSetup } from "../../hooks/useModelProviderSetup";
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
 import isEqual from "../../utils/isEqual";
 
+import ErrorBanner from "../support/ErrorBanner";
 import {
-  Text,
   Caption,
   LoadingSpinner,
   FlexRow,
@@ -115,17 +115,20 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
           </FlexRow>
         ) : ollamaError ? (
           <div style={{ padding: getSpacingPx(SPACING.md), maxWidth: 300 }}>
-            <Text size="small" color="error" sx={{ mb: 1 }}>
-              Could not load Ollama models
-            </Text>
-            <Caption
-              color="secondary"
-              sx={{ display: "block", mb: 1 }}
+            <ErrorBanner
+              title="Could not load Ollama models"
+              report={{
+                source: "operation-failure",
+                summary: "Ollama models failed to load",
+                errorText: isString((ollamaError as { detail?: unknown })?.detail)
+                  ? (ollamaError as { detail?: string }).detail
+                  : String(ollamaError)
+              }}
             >
               {isString((ollamaError as { detail?: unknown })?.detail)
                 ? (ollamaError as { detail?: string }).detail
-                : "Please check that Ollama is running"}
-            </Caption>
+                : "Check that Ollama is running."}
+            </ErrorBanner>
             <Caption
               color="secondary"
               sx={{ display: "block", mt: 1 }}
