@@ -40,4 +40,11 @@ describe("InspectorSection", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
     expect(onToggle).not.toHaveBeenCalled();
   });
+
+  it("shows a passive meta readout without uppercasing it", () => {
+    renderSection({ meta: "#ff00aa" });
+    const meta = screen.getByText("#ff00aa");
+    expect(meta).toHaveClass("inspector-section-meta");
+    expect(meta).toHaveStyle({ textTransform: "none" });
+  });
 });
