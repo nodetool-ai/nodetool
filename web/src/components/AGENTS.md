@@ -71,6 +71,7 @@ If no existing primitive fits your use case:
 
 ## General Rules
 
+- Follow [UX Guidelines](../../../docs/UX_GUIDELINES.md) for behavior and copy, and run its [checklist](../../../docs/UX_GUIDELINES.md#10-checklist-for-a-ui-change) before a UI PR.
 - Use functional components only. No class components.
 - Define a TypeScript interface for all component props.
 - Keep components focused on a single responsibility.

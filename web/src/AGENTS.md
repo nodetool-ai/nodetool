@@ -51,6 +51,7 @@ web/src/
 - **[Components](components/AGENTS.md)** — UI component guidelines, MUI styling
 - **[UI Primitives Strategy](components/ui_primitives/STRATEGY.md)** — **MUST READ for all frontend work.** Primitives-first policy, decision tree for which primitive to use, migration rules, and the full primitive catalog.
 - **[Design System](../../docs/DESIGN.md)** — **MUST READ for any UI work.** Token rules for SPACING, TYPOGRAPHY, BORDER_RADIUS, MOTION, Z_INDEX. Includes migration checklist and forbidden-value tables.
+- **[UX Guidelines](../../docs/UX_GUIDELINES.md)** — **MUST READ for any UI work.** How a screen behaves for a first-time user: entry points, model defaults, keeping work, empty states, errors, labels, small windows. Ends with a checklist for UI changes.
 - **[Stores](stores/AGENTS.md)** — Zustand state management, selectors, persist/temporal middleware
 - **[Contexts](contexts/AGENTS.md)** — React context patterns, provider hierarchy
 - **[Hooks](hooks/AGENTS.md)** — Custom React hook rules, useEffect/useMemo/useCallback guidance

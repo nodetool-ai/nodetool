@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import nodePath from "node:path";
 import { z } from "zod";
 import { Asset } from "@nodetool-ai/models";
+import { createLogger } from "@nodetool-ai/config";
 import { parsePackageAssetUri } from "@nodetool-ai/protocol";
 import {
   anyGameDocument as gameDocument,
@@ -22,6 +23,25 @@ import {
 import { assetObjectKey, type StorageAdapter } from "@nodetool-ai/storage";
 
 const SUFFIX = ".game.json";
+const log = createLogger("nodetool.agents.game-examples");
+
+export interface ExampleGameCleanupFailure {
+  readonly assetId: string;
+  readonly operation: "storage" | "asset";
+  readonly error: unknown;
+}
+
+/** Cleanup diagnostics and retry are available to the in-process install caller. */
+export class ExampleGameAssetRollbackError extends AggregateError {
+  constructor(
+    readonly failures: readonly ExampleGameCleanupFailure[],
+    readonly rollback: () => Promise<void>,
+    cause?: unknown
+  ) {
+    super(failures.map(({ error }) => error), cause instanceof Error ? cause.message : "Failed to remove example game assets", { cause });
+    this.name = "ExampleGameAssetRollbackError";
+  }
+}
 const bundleSchema = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
@@ -154,16 +174,41 @@ export async function installExampleGameAssets(
   options: ExampleGameOptions,
   slug: string,
   storage: StorageAdapter
-): Promise<{ bundle: ExampleGameBundle; document: GameDocument; rollback: () => Promise<void> }> {
+): Promise<{ bundle: ExampleGameBundle; document: GameDocument; rollback: (cause?: unknown) => Promise<void> }> {
   const bundle = getExampleGameBundle(options, slug);
   if (!bundle) {
     throw new Error(`No example game named "${slug}"`);
   }
-  const created: Array<{ asset: Asset; uri: string | null }> = [];
-  const rollback = async (): Promise<void> => {
-    for (const { asset, uri } of created.reverse()) {
-      if (uri) await storage.delete(uri);
-      await asset.delete();
+  const created = new Map<string, { assetId: string; asset: Asset | null; uri: string | null }>();
+  const rollback = async (cause?: unknown): Promise<void> => {
+    const failures: ExampleGameCleanupFailure[] = [];
+    const entries = [...created.values()];
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+      const entry = entries[index];
+      if (!entry) { continue; }
+      if (entry.uri) {
+        try {
+          await storage.delete(entry.uri);
+          entry.uri = null;
+        } catch (error) {
+          failures.push({ assetId: entry.assetId, operation: "storage", error });
+        }
+      }
+      if (entry.asset) {
+        try {
+          await entry.asset.delete();
+          entry.asset = null;
+        } catch (error) {
+          failures.push({ assetId: entry.assetId, operation: "asset", error });
+        }
+      }
+      if (!entry.uri && !entry.asset) { created.delete(entry.assetId); }
+    }
+    if (failures.length) {
+      log.error("Example game asset cleanup failed", { slug, failures: failures.map(({ assetId, operation, error }) => ({
+        assetId, operation, message: error instanceof Error ? error.message : String(error)
+      })) });
+      throw new ExampleGameAssetRollbackError(failures, () => rollback(cause), cause);
     }
   };
   const document = structuredClone(bundle.document);
@@ -188,13 +233,17 @@ export async function installExampleGameAssets(
         metadata: { example_game: slug, game_digest: binding.digest }
       });
       if (!(asset instanceof Asset)) throw new Error("Failed to create example game asset");
-      const entry: { asset: Asset; uri: string | null } = { asset, uri: null };
-      created.push(entry);
-      entry.uri = await storage.store(assetObjectKey(userId, `${asset.id}${extension}`), bytes, contentType);
+      const entry: { assetId: string; asset: Asset | null; uri: string | null } = { assetId: asset.id, asset, uri: null };
+      created.set(asset.id, entry);
+      const key = assetObjectKey(userId, `${asset.id}${extension}`);
+      const uri = storage.uriForKey(key);
+      if (await storage.exists(uri)) { throw new Error("Example game asset storage destination already exists"); }
+      entry.uri = uri;
+      entry.uri = await storage.store(key, bytes, contentType);
       document.assets[slot] = { ...binding, assetId: asset.id };
     }
   } catch (error) {
-    await rollback();
+    await rollback(error);
     throw error;
   }
   return { bundle, document, rollback };
