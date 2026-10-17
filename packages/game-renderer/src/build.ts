@@ -8,6 +8,7 @@ import { resolvePackageAssetPath } from "@nodetool-ai/config";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { validateGame } from "@nodetool-ai/game-runtime";
 import type { GameDocument } from "@nodetool-ai/protocol";
+import { gameBuildFingerprint } from "./build-fingerprint.js";
 import { validateExportAudio, validateExportFont, validateExportImage } from "./export-media.js";
 
 const PLAYER_VERSION = 1;
@@ -150,6 +151,14 @@ async function playerBundle(): Promise<Uint8Array> {
     throw new Error("Standalone player bundle was empty");
   }
   return player.contents;
+}
+
+/** Identifies the actual player, VM and export templates used by this installed renderer. */
+export async function standaloneGameRuntimeFingerprint(): Promise<string> {
+  return gameBuildFingerprint({
+    format: "nodetool-web-2d-v1", player: await playerBundle(), html: html(), css: CSS,
+    wasm: await readFile(fileURLToPath(import.meta.resolve("@jitl/quickjs-ng-wasmfile-release-sync/wasm")))
+  });
 }
 
 /** Builds a self-contained web player with local content-addressed media. */
