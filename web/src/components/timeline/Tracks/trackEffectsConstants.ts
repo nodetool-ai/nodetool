@@ -4,7 +4,7 @@
  * Extracted from TrackEffectsPanel.tsx to keep the panel component focused on
  * rendering/interaction. These are pure data keyed by TrackEffect["type"].
  */
-import type { TrackEffect } from "@nodetool-ai/timeline";
+import type { FableEffectKind, TrackEffect } from "@nodetool-ai/timeline";
 
 /** Device-rack width (px) per effect type. */
 export const DEVICE_WIDTHS = {
@@ -12,6 +12,7 @@ export const DEVICE_WIDTHS = {
   eq3: 420,
   filter: 240,
   compressor: 380,
+  fable: 320,
   colorCorrection: 320,
   videoBlur: 220,
   sharpen: 240,
@@ -25,6 +26,7 @@ export const EFFECT_LABELS = {
   eq3: "3-Band EQ",
   filter: "Filter",
   compressor: "Compressor",
+  fable: "FableSynth",
   colorCorrection: "Color",
   videoBlur: "Blur",
   sharpen: "Sharpen",
@@ -39,6 +41,25 @@ export const AUDIO_EFFECT_TYPES: TrackEffect["type"][] = [
   "filter",
   "compressor"
 ];
+
+/** Device-rack width (px) of each FableSynth insert, sized to its upstream panel. */
+export const FABLE_DEVICE_WIDTHS = {
+  eq: 440,
+  ott: 440,
+  comp: 440,
+  drive: 320,
+  lab: 1080,
+  chorus: 320,
+  echo: 320,
+  reverb: 320
+} satisfies Record<FableEffectKind, number>;
+
+/** Device-rack width (px) of an effect. */
+export function effectDeviceWidth(effect: TrackEffect): number {
+  return effect.type === "fable"
+    ? FABLE_DEVICE_WIDTHS[effect.kind]
+    : DEVICE_WIDTHS[effect.type];
+}
 
 /** Effect types available on video tracks. */
 export const VIDEO_EFFECT_TYPES: TrackEffect["type"][] = [
@@ -92,6 +113,8 @@ export const KNOBS: KnobTable = {
     { key: "releaseMs", label: "Release", min: 0, max: 2000, step: 1, unit: "ms" },
     { key: "kneeDb", label: "Knee", min: 0, max: 40, step: 0.5, unit: "dB", digits: 1 }
   ],
+  // FableSynth inserts render their own device view.
+  fable: [],
   colorCorrection: [
     { key: "brightness", label: "Brightness", min: -1, max: 1, step: 0.01 },
     { key: "contrast", label: "Contrast", min: 0, max: 4, step: 0.01 },

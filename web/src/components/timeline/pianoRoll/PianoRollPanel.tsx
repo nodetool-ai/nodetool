@@ -82,10 +82,15 @@ const headerStyles = (theme: Theme) =>
 interface PianoRollPanelProps {
   /** Phone layout: the panel takes the tracks region's place, full height. */
   fullHeight?: boolean;
+  /**
+   * Inside the DAW dock: fills the dock, which owns the height and the
+   * divider, and keeps its Close control.
+   */
+  docked?: boolean;
 }
 
 export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
-  ({ fullHeight = false }) => {
+  ({ fullHeight = false, docked = false }) => {
     const theme = useTheme();
     const clipId = useTimelineUIStore((s) => s.pianoRollClipId);
     const heightPx = useTimelineUIStore((s) => s.pianoRollHeightPx);
@@ -161,7 +166,7 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
 
     return (
       <>
-        {!fullHeight && (
+        {!fullHeight && !docked && (
           <div
             ref={handleRef}
             role="separator"
@@ -181,7 +186,7 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
           css={panelStyles(theme)}
           data-testid="piano-roll-panel"
           sx={
-            fullHeight
+            fullHeight || docked
               ? { flex: "1 1 0", minHeight: 0 }
               : { height: heightPx }
           }
@@ -193,7 +198,7 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
             css={headerStyles(theme)}
             sx={{ px: SPACING.sm }}
           >
-            {fullHeight && (
+            {fullHeight && !docked && (
               <ToolbarIconButton
                 onClick={closePianoRoll}
                 tooltip="Back to tracks"
@@ -213,7 +218,7 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
               onChange={(value) => setGridDivision(value as TempoGridDivision)} />
             <EditorButton variant={snapEnabled ? "contained" : "text"} onClick={toggleSnap} aria-label="Snap notes" aria-pressed={snapEnabled}>Snap</EditorButton>
             <FlexRow sx={{ flex: 1 }} />
-            {!fullHeight && (
+            {(!fullHeight || docked) && (
               <CloseButton
                 onClick={closePianoRoll}
                 tooltip="Close note editor"

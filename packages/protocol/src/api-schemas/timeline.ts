@@ -244,6 +244,15 @@ export const trackCompressorEffect = z.object({
   kneeDb: z.number()
 });
 
+/** `TrackFableEffect` in `@nodetool-ai/timeline`: one FableSynth FX stage. */
+export const trackFableEffect = z.object({
+  id: z.string(),
+  type: z.literal("fable"),
+  enabled: z.boolean(),
+  kind: z.enum(["eq", "ott", "comp", "drive", "lab", "chorus", "echo", "reverb"]),
+  params: z.record(z.string(), z.number())
+});
+
 // ── Track video effects ──────────────────────────────────────────────────────
 
 export const trackColorCorrectionEffect = z.object({
@@ -299,6 +308,7 @@ export const trackEffect = z.discriminatedUnion("type", [
   trackEq3Effect,
   trackFilterEffect,
   trackCompressorEffect,
+  trackFableEffect,
   trackColorCorrectionEffect,
   trackVideoBlurEffect,
   trackSharpenEffect,
@@ -583,10 +593,64 @@ export const timelineTempo = z.object({
 });
 export type TimelineTempo = z.infer<typeof timelineTempo>;
 
+/** `ChordQuality` in `@nodetool-ai/timeline`: the FableSynth chord qualities. */
+export const chordQuality = z.enum([
+  "maj", "min", "dim", "aug", "sus2", "sus4", "five", "six", "m6", "dom7",
+  "maj7", "m7", "mMaj7", "m7b5", "dim7", "aug7", "sus7", "add9", "madd9",
+  "dom9", "maj9", "m9", "dom7b9", "dom7s9", "m11", "dom11", "maj13", "dom13"
+]);
+export type ChordQuality = z.infer<typeof chordQuality>;
+
+/** One chord region of a `chord` track, in document ticks from `tempo.offsetMs`. */
+export const timelineChord = z.object({
+  id: z.string(),
+  startTick: z.number().int().min(0),
+  durationTick: z.number().int().positive(),
+  root: z.number().int().min(0).max(11),
+  quality: chordQuality,
+  inversion: z.number().int().min(0).max(5)
+});
+export type TimelineChord = z.infer<typeof timelineChord>;
+
+/** How many chords one chord track may hold. */
+export const MAX_CHORDS_PER_TRACK = 4096;
+
+const harmonyLane = <T extends z.ZodTypeAny>(item: T) => z.array(item).length(16);
+
+/** `ClipHarmony` in `@nodetool-ai/timeline`: a midi clip's arp, comping and scale snapping. */
+export const clipHarmony = z.object({
+  style: z.enum(["off", "arp", "comp"]),
+  input: z.enum(["chords", "notes"]),
+  chordTrackId: z.string().optional(),
+  octave: z.number().int().min(0).max(8).optional(),
+  order: z.enum(["up", "down", "updown", "played", "random"]).optional(),
+  rate: z.number().positive().max(4).optional(),
+  octaves: z.number().int().min(1).max(3).optional(),
+  gate: z.number().min(0.05).max(0.95).optional(),
+  hits: harmonyLane(z.boolean()).optional(),
+  accents: harmonyLane(z.boolean()).optional(),
+  seed: z.number().int().optional(),
+  comp: harmonyLane(z.number().int().min(0).max(15)).optional(),
+  ties: harmonyLane(z.boolean()).optional(),
+  strumMs: z.number().min(0).max(60).optional(),
+  strumDirection: z.enum(["up", "down", "alt"]).optional(),
+  voicing: z.enum(["close", "drop2", "drop24", "open"]).optional(),
+  scale: z.enum(["off", "key", "chords"]).optional(),
+  scaleType: z
+    .enum([
+      "auto", "major", "minor", "dorian", "mixolydian", "phrygian", "lydian",
+      "locrian", "harmMinor", "melMinor", "phrygDom", "lydDom", "locrian2",
+      "altered", "wholeTone", "dimHW", "dimWH", "majPent", "minPent", "blues"
+    ])
+    .optional(),
+  scaleKey: z.number().int().min(0).max(11).optional()
+});
+export type ClipHarmony = z.infer<typeof clipHarmony>;
+
 export const timelineTrack = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(["video", "audio", "overlay", "subtitle", "midi"]),
+  type: z.enum(["video", "audio", "overlay", "subtitle", "midi", "chord"]),
   index: z.number().int(),
   folderId: z.string().optional(),
   visible: z.boolean(),
@@ -600,7 +664,10 @@ export const timelineTrack = z.object({
    * to the default synth on the first autosave. */
   instrument: midiInstrument.optional(),
   volumeDb: z.number().min(-120).max(24).optional(),
-  pan: z.number().min(-1).max(1).optional()
+  pan: z.number().min(-1).max(1).optional(),
+  /** Chord regions of a `chord` track. Without this field Zod strips them on
+   * every PATCH, so the progression disappears after one save. */
+  chords: z.array(timelineChord).max(MAX_CHORDS_PER_TRACK).optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
 
@@ -1837,7 +1904,10 @@ export const timelineClip = z.object({
     .optional(),
   /** Notes carried inline by a `midi` clip, in content ticks. Without this
    * field Zod strips it on every PATCH, so autosave erases the performance. */
-  notes: z.array(midiNote).max(MIDI_MAX_NOTES_PER_CLIP).optional()
+  notes: z.array(midiNote).max(MIDI_MAX_NOTES_PER_CLIP).optional(),
+  /** Arp, chord comping or scale snapping of a `midi` clip. Without this
+   * field Zod strips it on every PATCH. */
+  harmony: clipHarmony.optional()
 });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
@@ -2056,6 +2126,8 @@ export const timelineSequenceResponse = z.object({
   /** Constant tempo, mirroring the document's. Without this field Zod strips
    * it from every read, so the editor loads a tempo-less sequence. */
   tempo: timelineTempo.optional(),
+  /** The master channel, mirroring the document's. */
+  master: timelineMasterChannel.optional(),
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from, mirroring the document's. */
   templateId: z.string().nullable().optional(),

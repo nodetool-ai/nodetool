@@ -73,7 +73,8 @@ import {
 import type { SelectOption } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
-import { DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX } from "./trackHeight";
+import { trackRowHeightPx } from "./trackHeight";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
 export const TRACK_HEADER_WIDTH_PX = DEFAULT_TRACK_HEADER_WIDTH_PX;
 /**
@@ -98,7 +99,6 @@ export const trackHeaderWidthCss = `var(${TRACK_HEADER_WIDTH_VAR}, ${TRACK_HEADE
 const TRACK_DRAG_MIME = "application/x-nodetool-timeline-track";
 const MIN_TRACK_HEIGHT_PX = 48;
 const MAX_TRACK_HEIGHT_PX = 300;
-const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
 const RESIZE_KEY_STEP_PX = 8;
 const RESIZE_KEY_STEP_LARGE_PX = 32;
@@ -386,7 +386,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     const setTrackFolder = useTimelineStore((s) => s.setTrackFolder);
 
     const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
-    const authoredHeightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
+    const dawMode = useTimelineLayoutStore((s) => s.dawMode);
+    const authoredHeightPx = trackRowHeightPx(track, dawMode);
     const heightPx = authoredHeightPx * verticalZoom;
     const meta = trackTypeMeta(track.type);
     // Sentence case in menu labels; acronyms such as MIDI stay upper case.

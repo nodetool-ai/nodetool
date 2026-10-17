@@ -72,12 +72,13 @@ import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { layoutTrackRows } from "./trackWindow";
+import { trackRowHeightPx } from "./trackHeight";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { snapAssetDropMs } from "./dropSnap";
 
 /** Two bars of 4/4 at 120 BPM — what an empty midi clip is sized to. */
 const DEFAULT_MIDI_CLIP_DURATION_MS = 4000;
 
-const DEFAULT_TRACK_HEIGHT_PX = 64;
 const NO_CLIP_IDS: string[] = [];
 /** Duration (ms) the mismatch warning banner remains visible. */
 const WARNING_DISMISS_MS = 3000;
@@ -194,7 +195,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
   const resolveDropInStore = useTimelineStore((s) => s.resolveDrop);
   const importVideoWithAudio = useVideoAudioImport();
 
-  const heightPx = (track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) * verticalZoom;
+  const dawMode = useTimelineLayoutStore((s) => s.dawMode);
+  const heightPx = trackRowHeightPx(track, dawMode) * verticalZoom;
 
   const laneRef = useRef<HTMLDivElement>(null);
   const pinClipDuringPointerGesture = useCallback(
@@ -542,7 +544,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
           useTimelineUIStore.getState().expandedFxTrackId,
           useTimelineUIStore.getState().verticalZoom,
           document.trackFolders,
-          collapsedFolderIds
+          collapsedFolderIds,
+          useTimelineLayoutStore.getState().dawMode
         );
         rows.forEach((row) => {
           if (row.kind === "track") {
@@ -550,7 +553,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
               top: row.top,
               bottom:
                 row.top +
-                (row.track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) * verticalZoom
+                trackRowHeightPx(row.track, useTimelineLayoutStore.getState().dawMode) *
+                  verticalZoom
             });
           }
         });

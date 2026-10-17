@@ -71,6 +71,7 @@ function Lab(): React.JSX.Element {
         clips: doc.clips,
         tracks: doc.tracks,
         tempo: doc.tempo,
+        master: doc.master,
         durationMs: durationMs ?? doc.durationMs,
         resolveUrl: async () => undefined
       });

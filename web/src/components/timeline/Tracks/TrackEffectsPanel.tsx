@@ -43,7 +43,7 @@ import {
   useWheelBatch
 } from "../../../hooks/timeline/useBatchedGesture";
 import {
-  DEVICE_WIDTHS,
+  effectDeviceWidth,
   EFFECT_LABELS,
   KNOBS,
   type Knob,
@@ -67,6 +67,16 @@ import {
   FONT_SIZE_SANS
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
+import {
+  FABLE_FX_KINDS,
+  FABLE_FX_LABELS,
+  makeFableEffect
+} from "../daw/fx/fableFxParams";
+import { FableFxInline } from "../daw/fx/FableFxInline";
+
+/** The name an effect's card shows: a FableSynth insert goes by its kind. */
+const effectLabel = (effect: TrackEffect): string =>
+  effect.type === "fable" ? FABLE_FX_LABELS[effect.kind] : EFFECT_LABELS[effect.type];
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -1497,6 +1507,45 @@ const ChromaKeyEditor: React.FC<
   );
 };
 
+interface TrackEffectParamsProps {
+  effect: TrackEffect;
+  onPatch: (patch: Partial<TrackEffect>) => void;
+  disabled?: boolean;
+}
+
+/**
+ * The parameter controls of one effect, without its card chrome. The DAW
+ * device chain shows these for an effect that has no device view of its own.
+ */
+export const TrackEffectParams: React.FC<TrackEffectParamsProps> = ({
+  effect,
+  onPatch,
+  disabled = false
+}) => {
+  switch (effect.type) {
+    case "gain":
+      return <GainEditor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    case "eq3":
+      return <Eq3Editor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    case "filter":
+      return <FilterEditor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    case "compressor":
+      return <CompressorEditor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    case "colorCorrection":
+      return <ColorCorrectionEditor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    case "videoBlur":
+      return <VideoBlurEditor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    case "sharpen":
+      return <SharpenEditor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    case "vignette":
+      return <VignetteEditor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    case "chromaKey":
+      return <ChromaKeyEditor effect={effect} onPatch={onPatch} disabled={disabled} />;
+    default:
+      return null;
+  }
+};
+
 interface EffectCardProps {
   trackId: string;
   effect: TrackEffect;
@@ -1601,11 +1650,11 @@ const EffectCard: React.FC<EffectCardProps> = memo(
 
     // `effect` is a new object every knob frame, so the card re-renders; none
     // of these three styles read a parameter value.
-    const effectType = effect.type;
+    const width = effectDeviceWidth(effect);
+    const label = effectLabel(effect);
     const cardCss = useMemo(
-      () =>
-        effectCardStyles(theme, DEVICE_WIDTHS[effectType], dragOver, dragging),
-      [theme, effectType, dragOver, dragging]
+      () => effectCardStyles(theme, width, dragOver, dragging),
+      [theme, width, dragOver, dragging]
     );
     const gripCss = useMemo(() => dragHandleStyles(theme), [theme]);
     const removeButtonCss = useMemo(() => iconButtonStyles(theme), [theme]);
@@ -1626,7 +1675,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                aria-label={`Reorder ${EFFECT_LABELS[effect.type]} effect`}
+                aria-label={`Reorder ${label} effect`}
                 aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
                 role="button"
                 tabIndex={0}
@@ -1636,7 +1685,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
               </div>
             </Tooltip>
             <LabeledSwitch
-              label={EFFECT_LABELS[effect.type]}
+              label={label}
               checked={effect.enabled}
               onChange={handleEnabledChange}
               size="small"
@@ -1648,7 +1697,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
                 type="button"
                 css={removeButtonCss}
                 onClick={handleRemove}
-                aria-label={`Remove ${EFFECT_LABELS[effect.type]} effect`}
+                aria-label={`Remove ${label} effect`}
               >
                 <DeleteOutlineIcon />
               </button>
@@ -1656,64 +1705,10 @@ const EffectCard: React.FC<EffectCardProps> = memo(
           </FlexRow>
         </FlexRow>
 
-        {effect.type === "gain" && (
-          <GainEditor
-            effect={effect}
-            onPatch={patch}
-            disabled={disabled}
-          />
-        )}
-        {effect.type === "eq3" && (
-          <Eq3Editor effect={effect} onPatch={patch} disabled={disabled} />
-        )}
-        {effect.type === "filter" && (
-          <FilterEditor
-            effect={effect}
-            onPatch={patch}
-            disabled={disabled}
-          />
-        )}
-        {effect.type === "compressor" && (
-          <CompressorEditor
-            effect={effect}
-            onPatch={patch}
-            disabled={disabled}
-          />
-        )}
-        {effect.type === "colorCorrection" && (
-          <ColorCorrectionEditor
-            effect={effect}
-            onPatch={patch}
-            disabled={disabled}
-          />
-        )}
-        {effect.type === "videoBlur" && (
-          <VideoBlurEditor
-            effect={effect}
-            onPatch={patch}
-            disabled={disabled}
-          />
-        )}
-        {effect.type === "sharpen" && (
-          <SharpenEditor
-            effect={effect}
-            onPatch={patch}
-            disabled={disabled}
-          />
-        )}
-        {effect.type === "vignette" && (
-          <VignetteEditor
-            effect={effect}
-            onPatch={patch}
-            disabled={disabled}
-          />
-        )}
-        {effect.type === "chromaKey" && (
-          <ChromaKeyEditor
-            effect={effect}
-            onPatch={patch}
-            disabled={disabled}
-          />
+        {effect.type === "fable" ? (
+          <FableFxInline trackId={trackId} effectId={effect.id} kind={effect.kind} />
+        ) : (
+          <TrackEffectParams effect={effect} onPatch={patch} disabled={disabled} />
         )}
       </div>
     );
@@ -1746,6 +1741,14 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
     const handleAdd = useCallback(
       (type: TrackEffect["type"]) => {
         addTrackEffect(trackId, type);
+        setAddAnchor(null);
+      },
+      [trackId, addTrackEffect]
+    );
+
+    const handleAddFable = useCallback(
+      (kind: (typeof FABLE_FX_KINDS)[number]) => {
+        addTrackEffect(trackId, makeFableEffect(kind));
         setAddAnchor(null);
       },
       [trackId, addTrackEffect]
@@ -1790,6 +1793,14 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
                 onClick={() => handleAdd(t)}
               />
             ))}
+            {!isVideo &&
+              FABLE_FX_KINDS.map((kind) => (
+                <MenuItemPrimitive
+                  key={`fable:${kind}`}
+                  label={FABLE_FX_LABELS[kind]}
+                  onClick={() => handleAddFable(kind)}
+                />
+              ))}
           </EditorMenu>
         </FlexRow>
 

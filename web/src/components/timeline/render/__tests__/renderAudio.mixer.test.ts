@@ -33,7 +33,7 @@ interface FakeNode {
   [key: string]: unknown;
 }
 
-let lastContext: MockOfflineAudioContext | null = null;
+const created: MockOfflineAudioContext[] = [];
 
 class MockOfflineAudioContext {
   currentTime = 0;
@@ -46,7 +46,7 @@ class MockOfflineAudioContext {
     readonly sampleRate: number
   ) {
     this.destination = this.node("destination");
-    lastContext = this;
+    created.push(this);
   }
 
   private node(kind: string, extra: Record<string, unknown> = {}): FakeNode {
@@ -151,7 +151,7 @@ const master: TimelineMasterChannel = {
 describe("renderTimelineAudio — mixer", () => {
   const originalFetch = globalThis.fetch;
   beforeEach(() => {
-    lastContext = null;
+    created.length = 0;
     (
       globalThis as unknown as { OfflineAudioContext: unknown }
     ).OfflineAudioContext = MockOfflineAudioContext;
@@ -172,7 +172,7 @@ describe("renderTimelineAudio — mixer", () => {
       durationMs: 1000,
       resolveUrl: async (id) => `https://example.test/${id}`
     });
-    const ctx = lastContext!;
+    const ctx = created[created.length - 1];
     const source = ctx.nodes.find((n) => n.kind === "source")!;
     return { ctx, path: pathNodes(source, ctx.destination) };
   }

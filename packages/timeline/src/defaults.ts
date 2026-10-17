@@ -25,6 +25,7 @@ import type {
   TrackEq3Effect,
   TrackFilterEffect,
   TrackCompressorEffect,
+  TrackFableEffect,
   TrackColorCorrectionEffect,
   TrackVideoBlurEffect,
   TrackSharpenEffect,
@@ -266,6 +267,17 @@ export function makeTrackEffect(type: TrackEffect["type"]): TrackEffect {
         releaseMs: 250,
         kneeDb: 30
       } satisfies TrackCompressorEffect;
+    case "fable":
+      // FableSynth parameter defaults live with the device code in the web
+      // app, which fills `params` when it adds one; an absent param reads as
+      // its FableSynth default everywhere.
+      return {
+        id,
+        type: "fable",
+        enabled: true,
+        kind: "eq",
+        params: {}
+      } satisfies TrackFableEffect;
     case "colorCorrection":
       return {
         id,

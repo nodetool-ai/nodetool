@@ -94,6 +94,7 @@ import {
 import { TrackHeader } from "./TrackHeader";
 import { TrackFolderHeader } from "./TrackFolderHeader";
 import { TrackLane } from "./TrackLane";
+import { ChordLane } from "./ChordLane";
 import { RubberBandOverlay } from "./RubberBandOverlay";
 import { SnapGuideOverlay } from "./SnapGuideOverlay";
 import { GestureReadout } from "./GestureReadout";
@@ -143,6 +144,7 @@ import {
   type WebKitGestureEvent
 } from "./timelineGesture";
 import { resolveTimelineAction } from "../timelineKeymap";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { performSourceEdit } from "../sourceEdit";
 import { getSelectedAssetForExplorer } from "../../../stores/AssetGridStore";
 import { usePanelStore } from "../../../stores/PanelStore";
@@ -342,6 +344,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
+    const dawMode = useTimelineLayoutStore((s) => s.dawMode);
     const setScrollLeftPx = useTimelineUIStore((s) => s.setScrollLeftPx);
 
     const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
@@ -1089,6 +1092,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             if (!e.repeat) setShortcutsOpen((open) => !open);
             return;
 
+          case "toggleDawMode":
+            e.preventDefault();
+            if (!e.repeat) useTimelineLayoutStore.getState().toggleDawMode();
+            return;
+
           case "deleteSelected":
           case "rippleDeleteSelected":
             if (selectedClipIds.size === 0) return;
@@ -1474,8 +1482,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
     const trackLayout = useMemo(
-      () => layoutTrackRows(tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds),
-      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds]
+      () => layoutTrackRows(tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode),
+      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode]
     );
     const previousTrackLayoutRef = useRef(trackLayout);
     const previousVerticalZoomRef = useRef(verticalZoom);
@@ -1770,7 +1778,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                   />
                 ) : (
                   <React.Fragment key={row.track.id}>
-                    <TrackLane track={row.track} virtualizeClips collapsedFolderIds={collapsedFolderIds} />
+                    {row.track.type === "chord" ? (
+                      <ChordLane track={row.track} />
+                    ) : (
+                      <TrackLane track={row.track} virtualizeClips collapsedFolderIds={collapsedFolderIds} />
+                    )}
                     {expandedFxTrackId === row.track.id && (
                       <div
                         style={{

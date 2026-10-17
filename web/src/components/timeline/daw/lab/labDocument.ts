@@ -1,11 +1,14 @@
 /**
  * A small song for the DAW lab page: WT-1 chords, a BL-1 line and a DR-1
- * beat over eight bars at 120 BPM, plus an empty audio track.
+ * beat over eight bars at 120 BPM, an empty audio track, a chord track
+ * holding vi–IV–I–V in C, and a WT-1 arp clip that plays over it.
  */
 
 import {
   findInstrumentPreset,
   MIDI_PPQ,
+  PROGRESSIONS,
+  progressionChords,
   type MidiInstrument,
   type MidiNote,
   type TimelineClip,
@@ -99,7 +102,15 @@ export function labDocument(): TimelineSequence {
     track("lab-keys", "Keys", 0, { instrument: presetInstrument("wt1-bloom-pad"), volumeDb: -4 }),
     track("lab-bass", "Bass", 1, { instrument: presetInstrument("bl1-acid"), volumeDb: -3 }),
     track("lab-drums", "Drums", 2, { instrument: presetInstrument("dr1-tr-void") }),
-    track("lab-audio", "Audio", 3, { type: "audio" })
+    track("lab-audio", "Audio", 3, { type: "audio" }),
+    track("lab-chords", "Chords", 4, {
+      type: "chord",
+      chords: progressionChords(PROGRESSIONS[1], 0, {
+        lengthTicks: 8 * BAR_TICKS,
+        mintId: (i) => `lab-chord-${i}`
+      })
+    }),
+    track("lab-arp", "Arp", 5, { instrument: presetInstrument("wt1-glass-mallet"), volumeDb: -6 })
   ];
   return {
     id: "daw-lab",
@@ -113,7 +124,11 @@ export function labDocument(): TimelineSequence {
     clips: [
       midiClip("lab-keys-clip", "lab-keys", "Chords", chordNotes()),
       midiClip("lab-bass-clip", "lab-bass", "Bassline", bassNotes()),
-      midiClip("lab-drums-clip", "lab-drums", "Beat", drumNotes())
+      midiClip("lab-drums-clip", "lab-drums", "Beat", drumNotes()),
+      {
+        ...midiClip("lab-arp-clip", "lab-arp", "Arp", []),
+        harmony: { style: "arp", input: "chords", octave: 4, order: "updown", rate: 0.25, gate: 0.5 }
+      }
     ],
     markers: [],
     tempo: { bpm: 120, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } },

@@ -69,6 +69,7 @@ import {
   resolveTempo,
   scaleVelocity,
   sortNotes,
+  sortChords,
   transposeNotes,
   clearGeneratedMatte as clearMatteOnClip,
   selectGeneratedMatteVersion as selectMatteVersionOnClip,
@@ -103,7 +104,10 @@ import type {
   ClipGeneratedMatte,
   MidiInstrument,
   MidiNote,
+  TimelineChord,
+  ClipHarmony,
   TimelineTempo,
+  TimelineMasterChannel,
   TranscriptLine,
   TimelineBeat,
   TimelineSetup,
@@ -289,6 +293,8 @@ export interface TimelineStoreState {
    * document written before midi existed reads the same everywhere.
    */
   tempo?: TimelineTempo;
+  /** The master channel. Absent means 0 dB with no effects. */
+  master?: TimelineMasterChannel;
   storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
   camera2d?: TimelineSequence["camera2d"];
   setCamera2D: (camera: TimelineSequence["camera2d"]) => void;
@@ -323,6 +329,7 @@ export interface TimelineStoreState {
     storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
     camera2d?: TimelineSequence["camera2d"];
     tempo?: TimelineTempo;
+    master?: TimelineMasterChannel;
     setup?: TimelineSetup | null;
   } | null;
 
@@ -337,6 +344,7 @@ export interface TimelineStoreState {
    */
   applyExternalMerge: (patch: {
     tempo?: TimelineTempo;
+    master?: TimelineMasterChannel;
     setup?: TimelineSetup | null;
     tracks?: TimelineTrack[];
     trackFolders?: TimelineTrackFolder[];
@@ -479,8 +487,14 @@ export interface TimelineStoreState {
 
   // ── Track DSP effects ────────────────────────────────────────────────────
 
-  /** Append a new effect of the given type to the track's DSP chain. */
-  addTrackEffect: (trackId: string, type: TrackEffect["type"]) => void;
+  /**
+   * Append an effect to the track's DSP chain: a new one of `type` with its
+   * defaults, or the given effect as is.
+   */
+  addTrackEffect: (
+    trackId: string,
+    effect: TrackEffect["type"] | TrackEffect
+  ) => void;
   /** Patch a single effect by id. Type-narrowed at the call site. */
   updateTrackEffect: (
     trackId: string,
@@ -496,6 +510,23 @@ export interface TimelineStoreState {
     newIndex: number
   ) => void;
 
+  // ── Mixer ────────────────────────────────────────────────────────────────
+
+  /** Set an audio or midi track's fader, clamped to -120..24 dB. */
+  setTrackVolume: (trackId: string, db: number) => void;
+  /** Set a track's stereo position, clamped to -1 (left)..1 (right). */
+  setTrackPan: (trackId: string, pan: number) => void;
+  /** Set the master fader, clamped to -120..24 dB. */
+  setMasterVolume: (db: number) => void;
+  /**
+   * Append an effect to the master chain: a new one of `type` with its
+   * defaults, or the given effect as is.
+   */
+  addMasterEffect: (effect: TrackEffect["type"] | TrackEffect) => void;
+  updateMasterEffect: (effectId: string, patch: Partial<TrackEffect>) => void;
+  removeMasterEffect: (effectId: string) => void;
+  moveMasterEffect: (oldIndex: number, newIndex: number) => void;
+
   // ── MIDI ─────────────────────────────────────────────────────────────────
 
   /**
@@ -507,6 +538,10 @@ export interface TimelineStoreState {
   setTempo: (tempo: TimelineTempo) => void;
   /** Set the synth a midi track plays. Every clip on the track uses it. */
   setTrackInstrument: (trackId: string, instrument: MidiInstrument) => void;
+  /** Replace a chord track's chord regions (sorted by onset). */
+  setTrackChords: (trackId: string, chords: TimelineChord[]) => void;
+  /** Set or clear (`undefined`) a midi clip's arp, comp and scale settings. */
+  setClipHarmony: (clipId: string, harmony: ClipHarmony | undefined) => void;
   /**
    * Place a midi clip and return its id. The notes ride inside the clip in
    * ticks from its content start; ids and velocities are filled in by
@@ -1064,6 +1099,15 @@ export interface TimelineStoreState {
  * after the first tempo change would leave the row at the new BPM while the
  * clips went back to their old positions.
  */
+/** Fader range the document schema accepts. */
+const MIXER_MIN_DB = -120;
+const MIXER_MAX_DB = 24;
+
+function clampMixerDb(db: number): number {
+  if (Number.isNaN(db)) return 0;
+  return Math.min(MIXER_MAX_DB, Math.max(MIXER_MIN_DB, db));
+}
+
 function impliedTempo(
   tracks: readonly TimelineTrack[]
 ): TimelineTempo | undefined {
@@ -1083,6 +1127,7 @@ type PartializedState = Pick<
   | "transcript"
   | "scriptEnabled"
   | "tempo"
+  | "master"
   | "storyboardMaterializations"
   | "camera2d"
   | "setup"
@@ -1148,6 +1193,7 @@ function partializedEqual(
       pastState.durationMs === currentState.durationMs &&
       pastState.scriptEnabled === currentState.scriptEnabled &&
       shallowRecordEqual(pastState.tempo, currentState.tempo) &&
+      shallowRecordEqual(pastState.master, currentState.master) &&
       shallowRecordEqual(pastState.camera2d, currentState.camera2d) &&
       shallowRecordEqual(pastState.setup, currentState.setup)
     );
@@ -1166,6 +1212,7 @@ function partializedEqual(
     shallowArrayEqual(pastState.transcript, currentState.transcript) &&
     pastState.scriptEnabled === currentState.scriptEnabled &&
     shallowRecordEqual(pastState.tempo, currentState.tempo) &&
+    shallowRecordEqual(pastState.master, currentState.master) &&
     shallowRecordEqual(pastState.camera2d, currentState.camera2d) &&
     shallowRecordEqual(pastState.setup, currentState.setup)
   );
@@ -1725,6 +1772,7 @@ const emptyState = {
   transcript: [],
   scriptEnabled: false,
   tempo: undefined,
+  master: undefined,
   storyboardMaterializations: undefined,
   camera2d: null,
   setup: null,
@@ -1745,6 +1793,7 @@ const emptyState = {
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
   tempo: TimelineTempo | undefined;
+  master: TimelineMasterChannel | undefined;
   storyboardMaterializations: TimelineSequence["storyboardMaterializations"];
   camera2d: TimelineSequence["camera2d"];
   setup: TimelineSetup | null;
@@ -1787,6 +1836,7 @@ const syncedSnapshotOf = (
     | "storyboardMaterializations"
     | "camera2d"
     | "tempo"
+    | "master"
     | "setup"
   >
 ): NonNullable<TimelineStoreState["syncedDocument"]> => ({
@@ -1803,6 +1853,7 @@ const syncedSnapshotOf = (
   storyboardMaterializations: state.storyboardMaterializations,
   camera2d: state.camera2d ?? null,
   tempo: state.tempo,
+  master: state.master,
   setup: state.setup ?? null
 });
 
@@ -1905,6 +1956,7 @@ function adoptServerSequence(
     storyboardMaterializations: state.storyboardMaterializations,
     camera2d: state.camera2d ?? null,
     tempo: state.tempo,
+    master: state.master,
     setup: state.setup ?? null
   };
   // A field the response leaves out is one the route did not write, so the
@@ -1925,6 +1977,7 @@ function adoptServerSequence(
     camera2d:
       sequence.camera2d === undefined ? base.camera2d : sequence.camera2d,
     tempo: sequence.tempo ?? base.tempo,
+    master: sequence.master ?? base.master,
     setup: sequence.setup ?? base.setup ?? null
   };
 
@@ -1960,6 +2013,7 @@ function adoptServerSequence(
     storyboardMaterializations: nextBase.storyboardMaterializations,
     camera2d: nextBase.camera2d ?? null,
     tempo: nextBase.tempo,
+    master: nextBase.master,
     setup: nextBase.setup ?? null
   };
   get().setBaseUpdatedAt(sequence.updatedAt, synced);
@@ -2064,6 +2118,7 @@ export const createTimelineStore = (
               transcript: [] as TranscriptLine[],
               scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip),
               tempo: seq.tempo ?? impliedTempo(seq.tracks),
+              master: seq.master,
               storyboardMaterializations: seq.storyboardMaterializations,
               camera2d: seq.camera2d ?? null,
               setup: seq.setup ?? null
@@ -2091,6 +2146,7 @@ export const createTimelineStore = (
             scriptEnabled:
               seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
             tempo: seq.tempo ?? impliedTempo(seq.tracks),
+            master: seq.master,
             storyboardMaterializations: seq.storyboardMaterializations,
             camera2d: seq.camera2d ?? null,
             setup: seq.setup ?? null
@@ -2514,11 +2570,14 @@ export const createTimelineStore = (
 
         // ── Track DSP effects ─────────────────────────────────────────────
 
-        addTrackEffect: (trackId, type) =>
+        addTrackEffect: (trackId, effect) =>
           set((state) => ({
             tracks: state.tracks.map((t) => {
               if (t.id !== trackId) return t;
-              const effects = [...(t.effects ?? []), makeTrackEffect(type)];
+              const effects = [
+                ...(t.effects ?? []),
+                typeof effect === "string" ? makeTrackEffect(effect) : effect
+              ];
               return { ...t, effects };
             })
           })),
@@ -2578,6 +2637,93 @@ export const createTimelineStore = (
               return { ...t, effects };
             })
           })),
+
+        // ── Mixer ───────────────────────────────────────────────────────────
+
+        setTrackVolume: (trackId, db) =>
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, {
+              volumeDb: clampMixerDb(db)
+            });
+            return tracks === state.tracks ? state : { tracks };
+          }),
+
+        setTrackPan: (trackId, pan) =>
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, {
+              pan: Number.isFinite(pan) ? Math.min(1, Math.max(-1, pan)) : 0
+            });
+            return tracks === state.tracks ? state : { tracks };
+          }),
+
+        setMasterVolume: (db) =>
+          set((state) => {
+            const volumeDb = clampMixerDb(db);
+            if (state.master?.volumeDb === volumeDb) return state;
+            return { master: { ...(state.master ?? {}), volumeDb } };
+          }),
+
+        addMasterEffect: (effect) =>
+          set((state) => ({
+            master: {
+              volumeDb: state.master?.volumeDb ?? 0,
+              effects: [
+                ...(state.master?.effects ?? []),
+                typeof effect === "string" ? makeTrackEffect(effect) : effect
+              ]
+            }
+          })),
+
+        updateMasterEffect: (effectId, patch) =>
+          set((state) => {
+            const master = state.master;
+            const effect = master?.effects?.find((e) => e.id === effectId);
+            if (!master || !effect) return state;
+            const current = new Map<string, unknown>(Object.entries(effect));
+            const unchanged = Object.entries(patch).every(([key, value]) =>
+              Object.is(current.get(key), value)
+            );
+            if (unchanged) return state;
+            return {
+              master: {
+                ...master,
+                effects: (master.effects ?? []).map((e) =>
+                  e.id === effectId ? ({ ...e, ...patch } as TrackEffect) : e
+                )
+              }
+            };
+          }),
+
+        removeMasterEffect: (effectId) =>
+          set((state) => {
+            const master = state.master;
+            if (!master?.effects?.some((e) => e.id === effectId)) return state;
+            return {
+              master: {
+                ...master,
+                effects: master.effects.filter((e) => e.id !== effectId)
+              }
+            };
+          }),
+
+        moveMasterEffect: (oldIndex, newIndex) =>
+          set((state) => {
+            const master = state.master;
+            const effects = [...(master?.effects ?? [])];
+            if (
+              !master ||
+              oldIndex < 0 ||
+              oldIndex >= effects.length ||
+              newIndex < 0 ||
+              newIndex >= effects.length ||
+              oldIndex === newIndex
+            ) {
+              return state;
+            }
+            const [moved] = effects.splice(oldIndex, 1);
+            effects.splice(newIndex, 0, moved);
+            return { master: { ...master, effects } };
+          }),
 
         // ── Clips ───────────────────────────────────────────────────────────
 
@@ -3371,6 +3517,34 @@ export const createTimelineStore = (
             }
             const tracks = patchById(state.tracks, trackId, { instrument });
             return tracks === state.tracks ? state : { tracks };
+          }),
+
+        setTrackChords: (trackId, chords) =>
+          set((state) => {
+            const track = state.tracks.find((t) => t.id === trackId);
+            if (!track || track.locked || track.type !== "chord") {
+              return state;
+            }
+            return {
+              tracks: patchById(state.tracks, trackId, {
+                chords: sortChords(chords)
+              })
+            };
+          }),
+
+        setClipHarmony: (clipId, harmony) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip || clip.locked || clip.mediaType !== "midi") {
+              return state;
+            }
+            const next: TimelineClip = { ...clip, harmony };
+            if (!harmony) {
+              delete next.harmony;
+            }
+            return {
+              clips: state.clips.map((c) => (c.id === clipId ? next : c))
+            };
           }),
 
         addMidiClip: (opts) => {
@@ -4463,6 +4637,7 @@ export const createTimelineStore = (
           transcript: state.transcript,
           scriptEnabled: state.scriptEnabled,
           tempo: state.tempo,
+          master: state.master,
           storyboardMaterializations: state.storyboardMaterializations,
           setup: state.setup,
           camera2d: state.camera2d ?? null

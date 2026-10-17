@@ -16,6 +16,7 @@
 import type { DocumentOp } from "@nodetool-ai/protocol";
 import { timelineCamera2d } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type {
+  TimelineMasterChannel,
   TimelineSequence,
   TimelineSetup,
   TimelineTempo
@@ -43,6 +44,8 @@ export interface TimelineMergeDoc {
   camera2d?: TimelineSequence["camera2d"];
   /** Document tempo; a scalar, so an agent's rescale lands with its clips. */
   tempo?: TimelineTempo;
+  /** The master channel; a scalar, so its fader and inserts merge as one. */
+  master?: TimelineMasterChannel;
   /** Guided-setup state; null when the sequence never went through the flow. */
   setup?: TimelineSetup | null;
 }
@@ -197,6 +200,14 @@ export const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
       name: "tempo",
       read: (doc) => doc.tempo,
       write: (doc, v) => ({ ...doc, tempo: v as TimelineTempo | undefined })
+    },
+    {
+      name: "master",
+      read: (doc) => doc.master,
+      write: (doc, v) => ({
+        ...doc,
+        master: v as TimelineMasterChannel | undefined
+      })
     },
     {
       name: "setup",
