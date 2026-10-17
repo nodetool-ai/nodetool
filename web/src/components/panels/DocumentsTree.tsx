@@ -637,7 +637,10 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
             title={query.trim() ? "No matching documents" : "No documents yet"}
             description={
               query.trim()
-                ? "Try a different search term."
+                ? // This search covers documents only. Name where the rest
+                  // lives, or an empty result reads as "it does not exist"
+                  // (study-7-I4).
+                  "This searches documents only. Conversations are in Chats, and text files and uploads are in the Library."
                 : // A new text file is a Library file, not a document. Say so,
                   // or the empty panel reads as a lost save.
                   "Documents created in this project will appear here. Text files and uploads are in the Library."

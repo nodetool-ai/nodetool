@@ -62,10 +62,14 @@ never put it in a packet.
 | `make-game` | You want a small game you can play here, made with the app's help. Make one, then play it for a moment. | empty | 25 | Making a game |
 | `keep-answer` | Ask the app to write a short thank-you note to a neighbour who watered your plants. Keep the note somewhere in the app so you can find it again later, then open it from there. | empty | 15 | Keeping an answer from the assistant |
 | `sort-photos` | You have three photos: two from a beach trip and one from a forest walk. Put them into this app so that the two beach photos are kept together on their own, apart from the forest photo, under a name you choose. | empty | 20 | Grouping your own files under a name |
+| `write-note` | You need to tell your landlord that the heater in your flat has stopped working. Write the note here, make its first line stand out from the rest, then close it and open it again. | empty | 25 | Writing and formatting your own text |
+| `same-character` | You will make several pictures of your ginger cat, Miso, and want the same cat in every one. Using your photo of Miso, set the app up so it knows what Miso looks like. | empty | 25 | Setting up a recurring subject |
+| `make-3d` | You want a simple table in 3D: a flat top on four legs. Build it here by hand, then turn it so you can see it from underneath. | empty | 40 | Building a 3D object by hand |
+| `find-thing` | Someone here worked on plans for releasing the next version of a product. You do not know whether it was a conversation, a document or something else. Find it and open it. | seeded-demo | 15 | Finding something by search |
 
-`add-key`, `read-aloud`, `make-tool`, `make-game` and `keep-answer` need a test key in
+`add-key`, `read-aloud`, `make-tool`, `make-game`, `keep-answer` and `same-character` need a test key in
 `credentials`. `add-photo` and `change-photo` need an image in `assets`, `photo-video` two
-photos of different scenes, `sort-photos` three photos of two trips, and `ask-file` a text file. `switch-model` on `seeded-demo` has every provider connected, so it
+photos of different scenes, `sort-photos` three photos of two trips, and `ask-file` a text file, and `same-character` one photo named for the cat. `switch-model` on `seeded-demo` has every provider connected, so it
 studies the choice and not the setup.
 
 ## End states and routes
@@ -106,6 +110,10 @@ studies the choice and not the setup.
 | `make-game` | A game view that changed in response to the participant's keys or clicks. | Where it looked first, and whether it used "Start with a blank room" or an example. | [game](../../agentic-qa/references/protocols/creative.md#game) |
 | `keep-answer` | The note reopened from a list, a conversation or a file. Record which. | Whether it looked for a save action on the reply, or trusted the conversation list. | [chat](../../agentic-qa/references/protocols/chat.md#chat) |
 | `sort-photos` | Both beach photos inside one named folder (or another named group), and the forest photo outside it. | Whether the new folder was on screen after it was made, and whether it used a folder or a project. | [organize](../../agentic-qa/references/protocols/library.md#organize) |
+| `write-note` | A text file whose first line is bold or a heading, reopened after its tab was closed. | Whether it previewed before saving, how it made the heading, and which list it reopened from. | [copy-edit](../../agentic-qa/references/protocols/library.md#copy-edit) |
+| `same-character` | An entity named Miso with the photo as its reference image, visible in the library. | Whether it went to the composer's entity picker, the rail's Entities page, or the chat. | [image](../../agentic-qa/references/protocols/library.md#image) |
+| `make-3d` | A 3D model with a top and four legs, viewed from below. | Whether it found the duplicate, and whether a moved part left the view. | [app-first-use](../../agentic-qa/references/protocols/first-use.md#app-first-use) |
+| `find-thing` | The conversation "Plan our v2 product launch" is open. | Which list or search it tried first, and how it read an empty search result. | [chat-find](../../agentic-qa/references/protocols/chat.md#chat-find) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -145,6 +153,14 @@ The home screen's "App" guided flow (study-6-I1) calls the app build endpoint,
 which `serveApp.ts`'s test server does not serve: there the flow reports "Not
 found". Validate `make-tool` through that flow against the real server with a
 real language model.
+
+Study 7 found that `write-note` takes 19 actions when the draft is lost
+once, so give it 25. `same-character` takes 6 or 7 actions on the key and
+about 25 after it, so give it 35 on `empty`. `make-3d` took 40 actions for a
+top and one leg: a full table needs about 70 at three actions per number,
+so judge it on the route and the stalls, or give it 70. `find-thing` is
+answered by the Chats list in the seeded account, so it says little about
+search unless the account holds more conversations than one list shows.
 
 ## Adding a task
 

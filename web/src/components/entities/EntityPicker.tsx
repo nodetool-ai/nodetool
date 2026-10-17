@@ -11,7 +11,9 @@
 import React, { memo, useMemo, useState } from "react";
 import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 
+import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
 import { useEntities } from "../../serverState/useEntities";
+import { openPageTab } from "../workspace/openPageTab";
 import ImageRefPreview from "../node/ImageRefPreview";
 import { filterEntities } from "./filterEntities";
 import { ENTITY_KIND_ICON, ENTITY_KIND_COLOR } from "./entityKind";
@@ -52,7 +54,19 @@ export interface EntityPickerProps {
   /** Height of the scrolling card grid. */
   height?: number | string;
   autoFocus?: boolean;
+  /**
+   * Offer "New entity" when nothing matches. The picker opens the Entities
+   * page in its add flow, then calls this so the host can close
+   * (study-7-I2).
+   */
+  onCreateStarted?: () => void;
 }
+
+/** Open the Entities page in its guided "Add entity" flow. */
+const startEntityCreate = (): void => {
+  useEntityLibraryStore.getState().requestCreate();
+  openPageTab("entities");
+};
 
 const EntityPickCard: React.FC<{
   entity: Entity;
@@ -130,7 +144,8 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
   selectedIds,
   entities: entitiesOverride,
   height = 360,
-  autoFocus = false
+  autoFocus = false,
+  onCreateStarted
 }) => {
   const { data, isLoading } = useEntities();
   const [query, setQuery] = useState("");
@@ -144,6 +159,12 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
   const selected = useMemo(() => new Set(selectedIds ?? []), [selectedIds]);
 
   const libraryEmpty = !isLoading && (library ?? []).length === 0;
+  const handleCreate = onCreateStarted
+    ? () => {
+        startEntityCreate();
+        onCreateStarted();
+      }
+    : undefined;
 
   return (
     <FlexColumn gap={SPACING.md}>
@@ -182,6 +203,8 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
             variant="empty"
             title="No entities yet"
             description="Characters, locations, styles, and props you create show up here."
+            actionText={handleCreate ? "New entity" : undefined}
+            onAction={handleCreate}
             size="small"
           />
         ) : visible.length === 0 ? (
@@ -189,6 +212,8 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
             variant="no-results"
             title="No entities match"
             description="Try another name, kind, or tag."
+            actionText={handleCreate ? "New entity" : undefined}
+            onAction={handleCreate}
             size="small"
           />
         ) : (
