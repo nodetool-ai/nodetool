@@ -3,9 +3,9 @@
  * AddTrackButton
  *
  * Compact "+ Track" affordance in the timeline toolbar. Opens a popover with
- * the track types (video / audio / overlay / subtitle / MIDI); selecting one
- * calls `TimelineStore.addTrack(type)`, which appends a new track with an
- * auto-generated name.
+ * the track types (video / audio / overlay / subtitle / MIDI / chord);
+ * selecting one calls `TimelineStore.addTrack(type)`, which appends a new
+ * track with an auto-generated name.
  */
 
 import React, { memo, useCallback, useState } from "react";
@@ -18,6 +18,7 @@ import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
+import QueueMusicOutlinedIcon from "@mui/icons-material/QueueMusicOutlined";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
@@ -99,6 +100,11 @@ const TRACK_TYPES: TrackTypeOption[] = [
     type: "midi",
     label: "MIDI",
     icon: <PianoOutlinedIcon fontSize="small" />
+  },
+  {
+    type: "chord",
+    label: "Chord track",
+    icon: <QueueMusicOutlinedIcon fontSize="small" />
   }
 ];
 

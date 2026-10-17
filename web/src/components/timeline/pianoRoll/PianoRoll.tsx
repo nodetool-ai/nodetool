@@ -38,6 +38,8 @@ import {
   beatDurationMs,
   divisionToTicks,
   duplicateNotes,
+  expandClipHarmony,
+  isHarmonyActive,
   moveNotes,
   msToTicks,
   notesInRect,
@@ -195,6 +197,15 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     const history = useTimelineHistoryBatch();
 
     const notes = useMemo(() => clip?.notes ?? [], [clip?.notes]);
+    const tracks = useTimelineStore((s) => s.tracks);
+    // A clip with harmony plays its arp or comp expansion: drawn read-only.
+    const ghostNotes = useMemo(
+      () =>
+        clip && isHarmonyActive(clip.harmony)
+          ? expandClipHarmony(clip, { tracks, tempo })
+          : undefined,
+      [clip, tracks, tempo]
+    );
     const notesRef = useRef<ReadonlyArray<MidiNote>>(notes);
     notesRef.current = notes;
 
@@ -936,6 +947,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
                 widthPx={size.width}
                 heightPx={size.height}
                 notes={notes}
+                ghostNotes={ghostNotes}
                 selectedIds={selectedIds}
                 gridTicks={gridTicks}
                 barTicks={barTicks}
