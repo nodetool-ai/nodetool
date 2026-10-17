@@ -85,6 +85,7 @@ import FirstRunProviderSignIn from "./components/provider_onboarding/FirstRunPro
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
 import CommandMenuHost from "./components/menus/CommandMenuHost";
+import ConfirmDialogHost from "./components/dialogs/ConfirmDialogHost";
 import StaleDeployDialog from "./components/dialogs/StaleDeployDialog";
 import ReportBugButton from "./components/support/ReportBugButton";
 import { installConsoleCapture } from "./utils/consoleCapture";
@@ -823,6 +824,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <InstallRuntimePackageDialog />
                       <FirstRunProviderSignIn />
                       <CommandMenuHost />
+                      <ConfirmDialogHost />
                     </>
                   )}
                   {/* Outside the router gate: a boot failure is exactly when

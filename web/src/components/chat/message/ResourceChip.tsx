@@ -27,7 +27,7 @@ import ViewCarouselOutlinedIcon from "@mui/icons-material/ViewCarouselOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import { parseResourceUri, type ResourceKind, type ResourceUri } from "@nodetool-ai/protocol";
 
-import { BORDER_RADIUS, Chip, SPACING, TYPOGRAPHY, getSpacingPx } from "../../ui_primitives";
+import { BORDER_RADIUS, Chip, SPACING, TYPOGRAPHY, getSpacingPx, Tooltip } from "../../ui_primitives";
 import { useResolvedThumbnailUri } from "../../../hooks/useResolvedMediaUri";
 import { canOpenResource, openResource } from "../../../lib/chat/openResource";
 
@@ -121,45 +121,46 @@ const ResourceChip: React.FC<ResourceChipProps> = ({ uri, label }) => {
   const navigable = canOpenResource(ref.kind);
 
   return (
-    <Chip
-      compact
-      clickable={navigable}
-      color={chipColor(accent)}
-      title={uri}
-      label={label}
-      icon={
-        thumbnail ? (
-          <img
-            src={thumbnail}
-            alt=""
-            width={THUMBNAIL_SIZE}
-            height={THUMBNAIL_SIZE}
-            loading="lazy"
-            style={{
-              objectFit: "cover",
-              borderRadius: BORDER_RADIUS.xs
-            }}
-          />
-        ) : (
-          <Icon fontSize="inherit" />
-        )
-      }
-      onClick={navigable ? () => { void openResource(ref); } : undefined}
-      sx={{
-        verticalAlign: "middle",
-        maxWidth: "100%",
-        margin: `0 ${getSpacingPx(SPACING.micro)}`,
-        borderRadius: BORDER_RADIUS.pill,
-        fontSize: TYPOGRAPHY.sans.label.fontSize,
-        fontWeight: TYPOGRAPHY.sans.label.fontWeight,
-        cursor: navigable ? "pointer" : "default",
-        "& .MuiChip-icon": {
-          marginLeft: getSpacingPx(SPACING.sm),
-          marginRight: `-${getSpacingPx(SPACING.micro)}`,
-          fontSize: TYPOGRAPHY.sans.body.fontSize
+    <Tooltip title={uri} describeChild>
+      <Chip
+        compact
+        clickable={navigable}
+        color={chipColor(accent)}
+        label={label}
+        icon={
+          thumbnail ? (
+            <img
+              src={thumbnail}
+              alt=""
+              width={THUMBNAIL_SIZE}
+              height={THUMBNAIL_SIZE}
+              loading="lazy"
+              style={{
+                objectFit: "cover",
+                borderRadius: BORDER_RADIUS.xs
+              }}
+            />
+          ) : (
+            <Icon fontSize="inherit" />
+          )
         }
-      }}
-    />
+        onClick={navigable ? () => { void openResource(ref); } : undefined}
+        sx={{
+          verticalAlign: "middle",
+          maxWidth: "100%",
+          margin: `0 ${getSpacingPx(SPACING.micro)}`,
+          borderRadius: BORDER_RADIUS.pill,
+          fontSize: TYPOGRAPHY.sans.label.fontSize,
+          fontWeight: TYPOGRAPHY.sans.label.fontWeight,
+          cursor: navigable ? "pointer" : "default",
+          "& .MuiChip-icon": {
+            marginLeft: getSpacingPx(SPACING.sm),
+            marginRight: `-${getSpacingPx(SPACING.micro)}`,
+            fontSize: TYPOGRAPHY.sans.body.fontSize
+          }
+        }}
+      />
+    </Tooltip>
   );
 };
 

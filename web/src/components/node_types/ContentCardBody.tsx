@@ -526,7 +526,7 @@ const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
   // nodrag/nopan keep ReactFlow from hijacking click-to-play and seek drag.
   return (
     <div className="video-preview nodrag nopan">
-      <VideoPlayer src={src} />
+      <VideoPlayer src={src} label="Video output" />
       {!suppressed && (
         <div className="video-preview-actions">
           <ToolbarIconButton

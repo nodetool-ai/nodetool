@@ -866,7 +866,7 @@ import { Dialog, Text } from "../ui_primitives";
 | Footer | `onConfirm` with a verb in `confirmText`, plus `destructive`, `isLoading`, `confirmDisabled`. Other footers go in `actions` as a fragment of `Button`s: secondary `variant="text" color="inherit"`, the primary last with `variant="contained"` |
 | Destructive | Delete, remove, revoke and discard pass `destructive`. Their title is a question and the body states the consequence |
 | Feedback | Errors and warnings inside a dialog use `AlertBanner` |
-| Confirm only | `ConfirmDialog` for a title, a sentence and two buttons. Never `window.confirm` or `window.prompt` |
+| Confirm only | `ConfirmDialog` for a title, a sentence and two buttons. Never `window.confirm` or `window.prompt`. A hook or callback that renders nothing of its own (a keyboard shortcut, a store action) asks with `await requestConfirm({ title, content, confirmText, destructive })` from `stores/ConfirmStore`, answered by the `ConfirmDialogHost` mounted at the app root |
 | Fullscreen | Media viewers and reading views pass `variant="fullscreen"` |
 
 Full-screen editors with their own resize and history (the text, dataframe,
