@@ -57,6 +57,14 @@ curl http://localhost:7777/api/workflows/<id>/dsl-export      # TypeScript DSL
 curl http://localhost:7777/api/workflows/<id>/export-bundle   # .nodetool bundle (zip)
 ```
 
+`PUT /api/workflows/<id>` replaces the stored graph. A node's
+`ui_properties.position` is in canvas coordinates unless the node has a
+`parent_id`. A node inside a group (`nodetool.workflows.base_node.Group`)
+stores the group's id in `parent_id` and a `position` relative to the group's
+top-left corner. A node at canvas `(920, 1356)` inside a group at `(880, 1000)`
+stores `{"x": 40, "y": 356}`. A node with no `parent_id` is not a group member,
+even when it lies inside the group's rectangle, and does not move with it.
+
 Run a saved workflow over REST. This is the route `run_workflow`,
 `debug_workflow` and `nodetool debug` use. The editor runs over WebSocket
 instead (§ WebSocket API).

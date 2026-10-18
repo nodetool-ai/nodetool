@@ -1,8 +1,13 @@
 import { Edge, Node } from "@xyflow/react";
+import { adoptUserNodes } from "@xyflow/system";
 
 import { NodeMetadata } from "../../../stores/ApiTypes";
 import { NodeData } from "../../../stores/NodeData";
-import { isValidEdge, sanitizeGraph } from "../graphMapping";
+import {
+  isValidEdge,
+  orderParentsFirst,
+  sanitizeGraph
+} from "../graphMapping";
 import { CONTROL_HANDLE_ID } from "../../../stores/graphEdgeToReactFlowEdge";
 
 const baseMetadata: NodeMetadata = {
@@ -444,5 +449,56 @@ describe("graphMapping helpers", () => {
       expect(sanitized).toHaveLength(1);
       expect(sanitized[0].id).toBe("ce1");
     });
+  });
+});
+
+describe("group member ordering", () => {
+  const group: Node<NodeData> = {
+    ...makeNode("group", "nodetool.workflows.base_node.Group"),
+    position: { x: 880, y: 1000 }
+  };
+  const member: Node<NodeData> = {
+    ...makeNode("member"),
+    parentId: "group",
+    position: { x: 40, y: 356 }
+  };
+
+  it("moves a group ahead of a member listed before it", () => {
+    const loose = makeNode("loose");
+    const { nodes } = sanitizeGraph([loose, member, group], [], {
+      test: baseMetadata
+    });
+
+    expect(nodes.map((n) => n.id)).toEqual(["loose", "group", "member"]);
+  });
+
+  it("places a member at its parent's position plus its relative offset", () => {
+    const { nodes } = sanitizeGraph([member, group], [], {
+      test: baseMetadata
+    });
+    const nodeLookup = new Map();
+    adoptUserNodes(nodes, nodeLookup, new Map());
+
+    expect(nodeLookup.get("member").internals.positionAbsolute).toEqual({
+      x: 920,
+      y: 1356
+    });
+  });
+
+  it("returns the same array when groups already lead their members", () => {
+    const nodes = [group, member];
+
+    expect(orderParentsFirst(nodes)).toBe(nodes);
+  });
+
+  it("keeps every node of a parent cycle", () => {
+    const a = { ...makeNode("a"), parentId: "b" };
+    const b = { ...makeNode("b"), parentId: "a" };
+
+    expect(
+      orderParentsFirst([a, b])
+        .map((n) => n.id)
+        .sort()
+    ).toEqual(["a", "b"]);
   });
 });
