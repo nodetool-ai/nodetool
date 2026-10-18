@@ -34,6 +34,7 @@ import {
   toHex
 } from "../../utils/colorMath";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { groupZoomScale } from "../../utils/groupZoomScale";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
@@ -268,19 +269,13 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const onHeaderLeave = useCallback(() => setHeaderHovered(false), []);
   const store = useNodeStoreRef();
 
-  // Soft inverse-zoom scaling so the header chrome stays a comfortable size
-  // on screen at every zoom level. Strict 1/zoom (k=1) makes the label tiny
-  // when zoomed in and absurd when zoomed out; using a sub-linear exponent
-  // lets the label gently grow at high zoom and stay compact at low zoom.
   const zoom = useStore((s) => s.transform[2]);
-  const clampedZoom = Math.min(Math.max(zoom, 0.08), 8);
-  // Label needs to stay readable → grow a bit when zoomed in.
-  const labelScale = Math.pow(1 / clampedZoom, 0.8);
-  // Right-side action buttons don't need to read as text; scale them less so
-  // they don't dominate the header (or overlap the label) when zoomed out.
-  const actionsScale = Math.pow(1 / clampedZoom, 0.55);
-  // World-space gap that renders as a constant ~5px on screen at any zoom.
-  const screenGapPx = 5 / clampedZoom;
+  const {
+    label: labelScale,
+    actions: actionsScale,
+    outlineWidthPx,
+    headerGapPx: screenGapPx
+  } = groupZoomScale(zoom);
 
   const { updateNodeData, updateNode, setBypass } = useNodes(
     (state) => ({
@@ -510,23 +505,30 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     const effectiveColor = resolveGroupHex(color);
     const bodyTintHex = toHex(darken(desaturate(parse(effectiveColor), 1.4), 0.3));
     const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
-    const subtleBorder = `1px solid ${hexToRgba(bodyTintHex, GROUP_BORDER_OPACITY)}`;
     const labelBg = toHex(brighten(desaturate(parse(bodyTintHex), 0.4), 0.25));
-    return { bodyBg, subtleBorder, labelBg };
+    // The edge uses the brighter label tint so it still separates the panel
+    // from the canvas when the fill is only a few pixels of color.
+    const subtleOutline = hexToRgba(labelBg, GROUP_BORDER_OPACITY);
+    return { bodyBg, subtleOutline, labelBg };
   }, [color]);
-  const { bodyBg, subtleBorder, labelBg } = colorTokens;
+  const { bodyBg, subtleOutline, labelBg } = colorTokens;
 
-  // One 1px edge in every state, as on nodes; selection and hover recolor it.
-  const rootStyle = useMemo<React.CSSProperties>(() => ({
-    border: props.selected
-      ? `1px solid ${theme.vars.palette.primary.main}`
+  // One 1px screen-space edge in every state, as on nodes; selection and
+  // hover recolor it. An inset shadow draws it without changing the box.
+  const rootStyle = useMemo<React.CSSProperties>(() => {
+    const outlineColor = props.selected
+      ? theme.vars.palette.primary.main
       : nodeHovered
-        ? `1px solid color-mix(in srgb, ${theme.vars.palette.primary.main} 60%, transparent)`
-        : subtleBorder,
-    opacity: modifierActive ? 0.5 : nodeHovered ? 0.8 : 1,
-    pointerEvents: modifierActive ? "all" : "none",
-    backgroundColor: bodyBg
-  }), [props.selected, nodeHovered, theme.vars.palette.primary.main, subtleBorder, modifierActive, bodyBg]);
+        ? `color-mix(in srgb, ${theme.vars.palette.primary.main} 60%, transparent)`
+        : subtleOutline;
+    return {
+      border: "none",
+      boxShadow: `inset 0 0 0 ${outlineWidthPx}px ${outlineColor}`,
+      opacity: modifierActive ? 0.5 : nodeHovered ? 0.8 : 1,
+      pointerEvents: modifierActive ? "all" : "none",
+      backgroundColor: bodyBg
+    };
+  }, [props.selected, nodeHovered, theme.vars.palette.primary.main, subtleOutline, outlineWidthPx, modifierActive, bodyBg]);
 
   const headerStyle = useMemo<React.CSSProperties>(() => ({
     bottom: `calc(100% + ${screenGapPx}px)`,
