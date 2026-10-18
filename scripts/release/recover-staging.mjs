@@ -14,8 +14,10 @@ const SHA512 = /^sha512-[A-Za-z0-9+/]{86}==$/;
 const PACKAGE_NAME = /^@nodetool-ai\/[a-z0-9][a-z0-9._-]*$/;
 
 export function originalPublication(run, jobs) {
+  // A stable release starts from its v* tag push, a prerelease rehearsal from a dispatch.
+  const tagPush = run.event === "push" && /^v\d+\.\d+\.\d+$/.test(run.head_branch ?? "");
   if (run.repository?.full_name !== REPOSITORY || run.path !== RELEASE_WORKFLOW ||
-      run.event !== "workflow_dispatch" || run.status !== "completed" || run.conclusion !== "failure" ||
+      (run.event !== "workflow_dispatch" && !tagPush) || run.status !== "completed" || run.conclusion !== "failure" ||
       !Number.isSafeInteger(run.id) || run.id <= 0 || !Number.isSafeInteger(run.run_attempt) || run.run_attempt <= 0 ||
       !/^[a-f0-9]{40}$/.test(run.head_sha) || !/^[A-Za-z0-9._/-]+$/.test(run.head_branch ?? "")) {
     throw new Error("Original run is not a failed NodeTool publication");
@@ -34,7 +36,7 @@ export function originalPublication(run, jobs) {
     throw new Error("Original publication did not fail at verified promotion");
   }
   return {
-    id: run.id, attempt: run.run_attempt, sha: run.head_sha,
+    id: run.id, attempt: run.run_attempt, sha: run.head_sha, event: run.event,
     ref: run.head_branch === "main" ? "refs/heads/main" : `refs/tags/${run.head_branch}`
   };
 }
@@ -70,7 +72,11 @@ export async function restoreOriginalArtifacts(original, names, version, directo
   loadDist = loadRegistryDist, loadAttestations = loadRegistryJson,
   download = downloadTarball, readJsonMember = readMember
 } = {}) {
-  if (!/^\d+\.\d+\.\d+-[A-Za-z0-9][A-Za-z0-9.-]*$/.test(version)) {
+  if (original.event === "push") {
+    if (!/^\d+\.\d+\.\d+$/.test(version) || original.ref !== `refs/tags/v${version}`) {
+      throw new Error("Stable recovery requires the version of the original release tag");
+    }
+  } else if (!/^\d+\.\d+\.\d+-[A-Za-z0-9][A-Za-z0-9.-]*$/.test(version)) {
     throw new Error("Recovery requires an explicit prerelease version");
   }
   if (names.length === 0 || new Set(names).size !== names.length || names.some(name => !PACKAGE_NAME.test(name)) ||

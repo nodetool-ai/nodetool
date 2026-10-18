@@ -7,7 +7,9 @@ import { originalPublication, restoreOriginalArtifacts, sourcePackageNames } fro
 import { RELEASE_REPOSITORY, RELEASE_WORKFLOW } from "../release/verify-staging.mjs";
 
 const version = "0.8.4-a24.1";
-const original = { id: 123, attempt: 1, sha: "a".repeat(40), ref: "refs/tags/cli-pack-rehearsal-a24.1" };
+const defaultVersion = version;
+const original = { id: 123, attempt: 1, sha: "a".repeat(40), event: "workflow_dispatch", ref: "refs/tags/cli-pack-rehearsal-a24.1" };
+const defaultOriginal = original;
 const names = ["@nodetool-ai/cli", "@nodetool-ai/node-catalog", "@nodetool-ai/fal-nodes"];
 const roots = [];
 function directory() { const root = mkdtempSync(join(tmpdir(), "release-recovery-")); roots.push(root); return root; }
@@ -25,7 +27,7 @@ function runFixture() {
   return { run, jobs };
 }
 
-function fixture() {
+function fixture(version = defaultVersion, original = defaultOriginal) {
   const bytes = new Map(names.map(name => [name, Buffer.from(name)]));
   const pins = names.map(name => ({ name, version, integrity: `sha512-${createHash("sha512").update(bytes.get(name)).digest("base64")}` }));
   const catalog = { coreVersion: version, packs: [{ id: "fal", kind: "node-pack", npm: pins[2], provides: [], scriptAllowlist: [] }] };
@@ -37,7 +39,7 @@ function fixture() {
       predicate: {
         buildDefinition: {
           externalParameters: { workflow: { repository: RELEASE_REPOSITORY, path: RELEASE_WORKFLOW, ref: original.ref } },
-          internalParameters: { github: { event_name: "workflow_dispatch" } },
+          internalParameters: { github: { event_name: original.event } },
           resolvedDependencies: [{ uri: `git+${RELEASE_REPOSITORY}@${original.ref}`, digest: { gitCommit: original.sha } }]
         },
         runDetails: { metadata: { invocationId: `${RELEASE_REPOSITORY}/actions/runs/${original.id}/attempts/${original.attempt}` } }
@@ -70,6 +72,11 @@ describe("original publication identity", () => {
     }
     expect(() => originalPublication({ ...run, repository: { full_name: "someone/else" } }, jobs)).toThrow("failed NodeTool publication");
     expect(() => originalPublication(run, [{ ...jobs[0], run_id: 456 }])).toThrow("job is missing");
+    const tagPush = { ...run, event: "push", head_branch: "v0.8.6" };
+    expect(originalPublication(tagPush, jobs)).toEqual({ ...original, event: "push", ref: "refs/tags/v0.8.6" });
+    for (const head_branch of ["main", "v0.8.6-a1", "v0.8.6-nightly.20261018.1"]) {
+      expect(() => originalPublication({ ...tagPush, head_branch }, jobs)).toThrow("failed NodeTool publication");
+    }
     jobs[0].steps[3].conclusion = "failure";
     expect(() => originalPublication(run, jobs)).toThrow("did not complete");
   });
@@ -105,7 +112,7 @@ describe("original artifact recovery", () => {
     for (const name of names) { expect(events.indexOf(`provenance:${name}`)).toBeLessThan(events.indexOf(`download:${name}`)); }
   });
 
-  it.each(["id", "attempt", "sha", "ref"])("rejects foreign original %s before downloading or extracting", async field => {
+  it.each(["id", "attempt", "sha", "event", "ref"])("rejects foreign original %s before downloading or extracting", async field => {
     const { options } = fixture();
     await expect(restoreOriginalArtifacts({ ...original, [field]: "other" }, names, version, directory(), options)).rejects.toThrow("Provenance differs");
     expect(options.download).not.toHaveBeenCalled();
@@ -154,7 +161,17 @@ describe("original artifact recovery", () => {
     await expect(restoreOriginalArtifacts(original, names, version, root, options)).resolves.toHaveProperty("artifacts");
   });
 
-  it("refuses stable recovery, empty or incomplete source sets, and existing artifact directories", async () => {
+  it("restores a stable release only from the push of its own tag", async () => {
+    const stable = { ...original, event: "push", ref: "refs/tags/v0.8.6" };
+    const { options, pins } = fixture("0.8.6", stable);
+    await expect(restoreOriginalArtifacts(stable, names, "0.8.6", directory(), options)).resolves.toHaveProperty("artifacts", pins);
+    for (const other of ["0.8.5", "0.8.6-a1"]) {
+      await expect(restoreOriginalArtifacts(stable, names, other, directory(), options)).rejects.toThrow("version of the original release tag");
+    }
+    expect(options.loadDist).toHaveBeenCalledTimes(names.length);
+  });
+
+  it("refuses stable dispatch recovery, empty or incomplete source sets, and existing artifact directories", async () => {
     const { options } = fixture();
     await expect(restoreOriginalArtifacts(original, names, "0.8.4", directory(), options)).rejects.toThrow("explicit prerelease");
     for (const incomplete of [[], [names[0]], [...names, names[0]]]) {
