@@ -73,7 +73,7 @@ There is no blank-game entry. Every new game starts from a playable starter, so 
 
 ## Editor layout
 
-The editor is a toolbar over three docks and a viewport. Drag the edge of a dock to resize it.
+The editor is a toolbar over three docks and a viewport. Drag the edge of a dock to resize it. The docks come from the dock module shared with the timeline editor, at `web/src/components/dock/`.
 
 | Area | What it does |
 |---|---|
