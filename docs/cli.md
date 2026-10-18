@@ -1084,7 +1084,7 @@ issues and exits non-zero.
 
 ### `nodetool sketch`
 
-**Subcommands:** `validate`, `debug`, `versions`
+**Subcommands:** `validate`, `debug`, `render`, `versions`
 
 #### `nodetool sketch validate <sketch_id_or_file>`
 
@@ -1135,6 +1135,28 @@ nodetool sketch debug sketch.json \
 ```
 
 The bundle holds `report.json`, `report.md`, and `sketch.json`.
+
+#### `nodetool sketch render <sketch_id_or_file>`
+
+Render a sketch with the editor's compositing rules and write a PNG, or a
+layered PSD. The target is the same as `validate`. Layer images stored as
+`asset://` resolve through the local asset store. The command exits non-zero
+when a layer's image could not be read.
+
+**Options:**
+
+- `-o, --out <file>` — output file (default: the sketch's name, slugged, with `.png` or `.psd`).
+- `--format <png|psd>` — `png` (default) or a layered `psd` at the canvas size.
+- `--width <px>`, `--height <px>` — output size. One alone keeps the aspect ratio. PNG only.
+- `--background <color>` — CSS color under the image. Default transparent. PNG only.
+- `--layer <layer_id>` — one layer alone, without its opacity or blend mode. PNG only.
+- `--mask` — the inpainting mask layer. PNG only.
+- `--json` — print the render report (size, output path, per-layer `drawn` and `issue`).
+
+```bash
+nodetool sketch render <image_document_id> -o poster.png --width 1024
+nodetool sketch render sketch.json --format psd -o poster.psd
+```
 
 #### `nodetool sketch versions`
 
@@ -1846,6 +1868,25 @@ Display the current values of a fixed list of environment variables: `ENV`, `LOG
 ```bash
 nodetool settings show
 nodetool settings show --json
+```
+
+### `nodetool telemetry`
+
+Control anonymous usage analytics for the CLI. Telemetry is off until you run
+`enable`, and the CLI never asks. `NODETOOL_TELEMETRY=0` and `DO_NOT_TRACK=1`
+turn it off whatever was stored. The decision lives in
+`~/.nodetool/telemetry.json` and applies to the CLI only. What is sent and what
+is never sent is in [Product Analytics](analytics.md).
+
+- `enable` — start sending anonymous usage events.
+- `disable` — stop, and delete the anonymous ID and unsent events.
+- `status [--json]` — show whether telemetry is on, why, and where it is stored.
+- `inspect [--json]` — print the events waiting to be sent, exactly as they would be sent.
+
+```bash
+nodetool telemetry status
+nodetool telemetry enable
+nodetool telemetry inspect --json
 ```
 
 ## Model Management

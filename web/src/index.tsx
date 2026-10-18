@@ -49,7 +49,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
 import { loadRuntimeConfig, isAuthRequired } from "./lib/runtimeConfig";
-import { initAnalytics } from "./lib/analytics";
+import { initProductAnalytics } from "./lib/analytics";
 import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import { useSettingsStore } from "./stores/SettingsStore";
@@ -84,6 +84,7 @@ const InstallRuntimePackageDialog = React.lazy(
 import FirstRunProviderSignIn from "./components/provider_onboarding/FirstRunProviderSignIn";
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
+import AnalyticsConsentPrompt from "./components/privacy/AnalyticsConsentPrompt";
 import CommandMenuHost from "./components/menus/CommandMenuHost";
 import ConfirmDialogHost from "./components/dialogs/ConfirmDialogHost";
 import StaleDeployDialog from "./components/dialogs/StaleDeployDialog";
@@ -825,6 +826,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <FirstRunProviderSignIn />
                       <CommandMenuHost />
                       <ConfirmDialogHost />
+                      <AnalyticsConsentPrompt />
                     </>
                   )}
                   {/* Outside the router gate: a boot failure is exactly when
@@ -857,8 +859,8 @@ const configReady = loadRuntimeConfig().then((config) => {
   initSupabaseFromConfig(config);
   useAuth.getState().initialize();
   initKeyListeners();
-  // Load Plausible on the production website only (never local/dev/Electron).
-  initAnalytics();
+  // Opt-in analytics: sends nothing until Settings → Privacy grants consent.
+  initProductAnalytics();
   return config;
 });
 configReady.catch((err) => console.error(err));

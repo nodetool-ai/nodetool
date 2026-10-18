@@ -15,6 +15,9 @@
     "test:watch": "node ../../scripts/run-vitest.mjs",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
+  "dependencies": {
+    "@nodetool-ai/protocol": "*"
+  },
   "devDependencies": {
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1"
@@ -43,6 +46,18 @@
       "types": "./dist/raster/index.d.ts",
       "import": "./dist/raster/index.js",
       "default": "./dist/raster/index.js"
+    },
+    "./render.js": {
+      "nodetool-dev": "./src/render/index.ts",
+      "types": "./dist/render/index.d.ts",
+      "import": "./dist/render/index.js",
+      "default": "./dist/render/index.js"
+    },
+    "./psd.js": {
+      "nodetool-dev": "./src/psd/index.ts",
+      "types": "./dist/psd/index.d.ts",
+      "import": "./dist/psd/index.js",
+      "default": "./dist/psd/index.js"
     }
   },
   "license": "MIT",

@@ -528,3 +528,21 @@ describe("deploy integration (tmp XDG)", () => {
     void tmp;
   });
 });
+
+describe("isSafeTokenUrl", () => {
+  // The admin token never expires, so it must not cross a network in clear text.
+  it("allows https and loopback http, refuses remote http", async () => {
+    const { isSafeTokenUrl } = await import("../src/commands/deploy-helpers.js");
+    expect(isSafeTokenUrl("https://nodetool.example.com", {})).toBe(true);
+    expect(isSafeTokenUrl("http://localhost:8000", {})).toBe(true);
+    expect(isSafeTokenUrl("http://127.0.0.1:8000", {})).toBe(true);
+    expect(isSafeTokenUrl("http://[::1]:8000", {})).toBe(true);
+    expect(isSafeTokenUrl("http://203.0.113.7:8000", {})).toBe(false);
+    expect(isSafeTokenUrl("http://vps.example.com:8000", {})).toBe(false);
+    expect(
+      isSafeTokenUrl("http://vps.example.com:8000", {
+        NODETOOL_ALLOW_INSECURE_HTTP: "1"
+      })
+    ).toBe(true);
+  });
+});

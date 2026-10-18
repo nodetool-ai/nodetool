@@ -74,7 +74,8 @@ import {
   MAX_MS_PER_PX,
   MIN_TRACK_HEADER_WIDTH_PX,
   MAX_TRACK_HEADER_WIDTH_PX,
-  maxTrackHeaderWidthForViewport
+  maxTrackHeaderWidthForViewport,
+  type TimelineTool
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
 import {
@@ -146,20 +147,36 @@ import {
   type WebKitGestureEvent
 } from "./timelineGesture";
 import { resolveTimelineAction } from "../timelineKeymap";
+import type { TimelineAction } from "../timelineKeymap";
+import { clipsAtTime, markClipRange, neighbourEditMs } from "./editPoints";
+import { clipEnabledPatch, isClipDisabled } from "./clipEnabled";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { performSourceEdit } from "../sourceEdit";
+import { keyframeRowFor, toggleRowKeyframeAt } from "../Inspector/keyframeRows";
 import { getSelectedAssetForExplorer } from "../../../stores/AssetGridStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import {
   groupDescendantIds,
-  hasKeyframeAt,
   isGroupClip,
-  keyframeTimesMs,
-  keyframeValueAt
+  keyframeTimesMs
 } from "@nodetool-ai/timeline";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { isMac } from "../../../utils/platform";
 
+
+/** The pointer tool each tool key selects. */
+const TOOL_FOR_ACTION: Record<
+  Extract<TimelineAction, `${string}Tool`>,
+  TimelineTool
+> = {
+  selectTool: "select",
+  trackSelectTool: "trackSelect",
+  rippleTool: "ripple",
+  rollTool: "roll",
+  rateStretchTool: "rateStretch",
+  cutTool: "cut",
+  slipTool: "slip"
+};
 const ZOOM_SENSITIVITY = 0.001;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
@@ -1158,14 +1175,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             return;
 
           case "stepFrameBack":
-          case "stepFrameForward": {
+          case "stepFrameForward":
+          case "stepFramesBack":
+          case "stepFramesForward": {
             e.preventDefault();
             if (playback.isPlaying) return;
             const endMs = doc.clips.reduce(
               (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
               0
             );
-            const direction = action === "stepFrameBack" ? -1 : 1;
+            // Premiere's Shift+arrow steps five frames.
+            const direction =
+              (action.endsWith("Back") ? -1 : 1) *
+              (action.startsWith("stepFrames") ? 5 : 1);
             const nextFrame = Math.round(liveMs / frameMs) + direction;
             playback.seek(Math.max(0, Math.min(endMs, nextFrame * frameMs)));
             return;
@@ -1321,13 +1343,136 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           }
 
           case "selectTool":
-            e.preventDefault();
-            setActiveTool("select");
-            return;
+          case "trackSelectTool":
+          case "rippleTool":
+          case "rollTool":
+          case "rateStretchTool":
           case "cutTool":
+          case "slipTool":
             e.preventDefault();
-            setActiveTool("cut");
+            setActiveTool(TOOL_FOR_ACTION[action]);
             return;
+
+          case "deselectAll":
+            e.preventDefault();
+            setSelection([]);
+            return;
+
+          case "selectClipAtPlayhead": {
+            e.preventDefault();
+            const under = clipsAtTime(doc.clips, doc.tracks, liveMs);
+            setSelection(under.map((c) => c.id));
+            return;
+          }
+
+          case "toggleClipEnabled": {
+            const targets = doc.clips.filter((c) => selectedClipIds.has(c.id));
+            if (targets.length === 0) return;
+            e.preventDefault();
+            // Any enabled clip in the selection switches the lot off.
+            const enable = targets.every(isClipDisabled);
+            runAsOneUndoEntry(docStore, () => {
+              for (const c of targets) {
+                if (c.locked) continue;
+                doc.patchClip(c.id, clipEnabledPatch(c, enable));
+              }
+            });
+            return;
+          }
+
+          case "linkClips": {
+            if (selectedClipIds.size === 0) return;
+            e.preventDefault();
+            const selected = doc.clips.filter((c) => selectedClipIds.has(c.id));
+            const linkIds = new Set(selected.map((c) => c.linkId));
+            // One link group selected whole: unlink it. Anything else: link.
+            const [onlyLink] = linkIds;
+            if (linkIds.size === 1 && onlyLink !== undefined) {
+              doc.unlinkClip(selected[0].id);
+            } else {
+              doc.linkClips(selectedClipIds);
+            }
+            return;
+          }
+
+          case "groupClips": {
+            if (selectedClipIds.size < 2) return;
+            e.preventDefault();
+            const groupId = doc.groupClips(selectedClipIds);
+            if (groupId) setSelection([groupId]);
+            return;
+          }
+
+          case "ungroupClips": {
+            const groups = doc.clips.filter(
+              (c) => selectedClipIds.has(c.id) && isGroupClip(c)
+            );
+            if (groups.length === 0) return;
+            e.preventDefault();
+            // Deleting a group releases its children where they are.
+            runAsOneUndoEntry(docStore, () => {
+              for (const g of groups) doc.deleteClip(g.id);
+            });
+            setSelection([]);
+            return;
+          }
+
+          case "rippleTrimPrevToPlayhead":
+          case "rippleTrimNextToPlayhead": {
+            const forward = action === "rippleTrimNextToPlayhead";
+            const editMs = neighbourEditMs(
+              doc.clips,
+              doc.tracks,
+              liveMs,
+              forward ? 1 : -1
+            );
+            if (editMs === null) return;
+            e.preventDefault();
+            if (forward) {
+              doc.removeRange(liveMs, editMs, true);
+            } else {
+              doc.removeRange(editMs, liveMs, true);
+              // What followed the playhead now starts at the old edit.
+              playback.seek(editMs);
+            }
+            return;
+          }
+
+          case "liftRange":
+          case "extractRange": {
+            const { rangeInMs, rangeOutMs } = playback;
+            if (rangeInMs === null || rangeOutMs === null) return;
+            e.preventDefault();
+            doc.removeRange(rangeInMs, rangeOutMs, action === "extractRange");
+            playback.clearRange();
+            playback.seek(rangeInMs);
+            return;
+          }
+
+          case "markClip": {
+            const range = markClipRange(
+              doc.clips,
+              doc.tracks,
+              selectedClipIds,
+              liveMs
+            );
+            if (!range) return;
+            e.preventDefault();
+            playback.clearRange();
+            playback.setRangeIn(range.inMs);
+            playback.setRangeOut(range.outMs);
+            return;
+          }
+
+          case "goToIn":
+          case "goToOut": {
+            const target =
+              action === "goToIn" ? playback.rangeInMs : playback.rangeOutMs;
+            if (target === null) return;
+            e.preventDefault();
+            playback.seek(target);
+            return;
+          }
           case "toggleSnap":
             e.preventDefault();
             ui.toggleSnap();
@@ -1384,17 +1529,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             const relMs = liveMs - target.startMs;
             if (action === "addKeyframe") {
               if (relMs < 0 || relMs > target.durationMs) return;
-              const property = ui.keyframeProperty;
-              if (hasKeyframeAt(target, property, relMs)) {
-                doc.removeClipKeyframe(clipId, property, relMs);
-              } else {
-                doc.setClipKeyframe(
-                  clipId,
-                  property,
-                  relMs,
-                  keyframeValueAt(target, property, relMs)
-                );
-              }
+              // The armed row's diamond: Position keys X and Y together.
+              const row = keyframeRowFor(ui.keyframeProperty);
+              if (!row) return;
+              doc.editClipKeyframes(clipId, (c) =>
+                toggleRowKeyframeAt(c, row, relMs)
+              );
               return;
             }
             seekToNeighbour(

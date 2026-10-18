@@ -22,7 +22,7 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import {
   useNodeOutput,
   useUpstreamValue
@@ -164,7 +164,7 @@ const PasteBodyInner: React.FC<PasteBodyProps> = ({
     };
   }, [baseRef?.width, baseRef?.height, pasteRef?.width, pasteRef?.height, left, top]);
 
-  const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
+  const { setProperties, setPropertyComplete } = useLiveSliderWriter({
     nodeId: id,
     nodeType
   });

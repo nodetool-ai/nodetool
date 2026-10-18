@@ -62,13 +62,14 @@ const renderBody = (
         handleTrimEndPointerDown={jest.fn()}
         handleTrimEndPointerMove={jest.fn()}
         handleTrimPointerEnd={jest.fn()}
-        cutMode={false}
+        bodyCursor={undefined}
         selectedEdge={null}
         handleTransitionPointerDown={jest.fn()}
         handleTransitionPointerMove={jest.fn()}
         handleTransitionPointerEnd={jest.fn()}
         keyframeTimesMs={[]}
         onKeyframeClick={jest.fn()}
+        onKeyframeMove={jest.fn()}
         interactionLocked={false}
       />
     </ThemeProvider>

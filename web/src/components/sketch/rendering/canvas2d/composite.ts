@@ -6,6 +6,8 @@
  * transform / opacity / blend-mode handling.
  */
 
+import { drawWithTransform as drawLayerWithTransform } from "@nodetool-ai/image-editor/render.js";
+
 import { getVectorSourceImage } from "../vectorSource";
 
 import type {
@@ -23,7 +25,6 @@ import {
   getRasterBounds
 } from "../../transform/geometry/layerGeometry";
 import type { ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "../types";
-import { drawImageToQuad } from "./quadTransform";
 
 // ─── Type alias for the FX evaluator callback ───────────────────────────────
 
@@ -36,9 +37,9 @@ export type EvaluateLayerEffectsFn = (
 // ─── Transform-aware drawing ─────────────────────────────────────────────────
 
 /**
- * Draw a source canvas into the target context, applying any scale/rotation
- * from the layer transform. When a matrix is available it is used directly;
- * otherwise falls back to decomposed values.
+ * Draw a source canvas into the target context, applying the layer transform.
+ * A vector layer redraws its SVG source instead of the sampling buffer. The
+ * rule itself is shared with the headless renderer.
  */
 export function drawWithTransform(
   ctx: CanvasRenderingContext2D,
@@ -46,37 +47,9 @@ export function drawWithTransform(
   compositeOffset: { x: number; y: number },
   layer: Pick<Layer, "transform" | "type">
 ): void {
-  const drawable = layer.type === "vector" ? getVectorSourceImage(source) ?? source : source;
-  const t = layer.transform;
-  switch (t.kind) {
-    case "quad":
-      drawImageToQuad(ctx, source, t.quad);
-      return;
-    case "affine": {
-      const sx = t.scaleX;
-      const sy = t.scaleY;
-      const rot = t.rotation;
-      if (sx !== 1 || sy !== 1 || rot !== 0) {
-        const cx = compositeOffset.x + source.width / 2;
-        const cy = compositeOffset.y + source.height / 2;
-        ctx.translate(cx, cy);
-        ctx.rotate(rot);
-        ctx.scale(sx, sy);
-        if (drawable === source) {
-          ctx.drawImage(source, -source.width / 2, -source.height / 2);
-        } else {
-          ctx.drawImage(drawable, -source.width / 2, -source.height / 2, source.width, source.height);
-        }
-      } else {
-        if (drawable === source) {
-          ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
-        } else {
-          ctx.drawImage(drawable, compositeOffset.x, compositeOffset.y, source.width, source.height);
-        }
-      }
-      return;
-    }
-  }
+  const drawable =
+    layer.type === "vector" ? getVectorSourceImage(source) ?? source : source;
+  drawLayerWithTransform(ctx, source, compositeOffset, layer.transform, drawable);
 }
 
 // ─── Single-layer drawing ────────────────────────────────────────────────────

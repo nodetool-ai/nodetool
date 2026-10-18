@@ -14,6 +14,8 @@ import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import QueueMusicOutlinedIcon from "@mui/icons-material/QueueMusicOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { canClipFade } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -21,6 +23,7 @@ import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useInStudio } from "../../../studio/StudioContext";
 import type { WorkflowMediaItem } from "../../../hooks/handlers/useGenerationToCanvas";
 import { clipWorkflowMedia } from "../clipWorkflowMedia";
+import { clipEnabledPatch, isClipDisabled } from "./clipEnabled";
 
 import { ContextMenu, MenuItemPrimitive } from "../../ui_primitives";
 import {
@@ -73,6 +76,11 @@ export function ClipContextMenu({
     const clip = findClipById(s.clips, clipId);
     return ((clip?.fadeInMs ?? 0) || (clip?.fadeOutMs ?? 0)) > 0;
   });
+  const disabled = useTimelineStore((s) => {
+    const clip = findClipById(s.clips, clipId);
+    return clip ? isClipDisabled(clip) : false;
+  });
+  const patchClip = useTimelineStore((s) => s.patchClip);
   const applyFades = useTimelineStore((s) => s.applyFades);
   const clearFades = useTimelineStore((s) => s.clearFades);
   // A right-click inside the selection acts on the whole selection, like the
@@ -166,6 +174,22 @@ export function ClipContextMenu({
         }
         onClick={run(actions.toggleLock)}
       />
+      {!actions.locked && (
+        <MenuItemPrimitive
+          label={disabled ? "Enable" : "Disable"}
+          icon={
+            disabled ? (
+              <VisibilityOutlinedIcon fontSize="small" />
+            ) : (
+              <VisibilityOffOutlinedIcon fontSize="small" />
+            )
+          }
+          onClick={run(() => {
+            const clip = findClipById(clips, clipId);
+            if (clip) patchClip(clipId, clipEnabledPatch(clip, disabled));
+          })}
+        />
+      )}
       {actions.canReplace && (
         <MenuItemPrimitive
           label="Replace clip…"

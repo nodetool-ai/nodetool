@@ -68,7 +68,7 @@ import {
   isRecord,
   isString
 } from "../utils/type-guards.js";
-import { resolveProjectId } from "./project-scope.js";
+import { resolveProjectId, resolveReadProjectId } from "./project-scope.js";
 import { hasTemporaryImageHandle } from "../tools/image-injection.js";
 
 // ---------------------------------------------------------------------------
@@ -139,9 +139,11 @@ async function findRunAsset(
   run: Parameters<CapabilityImpl>[0],
   assetId: string
 ): Promise<AssetRow | null> {
+  // Resolve first: it may move the row into Personal before it is read.
+  const projectId = await resolveReadProjectId(run, {});
   const { Asset } = await import("@nodetool-ai/models");
   const asset = await Asset.find(userIdOf(run.context), assetId);
-  return asset?.project_id === resolveProjectId(run, {}) ? asset : null;
+  return asset?.project_id === projectId ? asset : null;
 }
 
 function assetIdFromReference(value: string): string | null {
@@ -242,7 +244,6 @@ const listAssets: CapabilityExport = {
     const contentType = params["content_type"] as string | undefined;
     const limit = Number(params["limit"] ?? 100);
     const userId = userIdOf(run.context);
-    const projectId = resolveProjectId(run, {});
 
     // Package assets are files shipped with a node package, not database rows;
     // they stay on the REST route that serves them.
@@ -257,6 +258,9 @@ const listAssets: CapabilityExport = {
               "read from the installed node packages by the server."
           };
     }
+    // Resolved after the package branch: package assets are files, and
+    // resolving the read project touches the database.
+    const projectId = await resolveReadProjectId(run, {});
 
     const { Asset } = await import("@nodetool-ai/models");
     if (query) {
@@ -647,7 +651,7 @@ const assetSearch: CapabilityExport = {
       const { Asset } = await import("@nodetool-ai/models");
       const search: AssetQueryOptions = {
         limit,
-        projectId: resolveProjectId(run, {})
+        projectId: await resolveReadProjectId(run, {})
       };
       if (contentType) search.contentType = contentType;
       const [rows] = await Asset.searchAssetsGlobal(userId, query, search);
@@ -684,7 +688,7 @@ const assetList: CapabilityExport = {
       const { Asset } = await import("@nodetool-ai/models");
       const recent: AssetQueryOptions = {
         limit,
-        projectId: resolveProjectId(run, {})
+        projectId: await resolveReadProjectId(run, {})
       };
       if (contentType) recent.contentType = contentType;
       const [rows] = await Asset.searchAssetsGlobal(userId, "", recent);
@@ -721,7 +725,7 @@ const listImagesImpl: CapabilityImpl = async (run, params) => {
     const { Asset } = await import("@nodetool-ai/models");
     const [rows] = await Asset.searchAssetsGlobal(userId, query, {
       contentType: "image/",
-      projectId: resolveProjectId(run, {}),
+      projectId: await resolveReadProjectId(run, {}),
       limit
     });
 

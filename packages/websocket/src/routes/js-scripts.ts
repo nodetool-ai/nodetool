@@ -84,6 +84,7 @@ import type { HttpApiOptions } from "../http-api.js";
 import { getUserId } from "../lib/http-user-id.js";
 import { getExampleAppBundle } from "../lib/example-apps.js";
 import { getAssetAdapter } from "../lib/storage.js";
+import { isJsonContentType } from "../lib/json-body.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -123,7 +124,7 @@ const wantsStream = (request: Request): boolean =>
 
 async function readJsonBody(request: Request): Promise<JsonValue> {
   const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().includes("application/json")) {
+  if (!isJsonContentType(contentType)) {
     return {};
   }
   try {

@@ -604,7 +604,7 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
       </InspectorRow>
 
       {/* Hand-set keyframes span the clip: a delay would detach them from the
-          Keyframes section, and the clip's length is their duration. */}
+          keyframe rows' lanes, and the clip's length is their duration. */}
       {!preset?.fullClip && !isKeyframeAnimation(animation) && (
         <>
           <InspectorRow

@@ -93,6 +93,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | `save_asset` / `view_image` | `packages/agents/src/capabilities/assets.ts` | model |
 | `yt_dlp` download | `packages/agents/src/capabilities/media.ts` | model |
 | Apify run artifacts → assets | `packages/agents/src/apify/assets.ts` | provider response |
+| `render_sketch` / `nodetool sketch render` layer images | `packages/agents/src/capabilities/sketches.ts`, `packages/cli/src/commands/sketch-render.ts` | sketch document |
 | Google Fonts family resolution (timeline) | `packages/timeline/src/fonts/google-fonts-fetch.ts` | workflow |
 | Reve reference image | `packages/reve-nodes/src/reve-base.ts` | workflow |
 | HF pipeline media input | `packages/huggingface-nodes/src/huggingface-base.ts` | workflow |

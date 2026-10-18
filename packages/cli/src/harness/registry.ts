@@ -645,6 +645,15 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/harnesses.md § nodetool sketch validate / debug"
   },
   {
+    id: "sketch-render",
+    title: "Headless sketch renderer (PNG, layer, mask, PSD)",
+    command: "nodetool sketch render <id|file.json> -o out.png [--format psd]",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    agentTool: "render_sketch",
+    docs: "docs/harnesses.md § nodetool sketch render"
+  },
+  {
     id: "sketch-versions",
     title: "Sketch version history (snapshot, restore, validate the restore)",
     command:
@@ -1111,6 +1120,19 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "packages/models/AGENTS.md",
     selfcheck: {
       command: "npm run test --workspace=packages/models",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
+    id: "analytics",
+    title: "Product analytics (event schema, privacy validation, consent client)",
+    command: "npm run test --workspace=packages/analytics",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "docs/analytics.md",
+    selfcheck: {
+      command: "npm run test --workspace=packages/analytics",
       cost: "cheap",
       suiteOnly: true
     }
@@ -1622,7 +1644,13 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "sketch",
     title: "Sketches (image documents, ui_sketch_* tools, version history)",
-    harnesses: ["sketch-validate", "sketch-debug", "sketch-versions", "eval"],
+    harnesses: [
+      "sketch-validate",
+      "sketch-debug",
+      "sketch-render",
+      "sketch-versions",
+      "eval"
+    ],
     paths: [
       // The paint core behind sketches: types, dependency hashing, seeded
       // layer templates, host-neutral raster ops.
@@ -1630,7 +1658,9 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/execution/src/sketch-debug/",
       "packages/cli/src/sketch-debug/",
       "packages/cli/src/commands/sketch-versions.ts",
+      "packages/cli/src/commands/sketch-render.ts",
       "packages/cli/src/commands/sketch.ts",
+      "packages/agents/src/sketch-render/",
       "packages/agents/src/tools/sketch-version-tools.ts",
       "packages/models/src/image-document-version.ts",
       "packages/websocket/src/trpc/routers/sketch.ts"
@@ -2025,6 +2055,12 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Data models (SQLite/Postgres persistence, Drizzle ORM)",
     harnesses: ["data-models"],
     paths: ["packages/models/"]
+  },
+  {
+    id: "analytics",
+    title: "Product analytics (shared schema and client core)",
+    harnesses: ["analytics"],
+    paths: ["packages/analytics/"]
   },
   {
     id: "storage-and-security",

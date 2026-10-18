@@ -29,8 +29,14 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
   out by half a second, the clip menu does the same for one clip, and the
   inspector's Audio section edits both lengths and both curves. The preview
   and the ffmpeg export ramp along the same curve.
-- **Keyframes**: the inspector's Keyframes section keys a property at the
-  playhead; the clip draws them as diamonds. Alt+K keys the armed property.
+- **Keyframes**: Opacity, Position, Scale, Rotation and the 3D camera rows
+  work like Premiere's Effect Controls. The stopwatch turns animation on,
+  then every edit keys the value at the playhead. An animated row shows a
+  lane of its keyframes with ◀ ◆ ▶ to step, add or delete, drag to retime
+  and right-click for easing. The math is `Inspector/keyframeRows.ts`. The
+  clip draws its keyframes as diamonds that drag the same way, and a preview
+  gizmo drag on an animated part keys it. Alt+K toggles a keyframe on the
+  last row touched.
 - **Source viewer** (Source tab): mark in and out on the explorer's selected
   asset, then Append, Insert or Overwrite it at the playhead.
 - **Playback**: J/K/L shuttle, I/O mark a loop range shown on the ruler, M
@@ -39,8 +45,14 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
   trackpad pinch — Chromium reports one as a synthetic ctrlKey wheel, Safari as
   WebKit gesture events, and both land on the same anchored zoom. A two-finger
   horizontal swipe or Shift+wheel pans the lanes.
-- **Source slip**: Alt+horizontal wheel over a video or audio clip moves its
-  source window while leaving its sequence position unchanged.
+- **Source slip**: Alt+horizontal wheel over a video or audio clip, or a drag
+  with the Slip tool, moves its source window while leaving its sequence
+  position unchanged.
+- **Tools**: the toolbar follows Premiere's Tools panel. Select, Track select
+  (every clip from the click on), Ripple edit, Rolling edit, Rate stretch,
+  Cut and Slip. The edge tools pick the mode in `useClipTrim`'s
+  `trimModeFor`; the body tools (Cut, Slip, Track select) act in
+  `useClipDrag`.
 
 ## Phone layout
 

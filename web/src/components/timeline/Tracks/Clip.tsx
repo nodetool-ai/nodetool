@@ -19,6 +19,7 @@ import {
   useTimelineUIStore,
   useIsClipSelected
 } from "../../../stores/timeline/TimelineUIStore";
+import type { TimelineTool } from "../../../stores/timeline/TimelineUIStore";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
@@ -37,7 +38,11 @@ import { useTransitionHandle } from "./useTransitionHandle";
 import { useClipFade, useSetClipFadeShape } from "./useClipFade";
 import type { ClipFadeEdge } from "./useClipFade";
 import { ClipFadeShapeMenu } from "./ClipFadeShapeMenu";
-import { keyframeTimesMs as deriveKeyframeTimes } from "@nodetool-ai/timeline";
+import {
+  KEYFRAME_PROPERTIES,
+  keyframeTimesMs as deriveKeyframeTimes,
+  moveKeyframes
+} from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
@@ -50,6 +55,17 @@ import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 interface ClipProps {
   clipId: string;
 }
+
+/** The body pointer for each tool; the select-style tools keep the grab. */
+const TOOL_BODY_CURSOR: Record<TimelineTool, React.CSSProperties["cursor"]> = {
+  select: undefined,
+  trackSelect: "e-resize",
+  ripple: undefined,
+  roll: undefined,
+  rateStretch: undefined,
+  cut: "crosshair",
+  slip: "col-resize"
+};
 
 export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // Selector: only this clip's fields. findClipById is O(1) via a WeakMap
@@ -153,7 +169,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     msPerPx,
     activeTool,
     interactionLocked,
-    longPress: clipLongPress
+    longPress: clipLongPress,
+    sourceDurationMs
   });
 
   const {
@@ -213,6 +230,22 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     },
     [clip, seek]
   );
+  const editClipKeyframes = useTimelineStore((s) => s.editClipKeyframes);
+  const fps = useTimelineStore((s) => s.fps);
+  const handleKeyframeMove = useCallback(
+    (fromMs: number, toMs: number) => {
+      if (!clip) return;
+      // Land on a frame of the sequence, inside the clip.
+      const frameMs = 1000 / Math.max(1, fps);
+      const abs = Math.round((clip.startMs + toMs) / frameMs) * frameMs;
+      const rel = Math.max(0, Math.min(clip.durationMs, abs - clip.startMs));
+      editClipKeyframes(clip.id, (c) => ({
+        animations: moveKeyframes(c, KEYFRAME_PROPERTIES, fromMs, rel)
+      }));
+      seek(clip.startMs + rel);
+    },
+    [clip, editClipKeyframes, fps, seek]
+  );
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -261,6 +294,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         return;
       }
       e.stopPropagation();
+      // The track-select tool chose the selection on pointerdown.
+      if (useTimelineUIStore.getState().activeTool === "trackSelect") {
+        return;
+      }
       if (e.shiftKey) {
         addToSelection(clipId);
       } else if (e.ctrlKey || e.metaKey) {
@@ -336,7 +373,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         handleTrimEndPointerDown={handleTrimEndPointerDown}
         handleTrimEndPointerMove={handleTrimEndPointerMove}
         handleTrimPointerEnd={handleTrimPointerEnd}
-        cutMode={activeTool === "cut"}
+        bodyCursor={TOOL_BODY_CURSOR[activeTool]}
         selectedEdge={selectedEdge}
         handleTransitionPointerDown={handleTransitionPointerDown}
         handleTransitionPointerMove={handleTransitionPointerMove}
@@ -344,6 +381,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         fade={fade}
         keyframeTimesMs={keyframeTimes}
         onKeyframeClick={handleKeyframeClick}
+        onKeyframeMove={handleKeyframeMove}
         interactionLocked={interactionLocked}
       />
       {contextMenuPos && (

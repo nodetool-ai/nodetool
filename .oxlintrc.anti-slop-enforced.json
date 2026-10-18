@@ -81,6 +81,7 @@
     },
     {
       "files": [
+        "packages/analytics/src/**",
         "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
@@ -186,6 +187,7 @@
     {
       "files": [
         "packages/agents/src/**",
+        "packages/analytics/src/**",
         "packages/app-export/src/**",
         "packages/app-runtime/src/**",
         "packages/atlascloud-nodes/src/**",

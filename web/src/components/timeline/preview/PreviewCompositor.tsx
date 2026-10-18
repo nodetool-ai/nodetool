@@ -57,6 +57,7 @@ import {
 } from "./gpu/videoFrameVersion";
 import type { CompositeLayer, CompositePrecomposite, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
+import { gizmoTransformPatch } from "../Inspector/keyframeRows";
 import { ReframeFocusOverlay } from "./ReframeFocusOverlay";
 import {
   clampVideoRate,
@@ -480,6 +481,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   // Collapses a whole gizmo drag (60-240 Hz `onChange`) into a single undo
   // entry instead of one per pointermove — see `onDragStart`/`onDragEnd` below.
   const gizmoHistory = useTimelineHistoryBatch();
+  /** The clip as a gizmo gesture found it; keyframe edits measure from it. */
+  const gizmoStartClipRef = useRef<TimelineClip | null>(null);
 
   const assetUrlCache = useRef<Map<string, AssetUrlEntry>>(new Map());
   const [urlCacheVersion, setUrlCacheVersion] = useState(0);
@@ -2585,11 +2588,28 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             frameWidth={frameSize.w}
             frameHeight={frameSize.h}
             onChange={(id, next) => {
-              patchClip(id, { transform: next });
+              const start =
+                gizmoStartClipRef.current?.id === id
+                  ? gizmoStartClipRef.current
+                  : clips.find((c) => c.id === id);
+              if (!start) return;
+              // A keyframed part writes a keyframe at the playhead, measured
+              // from where the gesture began, as Premiere's Program monitor does.
+              const relMs = currentTimeMsRef.current - start.startMs;
+              const atMs =
+                relMs >= 0 && relMs <= start.durationMs ? relMs : null;
+              patchClip(id, gizmoTransformPatch(start, next, atMs));
               gizmoHistory.mark();
             }}
-            onDragStart={gizmoHistory.begin}
-            onDragEnd={gizmoHistory.end}
+            onDragStart={() => {
+              gizmoStartClipRef.current =
+                clips.find((c) => c.id === selectedGizmo.clipId) ?? null;
+              gizmoHistory.begin();
+            }}
+            onDragEnd={() => {
+              gizmoStartClipRef.current = null;
+              gizmoHistory.end();
+            }}
           />
         )}
 

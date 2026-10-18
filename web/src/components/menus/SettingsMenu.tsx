@@ -31,6 +31,7 @@ import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
 import AboutMenu from "./AboutMenu";
+import PrivacyMenu from "./PrivacyMenu";
 import {
   APIKeysTabContent,
   APIKeysRightSidebar,
@@ -83,6 +84,18 @@ const sameIds = (
   prev === null || next === null
     ? prev === next
     : prev.size === next.length && next.every((id) => prev.has(id));
+
+const PRIVACY_SIDEBAR_SECTIONS = [
+  {
+    category: "Privacy",
+    items: [
+      { id: "product-analytics", label: "Product analytics" },
+      { id: "what-is-collected", label: "What is collected" },
+      { id: "diagnostics", label: "Diagnostics" },
+      { id: "recent-events", label: "Recent events" }
+    ]
+  }
+];
 
 const settingsDocsTopic = (section: SettingsSection): DocsTopic =>
   section === "providers" ? "providers" : "configuration";
@@ -354,6 +367,7 @@ function SettingsPage() {
         next === "general" ||
         next === "providers" ||
         next === "integrations" ||
+        next === "privacy" ||
         next === "about"
       ) {
         setSection(next);
@@ -569,7 +583,9 @@ function SettingsPage() {
         ? integrationsSidebarSections
         : section === "about"
           ? getAboutSidebarSections()
-          : [];
+          : section === "privacy"
+            ? PRIVACY_SIDEBAR_SECTIONS
+            : [];
   const sidebarSections = visibleSectionIds
     ? allSidebarSections
         .map((group) => ({
@@ -1252,6 +1268,10 @@ function SettingsPage() {
                     </>
                   )}
                   </div>
+                </TabPanel>
+
+                <TabPanel section="privacy" current={section}>
+                  <PrivacyMenu />
                 </TabPanel>
 
                 <TabPanel section="about" current={section}>

@@ -26,6 +26,7 @@
     "@nodetool-ai/config": "*",
     "@nodetool-ai/execution": "*",
     "@nodetool-ai/game-runtime": "*",
+    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/model-pricing": "*",
@@ -61,7 +62,6 @@
   "devDependencies": {
     "@llamaindex/liteparse": "^1.5.2",
     "@nodetool-ai/audio-nodes": "*",
-    "@nodetool-ai/gpu": "*",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@tensorflow-models/coco-ssd": "^2.2.3",
@@ -202,6 +202,12 @@
       "types": "./dist/sandbox-module-fixtures.d.ts",
       "import": "./dist/sandbox-module-fixtures.js",
       "default": "./dist/sandbox-module-fixtures.js"
+    },
+    "./sketch-render": {
+      "nodetool-dev": "./src/sketch-render/render.ts",
+      "types": "./dist/sketch-render/render.d.ts",
+      "import": "./dist/sketch-render/render.js",
+      "default": "./dist/sketch-render/render.js"
     },
     "./game-examples": {
       "nodetool-dev": "./src/game-examples.ts",

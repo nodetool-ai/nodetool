@@ -18,6 +18,7 @@ export const MIME_TO_EXT: Record<string, string> = {
   "image/webp": "webp",
   "image/gif": "gif",
   "image/bmp": "bmp",
+  "image/vnd.adobe.photoshop": "psd",
   "video/mp4": "mp4",
   "video/webm": "webm",
   "audio/mpeg": "mp3",

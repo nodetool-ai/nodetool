@@ -14,73 +14,22 @@
  * the canonical union.
  */
 
-import type {
-  LayerTransform,
-  Quad,
-  SingleQuadMode
-} from "./types";
-import {
-  IDENTITY_AFFINE,
-  cloneQuad,
-  makeAffineTransform,
-  makeSingleQuadTransform
-} from "./types";
-import {
-  isNumber,
-  isObjectLike,
-  isString
-} from "../../../utils/typePredicates";
+import { normalizeLayerTransform as normalizeSharedLayerTransform } from "@nodetool-ai/image-editor/render.js";
 
-const SINGLE_QUAD_MODES: ReadonlySet<SingleQuadMode> = new Set<SingleQuadMode>([
-  "distort",
-  "skew",
-  "perspective",
-  "mesh-warp"
-]);
-
-/**
- * Migrate legacy quad-mode tags into the current canonical set. Returns the
- * input tag unchanged when it's already canonical, or null when unknown.
- */
-function migrateLegacyQuadMode(raw: string): SingleQuadMode | null {
-  if (SINGLE_QUAD_MODES.has(raw as SingleQuadMode)) {
-    return raw as SingleQuadMode;
-  }
-  if (raw === "warp") {
-    return "distort";
-  }
-  if (raw === "perspective-distort" || raw === "perspective-dual") {
-    return "perspective";
-  }
-  return null;
-}
-
-function isQuadShape(value: unknown): value is Quad {
-  return (
-    Array.isArray(value) &&
-    value.length === 4 &&
-    value.every(
-      (p) =>
-        isObjectLike(p) &&
-        Number.isFinite((p as { x?: unknown }).x) &&
-        Number.isFinite((p as { y?: unknown }).y)
-    )
-  );
-}
-
-function num(value: unknown, fallback: number): number {
-  return isNumber(value) && Number.isFinite(value) ? value : fallback;
-}
+import type { LayerTransform } from "./types";
+import { cloneQuad } from "./types";
 
 /**
  * Convert any legacy/unknown transform payload into the canonical union.
  *
- * Migration rules:
+ * Migration rules (shared with the headless renderer, so a legacy document
+ * places its layers the same way in both):
  *   - Already canonical → cloned, validated.
  *   - Legacy `kind: "dual-quad"` / `mode: "perspective-dual"` payloads →
  *     lossy downgrade to a single-quad perspective using the primary quad
  *     only (the secondary plane is dropped; users will have to re-edit).
- *   - Single-quad mode + valid quad → SingleQuadTransform.
+ *   - Single-quad mode + valid quad → SingleQuadTransform. Legacy `warp` and
+ *     `perspective-distort` tags migrate to `distort` and `perspective`.
  *   - Anything else → AffineTransform from any present TRS fields. Legacy
  *     `matrix`-only payloads are *not* preserved as matrices because the
  *     canonical affine kind has no matrix slot; the data is recovered from
@@ -89,56 +38,7 @@ function num(value: unknown, fallback: number): number {
  *     identity and (b) round-tripping always wrote the decomposed fields.
  */
 export function normalizeLayerTransform(raw: unknown): LayerTransform {
-  if (!raw || !isObjectLike(raw)) {
-    return { ...IDENTITY_AFFINE };
-  }
-  const t = raw as Record<string, unknown>;
-
-  if (t.kind === "affine") {
-    return makeAffineTransform({
-      x: num(t.x, 0),
-      y: num(t.y, 0),
-      scaleX: num(t.scaleX, 1),
-      scaleY: num(t.scaleY, 1),
-      rotation: num(t.rotation, 0)
-    });
-  }
-
-  // Lossy migration: legacy dual-quad payloads downgrade to a single-quad
-  // perspective using the primary quad. The secondary plane cannot be
-  // represented in the new canonical union and is discarded.
-  if (
-    (t.kind === "dual-quad" || t.mode === "perspective-dual") &&
-    isQuadShape(t.quad)
-  ) {
-    return makeSingleQuadTransform("perspective", t.quad);
-  }
-
-  if (
-    t.kind === "quad" &&
-    isString(t.mode) &&
-    isQuadShape(t.quad)
-  ) {
-    const migrated = migrateLegacyQuadMode(t.mode);
-    if (migrated) {
-      return makeSingleQuadTransform(migrated, t.quad);
-    }
-  }
-
-  if (isString(t.mode) && isQuadShape(t.quad)) {
-    const migrated = migrateLegacyQuadMode(t.mode);
-    if (migrated) {
-      return makeSingleQuadTransform(migrated, t.quad);
-    }
-  }
-
-  return makeAffineTransform({
-    x: num(t.x, 0),
-    y: num(t.y, 0),
-    scaleX: num(t.scaleX, 1),
-    scaleY: num(t.scaleY, 1),
-    rotation: num(t.rotation, 0)
-  });
+  return normalizeSharedLayerTransform(raw);
 }
 
 /** For tests / debugging — assert that a value is a canonical transform. */

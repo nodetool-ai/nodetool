@@ -45,7 +45,7 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput, useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 import { CROP_NODE_TYPE } from "../../../constants/nodeTypes";
 import {
@@ -369,7 +369,7 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
   const [aspect, setAspect] = useState<AspectKey>("free");
   const aspectRatio = useMemo(() => parseAspect(aspect), [aspect]);
 
-  const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
+  const { setProperties, setPropertyComplete } = useLiveSliderWriter({
     nodeId: id,
     nodeType
   });

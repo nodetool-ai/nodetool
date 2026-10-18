@@ -3,16 +3,24 @@
  */
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@emotion/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../../__mocks__/themeMock";
 
 import {
   sortImageKeys,
   nextImageIndex,
-  useImageUrl
+  useImageUrl,
+  useImageUrls
 } from "../CompositorBody.helpers";
 import { LayerRow, type LayerRowProps } from "../LayerRow";
+
+const mockGetAsset = jest.fn();
+jest.mock("../../../../stores/AssetStore", () => ({
+  useAssetStore: (selector: (state: { get: typeof mockGetAsset }) => unknown) =>
+    selector({ get: mockGetAsset })
+}));
 
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: () => ({
@@ -90,39 +98,88 @@ describe("nextImageIndex", () => {
   });
 });
 
+const makeQueryWrapper = () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  });
+  const QueryWrapper: React.FC<{ children: React.ReactNode }> = ({
+    children
+  }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return QueryWrapper;
+};
+
+const renderImageHook = <T,>(hook: () => T) =>
+  renderHook(hook, { wrapper: makeQueryWrapper() });
+
 describe("useImageUrl", () => {
   it("returns uri when present", () => {
-    const { result } = renderHook(() =>
+    const { result } = renderImageHook(() =>
       useImageUrl({ uri: "https://example.com/img.png" })
     );
     expect(result.current).toBe("https://example.com/img.png");
   });
 
   it("returns undefined for undefined input", () => {
-    const { result } = renderHook(() => useImageUrl(undefined));
+    const { result } = renderImageHook(() => useImageUrl(undefined));
     expect(result.current).toBeUndefined();
   });
 
   it("returns base64 data URI for string data", () => {
-    const { result } = renderHook(() => useImageUrl({ data: "aGVsbG8=" }));
+    const { result } = renderImageHook(() => useImageUrl({ data: "aGVsbG8=" }));
     expect(result.current).toBe("data:image/png;base64,aGVsbG8=");
   });
 
   it("passes through already-formatted URLs in data", () => {
     const dataUri = "data:image/png;base64,abc";
-    const { result } = renderHook(() => useImageUrl({ data: dataUri }));
+    const { result } = renderImageHook(() => useImageUrl({ data: dataUri }));
     expect(result.current).toBe(dataUri);
 
     const blobUri = "blob:http://localhost/xyz";
-    const { result: r2 } = renderHook(() => useImageUrl({ data: blobUri }));
+    const { result: r2 } = renderImageHook(() => useImageUrl({ data: blobUri }));
     expect(r2.current).toBe(blobUri);
   });
 
   it("converts Uint8Array to a base64 data URI", () => {
     const bytes = new Uint8Array([1, 2, 3]);
-    const { result } = renderHook(() => useImageUrl({ data: bytes }));
+    const { result } = renderImageHook(() => useImageUrl({ data: bytes }));
     expect(result.current).toBeTruthy();
     expect(result.current?.startsWith("data:image/png;base64,")).toBe(true);
+  });
+
+  // An `asset://` locator fetches nowhere; the editor and thumbnails rendered
+  // blank because the raw locator was handed to <img> and fetch().
+  it("resolves an asset:// locator through the asset's get_url", async () => {
+    mockGetAsset.mockResolvedValue({
+      id: "a1",
+      get_url: "https://storage.example.com/a1.png"
+    });
+    const { result } = renderImageHook(() =>
+      useImageUrl({ uri: "asset://a1.png" })
+    );
+    expect(result.current).toBeUndefined();
+    await waitFor(() =>
+      expect(result.current).toBe("https://storage.example.com/a1.png")
+    );
+    expect(mockGetAsset).toHaveBeenCalledWith("a1");
+  });
+
+  it("prefers inline data over an asset:// locator", () => {
+    const { result } = renderImageHook(() =>
+      useImageUrl({ uri: "asset://a2", data: "aGVsbG8=" })
+    );
+    expect(result.current).toBe("data:image/png;base64,aGVsbG8=");
+  });
+});
+
+describe("useImageUrls", () => {
+  it("returns the same array while the URLs are unchanged", () => {
+    const { result, rerender } = renderImageHook(() =>
+      useImageUrls([{ uri: "https://example.com/a.png" }, undefined])
+    );
+    const first = result.current;
+    rerender();
+    expect(result.current).toBe(first);
+    expect(first).toEqual(["https://example.com/a.png", undefined]);
   });
 });
 
@@ -193,6 +250,18 @@ describe("LayerRow", () => {
     const option = screen.getByText("Multiply");
     fireEvent.click(option);
     expect(baseProps.onBlendChange).toHaveBeenCalledWith(0, "multiply");
+  });
+
+  it("shows the thumbnail when an image URL is given", () => {
+    render(
+      <WithTheme>
+        <LayerRow {...baseProps} imageUrl="https://example.com/t.png" />
+      </WithTheme>
+    );
+    const thumb = screen.getByLabelText("Layer 1 thumbnail");
+    expect(thumb.querySelector("img")?.getAttribute("src")).toBe(
+      "https://example.com/t.png"
+    );
   });
 
   it("calls onOpacityChange when opacity input changes", () => {

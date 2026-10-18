@@ -83,7 +83,8 @@ const PAIRS: Array<[string, () => Tool]> = [
   ],
   ["edit_sketch", () => toolForCapabilityName("edit_sketch")],
   ["refine_image_brief", () => toolForCapabilityName("refine_image_brief")],
-  ["validate_sketch", () => toolForCapabilityName("validate_sketch")]
+  ["validate_sketch", () => toolForCapabilityName("validate_sketch")],
+  ["render_sketch", () => toolForCapabilityName("render_sketch")]
 ];
 
 describe("sketches capability module", () => {
@@ -101,6 +102,7 @@ describe("sketches capability module", () => {
       "edit_sketch",
       "refine_image_brief",
       "validate_sketch",
+      "render_sketch",
       "delete_sketch"
     ]);
   });

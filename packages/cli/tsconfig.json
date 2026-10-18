@@ -20,6 +20,9 @@
   ],
   "references": [
     {
+      "path": "../analytics"
+    },
+    {
       "path": "../code-nodes"
     },
     {

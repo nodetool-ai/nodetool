@@ -42,6 +42,7 @@ import { useAudioPeaks } from "./useAudioPeaks";
 import { samplePeaksWindow } from "./audioPeaks";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 import { GroupBracket } from "./GroupBracket";
+import { ClipKeyframeDiamonds } from "./ClipKeyframeDiamonds";
 import { MidiNotesCanvas } from "./MidiNotesCanvas";
 import { deriveClipAnimationMarkers } from "./clipAnimationMarkers";
 import { deriveClipFadeMarkers } from "./clipFadeGeometry";
@@ -54,6 +55,10 @@ import {
 import { useAssetUrl } from "./useAssetUrl";
 import { ClipMediaOffline } from "./ClipMediaOffline";
 import { openPersistedFold } from "../Inspector/usePersistedFold";
+import { isClipDisabled } from "./clipEnabled";
+
+/** A clip switched off with Enable (Shift+E) stays visible, dimmed. */
+const DISABLED_CLIP_OPACITY = 0.4;
 
 const TRIM_HANDLE_WIDTH_PX = 8;
 /** Hit area for the same grip under a finger; the visible width stays 8px. */
@@ -401,28 +406,6 @@ const transitionWedgeStyles = (theme: Theme, tint: string, accent: string) =>
     }
   });
 
-/** A hand-set keyframe, drawn as a diamond on the clip's bottom edge. */
-const keyframeDiamondStyles = (theme: Theme) =>
-  css({
-    position: "absolute",
-    bottom: 2,
-    width: 7,
-    height: 7,
-    marginLeft: -3.5,
-    transform: "rotate(45deg)",
-    background: theme.vars.palette.primary.main,
-    border: `1px solid ${theme.vars.palette.background.paper}`,
-    cursor: "pointer",
-    padding: 0,
-    zIndex: Z_INDEX.base + 3,
-    // 7px is too small to hit reliably; widen the target, not the diamond,
-    // the same way the fade handles do.
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      inset: -6
-    }
-  });
 
 /**
  * The grip that sets a fade's length: a small dot riding the top edge at the
@@ -609,7 +592,8 @@ export interface ClipBodyProps {
   handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimPointerEnd: () => void;
-  cutMode: boolean;
+  /** Pointer for the active tool over the clip body (razor, slip, …). */
+  bodyCursor: React.CSSProperties["cursor"];
   /** The edge picked as the edit point (E, Ctrl+Shift+arrows), if this clip's. */
   selectedEdge: "start" | "end" | null;
   handleTransitionPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -620,6 +604,8 @@ export interface ClipBodyProps {
   /** Clip-relative times of hand-set keyframes, drawn as diamonds. */
   keyframeTimesMs: readonly number[];
   onKeyframeClick: (clipRelativeMs: number) => void;
+  /** Retime every keyframe at `fromMs` to `toMs` (clip-relative). */
+  onKeyframeMove: (fromMs: number, toMs: number) => void;
   /** clip.locked OR the clip's track is locked: drives the not-allowed cursor.
    *  The lock badge below stays tied to clip.locked alone. */
   interactionLocked: boolean;
@@ -645,7 +631,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     handleTrimEndPointerDown,
     handleTrimEndPointerMove,
     handleTrimPointerEnd,
-    cutMode,
+    bodyCursor,
     selectedEdge,
     handleTransitionPointerDown,
     handleTransitionPointerMove,
@@ -653,6 +639,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     fade,
     keyframeTimesMs,
     onKeyframeClick,
+    onKeyframeMove,
     interactionLocked
   }) => {
     const theme = useTheme();
@@ -778,13 +765,16 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
       openPersistedFold("animate");
     };
 
+    const disabled = isClipDisabled(clip);
     const positionStyle = useMemo(
       () => ({
         left: leftPx,
         width: widthPx,
-        cursor: cutMode ? ("crosshair" as const) : undefined
+        cursor: bodyCursor,
+        // A disabled clip reads as switched off, as Premiere dims it.
+        opacity: disabled ? DISABLED_CLIP_OPACITY : undefined
       }),
-      [leftPx, widthPx, cutMode]
+      [leftPx, widthPx, bodyCursor, disabled]
     );
 
     const imageStyle = useMemo(
@@ -823,10 +813,6 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     const dotCss = useMemo(() => clipDotStyles(accent), [accent]);
     const nameCss = useMemo(() => clipNameStyles(theme), [theme]);
     const durationCss = useMemo(() => clipDurationStyles(theme), [theme]);
-    const keyframeDiamondCss = useMemo(
-      () => keyframeDiamondStyles(theme),
-      [theme]
-    );
     const trimStartCss = useMemo(
       () =>
         trimHandleStyles(
@@ -882,7 +868,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         aria-selected={isSelected}
         role="option"
         tabIndex={0}
-        aria-label={clip.name || `Clip ${clip.id}`}
+        aria-label={`${clip.name || `Clip ${clip.id}`}${disabled ? " (disabled)" : ""}`}
         title={displayName || undefined}
       >
         {filmstripCells && (
@@ -1001,21 +987,16 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
 
         {imageUrl && <div css={filmstripStyles} style={imageStyle} />}
 
-        {keyframeTimesMs.map((t) => (
-          <button
-            key={t}
-            type="button"
-            css={keyframeDiamondCss}
-            style={{ left: t / msPerPx }}
-            aria-label={`Keyframe at ${formatClipDuration(t)}`}
-            data-testid={`clip-keyframe-${clipId}`}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              onKeyframeClick(t);
-            }}
-          />
-        ))}
+        <ClipKeyframeDiamonds
+          clipId={clipId}
+          durationMs={clip.durationMs}
+          msPerPx={msPerPx}
+          timesMs={keyframeTimesMs}
+          locked={interactionLocked}
+          formatTime={formatClipDuration}
+          onSeek={onKeyframeClick}
+          onMove={onKeyframeMove}
+        />
 
         {clip.mediaType === "group" && (
           <GroupBracket

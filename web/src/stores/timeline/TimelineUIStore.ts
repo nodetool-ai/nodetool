@@ -20,7 +20,21 @@ import type {
   TempoGridDivision
 } from "@nodetool-ai/timeline";
 
-export type TimelineTool = "select" | "cut";
+/**
+ * Pointer tools, after Premiere's Tools panel. "select" moves, trims and
+ * selects; "trackSelect" selects every clip from the click point on;
+ * "ripple" and "roll" turn an edge drag into a ripple or a rolling edit;
+ * "rateStretch" retimes a clip by dragging its end; "cut" splits at the
+ * click; "slip" drags a clip's source window under a fixed clip.
+ */
+export type TimelineTool =
+  | "select"
+  | "trackSelect"
+  | "ripple"
+  | "roll"
+  | "rateStretch"
+  | "cut"
+  | "slip";
 
 /**
  * What the ruler counts. `"timecode"` is minutes and seconds; `"bars"` reads
@@ -90,10 +104,7 @@ export interface TimelineUIState {
   selectedClipIds: Set<string>;
   /** ID of the clip the pointer is currently hovering, or null. */
   hoveredClipId: string | null;
-  /**
-   * Active editor tool. "select" enables move/trim/select; "cut" turns the
-   * pointer into a razor that splits a clip at the click position.
-   */
+  /** Active pointer tool; see `TimelineTool`. */
   activeTool: TimelineTool;
   /**
    * Ripple mode: trims and deletes close the gap they would otherwise open,

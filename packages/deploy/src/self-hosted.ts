@@ -1024,7 +1024,7 @@ export class DockerDeployer {
       );
       const runtimeForShell = this.runtimeCommandForShell();
 
-      const pipeCmd = `${shellQuote(localRuntime)} save ${shellQuote(image)} | ssh -o StrictHostKeyChecking=no ${keyArg} ${portArg} ${sshTarget} sh -lc '${runtimeForShell} load'`;
+      const pipeCmd = `${shellQuote(localRuntime)} save ${shellQuote(image)} | ssh -o StrictHostKeyChecking=yes ${keyArg} ${portArg} -- ${sshTarget} sh -lc '${runtimeForShell} load'`;
       execSync(pipeCmd, {
         encoding: "utf-8",
         timeout: 600000,

@@ -29,6 +29,7 @@
     "@hyzyla/pdfium": "^2.1.12",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@nodetool-ai/agents": "*",
+    "@nodetool-ai/analytics": "*",
     "@nodetool-ai/app-export": "*",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/auth": "*",
