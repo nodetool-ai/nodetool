@@ -6,6 +6,11 @@
  */
 
 import { type BlendMode, coerceBlendMode } from "@nodetool-ai/gpu";
+import {
+  getAncestorGroupOpacityProduct,
+  isLayerCompositeVisible,
+  normalizeLayerEffects
+} from "@nodetool-ai/image-editor/render.js";
 import type { SketchSetup } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import type {
   ToolSettings,
@@ -37,13 +42,7 @@ import {
   matrixToAffine,
   type AffineMatrix
 } from "../transform/geometry/affineMatrix";
-import {
-  isArray,
-  isFiniteNumber,
-  isNumber,
-  isObjectLike,
-  isString
-} from "../../../utils/typePredicates";
+import { isFiniteNumber } from "../../../utils/typePredicates";
 import { normalizeLayerTransform } from "../transform/normalize";
 import {
   cloneDefaultToolSettings,
@@ -467,67 +466,6 @@ export function createDefaultGroupLayer(name: string): Layer {
 
 // ─── Normalization Helpers (private) ──────────────────────────────────────────
 
-/**
- * Migrate legacy effect param names to the new typed schema and ensure
- * every layer has a valid `effects` array. Unknown effect types are dropped.
- */
-function normalizeLayerEffects(raw: unknown): LayerEffect[] {
-  if (!isArray(raw)) {
-    return [];
-  }
-  const result: LayerEffect[] = [];
-  for (const item of raw) {
-    if (!isObjectLike(item) || !isString(item.type)) {
-      continue;
-    }
-    const enabled = item.enabled === true;
-    const params: Record<string, unknown> = isObjectLike(item.params)
-      ? item.params
-      : {};
-    switch (item.type) {
-      case "brightness_contrast":
-        result.push({
-          type: "brightness_contrast",
-          enabled,
-          params: {
-            brightness: isNumber(params.brightness) ? params.brightness : 0,
-            contrast: isNumber(params.contrast) ? params.contrast : 0
-          }
-        });
-        break;
-      case "hue_saturation":
-        result.push({
-          type: "hue_saturation",
-          enabled,
-          params: {
-            // Migrate legacy "hue" → "hueDegrees"
-            hueDegrees: isNumber(params.hueDegrees)
-              ? params.hueDegrees
-              : isNumber(params.hue) ? params.hue : 0,
-            saturation: isNumber(params.saturation) ? params.saturation : 0,
-            lightness: isNumber(params.lightness) ? params.lightness : 0
-          }
-        });
-        break;
-      case "exposure":
-        result.push({
-          type: "exposure",
-          enabled,
-          params: {
-            // Migrate legacy "exposure" → "exposureStops"
-            exposureStops: isNumber(params.exposureStops)
-              ? params.exposureStops
-              : isNumber(params.exposure) ? params.exposure : 0
-          }
-        });
-        break;
-      default:
-        break;
-    }
-  }
-  return result;
-}
-
 /** Upper bound for brush / eraser / blur / clone stamp diameter (matches tool panels). */
 const SKETCH_LARGE_TOOL_SIZE_MAX = 200;
 /** Pencil size slider max in ToolSettingsPanels. */
@@ -816,9 +754,6 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
 
 // ─── Layer Group Helpers ──────────────────────────────────────────────────────
 
-/** Maximum nesting depth to prevent infinite loops in corrupt data. */
-const MAX_LAYER_DEPTH = 20;
-
 /**
  * Returns the index of the layer that "Merge Down" should merge `activeId` into,
  * or `-1` when no valid target exists.
@@ -906,72 +841,11 @@ export function getDescendantIds(layers: Layer[], groupId: string): string[] {
 }
 
 /**
- * Whether a layer should be drawn in the flat composite stack: the layer is
- * visible and every ancestor group is visible. Hiding a group therefore hides
- * all descendant pixels without changing child `visible` flags.
- *
- * When `isolatedLayerId` matches this layer, ancestor visibility — and this
- * layer's own visibility flag — are ignored so solo/isolate still shows
- * that layer's pixels (edit hidden layer in isolation).
+ * Whether a layer is drawn in the flat composite stack, and the product of
+ * its ancestor group opacities. Both are shared with the headless renderer so
+ * group visibility and folder opacity composite the same in both hosts.
  */
-export function isLayerCompositeVisible(
-  layers: Layer[],
-  layer: Layer,
-  isolatedLayerId: string | null | undefined,
-  layerMap?: Map<string, Layer>
-): boolean {
-  if (isolatedLayerId && layer.id === isolatedLayerId) {
-    return true;
-  }
-  if (!layer.visible) {
-    return false;
-  }
-  let current: Layer | undefined = layer;
-  let depth = 0;
-  while (current?.parentId) {
-    if (depth++ > MAX_LAYER_DEPTH) {
-      break;
-    }
-    const parent: Layer | undefined = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
-    if (!parent || !parent.visible) {
-      return false;
-    }
-    current = parent;
-  }
-  return true;
-}
-
-/**
- * Product of `opacity` for every ancestor group of `layer`. Multiplied with
- * the layer's own opacity when compositing so folder opacity dims descendants.
- *
- * When `isolatedLayerId` matches this layer, returns 1 so solo view is not
- * double-dimmed by hidden folder opacity.
- */
-export function getAncestorGroupOpacityProduct(
-  layers: Layer[],
-  layer: Layer,
-  isolatedLayerId: string | null | undefined,
-  layerMap?: Map<string, Layer>
-): number {
-  if (isolatedLayerId && layer.id === isolatedLayerId) {
-    return 1;
-  }
-  let product = 1;
-  let current: Layer | undefined = layer;
-  let depth = 0;
-  while (current?.parentId && depth++ <= MAX_LAYER_DEPTH) {
-    const parent: Layer | undefined = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
-    if (!parent) {
-      break;
-    }
-    if (parent.type === "group") {
-      product *= parent.opacity;
-    }
-    current = parent;
-  }
-  return product;
-}
+export { isLayerCompositeVisible, getAncestorGroupOpacityProduct };
 
 /**
  * Layer panel order: composite top → bottom, with each group row immediately above

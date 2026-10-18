@@ -2600,6 +2600,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "render_sketch",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "2c4cf879b284",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-sketch-render.test.ts",
+    ],
+  },
+  {
     name: "delete_sketch",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",

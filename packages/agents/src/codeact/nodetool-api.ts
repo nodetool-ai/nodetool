@@ -175,6 +175,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "restore_sketch_version",
     "delete_sketch_version",
     "validate_sketch",
+    "render_sketch",
     "edit_sketch"
   ],
   scripts: [
@@ -1535,7 +1536,17 @@ const nodetool = (() => {
         ),
       /** Apply layer-structure edits to a saved sketch, server-side. */
       edit: (id, ops) =>
-        __need("edit_sketch")({ image_document_id: id, ops: ops })
+        __need("edit_sketch")({ image_document_id: id, ops: ops }),
+      /** {format, width, height, background, layer_id, mask} render to a saved PNG or PSD. */
+      render: (target, opts) =>
+        __need("render_sketch")(
+          __merge(
+            opts,
+            typeof target === "string"
+              ? { image_document_id: target }
+              : { document: target }
+          )
+        )
     },
 
     scripts: {
@@ -1940,8 +1951,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     skill: "api-sketches",
     doc: `- \`nodetool.sketches\` — layered image documents: \`list()\`,
   \`create(name, {width, height})\`, \`get(id)\`, \`edit(id, ops)\`,
-  \`validate(idOrDocument)\`, versions. Layers only; pixels stay with an editor
-  or a workflow run.`
+  \`validate(idOrDocument)\`, \`render(idOrDocument, {width, format})\` (a
+  saved PNG or layered PSD, composited as the editor does), versions. Editing
+  is layer structure; painting stays with an editor or a workflow run.`
   },
   {
     namespace: "scripts",

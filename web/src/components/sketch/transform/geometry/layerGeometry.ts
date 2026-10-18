@@ -25,6 +25,8 @@
  *     don't recompute the same math four times per frame.
  */
 
+import { computeCompositeOffset as computeSharedCompositeOffset } from "@nodetool-ai/image-editor/render.js";
+
 import type {
   LayerContentBounds,
   LayerTransform,
@@ -193,22 +195,15 @@ export function getLayerGeometry(
 
 // ─── Lower-level helpers (when you already have raster bounds) ───────────────
 
-/** Document-space top-left where the raster is composited. */
+/**
+ * Document-space top-left where a layer's raster is drawn. Shared with the
+ * headless renderer.
+ */
 export function computeCompositeOffset(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point {
-  switch (transform.kind) {
-    case "affine":
-      return {
-        x: transform.x + rasterBounds.x,
-        y: transform.y + rasterBounds.y
-      };
-    case "quad": {
-      const aabb = aabbOfQuad(transform.quad);
-      return { x: aabb.x, y: aabb.y };
-    }
-  }
+  return computeSharedCompositeOffset(transform, rasterBounds);
 }
 
 /** Document-space corners of the transformed rectangle (TL, TR, BR, BL). */

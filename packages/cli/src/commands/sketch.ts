@@ -1,12 +1,13 @@
 /**
- * `nodetool sketch validate`, `debug` and `versions` — the sketch harness
- * commands.
+ * `nodetool sketch validate`, `debug`, `render` and `versions` — the sketch
+ * harness commands.
  *
  * `validate` checks an image document statically: layers a binding points at,
  * fields a round trip through the schema would strip, canvas and layer values
  * nothing can composite. `debug` additionally replays a scripted `--interact`
  * edit session against the headless `ui_sketch_*` bridge and writes a bundle.
- * Both take an image-document JSON file or an `image_documents` row id.
+ * Both take an image-document JSON file or an `image_documents` row id, and so
+ * does `render` (sketch-render.ts), which writes a PNG or a layered PSD.
  * `versions` (sketch-versions.ts) reads and restores a document's snapshot
  * history.
  *
@@ -20,6 +21,7 @@ import type { ImageDocumentRecord } from "../sketch-debug/target.js";
 import { printCommandError } from "../command-errors.js";
 import { printDebugSummary } from "./debug-summary-output.js";
 import { renderSketchValidation } from "./sketch-validation-output.js";
+import { registerSketchRenderCommand } from "./sketch-render.js";
 import { registerSketchVersionsCommands } from "./sketch-versions.js";
 
 export { renderSketchValidation };
@@ -147,5 +149,6 @@ export function registerSketchCommands(program: Command): void {
       }
     });
 
+  registerSketchRenderCommand(sketch, documentLoader);
   registerSketchVersionsCommands(sketch);
 }

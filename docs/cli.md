@@ -1084,7 +1084,7 @@ issues and exits non-zero.
 
 ### `nodetool sketch`
 
-**Subcommands:** `validate`, `debug`, `versions`
+**Subcommands:** `validate`, `debug`, `render`, `versions`
 
 #### `nodetool sketch validate <sketch_id_or_file>`
 
@@ -1135,6 +1135,28 @@ nodetool sketch debug sketch.json \
 ```
 
 The bundle holds `report.json`, `report.md`, and `sketch.json`.
+
+#### `nodetool sketch render <sketch_id_or_file>`
+
+Render a sketch with the editor's compositing rules and write a PNG, or a
+layered PSD. The target is the same as `validate`. Layer images stored as
+`asset://` resolve through the local asset store. The command exits non-zero
+when a layer's image could not be read.
+
+**Options:**
+
+- `-o, --out <file>` — output file (default: the sketch's name, slugged, with `.png` or `.psd`).
+- `--format <png|psd>` — `png` (default) or a layered `psd` at the canvas size.
+- `--width <px>`, `--height <px>` — output size. One alone keeps the aspect ratio. PNG only.
+- `--background <color>` — CSS color under the image. Default transparent. PNG only.
+- `--layer <layer_id>` — one layer alone, without its opacity or blend mode. PNG only.
+- `--mask` — the inpainting mask layer. PNG only.
+- `--json` — print the render report (size, output path, per-layer `drawn` and `issue`).
+
+```bash
+nodetool sketch render <image_document_id> -o poster.png --width 1024
+nodetool sketch render sketch.json --format psd -o poster.psd
+```
 
 #### `nodetool sketch versions`
 

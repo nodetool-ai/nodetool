@@ -1,6 +1,6 @@
 ---
 name: nodetool-sketch
-description: "Build or edit a NodeTool sketch (image document): layers, blend modes, placed images, generation briefs, version history."
+description: "Build, edit or render a NodeTool sketch (image document): layers, blend modes, placed images, generation briefs, PNG and PSD output, version history."
 featured: true
 ---
 
@@ -11,10 +11,11 @@ that say where a layer's picture comes from. It is the surface for composited
 stills, masks, overlays and the guided image brief. One finished image with no
 layers to keep is `generate_image`, not a sketch.
 
-The document is layers and references. **Headless tools never read or write
-pixels.** Painting happens in an open editor (the `ui_sketch_*` tools below),
-generation happens in a workflow run or through the image tools. An image lands
-on a layer by reference, so nothing inlines a bitmap.
+The document is layers and references. **Headless tools never paint.**
+Painting happens in an open editor (the `ui_sketch_*` tools below), generation
+happens in a workflow run or through the image tools. An image lands on a layer
+by reference, so nothing inlines a bitmap. `render_sketch` is the one headless
+tool that reads pixels: it composites the document and saves the result.
 
 ## The loop
 
@@ -25,7 +26,8 @@ on a layer by reference, so nothing inlines a bitmap.
    run in order against the stored document and the result is saved. An open
    editor picks the change up live.
 3. **Validate.** `validate_sketch {image_document_id}` or an inline `document`.
-4. **Snapshot** before a destructive pass with `create_sketch_version`.
+4. **Look.** `render_sketch {image_document_id}` and `view_image` the result.
+5. **Snapshot** before a destructive pass with `create_sketch_version`.
 
 ## `edit_sketch` ops
 
@@ -83,6 +85,18 @@ then `edit_sketch` with `add_layer {image}` or `set_layer_image {target, image}`
 places it. Generation spends provider money, so confirm the count with the user
 before rendering several `variations`.
 
+## Rendering
+
+`render_sketch {image_document_id | document, format?, width?, height?,
+background?, layer_id?, mask?}` composites the sketch with the editor's own
+rules (visibility and groups, opacity, blend modes, transforms, effects, vector
+layers, placed images) and saves an asset. `format: "png"` (the default) is the
+flattened image, transparent unless `background` is set. `layer_id` renders one
+layer alone, without its opacity or blend mode, and `mask: true` renders the
+inpainting mask. `format: "psd"` is a layered Photoshop file at the canvas size,
+one layer per sketch layer with groups kept. Each row of `layers` says whether
+the layer was drawn and, when an image could not be read, why.
+
 To use the finished composite in a workflow, `nodetool.sketch.RenderSketch`
 takes a `sketch` and flattens it to an `image` and a `mask`.
 
@@ -116,12 +130,15 @@ nodetool sketch debug sketch.json \
   --interact '[{"tool":"add_layer","input":{"name":"Shadow"}},
                {"tool":"set_layer_props","input":{"target":"Shadow","opacity":0.4,"blendMode":"multiply"}}]'
 nodetool sketch versions list <id> --save-type manual --limit 10
+nodetool sketch render <image_document_id|sketch.json> -o out.png --width 512
+nodetool sketch render sketch.json --format psd -o out.psd
 ```
 
 A path on disk wins over an id. `debug` runs the static check, then each
 `--interact` step against the headless `ui_sketch_*` bridge, and validates what
 the session left behind. A failing step is recorded and the script continues.
 Pixels, painting, rendering, generation and asset I/O are not simulated.
+`render` writes the PNG or PSD that `render_sketch` would save.
 
 ## Where a sketch is used
 
@@ -136,3 +153,4 @@ In a NodeTool checkout, these repository sources go further:
 
 - `docs/harnesses.md` § nodetool sketch validate / debug
 - `docs/harnesses.md` § nodetool sketch versions
+- `docs/harnesses.md` § nodetool sketch render

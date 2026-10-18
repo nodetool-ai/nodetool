@@ -6,7 +6,7 @@
  */
 
 import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
-import type { BlendMode, LayerImageObjectFit } from "../types";
+import type { BlendMode } from "../types";
 
 // ─── Dirty-rect types ────────────────────────────────────────────────────────
 
@@ -28,30 +28,8 @@ export interface BlurTempCanvases {
 
 // ─── Image fit ───────────────────────────────────────────────────────────────
 
-/**
- * Where to draw a `srcW`×`srcH` image inside a `dstW`×`dstH` layer so it
- * honors the layer image reference's fit. With no fit the image keeps its own
- * size at the origin, as a layer's own serialized raster does.
- */
-export function fitImageRect(
-  srcW: number,
-  srcH: number,
-  dstW: number,
-  dstH: number,
-  fit: LayerImageObjectFit | undefined
-): { x: number; y: number; width: number; height: number } {
-  if (!fit || srcW <= 0 || srcH <= 0) {
-    return { x: 0, y: 0, width: srcW, height: srcH };
-  }
-  if (fit === "fill") {
-    return { x: 0, y: 0, width: dstW, height: dstH };
-  }
-  const pick = fit === "contain" ? Math.min : Math.max;
-  const scale = pick(dstW / srcW, dstH / srcH);
-  const width = srcW * scale;
-  const height = srcH * scale;
-  return { x: (dstW - width) / 2, y: (dstH - height) / 2, width, height };
-}
+/** Shared with the headless renderer, which hydrates image references the same way. */
+export { fitImageRect } from "@nodetool-ai/image-editor/render.js";
 
 // ─── Blend mode mapping ──────────────────────────────────────────────────────
 

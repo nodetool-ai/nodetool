@@ -1007,6 +1007,50 @@ verdict is ok. Validation and report rules live in
 `@nodetool-ai/execution/sketch-debug`; the CLI keeps target resolution, the
 interaction script, and the bundle.
 
+### nodetool sketch render (Headless Sketch Renderer)
+
+Renders a sketch to a PNG or a layered PSD without an editor or a browser. The
+target is the same as `sketch validate`: an image document JSON file or an
+`image_documents` row id.
+
+```bash
+npm run dev:nodetool -- sketch render <image_document_id> -o poster.png
+npm run dev:nodetool -- sketch render sketch.json --width 512 --background "#ffffff"
+npm run dev:nodetool -- sketch render sketch.json --layer <layer_id> -o layer.png
+npm run dev:nodetool -- sketch render sketch.json --mask -o mask.png
+npm run dev:nodetool -- sketch render sketch.json --format psd -o poster.psd --json
+```
+
+The compositing rules are the editor's own. Layer hydration, visibility through
+groups, group opacity, blend modes, affine and quad transforms, layer effects,
+vector layers and placed images live in `@nodetool-ai/image-editor/render.js`,
+and the editor's Canvas2D runtime calls the same functions. The PSD writer is
+`@nodetool-ai/image-editor/psd.js`, shared with the editor's Export PSD. The
+Node host (`@nodetool-ai/agents/sketch-render`) supplies `@napi-rs/canvas`
+surfaces, image decoding and the blend-mode table, and re-rasterizes an SVG at
+the size a vector layer's transform scales it to.
+
+The PNG is the editor's PNG export: the canvas size, transparent, with mask
+layers left out. `--width` or `--height` resamples it, one alone keeping the
+aspect ratio. `--layer` draws one layer with its transform and effects but not
+its opacity or blend mode, as Export PSD does per layer. `--mask` draws the
+inpainting mask, and fails when the mask layer is hidden, as the editor exports
+none then. A layer image stored as `asset://` resolves through the local asset
+store. Local file paths are refused. Every surface is capped at 16384 px a side
+and 32 M pixels, so a document with enormous layer bounds is refused instead of
+allocated.
+
+Each layer in the report says whether it was drawn. A layer whose image could
+not be read carries an `issue` and makes the command exit non-zero. The same
+renderer is the **`render_sketch`** tool for agents and MCP clients (and
+`nodetool.sketches.render` in a code action), which saves the output as an
+asset.
+
+Checked against the editor itself, with the Canvas2D runtime bundled into
+Chromium: layer stacks, blend modes and masks match exactly, group opacity and
+effects within three levels per channel. Rotated, warped and resampled edges
+differ by antialiasing only.
+
 ### nodetool sketch versions (Sketch Version History)
 
 `sketch versions` reads and writes an image document's snapshot history against

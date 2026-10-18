@@ -6,6 +6,8 @@
  * working-space / dynamic-range metadata.
  */
 
+import { layerEffectsFilter } from "@nodetool-ai/image-editor/render.js";
+
 import type { LayerEffect } from "../../types";
 import type { ResolvedLayerBitmap } from "../types";
 
@@ -45,57 +47,10 @@ export function evaluateLayerEffectsCPU(
     return { result: { surface: cached.canvas, ...SDR_SRGB }, fxTempCanvas };
   }
 
-  // Build a composite CSS filter string from all enabled effects.
-  const filterParts: string[] = [];
+  // The CSS filter chain is shared with the headless renderer.
+  const filter = layerEffectsFilter(effects);
 
-  for (const effect of effects) {
-    if (!effect.enabled) {
-      continue;
-    }
-    switch (effect.type) {
-      case "brightness_contrast": {
-        const { brightness, contrast } = effect.params;
-        if (brightness !== 0) {
-          filterParts.push(`brightness(${1 + brightness})`);
-        }
-        if (contrast !== 0) {
-          filterParts.push(`contrast(${1 + contrast})`);
-        }
-        break;
-      }
-      case "hue_saturation": {
-        const { hueDegrees, saturation, lightness } = effect.params;
-        if (hueDegrees !== 0) {
-          filterParts.push(`hue-rotate(${hueDegrees}deg)`);
-        }
-        if (saturation !== 0) {
-          filterParts.push(`saturate(${1 + saturation})`);
-        }
-        if (lightness !== 0) {
-          filterParts.push(`brightness(${1 + lightness})`);
-        }
-        break;
-      }
-      case "exposure": {
-        const { exposureStops } = effect.params;
-        if (exposureStops !== 0) {
-          filterParts.push(`brightness(${Math.pow(2, exposureStops)})`);
-        }
-        break;
-      }
-      default: {
-        // Exhaustive check: every LayerEffectType must have a case above.
-        const _exhaustive: never = effect;
-        if (process.env.NODE_ENV !== "production") {
-          console.error(
-            `[Canvas2DRuntime] Unknown effect type: ${(_exhaustive as { type: string }).type}`
-          );
-        }
-      }
-    }
-  }
-
-  if (filterParts.length === 0) {
+  if (filter === null) {
     fxCache.delete(layerId);
     return { result: { surface: source, ...SDR_SRGB }, fxTempCanvas };
   }
@@ -118,7 +73,7 @@ export function evaluateLayerEffectsCPU(
   }
 
   ctx.clearRect(0, 0, temp.width, temp.height);
-  ctx.filter = filterParts.join(" ");
+  ctx.filter = filter;
   ctx.drawImage(source, 0, 0);
   ctx.filter = "none";
 
