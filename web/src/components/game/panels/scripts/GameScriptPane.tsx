@@ -8,7 +8,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 import { useMonacoEditor } from "../../../../hooks/editor/useMonacoEditor";
 import { Box, Caption, CONTROL, Divider, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, LoadingSpinner, SPACING, ToolbarIconButton } from "../../../ui_primitives";
-import GamePanelHeader from "../../GamePanelHeader";
+import DockPanelHeader from "../../../dock/DockPanelHeader";
 
 interface GameScriptPaneProps {
   dimension?: "2d" | "3d";
@@ -62,13 +62,13 @@ export default function GameScriptPane({ dimension = "2d", entityId, entityName,
   const limits = `${source.length} / 16384 characters · ${behavior.maxCommands} commands · ${behavior.maxTickMs} ms per tick`;
   return (
     <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0, height: "100%" }}>
-      <GamePanelHeader title="Scripts" label={`${entityName || entityId} · Script ${behaviorIndex + 1}`}
+      <DockPanelHeader title="Scripts" label={`${entityName || entityId} · Script ${behaviorIndex + 1}`}
         icon={<CodeIcon sx={{ fontSize: FONT_SIZE_SANS.body, color: "text.secondary" }} />}>
         {onRunTenSeconds && <EditorButton startIcon={<PlayArrowIcon fontSize="small" />} disabled={runningTenSeconds}
           onClick={onRunTenSeconds}>{runningTenSeconds ? "Running" : "Run 10 s"}</EditorButton>}
         {onRunTenSeconds && <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />}
         <ToolbarIconButton icon={<CloseIcon fontSize="small" />} tooltip="Close" onClick={onClose} />
-      </GamePanelHeader>
+      </DockPanelHeader>
       {conflict && <Notice tone="warning">
         <Caption role="alert" sx={{ flex: 1, minWidth: 0 }}>The draft script changed. Your edits are not being saved until you choose a version.</Caption>
         <EditorButton onClick={() => { sourceRef.current = behavior.source; setSource(behavior.source); setConflict(false); }}>Use draft version</EditorButton>

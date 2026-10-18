@@ -3,7 +3,7 @@ import { useTheme } from "@mui/material/styles";
 
 import { FlexRow, SPACING, CONTROL, TYPOGRAPHY, getSpacingPx } from "../ui_primitives";
 
-interface GamePanelHeaderProps {
+interface DockPanelHeaderProps {
   /** Panel name. The dock tab already shows it, so it only names the toolbar for assistive technology. */
   title: string;
   /** Leading icon, drawn only with `label`. */
@@ -17,10 +17,10 @@ interface GamePanelHeaderProps {
 }
 
 /**
- * Toolbar strip under a docked game panel's tab. The tab names the panel, so the
+ * Toolbar strip under a docked panel's tab. The tab names the panel, so the
  * strip carries controls only and is not drawn when a panel has none.
  */
-export default function GamePanelHeader({ title, icon, label, children, fill = false }: GamePanelHeaderProps) {
+export default function DockPanelHeader({ title, icon, label, children, fill = false }: DockPanelHeaderProps) {
   const theme = useTheme();
   if (!children && !label) { return null; }
   return <FlexRow role="toolbar" aria-label={`${title} toolbar`} align="center" gap={SPACING.xs} sx={{

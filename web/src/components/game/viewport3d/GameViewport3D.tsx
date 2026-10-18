@@ -27,7 +27,7 @@ import {
   BORDER_RADIUS, Box, Caption, Divider, FlexColumn, FlexRow, FONT_SIZE_SANS, LabeledSwitch, Label, NumericField, Popover, SPACING,
   ToggleGroup, ToggleOption, ToolbarIconButton
 } from "../../ui_primitives";
-import GamePanelHeader from "../GamePanelHeader";
+import DockPanelHeader from "../../dock/DockPanelHeader";
 import { useGameCommandHandlers, useGameCommandShortcut } from "../shell/useGameCommands";
 import {
   gameAxisViewPosition3D, gameGizmoPivot3D, gameGizmoSnaps3D, gameGroundOffset3D, gameGroupTransform3D, gameLocalTransform3D,
@@ -535,7 +535,7 @@ export default function GameViewport3D({ document, host, selectedIds = NO_IDS, h
     : flyMode ? "WASD to fly. R/F to rise and descend. Drag to look."
       : "Drag to orbit. Shift-drag to pan. Scroll to zoom. Shift-click adds to the selection.";
   return <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-    {!playerOnly && <GamePanelHeader title="Viewport" label={host.playDocument ? "Game" : "Scene"}
+    {!playerOnly && <DockPanelHeader title="Viewport" label={host.playDocument ? "Game" : "Scene"}
       icon={host.playDocument ? <SportsEsportsOutlinedIcon sx={HEADER_ICON_SX} /> : <GridViewOutlinedIcon sx={HEADER_ICON_SX} />}>
       {editing && <>
         <FlexRow gap={SPACING.micro} align="center" role="group" aria-label="Transform mode">
@@ -584,7 +584,7 @@ export default function GameViewport3D({ document, host, selectedIds = NO_IDS, h
           </FlexColumn>
         </Popover>
       </>}
-    </GamePanelHeader>}
+    </DockPanelHeader>}
     <Box sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0, bgcolor: "common.black" }}>
       <Box component="canvas" ref={host.canvasRef} data-game-undo-scope tabIndex={0} aria-label="3D game viewport"
         onKeyDown={(event) => {

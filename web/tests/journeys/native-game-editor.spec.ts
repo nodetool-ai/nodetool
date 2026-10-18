@@ -127,7 +127,7 @@ for (const dimension of ["2d", "3d"] as const) {
   await input.focus();
   const original = await input.elementHandle();
   if (!original) { throw new Error("Inspector input was not mounted"); }
-  await dragGameDockTab(page, "Inspector", '[data-game-dock-edge="bottom"], [data-game-dock-region="bottom"] [data-game-dock-body]');
+  await dragGameDockTab(page, "Inspector", '[data-dock-edge="bottom"], [data-dock-region="bottom"] [data-dock-body]');
   await expect(input).toBeFocused();
   expect(await original.evaluate((node) => node.isConnected && node === window.document.activeElement)).toBe(true);
   await expect(input).toHaveValue("Dock focus entity");
@@ -167,7 +167,7 @@ for (const dimension of ["2d", "3d"] as const) {
     await waitForAppReady(page);
     await page.getByText("Dock script entity", { exact: true }).click();
     await page.getByRole("button", { name: "Edit script", exact: true }).click();
-    const editor = page.locator('[data-game-panel="scripts"] .monaco-editor');
+    const editor = page.locator('[data-dock-panel="scripts"] .monaco-editor');
     await expect(editor).toBeVisible();
     const original = await editor.elementHandle();
     if (!original) { throw new Error("Real Monaco script editor did not mount"); }
@@ -176,12 +176,12 @@ for (const dimension of ["2d", "3d"] as const) {
     await input.focus();
     const focused = await input.elementHandle();
     if (!focused) { throw new Error("Real Monaco input did not mount"); }
-    await dragGameDockTab(page, "Scripts", '[data-game-dock-edge="left"], [data-game-dock-region="left"] [data-game-dock-body]');
+    await dragGameDockTab(page, "Scripts", '[data-dock-edge="left"], [data-dock-region="left"] [data-dock-body]');
     await expect(input).toBeFocused();
     expect(await focused.evaluate((node) => node.isConnected && node === document.activeElement)).toBe(true);
-    expect(await original.evaluate((node) => node === document.querySelector('[data-game-panel="scripts"] .monaco-editor'))).toBe(true);
+    expect(await original.evaluate((node) => node === document.querySelector('[data-dock-panel="scripts"] .monaco-editor'))).toBe(true);
     await expect(page.getByRole("region", { name: "Game left panels" }).locator(".monaco-editor")).toBeVisible();
-    await page.locator('[data-game-panel="scripts"]').getByRole("button", { name: "Close", exact: true }).click();
+    await page.locator('[data-dock-panel="scripts"]').getByRole("button", { name: "Close", exact: true }).click();
     await expect(editor).toHaveCount(0);
     expect(await original.evaluate((node) => node.isConnected)).toBe(false);
   });

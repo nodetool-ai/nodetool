@@ -8,8 +8,8 @@ import { createTopDownRoomGame, type GameSession } from "@nodetool-ai/game-runti
 import GameViewport from "../../viewport2d/GameViewport";
 import GameScriptPane from "../../panels/scripts/GameScriptPane";
 import { useGamePlaySession } from "../../useGamePlaySession";
-import { GameDockCanvas } from "../GameDockCanvas";
-import { useGameDockPresentation } from "../useGameDockPresentation";
+import { DockCanvas } from "../../../dock/DockCanvas";
+import { useDockPresentation } from "../../../dock/useDockPresentation";
 import { createGamePanelLayoutStore, type GamePanelLayoutState } from "../../../../stores/game/GamePanelLayoutStore";
 import type { GamePanelView } from "../GameEditorShell";
 import type { GamePanelRegistration } from "../panelRegistry";
@@ -76,9 +76,9 @@ const registrations: readonly GamePanelRegistration[] = [
 function RuntimeDock({ store, views }: { store: StoreApi<GamePanelLayoutState>; views: readonly GamePanelView[] }) {
   const root = useRef<HTMLDivElement | null>(null);
   const layout = useStore(store, (state) => state.layout);
-  const presentation = useGameDockPresentation({ root, store, layout, registry: registrations,
-    dimension: "2d", availableIds: views.map((view) => view.id), views });
-  return <section ref={root}><GameDockCanvas store={store} presentation={presentation} /></section>;
+  const presentation = useDockPresentation({ root, store, layout, registry: registrations,
+    availableIds: views.map((view) => view.id), views });
+  return <section ref={root}><DockCanvas store={store} presentation={presentation} /></section>;
 }
 
 it("docks real 2D viewport and script pane without replacing session, renderer, draft input or animation loop", async () => {
@@ -119,7 +119,7 @@ it("docks real 2D viewport and script pane without replacing session, renderer, 
     await act(async () => store.getState().dispatch({ type: "move", panelId: "viewport", region: "right", groupId: "runtime-viewport", index: 0 }));
     expect(screen.getByRole("group", { name: "Game viewport" })).toBe(viewport);
     expect(viewport).toHaveFocus();
-    expect(viewport.closest("[data-game-dock-group]")).toHaveAttribute("data-game-dock-group", "runtime-viewport");
+    expect(viewport.closest("[data-dock-group]")).toHaveAttribute("data-dock-group", "runtime-viewport");
     const source = screen.getByRole("textbox", { name: "Script source" });
     await user.click(source);
     await user.type(source, " local draft");
@@ -134,8 +134,8 @@ it("docks real 2D viewport and script pane without replacing session, renderer, 
     expect(screen.getByRole("textbox", { name: "Script source" })).toBe(source);
     expect(source).toHaveValue("original local draft");
     await act(async () => store.getState().dispatch({ type: "move", panelId: "scripts", region: "right", groupId: "runtime-viewport", index: 1 }));
-    expect(viewport.closest("[data-game-panel]")).toHaveAttribute("hidden");
-    expect(viewport.closest("[data-game-panel]")).toHaveProperty("inert", true);
+    expect(viewport.closest("[data-dock-panel]")).toHaveAttribute("hidden");
+    expect(viewport.closest("[data-dock-panel]")).toHaveProperty("inert", true);
     expect(source).toHaveValue("original local draft");
     let time = performance.now();
     for (let tick = 0; tick < 20; tick++) {

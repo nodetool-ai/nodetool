@@ -15,7 +15,7 @@ function fixture(dimension: "2d" | "3d" = "2d", playing = false, overrides = {})
     if (id) { ran.push(id); }
   }}>
     <div data-game-undo-scope><button>Entity</button><input aria-label="Entity name" /></div>
-    <div data-game-panel="viewport"><canvas data-game-undo-scope aria-label="Viewport" tabIndex={0} /></div>
+    <div data-dock-panel="viewport"><canvas data-game-undo-scope aria-label="Viewport" tabIndex={0} /></div>
     <button>Toolbar</button>
     <textarea aria-label="Assistant" />
   </div>);
@@ -73,7 +73,7 @@ it("ignores a handled key press and lets a disabled command fall through", () =>
       handler: (commandId) => commandId === "tool.move" ? { run, enabled: false } : undefined });
     if (id) { ran.push(id); }
   }}>
-    <div data-game-panel="viewport"><canvas data-game-undo-scope aria-label="Viewport" tabIndex={0}
+    <div data-dock-panel="viewport"><canvas data-game-undo-scope aria-label="Viewport" tabIndex={0}
       onKeyDown={(event) => { if (event.code === "KeyF") { event.preventDefault(); } }} /></div>
   </div>);
   const keyW = fireEvent.keyDown(screen.getByLabelText("Viewport"), { code: "KeyW" });

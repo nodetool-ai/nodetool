@@ -9,30 +9,30 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 
-import { GAME_LAYOUT_PRESETS } from "../../../stores/game/GamePanelLayout";
-import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutStore";
-import type { GamePanelRegistration } from "./panelRegistry";
-import { Caption, ContextMenu, Dialog, EditorButton, FlexColumn, FlexRow, ListSubheader, MenuItemPrimitive, SPACING, TextInput } from "../../ui_primitives";
-import ReportBugButton from "../../support/ReportBugButton";
+import type { DockLayoutState } from "../../stores/dock/DockLayoutStore";
+import { capitalizeLabel, type DockPanelRegistration } from "../../stores/dock/DockLayout";
+import { Caption, ContextMenu, Dialog, EditorButton, FlexColumn, FlexRow, ListSubheader, MenuItemPrimitive, SPACING, TextInput } from "../ui_primitives";
+import ReportBugButton from "../support/ReportBugButton";
 
-interface GameLayoutMenuProps {
-  readonly store: StoreApi<GamePanelLayoutState>;
-  readonly panels: readonly Pick<GamePanelRegistration, "id" | "title">[];
+interface DockLayoutMenuProps {
+  readonly store: StoreApi<DockLayoutState>;
+  readonly panels: readonly Pick<DockPanelRegistration, "id" | "title">[];
 }
 
 type NameDialog = { readonly mode: "save" | "rename"; readonly from?: string } | null;
 
 /** The editor's Layout menu: built-in and saved layouts, saving the current one, and which panels are open. */
-export function GameLayoutMenu({ store, panels }: GameLayoutMenuProps): ReactNode {
+export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNode {
+  const model = store.getState().model;
   const customLayouts = useStore(store, (state) => state.customLayouts);
   const hidden = useStore(store, (state) => state.layout.hidden);
   const button = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState("Default");
+  const [current, setCurrent] = useState(model.presets[0] ?? "");
   const [dialog, setDialog] = useState<NameDialog>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { setCurrent("Default"); setDialog(null); setError(null); }, [store]);
+  useEffect(() => { setCurrent(model.presets[0] ?? ""); setDialog(null); setError(null); }, [store, model.presets]);
   const custom = customLayouts.some((entry) => entry.name === current);
   const act = (action: () => void): boolean => {
     try { action(); setError(null); return true; }
@@ -54,14 +54,14 @@ export function GameLayoutMenu({ store, panels }: GameLayoutMenuProps): ReactNod
   };
 
   return <>
-    <EditorButton ref={button} size="small" data-game-layout-menu aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(true)}
+    <EditorButton ref={button} size="small" data-dock-layout-menu aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(true)}
       startIcon={<DashboardOutlinedIcon fontSize="small" />} endIcon={<ArrowDropDownIcon fontSize="small" />}
       sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
       {current}
     </EditorButton>
     <ContextMenu open={open} anchorEl={button.current} onClose={close} aria-label="Layout">
       <ListSubheader>Layouts</ListSubheader>
-      {[...GAME_LAYOUT_PRESETS, ...customLayouts.map((entry) => entry.name)].map((layoutName) => <MenuItemPrimitive key={layoutName}
+      {[...model.presets, ...customLayouts.map((entry) => entry.name)].map((layoutName) => <MenuItemPrimitive key={layoutName}
         label={layoutName} selected={layoutName === current} icon={layoutName === current ? <CheckIcon /> : <span />}
         onClick={() => { close(); if (act(() => store.getState().selectLayout(layoutName))) { setCurrent(layoutName); } }} />)}
       <MenuItemPrimitive dividerBefore label="Save layout as…" icon={<SaveOutlinedIcon />} onClick={() => openDialog({ mode: "save" })} />
@@ -69,13 +69,13 @@ export function GameLayoutMenu({ store, panels }: GameLayoutMenuProps): ReactNod
         tooltip={custom ? undefined : "Built-in layouts cannot be renamed"} onClick={() => openDialog({ mode: "rename", from: current })} />
       <MenuItemPrimitive label="Delete layout" icon={<DeleteOutlineIcon />} color="error" disabled={!custom}
         tooltip={custom ? undefined : "Built-in layouts cannot be deleted"}
-        onClick={() => { close(); if (act(() => store.getState().deleteLayout(current))) { setCurrent("Default"); } }} />
+        onClick={() => { close(); if (act(() => store.getState().deleteLayout(current))) { setCurrent(model.presets[0] ?? ""); } }} />
       {panels.length > 0 && <ListSubheader>Panels</ListSubheader>}
       {panels.map((panel) => {
         const shown = !hidden.includes(panel.id);
         return <MenuItemPrimitive key={panel.id} label={panel.title}
           icon={shown ? <VisibilityOutlinedIcon /> : <VisibilityOffOutlinedIcon />}
-          disabled={panel.id === "viewport"} secondary={shown ? undefined : "Hidden"}
+          disabled={model.requiredPanels.includes(panel.id)} secondary={shown ? undefined : "Hidden"}
           onClick={() => act(() => store.getState().dispatch({ type: shown ? "hide" : "reveal", panelId: panel.id }))} />;
       })}
     </ContextMenu>
@@ -86,7 +86,7 @@ export function GameLayoutMenu({ store, panels }: GameLayoutMenuProps): ReactNod
         <TextInput label="Layout name" autoFocus value={name} onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter" && name.trim()) { event.preventDefault(); confirmName(); } }} />
         {error && <FlexRow gap={SPACING.xs} align="center"><Caption role="alert" color="error">{error}</Caption>
-          <ReportBugButton context={{ source: "panel-crash", summary: "Game layout could not be changed", errorText: error }} />
+          <ReportBugButton context={{ source: "panel-crash", summary: `${capitalizeLabel(model.editorLabel)} layout could not be changed`, errorText: error }} />
         </FlexRow>}
       </FlexColumn>
     </Dialog>

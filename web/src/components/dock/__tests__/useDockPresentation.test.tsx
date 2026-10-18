@@ -1,20 +1,19 @@
 import { createRef, useLayoutEffect } from "react";
 import { render, screen } from "@testing-library/react";
 
-import { createGamePanelLayout } from "../../../../stores/game/GamePanelLayout";
-import { createGamePanelLayoutStore } from "../../../../stores/game/GamePanelLayoutStore";
-import { useGameDockPresentation, type GameDockPresentation, type GameDockPresentationInput } from "../useGameDockPresentation";
+import { createSampleDockStore, createSampleLayout } from "../../../__mocks__/sampleDockModel";
+import { useDockPresentation, type DockPresentation, type DockPresentationInput } from "../useDockPresentation";
 
-function fixture(): GameDockPresentationInput {
-  const store = createGamePanelLayoutStore({ anonymous: true }, {
+function fixture(): DockPresentationInput {
+  const store = createSampleDockStore({ anonymous: true }, {
     getItem: () => null, setItem: () => undefined, removeItem: () => undefined
   });
-  return { root: createRef<HTMLDivElement>(), store, layout: store.getState().layout, registry: [], dimension: "2d", availableIds: ["scripts"],
+  return { root: createRef<HTMLDivElement>(), store, layout: store.getState().layout, registry: [], availableIds: ["scripts"],
     views: [{ id: "scripts", node: <input aria-label="Script source" defaultValue="first" /> }] };
 }
 
 function Observe({ presentation, commits }: {
-  presentation: GameDockPresentation;
+  presentation: DockPresentation;
   commits: Array<{ transitioning: boolean; sourcePresent: boolean; captured: HTMLElement | null }>;
 }): null {
   useLayoutEffect(() => {
@@ -26,12 +25,12 @@ function Observe({ presentation, commits }: {
 }
 
 function Harness({ desired, commits }: {
-  desired: GameDockPresentationInput;
+  desired: DockPresentationInput;
   commits: Array<{ transitioning: boolean; sourcePresent: boolean; captured: HTMLElement | null }>;
 }) {
-  const presentation = useGameDockPresentation(desired);
+  const presentation = useDockPresentation(desired);
   return <section ref={desired.root}>
-    {presentation.views.map((view) => <div key={view.id} data-game-panel={view.id}>{view.node}</div>)}
+    {presentation.views.map((view) => <div key={view.id} data-dock-panel={view.id}>{view.node}</div>)}
     <Observe presentation={presentation} commits={commits} />
   </section>;
 }
@@ -50,7 +49,7 @@ it("retains closing content for capture, consumes the snapshot, and does not res
   ]);
   expect(document.activeElement).toBe(document.body);
   commits.length = 0;
-  rendered.rerender(<Harness desired={{ ...desired, layout: createGamePanelLayout("Wide"),
+  rendered.rerender(<Harness desired={{ ...desired, layout: createSampleLayout("Wide"),
     availableIds: [], views: [{ id: "scripts", node: null }] }} commits={commits} />);
   expect(commits.every((commit) => commit.captured === null)).toBe(true);
   expect(document.activeElement).toBe(document.body);

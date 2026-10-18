@@ -3,7 +3,7 @@ import { useTheme } from "@mui/material/styles";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 
-import GamePanelHeader from "../../GamePanelHeader";
+import DockPanelHeader from "../../../dock/DockPanelHeader";
 import {
   Box, BORDER_RADIUS, Caption, CONTROL, Divider, EditorButton, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, getSpacingPx, ScrollArea,
   SPACING, Text, TYPOGRAPHY
@@ -130,7 +130,7 @@ export default function GameProfilerPanel({ profiler, source, document }: GamePr
     : viewingCapture ? `Capture · ${captureSeconds} s · ${count(summary?.ticks ?? 0)} ticks${capture.full ? " · stopped when full" : ""}`
       : `Live · last ${count(summary?.ticks ?? 0)} ticks`;
   return <FlexColumn ref={root} sx={{ height: "100%", minHeight: 0 }}>
-    <GamePanelHeader title="Profiler" fill>
+    <DockPanelHeader title="Profiler" fill>
       <Caption role="status" data-testid="profiler-status" color="secondary" sx={{ flex: 1, minWidth: 0, pl: SPACING.xs, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {status}
       </Caption>
@@ -146,7 +146,7 @@ export default function GameProfilerPanel({ profiler, source, document }: GamePr
       <EditorButton disabled={view.capturing || empty} onClick={exportProfile} sx={{ height: CONTROL.height.sm }}>Export JSON</EditorButton>
       <EditorButton disabled={!profiler} onClick={() => { profiler?.clear(); refresh(); }}
         sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Clear</EditorButton>
-    </GamePanelHeader>
+    </DockPanelHeader>
     <ScrollArea sx={{ flex: 1, minHeight: 0 }}>
       {empty || !summary || !metrics
         ? <EmptyState variant="no-data" size="small" title="No samples yet"

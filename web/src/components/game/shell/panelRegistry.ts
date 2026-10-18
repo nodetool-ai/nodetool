@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AnimationOutlinedIcon from "@mui/icons-material/AnimationOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
@@ -10,50 +10,21 @@ import TerminalOutlinedIcon from "@mui/icons-material/TerminalOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import VideogameAssetOutlinedIcon from "@mui/icons-material/VideogameAssetOutlined";
 
+import type { DockRegion } from "../../../stores/dock/DockLayout";
+import { createDockPanelRegistry, type DockPanelRegistration, type DockPanelRegistry } from "../../dock/panelRegistry";
+
 export type GameDimension = "2d" | "3d";
-export type GamePanelRegion = "left" | "right" | "bottom" | "viewport";
-export interface GamePanelRegistration {
-  readonly id: string;
-  readonly title: string;
-  readonly icon: ReactNode;
+export type GamePanelRegion = DockRegion;
+export interface GamePanelRegistration extends DockPanelRegistration {
   readonly dimensions: readonly GameDimension[];
-  readonly defaultRegion: GamePanelRegion;
 }
-export interface GamePanelRegistry {
-  readonly register: (panel: GamePanelRegistration) => () => void;
+export interface GamePanelRegistry extends DockPanelRegistry<GamePanelRegistration> {
   readonly panels: (dimension: GameDimension) => readonly GamePanelRegistration[];
-  readonly subscribe: (listener: () => void) => () => void;
-  readonly getSnapshot: () => readonly GamePanelRegistration[];
 }
 
 export function createGamePanelRegistry(): GamePanelRegistry {
-  const entries = new Map<string, GamePanelRegistration>();
-  const listeners = new Set<() => void>();
-  let snapshot: readonly GamePanelRegistration[] = [];
-  const publish = (): void => {
-    snapshot = Object.freeze([...entries.values()]);
-    for (const listener of listeners) { listener(); }
-  };
-  return {
-    register(panel) {
-      if (entries.has(panel.id)) { throw new Error(`Game panel ${panel.id} is already registered`); }
-      const registration = Object.freeze({ ...panel, dimensions: Object.freeze([...panel.dimensions]) });
-      entries.set(registration.id, registration);
-      publish();
-      return () => {
-        if (entries.get(registration.id) === registration) {
-          entries.delete(registration.id);
-          publish();
-        }
-      };
-    },
-    panels(dimension) { return snapshot.filter((panel) => panel.dimensions.includes(dimension)); },
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => { listeners.delete(listener); };
-    },
-    getSnapshot() { return snapshot; }
-  };
+  const registry = createDockPanelRegistry<GamePanelRegistration>("game", (panel) => ({ ...panel, dimensions: Object.freeze([...panel.dimensions]) }));
+  return { ...registry, panels(dimension) { return registry.getSnapshot().filter((panel) => panel.dimensions.includes(dimension)); } };
 }
 
 export const gamePanelRegistry = createGamePanelRegistry();

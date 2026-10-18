@@ -9,9 +9,9 @@ import GameToolbar from "./GameToolbar";
 import GameStatusBar from "./GameStatusBar";
 import GameCommandPalette from "./GameCommandPalette";
 import GameShortcutsDialog from "./GameShortcutsDialog";
-import { GameDockCanvas } from "./GameDockCanvas";
-import { GameLayoutMenu } from "./GameLayoutMenu";
-import { useGameDockPresentation } from "./useGameDockPresentation";
+import { DockCanvas } from "../../dock/DockCanvas";
+import { DockLayoutMenu } from "../../dock/DockLayoutMenu";
+import { useDockPresentation, type DockPanelView } from "../../dock/useDockPresentation";
 import { dispatchGameShortcut, formatGameBinding, GAME_COMMANDS, resolveGameBindings, type GameCommandHandlers } from "./gameCommands";
 import type { ContextCommand } from "../../../stores/CommandMenuStore";
 import { useContextCommands } from "../../../hooks/useContextCommands";
@@ -26,12 +26,7 @@ import { isElectron, isLocalhost } from "../../../lib/env";
 /** Compiling runs cargo on the server's machine, which is this computer only in the desktop app or a local server. */
 const CAN_BUILD_EXECUTABLE = isElectron || isLocalhost;
 
-export interface GamePanelView {
-  readonly id: string;
-  readonly node: ReactNode;
-  readonly visible?: boolean;
-  readonly keyboardScope?: boolean;
-}
+export type GamePanelView = DockPanelView;
 interface GameEditorShellProps {
   readonly dimension: GameDimension;
   readonly toolbar: ComponentProps<typeof GameToolbar>;
@@ -57,7 +52,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
   const layout = useStore(layoutStore, (state) => state.layout);
   useEffect(() => { layoutStore.getState().registerPanels(registrations); }, [layoutStore, registrations, layout]);
   const views = panels.filter((view) => view.visible !== false && registrations.some((entry) => entry.id === view.id && entry.dimensions.includes(dimension)));
-  const presentation = useGameDockPresentation({ store: layoutStore, layout, registry: registrations, dimension,
+  const presentation = useDockPresentation({ store: layoutStore, layout, registry: registrations,
     availableIds: views.map((view) => view.id), views, root });
   const shortcutStore = useGameShortcutStore();
   const overrides = useStore(shortcutStore, (state) => state.overrides);
@@ -112,7 +107,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
     <GameToolbar {...toolbar} onCommandPalette={() => setPaletteOpen(true)}
       onExport={exportGame ? exporter.run : undefined} exporting={exporter.exporting !== null}
       onBuildExecutable={canBuildExecutable && !executable.building ? executable.run : undefined}
-      layoutMenu={<GameLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />} />
+      layoutMenu={<DockLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />} />
     {exporter.exporting && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>
       {exporter.exporting === "tauri" ? "Building the desktop app project from the published revision" : "Building the web player from the published revision"}
     </Caption>}
@@ -136,7 +131,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       <EditorButton onClick={executable.dismiss}>Dismiss</EditorButton>
     </FlexRow>}
     {notices}
-    <GameDockCanvas presentation={presentation} store={layoutStore} />
+    <DockCanvas presentation={presentation} store={layoutStore} />
     <GameStatusBar {...status} />
     {mobile}
     {dialogs}

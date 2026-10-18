@@ -1,31 +1,31 @@
 import { useLayoutEffect, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
-import { FlexColumn } from "../../ui_primitives";
+import { FlexColumn } from "../ui_primitives";
 
-export interface GamePanelFocusSnapshot {
+export interface PanelFocusSnapshot {
   readonly panelId: string;
   readonly node: HTMLElement;
   readonly container: HTMLElement;
 }
 
-interface StableGamePanelHostProps {
+interface StablePanelHostProps {
   readonly id: string;
   readonly slot: HTMLElement | null;
   readonly resolveSlot?: () => HTMLElement | null;
   readonly active: boolean;
   readonly keyboardScope?: boolean;
-  readonly focusSnapshot: RefObject<GamePanelFocusSnapshot | null>;
+  readonly focusSnapshot: RefObject<PanelFocusSnapshot | null>;
   readonly fallbackFocus: () => HTMLElement | null;
   readonly children: ReactNode;
 }
 
-export function StableGamePanelHost({ id, slot, resolveSlot, active, keyboardScope, focusSnapshot, fallbackFocus,
-  children }: StableGamePanelHostProps): ReactNode {
+export function StablePanelHost({ id, slot, resolveSlot, active, keyboardScope, focusSnapshot, fallbackFocus,
+  children }: StablePanelHostProps): ReactNode {
   const [container] = useState(() => {
     const element = window.document.createElement("div");
-    // Shortcut routing and focus capture find a panel through this marker, e.g. `[data-game-panel="viewport"]`.
-    element.dataset.gamePanel = id;
+    // Shortcut routing and focus capture find a panel through this marker, e.g. `[data-dock-panel="viewport"]`.
+    element.dataset.dockPanel = id;
     element.style.width = "100%";
     element.style.height = "100%";
     return element;
@@ -38,8 +38,8 @@ export function StableGamePanelHost({ id, slot, resolveSlot, active, keyboardSco
     const focused = currentFocus instanceof HTMLElement && container.contains(currentFocus)
       ? currentFocus
       : currentFocus === window.document.body && recorded?.panelId === id && recorded.container === container ? recorded.node : null;
-    container.dataset.gamePanel = id;
-    container.toggleAttribute("data-game-undo-scope", Boolean(keyboardScope));
+    container.dataset.dockPanel = id;
+    container.toggleAttribute("data-dock-keyboard-scope", Boolean(keyboardScope));
     const locked = window.document.pointerLockElement;
     if ((!active || !targetSlot) && locked && container.contains(locked)) {
       window.document.exitPointerLock();
