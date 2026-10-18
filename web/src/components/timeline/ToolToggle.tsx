@@ -8,7 +8,7 @@
  * shortcut of the active keyboard layout and a one-line description. The
  * three drop modes are one exclusive choice, announced as a radio group.
  */
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -118,13 +118,17 @@ const tooltipDescriptionStyles = css({
  * rather than clip it, the way the track header's control row does: a control
  * pushed past the edge of a `overflow: hidden` toolbar cannot be reached at all.
  */
-const compactRowStyles = css({
-  overflowX: "auto",
-  scrollbarWidth: "none",
-  minWidth: 0,
-  "&::-webkit-scrollbar": { display: "none" },
-  "& > *": { flexShrink: 0 }
-});
+const compactRowStyles = (theme: Theme) =>
+  css({
+    overflowX: "auto",
+    scrollbarWidth: "none",
+    minWidth: 0,
+    "&::-webkit-scrollbar": { display: "none" },
+    "& > *": { flexShrink: 0 },
+    // Fade the trailing edge so a strip that runs on reads as scrollable
+    // rather than cut off.
+    maskImage: `linear-gradient(to right, ${theme.vars.palette.background.default} calc(100% - ${getSpacingPx(SPACING.xl)}), transparent)`
+  });
 
 /** The drop-mode radio group sits inside the scrolling phone strip. */
 const compactGroupStyles = css({
@@ -203,6 +207,8 @@ interface ToolToggleProps {
 }
 
 export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) => {
+  const theme = useTheme();
+  const compactRowCss = useMemo(() => compactRowStyles(theme), [theme]);
   const activeTool = useTimelineUIStore((s) => s.activeTool);
   const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
   const rippleMode = useTimelineUIStore((s) => s.rippleMode);
@@ -254,7 +260,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
     <FlexRow
       gap={0.5}
       align="center"
-      css={compact ? compactRowStyles : undefined}
+      css={compact ? compactRowCss : undefined}
     >
       <ToolButton
         label="Select"

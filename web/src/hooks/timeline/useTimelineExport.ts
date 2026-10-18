@@ -212,6 +212,7 @@ export function useTimelineExport(): UseTimelineExportResult {
             fps: state.fps,
             durationMs: exportDurationMs,
             tempo: state.tempo,
+            master: state.master,
             camera2d: state.camera2d,
             format: options?.format,
             alpha: options?.alpha,

@@ -20,6 +20,14 @@ import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { maxTrackHeaderWidthForViewport } from "../../../../stores/timeline/TimelineUIStore";
 
+// These drive the built-in instrument editor, which the panel shows when no
+// device view is registered for the instrument.
+jest.mock("../../daw/devices/registerDeviceViews", () => ({}));
+jest.mock("../../daw/devices/deviceViews", () => ({
+  instrumentView: () => null,
+  fxView: () => null
+}));
+
 jest.mock("../../preview/audition", () => ({
   playAuditionNote: jest.fn(async () => undefined),
   AUDITION_NOTE_MS: 600,

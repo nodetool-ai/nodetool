@@ -76,6 +76,8 @@ export interface TimelineSequence {
    * `DEFAULT_TEMPO` (120 BPM, 4/4, no offset) — see `midi/tempo.ts`.
    */
   tempo?: TimelineTempo;
+  /** The mix bus. Absent means 0 dB with no effects. */
+  master?: TimelineMasterChannel;
   /**
    * Guided video-flow state (PRD § 8.5). Absent on every sequence not built
    * through the flow, which is what makes those open straight in the editor.
@@ -375,7 +377,7 @@ export interface TranscriptLine {
 export interface TimelineTrack {
   id: string;
   name: string;
-  type: "video" | "audio" | "overlay" | "subtitle" | "midi";
+  type: "video" | "audio" | "overlay" | "subtitle" | "midi" | "chord";
   index: number;
   /** Optional editor folder. It does not affect rendering or track order. */
   folderId?: string;
@@ -399,6 +401,109 @@ export interface TimelineTrack {
    * its sound. Must also exist on the protocol zod schema or PATCH strips it.
    */
   instrument?: MidiInstrument;
+  /**
+   * Channel fader in decibels, applied after the track's effects. Absent
+   * means 0 dB. Audio and midi tracks only.
+   */
+  volumeDb?: number;
+  /** Stereo position, -1 (left) to 1 (right). Absent means centre. */
+  pan?: number;
+  /**
+   * The chord regions of a `chord` track, in document ticks from
+   * `tempo.offsetMs` (`MIDI_PPQ` per quarter note). A chord track holds no
+   * clips and makes no sound: midi clips with `harmony` play over it.
+   */
+  chords?: TimelineChord[];
+}
+
+/** Chord qualities, the keys of `CHORD_QUALITIES` in `harmony/chords.ts`. */
+export type ChordQuality =
+  | "maj" | "min" | "dim" | "aug" | "sus2" | "sus4" | "five" | "six" | "m6"
+  | "dom7" | "maj7" | "m7" | "mMaj7" | "m7b5" | "dim7" | "aug7" | "sus7"
+  | "add9" | "madd9" | "dom9" | "maj9" | "m9" | "dom7b9" | "dom7s9" | "m11"
+  | "dom11" | "maj13" | "dom13";
+
+/** One chord region on a chord track. */
+export interface TimelineChord {
+  id: string;
+  /** Onset in document ticks from `tempo.offsetMs` (integer >= 0). */
+  startTick: number;
+  /** Length in ticks (integer > 0). */
+  durationTick: number;
+  /** Pitch class of the root, 0 (C) .. 11 (B). */
+  root: number;
+  quality: ChordQuality;
+  /** 0 = root position; n moves the n lowest chord tones up an octave. */
+  inversion: number;
+}
+
+/** How a midi clip with `harmony` plays: its written notes, an arpeggio or chord comping. */
+export type HarmonyStyle = "off" | "arp" | "comp";
+export type ArpOrder = "up" | "down" | "updown" | "played" | "random";
+/** Comp voicing spread applied before the voice masks pick from the chord. */
+export type CompVoicing = "close" | "drop2" | "drop24" | "open";
+export type StrumDirection = "up" | "down" | "alt";
+/** Scale snapping of written notes: none, one key scale, or each chord's scale. */
+export type HarmonyScaleMode = "off" | "key" | "chords";
+export type HarmonyScaleId =
+  | "major" | "minor" | "dorian" | "mixolydian" | "phrygian" | "lydian"
+  | "locrian" | "harmMinor" | "melMinor" | "phrygDom" | "lydDom" | "locrian2"
+  | "altered" | "wholeTone" | "dimHW" | "dimWH" | "majPent" | "minPent"
+  | "blues";
+
+/**
+ * Arpeggiator, chord comping and scale snapping for one midi clip, ported
+ * from FableSynth's arp. Steps sit on the document beat grid from
+ * `tempo.offsetMs`; the 16-entry lanes (`hits`, `accents`, `comp`, `ties`)
+ * repeat every 16 steps. Absent fields take the defaults in
+ * `harmony/expand.ts` (`DEFAULT_CLIP_HARMONY`). Must also exist on the
+ * protocol zod schema or PATCH strips it.
+ */
+export interface ClipHarmony {
+  style: HarmonyStyle;
+  /** "chords" plays the chord track under the clip; "notes" the clip's own held notes. */
+  input: "chords" | "notes";
+  /** The chord track followed. Absent means the document's first chord track. */
+  chordTrackId?: string;
+  /** Octave of the chord voicing: its base is that octave's C, (octave + 1) * 12. */
+  octave?: number;
+  order?: ArpOrder;
+  /** Step length in quarter notes (0.25 = 1/16). */
+  rate?: number;
+  /** Octaves the arp pool spans, 1..3. */
+  octaves?: number;
+  /** Sounding fraction of a step, 0.05..0.95. */
+  gate?: number;
+  /** Arp: play (true) or rest on each of 16 steps. */
+  hits?: boolean[];
+  /** Louder steps (velocity 127 instead of 91). */
+  accents?: boolean[];
+  /** Seed of the RANDOM order. */
+  seed?: number;
+  /** Comp: voice mask per step (1 bass, 2 low, 4 mid, 8 top). */
+  comp?: number[];
+  /** Comp: hold the previous voicing through the step. */
+  ties?: boolean[];
+  /** Comp: milliseconds between strummed notes, 0..60. */
+  strumMs?: number;
+  strumDirection?: StrumDirection;
+  voicing?: CompVoicing;
+  /** Snapping of written notes (style "off", or the input of input "notes"). */
+  scale?: HarmonyScaleMode;
+  /** The key scale; "auto" fits the chord track. */
+  scaleType?: "auto" | HarmonyScaleId;
+  /** Key root pitch class. Absent means the first chord's root, else C. */
+  scaleKey?: number;
+}
+
+/**
+ * The master channel every audio and midi track sums into. Absent means
+ * 0 dB with no effects.
+ */
+export interface TimelineMasterChannel {
+  volumeDb: number;
+  /** Audio effects on the summed mix, applied in order before the fader. */
+  effects?: TrackEffect[];
 }
 
 export interface TimelineTrackFolder {
@@ -413,6 +518,7 @@ export type TrackEffect =
   | TrackEq3Effect
   | TrackFilterEffect
   | TrackCompressorEffect
+  | TrackFableEffect
   | TrackColorCorrectionEffect
   | TrackVideoBlurEffect
   | TrackSharpenEffect
@@ -420,7 +526,12 @@ export type TrackEffect =
   | TrackChromaKeyEffect;
 
 /** Audio-side effect types. */
-export type AudioTrackEffectType = "gain" | "eq3" | "filter" | "compressor";
+export type AudioTrackEffectType =
+  | "gain"
+  | "eq3"
+  | "filter"
+  | "compressor"
+  | "fable";
 
 /** Video-side effect types. */
 export type VideoTrackEffectType =
@@ -485,6 +596,44 @@ export interface TrackCompressorEffect {
   releaseMs: number;
   /** Knee in dB. Default 30. */
   kneeDb: number;
+}
+
+/** The FableSynth FX stages a `fable` track effect can run. */
+export type FableEffectKind =
+  | "eq"
+  | "ott"
+  | "comp"
+  | "drive"
+  | "lab"
+  | "chorus"
+  | "echo"
+  | "reverb";
+
+export const FABLE_EFFECT_KINDS: readonly FableEffectKind[] = [
+  "eq",
+  "ott",
+  "comp",
+  "drive",
+  "lab",
+  "chorus",
+  "echo",
+  "reverb"
+];
+
+/**
+ * One FableSynth FX stage (the WT-1 FX chain) as an insert on an audio, midi
+ * or master channel. `params` holds FableSynth parameter ids for that stage
+ * (`fx.reverb.size`, `fx.delay.fb`, `fx.crush.bits`, ...). `enabled` drives the
+ * stage's own `.on` switch; the LAB stages keep their per-stage `.on` params.
+ * Browser-only: the preview and the browser export run it as the `fable-fx`
+ * AudioWorklet, the server ffmpeg render skips it.
+ */
+export interface TrackFableEffect {
+  id: string;
+  type: "fable";
+  enabled: boolean;
+  kind: FableEffectKind;
+  params: Record<string, number>;
 }
 
 // ── Clip audio effects ──────────────────────────────────────────────────────
@@ -1203,6 +1352,8 @@ export interface TimelineClip {
    * also exist on the protocol zod schema or PATCH strips it.
    */
   notes?: MidiNote[];
+  /** Arp, chord comping or scale snapping of a `midi` clip. */
+  harmony?: ClipHarmony;
 }
 
 /**

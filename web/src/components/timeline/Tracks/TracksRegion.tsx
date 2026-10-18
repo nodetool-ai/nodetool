@@ -94,6 +94,7 @@ import {
 import { TrackHeader } from "./TrackHeader";
 import { TrackFolderHeader } from "./TrackFolderHeader";
 import { TrackLane } from "./TrackLane";
+import { ChordLane } from "./ChordLane";
 import { RubberBandOverlay } from "./RubberBandOverlay";
 import { SnapGuideOverlay } from "./SnapGuideOverlay";
 import { GestureReadout } from "./GestureReadout";
@@ -138,12 +139,14 @@ import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 import { followScrollLeft } from "./followPlayhead";
+import { nextToolbarFit, type ToolbarFit } from "./toolbarFit";
 import {
   pinchMsPerPx,
   supportsWebKitGestures,
   type WebKitGestureEvent
 } from "./timelineGesture";
 import { resolveTimelineAction } from "../timelineKeymap";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { performSourceEdit } from "../sourceEdit";
 import { getSelectedAssetForExplorer } from "../../../stores/AssetGridStore";
 import { usePanelStore } from "../../../stores/PanelStore";
@@ -190,7 +193,11 @@ const toolbarSx = (compact: boolean) => ({
   height: compact ? TOUCH_TOOLBAR_HEIGHT_PX : TOOLBAR_HEIGHT_PX,
   gap: SPACING.micro,
   pl: compact ? SPACING.sm : SPACING.md,
-  pr: compact ? SPACING.sm : SPACING.lg
+  pr: compact ? SPACING.sm : SPACING.lg,
+  // Labelled controls keep their width, so a row that does not fit overflows
+  // (and switches to the compact controls) instead of wrapping a label onto
+  // two lines.
+  ...(compact ? null : { whiteSpace: "nowrap" as const, "& > *": { flexShrink: 0 } })
 });
 
 const tracksSectionHeaderStyles = (theme: Theme, compact: boolean) =>
@@ -340,6 +347,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
+    const dawMode = useTimelineLayoutStore((s) => s.dawMode);
     const setScrollLeftPx = useTimelineUIStore((s) => s.setScrollLeftPx);
 
     const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
@@ -371,25 +379,30 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const regionRef = useRef<HTMLDivElement>(null);
     const [verticalScrollTop, setVerticalScrollTop] = useState(0);
     const toolbarRef = useRef<HTMLDivElement>(null);
-    const [toolbarNarrow, setToolbarNarrow] = useState(false);
+    const [toolbarFit, setToolbarFit] = useState<ToolbarFit>({
+      narrow: false,
+      neededWidthPx: 0
+    });
 
     useEffect(() => {
       const element = toolbarRef.current;
       if (!element) return;
       // The labelled tool group is wider than the editor once the inspector
-      // or asset panel is open. Switch to the compact controls before the
-      // right-side actions are forced outside the toolbar.
-      const update = () => {
-        if (element.clientWidth === 0) return;
-        setToolbarNarrow(element.clientWidth < 1100);
-      };
+      // or asset panel is open. Switch to the compact controls as soon as
+      // the labelled row overflows, before a label wraps or the right-side
+      // actions are pushed out of the toolbar.
+      const update = () =>
+        setToolbarFit((current) =>
+          nextToolbarFit(current, element.clientWidth, element.scrollWidth)
+        );
       update();
       const observer = new ResizeObserver(update);
       observer.observe(element);
+      for (const child of Array.from(element.children)) observer.observe(child);
       return () => observer.disconnect();
-    }, []);
+    }, [toolbarFit.narrow]);
 
-    const toolbarCompact = isMobile || toolbarNarrow;
+    const toolbarCompact = isMobile || toolbarFit.narrow;
 
     // Keyboard-shortcut reference sheet (opened with `?` or the toolbar button).
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -1087,6 +1100,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             if (!e.repeat) setShortcutsOpen((open) => !open);
             return;
 
+          case "toggleDawMode":
+            e.preventDefault();
+            if (!e.repeat) useTimelineLayoutStore.getState().toggleDawMode();
+            return;
+
           case "deleteSelected":
           case "rippleDeleteSelected":
             if (selectedClipIds.size === 0) return;
@@ -1472,8 +1490,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
     const trackLayout = useMemo(
-      () => layoutTrackRows(tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds),
-      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds]
+      () => layoutTrackRows(tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode),
+      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode]
     );
     const previousTrackLayoutRef = useRef(trackLayout);
     const previousVerticalZoomRef = useRef(verticalZoom);
@@ -1767,7 +1785,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                   />
                 ) : (
                   <React.Fragment key={row.track.id}>
-                    <TrackLane track={row.track} virtualizeClips collapsedFolderIds={collapsedFolderIds} />
+                    {row.track.type === "chord" ? (
+                      <ChordLane track={row.track} />
+                    ) : (
+                      <TrackLane track={row.track} virtualizeClips collapsedFolderIds={collapsedFolderIds} />
+                    )}
                     {expandedFxTrackId === row.track.id && (
                       <div
                         style={{

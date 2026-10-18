@@ -49,6 +49,7 @@ const TRACK_ICONS = {
   overlay: 'layers-outline',
   subtitle: 'text-outline',
   midi: 'musical-notes-outline',
+  chord: 'grid-outline',
 } satisfies Record<TimelineTrackType, keyof typeof Ionicons.glyphMap>;
 
 export function formatTime(ms: number): string {

@@ -14,6 +14,7 @@ import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
+import QueueMusicOutlinedIcon from "@mui/icons-material/QueueMusicOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
 export type TrackTypeKey = TimelineTrack["type"];
@@ -32,7 +33,8 @@ const TRACK_TYPES = {
   audio: { prefix: "A", label: "Audio", Icon: AudiotrackOutlinedIcon },
   overlay: { prefix: "O", label: "Overlay", Icon: LayersOutlinedIcon },
   subtitle: { prefix: "T", label: "Text", Icon: SubtitlesOutlinedIcon },
-  midi: { prefix: "M", label: "MIDI", Icon: PianoOutlinedIcon }
+  midi: { prefix: "M", label: "MIDI", Icon: PianoOutlinedIcon },
+  chord: { prefix: "C", label: "Chords", Icon: QueueMusicOutlinedIcon }
 } satisfies Record<TrackTypeKey, TrackTypeMeta>;
 
 export function trackTypeMeta(type: TrackTypeKey): TrackTypeMeta {
@@ -52,6 +54,8 @@ export function trackTypeAccent(theme: Theme, type: TrackTypeKey): string {
       return theme.vars.palette.warning.main; // amber — type/captions
     case "midi":
       return theme.vars.palette.primary.main; // the synth lane reads apart from audio
+    case "chord":
+      return theme.vars.palette.warning.light; // harmony, read with the midi lanes
     default:
       return theme.vars.palette.info.main;
   }

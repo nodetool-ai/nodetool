@@ -15,12 +15,14 @@ import { useShallow } from "zustand/react/shallow";
 import {
   DEFAULT_MIDI_INSTRUMENT,
   effectiveAssetId,
+  harmonizeClips,
   midiRenderKey,
   previewTake,
   resolveTempo,
   videoClipsWithOwnAudio
 } from "@nodetool-ai/timeline";
 import type {
+  HarmonyDocument,
   MidiInstrument,
   TimelineClip,
   TimelineTrack
@@ -77,6 +79,11 @@ import type { PreviewQuality } from "./previewQuality";
 import { resolvePlayStartMs } from "./playbackSync";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { formatBinding, withActionShortcut } from "../timelineKeymap";
+import { liveDeviceFactory } from "../daw/devices/liveDevice";
+import { DawTransport } from "../daw/transport/DawTransport";
+import { Metronome } from "../daw/transport/metronome";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
+import "../daw/devices/registerFablesynthDevices";
 
 /** Space is bound by the preview itself (useCombo below), not the keymap. */
 const PLAY_PAUSE_KEY = formatBinding({ key: " " });
@@ -167,6 +174,10 @@ const containerStyles = (theme: Theme) =>
     flexDirection: "column",
     overflow: "hidden",
     outline: "none",
+    "&[data-audio-only='true']": {
+      height: "auto",
+      flexShrink: 0
+    },
     // The area takes focus for its playback keys; show it when it does. Inset,
     // because the area clips its overflow.
     "&:focus-visible": focusRing(theme),
@@ -288,6 +299,12 @@ interface PreviewAreaProps {
   showDuration?: boolean;
   /** Sequence fps readout. Default on. */
   showFps?: boolean;
+  /**
+   * DAW mode: keep the audio graph, the clock and the Space binding, but
+   * render no compositor (no canvas, no GPU work) and swap the control bar
+   * for the DAW transport strip, which adds loop and a metronome.
+   */
+  audioOnly?: boolean;
 }
 
 interface PlaybackScrubberProps {
@@ -345,13 +362,16 @@ PlaybackScrubber.displayName = "PlaybackScrubber";
  */
 function auditionedClips(
   clips: TimelineClip[],
-  audition: TimelineAudition | null
+  audition: TimelineAudition | null,
+  doc: HarmonyDocument
 ): TimelineClip[] {
-  if (!audition) return clips;
-  const target = clips.find((clip) => clip.id === audition.clipId);
+  // A midi clip with `harmony` sounds its arp or comp expansion.
+  const heard = harmonizeClips(clips, doc);
+  if (!audition) return heard;
+  const target = heard.find((clip) => clip.id === audition.clipId);
   const preview = target && previewTake(target, audition.takeId);
-  if (!target || !preview) return clips;
-  return clips.map((clip) => (clip.id === target.id ? preview : clip));
+  if (!target || !preview) return heard;
+  return heard.map((clip) => (clip.id === target.id ? preview : clip));
 }
 
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
@@ -361,7 +381,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     sequenceHeight = 1080,
     showTimecode = true,
     showDuration = true,
-    showFps = true
+    showFps = true,
+    audioOnly = false
   }) => {
     const theme = useTheme();
 
@@ -404,6 +425,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     // subscription: it feeds the `graph.updateTracks` effect below so DSP/
     // gain/solo/mute changes are audible immediately.
     const tracks = useTimelineStore((s) => s.tracks);
+    const master = useTimelineStore((s) => s.master);
+    const fxBpm = useTimelineStore((s) => resolveTempo(s).bpm);
     // `durationMs` is set only on load and is NOT recomputed when clips are
     // added/moved (see TracksRegion, which derives its own content extent).
     // For a new/unsaved sequence it stays 0, which would pin the scrubber's
@@ -465,11 +488,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       new PlaybackClock(() => playbackApi.getState())
     );
     const graphRef = useRef<AudioGraph>(new AudioGraph());
+    // Clicks on the beat in DAW mode. Not part of the mix, so never exported.
+    const metronomeRef = useRef<Metronome>(new Metronome());
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
     const isSilent = isMuted || volume === 0;
     useEffect(() => {
       graphRef.current.setMasterVolume(isMuted ? 0 : volume);
+      metronomeRef.current.setVolume(isMuted ? 0 : volume);
     }, [volume, isMuted]);
     const handleVolumeChange = useCallback(
       (_event: Event, value: number | number[]) => {
@@ -536,6 +562,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
      *  every path that stops or restarts audio — pause, stop, the
      *  end-of-timeline auto-pause, seek, and the top of handlePlay itself. */
     const stopAudioSession = useCallback(() => {
+      metronomeRef.current.stop();
       audioSessionActiveRef.current = false;
       clearTopUpInterval();
       clearSeekDebounce();
@@ -547,12 +574,16 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     useEffect(() => {
       const clock = clockRef.current;
       const graph = graphRef.current;
+      playbackApi.getState().setAudioGraph(graph);
       return () => {
+        if (playbackApi.getState().audioGraph === graph) {
+          playbackApi.getState().setAudioGraph(null);
+        }
         clock.stop();
         graph.dispose();
         stopAudioSession();
       };
-    }, [stopAudioSession]);
+    }, [playbackApi, stopAudioSession]);
 
     // Live-apply track gain/solo/mute and DSP chain changes so effect tweaks
     // are audible immediately without waiting for the next play/seek cycle.
@@ -561,6 +592,16 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       if (!graph.context) return;
       graph.updateTracks(tracks);
     }, [tracks]);
+
+    // The master channel is kept by the graph until its context exists.
+    useEffect(() => {
+      graphRef.current.setMaster(master);
+    }, [master]);
+
+    // Tempo-synced FableSynth inserts (tape echo SYNC, LAB divisions).
+    useEffect(() => {
+      graphRef.current.setTempo(fxBpm);
+    }, [fxBpm]);
 
     /**
      * The PCM a clip should play: an asset URL for an audio clip, or a freshly
@@ -576,6 +617,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       ): Promise<ScheduledAudioClip | null> => {
         if (clip.mediaType === "midi") {
           const state = timelineApi.getState();
+          if (liveDeviceFactory(instrumentForTrack(state.tracks, clip.trackId))) {
+            return { clip, live: { bpm: resolveTempo(state).bpm } };
+          }
           try {
             const buffer = await getMidiClipBuffer(
               graphRef.current.getContext(),
@@ -626,6 +670,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const midiKey = (() => {
           if (clip.mediaType !== "midi") return null;
           const state = timelineApi.getState();
+          // A live device plays the notes as they are; its sound follows the
+          // instrument without rescheduling, so only the notes and tempo key it.
+          if (liveDeviceFactory(instrumentForTrack(state.tracks, clip.trackId))) {
+            return JSON.stringify({ notes: clip.notes ?? [], bpm: resolveTempo(state).bpm });
+          }
           return midiRenderKey({
             clip,
             bpm: resolveTempo(state).bpm,
@@ -683,7 +732,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           const state = timelineApi.getState();
           const clipsNow = auditionedClips(
             state.clips,
-            useTimelineUIStore.getState().audition
+            useTimelineUIStore.getState().audition,
+            state
           );
           const ownAudio = ownAudioClipIds(clipsNow, state.tracks);
           const soundsAt = (clip: TimelineClip, atMs: number): boolean =>
@@ -745,7 +795,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         const windowEndMs = liveMs + AUDIO_LOOKAHEAD_MS;
         const clipsNow = auditionedClips(
           timelineApi.getState().clips,
-          useTimelineUIStore.getState().audition
+          useTimelineUIStore.getState().audition,
+          timelineApi.getState()
         );
         const clipIdsNow = new Set(clipsNow.map((c) => c.id));
         const ownAudio = ownAudioClipIds(
@@ -978,7 +1029,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // clips array itself.
       const clipsNow = auditionedClips(
         timelineApi.getState().clips,
-        useTimelineUIStore.getState().audition
+        useTimelineUIStore.getState().audition,
+        timelineApi.getState()
       );
       // Backwards playback (J) is picture only: the audio graph schedules
       // forward from a source position.
@@ -990,8 +1042,13 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         globalRate < 0
           ? []
           : clipsNow.filter((c) => isPendingAudioClip(c, startMs, ownAudio));
+      // The metronome needs the audio clock even when nothing else sounds.
+      const metronomeOn =
+        audioOnly &&
+        globalRate > 0 &&
+        useTimelineLayoutStore.getState().metronomeEnabled;
 
-      if (remainingAudioClips.length === 0) {
+      if (remainingAudioClips.length === 0 && !metronomeOn) {
         // Nothing left to play — e.g. a seek landed past the last audio
         // clip. Silence whatever an older gesture left running, but skip
         // AudioContext creation/resume entirely rather than paying the
@@ -1037,8 +1094,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }
 
       clock.start(startMs, globalRate, ctx, endMs || Infinity, clockOptions);
+      if (metronomeOn) {
+        metronomeRef.current.start({
+          context: ctx,
+          anchorContextSec: ctx.currentTime,
+          anchorMs: startMs,
+          rate: globalRate,
+          tempo: resolveTempo(timelineApi.getState())
+        });
+      }
       startAudioSession(isStale);
     }, [
+      audioOnly,
       play,
       tracks,
       contentEndMs,
@@ -1379,6 +1446,32 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     const scrubberCss = useMemo(() => scrubberStyles(theme), [theme]);
     const durationCss = useMemo(() => durationStyles(theme), [theme]);
     const fpsCss = useMemo(() => fpsStyles(theme), [theme]);
+
+    if (audioOnly) {
+      return (
+        <div
+          ref={containerRef}
+          css={containerCss}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          aria-label="Transport"
+          data-testid="preview-area"
+          data-audio-only="true"
+        >
+          <DawTransport
+            isPlaying={isPlaying}
+            onPlayPause={handlePlayPauseToggle}
+            onStop={handleStop}
+            fps={fps}
+            volume={volume}
+            isMuted={isMuted}
+            onVolumeChange={handleVolumeChange}
+            onToggleMute={toggleMute}
+            playPauseKey={PLAY_PAUSE_KEY}
+          />
+        </div>
+      );
+    }
 
     return (
       <div

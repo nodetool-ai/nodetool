@@ -46,6 +46,7 @@ interface DocumentSnapshot {
   transcript: TimelineStoreState["transcript"];
   scriptEnabled: TimelineStoreState["scriptEnabled"];
   tempo: TimelineStoreState["tempo"];
+  master: TimelineStoreState["master"];
   storyboardMaterializations: TimelineStoreState["storyboardMaterializations"];
   camera2d: TimelineStoreState["camera2d"];
   setup: NonNullable<TimelineStoreState["setup"]> | undefined;
@@ -79,6 +80,7 @@ const sameDocument = (
   a.transcript === b.transcript &&
   a.scriptEnabled === b.scriptEnabled &&
   a.tempo === b.tempo &&
+  a.master === b.master &&
   a.camera2d === b.camera2d &&
   a.setup === b.setup;
 
