@@ -3,7 +3,7 @@
 // rendering a single static frame instead of looping.
 
 import { useEffect, useRef } from 'react';
-import { setupCanvas } from './canvas';
+import { setupCanvas, startCanvasLoop } from './canvas';
 
 interface ScopeViewProps {
   analyser: AnalyserNode | null;
@@ -57,26 +57,7 @@ export function ScopeView({ analyser, accent }: ScopeViewProps) {
       ctx.globalAlpha = 1;
     };
 
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    let raf = 0;
-    const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
-    const frame = () => {
-      const canvas = canvasRef.current;
-      if (canvas) draw(canvas);
-      raf = requestAnimationFrame(frame);
-    };
-    const start = () => {
-      stop();
-      if (mq.matches) {
-        const canvas = canvasRef.current;
-        if (canvas) draw(canvas); // single static frame
-      } else {
-        raf = requestAnimationFrame(frame);
-      }
-    };
-    start();
-    mq.addEventListener('change', start);
-    return () => { stop(); mq.removeEventListener('change', start); };
+    return startCanvasLoop(canvasRef, draw);
   }, [analyser, accent]);
 
   return <canvas ref={canvasRef} />;

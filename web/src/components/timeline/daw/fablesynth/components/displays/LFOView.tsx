@@ -1,7 +1,7 @@
 // LFO shape view. Always animates a free-running phase dot.
 
 import { useEffect, useRef } from 'react';
-import { setupCanvas } from './canvas';
+import { setupCanvas, startCanvasLoop } from './canvas';
 import { LfoClock } from '../../engine/lfoClock';
 
 type LfoFn = (p: number) => number;
@@ -29,7 +29,6 @@ export function LFOView({ shape, rate, accent, className }: LFOViewProps) {
   const t0Ref = useRef(performance.now());
 
   useEffect(() => {
-    let raf = 0;
     const draw = (canvas: HTMLCanvasElement) => {
       const { shape, rate, accent } = propsRef.current;
       const { ctx, w, h } = setupCanvas(canvas);
@@ -77,28 +76,9 @@ export function LFOView({ shape, rate, accent, className }: LFOViewProps) {
       ctx.fill();
       ctx.shadowBlur = 0;
     };
-    const frame = () => {
-      const canvas = canvasRef.current;
-      if (canvas) draw(canvas);
-      raf = requestAnimationFrame(frame);
-    };
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
-    const start = () => {
-      stop();
-      if (mq.matches) {
-        // Static frame: freeze the phase clock so the dot doesn't drift, then
-        // draw once instead of running the free-run loop.
-        const canvas = canvasRef.current;
-        if (canvas) draw(canvas);
-      } else {
-        raf = requestAnimationFrame(frame);
-      }
-    };
     redraw.current = () => { const canvas = canvasRef.current; if (canvas) draw(canvas); };
-    start();
-    mq.addEventListener('change', start);
-    return () => { stop(); redraw.current = null; mq.removeEventListener('change', start); };
+    const stopLoop = startCanvasLoop(canvasRef, draw);
+    return () => { stopLoop(); redraw.current = null; };
   }, []);
 
   useEffect(() => {
