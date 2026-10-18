@@ -1281,6 +1281,35 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
 }
 
 /**
+ * Installed packs that pin a `nodetool-core` other than the installed one,
+ * as `uv pip check` reports them. Such a pack cannot load. The renderer
+ * offers to remove each through {@link uninstallPackage}, which works
+ * without the registry.
+ */
+export async function getStalePacks(): Promise<PackageModel[]> {
+  const installed = await listPythonInstalledPackages();
+  // Without a core there is no Python runtime to check, and running uv
+  // would install one.
+  if (!installed.some((pkg) => canonicalizePackageName(pkg.name) === "nodetool-core")) {
+    return [];
+  }
+  let report: string;
+  try {
+    report = await runUvCommand(["pip", "check", "--system"], { silent: true });
+  } catch (error: unknown) {
+    // `uv pip check` exits 1 when it finds incompatibilities and prints them.
+    report = errorMsg(error);
+  }
+  const names = new Set<string>();
+  for (const match of report.matchAll(
+    /The package `([^`\s=]+)[^`]*` requires `nodetool-core\b[^`]*`/g
+  )) {
+    names.add(canonicalizePackageName(match[1]));
+  }
+  return installed.filter((pkg) => names.has(canonicalizePackageName(pkg.name)));
+}
+
+/**
  * Installed packs the app cannot work with: `nodetool-core` below the bridge
  * protocol floor (`MIN_NODETOOL_CORE_VERSION`). Packs are never pinned to the
  * app version. Every pack releases on its own schedule, and the app version
@@ -1373,17 +1402,22 @@ export async function installExpectedPackages(): Promise<{
             // An installed pack that pins an older core (a stale registry
             // pack) makes the joint resolve unsatisfiable. The core floor is
             // what the bridge needs, so install core in its own transaction.
-            const others = installed
-              .map((p) => canonicalizePackageName(p.name))
-              .filter((n) => n.startsWith("nodetool-") && n !== "nodetool-core");
             const warning =
-              `Could not resolve ${spec} together with the installed packs ` +
-              `(${others.join(", ") || "none"}); installing it alone. A pack ` +
-              `that pins an older nodetool-core may not load: remove or update it.`;
+              `Could not resolve ${spec} together with the installed packs; ` +
+              `installing it alone.`;
             logMessage(warning, "warn");
             emitServerLog(warning);
             emitBootMessage(warning);
             await runPackInstall(installArgs(false), backend);
+            const stale = await getStalePacks();
+            if (stale.length > 0) {
+              const notice =
+                `${stale.map((p) => p.name).join(", ")} pins an older ` +
+                `nodetool-core and will not load. Remove it from the package notice.`;
+              logMessage(notice, "warn");
+              emitServerLog(notice);
+              emitBootMessage(notice);
+            }
           }
           packagesUpdated += 1;
           logMessage(`Updated ${spec}`);

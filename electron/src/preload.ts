@@ -321,6 +321,9 @@ const api = {
     checkVersion: () =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_VERSION_CHECK),
 
+    /** List installed packs that pin an older nodetool-core and cannot load */
+    listStale: () => ipcRenderer.invoke(IpcChannels.PACKAGE_STALE_LIST),
+
     /** Get runtime package statuses for all registered runtimes */
     getRuntimeStatuses: () =>
       ipcRenderer.invoke(IpcChannels.RUNTIME_PACKAGE_STATUSES),

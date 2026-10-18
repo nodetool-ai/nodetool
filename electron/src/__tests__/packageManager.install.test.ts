@@ -1,4 +1,4 @@
-import { installExpectedPackages, installPackage, isTorchIndexResolveFailure, listInstalledPackages, uninstallPackage } from '../packageManager';
+import { getStalePacks, installExpectedPackages, installPackage, isTorchIndexResolveFailure, listInstalledPackages, uninstallPackage } from '../packageManager';
 import { EventEmitter } from 'events';
 import * as config from '../config';
 import * as events from '../events';
@@ -59,7 +59,12 @@ let uvVersion = '0.11.32';
  * `installed`, and fails installs whose arguments match `failOn` with
  * `failure` on stderr.
  */
-function fakeUv(installed: Installed, failOn?: RegExp, failure = 'No solution found'): void {
+function fakeUv(
+  installed: Installed,
+  failOn?: RegExp,
+  failure = 'No solution found',
+  checkReport = ''
+): void {
   spawn.mockImplementation((_command: string, args: readonly string[]) => {
     const proc = new EventEmitter();
     Object.assign(proc, {
@@ -79,6 +84,13 @@ function fakeUv(installed: Installed, failOn?: RegExp, failure = 'No solution fo
         proc.stdout.emit('data', Buffer.from(JSON.stringify(installed)));
         proc.emit('exit', 0);
         proc.emit('close', 0);
+      } else if (cmd.startsWith('pip check')) {
+        // uv prints incompatibilities to stderr and exits 1.
+        // @ts-expect-error Mocking dynamic property
+        proc.stderr.emit('data', Buffer.from(checkReport));
+        const code = checkReport ? 1 : 0;
+        proc.emit('exit', code);
+        proc.emit('close', code);
       } else if (failOn && failOn.test(cmd)) {
         // @ts-expect-error Mocking dynamic property
         proc.stderr.emit('data', Buffer.from(failure));
@@ -160,7 +172,11 @@ describe('installExpectedPackages', () => {
         { name: 'nodetool-core', version: '0.8.0' },
         { name: 'nodetool-whispercpp', version: '0.6.3rc47' },
       ],
-      /nodetool-core>=0\.8\.2 nodetool-whispercpp>=/
+      /nodetool-core>=0\.8\.2 nodetool-whispercpp>=/,
+      'No solution found',
+      'Checked 2 packages\nFound 1 incompatibility\n' +
+        'The package `nodetool-whispercpp` requires `nodetool-core==0.6.3rc47`, ' +
+        'but `0.8.2` is installed\n'
     );
 
     const result = await installExpectedPackages();
@@ -170,6 +186,30 @@ describe('installExpectedPackages', () => {
     expect(calls).toHaveLength(2);
     expect(calls[1]).toContain('nodetool-core>=0.8.2');
     expect(calls[1].join(' ')).not.toContain('nodetool-whispercpp');
+    await expect(getStalePacks()).resolves.toEqual([
+      expect.objectContaining({
+        name: 'nodetool-whispercpp',
+        repo_id: 'nodetool-ai/nodetool-whispercpp',
+      }),
+    ]);
+  });
+
+  test('reports no stale packs when every pack agrees with the installed core', async () => {
+    fakeUv([
+      { name: 'nodetool-core', version: '0.8.2' },
+      { name: 'nodetool-huggingface', version: '0.8.1' },
+    ]);
+
+    await expect(getStalePacks()).resolves.toEqual([]);
+  });
+
+  test('does not run uv when no core is installed', async () => {
+    fakeUv([]);
+
+    await expect(getStalePacks()).resolves.toEqual([]);
+    expect(
+      spawn.mock.calls.filter((call: [string, string[]]) => call[1][1] === 'check')
+    ).toHaveLength(0);
   });
 
   test('reports a failed install without throwing', async () => {

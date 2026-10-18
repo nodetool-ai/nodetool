@@ -49,6 +49,7 @@ const IpcChannels = {
   PACKAGE_SEARCH_NODES: "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE: "package-updates-available",
   PACKAGE_VERSION_CHECK: "package-version-check",
+  PACKAGE_STALE_LIST: "package-stale-list",
   NODE_PACK_LIST_INSTALLED: "node-pack-list-installed",
   NODE_PACK_INSTALL: "node-pack-install",
   NODE_PACK_UNINSTALL: "node-pack-uninstall",

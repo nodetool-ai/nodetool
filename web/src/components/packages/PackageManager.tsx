@@ -92,6 +92,7 @@ const BadgeChip = ({ badge }: { badge: PMRow["badge"] }) => {
     installed: { label: "Installed", color: "success" },
     included: { label: "Included", color: "default" },
     update: { label: "Update available", color: "warning" },
+    incompatible: { label: "Cannot load", color: "warning" },
     notInstalled: { label: "Not installed", color: "default" }
   };
   const s = styles[badge];
@@ -370,6 +371,10 @@ function PackageManager() {
             <AlertBanner severity="error" compact>
               {model.error}
             </AlertBanner>
+          )}
+
+          {model.warning && (
+            <AlertBanner severity="warning">{model.warning}</AlertBanner>
           )}
 
           {model.notice ? (
