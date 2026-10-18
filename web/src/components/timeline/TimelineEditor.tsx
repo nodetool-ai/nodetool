@@ -3,24 +3,25 @@
  * TimelineEditor — top-level page shell for the timeline route.
  *
  * Layout (top → bottom):
- *   Workspace tab row (document actions)
- *   ─── resizable split ─────────────────────────
- *   FlexRow: PreviewArea (55 %) | InspectorArea (45 %)
- *   ─── horizontal drag handle (pointer + keyboard resizable) ────
- *   TracksArea (user-resizable, default 240 px)
+ *   Workspace tab row (document actions, workspace menu)
+ *   DockCanvas: Script | Program + Source over Timeline | Inspector group
  *   BottomStatusBar (32 px)
  *
- * DAW mode (TopBar switch, Alt+M) swaps the preview row, the tracks divider
- * and the piano-roll strip for `DawWorkspace`: a transport strip (the preview
- * mounted audio-only), the tracks, and a resizable dock with the mixer, the
- * device chain, the piano roll and harmony. The transcript is hidden.
+ * On desktop the panels sit in the shared dock (`stores/dock`, the one the
+ * game editor uses). `TimelineDockLayout` defines the panels and the built-in
+ * workspaces: Editing, Script, Assistant and Review. Panels move, group,
+ * resize and maximize, and the layout is saved per user.
  *
- * On phones there is no room for three columns: the transcript and inspector
- * leave the row entirely and the preview takes the full width, so preview and
- * tracks — the two surfaces you need simultaneously to edit — stay stacked and
- * both usable. Inspector / Assistant / History / Script move into a bottom
- * sheet opened from the status bar, mirroring how mobile video editors slide
- * property panels over the timeline.
+ * DAW mode (TopBar switch, Alt+M) puts `DawWorkspace` in the Program panel
+ * and takes the Source, Timeline and Script panels out of the dock: a
+ * transport strip (the preview mounted audio-only), the tracks, and a
+ * resizable dock with the mixer, the device chain, the piano roll and harmony.
+ *
+ * On phones there is no room for a dock: the preview takes the full width, so
+ * preview and tracks — the two surfaces you need simultaneously to edit — stay
+ * stacked and both usable. Inspector / Assistant / History / Script move into
+ * a bottom sheet opened from the status bar, mirroring how mobile video
+ * editors slide property panels over the timeline.
  *
  * Loading: shows LoadingSpinner centred in the preview region.
  * Not-found / error: shows EmptyState in the preview only; route and editor
@@ -29,6 +30,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -86,7 +88,7 @@ import {
 } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { PianoRollPanel } from "./pianoRoll/PianoRollPanel";
-import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { useTimelineUIStore, useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import {
   useAssetsSelectedAsset,
@@ -104,13 +106,27 @@ import { TimelineInspector } from "./Inspector/TimelineInspector";
 import { SourceViewerPanel } from "./SourceViewerPanel";
 import MovieFilterOutlinedIcon from "@mui/icons-material/MovieFilterOutlined";
 import TimelineAgentPanel from "./TimelineAgentPanel";
-import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { useTimelineMenuCommands } from "../../hooks/timeline/useTimelineMenuCommands";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { useTimelineLayoutStore } from "../../stores/timeline/TimelineLayoutStore";
+import { useTimelineDockLayoutStore } from "../../stores/timeline/useTimelineDockLayoutStore";
+import { TIMELINE_SIDE_PANEL_IDS, type TimelinePanelId } from "../../stores/timeline/TimelineDockLayout";
+import { DockCanvas } from "../dock/DockCanvas";
+import { DockLayoutMenu } from "../dock/DockLayoutMenu";
+import { useDockPresentation, type DockPanelView } from "../dock/useDockPresentation";
+import { timelinePanelRegistrations } from "./dock/timelinePanels";
+import { TimelineTracksPanel } from "./dock/TimelineTracksPanel";
+import {
+  TimelineDockContext,
+  createTimelineDockController,
+  findFocusedDockGroup,
+  focusDockPanel,
+  type TimelineDockController
+} from "./dock/timelineDockController";
+import { useTimelineDockCommands } from "../../hooks/timeline/useTimelineDockCommands";
 import { CodePanel } from "./CodePanel";
 import TimelineShotPanel, {
   useSelectedShotClip
@@ -143,6 +159,7 @@ import "./fonts.css";
 
 /** Phone drag handle — 6px is under any reasonable touch target. */
 const TOUCH_HANDLE_HEIGHT_PX = SPACING.xxl * 4;
+/** Phone layout only: on desktop the dock sizes the Timeline panel. */
 const DEFAULT_TRACKS_HEIGHT_PX = 240;
 const MIN_TRACKS_HEIGHT_PX = 80;
 const MAX_TRACKS_HEIGHT_PX = 600;
@@ -184,6 +201,8 @@ const ENVIRONMENT_MODE: "local" | "cloud" =
   isLocalhost || isElectron ? "local" : "cloud";
 /** Arrow-key step for keyboard resizing (px) */
 const KEYBOARD_RESIZE_STEP_PX = 20;
+/** Bottom dock height, in px, that shows an expanded instrument track's keyboard. */
+const EXPANDED_INSTRUMENT_BOTTOM_PX = 420;
 /**
  * Default msPerPx when zoom = 1. Matches TimelineUIStore default.
  * zoom = DEFAULT_MS_PER_PX / msPerPx  →  msPerPx = DEFAULT_MS_PER_PX / zoom
@@ -217,15 +236,6 @@ const previewRegionStyles = (theme: Theme) =>
     borderRight: `1px solid ${theme.vars.palette.divider}`,
     alignItems: "center",
     justifyContent: "center"
-  });
-
-const inspectorRegionStyles = (theme: Theme) =>
-  css({
-    overflow: "hidden",
-    minHeight: 0,
-    backgroundColor: theme.vars.palette.background.default,
-    alignItems: "stretch",
-    justifyContent: "flex-start"
   });
 
 /** Human-readable label for the current export phase. */
@@ -370,11 +380,12 @@ const CODE_TAB = {
   icon: <CodeIcon fontSize="small" />
 };
 
-const useAvailableInspectorTabs = (
-  tab: InspectorTab,
-  hasScript = false,
-  hasCode = false
-): { tabs: TabItem[]; activeTab: InspectorTab } => {
+/** What the timeline holds right now that gives its contextual panels something to show. */
+const useContextualPanelFlags = (): {
+  hasMidiTrack: boolean;
+  hasSourceAsset: boolean;
+  hasShotClip: boolean;
+} => {
   const hasMidiTrack = useTimelineStore((s) => s.tracks.some((track) => track.type === "midi"));
   const activeExplorer = usePanelStore((s) => s.panel.activeView);
   const assetsAsset = useAssetsSelectedAsset();
@@ -383,6 +394,15 @@ const useAvailableInspectorTabs = (
     ? assetsAsset !== null
     : activeExplorer === "library" && libraryAsset !== null;
   const hasShotClip = useSelectedShotClip() !== null;
+  return { hasMidiTrack, hasSourceAsset, hasShotClip };
+};
+
+const useAvailableInspectorTabs = (
+  tab: InspectorTab,
+  hasScript = false,
+  hasCode = false
+): { tabs: TabItem[]; activeTab: InspectorTab } => {
+  const { hasMidiTrack, hasSourceAsset, hasShotClip } = useContextualPanelFlags();
   const tabs = INSPECTOR_TABS.filter((item) =>
     (item.value !== "instrument" || hasMidiTrack) &&
     (item.value !== "source" || hasSourceAsset)
@@ -394,78 +414,17 @@ const useAvailableInspectorTabs = (
   return { tabs, activeTab };
 };
 
-const InspectorRegion: React.FC<{
-  sequenceId: string | undefined;
-  panelTab: InspectorTab;
-  setPanelTab: (tab: InspectorTab) => void;
-}> = memo(
-  ({ sequenceId, panelTab: tab, setPanelTab: setTab }) => {
-  const theme = useTheme();
-  const hasCode = useTimelineHasCode(sequenceId);
-
-  const { tabs, activeTab } = useAvailableInspectorTabs(tab, false, hasCode);
-  useEffect(() => {
-    if (activeTab !== tab) setTab(activeTab);
-  }, [activeTab, tab, setTab]);
-
-  return (
-    <ResizableSideDock
-      storageKey="timeline_assistant"
-      defaultWidth={360}
-      ariaLabel="Resize timeline side panel"
-    >
-      <FlexColumn css={inspectorRegionStyles(theme)} fullHeight sx={{ minHeight: 0 }}>
-        <TabGroup
-          tabs={tabs}
-          value={activeTab}
-          onChange={(value) => setTab(value as InspectorTab)}
-          size="small"
-          sx={{
-            flexShrink: 0,
-            borderBottom: `1px solid ${theme.vars.palette.divider}`
-          }}
-        />
-        <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-          {activeTab === "inspector" ? (
-            <TimelineInspector />
-          ) : activeTab === "shot" ? (
-            <TimelineShotPanel />
-          ) : activeTab === "instrument" ? (
-            <TimelineInstrumentsPanel />
-          ) : activeTab === "source" ? (
-            <SourceViewerPanel />
-          ) : activeTab === "agent" ? (
-            <TimelineAgentPanel />
-          ) : activeTab === "code" ? (
-            <CodePanel />
-          ) : (
-            <TimelineVersionHistoryPanel sequenceId={sequenceId} />
-          )}
-        </FlexColumn>
-      </FlexColumn>
-    </ResizableSideDock>
-  );
-  }
-);
-InspectorRegion.displayName = "InspectorRegion";
-
-const TranscriptRegion: React.FC = memo(() => {
-  const theme = useTheme();
-  const hasScript = useHasScript();
-
-  if (!hasScript) return null;
-
-  return (
-    <FlexColumn
-      css={inspectorRegionStyles(theme)}
-      fullHeight
-      sx={{ flex: "0 0 320px", minWidth: 0, minHeight: 0 }}
-    >
-      <TranscriptPanel />
-    </FlexColumn>
-  );
-});
-TranscriptRegion.displayName = "TranscriptRegion";
+/** The dock panel each `panelTab` request opens. The phone sheet shows the tab itself. */
+const PANEL_TAB_DOCK_ID: Record<InspectorTab, TimelinePanelId> = {
+  inspector: "inspector",
+  shot: "shot",
+  source: "source",
+  instrument: "instruments",
+  agent: "assistant",
+  history: "history",
+  script: "transcript",
+  code: "code"
+};
 
 /**
  * Phone-only bottom sheet holding the panels that don't fit beside the
@@ -605,10 +564,12 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
   // Phone panel sheet (Inspector / Assistant / History / Script).
   const [panelSheetOpen, setPanelSheetOpen] = useState(false);
-  // Backs every tab switcher in this editor (desktop InspectorRegion + the
-  // phone MobilePanelSheet) so a dirty-Code leave confirms exactly once.
+  // Backs the phone MobilePanelSheet's tab switcher, so a dirty-Code leave
+  // confirms exactly once. On desktop the Code panel stays mounted while
+  // another tab is active, so leaving it loses nothing.
   const { panelTab, setPanelTab, confirmDialog: codeTabConfirmDialog } =
     useGuardedPanelTab();
+  const panelTabRequest = useTimelineUIStore((s) => s.panelTabRequest);
   useEffect(() => { if (isMobile && panelTab === "instrument") setPanelSheetOpen(true); }, [isMobile, panelTab]);
   const openPanelSheet = useCallback(() => setPanelSheetOpen(true), []);
   const closePanelSheet = useCallback(() => setPanelSheetOpen(false), []);
@@ -617,21 +578,33 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const pianoRollFullScreen = isMobile && pianoRollOpen;
 
   // TopBar's Code button — shown only when this timeline embeds authoring
-  // code, opens the Code tab (side panel on desktop, sheet on phone).
+  // code, opens the Code panel (dock on desktop, sheet on phone).
   const hasCode = useTimelineHasCode(sequenceId);
   const hasScript = useHasScript();
-  const transcriptVisible = useTimelineLayoutStore((s) => s.transcriptVisible);
-  const sidePanelVisible = useTimelineLayoutStore((s) => s.sidePanelVisible);
-  const toggleTranscript = useTimelineLayoutStore((s) => s.toggleTranscript);
-  const toggleSidePanel = useTimelineLayoutStore((s) => s.toggleSidePanel);
   const dawMode = useTimelineLayoutStore((s) => s.dawMode);
   const setDawMode = useTimelineLayoutStore((s) => s.setDawMode);
-  const handleOpenCode = useCallback(() => {
-    setPanelTab("code");
-    if (isMobile) setPanelSheetOpen(true);
-    // The Code tab lives in the side panel, so open it if it is hidden.
-    else useTimelineLayoutStore.getState().showSidePanel();
-  }, [isMobile, setPanelTab]);
+  const { hasMidiTrack, hasSourceAsset, hasShotClip } = useContextualPanelFlags();
+
+  // Desktop dock ──────────────────────────────────────────────────────────
+  const dockStore = useTimelineDockLayoutStore();
+  const dockLayout = useStore(dockStore, (state) => state.layout);
+  const dockHidden = dockLayout.hidden;
+  const transcriptVisible = !dockHidden.includes("transcript");
+  const sidePanelVisible = TIMELINE_SIDE_PANEL_IDS.some((id) => !dockHidden.includes(id));
+  const toggleTranscript = useCallback(
+    () => dockStore.getState().togglePanels(["transcript"]),
+    [dockStore]
+  );
+  const toggleSidePanel = useCallback(
+    () => dockStore.getState().togglePanels(TIMELINE_SIDE_PANEL_IDS),
+    [dockStore]
+  );
+  const dockRoot = useRef<HTMLDivElement>(null);
+  const lastDockGroup = useRef<string | null>(null);
+  const uiStoreApi = useTimelineUIStoreApi();
+  // Contextual panels have a view only while their condition holds. Written
+  // during render so the controller always reads the current set.
+  const availablePanels = useRef<ReadonlySet<string>>(new Set());
 
   // Register the ui_timeline_* agent tools against this instance, addressable
   // by sequence id whether or not this editor is the focused surface.
@@ -815,7 +788,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     const observer = new ResizeObserver(update);
     observer.observe(column);
     return () => observer.disconnect();
-  }, []);
+  }, [isMobile]);
   const effectiveTracksHeight = Math.min(tracksHeight, maxTracksHeight);
   /** Apply and remember a height the user chose (drag, keys, reset). */
   const commitTracksHeight = useCallback((height: number) => {
@@ -962,6 +935,141 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       ? createTimeline.error.message || "Could not create sequence."
       : null;
 
+  // The dock's panels. Contextual ones (Source, Shot, Instruments, Code, and
+  // the Script when the sequence has none) get no view until they have
+  // something to show, which hides them while their place in the layout stays.
+  const dockRegistrations = useMemo(
+    () => timelinePanelRegistrations(dawActive),
+    [dawActive]
+  );
+  useEffect(() => {
+    dockStore.getState().registerPanels(dockRegistrations);
+  }, [dockStore, dockRegistrations, dockLayout]);
+  const allDockViews: DockPanelView[] = [
+    {
+      id: "program",
+      node: dawActive ? (
+        <DawWorkspace onGenerate={openGenerate} />
+      ) : (
+        <PreviewRegion
+          isLoading={isLoading}
+          sequenceUnavailable={sequenceUnavailable}
+          onRetryFetch={sequenceUnavailable ? handleRetrySequence : undefined}
+          onCreateNewSequence={
+            sequenceUnavailable ? handleCreateNewSequence : undefined
+          }
+          createSequencePending={createTimeline.isPending}
+          createSequenceErrorMessage={createErrorMessage}
+          fullWidth
+        />
+      )
+    },
+    { id: "source", node: <SourceViewerPanel />, visible: hasSourceAsset && !dawActive },
+    {
+      id: "tracks",
+      node: <TimelineTracksPanel onGenerate={sequenceUnavailable ? undefined : openGenerate} />,
+      visible: !dawActive
+    },
+    { id: "transcript", node: <TranscriptPanel />, visible: hasScript && !dawActive },
+    { id: "inspector", node: <TimelineInspector /> },
+    { id: "shot", node: <TimelineShotPanel />, visible: hasShotClip },
+    { id: "instruments", node: <TimelineInstrumentsPanel />, visible: hasMidiTrack },
+    { id: "assistant", node: <TimelineAgentPanel /> },
+    { id: "history", node: <TimelineVersionHistoryPanel sequenceId={sequenceId} /> },
+    { id: "code", node: <CodePanel />, visible: hasCode }
+  ];
+  const dockViews = allDockViews.filter((view) => view.visible !== false);
+  availablePanels.current = new Set(dockViews.map((view) => view.id));
+  const dockPresentation = useDockPresentation({
+    store: dockStore,
+    layout: dockLayout,
+    registry: dockRegistrations,
+    availableIds: dockViews.map((view) => view.id),
+    views: dockViews,
+    root: dockRoot
+  });
+  const dock = useMemo<TimelineDockController | null>(
+    () =>
+      isMobile
+        ? null
+        : createTimelineDockController({
+            store: dockStore,
+            isAvailable: (id) => availablePanels.current.has(id),
+            focusedGroupId: () =>
+              findFocusedDockGroup(dockRoot.current, lastDockGroup.current),
+            focusPanel: (id) => focusDockPanel(dockRoot.current, id),
+            requestProgramFullscreen: () =>
+              uiStoreApi.getState().requestPreviewFullscreen(),
+            notify: (message) =>
+              useNotificationStore.getState().addNotification({
+                type: "info",
+                dismissable: true,
+                content: message
+              })
+          }),
+    [dockStore, isMobile, uiStoreApi]
+  );
+  useTimelineDockCommands(dock, dockStore);
+
+  // Something asked for a panel (a double-click on a clip, Match Frame, an
+  // instrument track's keyboard): open the dock panel that goes with it. The
+  // request count a mount starts at is not a request.
+  const handledPanelRequest = useRef(panelTabRequest);
+  useEffect(() => {
+    if (handledPanelRequest.current === panelTabRequest) return;
+    handledPanelRequest.current = panelTabRequest;
+    const id = PANEL_TAB_DOCK_ID[panelTab];
+    if (dock && availablePanels.current.has(id)) dock.openPanel(id);
+  }, [dock, panelTab, panelTabRequest]);
+
+  // The tracks panel keeps its room when a clip editor or an expanded
+  // instrument needs more of it.
+  const expandedInstrument = useTimelineUIStore((s) => s.expandedInstrumentTrackId);
+  const pianoRollHeightPx = useTimelineUIStore((s) => s.pianoRollHeightPx);
+  const growBottom = useRef(0);
+  useEffect(() => {
+    if (isMobile) return;
+    const { dispatch, layout } = dockStore.getState();
+    if (pianoRollOpen && growBottom.current === 0) {
+      growBottom.current = pianoRollHeightPx;
+      dispatch({ type: "resize", region: "bottom", size: Math.min(1000, layout.sizes.bottom + pianoRollHeightPx) });
+    } else if (!pianoRollOpen && growBottom.current > 0) {
+      dispatch({ type: "resize", region: "bottom", size: Math.max(80, layout.sizes.bottom - growBottom.current) });
+      growBottom.current = 0;
+    }
+  }, [dockStore, isMobile, pianoRollHeightPx, pianoRollOpen]);
+  useEffect(() => {
+    if (isMobile || !expandedInstrument || pianoRollOpen) return;
+    const { dispatch, layout } = dockStore.getState();
+    if (layout.sizes.bottom < EXPANDED_INSTRUMENT_BOTTOM_PX) {
+      dispatch({ type: "resize", region: "bottom", size: EXPANDED_INSTRUMENT_BOTTOM_PX });
+    }
+  }, [dockStore, expandedInstrument, isMobile, pianoRollOpen]);
+
+  const handleOpenCode = useCallback(() => {
+    if (dock) {
+      dock.openPanel("code");
+      return;
+    }
+    setPanelTab("code");
+    setPanelSheetOpen(true);
+  }, [dock, setPanelTab]);
+  // The menu lists the panels that have a view, which changes only when a
+  // contextual panel appears or goes.
+  const dockPanelKey = dockViews.map((view) => view.id).join();
+  const layoutMenu = useMemo(
+    () =>
+      isMobile ? undefined : (
+        <DockLayoutMenu
+          store={dockStore}
+          panels={dockRegistrations.filter((entry) =>
+            dockPanelKey.split(",").includes(entry.id)
+          )}
+        />
+      ),
+    [dockStore, dockRegistrations, dockPanelKey, isMobile]
+  );
+
   const headerActions = useMemo(
     () => (
       <TopBar
@@ -983,6 +1091,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         activitySlot={activitySlot}
         hasCode={!sequenceUnavailable && hasCode}
         onOpenCode={handleOpenCode}
+        layoutMenu={layoutMenu}
         sequenceId={sequenceUnavailable ? undefined : sequenceId}
         onToggleTranscript={
           !isMobile && hasScript && !dawMode ? toggleTranscript : undefined
@@ -996,6 +1105,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     ),
     [
       dawMode,
+      layoutMenu,
       setDawMode,
       hasScript,
       isMobile,
@@ -1072,6 +1182,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
 
   return (
     <FieldDensityContext.Provider value="compact">
+    <TimelineDockContext.Provider value={dock}>
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {!workspaceHeader && headerActions}
       {conflictBanner}
@@ -1087,24 +1198,22 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         onSelectFolder={(folderId) => void saveAsAsset(folderId, sequence?.name)}
       />
 
+      {isMobile ? (
       <FlexRow fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
       <FlexColumn ref={editorColumnRef} sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
       {dawActive ? (
         <DawWorkspace onGenerate={openGenerate} />
       ) : (
       <>
-      {/* ── Middle: assets + preview ──────────────────────────────── */}
+      {/* ── Middle: preview ───────────────────────────────────────── */}
       {/* Basis 0 (not `auto`): the middle row absorbs all leftover height via
        *  flex-grow, but its *content* never contributes to the column's size.
-       *  With `auto`, a tall inspector (clip selected) inflated this row's
-       *  basis and stole height from the tracks panel below — so the tracks
-       *  height appeared to change on its own. Now only the divider moves it. */}
+       *  Only the divider moves it. */}
       <FlexRow
         fullWidth
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 0", minHeight: 0, overflow: "hidden" }}
       >
-        {!isMobile && transcriptVisible && <TranscriptRegion />}
         <PreviewRegion
           isLoading={isLoading}
           sequenceUnavailable={sequenceUnavailable}
@@ -1114,7 +1223,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           }
           createSequencePending={createTimeline.isPending}
           createSequenceErrorMessage={createErrorMessage}
-          fullWidth={isMobile}
+          fullWidth
         />
       </FlexRow>
 
@@ -1126,8 +1235,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           value={effectiveTracksHeight}
           min={MIN_TRACKS_HEIGHT_PX}
           max={maxTracksHeight}
-          thickness={isMobile ? SPACING.xxl : SPACING.sm}
-          grip={isMobile}
+          thickness={SPACING.xxl}
+          grip
           keyboardStep={KEYBOARD_RESIZE_STEP_PX}
           ariaLabel="Resize tracks panel"
           onResize={handleTracksResize}
@@ -1152,14 +1261,24 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       </>
       )}
       </FlexColumn>
-      {!isMobile && sidePanelVisible && (
-        <InspectorRegion
-          sequenceId={sequenceId}
-          panelTab={panelTab}
-          setPanelTab={setPanelTab}
-        />
-      )}
       </FlexRow>
+      ) : (
+      /* ── Desktop: the dock ─────────────────────────────────────── */
+      <FlexColumn
+        ref={dockRoot}
+        fullWidth
+        sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+        onPointerDownCapture={(event) => {
+          // Maximize acts on the group last clicked when focus is elsewhere.
+          const group = (event.target as HTMLElement | null)?.closest?.<HTMLElement>(
+            "[data-dock-group]"
+          );
+          if (group?.dataset.dockGroup) lastDockGroup.current = group.dataset.dockGroup;
+        }}
+      >
+        <DockCanvas presentation={dockPresentation} store={dockStore} />
+      </FlexColumn>
+      )}
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
       <TimelineStatusBar
@@ -1253,6 +1372,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       </Dialog>
 
     </FlexColumn>
+    </TimelineDockContext.Provider>
     </FieldDensityContext.Provider>
   );
 });

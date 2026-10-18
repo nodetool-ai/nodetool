@@ -21,6 +21,19 @@ import {
 
 // ── Router mocks ────────────────────────────────────────────────────────────
 
+// The dock keeps every panel mounted. The Assistant's composer and the version
+// history query through TanStack Query, which these shell tests do not provide.
+jest.mock("../TimelineVersionHistoryPanel", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "history-panel" }, "History")
+}));
+jest.mock("../TimelineAgentPanel", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "assistant-panel" }, "Assistant")
+}));
+
 jest.mock("react-router-dom", () => ({
   useParams: jest.fn(),
   useNavigate: jest.fn(),

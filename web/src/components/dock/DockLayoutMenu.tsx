@@ -3,6 +3,7 @@ import { useStore, type StoreApi } from "zustand";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import CheckIcon from "@mui/icons-material/Check";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -28,11 +29,11 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
   const hidden = useStore(store, (state) => state.layout.hidden);
   const button = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState(model.presets[0] ?? "");
+  const current = useStore(store, (state) => state.activeLayoutName);
   const [dialog, setDialog] = useState<NameDialog>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { setCurrent(model.presets[0] ?? ""); setDialog(null); setError(null); }, [store, model.presets]);
+  useEffect(() => { setDialog(null); setError(null); }, [store]);
   const custom = customLayouts.some((entry) => entry.name === current);
   const act = (action: () => void): boolean => {
     try { action(); setError(null); return true; }
@@ -46,11 +47,10 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
     setDialog(next);
   };
   const confirmName = (): void => {
-    const trimmed = name.trim();
     const done = dialog?.mode === "rename" && dialog.from
       ? act(() => store.getState().renameLayout(dialog.from ?? "", name))
       : act(() => store.getState().saveLayout(name));
-    if (done) { setCurrent(trimmed); setDialog(null); }
+    if (done) { setDialog(null); }
   };
 
   return <>
@@ -63,13 +63,15 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
       <ListSubheader>Layouts</ListSubheader>
       {[...model.presets, ...customLayouts.map((entry) => entry.name)].map((layoutName) => <MenuItemPrimitive key={layoutName}
         label={layoutName} selected={layoutName === current} icon={layoutName === current ? <CheckIcon /> : <span />}
-        onClick={() => { close(); if (act(() => store.getState().selectLayout(layoutName))) { setCurrent(layoutName); } }} />)}
+        onClick={() => { close(); act(() => store.getState().selectLayout(layoutName)); }} />)}
+      <MenuItemPrimitive dividerBefore label="Reset to saved layout" icon={<RestartAltIcon />}
+        onClick={() => { close(); act(() => store.getState().resetLayout()); }} />
       <MenuItemPrimitive dividerBefore label="Save layout as…" icon={<SaveOutlinedIcon />} onClick={() => openDialog({ mode: "save" })} />
       <MenuItemPrimitive label="Rename layout…" icon={<DriveFileRenameOutlineIcon />} disabled={!custom}
         tooltip={custom ? undefined : "Built-in layouts cannot be renamed"} onClick={() => openDialog({ mode: "rename", from: current })} />
       <MenuItemPrimitive label="Delete layout" icon={<DeleteOutlineIcon />} color="error" disabled={!custom}
         tooltip={custom ? undefined : "Built-in layouts cannot be deleted"}
-        onClick={() => { close(); if (act(() => store.getState().deleteLayout(current))) { setCurrent(model.presets[0] ?? ""); } }} />
+        onClick={() => { close(); act(() => store.getState().deleteLayout(current)); }} />
       {panels.length > 0 && <ListSubheader>Panels</ListSubheader>}
       {panels.map((panel) => {
         const shown = !hidden.includes(panel.id);

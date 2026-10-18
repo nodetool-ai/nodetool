@@ -44,7 +44,6 @@ import {
   moveKeyframes
 } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
-import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
 import { ClipContextMenu } from "./ClipContextMenu";
 import { SendToWorkflowMenu } from "../../workflows/SendToWorkflowMenu";
@@ -339,8 +338,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       if (panelTab === "code" && codePanelDirty) {
         return;
       }
+      // The desktop dock opens the Inspector in answer to the request.
       setPanelTab("inspector");
-      useTimelineLayoutStore.getState().showSidePanel();
     },
     [clip?.mediaType, clipId, openPianoRoll, selectClip]
   );

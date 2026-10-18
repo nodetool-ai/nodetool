@@ -152,7 +152,7 @@ export function DockCanvas({ presentation, store }: DockCanvasProps): ReactNode 
     maximized={maximized === group.id} onToggleMaximize={() => store.getState().toggleMaximizedGroup(group.id)} />;
 
   const widthMaximum = Math.max(100, Math.min(1600, bounds.width / 3));
-  const bottomMaximum = Math.max(80, Math.min(1000, bounds.height / 2));
+  const bottomMaximum = Math.max(80, Math.min(1000, bounds.height * (store.getState().model.maxBottomFraction ?? 0.5)));
   const left = Math.min(metadata.layout.sizes.left, widthMaximum);
   const right = Math.min(metadata.layout.sizes.right, widthMaximum);
   const bottom = Math.min(metadata.layout.sizes.bottom, bottomMaximum);

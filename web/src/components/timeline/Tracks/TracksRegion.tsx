@@ -153,6 +153,7 @@ import {
   type WebKitGestureEvent
 } from "./timelineGesture";
 import { resolveTimelineAction } from "../timelineKeymap";
+import { useTimelineDock } from "../dock/timelineDockController";
 import type { TimelineAction } from "../timelineKeymap";
 import {
   clipsAtTime,
@@ -324,6 +325,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const theme = useTheme();
     const isMobile = useTimelineIsMobile();
     const isActive = useTimelineIsActive();
+    // The desktop dock, for the workspace keys. Null on phones and outside the editor.
+    const dock = useTimelineDock();
     const activeExplorer = usePanelStore((s) =>
       s.panel.activeView === "library" || s.panel.activeView === "assets"
         ? s.panel.activeView
@@ -1217,6 +1220,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             if (!e.repeat) useTimelineLayoutStore.getState().toggleDawMode();
             return;
 
+          case "maximizePanel":
+          case "toggleProgramFullscreen":
+          case "resetWorkspace":
+          case "workspace1":
+          case "workspace2":
+          case "workspace3":
+          case "workspace4":
+            // Without a dock (phones) the key is left alone.
+            if (!dock) return;
+            e.preventDefault();
+            if (e.repeat) return;
+            if (action === "maximizePanel") dock.toggleMaximize();
+            else if (action === "toggleProgramFullscreen") dock.toggleProgramFullscreen();
+            else if (action === "resetWorkspace") dock.resetWorkspace();
+            else dock.switchWorkspace(Number(action.slice("workspace".length)) - 1);
+            return;
+
           case "deleteSelected":
           case "rippleDeleteSelected":
             // A selected gap is deleted by closing it, whichever delete.
@@ -1797,7 +1817,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       arrowNudgeHistory.begin,
       arrowNudgeHistory.mark,
       arrowNudgeHistory.end,
-      activeExplorer
+      activeExplorer,
+      dock
     ]);
 
     const expandedFxTrackId = useTimelineUIStore((s) => s.expandedFxTrackId);

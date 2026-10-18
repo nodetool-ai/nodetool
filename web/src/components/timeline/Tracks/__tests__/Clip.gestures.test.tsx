@@ -59,7 +59,6 @@ import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
 import { getTimelineTemporal } from "../../../../stores/timeline/TimelineInstance";
-import { useTimelineLayoutStore } from "../../../../stores/timeline/TimelineLayoutStore";
 
 beforeAll(installPointerEvent);
 
@@ -592,15 +591,16 @@ describe("Clip double-click", () => {
   beforeEach(() => {
     seed();
     useTimelineUIStore.setState({ panelTab: "history", codePanelDirty: false });
-    useTimelineLayoutStore.setState({ sidePanelVisible: false });
+    useTimelineUIStore.setState({ panelTabRequest: 0 });
   });
 
-  it("selects the clip and opens the inspector in the side panel", () => {
+  it("selects the clip and asks for the inspector", () => {
     renderLanes();
     fireEvent.doubleClick(screen.getByTestId("clip-a1"));
     expect([...useTimelineUIStore.getState().selectedClipIds]).toEqual(["a1"]);
     expect(useTimelineUIStore.getState().panelTab).toBe("inspector");
-    expect(useTimelineLayoutStore.getState().sidePanelVisible).toBe(true);
+    // The editor's dock opens the Inspector in answer to this request.
+    expect(useTimelineUIStore.getState().panelTabRequest).toBe(1);
   });
 
   it("keeps a Code tab that has unsaved changes", () => {

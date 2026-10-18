@@ -26,6 +26,23 @@ import type { Asset } from "../../../stores/ApiTypes";
 
 // ── Router mocks ────────────────────────────────────────────────────────────
 
+// The dock keeps every panel mounted. The Assistant's composer and the version
+// history query through TanStack Query, which these shell tests do not provide.
+jest.mock("../SourceViewerPanel", () => ({
+  SourceViewerPanel: () =>
+    React.createElement("div", { "data-testid": "source-panel" }, "Source")
+}));
+jest.mock("../TimelineVersionHistoryPanel", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "history-panel" }, "History")
+}));
+jest.mock("../TimelineAgentPanel", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "assistant-panel" }, "Assistant")
+}));
+
 jest.mock("react-router-dom", () => ({
   useParams: jest.fn(),
   useNavigate: jest.fn(),
@@ -318,12 +335,13 @@ describe("TimelineEditor", () => {
       expect(screen.getByText("Tracks")).toBeInTheDocument();
     });
 
-    it("lets the preview fill the middle row when no transcript is present", () => {
+    it("hosts the program monitor in the dock's viewport region and the tracks in its bottom region", () => {
       renderEditor();
 
-      expect(screen.getByTestId("preview-area").parentElement).toHaveStyle({
-        flex: "1 1 55%"
-      });
+      const viewport = document.querySelector("[data-dock-region='viewport']");
+      const bottom = document.querySelector("[data-dock-region='bottom']");
+      expect(viewport).toContainElement(screen.getByTestId("preview-area"));
+      expect(bottom).toContainElement(screen.getByTestId("tracks-region"));
     });
 
     it("offers an Assistant tab alongside the Inspector", () => {
@@ -375,7 +393,7 @@ describe("TimelineEditor", () => {
       renderEditor();
 
       const separator = screen.getByRole("separator", {
-        name: "Resize tracks panel"
+        name: "Resize timeline bottom panels"
       });
       expect(separator).toHaveAttribute("aria-orientation", "horizontal");
       expect(separator).toHaveAttribute("aria-valuenow");
@@ -384,56 +402,78 @@ describe("TimelineEditor", () => {
       expect(separator).toHaveAttribute("tabindex", "0");
     });
 
-    it("increases tracks height with ArrowUp keyboard press", () => {
-      renderEditor();
-
-      const separator = screen.getByRole("separator", {
-        name: "Resize tracks panel"
+    describe("with a measured dock", () => {
+      const originalObserver = globalThis.ResizeObserver;
+      beforeEach(() => {
+        // jsdom lays nothing out, which would clamp the bottom region to its minimum.
+        class MeasuredObserver {
+          constructor(private readonly callback: ResizeObserverCallback) {}
+          observe(): void {
+            this.callback(
+              [{ contentRect: { width: 1600, height: 1000 } } as unknown as ResizeObserverEntry],
+              this as unknown as ResizeObserver
+            );
+          }
+          unobserve(): void {}
+          disconnect(): void {}
+        }
+        globalThis.ResizeObserver = MeasuredObserver as unknown as typeof ResizeObserver;
       });
-      const initialHeight = Number(separator.getAttribute("aria-valuenow"));
-
-      fireEvent.keyDown(separator, { key: "ArrowUp" });
-
-      const newHeight = Number(separator.getAttribute("aria-valuenow"));
-      expect(newHeight).toBeGreaterThan(initialHeight);
-    });
-
-    it("decreases tracks height with ArrowDown keyboard press", () => {
-      renderEditor();
-
-      const separator = screen.getByRole("separator", {
-        name: "Resize tracks panel"
-      });
-      const initialHeight = Number(separator.getAttribute("aria-valuenow"));
-
-      fireEvent.keyDown(separator, { key: "ArrowDown" });
-
-      const newHeight = Number(separator.getAttribute("aria-valuenow"));
-      expect(newHeight).toBeLessThan(initialHeight);
-    });
-
-    it("does not exceed max tracks height on ArrowUp", () => {
-      (useTimeline as jest.Mock).mockReturnValue({
-        data: sequence,
-        isLoading: false,
-        isError: false,
-        refetch: mockRefetch
+      afterEach(() => {
+        globalThis.ResizeObserver = originalObserver;
       });
 
-      renderEditor();
+      it("grows the timeline panel with ArrowUp keyboard press", () => {
+        renderEditor();
 
-      const separator = screen.getByRole("separator", {
-        name: "Resize tracks panel"
-      });
-      const max = Number(separator.getAttribute("aria-valuemax"));
+        const separator = screen.getByRole("separator", {
+          name: "Resize timeline bottom panels"
+        });
+        const initialHeight = Number(separator.getAttribute("aria-valuenow"));
 
-      // Press many times to hit the ceiling
-      for (let i = 0; i < 100; i++) {
         fireEvent.keyDown(separator, { key: "ArrowUp" });
-      }
 
-      const finalHeight = Number(separator.getAttribute("aria-valuenow"));
-      expect(finalHeight).toBeLessThanOrEqual(max);
+        const newHeight = Number(separator.getAttribute("aria-valuenow"));
+        expect(newHeight).toBeGreaterThan(initialHeight);
+      });
+
+      it("shrinks the timeline panel with ArrowDown keyboard press", () => {
+        renderEditor();
+
+        const separator = screen.getByRole("separator", {
+          name: "Resize timeline bottom panels"
+        });
+        const initialHeight = Number(separator.getAttribute("aria-valuenow"));
+
+        fireEvent.keyDown(separator, { key: "ArrowDown" });
+
+        const newHeight = Number(separator.getAttribute("aria-valuenow"));
+        expect(newHeight).toBeLessThan(initialHeight);
+      });
+
+      it("stops growing the timeline panel at its cap on ArrowUp", () => {
+        (useTimeline as jest.Mock).mockReturnValue({
+          data: sequence,
+          isLoading: false,
+          isError: false,
+          refetch: mockRefetch
+        });
+
+        renderEditor();
+
+        const separator = screen.getByRole("separator", {
+          name: "Resize timeline bottom panels"
+        });
+        const max = Number(separator.getAttribute("aria-valuemax"));
+
+        // Press many times to hit the ceiling
+        for (let i = 0; i < 100; i++) {
+          fireEvent.keyDown(separator, { key: "ArrowUp" });
+        }
+
+        const finalHeight = Number(separator.getAttribute("aria-valuenow"));
+        expect(finalHeight).toBeLessThanOrEqual(max);
+      });
     });
 
     it("waits for pending edits to save before exporting the project archive", async () => {

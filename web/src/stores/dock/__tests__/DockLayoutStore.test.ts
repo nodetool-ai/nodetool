@@ -131,7 +131,6 @@ it("keeps state identity and skips persistence and notification for no-op action
     store.getState().dispatch({ type: "resize", region: "bottom", size: before.layout.sizes.bottom });
     store.getState().dispatch({ type: "move", panelId: "hierarchy", region: "left", groupId: "left-main", index: 0 });
     store.getState().dispatch({ type: "preset", name: "Default" });
-    store.getState().selectLayout("Default");
     store.getState().selectLayout("Mine");
     store.getState().saveLayout("Mine");
     store.getState().renameLayout("Mine", "Mine");
@@ -242,4 +241,45 @@ it("keeps every required panel visible and rejects a layout that hides or drops 
   store.getState().togglePanels(["viewport"]);
   expect(store.getState().layout.hidden).not.toContain("viewport");
   expect(store.getState().model.requiredPanels).toEqual(["viewport"]);
+});
+
+it("resets to the active built-in layout, undoing moves, resizes, hidden panels and maximize", () => {
+  const { storage } = memoryStorage();
+  const store = createSampleDockStore({ anonymous: true }, storage);
+  store.getState().selectLayout("Scripting");
+  const scripting = store.getState().layout;
+  store.getState().dispatch({ type: "resize", region: "bottom", size: 500 });
+  store.getState().dispatch({ type: "hide", panelId: "inspector" });
+  store.getState().setMaximizedGroup("bottom-main");
+  expect(store.getState().layout).not.toEqual(scripting);
+  store.getState().resetLayout();
+  expect(store.getState().layout).toEqual(scripting);
+  expect(store.getState().maximizedGroupId).toBeNull();
+  expect(store.getState().activeLayoutName).toBe("Scripting");
+});
+
+it("resets to the saved layout last chosen, not the built-in it was copied from", () => {
+  const { storage } = memoryStorage();
+  const store = createSampleDockStore({ anonymous: true }, storage);
+  store.getState().dispatch({ type: "resize", region: "right", size: 500 });
+  store.getState().saveLayout("Wide inspector");
+  expect(store.getState().activeLayoutName).toBe("Wide inspector");
+  store.getState().dispatch({ type: "resize", region: "right", size: 200 });
+  store.getState().resetLayout();
+  expect(store.getState().layout.sizes.right).toBe(500);
+  store.getState().renameLayout("Wide inspector", "Inspector heavy");
+  expect(store.getState().activeLayoutName).toBe("Inspector heavy");
+  store.getState().deleteLayout("Inspector heavy");
+  expect(store.getState().activeLayoutName).toBe("Default");
+});
+
+it("keeps the active layout name across a reload and ignores a name that no longer exists", () => {
+  const { storage, data } = memoryStorage();
+  const store = createSampleDockStore({ anonymous: true }, storage);
+  store.getState().selectLayout("Animation");
+  const reloaded = createSampleDockStore({ anonymous: true }, storage);
+  expect(reloaded.getState().activeLayoutName).toBe("Animation");
+  const [key, raw] = [...data.entries()][0];
+  data.set(key, raw.replace("Animation", "Deleted layout"));
+  expect(createSampleDockStore({ anonymous: true }, storage).getState().activeLayoutName).toBe("Default");
 });

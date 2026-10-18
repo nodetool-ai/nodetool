@@ -124,3 +124,16 @@ it("docks a dragged tab onto a group edge and cancels the drag on Escape or wind
     else { Reflect.deleteProperty(document, "elementFromPoint"); }
   }
 });
+
+it("resets to the layout in use from the Layout menu", async () => {
+  const user = userEvent.setup();
+  const store = makeStore();
+  render(<ThemeProvider theme={mockTheme}><DockLayoutMenu store={store} panels={[]} /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Default" }));
+  await user.click(screen.getByRole("menuitem", { name: "Scripting" }));
+  const scripting = store.getState().layout;
+  act(() => store.getState().dispatch({ type: "resize", region: "bottom", size: 700 }));
+  await user.click(screen.getByRole("button", { name: "Scripting" }));
+  await user.click(screen.getByRole("menuitem", { name: "Reset to saved layout" }));
+  expect(store.getState().layout).toEqual(scripting);
+});

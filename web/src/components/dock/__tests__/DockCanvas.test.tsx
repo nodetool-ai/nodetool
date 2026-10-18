@@ -5,8 +5,8 @@ import { ThemeProvider } from "@mui/material/styles";
 import { useStore, type StoreApi } from "zustand";
 
 import mockTheme from "../../../__mocks__/themeMock";
-import { createSampleDockStore } from "../../../__mocks__/sampleDockModel";
-import type { DockLayoutState } from "../../../stores/dock/DockLayoutStore";
+import { createSampleDockStore, sampleDockModel } from "../../../__mocks__/sampleDockModel";
+import { createDockLayoutStore, type DockLayoutState } from "../../../stores/dock/DockLayoutStore";
 import { DockCanvas } from "../DockCanvas";
 import { useDockPresentation, type DockPanelView } from "../useDockPresentation";
 
@@ -185,4 +185,34 @@ it("maximizes a focused tab's group with Shift+Space", async () => {
   await act(async () => screen.getByRole("tab", { name: /Scripts/ }).focus());
   await user.keyboard("{Shift>} {/Shift}");
   expect(store.getState().maximizedGroupId).toBe("bottom-main");
+});
+
+it("lets an editor raise the share of the height the bottom panels may take", async () => {
+  const originalObserver = globalThis.ResizeObserver;
+  let reportBounds: (width: number, height: number) => void = () => undefined;
+  class MeasuredObserver {
+    constructor(callback: ResizeObserverCallback) {
+      reportBounds = (width, height) => callback([
+        { contentRect: { width, height } } as unknown as ResizeObserverEntry
+      ], this as unknown as ResizeObserver);
+    }
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  globalThis.ResizeObserver = MeasuredObserver as unknown as typeof ResizeObserver;
+  const noStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
+  const halfStore = makeStore();
+  const tallStore = createDockLayoutStore({ ...sampleDockModel, maxBottomFraction: 0.8 }, { anonymous: true }, noStorage);
+  try {
+    const half = render(<Harness store={halfStore} />);
+    await act(async () => reportBounds(1200, 800));
+    expect(screen.getByRole("separator", { name: "Resize sample bottom panels" })).toHaveAttribute("aria-valuemax", "400");
+    half.unmount();
+    render(<Harness store={tallStore} />);
+    await act(async () => reportBounds(1200, 800));
+    expect(screen.getByRole("separator", { name: "Resize sample bottom panels" })).toHaveAttribute("aria-valuemax", "640");
+  } finally {
+    globalThis.ResizeObserver = originalObserver;
+  }
 });

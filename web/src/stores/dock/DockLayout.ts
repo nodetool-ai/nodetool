@@ -58,6 +58,8 @@ export interface DockLayoutConfig {
   readonly requiredPanels: readonly string[];
   /** Built-in layout names in menu order. The first is the default. Saved layouts cannot reuse them. */
   readonly presets: readonly string[];
+  /** Largest share of the dock's height the bottom region may take. Absent means one half. */
+  readonly maxBottomFraction?: number;
   /** Builds the built-in layout with this name. */
   readonly createPreset: (name: string) => DockLayout;
 }
