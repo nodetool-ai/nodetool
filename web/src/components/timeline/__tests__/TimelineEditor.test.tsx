@@ -26,8 +26,8 @@ import type { Asset } from "../../../stores/ApiTypes";
 
 // ── Router mocks ────────────────────────────────────────────────────────────
 
-// The dock keeps every panel mounted. The Assistant's composer and the version
-// history query through TanStack Query, which these shell tests do not provide.
+// The Assistant's composer and the version history query through TanStack
+// Query, which these shell tests do not provide.
 jest.mock("../SourceViewerPanel", () => ({
   SourceViewerPanel: () =>
     React.createElement("div", { "data-testid": "source-panel" }, "Source")
@@ -84,7 +84,12 @@ jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
 
 jest.mock("../Tracks/TracksRegion", () => ({
   TracksRegion: ({ heightPx }: { heightPx: number }) =>
-    React.createElement("div", { "data-testid": "tracks-region", style: { height: heightPx } }, "Tracks")
+    React.createElement(
+      "div",
+      { "data-testid": "tracks-region", style: { height: heightPx } },
+      "Tracks",
+      React.createElement("button", { "data-testid": "mock-clip" }, "Clip")
+    )
 }));
 
 // ── PreviewArea mock ─────────────────────────────────────────────────────────
@@ -400,6 +405,34 @@ describe("TimelineEditor", () => {
       expect(separator).toHaveAttribute("aria-valuemin");
       expect(separator).toHaveAttribute("aria-valuemax");
       expect(separator).toHaveAttribute("tabindex", "0");
+    });
+
+    it("keeps keyboard focus on the clip when a double-click opens the Inspector, so Delete still reaches the timeline", async () => {
+      renderEditor();
+      const clip = screen.getByTestId("mock-clip");
+      clip.focus();
+      act(() => {
+        useTimelineUIStore.getState().setPanelTab("inspector");
+      });
+      // The dock moves focus a frame after it opens a panel, so wait one.
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      });
+      expect(clip).toHaveFocus();
+      // The tab strip would close the Inspector on Delete and swallow the key.
+      const handled = fireEvent.keyDown(clip, { key: "Delete" });
+      expect(handled).toBe(true);
+      expect(screen.getByRole("tab", { name: /Inspector/ })).toBeInTheDocument();
+    });
+
+    it("mounts a dock panel when its workspace first shows it, not before", async () => {
+      renderEditor();
+      expect(screen.queryByTestId("assistant-panel")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("history-panel")).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: /Editing/ }));
+      // The Layouts section lists the workspaces before the Panels section.
+      await userEvent.click((await screen.findAllByRole("menuitem", { name: "Assistant" }))[0]);
+      expect(await screen.findByTestId("assistant-panel")).toBeInTheDocument();
     });
 
     describe("with a measured dock", () => {
