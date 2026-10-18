@@ -59,6 +59,7 @@ import {
   validateRepoId,
   searchNodes,
   checkExpectedPackageVersions,
+  getStalePacks,
   getRuntimePackageStatuses,
   installRuntimePackage,
   getCondaInstallLocation,
@@ -800,6 +801,10 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.PACKAGE_VERSION_CHECK, async () => {
     logMessage("Checking expected package versions");
     return await checkExpectedPackageVersions();
+  });
+
+  createIpcMainHandler(IpcChannels.PACKAGE_STALE_LIST, async () => {
+    return await getStalePacks();
   });
 
   // Node pack handlers (third-party TS node packs)

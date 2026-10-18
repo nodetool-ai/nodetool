@@ -85,6 +85,8 @@ declare global {
           callback: (packages: PackageUpdateInfo[]) => void,
         ) => () => void;
         checkVersion: () => Promise<PackageVersionCheckResult[]>;
+        /** Installed packs that pin an older nodetool-core and cannot load */
+        listStale: () => Promise<PackageModel[]>;
         getRuntimeStatuses: () => Promise<RuntimePackageStatus[]>;
         installRuntime: (
           packageId: RuntimePackageId,
@@ -480,6 +482,7 @@ export enum IpcChannels {
   PACKAGE_SEARCH_NODES = "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE = "package-updates-available",
   PACKAGE_VERSION_CHECK = "package-version-check",
+  PACKAGE_STALE_LIST = "package-stale-list",
   // Node pack channels (third-party TypeScript node packs)
   NODE_PACK_LIST_INSTALLED = "node-pack-list-installed",
   NODE_PACK_INSTALL = "node-pack-install",
@@ -644,6 +647,7 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: string; // url
   [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
   [IpcChannels.PACKAGE_VERSION_CHECK]: void;
+  [IpcChannels.PACKAGE_STALE_LIST]: void;
   [IpcChannels.NODE_PACK_LIST_INSTALLED]: void;
   [IpcChannels.NODE_PACK_INSTALL]: { spec: string };
   [IpcChannels.NODE_PACK_UNINSTALL]: { name: string };
@@ -747,6 +751,7 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: void;
   [IpcChannels.PACKAGE_SEARCH_NODES]: PackageNode[];
   [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
+  [IpcChannels.PACKAGE_STALE_LIST]: PackageModel[];
   [IpcChannels.NODE_PACK_LIST_INSTALLED]: NodePackInfo[];
   [IpcChannels.NODE_PACK_INSTALL]: NodePackActionResult;
   [IpcChannels.NODE_PACK_UNINSTALL]: NodePackActionResult;

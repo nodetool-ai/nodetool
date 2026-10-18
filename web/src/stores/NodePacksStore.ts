@@ -46,6 +46,8 @@ interface NodePacksStore extends PackageOpState, PackageConsoleSlice {
   available: boolean;
   availablePacks: PackageInfo[];
   installed: InstalledPackage[];
+  /** Repo ids of installed packs that pin an older nodetool-core and cannot load. */
+  stale: string[];
   isLoading: boolean;
 
   install: (repoId: string) => Promise<boolean>;
@@ -66,6 +68,7 @@ const useNodePacksStore = create<NodePacksStore>((set, get) => ({
   available: ipcAvailable(),
   availablePacks: [],
   installed: [],
+  stale: [],
   busyIds: [],
   isLoading: false,
   error: null,
@@ -79,13 +82,17 @@ const useNodePacksStore = create<NodePacksStore>((set, get) => ({
     }
     set({ isLoading: true, error: null });
     try {
-      const [availableRes, installedRes] = await Promise.all([
+      const [availableRes, installedRes, staleRes] = await Promise.all([
         api.listAvailable().catch(() => ({ packages: [] as PackageInfo[] })),
-        api.listInstalled().catch(() => ({ packages: [] as InstalledPackage[] }))
+        api.listInstalled().catch(() => ({ packages: [] as InstalledPackage[] })),
+        (api.listStale?.() ?? Promise.resolve([] as InstalledPackage[])).catch(
+          () => [] as InstalledPackage[]
+        )
       ]);
       set({
         availablePacks: availableRes.packages ?? [],
         installed: installedRes.packages ?? [],
+        stale: staleRes.map((pack) => pack.repo_id),
         isLoading: false,
         available: true
       });

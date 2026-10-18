@@ -115,7 +115,14 @@ export interface PMRow {
   name: string;
   desc: string;
   version?: string;
-  badge: "alwaysOn" | "included" | "installed" | "update" | "notInstalled" | null;
+  badge:
+    | "alwaysOn"
+    | "included"
+    | "installed"
+    | "update"
+    | "incompatible"
+    | "notInstalled"
+    | null;
   toggle?: {
     enabled: boolean;
     label: string;
@@ -147,6 +154,8 @@ interface PackageManagerModel {
   onChangeLocation: () => void;
   /** Desktop-only notice when the active install surface needs Electron. */
   notice: string | null;
+  /** Problem with installed packs on the active list, shown above the rows. */
+  warning: string | null;
   error: string | null;
   console: { lines: string[]; onClear: () => void; busy: boolean } | null;
   thirdPartyCount: number;
@@ -257,6 +266,7 @@ export function usePackageManager(params: {
     pyAvailable,
     availablePacks,
     installed,
+    stale,
     pyBusy,
     pyConsole,
     pyRefresh,
@@ -273,6 +283,7 @@ export function usePackageManager(params: {
       pyAvailable: s.available,
       availablePacks: s.availablePacks,
       installed: s.installed,
+      stale: s.stale,
       pyBusy: s.busyIds,
       pyConsole: s.consoleLines,
       pyRefresh: s.refresh,
@@ -487,6 +498,7 @@ export function usePackageManager(params: {
         const inst = pack.installed;
         const hasUpdate = Boolean(inst?.hasUpdate);
         const busy = pyBusy.includes(pack.repoId);
+        const isStale = stale.includes(pack.repoId);
         const version = hasUpdate
           ? `v${inst?.version}  →  v${inst?.latestVersion}`
           : inst
@@ -497,7 +509,13 @@ export function usePackageManager(params: {
           name: pack.name,
           desc: pack.description,
           version,
-          badge: hasUpdate ? "update" : inst ? "installed" : null,
+          badge: isStale
+            ? "incompatible"
+            : hasUpdate
+              ? "update"
+              : inst
+                ? "installed"
+                : null,
           buttons: {
             install: !inst,
             update: hasUpdate,
@@ -519,6 +537,12 @@ export function usePackageManager(params: {
         : cat === "python" && !pyAvailable
           ? "Installing node packs runs in the NodeTool desktop app. Open the desktop app to install, update, and remove Python node packs."
           : null;
+
+    const stalePacks = cat === "python" ? pythonPacks.filter((p) => stale.includes(p.repoId)) : [];
+    const warning =
+      stalePacks.length > 0
+        ? `${stalePacks.map((p) => p.name).join(", ")} requires an older nodetool-core than this version of NodeTool needs, so ${stalePacks.length === 1 ? "its nodes are" : "their nodes are"} not loaded. Uninstall ${stalePacks.length === 1 ? "it" : "them"} to restore Python nodes.`
+        : null;
 
     const consoleModel = isSoftware
       ? rtAvailable
@@ -559,6 +583,7 @@ export function usePackageManager(params: {
       installLocation,
       onChangeLocation: () => void selectInstallLocation(),
       notice,
+      warning,
       error: isSoftware ? rtError : cat === "python" ? pyError : builtinsError,
       console: consoleModel,
       thirdPartyCount: thirdPartyPacks.length,
@@ -573,6 +598,7 @@ export function usePackageManager(params: {
     optionalEnabledIds,
     setOptionalEnabled,
     pythonPacks,
+    stale,
     thirdPartyPacks,
     rtBusy,
     pyBusy,

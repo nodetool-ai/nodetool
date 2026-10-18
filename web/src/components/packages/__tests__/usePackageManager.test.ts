@@ -56,6 +56,7 @@ const seed = () => {
       { repo_id: "acme/cool", name: "Cool", description: "Cool nodes." }
     ],
     installed: [],
+    stale: [],
     busyIds: [],
     consoleLines: [],
     error: null,
@@ -112,6 +113,35 @@ describe("usePackageManager", () => {
     expect(result.current.rows[0].buttons?.install).toBe(true);
     expect(result.current.rows[0].buttons?.uninstall).toBe(false);
     expect(result.current.notice).toBeNull();
+  });
+
+  it("flags an installed pack that pins an older core and keeps Uninstall available", () => {
+    useNodePacksStore.setState({
+      availablePacks: [],
+      installed: [
+        {
+          name: "nodetool-whispercpp",
+          description: "",
+          version: "0.6.3rc47",
+          repo_id: "nodetool-ai/nodetool-whispercpp"
+        }
+      ],
+      stale: ["nodetool-ai/nodetool-whispercpp"]
+    });
+    const { result } = renderHook(() =>
+      usePackageManager({ cat: "python", q: "", filter: "all" })
+    );
+    expect(result.current.rows[0].badge).toBe("incompatible");
+    expect(result.current.rows[0].buttons?.uninstall).toBe(true);
+    expect(result.current.warning).toContain("nodetool-whispercpp");
+    expect(result.current.warning).toContain("Uninstall");
+  });
+
+  it("shows no warning when no installed pack is stale", () => {
+    const { result } = renderHook(() =>
+      usePackageManager({ cat: "python", q: "", filter: "all" })
+    );
+    expect(result.current.warning).toBeNull();
   });
 
   it("offers a bulk Update all action on the registry tab when packs have updates", () => {

@@ -281,6 +281,8 @@ declare global {
           packages: InstalledPackage[];
           count?: number;
         }>;
+        /** Installed packs that pin an older nodetool-core and cannot load. */
+        listStale?: () => Promise<InstalledPackage[]>;
         /** Install a registry pack by repo id (e.g. `nodetool-ai/nodetool-base`). */
         install?: (repoId: string) => Promise<PackageActionResult>;
         /** Uninstall an installed registry pack by repo id. */

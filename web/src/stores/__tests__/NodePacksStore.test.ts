@@ -39,6 +39,7 @@ const reset = () =>
     available: true,
     availablePacks: [],
     installed: [],
+    stale: [],
     busyIds: [],
     consoleLines: [],
     isLoading: false,
@@ -46,7 +47,7 @@ const reset = () =>
   });
 
 describe("NodePacksStore", () => {
-  let api: ReturnType<typeof makeApi>;
+  let api: ReturnType<typeof makeApi> & { listStale?: jest.Mock };
   let restart: jest.Mock;
 
   beforeEach(() => {
@@ -90,6 +91,26 @@ describe("NodePacksStore", () => {
     expect(ok).toBe(true);
     expect(api.uninstall).toHaveBeenCalledWith("nodetool-ai/nodetool-base");
     expect(restart).not.toHaveBeenCalled();
+  });
+
+  it("refresh records installed packs that pin an older core as stale", async () => {
+    api.listStale = jest.fn().mockResolvedValue([
+      {
+        name: "nodetool-whispercpp",
+        description: "",
+        version: "0.6.3rc47",
+        repo_id: "nodetool-ai/nodetool-whispercpp"
+      }
+    ]);
+    await useNodePacksStore.getState().refresh();
+    expect(useNodePacksStore.getState().stale).toEqual([
+      "nodetool-ai/nodetool-whispercpp"
+    ]);
+  });
+
+  it("refresh tolerates a desktop build without listStale", async () => {
+    await useNodePacksStore.getState().refresh();
+    expect(useNodePacksStore.getState().stale).toEqual([]);
   });
 
   it("update calls IPC and restarts the server", async () => {
