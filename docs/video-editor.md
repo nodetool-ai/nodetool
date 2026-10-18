@@ -215,6 +215,7 @@ changing the original edit. See [AI Timeline Editing](ai-timeline-editing.md).
 | ------------------------ | ---------------------------------- |
 | `Space`                  | Play / pause                       |
 | `V` / `C`                | Select tool / cut tool             |
+| `A` / `B` / `R` / `Y`    | Track select, ripple, rate stretch, slip tools |
 | `S`                      | Split clip at playhead             |
 | `Ctrl/⌘ + Shift + K`     | Cut all tracks at playhead         |
 | `Delete` / `Backspace`   | Delete selected clip(s)            |

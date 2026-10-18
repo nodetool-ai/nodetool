@@ -36,12 +36,14 @@ import {
   moveUnitIds,
   splitClip,
   splitClipMediaTracks,
+  rateStretchClips,
   retimeCaption,
   trimClip,
   rippleTrim,
   rollEdit,
   findRollNeighbour,
   rippleDelete,
+  planShift,
   closeGap,
   resolveDrop,
   applyTransitionAtCut,
@@ -659,6 +661,15 @@ export interface TimelineStoreState {
   /** Delete the selection and close the time it covered on unlocked tracks. */
   rippleDeleteSelected: (selectedIds: Set<string>) => void;
 
+  /**
+   * Remove the span [startMs, endMs) from every unlocked track: clips across
+   * either edge are cut there and the pieces inside are deleted. Premiere's
+   * Lift leaves the gap (`ripple` false); Extract closes it, pulling every
+   * later clip left by the span (`ripple` true). Linked partners are cut
+   * with their clip. One undo entry.
+   */
+  removeRange: (startMs: number, endMs: number, ripple: boolean) => void;
+
   /** Close the empty stretch on `trackId` containing `timeMs`. */
   closeGapAt: (trackId: string, timeMs: number) => void;
 
@@ -769,6 +780,14 @@ export interface TimelineStoreState {
   unlinkClip: (clipId: string) => void;
 
   /**
+   * Link the clips in `clipIds` into one new link group, so they select,
+   * move and trim together (Premiere's Link). Locked clips and groups are
+   * left out; fewer than two clips is a no-op. A former group left with one
+   * member drops its link.
+   */
+  linkClips: (clipIds: ReadonlySet<string>) => void;
+
+  /**
    * Create an imported clip from an Asset and insert it into the store.
    * The clip geometry is derived from the asset's content type and duration.
    * Use this action to add clips created by asset drag-and-drop.
@@ -787,6 +806,18 @@ export interface TimelineStoreState {
    * edit unit. One undo entry.
    */
   setClipSpeed: (clipId: string, speedMultiplier: number) => void;
+
+  /**
+   * Rate stretch (Premiere's R tool): give a clip a new length by changing
+   * its speed, keeping its source window and the opposite edge. Linked
+   * partners stretch with it under linked selection. Refused for a locked
+   * edit unit. See `rateStretchClips`.
+   */
+  rateStretchClip: (
+    clipId: string,
+    edge: "start" | "end",
+    durationMs: number
+  ) => void;
 
   /**
    * Wrap clips in a new group clip (D4) spanning them, placed on the topmost
@@ -3166,6 +3197,64 @@ export const createTimelineStore = (
             };
           }),
 
+        removeRange: (startMs, endMs, ripple) =>
+          set((state) => {
+            if (!(endMs > startMs)) return state;
+            let cut = { clips: state.clips, mediaTracks: state.mediaTracks };
+            for (const atMs of [startMs, endMs]) {
+              const across = new Set(
+                cut.clips
+                  .filter(
+                    (c) => atMs > c.startMs && atMs < c.startMs + c.durationMs
+                  )
+                  .map((c) => c.id)
+              );
+              cut = splitClipsLinkAware(
+                cut.clips,
+                cut.mediaTracks,
+                atMs,
+                [
+                  ...editableUserTargets(cut.clips, state.tracks, across, {
+                    followLinks: true,
+                    includeGroupDescendants: false
+                  })
+                ]
+              );
+            }
+            const inside = new Set(
+              cut.clips
+                .filter(
+                  (c) =>
+                    !isGroupClip(c) &&
+                    c.startMs >= startMs &&
+                    c.startMs + c.durationMs <= endMs
+                )
+                .map((c) => c.id)
+            );
+            const editable = editableUserTargets(
+              cut.clips,
+              state.tracks,
+              inside,
+              { followLinks: true, includeGroupDescendants: false }
+            );
+            const removeIds = new Set(
+              [...editable].filter((id) => inside.has(id))
+            );
+            if (removeIds.size === 0 && !ripple) return state;
+            let clips = removeClipsLinkAware(cut.clips, removeIds);
+            if (ripple) {
+              clips =
+                planShift(clips, endMs, startMs - endMs, new Set(), {
+                  lockedTrackIds: lockedTrackIds(state.tracks),
+                  lockedClipIds: lockedUserTargetIds(clips, state.tracks)
+                }) ?? clips;
+            }
+            return clips.length === state.clips.length &&
+              clips.every((c, i) => c === state.clips[i])
+              ? state
+              : { clips, mediaTracks: cut.mediaTracks };
+          }),
+
         closeGapAt: (trackId, timeMs) =>
           set((state) => {
             const next = closeGap(state.clips, trackId, timeMs, {
@@ -3655,6 +3744,38 @@ export const createTimelineStore = (
             };
           }),
 
+        linkClips: (clipIds) =>
+          set((state) => {
+            const ids = new Set(
+              state.clips
+                .filter(
+                  (c) =>
+                    clipIds.has(c.id) &&
+                    !isGroupClip(c) &&
+                    !clipLockError(state, c.id)
+                )
+                .map((c) => c.id)
+            );
+            if (ids.size < 2) return state;
+            const linkId = createTimeOrderedUuid();
+            const relinked = state.clips.map((c) =>
+              ids.has(c.id) ? { ...c, linkId } : c
+            );
+            const counts = new Map<string, number>();
+            for (const c of relinked) {
+              if (c.linkId !== undefined) {
+                counts.set(c.linkId, (counts.get(c.linkId) ?? 0) + 1);
+              }
+            }
+            return {
+              clips: relinked.map((c) =>
+                c.linkId !== undefined && counts.get(c.linkId) === 1
+                  ? { ...c, linkId: undefined }
+                  : c
+              )
+            };
+          }),
+
         setClipSpeed: (clipId, speedMultiplier) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
@@ -3718,6 +3839,42 @@ export const createTimelineStore = (
               next.set(m.id, retimed);
             }
             return { clips: state.clips.map((c) => next.get(c.id) ?? c) };
+          }),
+
+        rateStretchClip: (clipId, edge, durationMs) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (
+              !clip ||
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                {
+                  followLinks: state.linkedSelection,
+                  includeGroupDescendants: false
+                }
+              ).has(clipId)
+            ) {
+              return state;
+            }
+            const memberIds = new Set(
+              state.linkedSelection && clip.linkId !== undefined
+                ? state.clips
+                    .filter((c) => c.linkId === clip.linkId)
+                    .map((c) => c.id)
+                : [clip.id]
+            );
+            const clips = rateStretchClips(
+              state.clips,
+              memberIds,
+              clipId,
+              edge,
+              durationMs
+            );
+            return clips.every((c, i) => c === state.clips[i])
+              ? state
+              : { clips };
           }),
 
         groupClips: (clipIds) => {

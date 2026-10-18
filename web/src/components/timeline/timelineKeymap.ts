@@ -25,7 +25,12 @@ export const TIMELINE_KEYBOARD_PRESET_LABELS: Record<TimelineKeyboardPreset, str
 export type TimelineAction =
   | "toggleShortcuts"
   | "selectTool"
+  | "trackSelectTool"
+  | "rippleTool"
+  | "rollTool"
+  | "rateStretchTool"
   | "cutTool"
+  | "slipTool"
   | "splitAtPlayhead"
   | "cutAllTracks"
   | "deleteSelected"
@@ -33,12 +38,24 @@ export type TimelineAction =
   | "duplicate"
   | "duplicateWithGap"
   | "selectAll"
+  | "deselectAll"
+  | "selectClipAtPlayhead"
+  | "toggleClipEnabled"
+  | "linkClips"
+  | "groupClips"
+  | "ungroupClips"
+  | "rippleTrimPrevToPlayhead"
+  | "rippleTrimNextToPlayhead"
+  | "liftRange"
+  | "extractRange"
   | "escape"
   | "copy"
   | "cut"
   | "paste"
   | "stepFrameBack"
   | "stepFrameForward"
+  | "stepFramesBack"
+  | "stepFramesForward"
   | "nudgeLeft"
   | "nudgeRight"
   | "nudgeLeftLarge"
@@ -50,6 +67,9 @@ export type TimelineAction =
   | "trimEditRightLarge"
   | "markIn"
   | "markOut"
+  | "markClip"
+  | "goToIn"
+  | "goToOut"
   | "clearRange"
   | "shuttleBack"
   | "shuttleStop"
@@ -94,20 +114,30 @@ const COMMON: Partial<Keymap> = {
   toggleShortcuts: [k("?")],
   deleteSelected: [k("Delete"), k("Backspace")],
   selectAll: [k("a", { ctrl: true })],
+  deselectAll: [k("a", { ctrl: true, shift: true })],
+  // Link, group and ungroup are Premiere's Ctrl+L, Ctrl+G and Ctrl+Shift+G;
+  // no preset uses those keys for anything else.
+  linkClips: [k("l", { ctrl: true })],
+  groupClips: [k("g", { ctrl: true })],
+  ungroupClips: [k("g", { ctrl: true, shift: true })],
   escape: [k("Escape")],
   copy: [k("c", { ctrl: true })],
   cut: [k("x", { ctrl: true })],
   paste: [k("v", { ctrl: true })],
   markIn: [k("i")],
   markOut: [k("o")],
+  // X marks the clip under the playhead in Premiere and Final Cut alike.
+  markClip: [k("x")],
+  goToIn: [k("i", { shift: true })],
+  goToOut: [k("o", { shift: true })],
   stepFrameBack: [k("ArrowLeft")],
   stepFrameForward: [k("ArrowRight")],
   shuttleBack: [k("j")],
   shuttleStop: [k("k")],
   shuttleForward: [k("l")],
   addMarker: [k("m")],
-  prevCut: [k("ArrowUp")],
-  nextCut: [k("ArrowDown")],
+  prevCut: [k("ArrowUp"), k("PageUp")],
+  nextCut: [k("ArrowDown"), k("PageDown")],
   undo: [k("z", { ctrl: true })],
   redo: [k("z", { ctrl: true, shift: true }), k("y", { ctrl: true })],
   // Final Cut applies fades to the selection on Option+T; nothing else in
@@ -123,8 +153,25 @@ const COMMON: Partial<Keymap> = {
 
 const NODETOOL: Keymap = {
   ...(COMMON as Keymap),
+  // The edit tools take Premiere's letters where this layout leaves them
+  // free. N is snapping here, so the Rolling Edit tool sits on Shift+B, next
+  // to Ripple. D, W and Shift+E are the source edits, so the Premiere edits
+  // that use them move to Shift+D, brackets and Ctrl+Shift+E.
   selectTool: [k("v")],
+  trackSelectTool: [k("a")],
+  rippleTool: [k("b")],
+  rollTool: [k("b", { shift: true })],
+  rateStretchTool: [k("r")],
   cutTool: [k("c")],
+  slipTool: [k("y")],
+  selectClipAtPlayhead: [k("d", { shift: true })],
+  toggleClipEnabled: [k("e", { ctrl: true, shift: true })],
+  rippleTrimPrevToPlayhead: [k("[")],
+  rippleTrimNextToPlayhead: [k("]")],
+  liftRange: [k(";")],
+  extractRange: [k("'")],
+  stepFramesBack: [k("ArrowLeft", { alt: true, shift: true })],
+  stepFramesForward: [k("ArrowRight", { alt: true, shift: true })],
   splitAtPlayhead: [k("s")],
   // Ctrl/Cmd+K opens the app's command menu on every view.
   cutAllTracks: [k("k", { ctrl: true, shift: true })],
@@ -157,8 +204,22 @@ const NODETOOL: Keymap = {
 
 const PREMIERE: Keymap = {
   ...(COMMON as Keymap),
+  // Premiere's Tools panel: V A B N R C Y.
   selectTool: [k("v")],
+  trackSelectTool: [k("a")],
+  rippleTool: [k("b")],
+  rollTool: [k("n")],
+  rateStretchTool: [k("r")],
   cutTool: [k("c")],
+  slipTool: [k("y")],
+  selectClipAtPlayhead: [k("d")],
+  toggleClipEnabled: [k("e", { shift: true })],
+  rippleTrimPrevToPlayhead: [k("q")],
+  rippleTrimNextToPlayhead: [k("w")],
+  liftRange: [k(";")],
+  extractRange: [k("'")],
+  stepFramesBack: [k("ArrowLeft", { shift: true })],
+  stepFramesForward: [k("ArrowRight", { shift: true })],
   // Premiere splits on Cmd+K, which opens the app's command menu here, so
   // the split adds Alt.
   splitAtPlayhead: [k("k", { ctrl: true, alt: true })],
@@ -183,15 +244,32 @@ const PREMIERE: Keymap = {
   zoomFit: [k("\\")],
   toggleSnap: [k("s")],
   applyDefaultTransition: [k("d", { ctrl: true })],
-  sourceAppend: [k("e", { shift: true })],
+  // Shift+E enables and disables clips in Premiere, so append adds Ctrl.
+  sourceAppend: [k("e", { ctrl: true, shift: true })],
   sourceInsert: [k(",")],
   sourceOverwrite: [k(".")]
 };
 
 const FCP: Keymap = {
   ...(COMMON as Keymap),
+  // Final Cut's Trim tool (T) ripples an edge and Shift+T stands in for its
+  // roll. C selects the clip under the playhead, V toggles it on and off,
+  // and Option+[ / Option+] trim to the playhead.
   selectTool: [k("a")],
+  trackSelectTool: [k("a", { shift: true })],
+  rippleTool: [k("t")],
+  rollTool: [k("t", { shift: true })],
+  rateStretchTool: [k("r")],
   cutTool: [k("b")],
+  slipTool: [k("y")],
+  selectClipAtPlayhead: [k("c")],
+  toggleClipEnabled: [k("v")],
+  rippleTrimPrevToPlayhead: [k("[", { alt: true })],
+  rippleTrimNextToPlayhead: [k("]", { alt: true })],
+  liftRange: [k(";")],
+  extractRange: [k("'")],
+  stepFramesBack: [k("ArrowLeft", { shift: true })],
+  stepFramesForward: [k("ArrowRight", { shift: true })],
   splitAtPlayhead: [k("b", { ctrl: true })],
   cutAllTracks: [k("b", { ctrl: true, shift: true })],
   // Final Cut ripples on Delete; Shift+Delete lifts and leaves the gap.
@@ -242,6 +320,8 @@ const SYMBOL_CODES: Record<string, string> = {
   ",": "Comma",
   ".": "Period",
   "'": "Quote",
+  "[": "BracketLeft",
+  "]": "BracketRight",
   ";": "Semicolon",
   "\\": "Backslash",
   "=": "Equal",
@@ -305,7 +385,9 @@ const KEY_LABELS: Record<string, string> = {
   ArrowUp: "↑",
   ArrowDown: "↓",
   " ": "Space",
-  Escape: "Esc"
+  Escape: "Esc",
+  PageUp: "Page Up",
+  PageDown: "Page Down"
 };
 
 /** The key chips the shortcut sheet shows for one binding. */
