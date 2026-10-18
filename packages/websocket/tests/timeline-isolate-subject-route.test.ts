@@ -2,7 +2,7 @@
  * `POST /api/timelines/:id/isolate-subject`.
  *
  * The capability itself is covered in `@nodetool-ai/agents`; what is tested
- * here is the door: the body schema refuses a value the endpoint would reject,
+ * here is the door: the body schema refuses a body with no provider or model,
  * the timeline id comes off the path rather than the body, a refusal is a 400
  * with the message, and a generation that *ran* and failed is still a 200 —
  * the client has to be able to tell "the call was never worth making" from
@@ -13,7 +13,6 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { ModelObserver, initTestDb } from "@nodetool-ai/models";
 
@@ -27,9 +26,8 @@ vi.mock("../src/lib/storage.js", () => ({
 /** What the stubbed capability was called with, and what it answers. */
 const invoke = vi.fn<(name: string, args: Record<string, unknown>) => unknown>();
 
-/** The registry the route passed to the run, so the wiring is asserted. */
+/** The secrets lookup the route passed to the run, so the wiring is asserted. */
 let seenSecrets: unknown;
-let seenRegistry: unknown;
 
 // A whole-module stub, not a partial one: `importOriginal` would load the real
 // agents package, and through it the node packages, whose optional
@@ -39,11 +37,7 @@ vi.mock("@nodetool-ai/agents", () => ({
   Tool: class {},
   gateFromContext: () => ({}),
   contextSecretAvailability: () => async () => new Set<string>(),
-  createCapabilityRun: (options: {
-    nodeRegistry?: unknown;
-    availableSecrets?: unknown;
-  }) => {
-    seenRegistry = options.nodeRegistry;
+  createCapabilityRun: (options: { availableSecrets?: unknown }) => {
     seenSecrets = options.availableSecrets;
     return {
       invoke: (name: string, args: Record<string, unknown>) =>
@@ -59,14 +53,10 @@ const timelineIsolateSubjectRoutes = (
 const USER_ID = "user-1";
 const TIMELINE_ID = "tl-1";
 
-/** Stands in for the server's registry; the stubbed run never reads it. */
-const REGISTRY = { has: () => true } as unknown as NodeRegistry;
-
 const VALID_BODY = {
   clip_id: "clip-1",
-  model: "Matting",
-  operating_resolution: "2048x2048",
-  refine_foreground: true,
+  provider: "fal_ai",
+  model: "fal-ai/birefnet/v2/video/Matting",
   regenerate: false
 } as const;
 
@@ -92,9 +82,7 @@ async function buildServer(): Promise<FastifyInstance> {
   app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
     done(null, body);
   });
-  await app.register(timelineIsolateSubjectRoutes, {
-    apiOptions: { registry: REGISTRY }
-  });
+  await app.register(timelineIsolateSubjectRoutes, { apiOptions: {} });
   await app.ready();
   return app;
 }
@@ -113,7 +101,6 @@ describe("POST /api/timelines/:id/isolate-subject", () => {
   beforeEach(async () => {
     initTestDb();
     invoke.mockReset();
-    seenRegistry = undefined;
     seenSecrets = undefined;
     server = await buildServer();
   });
@@ -136,27 +123,14 @@ describe("POST /api/timelines/:id/isolate-subject", () => {
     });
   });
 
-  it("gives the run the server's node registry — the provider call needs one", async () => {
+  it("tells the run which secrets this install holds", async () => {
     invoke.mockReturnValue(CAPABILITY_RESULT);
 
     await post(server, VALID_BODY);
 
-    expect(seenRegistry).toBe(REGISTRY);
-    // The FAL key is read through the run, so the route must say which
+    // The provider key is read through the run, so the route must say which
     // secrets this install holds rather than leaving the run blind.
     expect(typeof seenSecrets).toBe("function");
-  });
-
-  it("takes a body naming only the clip and lets the capability default the rest", async () => {
-    invoke.mockReturnValue(CAPABILITY_RESULT);
-
-    const res = await post(server, { clip_id: "clip-1" });
-
-    expect(res.statusCode).toBe(200);
-    expect(invoke).toHaveBeenCalledWith("isolate_subject", {
-      clip_id: "clip-1",
-      timeline_id: TIMELINE_ID
-    });
   });
 
   it("refuses a body with no clip", async () => {
@@ -167,20 +141,19 @@ describe("POST /api/timelines/:id/isolate-subject", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("refuses a model the endpoint does not offer", async () => {
-    const res = await post(server, { ...VALID_BODY, model: "Best One" });
+  it("refuses a body with no provider", async () => {
+    const res = await post(server, { clip_id: "clip-1", model: VALID_BODY.model });
 
     expect(res.statusCode).toBe(400);
+    expect(String(res.json().detail)).toContain("provider");
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("refuses a resolution the endpoint does not offer", async () => {
-    const res = await post(server, {
-      ...VALID_BODY,
-      operating_resolution: "4096x4096"
-    });
+  it("refuses a body with no model", async () => {
+    const res = await post(server, { clip_id: "clip-1", provider: "fal_ai" });
 
     expect(res.statusCode).toBe(400);
+    expect(String(res.json().detail)).toContain("model");
     expect(invoke).not.toHaveBeenCalled();
   });
 

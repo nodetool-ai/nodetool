@@ -249,6 +249,7 @@ export type VideoModelTask =
   | "upscale_video"
   | "interpolate_video"
   | "outpaint_video"
+  | "matte_video"
   | "lip_sync";
 
 /**

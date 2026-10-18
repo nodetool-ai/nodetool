@@ -2,17 +2,20 @@
  * `isolate_subject`: cut the subject out of a video clip and carry the result
  * as that clip's generated matte (D2).
  *
- * Three things are separated here on purpose, because only one of them costs
+ * Two things are separated here on purpose, because only one of them costs
  * money and only one of them can be tested without a provider key:
  *
  * 1. {@link isolateSubjectOnClip} — the state machine over one clip. It marks
- *    the matte in flight, asks the runner for a mask, stores it, applies the
- *    result, and persists at every step. No models, no HTTP, no node registry:
- *    everything it cannot do itself arrives on {@link IsolateSubjectDeps}.
- * 2. {@link falIsolateSubjectRunner} — the provider call, wrapped in the
- *    generation seam so the run gets a row, a cost receipt and cancellation.
- * 3. {@link contextMaskStore} — the download, under the media-egress policy,
- *    and the asset it becomes.
+ *    the matte in flight, asks the runner for a mask, applies the result, and
+ *    persists at every step. No models, no HTTP, no providers: everything it
+ *    cannot do itself arrives on {@link IsolateSubjectDeps}.
+ * 2. {@link providerIsolateSubjectRunner} — the provider's `matte_video` task,
+ *    run through the generation seam so the run gets a row, a cost receipt,
+ *    cancellation, and the stored mask asset.
+ *
+ * **The provider and model are the caller's.** Any provider that declares
+ * `matte_video` and lists a model for it can cut the matte; nothing here
+ * names one.
  *
  * **The whole source asset is sent, never the clip's window.** The mask video
  * is read back at the clip's own source time, so its first frame has to be the
@@ -27,7 +30,6 @@
  * `applyGeneratedMatteResult`'s rule rather than this module's.
  */
 
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   applyGeneratedMatteResult,
@@ -37,18 +39,12 @@ import {
   type GeneratedMatteResult,
   type TimelineClip
 } from "@nodetool-ai/timeline";
-import { isRecord, isString } from "../utils/type-guards.js";
-import {
-  ISOLATE_SUBJECT_ENDPOINT,
-  ISOLATE_SUBJECT_NODE_TYPE,
-  ISOLATE_SUBJECT_PROVIDER
-} from "./timelines.specs.js";
+import { isString } from "../utils/type-guards.js";
 
-/** The knobs one generation runs with. Recorded on the matte as provenance. */
+/** The provider and model one generation runs with. Recorded on the matte as provenance. */
 export interface IsolateSubjectSettings {
+  provider: string;
   model: string;
-  operating_resolution: string;
-  refine_foreground: boolean;
 }
 
 /** What the runner is asked for: a mask of one whole source asset. */
@@ -58,10 +54,10 @@ export interface IsolateSubjectRunRequest {
   settings: IsolateSubjectSettings;
 }
 
-/** What the runner answers with. The bytes are somebody else's problem. */
+/** What the runner answers with. */
 export interface IsolateSubjectRunResult {
-  /** Where the grayscale mask video can be read from. */
-  maskVideoUrl: string;
+  /** The stored grayscale mask video. */
+  maskAssetId: string;
   /** The generation row, so the caller can poll or reconcile it. */
   generationId?: string;
   /** What the provider charged, when it or the catalog stated a price. */
@@ -76,14 +72,6 @@ export type IsolateSubjectRunner = (
   request: IsolateSubjectRunRequest
 ) => Promise<IsolateSubjectRunResult>;
 
-/** The mask, once it is somewhere the document can name. */
-export interface StoredMask {
-  assetId: string;
-}
-
-/** Downloads a provider URL and stores it as an asset. */
-export type MaskStore = (maskVideoUrl: string) => Promise<StoredMask>;
-
 /**
  * Writes the clip back to wherever the document lives. `false` means the
  * document moved under the call — a concurrent edit — and nothing was saved.
@@ -92,7 +80,6 @@ export type PersistClip = (clip: TimelineClip) => Promise<boolean>;
 
 export interface IsolateSubjectDeps {
   runner: IsolateSubjectRunner;
-  storeMask: MaskStore;
   persist: PersistClip;
 }
 
@@ -134,13 +121,13 @@ const CONCURRENT_EDIT =
 function matteSettings(
   settings: IsolateSubjectSettings
 ): Record<string, number | string | boolean> {
-  return {
-    model: settings.model,
-    operating_resolution: settings.operating_resolution,
-    refine_foreground: settings.refine_foreground,
-    provider: ISOLATE_SUBJECT_PROVIDER,
-    endpoint: ISOLATE_SUBJECT_ENDPOINT
-  };
+  return { provider: settings.provider, model: settings.model };
+}
+
+/** A matte without the last failure's reason, which a new run supersedes. */
+function withoutError(matte: ClipGeneratedMatte): ClipGeneratedMatte {
+  const { error: _superseded, ...rest } = matte;
+  return rest;
 }
 
 /**
@@ -160,7 +147,7 @@ export function markGeneratedMatteGenerating(
 ): TimelineClip {
   const previous = clip.generatedMatte;
   const generating: ClipGeneratedMatte = previous
-    ? { ...previous, status: "generating" }
+    ? { ...withoutError(previous), status: "generating" }
     : {
         assetId: "",
         sourceAssetId,
@@ -176,17 +163,24 @@ export function markGeneratedMatteGenerating(
  *
  * A previous ready result is put back exactly as it was — the same asset, the
  * same versions, the same knobs — because a failed regenerate must not cost
- * the user the matte they were already working with. Only a first attempt
- * leaves a `failed` marker behind.
+ * the user the matte they were already working with. Only a clip with no
+ * result to keep is left with a `failed` marker, carrying the reason.
  */
 export function generatedMatteAfterFailure(
   clip: TimelineClip,
-  previous: ClipGeneratedMatte | undefined
+  previous: ClipGeneratedMatte | undefined,
+  error?: string
 ): TimelineClip {
-  if (previous) return { ...clip, generatedMatte: { ...previous } };
+  // A failed first run left a marker with no mask; that is not a result to
+  // keep, and putting it back would show the earlier run's reason.
+  if (previous && previous.assetId !== "") {
+    return { ...clip, generatedMatte: { ...previous } };
+  }
   const matte = clip.generatedMatte;
   if (!matte) return clip;
-  return { ...clip, generatedMatte: { ...matte, status: "failed" } };
+  const failed: ClipGeneratedMatte = { ...matte, status: "failed" };
+  if (error) failed.error = error;
+  return { ...clip, generatedMatte: failed };
 }
 
 /**
@@ -250,9 +244,8 @@ export async function isolateSubjectOnClip(
 
   try {
     const run = await deps.runner({ sourceAssetId, settings: input.settings });
-    const stored = await deps.storeMask(run.maskVideoUrl);
     const result: GeneratedMatteResult = {
-      assetId: stored.assetId,
+      assetId: run.maskAssetId,
       sourceAssetId,
       sourceRange,
       settings: matteSettings(input.settings)
@@ -267,7 +260,7 @@ export async function isolateSubjectOnClip(
     const outcome: IsolateSubjectOutcome = {
       clip: settled,
       status: "ready",
-      assetId: stored.assetId,
+      assetId: run.maskAssetId,
       sourceRange,
       reused: false
     };
@@ -275,7 +268,8 @@ export async function isolateSubjectOnClip(
     if (run.costUsd !== undefined) outcome.costUsd = run.costUsd;
     return outcome;
   } catch (error) {
-    const reverted = generatedMatteAfterFailure(generating, previous);
+    const message = error instanceof Error ? error.message : String(error);
+    const reverted = generatedMatteAfterFailure(generating, previous, message);
     // Best effort: the generation already failed, and a save that also fails
     // leaves the in-flight marker, which the next call overwrites.
     await deps.persist(reverted);
@@ -284,24 +278,14 @@ export async function isolateSubjectOnClip(
       status: "failed",
       sourceRange,
       reused: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: message
     };
   }
 }
 
 // ---------------------------------------------------------------------------
-// The real deps
+// The real runner
 // ---------------------------------------------------------------------------
-
-/** The mask URL, wherever the node's result put it. */
-function maskVideoUrlOf(record: Record<string, unknown>): string | null {
-  const direct = record["mask_video"] ?? record["mask_video_url"];
-  if (isString(direct) && direct !== "") return direct;
-  if (isRecord(direct) && isString(direct["url"]) && direct["url"] !== "") {
-    return direct["url"];
-  }
-  return null;
-}
 
 /** A receipt's charge, when the provider or the catalog stated one in USD. */
 function costUsdOf(receipt: {
@@ -313,125 +297,62 @@ function costUsdOf(receipt: {
   return currency.toUpperCase() === "USD" ? cost.amount : undefined;
 }
 
+/** What a stored mask is named, before the asset id replaces it. */
+const MASK_ASSET_PREFIX = "isolated-subject-matte";
+
 /**
- * Run the endpoint through its node, inside the generation seam.
+ * Run the provider's `matte_video` task inside the generation seam.
  *
  * The seam is what makes this a *generation* rather than a call: the row is
  * open before the provider is reached, `cancel_generation` can abort it, the
- * FAL node's own `reportFalCost` lands on the receipt, and a request id the
- * reconciler can settle against the invoice is recorded either way. The node
- * holds the API key, so the seam runs `withoutProvider`.
+ * cost lands on the receipt, and the mask is stored as an asset before the row
+ * settles. A provider error surfaces as the generation's own error, which is
+ * the reason the inspector names.
  *
- * The mask is the point of the call, so a result without one is an error
- * rather than a silent no-matte success.
+ * The mask is the point of the call, so a result with no stored asset is an
+ * error rather than a silent no-matte success.
  */
-export function falIsolateSubjectRunner(
+export function providerIsolateSubjectRunner(
   context: ProcessingContext,
-  registry: NodeRegistry,
   generationId: string
 ): IsolateSubjectRunner {
   return async (request) => {
-    if (!registry.has(ISOLATE_SUBJECT_NODE_TYPE)) {
+    const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+    const video = await loadMediaRefBytes(
+      { type: "video", asset_id: request.sourceAssetId },
+      context
+    );
+    if (!video || video.byteLength === 0) {
       throw new Error(
-        `${ISOLATE_SUBJECT_NODE_TYPE} is not registered in this install, so ` +
-          "there is nothing to cut the subject out with."
+        `The source video ${request.sourceAssetId} could not be read, so ` +
+          "there is nothing to cut the subject out of."
       );
     }
-    const properties: Record<string, unknown> = {
-      video: {
-        type: "video",
-        uri: `asset://${request.sourceAssetId}`,
-        asset_id: request.sourceAssetId
-      },
+    const result = await context.runGeneration({
+      id: generationId,
+      provider: request.settings.provider,
       model: request.settings.model,
-      operating_resolution: request.settings.operating_resolution,
-      refine_foreground: request.settings.refine_foreground,
-      output_mask: true
-    };
-    const result = await context.runGenerationWith(
-      {
-        id: generationId,
-        provider: ISOLATE_SUBJECT_PROVIDER,
-        capability: "video_to_video",
-        model: ISOLATE_SUBJECT_ENDPOINT,
-        params: {
-          asset_id: request.sourceAssetId,
-          model: request.settings.model,
-          operating_resolution: request.settings.operating_resolution,
-          refine_foreground: request.settings.refine_foreground,
-          output_mask: true
-        },
-        origin: { surface: "capability" }
-      },
-      async () => {
-        const executor = registry.resolve({
-          id: `isolate-subject-${generationId}`,
-          type: ISOLATE_SUBJECT_NODE_TYPE,
-          properties
-        });
-        const emitted: Record<string, unknown>[] = [];
-        for await (const chunk of executor.genProcess!(properties, context)) {
-          emitted.push(chunk);
-        }
-        return emitted;
-      },
-      { withoutProvider: true }
-    );
-
-    let maskVideoUrl: string | null = null;
-    for (const record of result.output) {
-      maskVideoUrl = maskVideoUrlOf(record) ?? maskVideoUrl;
-    }
-    if (maskVideoUrl === null) {
+      capability: "matte_video",
+      params: { asset_id: request.sourceAssetId, video },
+      origin: { surface: "capability" },
+      persist: { name: MASK_ASSET_PREFIX, mime: "video/mp4" }
+    });
+    const maskAssetId = result.assets
+      .map((asset) => asset.asset_id)
+      .find((id): id is string => isString(id) && id !== "");
+    if (maskAssetId === undefined) {
       throw new Error(
-        `${ISOLATE_SUBJECT_ENDPOINT} returned no mask video, so there is ` +
-          "nothing to use as a matte."
+        `${request.settings.provider}:${request.settings.model} returned a ` +
+          "mask that could not be stored as an asset, so no matte can " +
+          "reference it."
       );
     }
     const runResult: IsolateSubjectRunResult = {
-      maskVideoUrl,
+      maskAssetId,
       generationId: result.id
     };
     const cost = result.receipt ? costUsdOf(result.receipt) : undefined;
     if (cost !== undefined) runResult.costUsd = cost;
     return runResult;
-  };
-}
-
-/** What a stored mask is named, before the asset id replaces it. */
-const MASK_ASSET_PREFIX = "isolated-subject-matte";
-
-/**
- * Download the provider's mask and store it as an asset.
- *
- * `fetchExternalMedia` is the one door a provider-chosen URL leaves through —
- * https to a public host, every redirect hop re-checked — because the URL in a
- * provider's response body is not this host's to trust.
- */
-export function contextMaskStore(context: ProcessingContext): MaskStore {
-  return async (maskVideoUrl) => {
-    const { fetchExternalMedia } = await import("@nodetool-ai/runtime");
-    const response = await fetchExternalMedia(maskVideoUrl);
-    if (!response.ok) {
-      throw new Error(
-        `The mask video could not be downloaded: ${response.status} ${response.statusText}.`
-      );
-    }
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength === 0) {
-      throw new Error("The mask video downloaded as zero bytes.");
-    }
-    const { persistOutput } = await import("../tools/asset-persist.js");
-    const saved = await persistOutput(context, bytes, {
-      namePrefix: MASK_ASSET_PREFIX,
-      mime: "video/mp4"
-    });
-    if (!isString(saved.asset_id) || saved.asset_id === "") {
-      throw new Error(
-        "The mask video was downloaded but could not be stored as an asset, " +
-          "so no matte can reference it."
-      );
-    }
-    return { assetId: saved.asset_id };
   };
 }

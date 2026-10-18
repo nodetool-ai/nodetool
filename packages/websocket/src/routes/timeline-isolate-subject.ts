@@ -4,16 +4,15 @@
  * The inspector's "Isolate subject" button posts here. Nothing is generated or
  * written in the browser: the route hands the body to the `isolate_subject`
  * capability, which reads the stored document, marks the clip's matte in
- * flight, runs the provider, stores the mask it returns as an asset, and
- * persists the result. The client reloads the document the capability saved,
- * so the agent path and the inspector path write the same bytes.
+ * flight, runs the chosen provider's `matte_video` task, stores the mask it
+ * returns as an asset, and persists the result. The client reloads the
+ * document the capability saved, so the agent path and the inspector path
+ * write the same bytes.
  *
- * Unlike the audio bake, this capability calls a provider through a node, so
- * the run carries the server's node registry. Everything else — the body being
- * this route's own schema rather than the capability's JSON Schema, the
- * timeline id coming off the path, a refusal being a 400 — matches
- * `timeline-audio-bake.ts`, because a browser request is untrusted input at an
- * HTTP boundary either way.
+ * The body being this route's own schema rather than the capability's JSON
+ * Schema, the timeline id coming off the path, a refusal being a 400 — all of
+ * it matches `timeline-audio-bake.ts`, because a browser request is untrusted
+ * input at an HTTP boundary either way.
  */
 
 import type { FastifyPluginAsync } from "fastify";
@@ -31,11 +30,7 @@ import {
 } from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import { bridge } from "../lib/bridge.js";
-import {
-  getUserId,
-  getWorkflowRuntimeEnvironment,
-  type HttpApiOptions
-} from "../http-api.js";
+import { getUserId, type HttpApiOptions } from "../http-api.js";
 import { getAssetAdapter } from "../lib/storage.js";
 import { isJsonContentType } from "../lib/json-body.js";
 
@@ -47,28 +42,14 @@ interface RouteOptions {
 }
 
 /**
- * The capability's inputs minus `timeline_id`, which the path carries.
- *
- * The two enums are spelled out rather than imported so the door refuses a
- * value the endpoint would reject; the capability checks them again for
- * callers that never come through HTTP.
+ * The capability's inputs minus `timeline_id`, which the path carries. Which
+ * provider and model can cut a matte is the provider catalog's answer, so the
+ * capability checks the pair against it rather than this schema.
  */
 export const isolateSubjectRequest = z.object({
   clip_id: z.string().min(1),
-  model: z
-    .enum([
-      "General Use (Light)",
-      "General Use (Light 2K)",
-      "General Use (Heavy)",
-      "Matting",
-      "Portrait",
-      "General Use (Dynamic)"
-    ])
-    .optional(),
-  operating_resolution: z
-    .enum(["1024x1024", "2048x2048", "2304x2304"])
-    .optional(),
-  refine_foreground: z.boolean().optional(),
+  provider: z.string().min(1),
+  model: z.string().min(1),
   regenerate: z.boolean().optional(),
   background: z.boolean().optional()
 });
@@ -149,14 +130,9 @@ const timelineIsolateSubjectRoutes: FastifyPluginAsync<RouteOptions> = async (
       // the context rather than being built ungated.
       context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate(ISOLATE_HOST));
 
-      const nodeRegistry =
-        apiOptions.registry ??
-        (await getWorkflowRuntimeEnvironment(apiOptions)).registry;
-
       const result = await createCapabilityRun({
         context,
         gate: gateFromContext(context, ISOLATE_HOST),
-        nodeRegistry,
         availableSecrets: contextSecretAvailability(context)
       }).invoke("isolate_subject", { ...parsed.data, timeline_id: id });
 

@@ -169,8 +169,8 @@ const MATTE_POLL_INTERVAL_MS = 3_000;
 const MATTE_POLL_TIMEOUT_MS = 10 * 60_000;
 
 /**
- * What {@link TimelineStoreState.isolateSubject} runs with: the endpoint's own
- * knobs, plus the two timings the poll uses (named so a test does not have to
+ * What {@link TimelineStoreState.isolateSubject} runs with: the provider and
+ * model that cut the matte, plus the two timings the poll uses (named so a test does not have to
  * wait out a real interval).
  */
 export interface IsolateSubjectOptions extends Omit<
@@ -994,7 +994,7 @@ export interface TimelineStoreState {
    */
   isolateSubject: (
     clipId: string,
-    options?: IsolateSubjectOptions
+    options: IsolateSubjectOptions
   ) => Promise<(IsolateSubjectResult & PendingUserResolution) | null>;
 
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
@@ -4446,7 +4446,7 @@ export const createTimelineStore = (
             )
           })),
 
-        isolateSubject: async (clipId, options = {}) => {
+        isolateSubject: async (clipId, options) => {
           const sequenceId = get().sequenceId;
           if (!sequenceId) {
             throw new Error("No timeline is open.");
@@ -4470,28 +4470,49 @@ export const createTimelineStore = (
            */
           const placeholderMatte = (
             source: TimelineClip,
-            status: ClipGeneratedMatte["status"]
-          ): ClipGeneratedMatte => ({
-            // Nothing has been cut yet on a first run, so the placeholder
-            // carries no asset — the scene model draws a matte only when it is
-            // `ready`, so it never reaches the picture.
-            assetId: "",
-            sourceAssetId: source.currentAssetId ?? "",
-            sourceRange: { fromMs: 0, toMs: 0 },
-            settings: {},
-            ...(previous ?? {}),
-            status
-          });
+            status: ClipGeneratedMatte["status"],
+            error?: string
+          ): ClipGeneratedMatte => {
+            // A new run supersedes the last failure's reason.
+            const { error: _superseded, ...kept } = previous ?? {};
+            const matte: ClipGeneratedMatte = {
+              // Nothing has been cut yet on a first run, so the placeholder
+              // carries no asset — the scene model draws a matte only when it
+              // is `ready`, so it never reaches the picture.
+              assetId: "",
+              sourceAssetId: source.currentAssetId ?? "",
+              sourceRange: { fromMs: 0, toMs: 0 },
+              settings: { provider: body.provider, model: body.model },
+              ...kept,
+              status
+            };
+            if (error) matte.error = error;
+            return matte;
+          };
 
           /** Write one status onto the clip's matte without touching the rest. */
-          const mark = (status: ClipGeneratedMatte["status"]): void => {
+          const mark = (
+            status: ClipGeneratedMatte["status"],
+            error?: string
+          ): void => {
             set((state) => ({
               clips: state.clips.map((c) =>
                 c.id === clipId
-                  ? { ...c, generatedMatte: placeholderMatte(c, status) }
+                  ? { ...c, generatedMatte: placeholderMatte(c, status, error) }
                   : c
               )
             }));
+          };
+
+          /** The failure in front of the user, with the provider's reason. */
+          const notifyFailure = (reason: string | undefined): void => {
+            useNotificationStore.getState().addNotification({
+              type: "error",
+              alert: true,
+              content: reason
+                ? `Isolate subject failed: ${reason}`
+                : "Isolate subject failed."
+            });
           };
 
           /**
@@ -4576,6 +4597,9 @@ export const createTimelineStore = (
 
             if (result.status !== "generating") {
               const settled = await adopt(base);
+              // A run that failed still answers 200, with the provider's
+              // reason, so the failure is reported here and not only inline.
+              if (result.status === "failed") notifyFailure(result.error);
               return settled.pending
                 ? { ...result, pendingUserResolution: true }
                 : result;
@@ -4611,28 +4635,23 @@ export const createTimelineStore = (
             }
           } catch (error) {
             // A run that never landed costs the clip nothing: the result it had
-            // goes back exactly as it was, and only a clip that had no matte at
-            // all keeps a `failed` marker — the same rule the server-side
-            // capability follows.
+            // goes back exactly as it was, and only a clip with no result to
+            // keep gets a `failed` marker carrying the reason — the same rule
+            // the server-side capability follows. A failed first run's marker
+            // carries no mask, so it is not a result to put back.
+            const reason = error instanceof Error ? error.message : undefined;
             if (get().clips.some((c) => c.id === clipId)) {
-              if (previous) {
+              if (previous && previous.assetId !== "") {
                 set((state) => ({
                   clips: state.clips.map((c) =>
                     c.id === clipId ? { ...c, generatedMatte: previous } : c
                   )
                 }));
               } else {
-                mark("failed");
+                mark("failed", reason);
               }
             }
-            useNotificationStore.getState().addNotification({
-              type: "error",
-              alert: true,
-              content:
-                error instanceof Error
-                  ? `Isolate subject failed: ${error.message}`
-                  : "Isolate subject failed."
-            });
+            notifyFailure(reason);
             return null;
           }
         },

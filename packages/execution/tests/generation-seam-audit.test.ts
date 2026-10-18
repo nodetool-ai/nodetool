@@ -50,6 +50,7 @@ const MEDIA_METHODS = [
   "upscaleVideo",
   "interpolateVideo",
   "outpaintVideo",
+  "matteVideo",
   "lipSync",
   "textTo3D",
   "imageTo3D"

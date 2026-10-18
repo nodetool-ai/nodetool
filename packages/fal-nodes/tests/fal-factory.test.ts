@@ -375,6 +375,40 @@ describe("FAL factory argument building", () => {
     expect(falSubmit).not.toHaveBeenCalled();
   });
 
+  it("refuses to submit when a required asset cannot be uploaded", async () => {
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/birefnet/v2/video",
+      className: "BiRefNetV2Video",
+      moduleName: "video_to_video",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "video",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          name: "video",
+          propType: "video",
+          tsType: "video",
+          default: null,
+          description: "",
+          fieldType: "input",
+          required: true,
+          apiParamName: "video_url"
+        }
+      ]
+    });
+    assetToFalUrl.mockResolvedValueOnce(null);
+
+    await expect(
+      new NodeClass({ video: { type: "video", uri: "asset://a1" } }).process()
+    ).rejects.toThrow(
+      "video could not be read or uploaded to FAL (asset://a1), so fal-ai/birefnet/v2/video was not called."
+    );
+    expect(falSubmit).not.toHaveBeenCalled();
+  });
+
   it("declares required asset inputs as required so validation catches them", () => {
     const NodeClass = createFalNodeClass({
       endpointId: "fal-ai/bria/background/remove",

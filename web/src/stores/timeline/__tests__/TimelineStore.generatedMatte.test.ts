@@ -40,6 +40,13 @@ const updateMutate = trpcClient.timeline.update.mutate as unknown as jest.Mock<
 const SEQUENCE_ID = "tl-1";
 const CLIP_ID = "shot-1";
 
+/** The provider and model the inspector's picker hands the store. */
+const CHOICE = {
+  provider: "fal_ai",
+  model: "fal-ai/birefnet/v2/video/General Use (Light)"
+};
+const PORTRAIT_MODEL = "fal-ai/birefnet/v2/video/Portrait";
+
 const MATTE: ClipGeneratedMatte = {
   assetId: "mask-2",
   sourceAssetId: "asset-1",
@@ -209,7 +216,7 @@ describe("isolateSubject", () => {
 
     const result = await store
       .getState()
-      .isolateSubject(CLIP_ID, { model: "Portrait" });
+      .isolateSubject(CLIP_ID, { ...CHOICE, model: PORTRAIT_MODEL });
 
     expect(updateMutate.mock.calls[0][0]).toMatchObject({
       id: SEQUENCE_ID,
@@ -217,7 +224,8 @@ describe("isolateSubject", () => {
     });
     expect(postIsolate).toHaveBeenCalledWith(SEQUENCE_ID, {
       clip_id: CLIP_ID,
-      model: "Portrait",
+      provider: "fal_ai",
+      model: PORTRAIT_MODEL,
       regenerate: undefined
     });
     expect(result?.status).toBe("ready");
@@ -251,7 +259,7 @@ describe("isolateSubject", () => {
 
     await store
       .getState()
-      .isolateSubject(CLIP_ID, { pollIntervalMs: 0, timeoutMs: 1000 });
+      .isolateSubject(CLIP_ID, { ...CHOICE, pollIntervalMs: 0, timeoutMs: 1000 });
 
     expect(mockTimelineGet).toHaveBeenCalledTimes(2);
     expect(store.getState().clips[0].generatedMatte?.status).toBe("ready");
@@ -296,7 +304,7 @@ describe("isolateSubject", () => {
         })
     );
 
-    const pending = store.getState().isolateSubject(CLIP_ID);
+    const pending = store.getState().isolateSubject(CLIP_ID, CHOICE);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockTimelineGet).toHaveBeenCalledTimes(1);
 
@@ -326,7 +334,7 @@ describe("isolateSubject", () => {
     const { store } = seedStore(MATTE);
     postIsolate.mockRejectedValue(new Error("Clip carries a time remap"));
 
-    const result = await store.getState().isolateSubject(CLIP_ID);
+    const result = await store.getState().isolateSubject(CLIP_ID, CHOICE);
 
     expect(result).toBeNull();
     // A run that never landed costs the clip nothing.
@@ -344,18 +352,75 @@ describe("isolateSubject", () => {
     const { store } = seedStore();
     postIsolate.mockRejectedValue(new Error("Provider is down"));
 
-    await store.getState().isolateSubject(CLIP_ID);
+    await store.getState().isolateSubject(CLIP_ID, CHOICE);
 
     expect(store.getState().clips[0].generatedMatte).toMatchObject({
       assetId: "",
-      status: "failed"
+      status: "failed",
+      error: "Provider is down"
+    });
+  });
+
+  it("names the provider's reason when the run came back failed", async () => {
+    const { store, track, clip } = seedStore();
+    const failed: ClipGeneratedMatte = {
+      assetId: "",
+      sourceAssetId: "asset-1",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      settings: {},
+      status: "failed",
+      error: "video_url: Video is longer than 30 seconds"
+    };
+    postIsolate.mockResolvedValue({
+      status: "failed",
+      sourceRange: { fromMs: 0, toMs: 4000 },
+      reused: false,
+      error: "video_url: Video is longer than 30 seconds"
+    });
+    mockTimelineGet.mockResolvedValue(serverSequence(track, clip, failed));
+
+    const result = await store.getState().isolateSubject(CLIP_ID, CHOICE);
+
+    expect(result?.status).toBe("failed");
+    expect(store.getState().clips[0].generatedMatte).toMatchObject({
+      status: "failed",
+      error: "video_url: Video is longer than 30 seconds"
+    });
+    expect(
+      useNotificationStore
+        .getState()
+        .notifications.some(
+          (n) =>
+            n.type === "error" &&
+            n.content ===
+              "Isolate subject failed: video_url: Video is longer than 30 seconds"
+        )
+    ).toBe(true);
+  });
+
+  it("does not put a failed first run's marker back when the retry is refused", async () => {
+    const { store } = seedStore({
+      assetId: "",
+      sourceAssetId: "asset-1",
+      sourceRange: { fromMs: 0, toMs: 0 },
+      settings: {},
+      status: "failed",
+      error: "first reason"
+    });
+    postIsolate.mockRejectedValue(new Error("second reason"));
+
+    await store.getState().isolateSubject(CLIP_ID, CHOICE);
+
+    expect(store.getState().clips[0].generatedMatte).toMatchObject({
+      status: "failed",
+      error: "second reason"
     });
   });
 
   it("refuses when no timeline is open", async () => {
     const { store } = seedStore();
     store.setState({ sequenceId: null });
-    await expect(store.getState().isolateSubject(CLIP_ID)).rejects.toThrow(
+    await expect(store.getState().isolateSubject(CLIP_ID, CHOICE)).rejects.toThrow(
       "No timeline is open."
     );
     expect(postIsolate).not.toHaveBeenCalled();
@@ -373,7 +438,7 @@ describe("isolateSubject", () => {
       return serverSequence(track, clip, MATTE);
     });
 
-    await store.getState().isolateSubject(CLIP_ID);
+    await store.getState().isolateSubject(CLIP_ID, CHOICE);
 
     expect(store.getState().clips[0].generatedMatte?.assetId).toBe("");
   });
@@ -398,7 +463,7 @@ describe("isolateSubject", () => {
     // carried, and answers with that document plus the matte.
     mockTimelineGet.mockResolvedValue(serverSequence(track, clip, MATTE));
 
-    const pending = store.getState().isolateSubject(CLIP_ID);
+    const pending = store.getState().isolateSubject(CLIP_ID, CHOICE);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(updateMutate).toHaveBeenCalledTimes(1);
 
@@ -433,7 +498,7 @@ describe("isolateSubject", () => {
         })
     );
 
-    const pending = store.getState().isolateSubject(CLIP_ID);
+    const pending = store.getState().isolateSubject(CLIP_ID, CHOICE);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockTimelineGet).toHaveBeenCalledTimes(1);
 
@@ -479,7 +544,7 @@ describe("isolateSubject", () => {
         })
     );
 
-    const pending = store.getState().isolateSubject(CLIP_ID);
+    const pending = store.getState().isolateSubject(CLIP_ID, CHOICE);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     // Both sides changed the matte itself: the user threw it away while the
@@ -531,7 +596,7 @@ describe("isolateSubject", () => {
         })
     );
 
-    const pending = store.getState().isolateSubject(CLIP_ID);
+    const pending = store.getState().isolateSubject(CLIP_ID, CHOICE);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(mockTimelineGet).toHaveBeenCalledTimes(1);
 

@@ -806,6 +806,17 @@ export interface UpscaleVideoParams {
 }
 
 /**
+ * Subject matting: cut the main subject out of a clip. The answer is a
+ * grayscale mask video, white where the subject is, with the source's frame
+ * timing, so a caller can read it back at the source's own clock.
+ */
+export interface MatteVideoParams {
+  model: VideoModel;
+  timeoutSeconds?: number | null;
+  signal?: AbortSignal;
+}
+
+/**
  * Frame interpolation: synthesize intermediate frames so a clip plays at a
  * higher frame rate, or in slow motion at the same one. `targetFps` and
  * `factor` are alternatives — an endpoint declares one (`target_fps` on Topaz,

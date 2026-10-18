@@ -49,6 +49,7 @@ import type {
   OutpaintVideoParams,
   UpscaleImageParams,
   UpscaleVideoParams,
+  MatteVideoParams,
   VectorizeImageParams,
   VideoModel,
   VideoToVideoParams,
@@ -233,6 +234,7 @@ export type ProviderCapability =
   | "upscale_video"
   | "interpolate_video"
   | "outpaint_video"
+  | "matte_video"
   | "lip_sync"
   | "text_to_speech"
   | "text_to_music"
@@ -1979,6 +1981,17 @@ export abstract class BaseProvider {
   }
 
   /**
+   * Cut the subject out of a video. Returns a grayscale mask video, white
+   * where the subject is, timed like the source.
+   */
+  async matteVideo(
+    _video: Uint8Array,
+    _params: MatteVideoParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support matteVideo`);
+  }
+
+  /**
    * Synthesize intermediate frames so a clip plays at a higher frame rate (or
    * in slow motion at the same one).
    */
@@ -2261,6 +2274,7 @@ const MODALITY_PROMISE_METHODS = [
   "upscaleVideo",
   "interpolateVideo",
   "outpaintVideo",
+  "matteVideo",
   "lipSync",
   "textTo3D",
   "imageTo3D",

@@ -138,6 +138,21 @@ function fieldLabel(field: { name: string }): string {
   return field.name;
 }
 
+/** Where an asset ref points, for an error message. Never inline data. */
+function describeRef(ref: Record<string, unknown>): string {
+  if (
+    typeof ref.uri === "string" &&
+    ref.uri !== "" &&
+    !ref.uri.startsWith("data:")
+  ) {
+    return ref.uri.length > 200 ? `${ref.uri.slice(0, 200)}…` : ref.uri;
+  }
+  if (typeof ref.asset_id === "string" && ref.asset_id !== "") {
+    return `asset ${ref.asset_id}`;
+  }
+  return "inline data";
+}
+
 function validateRequiredAssetArgs(
   instance: BaseNode,
   spec: FalManifestEntry,
@@ -258,7 +273,16 @@ async function buildArgs(
               ? ((await imageToDataUrl(ref!, context)) ??
                 (await assetToFalUrl(apiKey, ref!, context)))
               : await assetToFalUrl(apiKey, ref!, context);
-          if (url) args[apiName] = url;
+          if (url) {
+            args[apiName] = url;
+          } else if (field.required) {
+            // Sending the request without it buys a provider error about a
+            // missing field instead of one about the file that could not be read.
+            throw new Error(
+              `${fieldLabel(field)} could not be read or uploaded to FAL ` +
+                `(${describeRef(ref!)}), so ${spec.endpointId} was not called.`
+            );
+          }
         }
       }
     } else {

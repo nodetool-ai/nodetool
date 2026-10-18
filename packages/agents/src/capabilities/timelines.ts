@@ -52,10 +52,6 @@ import {
   renderTimelineSpec,
   bakeAudioAnimationSpec,
   isolateSubjectSpec,
-  ISOLATE_SUBJECT_MODELS,
-  ISOLATE_SUBJECT_RESOLUTIONS,
-  DEFAULT_ISOLATE_SUBJECT_MODEL,
-  DEFAULT_ISOLATE_SUBJECT_RESOLUTION,
   DEFAULT_BAKE_ATTACK_MS,
   DEFAULT_BAKE_RELEASE_MS,
   DEFAULT_BAKE_TOLERANCE,
@@ -2240,25 +2236,12 @@ const bakeAudioAnimation: CapabilityExport = {
 // isolate_subject
 // ---------------------------------------------------------------------------
 
-/** One of `allowed`, or the default when the caller named none of them. */
-function enumOr(
-  value: unknown,
-  allowed: readonly string[],
-  fallback: string
-): string | ToolError {
-  if (value === undefined || value === null) return fallback;
-  if (isString(value) && allowed.includes(value)) return value;
-  return {
-    error: `"${String(value)}" is not one of: ${allowed.join(", ")}.`
-  };
-}
-
 /**
  * Cut the subject out of a clip's own source and carry the mask on that clip.
  *
  * The document work is `isolateSubjectOnClip`; everything here is the wiring
- * it refuses to know about — the sequence row, the CAS save, the node registry
- * the provider call needs, and the background receipt. The save closure
+ * it refuses to know about — the model check, the sequence row, the CAS save,
+ * and the background receipt. The save closure
  * carries `updated_at` forward, so the in-flight write and the settled write
  * are two CAS updates rather than one lost one.
  */
@@ -2271,27 +2254,19 @@ const isolateSubject: CapabilityExport = {
         error: "timeline_id is required (use list_timelines to find one)."
       };
     }
-    const registry = run.nodeRegistry;
-    if (!registry) {
-      const { noRegistryError } = await import("../tools/mcp-tool-support.js");
-      return noRegistryError("isolate a subject");
-    }
-    const model = enumOr(
+    // Refused before anything is marked in flight: a provider or model that
+    // cannot cut a matte is a call that was never worth making.
+    const { selectVideoModel } = await import("./timeline-native-media.js");
+    const selected = await selectVideoModel(
+      run.context,
+      params["provider"],
       params["model"],
-      ISOLATE_SUBJECT_MODELS,
-      DEFAULT_ISOLATE_SUBJECT_MODEL
+      "matte_video"
     );
-    if (isError(model)) return model;
-    const resolution = enumOr(
-      params["operating_resolution"],
-      ISOLATE_SUBJECT_RESOLUTIONS,
-      DEFAULT_ISOLATE_SUBJECT_RESOLUTION
-    );
-    if (isError(resolution)) return resolution;
+    if (isError(selected)) return selected;
     const settings = {
-      model,
-      operating_resolution: resolution,
-      refine_foreground: params["refine_foreground"] !== false
+      provider: selected.model.provider,
+      model: selected.model.id
     };
 
     const { TimelineSequence } = await import("@nodetool-ai/models");
@@ -2316,11 +2291,8 @@ const isolateSubject: CapabilityExport = {
       }
     }
 
-    const {
-      contextMaskStore,
-      falIsolateSubjectRunner,
-      isolateSubjectOnClip
-    } = await import("./timeline-isolate-subject.js");
+    const { providerIsolateSubjectRunner, isolateSubjectOnClip } =
+      await import("./timeline-isolate-subject.js");
 
     const { randomUUID } = await import("node:crypto");
     const generationId = randomUUID();
@@ -2348,8 +2320,7 @@ const isolateSubject: CapabilityExport = {
     };
 
     const deps = {
-      runner: falIsolateSubjectRunner(run.context, registry, generationId),
-      storeMask: contextMaskStore(run.context),
+      runner: providerIsolateSubjectRunner(run.context, generationId),
       persist
     };
     const input: IsolateSubjectInput = {

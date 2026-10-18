@@ -1450,6 +1450,8 @@ export interface ClipGeneratedMatte {
     settings: Record<string, number | string | boolean>;
   }[];
   status?: "ready" | "generating" | "failed";
+  /** Why the last run failed, as the provider said it. Set only while `status` is `failed`. */
+  error?: string;
 }
 
 /**

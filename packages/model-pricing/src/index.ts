@@ -89,15 +89,16 @@ function isText<T>(value: T): value is T & string {
 
 /**
  * Endpoints whose catalog id is a prefix of the ids NodeTool offers: the FAL
- * provider expands Topaz's `model` enum into one selectable model per variant
- * (`fal-ai/topaz/upscale/image/Redefine`), while the generated catalog is keyed
- * by the endpoint FAL bills — which prices every variant the same. Without this
+ * provider expands Topaz's and BiRefNet's `model` enums into one selectable
+ * model per variant (`fal-ai/topaz/upscale/image/Redefine`), while the
+ * generated catalog is keyed by the endpoint FAL bills — which prices every variant the same. Without this
  * the variants would come back unpriced, so a run of one would skip the budget
  * gate the single entry used to be gated by.
  */
 const FAL_VARIANT_ENDPOINTS = [
   "fal-ai/topaz/upscale/image",
-  "fal-ai/topaz/upscale/video"
+  "fal-ai/topaz/upscale/video",
+  "fal-ai/birefnet/v2/video"
 ];
 
 /** The catalog key for a model id, folding a variant back onto its endpoint. */

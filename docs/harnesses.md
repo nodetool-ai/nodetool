@@ -897,10 +897,11 @@ and no network.
 `isolate_subject` cuts the subject out of a video clip and carries the mask on
 that clip as `generatedMatte` (D2), so a trim, a split or a speed change keeps
 the cutout aligned with no second clip to sync. It sends the clip's **whole**
-source asset to `fal-ai/birefnet/v2/video` with `output_mask: true`, downloads
-the grayscale mask through `fetchExternalMedia` — the media-egress door, https
-to a public host with every redirect hop re-checked — and stores it as an
-asset; the mask is read back at the clip's own source time, which is why a
+source asset to the caller's provider and model through the provider's
+`matte_video` task, inside the generation seam, which stores the grayscale mask
+as an asset and records the cost. FAL serves the task through
+`fal-ai/birefnet/v2/video`, one model per BiRefNet variant, and downloads the
+mask with the provider's own `safeFetch`. The mask is read back at the clip's own source time, which is why a
 submission trimmed to the clip's window would need an offset the document does
 not carry. A clip that already has a current cutout is handed it back with
 `reused: true` and nothing is spent; a matte whose source asset was replaced
@@ -911,7 +912,7 @@ run through the same helpers in `packages/timeline/src/generatedMatte.ts`.
 
 The provider is never called in a check. `isolateSubjectOnClip`
 (`packages/agents/src/capabilities/timeline-isolate-subject.ts`) takes its
-runner, its mask store and its persist step as dependencies, so
+runner and its persist step as dependencies, so
 `capabilities-isolate-subject.test.ts` drives the whole state machine with a
 fake runner and asserts the document: the in-flight write keeps the previous
 asset visible, a finished run pushes the displaced result onto `versions` and
@@ -919,7 +920,8 @@ keeps the user's own knobs, and a **failed regenerate leaves the previous ready
 matte selected** rather than costing the user a working cutout. The HTTP door
 the inspector posts to is `POST /api/timelines/:id/isolate-subject`
 (`timeline-isolate-subject-route.test.ts`), which is the capability's inputs
-minus `timeline_id`.
+minus `timeline_id`. The inspector's model picker lists every model a
+configured provider declares for `matte_video`.
 
 ### nodetool timeline versions (Timeline Version History)
 

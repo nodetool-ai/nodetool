@@ -30,11 +30,11 @@ before the first `edit_timeline` call. Building a new cut belongs to
 | The mouth does not match the new audio | `lip_sync` | An inactive video candidate |
 | A title or shape should move with the music | `bake_audio_animation` | A `custom` animation on the target clip |
 
-`isolate_subject` always runs FAL's BiRefNet video endpoint. It takes no
-`provider`, and its optional `model` is that endpoint's own enum (default
-`"General Use (Light)"`, `"Matting"` for hair, `"Portrait"` for people), not a
-`find_model` id. A clip with a current matte gets it back for free unless
-`regenerate: true`.
+`isolate_subject` takes `provider` and a `model` that lists the `matte_video`
+task. `list_provider_models` shows them. On FAL each BiRefNet variant is its
+own model, such as `fal-ai/birefnet/v2/video/Matting` for hair and
+`fal-ai/birefnet/v2/video/Portrait` for people. A clip with a current matte
+gets it back for free unless `regenerate: true`.
 
 Every other tool above except `bake_audio_animation` takes `provider` and
 `model` from `find_model`. There is no default: an unset model fails the call

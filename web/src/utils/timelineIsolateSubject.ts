@@ -10,32 +10,12 @@
 import { restFetch } from "../lib/rest-fetch";
 import { isObjectLike } from "./typePredicates";
 
-/**
- * The BiRefNet weights the segmentation can run with, as the provider names
- * them. "General Use (Light)" is the provider's own default.
- */
-export const ISOLATE_SUBJECT_MODELS = [
-  "General Use (Light)",
-  "General Use (Light 2K)",
-  "General Use (Heavy)",
-  "Matting",
-  "Portrait",
-  "General Use (Dynamic)"
-] as const;
-export type IsolateSubjectModel = (typeof ISOLATE_SUBJECT_MODELS)[number];
-
-/** The operating resolutions the endpoint accepts. */
-export const ISOLATE_SUBJECT_RESOLUTIONS = [
-  "1024x1024",
-  "2048x2048",
-  "2304x2304"
-] as const;
-
 export interface IsolateSubjectBody {
   clip_id: string;
-  model?: IsolateSubjectModel;
-  operating_resolution?: (typeof ISOLATE_SUBJECT_RESOLUTIONS)[number];
-  refine_foreground?: boolean;
+  /** A provider that declares `matte_video`. */
+  provider: string;
+  /** A model that provider lists for `matte_video`. */
+  model: string;
   /** Run the model again even when a matte covering this window exists. */
   regenerate?: boolean;
   /** Return as soon as the run is queued instead of waiting it out. */

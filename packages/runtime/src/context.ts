@@ -321,6 +321,7 @@ export type ProviderCapability =
   | "upscale_video"
   | "interpolate_video"
   | "outpaint_video"
+  | "matte_video"
   | "lip_sync"
   | "text_to_speech"
   | "text_to_music"
@@ -487,6 +488,7 @@ export type ProviderPredictionResult = Awaited<
       | "upscaleVideo"
       | "interpolateVideo"
       | "outpaintVideo"
+      | "matteVideo"
       | "lipSync"
       | "textToMusic"
       | "audioToAudio"
@@ -3654,6 +3656,12 @@ export class ProcessingContext {
           aspectRatio: params.aspect_ratio as string | undefined,
           resolution: params.resolution as string | undefined,
           seed: params.seed as number | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
+        });
+      case "matte_video":
+        return provider.matteVideo(params.video as Uint8Array, {
+          signal: params.signal as AbortSignal | undefined,
+          model: { id: req.model, name: req.model, provider: req.provider },
           timeoutSeconds: params.timeout_seconds as number | undefined
         });
       case "lip_sync":

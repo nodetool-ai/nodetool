@@ -369,6 +369,7 @@ const CAPABILITY_CATEGORY: Record<string, SpendCategory> = {
   upscale_video: "clips",
   interpolate_video: "clips",
   outpaint_video: "clips",
+  matte_video: "clips",
   lip_sync: "clips",
   text_to_speech: "voice",
   text_to_music: "voice",
