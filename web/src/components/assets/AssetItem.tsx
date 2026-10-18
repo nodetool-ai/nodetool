@@ -345,18 +345,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-const videoIconOverlayStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  color: "var(--palette-common-white)",
-  fontSize: "3em",
-  opacity: 0.8,
-  filter: "drop-shadow(0px 0px 4px var(--palette-c_scrim))",
-  zIndex: Z_INDEX.dropdown
-};
-
 export type AssetItemProps = {
   asset: Asset;
   draggable?: boolean;
@@ -597,9 +585,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               />
             )}
 
-            {/* Icon overlay marks the tile as playable once a poster is up. */}
-            {videoThumbUrl && <VideoFileIcon style={videoIconOverlayStyle} />}
-
             {showDuration && asset.duration && assetItemSize > 1 && (
               <Text className="duration info">
                 {secondsToHMS(asset.duration)}
@@ -609,11 +594,13 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         )}
         {isPdf && (
           <>
-            <PictureAsPdfIcon
-              className="placeholder"
-              style={{ color: `var(--c_${assetType})` }}
-              titleAccess={asset.content_type || "PDF file"}
-            />
+            {!asset.thumb_url && (
+              <PictureAsPdfIcon
+                className="placeholder"
+                style={{ color: `var(--c_${assetType})` }}
+                titleAccess={asset.content_type || "PDF file"}
+              />
+            )}
             {asset.thumb_url && (
               // The server renders the first page to a JPEG; `get_url` is the
               // PDF itself, which no browser paints as a background image — it
