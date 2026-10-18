@@ -54,6 +54,65 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
   `trimModeFor`; the body tools (Cut, Slip, Track select) act in
   `useClipDrag`.
 
+## Workspaces
+
+On desktop the panels sit in the shared dock (`web/src/components/dock/`).
+The panel list and the built-in workspaces are defined in
+[`TimelineDockLayout.ts`](../../stores/timeline/TimelineDockLayout.ts), and the
+panel titles and icons are in [`dock/timelinePanels.tsx`](dock/timelinePanels.tsx).
+
+| Panel id | Title | Default region |
+| --- | --- | --- |
+| `program` | Program (DAW in DAW mode) | Viewport |
+| `source` | Source | Viewport |
+| `tracks` | Timeline | Bottom |
+| `transcript` | Script | Left |
+| `inspector` | Inspector | Right |
+| `shot` | Shot | Right |
+| `instruments` | Instruments | Right |
+| `assistant` | Assistant | Right |
+| `history` | History | Right |
+| `code` | Code | Right |
+
+`program` and `tracks` are required and cannot be hidden. Source, Shot,
+Instruments, Code and, when the sequence has one, Script open only when they
+have something to show. Until then Open Source and the other panel commands
+show a short notice.
+
+The four built-in workspaces, in menu order. Editing is the default.
+
+- **Editing**: Script on the left, Program and Source over the Timeline, and
+  the right group with Inspector active.
+- **Script**: Source hidden and a wider Script column.
+- **Assistant**: Assistant active in the right group, which is wider, with
+  Script and Source hidden.
+- **Review**: Program and Timeline only. Script, Source and the right group
+  are hidden.
+
+The layout menu switches between the built-in workspaces and saved layouts.
+Save layout as saves the current one, and Rename layout and Delete layout
+apply to saved layouts only. Reset to saved layout re-applies the layout you
+last chose and discards moves, resizes and hidden panels made since. The
+Panels section shows and hides each panel.
+
+The keys below are bound in the shared part of
+[`timelineKeymap.ts`](timelineKeymap.ts), so all three keyboard layouts use
+them. Shift+Space on a tab comes from the shared dock.
+
+| Key | Action |
+| --- | --- |
+| `` ` `` | Maximize or restore the panel group under focus, or the one last clicked |
+| Ctrl+`` ` `` | Program monitor full screen |
+| Alt+Shift+1 to 4 | Switch to Editing, Script, Assistant or Review |
+| Alt+Shift+0 | Reset the workspace |
+| Shift+Space on a tab | Maximize that tab's group |
+
+The command menu lists the same actions, such as Open Inspector and Workspace: Script.
+
+Layouts persist per user in browser storage under `nodetool.timeline-layout.v1`.
+The full key adds `:user:<id>` for a signed-in user and `:anonymous` otherwise,
+so layouts do not follow the user to another browser.
+
 ## Phone layout
 
 Below the `sm` breakpoint (`useTimelineIsMobile`, matching `MobileClassProvider`
@@ -202,8 +261,9 @@ tracks, opened by double-clicking a midi clip, by "Edit notes" in the clip
 menu, or by the Inspector's Edit notes button. `pianoRollClipId`,
 `pianoRollHeightPx`, `openPianoRoll` and `closePianoRoll` live on
 `TimelineUIStore`; the panel closes itself when the clip it edits is gone. The
-side dock is 360 px wide, so the panel stacks below the tracks instead — and on
-a phone it replaces the tracks region with a Back control.
+right dock group is 360 px wide in the Editing workspace, so the panel stacks
+below the tracks instead. On a phone it replaces the tracks region with a Back
+control.
 
 - **What it draws** (`PianoRoll` + `PianoRollGrid`, `PianoRollKeyboard`,
   `PianoRollRuler`, `PianoRollVelocityLane`): a clickable keyboard column that
@@ -257,8 +317,9 @@ persisted layout flag, `dawMode` on `TimelineLayoutStore`. It changes the
 layout only; the document is the same.
 
 - **Body**: `daw/dock/DawWorkspace` replaces the preview row, the tracks
-  divider and the piano-roll strip. The lab page renders the same component
-  (`daw-lab.html?view=daw&tab=devices`).
+  divider and the piano-roll strip. On desktop it fills the Program panel, and
+  the Source, Timeline and Script panels are hidden. The lab page renders the
+  same component (`daw-lab.html?view=daw&tab=devices`).
 - **Transport**: `PreviewArea` stays mounted with `audioOnly`, so it keeps the
   `AudioGraph`, the `PlaybackClock` and the Space binding, but renders no
   compositor. `daw/transport/DawTransport` replaces its control bar: play,
@@ -372,7 +433,7 @@ take shorter than the clip's source window moves or shortens the window.
 While the editor is open, `TimelineLinkedBoards` loads and autosaves the boards
 its shot clips come from, unless another editor already saves the board.
 
-Selecting a shot clip adds a **Shot** tab to the side panel:
+Selecting a shot clip adds a **Shot** tab to the right dock group:
 
 - **Takes** lists the shot's renders. Picking one switches the cut to it.
   **New take** renders another with the board's render dialog.
@@ -451,10 +512,9 @@ and browser and server exports render at the configured sequence resolution.
 
 ## AI Assistant (agent editing)
 
-The Inspector panel has two tabs: **Inspector** (clip properties) and
-**Assistant**. The Assistant is a chat agent that edits the open sequence on
-your behalf — cutting, arranging, generating, and tweaking clips like a real
-editor. It mirrors the 3D editor's agent: the open editor registers a handler
+The **Assistant** is a dock panel in the right group, beside the **Inspector**
+(clip properties). It is a chat agent that edits the open sequence on your
+behalf: cutting, arranging, generating, and tweaking clips like a real editor. It mirrors the 3D editor's agent: the open editor registers a handler
 on the timeline agent bridge, and the agent drives it through `ui_timeline_*`
 frontend tools.
 

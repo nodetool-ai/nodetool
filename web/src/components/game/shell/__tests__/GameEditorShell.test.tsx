@@ -248,7 +248,7 @@ it("offers only hidden panels registered and available in the current dimension"
   }
 });
 
-it("marks each docked panel host with data-game-panel so 2D viewport shortcuts find the viewport", async () => {
+it("marks each docked panel host with data-dock-panel so 2D viewport shortcuts find the viewport", async () => {
   const user = userEvent.setup();
   const registry = createGamePanelRegistry();
   registry.register({ id: "viewport", title: "Viewport", icon: null, dimensions: ["2d"], defaultRegion: "viewport" });
@@ -260,9 +260,9 @@ it("marks each docked panel host with data-game-panel so 2D viewport shortcuts f
       { id: "inspector", node: <button>Inspector action</button> }
     ]} /></ThemeProvider>);
   const viewport = screen.getByRole("button", { name: "Editor viewport" });
-  expect(viewport.closest("[data-game-panel]")).toHaveAttribute("data-game-panel", "viewport");
-  expect(screen.getByRole("button", { name: "Inspector action" }).closest("[data-game-panel]"))
-    .toHaveAttribute("data-game-panel", "inspector");
+  expect(viewport.closest("[data-dock-panel]")).toHaveAttribute("data-dock-panel", "viewport");
+  expect(screen.getByRole("button", { name: "Inspector action" }).closest("[data-dock-panel]"))
+    .toHaveAttribute("data-dock-panel", "inspector");
   await user.click(screen.getByRole("button", { name: "Inspector action" }));
   await user.keyboard("{Home}");
   expect(viewportShortcut).not.toHaveBeenCalled();

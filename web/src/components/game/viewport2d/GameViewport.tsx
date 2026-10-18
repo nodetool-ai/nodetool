@@ -15,7 +15,7 @@ import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined
 import WallpaperIcon from "@mui/icons-material/Wallpaper";
 
 import { Box, Divider, FlexColumn, FlexRow, FONT_SIZE_SANS, SPACING, ToolbarIconButton } from "../../ui_primitives";
-import GamePanelHeader from "../GamePanelHeader";
+import DockPanelHeader from "../../dock/DockPanelHeader";
 import { isMac } from "../../../utils/platform";
 import { useGameCommandHandlers, useGameCommandShortcut } from "../shell/useGameCommands";
 import { selectionDescendants, localTransform, selectionRoots, worldTransforms, hitEntityIcons, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "./viewportGeometry";
@@ -489,7 +489,7 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
 
   return (
     <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-      <GamePanelHeader title="Viewport" label={playing ? "Game" : "Scene"}
+      <DockPanelHeader title="Viewport" label={playing ? "Game" : "Scene"}
         icon={playing ? <SportsEsportsOutlinedIcon sx={HEADER_ICON_SX} /> : <GridViewOutlinedIcon sx={HEADER_ICON_SX} />}>
         {!playing && <>
           <ToolbarIconButton icon={<PanToolOutlinedIcon fontSize="small" />} ariaLabel="Pan"
@@ -506,7 +506,7 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
               onClick={() => overlayState[toggle.key][1]((value) => !value)} />)}
           </FlexRow>
         </>}
-      </GamePanelHeader>
+      </DockPanelHeader>
       <Box ref={stageRef} sx={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", bgcolor: "background.default" }}>
         <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label="Game viewport" role="group" tabIndex={0}
           onKeyDown={(event) => {

@@ -1,9 +1,12 @@
 import type { GameDimension } from "./panelRegistry";
 import { isEditableElement } from "../../../utils/browser";
 
+/** Elements that accept editor shortcuts: a canvas that opts in itself, or a dock host from a panel view with `keyboardScope`. */
+const KEYBOARD_SCOPE = "[data-game-undo-scope], [data-dock-keyboard-scope]";
+
 /**
  * Where a command's shortcut is accepted. `shell` accepts it anywhere in the editor outside text fields,
- * `panel` inside panels that accept editor shortcuts (`data-game-undo-scope`), and `viewport` inside the viewport panel.
+ * `panel` inside panels that accept editor shortcuts (`data-game-undo-scope`, or `data-dock-keyboard-scope` on a dock host), and `viewport` inside the viewport panel.
  */
 export type GameCommandScope = "shell" | "panel" | "viewport";
 export type GameCommandCategory = "Editor" | "Edit" | "View" | "Tools" | "Play" | "Panels" | "Assistant";
@@ -162,8 +165,8 @@ export function findGameBindingConflict(commandId: string, binding: GameKeyBindi
 
 function inScope(target: HTMLElement, scope: GameCommandScope): boolean {
   if (scope === "shell") { return true; }
-  if (scope === "panel") { return target.closest("[data-game-undo-scope]") !== null; }
-  return target.closest('[data-game-panel="viewport"]') !== null && target.closest("[data-game-undo-scope]") !== null;
+  if (scope === "panel") { return target.closest(KEYBOARD_SCOPE) !== null; }
+  return target.closest('[data-dock-panel="viewport"]') !== null && target.closest(KEYBOARD_SCOPE) !== null;
 }
 
 export interface GameShortcutContext {

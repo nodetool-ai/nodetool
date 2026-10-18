@@ -3,27 +3,27 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
-import mockTheme from "../../../../__mocks__/themeMock";
-import { StableGamePanelHost, type GamePanelFocusSnapshot } from "../StableGamePanelHost";
+import mockTheme from "../../../__mocks__/themeMock";
+import { StablePanelHost, type PanelFocusSnapshot } from "../StablePanelHost";
 
 it("detaches a truly absent slot, focuses a visible fallback, and reattaches the same inert-preserved input", async () => {
   const user = userEvent.setup();
   const slot = document.createElement("section");
   const replacement = document.createElement("section");
   document.body.append(slot, replacement);
-  const snapshot = createRef<GamePanelFocusSnapshot>();
+  const snapshot = createRef<PanelFocusSnapshot>();
   const fallback = createRef<HTMLButtonElement>();
   const view = (target: HTMLElement | null) => <ThemeProvider theme={mockTheme}>
     <button ref={fallback}>Visible layout fallback</button>
-    <StableGamePanelHost id="scripts" slot={slot} resolveSlot={() => target} active
+    <StablePanelHost id="scripts" slot={slot} resolveSlot={() => target} active
       focusSnapshot={snapshot} fallbackFocus={() => fallback.current}>
       <textarea aria-label="Preserved script input" defaultValue="draft" />
-    </StableGamePanelHost>
+    </StablePanelHost>
   </ThemeProvider>;
   const rendered = await act(async () => render(view(slot)));
   try {
     const input = screen.getByRole("textbox", { name: "Preserved script input" });
-    const host = input.closest<HTMLElement>("[data-game-panel]");
+    const host = input.closest<HTMLElement>("[data-dock-panel]");
     if (!host) { throw new Error("Actual stable host was not attached"); }
     await user.click(input);
     await user.type(input, " edit");
@@ -52,7 +52,7 @@ it("detaches a truly absent slot, focuses a visible fallback, and reattaches the
 it("releases a hidden viewport's pointer lock and does not release another panel's lock", async () => {
   const slot = document.createElement("section");
   document.body.appendChild(slot);
-  const snapshot = createRef<GamePanelFocusSnapshot>();
+  const snapshot = createRef<PanelFocusSnapshot>();
   const fallback = createRef<HTMLButtonElement>();
   let locked: Element | null = null;
   const lockDescriptor = Object.getOwnPropertyDescriptor(document, "pointerLockElement");
@@ -63,9 +63,9 @@ it("releases a hidden viewport's pointer lock and does not release another panel
   Object.defineProperty(document, "exitPointerLock", { configurable: true, value: exit });
   const view = (active: boolean, targetSlot: HTMLElement | null = slot) => <ThemeProvider theme={mockTheme}>
     <button ref={fallback}>Other panel</button>
-    <StableGamePanelHost id="viewport" slot={targetSlot} active={active} focusSnapshot={snapshot} fallbackFocus={() => fallback.current}>
+    <StablePanelHost id="viewport" slot={targetSlot} active={active} focusSnapshot={snapshot} fallbackFocus={() => fallback.current}>
       <canvas aria-label="Locked viewport" tabIndex={0} />
-    </StableGamePanelHost>
+    </StablePanelHost>
   </ThemeProvider>;
   const rendered = await act(async () => render(view(true)));
   try {

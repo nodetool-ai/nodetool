@@ -44,7 +44,6 @@ import {
   moveKeyframes
 } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
-import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { ClipBody, CLIP_STATUS_MAP, MIN_CLIP_WIDTH_PX } from "./ClipBody";
 import { ClipContextMenu } from "./ClipContextMenu";
 import { SendToWorkflowMenu } from "../../workflows/SendToWorkflowMenu";
@@ -335,12 +334,15 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       }
       const { panelTab, codePanelDirty, setPanelTab } =
         useTimelineUIStore.getState();
-      // Unsaved code stays on screen. Only the tab switcher asks to leave it.
+      // Unsaved code stays on screen. This matters on phones, where the sheet
+      // shows one tab at a time and switching would hide the edit. The desktop
+      // dock keeps the Code panel mounted, so it holds the edit either way.
+      // Only the tab switcher asks to leave it.
       if (panelTab === "code" && codePanelDirty) {
         return;
       }
+      // The desktop dock opens the Inspector in answer to the request.
       setPanelTab("inspector");
-      useTimelineLayoutStore.getState().showSidePanel();
     },
     [clip?.mediaType, clipId, openPianoRoll, selectClip]
   );

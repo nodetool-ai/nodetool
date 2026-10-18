@@ -108,7 +108,14 @@ export type TimelineAction =
   | "expandTracks"
   | "shrinkTracks"
   | "toggleLoop"
-  | "playInToOut";
+  | "playInToOut"
+  | "maximizePanel"
+  | "toggleProgramFullscreen"
+  | "resetWorkspace"
+  | "workspace1"
+  | "workspace2"
+  | "workspace3"
+  | "workspace4";
 
 export interface KeyBinding {
   key: string;
@@ -171,7 +178,17 @@ const COMMON: Partial<Keymap> = {
   zoomTool: [k("z")],
   slideTool: [k("u")],
   matchFrame: [k("f")],
-  revealInProject: [k("f", { shift: true })]
+  revealInProject: [k("f", { shift: true })],
+  // Premiere's workspace keys, free in every preset: ` maximizes the panel
+  // group under focus, Ctrl+` shows the Program monitor full screen, and
+  // Alt+Shift+1 to 4 switch workspace. Reset has no Premiere default.
+  maximizePanel: [k("`")],
+  toggleProgramFullscreen: [k("`", { ctrl: true })],
+  resetWorkspace: [k("0", { alt: true, shift: true })],
+  workspace1: [k("1", { alt: true, shift: true })],
+  workspace2: [k("2", { alt: true, shift: true })],
+  workspace3: [k("3", { alt: true, shift: true })],
+  workspace4: [k("4", { alt: true, shift: true })]
 };
 
 const NODETOOL: Keymap = {
@@ -382,12 +399,14 @@ const SYMBOL_CODES: Record<string, string> = {
   ";": "Semicolon",
   "\\": "Backslash",
   "=": "Equal",
-  "-": "Minus"
+  "-": "Minus",
+  "`": "Backquote"
 };
 
 /** The `e.code` of a binding's physical key, or null when it has none to match. */
 function codeOf(key: string): string | null {
   if (/^[a-z]$/i.test(key)) return `Key${key.toUpperCase()}`;
+  if (/^[0-9]$/.test(key)) return `Digit${key}`;
   return SYMBOL_CODES[key] ?? null;
 }
 
@@ -403,7 +422,9 @@ function matches(binding: KeyBinding, e: KeyEventLike): boolean {
   const byCode =
     e.code !== undefined &&
     bindingCode !== null &&
-    (binding.alt || (symbolKey && binding.shift));
+    // The backtick is a dead key (`e.key === "Dead"`) on German, French,
+    // Nordic and Spanish layouts, so it always matches the physical key.
+    (binding.alt || (symbolKey && binding.shift) || binding.key === "`");
   if (byCode ? e.code !== bindingCode : key !== binding.key) return false;
   // "?" can arrive as AltGr on some layouts (ctrl+alt); match the character.
   if (binding.key === "?") return true;

@@ -154,7 +154,7 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
   },
   {
     // PreviewArea handles these on its own root, so they need the preview
-    // focused (click it or Tab to it). Fullscreen has no key.
+    // focused (click it or Tab to it). Full screen on Ctrl+` works anywhere.
     title: "Preview (focused)",
     rows: [
       { keys: ["←"], label: "Step back one frame" },
@@ -195,6 +195,18 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "expandTracks", label: "Make tracks taller" },
       { action: "shrinkTracks", label: "Make tracks shorter" },
       { action: "toggleDawMode", label: "Switch between the video and DAW layouts" }
+    ]
+  },
+  {
+    title: "Workspaces",
+    rows: [
+      { action: "maximizePanel", label: "Maximize or restore the focused panel group" },
+      { action: "toggleProgramFullscreen", label: "Program monitor full screen" },
+      { action: "workspace1", label: "Switch to the first workspace" },
+      { action: "workspace2", label: "Switch to the second workspace" },
+      { action: "workspace3", label: "Switch to the third workspace" },
+      { action: "workspace4", label: "Switch to the fourth workspace" },
+      { action: "resetWorkspace", label: "Reset to the saved workspace" }
     ]
   },
   {

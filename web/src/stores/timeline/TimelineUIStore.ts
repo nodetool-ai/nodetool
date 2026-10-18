@@ -168,6 +168,13 @@ export interface TimelineUIState {
   /** Whether the tracks area is in fullscreen mode. */
   fullscreen: boolean;
   /**
+   * Counts requests to show the Program monitor full screen (Ctrl+`). The
+   * preview toggles full screen whenever it changes, so a key handler far
+   * from the preview can ask without holding a reference to it.
+   */
+  previewFullscreenRequest: number;
+  requestPreviewFullscreen: () => void;
+  /**
    * Preview shows the selected clip's generated matte instead of the frame it
    * cuts, so the mask can be judged on its own. A view, not a document field —
    * it changes nothing that is saved.
@@ -337,6 +344,11 @@ export interface TimelineUIState {
    */
   expandedInstrumentTrackId: string | null;
   panelTab: "inspector" | "shot" | "source" | "instrument" | "agent" | "history" | "script" | "code";
+  /**
+   * Counts every request to show `panelTab`, including one for the tab that is
+   * already current. The desktop dock opens the matching panel when it changes.
+   */
+  panelTabRequest: number;
   setPanelTab: (tab: TimelineUIState["panelTab"]) => void;
   /**
    * Whether the Code panel has edits not yet baked or discarded.
@@ -415,10 +427,12 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     scrollLeftPx: 0,
     revealRequest: null,
     fullscreen: false,
+    previewFullscreenRequest: 0,
     matteViewEnabled: false,
     expandedFxTrackId: null,
     expandedInstrumentTrackId: null,
     panelTab: "inspector",
+    panelTabRequest: 0,
     // Pure switch — clears the dirty flag whenever the Code tab is left.
     // Confirming that a dirty leave is intended is a component-layer concern
     // (see `hooks/timeline/useGuardedPanelTab`), not something a store
@@ -426,7 +440,10 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     setPanelTab: (panelTab) =>
       set((state) => {
         const leavingCode = state.panelTab === "code" && panelTab !== "code";
-        return leavingCode ? { panelTab, codePanelDirty: false } : { panelTab };
+        const request = state.panelTabRequest + 1;
+        return leavingCode
+          ? { panelTab, panelTabRequest: request, codePanelDirty: false }
+          : { panelTab, panelTabRequest: request };
       }),
     codePanelDirty: false,
     setCodePanelDirty: (dirty) => set({ codePanelDirty: dirty }),
@@ -524,6 +541,9 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     revealAt: (timeMs) =>
       set({ revealRequest: { timeMs: Math.max(0, timeMs) } }),
 
+    requestPreviewFullscreen: () =>
+      set((state) => ({ previewFullscreenRequest: state.previewFullscreenRequest + 1 })),
+
     setFullscreen: (full) => set({ fullscreen: full }),
 
     toggleFullscreen: () => set((state) => ({ fullscreen: !state.fullscreen })),
@@ -601,7 +621,11 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
       }),
 
     toggleExpandedInstrument: (trackId) =>
-      set({ expandedInstrumentTrackId: trackId, panelTab: "instrument" }),
+      set((state) => ({
+        expandedInstrumentTrackId: trackId,
+        panelTab: "instrument",
+        panelTabRequest: state.panelTabRequest + 1
+      })),
 
     beginTrackDrag: (trackId) =>
       set({ draggingTrackId: trackId, trackDropTarget: null }),

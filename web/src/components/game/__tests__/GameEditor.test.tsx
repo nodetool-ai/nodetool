@@ -285,15 +285,17 @@ it.each(["active play", "independent diagnostic"])("offers host replay only for 
   await user.click(screen.getByRole("button", { name: "Edit player script" }));
   const shown = screen.getAllByText(mockFailure.message);
   expect(shown.filter((element) => !element.closest("[role='log']")).length).toBeGreaterThan(0);
-  expect(within(screen.getByRole("list", { name: "Console lines", hidden: true })).getAllByRole("listitem", { hidden: true }).at(-1)).toHaveTextContent(mockFailure.message);
   if (provenance === "independent diagnostic") {
     expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
     expect(mockReplay).not.toHaveBeenCalled();
-    return;
+  } else {
+    await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
+    expect(mockReplay).toHaveBeenCalledTimes(1);
+    expect(mockReplay).toHaveBeenCalledWith(mockFailure);
   }
-  await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
-  expect(mockReplay).toHaveBeenCalledTimes(1);
-  expect(mockReplay).toHaveBeenCalledWith(mockFailure);
+  // The Console panel mounts when first shown. Its lines come from the console store, so nothing is lost before that.
+  await user.click(screen.getByRole("tab", { name: /Console/ }));
+  expect(within(screen.getByRole("list", { name: "Console lines" })).getAllByRole("listitem").at(-1)).toHaveTextContent(mockFailure.message);
 });
 
 it("preserves hierarchy Alt-arrow boundary no-ops and handled reparenting", async () => {

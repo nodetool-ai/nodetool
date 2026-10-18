@@ -9,7 +9,7 @@ import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import type { GameAnimationGraph3D, GameDiagnostic, GameDocument3D, GameEntity3D, GameInspection3D } from "@nodetool-ai/protocol";
 import type { GameDocumentOp3D } from "@nodetool-ai/game-runtime";
 
-import GamePanelHeader from "../../GamePanelHeader";
+import DockPanelHeader from "../../../dock/DockPanelHeader";
 import {
   Box, Caption, Divider, EditorButton, EmptyState, FlexColumn, FlexRow, InspectorSelect, Label, ScrollArea, SPACING, ToolbarIconButton
 } from "../../../ui_primitives";
@@ -270,7 +270,7 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
   }
 
   return <FlexColumn sx={{ height: "100%", minHeight: 0 }}>
-    <GamePanelHeader title="Animation graph" fill>
+    <DockPanelHeader title="Animation graph" fill>
       <Box sx={{ width: SIDE_COLUMN_WIDTH, minWidth: 0 }}>
         <InspectorSelect grow label="Animation graph" value={graphId} options={graphIds.map((id) => ({ value: id, label: id }))} onChange={selectGraph} />
       </Box>
@@ -288,7 +288,7 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
       <Caption role="status" color={live ? "success" : "secondary"} sx={{ marginLeft: "auto", whiteSpace: "nowrap", pr: SPACING.xs }}>
         {live ? `Live: ${liveEntityName} · ${liveCurrent ?? "none"}${livePrevious ? ` from ${livePrevious}` : ""}` : "Play to see the live state"}
       </Caption>
-    </GamePanelHeader>
+    </DockPanelHeader>
     {error && <Caption color="error" role="alert" sx={{ px: SPACING.md, py: SPACING.xs }}>{error}</Caption>}
     {notice && <Caption color="warning" role="note" sx={{ px: SPACING.md, py: SPACING.xs }}>{notice}</Caption>}
     <FlexRow sx={{ flex: 1, minHeight: 0 }}>

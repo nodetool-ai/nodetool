@@ -12,6 +12,7 @@ import {
   type TimelineAction
 } from "../../components/timeline/timelineKeymap";
 import { isMac } from "../../utils/platform";
+import { TIMELINE_DOCK_ACTIONS } from "./useTimelineDockCommands";
 
 /**
  * Replays an action's key binding. The tracks region resolves keys to actions
@@ -57,7 +58,7 @@ export const useTimelineMenuCommands = (): void => {
       for (const row of group.rows) {
         const action = row.action;
         const binding = action ? keymap[action]?.[0] : undefined;
-        if (!action || !binding || seen.has(action) || action === "toggleShortcuts") {
+        if (!action || !binding || seen.has(action) || action === "toggleShortcuts" || TIMELINE_DOCK_ACTIONS.has(action)) {
           continue;
         }
         seen.add(action);

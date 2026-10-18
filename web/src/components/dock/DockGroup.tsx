@@ -1,30 +1,29 @@
 import { useCallback, useId, useState, type ReactNode } from "react";
 import type { StoreApi } from "zustand";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import VerticalSplitOutlinedIcon from "@mui/icons-material/VerticalSplitOutlined";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import LoginOutlinedIcon from "@mui/icons-material/LoginOutlined";
 
-import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutStore";
-import { GAME_PANEL_REGIONS, type GamePanelGroup } from "../../../stores/game/GamePanelLayout";
-import { Box, ContextMenu, DockDropOverlay, DockTabStrip, FlexColumn, MenuItemPrimitive, ToolbarIconButton, dockTabElementId } from "../../ui_primitives";
-import type { GamePanelRegion } from "./panelRegistry";
-import type { GameDockPresentation } from "./useGameDockPresentation";
-import type { GameDockDrag } from "./GameDockCanvas";
-import { GAME_REGION_AXIS, GAME_REGION_LABELS, gameDockDropAction, gameDockMoveToRegion } from "./gameDockTargets";
+import type { DockLayoutState } from "../../stores/dock/DockLayoutStore";
+import { DOCK_REGIONS, type DockLayoutGroup, type DockRegion } from "../../stores/dock/DockLayout";
+import { Box, ContextMenu, DockDropOverlay, DockTabStrip, FlexColumn, MenuItemPrimitive, ToolbarIconButton, dockTabElementId } from "../ui_primitives";
+import type { DockPresentation } from "./useDockPresentation";
+import type { DockDrag } from "./DockCanvas";
+import { DOCK_REGION_AXIS, DOCK_REGION_LABELS, dockDropAction, dockMoveToRegion } from "./dockTargets";
 
-interface GameDockGroupProps {
-  readonly group: GamePanelGroup;
-  readonly region: GamePanelRegion;
-  readonly presentation: GameDockPresentation;
-  readonly store: StoreApi<GamePanelLayoutState>;
+interface DockGroupProps {
+  readonly group: DockLayoutGroup;
+  readonly region: DockRegion;
+  readonly presentation: DockPresentation;
+  readonly store: StoreApi<DockLayoutState>;
   readonly setSlot: (id: string, slot: HTMLElement | null) => void;
-  readonly drag?: GameDockDrag | null;
+  readonly drag?: DockDrag | null;
   readonly onDragStart?: (panelId: string, event: PointerEvent) => void;
   readonly maximized?: boolean;
   readonly onToggleMaximize?: () => void;
@@ -32,10 +31,12 @@ interface GameDockGroupProps {
 
 type MenuState = { readonly panelId: string; readonly position: { x: number; y: number } } | null;
 
-export function GameDockGroup({ group, region, presentation, store, setSlot, drag = null, onDragStart, maximized = false,
-  onToggleMaximize }: GameDockGroupProps): ReactNode {
+export function DockGroup({ group, region, presentation, store, setSlot, drag = null, onDragStart, maximized = false,
+  onToggleMaximize }: DockGroupProps): ReactNode {
   const { metadata } = presentation;
-  const idPrefix = `game-dock-${useId().replace(/:/g, "")}`;
+  const { model } = store.getState();
+  const required = new Set(model.requiredPanels);
+  const idPrefix = `dock-${useId().replace(/:/g, "")}`;
   const visible = (id: string): boolean => metadata.availableIds.includes(id) && !metadata.layout.hidden.includes(id);
   const eligible = group.panels.filter(visible);
   const active = eligible.includes(group.activePanelId) ? group.activePanelId : eligible[0];
@@ -57,20 +58,20 @@ export function GameDockGroup({ group, region, presentation, store, setSlot, dra
   const closeMenu = (): void => setMenu(null);
   const menuPanel = menu?.panelId ?? active;
   const menuIndex = eligible.indexOf(menuPanel);
-  const axis = GAME_REGION_AXIS[region];
+  const axis = DOCK_REGION_AXIS[region];
   const run = (action: () => void): void => { closeMenu(); action(); };
   const reorder = (offset: -1 | 1): void => {
-    const action = gameDockDropAction(store.getState().layout, menuPanel,
+    const action = dockDropAction(store.getState().layout, menuPanel,
       { kind: "tab", region, groupId: group.id, index: menuIndex + offset }, visible);
     if (action) { dispatch(action); }
   };
 
-  return <FlexColumn data-game-dock-region={region} data-game-dock-group={group.id}
+  return <FlexColumn data-dock-region={region} data-dock-group={group.id}
     onFocusCapture={() => setFocused(true)}
     onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setFocused(false); } }}
     sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden", bgcolor: "background.paper" }}>
-    <DockTabStrip ariaLabel={`${region} game panel tabs`} panelIdPrefix={idPrefix} focused={focused}
-      tabs={eligible.map((id) => ({ id, label: title(id), icon: icon(id), closable: id !== "viewport" }))}
+    <DockTabStrip ariaLabel={`${region} ${model.editorLabel} panel tabs`} panelIdPrefix={idPrefix} focused={focused}
+      tabs={eligible.map((id) => ({ id, label: title(id), icon: icon(id), closable: !required.has(id) }))}
       activeId={active} dropIndex={dropIndex}
       onActivate={(panelId) => { if (panelId !== active) { dispatch({ type: "activate", panelId }); } }}
       onClose={(panelId) => dispatch({ type: "hide", panelId })}
@@ -82,33 +83,33 @@ export function GameDockGroup({ group, region, presentation, store, setSlot, dra
           const rect = event.currentTarget.getBoundingClientRect();
           setMenu({ panelId: active, position: { x: rect.left, y: rect.bottom } });
         }} />} />
-    <Box data-game-dock-body sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0 }}>
-      <Box ref={slotRef} data-game-dock-slot={group.id} role="tabpanel" id={`${idPrefix}-panel`}
+    <Box data-dock-body sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0 }}>
+      <Box ref={slotRef} data-dock-slot={group.id} role="tabpanel" id={`${idPrefix}-panel`}
         aria-labelledby={dockTabElementId(idPrefix, active)}
         sx={{ position: "absolute", inset: 0, overflow: "hidden" }} />
       <DockDropOverlay zone={target?.kind === "zone" ? target.zone : null} />
     </Box>
     <ContextMenu open={menu !== null} position={menu?.position ?? null} onClose={closeMenu}>
-      <MenuItemPrimitive label={`Close ${title(menuPanel)}`} icon={<CloseIcon />} disabled={menuPanel === "viewport"}
-        tooltip={menuPanel === "viewport" ? "The viewport always stays open" : undefined}
+      <MenuItemPrimitive label={`Close ${title(menuPanel)}`} icon={<CloseIcon />} disabled={required.has(menuPanel)}
+        tooltip={required.has(menuPanel) ? "This panel always stays open" : undefined}
         onClick={() => run(() => dispatch({ type: "hide", panelId: menuPanel }))} />
       <MenuItemPrimitive label={maximized ? "Restore layout" : "Maximize group"} shortcut="Shift+Space"
         icon={maximized ? <CloseFullscreenIcon /> : <OpenInFullIcon />} onClick={() => run(() => onToggleMaximize?.())} />
       {eligible.length > 1 && <MenuItemPrimitive label={axis === "row" ? "Split to the right" : "Split below"} icon={<VerticalSplitOutlinedIcon />}
         onClick={() => run(() => {
-          const action = gameDockDropAction(store.getState().layout, menuPanel,
+          const action = dockDropAction(store.getState().layout, menuPanel,
             { kind: "zone", region, groupId: group.id, zone: axis === "row" ? "right" : "bottom" }, visible);
           if (action) { dispatch(action); }
         })} />}
       {menuIndex > 0 && <MenuItemPrimitive label="Move tab left" icon={<ChevronLeftIcon />} onClick={() => run(() => reorder(-1))} />}
       {menuIndex >= 0 && menuIndex < eligible.length - 1 && <MenuItemPrimitive label="Move tab right" icon={<ChevronRightIcon />}
         onClick={() => run(() => reorder(1))} />}
-      {GAME_PANEL_REGIONS.filter((entry) => entry !== region).map((entry, index) => <MenuItemPrimitive key={entry} dividerBefore={index === 0}
-        label={`Move to ${GAME_REGION_LABELS[entry]}`} icon={<LoginOutlinedIcon />}
-        onClick={() => run(() => dispatch(gameDockMoveToRegion(store.getState().layout, menuPanel, entry)))} />)}
+      {DOCK_REGIONS.filter((entry) => entry !== region).map((entry, index) => <MenuItemPrimitive key={entry} dividerBefore={index === 0}
+        label={`Move to ${DOCK_REGION_LABELS[entry]}`} icon={<LoginOutlinedIcon />}
+        onClick={() => run(() => dispatch(dockMoveToRegion(store.getState().layout, menuPanel, entry)))} />)}
       {hiddenPanels.map((entry, index) => <MenuItemPrimitive key={entry.id} dividerBefore={index === 0} label={`Add ${entry.title} tab`} icon={<AddIcon />}
         onClick={() => run(() => {
-          dispatch(gameDockDropAction(store.getState().layout, entry.id, { kind: "tab", region, groupId: group.id, index: eligible.length }, visible)
+          dispatch(dockDropAction(store.getState().layout, entry.id, { kind: "tab", region, groupId: group.id, index: eligible.length }, visible)
             ?? { type: "reveal", panelId: entry.id });
           dispatch({ type: "reveal", panelId: entry.id });
         })} />)}

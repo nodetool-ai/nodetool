@@ -20,7 +20,7 @@ export async function dragGameDockTab(page: Page, tabName: string, targetSelecto
 
 /** Saves the current game editor layout under a name through the toolbar Layout menu. */
 export async function saveGameLayout(page: Page, name: string): Promise<void> {
-  await page.locator("[data-game-layout-menu]").click();
+  await page.locator("[data-dock-layout-menu]").click();
   await page.getByRole("menuitem", { name: "Save layout as…", exact: true }).click();
   await page.getByRole("textbox", { name: "Layout name", exact: true }).fill(name);
   await page.getByRole("button", { name: "Save", exact: true }).click();

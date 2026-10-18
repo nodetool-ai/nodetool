@@ -1,7 +1,8 @@
 /**
- * Which side panels the timeline editor shows, and whether it is laid out for
- * video or audio work. A per-viewer preference, kept across reloads and shared
- * by every open timeline.
+ * Whether the timeline editor is laid out for video or audio work, plus the
+ * DAW dock and playback preferences. A per-viewer preference, kept across
+ * reloads and shared by every open timeline. Panel placement and visibility
+ * live in the dock layout (`useTimelineDockLayoutStore`).
  */
 
 import { create } from "zustand";
@@ -20,10 +21,6 @@ const clampDockHeight = (px: number): number =>
   );
 
 interface TimelineLayoutState {
-  /** The script transcript left of the preview. */
-  transcriptVisible: boolean;
-  /** The Inspector / Assistant / History panel right of the editor. */
-  sidePanelVisible: boolean;
   /**
    * DAW mode: the video preview and transcript give their height to the
    * tracks, a transport strip replaces the preview controls, and a bottom
@@ -41,9 +38,6 @@ interface TimelineLayoutState {
    * points do not bound Play; Play In to Out still stops at the out point.
    */
   loopPlayback: boolean;
-  toggleTranscript: () => void;
-  toggleSidePanel: () => void;
-  showSidePanel: () => void;
   toggleDawMode: () => void;
   setDawMode: (dawMode: boolean) => void;
   setDawDockHeightPx: (px: number) => void;
@@ -56,18 +50,11 @@ interface TimelineLayoutState {
 export const useTimelineLayoutStore = create<TimelineLayoutState>()(
   persist(
     (set) => ({
-      transcriptVisible: true,
-      sidePanelVisible: true,
       dawMode: false,
       dawDockHeightPx: DEFAULT_DAW_DOCK_HEIGHT_PX,
       dawDockTab: "mixer",
       metronomeEnabled: false,
       loopPlayback: false,
-      toggleTranscript: () =>
-        set((state) => ({ transcriptVisible: !state.transcriptVisible })),
-      toggleSidePanel: () =>
-        set((state) => ({ sidePanelVisible: !state.sidePanelVisible })),
-      showSidePanel: () => set({ sidePanelVisible: true }),
       toggleDawMode: () => set((state) => ({ dawMode: !state.dawMode })),
       setDawMode: (dawMode) => set({ dawMode }),
       setDawDockHeightPx: (px) => set({ dawDockHeightPx: clampDockHeight(px) }),
@@ -81,8 +68,6 @@ export const useTimelineLayoutStore = create<TimelineLayoutState>()(
     {
       name: "nodetool.timeline.layout",
       partialize: (state) => ({
-        transcriptVisible: state.transcriptVisible,
-        sidePanelVisible: state.sidePanelVisible,
         dawMode: state.dawMode,
         dawDockHeightPx: state.dawDockHeightPx,
         dawDockTab: state.dawDockTab,

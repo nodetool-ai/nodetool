@@ -389,7 +389,7 @@ jobs:
             },
             {
               "check": "harness-gate",
-              "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 1 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 1 --timeout 900 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
+              "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
               "mobile-deps": "false",
               "extra-apt": "mesa-vulkan-drivers ffmpeg",
               "is-test": "false",
@@ -538,7 +538,10 @@ jobs:
   # docs/harnesses.md § nodetool harness); `--strict` is left off so a diff
   # touching a documented gap (mobile/, electron/) still passes;
   # `--timeout` bounds each selfcheck so a hang fails the leg
-  # instead of the job's own timeout cutting it off with no verdict. A PR that
+  # instead of the job's own timeout cutting it off with no verdict. The cap is
+  # 1500 s because `game-flow` runs all nine of its legs when the game editor
+  # shell changes, which takes longer than 900 s. It stays under the job's
+  # 45-minute limit with the other selfchecks run after it. A PR that
   # touches nothing the registry maps runs no selfcheck at all — intended, not
   # a gap: see docs/HARNESS_FIRST.md. With no base (the nightly full run) the
   # leg runs every selfcheck instead (`--all`). Either way the

@@ -1350,6 +1350,20 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }
     }, [isExpanded]);
 
+    // Ctrl+` asks for full screen through the UI store. The count a mount
+    // starts at is not a request.
+    const fullscreenRequest = useTimelineUIStore((s) => s.previewFullscreenRequest);
+    const handledFullscreenRequest = useRef(fullscreenRequest);
+    useEffect(() => {
+      if (handledFullscreenRequest.current === fullscreenRequest) {
+        return;
+      }
+      handledFullscreenRequest.current = fullscreenRequest;
+      if (!audioOnly) {
+        void handleFullscreen();
+      }
+    }, [audioOnly, fullscreenRequest, handleFullscreen]);
+
     const scrubMax = Math.max(1, contentEndMs);
     const scrubValue = Math.min(scrubMax, scrubMs ?? currentTimeMs);
 

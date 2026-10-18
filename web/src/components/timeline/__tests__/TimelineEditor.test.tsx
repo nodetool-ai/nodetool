@@ -26,6 +26,23 @@ import type { Asset } from "../../../stores/ApiTypes";
 
 // ── Router mocks ────────────────────────────────────────────────────────────
 
+// The Assistant's composer and the version history query through TanStack
+// Query, which these shell tests do not provide.
+jest.mock("../SourceViewerPanel", () => ({
+  SourceViewerPanel: () =>
+    React.createElement("div", { "data-testid": "source-panel" }, "Source")
+}));
+jest.mock("../TimelineVersionHistoryPanel", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "history-panel" }, "History")
+}));
+jest.mock("../TimelineAgentPanel", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "assistant-panel" }, "Assistant")
+}));
+
 jest.mock("react-router-dom", () => ({
   useParams: jest.fn(),
   useNavigate: jest.fn(),
@@ -67,7 +84,12 @@ jest.mock("../../../stores/timeline/TimelineGenerationStore", () => ({
 
 jest.mock("../Tracks/TracksRegion", () => ({
   TracksRegion: ({ heightPx }: { heightPx: number }) =>
-    React.createElement("div", { "data-testid": "tracks-region", style: { height: heightPx } }, "Tracks")
+    React.createElement(
+      "div",
+      { "data-testid": "tracks-region", style: { height: heightPx } },
+      "Tracks",
+      React.createElement("button", { "data-testid": "mock-clip" }, "Clip")
+    )
 }));
 
 // ── PreviewArea mock ─────────────────────────────────────────────────────────
@@ -318,12 +340,13 @@ describe("TimelineEditor", () => {
       expect(screen.getByText("Tracks")).toBeInTheDocument();
     });
 
-    it("lets the preview fill the middle row when no transcript is present", () => {
+    it("hosts the program monitor in the dock's viewport region and the tracks in its bottom region", () => {
       renderEditor();
 
-      expect(screen.getByTestId("preview-area").parentElement).toHaveStyle({
-        flex: "1 1 55%"
-      });
+      const viewport = document.querySelector("[data-dock-region='viewport']");
+      const bottom = document.querySelector("[data-dock-region='bottom']");
+      expect(viewport).toContainElement(screen.getByTestId("preview-area"));
+      expect(bottom).toContainElement(screen.getByTestId("tracks-region"));
     });
 
     it("offers an Assistant tab alongside the Inspector", () => {
@@ -375,7 +398,7 @@ describe("TimelineEditor", () => {
       renderEditor();
 
       const separator = screen.getByRole("separator", {
-        name: "Resize tracks panel"
+        name: "Resize timeline bottom panels"
       });
       expect(separator).toHaveAttribute("aria-orientation", "horizontal");
       expect(separator).toHaveAttribute("aria-valuenow");
@@ -384,56 +407,106 @@ describe("TimelineEditor", () => {
       expect(separator).toHaveAttribute("tabindex", "0");
     });
 
-    it("increases tracks height with ArrowUp keyboard press", () => {
+    it("keeps keyboard focus on the clip when a double-click opens the Inspector, so Delete still reaches the timeline", async () => {
       renderEditor();
-
-      const separator = screen.getByRole("separator", {
-        name: "Resize tracks panel"
+      const clip = screen.getByTestId("mock-clip");
+      clip.focus();
+      act(() => {
+        useTimelineUIStore.getState().setPanelTab("inspector");
       });
-      const initialHeight = Number(separator.getAttribute("aria-valuenow"));
-
-      fireEvent.keyDown(separator, { key: "ArrowUp" });
-
-      const newHeight = Number(separator.getAttribute("aria-valuenow"));
-      expect(newHeight).toBeGreaterThan(initialHeight);
+      // The dock moves focus a frame after it opens a panel, so wait one.
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      });
+      expect(clip).toHaveFocus();
+      // The tab strip would close the Inspector on Delete and swallow the key.
+      const handled = fireEvent.keyDown(clip, { key: "Delete" });
+      expect(handled).toBe(true);
+      expect(screen.getByRole("tab", { name: /Inspector/ })).toBeInTheDocument();
     });
 
-    it("decreases tracks height with ArrowDown keyboard press", () => {
+    it("mounts a dock panel when its workspace first shows it, not before", async () => {
       renderEditor();
-
-      const separator = screen.getByRole("separator", {
-        name: "Resize tracks panel"
-      });
-      const initialHeight = Number(separator.getAttribute("aria-valuenow"));
-
-      fireEvent.keyDown(separator, { key: "ArrowDown" });
-
-      const newHeight = Number(separator.getAttribute("aria-valuenow"));
-      expect(newHeight).toBeLessThan(initialHeight);
+      expect(screen.queryByTestId("assistant-panel")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("history-panel")).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: /Editing/ }));
+      // The Layouts section lists the workspaces before the Panels section.
+      await userEvent.click((await screen.findAllByRole("menuitem", { name: "Assistant" }))[0]);
+      expect(await screen.findByTestId("assistant-panel")).toBeInTheDocument();
     });
 
-    it("does not exceed max tracks height on ArrowUp", () => {
-      (useTimeline as jest.Mock).mockReturnValue({
-        data: sequence,
-        isLoading: false,
-        isError: false,
-        refetch: mockRefetch
+    describe("with a measured dock", () => {
+      const originalObserver = globalThis.ResizeObserver;
+      beforeEach(() => {
+        // jsdom lays nothing out, which would clamp the bottom region to its minimum.
+        class MeasuredObserver {
+          constructor(private readonly callback: ResizeObserverCallback) {}
+          observe(): void {
+            this.callback(
+              [{ contentRect: { width: 1600, height: 1000 } } as unknown as ResizeObserverEntry],
+              this as unknown as ResizeObserver
+            );
+          }
+          unobserve(): void {}
+          disconnect(): void {}
+        }
+        globalThis.ResizeObserver = MeasuredObserver as unknown as typeof ResizeObserver;
+      });
+      afterEach(() => {
+        globalThis.ResizeObserver = originalObserver;
       });
 
-      renderEditor();
+      it("grows the timeline panel with ArrowUp keyboard press", () => {
+        renderEditor();
 
-      const separator = screen.getByRole("separator", {
-        name: "Resize tracks panel"
-      });
-      const max = Number(separator.getAttribute("aria-valuemax"));
+        const separator = screen.getByRole("separator", {
+          name: "Resize timeline bottom panels"
+        });
+        const initialHeight = Number(separator.getAttribute("aria-valuenow"));
 
-      // Press many times to hit the ceiling
-      for (let i = 0; i < 100; i++) {
         fireEvent.keyDown(separator, { key: "ArrowUp" });
-      }
 
-      const finalHeight = Number(separator.getAttribute("aria-valuenow"));
-      expect(finalHeight).toBeLessThanOrEqual(max);
+        const newHeight = Number(separator.getAttribute("aria-valuenow"));
+        expect(newHeight).toBeGreaterThan(initialHeight);
+      });
+
+      it("shrinks the timeline panel with ArrowDown keyboard press", () => {
+        renderEditor();
+
+        const separator = screen.getByRole("separator", {
+          name: "Resize timeline bottom panels"
+        });
+        const initialHeight = Number(separator.getAttribute("aria-valuenow"));
+
+        fireEvent.keyDown(separator, { key: "ArrowDown" });
+
+        const newHeight = Number(separator.getAttribute("aria-valuenow"));
+        expect(newHeight).toBeLessThan(initialHeight);
+      });
+
+      it("stops growing the timeline panel at its cap on ArrowUp", () => {
+        (useTimeline as jest.Mock).mockReturnValue({
+          data: sequence,
+          isLoading: false,
+          isError: false,
+          refetch: mockRefetch
+        });
+
+        renderEditor();
+
+        const separator = screen.getByRole("separator", {
+          name: "Resize timeline bottom panels"
+        });
+        const max = Number(separator.getAttribute("aria-valuemax"));
+
+        // Press many times to hit the ceiling
+        for (let i = 0; i < 100; i++) {
+          fireEvent.keyDown(separator, { key: "ArrowUp" });
+        }
+
+        const finalHeight = Number(separator.getAttribute("aria-valuenow"));
+        expect(finalHeight).toBeLessThanOrEqual(max);
+      });
     });
 
     it("waits for pending edits to save before exporting the project archive", async () => {

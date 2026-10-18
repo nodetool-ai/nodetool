@@ -60,6 +60,8 @@ interface TopBarProps {
   /** Shows or hides the right panel. Omit where there is none (phones). */
   onToggleSidePanel?: () => void;
   sidePanelVisible?: boolean;
+  /** The workspace menu. Omit where there is no dock (phones). */
+  layoutMenu?: React.ReactNode;
   /** Switches between the video layout and DAW mode. Omit to hide the switch. */
   onSetDawMode?: (dawMode: boolean) => void;
   dawMode?: boolean;
@@ -105,6 +107,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
     transcriptVisible = true,
     onToggleSidePanel,
     sidePanelVisible = true,
+    layoutMenu,
     onSetDawMode,
     dawMode = false
   }) => {
@@ -158,6 +161,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
             </ToggleGroup>
           </Tooltip>
         )}
+        {layoutMenu}
         {onToggleTranscript && (
           <ToolbarIconButton
             onClick={onToggleTranscript}

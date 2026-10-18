@@ -77,11 +77,26 @@ export const isShotClip = (
   !clip.scriptLineId &&
   (clip.mediaType === "video" || clip.mediaType === "audio");
 
-/** The one selected clip, when it is a shot clip. */
-export const useSelectedShotClip = (): TimelineClip | null => {
-  const clipId = useTimelineUIStore((state) =>
+const useSelectedClipId = (): string | null =>
+  useTimelineUIStore((state) =>
     state.selectedClipIds.size === 1 ? [...state.selectedClipIds][0] : null
   );
+
+/**
+ * Whether the one selected clip is a shot clip. A boolean, so a caller that
+ * only needs the answer does not re-render on every edit of that clip.
+ */
+export const useHasSelectedShotClip = (): boolean => {
+  const clipId = useSelectedClipId();
+  return useTimelineStore((state) => {
+    const clip = clipId ? findClipById(state.clips, clipId) : undefined;
+    return clip !== undefined && isShotClip(clip);
+  });
+};
+
+/** The one selected clip, when it is a shot clip. */
+export const useSelectedShotClip = (): TimelineClip | null => {
+  const clipId = useSelectedClipId();
   const clip = useTimelineStore((state) =>
     clipId ? findClipById(state.clips, clipId) : undefined
   );

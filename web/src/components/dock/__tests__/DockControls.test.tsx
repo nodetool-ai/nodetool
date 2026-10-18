@@ -4,35 +4,36 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { useStore, type StoreApi } from "zustand";
 
-import mockTheme from "../../../../__mocks__/themeMock";
-import { initKeyListeners } from "../../../../stores/KeyPressedStore";
-import { createGamePanelLayoutStore, type GamePanelLayoutState } from "../../../../stores/game/GamePanelLayoutStore";
-import { GameLayoutMenu } from "../GameLayoutMenu";
-import { GameDockCanvas } from "../GameDockCanvas";
-import { useGameDockPresentation } from "../useGameDockPresentation";
-import type { GamePanelView } from "../GameEditorShell";
-import type { GamePanelRegistration } from "../panelRegistry";
+import mockTheme from "../../../__mocks__/themeMock";
+import { initKeyListeners } from "../../../stores/KeyPressedStore";
+import { createSampleDockStore } from "../../../__mocks__/sampleDockModel";
+import type { DockLayoutState } from "../../../stores/dock/DockLayoutStore";
+import { DockLayoutMenu } from "../DockLayoutMenu";
+import { DockCanvas } from "../DockCanvas";
+import { useDockPresentation, type DockPanelView } from "../useDockPresentation";
 
-function makeStore(): StoreApi<GamePanelLayoutState> {
-  return createGamePanelLayoutStore({ anonymous: true }, { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
+import type { DockPanelRegistration } from "../panelRegistry";
+
+function makeStore(): StoreApi<DockLayoutState> {
+  return createSampleDockStore({ anonymous: true }, { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
 }
 
-const registry: readonly GamePanelRegistration[] = ["viewport", "scripts", "inspector", "assistant"].map((id) => ({
-  id, title: id[0].toUpperCase() + id.slice(1), icon: null, dimensions: ["2d"], defaultRegion: "bottom"
+const registry: readonly DockPanelRegistration[] = ["viewport", "scripts", "inspector", "assistant"].map((id) => ({
+  id, title: id[0].toUpperCase() + id.slice(1), icon: null, defaultRegion: "bottom"
 }));
 
-function Dock({ store }: { store: StoreApi<GamePanelLayoutState> }): ReactNode {
+function Dock({ store }: { store: StoreApi<DockLayoutState> }): ReactNode {
   const root = useRef<HTMLDivElement | null>(null);
   const layout = useStore(store, (state) => state.layout);
-  const views: readonly GamePanelView[] = registry.map((entry) => ({ id: entry.id, node: <span>{entry.title} body</span> }));
-  const presentation = useGameDockPresentation({ root, store, layout, registry, dimension: "2d", availableIds: views.map((view) => view.id), views });
-  return <section ref={root}><GameDockCanvas presentation={presentation} store={store} /></section>;
+  const views: readonly DockPanelView[] = registry.map((entry) => ({ id: entry.id, node: <span>{entry.title} body</span> }));
+  const presentation = useDockPresentation({ root, store, layout, registry, availableIds: views.map((view) => view.id), views });
+  return <section ref={root}><DockCanvas presentation={presentation} store={store} /></section>;
 }
 
 it("saves, selects, renames and deletes a named copy without replacing built-in layouts", async () => {
   const user = userEvent.setup();
   const store = makeStore();
-  render(<ThemeProvider theme={mockTheme}><GameLayoutMenu store={store} panels={[]} /></ThemeProvider>);
+  render(<ThemeProvider theme={mockTheme}><DockLayoutMenu store={store} panels={[]} /></ThemeProvider>);
   await user.click(screen.getByRole("button", { name: "Default" }));
   await user.click(screen.getByRole("menuitem", { name: "Save layout as…" }));
   await user.type(screen.getByRole("textbox", { name: "Layout name" }), "My game layout");
@@ -56,7 +57,7 @@ it("saves, selects, renames and deletes a named copy without replacing built-in 
   await user.click(screen.getByRole("button", { name: "Renamed layout" }));
   await user.click(screen.getByRole("menuitem", { name: "Delete layout" }));
   expect(store.getState().customLayouts).toEqual([]);
-  expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Layout" })).toBeInTheDocument();
 });
 
 it("moves, reorders and closes panels from the tab menu by keyboard", async () => {
@@ -71,7 +72,7 @@ it("moves, reorders and closes panels from the tab menu by keyboard", async () =
   await user.click(screen.getByRole("menuitem", { name: "Move to right dock" }));
   expect(store.getState().layout.regions.right[0].panels.at(-1)).toBe("scripts");
   expect(store.getState().layout.regions.bottom.some((group) => group.panels.includes("scripts"))).toBe(false);
-  const rightTabs = within(screen.getByRole("tablist", { name: "right game panel tabs" }));
+  const rightTabs = within(screen.getByRole("tablist", { name: "right sample panel tabs" }));
   rightTabs.getByRole("tab", { name: "Scripts" }).focus();
   await user.keyboard("{Shift>}{F10}{/Shift}");
   await user.click(screen.getByRole("menuitem", { name: "Move tab left" }));
@@ -91,7 +92,7 @@ it("docks a dragged tab onto a group edge and cancels the drag on Escape or wind
   const rendered = render(<ThemeProvider theme={mockTheme}><Dock store={store} /></ThemeProvider>);
   const layout = store.getState().layout;
   const rightGroup = layout.regions.right[0];
-  const body = document.querySelector<HTMLElement>(`[data-game-dock-group='${rightGroup.id}'] [data-game-dock-body]`);
+  const body = document.querySelector<HTMLElement>(`[data-dock-group='${rightGroup.id}'] [data-dock-body]`);
   if (!body) { throw new Error("right group body missing"); }
   // JSDOM has no geometry. Only browser hit testing is adapted, the gesture and store are real.
   const previousHitTest = Object.getOwnPropertyDescriptor(document, "elementFromPoint");
@@ -122,4 +123,33 @@ it("docks a dragged tab onto a group edge and cancels the drag on Escape or wind
     if (previousHitTest) { Object.defineProperty(document, "elementFromPoint", previousHitTest); }
     else { Reflect.deleteProperty(document, "elementFromPoint"); }
   }
+});
+
+it("resets to the layout in use from the Layout menu", async () => {
+  const user = userEvent.setup();
+  const store = makeStore();
+  render(<ThemeProvider theme={mockTheme}><DockLayoutMenu store={store} panels={[]} /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Default" }));
+  await user.click(screen.getByRole("menuitem", { name: "Scripting" }));
+  const scripting = store.getState().layout;
+  act(() => store.getState().dispatch({ type: "resize", region: "bottom", size: 700 }));
+  await user.click(screen.getByRole("button", { name: "Scripting" }));
+  await user.click(screen.getByRole("menuitem", { name: "Reset to saved layout" }));
+  expect(store.getState().layout).toEqual(scripting);
+});
+
+it("disables Reset after the active saved layout is deleted, until a layout is chosen", async () => {
+  const user = userEvent.setup();
+  const store = makeStore();
+  act(() => store.getState().saveLayout("Mine"));
+  render(<ThemeProvider theme={mockTheme}><DockLayoutMenu store={store} panels={[]} /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Mine" }));
+  await user.click(screen.getByRole("menuitem", { name: "Delete layout" }));
+  expect(store.getState().activeLayoutName).toBeNull();
+  await user.click(screen.getByRole("button", { name: "Layout" }));
+  expect(screen.getByRole("menuitem", { name: "Reset to saved layout" })).toHaveAttribute("aria-disabled", "true");
+  await user.click(screen.getByRole("menuitem", { name: "Scripting" }));
+  expect(store.getState().activeLayoutName).toBe("Scripting");
+  await user.click(screen.getByRole("button", { name: "Scripting" }));
+  expect(screen.getByRole("menuitem", { name: "Reset to saved layout" })).not.toHaveAttribute("aria-disabled", "true");
 });

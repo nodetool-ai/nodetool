@@ -7,7 +7,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 
 import { getGameConsoleStore } from "../../../../stores/game/GameConsoleStore";
-import GamePanelHeader from "../../GamePanelHeader";
+import DockPanelHeader from "../../../dock/DockPanelHeader";
 import {
   Box, BORDER_RADIUS, Caption, CONTROL, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow, FONT_SIZE_SANS, ScrollArea,
   SearchInput, SPACING, TextLink, Tooltip, ToolbarIconButton, TYPOGRAPHY
@@ -83,7 +83,7 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
     });
   };
   return <FlexColumn sx={{ height: "100%", minHeight: 0 }}>
-    <GamePanelHeader title="Console" fill>
+    <DockPanelHeader title="Console" fill>
       <FieldDensityContext.Provider value="compact">
         <SearchInput value={query} onChange={setQuery} placeholder="Filter" ariaLabel="Filter console" size="small"
           sx={{ flex: 1, minWidth: 0 }} />
@@ -105,7 +105,7 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
       <Divider orientation="vertical" flexItem sx={{ mx: SPACING.xs, my: SPACING.xs }} />
       <EditorButton disabled={stored.length === 0} onClick={() => store.getState().clear()}
         sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Clear</EditorButton>
-    </GamePanelHeader>
+    </DockPanelHeader>
     <ScrollArea role="log" aria-label="Console" sx={{ flex: 1, minHeight: 0 }}>
       {visible.length === 0
         ? <FlexColumn align="center" gap={SPACING.micro} sx={{ px: SPACING.lg, py: SPACING.xl, textAlign: "center" }}>
