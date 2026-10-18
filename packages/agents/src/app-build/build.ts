@@ -25,7 +25,7 @@ import type {
   ProcessingContext,
   TurnBudget
 } from "@nodetool-ai/runtime";
-import { CostCappedTurnBudget, withSpan } from "@nodetool-ai/runtime";
+import { CompositeTurnBudget, withSpan } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateGraph } from "@nodetool-ai/node-sdk";
@@ -86,6 +86,7 @@ import {
   type BuildReport,
   type BuildSpec,
   type BuildSpecWidget,
+  type BuildStage,
   type BuildSupervision,
   type CompletedInteraction,
   type JudgeRecord,
@@ -107,7 +108,23 @@ export const DEFAULT_BUILD_TIMEOUT_MS = 10 * 60 * 1000;
 /** Ceiling on what one build may spend, in USD. */
 export const DEFAULT_BUILD_COST_CAP_USD = 2;
 /** Output-token bound assumed per turn when reserving against the cap. */
-const BUILD_MAX_OUTPUT_TOKENS = 4096;
+export const BUILD_MAX_OUTPUT_TOKENS = 4096;
+/** Prompt-token bound on a turn whose model has no catalog price. */
+export const BUILD_UNPRICED_TOKEN_CEILING = 400_000;
+
+/**
+ * The spend admission for a build or its Spec stage. A model with no catalog
+ * price is admitted against a prompt-token ceiling, as a chat turn is: the
+ * subscription Claude aliases (`sonnet`, `opus`) have no price, and refusing
+ * them would refuse every turn of a build the user started on one.
+ */
+export function createBuildTurnBudget(capUsd: number): TurnBudget {
+  return new CompositeTurnBudget({
+    capUsd,
+    maxOutputTokens: BUILD_MAX_OUTPUT_TOKENS,
+    unpricedTokenCeiling: BUILD_UNPRICED_TOKEN_CEILING
+  });
+}
 
 /**
  * Complaint codes Plan owns: the app binds to a graph node the workflow does
@@ -182,6 +199,8 @@ export interface BuildAppOptions {
 
   signal?: AbortSignal;
   onLog?: (line: string) => void;
+  /** Called as each stage starts, so a caller can show where the build is. */
+  onStage?: (stage: BuildStage, round: number) => void;
   /** Persist one interaction run's message stream; returns the recorded path. */
   onRunMessages?: (
     interaction: string,
@@ -287,6 +306,19 @@ const documentOf = (
   variables: doc.meta.variables
 });
 
+/**
+ * A planned node in the shape a saved workflow stores: values under `data`,
+ * not the kernel's `properties`. The bundle is installed as saved workflows,
+ * and the app runtime reads an input's name from `data`, so a `properties`
+ * node ran on its default value whatever the person typed.
+ */
+const savedNode = (
+  node: Record<string, unknown>
+): Record<string, unknown> => {
+  const { properties, ...rest } = node;
+  return { ...rest, data: properties ?? rest["data"] ?? {} };
+};
+
 const assembleBundle = (
   spec: BuildSpec,
   doc: AppBridgeDocument,
@@ -300,7 +332,10 @@ const assembleBundle = (
   workflows: workflows.map((workflow) => ({
     key: workflow.key,
     name: workflow.name,
-    graph: { nodes: workflow.graph.nodes, edges: workflow.graph.edges }
+    graph: {
+      nodes: workflow.graph.nodes.map(savedNode),
+      edges: workflow.graph.edges
+    }
   })),
   // The builder plans workflows, never scripts: authoring a script operation
   // is not a stage it has.
@@ -996,15 +1031,12 @@ export async function buildApp(opts: BuildAppOptions): Promise<BuildReport> {
 async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
   const startedAt = Date.now();
   const log_ = opts.onLog ?? (() => {});
+  const stage_ = opts.onStage ?? (() => {});
   const maxRepairs = opts.maxRepairs ?? DEFAULT_MAX_REPAIRS;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_BUILD_TIMEOUT_MS;
   const costCapUsd = opts.costCapUsd ?? DEFAULT_BUILD_COST_CAP_USD;
   const budget =
-    opts.turnBudget ??
-    new CostCappedTurnBudget({
-      capUsd: costCapUsd,
-      maxOutputTokens: BUILD_MAX_OUTPUT_TOKENS
-    });
+    opts.turnBudget ?? createBuildTurnBudget(costCapUsd);
   const options: BuildAppOptions = { ...opts, turnBudget: budget };
 
   const costAtStart = opts.provider.getTotalCost();
@@ -1052,6 +1084,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     if (!opts.prompt) {
       throw new Error("buildApp needs one of: prompt, specPath, spec");
     }
+    stage_("spec", 0);
     const specOptions: SpecStageOptions = {
       prompt: opts.prompt,
       provider: options.provider,
@@ -1094,6 +1127,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     );
   }
 
+  stage_("plan", 0);
   const planned = await withSpan("app.build.plan", {}, () =>
     runPlanStage(options, { spec, round: 0 })
   );
@@ -1146,6 +1180,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     }));
     const author = () =>
       withSpan("app.build.author", { "app.build.round": round }, () => {
+        stage_("author", round);
         const authorOptions: AuthorStageOptions = {
           spec,
           workflows: authorWorkflows,
@@ -1209,6 +1244,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
       opts.prompt ?? spec.title
     );
 
+    stage_("check", round);
     const checked = await withSpan(
       "app.build.check",
       { "app.build.round": round },
@@ -1230,6 +1266,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     ];
 
     if (errorsOf(checked.issues).length === 0) {
+      stage_("run", round);
       const ran = await withSpan(
         "app.build.run",
         { "app.build.round": round },
@@ -1256,6 +1293,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
               "app.build.judge",
               { "app.build.round": round, "app.build.judge.model": judgeModel },
               () => {
+                stage_("judge", round);
                 const judgeOptions: JudgeStageOptions = {
                   spec,
                   interactions: ran.judged,
@@ -1406,6 +1444,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
             .join(" ")}`
         ])
       );
+      stage_("plan", round + 1);
       const replanned = await withSpan(
         "app.build.plan",
         { "app.build.round": round + 1 },

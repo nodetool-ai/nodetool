@@ -1,4 +1,4 @@
-import { buildApplication } from "../applicationBuild";
+import { buildApplication, specifyApplication } from "../applicationBuild";
 import { restFetch } from "../../lib/rest-fetch";
 
 jest.mock("../../lib/rest-fetch", () => ({ restFetch: jest.fn() }));
@@ -31,6 +31,27 @@ it("starts a polled build and resolves with a green build's bundle", async () =>
     })
   );
   expect(fetchMock).toHaveBeenNthCalledWith(3, "/api/debug/sessions/s1", expect.any(Object));
+});
+
+it("reports each stage a poll of the running build names", async () => {
+  fetchMock
+    .mockResolvedValueOnce(json({ status: "running", session_id: "s1" }))
+    .mockResolvedValueOnce(
+      json({ status: "running", progress: { stage: "plan", round: 0 } })
+    )
+    .mockResolvedValueOnce(json({ status: "running" }))
+    .mockResolvedValueOnce(
+      json({ status: "running", progress: { stage: "author", round: 1 } })
+    )
+    .mockResolvedValueOnce(
+      json({ status: "completed", verdict: { ok: true }, bundle })
+    );
+  const onProgress = jest.fn();
+  await buildApplication({ prompt: "x", provider: "p", model: "m", pollMs: 0, onProgress });
+  expect(onProgress.mock.calls).toEqual([
+    [{ stage: "plan", round: 0 }],
+    [{ stage: "author", round: 1 }]
+  ]);
 });
 
 it("rejects with the verdict's reason when the build is not green", async () => {
@@ -68,4 +89,62 @@ it("cancels the server's build when the caller aborts", async () => {
   controller.abort();
   await expect(pending).rejects.toThrow("Aborted");
   expect(fetchMock).toHaveBeenCalledWith("/api/debug/sessions/s1/cancel", { method: "POST" });
+});
+
+const spec = {
+  title: "Blurbs",
+  operations: [],
+  variables: [],
+  widgets: [],
+  interactions: []
+};
+
+it("builds a reviewed spec instead of the prompt, under the caller's cap", async () => {
+  fetchMock
+    .mockResolvedValueOnce(json({ status: "running", session_id: "s1" }))
+    .mockResolvedValueOnce(
+      json({ status: "completed", verdict: { ok: true }, bundle })
+    );
+  await buildApplication({
+    prompt: "A blurb page",
+    spec,
+    provider: "openai",
+    model: "m",
+    costCapUsd: 2,
+    pollMs: 0
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    1,
+    "/api/applications/build",
+    expect.objectContaining({
+      body: JSON.stringify({ spec, provider: "openai", model: "m", cost_cap_usd: 2, poll: true })
+    })
+  );
+});
+
+it("writes a spec through the spec endpoint and resolves with it", async () => {
+  fetchMock
+    .mockResolvedValueOnce(json({ status: "running", session_id: "s2" }))
+    .mockResolvedValueOnce(json({ status: "completed", spec, issues: [] }));
+  await expect(
+    specifyApplication({ prompt: "A blurb page", provider: "openai", model: "m", pollMs: 0 })
+  ).resolves.toEqual(spec);
+  expect(fetchMock).toHaveBeenNthCalledWith(
+    1,
+    "/api/applications/spec",
+    expect.objectContaining({
+      body: JSON.stringify({ prompt: "A blurb page", provider: "openai", model: "m", poll: true })
+    })
+  );
+});
+
+it("rejects with the reason when no spec came back", async () => {
+  fetchMock
+    .mockResolvedValueOnce(json({ status: "running", session_id: "s2" }))
+    .mockResolvedValueOnce(
+      json({ status: "failed", spec: null, error: "widget type Slider9 is not in the catalog" })
+    );
+  await expect(
+    specifyApplication({ prompt: "x", provider: "p", model: "m", pollMs: 0 })
+  ).rejects.toThrow("The design could not be written: widget type Slider9 is not in the catalog");
 });

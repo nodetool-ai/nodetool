@@ -16,6 +16,7 @@
  *   GET    /api/applications/:id/export-project     → standalone project .zip (download)
  *   POST   /api/applications/import-bundle          → ApplicationResponse
  *   POST   /api/applications/build                  → BuildReport | {session_id}
+ *   POST   /api/applications/spec                   → {spec, issues} | {session_id}
  *   POST   /api/applications/debug                  → AppDebugSummary | {session_id}
  *   GET    /api/applications/examples               → ExampleAppSummary[]
  *   GET    /api/applications/examples/:slug         → ApplicationBundle
@@ -52,8 +53,10 @@ import {
 } from "../lib/applications-service.js";
 import {
   runApplicationBuild,
+  runApplicationSpec,
   type AppBuildDeps,
-  type AppBuildRequest
+  type AppBuildRequest,
+  type AppSpecRequest
 } from "../lib/app-build-service.js";
 import {
   runApplicationDebug,
@@ -185,6 +188,17 @@ const applicationsRoutes: FastifyPluginAsync<RouteOptions> = async (
           apiOptions,
           opts.appBuild ?? {}
         );
+      })
+    );
+  });
+
+  // Only the build's Spec stage: the spec a build would be measured against,
+  // for the creator to read and edit before passing it back to `build`.
+  app.post("/api/applications/spec", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      respond(async () => {
+        const body = (await readJsonBody(request)) as AppSpecRequest;
+        return runApplicationSpec(userIdOf(request), body, opts.appBuild ?? {});
       })
     );
   });

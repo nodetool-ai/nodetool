@@ -16,22 +16,38 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Application, Workflow, initTestDb } from "@nodetool-ai/models";
-import { AppServiceError, debugSessions } from "@nodetool-ai/execution/service";
+import {
+  AppServiceError,
+  debugSessions,
+  peekDebugSession
+} from "@nodetool-ai/execution/service";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ApplicationBundle } from "@nodetool-ai/app-runtime";
 import type { BuildAppOptions } from "../src/app-build/build.js";
 import type { BuildReport, BuildSpec } from "../src/app-build/types.js";
+import type {
+  SpecStageOptions,
+  SpecStageResult
+} from "../src/app-build/spec.js";
 import {
   runApplicationBuild,
+  runApplicationSpec,
   type AppBuildDeps
 } from "../src/app-build/build-service.js";
 
 const buildApp = vi.fn<(opts: BuildAppOptions) => Promise<BuildReport>>();
+const runSpecStage =
+  vi.fn<(opts: SpecStageOptions) => Promise<SpecStageResult>>();
 
-vi.mock("../src/app-build/build.js", () => ({
-  buildApp: (opts: BuildAppOptions) => buildApp(opts),
-  DEFAULT_BUILD_COST_CAP_USD: 2
+vi.mock("../src/app-build/build.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/app-build/build.js")>()),
+  buildApp: (opts: BuildAppOptions) => buildApp(opts)
+}));
+
+vi.mock("../src/app-build/spec.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/app-build/spec.js")>()),
+  runSpecStage: (opts: SpecStageOptions) => runSpecStage(opts)
 }));
 
 // --- fixtures ---------------------------------------------------------------
@@ -449,6 +465,17 @@ describe("runApplicationBuild — poll, cancel, and the session", () => {
     expect(session?.jobId).toBe(buildId);
     expect(session?.workflowId).toBeNull();
     expect(session?.peek()).toEqual({ kind: "running" });
+    expect(session?.progress()).toBeNull();
+
+    // A poll reports the stage the build has reached.
+    const onStage = buildApp.mock.calls[0]?.[0].onStage;
+    onStage?.("author", 1);
+    expect(session?.progress()).toEqual({ stage: "author", round: 1 });
+    const polled = peekDebugSession(sessionId, userId);
+    expect(polled.kind === "payload" && polled.payload["progress"]).toEqual({
+      stage: "author",
+      round: 1
+    });
 
     release(reportOf());
     const event = await session!.waitForEvent();
@@ -637,5 +664,107 @@ describe("runApplicationBuild — the workflow loader it supplies", () => {
     await runApplicationBuild(nextUser(), body(), registry, deps());
 
     expect(loaded).toBeNull();
+  });
+});
+
+// --- the spec on its own -----------------------------------------------------
+
+describe("runApplicationSpec — the Spec stage alone", () => {
+  const body = (over: Record<string, unknown> = {}) => ({
+    prompt: "a drafting app",
+    provider: "anthropic",
+    model: "claude-sonnet-5",
+    ...over
+  });
+  const specRecord = (
+    issues: SpecStageResult["record"]["issues"] = []
+  ): SpecStageResult["record"] => ({
+    stage: "spec",
+    round: 0,
+    status: issues.length > 0 ? "failed" : "ok",
+    startedAt: new Date(0).toISOString(),
+    durationMs: 1,
+    issues,
+    costUsd: 0.02,
+    detail: ""
+  });
+
+  beforeEach(() => {
+    runSpecStage.mockReset();
+    runSpecStage.mockResolvedValue({ spec: SPEC, record: specRecord() });
+  });
+
+  it("answers the spec the stage wrote, and builds nothing", async () => {
+    const d = deps();
+    const payload = await runApplicationSpec(nextUser(), body(), d);
+
+    expect(payload["status"]).toBe("completed");
+    expect(payload["spec"]).toEqual(SPEC);
+    expect(payload["cost_usd"]).toBe(0.02);
+    expect(buildApp).not.toHaveBeenCalled();
+    expect(d.createProvider.mock.calls[0]?.[0]).toBe("anthropic");
+    expect(runSpecStage.mock.calls[0]?.[0].model).toBe("claude-sonnet-5");
+    expect(runSpecStage.mock.calls[0]?.[0].prompt).toBe("a drafting app");
+  });
+
+  it("reports the first issue when no spec came back", async () => {
+    runSpecStage.mockResolvedValue({
+      spec: null,
+      record: specRecord([
+        {
+          stage: "spec",
+          code: "unknown_widget_type",
+          severity: "error",
+          message: "widget type Slider9 is not in the catalog"
+        }
+      ])
+    });
+
+    const payload = await runApplicationSpec(nextUser(), body(), deps());
+
+    expect(payload["status"]).toBe("failed");
+    expect(payload["spec"]).toBeNull();
+    expect(payload["error"]).toBe("widget type Slider9 is not in the catalog");
+  });
+
+  it("refuses a blank prompt before calling a model", async () => {
+    await expect(
+      runApplicationSpec(nextUser(), body({ prompt: "  " }), deps())
+    ).rejects.toBeInstanceOf(AppServiceError);
+    expect(runSpecStage).not.toHaveBeenCalled();
+  });
+
+  it("aborts the stage when its polled session is cancelled", async () => {
+    runSpecStage.mockImplementation(
+      (opts: SpecStageOptions) =>
+        new Promise<SpecStageResult>((resolve) => {
+          opts.signal?.addEventListener("abort", () =>
+            resolve({
+              spec: null,
+              record: specRecord([
+                {
+                  stage: "spec",
+                  code: "cancelled",
+                  severity: "error",
+                  message: "cancelled"
+                }
+              ])
+            })
+          );
+        })
+    );
+    const userId = nextUser();
+
+    const started = await runApplicationSpec(
+      userId,
+      body({ poll: true }),
+      deps()
+    );
+    expect(started["status"]).toBe("running");
+    const session = debugSessions.get(started["session_id"] as string, userId);
+    const payload = await session!.cancel();
+
+    expect(payload["status"]).toBe("failed");
+    expect(runSpecStage.mock.calls[0]?.[0].signal?.aborted).toBe(true);
   });
 });

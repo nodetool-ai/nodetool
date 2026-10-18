@@ -444,6 +444,7 @@ the CLI, and other clients use.
 | `POST /api/applications/import-bundle` | Create an app and its workflows from a bundle. |
 | `POST /api/applications/debug` | Run the debug harness on a document. |
 | `POST /api/applications/build` | Build an app from a prompt. |
+| `POST /api/applications/spec` | Write the spec a build would use, and stop. |
 | `GET /api/applications/examples` | List the shipped example apps. |
 | `GET /api/applications/examples/:slug` | One example as a bundle. |
 | `POST /api/applications/examples/:slug/install` | Add an example to your apps. |

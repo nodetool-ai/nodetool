@@ -74,6 +74,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/{id}/export-project` | `GET`       | Session auth                     | no                          | One app as a standalone JavaScript project (Vite UI plus a Node server that runs its workflows and scripts), as a `.zip` |
 | Apps | `/api/applications/import-bundle` | `POST` | Session auth | no | Create an app, and the workflows it binds, from an `ApplicationBundle` |
 | Apps      | `/api/applications/build`         | `POST`            | Session auth                     | no                          | Build a mini app from a prompt or a pinned spec; returns the `BuildReport`. `poll: true` returns a session id instead |
+| Apps      | `/api/applications/spec`          | `POST`            | Session auth                     | no                          | Run only the build's Spec stage on a prompt; returns `{spec, issues}`. `poll: true` returns a session id instead |
 | Apps      | `/api/applications/debug`         | `POST`            | Session auth                     | no                          | Simulate a saved app by `application_id`, or a draft posted inline as `document`; returns the compacted debug report |
 | Apps      | `/api/applications/examples`      | `GET`             | Session auth                                   | no                          | The shipped example apps — slug, name, description, workflow names, operation count, thumbnail URL |
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | Session auth                                   | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
@@ -1675,8 +1676,18 @@ A build runs for minutes, so `poll: true` answers as soon as it starts:
 }
 ```
 
-Read those two paths until the session settles. A cancelled build settles as
-`failed` with `reason: "cancelled"`.
+Read those two paths until the session settles. While the build runs, the
+poll answers `status: "running"` with `progress: {stage, round}`: the stage
+under way (`spec`, `plan`, `author`, `check`, `run` or `judge`) and the repair
+round, 0 for the first pass. A cancelled build settles as `failed` with
+`reason: "cancelled"`.
+
+`POST /api/applications/spec` takes `prompt`, `provider`, `model`,
+`cost_cap_usd` and `poll`, runs the Spec stage alone, and answers with
+`{status, spec, issues, cost_usd}`. `spec` is null and `error` names the first
+issue when no valid spec came back. Pass the spec, edited or not, back to
+`/api/applications/build` as `spec` to build exactly what was read. The App
+guided flow uses the pair for its Design and Build steps.
 
 The bundle behind a green verdict is offered, never installed: turning it into
 an application is a separate `POST /api/applications/import-bundle`.

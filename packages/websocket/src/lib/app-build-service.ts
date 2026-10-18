@@ -9,8 +9,10 @@
 import { createLogger } from "@nodetool-ai/config";
 import {
   runApplicationBuild as runApplicationBuildService,
+  runApplicationSpec as runApplicationSpecService,
   type AppBuildDeps,
-  type AppBuildRequest
+  type AppBuildRequest,
+  type AppSpecRequest
 } from "@nodetool-ai/agents";
 import { AppServiceError } from "@nodetool-ai/execution/service";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -20,7 +22,7 @@ import type { HttpApiOptions } from "../http-api.js";
 
 const log = createLogger("nodetool.websocket.app-build");
 
-export type { AppBuildDeps, AppBuildRequest };
+export type { AppBuildDeps, AppBuildRequest, AppSpecRequest };
 
 let defaultRegistryPromise: Promise<NodeRegistry> | null = null;
 
@@ -48,14 +50,31 @@ export async function runApplicationBuild(
   try {
     return await runApplicationBuildService(userId, body, registry, deps);
   } catch (error) {
-    if (error instanceof AppServiceError) {
-      throwApiError(
-        error.code === "not_found"
-          ? ApiErrorCode.NOT_FOUND
-          : ApiErrorCode.INVALID_INPUT,
-        error.message
-      );
-    }
-    throw error;
+    rethrowServiceError(error);
   }
+}
+
+/** Write the spec for a prompt, as the first half of a build would. */
+export async function runApplicationSpec(
+  userId: string,
+  body: AppSpecRequest,
+  deps: AppBuildDeps = {}
+): Promise<Record<string, unknown>> {
+  try {
+    return await runApplicationSpecService(userId, body, deps);
+  } catch (error) {
+    rethrowServiceError(error);
+  }
+}
+
+function rethrowServiceError(error: unknown): never {
+  if (error instanceof AppServiceError) {
+    throwApiError(
+      error.code === "not_found"
+        ? ApiErrorCode.NOT_FOUND
+        : ApiErrorCode.INVALID_INPUT,
+      error.message
+    );
+  }
+  throw error;
 }

@@ -249,6 +249,26 @@ fixture gaps:
   that passes through the image flow more actions, or count the retyping
   when you judge the outcome.
 
+### Studying the App flow on a real model
+
+The fakes cannot write an app design that follows what a participant typed.
+With the user's approval for subscription use, start `serveApp.ts` with:
+
+```bash
+env -u CLAUDECODE IS_SANDBOX=1 \
+  NODETOOL_STUDY_APP_MODEL=claude_agent_sdk/sonnet \
+  NODETOOL_REAL_PROVIDERS=claude_agent_sdk \
+  npx tsx tests/agentic-qa/serveApp.ts --state empty
+```
+
+`NODETOOL_STUDY_APP_MODEL` makes the test server's `/api/applications/spec`
+and `/api/applications/build` design, plan, author and judge on that model,
+whatever the request picked. `NODETOOL_REAL_PROVIDERS` keeps the Claude Agent
+provider real, so the built app's runs and the chat answer for real. Without
+it the app's run returns the fixed reply and the judge fails every build.
+`IS_SANDBOX=1` lets the CLI run as root. The judge shares the builder's model,
+because it is the only real provider.
+
 ## Brokered fallback
 
 Use brokered mode only when the runner cannot start, for example without a

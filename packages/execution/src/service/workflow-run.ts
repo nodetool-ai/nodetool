@@ -532,6 +532,16 @@ export function buildWorkflowRunPayload(
 }
 
 /** One escalated/running/done payload shape for every interactive response. */
+/** A session whose run has not settled, as a poll answers it. */
+export type RunningSessionPayload = {
+  status: "running";
+  session_id: string;
+  job_id: string;
+  workflow_id: string | null;
+  /** What the run reports doing now, when it reports anything. */
+  progress?: Record<string, unknown>;
+};
+
 export function debugSessionEventPayload(
   session: DebugSession,
   event: DebugSessionEvent
@@ -554,13 +564,17 @@ export function debugSessionEventPayload(
           "The run is parked on this node until a verdict arrives; an " +
           "unanswered escalation fails closed on the decision timeout."
       };
-    case "running":
-      return {
+    case "running": {
+      const progress = session.progress();
+      const payload: RunningSessionPayload = {
         status: "running",
         session_id: session.id,
         job_id: session.jobId,
         workflow_id: session.workflowId
       };
+      if (progress) payload.progress = progress;
+      return payload;
+    }
   }
 }
 
