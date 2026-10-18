@@ -5,8 +5,8 @@
  * The provider is not called here and no mask video is synthesized: encoding
  * one needs ffmpeg, which this repo does not require, and neither
  * `packages/agents/tests` nor `packages/timeline/tests` ships an mp4 to borrow.
- * So the fake runner answers with a URL and the fake store answers with an
- * asset id, and every assertion is about the *document* — which matte is
+ * So the fake runner answers with a stored mask's asset id, and every
+ * assertion is about the *document* — which matte is
  * current, which status it carries, what the version list holds, and how many
  * times the paid half was called. That is the half a provider key would not
  * make any more testable.
@@ -16,7 +16,6 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { TimelineSequence, initTestDb } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { makeClip, type TimelineClip } from "@nodetool-ai/timeline";
@@ -27,26 +26,25 @@ import {
 } from "@nodetool-ai/timeline/ops";
 import {
   isolateSubjectOnClip,
+  providerIsolateSubjectRunner,
   type IsolateSubjectDeps,
   type IsolateSubjectInput,
   type IsolateSubjectOutcome,
   type IsolateSubjectRunResult
 } from "../src/capabilities/timeline-isolate-subject.js";
-import {
-  DEFAULT_ISOLATE_SUBJECT_MODEL,
-  DEFAULT_ISOLATE_SUBJECT_RESOLUTION,
-  ISOLATE_SUBJECT_ENDPOINT
-} from "../src/capabilities/timelines.specs.js";
 import { module as timelines } from "../src/capabilities/timelines.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 
-const SETTINGS = {
-  model: DEFAULT_ISOLATE_SUBJECT_MODEL,
-  operating_resolution: DEFAULT_ISOLATE_SUBJECT_RESOLUTION,
-  refine_foreground: true
-};
+// The source bytes are read through the shared media resolver, which needs
+// storage this suite does not stand up.
+vi.mock("@nodetool-ai/runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@nodetool-ai/runtime")>()),
+  loadMediaRefBytes: vi.fn(async () => new Uint8Array([1, 2, 3]))
+}));
 
-const MASK_URL = "https://v3.fal.media/files/mask.mp4";
+const MATTE_MODEL = "fal-ai/birefnet/v2/video/General Use (Light)";
+
+const SETTINGS = { provider: "fal_ai", model: MATTE_MODEL };
 
 function videoClip(overrides: Partial<TimelineClip> = {}): TimelineClip {
   return makeClip({
@@ -84,7 +82,6 @@ interface Harness {
   /** Every clip handed to `persist`, in order. */
   saved: TimelineClip[];
   runner: ReturnType<typeof vi.fn>;
-  storeMask: ReturnType<typeof vi.fn>;
 }
 
 function harness(
@@ -98,14 +95,11 @@ function harness(
   const runner = vi.fn(
     options.run ??
       (async () => ({
-        maskVideoUrl: MASK_URL,
+        maskAssetId: options.assetId ?? "asset_mask_new",
         generationId: "gen_1",
         costUsd: 0.42
       }))
   );
-  const storeMask = vi.fn(async () => ({
-    assetId: options.assetId ?? "asset_mask_new"
-  }));
   const persist =
     options.persist ??
     (async (clip: TimelineClip) => {
@@ -113,10 +107,9 @@ function harness(
       return true;
     });
   return {
-    deps: { runner, storeMask, persist } as unknown as IsolateSubjectDeps,
+    deps: { runner, persist } as unknown as IsolateSubjectDeps,
     saved,
-    runner,
-    storeMask
+    runner
   };
 }
 
@@ -160,14 +153,11 @@ describe("isolate_subject", () => {
     // The whole source, not the clip's window: the mask is read at the clip's
     // own source time, so it has to start at the source's first frame.
     expect(matte?.sourceRange).toEqual({ fromMs: 0, toMs: 9000 });
-    expect(matte?.settings).toEqual({
-      model: DEFAULT_ISOLATE_SUBJECT_MODEL,
-      operating_resolution: DEFAULT_ISOLATE_SUBJECT_RESOLUTION,
-      refine_foreground: true,
-      provider: "fal",
-      endpoint: ISOLATE_SUBJECT_ENDPOINT
+    expect(matte?.settings).toEqual({ provider: "fal_ai", model: MATTE_MODEL });
+    expect(h.runner).toHaveBeenCalledWith({
+      sourceAssetId: "asset_src",
+      settings: SETTINGS
     });
-    expect(h.storeMask).toHaveBeenCalledWith(MASK_URL);
   });
 
   it("falls back to the clip's own source window when the asset states no duration", async () => {
@@ -336,20 +326,6 @@ describe("isolate_subject", () => {
     expect(outcome.clip.generatedMatte?.error).toBeUndefined();
     // The marker had no mask, so it is not a version to go back to.
     expect(outcome.clip.generatedMatte?.versions).toBeUndefined();
-  });
-
-  it("reports a failed download the same way as a failed generation", async () => {
-    const h = harness();
-    h.deps.storeMask = vi.fn(() =>
-      Promise.reject(new Error("The mask video downloaded as zero bytes."))
-    );
-
-    const outcome = outcomeOf(
-      await isolateSubjectOnClip(h.deps, input(videoClip()))
-    );
-
-    expect(outcome.status).toBe("failed");
-    expect(outcome.error).toContain("zero bytes");
   });
 
   it("refuses a clip with no asset without calling the provider", async () => {
@@ -549,10 +525,11 @@ describe("set_generated_matte", () => {
 describe("isolate_subject capability", () => {
   beforeEach(() => initTestDb());
 
-  it("saves to the timeline named by its short id", async () => {
-    const id = "0123456789abcdef0123456789abcdef";
+  const TIMELINE_ID = "0123456789abcdef0123456789abcdef";
+
+  async function seedTimeline(): Promise<void> {
     await TimelineSequence.create<TimelineSequence>({
-      id,
+      id: TIMELINE_ID,
       user_id: "u1",
       project_id: "default",
       name: "Cut",
@@ -575,24 +552,165 @@ describe("isolate_subject capability", () => {
         markers: []
       })
     });
+  }
+
+  /** A provider that lists one matte model, or none when `tasks` says so. */
+  function matteContext(options: {
+    capabilities?: string[];
+    tasks?: string[];
+    runGeneration?: () => Promise<unknown>;
+  } = {}): ProcessingContext {
+    const provider = {
+      getCapabilities: () => options.capabilities ?? ["matte_video"],
+      getAvailableVideoModels: async () => [
+        {
+          id: MATTE_MODEL,
+          name: "BiRefNet — General Use (Light)",
+          provider: "fal_ai",
+          supportedTasks: options.tasks ?? ["matte_video"]
+        }
+      ]
+    };
+    return {
+      userId: "u1",
+      getProvider: async () => provider,
+      runGeneration:
+        options.runGeneration ??
+        (async () => {
+          throw new Error("FAL queue request failed (HTTP 422): video_url: too long");
+        })
+    } as unknown as ProcessingContext;
+  }
+
+  function isolateEntry() {
     const entry = timelines.exports.find(
       (e) => e.spec.name === "isolate_subject"
     );
-    // A registry without the node fails the generation after the in-flight
-    // write, so both CAS writes run without a provider.
-    const run = createCapabilityRun({
-      context: { userId: "u1" } as unknown as ProcessingContext,
-      gate: UNGATED,
-      nodeRegistry: { has: () => false } as unknown as NodeRegistry
-    });
+    return entry!;
+  }
 
-    const result = (await entry!.impl(run, {
-      timeline_id: id.slice(0, 12),
-      clip_id: "clip_a"
+  it("saves to the timeline named by its short id", async () => {
+    await seedTimeline();
+    // The generation fails after the in-flight write, so both CAS writes run
+    // and the provider's reason is what the clip carries.
+    const run = createCapabilityRun({ context: matteContext(), gate: UNGATED });
+
+    const result = (await isolateEntry().impl(run, {
+      timeline_id: TIMELINE_ID.slice(0, 12),
+      clip_id: "clip_a",
+      provider: "fal_ai",
+      model: MATTE_MODEL
     })) as Record<string, unknown>;
 
     expect(result.status).toBe("failed");
-    const stored = (await TimelineSequence.findById(id))!.toDocument();
+    expect(result.error).toBe(
+      "FAL queue request failed (HTTP 422): video_url: too long"
+    );
+    const stored = (await TimelineSequence.findById(TIMELINE_ID))!.toDocument();
     expect(stored.clips[0].generatedMatte?.status).toBe("failed");
+    expect(stored.clips[0].generatedMatte?.error).toBe(result.error);
+  });
+
+  it("refuses a model the provider does not list for matte_video, writing nothing", async () => {
+    await seedTimeline();
+    const runGeneration = vi.fn();
+    const run = createCapabilityRun({
+      context: matteContext({ tasks: ["video_to_video"], runGeneration }),
+      gate: UNGATED
+    });
+
+    const result = (await isolateEntry().impl(run, {
+      timeline_id: TIMELINE_ID,
+      clip_id: "clip_a",
+      provider: "fal_ai",
+      model: MATTE_MODEL
+    })) as Record<string, unknown>;
+
+    expect(result.error).toContain("does not support matte_video");
+    expect(runGeneration).not.toHaveBeenCalled();
+    const stored = (await TimelineSequence.findById(TIMELINE_ID))!.toDocument();
+    expect(stored.clips[0].generatedMatte).toBeUndefined();
+  });
+
+  it("refuses a provider without the matte_video task", async () => {
+    await seedTimeline();
+    const run = createCapabilityRun({
+      context: matteContext({ capabilities: ["upscale_video"] }),
+      gate: UNGATED
+    });
+
+    const result = (await isolateEntry().impl(run, {
+      timeline_id: TIMELINE_ID,
+      clip_id: "clip_a",
+      provider: "fal_ai",
+      model: MATTE_MODEL
+    })) as Record<string, unknown>;
+
+    expect(result.error).toContain("does not support the matte_video task");
+  });
+
+  it("requires a provider and model", async () => {
+    await seedTimeline();
+    const run = createCapabilityRun({ context: matteContext(), gate: UNGATED });
+
+    const result = (await isolateEntry().impl(run, {
+      timeline_id: TIMELINE_ID,
+      clip_id: "clip_a"
+    })) as Record<string, unknown>;
+
+    expect(result.error).toContain("provider");
+  });
+});
+
+describe("providerIsolateSubjectRunner", () => {
+  it("runs the chosen provider's matte_video task and stores the mask", async () => {
+    const runGeneration = vi.fn(async () => ({
+      id: "gen_9",
+      output: new Uint8Array([9]),
+      assets: [{ type: "video", asset_id: "asset_mask_9" }],
+      receipt: { cost: { amount: 0.31, currency: "USD" } },
+      duration_ms: 10
+    }));
+    const context = { runGeneration } as unknown as ProcessingContext;
+
+    const result = await providerIsolateSubjectRunner(context, "gen_9")({
+      sourceAssetId: "asset_src",
+      settings: SETTINGS
+    });
+
+    expect(result).toEqual({
+      maskAssetId: "asset_mask_9",
+      generationId: "gen_9",
+      costUsd: 0.31
+    });
+    expect(runGeneration).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "gen_9",
+        provider: "fal_ai",
+        model: MATTE_MODEL,
+        capability: "matte_video",
+        params: { asset_id: "asset_src", video: new Uint8Array([1, 2, 3]) },
+        persist: expect.objectContaining({ mime: "video/mp4" })
+      })
+    );
+  });
+
+  it("fails when the mask could not be stored as an asset", async () => {
+    const context = {
+      runGeneration: async () => ({
+        id: "gen_9",
+        output: new Uint8Array([9]),
+        assets: [],
+        receipt: null,
+        duration_ms: 10
+      })
+    } as unknown as ProcessingContext;
+
+    await expect(
+      providerIsolateSubjectRunner(context, "gen_9")({
+        sourceAssetId: "asset_src",
+        settings: SETTINGS
+      })
+    ).rejects.toThrow(/could not be stored as an asset/);
   });
 });

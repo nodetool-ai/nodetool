@@ -26,10 +26,7 @@ import { isGeneratedMatteStale } from "@nodetool-ai/timeline";
 import type { ClipMask, ClipMatte, TimelineClip } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import {
-  ISOLATE_SUBJECT_MODELS,
-  type IsolateSubjectModel
-} from "../../../utils/timelineIsolateSubject";
+import { useVideoModelsByProvider } from "../../../hooks/useModelsByProvider";
 import ErrorBanner from "../../support/ErrorBanner";
 import {
   Caption,
@@ -79,11 +76,9 @@ const NO_MATTE = "none";
 const SCRUB_UNIT = { step: 0.01, min: 0, max: 1 };
 const SCRUB_PX = { step: 1, min: 0 };
 
-const SUBJECT_MODEL_OPTIONS = ISOLATE_SUBJECT_MODELS.map((model) => ({
-  value: model,
-  label: model
-}));
-const DEFAULT_SUBJECT_MODEL = ISOLATE_SUBJECT_MODELS[0];
+/** One picker value per model, since two providers can list the same id. */
+const matteModelKey = (model: { provider: string; id: string }): string =>
+  `${model.provider}:${model.id}`;
 
 interface ClipMaskMatteProps {
   clip: TimelineClip;
@@ -413,9 +408,25 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
     );
     const clearMatte = useTimelineStore((s) => s.clearGeneratedMatte);
 
-    const [model, setModel] = useState<IsolateSubjectModel>(
-      DEFAULT_SUBJECT_MODEL
-    );
+    // Whatever any configured provider lists for `matte_video`; the first
+    // one is the default until the user picks another.
+    const {
+      models: matteModels,
+      isLoading: modelsLoading,
+      error: modelsError
+    } = useVideoModelsByProvider({ task: "matte_video" });
+    const [modelKey, setModelKey] = useState("");
+    const model =
+      matteModels.find((item) => matteModelKey(item) === modelKey) ??
+      matteModels[0];
+    const modelOptions = useMemo(() => {
+      const providers = new Set(matteModels.map((item) => item.provider));
+      return matteModels.map((item) => ({
+        value: matteModelKey(item),
+        label:
+          providers.size > 1 ? `${item.name} (${item.provider})` : item.name
+      }));
+    }, [matteModels]);
     // Held between the click and the store's own `generating` mark, which only
     // lands after the document has been saved. Per clip, so it never shows on
     // (or blocks) another selected clip.
@@ -450,7 +461,12 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
         subjectMatteRuns.add(clipId);
         setPendingClipIds((ids) => new Set(ids).add(clipId));
         try {
-          await isolateSubject(clipId, { model, regenerate });
+          if (!model) return;
+          await isolateSubject(clipId, {
+            provider: model.provider,
+            model: model.id,
+            regenerate
+          });
         } catch {
           // The store reports every failure it can as a notification; there is
           // nothing left for this button to say.
@@ -467,8 +483,7 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
     );
 
     const handleModelChange = useCallback((value: string) => {
-      const picked = ISOLATE_SUBJECT_MODELS.find((name) => name === value);
-      if (picked) setModel(picked);
+      setModelKey(value);
     }, []);
     const handleIsolate = useCallback(() => void run(false), [run]);
     const handleRegenerate = useCallback(() => void run(true), [run]);
@@ -526,16 +541,26 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
           unmountOnExit
         >
           <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
-            <InspectorRow label="Model">
-              <InspectorSelect
-                label="Subject matte model"
-                value={model}
-                options={SUBJECT_MODEL_OPTIONS}
-                onChange={handleModelChange}
-                disabled={generating}
-                grow
-              />
-            </InspectorRow>
+            {model ? (
+              <InspectorRow label="Model">
+                <InspectorSelect
+                  label="Subject matte model"
+                  value={matteModelKey(model)}
+                  options={modelOptions}
+                  onChange={handleModelChange}
+                  disabled={generating}
+                  grow
+                />
+              </InspectorRow>
+            ) : (
+              <Caption color="muted" data-testid="subject-matte-no-models">
+                {modelsLoading
+                  ? "Checking which providers can cut a matte…"
+                  : modelsError
+                    ? "The model list could not be loaded."
+                    : "No configured provider offers a subject matte model. Add a FAL API key in Settings to use BiRefNet."}
+              </Caption>
+            )}
 
             {generating && (
               <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.xs }}>
@@ -561,6 +586,7 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
                   color="primary"
                   startIcon={<AutoAwesomeOutlinedIcon />}
                   onClick={handleIsolate}
+                  disabled={!model}
                   data-testid="isolate-subject"
                 >
                   Isolate subject

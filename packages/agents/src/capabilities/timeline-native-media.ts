@@ -58,6 +58,7 @@ type ValueOrError<T> = T | ToolError;
 type NativeVideoTask =
   | "outpaint_video"
   | "upscale_video"
+  | "matte_video"
   | "video_to_audio"
   | "lip_sync";
 
@@ -189,7 +190,7 @@ function checkSourcePin(
   return undefined;
 }
 
-async function selectVideoModel(
+export async function selectVideoModel(
   context: ProcessingContext,
   providerValue: unknown,
   modelValue: unknown,

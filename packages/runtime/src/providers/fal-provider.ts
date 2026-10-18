@@ -48,6 +48,7 @@ import type {
   OutpaintVideoParams,
   UpscaleImageParams,
   UpscaleVideoParams,
+  MatteVideoParams,
   InterpolateVideoParams,
   RemoveBackgroundParams,
   SegmentImageParams,
@@ -262,6 +263,48 @@ function splitTopazVariant(modelId: string): {
     }
   }
   return { endpointId: modelId };
+}
+
+/**
+ * BiRefNet's video endpoint is the one fal endpoint that answers `matte_video`:
+ * asked for `output_mask`, it returns the grayscale mask beside the cutout.
+ * Like Topaz it picks its segmentation model (Light, Heavy, Matting, Portrait,
+ * …) through a `model` enum, so it is expanded the same way, one catalog entry
+ * per variant, and offered for `matte_video` only. Its plain catalog entry
+ * reads as a generic video endpoint, which it is not.
+ */
+const BIREFNET_VIDEO = "fal-ai/birefnet/v2/video";
+
+function expandMatteVariants(models: VideoModel[]): VideoModel[] {
+  const out: VideoModel[] = [];
+  for (const m of models) {
+    const variants = m.id === BIREFNET_VIDEO ? topazVariants(m.id) : [];
+    if (variants.length === 0) {
+      out.push(m);
+      continue;
+    }
+    for (const variant of variants) {
+      out.push({
+        ...m,
+        id: `${m.id}/${variant}`,
+        name: `BiRefNet — ${variant}`,
+        supportedTasks: ["matte_video"]
+      });
+    }
+  }
+  return out;
+}
+
+/** The mask video URL BiRefNet answers with, as a string or a file object. */
+function extractMaskVideoUrl(result: Record<string, unknown>): string {
+  const mask = result.mask_video;
+  if (isString(mask) && mask !== "") return mask;
+  if (isObjectLike(mask) && isString(mask.url) && mask.url !== "") {
+    return mask.url;
+  }
+  throw new Error(
+    `The matte endpoint returned no mask video: ${JSON.stringify(result)}`
+  );
 }
 
 /**
@@ -744,6 +787,7 @@ export class FalProvider extends BaseProvider {
       "upscale_video",
       "interpolate_video",
       "outpaint_video",
+      "matte_video",
       "lip_sync",
       "text_to_speech",
       "text_to_music",
@@ -949,8 +993,10 @@ export class FalProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return expandTopazVariants(
-      loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai")
+    return expandMatteVariants(
+      expandTopazVariants(
+        loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai")
+      )
     );
   }
 
@@ -1613,7 +1659,8 @@ export class FalProvider extends BaseProvider {
   private async runVideoEndpoint(
     modelId: string,
     args: Record<string, unknown>,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    videoUrlOf: (result: Record<string, unknown>) => string = extractVideoUrl
   ): Promise<Uint8Array> {
     const client = await this.getClient();
     this.recordRequestPayload(args);
@@ -1624,7 +1671,7 @@ export class FalProvider extends BaseProvider {
       onQueueUpdate: this.makeQueueUpdateHandler()
     });
     const data = (result.data ?? result) as Record<string, unknown>;
-    return downloadBytes(extractVideoUrl(data), signal);
+    return downloadBytes(videoUrlOf(data), signal);
   }
 
   override async upscaleImage(
@@ -1884,6 +1931,36 @@ export class FalProvider extends BaseProvider {
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
     log.debug("FAL outpaintVideo", { model: modelId });
     return this.runVideoEndpoint(modelId, b.args);
+  }
+
+  override async matteVideo(
+    video: Uint8Array,
+    params: MatteVideoParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const prefix = `${BIREFNET_VIDEO}/`;
+    if (modelId !== BIREFNET_VIDEO && !modelId.startsWith(prefix)) {
+      throw new Error(
+        `${modelId} cannot cut a matte: fal answers matte_video only through ${BIREFNET_VIDEO}.`
+      );
+    }
+    const variant = modelId.startsWith(prefix)
+      ? modelId.slice(prefix.length)
+      : undefined;
+    const url = await this.upload(video, "video/mp4");
+    const b = new FalArgsBuilder(BIREFNET_VIDEO);
+    b.attachAsset("video", url)
+      .set("model", variant)
+      .set("output_mask", true)
+      .set("refine_foreground", true)
+      .set("video_output_type", "X264 (.mp4)");
+    log.debug("FAL matteVideo", { model: BIREFNET_VIDEO, variant });
+    return this.runVideoEndpoint(
+      BIREFNET_VIDEO,
+      b.args,
+      params.signal,
+      extractMaskVideoUrl
+    );
   }
 
   override async lipSync(

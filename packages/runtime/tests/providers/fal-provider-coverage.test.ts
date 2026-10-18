@@ -801,6 +801,108 @@ describe("FalProvider — Topaz model variants", () => {
   });
 });
 
+describe("FalProvider — subject matte (matte_video)", () => {
+  const MATTE_ENDPOINT = "fal-ai/birefnet/v2/video";
+
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.unstubAllGlobals());
+
+  function recordingClient(response: unknown) {
+    const calls: { endpoint: string; input: Record<string, unknown> }[] = [];
+    const subscribeMock = vi.fn(async (id: string, opts: any) => {
+      calls.push({ endpoint: id, input: opts.input });
+      return { data: response };
+    });
+    const uploadMock = vi.fn().mockResolvedValue("https://fal.media/src.mp4");
+    return {
+      calls,
+      client: { subscribe: subscribeMock, storage: { upload: uploadMock } }
+    };
+  }
+
+  it("declares the matte_video capability", () => {
+    expect(createProvider().getCapabilities()).toContain("matte_video");
+  });
+
+  it("lists one matte_video model per BiRefNet variant and nothing else for it", async () => {
+    const models = await createProvider().getAvailableVideoModels();
+    const ids = models.map((m) => m.id);
+
+    expect(ids).not.toContain(MATTE_ENDPOINT);
+    const matte = models.filter((m) =>
+      m.supportedTasks?.includes("matte_video")
+    );
+    expect(matte.map((m) => m.id)).toEqual(
+      expect.arrayContaining([
+        `${MATTE_ENDPOINT}/General Use (Light)`,
+        `${MATTE_ENDPOINT}/Matting`,
+        `${MATTE_ENDPOINT}/Portrait`
+      ])
+    );
+    for (const model of matte) {
+      expect(model.supportedTasks).toEqual(["matte_video"]);
+      expect(model.name).toMatch(/^BiRefNet — /);
+    }
+  });
+
+  it("asks for the mask and returns the mask video, not the cutout", async () => {
+    const ctx = recordingClient({
+      video: { url: "https://fal.media/cutout.mp4" },
+      mask_video: { url: "https://fal.media/mask.mp4" }
+    });
+    const fetchMock = okFetch(new Uint8Array([7, 7, 7]));
+    vi.stubGlobal("fetch", fetchMock);
+    const p = createProvider();
+    (p as any)._client = ctx.client;
+
+    const bytes = await p.matteVideo(new Uint8Array([1, 2, 3]), {
+      model: {
+        id: `${MATTE_ENDPOINT}/Matting`,
+        name: "BiRefNet — Matting",
+        provider: "fal_ai"
+      }
+    });
+
+    expect(Array.from(bytes)).toEqual([7, 7, 7]);
+    expect(ctx.calls).toHaveLength(1);
+    expect(ctx.calls[0].endpoint).toBe(MATTE_ENDPOINT);
+    expect(ctx.calls[0].input).toMatchObject({
+      video_url: "https://fal.media/src.mp4",
+      model: "Matting",
+      output_mask: true
+    });
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "https://fal.media/mask.mp4"
+    );
+  });
+
+  it("names the missing mask instead of downloading the cutout", async () => {
+    const ctx = recordingClient({ video: { url: "https://fal.media/cutout.mp4" } });
+    vi.stubGlobal("fetch", okFetch());
+    const p = createProvider();
+    (p as any)._client = ctx.client;
+
+    await expect(
+      p.matteVideo(new Uint8Array([1]), {
+        model: { id: MATTE_ENDPOINT, name: "BiRefNet", provider: "fal_ai" }
+      })
+    ).rejects.toThrow(/returned no mask video/);
+  });
+
+  it("refuses a model that cannot cut a matte before uploading anything", async () => {
+    const ctx = recordingClient({});
+    const p = createProvider();
+    (p as any)._client = ctx.client;
+
+    await expect(
+      p.matteVideo(new Uint8Array([1]), {
+        model: { id: "fal-ai/ben/v2/video", name: "BEN", provider: "fal_ai" }
+      })
+    ).rejects.toThrow(/answers matte_video only through/);
+    expect(ctx.client.storage.upload).not.toHaveBeenCalled();
+  });
+});
+
 describe("FalProvider numeric field coercion", () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -63,6 +63,12 @@ describe("bakeAudioAnimation", () => {
 });
 
 describe("isolateSubject", () => {
+  const MATTE_BODY = {
+    clip_id: "c",
+    provider: "fal_ai",
+    model: "fal-ai/birefnet/v2/video/Matting"
+  };
+
   it("posts the body and returns a valid outcome", async () => {
     const outcome = {
       status: "ready",
@@ -70,31 +76,31 @@ describe("isolateSubject", () => {
       reused: false
     };
     mockFetch.mockResolvedValue(reply(true, 200, outcome));
-    await expect(isolateSubject("tl", { clip_id: "c" })).resolves.toEqual(
+    await expect(isolateSubject("tl", MATTE_BODY)).resolves.toEqual(
       outcome
     );
     const [url, init] = mockFetch.mock.calls[0];
     expect(url).toBe("/api/timelines/tl/isolate-subject");
-    expect(JSON.parse(init.body)).toEqual({ clip_id: "c" });
+    expect(JSON.parse(init.body)).toEqual(MATTE_BODY);
   });
 
   it("rejects with the server detail", async () => {
     mockFetch.mockResolvedValue(reply(false, 404, { detail: "no clip" }));
-    await expect(isolateSubject("tl", { clip_id: "c" })).rejects.toThrow(
+    await expect(isolateSubject("tl", MATTE_BODY)).rejects.toThrow(
       "no clip"
     );
   });
 
   it("falls back to the status when the error body is not JSON", async () => {
     mockFetch.mockResolvedValue(reply(false, 502, undefined));
-    await expect(isolateSubject("tl", { clip_id: "c" })).rejects.toThrow(
+    await expect(isolateSubject("tl", MATTE_BODY)).rejects.toThrow(
       "Isolate subject failed (502)"
     );
   });
 
   it("rejects an unknown status", async () => {
     mockFetch.mockResolvedValue(reply(true, 200, { status: "weird" }));
-    await expect(isolateSubject("tl", { clip_id: "c" })).rejects.toThrow(
+    await expect(isolateSubject("tl", MATTE_BODY)).rejects.toThrow(
       "Unexpected response"
     );
   });

@@ -161,8 +161,8 @@ const MATTE_POLL_INTERVAL_MS = 3_000;
 const MATTE_POLL_TIMEOUT_MS = 10 * 60_000;
 
 /**
- * What {@link TimelineStoreState.isolateSubject} runs with: the endpoint's own
- * knobs, plus the two timings the poll uses (named so a test does not have to
+ * What {@link TimelineStoreState.isolateSubject} runs with: the provider and
+ * model that cut the matte, plus the two timings the poll uses (named so a test does not have to
  * wait out a real interval).
  */
 export interface IsolateSubjectOptions extends Omit<
@@ -885,7 +885,7 @@ export interface TimelineStoreState {
    */
   isolateSubject: (
     clipId: string,
-    options?: IsolateSubjectOptions
+    options: IsolateSubjectOptions
   ) => Promise<(IsolateSubjectResult & PendingUserResolution) | null>;
 
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
@@ -3971,7 +3971,7 @@ export const createTimelineStore = (
             )
           })),
 
-        isolateSubject: async (clipId, options = {}) => {
+        isolateSubject: async (clipId, options) => {
           const sequenceId = get().sequenceId;
           if (!sequenceId) {
             throw new Error("No timeline is open.");
@@ -4007,7 +4007,7 @@ export const createTimelineStore = (
               assetId: "",
               sourceAssetId: source.currentAssetId ?? "",
               sourceRange: { fromMs: 0, toMs: 0 },
-              settings: {},
+              settings: { provider: body.provider, model: body.model },
               ...kept,
               status
             };

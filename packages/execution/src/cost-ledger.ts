@@ -63,6 +63,7 @@ const UNIT_BILLED_CAPABILITIES = new Set([
   "upscale_video",
   "interpolate_video",
   "outpaint_video",
+  "matte_video",
   "upscale_image",
   "remove_background",
   "relight_image",

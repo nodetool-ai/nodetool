@@ -21,6 +21,29 @@ import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 
 const CLIP_ID = "shot-1";
 
+const LIGHT = {
+  type: "video_model",
+  provider: "fal_ai",
+  id: "fal-ai/birefnet/v2/video/General Use (Light)",
+  name: "BiRefNet — General Use (Light)"
+};
+const PORTRAIT = {
+  type: "video_model",
+  provider: "fal_ai",
+  id: "fal-ai/birefnet/v2/video/Portrait",
+  name: "BiRefNet — Portrait"
+};
+
+const mockMatteModels: {
+  models: (typeof LIGHT)[];
+  isLoading: boolean;
+  error: Error | null;
+} = { models: [LIGHT, PORTRAIT], isLoading: false, error: null };
+
+jest.mock("../../../../hooks/useModelsByProvider", () => ({
+  useVideoModelsByProvider: () => mockMatteModels
+}));
+
 const READY: ClipGeneratedMatte = {
   assetId: "mask-2",
   sourceAssetId: "asset-1",
@@ -293,11 +316,14 @@ describe("Subject matte — the knobs write through the store", () => {
     await user.click(
       screen.getByRole("combobox", { name: /subject matte model/i })
     );
-    await user.click(screen.getByRole("option", { name: "Portrait" }));
+    await user.click(
+      screen.getByRole("option", { name: "BiRefNet — Portrait" })
+    );
     await user.click(screen.getByTestId("isolate-subject"));
 
     expect(isolate).toHaveBeenCalledWith(CLIP_ID, {
-      model: "Portrait",
+      provider: "fal_ai",
+      model: PORTRAIT.id,
       regenerate: false
     });
 
@@ -307,9 +333,27 @@ describe("Subject matte — the knobs write through the store", () => {
     await user.click(screen.getByTestId("regenerate-subject-matte"));
 
     expect(isolate).toHaveBeenLastCalledWith(CLIP_ID, {
-      model: "Portrait",
+      provider: "fal_ai",
+      model: PORTRAIT.id,
       regenerate: true
     });
+  });
+
+  it("explains, and offers nothing to run, when no provider lists a matte model", async () => {
+    const user = userEvent.setup();
+    mockMatteModels.models = [];
+    try {
+      renderSection();
+      seed();
+      await openSubjectMatte(user);
+
+      expect(screen.getByTestId("subject-matte-no-models")).toHaveTextContent(
+        /no configured provider offers a subject matte model/i
+      );
+      expect(screen.getByTestId("isolate-subject")).toBeDisabled();
+    } finally {
+      mockMatteModels.models = [LIGHT, PORTRAIT];
+    }
   });
 });
 
