@@ -2,12 +2,14 @@ import { createTheme, type ThemeOptions } from "@mui/material/styles";
 import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
+import { paletteDarkSoft, paletteLightSoft } from "./paletteSoft";
 import { editorControlsComponents } from "./components/editorControls";
 import {
   DEFAULT_TEXT_SIZE,
   TEXT_SIZE_SCALES,
   type TextSize
 } from "./textSizes";
+import { DEFAULT_THEME_CONTRAST, type ThemeContrast } from "./themeContrasts";
 import { CONTROL, MOTION } from "../ui_primitives";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -503,15 +505,26 @@ const nodetoolThemeOptions: ThemeOptions = {
 };
 
 /**
- * Build the app theme at one text size. Only the type scale changes between
- * sizes: the `--fontSize*` variables, the JS `theme.fontSize*` values and
- * MUI's own typography all read the same table, so text grows without any
- * CSS zoom or transform that would skew canvas or popover coordinates.
+ * Build the app theme at one text size and contrast. Only the type scale
+ * changes between sizes: the `--fontSize*` variables, the JS `theme.fontSize*`
+ * values and MUI's own typography all read the same table, so text grows
+ * without any CSS zoom or transform that would skew canvas or popover
+ * coordinates. Contrast swaps the palettes of both color schemes, so the
+ * dark/light switch keeps working on top of it.
  */
-export const createNodetoolTheme = (textSize: TextSize = DEFAULT_TEXT_SIZE) => {
+export const createNodetoolTheme = (
+  textSize: TextSize = DEFAULT_TEXT_SIZE,
+  contrast: ThemeContrast = DEFAULT_THEME_CONTRAST
+) => {
   const sizes = TEXT_SIZE_SCALES[textSize];
   return createTheme({
     ...nodetoolThemeOptions,
+    ...(contrast === "soft" && {
+      colorSchemes: {
+        light: { palette: paletteLightSoft },
+        dark: { palette: paletteDarkSoft }
+      }
+    }),
     fontSizeGiant: `${sizes.giant}px`,
     fontSizeBig: `${sizes.big}px`,
     fontSizeNormal: `${sizes.normal}px`,

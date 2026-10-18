@@ -64,6 +64,12 @@ import {
   TEXT_SIZE_LABELS,
   isTextSize
 } from "../themes/textSizes";
+import {
+  DEFAULT_THEME_CONTRAST,
+  THEME_CONTRASTS,
+  THEME_CONTRAST_LABELS,
+  isThemeContrast
+} from "../themes/themeContrasts";
 import StorageHistorySettings from "../settings/StorageHistorySettings";
 import {
   SETTINGS_TAB_ITEMS,
@@ -143,6 +149,11 @@ const TEXT_SIZE_OPTIONS = TEXT_SIZES.map((size) => ({
   label: TEXT_SIZE_LABELS[size]
 }));
 
+const THEME_CONTRAST_OPTIONS = THEME_CONTRASTS.map((contrast) => ({
+  value: contrast,
+  label: THEME_CONTRAST_LABELS[contrast]
+}));
+
 const TIME_FORMAT_OPTIONS = [
   { value: "12h", label: "12h" },
   { value: "24h", label: "24h" }
@@ -217,6 +228,9 @@ function SettingsPage() {
   const setSelectionMode = useSettingsStore((state) => state.setSelectionMode);
   const setTimeFormat = useSettingsStore((state) => state.setTimeFormat);
   const setTextSize = useSettingsStore((state) => state.setTextSize);
+  const setThemeContrast = useSettingsStore(
+    (state) => state.setThemeContrast
+  );
   const setSelectNodesOnDrag = useSettingsStore(
     (state) => state.setSelectNodesOnDrag
   );
@@ -443,6 +457,12 @@ function SettingsPage() {
       setTextSize(isTextSize(value) ? value : DEFAULT_TEXT_SIZE);
     },
     [setTextSize]
+  );
+  const handleThemeContrastChange = useCallback(
+    (value: string) => {
+      setThemeContrast(isThemeContrast(value) ? value : DEFAULT_THEME_CONTRAST);
+    },
+    [setThemeContrast]
   );
   const handleTimeFormatChange = useCallback(
     (value: string) => {
@@ -849,10 +869,22 @@ function SettingsPage() {
                             value={resolvedThemeMode}
                             onChange={handleThemeModeChange}
                             options={THEME_MODE_OPTIONS}
-                            description="Dark or light colors for the whole app. The sun and moon button in the sidebar switches it too."
+                            description="Dark or light colors for the whole app. The sun and moon button in the sidebar switches it too. Right-click that button to open these settings."
                           />
                         </SearchItem>
                       )}
+                      <SearchItem
+                        search={search}
+                        keywords="appearance theme contrast soft dim dimmed brightness background colors readability eye strain"
+                      >
+                        <SelectField
+                          label="Contrast"
+                          value={settings.themeContrast}
+                          onChange={handleThemeContrastChange}
+                          options={THEME_CONTRAST_OPTIONS}
+                          description="Soft lifts the dark theme off black and dims the light theme off white, with gentler text, for long sessions."
+                        />
+                      </SearchItem>
                       <SearchItem
                         search={search}
                         keywords="appearance text size font size zoom larger smaller bigger readability accessibility"

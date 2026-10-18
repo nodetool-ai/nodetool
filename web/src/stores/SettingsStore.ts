@@ -6,6 +6,11 @@ import {
   isTextSize,
   type TextSize
 } from "../components/themes/textSizes";
+import {
+  DEFAULT_THEME_CONTRAST,
+  isThemeContrast,
+  type ThemeContrast
+} from "../components/themes/themeContrasts";
 
 interface AutosaveSettings {
   enabled: boolean;
@@ -41,6 +46,8 @@ export interface Settings {
   timeFormat: "12h" | "24h";
   /** App-wide text size, picked under Settings > General > Appearance. */
   textSize: TextSize;
+  /** Standard or soft theme contrast, picked under Settings > General > Appearance. */
+  themeContrast: ThemeContrast;
   alertBeforeTabClose: boolean;
   selectNodesOnDrag: boolean;
   soundNotifications: boolean;
@@ -97,6 +104,7 @@ interface SettingsStore {
   setAssetItemSize: (value: number) => void;
   setTimeFormat: (value: "12h" | "24h") => void;
   setTextSize: (value: TextSize) => void;
+  setThemeContrast: (value: ThemeContrast) => void;
   setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
@@ -121,6 +129,7 @@ export const defaultSettings: Settings = {
   assetItemSize: 2,
   timeFormat: "12h",
   textSize: DEFAULT_TEXT_SIZE,
+  themeContrast: DEFAULT_THEME_CONTRAST,
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
   soundNotifications: true,
@@ -205,6 +214,16 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             textSize: isTextSize(value) ? value : DEFAULT_TEXT_SIZE
+          }
+        })),
+
+      setThemeContrast: (value: ThemeContrast) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            themeContrast: isThemeContrast(value)
+              ? value
+              : DEFAULT_THEME_CONTRAST
           }
         })),
 
@@ -297,6 +316,9 @@ export const useSettingsStore = create<SettingsStore>()(
         }
         if (!isTextSize(settings.textSize)) {
           settings.textSize = DEFAULT_TEXT_SIZE;
+        }
+        if (!isThemeContrast(settings.themeContrast)) {
+          settings.themeContrast = DEFAULT_THEME_CONTRAST;
         }
         return { ...currentState, settings };
       }
