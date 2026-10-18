@@ -413,6 +413,77 @@ export const validateSketchSpec: CapabilitySpec = {
       : "Validating sketch document"
 };
 
+export const RENDER_SKETCH_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    image_document_id: {
+      type: "string",
+      description: "The ID of a saved sketch (image document) to render"
+    },
+    document: {
+      type: "object",
+      description:
+        "Inline ImageDocumentData to render ({ sketch, layerBindings }), or " +
+        "the sketch document itself. Takes precedence over image_document_id."
+    },
+    format: {
+      type: "string",
+      enum: ["png", "psd"],
+      description:
+        "'png' (default): the flattened image. 'psd': a layered Photoshop " +
+        "file at the canvas size, one layer per sketch layer, groups kept."
+    },
+    width: {
+      type: "number",
+      description:
+        "Output width in pixels. Alone, the height follows the canvas " +
+        "aspect ratio. Default: the canvas width. PNG only."
+    },
+    height: {
+      type: "number",
+      description:
+        "Output height in pixels. Alone, the width follows the canvas " +
+        "aspect ratio. Default: the canvas height. PNG only."
+    },
+    background: {
+      type: "string",
+      description:
+        "CSS color painted under the image, e.g. '#ffffff'. Default: " +
+        "transparent, as the editor's PNG export is. PNG only."
+    },
+    layer_id: {
+      type: "string",
+      description:
+        "Render only this layer, with its transform and effects but without " +
+        "its opacity or blend mode, whether or not it is visible. PNG only."
+    },
+    mask: {
+      type: "boolean",
+      description:
+        "Render the sketch's inpainting mask layer instead of the image. PNG only."
+    }
+  }
+};
+
+export const renderSketchSpec: CapabilitySpec = {
+  name: "render_sketch",
+  description:
+    "Render a sketch (image document) to an image without the editor, with " +
+    "the editor's own compositing rules: layer visibility and groups, " +
+    "opacity, blend modes, transforms, effects, vector layers and placed " +
+    "images. Returns a saved asset: a PNG of the flattened sketch by default, " +
+    "or of one layer (layer_id) or the inpainting mask (mask), optionally " +
+    "resized; or a layered PSD (format 'psd'). Use it to look at a sketch " +
+    "after edit_sketch, or to hand one to an image model. Each layer's " +
+    "report says whether it was drawn and, when not, why.",
+  inputSchema: RENDER_SKETCH_SCHEMA,
+  category: "write",
+  userMessage: (params) =>
+    params["image_document_id"]
+      ? `Rendering sketch ${params["image_document_id"]}`
+      : "Rendering sketch document"
+};
+
 export const deleteSketchSpec: CapabilitySpec = {
   name: "delete_sketch",
   description:
@@ -446,5 +517,6 @@ export const sketchesSpecs: readonly CapabilitySpec[] = [
   editSketchSpec,
   refineImageBriefSpec,
   validateSketchSpec,
+  renderSketchSpec,
   deleteSketchSpec
 ];

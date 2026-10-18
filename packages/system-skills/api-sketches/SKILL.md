@@ -1,6 +1,6 @@
 ---
 name: api-sketches
-description: "Call nodetool.sketches from a code action: create a sketch (layered image document), read it, add, arrange and restyle layers, place images on layers, resize the canvas, validate it, and manage its versions. Load before the first call into nodetool.sketches."
+description: "Call nodetool.sketches from a code action: create a sketch (layered image document), read it, add, arrange and restyle layers, place images on layers, resize the canvas, validate it, render it to a PNG or PSD, and manage its versions. Load before the first call into nodetool.sketches."
 ---
 
 # nodetool.sketches
@@ -17,6 +17,7 @@ layers to keep is `nodetool.media.generateImage`, not a sketch.
 | `get(id)` | Reads the document: canvas, background, layers, bindings. Layer bitmaps stay opaque. | The document |
 | `edit(id, ops)` | Applies layer ops in order and saves. An open editor picks the change up live. | The result of each op |
 | `validate(idOrDocument, {width, height, background_color})` | Checks the structure without a render. For an inline document, pass the canvas it is stored against so a mismatch is reported. | `{ok, issues}` |
+| `render(idOrDocument, {format, width, height, background, layer_id, mask})` | Composites the sketch as the editor does and saves it. `format` is `"png"` (default) or `"psd"`. One of `width` and `height` alone keeps the aspect ratio. `layer_id` renders one layer alone, `mask` the inpainting mask. The PNG is transparent unless `background` is set. | `{image, width, height, layers}`. `image.uri` is the saved asset. Each layer row says whether it was drawn and, if not, why |
 | `versions(id, {save_type, limit})`, `getVersion(id, n)` | Lists and reads whole-document snapshots. | Version rows, newest first |
 | `snapshot(id, {name})` | Saves a manual version. | The version number |
 | `restore(id, n)` | Rolls back. The state it replaces is snapshotted first. | The findings of the validation after the restore |
@@ -46,8 +47,9 @@ layers to keep is `nodetool.media.generateImage`, not a sketch.
   Pass the dimensions of the image when you know them.
 - `use_case` is `product`, `portrait`, `key-art`, `social`, `logo`, `concept`
   or `texture`, and it also sets the canvas size.
-- Pixels are never read or written here. Painting and generation happen in an
-  open editor or a workflow run.
+- Ops never paint. Painting and generation happen in an open editor or a
+  workflow run. `render` is the one call that reads pixels, and it writes only
+  the output asset.
 
 ```js
 const { image_document_id: id } = await nodetool.sketches.create("Poster",
@@ -58,4 +60,5 @@ await nodetool.sketches.edit(id, [
   { op: "set_layer_props", target: "Product", blendMode: "normal", opacity: 1 }
 ]);
 const check = await nodetool.sketches.validate(id);
+const { image } = await nodetool.sketches.render(id, { width: 540 });
 ```

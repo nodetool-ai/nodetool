@@ -39,6 +39,7 @@ import {
   editSketchSpec,
   refineImageBriefSpec,
   validateSketchSpec,
+  renderSketchSpec,
   DEFAULT_VERSION_LIMIT,
   MAX_VERSION_LIMIT,
   deleteSketchSpec
@@ -1366,6 +1367,111 @@ const validateSketch: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// render_sketch
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a sketch headlessly with the editor's compositing rules
+ * (`../sketch-render/render.ts`) and save the result as an asset. Layer
+ * images resolve through `loadMediaRefBytes` with local files refused, so a
+ * document can name only assets the caller can read and public URLs.
+ */
+const renderSketch: CapabilityExport = {
+  spec: renderSketchSpec,
+  impl: async (run, params) => {
+    const inline = params["document"];
+    const sketchId = params["image_document_id"] as string | undefined;
+
+    let document: unknown = inline;
+    if (document === undefined && sketchId) {
+      const loadRow = run.loaders?.sketch;
+      if (loadRow) {
+        const record = await loadRow(run.context, sketchId);
+        if (!record) return { error: `Sketch ${sketchId} was not found.` };
+        document = parseStoredDocument(record.document);
+      } else {
+        const doc = await loadSketch(run, sketchId);
+        if (isError(doc)) return doc;
+        document = parseStoredDocument(doc.document);
+      }
+    }
+    if (document === undefined || document === null) {
+      return {
+        error:
+          "No sketch to render — pass an inline `document` ({sketch, layerBindings}) or a valid `image_document_id`."
+      };
+    }
+
+    const format = params["format"] ?? "png";
+    if (format !== "png" && format !== "psd") {
+      return { error: `format must be 'png' or 'psd', not ${String(format)}.` };
+    }
+
+    const { renderSketch: render } = await import("../sketch-render/render.js");
+    const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+    const { persistOutput } = await import("../tools/asset-persist.js");
+
+    let rendered;
+    try {
+      rendered = await render(document, {
+        format,
+        width: numberParam(params["width"]),
+        height: numberParam(params["height"]),
+        background: isNonBlankString(params["background"])
+          ? params["background"]
+          : undefined,
+        layerId: isNonBlankString(params["layer_id"])
+          ? params["layer_id"]
+          : undefined,
+        mask: params["mask"] === true,
+        loadImageBytes: async (uri) => {
+          const bytes = await loadMediaRefBytes(
+            { type: "image", uri },
+            run.context,
+            { allowLocalFile: false }
+          );
+          if (!bytes || bytes.length === 0) {
+            throw new Error(`${uri} could not be read`);
+          }
+          return bytes;
+        }
+      });
+    } catch (error) {
+      return {
+        error: `Could not render the sketch: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      };
+    }
+
+    const saved = await persistOutput(run.context, rendered.bytes, {
+      namePrefix: format === "psd" ? "sketch-psd" : "sketch-render",
+      mime: rendered.mimeType
+    });
+    const result: Record<string, unknown> = {
+      format,
+      width: rendered.width,
+      height: rendered.height,
+      canvas_width: rendered.canvasWidth,
+      canvas_height: rendered.canvasHeight,
+      layers: rendered.layers,
+      image: {
+        type: format === "psd" ? "document" : "image",
+        asset_id: saved.asset_id,
+        asset_uri: saved.asset_uri,
+        uri: saved.asset_uri ?? saved.path,
+        path: saved.path,
+        mime_type: saved.mime_type,
+        bytes: saved.bytes
+      }
+    };
+    if (rendered.layerId) result["layer_id"] = rendered.layerId;
+    if (sketchId && inline === undefined) result["image_document_id"] = sketchId;
+    return result;
+  }
+};
+
 /** Every sketch capability, in the order the tool files declared them. */
 /**
  * Delete a sketch the caller owns.
@@ -1400,6 +1506,7 @@ export const SKETCH_CAPABILITIES: readonly CapabilityExport[] = [
   editSketch,
   refineImageBrief,
   validateSketch,
+  renderSketch,
   deleteSketch
 ];
 
@@ -1420,5 +1527,6 @@ export {
   editSketch,
   refineImageBrief,
   validateSketch,
+  renderSketch,
   deleteSketch
 };
