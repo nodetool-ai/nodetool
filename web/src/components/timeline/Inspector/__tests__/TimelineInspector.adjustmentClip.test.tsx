@@ -2,7 +2,7 @@
  * TimelineInspector for an `adjustment` clip (T26): it treats the composite
  * beneath it rather than drawing its own picture, so most sections a normal
  * clip carries don't apply. Only Timing, Render (opacity), Effects, the mask
- * half of Mask/Matte, and Animate/Keyframes should show.
+ * half of Mask/Matte, and Animate should show. Opacity keeps its stopwatch.
  */
 
 import { act, render, screen } from "@testing-library/react";
@@ -78,7 +78,6 @@ describe("TimelineInspector — adjustment clip", () => {
     expect(hasSectionFold("Effects")).toBe(true);
     expect(hasSectionFold("Mask")).toBe(true);
     expect(hasSectionFold("Animate")).toBe(true);
-    expect(hasSectionFold("Keyframes")).toBe(true);
   });
 
   it("hides Transform, Color, Blur, Media, Matte and Transition", () => {
@@ -93,7 +92,7 @@ describe("TimelineInspector — adjustment clip", () => {
     expect(hasSectionFold("Transition")).toBe(false);
   });
 
-  it("shows the opacity slider under Render", async () => {
+  it("shows the keyframeable opacity field under Render", async () => {
     const user = userEvent.setup();
     renderInspector();
     seedAdjustmentClip();
@@ -104,6 +103,7 @@ describe("TimelineInspector — adjustment clip", () => {
     if (!fold) throw new Error("No Render section fold");
     await user.click(fold);
 
-    expect(screen.getByRole("slider", { name: /opacity/i })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: /opacity/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Animate Opacity" })).toBeTruthy();
   });
 });

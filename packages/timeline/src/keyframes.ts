@@ -75,14 +75,21 @@ function toT(clip: Pick<TimelineClip, "durationMs">, atMs: number): number {
   return Math.max(0, Math.min(1, atMs / clip.durationMs));
 }
 
-/** Every keyframe time (clip-relative ms) across all properties, sorted. */
+/**
+ * Every keyframe time (clip-relative ms), sorted: across all properties, or
+ * across `properties` when given.
+ */
 export function keyframeTimesMs(
-  clip: Pick<TimelineClip, "animations" | "durationMs">
+  clip: Pick<TimelineClip, "animations" | "durationMs">,
+  properties?: readonly AnimatedProperty[]
 ): number[] {
   const animation = findKeyframeAnimation(clip);
   if (!animation?.custom) return [];
   const times = new Set<number>();
   for (const curve of animation.custom.curves) {
+    if (properties && !(properties as readonly string[]).includes(curve.property)) {
+      continue;
+    }
     for (const kf of curve.keyframes) {
       times.add(Math.round(kf.t * clip.durationMs));
     }
@@ -262,4 +269,187 @@ export function sliceKeyframeAnimation(
     durationMs,
     custom: { ...animation.custom, curves }
   };
+}
+
+/** Whether `property` has at least one hand-set keyframe: its stopwatch is on. */
+export function isPropertyKeyframed(
+  clip: Pick<TimelineClip, "animations">,
+  property: AnimatedProperty
+): boolean {
+  const curve = findKeyframeAnimation(clip)?.custom?.curves.find(
+    (c) => c.property === property
+  );
+  return (curve?.keyframes.length ?? 0) > 0;
+}
+
+/**
+ * Set several properties at one instant, as one edit. Position is two curves
+ * (`offsetX`, `offsetY`) that a user keys together, the way Premiere keys one
+ * Position property.
+ */
+export function setKeyframes(
+  clip: TimelineClip,
+  entries: readonly { property: AnimatedProperty; value: number }[],
+  atMs: number
+): ClipAnimation[] {
+  let working = clip;
+  for (const { property, value } of entries) {
+    working = { ...working, animations: setKeyframe(working, property, atMs, value) };
+  }
+  return working.animations ?? [];
+}
+
+/** Remove every keyframe of `properties` at `atMs`. */
+export function removeKeyframes(
+  clip: TimelineClip,
+  properties: readonly AnimatedProperty[],
+  atMs: number
+): ClipAnimation[] {
+  let working = clip;
+  for (const property of properties) {
+    working = { ...working, animations: removeKeyframe(working, property, atMs) };
+  }
+  return working.animations ?? [];
+}
+
+/** Drop the curves of `properties` entirely: their stopwatch turned off. */
+export function clearKeyframes(
+  clip: TimelineClip,
+  properties: readonly AnimatedProperty[]
+): ClipAnimation[] {
+  return withCurves(clip, (curves) =>
+    curves.filter(
+      (c) => !(properties as readonly string[]).includes(c.property)
+    )
+  );
+}
+
+/**
+ * Move the keyframes of `properties` at `fromMs` to `toMs`. A keyframe
+ * already at `toMs` on the same curve is replaced, the way dropping one
+ * keyframe on another works in Premiere.
+ */
+export function moveKeyframes(
+  clip: TimelineClip,
+  properties: readonly AnimatedProperty[],
+  fromMs: number,
+  toMs: number
+): ClipAnimation[] {
+  const fromT = toT(clip, fromMs);
+  const targetT = toT(clip, toMs);
+  return withCurves(clip, (curves) =>
+    curves.map((c) => {
+      if (!(properties as readonly string[]).includes(c.property)) return c;
+      const moving = c.keyframes.find((kf) => Math.abs(kf.t - fromT) < T_EPSILON);
+      if (!moving) return c;
+      const kept = c.keyframes.filter(
+        (kf) =>
+          kf !== moving && Math.abs(kf.t - targetT) >= T_EPSILON
+      );
+      const keyframes = [...kept, { ...moving, t: targetT }].sort(
+        (a, b) => a.t - b.t
+      );
+      return { ...c, keyframes };
+    })
+  );
+}
+
+/**
+ * The nearest keyframe time of `properties` strictly after (`1`) or before
+ * (`-1`) `atMs`, or null. Times within half a millisecond count as "here".
+ */
+export function adjacentKeyframeMs(
+  clip: Pick<TimelineClip, "animations" | "durationMs">,
+  properties: readonly AnimatedProperty[],
+  atMs: number,
+  direction: 1 | -1
+): number | null {
+  const times = keyframeTimesMs(clip, properties);
+  if (direction === 1) {
+    return times.find((t) => t > atMs + 0.5) ?? null;
+  }
+  for (let i = times.length - 1; i >= 0; i--) {
+    if (times[i] < atMs - 0.5) return times[i];
+  }
+  return null;
+}
+
+/**
+ * The easing of the segment that arrives at `property`'s keyframe at `atMs`,
+ * as the sampler applies it: the animation-wide override first, then the
+ * keyframe's own, then linear. Undefined when there is no keyframe there.
+ */
+export function keyframeEasingAt(
+  clip: Pick<TimelineClip, "animations" | "durationMs">,
+  property: AnimatedProperty,
+  atMs: number
+): string | undefined {
+  const animation = findKeyframeAnimation(clip);
+  const curve = animation?.custom?.curves.find((c) => c.property === property);
+  const t = toT(clip, atMs);
+  const kf = curve?.keyframes.find((k) => Math.abs(k.t - t) < T_EPSILON);
+  if (!kf) return undefined;
+  return animation?.easing ?? kf.easing ?? "linear";
+}
+
+/**
+ * Set the easing into the keyframes of `properties` at `atMs`. An
+ * animation-wide easing override would hide a per-keyframe choice, so it is
+ * pushed down onto every keyframe first and dropped: every other segment
+ * keeps the motion it had.
+ */
+export function setKeyframeEasing(
+  clip: TimelineClip,
+  properties: readonly AnimatedProperty[],
+  atMs: number,
+  easing: string
+): ClipAnimation[] {
+  const existing = findKeyframeAnimation(clip);
+  if (!existing?.custom) return clip.animations ?? [];
+  const override = existing.easing;
+  const t = toT(clip, atMs);
+  const curves = existing.custom.curves.map((c) => {
+    const hit = (properties as readonly string[]).includes(c.property);
+    return {
+      ...c,
+      keyframes: c.keyframes.map((kf) => {
+        if (hit && Math.abs(kf.t - t) < T_EPSILON) return { ...kf, easing };
+        return override === undefined ? kf : { ...kf, easing: override };
+      })
+    };
+  });
+  const next: ClipAnimation = { ...existing, custom: { ...existing.custom, curves } };
+  delete next.easing;
+  return (clip.animations ?? []).map((a) => (a === existing ? next : a));
+}
+
+/**
+ * The value a viewer sees for `property`: the clip's authored `base` folded
+ * with the keyframe value, the way the sampler folds it onto the clip.
+ */
+export function composeKeyframeValue(
+  property: AnimatedProperty,
+  base: number,
+  value: number
+): number {
+  const fold = ANIMATED_PROPERTY_FOLD[property];
+  if (fold === "add") return base + value;
+  if (fold === "multiply") return base * value;
+  return value;
+}
+
+/**
+ * The keyframe value that makes `property` read `composed` on top of `base`:
+ * the inverse of {@link composeKeyframeValue}. Null when no value can, which
+ * is a multiplied property whose base is zero.
+ */
+export function keyframeValueForComposed(
+  property: AnimatedProperty,
+  base: number,
+  composed: number
+): number | null {
+  const fold = ANIMATED_PROPERTY_FOLD[property];
+  if (fold === "add") return composed - base;
+  if (fold === "multiply") return base === 0 ? null : composed / base;
+  return composed;
 }

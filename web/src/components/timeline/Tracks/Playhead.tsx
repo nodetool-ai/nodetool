@@ -299,6 +299,19 @@ export const Playhead: React.FC<PlayheadProps> = memo(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
+        // A keyframe diamond under the line wins: the playhead parks on a
+        // keyframe whenever one is clicked, and would otherwise cover it.
+        // jsdom has no elementsFromPoint.
+        const passthrough = (document.elementsFromPoint?.(e.clientX, e.clientY) ?? [])
+          .find(
+            (el) =>
+              el instanceof HTMLElement &&
+              el.dataset.playheadPassthrough !== undefined
+          );
+        if (passthrough) {
+          passthrough.dispatchEvent(new PointerEvent("pointerdown", e.nativeEvent));
+          return;
+        }
         e.preventDefault();
         // Capture on the grab zone: the root takes no pointer events, and the
         // captured events still bubble to the handlers here.

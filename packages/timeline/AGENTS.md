@@ -95,6 +95,9 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   the clip's, one curve per property. The sampler plays it like any custom
   animation. Times are `t` over the clip, so a trim stretches its keyframes;
   a caller that needs absolute times converts through `keyframeTimesMs`.
+  A keyframe value folds onto the clip's authored value the way the sampler
+  folds it, so a UI that shows the composed number converts with
+  `composeKeyframeValue` and `keyframeValueForComposed`, never by hand.
 
 ## Snapping & placement
 

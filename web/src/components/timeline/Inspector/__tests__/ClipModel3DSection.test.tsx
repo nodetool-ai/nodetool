@@ -182,23 +182,21 @@ describe("ClipModel3DSection", () => {
     expect(clipById(clip.id)?.model3dStyle?.animation.clipName).toBe("Walk");
   });
 
-  // The four camera channels reach the Keyframes section through
-  // `keyframePropertiesFor`, wired in T2. This pins that they stay there, and
-  // that a non-3D clip is not offered them.
-  it("offers the camera keyframe channels for a model3d clip only", async () => {
+  // The four camera channels are keyframed from their own rows, each with a
+  // stopwatch, and a non-3D clip is not offered them.
+  it("offers a stopwatch on each camera row for a model3d clip only", async () => {
     const user = userEvent.setup();
     renderInspector();
     seedModel3DClip();
     await resolveSession();
 
-    await user.click(screen.getByRole("button", { name: /^keyframes$/i }));
-    expect(screen.getByLabelText("Camera azimuth at playhead")).toBeTruthy();
-    expect(screen.getByLabelText("Camera elevation at playhead")).toBeTruthy();
-    expect(screen.getByLabelText("Camera zoom at playhead")).toBeTruthy();
-    expect(screen.getByLabelText("Camera FOV at playhead")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /^3d model$/i }));
+    expect(screen.getByRole("button", { name: "Animate Orbit" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Animate Field of view" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Animate Zoom" })).toBeTruthy();
+    expect(screen.getByLabelText("Camera field of view")).toBeTruthy();
 
     seedVideoClip();
-    expect(screen.queryByLabelText("Camera azimuth at playhead")).toBeNull();
-    expect(screen.getByLabelText("Opacity at playhead")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Animate Orbit" })).toBeNull();
   });
 });
