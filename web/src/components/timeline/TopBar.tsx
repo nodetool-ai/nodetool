@@ -134,7 +134,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
       !!onExportMedia;
 
     return (
-      <ToolbarGroup sx={{ gap: SPACING.micro }}>
+      <ToolbarGroup sx={{ gap: SPACING.xs }}>
         {activitySlot}
         {onSetDawMode && (
           <Tooltip

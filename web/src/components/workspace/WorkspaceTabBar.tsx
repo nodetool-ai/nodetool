@@ -76,6 +76,36 @@ const SUPPORTS_BOTH_MODES = {
   "project-new": false
 } satisfies Record<WorkspaceTabType, boolean>;
 
+/** One half of a two-way switch in the tab bar, level with the 28px icon buttons. */
+const segmentStyles = (theme: Theme) => ({
+  display: "flex",
+  alignItems: "center",
+  height: `${CONTROL.height.sm}px`,
+  margin: 0,
+  padding: `0 ${getSpacingPx(SPACING.lg)}`,
+  border: `1px solid ${theme.vars.palette.divider}`,
+  borderRadius: 0,
+  background: "transparent",
+  color: theme.vars.palette.text.secondary,
+  cursor: "pointer",
+  fontFamily: "inherit",
+  fontSize: "var(--fontSizeSmaller)",
+  fontWeight: 500,
+  lineHeight: 1,
+  whiteSpace: "nowrap" as const,
+  "&:hover": {
+    color: theme.vars.palette.text.primary,
+    backgroundColor: theme.vars.palette.action.hover
+  },
+  "&:first-of-type": {
+    borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`,
+    borderRight: "none"
+  },
+  "&:last-of-type": {
+    borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0`
+  }
+});
+
 const styles = (theme: Theme) =>
   css({
     display: "flex",
@@ -278,23 +308,10 @@ const styles = (theme: Theme) =>
       WebkitAppRegion: "no-drag",
       display: "flex",
       alignItems: "center",
-      gap: getSpacingPx(SPACING.micro),
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
       flexShrink: 0,
       "& button": {
-        border: `1px solid ${theme.vars.palette.divider}`,
-        background: "transparent",
-        color: theme.vars.palette.text.secondary,
-        cursor: "pointer",
-        fontSize: "var(--fontSizeSmaller)",
-        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
-        "&:first-of-type": {
-          borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`,
-          borderRight: "none"
-        },
-        "&:last-of-type": {
-          borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0`
-        },
+        ...segmentStyles(theme),
         "&.on": {
           color: theme.vars.palette.primary.contrastText,
           backgroundColor: theme.vars.palette.primary.main,
@@ -314,18 +331,33 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       flexShrink: 0,
-      gap: getSpacingPx(SPACING.sm),
+      gap: getSpacingPx(SPACING.xs),
       paddingRight: getSpacingPx(SPACING.xs),
-      "& .MuiIconButton-root, & .MuiButtonBase-root": {
-        minWidth: "28px",
-        width: "28px",
-        height: "28px",
+      "& .MuiIconButton-root": {
+        minWidth: `${CONTROL.height.sm}px`,
+        width: `${CONTROL.height.sm}px`,
+        height: `${CONTROL.height.sm}px`,
         padding: 0,
         color: theme.vars.palette.text.secondary,
         borderRadius: BORDER_RADIUS.md,
         "&:hover": {
           color: theme.vars.palette.text.primary,
           backgroundColor: theme.vars.palette.action.hover
+        },
+        "&.Mui-focusVisible": focusRing(theme)
+      },
+      // A document's own segmented switch (the timeline's Video / DAW)
+      // matches View / Edit, with the quieter selected fill of a sub-mode.
+      "& .MuiToggleButtonGroup-root": {
+        flexShrink: 0,
+        "& .MuiToggleButton-root": {
+          ...segmentStyles(theme),
+          minHeight: 0,
+          "&.Mui-selected, &.Mui-selected:hover": {
+            color: theme.vars.palette.text.primary,
+            backgroundColor: theme.vars.palette.action.selected
+          },
+          "&.Mui-focusVisible": focusRing(theme)
         }
       },
       "& svg, & .MuiSvgIcon-root": {
@@ -359,7 +391,7 @@ const styles = (theme: Theme) =>
       "& .app-row .right-actions": {
         gap: 0,
         paddingRight: getSpacingPx(SPACING.xs),
-        "& .MuiIconButton-root, & .MuiButtonBase-root": {
+        "& .MuiIconButton-root": {
           minWidth: CONTROL.height.xl,
           width: CONTROL.height.xl,
           height: CONTROL.height.xl
