@@ -24,7 +24,7 @@ describe("OpenMenu height", () => {
       .mockReturnValue({ bottom: 47.5 } as DOMRect);
     const statusBar = document.createElement("div");
     statusBar.className = "panel-tabbar";
-    statusBar.getBoundingClientRect = () => ({ top: 680 }) as DOMRect;
+    statusBar.getBoundingClientRect = () => ({ top: 680, height: 32 }) as DOMRect;
     document.body.appendChild(statusBar);
 
     try {
@@ -32,6 +32,26 @@ describe("OpenMenu height", () => {
 
       const paper = screen.getByRole("menu").closest(".MuiPaper-root");
       expect(paper).toHaveStyle({ maxHeight: "616px" });
+    } finally {
+      statusBar.remove();
+    }
+  });
+
+  it("ignores a hidden status bar on phones", () => {
+    jest
+      .spyOn(document.body, "getBoundingClientRect")
+      .mockReturnValue({ bottom: 95.5 } as DOMRect);
+    const statusBar = document.createElement("div");
+    statusBar.className = "panel-tabbar";
+    statusBar.getBoundingClientRect = () =>
+      ({ top: 0, height: 0 }) as DOMRect;
+    document.body.appendChild(statusBar);
+
+    try {
+      renderOpenMenu();
+
+      const paper = screen.getByRole("menu").closest(".MuiPaper-root");
+      expect(paper).toHaveStyle({ maxHeight: "calc(100vh - 112px)" });
     } finally {
       statusBar.remove();
     }
