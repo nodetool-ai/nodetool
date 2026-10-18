@@ -91,7 +91,7 @@ export function hasReleaseProvenance(pin, response, originalRun) {
     const definition = statement.predicate?.buildDefinition;
     const workflow = definition?.externalParameters?.workflow;
     if (originalRun && (workflow?.ref !== originalRun.ref ||
-        definition?.internalParameters?.github?.event_name !== "workflow_dispatch" ||
+        definition?.internalParameters?.github?.event_name !== originalRun.event ||
         !definition?.resolvedDependencies?.some(dependency =>
           dependency.uri === `git+${RELEASE_REPOSITORY}@${originalRun.ref}` && dependency.digest?.gitCommit === originalRun.sha) ||
         statement.predicate?.runDetails?.metadata?.invocationId !==

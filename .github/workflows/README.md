@@ -92,7 +92,7 @@ below.
 | `mutation-testing.yaml` | Weekly, differential `nodetool-mutator` report over the mutation-tested packages | none/maintenance | Advisory |
 | `opencode.yml` | Interactive assistant on `/oc` comments | none/maintenance | Advisory |
 | `performance-optimization.yaml` | Weekly agent fixes React perf issues (memo, selectors) | none/maintenance | Advisory (`continue-on-error`) |
-| `publish.yaml` | Publish npm packages on a `v*` tag or manual dispatch, or resume a published prerelease | none/maintenance | Required for its own job |
+| `publish.yaml` | Publish npm packages on a `v*` tag or manual dispatch, or resume a published release | none/maintenance | Required for its own job |
 | `packed-core-cli.yml` | Install the core-only CLI tarballs and verify workflows, MCP, HTTP startup, codecs and dependency isolation | 2 | Required for its own job |
 | `quality-assurance.yaml` | Daily agent fixes failing typecheck/lint/tests on `main` | none/maintenance | Advisory (`continue-on-error`) |
 | `quality-guard.yml` | Reusable pre/post quality-gate wrapper. No workflow calls it | none/maintenance | Unused |
@@ -353,16 +353,19 @@ gh workflow run example-smoke-debug.yml
 gh workflow run user-journeys.yml
 ```
 
-## Recover a published prerelease
+## Recover a published release
 
-If `publish.yaml` published its entire prerelease cohort but failed during
-verification or promotion, resume from the original run:
+If `publish.yaml` published its entire cohort but failed during verification
+or promotion, resume from the original run:
 
 ```bash
 gh workflow run publish.yaml --ref main \
-  -f version="<prerelease-version>" \
+  -f version="<version>" \
   -f resume_original_run_id="<original-run-id>"
 ```
+
+A prerelease resumes from its original dispatch. A stable release resumes from
+the push of its own `v<version>` tag, and the version must match that tag.
 
 The original run must have passed packing, both packed CLI smokes, and
 publication. Recovery restores its exact published tarballs after checking
