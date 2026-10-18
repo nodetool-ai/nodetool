@@ -18,32 +18,3 @@ export const patIdx = (pat: number, padI: number, step: number): number =>
   pat * PAD_COUNT * STEPS + padI * STEPS + step;
 
 export const makeEmptyPatterns = (): Patterns => new Uint8Array(NPATTERNS * PAD_COUNT * STEPS);
-
-export const cycleStep = (v: number): StepVal => ((v + 1) % 3) as StepVal;
-
-export const stepDurSamples = (bpm: number, sampleRate: number): number =>
-  (60 / bpm / 4) * sampleRate;
-
-export const swingDelaySamples = (step: number, swing: number, stepDur: number): number =>
-  step % 2 === 1 ? swing * SWING_MAX * stepDur : 0;
-
-export const nextChainPos = (chainLen: number, pos: number): number =>
-  chainLen > 0 ? (pos + 1) % chainLen : 0;
-
-// The RAND button: sparse hits with occasional accents on the selected pad's
-// row only — same density/flavor as BL-1's randomPattern (seq.ts), scoped to
-// one lane since a drum pad has no per-step pitch to randomize.
-export function randomizePadPattern(
-  patterns: Patterns,
-  pat: number,
-  padI: number,
-  rng: () => number = Math.random,
-): Patterns {
-  const next = patterns.slice();
-  for (let step = 0; step < STEPS; step++) {
-    const on = rng() < 0.4;
-    const accent = on && rng() < 0.3;
-    next[patIdx(pat, padI, step)] = (on ? (accent ? 2 : 1) : 0) as StepVal;
-  }
-  return next;
-}

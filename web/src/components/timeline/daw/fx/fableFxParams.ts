@@ -8,7 +8,6 @@ import {
   createTimeOrderedUuid,
   FABLE_EFFECT_KINDS,
   type FableEffectKind,
-  type TrackEffect,
   type TrackFableEffect
 } from "@nodetool-ai/timeline";
 
@@ -103,8 +102,4 @@ export function resolvedFableFxParams(
   effect: TrackFableEffect
 ): Record<string, number> {
   return { ...defaultFableFxParams(effect.kind), ...effect.params };
-}
-
-export function isFableEffect(effect: TrackEffect): effect is TrackFableEffect {
-  return effect.type === "fable";
 }

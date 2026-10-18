@@ -72,10 +72,6 @@ export function cloneDrumRhythm(value: DrumRhythm | undefined, sourceBars = 16):
   };
 }
 
-export function assertDrumRhythm(value: unknown, sourceBars = 16): DrumRhythm {
-  return cloneDrumRhythm(value as DrumRhythm, sourceBars)!;
-}
-
 export interface DrumSequence {
   patterns: Uint8Array;
   chain: number[];
@@ -84,46 +80,4 @@ export interface DrumSequence {
 
 export function defaultDrumLane(sourceBar = 0): DrumLaneRhythm {
   return { enabled: false, sourceBar, steps: 16, rotation: 0, timing: { mode: 'grid' } };
-}
-
-export function updateDrumLane(rhythm: DrumRhythm | undefined, pad: number,
-  patch: Partial<DrumLaneRhythm>, sourceBar = 0, sourceBars = 4): DrumRhythm {
-  if (!Number.isInteger(pad) || pad < 0 || pad >= 16) throw new Error('Invalid pad');
-  const next = cloneDrumRhythm(rhythm, sourceBars) ?? { v: 1, lanes: Array(16).fill(null) };
-  const lane = { ...(next.lanes[pad] ?? defaultDrumLane(sourceBar)), ...patch };
-  if (lane.enabled) lane.sourceBar = 0;
-  if (patch.steps !== undefined && Number.isInteger(lane.steps) && lane.steps > 0)
-    lane.rotation %= lane.steps;
-  next.lanes[pad] = lane;
-  return cloneDrumRhythm(next, sourceBars)!;
-}
-
-export function drumSourceConflict(rhythm: DrumRhythm | undefined, bars: number, names?: string[]): string | null {
-  const pad = rhythm?.lanes.findIndex(lane => lane !== null && lane.sourceBar >= bars) ?? -1;
-  return pad < 0 ? null : `BAR ${rhythm!.lanes[pad]!.sourceBar + 1} is used by ${names?.[pad] ?? `PAD ${pad + 1}`}. Change its source before shortening.`;
-}
-
-export function cloneDrumSequence(value: DrumSequence, sourceBars = 4): DrumSequence {
-  if (value.patterns.length !== 1024 || value.patterns.some(v => v > 2)) throw new Error('Invalid drum cells');
-  if (!value.chain.length || value.chain.length > 4 || value.chain.some(v => !Number.isInteger(v) || v < 0 || v > 3))
-    throw new Error('Invalid drum chain');
-  return { patterns: value.patterns.slice(), chain: [...value.chain], drumRhythm: cloneDrumRhythm(value.drumRhythm, sourceBars) };
-}
-
-export function drumLaneBadge(lane: DrumLaneRhythm | null | undefined): string | null {
-  if (!lane?.enabled) return null;
-  return lane.timing.mode === 'grid' ? `GRID ${lane.steps}` : `FIT ${lane.steps}/${lane.timing.cycleBeats / 4}B`;
-}
-
-/** FIT's complete cycle, in playback order. Rotation moves the source notes,
- * not the clock. Fractions are exact cycle positions, never sixteenth rounding. */
-export function drumFitSteps(lane: DrumLaneRhythm | null | undefined, editBar: number) {
-  if (!lane?.enabled || lane.sourceBar !== editBar || lane.timing.mode !== 'fit') return null;
-  const cycleBeats = lane.timing.cycleBeats;
-  return Array.from({ length: lane.steps }, (_, slot) => ({
-    sourceStep: (slot - lane.rotation + lane.steps) % lane.steps,
-    phase: slot / lane.steps,
-    beat: slot * cycleBeats / lane.steps,
-    cycleBeats,
-  }));
 }

@@ -17,8 +17,3 @@ export const SC_HP_DEF = { label: 'KEY HP', min: 20, max: 500, def: 20, curve: '
 
 /** True when a source needs the SQ-4 key input (not a DR-1 internal pad). */
 export const isExternalSource = (sources: readonly string[], index: number) => index > 0 && !sources[index]?.startsWith('PAD');
-
-/** SQ-4 display names for the track sources: TRACK n → that track's name. */
-export function trackKeyLabels(tracks: readonly { name: string }[]): Record<string, string> {
-  return Object.fromEntries(tracks.map((t, i) => [`TRACK ${i + 1}`, `${i + 1} ${t.name}`]));
-}
