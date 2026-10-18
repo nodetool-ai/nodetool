@@ -262,6 +262,8 @@ export async function runApplicationBuild(
 
   const controller = new AbortController();
   const logLines: string[] = [];
+  /** The stage under way, which a poll of the running session reports. */
+  let progress: { stage: string; round: number } | null = null;
   const maxRepairs = count("max_repairs", body.max_repairs);
   const timeoutMs = positive("timeout_ms", body.timeout_ms);
   const costCapUsd = positive("cost_cap_usd", body.cost_cap_usd);
@@ -299,6 +301,9 @@ export async function runApplicationBuild(
         ledger: { userId },
         onLog: (line) => {
           logLines.push(line.trimEnd());
+        },
+        onStage: (stage, round) => {
+          progress = { stage, round };
         }
       };
       if (spec) {
@@ -333,7 +338,8 @@ export async function runApplicationBuild(
     jobId: buildId,
     handle: new InteractiveEscalationHandle(),
     done,
-    cancel: () => controller.abort()
+    cancel: () => controller.abort(),
+    progress: () => progress
   });
 
   if (body.poll === true) return runningPayload(session, buildId);

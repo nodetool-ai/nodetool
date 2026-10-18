@@ -9,7 +9,11 @@
 
 import { WIDGET_CATALOG } from "@nodetool-ai/app-runtime";
 
-import { isAppSpec, type AppSpec } from "../../../utils/applicationBuild";
+import {
+  isAppSpec,
+  type AppBuildProgress,
+  type AppSpec
+} from "../../../utils/applicationBuild";
 
 export type AppSetupStage = "idea" | "review" | "build";
 
@@ -276,4 +280,54 @@ export const describeInteraction = (
   return checks.length > 0
     ? `${did[0].toUpperCase()}${did.slice(1)}; ${checks.join(" and ")} must show a result.`
     : `${did[0].toUpperCase()}${did.slice(1)}.`;
+};
+
+/**
+ * The three parts of a build the Build step lists: making the workflows,
+ * placing the screen, and the test run. The server's stages map onto them.
+ */
+export type AppBuildPhase = "workflows" | "screen" | "test";
+
+export const APP_BUILD_PHASES: readonly AppBuildPhase[] = [
+  "workflows",
+  "screen",
+  "test"
+];
+
+export const appBuildPhase = (progress: AppBuildProgress): AppBuildPhase => {
+  switch (progress.stage) {
+    case "spec":
+    case "plan":
+      return "workflows";
+    case "author":
+    case "check":
+      return "screen";
+    case "run":
+    case "judge":
+      return "test";
+  }
+};
+
+/**
+ * What the build is doing, for the line beside the spinner. A repair round
+ * says so, because the same phases run again.
+ */
+export const appBuildPendingLabel = (
+  progress: AppBuildProgress | null,
+  plansWorkflows: boolean
+): string => {
+  if (!progress) {
+    return "Starting the build";
+  }
+  if (progress.round > 0 && appBuildPhase(progress) !== "test") {
+    return "Fixing what the test run found";
+  }
+  switch (appBuildPhase(progress)) {
+    case "workflows":
+      return plansWorkflows ? "Planning the workflows" : "Connecting your workflows";
+    case "screen":
+      return "Placing the screen and connecting it";
+    case "test":
+      return progress.round > 0 ? "Running the tests again" : "Running the tests";
+  }
 };

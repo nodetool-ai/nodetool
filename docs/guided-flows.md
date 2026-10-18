@@ -212,7 +212,7 @@ The heading is **Review the design**. Every field is editable:
 
 ### Step 3: Build
 
-The heading is **Build the app**. **App name** starts as the design's title. **Build your app** plans the workflows, places the screen and test-runs it, with spending capped at $2.00. A build that passes is installed in the selected project and opens in the App Builder, with its workflows listed under **Linked workflows**. A build that fails shows why on the step and installs nothing. The [mini app build harness](mini-app-build-harness-design.md) describes the stages.
+The heading is **Build the app**. **App name** starts as the design's title. **Build your app** plans the workflows, places the screen and test-runs it, with spending capped at $2.00. While it runs, the step's list marks the part done, the part under way and the parts still to come, and the line beside the spinner names it, including a repair round after a failed test. A build that passes is installed in the selected project and opens in the App Builder on its run view, with its workflows listed under **Linked workflows**. A build that fails shows why on the step and installs nothing. The [mini app build harness](mini-app-build-harness-design.md) describes the stages.
 
 If you leave the tab before the build, the design is kept and restored when you return to it.
 

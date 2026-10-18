@@ -199,6 +199,8 @@ export interface CreateDebugSessionOptions {
   /** Resolves with the final report once the run settles. Must never reject. */
   done: Promise<Record<string, unknown>>;
   cancel: () => void;
+  /** What the run is doing now, shown while it is still running. */
+  progress?: () => Record<string, unknown> | null;
   /** Overrides for tests; production uses the module constants. */
   maxLifetimeMs?: number;
   cancelWaitMs?: number;
@@ -213,6 +215,7 @@ export class DebugSession {
   /** The run's own completion, raced with a forced settle. Never rejects. */
   private readonly _done: Promise<Record<string, unknown>>;
   private readonly _cancel: () => void;
+  private readonly _progress: () => Record<string, unknown> | null;
   private readonly _cancelWaitMs: number;
   private _force: (report: Record<string, unknown>) => void = () => {};
   private _report: Record<string, unknown> | null = null;
@@ -224,6 +227,7 @@ export class DebugSession {
     this.jobId = options.jobId;
     this._handle = options.handle;
     this._cancel = options.cancel;
+    this._progress = options.progress ?? (() => null);
     this._cancelWaitMs = options.cancelWaitMs ?? CANCEL_SETTLE_TIMEOUT_MS;
     // A run that never settles must not hold the session — or its waiters —
     // open forever, so every wait goes through this race rather than through
@@ -301,6 +305,11 @@ export class DebugSession {
     } finally {
       unsubscribe();
     }
+  }
+
+  /** What the run reports doing now, or null when it reports nothing. */
+  progress(): Record<string, unknown> | null {
+    return this._report ? null : this._progress();
   }
 
   /** Current state without waiting. */

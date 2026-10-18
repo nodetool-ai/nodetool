@@ -349,10 +349,24 @@ function options(
 describe("buildApp", () => {
   it("builds, checks, runs and reports a green app in one pass", async () => {
     const provider = scriptedProvider([goodAuthorScript()]);
-    const report = await buildApp(options(provider));
+    const started: string[] = [];
+    const report = await buildApp(
+      options(provider, {
+        onStage: (stage, round) => started.push(`${stage}:${round}`)
+      })
+    );
 
     expect(report.verdict.ok).toBe(true);
     expect(report.verdict.reason).toBe("green on the first pass");
+    // The App flow shows these while the build runs. The spec here is
+    // supplied, so no Spec stage starts.
+    expect(started).toEqual([
+      "plan:0",
+      "author:0",
+      "check:0",
+      "run:0",
+      "judge:0"
+    ]);
     expect(report.repairs).toEqual([]);
     expect(report.stages.map((s) => s.stage)).toEqual([
       "spec",

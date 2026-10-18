@@ -1676,8 +1676,11 @@ A build runs for minutes, so `poll: true` answers as soon as it starts:
 }
 ```
 
-Read those two paths until the session settles. A cancelled build settles as
-`failed` with `reason: "cancelled"`.
+Read those two paths until the session settles. While the build runs, the
+poll answers `status: "running"` with `progress: {stage, round}`: the stage
+under way (`spec`, `plan`, `author`, `check`, `run` or `judge`) and the repair
+round, 0 for the first pass. A cancelled build settles as `failed` with
+`reason: "cancelled"`.
 
 `POST /api/applications/spec` takes `prompt`, `provider`, `model`,
 `cost_cap_usd` and `poll`, runs the Spec stage alone, and answers with

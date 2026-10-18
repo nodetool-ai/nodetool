@@ -23,6 +23,7 @@ import { formatUsd } from "@nodetool-ai/model-pricing";
 import {
   buildApplication,
   specifyApplication,
+  type AppBuildProgress,
   type AppSpec
 } from "../../../utils/applicationBuild";
 import { installApplicationBundle } from "../../../utils/applicationBundle";
@@ -33,6 +34,7 @@ import { AppIdeaStep } from "./IdeaStep";
 import { AppReviewStep } from "./ReviewStep";
 import { AppBuildStep } from "./BuildStep";
 import {
+  appBuildPendingLabel,
   appSpecGaps,
   emptyAppSetupDraft,
   readAppSetupDraft,
@@ -103,6 +105,9 @@ export const useAppSetupFlow = ({
   const [blankError, setBlankError] = useState<string | null>(null);
   const [redesigning, setRedesigning] = useState(false);
   const [designError, setDesignError] = useState<string | null>(null);
+  const [buildProgress, setBuildProgress] = useState<AppBuildProgress | null>(
+    null
+  );
   const redesignRef = useRef<AbortController | null>(null);
   // A re-design answers onto the review, so it stops with the flow.
   useEffect(() => () => redesignRef.current?.abort(), []);
@@ -276,8 +281,12 @@ export const useAppSetupFlow = ({
             : name.trim().length === 0
               ? "Name your app"
               : "Finish the design first",
-        pendingLabel:
-          "Building the workflows and the screen, then test-running them",
+        // Study 8: one fixed sentence through a minute of building read as
+        // stalled, so the label follows the stage the server reports.
+        pendingLabel: appBuildPendingLabel(
+          buildProgress,
+          spec?.operations.some((op) => !op.workflowId) ?? true
+        ),
         footerControls: footerModel,
         render: (context) =>
           spec
@@ -285,6 +294,7 @@ export const useAppSetupFlow = ({
                 spec,
                 name,
                 onNameChange: (next: string) => update({ name: next }),
+                progress: buildProgress,
                 readOnly: context?.readOnly ?? false
               })
             : null,
@@ -292,14 +302,16 @@ export const useAppSetupFlow = ({
           if (!spec || !model) {
             return false;
           }
+          setBuildProgress(null);
           const built = await buildApplication({
             prompt: text,
             spec,
             provider: model.provider,
             model: model.id,
             costCapUsd: APP_BUILD_COST_CAP_USD,
+            onProgress: setBuildProgress,
             signal: context?.signal
-          });
+          }).finally(() => setBuildProgress(null));
           const appName = name.trim();
           // A failed install otherwise surfaced as the bare HTTP text ("Not
           // found"), which reads as the build failing.
@@ -321,6 +333,7 @@ export const useAppSetupFlow = ({
     [
       blankError,
       brief,
+      buildProgress,
       cancelRedesign,
       designError,
       designIsCurrent,

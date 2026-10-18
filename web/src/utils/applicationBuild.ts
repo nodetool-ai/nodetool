@@ -80,10 +80,52 @@ export interface ApplicationBuildRequest {
   model: string;
   /** Ceiling on the build's spend. Omitted, the server's default applies. */
   costCapUsd?: number;
+  /** Called with each stage a poll of the running build reports. */
+  onProgress?: (progress: AppBuildProgress) => void;
   signal?: AbortSignal;
   /** Milliseconds between polls. */
   pollMs?: number;
 }
+
+/** A build stage, as the server names it. */
+export type AppBuildStage =
+  | "spec"
+  | "plan"
+  | "author"
+  | "check"
+  | "run"
+  | "judge";
+
+/** Where a running build is: its stage, and the repair round (0 first). */
+export interface AppBuildProgress {
+  stage: AppBuildStage;
+  round: number;
+}
+
+const BUILD_STAGES: readonly string[] = [
+  "spec",
+  "plan",
+  "author",
+  "check",
+  "run",
+  "judge"
+];
+
+const buildProgressOf = (report: Record<string, unknown>): AppBuildProgress | null => {
+  const progress = report["progress"];
+  if (
+    !isObjectLike(progress) ||
+    typeof progress["stage"] !== "string" ||
+    !BUILD_STAGES.includes(progress["stage"]) ||
+    typeof progress["round"] !== "number"
+  ) {
+    return null;
+  }
+  return {
+    stage: progress["stage"] as AppBuildStage,
+    round: progress["round"]
+  };
+};
 
 export interface ApplicationBuildResult {
   /** The bundle to install. */
@@ -145,7 +187,8 @@ async function runPolled(
   path: string,
   body: Record<string, unknown>,
   signal: AbortSignal | undefined,
-  pollMs: number
+  pollMs: number,
+  onRunning?: (report: Record<string, unknown>) => void
 ): Promise<Record<string, unknown>> {
   const started = await restFetch(path, {
     method: "POST",
@@ -189,6 +232,7 @@ async function runPolled(
       if (report["status"] !== "running") {
         return report;
       }
+      onRunning?.(report);
     }
   } finally {
     signal?.removeEventListener("abort", cancel);
@@ -234,6 +278,7 @@ export async function buildApplication({
   provider,
   model,
   costCapUsd,
+  onProgress,
   signal,
   pollMs = DEFAULT_POLL_MS
 }: ApplicationBuildRequest): Promise<ApplicationBuildResult> {
@@ -246,7 +291,15 @@ export async function buildApplication({
       ...(costCapUsd !== undefined && { cost_cap_usd: costCapUsd })
     },
     signal,
-    pollMs
+    pollMs,
+    onProgress
+      ? (running) => {
+          const progress = buildProgressOf(running);
+          if (progress) {
+            onProgress(progress);
+          }
+        }
+      : undefined
   );
   const verdict = report["verdict"];
   const ok = isObjectLike(verdict) && verdict["ok"] === true;

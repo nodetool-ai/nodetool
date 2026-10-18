@@ -33,6 +33,27 @@ it("starts a polled build and resolves with a green build's bundle", async () =>
   expect(fetchMock).toHaveBeenNthCalledWith(3, "/api/debug/sessions/s1", expect.any(Object));
 });
 
+it("reports each stage a poll of the running build names", async () => {
+  fetchMock
+    .mockResolvedValueOnce(json({ status: "running", session_id: "s1" }))
+    .mockResolvedValueOnce(
+      json({ status: "running", progress: { stage: "plan", round: 0 } })
+    )
+    .mockResolvedValueOnce(json({ status: "running" }))
+    .mockResolvedValueOnce(
+      json({ status: "running", progress: { stage: "author", round: 1 } })
+    )
+    .mockResolvedValueOnce(
+      json({ status: "completed", verdict: { ok: true }, bundle })
+    );
+  const onProgress = jest.fn();
+  await buildApplication({ prompt: "x", provider: "p", model: "m", pollMs: 0, onProgress });
+  expect(onProgress.mock.calls).toEqual([
+    [{ stage: "plan", round: 0 }],
+    [{ stage: "author", round: 1 }]
+  ]);
+});
+
 it("rejects with the verdict's reason when the build is not green", async () => {
   fetchMock
     .mockResolvedValueOnce(json({ status: "running", session_id: "s1" }))

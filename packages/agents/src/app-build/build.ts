@@ -86,6 +86,7 @@ import {
   type BuildReport,
   type BuildSpec,
   type BuildSpecWidget,
+  type BuildStage,
   type BuildSupervision,
   type CompletedInteraction,
   type JudgeRecord,
@@ -198,6 +199,8 @@ export interface BuildAppOptions {
 
   signal?: AbortSignal;
   onLog?: (line: string) => void;
+  /** Called as each stage starts, so a caller can show where the build is. */
+  onStage?: (stage: BuildStage, round: number) => void;
   /** Persist one interaction run's message stream; returns the recorded path. */
   onRunMessages?: (
     interaction: string,
@@ -1028,6 +1031,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<BuildReport> {
 async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
   const startedAt = Date.now();
   const log_ = opts.onLog ?? (() => {});
+  const stage_ = opts.onStage ?? (() => {});
   const maxRepairs = opts.maxRepairs ?? DEFAULT_MAX_REPAIRS;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_BUILD_TIMEOUT_MS;
   const costCapUsd = opts.costCapUsd ?? DEFAULT_BUILD_COST_CAP_USD;
@@ -1080,6 +1084,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     if (!opts.prompt) {
       throw new Error("buildApp needs one of: prompt, specPath, spec");
     }
+    stage_("spec", 0);
     const specOptions: SpecStageOptions = {
       prompt: opts.prompt,
       provider: options.provider,
@@ -1122,6 +1127,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     );
   }
 
+  stage_("plan", 0);
   const planned = await withSpan("app.build.plan", {}, () =>
     runPlanStage(options, { spec, round: 0 })
   );
@@ -1174,6 +1180,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     }));
     const author = () =>
       withSpan("app.build.author", { "app.build.round": round }, () => {
+        stage_("author", round);
         const authorOptions: AuthorStageOptions = {
           spec,
           workflows: authorWorkflows,
@@ -1237,6 +1244,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
       opts.prompt ?? spec.title
     );
 
+    stage_("check", round);
     const checked = await withSpan(
       "app.build.check",
       { "app.build.round": round },
@@ -1258,6 +1266,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     ];
 
     if (errorsOf(checked.issues).length === 0) {
+      stage_("run", round);
       const ran = await withSpan(
         "app.build.run",
         { "app.build.round": round },
@@ -1284,6 +1293,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
               "app.build.judge",
               { "app.build.round": round, "app.build.judge.model": judgeModel },
               () => {
+                stage_("judge", round);
                 const judgeOptions: JudgeStageOptions = {
                   spec,
                   interactions: ran.judged,
@@ -1434,6 +1444,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
             .join(" ")}`
         ])
       );
+      stage_("plan", round + 1);
       const replanned = await withSpan(
         "app.build.plan",
         { "app.build.round": round + 1 },

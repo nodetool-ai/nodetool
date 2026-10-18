@@ -231,6 +231,38 @@ it("shows why a build failed and installs nothing", async () => {
   expect(onFinish).not.toHaveBeenCalled();
 });
 
+it("shows which part of the build is running", async () => {
+  let finish: () => void = () => {};
+  buildApplication.mockImplementation(
+    ({ onProgress }: { onProgress: (p: unknown) => void }) => {
+      onProgress({ stage: "author", round: 0 });
+      return new Promise((resolve) => {
+        finish = () => resolve({ bundle: { name: "Blurbs" } });
+      });
+    }
+  );
+  installApplicationBundle.mockResolvedValue({ id: "app-1", name: "Blurbs" });
+  renderHost(BRIEF);
+  await userEvent.click(button("Write the design"));
+  await userEvent.click(await screen.findByRole("button", {
+    name: "Continue to the build"
+  }));
+  await userEvent.click(await screen.findByRole("button", {
+    name: "Build your app"
+  }));
+
+  expect(
+    await screen.findByText("Placing the screen and connecting it")
+  ).toBeInTheDocument();
+  const current = screen
+    .getAllByRole("listitem")
+    .find((item) => item.getAttribute("aria-current") === "step");
+  expect(current).toHaveTextContent(/on the screen and connect them/);
+
+  finish();
+  await waitFor(() => expect(onFinish).toHaveBeenCalled());
+});
+
 it("says the install failed, not the build, when adding the app fails", async () => {
   buildApplication.mockResolvedValue({ bundle: { name: "Blurbs" } });
   installApplicationBundle.mockRejectedValue(new Error("Not found"));

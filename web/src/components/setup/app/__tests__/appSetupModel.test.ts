@@ -1,5 +1,7 @@
 import type { AppSpec } from "../../../../utils/applicationBuild";
 import {
+  appBuildPendingLabel,
+  appBuildPhase,
   appSpecGaps,
   clearAppSetupDraft,
   describeInteraction,
@@ -157,5 +159,32 @@ describe("humanizeSlug", () => {
     expect(humanizeSlug("product_name")).toBe("Product name");
     expect(humanizeSlug("productName")).toBe("Product name");
     expect(humanizeSlug("ProductName")).toBe("Product name");
+  });
+});
+
+describe("build progress", () => {
+  it("maps the server's stages onto the three listed phases", () => {
+    expect(appBuildPhase({ stage: "plan", round: 0 })).toBe("workflows");
+    expect(appBuildPhase({ stage: "check", round: 0 })).toBe("screen");
+    expect(appBuildPhase({ stage: "judge", round: 0 })).toBe("test");
+  });
+
+  it("says what the build is doing, and when it is repairing", () => {
+    expect(appBuildPendingLabel(null, true)).toBe("Starting the build");
+    expect(appBuildPendingLabel({ stage: "plan", round: 0 }, true)).toBe(
+      "Planning the workflows"
+    );
+    expect(appBuildPendingLabel({ stage: "plan", round: 0 }, false)).toBe(
+      "Connecting your workflows"
+    );
+    expect(appBuildPendingLabel({ stage: "author", round: 0 }, true)).toBe(
+      "Placing the screen and connecting it"
+    );
+    expect(appBuildPendingLabel({ stage: "author", round: 1 }, true)).toBe(
+      "Fixing what the test run found"
+    );
+    expect(appBuildPendingLabel({ stage: "run", round: 1 }, true)).toBe(
+      "Running the tests again"
+    );
   });
 });

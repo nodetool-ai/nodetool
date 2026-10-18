@@ -16,7 +16,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Application, Workflow, initTestDb } from "@nodetool-ai/models";
-import { AppServiceError, debugSessions } from "@nodetool-ai/execution/service";
+import {
+  AppServiceError,
+  debugSessions,
+  peekDebugSession
+} from "@nodetool-ai/execution/service";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ApplicationBundle } from "@nodetool-ai/app-runtime";
@@ -461,6 +465,17 @@ describe("runApplicationBuild — poll, cancel, and the session", () => {
     expect(session?.jobId).toBe(buildId);
     expect(session?.workflowId).toBeNull();
     expect(session?.peek()).toEqual({ kind: "running" });
+    expect(session?.progress()).toBeNull();
+
+    // A poll reports the stage the build has reached.
+    const onStage = buildApp.mock.calls[0]?.[0].onStage;
+    onStage?.("author", 1);
+    expect(session?.progress()).toEqual({ stage: "author", round: 1 });
+    const polled = peekDebugSession(sessionId, userId);
+    expect(polled.kind === "payload" && polled.payload["progress"]).toEqual({
+      stage: "author",
+      round: 1
+    });
 
     release(reportOf());
     const event = await session!.waitForEvent();
