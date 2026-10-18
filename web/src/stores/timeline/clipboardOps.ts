@@ -4,8 +4,8 @@
  * Module-level buffer (not per-instance) so clips can be copied between
  * timeline tabs. Pasted clips get fresh ids; the earliest copied clip lands
  * at the paste time and the others keep their relative offsets. Clips whose
- * source track no longer exists or is locked fall back to the first
- * compatible unlocked track and are skipped when none exists.
+ * source track no longer exists, is locked or is not targeted fall back to
+ * the first compatible targeted track and are skipped when none exists.
  */
 
 import {
@@ -26,6 +26,11 @@ export function hasClipboardClips(): boolean {
   return clipboard.length > 0;
 }
 
+/** The first copied clip, the source Paste Attributes reads, or undefined. */
+export function firstClipboardClip(): TimelineClip | undefined {
+  return clipboard[0];
+}
+
 /** Test hook — reset the module-level buffer between tests. */
 export function clearClipClipboard(): void {
   clipboard = [];
@@ -33,26 +38,37 @@ export function clearClipClipboard(): void {
 
 /**
  * Build paste-ready copies of the clipboard contents, anchored at `atMs`.
- * Returns an empty array when the clipboard is empty.
+ * `targetedTrackIds` limits where they land (every unlocked track when
+ * omitted). Returns an empty array when the clipboard is empty.
  */
 export function buildPastedClips(
   tracks: readonly TimelineTrack[],
-  atMs: number
+  atMs: number,
+  targetedTrackIds?: ReadonlySet<string>
 ): TimelineClip[] {
   if (clipboard.length === 0) {
     return [];
   }
   const minStartMs = Math.min(...clipboard.map((c) => c.startMs));
   const writableTrackIds = new Set(
-    tracks.filter((t) => !t.locked).map((t) => t.id)
+    tracks
+      .filter(
+        (t) =>
+          !t.locked &&
+          (targetedTrackIds === undefined || targetedTrackIds.has(t.id))
+      )
+      .map((t) => t.id)
   );
   const pasted: TimelineClip[] = [];
   for (const c of clipboard) {
     let trackId = c.trackId;
     if (!writableTrackIds.has(trackId)) {
-      const fallback = tracks.find(
-        (t) => !t.locked && clipFitsTrack(c.mediaType, t.type)
-      );
+      const fallback = [...tracks]
+        .sort((a, b) => a.index - b.index)
+        .find(
+          (t) =>
+            writableTrackIds.has(t.id) && clipFitsTrack(c.mediaType, t.type)
+        );
       if (!fallback) {
         continue;
       }

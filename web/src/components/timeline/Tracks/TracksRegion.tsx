@@ -64,6 +64,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import {
   lockedUserTargetIds,
+  targetedTrackIds,
   useTimelineStore,
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
@@ -85,6 +86,7 @@ import {
 import {
   buildPastedClips,
   copyClipsToClipboard,
+  firstClipboardClip,
   hasClipboardClips
 } from "../../../stores/timeline/clipboardOps";
 import {
@@ -114,6 +116,10 @@ import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { layoutTrackRows, TRACK_FOLDER_HEIGHT_PX, visibleTrackWindow } from "./trackWindow";
 import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
+import { AudioGainDialog } from "../clipDialogs/AudioGainDialog";
+import { PasteAttributesDialog } from "../clipDialogs/PasteAttributesDialog";
+import { SpeedDurationDialog } from "../clipDialogs/SpeedDurationDialog";
+import { revealClipMedia } from "../matchFrame";
 import {
   Caption,
   EditorButton,
@@ -148,7 +154,12 @@ import {
 } from "./timelineGesture";
 import { resolveTimelineAction } from "../timelineKeymap";
 import type { TimelineAction } from "../timelineKeymap";
-import { clipsAtTime, markClipRange, neighbourEditMs } from "./editPoints";
+import {
+  clipsAtTime,
+  editTimesMs,
+  markClipRange,
+  neighbourEditMs
+} from "./editPoints";
 import { clipEnabledPatch, isClipDisabled } from "./clipEnabled";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { performSourceEdit } from "../sourceEdit";
@@ -158,11 +169,17 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import {
   groupDescendantIds,
   isGroupClip,
-  keyframeTimesMs
+  keyframeTimesMs,
+  type TimelineClip
 } from "@nodetool-ai/timeline";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { isMac } from "../../../utils/platform";
 
+
+/** A clip dialog a shortcut opened, with the clips it acts on. */
+type ClipDialogRequest =
+  | { kind: "speed" | "gain"; clipIds: string[] }
+  | { kind: "attributes"; clipIds: string[]; source: TimelineClip };
 
 /** The pointer tool each tool key selects. */
 const TOOL_FOR_ACTION: Record<
@@ -171,6 +188,10 @@ const TOOL_FOR_ACTION: Record<
 > = {
   selectTool: "select",
   trackSelectTool: "trackSelect",
+  trackSelectBackwardTool: "trackSelectBackward",
+  slideTool: "slide",
+  handTool: "hand",
+  zoomTool: "zoom",
   rippleTool: "ripple",
   rollTool: "roll",
   rateStretchTool: "rateStretch",
@@ -178,11 +199,16 @@ const TOOL_FOR_ACTION: Record<
   slipTool: "slip"
 };
 const ZOOM_SENSITIVITY = 0.001;
+/** How much one expand or shrink keypress changes the track-height scale. */
+const TRACK_HEIGHT_STEP = 0.25;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
 /** Per-keypress zoom step (msPerPx smaller = zoomed in). */
 const ZOOM_IN_FACTOR = 0.8;
 const ZOOM_OUT_FACTOR = 1.25;
+/** One click of the Zoom tool halves or doubles the visible time. */
+const ZOOM_TOOL_IN_FACTOR = 0.5;
+const ZOOM_TOOL_OUT_FACTOR = 2;
 /** Padding kept on each side when Shift+Z fits content to the viewport (px). */
 const ZOOM_FIT_PADDING_PX = 64;
 /** Modifier shown in the undo/redo tooltips. */
@@ -366,6 +392,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
     const dawMode = useTimelineLayoutStore((s) => s.dawMode);
     const setScrollLeftPx = useTimelineUIStore((s) => s.setScrollLeftPx);
+    const laneCursor = useTimelineUIStore((s) =>
+      s.activeTool === "hand"
+        ? "grab"
+        : s.activeTool === "zoom"
+          ? "zoom-in"
+          : undefined
+    );
 
     const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
     const setSelection = useTimelineUIStore((s) => s.setSelection);
@@ -423,6 +456,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     // Keyboard-shortcut reference sheet (opened with `?` or the toolbar button).
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const [clipDialog, setClipDialog] = useState<ClipDialogRequest | null>(
+      null
+    );
+    const closeClipDialog = useCallback(() => setClipDialog(null), []);
 
     // Drop on empty area: auto-create a track of matching type.
     const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
@@ -711,6 +748,64 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           zoomRafIdRef.current = null;
         }
       };
+    }, [uiStoreApi]);
+
+    // Hand and Zoom tools. Captured on the scroll area before any lane or
+    // clip sees the press: Hand drags the lanes like a sheet, Zoom zooms in
+    // at the click and out with Alt, as in Premiere.
+    useEffect(() => {
+      const el = scrollableRef.current;
+      if (!el) return;
+      const onPointerDown = (e: PointerEvent) => {
+        const tool = uiStoreApi.getState().activeTool;
+        if ((tool !== "hand" && tool !== "zoom") || e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (tool === "zoom") {
+          const current = uiStoreApi.getState().msPerPx;
+          const next = Math.min(
+            MAX_MS_PER_PX,
+            Math.max(
+              MIN_MS_PER_PX,
+              current * (e.altKey ? ZOOM_TOOL_OUT_FACTOR : ZOOM_TOOL_IN_FACTOR)
+            )
+          );
+          if (next === current) return;
+          const cursorPx = e.clientX - el.getBoundingClientRect().left;
+          zoomAnchorRef.current = {
+            timeMs: (el.scrollLeft + cursorPx) * current,
+            cursorPx
+          };
+          uiStoreApi.getState().setZoom(next);
+          return;
+        }
+        const pointerId = e.pointerId;
+        const start = {
+          x: e.clientX,
+          y: e.clientY,
+          left: el.scrollLeft,
+          top: el.scrollTop
+        };
+        el.style.cursor = "grabbing";
+        const onMove = (ev: PointerEvent) => {
+          if (ev.pointerId !== pointerId) return;
+          el.scrollLeft = start.left - (ev.clientX - start.x);
+          el.scrollTop = start.top - (ev.clientY - start.y);
+        };
+        const onEnd = (ev: PointerEvent) => {
+          if (ev.pointerId !== pointerId) return;
+          el.style.cursor = "";
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onEnd);
+          window.removeEventListener("pointercancel", onEnd);
+        };
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onEnd);
+        window.addEventListener("pointercancel", onEnd);
+      };
+      el.addEventListener("pointerdown", onPointerDown, { capture: true });
+      return () =>
+        el.removeEventListener("pointerdown", onPointerDown, { capture: true });
     }, [uiStoreApi]);
 
     // Pinch-to-zoom (macOS trackpad, WebKit). Chromium turns a pinch into the
@@ -1124,6 +1219,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
           case "deleteSelected":
           case "rippleDeleteSelected":
+            // A selected gap is deleted by closing it, whichever delete.
+            if (selectedClipIds.size === 0 && ui.selectedGap) {
+              e.preventDefault();
+              doc.closeGapAt(ui.selectedGap.trackId, ui.selectedGap.startMs);
+              ui.setSelectedGap(null);
+              return;
+            }
             if (selectedClipIds.size === 0) return;
             e.preventDefault();
             if (action === "rippleDeleteSelected" || ui.rippleMode) {
@@ -1135,9 +1237,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
           case "splitAtPlayhead": {
             e.preventDefault();
+            // With nothing selected, Add Edit cuts the targeted tracks.
             const rightHalves = splitSelectedAtPlayhead(
               liveMs,
-              selectedClipIds
+              selectedClipIds,
+              targetedTrackIds(doc)
             );
             // The halves have new ids. Selecting the right ones keeps the next
             // S on the same clips instead of cutting every track.
@@ -1241,12 +1345,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           case "prevCut":
           case "nextCut": {
             e.preventDefault();
-            const pts = new Set<number>([0]);
-            for (const c of doc.clips) {
-              pts.add(c.startMs);
-              pts.add(c.startMs + c.durationMs);
-            }
-            seekToNeighbour([...pts], action === "nextCut");
+            seekToNeighbour(
+              editTimesMs(doc.clips, targetedTrackIds(doc)),
+              action === "nextCut"
+            );
             return;
           }
 
@@ -1319,7 +1421,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             e.preventDefault();
             // The earliest clip lands on the playhead, the rest keep their
             // relative offsets.
-            const pasted = buildPastedClips(doc.tracks, liveMs);
+            const pasted = buildPastedClips(
+              doc.tracks,
+              liveMs,
+              targetedTrackIds(doc)
+            );
             if (pasted.length > 0) {
               const pastedIds = new Set(pasted.map((c) => c.id));
               runAsOneUndoEntry(docStore, () => {
@@ -1344,6 +1450,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
           case "selectTool":
           case "trackSelectTool":
+          case "trackSelectBackwardTool":
+          case "slideTool":
+          case "handTool":
+          case "zoomTool":
           case "rippleTool":
           case "rollTool":
           case "rateStretchTool":
@@ -1360,7 +1470,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
           case "selectClipAtPlayhead": {
             e.preventDefault();
-            const under = clipsAtTime(doc.clips, doc.tracks, liveMs);
+            const under = clipsAtTime(
+              doc.clips,
+              targetedTrackIds(doc),
+              liveMs
+            );
             setSelection(under.map((c) => c.id));
             return;
           }
@@ -1422,7 +1536,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             const forward = action === "rippleTrimNextToPlayhead";
             const editMs = neighbourEditMs(
               doc.clips,
-              doc.tracks,
+              targetedTrackIds(doc),
               liveMs,
               forward ? 1 : -1
             );
@@ -1453,6 +1567,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             const range = markClipRange(
               doc.clips,
               doc.tracks,
+              targetedTrackIds(doc),
               selectedClipIds,
               liveMs
             );
@@ -1515,6 +1630,83 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             if (selectedClipIds.size === 0) return;
             e.preventDefault();
             doc.applyFades(selectedClipIds);
+            return;
+
+          case "applyDefaultAudioTransition":
+            if (selectedClipIds.size === 0) return;
+            e.preventDefault();
+            doc.applyDefaultAudioTransition(selectedClipIds);
+            return;
+
+          case "speedDuration":
+          case "audioGain":
+            if (selectedClipIds.size === 0) return;
+            e.preventDefault();
+            setClipDialog({
+              kind: action === "speedDuration" ? "speed" : "gain",
+              clipIds: [...selectedClipIds]
+            });
+            return;
+
+          case "pasteAttributes": {
+            const source = firstClipboardClip();
+            if (!source || selectedClipIds.size === 0) return;
+            e.preventDefault();
+            setClipDialog({
+              kind: "attributes",
+              clipIds: [...selectedClipIds],
+              source
+            });
+            return;
+          }
+
+          case "pasteInsert": {
+            if (!hasClipboardClips()) return;
+            e.preventDefault();
+            const pasted = buildPastedClips(
+              doc.tracks,
+              liveMs,
+              targetedTrackIds(doc)
+            );
+            if (pasted.length > 0) {
+              const pastedIds = new Set(pasted.map((c) => c.id));
+              runAsOneUndoEntry(docStore, () => {
+                addClips(pasted);
+                docStore.getState().resolveDrop(pastedIds, "insert");
+              });
+              setSelection([...pastedIds]);
+            }
+            return;
+          }
+
+          case "matchFrame":
+          case "revealInProject":
+            e.preventDefault();
+            void revealClipMedia(
+              doc,
+              ui,
+              liveMs,
+              action === "matchFrame" ? "match" : "reveal"
+            );
+            return;
+
+          case "expandTracks":
+          case "shrinkTracks":
+            e.preventDefault();
+            ui.setVerticalZoom(
+              ui.verticalZoom +
+                (action === "expandTracks" ? TRACK_HEIGHT_STEP : -TRACK_HEIGHT_STEP)
+            );
+            return;
+
+          case "toggleLoop":
+            e.preventDefault();
+            if (!e.repeat) useTimelineLayoutStore.getState().toggleLoopPlayback();
+            return;
+
+          case "playInToOut":
+            e.preventDefault();
+            if (!e.repeat) playback.playInToOut();
             return;
 
           case "addKeyframe":
@@ -1891,7 +2083,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div
             ref={scrollableRef}
             css={scrollableAreaStyles}
-            style={{ height: lanesHeight }}
+            style={{ height: lanesHeight, cursor: laneCursor }}
             onScroll={handleScroll}
             data-testid="tracks-scroll-area"
           >
@@ -2008,6 +2200,25 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         </div>
 
         {/* ── Keyboard-shortcut reference (`?` / toolbar help button) ──── */}
+        {clipDialog?.kind === "speed" && (
+          <SpeedDurationDialog
+            clipIds={clipDialog.clipIds}
+            onClose={closeClipDialog}
+          />
+        )}
+        {clipDialog?.kind === "gain" && (
+          <AudioGainDialog
+            clipIds={clipDialog.clipIds}
+            onClose={closeClipDialog}
+          />
+        )}
+        {clipDialog?.kind === "attributes" && (
+          <PasteAttributesDialog
+            clipIds={clipDialog.clipIds}
+            source={clipDialog.source}
+            onClose={closeClipDialog}
+          />
+        )}
         <TimelineShortcutsDialog
           open={shortcutsOpen}
           onClose={() => setShortcutsOpen(false)}

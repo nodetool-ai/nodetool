@@ -18,6 +18,8 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
+import SyncOutlinedIcon from "@mui/icons-material/SyncOutlined";
+import SyncDisabledOutlinedIcon from "@mui/icons-material/SyncDisabledOutlined";
 import VolumeOffOutlinedIcon from "@mui/icons-material/VolumeOffOutlined";
 import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -236,6 +238,30 @@ const indexChipStyles = (theme: Theme) =>
     backgroundColor: "transparent"
   });
 
+/**
+ * The index chip doubles as the track-target toggle, as Premiere's V1/A1
+ * buttons do: a targeted track's chip is lit, an untargeted one is dim.
+ */
+const targetChipStyles = (theme: Theme, targeted: boolean) =>
+  css({
+    border: `1px solid ${targeted ? theme.vars.palette.primary.main : theme.vars.palette.divider}`,
+    color: targeted
+      ? theme.vars.palette.primary.main
+      : theme.vars.palette.text.disabled,
+    backgroundColor: targeted
+      ? theme.vars.palette.action.selected
+      : "transparent",
+    cursor: "pointer",
+    transition: MOTION.background,
+    "&:hover": {
+      backgroundColor: theme.vars.palette.action.hover
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: 1
+    }
+  });
+
 const controlsRowStyles = (compact: boolean, scrollable: boolean) =>
   css({
     display: "flex",
@@ -399,6 +425,14 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
 
     const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
     const setTrackLocked = useTimelineStore((s) => s.setTrackLocked);
+    const targeted = useTimelineStore(
+      (s) => !s.untargetedTrackIds.has(track.id)
+    );
+    const syncLocked = useTimelineStore(
+      (s) => !s.syncLockOffTrackIds.has(track.id)
+    );
+    const setTrackTargeted = useTimelineStore((s) => s.setTrackTargeted);
+    const setTrackSyncLocked = useTimelineStore((s) => s.setTrackSyncLocked);
     const setTrackMuted = useTimelineStore((s) => s.setTrackMuted);
     const setTrackSolo = useTimelineStore((s) => s.setTrackSolo);
     const setTrackHeight = useTimelineStore((s) => s.setTrackHeight);
@@ -737,6 +771,10 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     );
     const nameInputCss = useMemo(() => nameInputStyles(theme), [theme]);
     const indexChipCss = useMemo(() => indexChipStyles(theme), [theme]);
+    const targetChipCss = useMemo(
+      () => [indexChipStyles(theme), targetChipStyles(theme, targeted)],
+      [theme, targeted]
+    );
     const controlsRowCss = useMemo(
       () => controlsRowStyles(compact, compact || isMidi),
       [compact, isMidi]
@@ -847,14 +885,37 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 ariaLabel={`Track name: ${track.name}`}
                 title="Double-click to rename"
               />
-              <span
-                css={indexChipCss}
-                aria-label={`${meta.label} track ${typedIndex}`}
-                title={`${meta.label} ${typedIndex}`}
-              >
-                {meta.prefix}
-                {typedIndex}
-              </span>
+              {track.type === "chord" ? (
+                <span
+                  css={indexChipCss}
+                  aria-label={`${meta.label} track ${typedIndex}`}
+                  title={`${meta.label} ${typedIndex}`}
+                >
+                  {meta.prefix}
+                  {typedIndex}
+                </span>
+              ) : (
+                <Tooltip
+                  title={
+                    targeted
+                      ? "Targeted: edits at the playhead, source edits and paste use this track. Click to untarget."
+                      : "Not targeted: edits at the playhead and paste skip this track. Click to target."
+                  }
+                >
+                  <button
+                    type="button"
+                    css={targetChipCss}
+                    onClick={() => setTrackTargeted(track.id, !targeted)}
+                    onPointerDown={stopPointerPropagation}
+                    aria-label={`Target ${meta.label.toLowerCase()} track ${typedIndex}`}
+                    aria-pressed={targeted}
+                    data-testid={`track-target-${track.id}`}
+                  >
+                    {meta.prefix}
+                    {typedIndex}
+                  </button>
+                </Tooltip>
+              )}
             </div>
           </div>
 
@@ -896,6 +957,27 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 {track.locked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
               </button>
             </Tooltip>
+
+            {track.type !== "chord" && (
+              <Tooltip
+                title={
+                  syncLocked
+                    ? "Sync lock on: ripples on other tracks move this one. Click to turn off."
+                    : "Sync lock off: ripples on other tracks leave this one in place. Click to turn on."
+                }
+              >
+                <button
+                  type="button"
+                  css={syncLocked ? iconButtonOnCss : iconButtonWarningCss}
+                  onClick={() => setTrackSyncLocked(track.id, !syncLocked)}
+                  aria-label={syncLocked ? "Turn sync lock off" : "Turn sync lock on"}
+                  aria-pressed={!syncLocked}
+                  data-testid={`track-sync-lock-${track.id}`}
+                >
+                  {syncLocked ? <SyncOutlinedIcon /> : <SyncDisabledOutlinedIcon />}
+                </button>
+              </Tooltip>
+            )}
 
             {isSoundTrack && (
               <>

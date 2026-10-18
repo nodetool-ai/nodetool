@@ -37,6 +37,7 @@ import {
   splitClip,
   splitClipMediaTracks,
   rateStretchClips,
+  slideClips,
   retimeCaption,
   trimClip,
   rippleTrim,
@@ -48,6 +49,7 @@ import {
   resolveDrop,
   applyTransitionAtCut,
   removeTransitionAtCut,
+  applyAudioCrossfades,
   canClipFade,
   DEFAULT_CLIP_FADE_MS,
   DEFAULT_TRANSITION_MS,
@@ -134,6 +136,10 @@ import {
 } from "../../utils/timelineIsolateSubject";
 import { useNotificationStore } from "../NotificationStore";
 import { cloneClips, cloneClipsToTrack } from "./clipboardOps";
+import {
+  attributePatch,
+  type PasteAttributeGroup
+} from "./pasteAttributes";
 import { getKnownSourceDurationMs } from "../../components/timeline/Tracks/useClipSourceDuration";
 import {
   migrateTranscriptToClips,
@@ -313,6 +319,17 @@ export interface TimelineStoreState {
    */
   linkedSelection: boolean;
   /**
+   * Track targeting, Premiere's V1/A1 toggles: the edits at the playhead,
+   * the source edits and paste act on targeted tracks only. Every track is
+   * targeted until switched off, so this holds the exceptions. Editor state.
+   */
+  untargetedTrackIds: ReadonlySet<string>;
+  /**
+   * Tracks with sync lock off. A ripple on another track leaves their clips
+   * where they are. Editor state.
+   */
+  syncLockOffTrackIds: ReadonlySet<string>;
+  /**
    * The document as the editor last read or wrote it — the merge base for an
    * external change into a dirty draft. Refreshed by `loadSequence` and by
    * `setBaseUpdatedAt` (which only autosave calls after a landed write).
@@ -434,6 +451,8 @@ export interface TimelineStoreState {
    */
   removeBeat: (beatId: string) => void;
   setLinkedSelection: (on: boolean) => void;
+  setTrackTargeted: (trackId: string, targeted: boolean) => void;
+  setTrackSyncLocked: (trackId: string, syncLocked: boolean) => void;
 
   /**
    * Patch the project settings — canvas resolution (`width`/`height`) and frame
@@ -662,11 +681,11 @@ export interface TimelineStoreState {
   rippleDeleteSelected: (selectedIds: Set<string>) => void;
 
   /**
-   * Remove the span [startMs, endMs) from every unlocked track: clips across
+   * Remove the span [startMs, endMs) from every targeted track: clips across
    * either edge are cut there and the pieces inside are deleted. Premiere's
    * Lift leaves the gap (`ripple` false); Extract closes it, pulling every
-   * later clip left by the span (`ripple` true). Linked partners are cut
-   * with their clip. One undo entry.
+   * later clip on a sync-locked track left by the span (`ripple` true).
+   * Linked partners are cut with their clip. One undo entry.
    */
   removeRange: (startMs: number, endMs: number, ripple: boolean) => void;
 
@@ -692,6 +711,35 @@ export interface TimelineStoreState {
   applyFades: (clipIds: ReadonlySet<string>, durationMs?: number) => void;
   /** Remove both fades from the unlocked clips among `clipIds`. */
   clearFades: (clipIds: ReadonlySet<string>) => void;
+  /**
+   * Premiere's default audio transition: a constant power cross-fade at each
+   * edit of the unlocked audio clips among `clipIds`. See
+   * `applyAudioCrossfades`. One undo step.
+   */
+  applyDefaultAudioTransition: (
+    clipIds: ReadonlySet<string>,
+    durationMs?: number
+  ) => void;
+  /**
+   * Premiere's Audio Gain (G): set each audible clip's volume to `db`
+   * (`mode: "set"`) or move it by `db` (`mode: "adjust"`), clamped to the
+   * fader range. Locked clips keep theirs. One undo step.
+   */
+  setClipsGain: (
+    clipIds: ReadonlySet<string>,
+    db: number,
+    mode: "set" | "adjust"
+  ) => void;
+  /**
+   * Paste Attributes: give the unlocked clips among `clipIds` the chosen
+   * groups of `source`'s settings (see `pasteAttributes.ts`). Speed is not a
+   * field patch: the caller runs `setClipSpeed` for it. One undo step.
+   */
+  pasteClipAttributes: (
+    clipIds: ReadonlySet<string>,
+    source: TimelineClip,
+    groups: ReadonlySet<PasteAttributeGroup>
+  ) => void;
   /** Resize a clip's incoming transition, growing the predecessor as needed. */
   setTransitionDuration: (clipId: string, durationMs: number) => void;
   removeTransition: (clipId: string) => void;
@@ -738,11 +786,13 @@ export interface TimelineStoreState {
    * Split all selected clips at the current playhead (passed as argument).
    * Returns the ids of the right halves on the tracks of the selected clips,
    * so the caller can keep a selection: both halves get new ids, which drops
-   * the old selection, and an empty selection means "every clip".
+   * the old selection, and an empty selection means every clip on
+   * `trackIds` (every track when omitted).
    */
   splitSelectedAtPlayhead: (
     currentTimeMs: number,
-    selectedIds: Set<string>
+    selectedIds: Set<string>,
+    trackIds?: ReadonlySet<string>
   ) => string[];
 
   /**
@@ -813,9 +863,15 @@ export interface TimelineStoreState {
    * old rate / new rate. A clip that would grow into the next clip on its
    * track is capped there and its out point pulled in to match, by the same
    * amount for every partner so the link stays in sync. Refused for a locked
-   * edit unit. One undo entry.
+   * edit unit. With `ripple` (Premiere's "Ripple edit, shifting trailing
+   * clips") later clips on sync-locked tracks move by the change in length
+   * instead, so nothing is capped. One undo entry.
    */
-  setClipSpeed: (clipId: string, speedMultiplier: number) => void;
+  setClipSpeed: (
+    clipId: string,
+    speedMultiplier: number,
+    options?: { ripple?: boolean }
+  ) => void;
 
   /**
    * Rate stretch (Premiere's R tool): give a clip a new length by changing
@@ -827,6 +883,18 @@ export interface TimelineStoreState {
     clipId: string,
     edge: "start" | "end",
     durationMs: number
+  ) => void;
+
+  /**
+   * Slide (Premiere's U tool): move a clip and its linked partners by
+   * `deltaMs` with their source unchanged, trimming the clips against them
+   * so the cuts on both sides move together. Clamped to what the neighbours
+   * allow. Refused when the clip or a neighbour is locked. See `slideClips`.
+   */
+  slideClip: (
+    clipId: string,
+    deltaMs: number,
+    sourceDurationMsFor?: (clip: TimelineClip) => number | undefined
   ) => void;
 
   /**
@@ -1378,6 +1446,69 @@ function lockedTrackIds(tracks: readonly TimelineTrack[]): Set<string> {
 }
 
 /**
+ * The tracks a ripple leaves alone: locked tracks, and tracks with sync lock
+ * off unless the edit itself happens on them.
+ */
+function rippleFrozenTrackIds(
+  state: Pick<TimelineStoreState, "tracks" | "syncLockOffTrackIds">,
+  editedTrackIds: Iterable<string>
+): Set<string> {
+  const edited = new Set(editedTrackIds);
+  return new Set(
+    state.tracks
+      .filter(
+        (t) =>
+          t.locked ||
+          (state.syncLockOffTrackIds.has(t.id) && !edited.has(t.id))
+      )
+      .map((t) => t.id)
+  );
+}
+
+/** Tracks of `clipId` and, when `followLinks`, of its link group. */
+function linkedTrackIds(
+  clips: readonly TimelineClip[],
+  clipId: string,
+  followLinks: boolean
+): Set<string> {
+  const clip = clips.find((c) => c.id === clipId);
+  if (!clip) return new Set();
+  return new Set(
+    clips
+      .filter(
+        (c) =>
+          c.id === clipId ||
+          (followLinks && clip.linkId !== undefined && c.linkId === clip.linkId)
+      )
+      .map((c) => c.trackId)
+  );
+}
+
+/** Ids of the unlocked tracks the edits at the playhead act on. */
+export function targetedTrackIds(
+  state: Pick<TimelineStoreState, "tracks" | "untargetedTrackIds">
+): Set<string> {
+  return new Set(
+    state.tracks
+      .filter((t) => !t.locked && !state.untargetedTrackIds.has(t.id))
+      .map((t) => t.id)
+  );
+}
+
+/** `ids` with `id` added (`on`) or removed, the same set when unchanged. */
+function toggledIn(
+  ids: ReadonlySet<string>,
+  id: string,
+  on: boolean
+): ReadonlySet<string> {
+  if (ids.has(id) === on) return ids;
+  const next = new Set(ids);
+  if (on) next.add(id);
+  else next.delete(id);
+  return next;
+}
+
+/**
  * Keep user edits away from locked clips and tracks, including clips the
  * action would touch indirectly through a link or group. The returned ids are
  * the requested roots whose complete edit unit is writable. Synchronization
@@ -1823,6 +1954,8 @@ const emptyState = {
   camera2d: null,
   setup: null,
   linkedSelection: true,
+  untargetedTrackIds: new Set<string>(),
+  syncLockOffTrackIds: new Set<string>(),
   syncedDocument: null
 } satisfies {
   sequenceId: string | null;
@@ -1844,6 +1977,8 @@ const emptyState = {
   camera2d: TimelineSequence["camera2d"];
   setup: TimelineSetup | null;
   linkedSelection: boolean;
+  untargetedTrackIds: ReadonlySet<string>;
+  syncLockOffTrackIds: ReadonlySet<string>;
   syncedDocument: TimelineStoreState["syncedDocument"];
 };
 
@@ -2329,6 +2464,22 @@ export const createTimelineStore = (
           }),
 
         setLinkedSelection: (on) => set({ linkedSelection: on }),
+        setTrackTargeted: (trackId, targeted) =>
+          set((state) => ({
+            untargetedTrackIds: toggledIn(
+              state.untargetedTrackIds,
+              trackId,
+              !targeted
+            )
+          })),
+        setTrackSyncLocked: (trackId, syncLocked) =>
+          set((state) => ({
+            syncLockOffTrackIds: toggledIn(
+              state.syncLockOffTrackIds,
+              trackId,
+              !syncLocked
+            )
+          })),
 
         setProjectSettings: (patch) =>
           set((state) => {
@@ -3098,7 +3249,10 @@ export const createTimelineStore = (
             try {
               return {
                 clips: rippleTrim(state.clips, clipId, "start", deltaMs, {
-                  lockedTrackIds: lockedTrackIds(state.tracks),
+                  lockedTrackIds: rippleFrozenTrackIds(
+                    state,
+                    linkedTrackIds(state.clips, clipId, state.linkedSelection)
+                  ),
                   lockedClipIds: lockedUserTargetIds(state.clips, state.tracks),
                   followLinks: state.linkedSelection
                 })
@@ -3135,7 +3289,14 @@ export const createTimelineStore = (
                   "end",
                   clampEndTrimDeltaToSource(clip, deltaMs, maxSourceDurationMs),
                   {
-                    lockedTrackIds: lockedTrackIds(state.tracks),
+                    lockedTrackIds: rippleFrozenTrackIds(
+                      state,
+                      linkedTrackIds(
+                        state.clips,
+                        clipId,
+                        state.linkedSelection
+                      )
+                    ),
                     lockedClipIds: lockedUserTargetIds(
                       state.clips,
                       state.tracks
@@ -3201,7 +3362,10 @@ export const createTimelineStore = (
             const survivors = removeClipsLinkAware(state.clips, editableIds);
             return {
               clips: rippleDelete([...removed, ...survivors], editableIds, {
-                lockedTrackIds: lockedTrackIds(state.tracks),
+                lockedTrackIds: rippleFrozenTrackIds(
+                  state,
+                  removed.map((c) => c.trackId)
+                ),
                 lockedClipIds: lockedUserTargetIds(state.clips, state.tracks)
               })
             };
@@ -3210,12 +3374,16 @@ export const createTimelineStore = (
         removeRange: (startMs, endMs, ripple) =>
           set((state) => {
             if (!(endMs > startMs)) return state;
+            const targeted = targetedTrackIds(state);
             let cut = { clips: state.clips, mediaTracks: state.mediaTracks };
             for (const atMs of [startMs, endMs]) {
               const across = new Set(
                 cut.clips
                   .filter(
-                    (c) => atMs > c.startMs && atMs < c.startMs + c.durationMs
+                    (c) =>
+                      targeted.has(c.trackId) &&
+                      atMs > c.startMs &&
+                      atMs < c.startMs + c.durationMs
                   )
                   .map((c) => c.id)
               );
@@ -3235,6 +3403,7 @@ export const createTimelineStore = (
               cut.clips
                 .filter(
                   (c) =>
+                    targeted.has(c.trackId) &&
                     !isGroupClip(c) &&
                     c.startMs >= startMs &&
                     c.startMs + c.durationMs <= endMs
@@ -3255,7 +3424,7 @@ export const createTimelineStore = (
             if (ripple) {
               clips =
                 planShift(clips, endMs, startMs - endMs, new Set(), {
-                  lockedTrackIds: lockedTrackIds(state.tracks),
+                  lockedTrackIds: rippleFrozenTrackIds(state, targeted),
                   lockedClipIds: lockedUserTargetIds(clips, state.tracks)
                 }) ?? clips;
             }
@@ -3268,7 +3437,7 @@ export const createTimelineStore = (
         closeGapAt: (trackId, timeMs) =>
           set((state) => {
             const next = closeGap(state.clips, trackId, timeMs, {
-              lockedTrackIds: lockedTrackIds(state.tracks),
+              lockedTrackIds: rippleFrozenTrackIds(state, [trackId]),
               lockedClipIds: lockedUserTargetIds(state.clips, state.tracks)
             });
             return next.length === state.clips.length &&
@@ -3289,7 +3458,12 @@ export const createTimelineStore = (
             if (moved.size === 0) return state;
             return {
               clips: resolveDrop(state.clips, moved, mode, {
-                lockedTrackIds: lockedTrackIds(state.tracks),
+                lockedTrackIds: rippleFrozenTrackIds(
+                  state,
+                  state.clips
+                    .filter((c) => moved.has(c.id))
+                    .map((c) => c.trackId)
+                ),
                 lockedClipIds
               })
             };
@@ -3331,6 +3505,60 @@ export const createTimelineStore = (
                 return clip;
               changed = true;
               return { ...clip, fadeInMs: span, fadeOutMs: span };
+            });
+            return changed ? { clips } : state;
+          }),
+
+        applyDefaultAudioTransition: (
+          clipIds,
+          durationMs = DEFAULT_TRANSITION_MS
+        ) =>
+          set((state) => {
+            const editable = editableTransitionTargets(state, clipIds);
+            const growth = transitionGrowthOptions(state);
+            const clips = applyAudioCrossfades(
+              state.clips,
+              editable,
+              durationMs,
+              {
+                canExtend: growth.canExtend,
+                sourceDurationMs: growth.sourceDurationMs
+              }
+            );
+            return clips === state.clips ? state : { clips: [...clips] };
+          }),
+
+        setClipsGain: (clipIds, db, mode) =>
+          set((state) => {
+            if (!Number.isFinite(db)) return state;
+            const editable = editableTransitionTargets(state, clipIds);
+            let changed = false;
+            const clips = state.clips.map((clip) => {
+              if (!editable.has(clip.id) || !canClipFade(clip.mediaType)) {
+                return clip;
+              }
+              const volumeDb = clampMixerDb(
+                mode === "set" ? db : (clip.volumeDb ?? 0) + db
+              );
+              if ((clip.volumeDb ?? 0) === volumeDb) return clip;
+              changed = true;
+              return { ...clip, volumeDb };
+            });
+            return changed ? { clips } : state;
+          }),
+
+        pasteClipAttributes: (clipIds, source, groups) =>
+          set((state) => {
+            const editable = editableTransitionTargets(state, clipIds);
+            let changed = false;
+            const clips = state.clips.map((clip) => {
+              if (!editable.has(clip.id) || clip.id === source.id) {
+                return clip;
+              }
+              const patch = attributePatch(source, clip, groups);
+              if (Object.keys(patch).length === 0) return clip;
+              changed = true;
+              return { ...clip, ...patch };
             });
             return changed ? { clips } : state;
           }),
@@ -3458,7 +3686,7 @@ export const createTimelineStore = (
             return next.clips === state.clips ? state : next;
           }),
 
-        splitSelectedAtPlayhead: (currentTimeMs, selectedIds) => {
+        splitSelectedAtPlayhead: (currentTimeMs, selectedIds, trackIds) => {
           const rightHalfIds: string[] = [];
           set((state) => {
             // Target every selected clip containing the playhead (or all clips
@@ -3468,7 +3696,9 @@ export const createTimelineStore = (
               state.clips
                 .filter(
                   (c) =>
-                    (selectedIds.size === 0 || selectedIds.has(c.id)) &&
+                    (selectedIds.size > 0
+                      ? selectedIds.has(c.id)
+                      : trackIds === undefined || trackIds.has(c.trackId)) &&
                     currentTimeMs > c.startMs &&
                     currentTimeMs < c.startMs + c.durationMs
                 )
@@ -3799,7 +4029,7 @@ export const createTimelineStore = (
             };
           }),
 
-        setClipSpeed: (clipId, speedMultiplier) =>
+        setClipSpeed: (clipId, speedMultiplier, options) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
             if (
@@ -3827,10 +4057,36 @@ export const createTimelineStore = (
             // so a speed change would retime it. Trim refuses the same clip.
             if (members.some((m) => hasTimeRemap(m))) return state;
             const memberIds = new Set(members.map((m) => m.id));
+            let base: readonly TimelineClip[] = state.clips;
+            if (options?.ripple) {
+              const growthMs = Math.max(
+                ...members.map(
+                  (m) =>
+                    (m.durationMs * sourceRate(m)) /
+                      sourceRate({ ...m, speedMultiplier }) -
+                    m.durationMs
+                )
+              );
+              const shifted = planShift(
+                state.clips,
+                Math.max(...members.map((m) => m.startMs + m.durationMs)),
+                growthMs,
+                memberIds,
+                {
+                  lockedTrackIds: rippleFrozenTrackIds(
+                    state,
+                    members.map((m) => m.trackId)
+                  ),
+                  lockedClipIds: lockedUserTargetIds(state.clips, state.tracks)
+                }
+              );
+              if (!shifted) return state;
+              base = shifted;
+            }
             const planned = members.map((m) => {
               const newRate = sourceRate({ ...m, speedMultiplier });
               const targetMs = (m.durationMs * sourceRate(m)) / newRate;
-              const nextStartMs = state.clips.reduce(
+              const nextStartMs = base.reduce(
                 (min, c) =>
                   c.trackId === m.trackId &&
                   !memberIds.has(c.id) &&
@@ -3861,7 +4117,7 @@ export const createTimelineStore = (
               }
               next.set(m.id, retimed);
             }
-            return { clips: state.clips.map((c) => next.get(c.id) ?? c) };
+            return { clips: base.map((c) => next.get(c.id) ?? c) };
           }),
 
         rateStretchClip: (clipId, edge, durationMs) =>
@@ -3898,6 +4154,45 @@ export const createTimelineStore = (
             return clips.every((c, i) => c === state.clips[i])
               ? state
               : { clips };
+          }),
+
+        slideClip: (clipId, deltaMs, sourceDurationMsFor) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) return state;
+            const memberIds = new Set(
+              state.linkedSelection && clip.linkId !== undefined
+                ? state.clips
+                    .filter((c) => c.linkId === clip.linkId)
+                    .map((c) => c.id)
+                : [clip.id]
+            );
+            let clips: readonly TimelineClip[];
+            try {
+              clips = slideClips(
+                state.clips,
+                memberIds,
+                deltaMs,
+                sourceDurationMsFor
+              );
+            } catch {
+              return state;
+            }
+            if (clips === state.clips) return state;
+            // The members and every neighbour the slide trims must be
+            // writable.
+            const touched = new Set(
+              clips.filter((c, i) => c !== state.clips[i]).map((c) => c.id)
+            );
+            const editable = editableUserTargets(
+              state.clips,
+              state.tracks,
+              touched,
+              { followLinks: false, includeGroupDescendants: false }
+            );
+            return [...touched].every((id) => editable.has(id))
+              ? { clips: [...clips] }
+              : state;
           }),
 
         groupClips: (clipIds) => {

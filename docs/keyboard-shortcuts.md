@@ -132,20 +132,27 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 |-------|-----|--------|
 | Tools | `V` | Select tool |
 | Tools | `A` | Track select tool: every clip from the click on, `Shift` for one track |
+| Tools | `Shift + A` | Track select backward tool: every clip up to the click |
 | Tools | `B` / `Shift + B` | Ripple edit tool / rolling edit tool |
 | Tools | `R` | Rate stretch tool: drag an edge to change the clip's speed |
 | Tools | `C` | Cut (blade) tool |
 | Tools | `Y` | Slip tool: drag a clip to change which part of its source plays |
+| Tools | `U` | Slide tool: drag a clip along its track while its neighbours trim to follow |
+| Tools | `H` | Hand tool: drag to scroll the timeline |
+| Tools | `Z` | Zoom tool: click to zoom in, `Alt + click` to zoom out |
 | Tools | `N` | Toggle snapping |
 | Tools | `Esc` | Clear selection and return to Select |
 | Editing | `S` | Split selected clips at the playhead |
 | Editing | `Ctrl + Shift + K` | Cut all tracks at the playhead |
-| Editing | `Delete` or `Backspace` | Delete selected clips |
+| Editing | `Delete` or `Backspace` | Delete selected clips, or close a gap selected by clicking it |
 | Editing | `Shift + Delete` | Ripple delete (closes the gap) |
 | Editing | `Ctrl + D` | Duplicate |
 | Editing | `Ctrl + Shift + D` | Duplicate with a 1 second gap |
 | Editing | `Ctrl + T` | Cross-fade into selected clips |
 | Editing | `Alt + T` | Fade selected clips in and out |
+| Editing | `Ctrl + Alt + T` | Cross-fade the audio at the selected clips' edits |
+| Editing | `Ctrl + R` | Speed and duration of the selected clips |
+| Editing | `G` | Audio gain of the selected clips |
 | Editing | `Ctrl + A` / `Ctrl + Shift + A` | Select all clips / deselect all |
 | Editing | `Shift + D` | Select the clips at the playhead |
 | Editing | `Ctrl + Shift + E` | Enable or disable selected clips |
@@ -157,9 +164,13 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Editing | `Ctrl + Shift + ←` / `→` | Trim the edit point one frame |
 | Editing | `Ctrl + Shift + Alt + ←` / `→` | Trim the edit point ten frames |
 | Clipboard | `Ctrl + C` / `X` / `V` | Copy, cut, paste at the playhead |
+| Clipboard | `Ctrl + Shift + V` | Paste insert: paste and push later clips right |
+| Clipboard | `Ctrl + Alt + V` | Paste attributes of the copied clip onto the selection |
 | Move | `←` / `→` | Nudge selected clips one frame |
 | Move | `Shift + ←` / `→` | Nudge selected clips one second |
 | Playback | `Space` | Play or pause |
+| Playback | `Ctrl + Shift + Space` | Play from in to out |
+| Playback | `Shift + L` | Loop playback between in and out |
 | Playback | `Alt + ←` / `→` | Step the playhead one frame |
 | Playback | `J` / `K` / `L` | Shuttle back, stop, shuttle forward (press again for faster) |
 | Playback | `I` / `O` | Mark in, mark out |
@@ -170,6 +181,8 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Playback | `↑` / `↓` or `Page Up` / `Page Down` | Previous or next cut |
 | Playback | `M` | Add a marker at the playhead |
 | Playback | `Shift + M` / `Ctrl + Shift + M` | Next or previous marker |
+| Playback | `F` | Match frame: open the clip's media in the source monitor at this frame |
+| Playback | `Shift + F` | Reveal the clip's media in Assets |
 | Keyframes | `Alt + K` | Keyframe the selected clip at the playhead |
 | Keyframes | `Alt + Shift + K` / `Ctrl + Alt + Shift + K` | Next or previous keyframe |
 | Source | `Shift + E` | Append the source range to the end |
@@ -177,11 +190,13 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Source | `D` | Overwrite with the source range at the playhead |
 | View | `+` or `=` / `-` | Zoom in or out |
 | View | `Shift + Z` | Zoom to fit content |
+| View | `Ctrl + =` / `Ctrl + -` | Make tracks taller or shorter |
 | History | `Ctrl + Z` | Undo |
 | History | `Ctrl + Shift + Z` or `Ctrl + Y` | Redo |
 | Mouse | `Ctrl + drag edge` | Roll the cut with its neighbour |
 | Mouse | `Alt + drag` | Disable snapping while moving or trimming |
 | Mouse | `Ctrl + drag clip` | Insert on drop and push later clips right |
+| Mouse | `Alt + drag clip` | Duplicate: leave a copy where the clip was |
 
 Premiere Pro and Final Cut Pro layouts change these keys:
 
@@ -189,6 +204,7 @@ Premiere Pro and Final Cut Pro layouts change these keys:
 |--------|--------------|---------------|
 | Select tool | `V` | `A` |
 | Track select tool | `A` | `Shift + A` |
+| Track select backward tool | `Shift + A` | `Alt + Shift + A` |
 | Ripple edit / rolling edit tool | `B` / `N` | `T` / `Shift + T` |
 | Rate stretch tool | `R` | `R` |
 | Cut tool | `C` | `B` |
@@ -208,8 +224,14 @@ Premiere Pro and Final Cut Pro layouts change these keys:
 | Cross-fade into selection | `Ctrl + D` | `Ctrl + T` |
 | Insert / overwrite source range | `,` / `.` | `W` / `D` |
 | Append source range | `Ctrl + Shift + E` | `E` |
+| Link or unlink clips | `Ctrl + L` | `Ctrl + Alt + L` |
+| Cross-fade the audio | `Ctrl + Shift + D` | `Ctrl + Alt + T` |
+| Paste insert / paste attributes | `Ctrl + Shift + V` / `Ctrl + Alt + V` | `Ctrl + Alt + V` / `Ctrl + Shift + V` |
+| Taller / shorter tracks | `Ctrl + =` / `Ctrl + -` | `Ctrl + Alt + ↑` / `↓` |
+| Loop playback | `Shift + L` | `Ctrl + L` |
+| Play from in to out | `Ctrl + Shift + Space` | `/` |
 
-In the Premiere Pro and Final Cut Pro layouts, bare `←` / `→` step the playhead one frame. The NodeTool layout uses `Alt + ←` / `→` for that because bare arrows nudge clips. Shuttle, marking, marker, cut navigation, keyframe, clipboard, and undo keys are the same in all three layouts. See the [Video Editor](video-editor.md#keyboard-shortcuts) guide for the editor itself.
+In the Premiere Pro and Final Cut Pro layouts, bare `←` / `→` step the playhead one frame. The NodeTool layout uses `Alt + ←` / `→` for that because bare arrows nudge clips. Shuttle, marking, marker, cut navigation, keyframe, copy and paste, undo, Slide, Hand, Zoom, Speed/Duration, audio gain, and match frame keys are the same in all three layouts. See the [Video Editor](video-editor.md#keyboard-shortcuts) guide for the editor itself.
 
 ## Sketch editor
 

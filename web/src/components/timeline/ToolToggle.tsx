@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 /**
  * ToolToggle — the pointer tools (Premiere's Tools panel: Select, Track
- * select, Ripple edit, Rolling edit, Rate stretch, Cut, Slip) plus the
+ * select forward and backward, Ripple edit, Rolling edit, Rate stretch, Cut,
+ * Slip, Slide, Hand, Zoom) plus the
  * Ripple toggle for the timeline editor.
  *
  * Labeled ghost buttons (icon + text). The active button picks up the
@@ -87,6 +88,13 @@ const RATE_STRETCH_GLYPH =
   "M3 6 V18 M21 6 V18 M6 12 H18 M9 9 L6 12 L9 15 M15 9 L18 12 L15 15";
 const SLIP_GLYPH =
   "M3 7 H21 V17 H3 Z M8 12 H16 M10 10 L8 12 L10 14 M14 10 L16 12 L14 14";
+const TRACK_SELECT_BACKWARD_GLYPH =
+  "M19 5 V19 M15 12 H4 M8 8 L4 12 L8 16 M15 7 H10 M15 17 H10";
+const SLIDE_GLYPH =
+  "M3 7 V17 M21 7 V17 M8 8 H16 V16 H8 Z M5 12 H8 M16 12 H19";
+const HAND_GLYPH =
+  "M8 13 V6.5 a1.5 1.5 0 0 1 3 0 V12 M11 11 V5 a1.5 1.5 0 0 1 3 0 V12 M14 11.5 V6.5 a1.5 1.5 0 0 1 3 0 V14 a6 6 0 0 1 -6 6 h-1 a6 6 0 0 1 -5 -2.7 L3.5 14 a1.5 1.5 0 0 1 2.4 -1.8 L8 14";
+const ZOOM_GLYPH = "M10.5 4 a6.5 6.5 0 1 0 0.01 0 Z M15.2 15.2 L20 20 M8 10.5 H13 M10.5 8 V13";
 
 /** The edit tools beside Select and Cut, in Premiere's Tools panel order. */
 const EDIT_TOOLS: ReadonlyArray<{
@@ -102,6 +110,13 @@ const EDIT_TOOLS: ReadonlyArray<{
     label: "Track select",
     description: "Click to select every clip from there on. Shift: that track only",
     glyph: TRACK_SELECT_GLYPH
+  },
+  {
+    tool: "trackSelectBackward",
+    action: "trackSelectBackwardTool",
+    label: "Track select backward",
+    description: "Click to select every clip up to there. Shift: that track only",
+    glyph: TRACK_SELECT_BACKWARD_GLYPH
   },
   {
     tool: "ripple",
@@ -126,11 +141,43 @@ const EDIT_TOOLS: ReadonlyArray<{
   }
 ];
 
-const SLIP_TOOL = {
-  label: "Slip",
-  description: "Drag a clip to change which part of its source plays",
-  glyph: SLIP_GLYPH
-};
+/** The tools after Cut: Slip, Slide, Hand and Zoom, as in Premiere. */
+const AFTER_CUT_TOOLS: ReadonlyArray<{
+  tool: TimelineTool;
+  action: TimelineAction;
+  label: string;
+  description: string;
+  glyph: string;
+}> = [
+  {
+    tool: "slip",
+    action: "slipTool",
+    label: "Slip",
+    description: "Drag a clip to change which part of its source plays",
+    glyph: SLIP_GLYPH
+  },
+  {
+    tool: "slide",
+    action: "slideTool",
+    label: "Slide",
+    description: "Drag a clip along its track. The clips on either side trim to follow",
+    glyph: SLIDE_GLYPH
+  },
+  {
+    tool: "hand",
+    action: "handTool",
+    label: "Hand",
+    description: "Drag to scroll the timeline",
+    glyph: HAND_GLYPH
+  },
+  {
+    tool: "zoom",
+    action: "zoomTool",
+    label: "Zoom",
+    description: "Click to zoom in at that point. Alt-click zooms out",
+    glyph: ZOOM_GLYPH
+  }
+];
 
 const buttonStyles = (
   theme: Theme,
@@ -380,17 +427,20 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       >
         <ContentCutOutlinedIcon />
       </ToolButton>
-      <ToolButton
-        label={SLIP_TOOL.label}
-        shortcut={formatActionShortcut(preset, "slipTool")}
-        description={SLIP_TOOL.description}
-        active={activeTool === "slip"}
-        compact={compact}
-        iconOnly
-        onClick={() => setActiveTool("slip")}
-      >
-        <ToolGlyph d={SLIP_TOOL.glyph} />
-      </ToolButton>
+      {AFTER_CUT_TOOLS.map((t) => (
+        <ToolButton
+          key={t.tool}
+          label={t.label}
+          shortcut={formatActionShortcut(preset, t.action)}
+          description={t.description}
+          active={activeTool === t.tool}
+          compact={compact}
+          iconOnly
+          onClick={() => setActiveTool(t.tool)}
+        >
+          <ToolGlyph d={t.glyph} />
+        </ToolButton>
+      ))}
       <ToolButton
         label="Ripple"
         description="Trims and deletes close the gap"

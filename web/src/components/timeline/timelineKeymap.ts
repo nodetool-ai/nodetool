@@ -26,6 +26,10 @@ export type TimelineAction =
   | "toggleShortcuts"
   | "selectTool"
   | "trackSelectTool"
+  | "trackSelectBackwardTool"
+  | "slideTool"
+  | "handTool"
+  | "zoomTool"
   | "rippleTool"
   | "rollTool"
   | "rateStretchTool"
@@ -93,7 +97,18 @@ export type TimelineAction =
   | "sourceAppend"
   | "sourceInsert"
   | "sourceOverwrite"
-  | "toggleDawMode";
+  | "toggleDawMode"
+  | "speedDuration"
+  | "applyDefaultAudioTransition"
+  | "audioGain"
+  | "pasteAttributes"
+  | "pasteInsert"
+  | "matchFrame"
+  | "revealInProject"
+  | "expandTracks"
+  | "shrinkTracks"
+  | "toggleLoop"
+  | "playInToOut";
 
 export interface KeyBinding {
   key: string;
@@ -115,9 +130,8 @@ const COMMON: Partial<Keymap> = {
   deleteSelected: [k("Delete"), k("Backspace")],
   selectAll: [k("a", { ctrl: true })],
   deselectAll: [k("a", { ctrl: true, shift: true })],
-  // Link, group and ungroup are Premiere's Ctrl+L, Ctrl+G and Ctrl+Shift+G;
-  // no preset uses those keys for anything else.
-  linkClips: [k("l", { ctrl: true })],
+  // Group and ungroup are Premiere's Ctrl+G and Ctrl+Shift+G; no preset
+  // uses those keys for anything else.
   groupClips: [k("g", { ctrl: true })],
   ungroupClips: [k("g", { ctrl: true, shift: true })],
   escape: [k("Escape")],
@@ -148,7 +162,16 @@ const COMMON: Partial<Keymap> = {
   prevKeyframe: [k("k", { ctrl: true, alt: true, shift: true })],
   // Video or DAW layout. Alt+M is free in every preset; Option+M types "µ"
   // on macOS, so the binding matches the physical key.
-  toggleDawMode: [k("m", { alt: true })]
+  toggleDawMode: [k("m", { alt: true })],
+  // Premiere's Speed/Duration (Ctrl+R), audio gain (G), Hand (H), Zoom (Z),
+  // Slide (U) and match frame (F) are free in every preset.
+  speedDuration: [k("r", { ctrl: true })],
+  audioGain: [k("g")],
+  handTool: [k("h")],
+  zoomTool: [k("z")],
+  slideTool: [k("u")],
+  matchFrame: [k("f")],
+  revealInProject: [k("f", { shift: true })]
 };
 
 const NODETOOL: Keymap = {
@@ -159,6 +182,7 @@ const NODETOOL: Keymap = {
   // that use them move to Shift+D, brackets and Ctrl+Shift+E.
   selectTool: [k("v")],
   trackSelectTool: [k("a")],
+  trackSelectBackwardTool: [k("a", { shift: true })],
   rippleTool: [k("b")],
   rollTool: [k("b", { shift: true })],
   rateStretchTool: [k("r")],
@@ -199,7 +223,17 @@ const NODETOOL: Keymap = {
   applyDefaultTransition: [k("t", { ctrl: true })],
   sourceAppend: [k("e", { shift: true })],
   sourceInsert: [k("w")],
-  sourceOverwrite: [k("d")]
+  sourceOverwrite: [k("d")],
+  linkClips: [k("l", { ctrl: true })],
+  // Ctrl+Shift+D is duplicate-with-gap here, so the audio cross-fade sits
+  // beside the video one on Ctrl+Alt+T.
+  applyDefaultAudioTransition: [k("t", { ctrl: true, alt: true })],
+  pasteAttributes: [k("v", { ctrl: true, alt: true })],
+  pasteInsert: [k("v", { ctrl: true, shift: true })],
+  expandTracks: [k("=", { ctrl: true })],
+  shrinkTracks: [k("-", { ctrl: true })],
+  toggleLoop: [k("l", { shift: true })],
+  playInToOut: [k(" ", { ctrl: true, shift: true })]
 };
 
 const PREMIERE: Keymap = {
@@ -207,6 +241,7 @@ const PREMIERE: Keymap = {
   // Premiere's Tools panel: V A B N R C Y.
   selectTool: [k("v")],
   trackSelectTool: [k("a")],
+  trackSelectBackwardTool: [k("a", { shift: true })],
   rippleTool: [k("b")],
   rollTool: [k("n")],
   rateStretchTool: [k("r")],
@@ -247,7 +282,17 @@ const PREMIERE: Keymap = {
   // Shift+E enables and disables clips in Premiere, so append adds Ctrl.
   sourceAppend: [k("e", { ctrl: true, shift: true })],
   sourceInsert: [k(",")],
-  sourceOverwrite: [k(".")]
+  sourceOverwrite: [k(".")],
+  linkClips: [k("l", { ctrl: true })],
+  applyDefaultAudioTransition: [k("d", { ctrl: true, shift: true })],
+  pasteAttributes: [k("v", { ctrl: true, alt: true })],
+  pasteInsert: [k("v", { ctrl: true, shift: true })],
+  expandTracks: [k("=", { ctrl: true })],
+  shrinkTracks: [k("-", { ctrl: true })],
+  // Premiere ships the loop toggle unbound; Shift+L sits next to the
+  // shuttle keys.
+  toggleLoop: [k("l", { shift: true })],
+  playInToOut: [k(" ", { ctrl: true, shift: true })]
 };
 
 const FCP: Keymap = {
@@ -257,6 +302,7 @@ const FCP: Keymap = {
   // and Option+[ / Option+] trim to the playhead.
   selectTool: [k("a")],
   trackSelectTool: [k("a", { shift: true })],
+  trackSelectBackwardTool: [k("a", { alt: true, shift: true })],
   rippleTool: [k("t")],
   rollTool: [k("t", { shift: true })],
   rateStretchTool: [k("r")],
@@ -296,7 +342,18 @@ const FCP: Keymap = {
   applyDefaultTransition: [k("t", { ctrl: true })],
   sourceAppend: [k("e")],
   sourceInsert: [k("w")],
-  sourceOverwrite: [k("d")]
+  sourceOverwrite: [k("d")],
+  // Final Cut loops playback on Cmd+L and plays the selection on /, so
+  // linking moves to Ctrl+Alt+L. It pastes attributes on Cmd+Shift+V, and
+  // Ctrl+= and Ctrl+- zoom, so track height moves to Ctrl+Alt+arrows.
+  linkClips: [k("l", { ctrl: true, alt: true })],
+  applyDefaultAudioTransition: [k("t", { ctrl: true, alt: true })],
+  pasteAttributes: [k("v", { ctrl: true, shift: true })],
+  pasteInsert: [k("v", { ctrl: true, alt: true })],
+  expandTracks: [k("ArrowUp", { ctrl: true, alt: true })],
+  shrinkTracks: [k("ArrowDown", { ctrl: true, alt: true })],
+  toggleLoop: [k("l", { ctrl: true })],
+  playInToOut: [k("/")]
 };
 
 export const TIMELINE_KEYMAPS: Record<TimelineKeyboardPreset, Keymap> = {

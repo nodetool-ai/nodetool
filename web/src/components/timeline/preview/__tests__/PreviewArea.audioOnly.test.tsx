@@ -98,16 +98,20 @@ describe("PreviewArea audio-only (DAW transport)", () => {
     expect(screen.queryByRole("slider", { name: "Scrub timeline" })).not.toBeInTheDocument();
   });
 
-  it("loops the selected clip, and toggling off clears the range", async () => {
+  it("loops the selected clip, and toggling off keeps the marks", async () => {
+    act(() => useTimelineLayoutStore.getState().setLoopPlayback(false));
     renderTransport();
     act(() => instance.ui.getState().setSelection(["c1"]));
     await userEvent.click(screen.getByRole("button", { name: "Loop" }));
     expect(instance.playback.getState().rangeInMs).toBe(2000);
     expect(instance.playback.getState().rangeOutMs).toBe(5000);
+    expect(useTimelineLayoutStore.getState().loopPlayback).toBe(true);
     expect(screen.getByRole("button", { name: "Loop" })).toHaveAttribute("aria-pressed", "true");
 
     await userEvent.click(screen.getByRole("button", { name: "Loop" }));
-    expect(instance.playback.getState().rangeOutMs).toBeNull();
+    expect(useTimelineLayoutStore.getState().loopPlayback).toBe(false);
+    expect(instance.playback.getState().rangeOutMs).toBe(5000);
+    expect(screen.getByRole("button", { name: "Loop" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("starts the metronome on the audio clock when playing, even with nothing to hear", async () => {

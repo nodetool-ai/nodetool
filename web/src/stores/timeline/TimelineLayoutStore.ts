@@ -35,6 +35,12 @@ interface TimelineLayoutState {
   dawDockTab: DawDockTab;
   /** Click on every beat while the timeline plays. Preview only. */
   metronomeEnabled: boolean;
+  /**
+   * Loop playback, Premiere's loop toggle: playback wraps at the out point
+   * (or the end) back to the in point (or the start). Off, the in and out
+   * points do not bound Play; Play In to Out still stops at the out point.
+   */
+  loopPlayback: boolean;
   toggleTranscript: () => void;
   toggleSidePanel: () => void;
   showSidePanel: () => void;
@@ -43,6 +49,8 @@ interface TimelineLayoutState {
   setDawDockHeightPx: (px: number) => void;
   setDawDockTab: (tab: DawDockTab) => void;
   toggleMetronome: () => void;
+  toggleLoopPlayback: () => void;
+  setLoopPlayback: (on: boolean) => void;
 }
 
 export const useTimelineLayoutStore = create<TimelineLayoutState>()(
@@ -54,6 +62,7 @@ export const useTimelineLayoutStore = create<TimelineLayoutState>()(
       dawDockHeightPx: DEFAULT_DAW_DOCK_HEIGHT_PX,
       dawDockTab: "mixer",
       metronomeEnabled: false,
+      loopPlayback: false,
       toggleTranscript: () =>
         set((state) => ({ transcriptVisible: !state.transcriptVisible })),
       toggleSidePanel: () =>
@@ -64,7 +73,10 @@ export const useTimelineLayoutStore = create<TimelineLayoutState>()(
       setDawDockHeightPx: (px) => set({ dawDockHeightPx: clampDockHeight(px) }),
       setDawDockTab: (dawDockTab) => set({ dawDockTab }),
       toggleMetronome: () =>
-        set((state) => ({ metronomeEnabled: !state.metronomeEnabled }))
+        set((state) => ({ metronomeEnabled: !state.metronomeEnabled })),
+      toggleLoopPlayback: () =>
+        set((state) => ({ loopPlayback: !state.loopPlayback })),
+      setLoopPlayback: (loopPlayback) => set({ loopPlayback })
     }),
     {
       name: "nodetool.timeline.layout",
@@ -74,7 +86,8 @@ export const useTimelineLayoutStore = create<TimelineLayoutState>()(
         dawMode: state.dawMode,
         dawDockHeightPx: state.dawDockHeightPx,
         dawDockTab: state.dawDockTab,
-        metronomeEnabled: state.metronomeEnabled
+        metronomeEnabled: state.metronomeEnabled,
+        loopPlayback: state.loopPlayback
       })
     }
   )

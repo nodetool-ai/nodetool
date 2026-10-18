@@ -91,7 +91,14 @@ The toolbar above the tracks toggles **Select** and **Cut** tools, **Ripple** (t
 - **Transitions** — `Ctrl/⌘ + T` cross-fades into the selected clips. Other transition types are `dipToColor`, `wipe`, `push`, `slide`, `zoom`, `whip`, `zoomBlur`, `glitch`, `gradientWipe`, `iris`, and `lightLeak`, set from the clip's **Transition** section.
 - **Fades** — drag the grip at a clip's top corner for an audio fade. `Alt + T` fades the selection in and out.
 
+- **Duplicate by dragging** — hold `Alt` when you start dragging a clip to leave a copy where it was.
+- **Gaps** — click the empty stretch between two clips to select it, then press `Delete` to close it.
+- **Speed and gain** — `Ctrl/⌘ + R` sets the speed or duration of the selection, with an option to push later clips. `G` sets or adjusts the audio gain.
+- **Paste attributes** — `Ctrl/⌘ + Alt + V` copies chosen settings (motion, opacity, effects, animations, speed, volume, audio effects) from the copied clip onto the selection.
+
 **Linked clips** that share a link (for example a video and its extracted audio) move and trim together.
+
+**Track targeting and sync lock.** The number chip at the start of each track header targets the track. Add Edit with nothing selected, Lift, Extract, paste, the source edits, cut navigation, and match frame act on targeted tracks only. Every track starts targeted. The sync-lock button beside the lock keeps a track in step with ripple edits on other tracks. Turn it off and ripples leave that track where it is.
 
 ---
 
@@ -100,7 +107,9 @@ The toolbar above the tracks toggles **Select** and **Cut** tools, **Ripple** (t
 The preview composites every visible, unmuted track in real time.
 
 - **Transport** — play/pause, stop, step one frame forward/back, and skip to the previous/next clip boundary.
-- **Timecode** — frame-accurate `HH:MM:SS:FF` readout, with the sequence FPS shown alongside.
+- **Timecode** — frame-accurate `HH:MM:SS:FF` readout, with the sequence FPS shown alongside. Click it to type a time. Digits fill from the frames, so `1000` is ten seconds, and `+12` or `-1:00` moves from where you are.
+- **Loop** — the loop button (`Shift + L`) repeats the in to out range. With loop off, Play runs past the marks and `Ctrl/⌘ + Shift + Space` plays from in to out once.
+- **Match frame** — `F` opens the media of the clip under the playhead in the source monitor at the same frame. `Shift + F` only selects it in Assets.
 - **Scrubbing** — drag the playhead across the ruler to scrub.
 - **Zoom** — `Ctrl/⌘ + scroll` zooms the timeline anchored at the cursor. `Shift + scroll` pans. The timeline view control holds horizontal and vertical zoom sliders.
 - **Audio** — per-clip gain and fades, per-track mute/solo and volume, mixed down to a master output. Audio clips render a waveform in the clip body.
@@ -216,6 +225,7 @@ changing the original edit. See [AI Timeline Editing](ai-timeline-editing.md).
 | `Space`                  | Play / pause                       |
 | `V` / `C`                | Select tool / cut tool             |
 | `A` / `B` / `R` / `Y`    | Track select, ripple, rate stretch, slip tools |
+| `U` / `H` / `Z`          | Slide, hand, zoom tools            |
 | `S`                      | Split clip at playhead             |
 | `Ctrl/⌘ + Shift + K`     | Cut all tracks at playhead         |
 | `Delete` / `Backspace`   | Delete selected clip(s)            |

@@ -6,6 +6,7 @@
  */
 
 import type { Asset } from "../../stores/ApiTypes";
+import { targetedTrackIds } from "../../stores/timeline/TimelineStore";
 import type { TimelineStoreState } from "../../stores/timeline/TimelineStore";
 import type { TimelineUIState } from "../../stores/timeline/TimelineUIStore";
 import {
@@ -44,16 +45,22 @@ export function sourceRangeFor(
   };
 }
 
-/** First unlocked track the asset can sit on, else null. */
+/**
+ * Source patching: the first targeted track the asset can sit on, else
+ * null. Switching a track's target off sends source edits past it.
+ */
 export function sourceTargetTrackId(
   doc: TimelineStoreState,
   asset: Asset
 ): string | null {
   const mediaType = assetMediaType(asset.content_type);
   if (!mediaType) return null;
+  const targeted = targetedTrackIds(doc);
   const track = [...doc.tracks]
     .sort((a, b) => a.index - b.index)
-    .find((t) => !t.locked && isCompatibleWithTrack(mediaType, t.type));
+    .find(
+      (t) => targeted.has(t.id) && isCompatibleWithTrack(mediaType, t.type)
+    );
   return track?.id ?? null;
 }
 

@@ -75,7 +75,7 @@ import { layoutTrackRows } from "./trackWindow";
 import { trackRowHeightPx } from "./trackHeight";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { snapAssetDropMs } from "./dropSnap";
-import { trackSelectForwardIds } from "./trackSelect";
+import { trackSelectDirection, trackSelectIds } from "./trackSelect";
 
 /** Two bars of 4/4 at 120 BPM — what an empty midi clip is sized to. */
 const DEFAULT_MIDI_CLIP_DURATION_MS = 4000;
@@ -85,6 +85,21 @@ const NO_CLIP_IDS: string[] = [];
 const WARNING_DISMISS_MS = 3000;
 /** A touch that travels further than this is a swipe, not a tap-to-seek. */
 const TAP_SLOP_PX = 8;
+
+/** A band narrower than this on release was a click, not a marquee. */
+const CLICK_SLOP_PX = 3;
+
+const gapStyles = (theme: Theme, leftPx: number, widthPx: number) =>
+  css({
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: leftPx,
+    width: widthPx,
+    pointerEvents: "none",
+    backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
+    boxShadow: `inset 0 0 0 1px ${theme.vars.palette.primary.main}`
+  });
 
 const laneStyles = (
   theme: Theme,
@@ -186,6 +201,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
   );
 
   const clearSelection = useTimelineUIStore((s) => s.clearSelection);
+  const selectedGap = useTimelineUIStore((s) =>
+    s.selectedGap?.trackId === track.id ? s.selectedGap : null
+  );
   const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const setRubberBand = useTimelineUIStore((s) => s.setRubberBand);
@@ -504,15 +522,19 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
         return;
       }
 
-      if (useTimelineUIStore.getState().activeTool === "trackSelect") {
+      const selectDirection = trackSelectDirection(
+        useTimelineUIStore.getState().activeTool
+      );
+      if (selectDirection) {
         const atMs =
           (e.clientX - e.currentTarget.getBoundingClientRect().left) * msPerPx;
         useTimelineUIStore
           .getState()
           .setSelection(
-            trackSelectForwardIds(
+            trackSelectIds(
               useTimelineStore.getState().clips,
               atMs,
+              selectDirection,
               e.shiftKey ? track.id : undefined
             )
           );
@@ -711,6 +733,26 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
   const handleLanePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      // A plain click on empty lane between two clips selects that gap, so
+      // Delete closes it (Premiere's gap selection).
+      const band = rbLastAppliedRef.current;
+      if (
+        isRubberBandingRef.current &&
+        rbBaseSelectionRef.current === null &&
+        !track.locked &&
+        (band === null || band.endMs - band.startMs <= CLICK_SLOP_PX * msPerPx)
+      ) {
+        const gap = findGap(
+          timelineStore.getState().clips,
+          track.id,
+          rbStartRef.current.x * msPerPx
+        );
+        if (gap) {
+          useTimelineUIStore
+            .getState()
+            .setSelectedGap({ trackId: track.id, ...gap });
+        }
+      }
       const tap = touchTapRef.current;
       if (
         tap &&
@@ -722,7 +764,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       }
       endLaneGesture();
     },
-    [endLaneGesture, msPerPx, seek]
+    [endLaneGesture, msPerPx, seek, timelineStore, track.id, track.locked]
   );
 
   const handleLaneContextMenu = useCallback(
@@ -853,6 +895,17 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       aria-label={`Track: ${track.name}`}
       aria-multiselectable="true"
     >
+      {selectedGap && (
+        <div
+          css={gapStyles(
+            theme,
+            selectedGap.startMs / msPerPx,
+            (selectedGap.endMs - selectedGap.startMs) / msPerPx
+          )}
+          data-testid={`selected-gap-${track.id}`}
+          aria-hidden
+        />
+      )}
       {clipIds.map((id) => (
         <Clip key={id} clipId={id} />
       ))}

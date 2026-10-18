@@ -45,11 +45,17 @@ export interface TimelinePlaybackState {
    *  when advancing currentTimeMs frame-by-frame. */
   seekNonce: number;
   /**
-   * In and out points (I / O). Playback runs inside the range and loops back
-   * to `rangeInMs` at `rangeOutMs`; null on either side leaves that end open.
+   * In and out points (I / O). With loop playback on, playback runs inside
+   * the range and loops back to `rangeInMs` at `rangeOutMs`; null on either
+   * side leaves that end open.
    */
   rangeInMs: number | null;
   rangeOutMs: number | null;
+  /**
+   * Set by Play In to Out for the playback it starts, so that playback
+   * stops at the out point whether or not loop is on. Cleared on pause.
+   */
+  playingInToOut: boolean;
   /**
    * The editor's live audio graph, published by the preview that owns it so
    * the mixer's meters and the device views can reach the track channels and
@@ -63,6 +69,8 @@ export interface TimelinePlaybackState {
   setIsPlaying: (playing: boolean) => void;
   setRate: (rate: number) => void;
   play: () => void;
+  /** Seek to the in point (or the start) and play to the out point. */
+  playInToOut: () => void;
   pause: () => void;
   stop: () => void;
   /** Set the in point; an out point at or before it is dropped. */
@@ -103,6 +111,7 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi => {
     seekNonce: 0,
     rangeInMs: null,
     rangeOutMs: null,
+    playingInToOut: false,
     audioGraph: null,
 
     setCurrentTimeMs: (timeMs) => {
@@ -119,12 +128,26 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi => {
     setIsPlaying: (playing) => set({ isPlaying: playing }),
     setRate: (rate) => set({ rate }),
     play: () => set({ isPlaying: true }),
+    playInToOut: () =>
+      set((s) => {
+        const startMs = s.rangeInMs ?? 0;
+        liveTimeMs = startMs;
+        emitTime(startMs);
+        return {
+          playingInToOut: true,
+          isPlaying: true,
+          rate: 1,
+          currentTimeMs: startMs,
+          seekNonce: s.seekNonce + 1
+        };
+      }),
     // Sync reactive snapshot to the live position the moment playback stops.
-    pause: () => set({ isPlaying: false, currentTimeMs: liveTimeMs }),
+    pause: () =>
+      set({ isPlaying: false, playingInToOut: false, currentTimeMs: liveTimeMs }),
     stop: () => {
       liveTimeMs = 0;
       emitTime(0);
-      set({ isPlaying: false, currentTimeMs: 0 });
+      set({ isPlaying: false, playingInToOut: false, currentTimeMs: 0 });
     },
 
     setRangeIn: (timeMs) =>
