@@ -336,7 +336,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { runSelectedNodes } = useRunSelectedNodes();
 
   // Runs the group's children through the Run selected path, so inputs wired
-  // from outside the group are seeded from cache or block the run.
+  // from outside the group are seeded from cache, and upstream nodes without
+  // a cached output run with them.
   const runWorkflow = useCallback(() => {
     const childIds = store
       .getState()

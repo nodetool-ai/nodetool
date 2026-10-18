@@ -15,7 +15,7 @@ interface BlockedUpstream {
 }
 
 interface RunSubgraph {
-  /** Target node plus every upstream pulled into the run (cache-missed / dirty). */
+  /** Target nodes plus every upstream pulled into the run (cache-missed / dirty). */
   nodes: Node<NodeData>[];
   /** Edges whose endpoints are both in the subgraph, plus replay edges. */
   edges: Edge[];
@@ -25,11 +25,13 @@ interface RunSubgraph {
 }
 
 /**
- * Build the minimal subgraph needed to execute `targetId` on its own (the "Run
- * Node" / "Run from here" single-node entry point — spec §6).
+ * Build the minimal subgraph needed to execute `targetIds` on their own (the
+ * "Run Node" / "Run from here" single-node entry points and "Run selected" /
+ * Run Group — spec §6).
  *
- * The run region is seeded with the target and grown by every external inbound
- * edge whose source resolves to "run". For each external inbound edge the
+ * The run region is seeded with the targets and grown by every external inbound
+ * edge whose source resolves to "run". Edges between two targets stay internal
+ * to the run. For each external inbound edge the
  * reuse resolver (`resolve`, spec §5) classifies the source and the subgraph
  * applies the outcome:
  *
@@ -59,7 +61,7 @@ interface RunSubgraph {
  * depend on, and operates on protocol GraphData rather than ReactFlow nodes.
  */
 export const buildRunSubgraph = ({
-  targetId,
+  targetIds,
   nodes,
   edges,
   workflowId,
@@ -67,7 +69,7 @@ export const buildRunSubgraph = ({
   getGenerations,
   now
 }: {
-  targetId: string;
+  targetIds: Iterable<string>;
   nodes: Node<NodeData>[];
   edges: Edge[];
   workflowId: string;
@@ -99,7 +101,7 @@ export const buildRunSubgraph = ({
     now
   });
 
-  const included = new Set<string>([targetId]);
+  const included = new Set<string>(targetIds);
   const collector = new EdgeOverrideCollector();
   const blocked: BlockedUpstream[] = [];
   const blockedSeen = new Set<string>();
@@ -108,7 +110,7 @@ export const buildRunSubgraph = ({
   const replayNodesById = new Map<string, Node<NodeData>>();
   const replayEdges: Edge[] = [];
 
-  const stack: string[] = [targetId];
+  const stack: string[] = [...included];
   while (stack.length) {
     const currentId = stack.pop()!;
     for (const edge of inboundEdges(currentId)) {

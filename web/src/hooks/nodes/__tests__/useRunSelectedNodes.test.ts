@@ -77,6 +77,7 @@ describe("useRunSelectedNodes", () => {
   const mockGetSelectedNodes = jest.fn();
 
   // Resolver surface — reconfigured per test.
+  let mockClassify: jest.Mock;
   let mockDecide: jest.Mock;
   let mockReuseValue: jest.Mock;
   let mockReplayValues: jest.Mock;
@@ -160,15 +161,16 @@ describe("useRunSelectedNodes", () => {
     );
 
     // Default resolver: an external input that isn't explicitly configured
-    // resolves to a reuse with no value (which the hook treats as blocked). The
-    // default-graph tests below have no external inbound edges, so decide is
-    // never called there.
+    // resolves to a reuse with no value (which pulls the source into the run).
+    // The default-graph tests below have no external inbound edges, so decide
+    // is never called there.
+    mockClassify = jest.fn(() => "computed");
     mockDecide = jest.fn(() => "reuse");
     mockReuseValue = jest.fn(() => ({ value: undefined, hasValue: false }));
     mockReplayValues = jest.fn(() => []);
     mockNodeTitle = jest.fn((id: string) => id);
     mockCreateRunResolver.mockReturnValue({
-      classify: jest.fn(() => "computed"),
+      classify: mockClassify,
       decide: mockDecide,
       reuseValue: mockReuseValue,
       replayValues: mockReplayValues,
@@ -596,29 +598,121 @@ describe("useRunSelectedNodes", () => {
     });
   });
 
-  describe("non-reusable external inputs block the run", () => {
-    it("blocks and aborts when an external computed input is stale/uncached (decide → run)", async () => {
+  describe("upstreams without a reusable output join the run", () => {
+    const expectSourceInRun = () => {
+      expect(mockRun).toHaveBeenCalledTimes(1);
+      const [, , runNodes, runEdges, , runNodeIds] = mockRun.mock.calls[0];
+      expect(runNodes.map((n: { id: string }) => n.id).sort()).toEqual([
+        "src",
+        "tgt"
+      ]);
+      expect(runEdges.map((e: { id: string }) => e.id)).toEqual(["ext"]);
+      expect([...runNodeIds].sort()).toEqual(["src", "tgt"]);
+      expect(mockAddNotification).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "warning" })
+      );
+    };
+
+    it("runs an external computed input that has no cached output (decide → run)", async () => {
       setupExternal("prompt");
       mockDecide.mockReturnValue("run");
-      mockNodeTitle.mockReturnValue("Upstream Calc");
 
       const { result } = renderHook(() => useRunSelectedNodes());
       await act(async () => {
         await result.current.runSelectedNodes();
       });
 
-      expect(mockRun).not.toHaveBeenCalled();
-      expect(mockAddNotification).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "warning",
-          alert: true,
-          content: expect.stringContaining("Upstream Calc")
-        })
-      );
+      expectSourceInRun();
     });
 
+    it("runs an external constant whose live value is undefined", async () => {
+      setupExternal("prompt");
+      mockDecide.mockReturnValue("reuse");
+      mockReuseValue.mockReturnValue({ value: undefined, hasValue: false });
+
+      const { result } = renderHook(() => useRunSelectedNodes());
+      await act(async () => {
+        await result.current.runSelectedNodes();
+      });
+
+      expectSourceInRun();
+    });
+
+    it("pulls in the upstream's own missing inputs too", async () => {
+      const root = {
+        id: "root",
+        type: "nodetool.input.ImageInput",
+        data: { properties: {} },
+        selected: false
+      };
+      const mid = {
+        id: "mid",
+        type: "nodetool.image.Blur",
+        data: { properties: {} },
+        selected: false
+      };
+      const target = {
+        id: "tgt",
+        type: "proc.Plain",
+        data: { properties: {} },
+        selected: true
+      };
+      const edges = [
+        {
+          id: "e-root",
+          source: "root",
+          target: "mid",
+          sourceHandle: "output",
+          targetHandle: "image"
+        },
+        {
+          id: "e-mid",
+          source: "mid",
+          target: "tgt",
+          sourceHandle: "output",
+          targetHandle: "image"
+        }
+      ];
+      mockGetSelectedNodes.mockReturnValue([target]);
+      mockUseNodeStoreRef.mockReturnValue({
+        getState: () => ({
+          nodes: [root, mid, target],
+          edges,
+          workflow: defaultWorkflow,
+          findNode: mockFindNode,
+          getSelectedNodes: mockGetSelectedNodes
+        })
+      });
+      // Blur has no cached output; the image input is a constant with a value.
+      mockDecide.mockImplementation((id: string) =>
+        id === "mid" ? "run" : "reuse"
+      );
+      mockReuseValue.mockReturnValue({
+        value: { type: "image", uri: "in.png" },
+        hasValue: true
+      });
+
+      const { result } = renderHook(() => useRunSelectedNodes());
+      await act(async () => {
+        await result.current.runSelectedNodes();
+      });
+
+      expect(mockRun).toHaveBeenCalledTimes(1);
+      const [, , runNodes, runEdges, , runNodeIds] = mockRun.mock.calls[0];
+      expect([...runNodeIds].sort()).toEqual(["mid", "tgt"]);
+      expect(runEdges.map((e: { id: string }) => e.id)).toEqual(["e-mid"]);
+      const midNode = runNodes.find((n: { id: string }) => n.id === "mid");
+      expect(midNode.data.properties.image).toEqual({
+        type: "image",
+        uri: "in.png"
+      });
+    });
+  });
+
+  describe("uncached generative inputs block the run", () => {
     it("blocks and aborts when an external generative input is uncached (decide → block)", async () => {
       setupExternal("prompt");
+      mockClassify.mockReturnValue("generative");
       mockDecide.mockReturnValue("block");
       mockNodeTitle.mockReturnValue("Image Generator");
 
@@ -633,26 +727,6 @@ describe("useRunSelectedNodes", () => {
           type: "warning",
           alert: true,
           content: expect.stringContaining("Image Generator")
-        })
-      );
-    });
-
-    it("blocks when a reused external input has no value (constant with undefined value)", async () => {
-      setupExternal("prompt");
-      mockDecide.mockReturnValue("reuse");
-      mockReuseValue.mockReturnValue({ value: undefined, hasValue: false });
-      mockNodeTitle.mockReturnValue("Empty Constant");
-
-      const { result } = renderHook(() => useRunSelectedNodes());
-      await act(async () => {
-        await result.current.runSelectedNodes();
-      });
-
-      expect(mockRun).not.toHaveBeenCalled();
-      expect(mockAddNotification).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "warning",
-          content: expect.stringContaining("Empty Constant")
         })
       );
     });
@@ -699,6 +773,7 @@ describe("useRunSelectedNodes", () => {
           getSelectedNodes: mockGetSelectedNodes
         })
       });
+      mockClassify.mockReturnValue("generative");
       mockDecide.mockReturnValue("block");
       mockNodeTitle.mockReturnValue("Gen Source");
 

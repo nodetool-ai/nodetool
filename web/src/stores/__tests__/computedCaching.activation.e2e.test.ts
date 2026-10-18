@@ -138,7 +138,7 @@ const liveGetGenerations = (wf: string, id: string) =>
 
 const build = (targetId: string, nodes: Node<NodeData>[], edges: Edge[]) =>
   buildRunSubgraph({
-    targetId,
+    targetIds: [targetId],
     nodes,
     edges,
     workflowId: WF,

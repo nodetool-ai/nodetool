@@ -122,7 +122,7 @@ const build = (
   } = {}
 ) =>
   buildRunSubgraph({
-    targetId,
+    targetIds: [targetId],
     nodes,
     edges,
     workflowId: WF,
@@ -135,6 +135,60 @@ const propsOf = (sub: ReturnType<typeof build>, id: string) =>
   sub.nodes.find((n) => n.id === id)!.data.properties;
 
 describe("buildRunSubgraph", () => {
+  it("runs a group whose input comes from an uncached upstream outside it", () => {
+    // Image Input → Blur (outside) → Compositor + Color Balance (the group).
+    const input = node("in", "nodetool.input.ImageInput", {
+      value: { type: "image", uri: "in.png" }
+    });
+    const blur = node("blur", "proc.Blur");
+    const comp = node("comp", "proc.Compositor");
+    const balance = node("balance", "proc.ColorBalance");
+    const nodes = [input, blur, comp, balance];
+    const edges = [
+      edge("e-in-blur", "in", "blur", "image"),
+      edge("e-blur-comp", "blur", "comp", "image_0"),
+      edge("e-in-comp", "in", "comp", "image_1"),
+      edge("e-blur-balance", "blur", "balance", "image")
+    ];
+    const sub = buildRunSubgraph({
+      targetIds: ["comp", "balance"],
+      nodes,
+      edges,
+      workflowId: WF,
+      getMetadata: baseMeta,
+      getGenerations: () => [],
+      now: NOW
+    });
+    expect(sub.blocked).toEqual([]);
+    expect(sub.nodeIds).toEqual(new Set(["comp", "balance", "blur"]));
+    expect(sub.edges.map((e) => e.id).sort()).toEqual([
+      "e-blur-balance",
+      "e-blur-comp"
+    ]);
+    expect(propsOf(sub, "blur").image).toEqual({ type: "image", uri: "in.png" });
+    expect(propsOf(sub, "comp").image_1).toEqual({
+      type: "image",
+      uri: "in.png"
+    });
+  });
+
+  it("keeps an edge between two targets inside the run", () => {
+    const a = node("a", "proc.A");
+    const b = node("b", "proc.B");
+    const sub = buildRunSubgraph({
+      targetIds: ["a", "b"],
+      nodes: [a, b],
+      edges: [edge("e", "a", "b")],
+      workflowId: WF,
+      getMetadata: baseMeta,
+      getGenerations: () => [],
+      now: NOW
+    });
+    expect(sub.nodeIds).toEqual(new Set(["a", "b"]));
+    expect(sub.edges.map((e) => e.id)).toEqual(["e"]);
+    expect(propsOf(sub, "b").input).toBeUndefined();
+  });
+
   it("runs a node with no inputs by itself", () => {
     const target = node("t", "proc.Plain");
     const sub = build("t", [target], []);

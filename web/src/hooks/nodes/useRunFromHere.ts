@@ -64,7 +64,7 @@ export function useRunFromHere(
       : undefined;
 
     const subgraph = buildRunSubgraph({
-      targetId: targetNode.id,
+      targetIds: [targetNode.id],
       nodes,
       edges,
       workflowId: workflow.id,
