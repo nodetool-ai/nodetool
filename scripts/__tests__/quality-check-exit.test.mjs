@@ -51,7 +51,7 @@ describe("quality check matrix exit status", () => {
     expect(paths[1]).toContain("--all");
     for (const path of paths) {
       expect(path).toMatch(/--jobs 1(?: |$)/);
-      expect(path).toMatch(/--timeout 900(?: |$)/);
+      expect(path).toMatch(/--timeout 1500(?: |$)/);
     }
     const builtJob = source.slice(source.indexOf("\n  built:"));
     expect(builtJob).toMatch(/timeout-minutes: 45/);
