@@ -256,14 +256,13 @@ constant's live value, a generative's current generation (history), or a
 computed's fresh signature-matching cache; replay a multi-select generative;
 BLOCK an uncached/stale generative ("run X first").
 
-**Run selected** (`useRunSelectedNodes` → shared `createRunResolver`). Full
-resolve, same classification and freshness as Run Node. Region = the selected
-node set; internal edges among the selection run as-is. The one difference: it
-runs **exactly** the selected set and does NOT recurse into or include external
-upstreams. So a non-reusable external input — a computed that resolves to `RUN`
-(cache-miss / stale), a constant with no live value, or a `BLOCK` generative —
-**blocks the run** ("run X first") instead of pulling the upstream in. Only reuse
-and replay seed the selection's inputs.
+**Run selected** (`useRunSelectedNodes`, which also backs Run Group →
+`buildRunSubgraph` with every selected node as a target). Same walk as Run
+Node. Region = the selected node set, grown by `RUN` results. Internal edges
+among the selection run as-is. A non-reusable external input (a computed that
+resolves to `RUN`, or a constant with no live value) is pulled into the run and
+its own inputs are resolved the same way. Only a `BLOCK` generative stops the
+run ("run X first").
 
 **Live preview** (`buildDownstreamRunGraph` — slider scrubs via
 `useLiveSliderWriter`, input auto-run via `useInputNodeAutoRun`). Region = the
@@ -284,8 +283,7 @@ Per external edge (full-resolve paths — Run Node / Run selected):
 
 ```
 REUSE(value)  → add override current.targetHandle = value (or replay edge); prune source
-RUN           → Run Node: include source in submitted subgraph + recurse its inbound edges.
-                Run selected: record blocked{ source } (never pulls externals in).
+RUN           → include source in submitted subgraph + recurse its inbound edges.
 BLOCK         → record blocked{ source } (dedup by id)
 
 after walk:
@@ -436,8 +434,7 @@ S38. Target is Generative and is run → its generation is stamped with the full
   (§4–§6); annotate pure base nodes (`"forever"`) and the nondeterministic set
   (`0` / finite). Route the **two full-resolve** call sites through `resolve` —
   `buildRunSubgraph` (Run Node / Run from here) and `useRunSelectedNodes` (Run
-  selected) — so they classify/cache/block consistently; Run selected blocks on a
-  non-reusable external instead of recursing it. The **live-preview** path
+  selected) — so they classify/cache/block consistently. The **live-preview** path
   (`buildDownstreamRunGraph`: slider scrubs, input auto-run) stays deliberately
   best-effort and is left out of `resolve` by design — cache-first last value,
   never blocks (§6). Generatives keep history reuse; add the live-session

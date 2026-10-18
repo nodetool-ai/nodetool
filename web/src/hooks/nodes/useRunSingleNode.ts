@@ -49,7 +49,7 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
     }
 
     const subgraph = buildRunSubgraph({
-      targetId: nodeId,
+      targetIds: [nodeId],
       nodes,
       edges,
       workflowId: workflow.id,
