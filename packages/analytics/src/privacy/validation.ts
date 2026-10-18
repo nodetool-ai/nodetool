@@ -195,8 +195,8 @@ export function canonicalEnvelope(envelope: AnalyticsEnvelope): AnalyticsEnvelop
   };
 }
 
-/** Reduce any version string to the accepted shape, or `0.0.0`. */
+/** Reduce any version string to the accepted shape, or `0.0.0`. Build metadata (`+...`) is dropped. */
 export function normalizeAppVersion(version: string | null | undefined): string {
-  const trimmed = (version ?? "").trim().replace(/^v/, "");
+  const trimmed = (version ?? "").trim().replace(/^v/, "").replace(/\+.*$/, "");
   return APP_VERSION.test(trimmed) ? trimmed : "0.0.0";
 }
