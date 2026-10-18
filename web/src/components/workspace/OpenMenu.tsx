@@ -62,12 +62,17 @@ const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
     return "70vh";
   }
   const top = Math.ceil(anchorEl.getBoundingClientRect().bottom);
-  const statusBar = document.querySelector(STATUS_BAR_SELECTOR);
-  if (statusBar) {
-    const room = Math.floor(statusBar.getBoundingClientRect().top) - top;
+  const statusBar = document.querySelector(STATUS_BAR_SELECTOR)
+    ?.getBoundingClientRect();
+  // Phones hide the status bar, which then measures 0×0 at the top of the
+  // window and capped the menu at 0px.
+  if (statusBar && statusBar.height > 0 && statusBar.top > top) {
+    const room = Math.floor(statusBar.top) - top;
     return `${Math.max(room - MENU_VIEWPORT_GAP, 0)}px`;
   }
-  return `calc(100vh - ${top + MENU_VIEWPORT_GAP}px)`;
+  // innerHeight, not 100vh: phone browsers size 100vh as if their toolbars
+  // were hidden, which put the menu's last rows behind them.
+  return `${Math.max(window.innerHeight - top - MENU_VIEWPORT_GAP, 0)}px`;
 };
 
 /**
