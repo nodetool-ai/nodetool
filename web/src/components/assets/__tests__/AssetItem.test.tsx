@@ -217,6 +217,63 @@ describe("AssetItem", () => {
     }
   });
 
+  it("shows no media icon over a video poster", async () => {
+    const OriginalImage = global.Image;
+    class LoadedImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_url: string) {
+        void Promise.resolve().then(() => this.onload?.());
+      }
+    }
+    global.Image = LoadedImage as unknown as typeof Image;
+    try {
+      const videoAsset: Asset = {
+        ...baseImageAsset,
+        id: "v1",
+        name: "clip.mp4",
+        content_type: "video/mp4",
+        get_url: "/api/storage/v1.mp4",
+        thumb_url: "/api/storage/v1_thumb.jpg"
+      };
+      const { container } = renderWithTheme(
+        <AssetItem asset={videoAsset} isSelected={false} showDeleteButton={false} />
+      );
+      await waitFor(() =>
+        expect(container.querySelector(".asset .image")).toBeTruthy()
+      );
+      expect(screen.queryByTestId("VideoFileIcon")).toBeNull();
+    } finally {
+      global.Image = OriginalImage;
+    }
+  });
+
+  it("shows the PDF icon only until a page thumbnail exists", () => {
+    const pdfAsset: Asset = {
+      ...baseImageAsset,
+      id: "p1",
+      name: "doc.pdf",
+      content_type: "application/pdf",
+      get_url: "/api/storage/p1.pdf",
+      thumb_url: "/api/storage/p1_thumb.jpg"
+    };
+    const { container, unmount } = renderWithTheme(
+      <AssetItem asset={pdfAsset} isSelected={false} showDeleteButton={false} />
+    );
+    expect(container.querySelector(".asset .image")).toBeTruthy();
+    expect(screen.queryByTestId("PictureAsPdfIcon")).toBeNull();
+    unmount();
+
+    renderWithTheme(
+      <AssetItem
+        asset={{ ...pdfAsset, thumb_url: null }}
+        isSelected={false}
+        showDeleteButton={false}
+      />
+    );
+    expect(screen.getByTestId("PictureAsPdfIcon")).toBeInTheDocument();
+  });
+
   it("calls onDoubleClick with asset on double click", () => {
     const onDoubleClick = jest.fn();
     renderWithTheme(
