@@ -4,8 +4,17 @@
  */
 
 import React, { Suspense, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { PreviewArea } from "../../preview/PreviewArea";
+import { TopBar } from "../../TopBar";
+import WorkspaceTabBar from "../../../workspace/WorkspaceTabBar";
+import {
+  WorkspaceHeaderActionsProvider,
+  useWorkspaceHeaderActions
+} from "../../../workspace/WorkspaceHeaderActionsContext";
+import { WorkflowManagerProvider } from "../../../../contexts/WorkflowManagerContext";
+import { useWorkspaceTabsStore } from "../../../../stores/WorkspaceTabsStore";
 import { TimelineInspector } from "../../Inspector/TimelineInspector";
 import { TracksRegion } from "../../Tracks/TracksRegion";
 import { HarmonyPanel } from "../harmony/HarmonyPanel";
@@ -194,7 +203,57 @@ function MixerLabView(): React.JSX.Element {
   );
 }
 
+const noop = (): void => {};
+
+/** Registers the timeline's TopBar in the tab bar the way TimelineEditor does. */
+function HeaderLabActions({ dawMode }: { dawMode: boolean }): null {
+  const register = useWorkspaceHeaderActions()?.registerActions;
+  useEffect(() => {
+    register?.(
+      "lab-header",
+      <TopBar
+        onExportVideo={noop}
+        onExportBundle={noop}
+        onSave={noop}
+        onOpenSettings={noop}
+        sequenceId="lab-header"
+        onToggleSidePanel={noop}
+        onSetDawMode={noop}
+        dawMode={dawMode}
+      />
+    );
+  }, [register, dawMode]);
+  return null;
+}
+
+/**
+ * The workspace tab bar with a timeline tab open in Edit mode and its TopBar
+ * on the right, for checking the header's alignment. `&daw=1` selects DAW.
+ */
+function HeaderLabView(): React.JSX.Element {
+  const queryClient = useQueryClient();
+  const dawMode = new URLSearchParams(window.location.search).get("daw") === "1";
+  useState(() => {
+    useWorkspaceTabsStore
+      .getState()
+      .openTab({ type: "timeline", ref: "lab-header", mode: "edit", title: "Lab sequence" });
+    return null;
+  });
+  return (
+    <WorkflowManagerProvider queryClient={queryClient}>
+      <WorkspaceHeaderActionsProvider>
+        <HeaderLabActions dawMode={dawMode} />
+        <WorkspaceTabBar />
+      </WorkspaceHeaderActionsProvider>
+    </WorkflowManagerProvider>
+  );
+}
+
 export const LAB_VIEWS: Record<string, LabView> = {
+  header: {
+    title: "Workspace tab bar with the timeline's actions",
+    render: () => <HeaderLabView />
+  },
   mixer: {
     title: "Mixer",
     render: () => <MixerLabView />
