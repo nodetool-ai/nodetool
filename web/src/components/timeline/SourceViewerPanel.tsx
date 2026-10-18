@@ -74,6 +74,11 @@ export const SourceViewerPanel: React.FC = memo(() => {
   const assetId = asset?.id;
   const sourceRange = useTimelineUIStore((s) => s.sourceRange);
   const setSourceRange = useTimelineUIStore((s) => s.setSourceRange);
+  const sourceCue = useTimelineUIStore((s) => s.sourceCue);
+  const cueSeconds =
+    sourceCue && sourceCue.assetId === assetId
+      ? sourceCue.timeMs / 1000
+      : undefined;
   const docApi = useTimelineStoreApi();
   const uiApi = useTimelineUIStoreApi();
   const playbackApi = useTimelinePlaybackStoreApi();
@@ -182,6 +187,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
               label={asset.name}
               onTimeUpdate={onTimeUpdate}
               onDurationChange={onDurationChange}
+              seekToSeconds={cueSeconds}
             />
           )}
           {mediaType === "audio" && <AudioPlayback locator={locator} label={asset.name} />}

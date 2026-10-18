@@ -53,6 +53,36 @@ describe("resolveTimelineAction", () => {
     expect(resolveTimelineAction(ev("X", { shiftKey: true }), "fcp")).toBe("extendEdit");
   });
 
+  it("binds the Premiere edits added for alignment", () => {
+    expect(resolveTimelineAction(ev("r", { ctrlKey: true }), "premiere")).toBe(
+      "speedDuration"
+    );
+    expect(resolveTimelineAction(ev("g"), "premiere")).toBe("audioGain");
+    expect(
+      resolveTimelineAction(ev("D", { ctrlKey: true, shiftKey: true }), "premiere")
+    ).toBe("applyDefaultAudioTransition");
+    expect(
+      resolveTimelineAction(ev("v", { ctrlKey: true, altKey: true, code: "KeyV" }), "premiere")
+    ).toBe("pasteAttributes");
+    expect(resolveTimelineAction(ev("F", { shiftKey: true }), "premiere")).toBe(
+      "revealInProject"
+    );
+    expect(resolveTimelineAction(ev("=", { ctrlKey: true }), "premiere")).toBe(
+      "expandTracks"
+    );
+    expect(
+      resolveTimelineAction(ev(" ", { ctrlKey: true, shiftKey: true }), "premiere")
+    ).toBe("playInToOut");
+  });
+
+  it("gives Final Cut its loop and play-selection keys", () => {
+    expect(resolveTimelineAction(ev("l", { ctrlKey: true }), "fcp")).toBe("toggleLoop");
+    expect(
+      resolveTimelineAction(ev("l", { ctrlKey: true, altKey: true, code: "KeyL" }), "fcp")
+    ).toBe("linkClips");
+    expect(resolveTimelineAction(ev("/"), "fcp")).toBe("playInToOut");
+  });
+
   it("prefers the binding with more modifiers", () => {
     expect(resolveTimelineAction(ev("z", { ctrlKey: true }), "nodetool")).toBe("undo");
     expect(

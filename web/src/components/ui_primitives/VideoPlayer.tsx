@@ -197,6 +197,11 @@ export interface VideoPlayerProps {
    * where a play button on every tile is noise.
    */
   hoverControls?: boolean;
+  /**
+   * Park the player at this time, in seconds: once the media has loaded and
+   * again whenever the value changes. A timeline's match frame uses it.
+   */
+  seekToSeconds?: number;
   className?: string;
 }
 
@@ -211,6 +216,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   label = "Video player",
   prominentPlay = false,
   hoverControls = false,
+  seekToSeconds,
   className
 }) => {
   const theme = useTheme();
@@ -257,13 +263,25 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   const handlePlay = useCallback(() => setIsPlaying(true), []);
   const handlePause = useCallback(() => setIsPlaying(false), []);
 
+  const parkAt = useCallback((seconds: number | undefined) => {
+    const v = videoRef.current;
+    if (!v || seconds === undefined || !Number.isFinite(seconds)) {return;}
+    v.currentTime = Math.max(0, seconds);
+    setCurrentTime(v.currentTime);
+  }, []);
+
+  useEffect(() => {
+    parkAt(seekToSeconds);
+  }, [parkAt, seekToSeconds]);
+
   const handleLoadedMetadata = useCallback(() => {
     if (videoRef.current) {
       const duration = videoRef.current.duration;
       setDuration(duration);
       onDurationChange?.(duration);
+      parkAt(seekToSeconds);
     }
-  }, [onDurationChange]);
+  }, [onDurationChange, parkAt, seekToSeconds]);
 
   const handleVideoTimeUpdate = useCallback(() => {
     const v = videoRef.current;

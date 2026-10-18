@@ -23,13 +23,19 @@
 import { useCallback, useRef } from "react";
 import type React from "react";
 
-import { clipFitsTrack, sourceRate } from "@nodetool-ai/timeline";
+import {
+  clipFitsTrack,
+  groupDescendantIds,
+  isGroupClip,
+  sourceRate
+} from "@nodetool-ai/timeline";
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
+import { cloneClips } from "../../../stores/timeline/clipboardOps";
 import {
   runAsOneUndoEntry,
   useTimelineHistoryBatch
@@ -47,7 +53,7 @@ import {
   snapGridSpecFrom
 } from "./clipSnap";
 import { planSlip } from "./useClipSourceSlip";
-import { trackSelectForwardIds } from "./trackSelect";
+import { trackSelectDirection, trackSelectIds } from "./trackSelect";
 
 /** Clip-side wrapper over the shared rule: the authored kinds ("overlay",
  *  "text", "shape", "group") sit on picture tracks, audio on audio tracks and
@@ -127,6 +133,8 @@ export function useClipDrag({
   const resolveDrop = useTimelineStore((s) => s.resolveDrop);
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const patchClip = useTimelineStore((s) => s.patchClip);
+  const slideClip = useTimelineStore((s) => s.slideClip);
+  const addClips = useTimelineStore((s) => s.addClips);
 
   // Undo batching: the gesture mutates the store on every pointermove. begin()
   // on pointerdown, mark() after each mutation (pauses history once the
@@ -191,6 +199,41 @@ export function useClipDrag({
     [history, patchClip, sourceDurationMs, storeApi]
   );
 
+  // Slide tool: the clip follows the pointer with its source fixed, and the
+  // clips either side of it trim to keep the cuts against it.
+  const beginSlideDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>, target: TimelineClip) => {
+      const pointerId = e.pointerId;
+      const startX = e.clientX;
+      const startMsAtDown = target.startMs;
+      history.begin();
+      const onMove = (ev: PointerEvent): void => {
+        if (ev.pointerId !== pointerId) return;
+        const fresh = findClipById(useTimelineStore.getState().clips, target.id);
+        if (!fresh) return;
+        const wantedMs =
+          startMsAtDown + (ev.clientX - startX) * msPerPxRef.current;
+        isDraggingRef.current = true;
+        slideClip(target.id, wantedMs - fresh.startMs);
+        history.mark();
+      };
+      const onEnd = (ev: PointerEvent): void => {
+        if (ev.pointerId !== pointerId) return;
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onEnd);
+        window.removeEventListener("pointercancel", onEnd);
+        history.end();
+        setTimeout(() => {
+          isDraggingRef.current = false;
+        }, 0);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onEnd);
+      window.addEventListener("pointercancel", onEnd);
+    },
+    [history, slideClip]
+  );
+
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!clip || (e.pointerType === "touch" && !e.isPrimary)) {
@@ -236,12 +279,24 @@ export function useClipDrag({
         beginSlipDrag(e, clip);
         return;
       }
-      if (activeTool === "trackSelect" && e.button === 0) {
+      if (activeTool === "slide" && e.button === 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        beginSlideDrag(e, clip);
+        return;
+      }
+      // Hand and Zoom act on the lanes; the scroll area handles them.
+      if (activeTool === "hand" || activeTool === "zoom") {
+        return;
+      }
+      const selectDirection = trackSelectDirection(activeTool);
+      if (selectDirection && e.button === 0) {
         const rect = e.currentTarget.getBoundingClientRect();
         const atMs = clip.startMs + (e.clientX - rect.left) * msPerPx;
-        const ids = trackSelectForwardIds(
+        const ids = trackSelectIds(
           useTimelineStore.getState().clips,
           atMs,
+          selectDirection,
           e.shiftKey ? clip.trackId : undefined
         );
         // The clicked clip leads the selection, so the drag below moves the
@@ -309,6 +364,11 @@ export function useClipDrag({
       // every pointermove (~60–120×/s) is costly; we coalesce to one sample
       // per frame using the latest pointer coordinates.
       let crossTrackTargetId: string | undefined;
+      // Alt at pointerdown duplicates, as in Premiere and Final Cut: copies
+      // stay where the clips were and the clips themselves follow the
+      // pointer. Alt pressed later in the drag still bypasses snapping.
+      const duplicating = e.altKey && activeTool === "select";
+      let duplicated = false;
       let lastPointer = { x: e.clientX, y: e.clientY, altKey: e.altKey };
       let hitTestRafId: number | null = null;
       const sampleCrossTrack = () => {
@@ -341,6 +401,31 @@ export function useClipDrag({
           }
         }
         crossTrackTargetId = undefined;
+      };
+
+      // The Alt-drag copies: the clips that will move, their group children
+      // and, under linked selection, their linked partners, cloned in place.
+      const leaveCopiesBehind = (state: ReturnType<typeof useTimelineStore.getState>) => {
+        const selection = useTimelineUIStore.getState().selectedClipIds;
+        const ids = new Set(
+          selection.has(clipId) && selection.size > 1 ? selection : [clipId]
+        );
+        for (const c of state.clips) {
+          if (ids.has(c.id) && isGroupClip(c)) {
+            for (const id of groupDescendantIds(state.clips, c.id)) ids.add(id);
+          }
+        }
+        if (state.linkedSelection) {
+          const links = new Set(
+            state.clips
+              .filter((c) => ids.has(c.id) && c.linkId !== undefined)
+              .map((c) => c.linkId)
+          );
+          for (const c of state.clips) {
+            if (c.linkId !== undefined && links.has(c.linkId)) ids.add(c.id);
+          }
+        }
+        addClips(cloneClips(state.clips.filter((c) => ids.has(c.id))));
       };
 
       // Apply the move for the latest known pointer position. Called from
@@ -376,13 +461,18 @@ export function useClipDrag({
           return;
         }
         isDraggingRef.current = true;
+        if (duplicating && !duplicated) {
+          duplicated = true;
+          leaveCopiesBehind(state);
+        }
 
         const rawStartMs = Math.max(
           0,
           dragStartMsRef.current + travelledMs + deltaPx * msPerPx
         );
         const { startMs: targetStartMs, guideMs } =
-          lastPointer.altKey || !useTimelineUIStore.getState().snapEnabled
+          (lastPointer.altKey && !duplicating) ||
+          !useTimelineUIStore.getState().snapEnabled
           ? { startMs: rawStartMs, guideMs: null }
           : snapClipWindow(
               rawStartMs,
@@ -577,7 +667,9 @@ export function useClipDrag({
       resolveDrop,
       history,
       storeApi,
-      beginSlipDrag
+      beginSlipDrag,
+      beginSlideDrag,
+      addClips
     ]
   );
 

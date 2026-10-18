@@ -150,7 +150,8 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
     const uiApi = useTimelineUIStoreApi();
     const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
     const subscribeTime = useTimelinePlaybackStore((s) => s.subscribeTime);
-    const loopOn = useTimelinePlaybackStore((s) => s.rangeOutMs !== null);
+    const loopOn = useTimelineLayoutStore((s) => s.loopPlayback);
+    const setLoopPlayback = useTimelineLayoutStore((s) => s.setLoopPlayback);
     const tempo = useTimelineStore((s) => resolveTempo(s));
     const setTempo = useTimelineStore((s) => s.setTempo);
     const metronomeOn = useTimelineLayoutStore((s) => s.metronomeEnabled);
@@ -168,34 +169,30 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
       else playback.setCurrentTimeMs(0);
     }, [playbackApi]);
 
-    // The range a loop toggled off had, so toggling it back on restores it.
-    const stashedRangeRef = useRef<{ inMs: number | null; outMs: number } | null>(null);
+    // Loop is the editor-wide loop toggle. Turning it on with no out point
+    // marks the selection or the bars on screen; turning it off keeps the
+    // marks, which then no longer bound playback.
     const toggleLoop = useCallback(() => {
       const playback = playbackApi.getState();
-      if (playback.rangeOutMs !== null) {
-        stashedRangeRef.current = { inMs: playback.rangeInMs, outMs: playback.rangeOutMs };
-        playback.clearRange();
-      } else {
+      if (!loopOn && playback.rangeOutMs === null) {
         const doc = timelineApi.getState();
         const ui = uiApi.getState();
         const selectedClips = doc.clips.filter((clip) => ui.selectedClipIds.has(clip.id));
         const viewStartMs = ui.scrollLeftPx * ui.msPerPx;
-        const range =
-          stashedRangeRef.current ??
-          defaultLoopRange({
-            selectedClips,
-            viewStartMs,
-            viewEndMs: viewStartMs + ui.lanesViewportWidthPx * ui.msPerPx,
-            playheadMs: playback.getTimeMs(),
-            tempo: resolveTempo(doc)
-          });
-        stashedRangeRef.current = null;
+        const range = defaultLoopRange({
+          selectedClips,
+          viewStartMs,
+          viewEndMs: viewStartMs + ui.lanesViewportWidthPx * ui.msPerPx,
+          playheadMs: playback.getTimeMs(),
+          tempo: resolveTempo(doc)
+        });
         playback.clearRange();
         playback.setRangeIn(range.inMs);
         playback.setRangeOut(range.outMs);
       }
+      setLoopPlayback(!loopOn);
       restartIfPlaying();
-    }, [playbackApi, timelineApi, uiApi, restartIfPlaying]);
+    }, [loopOn, playbackApi, timelineApi, uiApi, restartIfPlaying, setLoopPlayback]);
 
     const handleMetronome = useCallback(() => {
       toggleMetronome();

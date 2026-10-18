@@ -5,7 +5,8 @@
  * it is the sequence timecode. The position advances ~60×/s during playback,
  * so the text is written through the playback store's transient channel
  * straight into the DOM — this component re-renders only when the mode, the
- * tempo or the frame rate changes.
+ * tempo or the frame rate changes. The timecode can be clicked and typed
+ * into, as in Premiere.
  */
 
 import React, { memo, useCallback, useEffect, useRef } from "react";
@@ -19,6 +20,7 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import type { RulerMode } from "../../stores/timeline/TimelineUIStore";
 import { Caption, FlexRow } from "../ui_primitives";
 import { formatTimecode } from "./Inspector/InspectorPrimitives.helpers";
+import { EditableTimecode } from "./EditableTimecode";
 
 const readoutSx = {
   fontFamily: "var(--fontFamily2)",
@@ -64,13 +66,17 @@ export const PlayheadReadout: React.FC = memo(() => {
   return (
     <FlexRow gap={0.5} align="center" data-testid="timeline-playhead-readout">
       <Caption sx={readoutSx}>{rulerMode === "bars" ? "Bar" : "TC"}</Caption>
-      <Caption
-        component="span"
-        ref={valueRef}
-        sx={readoutSx}
-        aria-live="off"
-        aria-label="Playhead position"
-      />
+      {rulerMode === "bars" ? (
+        <Caption
+          component="span"
+          ref={valueRef}
+          sx={readoutSx}
+          aria-live="off"
+          aria-label="Playhead position"
+        />
+      ) : (
+        <EditableTimecode sx={readoutSx} ariaLabel="Current time" />
+      )}
     </FlexRow>
   );
 });

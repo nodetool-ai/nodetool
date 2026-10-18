@@ -60,12 +60,23 @@ interface ClipProps {
 const TOOL_BODY_CURSOR: Record<TimelineTool, React.CSSProperties["cursor"]> = {
   select: undefined,
   trackSelect: "e-resize",
+  trackSelectBackward: "w-resize",
   ripple: undefined,
   roll: undefined,
   rateStretch: undefined,
   cut: "crosshair",
-  slip: "col-resize"
+  slip: "col-resize",
+  slide: "ew-resize",
+  hand: "grab",
+  zoom: "zoom-in"
 };
+
+const NON_SELECTING_TOOLS: ReadonlySet<TimelineTool> = new Set<TimelineTool>([
+  "trackSelect",
+  "trackSelectBackward",
+  "hand",
+  "zoom"
+]);
 
 export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // Selector: only this clip's fields. findClipById is O(1) via a WeakMap
@@ -294,8 +305,11 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         return;
       }
       e.stopPropagation();
-      // The track-select tool chose the selection on pointerdown.
-      if (useTimelineUIStore.getState().activeTool === "trackSelect") {
+      // A track-select tool chose the selection on pointerdown, and Hand
+      // and Zoom do not select.
+      if (
+        NON_SELECTING_TOOLS.has(useTimelineUIStore.getState().activeTool)
+      ) {
         return;
       }
       if (e.shiftKey) {

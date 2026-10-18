@@ -56,11 +56,15 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
     rows: [
       { action: "selectTool", label: "Select tool" },
       { action: "trackSelectTool", label: "Track select tool (every clip from the click on)" },
+      { action: "trackSelectBackwardTool", label: "Track select backward tool (every clip up to the click)" },
       { action: "rippleTool", label: "Ripple edit tool" },
       { action: "rollTool", label: "Rolling edit tool" },
       { action: "rateStretchTool", label: "Rate stretch tool" },
       { action: "cutTool", label: "Cut (blade) tool" },
       { action: "slipTool", label: "Slip tool" },
+      { action: "slideTool", label: "Slide tool (neighbours trim to follow)" },
+      { action: "handTool", label: "Hand tool (drag to scroll)" },
+      { action: "zoomTool", label: "Zoom tool (click to zoom in, Alt-click out)" },
       { action: "toggleSnap", label: "Toggle snapping" },
       { action: "escape", label: "Clear selection · back to Select" }
     ]
@@ -70,7 +74,7 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
     rows: [
       { action: "splitAtPlayhead", label: "Split selected clips at playhead" },
       { action: "cutAllTracks", label: "Cut all tracks at playhead" },
-      { action: "deleteSelected", label: "Delete selected clips" },
+      { action: "deleteSelected", label: "Delete selected clips, or close a clicked gap" },
       { action: "rippleDeleteSelected", label: "Ripple delete (close the gap)" },
       { action: "rippleTrimPrevToPlayhead", label: "Ripple trim the previous edit to the playhead" },
       { action: "rippleTrimNextToPlayhead", label: "Ripple trim the next edit to the playhead" },
@@ -87,6 +91,9 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "duplicateWithGap", label: "Duplicate with a 1 s gap" },
       { action: "applyDefaultTransition", label: "Cross-fade into selected clips" },
       { action: "applyFades", label: "Fade selected clips in and out" },
+      { action: "applyDefaultAudioTransition", label: "Cross-fade the audio at the selected clips' edits" },
+      { action: "speedDuration", label: "Speed and duration of selected clips" },
+      { action: "audioGain", label: "Audio gain of selected clips" },
       { action: "selectAll", label: "Select all clips" },
       { action: "deselectAll", label: "Deselect all" },
       { action: "selectClipAtPlayhead", label: "Select the clips at the playhead" },
@@ -101,7 +108,9 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
     rows: [
       { action: "copy", label: "Copy selected clips" },
       { action: "cut", label: "Cut selected clips" },
-      { action: "paste", label: "Paste at playhead" }
+      { action: "paste", label: "Paste at playhead" },
+      { action: "pasteInsert", label: "Paste insert (push later clips right)" },
+      { action: "pasteAttributes", label: "Paste attributes onto selected clips" }
     ]
   },
   {
@@ -136,7 +145,11 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "nextCut", label: "Next cut" },
       { action: "addMarker", label: "Add marker at playhead" },
       { action: "nextMarker", label: "Next marker" },
-      { action: "prevMarker", label: "Previous marker" }
+      { action: "prevMarker", label: "Previous marker" },
+      { action: "toggleLoop", label: "Loop playback between in and out" },
+      { action: "playInToOut", label: "Play from in to out" },
+      { action: "matchFrame", label: "Match frame (open the source at this frame)" },
+      { action: "revealInProject", label: "Reveal the clip's media in Assets" }
     ]
   },
   {
@@ -179,6 +192,8 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "zoomIn", label: "Zoom in" },
       { action: "zoomOut", label: "Zoom out" },
       { action: "zoomFit", label: "Zoom to fit content" },
+      { action: "expandTracks", label: "Make tracks taller" },
+      { action: "shrinkTracks", label: "Make tracks shorter" },
       { action: "toggleDawMode", label: "Switch between the video and DAW layouts" }
     ]
   },

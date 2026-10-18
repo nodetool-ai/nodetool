@@ -342,6 +342,21 @@ export const getSelectedAssetForExplorer = (
   return store.getState().selectedAssets.at(-1) ?? null;
 };
 
+/**
+ * Open `asset`'s folder in one of the sidebar explorers and select it there,
+ * the way Premiere's Reveal in Project finds a clip's media in its bin.
+ */
+export const revealAssetInExplorer = (
+  asset: Asset,
+  explorer: "assets" | "library"
+): void => {
+  const store = getOrCreateStore(
+    explorer === "assets" ? ASSETS_ASSET_GRID_STORE_KEY : LIBRARY_ASSET_GRID_STORE_KEY
+  );
+  store.getState().setCurrentFolderId(asset.parent_id || null);
+  store.getState().setSelectedAssets([asset]);
+};
+
 /** Reactive access to the Library panel's current folder, for cross-cutting
  * callers (e.g. canvas file-drop/paste) that need it without being inside
  * the panel's provider subtree. */

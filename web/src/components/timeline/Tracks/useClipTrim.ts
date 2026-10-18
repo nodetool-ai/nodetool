@@ -96,7 +96,11 @@ export function trimModeFor(
 const BODY_TOOLS: ReadonlySet<TimelineTool> = new Set<TimelineTool>([
   "cut",
   "slip",
-  "trackSelect"
+  "slide",
+  "trackSelect",
+  "trackSelectBackward",
+  "hand",
+  "zoom"
 ]);
 
 /** The snapped edge the pointer is asking for, and the guide to show. */

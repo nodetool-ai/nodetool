@@ -32,6 +32,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import StopIcon from "@mui/icons-material/Stop";
 import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
+import RepeatIcon from "@mui/icons-material/Repeat";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
@@ -43,7 +44,6 @@ import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 
 import {
-  Text,
   Caption,
   Slider,
   SelectField,
@@ -81,6 +81,7 @@ import { useSettingsStore } from "../../../stores/SettingsStore";
 import { formatBinding, withActionShortcut } from "../timelineKeymap";
 import { liveDeviceFactory } from "../daw/devices/liveDevice";
 import { DawTransport } from "../daw/transport/DawTransport";
+import { EditableTimecode } from "../EditableTimecode";
 import { Metronome } from "../daw/transport/metronome";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import "../daw/devices/registerFablesynthDevices";
@@ -980,11 +981,20 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       // Read fresh to avoid stale closure when the user scrubs before pressing play.
       let startMs = playbackApi.getState().currentTimeMs;
-      // An out point bounds playback and loops it back to the in point (or
-      // the top); without one the live content end stops it. The store
-      // `durationMs` is only set on load and never recomputed as clips change.
-      const { rangeInMs: rangeIn, rangeOutMs: rangeOut } =
-        playbackApi.getState();
+      // With loop on, playback wraps from the out point (or the content end)
+      // back to the in point (or the top). Play In to Out stops at the out
+      // point. Otherwise the marks do not bound playback and the live content
+      // end stops it. The store `durationMs` is only set on load and never
+      // recomputed as clips change.
+      const loop = useTimelineLayoutStore.getState().loopPlayback;
+      const {
+        rangeInMs: markedIn,
+        rangeOutMs: markedOut,
+        playingInToOut
+      } = playbackApi.getState();
+      const ranged = loop || playingInToOut;
+      const rangeIn = ranged ? markedIn : null;
+      const rangeOut = ranged ? markedOut : null;
       const loopStartMs = rangeIn ?? 0;
       const endMs = rangeOut ?? contentEndMs;
       // Pressing Play while parked at the end restarts from the top (or the
@@ -1012,9 +1022,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       startedRateRef.current = globalRate;
       const clockOptions = {
         floorMs: loopStartMs,
-        // Only a marked out point loops; the content end still parks.
+        // Loop wraps at the end; otherwise the clock parks there.
         onReachEnd:
-          rangeOut !== null
+          loop && endMs > loopStartMs
             ? () => {
                 // A loop wrap restarts at once: there is no scrub burst to
                 // wait out, and the debounce would stall picture and audio.
@@ -1198,6 +1208,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [rate]);
 
+    const loopPlayback = useTimelineLayoutStore((s) => s.loopPlayback);
+    const handleToggleLoop = useCallback(() => {
+      useTimelineLayoutStore.getState().toggleLoopPlayback();
+      // A running playback picks the new loop rule up from a restart.
+      const playback = playbackApi.getState();
+      if (playback.isPlaying) playback.seek(playback.getTimeMs());
+    }, [playbackApi]);
+
     // Space always plays at normal speed; a J/L shuttle speed does not
     // outlive the pause that ended it.
     const handlePlayPauseToggle = useCallback(() => {
@@ -1337,16 +1355,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
     // Live timecode without per-frame React renders: while playing, subscribe
     // to the transient playhead and write the readout straight to the DOM.
-    const timecodeRef = useRef<HTMLElement>(null);
-    useEffect(() => {
-      if (!showTimecode || !isPlaying) return;
-      const node = timecodeRef.current;
-      if (!node) return;
-      const unsubscribe = subscribeTime((ms) => {
-        node.textContent = formatTimecode(ms, fps);
-      });
-      return unsubscribe;
-    }, [isPlaying, showTimecode, subscribeTime, fps]);
 
     const handleScrubChange = useCallback(
       (_event: Event, value: number | number[]) => {
@@ -1435,7 +1443,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       (s) => s.settings.timelineKeyboardPreset
     );
 
-    const timecode = formatTimecode(currentTimeMs, fps);
     const durationTimecode = formatTimecode(contentEndMs, fps);
 
     // Playback no longer re-renders the bar (see above), but a scrub still
@@ -1525,6 +1532,23 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           />
 
           <ToolbarIconButton
+            icon={<RepeatIcon />}
+            tooltip={withActionShortcut(
+              loopPlayback
+                ? "Loop on: playback repeats the in to out range"
+                : "Loop playback",
+              keyboardPreset,
+              "toggleLoop"
+            )}
+            onClick={handleToggleLoop}
+            aria-label="Loop"
+            aria-pressed={loopPlayback}
+            active={loopPlayback}
+            size="small"
+            className="timeline-preview__secondary-control"
+          />
+
+          <ToolbarIconButton
             icon={<NavigateNextIcon />}
             tooltip={withActionShortcut("Step forward one frame", keyboardPreset, "stepFrameForward")}
             onClick={stepForward}
@@ -1544,9 +1568,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           />
 
           {showTimecode && (
-            <Text ref={timecodeRef} component="span" css={timecodeCss}>
-              {timecode}
-            </Text>
+            <EditableTimecode css={timecodeCss} fps={fps} />
           )}
           <div css={scrubberCss}>
             <PlaybackScrubber

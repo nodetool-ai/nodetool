@@ -22,19 +22,26 @@ import type {
 
 /**
  * Pointer tools, after Premiere's Tools panel. "select" moves, trims and
- * selects; "trackSelect" selects every clip from the click point on;
- * "ripple" and "roll" turn an edge drag into a ripple or a rolling edit;
- * "rateStretch" retimes a clip by dragging its end; "cut" splits at the
- * click; "slip" drags a clip's source window under a fixed clip.
+ * selects; "trackSelect" and "trackSelectBackward" select every clip from
+ * the click point on or before it; "ripple" and "roll" turn an edge drag
+ * into a ripple or a rolling edit; "rateStretch" retimes a clip by dragging
+ * its end; "cut" splits at the click; "slip" drags a clip's source window
+ * under a fixed clip; "slide" moves a clip and trims its neighbours to
+ * follow; "hand" pans the lanes; "zoom" zooms in at the click (Alt zooms
+ * out).
  */
 export type TimelineTool =
   | "select"
   | "trackSelect"
+  | "trackSelectBackward"
   | "ripple"
   | "roll"
   | "rateStretch"
   | "cut"
-  | "slip";
+  | "slip"
+  | "slide"
+  | "hand"
+  | "zoom";
 
 /**
  * What the ruler counts. `"timecode"` is minutes and seconds; `"bars"` reads
@@ -184,6 +191,15 @@ export interface TimelineUIState {
 
   // ── Selection ────────────────────────────────────────────────────────────
 
+  /**
+   * The empty stretch of a track the user clicked, Premiere's gap selection:
+   * Delete closes it. Any clip selection clears it.
+   */
+  selectedGap: { trackId: string; startMs: number; endMs: number } | null;
+  setSelectedGap: (
+    gap: { trackId: string; startMs: number; endMs: number } | null
+  ) => void;
+
   /** Replace the selection with a single clip. */
   selectClip: (id: string) => void;
   /** Add a clip to the current selection (shift-click). */
@@ -279,6 +295,12 @@ export interface TimelineUIState {
   /** Return preview to the accepted take. */
   clearAudition: () => void;
   setSourceRange: (range: TimelineSourceRange | null) => void;
+  /**
+   * Where match frame (F) parked the source monitor: the asset and the
+   * source time to show. The monitor seeks there when it shows that asset.
+   */
+  sourceCue: { assetId: string; timeMs: number } | null;
+  setSourceCue: (cue: { assetId: string; timeMs: number } | null) => void;
 
   // ── FX panel ─────────────────────────────────────────────────────────────
 
@@ -377,6 +399,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     rippleMode: false,
     dropMode: "overwrite",
     selectedEdit: null,
+    selectedGap: null,
     snapEnabled: true,
     followPlayhead: true,
     rulerMode: "timecode",
@@ -386,6 +409,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     keyframeProperty: "opacity",
     audition: null,
     sourceRange: null,
+    sourceCue: null,
     msPerPx: DEFAULT_MS_PER_PX,
     verticalZoom: 1,
     scrollLeftPx: 0,
@@ -415,11 +439,12 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     draggingTrackId: null,
     trackDropTarget: null,
     selectClip: (id) =>
-      set({ selectedClipIds: new Set([id]), selectedEdit: null, audition: null }),
+      set({ selectedClipIds: new Set([id]), selectedEdit: null, selectedGap: null, audition: null }),
 
     addToSelection: (id) =>
       set((state) => ({
         selectedClipIds: new Set([...state.selectedClipIds, id]),
+        selectedGap: null,
         audition: null
       })),
 
@@ -439,11 +464,18 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
       }
     },
 
+    setSelectedGap: (selectedGap) =>
+      set(
+        selectedGap
+          ? { selectedGap, selectedClipIds: new Set(), selectedEdit: null }
+          : { selectedGap: null }
+      ),
+
     clearSelection: () =>
-      set({ selectedClipIds: new Set(), selectedEdit: null, audition: null }),
+      set({ selectedClipIds: new Set(), selectedEdit: null, selectedGap: null, audition: null }),
 
     setSelection: (ids) =>
-      set({ selectedClipIds: new Set(ids), selectedEdit: null, audition: null }),
+      set({ selectedClipIds: new Set(ids), selectedEdit: null, selectedGap: null, audition: null }),
 
     rubberBand: null,
 
@@ -547,6 +579,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     clearAudition: () => set({ audition: null }),
 
     setSourceRange: (range) => set({ sourceRange: range }),
+    setSourceCue: (sourceCue) => set({ sourceCue }),
 
     setExpandedFxTrackId: (trackId) => set({ expandedFxTrackId: trackId }),
 

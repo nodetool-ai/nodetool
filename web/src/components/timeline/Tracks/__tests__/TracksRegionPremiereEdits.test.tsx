@@ -7,7 +7,7 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
 import { act, fireEvent, render } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import { makeClip } from "@nodetool-ai/timeline";
+import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TracksRegion } from "../TracksRegion";
@@ -16,6 +16,7 @@ import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import { useSettingsStore } from "../../../../stores/SettingsStore";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineLayoutStore } from "../../../../stores/timeline/TimelineLayoutStore";
 
 jest.mock("../../../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
@@ -36,6 +37,11 @@ const setup = (): void => {
   act(() => {
     useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "premiere" });
     useTimelineStore.getState().reset();
+    // Edits with nothing selected act on targeted tracks, so the clips need
+    // a real track.
+    useTimelineStore.setState({
+      tracks: [makeTrack({ id: "t1", type: "video", name: "V1", index: 0 })]
+    });
     useTimelineStore.getState().addClips([
       makeClip({ id: "a", trackId: "t1", name: "a", startMs: 0, durationMs: 1000 }),
       makeClip({ id: "b", trackId: "t1", name: "b", startMs: 2000, durationMs: 1000 }),
@@ -65,6 +71,60 @@ const seekTo = (ms: number): void => {
 };
 
 describe("Premiere layout edits", () => {
+  it("Shift+A picks track select backward", () => {
+    setup();
+    press({ key: "A", shiftKey: true });
+    expect(useTimelineUIStore.getState().activeTool).toBe("trackSelectBackward");
+  });
+
+  it("Delete closes a selected gap", () => {
+    setup();
+    act(() =>
+      useTimelineUIStore
+        .getState()
+        .setSelectedGap({ trackId: "t1", startMs: 1000, endMs: 2000 })
+    );
+    press({ key: "Delete" });
+    expect(spans()).toEqual([
+      ["a", 0, 1000],
+      ["b", 1000, 1000],
+      ["c", 4000, 1000]
+    ]);
+    expect(useTimelineUIStore.getState().selectedGap).toBeNull();
+  });
+
+  it("Ctrl+= and Ctrl+- make tracks taller and shorter", () => {
+    setup();
+    const before = useTimelineUIStore.getState().verticalZoom;
+    press({ key: "=", ctrlKey: true });
+    expect(useTimelineUIStore.getState().verticalZoom).toBeGreaterThan(before);
+    press({ key: "-", ctrlKey: true });
+    expect(useTimelineUIStore.getState().verticalZoom).toBe(before);
+  });
+
+  it("Shift+L toggles loop playback", () => {
+    setup();
+    const before = useTimelineLayoutStore.getState().loopPlayback;
+    press({ key: "L", shiftKey: true });
+    expect(useTimelineLayoutStore.getState().loopPlayback).toBe(!before);
+    press({ key: "L", shiftKey: true });
+    expect(useTimelineLayoutStore.getState().loopPlayback).toBe(before);
+  });
+
+  it("Ctrl+Shift+Space plays from the in point", () => {
+    setup();
+    act(() => {
+      useTimelinePlaybackStore.getState().setRangeIn(2000);
+      useTimelinePlaybackStore.getState().setRangeOut(3000);
+    });
+    press({ key: " ", ctrlKey: true, shiftKey: true });
+    const playback = useTimelinePlaybackStore.getState();
+    expect(playback.isPlaying).toBe(true);
+    expect(playback.playingInToOut).toBe(true);
+    expect(playback.getTimeMs()).toBe(2000);
+    act(() => playback.pause());
+  });
+
   it.each([
     ["v", "select"],
     ["a", "trackSelect"],
@@ -72,7 +132,10 @@ describe("Premiere layout edits", () => {
     ["n", "roll"],
     ["r", "rateStretch"],
     ["c", "cut"],
-    ["y", "slip"]
+    ["y", "slip"],
+    ["u", "slide"],
+    ["h", "hand"],
+    ["z", "zoom"]
   ])("%s picks the %s tool", (key, tool) => {
     setup();
     press({ key });

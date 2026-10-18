@@ -72,6 +72,15 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   shift is measured from the clip's _old_ end. The web trim gesture
   (`useClipTrim`) measures a head-trim against the duration at pointerdown for
   the same reason.
+- **Sync lock is the caller's `lockedTrackIds`.** The web store adds a track
+  whose sync lock is off to the frozen set unless it is one of the edited
+  tracks (`rippleFrozenTrackIds`), so the package needs no second notion of
+  "does not follow".
+- **A slide is a move plus two trims that cancel** (`src/slideEdit.ts`). The
+  clip keeps its source, the clip before it trims its tail and the clip
+  after it trims its head by the same delta, so the sequence length holds.
+  A side with nothing against it slides into the gap there. Group and
+  time-remapped members refuse, as trim does.
 - **A roll is two trims that sum to zero.** `rollEdit` finds the neighbour
   across the cut (`findRollNeighbour`, 1 ms tolerance) and applies `trimClip`
   to both sides so the sequence length never changes; either side running out
@@ -85,6 +94,10 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   on the mover's track and shifts every later clip on unlocked tracks by the
   moved span) or leaves the overlap for the renderer. Linked siblings of a
   mover are never its victims.
+- **An audio cross-fade is two overlapping fades** (`src/audioCrossfade.ts`).
+  Audio has no `transitionIn`, so the earlier clip is extended under the later
+  one and both fade along `plus3dB`. With no source left to extend, each side
+  takes half the length and the level dips.
 - **A transition needs two pictures** (`src/transitionAtCut.ts`). The document
   keeps `transitionIn` on the incoming clip; `applyTransitionAtCut` also
   extends the abutting predecessor under it by the transition length, so a
