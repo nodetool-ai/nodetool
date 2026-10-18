@@ -301,12 +301,18 @@ export const useAppSetupFlow = ({
             signal: context?.signal
           });
           const appName = name.trim();
+          // A failed install otherwise surfaced as the bare HTTP text ("Not
+          // found"), which reads as the build failing.
           const installed = await installApplicationBundle(
             isObjectLike(built.bundle)
               ? { ...built.bundle, name: appName }
               : built.bundle,
             projectId
-          );
+          ).catch((cause: unknown) => {
+            throw new Error(
+              `The app passed its tests, but adding it to your project failed: ${errorText(cause)}`
+            );
+          });
           onFinish({ appId: installed.id, name: installed.name || appName });
           return true;
         }

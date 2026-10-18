@@ -1622,7 +1622,10 @@ const NewProjectSurface = ({
       openTab({
         type: SETUP_TAB_TYPE[target.kind],
         ref: game ? game.gameId : app ? app.appId : target.id,
-        mode: "edit",
+        // A built app opens where it is used. In its editor the canvas showed
+        // a static progress label and an empty alert, which study 8 read as a
+        // run in progress and an error.
+        mode: app ? "view" : "edit",
         title: game ? game.name : app ? app.name : target.name,
         projectId: target.projectId
       });

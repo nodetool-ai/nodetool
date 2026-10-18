@@ -101,7 +101,7 @@ const IdeaStepInternal: React.FC<AppIdeaStepProps> = ({
           rows={4}
           label="The app"
           hideLabel
-          placeholder="A page where I type a product name, press a button, and get a short description back"
+          placeholder="A page where I paste a customer email, press a button, and get a polite reply to send"
           onChange={onBriefChange}
           inputRef={briefField}
           disabled={readOnly}

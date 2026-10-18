@@ -25,7 +25,7 @@ import type {
   ProcessingContext,
   TurnBudget
 } from "@nodetool-ai/runtime";
-import { CostCappedTurnBudget, withSpan } from "@nodetool-ai/runtime";
+import { CompositeTurnBudget, withSpan } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateGraph } from "@nodetool-ai/node-sdk";
@@ -108,6 +108,22 @@ export const DEFAULT_BUILD_TIMEOUT_MS = 10 * 60 * 1000;
 export const DEFAULT_BUILD_COST_CAP_USD = 2;
 /** Output-token bound assumed per turn when reserving against the cap. */
 export const BUILD_MAX_OUTPUT_TOKENS = 4096;
+/** Prompt-token bound on a turn whose model has no catalog price. */
+export const BUILD_UNPRICED_TOKEN_CEILING = 400_000;
+
+/**
+ * The spend admission for a build or its Spec stage. A model with no catalog
+ * price is admitted against a prompt-token ceiling, as a chat turn is: the
+ * subscription Claude aliases (`sonnet`, `opus`) have no price, and refusing
+ * them would refuse every turn of a build the user started on one.
+ */
+export function createBuildTurnBudget(capUsd: number): TurnBudget {
+  return new CompositeTurnBudget({
+    capUsd,
+    maxOutputTokens: BUILD_MAX_OUTPUT_TOKENS,
+    unpricedTokenCeiling: BUILD_UNPRICED_TOKEN_CEILING
+  });
+}
 
 /**
  * Complaint codes Plan owns: the app binds to a graph node the workflow does
@@ -287,6 +303,19 @@ const documentOf = (
   variables: doc.meta.variables
 });
 
+/**
+ * A planned node in the shape a saved workflow stores: values under `data`,
+ * not the kernel's `properties`. The bundle is installed as saved workflows,
+ * and the app runtime reads an input's name from `data`, so a `properties`
+ * node ran on its default value whatever the person typed.
+ */
+const savedNode = (
+  node: Record<string, unknown>
+): Record<string, unknown> => {
+  const { properties, ...rest } = node;
+  return { ...rest, data: properties ?? rest["data"] ?? {} };
+};
+
 const assembleBundle = (
   spec: BuildSpec,
   doc: AppBridgeDocument,
@@ -300,7 +329,10 @@ const assembleBundle = (
   workflows: workflows.map((workflow) => ({
     key: workflow.key,
     name: workflow.name,
-    graph: { nodes: workflow.graph.nodes, edges: workflow.graph.edges }
+    graph: {
+      nodes: workflow.graph.nodes.map(savedNode),
+      edges: workflow.graph.edges
+    }
   })),
   // The builder plans workflows, never scripts: authoring a script operation
   // is not a stage it has.
@@ -1000,11 +1032,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_BUILD_TIMEOUT_MS;
   const costCapUsd = opts.costCapUsd ?? DEFAULT_BUILD_COST_CAP_USD;
   const budget =
-    opts.turnBudget ??
-    new CostCappedTurnBudget({
-      capUsd: costCapUsd,
-      maxOutputTokens: BUILD_MAX_OUTPUT_TOKENS
-    });
+    opts.turnBudget ?? createBuildTurnBudget(costCapUsd);
   const options: BuildAppOptions = { ...opts, turnBudget: budget };
 
   const costAtStart = opts.provider.getTotalCost();

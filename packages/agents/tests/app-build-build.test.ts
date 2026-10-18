@@ -20,7 +20,11 @@ import type {
   AppServerRunOutcome
 } from "@nodetool-ai/execution/app-debug";
 import { collectExecutionSummary } from "@nodetool-ai/execution/debug";
-import { buildApp, type BuildAppOptions } from "../src/app-build/build.js";
+import {
+  buildApp,
+  createBuildTurnBudget,
+  type BuildAppOptions
+} from "../src/app-build/build.js";
 import { issueFingerprint, type BuildSpec } from "../src/app-build/types.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -360,6 +364,17 @@ describe("buildApp", () => {
     ]);
     expect(report.bundle?.workflows.map((w) => w.key)).toEqual(["wf-draft"]);
     expect(report.bundle?.app.operations[0]?.workflowId).toBe("wf-draft");
+    // The bundle is installed as saved workflows, which keep a node's values
+    // under `data`. The editor and the app runtime read only `data`, so a
+    // `properties` key left an input without its name and its typed value.
+    const nodes = (report.bundle?.workflows[0]?.graph.nodes ?? []) as Array<
+      Record<string, unknown>
+    >;
+    expect(nodes.length).toBeGreaterThan(0);
+    for (const node of nodes) {
+      expect(node).not.toHaveProperty("properties");
+      expect(node).toHaveProperty("data");
+    }
     // The judge ran, so nothing claims the intent went unscored.
     expect(report.verdict.notSimulated.join(" ")).not.toMatch(/judge stage/i);
     expect(report.judge?.model).toBe("scripted/m");
@@ -711,6 +726,24 @@ describe("buildApp", () => {
       now.mockRestore();
       vi.doUnmock("@nodetool-ai/models");
     }
+  });
+});
+
+describe("createBuildTurnBudget", () => {
+  it("admits a turn on a subscription Claude alias, which has no price", () => {
+    const budget = createBuildTurnBudget(2);
+    for (const model of ["fable", "opus", "sonnet", "haiku"]) {
+      expect(
+        budget.reserve({ model, provider: "claude_agent_sdk", inputTokens: 8000 })
+      ).not.toBeNull();
+    }
+  });
+
+  it("still refuses a priced turn the cap cannot cover", () => {
+    const budget = createBuildTurnBudget(0.0001);
+    expect(
+      budget.reserve({ model: "gpt-4o", provider: "openai", inputTokens: 8000 })
+    ).toBeNull();
   });
 });
 

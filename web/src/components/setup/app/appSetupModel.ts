@@ -160,9 +160,13 @@ export const widgetTypeLabel = (type: string): string =>
 export const isLayoutWidget = (type: string): boolean =>
   WIDGET_CATALOG[type]?.mode === "layout";
 
-/** "draft-reply" → "Draft reply". */
+/** "draft-reply", "draft_reply" and "draftReply" → "Draft reply". */
 export const humanizeSlug = (slug: string): string => {
-  const words = slug.replace(/[-_]+/g, " ").trim();
+  const words = slug
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .toLowerCase();
   return words ? words[0].toUpperCase() + words.slice(1) : slug;
 };
 

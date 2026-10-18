@@ -39,11 +39,11 @@ import {
 } from "@nodetool-ai/execution/service";
 import { getSecret, Workflow } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { CostCappedTurnBudget, ProcessingContext, getProvider, isProviderConfigured, listRegisteredProviderIds, type BaseProvider } from "@nodetool-ai/runtime";
+import { ProcessingContext, getProvider, isProviderConfigured, listRegisteredProviderIds, type BaseProvider } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import {
   buildApp,
-  BUILD_MAX_OUTPUT_TOKENS,
+  createBuildTurnBudget,
   DEFAULT_BUILD_COST_CAP_USD,
   type BuildAppOptions
 } from "./build.js";
@@ -410,10 +410,7 @@ export async function runApplicationSpec(
         provider,
         model: selection.model,
         context,
-        turnBudget: new CostCappedTurnBudget({
-          capUsd: costCapUsd,
-          maxOutputTokens: BUILD_MAX_OUTPUT_TOKENS
-        }),
+        turnBudget: createBuildTurnBudget(costCapUsd),
         signal: controller.signal
       });
       const issues = result.record.issues;

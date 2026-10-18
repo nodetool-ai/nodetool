@@ -36,10 +36,9 @@ const buildApp = vi.fn<(opts: BuildAppOptions) => Promise<BuildReport>>();
 const runSpecStage =
   vi.fn<(opts: SpecStageOptions) => Promise<SpecStageResult>>();
 
-vi.mock("../src/app-build/build.js", () => ({
-  buildApp: (opts: BuildAppOptions) => buildApp(opts),
-  DEFAULT_BUILD_COST_CAP_USD: 2,
-  BUILD_MAX_OUTPUT_TOKENS: 4096
+vi.mock("../src/app-build/build.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/app-build/build.js")>()),
+  buildApp: (opts: BuildAppOptions) => buildApp(opts)
 }));
 
 vi.mock("../src/app-build/spec.js", async (importOriginal) => ({

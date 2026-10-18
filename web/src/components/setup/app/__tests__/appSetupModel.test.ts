@@ -4,6 +4,7 @@ import {
   clearAppSetupDraft,
   describeInteraction,
   emptyAppSetupDraft,
+  humanizeSlug,
   readAppSetupDraft,
   renameWidget,
   sweepClosedAppDrafts,
@@ -147,5 +148,14 @@ describe("the draft", () => {
     expect(readAppSetupDraft("projectid0123")).not.toBeNull();
     clearAppSetupDraft(open);
     expect(readAppSetupDraft(open)).toBeNull();
+  });
+});
+
+describe("humanizeSlug", () => {
+  it("reads kebab, snake and camel case names as words", () => {
+    expect(humanizeSlug("draft-reply")).toBe("Draft reply");
+    expect(humanizeSlug("product_name")).toBe("Product name");
+    expect(humanizeSlug("productName")).toBe("Product name");
+    expect(humanizeSlug("ProductName")).toBe("Product name");
   });
 });

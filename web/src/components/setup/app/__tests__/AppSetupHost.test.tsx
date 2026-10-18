@@ -231,6 +231,26 @@ it("shows why a build failed and installs nothing", async () => {
   expect(onFinish).not.toHaveBeenCalled();
 });
 
+it("says the install failed, not the build, when adding the app fails", async () => {
+  buildApplication.mockResolvedValue({ bundle: { name: "Blurbs" } });
+  installApplicationBundle.mockRejectedValue(new Error("Not found"));
+  renderHost(BRIEF);
+  await userEvent.click(button("Write the design"));
+  await userEvent.click(await screen.findByRole("button", {
+    name: "Continue to the build"
+  }));
+  await userEvent.click(await screen.findByRole("button", {
+    name: "Build your app"
+  }));
+
+  expect(
+    await screen.findByText(
+      /passed its tests, but adding it to your project failed: Not found/
+    )
+  ).toBeInTheDocument();
+  expect(onFinish).not.toHaveBeenCalled();
+});
+
 it("waits for a description and a model before it writes the design", async () => {
   languageModels = [];
   renderHost();

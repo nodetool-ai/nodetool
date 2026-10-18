@@ -1701,7 +1701,11 @@ describe("NewProjectSurface", () => {
     await user.click(screen.getByRole("button", { name: "Finish app" }));
     await waitFor(() =>
       expect(openTab).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "application", ref: "app-1" })
+        expect.objectContaining({
+          type: "application",
+          ref: "app-1",
+          mode: "view"
+        })
       )
     );
   });
