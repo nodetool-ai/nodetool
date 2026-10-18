@@ -202,7 +202,7 @@ On restart, a webhook or file event that the server stored but had not yet run s
 
 To turn trigger handling off for a process, set `NODETOOL_DISABLE_TRIGGERS=1`. The process then starts no dispatcher, scheduler, or file watcher, and it does not serve the webhook route, so webhook requests return `404`. Use it when a second server shares the same database and should not run triggers too. See [Configuration](configuration.md).
 
-You can test a triggered workflow from the command line without arming anything. `nodetool debug` and `nodetool run` accept `--trigger-event` to deliver one event to a trigger node. See [CLI](cli.md).
+You can test a triggered workflow from the command line without arming anything. `nodetool workflows run` accepts `--trigger-event` to deliver one event to a trigger node. See [CLI](cli.md).
 
 The mobile app has a Triggers screen for monitoring. See [Mobile App](mobile-app.md).
 

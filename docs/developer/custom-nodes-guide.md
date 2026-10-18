@@ -674,7 +674,7 @@ export class PingTriggerNode extends BaseNode {
 }
 ```
 
-To start a run with an event from the CLI, pass `--trigger-event '{"node_id":"<id>","payload":{...}}'` to `nodetool workflows run` (`packages/cli/src/nodetool-main.ts:514`). `node_id` is required and `input_id` defaults to a generated value. On a server, an activated workflow receives events through `POST /api/webhooks/:token` (`packages/websocket/src/triggers/webhook-route.ts:151`), which `WebhookTriggerNode` consumes. See [Suspendable Nodes](suspendable-nodes.md#writing-a-trigger-node) and [Triggers design](../triggers-design.md).
+To start a run with an event from the CLI, pass `--trigger-event '{"node_id":"<id>","payload":{...}}'` to `nodetool workflows run`. `node_id` is required and `input_id` defaults to a generated value. On a server, an activated workflow receives events through `POST /api/webhooks/:token` (`packages/websocket/src/triggers/webhook-route.ts:151`), which `WebhookTriggerNode` consumes. See [Suspendable Nodes](suspendable-nodes.md#writing-a-trigger-node) and [Triggers design](../triggers-design.md).
 
 ### `primaryOutput`
 
