@@ -169,6 +169,18 @@ describe("SettingsPage", () => {
     expect(useSettingsStore.getState().settings.textSize).toBe("larger");
   });
 
+  // Issue #6757: a calmer middle ground between near-black and white.
+  it("lets people pick a soft contrast under Appearance", async () => {
+    const user = userEvent.setup();
+    useSettingsStore.getState().setThemeContrast("standard");
+    renderSettings();
+    const contrast = screen.getByRole("combobox", { name: "Contrast" });
+    expect(contrast).toHaveTextContent("Standard");
+    await user.click(contrast);
+    await user.click(screen.getByRole("option", { name: "Soft" }));
+    expect(useSettingsStore.getState().settings.themeContrast).toBe("soft");
+  });
+
   it("finds the text size setting by searching for font size", async () => {
     const user = userEvent.setup();
     renderSettings();

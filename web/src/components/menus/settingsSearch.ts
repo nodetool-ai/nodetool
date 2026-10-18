@@ -53,6 +53,9 @@ const GENERAL_KEYWORDS = [
   "save before running checkpoint",
   "save on window close",
   "storage database cleanup limits runs compact",
+  "appearance theme dark light mode colors contrast readability",
+  "appearance theme contrast soft dim dimmed brightness background colors readability eye strain",
+  "appearance text size font size zoom larger smaller bigger readability accessibility",
   "appearance time format 12h 24h"
 ];
 

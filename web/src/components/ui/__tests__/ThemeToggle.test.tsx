@@ -2,6 +2,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { ThemeToggle } from "../ThemeToggle";
+import { openSettingsTab } from "../../workspace/openPageTab";
+
+jest.mock("../../workspace/openPageTab", () => ({
+  openSettingsTab: jest.fn()
+}));
 
 const mockSetMode = jest.fn();
 jest.mock("@mui/material/styles", () => {
@@ -45,5 +50,20 @@ describe("ThemeToggle", () => {
       screen.getByRole("button", { name: "Switch to light mode" })
     );
     expect(mockSetMode).toHaveBeenCalledWith("light");
+  });
+
+  // Issue #6757: people could not find where to change contrast.
+  it("opens the appearance settings on right-click", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ThemeToggle />
+      </ThemeProvider>
+    );
+
+    fireEvent.contextMenu(
+      screen.getByRole("button", { name: "Switch to light mode" })
+    );
+    expect(openSettingsTab).toHaveBeenCalledWith("general");
+    expect(mockSetMode).not.toHaveBeenCalled();
   });
 });
