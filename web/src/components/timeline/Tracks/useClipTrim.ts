@@ -5,10 +5,12 @@
  * clip's in-point (startMs and durationMs change together); the end handle
  * changes durationMs only, capped at the source length when one is known.
  *
- * Three edit modes share the gesture: a plain trim leaves the rest of the
- * sequence alone; with ripple mode on (toolbar toggle) the clips after the
- * edit follow it so no gap opens; holding Ctrl/Cmd rolls the cut instead,
- * so the neighbour across it gives up what this clip gains.
+ * Four edit modes share the gesture: a plain trim leaves the rest of the
+ * sequence alone; with ripple mode on (toolbar toggle) or the Ripple Edit
+ * tool the clips after the edit follow it so no gap opens; the Rolling Edit
+ * tool or Ctrl/Cmd rolls the cut instead, so the neighbour across it gives
+ * up what this clip gains; the Rate Stretch tool changes the clip's speed so
+ * its source window fills the new length.
  *
  * The moving edge is targeted absolutely from the pointer (edge at
  * pointerdown + pointer travel), snapped against a candidate set snapshotted
@@ -69,11 +71,33 @@ interface TrimGesture {
   /** Clip length at pointerdown; a ripple head-trim measures against it. */
   durationMsAtStart: number;
   /** Edit mode locked in at pointerdown so it cannot flip mid-gesture. */
-  mode: "trim" | "ripple" | "roll";
+  mode: TrimMode;
   /** Set once the pointer has travelled; a press that never moves selects
    *  the edge as the edit point instead of trimming. */
   moved: boolean;
 }
+
+type TrimMode = "trim" | "ripple" | "roll" | "stretch";
+
+/** The edit an edge drag performs under `tool` and the held modifiers. */
+export function trimModeFor(
+  tool: TimelineTool,
+  rollModifier: boolean,
+  rippleMode: boolean
+): TrimMode {
+  if (tool === "rateStretch") return "stretch";
+  if (tool === "roll" || rollModifier) return "roll";
+  if (tool === "ripple" || rippleMode) return "ripple";
+  return "trim";
+}
+
+/** Tools whose press on an edge acts on the whole clip instead of trimming,
+ *  so the event goes on to the clip body. */
+const BODY_TOOLS: ReadonlySet<TimelineTool> = new Set<TimelineTool>([
+  "cut",
+  "slip",
+  "trackSelect"
+]);
 
 /** The snapped edge the pointer is asking for, and the guide to show. */
 function targetEdge(
@@ -100,6 +124,7 @@ export function useClipTrim({
   const rippleTrimClipStart = useTimelineStore((s) => s.rippleTrimClipStart);
   const rippleTrimClipEnd = useTimelineStore((s) => s.rippleTrimClipEnd);
   const rollClipEdge = useTimelineStore((s) => s.rollClipEdge);
+  const rateStretchClip = useTimelineStore((s) => s.rateStretchClip);
 
   // One undo entry per trim gesture; see useTimelineHistoryBatch.
   const history = useTimelineHistoryBatch();
@@ -129,12 +154,11 @@ export function useClipTrim({
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
       const state = useTimelineStore.getState();
-      const mode =
-        e.ctrlKey || e.metaKey
-          ? "roll"
-          : useTimelineUIStore.getState().rippleMode
-            ? "ripple"
-            : "trim";
+      const mode = trimModeFor(
+        activeTool,
+        e.ctrlKey || e.metaKey,
+        useTimelineUIStore.getState().rippleMode
+      );
       gestureRef.current = {
         startX: e.clientX,
         edgeMsAtStart:
@@ -152,13 +176,14 @@ export function useClipTrim({
       };
       history.begin();
     },
-    [clip, history]
+    [clip, history, activeTool]
   );
 
   const handleTrimStartPointerDown = useCallback<TrimPointerHandler>(
     (e) => {
-      // In cut mode, let the event bubble up so the clip body splits instead.
-      if (!clip || interactionLocked || activeTool === "cut") {
+      // The cut, slip and track-select tools act on the clip body, so the
+      // event bubbles up to it.
+      if (!clip || interactionLocked || BODY_TOOLS.has(activeTool)) {
         return;
       }
       beginGesture(e, "start");
@@ -203,6 +228,15 @@ export function useClipTrim({
         landed =
           findClipById(useTimelineStore.getState().clips, clip.id)
             ?.durationMs === gesture.durationMsAtStart + wantedMs;
+      } else if (gesture.mode === "stretch") {
+        rateStretchClip(
+          clip.id,
+          "start",
+          fresh.startMs + fresh.durationMs - valueMs
+        );
+        landed =
+          findClipById(useTimelineStore.getState().clips, clip.id)?.startMs ===
+          valueMs;
       } else {
         const deltaMs = fresh.startMs - valueMs;
         if (gesture.mode === "roll") {
@@ -244,14 +278,16 @@ export function useClipTrim({
       trimClipStart,
       rippleTrimClipStart,
       rollClipEdge,
+      rateStretchClip,
       history
     ]
   );
 
   const handleTrimEndPointerDown = useCallback<TrimPointerHandler>(
     (e) => {
-      // In cut mode, let the event bubble up so the clip body splits instead.
-      if (!clip || interactionLocked || activeTool === "cut") {
+      // The cut, slip and track-select tools act on the clip body, so the
+      // event bubbles up to it.
+      if (!clip || interactionLocked || BODY_TOOLS.has(activeTool)) {
         return;
       }
       beginGesture(e, "end");
@@ -285,7 +321,9 @@ export function useClipTrim({
       const currentEndMs = fresh.startMs + fresh.durationMs;
       const deltaMs = valueMs - currentEndMs;
       const mode = gestureRef.current.mode;
-      if (mode === "roll") {
+      if (mode === "stretch") {
+        rateStretchClip(clip.id, "end", valueMs - fresh.startMs);
+      } else if (mode === "roll") {
         rollClipEdge(clip.id, "end", deltaMs, sourceDurationMs);
       } else if (mode === "ripple") {
         rippleTrimClipEnd(clip.id, deltaMs, sourceDurationMs);
@@ -313,6 +351,7 @@ export function useClipTrim({
       trimClipEnd,
       rippleTrimClipEnd,
       rollClipEdge,
+      rateStretchClip,
       sourceDurationMs,
       history
     ]

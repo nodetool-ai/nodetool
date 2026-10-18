@@ -19,6 +19,7 @@ import {
   useTimelineUIStore,
   useIsClipSelected
 } from "../../../stores/timeline/TimelineUIStore";
+import type { TimelineTool } from "../../../stores/timeline/TimelineUIStore";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
@@ -50,6 +51,17 @@ import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 interface ClipProps {
   clipId: string;
 }
+
+/** The body pointer for each tool; the select-style tools keep the grab. */
+const TOOL_BODY_CURSOR: Record<TimelineTool, React.CSSProperties["cursor"]> = {
+  select: undefined,
+  trackSelect: "e-resize",
+  ripple: undefined,
+  roll: undefined,
+  rateStretch: undefined,
+  cut: "crosshair",
+  slip: "col-resize"
+};
 
 export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // Selector: only this clip's fields. findClipById is O(1) via a WeakMap
@@ -153,7 +165,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     msPerPx,
     activeTool,
     interactionLocked,
-    longPress: clipLongPress
+    longPress: clipLongPress,
+    sourceDurationMs
   });
 
   const {
@@ -261,6 +274,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         return;
       }
       e.stopPropagation();
+      // The track-select tool chose the selection on pointerdown.
+      if (useTimelineUIStore.getState().activeTool === "trackSelect") {
+        return;
+      }
       if (e.shiftKey) {
         addToSelection(clipId);
       } else if (e.ctrlKey || e.metaKey) {
@@ -336,7 +353,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         handleTrimEndPointerDown={handleTrimEndPointerDown}
         handleTrimEndPointerMove={handleTrimEndPointerMove}
         handleTrimPointerEnd={handleTrimPointerEnd}
-        cutMode={activeTool === "cut"}
+        bodyCursor={TOOL_BODY_CURSOR[activeTool]}
         selectedEdge={selectedEdge}
         handleTransitionPointerDown={handleTransitionPointerDown}
         handleTransitionPointerMove={handleTransitionPointerMove}

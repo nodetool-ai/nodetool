@@ -55,7 +55,12 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
     title: "Tools",
     rows: [
       { action: "selectTool", label: "Select tool" },
+      { action: "trackSelectTool", label: "Track select tool (every clip from the click on)" },
+      { action: "rippleTool", label: "Ripple edit tool" },
+      { action: "rollTool", label: "Rolling edit tool" },
+      { action: "rateStretchTool", label: "Rate stretch tool" },
       { action: "cutTool", label: "Cut (blade) tool" },
+      { action: "slipTool", label: "Slip tool" },
       { action: "toggleSnap", label: "Toggle snapping" },
       { action: "escape", label: "Clear selection · back to Select" }
     ]
@@ -67,6 +72,10 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "cutAllTracks", label: "Cut all tracks at playhead" },
       { action: "deleteSelected", label: "Delete selected clips" },
       { action: "rippleDeleteSelected", label: "Ripple delete (close the gap)" },
+      { action: "rippleTrimPrevToPlayhead", label: "Ripple trim the previous edit to the playhead" },
+      { action: "rippleTrimNextToPlayhead", label: "Ripple trim the next edit to the playhead" },
+      { action: "liftRange", label: "Lift the in to out range (leave the gap)" },
+      { action: "extractRange", label: "Extract the in to out range (close the gap)" },
       { keys: ["Ctrl", "drag edge"], label: "Roll the cut with its neighbour" },
       { keys: ["click edge"], label: "Select the edit point" },
       { action: "extendEdit", label: "Extend the edit point to the playhead" },
@@ -78,7 +87,13 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "duplicateWithGap", label: "Duplicate with a 1 s gap" },
       { action: "applyDefaultTransition", label: "Cross-fade into selected clips" },
       { action: "applyFades", label: "Fade selected clips in and out" },
-      { action: "selectAll", label: "Select all clips" }
+      { action: "selectAll", label: "Select all clips" },
+      { action: "deselectAll", label: "Deselect all" },
+      { action: "selectClipAtPlayhead", label: "Select the clips at the playhead" },
+      { action: "toggleClipEnabled", label: "Enable or disable selected clips" },
+      { action: "linkClips", label: "Link or unlink selected clips" },
+      { action: "groupClips", label: "Group selected clips" },
+      { action: "ungroupClips", label: "Ungroup selected groups" }
     ]
   },
   {
@@ -106,11 +121,16 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { keys: ["Space"], label: "Play / pause" },
       { action: "stepFrameBack", label: "Step back one frame" },
       { action: "stepFrameForward", label: "Step forward one frame" },
+      { action: "stepFramesBack", label: "Step back five frames" },
+      { action: "stepFramesForward", label: "Step forward five frames" },
       { action: "shuttleBack", label: "Shuttle backwards (again: faster)" },
       { action: "shuttleStop", label: "Stop shuttle" },
       { action: "shuttleForward", label: "Shuttle forwards (again: faster)" },
       { action: "markIn", label: "Mark in" },
       { action: "markOut", label: "Mark out" },
+      { action: "markClip", label: "Mark the clip (in and out around it)" },
+      { action: "goToIn", label: "Go to in" },
+      { action: "goToOut", label: "Go to out" },
       { action: "clearRange", label: "Clear in and out" },
       { action: "prevCut", label: "Previous cut" },
       { action: "nextCut", label: "Next cut" },

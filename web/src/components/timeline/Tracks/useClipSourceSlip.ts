@@ -16,7 +16,8 @@ import {
 } from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
-  useTimelineStoreApi
+  useTimelineStoreApi,
+  type TimelineStoreState
 } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import {
@@ -58,6 +59,75 @@ export function slipSourceWindow(
     inPointMs: nextInPointMs,
     outPointMs: nextInPointMs + sourceSpanMs
   };
+}
+
+/** One clip's part of a slip. */
+export interface SlipPatch {
+  id: string;
+  patch: Partial<TimelineClip>;
+}
+
+/**
+ * The patches that slip `clip`'s source window by `sourceDeltaMs` (and its
+ * linked partners' by the same timeline time under linked selection), or
+ * null when the slip is refused: a locked or remapped member, or a member
+ * that would run out of source. Shared by the Alt+wheel gesture and the Slip
+ * tool's drag.
+ */
+export function planSlip(
+  state: Pick<TimelineStoreState, "clips" | "tracks" | "linkedSelection">,
+  clip: TimelineClip,
+  sourceDeltaMs: number,
+  sourceDurationMs: number | undefined
+): SlipPatch[] | null {
+  if (clip.mediaType !== "video" && clip.mediaType !== "audio") {
+    return null;
+  }
+  const lockedTracks = new Set(
+    state.tracks.filter((t) => t.locked).map((t) => t.id)
+  );
+  // A linked A/V pair slips together or not at all, so lip sync holds.
+  const members =
+    state.linkedSelection && clip.linkId !== undefined
+      ? state.clips.filter((c) => c.linkId === clip.linkId)
+      : [clip];
+  const slippable = members.every(
+    (c) =>
+      !c.locked &&
+      !lockedTracks.has(c.trackId) &&
+      !c.timeRemap &&
+      (c.mediaType === "video" || c.mediaType === "audio")
+  );
+  if (!slippable) {
+    return null;
+  }
+  const wantedPatch = slipSourceWindow(clip, sourceDeltaMs, sourceDurationMs);
+  // Timeline-ms slip the primary actually achieved after clamping.
+  const appliedTimelineMs =
+    ((wantedPatch.inPointMs ?? 0) - (clip.inPointMs ?? 0)) / sourceRate(clip);
+  const patches = members.map((c) => {
+    const patch: Partial<TimelineClip> =
+      c.id === clip.id
+        ? { ...wantedPatch }
+        : slipSourceWindow(c, appliedTimelineMs * sourceRate(c), undefined);
+    // Words are timed against the clip's start, so they slide back by the
+    // timeline time the media slipped.
+    if (c.caption) {
+      patch.caption = retimeCaption(c.caption, -appliedTimelineMs);
+    }
+    return {
+      id: c.id,
+      patch,
+      wantedIn: (c.inPointMs ?? 0) + appliedTimelineMs * sourceRate(c)
+    };
+  });
+  // Refuse the whole slip when a member would run out of source.
+  if (
+    patches.some((p) => Math.abs((p.patch.inPointMs ?? 0) - p.wantedIn) > 1e-6)
+  ) {
+    return null;
+  }
+  return patches.map(({ id, patch }) => ({ id, patch }));
 }
 
 interface UseClipSourceSlipOptions {
@@ -135,56 +205,13 @@ export function useClipSourceSlip({
 
       event.preventDefault();
       event.stopPropagation();
-      const state = useTimelineStore.getState();
-      const lockedTracks = new Set(
-        state.tracks.filter((t) => t.locked).map((t) => t.id)
-      );
-      // A linked A/V pair slips together or not at all, so lip sync holds.
-      const members =
-        state.linkedSelection && fresh.linkId !== undefined
-          ? state.clips.filter((c) => c.linkId === fresh.linkId)
-          : [fresh];
-      const slippable = members.every(
-        (c) =>
-          !c.locked &&
-          !lockedTracks.has(c.trackId) &&
-          !c.timeRemap &&
-          (c.mediaType === "video" || c.mediaType === "audio")
-      );
-      if (!slippable) {
-        return;
-      }
-      const wantedPatch = slipSourceWindow(
+      const patches = planSlip(
+        useTimelineStore.getState(),
         fresh,
         event.deltaX * msPerPx * sourceRate(fresh),
         sourceDurationMs
       );
-      // Timeline-ms slip the primary actually achieved after clamping.
-      const appliedTimelineMs =
-        ((wantedPatch.inPointMs ?? 0) - (fresh.inPointMs ?? 0)) /
-        sourceRate(fresh);
-      const patches = members.map((c) => {
-        const patch: Partial<TimelineClip> =
-          c.id === fresh.id
-            ? { ...wantedPatch }
-            : slipSourceWindow(c, appliedTimelineMs * sourceRate(c), undefined);
-        // Words are timed against the clip's start, so they slide back by
-        // the timeline time the media slipped.
-        if (c.caption) {
-          patch.caption = retimeCaption(c.caption, -appliedTimelineMs);
-        }
-        return {
-          id: c.id,
-          patch,
-          wantedIn: (c.inPointMs ?? 0) + appliedTimelineMs * sourceRate(c)
-        };
-      });
-      // Refuse the whole slip when a member would run out of source.
-      if (
-        patches.some(
-          (p) => Math.abs((p.patch.inPointMs ?? 0) - p.wantedIn) > 1e-6
-        )
-      ) {
+      if (!patches) {
         return;
       }
       if (!slippingRef.current) {

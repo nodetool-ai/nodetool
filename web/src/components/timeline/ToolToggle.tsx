@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 /**
- * ToolToggle — Select / Cut tool buttons plus the Ripple toggle for the
- * timeline editor.
+ * ToolToggle — the pointer tools (Premiere's Tools panel: Select, Track
+ * select, Ripple edit, Rolling edit, Rate stretch, Cut, Slip) plus the
+ * Ripple toggle for the timeline editor.
  *
  * Labeled ghost buttons (icon + text). The active button picks up the
  * primary accent + subtle filled background; the tooltip carries the
@@ -38,9 +39,11 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import type { TimelineTool } from "../../stores/timeline/TimelineUIStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { GRID_DIVISION_OPTIONS } from "./Tracks/tempoGrid";
 import { formatActionShortcut } from "./timelineKeymap";
+import type { TimelineAction } from "./timelineKeymap";
 
 /** Custom pointer cursor — monoline, 1.6px stroke. */
 const PointerIcon: React.FC = () => (
@@ -59,15 +62,95 @@ const PointerIcon: React.FC = () => (
   </svg>
 );
 
-const buttonStyles = (theme: Theme, active: boolean, compact: boolean) =>
+/** A monoline tool glyph drawn on the 24px grid PointerIcon uses. */
+const ToolGlyph: React.FC<{ d: string }> = ({ d }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d={d} />
+  </svg>
+);
+
+/** Glyphs after Premiere's: a bar with the direction each edit moves. */
+const TRACK_SELECT_GLYPH = "M5 5 V19 M9 12 H20 M16 8 L20 12 L16 16 M9 7 H14 M9 17 H14";
+const RIPPLE_GLYPH = "M8 5 V19 M8 5 H5 M8 19 H5 M11 12 H20 M16 8 L20 12 L16 16";
+const ROLL_GLYPH = "M12 4 V20 M3 12 H21 M6 9 L3 12 L6 15 M18 9 L21 12 L18 15";
+const RATE_STRETCH_GLYPH =
+  "M3 6 V18 M21 6 V18 M6 12 H18 M9 9 L6 12 L9 15 M15 9 L18 12 L15 15";
+const SLIP_GLYPH =
+  "M3 7 H21 V17 H3 Z M8 12 H16 M10 10 L8 12 L10 14 M14 10 L16 12 L14 14";
+
+/** The edit tools beside Select and Cut, in Premiere's Tools panel order. */
+const EDIT_TOOLS: ReadonlyArray<{
+  tool: TimelineTool;
+  action: TimelineAction;
+  label: string;
+  description: string;
+  glyph: string;
+}> = [
+  {
+    tool: "trackSelect",
+    action: "trackSelectTool",
+    label: "Track select",
+    description: "Click to select every clip from there on. Shift: that track only",
+    glyph: TRACK_SELECT_GLYPH
+  },
+  {
+    tool: "ripple",
+    action: "rippleTool",
+    label: "Ripple edit",
+    description: "Drag an edge. Later clips follow so no gap opens",
+    glyph: RIPPLE_GLYPH
+  },
+  {
+    tool: "roll",
+    action: "rollTool",
+    label: "Rolling edit",
+    description: "Drag a cut. The clip across it gives up what this one gains",
+    glyph: ROLL_GLYPH
+  },
+  {
+    tool: "rateStretch",
+    action: "rateStretchTool",
+    label: "Rate stretch",
+    description: "Drag an edge. The clip's speed changes to fill the new length",
+    glyph: RATE_STRETCH_GLYPH
+  }
+];
+
+const SLIP_TOOL = {
+  label: "Slip",
+  description: "Drag a clip to change which part of its source plays",
+  glyph: SLIP_GLYPH
+};
+
+const buttonStyles = (
+  theme: Theme,
+  active: boolean,
+  compact: boolean,
+  iconOnly = false
+) =>
   css({
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     gap: getSpacingPx(SPACING.sm),
     height: compact ? CONTROL.height.sm : CONTROL.height.xs,
-    minWidth: compact ? CONTROL.height.sm : undefined,
-    padding: compact ? 0 : theme.spacing(0, SPACING.lg, 0, SPACING.md),
+    minWidth: compact
+      ? CONTROL.height.sm
+      : iconOnly
+        ? CONTROL.height.xs
+        : undefined,
+    padding:
+      compact || iconOnly ? 0 : theme.spacing(0, SPACING.lg, 0, SPACING.md),
     background: active ? theme.vars.palette.action.selected : "transparent",
     border: `1px solid ${active ? theme.vars.palette.divider : "transparent"}`,
     color: active
@@ -154,6 +237,8 @@ interface ToolButtonProps {
   description?: string;
   active: boolean;
   compact: boolean;
+  /** Icon without its label even in the wide toolbar. */
+  iconOnly?: boolean;
   /** "radio" inside an exclusive group; a pressed toggle otherwise. */
   role?: "radio";
   onClick: () => void;
@@ -166,6 +251,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
   description,
   active,
   compact,
+  iconOnly = false,
   role,
   onClick,
   children
@@ -187,7 +273,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
     >
       <button
         type="button"
-        css={buttonStyles(theme, active, compact)}
+        css={buttonStyles(theme, active, compact, iconOnly)}
         onClick={onClick}
         aria-label={label}
         {...(role === "radio"
@@ -195,7 +281,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
           : { "aria-pressed": active })}
       >
         {children}
-        {!compact && <span>{label}</span>}
+        {!compact && !iconOnly && <span>{label}</span>}
       </button>
     </Tooltip>
   );
@@ -271,6 +357,20 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       >
         <PointerIcon />
       </ToolButton>
+      {EDIT_TOOLS.map((t) => (
+        <ToolButton
+          key={t.tool}
+          label={t.label}
+          shortcut={formatActionShortcut(preset, t.action)}
+          description={t.description}
+          active={activeTool === t.tool}
+          compact={compact}
+          iconOnly
+          onClick={() => setActiveTool(t.tool)}
+        >
+          <ToolGlyph d={t.glyph} />
+        </ToolButton>
+      ))}
       <ToolButton
         label="Cut"
         shortcut={formatActionShortcut(preset, "cutTool")}
@@ -279,6 +379,17 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         onClick={() => setActiveTool("cut")}
       >
         <ContentCutOutlinedIcon />
+      </ToolButton>
+      <ToolButton
+        label={SLIP_TOOL.label}
+        shortcut={formatActionShortcut(preset, "slipTool")}
+        description={SLIP_TOOL.description}
+        active={activeTool === "slip"}
+        compact={compact}
+        iconOnly
+        onClick={() => setActiveTool("slip")}
+      >
+        <ToolGlyph d={SLIP_TOOL.glyph} />
       </ToolButton>
       <ToolButton
         label="Ripple"

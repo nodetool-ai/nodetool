@@ -75,6 +75,7 @@ import { layoutTrackRows } from "./trackWindow";
 import { trackRowHeightPx } from "./trackHeight";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { snapAssetDropMs } from "./dropSnap";
+import { trackSelectForwardIds } from "./trackSelect";
 
 /** Two bars of 4/4 at 120 BPM — what an empty midi clip is sized to. */
 const DEFAULT_MIDI_CLIP_DURATION_MS = 4000;
@@ -503,6 +504,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
         return;
       }
 
+      if (useTimelineUIStore.getState().activeTool === "trackSelect") {
+        const atMs =
+          (e.clientX - e.currentTarget.getBoundingClientRect().left) * msPerPx;
+        useTimelineUIStore
+          .getState()
+          .setSelection(
+            trackSelectForwardIds(
+              useTimelineStore.getState().clips,
+              atMs,
+              e.shiftKey ? track.id : undefined
+            )
+          );
+        return;
+      }
+
       if (!e.shiftKey) {
         clearSelection();
         rbBaseSelectionRef.current = null;
@@ -588,7 +604,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       const timeMs = Math.round(localX * msPerPx);
       seek(timeMs);
     },
-    [clearSelection, laneLongPress, msPerPx, seek]
+    [clearSelection, laneLongPress, msPerPx, seek, track.id]
   );
 
   // Apply the rubber-band selection for the given content-space range. Deduped

@@ -131,7 +131,11 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Group | Key | Action |
 |-------|-----|--------|
 | Tools | `V` | Select tool |
+| Tools | `A` | Track select tool: every clip from the click on, `Shift` for one track |
+| Tools | `B` / `Shift + B` | Ripple edit tool / rolling edit tool |
+| Tools | `R` | Rate stretch tool: drag an edge to change the clip's speed |
 | Tools | `C` | Cut (blade) tool |
+| Tools | `Y` | Slip tool: drag a clip to change which part of its source plays |
 | Tools | `N` | Toggle snapping |
 | Tools | `Esc` | Clear selection and return to Select |
 | Editing | `S` | Split selected clips at the playhead |
@@ -142,7 +146,13 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Editing | `Ctrl + Shift + D` | Duplicate with a 1 second gap |
 | Editing | `Ctrl + T` | Cross-fade into selected clips |
 | Editing | `Alt + T` | Fade selected clips in and out |
-| Editing | `Ctrl + A` | Select all clips |
+| Editing | `Ctrl + A` / `Ctrl + Shift + A` | Select all clips / deselect all |
+| Editing | `Shift + D` | Select the clips at the playhead |
+| Editing | `Ctrl + Shift + E` | Enable or disable selected clips |
+| Editing | `Ctrl + L` | Link or unlink selected clips |
+| Editing | `Ctrl + G` / `Ctrl + Shift + G` | Group / ungroup |
+| Editing | `[` / `]` | Ripple trim the previous / next edit to the playhead |
+| Editing | `;` / `'` | Lift / extract the in to out range |
 | Editing | `E` | Extend the selected edit point to the playhead |
 | Editing | `Ctrl + Shift + ←` / `→` | Trim the edit point one frame |
 | Editing | `Ctrl + Shift + Alt + ←` / `→` | Trim the edit point ten frames |
@@ -153,8 +163,11 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Playback | `Alt + ←` / `→` | Step the playhead one frame |
 | Playback | `J` / `K` / `L` | Shuttle back, stop, shuttle forward (press again for faster) |
 | Playback | `I` / `O` | Mark in, mark out |
+| Playback | `X` | Mark the selection, or the clip under the playhead |
+| Playback | `Shift + I` / `Shift + O` | Go to in, go to out |
+| Playback | `Alt + Shift + ←` / `→` | Step the playhead five frames |
 | Playback | `Ctrl + Shift + X` | Clear in and out |
-| Playback | `↑` / `↓` | Previous or next cut |
+| Playback | `↑` / `↓` or `Page Up` / `Page Down` | Previous or next cut |
 | Playback | `M` | Add a marker at the playhead |
 | Playback | `Shift + M` / `Ctrl + Shift + M` | Next or previous marker |
 | Keyframes | `Alt + K` | Keyframe the selected clip at the playhead |
@@ -175,7 +188,15 @@ Premiere Pro and Final Cut Pro layouts change these keys:
 | Action | Premiere Pro | Final Cut Pro |
 |--------|--------------|---------------|
 | Select tool | `V` | `A` |
+| Track select tool | `A` | `Shift + A` |
+| Ripple edit / rolling edit tool | `B` / `N` | `T` / `Shift + T` |
+| Rate stretch tool | `R` | `R` |
 | Cut tool | `C` | `B` |
+| Slip tool | `Y` | `Y` |
+| Select the clips at the playhead | `D` | `C` |
+| Enable or disable clips | `Shift + E` | `V` |
+| Ripple trim previous / next edit to playhead | `Q` / `W` | `Alt + [` / `Alt + ]` |
+| Step five frames | `Shift + ←` / `→` | `Shift + ←` / `→` |
 | Split at playhead | `Ctrl + Alt + K` | `Ctrl + B` |
 | Cut all tracks | `Ctrl + Shift + K` | `Ctrl + Shift + B` |
 | Delete | `Delete` | `Shift + Delete` |
@@ -186,7 +207,7 @@ Premiere Pro and Final Cut Pro layouts change these keys:
 | Zoom to fit | `\` | `Shift + Z` |
 | Cross-fade into selection | `Ctrl + D` | `Ctrl + T` |
 | Insert / overwrite source range | `,` / `.` | `W` / `D` |
-| Append source range | `Shift + E` | `E` |
+| Append source range | `Ctrl + Shift + E` | `E` |
 
 In the Premiere Pro and Final Cut Pro layouts, bare `←` / `→` step the playhead one frame. The NodeTool layout uses `Alt + ←` / `→` for that because bare arrows nudge clips. Shuttle, marking, marker, cut navigation, keyframe, clipboard, and undo keys are the same in all three layouts. See the [Video Editor](video-editor.md#keyboard-shortcuts) guide for the editor itself.
 
