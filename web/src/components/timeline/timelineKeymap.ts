@@ -422,7 +422,9 @@ function matches(binding: KeyBinding, e: KeyEventLike): boolean {
   const byCode =
     e.code !== undefined &&
     bindingCode !== null &&
-    (binding.alt || (symbolKey && binding.shift));
+    // The backtick is a dead key (`e.key === "Dead"`) on German, French,
+    // Nordic and Spanish layouts, so it always matches the physical key.
+    (binding.alt || (symbolKey && binding.shift) || binding.key === "`");
   if (byCode ? e.code !== bindingCode : key !== binding.key) return false;
   // "?" can arrive as AltGr on some layouts (ctrl+alt); match the character.
   if (binding.key === "?") return true;

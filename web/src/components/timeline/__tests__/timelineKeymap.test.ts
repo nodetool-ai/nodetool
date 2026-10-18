@@ -200,3 +200,14 @@ describe("formatActionShortcut", () => {
     );
   });
 });
+
+describe("backtick bindings on layouts where the key is dead", () => {
+  const dead = (mods: Partial<KeyEventLike> = {}): KeyEventLike => ev("Dead", { code: "Backquote", ...mods });
+  it.each([...TIMELINE_KEYBOARD_PRESETS])(
+    "maximizes and shows the program full screen under %s",
+    (preset) => {
+      expect(resolveTimelineAction(dead(), preset)).toBe("maximizePanel");
+      expect(resolveTimelineAction(dead({ ctrlKey: true }), preset)).toBe("toggleProgramFullscreen");
+    }
+  );
+});
