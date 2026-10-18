@@ -70,7 +70,9 @@ const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
     const room = Math.floor(statusBar.top) - top;
     return `${Math.max(room - MENU_VIEWPORT_GAP, 0)}px`;
   }
-  return `calc(100vh - ${top + MENU_VIEWPORT_GAP}px)`;
+  // innerHeight, not 100vh: phone browsers size 100vh as if their toolbars
+  // were hidden, which put the menu's last rows behind them.
+  return `${Math.max(window.innerHeight - top - MENU_VIEWPORT_GAP, 0)}px`;
 };
 
 /**

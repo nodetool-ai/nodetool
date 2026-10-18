@@ -15,7 +15,7 @@ describe("OpenMenu height", () => {
     renderOpenMenu();
 
     const paper = screen.getByRole("menu").closest(".MuiPaper-root");
-    expect(paper).toHaveStyle({ maxHeight: "calc(100vh - 64px)" });
+    expect(paper).toHaveStyle({ maxHeight: `${window.innerHeight - 64}px` });
   });
 
   it("stops above the status bar", () => {
@@ -51,7 +51,7 @@ describe("OpenMenu height", () => {
       renderOpenMenu();
 
       const paper = screen.getByRole("menu").closest(".MuiPaper-root");
-      expect(paper).toHaveStyle({ maxHeight: "calc(100vh - 112px)" });
+      expect(paper).toHaveStyle({ maxHeight: `${window.innerHeight - 112}px` });
     } finally {
       statusBar.remove();
     }
