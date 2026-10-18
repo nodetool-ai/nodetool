@@ -55,6 +55,10 @@ import {
 import { useAssetUrl } from "./useAssetUrl";
 import { ClipMediaOffline } from "./ClipMediaOffline";
 import { openPersistedFold } from "../Inspector/usePersistedFold";
+import { isClipDisabled } from "./clipEnabled";
+
+/** A clip switched off with Enable (Shift+E) stays visible, dimmed. */
+const DISABLED_CLIP_OPACITY = 0.4;
 
 const TRIM_HANDLE_WIDTH_PX = 8;
 /** Hit area for the same grip under a finger; the visible width stays 8px. */
@@ -588,7 +592,8 @@ export interface ClipBodyProps {
   handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimPointerEnd: () => void;
-  cutMode: boolean;
+  /** Pointer for the active tool over the clip body (razor, slip, …). */
+  bodyCursor: React.CSSProperties["cursor"];
   /** The edge picked as the edit point (E, Ctrl+Shift+arrows), if this clip's. */
   selectedEdge: "start" | "end" | null;
   handleTransitionPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -626,7 +631,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     handleTrimEndPointerDown,
     handleTrimEndPointerMove,
     handleTrimPointerEnd,
-    cutMode,
+    bodyCursor,
     selectedEdge,
     handleTransitionPointerDown,
     handleTransitionPointerMove,
@@ -760,13 +765,16 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
       openPersistedFold("animate");
     };
 
+    const disabled = isClipDisabled(clip);
     const positionStyle = useMemo(
       () => ({
         left: leftPx,
         width: widthPx,
-        cursor: cutMode ? ("crosshair" as const) : undefined
+        cursor: bodyCursor,
+        // A disabled clip reads as switched off, as Premiere dims it.
+        opacity: disabled ? DISABLED_CLIP_OPACITY : undefined
       }),
-      [leftPx, widthPx, cutMode]
+      [leftPx, widthPx, bodyCursor, disabled]
     );
 
     const imageStyle = useMemo(
@@ -860,7 +868,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         aria-selected={isSelected}
         role="option"
         tabIndex={0}
-        aria-label={clip.name || `Clip ${clip.id}`}
+        aria-label={`${clip.name || `Clip ${clip.id}`}${disabled ? " (disabled)" : ""}`}
         title={displayName || undefined}
       >
         {filmstripCells && (

@@ -23,14 +23,17 @@
 import { useCallback, useRef } from "react";
 import type React from "react";
 
-import { clipFitsTrack } from "@nodetool-ai/timeline";
+import { clipFitsTrack, sourceRate } from "@nodetool-ai/timeline";
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
   useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
-import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
+import {
+  runAsOneUndoEntry,
+  useTimelineHistoryBatch
+} from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import type { useLongPress } from "../../../hooks/timeline/useLongPress";
@@ -43,6 +46,8 @@ import {
   snapClipWindow,
   snapGridSpecFrom
 } from "./clipSnap";
+import { planSlip } from "./useClipSourceSlip";
+import { trackSelectForwardIds } from "./trackSelect";
 
 /** Clip-side wrapper over the shared rule: the authored kinds ("overlay",
  *  "text", "shape", "group") sit on picture tracks, audio on audio tracks and
@@ -97,6 +102,8 @@ interface UseClipDragOptions {
   /** True when the clip or its track is locked: the gesture is refused. */
   interactionLocked: boolean;
   longPress: ReturnType<typeof useLongPress>;
+  /** Source length, which bounds a Slip tool drag. */
+  sourceDurationMs?: number;
 }
 
 interface ClipDragHandlers {
@@ -112,12 +119,14 @@ export function useClipDrag({
   msPerPx,
   activeTool,
   interactionLocked,
-  longPress
+  longPress,
+  sourceDurationMs
 }: UseClipDragOptions): ClipDragHandlers {
   const moveClip = useTimelineStore((s) => s.moveClip);
   const moveSelectedClips = useTimelineStore((s) => s.moveSelectedClips);
   const resolveDrop = useTimelineStore((s) => s.resolveDrop);
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
+  const patchClip = useTimelineStore((s) => s.patchClip);
 
   // Undo batching: the gesture mutates the store on every pointermove. begin()
   // on pointerdown, mark() after each mutation (pauses history once the
@@ -133,6 +142,54 @@ export function useClipDrag({
   // not reinterpret pixels travelled at the old scale (F22).
   const msPerPxRef = useRef(msPerPx);
   msPerPxRef.current = msPerPx;
+
+  // Slip tool: the pointer drags the source under the clip. Moving right
+  // shows earlier source, as in Premiere, so the picture follows the hand.
+  const beginSlipDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>, target: TimelineClip) => {
+      const pointerId = e.pointerId;
+      const startX = e.clientX;
+      const inAtStart = target.inPointMs ?? 0;
+      history.begin();
+      const onMove = (ev: PointerEvent): void => {
+        if (ev.pointerId !== pointerId) return;
+        const fresh = findClipById(useTimelineStore.getState().clips, target.id);
+        if (!fresh) return;
+        const wantedIn =
+          inAtStart -
+          (ev.clientX - startX) * msPerPxRef.current * sourceRate(fresh);
+        const patches = planSlip(
+          useTimelineStore.getState(),
+          fresh,
+          wantedIn - (fresh.inPointMs ?? 0),
+          sourceDurationMs
+        );
+        if (!patches) return;
+        isDraggingRef.current = true;
+        runAsOneUndoEntry(storeApi, () => {
+          for (const p of patches) {
+            patchClip(p.id, p.patch);
+          }
+        });
+        history.mark();
+      };
+      const onEnd = (ev: PointerEvent): void => {
+        if (ev.pointerId !== pointerId) return;
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onEnd);
+        window.removeEventListener("pointercancel", onEnd);
+        history.end();
+        // Let the click that follows see the drag, then clear the flag.
+        setTimeout(() => {
+          isDraggingRef.current = false;
+        }, 0);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onEnd);
+      window.addEventListener("pointercancel", onEnd);
+    },
+    [history, patchClip, sourceDurationMs, storeApi]
+  );
 
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -172,6 +229,26 @@ export function useClipDrag({
           splitClipAtTime(clip.id, atMs);
         }
         return;
+      }
+      if (activeTool === "slip" && e.button === 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        beginSlipDrag(e, clip);
+        return;
+      }
+      if (activeTool === "trackSelect" && e.button === 0) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const atMs = clip.startMs + (e.clientX - rect.left) * msPerPx;
+        const ids = trackSelectForwardIds(
+          useTimelineStore.getState().clips,
+          atMs,
+          e.shiftKey ? clip.trackId : undefined
+        );
+        // The clicked clip leads the selection, so the drag below moves the
+        // whole block with it.
+        useTimelineUIStore
+          .getState()
+          .setSelection([clip.id, ...ids.filter((id) => id !== clip.id)]);
       }
       e.preventDefault();
       e.stopPropagation();
@@ -499,7 +576,8 @@ export function useClipDrag({
       moveSelectedClips,
       resolveDrop,
       history,
-      storeApi
+      storeApi,
+      beginSlipDrag
     ]
   );
 

@@ -45,8 +45,14 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
   trackpad pinch — Chromium reports one as a synthetic ctrlKey wheel, Safari as
   WebKit gesture events, and both land on the same anchored zoom. A two-finger
   horizontal swipe or Shift+wheel pans the lanes.
-- **Source slip**: Alt+horizontal wheel over a video or audio clip moves its
-  source window while leaving its sequence position unchanged.
+- **Source slip**: Alt+horizontal wheel over a video or audio clip, or a drag
+  with the Slip tool, moves its source window while leaving its sequence
+  position unchanged.
+- **Tools**: the toolbar follows Premiere's Tools panel. Select, Track select
+  (every clip from the click on), Ripple edit, Rolling edit, Rate stretch,
+  Cut and Slip. The edge tools pick the mode in `useClipTrim`'s
+  `trimModeFor`; the body tools (Cut, Slip, Track select) act in
+  `useClipDrag`.
 
 ## Phone layout
 
