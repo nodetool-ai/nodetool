@@ -301,8 +301,8 @@ export const Playhead: React.FC<PlayheadProps> = memo(
       (e: React.PointerEvent<HTMLDivElement>) => {
         // A keyframe diamond under the line wins: the playhead parks on a
         // keyframe whenever one is clicked, and would otherwise cover it.
-        const passthrough = document
-          .elementsFromPoint(e.clientX, e.clientY)
+        // jsdom has no elementsFromPoint.
+        const passthrough = (document.elementsFromPoint?.(e.clientX, e.clientY) ?? [])
           .find(
             (el) =>
               el instanceof HTMLElement &&
