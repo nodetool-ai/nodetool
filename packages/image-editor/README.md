@@ -79,6 +79,45 @@ ops (`fillRegion`, `adjustImage`, `pickPixel`, selection builders) need no
 canvas. Drawing ops (`drawGradient`, `drawShape`, `transformRaster`, `cropRaster`)
 take a `RasterContext2D` — a DOM or skia 2D context.
 
+## Compositing
+
+`@nodetool-ai/image-editor/render.js` holds the rules that turn a sketch
+document into pixels: load-time normalization of transforms and effects
+(`normalizeLayerTransform`, `normalizeLayerEffects`), visibility through groups
+and group opacity, where a layer raster lands, affine and quad transforms, and
+the CSS filter chain behind layer effects. The web editor's Canvas2D runtime
+composites through these functions.
+
+`renderSketchDocument(document, host, options)` composites a whole persisted
+document in one pass, as the editor's PNG export does. The host supplies
+surfaces, image decoding and the blend table, so the module needs no canvas
+library and no storage access:
+
+```ts
+import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
+import { renderSketchDocument } from "@nodetool-ai/image-editor/render.js";
+
+const result = await renderSketchDocument(imageDocument, {
+  createSurface: (w, h) => createCanvas(w, h),
+  loadImage: (source) => loadImage(decodeDataUrl(source)),
+  compositeOperation: blendModeToCanvasOp,
+  supportsFilter: true
+}, { width: 512 });
+```
+
+`options.layerId` renders one layer without its opacity or blend mode, and
+each entry of `result.layers` reports whether that layer was drawn.
+`@nodetool-ai/agents/sketch-render` is the complete Node host behind
+`nodetool sketch render` and the `render_sketch` tool.
+
+## PSD
+
+`@nodetool-ai/image-editor/psd.js` writes layered Photoshop files: `encodePsd`
+for a layer tree, and `encodeSketchPsd` for a sketch, given each layer's pixels
+at document size and the flattened composite. The editor's Export PSD and the
+headless renderer both use it.
+
 ## Usage
 
 ```ts

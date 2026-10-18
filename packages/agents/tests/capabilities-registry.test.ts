@@ -289,6 +289,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   recorded_voice_replacement: "write",
   refine_image_brief: "write",
   render_model3d: "write",
+  render_sketch: "write",
   render_storyboard_clips: "write",
   render_timeline: "write",
   render_storyboard_stills: "write",
