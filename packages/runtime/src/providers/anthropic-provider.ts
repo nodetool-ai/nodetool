@@ -1089,7 +1089,7 @@ export class AnthropicProvider extends BaseProvider {
       args.toolChoice && implicitThinking
     );
     const thinkingEnabled =
-      explicitThinking || (implicitThinking && !thinkingSuppressedByToolChoice);
+      explicitThinking || (implicitThinking && !args.toolChoice);
     const toolChoice = args.toolChoice
       ? args.toolChoice === "any"
         ? { type: "any" }
@@ -1107,18 +1107,14 @@ export class AnthropicProvider extends BaseProvider {
     // outright, and once thinking is on the only value Anthropic still accepts
     // is a top_p of 0.95 or above under a manual budget.
     const sampling: { temperature?: number; top_p?: number } = {};
+    const keepsTopP =
+      thinking?.type === "manual" && args.topP != null && args.topP >= 0.95;
     if (!rejectsCustomSampling(args.model)) {
-      if (!thinkingEnabled) {
-        if (args.temperature != null) {
-          sampling.temperature = args.temperature;
-        } else if (args.topP != null) {
-          sampling.top_p = args.topP;
-        }
-      } else if (
-        thinking?.type === "manual" &&
-        args.topP != null &&
-        args.topP >= 0.95
-      ) {
+      if (thinkingEnabled) {
+        if (keepsTopP) sampling.top_p = args.topP;
+      } else if (args.temperature != null) {
+        sampling.temperature = args.temperature;
+      } else if (args.topP != null) {
         sampling.top_p = args.topP;
       }
     }
