@@ -7,7 +7,9 @@
  */
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import { isObjectLike, isString, type ApplicationBundle } from "@nodetool-ai/app-runtime";
+import { isString, type ApplicationBundle } from "@nodetool-ai/app-runtime";
+
+import { bundleContent, isContentRecord, type BundleContent } from "./bundle-content.js";
 
 const SCHEME = "package://";
 
@@ -29,7 +31,7 @@ export function packageAssetPath(uri: string): string | null {
 /** Every distinct `package://` URI in the app document and its graphs. */
 export function packageAssetUris(bundle: ApplicationBundle): string[] {
   const found = new Set<string>();
-  const visit = (value: unknown, depth: number): void => {
+  const visit = (value: BundleContent, depth: number): void => {
     if (depth > 64) return;
     if (isString(value)) {
       if (packageAssetPath(value)) found.add(value);
@@ -39,12 +41,12 @@ export function packageAssetUris(bundle: ApplicationBundle): string[] {
       for (const item of value) visit(item, depth + 1);
       return;
     }
-    if (isObjectLike(value)) {
+    if (isContentRecord(value)) {
       for (const entry of Object.values(value)) visit(entry, depth + 1);
     }
   };
-  visit(bundle.app, 0);
-  for (const workflow of bundle.workflows) visit(workflow.graph, 0);
+  visit(bundleContent(bundle.app), 0);
+  for (const workflow of bundle.workflows) visit(bundleContent(workflow.graph), 0);
   return [...found].sort();
 }
 

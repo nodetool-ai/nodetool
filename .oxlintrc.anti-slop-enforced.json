@@ -320,6 +320,7 @@
     },
     {
       "files": [
+        "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
         "packages/automation-nodes/src/**",

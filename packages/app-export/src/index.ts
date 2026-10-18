@@ -20,6 +20,7 @@ import {
   WIDGET_CATALOG,
   type ApplicationBundle
 } from "@nodetool-ai/app-runtime";
+import { bundleContent, isContentRecord, type BundleContent } from "./bundle-content.js";
 import { packageAssetPath, packageAssetUris, type PackageAssetFile } from "./package-assets.js";
 import { TEMPLATE_FILES } from "./template-files.generated.js";
 
@@ -125,13 +126,13 @@ export function requiredSecretNames(
   providerSecretKey: (provider: string) => string | null
 ): string[] {
   const names = new Set<string>();
-  const visitValue = (value: unknown, depth: number): void => {
+  const visitValue = (value: BundleContent, depth: number): void => {
     if (depth > 8) return;
     if (Array.isArray(value)) {
       for (const item of value) visitValue(item, depth + 1);
       return;
     }
-    if (!isRecord(value)) return;
+    if (!isContentRecord(value)) return;
     if (
       isString(value.type) &&
       value.type.endsWith("_model") &&
@@ -152,7 +153,7 @@ export function requiredSecretNames(
           if (key) names.add(key);
         }
       }
-      visitValue(node.data ?? node.properties, 0);
+      visitValue(bundleContent(node.data ?? node.properties), 0);
     }
   }
   // A script reads only the secrets its document declares.
@@ -169,25 +170,25 @@ export function requiredSecretNames(
 
 /** True when a graph carries a model reference with no model chosen. */
 export function hasUnsetModel(bundle: ApplicationBundle): boolean {
-  const visit = (value: unknown, depth: number): boolean => {
+  const visit = (value: BundleContent, depth: number): boolean => {
     if (depth > 8) return false;
     if (Array.isArray(value)) return value.some((item) => visit(item, depth + 1));
-    if (!isRecord(value)) return false;
+    if (!isContentRecord(value)) return false;
     if (isString(value.type) && value.type.endsWith("_model") && "id" in value) {
       return !isString(value.id) || value.id === "";
     }
     return Object.values(value).some((entry) => visit(entry, depth + 1));
   };
-  return bundle.workflows.some((workflow) => visit(workflow.graph.nodes, 0));
+  return bundle.workflows.some((workflow) => visit(bundleContent(workflow.graph.nodes), 0));
 }
 
-function collectWidgetTypes(value: unknown, into: Set<string>, depth = 0): void {
+function collectWidgetTypes(value: BundleContent, into: Set<string>, depth = 0): void {
   if (depth > 64) return;
   if (Array.isArray(value)) {
     for (const item of value) collectWidgetTypes(item, into, depth + 1);
     return;
   }
-  if (!isRecord(value)) return;
+  if (!isContentRecord(value)) return;
   if (isString(value.type) && isRecord(value.props)) into.add(value.type);
   for (const entry of Object.values(isRecord(value.props) ? value.props : value)) {
     collectWidgetTypes(entry, into, depth + 1);
@@ -209,7 +210,7 @@ export function exportWarnings(bundle: ApplicationBundle): string[] {
     warnings.push("Resource bindings read NodeTool documents, which the exported app has no database for.");
   }
   const types = new Set<string>();
-  collectWidgetTypes(bundle.app.ui.content, types);
+  collectWidgetTypes(bundleContent(bundle.app.ui.content), types);
   for (const type of [...types].sort()) {
     if (NODETOOL_ONLY_WIDGETS.has(type)) {
       warnings.push(`${WIDGET_CATALOG[type]?.label ?? type} widgets show a note instead of the NodeTool editor.`);
