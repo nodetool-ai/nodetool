@@ -420,6 +420,11 @@ because they only render pages and never run a node.
 
 - `NODETOOL_FAKE_DEBUG=1` logs each node's REAL/FAKE resolution to stderr, which
   is how you find out why a node you expected to be faked ran for real.
+- `NODETOOL_REAL_PROVIDERS` lists provider ids, comma-separated, that stay real
+  while every other provider is faked. An agent eval uses it to drive a real
+  model against fake image, video and speech providers. Ids are trimmed and
+  empty entries are dropped. It has no effect unless
+  `NODETOOL_FAKE_PROVIDERS=1`.
 - `NODETOOL_ENABLE_FAKE_PROVIDER=1` registers the separate `fake` provider id as
   a builtin, so a workflow can select it the way it selects any other provider.
   Ignored when `NODETOOL_ENV=production`.
@@ -677,6 +682,7 @@ missing binary.
 | `NODETOOL_E2E_EXAMPLES_DIR` | Examples directory the e2e test server serves at `/api/examples` | no | A path that does not exist is ignored; the server then tries `packages/base-nodes/nodetool/examples/nodetool-base` and `examples/workflows` under the repo root |
 | `NODETOOL_FAKE_PROVIDERS` | Run the user-journey backend hermetically — every LLM provider and every external/media node is a deterministic fake | no | `1` only. `npm run test:journeys` sets it itself; the screenshot and visual suites leave it off. Structural and pure-compute nodes still run for real. See [Hermetic providers](#hermetic-providers) |
 | `NODETOOL_FAKE_DEBUG` | Log each node's REAL/FAKE resolution in hermetic mode | no | `1` only, written to stderr. Use it when a node you expected to be faked ran for real |
+| `NODETOOL_REAL_PROVIDERS` | Provider ids that stay real in hermetic mode | no | Comma-separated, for example `claude_agent_sdk`. Every other provider is faked. Needs `NODETOOL_FAKE_PROVIDERS=1`. See [Hermetic providers](#hermetic-providers) |
 | `NODETOOL_ENABLE_FAKE_PROVIDER` | Register the `fake` provider id as a builtin, so a workflow can select it | no | `1` only, and ignored when `NODETOOL_ENV=production`. Separate from `NODETOOL_FAKE_PROVIDERS`, which fakes the providers that are already registered |
 | `NODETOOL_PACK_SEARCH_PATHS` | Extra `node_modules` directories to load node packs from | no | Comma-, semicolon-, or `PATH`-separator-delimited (`:` is not a separator on Windows, so drive letters survive). Paths that do not exist are dropped. Searched before the walk up from the working directory. See [Node Packs](node-packs.md) |
 | `NODETOOL_OPTIONAL_NODE_MODULES` | A single extra `node_modules` directory for pack loading | no | The one-path form of `NODETOOL_PACK_SEARCH_PATHS`; both are read, and the desktop app uses this to point the loader at its bundled install root |
