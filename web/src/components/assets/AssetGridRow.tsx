@@ -1,8 +1,7 @@
 import React, { useCallback, useMemo } from "react";
 import {
   AssetOrDivider,
-  DIVIDER_HEIGHT,
-  getExtraFooterSpace
+  DIVIDER_HEIGHT
 } from "./assetGridUtils";
 import AssetItem from "./AssetItem";
 import { colorForType } from "../../config/data_types";
@@ -29,9 +28,7 @@ interface AssetGridRowProps {
   data: {
     getItemsForRow: (_index: number) => AssetOrDivider[];
     gridDimensions: { itemWidth: number; itemHeight: number; columns: number };
-    footerHeight: number;
     itemSpacing: number;
-    assetItemSize: number;
     selectedAssetIds: string[];
     handleSelectAsset: (_id: string) => void;
     onDragStart: (_id: string) => string[];
@@ -45,9 +42,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const {
     getItemsForRow,
     gridDimensions,
-    footerHeight,
     itemSpacing,
-    assetItemSize,
     selectedAssetIds,
     handleSelectAsset,
     onDoubleClick,
@@ -113,7 +108,6 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   }
 
   const isDividerRow = rowItems[0]?.isDivider;
-  const extraFooterSpace = getExtraFooterSpace(assetItemSize);
 
   if (isDividerRow) {
     const divider = rowItems[0];
@@ -199,9 +193,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             key={`asset-${item.id}`}
             style={{
               width: `${gridDimensions.itemWidth}px`,
-              height: `${
-                gridDimensions.itemHeight + footerHeight + extraFooterSpace
-              }px`,
+              height: `${gridDimensions.itemHeight}px`,
               padding: `${itemSpacing}px`,
               flexShrink: 0,
               boxSizing: "border-box"

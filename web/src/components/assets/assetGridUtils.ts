@@ -19,25 +19,6 @@ export function isAssetItem(
   return !item.isDivider;
 }
 
-export const getFooterHeight = (size: number): number => {
-  switch (size) {
-    case 1:
-      return 5;
-    // Room for a two-line name under the thumbnail.
-    case 2:
-    case 3:
-      return 48;
-    case 4:
-    case 5:
-      return 30;
-    default:
-      return 10;
-  }
-};
-
-export const getExtraFooterSpace = (assetItemSize: number): number => {
-  return assetItemSize > 3 ? assetItemSize * 8 : 0;
-};
 export const DIVIDER_HEIGHT = 30;
 
 export const calculateGridDimensions = (

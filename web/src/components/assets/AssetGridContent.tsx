@@ -14,12 +14,10 @@ import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 import AssetGridRow from "./AssetGridRow";
 import {
-  getFooterHeight,
   calculateGridDimensions,
   prepareItems,
   calculateRowCount,
   getItemsForRow,
-  getExtraFooterSpace,
   isAssetItem,
   DIVIDER_HEIGHT
 } from "./assetGridUtils";
@@ -151,10 +149,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
-  const footerHeight = useMemo(
-    () => getFooterHeight(assetItemSize),
-    [assetItemSize]
-  );
 
   const updateGridDimensions = useCallback(
     (width: number) => {
@@ -224,22 +218,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
       if (rowItems[0]?.isDivider) {
         return DIVIDER_HEIGHT;
       }
-      // Add extra space for filenames when item size is large (matching AssetGridRow logic)
-      const extraFooterSpace = getExtraFooterSpace(assetItemSize);
-      return (
-        gridDimensions.itemHeight +
-        footerHeight +
-        extraFooterSpace +
-        itemSpacing * 2
-      );
+      return gridDimensions.itemHeight + itemSpacing * 2;
     },
-    [
-      preparedItems,
-      gridDimensions,
-      footerHeight,
-      itemSpacing,
-      assetItemSize
-    ]
+    [preparedItems, gridDimensions, itemSpacing]
   );
 
   // Separate stable data from selection state to prevent unnecessary re-renders
@@ -248,9 +229,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
       getItemsForRow: (index: number) =>
         getItemsForRow(preparedItems, index, gridDimensions.columns),
       gridDimensions,
-      footerHeight,
       itemSpacing,
-      assetItemSize,
       handleSelectAsset,
       onDragStart,
       onDoubleClick: onDoubleClick || (() => {}),
@@ -260,9 +239,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   }, [
     preparedItems,
     gridDimensions,
-    footerHeight,
     itemSpacing,
-    assetItemSize,
     handleSelectAsset,
     onDragStart,
     onDoubleClick,

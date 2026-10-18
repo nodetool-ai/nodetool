@@ -1,8 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import {
   isAssetItem,
-  getFooterHeight,
-  getExtraFooterSpace,
   getAssetCategory,
   calculateGridDimensions,
   calculateRowCount,
@@ -50,47 +48,6 @@ describe("isAssetItem", () => {
   it("returns false for a divider item", () => {
     const item = makeDivider("image", 5);
     expect(isAssetItem(item)).toBe(false);
-  });
-});
-
-describe("getFooterHeight", () => {
-  it("returns 5 for size 1", () => {
-    expect(getFooterHeight(1)).toBe(5);
-  });
-
-  it("returns 48 for size 2", () => {
-    expect(getFooterHeight(2)).toBe(48);
-  });
-
-  it("returns 48 for size 3", () => {
-    expect(getFooterHeight(3)).toBe(48);
-  });
-
-  it("returns 30 for size 4", () => {
-    expect(getFooterHeight(4)).toBe(30);
-  });
-
-  it("returns 30 for size 5", () => {
-    expect(getFooterHeight(5)).toBe(30);
-  });
-
-  it("returns 10 for an unrecognized size", () => {
-    expect(getFooterHeight(0)).toBe(10);
-    expect(getFooterHeight(99)).toBe(10);
-  });
-});
-
-describe("getExtraFooterSpace", () => {
-  it("returns 0 when assetItemSize is 3 or less", () => {
-    expect(getExtraFooterSpace(1)).toBe(0);
-    expect(getExtraFooterSpace(2)).toBe(0);
-    expect(getExtraFooterSpace(3)).toBe(0);
-  });
-
-  it("returns assetItemSize * 8 when assetItemSize exceeds 3", () => {
-    expect(getExtraFooterSpace(4)).toBe(32);
-    expect(getExtraFooterSpace(5)).toBe(40);
-    expect(getExtraFooterSpace(10)).toBe(80);
   });
 });
 

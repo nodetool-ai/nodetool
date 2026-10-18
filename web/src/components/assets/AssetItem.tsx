@@ -100,7 +100,8 @@ const styles = (theme: Theme) =>
       inset: 0,
       pointerEvents: "none",
       background: `linear-gradient(180deg, ${theme.vars.palette.c_overlay}, transparent 32%)`,
-      transition: MOTION.background,
+      opacity: 0,
+      transition: `${MOTION.background}, ${MOTION.opacity}`,
       ...reducedMotion({ transition: MOTION.none })
     },
     ".asset .image, .asset .image-aspect-ratio": {
@@ -146,6 +147,15 @@ const styles = (theme: Theme) =>
       lineHeight: "0.95em",
       margin: `${getSpacingPx(SPACING.micro)} 0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.micro)}`
     },
+    ".info, .asset-caption, .asset .asset-favorite": {
+      opacity: 0,
+      transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none })
+    },
+    "&:hover .info, &:hover .asset-caption, &:hover .asset::after, &:focus-visible .info, &:focus-visible .asset-caption, &:focus-visible .asset::after, &:hover .asset .asset-favorite, &:focus-within .asset .asset-favorite, .asset .asset-favorite.is-favorite":
+      {
+        opacity: 1
+      },
     ".info": {
       position: "absolute",
       pointerEvents: "none",
@@ -158,9 +168,20 @@ const styles = (theme: Theme) =>
       wordBreak: "break-word",
       width: "fit-content"
     },
+    ".asset-caption": {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: Z_INDEX.raised,
+      pointerEvents: "none",
+      // Leaves room for the star in the bottom-right corner.
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.sm)}`,
+      background: `linear-gradient(0deg, ${theme.vars.palette.c_scrim}, transparent)`
+    },
     ".name": {
       position: "relative",
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
+      margin: 0,
       width: "100%",
       height: "auto",
       // Clamp to two lines so near-identical names (inpaint-result.png vs
@@ -176,22 +197,23 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: FONT_WEIGHT.medium,
       lineHeight: "1.25em",
-      color: theme.vars.palette.grey[100]
+      // Fixed light text: the scrim is dark in both schemes.
+      color: theme.vars.palette.common.white
     },
     ".name.large": {
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.25em",
       marginTop: 0
     },
-    ".date": {
+    ".meta": {
       position: "relative",
-      padding: `0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
+      margin: `${getSpacingPx(SPACING.micro)} 0 0`,
       width: "100%",
       textAlign: "left",
       fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily2,
       lineHeight: "1.2em",
-      color: theme.vars.palette.grey[400],
+      color: `rgb(${theme.vars.palette.common.whiteChannel} / 0.7)`,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
@@ -216,11 +238,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.common.white,
       fontSize: theme.fontSizeSmaller,
       fontWeight: FONT_WEIGHT.normal
-    },
-    ".duration": {
-      bottom: "2px",
-      right: "0.25em",
-      color: theme.vars.palette.common.white
     },
     "img, video": {
       position: "absolute",
@@ -255,16 +272,9 @@ const styles = (theme: Theme) =>
     ".asset-favorite": {
       position: "absolute",
       bottom: getSpacingPx(SPACING.micro),
-      left: getSpacingPx(SPACING.micro),
-      zIndex: Z_INDEX.raised,
-      opacity: 0,
-      transition: MOTION.opacity,
-      ...reducedMotion({ transition: MOTION.none })
+      right: getSpacingPx(SPACING.micro),
+      zIndex: Z_INDEX.raised
     },
-    "&:hover .asset-favorite, &:focus-within .asset-favorite, .asset-favorite.is-favorite":
-      {
-        opacity: 1
-      },
     ".asset-delete": {
       pointerEvents: "none",
       opacity: 0,
@@ -465,6 +475,15 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   );
   const imageUrl = isSvg ? asset.get_url : rasterThumbUrl;
 
+  const metaLine = [
+    assetsOrder === "date" && asset.created_at && assetItemSize > 2
+      ? new Date(asset.created_at).toLocaleDateString()
+      : null,
+    showDuration && asset.duration ? secondsToHMS(asset.duration) : null
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   const handleAudioClick = useCallback(() => {
     onSetCurrentAudioAsset?.(asset);
   }, [asset, onSetCurrentAudioAsset]);
@@ -555,19 +574,12 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           />
         )}
         {isAudio && (
-          <>
-            <AudioFileIcon
-              style={{ color: `var(--c_${assetType})` }}
-              onClick={handleAudioClick}
-              className="placeholder"
-              titleAccess={asset.content_type || "Audio file"}
-            />
-            {showDuration && asset.duration && assetItemSize > 1 && (
-              <Text className="duration info">
-                {secondsToHMS(asset.duration)}
-              </Text>
-            )}
-          </>
+          <AudioFileIcon
+            style={{ color: `var(--c_${assetType})` }}
+            onClick={handleAudioClick}
+            className="placeholder"
+            titleAccess={asset.content_type || "Audio file"}
+          />
         )}
         {isVideo && (
           <>
@@ -583,12 +595,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 style={{ color: `var(--c_${assetType})`, zIndex: Z_INDEX.raised }}
                 titleAccess={asset.content_type || "Video file"}
               />
-            )}
-
-            {showDuration && asset.duration && assetItemSize > 1 && (
-              <Text className="duration info">
-                {secondsToHMS(asset.duration)}
-              </Text>
             )}
           </>
         )}
@@ -649,6 +655,16 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             onToggle={handleToggleFavorite}
           />
         )}
+        {showInfo && showName && assetItemSize > 1 && (
+          <div className="asset-caption">
+            <Text
+              className={`name ${assetItemSize > 4 ? "large" : ""}`}
+            >
+              {asset.name}
+            </Text>
+            {metaLine && <Text className="meta">{metaLine}</Text>}
+          </div>
+        )}
         {asset.offline === true && (
           <StatusPill
             tone="failed"
@@ -692,21 +708,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 {formatFileSize(asset.size)}
               </Text>
             )}
-          {showName && assetItemSize > 1 && (
-            <Text
-              aria-label={asset.name}
-              data-microtip-position="bottom"
-              role="tooltip"
-              className={`name info ${assetItemSize > 4 ? "large" : ""}`}
-            >
-              {asset.name}
-            </Text>
-          )}
-          {assetsOrder === "date" && asset.created_at && assetItemSize > 2 && (
-            <Text className="date">
-              {new Date(asset.created_at).toLocaleDateString()}
-            </Text>
-          )}
         </>
       )}
     </div>
