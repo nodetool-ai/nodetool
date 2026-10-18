@@ -697,6 +697,16 @@ export interface TimelineStoreState {
     property: AnimatedProperty,
     atMs: number
   ) => void;
+  /**
+   * One keyframe edit as one undo step: `edit` returns the patch to apply
+   * (new `animations`, and the authored value it bakes into, such as
+   * `transform` when a stopwatch turns off), or null to leave the clip alone.
+   * Refused on a locked clip, like the single-keyframe actions.
+   */
+  editClipKeyframes: (
+    clipId: string,
+    edit: (clip: TimelineClip) => Partial<TimelineClip> | null
+  ) => void;
 
   /**
    * Add the marked range of an asset as a clip (three-point editing from the
@@ -3300,6 +3310,19 @@ export const createTimelineStore = (
             return {
               clips: state.clips.map((c) =>
                 c.id === clipId ? { ...c, animations } : c
+              )
+            };
+          }),
+
+        editClipKeyframes: (clipId, edit) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip || clipLockError(state, clipId)) return state;
+            const patch = edit(clip);
+            if (!patch) return state;
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, ...patch } : c
               )
             };
           }),

@@ -40,6 +40,12 @@ import {
 } from "../../ui_primitives";
 import { useModel3DBake } from "../../../hooks/timeline/useModel3DBake";
 import { usePersistedFold } from "./usePersistedFold";
+import { KeyframedPropertyRow } from "./KeyframedPropertyRow";
+import {
+  CAMERA_FOV_ROW,
+  CAMERA_ORBIT_ROW,
+  CAMERA_ZOOM_ROW
+} from "./keyframeRows";
 import {
   InspectorDivider,
   InspectorPillInput,
@@ -70,9 +76,6 @@ const LIGHTING_PRESETS = [
 /** The picker value that means "whatever the glTF lists first / all of them". */
 const AUTO = "";
 
-const SCRUB_DEGREES = { step: 1 };
-const SCRUB_ZOOM = { step: 0.01, min: 0.05 };
-const SCRUB_FOV = { step: 1, min: 1, max: 170 };
 const SCRUB_SPEED = { step: 0.01, min: 0.05, max: 8 };
 
 
@@ -147,28 +150,6 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
     const handleModeChange = useCallback(
       (value: string) =>
         patchStyle({ camera: { mode: value as Model3DCameraMode } }),
-      [patchStyle]
-    );
-    const handleAzimuthCommit = useCallback(
-      (raw: string) =>
-        commitNumber(raw, (azimuthDeg) => patchStyle({ camera: { azimuthDeg } })),
-      [patchStyle]
-    );
-    const handleElevationCommit = useCallback(
-      (raw: string) =>
-        commitNumber(raw, (elevationDeg) =>
-          patchStyle({ camera: { elevationDeg } })
-        ),
-      [patchStyle]
-    );
-    const handleFovCommit = useCallback(
-      (raw: string) =>
-        commitNumber(raw, (fovDeg) => patchStyle({ camera: { fovDeg } }), 0, true),
-      [patchStyle]
-    );
-    const handleZoomCommit = useCallback(
-      (raw: string) =>
-        commitNumber(raw, (zoom) => patchStyle({ camera: { zoom } }), 0, true),
       [patchStyle]
     );
     const handleSceneCameraChange = useCallback(
@@ -248,42 +229,9 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
 
             {camera.mode === "orbit" && (
               <>
-                <InspectorRow label="Orbit">
-                  <InspectorPillInput
-                    value={camera.azimuthDeg.toFixed(1)}
-                    unit="°"
-                    minWidth={64}
-                    scrub={SCRUB_DEGREES}
-                    onCommit={handleAzimuthCommit}
-                    ariaLabel="Camera azimuth"
-                  />
-                  <InspectorPillInput
-                    value={camera.elevationDeg.toFixed(1)}
-                    unit="°"
-                    minWidth={64}
-                    scrub={SCRUB_DEGREES}
-                    onCommit={handleElevationCommit}
-                    ariaLabel="Camera elevation"
-                  />
-                </InspectorRow>
-                <InspectorRow label="Lens">
-                  <InspectorPillInput
-                    value={camera.fovDeg.toFixed(1)}
-                    unit="°"
-                    minWidth={64}
-                    scrub={SCRUB_FOV}
-                    onCommit={handleFovCommit}
-                    ariaLabel="Camera field of view"
-                  />
-                  <InspectorPillInput
-                    value={camera.zoom.toFixed(2)}
-                    unit="×"
-                    minWidth={64}
-                    scrub={SCRUB_ZOOM}
-                    onCommit={handleZoomCommit}
-                    ariaLabel="Camera zoom"
-                  />
-                </InspectorRow>
+                <KeyframedPropertyRow clip={clip} row={CAMERA_ORBIT_ROW} />
+                <KeyframedPropertyRow clip={clip} row={CAMERA_FOV_ROW} />
+                <KeyframedPropertyRow clip={clip} row={CAMERA_ZOOM_ROW} />
               </>
             )}
 

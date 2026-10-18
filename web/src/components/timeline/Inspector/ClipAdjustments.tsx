@@ -27,7 +27,12 @@ import type {
   ClipTransform,
   TimelineClip
 } from "@nodetool-ai/timeline";
-import { hasCrop, isCropUsable, parseClipFadeShape } from "@nodetool-ai/timeline";
+import {
+  clearKeyframes,
+  hasCrop,
+  isCropUsable,
+  parseClipFadeShape
+} from "@nodetool-ai/timeline";
 import { BLEND_MODES } from "@nodetool-ai/gpu";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -52,6 +57,13 @@ import { ClipAudioEffects } from "./ClipAudioEffects";
 import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipMaskMatte } from "./ClipMaskMatte";
 import { ClipTransitionSection } from "./ClipTransitionSection";
+import { KeyframedPropertyRow } from "./KeyframedPropertyRow";
+import {
+  OPACITY_ROW,
+  POSITION_ROW,
+  ROTATION_ROW,
+  SCALE_ROW
+} from "./keyframeRows";
 
 // ── Effect IDs ─────────────────────────────────────────────────────────────
 
@@ -64,6 +76,8 @@ const IDENTITY_TRANSFORM: ClipTransform = {
   rotation: 0,
   anchor: { x: 0.5, y: 0.5 }
 };
+
+const TRANSFORM_KEYFRAMES = ["offsetX", "offsetY", "scale", "rotation"] as const;
 
 const NO_CROP: ClipCrop = { left: 0, right: 0, top: 0, bottom: 0 };
 
@@ -113,9 +127,6 @@ function upsertEffect(
 // Hoisted so InspectorPillInput's memo holds: an inline literal would be a
 // fresh reference every render, re-rendering every pill whenever one changed.
 const SCRUB_SECONDS = { step: 0.02, min: 0 };
-const SCRUB_PIXELS = { step: 1 };
-const SCRUB_SCALE = { step: 0.01 };
-const SCRUB_DEGREES = { step: 0.5 };
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -164,10 +175,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
 
     // ── Render section ─────────────────────────────────────────────────────
 
-    const handleOpacityChange = useCallback(
-      (value: number) => patchClip(clip.id, { opacity: value }),
-      [clip.id, patchClip]
-    );
     const handleBlendModeChange = useCallback(
       (value: string) => patchClip(clip.id, { blendMode: value as BlendMode }),
       [clip.id, patchClip]
@@ -223,51 +230,6 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       (next: ClipTransform) => patchClip(clip.id, { transform: next }),
       [clip.id, patchClip]
     );
-    const handlePositionXCommit = useCallback(
-      (raw: string) => {
-        const n = parseFiniteNumber(raw);
-        if (n === null) return;
-        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
-        setTransform({ ...t, position: { ...t.position, x: n } });
-      },
-      [setTransform]
-    );
-    const handlePositionYCommit = useCallback(
-      (raw: string) => {
-        const n = parseFiniteNumber(raw);
-        if (n === null) return;
-        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
-        setTransform({ ...t, position: { ...t.position, y: n } });
-      },
-      [setTransform]
-    );
-    const handleScaleXCommit = useCallback(
-      (raw: string) => {
-        const n = parseFiniteNumber(raw);
-        if (n === null || n <= 0) return;
-        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
-        setTransform({ ...t, scale: { ...t.scale, x: n } });
-      },
-      [setTransform]
-    );
-    const handleScaleYCommit = useCallback(
-      (raw: string) => {
-        const n = parseFiniteNumber(raw);
-        if (n === null || n <= 0) return;
-        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
-        setTransform({ ...t, scale: { ...t.scale, y: n } });
-      },
-      [setTransform]
-    );
-    const handleRotationCommit = useCallback(
-      (raw: string) => {
-        const n = parseFiniteNumber(raw);
-        if (n === null) return;
-        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
-        setTransform({ ...t, rotation: (n * Math.PI) / 180 });
-      },
-      [setTransform]
-    );
     const handleAnchorXChange = useCallback(
       (value: number) => {
         const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
@@ -321,7 +283,9 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
         patchClip(clip.id, {
           transform: undefined,
           borderRadius: undefined,
-          crop: undefined
+          crop: undefined,
+          // Reset means the clip sits still again, as in Premiere.
+          animations: clearKeyframes(clipRef.current, TRANSFORM_KEYFRAMES)
         }),
       [clip.id, patchClip]
     );
@@ -421,18 +385,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           unmountOnExit
         >
           <FlexColumn css={sectionContentStyles(theme)}>
-            {!isSounding && (
-              <InspectorSliderRow
-                label="Opacity"
-                min={0}
-                max={1}
-                step={0.01}
-                value={clip.opacity ?? 1}
-                display={`${Math.round((clip.opacity ?? 1) * 100)}%`}
-                onChange={handleOpacityChange}
-                resetValue={1}
-              />
-            )}
+            {!isSounding && <KeyframedPropertyRow clip={clip} row={OPACITY_ROW} />}
             {isOverlay && !isSounding && (
               <InspectorRow label="Blend">
                 <InspectorSelect
@@ -517,51 +470,9 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
               unmountOnExit
             >
               <FlexColumn css={sectionContentStyles(theme)}>
-                <InspectorRow label="Position">
-                  <InspectorPillInput
-                    value={transform.position.x.toFixed(0)}
-                    unit="px"
-                    minWidth={64}
-                    scrub={SCRUB_PIXELS}
-                    onCommit={handlePositionXCommit}
-                    ariaLabel="Position X"
-                  />
-                  <InspectorPillInput
-                    value={transform.position.y.toFixed(0)}
-                    unit="px"
-                    minWidth={64}
-                    scrub={SCRUB_PIXELS}
-                    onCommit={handlePositionYCommit}
-                    ariaLabel="Position Y"
-                  />
-                </InspectorRow>
-                <InspectorRow label="Scale">
-                  <InspectorPillInput
-                    value={transform.scale.x.toFixed(2)}
-                    unit="×"
-                    minWidth={64}
-                    scrub={SCRUB_SCALE}
-                    onCommit={handleScaleXCommit}
-                    ariaLabel="Scale X"
-                  />
-                  <InspectorPillInput
-                    value={transform.scale.y.toFixed(2)}
-                    unit="×"
-                    minWidth={64}
-                    scrub={SCRUB_SCALE}
-                    onCommit={handleScaleYCommit}
-                    ariaLabel="Scale Y"
-                  />
-                </InspectorRow>
-                <InspectorRow label="Rotation">
-                  <InspectorPillInput
-                    value={((transform.rotation * 180) / Math.PI).toFixed(1)}
-                    unit="°"
-                    scrub={SCRUB_DEGREES}
-                    onCommit={handleRotationCommit}
-                    ariaLabel="Rotation in degrees"
-                  />
-                </InspectorRow>
+                <KeyframedPropertyRow clip={clip} row={POSITION_ROW} />
+                <KeyframedPropertyRow clip={clip} row={SCALE_ROW} />
+                <KeyframedPropertyRow clip={clip} row={ROTATION_ROW} />
                 <InspectorSliderRow
                   label="Anchor X"
                   min={0}
