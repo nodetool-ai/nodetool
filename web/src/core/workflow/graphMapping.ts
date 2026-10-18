@@ -251,7 +251,48 @@ export const isValidEdge = (
 };
 
 /**
- * Removes invalid parent references and edges to keep graph data consistent.
+ * Reorders nodes so every group comes before the nodes inside it, keeping the
+ * original order otherwise. A member's `position` is relative to its parent,
+ * and ReactFlow resolves it only when the parent is already earlier in the
+ * array; a member listed first is drawn at its relative offset from the
+ * canvas origin. Returns the input array when it is already in order.
+ */
+export const orderParentsFirst = <T extends Pick<Node, "id" | "parentId">>(
+  nodes: T[]
+): T[] => {
+  const byId = new Map(nodes.map((node) => [node.id, node] as const));
+  const seen = new Set<string>();
+  const inOrder = nodes.every((node) => {
+    seen.add(node.id);
+    return !node.parentId || !byId.has(node.parentId) || seen.has(node.parentId);
+  });
+  if (inOrder) {
+    return nodes;
+  }
+
+  const ordered: T[] = [];
+  const placed = new Set<string>();
+  const visiting = new Set<string>();
+  const place = (node: T): void => {
+    if (placed.has(node.id) || visiting.has(node.id)) {
+      return;
+    }
+    visiting.add(node.id);
+    const parent = node.parentId ? byId.get(node.parentId) : undefined;
+    if (parent) {
+      place(parent);
+    }
+    visiting.delete(node.id);
+    placed.add(node.id);
+    ordered.push(node);
+  };
+  nodes.forEach(place);
+  return ordered;
+};
+
+/**
+ * Removes invalid parent references and edges to keep graph data consistent,
+ * and puts every group before its members.
  */
 export const sanitizeGraph = (
   nodes: Node<NodeData>[],
@@ -358,5 +399,5 @@ export const sanitizeGraph = (
     );
   }
 
-  return { nodes: sanitizedNodes, edges: sanitizedEdges };
+  return { nodes: orderParentsFirst(sanitizedNodes), edges: sanitizedEdges };
 };

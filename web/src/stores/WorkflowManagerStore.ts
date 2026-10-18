@@ -53,6 +53,7 @@ import { mergeGraphLinks, type DocumentOp } from "@nodetool-ai/protocol";
 import { mergeWorkflowDocuments } from "./workflowMerge";
 import { graphNodeToReactFlowNode } from "./graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./graphEdgeToReactFlowEdge";
+import { orderParentsFirst } from "../core/workflow/graphMapping";
 import { reportDocumentConflicts } from "./documentConflictReporter";
 import { noteWorkflowCreatedHere } from "./workflowsCreatedHere";
 import { trackProductEvent } from "../lib/analytics";
@@ -104,7 +105,9 @@ function mergeExternalGraph(
   );
 
   state.applyExternalGraph(
-    merged.nodes as Node<NodeData>[],
+    // A group the server added sits at its server index, which can be after
+    // a draft node the same write moved into it.
+    orderParentsFirst(merged.nodes as Node<NodeData>[]),
     merged.edges as Edge[],
     { etag: fresh.etag ?? undefined, updatedAt: fresh.updated_at },
     mergeGraphLinks(
