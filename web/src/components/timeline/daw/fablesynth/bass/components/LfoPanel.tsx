@@ -3,7 +3,7 @@
 import { LfoClock } from '../../engine/lfoClock';
 
 import { useEffect, useRef } from 'react';
-import { setupCanvas } from '../../components/displays/canvas';
+import { setupCanvas, startCanvasLoop } from '../../components/displays/canvas';
 import { LFO_DIV_F } from '../../params';
 import { useBassStore } from '../bassStoreContext';
 import { BassKnob } from './BassKnob';
@@ -34,7 +34,6 @@ function LfoView() {
   propsRef.current = { shape, rate, bpm, playing };
 
   useEffect(() => {
-    let raf = 0;
     const draw = (canvas: HTMLCanvasElement) => {
       const { ctx, w, h } = setupCanvas(canvas);
       ctx.clearRect(0, 0, w, h);
@@ -61,29 +60,8 @@ function LfoView() {
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
     };
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
-    const frame = () => {
-      const canvas = canvasRef.current;
-      if (canvas) draw(canvas);
-      raf = requestAnimationFrame(frame);
-    };
-    const start = () => {
-      stop();
-      if (mq.matches) {
-        const canvas = canvasRef.current;
-        if (canvas) draw(canvas); // single static frame
-      } else {
-        raf = requestAnimationFrame(frame);
-      }
-    };
     redraw.current = () => { const canvas = canvasRef.current; if (canvas) draw(canvas); };
-    start();
-    mq.addEventListener('change', start);
-    return () => {
-      stop();
-      mq.removeEventListener('change', start);
-    };
+    return startCanvasLoop(canvasRef, draw);
     // Re-run on param changes so reduced-motion mode still repaints on knob moves.
   }, []);
 

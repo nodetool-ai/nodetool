@@ -18,3 +18,36 @@ export function setupCanvas(canvas: HTMLCanvasElement): CanvasCtx {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   return { ctx, w, h };
 }
+
+/**
+ * Drives `draw` every animation frame, or paints a single static frame while
+ * `prefers-reduced-motion` is set. Returns the cleanup function.
+ */
+export function startCanvasLoop(
+  canvasRef: { readonly current: HTMLCanvasElement | null },
+  draw: (canvas: HTMLCanvasElement) => void
+): () => void {
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let raf = 0;
+  const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
+  const frame = () => {
+    const canvas = canvasRef.current;
+    if (canvas) draw(canvas);
+    raf = requestAnimationFrame(frame);
+  };
+  const start = () => {
+    stop();
+    if (mq.matches) {
+      const canvas = canvasRef.current;
+      if (canvas) draw(canvas);
+    } else {
+      raf = requestAnimationFrame(frame);
+    }
+  };
+  start();
+  mq.addEventListener('change', start);
+  return () => {
+    stop();
+    mq.removeEventListener('change', start);
+  };
+}
