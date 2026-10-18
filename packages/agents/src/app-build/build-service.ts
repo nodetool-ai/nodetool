@@ -21,6 +21,11 @@
  * The report carries the bundle; nothing here installs it. Turning a green
  * build into an application is the caller's next call, to the normal
  * `POST /api/applications/import-bundle`.
+ *
+ * `runApplicationSpec` runs the Spec stage alone, behind
+ * `POST /api/applications/spec`. The App guided flow shows that spec for
+ * review, then passes the edited copy back as the build's `spec`, so the
+ * build is measured against what the creator read.
  */
 
 import { randomUUID } from "node:crypto";
@@ -34,14 +39,15 @@ import {
 } from "@nodetool-ai/execution/service";
 import { getSecret, Workflow } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { ProcessingContext, getProvider, isProviderConfigured, listRegisteredProviderIds, type BaseProvider } from "@nodetool-ai/runtime";
+import { CostCappedTurnBudget, ProcessingContext, getProvider, isProviderConfigured, listRegisteredProviderIds, type BaseProvider } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import {
   buildApp,
+  BUILD_MAX_OUTPUT_TOKENS,
   DEFAULT_BUILD_COST_CAP_USD,
   type BuildAppOptions
 } from "./build.js";
-import { parseBuildSpec } from "./spec.js";
+import { parseBuildSpec, runSpecStage } from "./spec.js";
 import { resolveJudgeModelSpec } from "./judge.js";
 import type { BuildReport, BuildSpec } from "./types.js";
 import { isNumber } from "../utils/type-guards.js";
@@ -139,7 +145,7 @@ function count(field: string, value: unknown): number | undefined {
   return value;
 }
 
-function resolveModel(body: AppBuildRequest) {
+function resolveModel(body: { provider?: string; model?: string }) {
   const provider = body.provider ?? process.env["NODETOOL_APP_BUILD_PROVIDER"];
   const model = body.model ?? process.env["NODETOOL_APP_BUILD_MODEL"];
   if (!provider || !model) {
@@ -349,4 +355,110 @@ function buildPayload(
       ? 'POST /api/applications/import-bundle with {"bundle": <report.bundle>} to install this app.'
       : null
   };
+}
+
+/** The request body of `POST /api/applications/spec`. */
+export interface AppSpecRequest {
+  /** What to build. */
+  prompt?: string;
+  provider?: string;
+  model?: string;
+  cost_cap_usd?: number;
+  /** Return a session id at once, as `AppBuildRequest.poll` does. */
+  poll?: boolean;
+}
+
+/**
+ * Write the spec for a prompt and stop: no plan, no workflows, no test run.
+ * The answer carries the validated spec, or the issues that kept the model
+ * from writing one. Like a build, `poll: true` fronts it with a debug session
+ * the caller reads and cancels.
+ */
+export async function runApplicationSpec(
+  userId: string,
+  body: AppSpecRequest,
+  deps: Pick<AppBuildDeps, "createProvider"> = {}
+): Promise<Record<string, unknown>> {
+  const selection = resolveModel(body);
+  const prompt = body.prompt?.trim() ?? "";
+  if (!prompt) {
+    throw new AppServiceError("invalid_input", "An app spec needs a prompt.");
+  }
+  const costCapUsd =
+    positive("cost_cap_usd", body.cost_cap_usd) ?? DEFAULT_BUILD_COST_CAP_USD;
+  const specId = `app-spec-${randomUUID()}`;
+
+  const provider = await (deps.createProvider
+    ? deps.createProvider(selection.provider, userId)
+    : getProvider(selection.provider, (key) =>
+        getSecret(key, userId).then((v) => v ?? undefined)
+      ));
+  const context = new ProcessingContext({
+    jobId: specId,
+    workflowId: null,
+    userId,
+    secretResolver: (key: string) => getSecret(key, userId),
+    storage: new FileStorageAdapter(getDefaultAssetsPath())
+  });
+  const controller = new AbortController();
+
+  // Never rejects, for the same reason as the build's promise.
+  const done: Promise<Record<string, unknown>> = (async () => {
+    try {
+      const result = await runSpecStage({
+        prompt,
+        provider,
+        model: selection.model,
+        context,
+        turnBudget: new CostCappedTurnBudget({
+          capUsd: costCapUsd,
+          maxOutputTokens: BUILD_MAX_OUTPUT_TOKENS
+        }),
+        signal: controller.signal
+      });
+      const issues = result.record.issues;
+      const payload: Record<string, unknown> = {
+        spec_id: specId,
+        status: result.spec ? "completed" : "failed",
+        spec: result.spec,
+        issues,
+        cost_usd: result.record.costUsd
+      };
+      if (!result.spec) {
+        payload["error"] =
+          issues[0]?.message ?? "the prompt could not be specified";
+      }
+      return payload;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log.error("app spec failed outside the stage", { specId, message });
+      return {
+        spec_id: specId,
+        status: "failed",
+        spec: null,
+        issues: [],
+        error: message
+      };
+    }
+  })();
+
+  const session = debugSessions.create({
+    userId,
+    workflowId: null,
+    jobId: specId,
+    handle: new InteractiveEscalationHandle(),
+    done,
+    cancel: () => controller.abort()
+  });
+
+  if (body.poll === true) {
+    return {
+      status: "running",
+      session_id: session.id,
+      spec_id: specId,
+      poll: `GET /api/debug/sessions/${session.id}`,
+      cancel: `POST /api/debug/sessions/${session.id}/cancel`
+    };
+  }
+  return { ...(await done), session_id: session.id };
 }

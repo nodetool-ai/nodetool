@@ -107,7 +107,7 @@ export const DEFAULT_BUILD_TIMEOUT_MS = 10 * 60 * 1000;
 /** Ceiling on what one build may spend, in USD. */
 export const DEFAULT_BUILD_COST_CAP_USD = 2;
 /** Output-token bound assumed per turn when reserving against the cap. */
-const BUILD_MAX_OUTPUT_TOKENS = 4096;
+export const BUILD_MAX_OUTPUT_TOKENS = 4096;
 
 /**
  * Complaint codes Plan owns: the app binds to a graph node the workflow does

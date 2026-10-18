@@ -230,6 +230,23 @@ beforeEach(async () => {
   });
 });
 
+describe("POST /api/applications/spec", () => {
+  it("is routed, and refuses a blank prompt before calling a model", async () => {
+    const createProvider = async () => scriptedProvider([[]]);
+    const app = await buildServer({ createProvider });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/applications/spec",
+      headers: { "content-type": "application/json" },
+      payload: { prompt: " ", provider: "scripted", model: "m" }
+    });
+    await app.close();
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toContain("needs a prompt");
+  });
+});
+
 describe("POST /api/applications/build", () => {
   it("runs a build with the request's provider and returns the report", async () => {
     const app = await buildServer({

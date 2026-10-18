@@ -2080,6 +2080,7 @@ const NewProjectSurface = ({
       return (
         <AppSetupHost
           projectId={setupTarget.projectId}
+          draftKey={flowRef}
           initialBrief={setupTarget.initialDescriptor ?? flowPrompt.trim()}
           onFinish={handleAppFinished}
           onChangeFlow={handleChangeFlow}

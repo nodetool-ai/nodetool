@@ -114,6 +114,7 @@ The REST side of the document kinds is import, export and build.
 curl http://localhost:7777/api/applications/:id/export-bundle       # app + every bound graph
 curl -X POST http://localhost:7777/api/applications/import-bundle
 curl -X POST http://localhost:7777/api/applications/build           # {prompt|spec, provider, model, ...}
+curl -X POST http://localhost:7777/api/applications/spec            # {prompt, provider, model} → {spec, issues}
 curl -X POST http://localhost:7777/api/applications/debug
 curl http://localhost:7777/api/applications/examples
 curl -X POST http://localhost:7777/api/applications/examples/:slug/install

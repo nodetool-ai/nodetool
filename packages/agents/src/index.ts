@@ -915,14 +915,18 @@ export type {
 export { renderBuildReportMarkdown } from "./app-build/markdown.js";
 // The build as a service: what `POST /api/applications/build` calls, minus
 // request parsing.
-export { runApplicationBuild } from "./app-build/build-service.js";
+export {
+  runApplicationBuild,
+  runApplicationSpec
+} from "./app-build/build-service.js";
 // Cancelling one generation: the `cancel_generation` capability and the
 // WebSocket command of the same name share it.
 export { cancelGenerationForUser } from "./generation-cancel.js";
 export type { GenerationCancelOutcome } from "./generation-cancel.js";
 export type {
   AppBuildDeps,
-  AppBuildRequest
+  AppBuildRequest,
+  AppSpecRequest
 } from "./app-build/build-service.js";
 
 // The Code-body executor `run_code`/`test_code` share (hermetic), and what

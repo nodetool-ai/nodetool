@@ -13,7 +13,7 @@ There are nine flows.
 |------|---------------|-------|
 | [Image](#image) | A sketch with variations to pick from | Idea, Brief, Look |
 | [Workflow](#workflow) | A graph, checked and run once | Idea, Plan, Build |
-| [App](#app) | A mini app with the workflow behind its button, test-run | Idea |
+| [App](#app) | A mini app with the workflow behind its button, test-run | Idea, Design, Build |
 | Read aloud | A chat whose composer speaks the next line | Opens the chat |
 | [Entity](#entity) | A reusable character, location, style, or prop | Details, Reference, Review |
 | [Storyboard](#storyboard-video-and-script) | A rendered board of shots | See [AI Video Production](ai-video-production.md) |
@@ -191,9 +191,30 @@ These flows build video material. [AI Video Production](ai-video-production.md) 
 
 ## App
 
-The App flow makes a mini app that runs: the screen, and the workflow behind its button. Describe the page in one or two sentences, such as "A page where I type a product name, press a button, and get a short description back". Say what someone types or picks, what the button does, and what they get back. **Model** in the footer picks the language model that builds it.
+The App flow makes a mini app that runs: the screen, and the workflows behind it. Nothing is added to your project until the build passes its tests.
 
-**Build your app** writes the app's plan, builds the screen and its workflows, and test-runs them together. A build that passes is installed in the selected project and opens in the App Builder, with its workflows listed under **Linked workflows**. A build that fails shows why on the step and installs nothing. **Try again** reruns it. Building calls the model several times, so it costs more than one chat reply. The [mini app build harness](mini-app-build-harness-design.md) describes the stages.
+### Step 1: Idea
+
+The heading is **What should the app do?** Describe the page in one or two sentences, such as "A page where I type a product name, press a button, and get a short description back". Say what someone types or picks, what the button does, and what they get back. **Model** in the footer picks the language model that writes the design and builds the app.
+
+**Start with a blank app** under **Other ways to start** creates an empty app and opens it in the App Builder. Choose **Write the design**.
+
+### Step 2: Design
+
+The heading is **Review the design**. Every field is editable:
+
+- **The app** holds the title.
+- **What it runs** has one card per workflow behind the screen. **What it does** says what that workflow does, and the line under it names what it takes and gives back.
+- **On the screen** lists the label of each input, button and output, in the order they are placed.
+- **How it is tested** lists the tests the build runs, in words. An app that fails one is not installed.
+
+**Re-design** writes a new design from the same idea. Going back and changing the idea also writes a new design. Going back without changing it keeps your edits. Choose **Continue to the build**.
+
+### Step 3: Build
+
+The heading is **Build the app**. **App name** starts as the design's title. **Build your app** plans the workflows, places the screen and test-runs it, with spending capped at $2.00. A build that passes is installed in the selected project and opens in the App Builder, with its workflows listed under **Linked workflows**. A build that fails shows why on the step and installs nothing. The [mini app build harness](mini-app-build-harness-design.md) describes the stages.
+
+If you leave the tab before the build, the design is kept and restored when you return to it.
 
 ## Game
 
