@@ -9,6 +9,7 @@ import {
   bucketNodeCount,
   categorizeError,
   isForbiddenFieldName,
+  normalizeAppVersion,
   validateBatch,
   validateEnvelope,
   type AnalyticsEnvelope
@@ -232,5 +233,23 @@ describe("bucketing", () => {
     expect(categorizeError(new Error("429 rate limit"))).toBe("provider");
     expect(categorizeError(new Error("Something odd"))).toBe("runtime");
     expect(categorizeError(undefined)).toBe("unknown");
+  });
+});
+
+describe("normalizeAppVersion", () => {
+  it.each([
+    ["0.8.4", "0.8.4"],
+    [" v1.2.3 ", "1.2.3"],
+    ["1.2.3-beta.1", "1.2.3-beta.1"],
+    ["1.2.3+abc", "1.2.3"],
+    ["v1.2.3-rc.1+sha.5", "1.2.3-rc.1"],
+    ["1.2", "0.0.0"],
+    ["vv1.0.0", "0.0.0"],
+    ["1.0.0-" + "a".repeat(25), "0.0.0"],
+    ["", "0.0.0"],
+    [null, "0.0.0"],
+    [undefined, "0.0.0"]
+  ])("normalizes %j to %j", (input, expected) => {
+    expect(normalizeAppVersion(input)).toBe(expected);
   });
 });
