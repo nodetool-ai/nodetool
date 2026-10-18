@@ -29,22 +29,24 @@ export interface DockLayoutState {
   readonly model: DockLayoutModel;
   readonly layout: DockLayout;
   readonly customLayouts: ReadonlyArray<{ readonly name: string; readonly layout: DockLayout }>;
-  /** The built-in or saved layout the user last chose, saved or renamed. `resetLayout` returns to it. */
-  readonly activeLayoutName: string;
-  /** The group filling the dock, or null. Not persisted, so a reload restores the full layout. */
-  readonly maximizedGroupId: string | null;
+  /**
+   * The built-in or saved layout the user last chose, saved or renamed, which `resetLayout` returns to.
+   * Null after the active saved layout is deleted, until the user picks a layout again.
+   */
+  readonly activeLayoutName: string | null;
+  /**
+   * Counts layout switches and resets. Not persisted. A canvas leaves maximize when it changes, because
+   * maximize belongs to one canvas, not to this per-user store.
+   */
+  readonly layoutEpoch: number;
   readonly dispatch: (action: DockLayoutAction) => void;
   readonly registerPanels: (panels: readonly DockPanelRegistration[]) => void;
   readonly togglePanels: (ids: readonly string[]) => void;
-  /** Shows a hidden panel and makes it the active tab of its group. Leaves maximize if the panel is outside the maximized group. */
+  /** Shows a hidden panel and makes it the active tab of its group. */
   readonly revealPanel: (panelId: string) => void;
-  readonly setMaximizedGroup: (groupId: string | null) => void;
-  readonly toggleMaximizedGroup: (groupId: string) => void;
-  /** Maximizes the group holding `panelId` and activates the panel, or restores the layout when that group is already maximized. */
-  readonly toggleMaximizedPanel: (panelId: string) => void;
   readonly saveLayout: (name: string) => void;
   readonly selectLayout: (name: string) => void;
-  /** Re-applies the active built-in or saved layout and leaves maximize, discarding moves, resizes and hidden panels made since. */
+  /** Re-applies the active built-in or saved layout and leaves maximize, discarding moves, resizes and hidden panels made since. Does nothing while no layout is active. */
   readonly resetLayout: () => void;
   readonly renameLayout: (from: string, to: string) => void;
   readonly deleteLayout: (name: string) => void;
@@ -92,7 +94,7 @@ export function createDockLayoutStore(model: DockLayoutModel, scope: DockLayoutS
     layout: model.createLayout(),
     customLayouts: [],
     activeLayoutName: model.presets[0] ?? "",
-    maximizedGroupId: null,
+    layoutEpoch: 0,
     dispatch(action) {
       const current = get().layout;
       const next = model.transition(current, action);
@@ -111,21 +113,6 @@ export function createDockLayoutStore(model: DockLayoutModel, scope: DockLayoutS
     },
     revealPanel(panelId) {
       get().dispatch({ type: "reveal", panelId });
-      const { layout, maximizedGroupId } = get();
-      if (maximizedGroupId && dockGroupOfPanel(layout, panelId)?.id !== maximizedGroupId) { set({ maximizedGroupId: null }); }
-    },
-    setMaximizedGroup(groupId) {
-      if (groupId !== get().maximizedGroupId) { set({ maximizedGroupId: groupId }); }
-    },
-    toggleMaximizedGroup(groupId) {
-      set({ maximizedGroupId: get().maximizedGroupId === groupId ? null : groupId });
-    },
-    toggleMaximizedPanel(panelId) {
-      const group = dockGroupOfPanel(get().layout, panelId);
-      if (!group) { throw new Error(`${label} panel ${panelId} has no layout placement`); }
-      if (get().maximizedGroupId === group.id) { set({ maximizedGroupId: null }); return; }
-      get().dispatch({ type: "activate", panelId });
-      set({ maximizedGroupId: group.id });
     },
     saveLayout(name) {
       const validName = parseOrThrow(layoutName, name, `Invalid ${model.editorLabel} layout`);
@@ -143,10 +130,12 @@ export function createDockLayoutStore(model: DockLayoutModel, scope: DockLayoutS
       activeLayoutName: validName });
     },
     selectLayout(name) {
+      const leaveMaximize = (): void => { set({ layoutEpoch: get().layoutEpoch + 1 }); };
       const preset = model.presets.find((entry) => entry === name);
       if (preset) {
         get().dispatch({ type: "preset", name: preset });
         if (get().activeLayoutName !== preset) { set({ activeLayoutName: preset }); }
+        leaveMaximize();
         return;
       }
       const saved = get().customLayouts.find((entry) => entry.name === name);
@@ -155,12 +144,12 @@ export function createDockLayoutStore(model: DockLayoutModel, scope: DockLayoutS
         set({ layout: parseOrThrow(model.schema, saved.layout, `Invalid ${model.editorLabel} layout`) });
       }
       if (get().activeLayoutName !== saved.name) { set({ activeLayoutName: saved.name }); }
+      leaveMaximize();
     },
     resetLayout() {
       const { activeLayoutName, customLayouts } = get();
       const known = model.presets.some((preset) => preset === activeLayoutName) || customLayouts.some((entry) => entry.name === activeLayoutName);
-      get().selectLayout(known ? activeLayoutName : model.presets[0] ?? "");
-      get().setMaximizedGroup(null);
+      if (activeLayoutName !== null && known) { get().selectLayout(activeLayoutName); }
     },
     renameLayout(from, to) {
       const validName = parseOrThrow(layoutName, to, `Invalid ${model.editorLabel} layout`);
@@ -175,7 +164,7 @@ export function createDockLayoutStore(model: DockLayoutModel, scope: DockLayoutS
       const current = get().customLayouts;
       if (current.some((entry) => entry.name === name)) {
         set({ customLayouts: current.filter((entry) => entry.name !== name),
-          activeLayoutName: get().activeLayoutName === name ? model.presets[0] ?? "" : get().activeLayoutName });
+          activeLayoutName: get().activeLayoutName === name ? null : get().activeLayoutName });
       }
     }
   }), {
@@ -189,7 +178,7 @@ export function createDockLayoutStore(model: DockLayoutModel, scope: DockLayoutS
       const layout = model.schema.safeParse(record.layout);
       const customLayouts = hydrateSavedLayouts(record.customLayouts);
       const name = record.activeLayoutName;
-      const activeLayoutName = typeof name === "string" && (model.presets.some((preset) => preset === name) || customLayouts.some((entry) => entry.name === name))
+      const activeLayoutName = name === null || (typeof name === "string" && (model.presets.some((preset) => preset === name) || customLayouts.some((entry) => entry.name === name)))
         ? name : current.activeLayoutName;
       return { ...current, layout: layout.success ? layout.data : current.layout, customLayouts, activeLayoutName };
     }

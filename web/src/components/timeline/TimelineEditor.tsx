@@ -114,7 +114,7 @@ import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { useTimelineLayoutStore } from "../../stores/timeline/TimelineLayoutStore";
 import { useTimelineDockLayoutStore } from "../../stores/timeline/useTimelineDockLayoutStore";
 import { TIMELINE_SIDE_PANEL_IDS, type TimelinePanelId } from "../../stores/timeline/TimelineDockLayout";
-import { DockCanvas } from "../dock/DockCanvas";
+import { DockCanvas, type DockMaximizeController } from "../dock/DockCanvas";
 import { DockLayoutMenu } from "../dock/DockLayoutMenu";
 import { useDockPresentation, type DockPanelView } from "../dock/useDockPresentation";
 import { timelinePanelRegistrations } from "./dock/timelinePanels";
@@ -129,7 +129,7 @@ import {
 import { useTimelineDockCommands } from "../../hooks/timeline/useTimelineDockCommands";
 import { CodePanel } from "./CodePanel";
 import TimelineShotPanel, {
-  useSelectedShotClip
+  useHasSelectedShotClip
 } from "./shot/TimelineShotPanel";
 import TimelineLinkedBoards from "./shot/TimelineLinkedBoards";
 import { useTimelineHasCode } from "../../serverState/useTimelineCode";
@@ -203,6 +203,8 @@ const ENVIRONMENT_MODE: "local" | "cloud" =
 const KEYBOARD_RESIZE_STEP_PX = 20;
 /** Bottom dock height, in px, that shows an expanded instrument track's keyboard. */
 const EXPANDED_INSTRUMENT_BOTTOM_PX = 420;
+/** The panels that always have something to show, so they mount before first activation. */
+const EAGER_DOCK_PANELS: readonly TimelinePanelId[] = ["program", "tracks"];
 /**
  * Default msPerPx when zoom = 1. Matches TimelineUIStore default.
  * zoom = DEFAULT_MS_PER_PX / msPerPx  →  msPerPx = DEFAULT_MS_PER_PX / zoom
@@ -393,7 +395,7 @@ const useContextualPanelFlags = (): {
   const hasSourceAsset = activeExplorer === "assets"
     ? assetsAsset !== null
     : activeExplorer === "library" && libraryAsset !== null;
-  const hasShotClip = useSelectedShotClip() !== null;
+  const hasShotClip = useHasSelectedShotClip();
   return { hasMidiTrack, hasSourceAsset, hasShotClip };
 };
 
@@ -601,6 +603,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   );
   const dockRoot = useRef<HTMLDivElement>(null);
   const lastDockGroup = useRef<string | null>(null);
+  const dockMaximize = useRef<DockMaximizeController | null>(null);
   const uiStoreApi = useTimelineUIStoreApi();
   // Contextual panels have a view only while their condition holds. Written
   // during render so the controller always reads the current set.
@@ -998,6 +1001,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
             focusedGroupId: () =>
               findFocusedDockGroup(dockRoot.current, lastDockGroup.current),
             focusPanel: (id) => focusDockPanel(dockRoot.current, id),
+            maximize: () => dockMaximize.current,
             requestProgramFullscreen: () =>
               uiStoreApi.getState().requestPreviewFullscreen(),
             notify: (message) =>
@@ -1019,36 +1023,26 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     if (handledPanelRequest.current === panelTabRequest) return;
     handledPanelRequest.current = panelTabRequest;
     const id = PANEL_TAB_DOCK_ID[panelTab];
+    // A request comes from editing (a double-click, Match Frame), so focus
+    // stays on the timeline and Delete and the arrows keep acting there.
     if (dock && availablePanels.current.has(id)) dock.openPanel(id);
   }, [dock, panelTab, panelTabRequest]);
 
   // The tracks panel keeps its room when a clip editor or an expanded
-  // instrument needs more of it.
+  // instrument needs more of it. The canvas adds the room to what it shows and
+  // takes it back when the need ends. It is never written to the saved layout.
   const expandedInstrument = useTimelineUIStore((s) => s.expandedInstrumentTrackId);
   const pianoRollHeightPx = useTimelineUIStore((s) => s.pianoRollHeightPx);
-  const growBottom = useRef(0);
-  useEffect(() => {
-    if (isMobile) return;
-    const { dispatch, layout } = dockStore.getState();
-    if (pianoRollOpen && growBottom.current === 0) {
-      growBottom.current = pianoRollHeightPx;
-      dispatch({ type: "resize", region: "bottom", size: Math.min(1000, layout.sizes.bottom + pianoRollHeightPx) });
-    } else if (!pianoRollOpen && growBottom.current > 0) {
-      dispatch({ type: "resize", region: "bottom", size: Math.max(80, layout.sizes.bottom - growBottom.current) });
-      growBottom.current = 0;
-    }
-  }, [dockStore, isMobile, pianoRollHeightPx, pianoRollOpen]);
-  useEffect(() => {
-    if (isMobile || !expandedInstrument || pianoRollOpen) return;
-    const { dispatch, layout } = dockStore.getState();
-    if (layout.sizes.bottom < EXPANDED_INSTRUMENT_BOTTOM_PX) {
-      dispatch({ type: "resize", region: "bottom", size: EXPANDED_INSTRUMENT_BOTTOM_PX });
-    }
-  }, [dockStore, expandedInstrument, isMobile, pianoRollOpen]);
+  const storedBottom = useStore(dockStore, (state) => state.layout.sizes.bottom);
+  const extraBottom = pianoRollOpen
+    ? pianoRollHeightPx
+    : expandedInstrument
+      ? Math.max(0, EXPANDED_INSTRUMENT_BOTTOM_PX - storedBottom)
+      : 0;
 
   const handleOpenCode = useCallback(() => {
     if (dock) {
-      dock.openPanel("code");
+      dock.openPanel("code", { focus: true });
       return;
     }
     setPanelTab("code");
@@ -1057,17 +1051,18 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // The menu lists the panels that have a view, which changes only when a
   // contextual panel appears or goes.
   const dockPanelKey = dockViews.map((view) => view.id).join();
+  const dockPanelIds = useMemo(() => dockPanelKey.split(","), [dockPanelKey]);
   const layoutMenu = useMemo(
     () =>
       isMobile ? undefined : (
         <DockLayoutMenu
           store={dockStore}
           panels={dockRegistrations.filter((entry) =>
-            dockPanelKey.split(",").includes(entry.id)
+            dockPanelIds.includes(entry.id)
           )}
         />
       ),
-    [dockStore, dockRegistrations, dockPanelKey, isMobile]
+    [dockStore, dockRegistrations, dockPanelIds, isMobile]
   );
 
   const headerActions = useMemo(
@@ -1270,13 +1265,20 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
         onPointerDownCapture={(event) => {
           // Maximize acts on the group last clicked when focus is elsewhere.
-          const group = (event.target as HTMLElement | null)?.closest?.<HTMLElement>(
-            "[data-dock-group]"
-          );
+          const group =
+            event.target instanceof Element
+              ? event.target.closest<HTMLElement>("[data-dock-group]")
+              : null;
           if (group?.dataset.dockGroup) lastDockGroup.current = group.dataset.dockGroup;
         }}
       >
-        <DockCanvas presentation={dockPresentation} store={dockStore} />
+        <DockCanvas
+          presentation={dockPresentation}
+          store={dockStore}
+          maximizeRef={dockMaximize}
+          eagerPanels={EAGER_DOCK_PANELS}
+          extraBottom={extraBottom}
+        />
       </FlexColumn>
       )}
 

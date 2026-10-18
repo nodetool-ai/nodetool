@@ -57,21 +57,22 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
     <EditorButton ref={button} size="small" data-dock-layout-menu aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(true)}
       startIcon={<DashboardOutlinedIcon fontSize="small" />} endIcon={<ArrowDropDownIcon fontSize="small" />}
       sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
-      {current}
+      {current ?? "Layout"}
     </EditorButton>
     <ContextMenu open={open} anchorEl={button.current} onClose={close} aria-label="Layout">
       <ListSubheader>Layouts</ListSubheader>
       {[...model.presets, ...customLayouts.map((entry) => entry.name)].map((layoutName) => <MenuItemPrimitive key={layoutName}
         label={layoutName} selected={layoutName === current} icon={layoutName === current ? <CheckIcon /> : <span />}
         onClick={() => { close(); act(() => store.getState().selectLayout(layoutName)); }} />)}
-      <MenuItemPrimitive dividerBefore label="Reset to saved layout" icon={<RestartAltIcon />}
+      <MenuItemPrimitive dividerBefore label="Reset to saved layout" icon={<RestartAltIcon />} disabled={current === null}
+        tooltip={current === null ? "Choose a layout first" : undefined}
         onClick={() => { close(); act(() => store.getState().resetLayout()); }} />
       <MenuItemPrimitive dividerBefore label="Save layout as…" icon={<SaveOutlinedIcon />} onClick={() => openDialog({ mode: "save" })} />
       <MenuItemPrimitive label="Rename layout…" icon={<DriveFileRenameOutlineIcon />} disabled={!custom}
-        tooltip={custom ? undefined : "Built-in layouts cannot be renamed"} onClick={() => openDialog({ mode: "rename", from: current })} />
+        tooltip={custom ? undefined : "Built-in layouts cannot be renamed"} onClick={() => openDialog({ mode: "rename", from: current ?? "" })} />
       <MenuItemPrimitive label="Delete layout" icon={<DeleteOutlineIcon />} color="error" disabled={!custom}
         tooltip={custom ? undefined : "Built-in layouts cannot be deleted"}
-        onClick={() => { close(); act(() => store.getState().deleteLayout(current)); }} />
+        onClick={() => { close(); act(() => store.getState().deleteLayout(current ?? "")); }} />
       {panels.length > 0 && <ListSubheader>Panels</ListSubheader>}
       {panels.map((panel) => {
         const shown = !hidden.includes(panel.id);

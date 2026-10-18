@@ -34,6 +34,8 @@ export function timelinePanelRegistrations(dawMode: boolean): readonly TimelineP
 
 /** What Open <panel> says when the panel has nothing to show yet. */
 export const UNAVAILABLE_PANEL_NOTICE: Partial<Record<TimelinePanelId, string>> = {
+  // Tracks has no view only in DAW mode, which lays out its own tracks.
+  tracks: "DAW mode has its own track view. Turn it off (Alt+M) to open the Timeline panel.",
   source: "Select an asset in Assets to open it in Source.",
   shot: "Select a shot clip to open its Shot panel.",
   instruments: "Add a MIDI track to use Instruments.",

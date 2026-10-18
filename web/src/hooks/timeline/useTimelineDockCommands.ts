@@ -41,7 +41,7 @@ export function useTimelineDockCommands(
         id: `dock.open.${panel.id}`,
         label: `Open ${panel.title}`,
         keywords: ["panel", "window", "focus", "show", panel.id],
-        run: () => { controller.openPanel(panel.id); }
+        run: () => { controller.openPanel(panel.id, { focus: true }); }
       });
     }
     list.push(
@@ -61,7 +61,7 @@ export function useTimelineDockCommands(
     for (const saved of savedLayouts) {
       list.push({
         id: `dock.saved.${saved.name}`, label: `Workspace: ${saved.name}`, keywords: ["layout", "saved", "switch"],
-        run: () => { store.getState().selectLayout(saved.name); store.getState().setMaximizedGroup(null); }
+        run: () => { store.getState().selectLayout(saved.name); }
       });
     }
     return list;

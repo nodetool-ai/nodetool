@@ -48,7 +48,7 @@ describe("useTimelineDockCommands", () => {
     const list = commands();
     for (const id of TIMELINE_PANEL_IDS) { expect(list.has(`dock.open.${id}`)).toBe(true); }
     act(() => { list.get("dock.open.assistant")?.run(); });
-    expect(controller.openPanel).toHaveBeenCalledWith("assistant");
+    expect(controller.openPanel).toHaveBeenCalledWith("assistant", { focus: true });
     act(() => { list.get("dock.maximize")?.run(); });
     expect(controller.toggleMaximize).toHaveBeenCalled();
     act(() => { list.get("dock.fullscreen")?.run(); });

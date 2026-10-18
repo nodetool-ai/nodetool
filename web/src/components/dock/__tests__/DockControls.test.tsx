@@ -57,7 +57,7 @@ it("saves, selects, renames and deletes a named copy without replacing built-in 
   await user.click(screen.getByRole("button", { name: "Renamed layout" }));
   await user.click(screen.getByRole("menuitem", { name: "Delete layout" }));
   expect(store.getState().customLayouts).toEqual([]);
-  expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Layout" })).toBeInTheDocument();
 });
 
 it("moves, reorders and closes panels from the tab menu by keyboard", async () => {
@@ -136,4 +136,20 @@ it("resets to the layout in use from the Layout menu", async () => {
   await user.click(screen.getByRole("button", { name: "Scripting" }));
   await user.click(screen.getByRole("menuitem", { name: "Reset to saved layout" }));
   expect(store.getState().layout).toEqual(scripting);
+});
+
+it("disables Reset after the active saved layout is deleted, until a layout is chosen", async () => {
+  const user = userEvent.setup();
+  const store = makeStore();
+  act(() => store.getState().saveLayout("Mine"));
+  render(<ThemeProvider theme={mockTheme}><DockLayoutMenu store={store} panels={[]} /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Mine" }));
+  await user.click(screen.getByRole("menuitem", { name: "Delete layout" }));
+  expect(store.getState().activeLayoutName).toBeNull();
+  await user.click(screen.getByRole("button", { name: "Layout" }));
+  expect(screen.getByRole("menuitem", { name: "Reset to saved layout" })).toHaveAttribute("aria-disabled", "true");
+  await user.click(screen.getByRole("menuitem", { name: "Scripting" }));
+  expect(store.getState().activeLayoutName).toBe("Scripting");
+  await user.click(screen.getByRole("button", { name: "Scripting" }));
+  expect(screen.getByRole("menuitem", { name: "Reset to saved layout" })).not.toHaveAttribute("aria-disabled", "true");
 });

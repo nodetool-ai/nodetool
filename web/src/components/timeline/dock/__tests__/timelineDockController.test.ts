@@ -2,20 +2,35 @@ import type { StoreApi } from "zustand";
 
 import { createDockLayoutStore, type DockLayoutState } from "../../../../stores/dock/DockLayoutStore";
 import { timelineDockLayoutModel, type TimelinePanelId } from "../../../../stores/timeline/TimelineDockLayout";
+import type { DockMaximizeController } from "../../../dock/DockCanvas";
 import {
   createTimelineDockController, findFocusedDockGroup, focusDockPanel, type TimelineDockControllerOptions
 } from "../timelineDockController";
 
 const noStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
 
+/** A canvas stand-in that keeps the maximized group, as the real one does in local state. */
+function fakeCanvas(initial: string | null = null): DockMaximizeController & { value: string | null } {
+  const canvas = {
+    value: initial,
+    current: () => canvas.value,
+    set: (groupId: string | null) => { canvas.value = groupId; },
+    toggle: (groupId: string) => { canvas.value = canvas.value === groupId ? null : groupId; }
+  };
+  return canvas;
+}
+
 function setup(overrides: Partial<TimelineDockControllerOptions> = {}): {
   store: StoreApi<DockLayoutState>;
   options: { [K in keyof TimelineDockControllerOptions]: TimelineDockControllerOptions[K] };
+  canvas: ReturnType<typeof fakeCanvas>;
   controller: ReturnType<typeof createTimelineDockController>;
 } {
   const store = createDockLayoutStore(timelineDockLayoutModel, { anonymous: true }, noStorage);
+  const canvas = fakeCanvas();
   const options: TimelineDockControllerOptions = {
     store,
+    maximize: () => canvas,
     isAvailable: () => true,
     focusedGroupId: () => null,
     focusPanel: jest.fn(),
@@ -23,41 +38,69 @@ function setup(overrides: Partial<TimelineDockControllerOptions> = {}): {
     notify: jest.fn(),
     ...overrides
   };
-  return { store, options, controller: createTimelineDockController(options) };
+  return { store, options, canvas, controller: createTimelineDockController(options) };
 }
 
 describe("timeline dock controller", () => {
-  it("opens a hidden panel, makes it the active tab and focuses it", () => {
+  it("opens a hidden panel and makes it the active tab without taking focus", () => {
     const { store, options, controller } = setup();
     store.getState().selectLayout("Review");
     expect(store.getState().layout.hidden).toContain("assistant");
     expect(controller.openPanel("assistant")).toBe(true);
     expect(store.getState().layout.hidden).not.toContain("assistant");
     expect(store.getState().layout.regions.right[0].activePanelId).toBe("assistant");
+    expect(options.focusPanel).not.toHaveBeenCalled();
+  });
+
+  it("moves focus to the panel only when asked to", () => {
+    const { options, controller } = setup();
+    controller.openPanel("assistant", { focus: true });
     expect(options.focusPanel).toHaveBeenCalledWith("assistant");
+  });
+
+  it("leaves a maximized group that does not hold the opened panel", () => {
+    const { canvas, controller } = setup();
+    canvas.set("bottom-main");
+    controller.openPanel("assistant");
+    expect(canvas.value).toBeNull();
+    canvas.set("right-main");
+    controller.openPanel("inspector");
+    expect(canvas.value).toBe("right-main");
   });
 
   it("explains a panel that has nothing to show instead of opening it", () => {
     const { store, options, controller } = setup({ isAvailable: (id: TimelinePanelId) => id !== "source" });
     store.getState().selectLayout("Script");
-    expect(controller.openPanel("source")).toBe(false);
+    expect(controller.openPanel("source", { focus: true })).toBe(false);
     expect(store.getState().layout.hidden).toContain("source");
     expect(options.notify).toHaveBeenCalledWith(expect.stringContaining("Select an asset"));
     expect(options.focusPanel).not.toHaveBeenCalled();
   });
 
+  it("explains in DAW terms why the tracks panel has nothing to show", () => {
+    const { options, controller } = setup({ isAvailable: (id: TimelinePanelId) => id !== "tracks" });
+    expect(controller.openPanel("tracks")).toBe(false);
+    expect(options.notify).toHaveBeenCalledWith(expect.stringContaining("DAW mode"));
+    expect(options.notify).not.toHaveBeenCalledWith(expect.stringContaining("nothing to show yet"));
+  });
+
   it("maximizes the focused group and restores on the second call", () => {
-    const { store, controller } = setup({ focusedGroupId: () => "viewport-program" });
+    const { canvas, controller } = setup({ focusedGroupId: () => "viewport-program" });
     controller.toggleMaximize();
-    expect(store.getState().maximizedGroupId).toBe("viewport-program");
+    expect(canvas.value).toBe("viewport-program");
     controller.toggleMaximize();
-    expect(store.getState().maximizedGroupId).toBeNull();
+    expect(canvas.value).toBeNull();
   });
 
   it("maximizes the timeline when no group has focus", () => {
-    const { store, controller } = setup();
+    const { canvas, controller } = setup();
     controller.toggleMaximize();
-    expect(store.getState().maximizedGroupId).toBe("bottom-main");
+    expect(canvas.value).toBe("bottom-main");
+  });
+
+  it("does nothing to maximize before a canvas has mounted", () => {
+    const { controller } = setup({ maximize: () => null });
+    expect(() => controller.toggleMaximize()).not.toThrow();
   });
 
   it("resets the workspace to the one in use", () => {
@@ -66,18 +109,14 @@ describe("timeline dock controller", () => {
     expect(store.getState().activeLayoutName).toBe("Script");
     const script = store.getState().layout;
     store.getState().dispatch({ type: "hide", panelId: "inspector" });
-    store.getState().setMaximizedGroup("bottom-main");
     controller.resetWorkspace();
     expect(store.getState().layout).toEqual(script);
-    expect(store.getState().maximizedGroupId).toBeNull();
   });
 
   it("switches to the built-in workspaces by position and ignores a missing one", () => {
     const { store, controller } = setup();
-    store.getState().setMaximizedGroup("bottom-main");
     controller.switchWorkspace(3);
     expect(store.getState().activeLayoutName).toBe("Review");
-    expect(store.getState().maximizedGroupId).toBeNull();
     controller.switchWorkspace(9);
     expect(store.getState().activeLayoutName).toBe("Review");
   });

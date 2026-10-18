@@ -131,7 +131,6 @@ it("keeps state identity and skips persistence and notification for no-op action
     store.getState().dispatch({ type: "resize", region: "bottom", size: before.layout.sizes.bottom });
     store.getState().dispatch({ type: "move", panelId: "hierarchy", region: "left", groupId: "left-main", index: 0 });
     store.getState().dispatch({ type: "preset", name: "Default" });
-    store.getState().selectLayout("Mine");
     store.getState().saveLayout("Mine");
     store.getState().renameLayout("Mine", "Mine");
     store.getState().deleteLayout("Missing");
@@ -197,41 +196,37 @@ it("reports saved-layout validation failures as readable messages", () => {
   expect(() => store.getState().renameLayout("Copy 0", "Copy 1")).toThrow(/^Saved layout name is already used$/);
 });
 
-it("persists under the configured key prefix and never persists maximize state", () => {
+it("persists under the configured key prefix and never persists the layout epoch", () => {
   const { storage, data } = memoryStorage();
   const store = createSampleDockStore({ userId: "a/b" }, storage);
   store.getState().dispatch({ type: "resize", region: "left", size: 300 });
-  store.getState().toggleMaximizedPanel("scripts");
+  store.getState().selectLayout("Scripting");
   expect([...data.keys()]).toEqual(["nodetool.dock-test.v1:user:a%2Fb"]);
-  expect(data.get("nodetool.dock-test.v1:user:a%2Fb")).not.toContain("maximized");
-  expect(createSampleDockStore({ userId: "a/b" }, storage).getState().maximizedGroupId).toBeNull();
+  expect(data.get("nodetool.dock-test.v1:user:a%2Fb")).not.toContain("layoutEpoch");
+  expect(createSampleDockStore({ userId: "a/b" }, storage).getState().layoutEpoch).toBe(0);
 });
 
-it("maximizes the group holding a panel, activates it and restores on a second toggle", () => {
+it("reveals a hidden panel and makes it the active tab of its group", () => {
   const { storage } = memoryStorage();
   const store = createSampleDockStore({ anonymous: true }, storage);
-  store.getState().toggleMaximizedPanel("revisions");
-  expect(store.getState().maximizedGroupId).toBe("left-main");
-  expect(store.getState().layout.regions.left[0].activePanelId).toBe("revisions");
-  store.getState().toggleMaximizedPanel("hierarchy");
-  expect(store.getState().maximizedGroupId).toBeNull();
-  store.getState().toggleMaximizedGroup("bottom-main");
-  store.getState().setMaximizedGroup(null);
-  expect(store.getState().maximizedGroupId).toBeNull();
-  expect(() => store.getState().toggleMaximizedPanel("unknown")).toThrow("no layout placement");
-});
-
-it("reveals a hidden panel and leaves maximize when the panel is in another group", () => {
-  const { storage } = memoryStorage();
-  const store = createSampleDockStore({ anonymous: true }, storage);
-  store.getState().toggleMaximizedGroup("bottom-main");
   store.getState().revealPanel("assistant");
   expect(store.getState().layout.hidden).not.toContain("assistant");
   expect(store.getState().layout.regions.right[0].activePanelId).toBe("assistant");
-  expect(store.getState().maximizedGroupId).toBeNull();
-  store.getState().toggleMaximizedGroup("right-main");
-  store.getState().revealPanel("inspector");
-  expect(store.getState().maximizedGroupId).toBe("right-main");
+});
+
+it("counts layout switches and resets, so each canvas can leave maximize", () => {
+  const { storage } = memoryStorage();
+  const store = createSampleDockStore({ anonymous: true }, storage);
+  expect(store.getState().layoutEpoch).toBe(0);
+  store.getState().selectLayout("Scripting");
+  expect(store.getState().layoutEpoch).toBe(1);
+  store.getState().resetLayout();
+  expect(store.getState().layoutEpoch).toBe(2);
+  store.getState().saveLayout("Mine");
+  store.getState().selectLayout("Mine");
+  expect(store.getState().layoutEpoch).toBe(3);
+  store.getState().selectLayout("Mine");
+  expect(store.getState().layoutEpoch).toBe(4);
 });
 
 it("keeps every required panel visible and rejects a layout that hides or drops one", () => {
@@ -243,18 +238,16 @@ it("keeps every required panel visible and rejects a layout that hides or drops 
   expect(store.getState().model.requiredPanels).toEqual(["viewport"]);
 });
 
-it("resets to the active built-in layout, undoing moves, resizes, hidden panels and maximize", () => {
+it("resets to the active built-in layout, undoing moves, resizes and hidden panels", () => {
   const { storage } = memoryStorage();
   const store = createSampleDockStore({ anonymous: true }, storage);
   store.getState().selectLayout("Scripting");
   const scripting = store.getState().layout;
   store.getState().dispatch({ type: "resize", region: "bottom", size: 500 });
   store.getState().dispatch({ type: "hide", panelId: "inspector" });
-  store.getState().setMaximizedGroup("bottom-main");
   expect(store.getState().layout).not.toEqual(scripting);
   store.getState().resetLayout();
   expect(store.getState().layout).toEqual(scripting);
-  expect(store.getState().maximizedGroupId).toBeNull();
   expect(store.getState().activeLayoutName).toBe("Scripting");
 });
 
@@ -269,7 +262,26 @@ it("resets to the saved layout last chosen, not the built-in it was copied from"
   expect(store.getState().layout.sizes.right).toBe(500);
   store.getState().renameLayout("Wide inspector", "Inspector heavy");
   expect(store.getState().activeLayoutName).toBe("Inspector heavy");
-  store.getState().deleteLayout("Inspector heavy");
+});
+
+it("has no active layout after the active saved layout is deleted, and reset does nothing until one is chosen", () => {
+  const { storage } = memoryStorage();
+  const store = createSampleDockStore({ anonymous: true }, storage);
+  store.getState().dispatch({ type: "resize", region: "right", size: 500 });
+  store.getState().saveLayout("Wide inspector");
+  store.getState().saveLayout("Other");
+  store.getState().selectLayout("Wide inspector");
+  store.getState().deleteLayout("Other");
+  expect(store.getState().activeLayoutName).toBe("Wide inspector");
+  store.getState().deleteLayout("Wide inspector");
+  expect(store.getState().activeLayoutName).toBeNull();
+  const kept = store.getState().layout;
+  const epoch = store.getState().layoutEpoch;
+  store.getState().resetLayout();
+  expect(store.getState().layout).toBe(kept);
+  expect(store.getState().layoutEpoch).toBe(epoch);
+  expect(createSampleDockStore({ anonymous: true }, storage).getState().activeLayoutName).toBeNull();
+  store.getState().selectLayout("Default");
   expect(store.getState().activeLayoutName).toBe("Default");
 });
 

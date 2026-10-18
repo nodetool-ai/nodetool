@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useStore, type StoreApi } from "zustand";
 
 import type { DockLayoutState } from "../../stores/dock/DockLayoutStore";
@@ -9,9 +9,24 @@ import { DockGroup } from "./DockGroup";
 import type { DockPresentation } from "./useDockPresentation";
 import { DOCK_REGION_AXIS, DOCK_REGION_LABELS, DOCK_REGION_ZONES, dockDropAction, type DockDropTarget } from "./dockTargets";
 
+/** What a command outside the canvas can ask of the group filling this canvas. */
+export interface DockMaximizeController {
+  /** The group filling the canvas, or null. */
+  readonly current: () => string | null;
+  readonly set: (groupId: string | null) => void;
+  /** Maximizes the group, or restores the layout when that group is already maximized. */
+  readonly toggle: (groupId: string) => void;
+}
+
 interface DockCanvasProps {
   readonly presentation: DockPresentation;
   readonly store: StoreApi<DockLayoutState>;
+  /** Receives this canvas's maximize controller while it is mounted. */
+  readonly maximizeRef?: MutableRefObject<DockMaximizeController | null>;
+  /** Panel ids that mount before their first activation, such as the viewport. Others mount when first shown. */
+  readonly eagerPanels?: readonly string[];
+  /** Height, in px, added to the bottom region for now. Not stored: the saved size is untouched. */
+  readonly extraBottom?: number;
 }
 
 /** The panel being dragged and where it would land if released now. */
@@ -42,12 +57,28 @@ function useElementSize(): [(node: HTMLElement | null) => void, { width: number;
   return [ref, size];
 }
 
-export function DockCanvas({ presentation, store }: DockCanvasProps): ReactNode {
+export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extraBottom = 0 }: DockCanvasProps): ReactNode {
   const root = useRef<HTMLDivElement | null>(null);
   const [slots, setSlots] = useState<ReadonlyMap<string, HTMLElement>>(new Map());
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
   const [drag, setDrag] = useState<DockDrag | null>(null);
-  const maximized = useStore(store, (state) => state.maximizedGroupId);
+  const [maximized, setMaximized] = useState<string | null>(null);
+  const maximizedNow = useRef<string | null>(null);
+  const maximize = useRef<DockMaximizeController | null>(null);
+  if (!maximize.current) {
+    const set = (groupId: string | null): void => { maximizedNow.current = groupId; setMaximized(groupId); };
+    maximize.current = { current: () => maximizedNow.current, set, toggle: (groupId) => set(maximizedNow.current === groupId ? null : groupId) };
+  }
+  useLayoutEffect(() => {
+    if (!maximizeRef) { return; }
+    maximizeRef.current = maximize.current;
+    return () => { if (maximizeRef.current === maximize.current) { maximizeRef.current = null; } };
+  }, [maximizeRef]);
+  // Choosing or resetting a layout restores the full dock.
+  const layoutEpoch = useStore(store, (state) => state.layoutEpoch);
+  useEffect(() => { maximize.current?.set(null); }, [layoutEpoch]);
+  // A panel mounts when first shown and stays mounted, so its state survives being tabbed away.
+  const everShown = useRef(new Set<string>());
   const label = store.getState().model.editorLabel;
   useEffect(() => {
     const node = root.current;
@@ -73,7 +104,7 @@ export function DockCanvas({ presentation, store }: DockCanvasProps): ReactNode 
   const groupShown = (group: DockLayoutGroup): boolean => group.panels.some(visible);
   const regionShown = (region: DockRegion): boolean => metadata.layout.regions[region].some(groupShown);
   const maximizedGroup = maximized ? DOCK_REGIONS.flatMap((region) => metadata.layout.regions[region]).find((group) => group.id === maximized && groupShown(group)) : undefined;
-  useEffect(() => { if (maximized && !maximizedGroup) { store.getState().setMaximizedGroup(null); } }, [maximized, maximizedGroup, store]);
+  useEffect(() => { if (maximized && !maximizedGroup) { maximize.current?.set(null); } }, [maximized, maximizedGroup]);
 
   // Docking drag: hit-test the element under the pointer each move, commit on release.
   const dragRef = useRef<DockDrag | null>(null);
@@ -149,16 +180,20 @@ export function DockCanvas({ presentation, store }: DockCanvasProps): ReactNode 
 
   const renderGroup = (group: DockLayoutGroup, region: DockRegion): ReactNode => <DockGroup key={group.id} group={group} region={region}
     presentation={presentation} store={store} setSlot={setSlot} drag={drag} onDragStart={startDrag}
-    maximized={maximized === group.id} onToggleMaximize={() => store.getState().toggleMaximizedGroup(group.id)} />;
+    maximized={maximized === group.id} onToggleMaximize={() => maximize.current?.toggle(group.id)} />;
 
   const widthMaximum = Math.max(100, Math.min(1600, bounds.width / 3));
   const bottomMaximum = Math.max(80, Math.min(1000, bounds.height * (store.getState().model.maxBottomFraction ?? 0.5)));
   const left = Math.min(metadata.layout.sizes.left, widthMaximum);
   const right = Math.min(metadata.layout.sizes.right, widthMaximum);
-  const bottom = Math.min(metadata.layout.sizes.bottom, bottomMaximum);
+  const stored = Math.min(metadata.layout.sizes.bottom, bottomMaximum);
+  const bottom = Math.min(stored + extraBottom, bottomMaximum);
   const resize = (region: "left" | "right" | "bottom", value: number, delta: number): void => {
     store.getState().dispatch({ type: "resize", region, size: value + delta });
   };
+  for (const id of everShown.current) {
+    if (!presentation.views.some((view) => view.id === id)) { everShown.current.delete(id); }
+  }
   const dragTitle = drag ? metadata.registry.find((entry) => entry.id === drag.panelId)?.title ?? drag.panelId : "";
   const edgeTarget = (region: DockRegion): ReactNode => drag && !regionShown(region) && region !== "viewport"
     ? <Box data-dock-edge={region} aria-hidden sx={{
@@ -171,11 +206,11 @@ export function DockCanvas({ presentation, store }: DockCanvasProps): ReactNode 
   return <FlexColumn ref={root} tabIndex={-1} data-dock-canvas data-dragging={drag ? "true" : undefined}
     onKeyDown={(event) => {
       // Shift+Space on a focused tab maximizes its group. Only on tabs, so typing and play input are untouched.
-      if (event.key !== " " || !event.shiftKey || !(event.target instanceof HTMLElement) || event.target.getAttribute("role") !== "tab") { return; }
+      if (event.key !== " " || !event.shiftKey || event.ctrlKey || event.metaKey || event.altKey || !(event.target instanceof HTMLElement) || event.target.getAttribute("role") !== "tab") { return; }
       const groupId = event.target.closest<HTMLElement>("[data-dock-group]")?.dataset.dockGroup;
       if (!groupId) { return; }
       event.preventDefault();
-      store.getState().toggleMaximizedGroup(groupId);
+      maximize.current?.toggle(groupId);
     }}
     sx={{ flex: 1, minHeight: 0, minWidth: 0, position: "relative", bgcolor: "background.default", cursor: drag ? "grabbing" : undefined,
       "&[data-dragging='true'] *": { cursor: "grabbing !important" } }}>
@@ -191,7 +226,7 @@ export function DockCanvas({ presentation, store }: DockCanvasProps): ReactNode 
         <ResizeHandle orientation="vertical" ariaLabel={`Resize ${label} left panels`} value={left} min={100} max={widthMaximum} onResize={(delta) => resize("left", left, delta)} /></>}
         <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
           <DockRegionView region="viewport" label={label} groups={metadata.layout.regions.viewport.filter(groupShown)} store={store} renderGroup={renderGroup} />
-          {regionShown("bottom") && <><ResizeHandle orientation="horizontal" invert ariaLabel={`Resize ${label} bottom panels`} value={bottom} min={80} max={bottomMaximum} onResize={(delta) => resize("bottom", bottom, delta)} />
+          {regionShown("bottom") && <><ResizeHandle orientation="horizontal" invert ariaLabel={`Resize ${label} bottom panels`} value={bottom} min={80} max={bottomMaximum} onResize={(delta) => resize("bottom", bottom - extraBottom, delta)} />
             <FlexColumn sx={{ height: bottom, minHeight: 0, flexShrink: 0 }}>
               <DockRegionView region="bottom" label={label} groups={metadata.layout.regions.bottom.filter(groupShown)} store={store} renderGroup={renderGroup} />
             </FlexColumn></>}
@@ -212,10 +247,12 @@ export function DockCanvas({ presentation, store }: DockCanvasProps): ReactNode 
       const group = DOCK_REGIONS.flatMap((region) => metadata.layout.regions[region]).find((entry) => entry.panels.includes(view.id));
       const eligible = group?.panels.filter(visible) ?? [];
       const selected = group && eligible.includes(group.activePanelId) ? group.activePanelId : eligible[0];
+      const active = selected === view.id;
+      if (active || eagerPanels?.includes(view.id)) { everShown.current.add(view.id); }
       return <StablePanelHost key={view.id} id={view.id} slot={group ? slots.get(group.id) ?? null : null}
         resolveSlot={() => group ? [...(root.current?.querySelectorAll<HTMLElement>("[data-dock-slot]") ?? [])].find((node) => node.dataset.dockSlot === group.id) ?? null : null}
-        active={selected === view.id} keyboardScope={view.keyboardScope} focusSnapshot={presentation.focusSnapshot}
-        fallbackFocus={fallbackFocus}>{view.node}</StablePanelHost>;
+        active={active} keyboardScope={view.keyboardScope} focusSnapshot={presentation.focusSnapshot}
+        fallbackFocus={fallbackFocus}>{everShown.current.has(view.id) ? view.node : null}</StablePanelHost>;
     })}
   </FlexColumn>;
 }

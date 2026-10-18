@@ -334,7 +334,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       }
       const { panelTab, codePanelDirty, setPanelTab } =
         useTimelineUIStore.getState();
-      // Unsaved code stays on screen. Only the tab switcher asks to leave it.
+      // Unsaved code stays on screen. This matters on phones, where the sheet
+      // shows one tab at a time and switching would hide the edit. The desktop
+      // dock keeps the Code panel mounted, so it holds the edit either way.
+      // Only the tab switcher asks to leave it.
       if (panelTab === "code" && codePanelDirty) {
         return;
       }
