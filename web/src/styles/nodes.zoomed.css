@@ -3,8 +3,9 @@
 /* --------------------------------------------- */
 /* Zoomed-out container and simplifications       */
 /* --------------------------------------------- */
+/* No fill on the React Flow frame: a card that does not cover its whole frame
+   (rounded corners, a narrower body) would show it as a black block. */
 .react-flow.zoomed-out .react-flow__node {
-  background-color: var(--palette-grey-900);
   min-width: 100px;
 }
 
