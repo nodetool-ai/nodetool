@@ -171,6 +171,6 @@ describe("detectTorchPlatform", () => {
 
     const result = await detectTorchPlatform();
 
-    expect(result.error).toBeDefined();
+    expect(result.error).toBe("Failed to install torchruntime (exit code 1): ");
   });
 });
