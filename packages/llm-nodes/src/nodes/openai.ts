@@ -108,9 +108,10 @@ type WebSearchNodeOutputs = {
 
 export class WebSearchNode extends BaseNode {
   static readonly nodeType = "openai.text.WebSearch";
+  static readonly body = "content_card";
   static readonly title = "Web Search";
-  static readonly inlineFields = ["query"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["query"];
   static readonly description =
     "Search the web with OpenAI's web-search models to answer queries from current information.\n    openai, web, search, internet, browsing, current, realtime";
   static readonly metadataOutputTypes = {
@@ -1030,8 +1031,8 @@ export class RealtimeAgentNode extends BaseNode {
     audio: "audio",
     text: "str"
   };
-  static readonly inlineFields = ["system"];
-  static readonly inputFields = ["chunk"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["system", "chunk"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingInput = true;
@@ -1606,8 +1607,8 @@ export class LiveAgentNode extends BaseNode {
     text: "str",
     input_transcript: "str"
   };
-  static readonly inlineFields = ["instructions"];
-  static readonly inputFields = ["chunk"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["instructions", "chunk"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly isStreamingInput = true;
 

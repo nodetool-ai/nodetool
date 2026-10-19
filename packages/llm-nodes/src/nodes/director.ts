@@ -185,7 +185,7 @@ export class DirectorNode extends BaseNode {
     music_prompt: "str",
     title: "str"
   };
-  static readonly inlineFields = ["brief"];
+  static readonly inlineFields = [];
   static readonly inputFields = ["brief"];
   // Persist the generated screenplay as a generation so it reloads on reopen.
   static readonly autoSaveAsset = true;
@@ -380,7 +380,7 @@ export class ApplyEntitiesNode extends BaseNode {
     reference_images: "list[image]"
   };
   static readonly inlineFields = ["text"];
-  static readonly inputFields = ["text", "entities"];
+  static readonly inputFields = ["entities"];
 
   @prop({
     type: "str",

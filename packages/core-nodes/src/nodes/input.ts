@@ -1221,6 +1221,8 @@ export class MessageDeconstructorNode extends BaseNode {
     audio: "audio",
     model: "language_model"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["value"];
 
   @prop({
     type: "message",

@@ -3350,8 +3350,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [
+      'folder'
+    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -3440,8 +3442,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -3550,8 +3552,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [
+      'value'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -3651,8 +3655,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [
+      'value'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -3787,8 +3793,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [
+      'input_item'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -3926,8 +3934,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [
+      'string'
+    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -10716,8 +10726,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [
+      'value'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -10886,7 +10898,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: [
-      'value',
       'name'
     ],
     input_fields: [
@@ -11281,10 +11292,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'entity',
       'name'
     ],
-    input_fields: [
-      'entity',
-      'name'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -11653,9 +11661,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'descriptor'
     ],
     input_fields: [
-      'image',
-      'name',
-      'descriptor'
+      'image'
     ],
     required_settings: [],
     required_runtimes: [],
@@ -13942,7 +13948,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [],
+    inline_fields: [
+      'path'
+    ],
     input_fields: [],
     required_settings: [],
     required_runtimes: [],
@@ -14062,7 +14070,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [],
+    inline_fields: [
+      'folder'
+    ],
     input_fields: [],
     required_settings: [],
     required_runtimes: [],
@@ -14673,9 +14683,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
-      'prompt'
-    ],
+    inline_fields: [],
     input_fields: [
       'prompt',
       'lyrics'
@@ -21405,9 +21413,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'sketch'
     ],
-    input_fields: [
-      'sketch'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -21501,9 +21507,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'sketch'
     ],
-    input_fields: [
-      'sketch'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -22448,7 +22452,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [],
+    inline_fields: [
+      'path'
+    ],
     input_fields: [],
     required_settings: [],
     required_runtimes: [],
@@ -23390,7 +23396,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -23478,7 +23486,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -23566,7 +23576,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -23781,7 +23793,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -23938,7 +23952,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'main_video',
+      'overlay_video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -24056,7 +24073,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -24144,7 +24163,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -24248,7 +24269,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -24351,7 +24374,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -24439,7 +24464,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -24527,7 +24554,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -24698,7 +24727,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video',
+      'chunks'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -25019,7 +25051,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video_a',
+      'video_b'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -25291,7 +25326,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     recommended_models: [],
     inline_fields: undefined,
-    input_fields: undefined,
+    input_fields: [
+      'video'
+    ],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -26072,9 +26109,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'timeline'
     ],
-    input_fields: [
-      'timeline'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -26163,9 +26198,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'timeline'
     ],
-    input_fields: [
-      'timeline'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -26420,7 +26453,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'timeline'
     ],
     input_fields: [
-      'timeline',
       'values'
     ],
     required_settings: [],
@@ -26670,9 +26702,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'script'
     ],
-    input_fields: [
-      'script'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -26769,9 +26799,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'script'
     ],
-    input_fields: [
-      'script'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [
       'ffmpeg'
@@ -26848,9 +26876,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'script'
     ],
-    input_fields: [
-      'script'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -26978,9 +27004,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'format',
       'granularity'
     ],
-    input_fields: [
-      'script'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -27231,7 +27255,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'pace'
     ],
     input_fields: [
-      'brief',
       'cast'
     ],
     required_settings: [],
@@ -27365,7 +27388,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'script'
     ],
     input_fields: [
-      'script',
       'values'
     ],
     required_settings: [],
@@ -27510,9 +27532,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'storyboard'
     ],
-    input_fields: [
-      'storyboard'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -27629,9 +27649,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'storyboard'
     ],
-    input_fields: [
-      'storyboard'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -28057,7 +28075,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'storyboard'
     ],
     input_fields: [
-      'storyboard',
       'cast'
     ],
     required_settings: [],
@@ -28287,7 +28304,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'storyboard'
     ],
     input_fields: [
-      'storyboard',
       'targets'
     ],
     required_settings: [],
@@ -28532,7 +28548,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'storyboard'
     ],
     input_fields: [
-      'storyboard',
       'targets'
     ],
     required_settings: [],
@@ -28680,9 +28695,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'storyboard'
     ],
-    input_fields: [
-      'storyboard'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -28961,10 +28974,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         description: 'Efficient Gemma 3 for summarization via llama.cpp.'
       }
     ],
-    inline_fields: [
-      'text'
-    ],
+    inline_fields: [],
     input_fields: [
+      'text',
       'image',
       'audio',
       'system_prompt'
@@ -29199,10 +29211,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         description: 'Efficient Gemma 3 for prompt enhancement via llama.cpp.'
       }
     ],
-    inline_fields: [
-      'prompt'
-    ],
+    inline_fields: [],
     input_fields: [
+      'prompt',
       'target',
       'system_prompt'
     ],
@@ -29577,10 +29588,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         description: 'Efficient Gemma 3 for extraction via llama.cpp.'
       }
     ],
-    inline_fields: [
-      'text'
-    ],
+    inline_fields: [],
     input_fields: [
+      'text',
       'image',
       'audio',
       'system_prompt'
@@ -29889,10 +29899,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         description: 'Efficient Gemma 3 for classification via llama.cpp.'
       }
     ],
-    inline_fields: [
-      'text'
-    ],
+    inline_fields: [],
     input_fields: [
+      'text',
       'image',
       'audio',
       'system_prompt'
@@ -30156,9 +30165,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         description: 'Efficient Gemma 3 for classification via llama.cpp.'
       }
     ],
-    inline_fields: [
-      'prompt'
-    ],
+    inline_fields: [],
     input_fields: [
       'value',
       'prompt',
@@ -30917,7 +30924,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     input_fields: [
       'prompt',
       'image',
-      'audio'
+      'audio',
+      'history'
     ],
     required_settings: [],
     required_runtimes: [],
@@ -31934,9 +31942,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
-      'brief'
-    ],
+    inline_fields: [],
     input_fields: [
       'brief'
     ],
@@ -32164,7 +32170,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'text'
     ],
     input_fields: [
-      'text',
       'entities'
     ],
     required_settings: [],
@@ -37371,9 +37376,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [
       'url'
     ],
-    input_fields: [
-      'url'
-    ],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [
       'yt-dlp'
@@ -38771,7 +38774,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     input_fields: [
       'fills',
-      'game_id',
       'preparation',
       'reference_asset_id',
       'fonts'
@@ -40887,11 +40889,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
-      'text'
-    ],
+    inline_fields: [],
     input_fields: [
-      'image'
+      'image',
+      'text'
     ],
     required_settings: [],
     required_runtimes: [],
@@ -47473,7 +47474,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     namespace: 'gemini.text',
     node_type: 'gemini.text.GroundedSearch',
     layout: 'default',
-    body: 'default',
+    body: 'content_card',
     properties: [
       {
         name: 'query',
@@ -47555,10 +47556,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
+    inline_fields: [],
+    input_fields: [
       'query'
     ],
-    input_fields: [],
     required_settings: [
       'GEMINI_API_KEY'
     ],
@@ -47579,7 +47580,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     append_static_inputs: undefined,
     cache_ttl: undefined,
     effect: 'external',
-    primary_output: undefined,
+    primary_output: 'text',
     model_packs: undefined,
     platforms: [
       'node',
@@ -48658,8 +48659,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -48797,8 +48798,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -48907,8 +48908,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [],
     required_settings: [
       'COMFY_API_KEY'
     ],
@@ -49241,8 +49242,13 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
+    inline_fields: [],
+    input_fields: [
+      'prompt',
+      'image',
+      'mask',
+      'reference_images'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -49984,7 +49990,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     namespace: 'mistral.text',
     node_type: 'mistral.text.CodeComplete',
     layout: 'default',
-    body: 'default',
+    body: 'content_card',
     properties: [
       {
         name: 'prompt',
@@ -50225,7 +50231,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     namespace: 'mistral.vision',
     node_type: 'mistral.vision.ImageToText',
     layout: 'default',
-    body: 'default',
+    body: 'content_card',
     properties: [
       {
         name: 'image',
@@ -50379,7 +50385,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     namespace: 'mistral.vision',
     node_type: 'mistral.vision.OCR',
     layout: 'default',
-    body: 'default',
+    body: 'content_card',
     properties: [
       {
         name: 'image',
@@ -50593,7 +50599,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     namespace: 'openai.text',
     node_type: 'openai.text.WebSearch',
     layout: 'default',
-    body: 'default',
+    body: 'content_card',
     properties: [
       {
         name: 'query',
@@ -50621,10 +50627,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
+    inline_fields: [],
+    input_fields: [
       'query'
     ],
-    input_fields: [],
     required_settings: [
       'OPENAI_API_KEY'
     ],
@@ -51980,10 +51986,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
-      'system'
-    ],
+    inline_fields: [],
     input_fields: [
+      'system',
       'chunk'
     ],
     required_settings: [
@@ -52364,10 +52369,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
-      'instructions'
-    ],
+    inline_fields: [],
     input_fields: [
+      'instructions',
       'chunk'
     ],
     required_settings: [
@@ -52651,10 +52655,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
+    inline_fields: [],
+    input_fields: [
       'query'
     ],
-    input_fields: [],
     required_settings: [
       'XAI_API_KEY'
     ],
@@ -52703,7 +52707,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     namespace: 'xai.vision',
     node_type: 'xai.vision.ImageToText',
     layout: 'default',
-    body: 'default',
+    body: 'content_card',
     properties: [
       {
         name: 'image',

@@ -147,7 +147,7 @@ export class LoadEntityNode extends BaseNode {
     voice_id: "str"
   };
   static readonly inlineFields = ["entity", "name"];
-  static readonly inputFields = ["entity", "name"];
+  static readonly inputFields = [];
 
   @prop({
     type: "entity",
@@ -337,7 +337,7 @@ export class CreateEntityNode extends BaseNode {
     created: "bool"
   };
   static readonly inlineFields = ["name", "kind", "descriptor"];
-  static readonly inputFields = ["image", "name", "descriptor"];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",

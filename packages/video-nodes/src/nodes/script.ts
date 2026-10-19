@@ -134,7 +134,7 @@ export class LoadScriptNode extends BaseNode {
     line_count: "int"
   };
   static readonly inlineFields = ["script"];
-  static readonly inputFields = ["script"];
+  static readonly inputFields = [];
 
   @prop({
     type: "script",
@@ -175,7 +175,7 @@ export class VoiceScriptNode extends BaseNode {
     voiced_count: "int"
   };
   static readonly inlineFields = ["script"];
-  static readonly inputFields = ["script"];
+  static readonly inputFields = [];
 
   @prop({
     type: "script",
@@ -268,7 +268,7 @@ export class ScriptToTimelineNode extends BaseNode {
     output: "timeline"
   };
   static readonly inlineFields = ["script"];
-  static readonly inputFields = ["script"];
+  static readonly inputFields = [];
 
   @prop({
     type: "script",
@@ -378,7 +378,7 @@ export class ScriptToSubtitlesNode extends BaseNode {
     cue_count: "int"
   };
   static readonly inlineFields = ["script", "format", "granularity"];
-  static readonly inputFields = ["script"];
+  static readonly inputFields = [];
 
   @prop({
     type: "script",
@@ -536,7 +536,7 @@ export class WriteScriptNode extends BaseNode {
     line_count: "int"
   };
   static readonly inlineFields = ["brief", "format", "language", "pace"];
-  static readonly inputFields = ["brief", "cast"];
+  static readonly inputFields = ["cast"];
 
   @prop({
     type: "language_model",
@@ -734,7 +734,7 @@ export class FillScriptNode extends BaseNode {
     unresolved: "list[str]"
   };
   static readonly inlineFields = ["script"];
-  static readonly inputFields = ["script", "values"];
+  static readonly inputFields = ["values"];
 
   @prop({
     type: "script",

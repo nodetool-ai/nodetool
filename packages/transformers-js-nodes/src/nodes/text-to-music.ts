@@ -26,8 +26,8 @@ type TextToMusicNodeOutputs = {
 
 export class TextToMusicNode extends BaseNode {
   static readonly nodeType = "transformers.TextToMusic";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly body = "content_card";
   static readonly title = "Text to Music";
   static readonly description =

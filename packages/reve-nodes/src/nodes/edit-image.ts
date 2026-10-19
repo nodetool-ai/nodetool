@@ -28,8 +28,8 @@ export class EditImageNode extends BaseNode {
     "- Change styles, colors, or objects in a photo\n" +
     "- Add or remove elements from an image";
   static readonly metadataOutputTypes = { output: "image" };
-  static readonly inlineFields: string[] = ["edit_instruction"];
-  static readonly inputFields: string[] = ["image"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["image", "edit_instruction"];
   static readonly requiredSettings = ["REVE_API_KEY"];
   static readonly autoSaveAsset = true;
 

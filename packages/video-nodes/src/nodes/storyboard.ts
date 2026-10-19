@@ -507,7 +507,7 @@ export class LoadStoryboardNode extends BaseNode {
     shot_count: "int"
   };
   static readonly inlineFields = ["storyboard"];
-  static readonly inputFields = ["storyboard"];
+  static readonly inputFields = [];
 
   @prop({
     type: "storyboard",
@@ -565,7 +565,7 @@ export class StoryboardShotsNode extends BaseNode {
     output: "list[dict]"
   };
   static readonly inlineFields = ["storyboard"];
-  static readonly inputFields = ["storyboard"];
+  static readonly inputFields = [];
 
   // Emit per-shot output_updates even when the handles are wired onward, so
   // the node shows shots as they stream regardless of downstream connections.
@@ -833,7 +833,7 @@ export class RecastStoryboardNode extends BaseNode {
     kept: "list[str]"
   };
   static readonly inlineFields = ["storyboard"];
-  static readonly inputFields = ["storyboard", "cast"];
+  static readonly inputFields = ["cast"];
 
   @prop({
     type: "storyboard",
@@ -1019,7 +1019,7 @@ export class RenderStillsNode extends BaseNode {
     failed: "list[str]"
   };
   static readonly inlineFields = ["storyboard"];
-  static readonly inputFields = ["storyboard", "targets"];
+  static readonly inputFields = ["targets"];
 
   @prop({
     type: "storyboard",
@@ -1161,7 +1161,7 @@ export class RenderClipsNode extends BaseNode {
     failed: "list[str]"
   };
   static readonly inlineFields = ["storyboard"];
-  static readonly inputFields = ["storyboard", "targets"];
+  static readonly inputFields = ["targets"];
 
   @prop({
     type: "storyboard",
@@ -1324,7 +1324,7 @@ export class AssembleTimelineNode extends BaseNode {
     retimed: "list[dict]"
   };
   static readonly inlineFields = ["storyboard"];
-  static readonly inputFields = ["storyboard"];
+  static readonly inputFields = [];
 
   @prop({
     type: "storyboard",

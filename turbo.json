@@ -64,6 +64,19 @@
       "outputs": ["dist/**"],
       "env": ["GIT_COMMIT_HASH", "BUILD_NUMBER", "VITE_*"]
     },
+    // build.mjs gzips data/nodes.ndjson into dist/, so a regenerated catalog
+    // must change the hash or the cache restores the old one.
+    "@nodetool-ai/node-catalog#build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json",
+        "build.mjs",
+        "data/**"
+      ],
+      "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
+    },
     // The desktop app runs tsc, Vite (main, preload and the renderer pages),
     // the root backend/MCPB bundlers, then electron-builder.
     "nodetool-electron#build": {

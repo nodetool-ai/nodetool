@@ -3,7 +3,9 @@ import { BaseNode } from "../src/base-node.js";
 import {
   defaultForPropType,
   propertyOf,
-  unsetZeroBelowMin
+  retypeMediaUrlFields,
+  unsetZeroBelowMin,
+  urlStringAsAssetRef
 } from "../src/manifest-node-values.js";
 
 describe("defaultForPropType", () => {
@@ -107,5 +109,52 @@ describe("unsetZeroBelowMin", () => {
     expect(unsetZeroBelowMin(100, 256, 0)).toBe(100);
     expect(unsetZeroBelowMin(false, 1, 0)).toBe(false);
     expect(unsetZeroBelowMin("0", 1, 0)).toBe("0");
+  });
+});
+
+describe("retypeMediaUrlFields", () => {
+  it("makes a media URL string an asset field", () => {
+    const fields = retypeMediaUrlFields([
+      { name: "model_image", propType: "str", default: "" },
+      { name: "garment_image", propType: "str", default: "" },
+      { name: "seed", propType: "int", default: 0 }
+    ]);
+    expect(fields).toEqual([
+      { name: "model_image", propType: "image", default: null },
+      { name: "garment_image", propType: "image", default: null },
+      { name: "seed", propType: "int", default: 0 }
+    ]);
+  });
+
+  it("keeps a URL string that is an alternative to an asset field", () => {
+    const fields = [
+      { name: "image", propType: "image" },
+      { name: "image_url", propType: "str" }
+    ];
+    expect(retypeMediaUrlFields(fields)).toEqual(fields);
+  });
+
+  it("leaves sub-fields and unlisted names alone", () => {
+    const fields = [
+      { name: "audio_url", propType: "str", parentField: "voice" },
+      { name: "training_data_url", propType: "str" }
+    ];
+    expect(retypeMediaUrlFields(fields)).toEqual(fields);
+  });
+});
+
+describe("urlStringAsAssetRef", () => {
+  it("reads a saved URL string as a ref", () => {
+    expect(urlStringAsAssetRef("https://x.test/a.png", "image")).toEqual({
+      type: "image",
+      uri: "https://x.test/a.png"
+    });
+  });
+
+  it("passes refs, empty strings and non-asset fields through", () => {
+    const ref = { type: "image", uri: "asset://1" };
+    expect(urlStringAsAssetRef(ref, "image")).toBe(ref);
+    expect(urlStringAsAssetRef("  ", "image")).toBe("  ");
+    expect(urlStringAsAssetRef("hello", null)).toBe("hello");
   });
 });

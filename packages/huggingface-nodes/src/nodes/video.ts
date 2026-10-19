@@ -23,7 +23,8 @@ export class TextToVideoNode extends BaseNode {
     "- Generate short clips from a description\n" +
     "- Prototype motion ideas\n" +
     "- Create animated content";
-  static readonly inlineFields = ["prompt"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly autoSaveAsset = true;
   static readonly metadataOutputTypes = { output: "video" };

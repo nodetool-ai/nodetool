@@ -53,7 +53,8 @@ export class ChatCompletionNode extends BaseNode {
     "- Answer questions with an open LLM\n" +
     "- Build conversational assistants\n" +
     "- Generate text with system instructions";
-  static readonly inlineFields = ["prompt"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = { output: "str" };
 
@@ -149,7 +150,8 @@ export class TextGenerationNode extends BaseNode {
     "- Continue a piece of writing\n" +
     "- Generate creative text\n" +
     "- Prototype with open models";
-  static readonly inlineFields = ["prompt"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = { output: "str" };
 
@@ -235,7 +237,8 @@ export class SummarizationNode extends BaseNode {
     "- Summarize articles or reports\n" +
     "- Create TL;DRs\n" +
     "- Condense meeting notes";
-  static readonly inlineFields = ["inputs"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["inputs"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = { output: "str" };
 
@@ -315,7 +318,8 @@ export class TranslationNode extends BaseNode {
     "- Translate documents\n" +
     "- Localize content\n" +
     "- Build multilingual apps";
-  static readonly inlineFields = ["inputs"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["inputs"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = { output: "str" };
 
@@ -392,7 +396,8 @@ export class FillMaskNode extends BaseNode {
     "- Complete sentences with a missing word\n" +
     "- Probe what a language model knows\n" +
     "- Data augmentation";
-  static readonly inlineFields = ["inputs"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["inputs"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = { output: "str", predictions: "list" };
 
@@ -448,8 +453,8 @@ export class QuestionAnsweringNode extends BaseNode {
     "- Answer questions over a document\n" +
     "- Extract facts from text\n" +
     "- Build search-over-document features";
-  static readonly inlineFields = ["question"];
-  static readonly inputFields = ["context"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["question", "context"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = { output: "str", score: "float" };
 
@@ -516,8 +521,8 @@ export class TableQuestionAnsweringNode extends BaseNode {
     "- Query spreadsheets in natural language\n" +
     "- Aggregate values from a table\n" +
     "- Build conversational data tools";
-  static readonly inlineFields = ["question"];
-  static readonly inputFields = ["table"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["question", "table"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = {
     output: "str",
@@ -657,7 +662,8 @@ export class TextClassificationNode extends BaseNode {
     "- Sentiment analysis\n" +
     "- Topic / intent detection\n" +
     "- Content moderation";
-  static readonly inlineFields = ["inputs"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["inputs"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = { output: "str", scores: "list" };
 
@@ -776,7 +782,8 @@ export class ZeroShotClassificationNode extends BaseNode {
     "- Classify into custom categories on the fly\n" +
     "- Intent detection without training data\n" +
     "- Flexible content tagging";
-  static readonly inlineFields = ["inputs"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["inputs"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly metadataOutputTypes = { output: "str", scores: "list" };
 

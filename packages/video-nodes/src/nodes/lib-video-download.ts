@@ -158,7 +158,7 @@ export class YtDlpDownloadLibNode extends BaseNode {
     thumbnail: "image"
   };
   static readonly inlineFields: string[] = ["url"];
-  static readonly inputFields: string[] = ["url"];
+  static readonly inputFields: string[] = [];
   static readonly requiredRuntimes = ["yt-dlp"];
 
   @prop({

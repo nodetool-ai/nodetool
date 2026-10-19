@@ -235,7 +235,7 @@ export class LoadAudioFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
-  static readonly inlineFields: string[] = [];
+  static readonly inlineFields: string[] = ["path"];
   static readonly inputFields: string[] = [];
 
   @prop({
@@ -265,7 +265,7 @@ export class LoadAudioFolderNode extends BaseNode {
     path: "str",
     audios: "list"
   };
-  static readonly inlineFields: string[] = [];
+  static readonly inlineFields: string[] = ["folder"];
   static readonly inputFields: string[] = [];
 
   static readonly inputMode: InputMode = "buffered";
@@ -1830,7 +1830,7 @@ export class TextToMusicNode extends BaseNode {
   static readonly metadataOutputTypes = {
     audio: "audio"
   };
-  static readonly inlineFields: string[] = ["prompt"];
+  static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["prompt", "lyrics"];
   static readonly autoSaveAsset = true;
 

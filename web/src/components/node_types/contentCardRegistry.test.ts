@@ -70,12 +70,35 @@ describe("isContentCardNode", () => {
     );
   });
 
-  it("returns false for non-image nodes without the body field", () => {
-    // Node types the old heuristics matched no longer match without body, and
-    // only image output (not other media) opts in implicitly.
-    expect(isContentCardNode(meta("some.pkg.VideoModel", "video"))).toBe(false);
-    expect(isContentCardNode(meta("some.pkg.AudioModel", "audio"))).toBe(false);
+  it("opts in video, audio and 3D output without the body field", () => {
+    // A video Blur previews its result the way an image Blur does.
+    expect(isContentCardNode(meta("nodetool.video.Blur", "video"))).toBe(true);
+    expect(isContentCardNode(meta("nodetool.audio.FadeIn", "audio"))).toBe(
+      true
+    );
+    expect(isContentCardNode(meta("nodetool.model3d.Decimate", "model_3d"))).toBe(
+      true
+    );
+  });
+
+  it("opts in a list of images", () => {
+    const grid = stub<NodeMetadata>({
+      node_type: "nodetool.image.ImagesToList",
+      outputs: [
+        stub<OutputSlot>({
+          name: "output",
+          type: { type: "list", type_args: [{ type: "image" }] }
+        })
+      ]
+    });
+    expect(isContentCardNode(grid)).toBe(true);
+  });
+
+  it("leaves text output and input nodes to the body field", () => {
     expect(isContentCardNode(meta("some.pkg.TextModel", "str"))).toBe(false);
+    expect(isContentCardNode(meta("nodetool.input.VideoInput", "video"))).toBe(
+      false
+    );
   });
 
   it("ignores body values other than content_card", () => {

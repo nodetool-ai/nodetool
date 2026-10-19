@@ -36,8 +36,8 @@ type QuestionAnsweringNodeOutputs = {
 
 export class QuestionAnsweringNode extends BaseNode {
   static readonly nodeType = "transformers.QuestionAnswering";
-  static readonly inlineFields = ["question", "context"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["question", "context"];
   static readonly title = "Question Answering";
   static readonly description =
     "Extract an answer span from a context paragraph using a Transformers.js question-answering pipeline.\n" +

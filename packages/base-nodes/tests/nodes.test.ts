@@ -82,7 +82,8 @@ describe("base node registration", () => {
     expect(metadata?.effect).toBe("read");
     expect(supportsPlatform(metadata?.platforms, "browser")).toBe(true);
     expect(metadata?.outputs).toEqual([{ name: "output", type: { type: "any", type_args: [] } }]);
-    expect(metadata?.inline_fields).toEqual(["value", "name"]);
+    expect(metadata?.inline_fields).toEqual(["name"]);
+    expect(metadata?.input_fields).toEqual(["value"]);
   });
 });
 

@@ -39,7 +39,7 @@ export class MinimaxMusicNode extends BaseNode {
     "- Create background music for videos\n" +
     "- Produce jingles and theme songs";
   static readonly metadataOutputTypes = { output: "audio" };
-  static readonly inlineFields: string[] = ["prompt", "lyrics"];
+  static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["prompt", "lyrics"];
   static readonly requiredSettings = ["MINIMAX_API_KEY"];
   static readonly autoSaveAsset = true;

@@ -34,6 +34,26 @@ describe("classifyFields", () => {
     expect(result.inputFields).toEqual(["prompt", "query", "code", "url"]);
   });
 
+  it("classifies the main text of music, speech and edit endpoints as inputFields", () => {
+    const fields: ClassifyFieldInput[] = [
+      { name: "lyrics", propType: "str" },
+      { name: "script", propType: "str" },
+      { name: "text_prompt", propType: "str" },
+      { name: "instruction", propType: "str" },
+      { name: "input_text", propType: "str" },
+      { name: "html", propType: "str" },
+    ];
+    const result = classifyFields(fields);
+    expect(result.inputFields).toEqual([
+      "lyrics",
+      "script",
+      "text_prompt",
+      "instruction",
+      "input_text",
+      "html",
+    ]);
+  });
+
   it("does not classify arbitrary str fields as inputFields", () => {
     const fields: ClassifyFieldInput[] = [
       { name: "description", propType: "str" },

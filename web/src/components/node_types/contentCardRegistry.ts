@@ -6,11 +6,12 @@
  * when either:
  *   1. its metadata declares `body: "content_card"` (explicit opt-in, any
  *      output type), or
- *   2. its primary output is an image — every image-producing node gets the
- *      content-forward image body, even without the backend opt-in.
+ *   2. its primary output is media (an image, a list of images, a mask, a
+ *      video, audio or a 3D model). Every media-producing node gets the
+ *      preview body, even without the backend opt-in, so a video Blur shows
+ *      its result the way an image Blur does.
  *
- * Backend opt-in (case 1) covers non-image content (video/audio/text/3D
- * generators):
+ * Backend opt-in (case 1) covers text output (LLM and transcription nodes):
  *   - Python nodes: set `_body = "content_card"` or override `body()` (often
  *     derived from the primary output type on a shared base class, e.g. the
  *     HuggingFace pipeline / replicate node bases).
@@ -28,10 +29,9 @@ import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
  * Decide whether a node should render as a content card.
  *
  * True when the backend opts in via `body: "content_card"`, or when the node's
- * primary output is an image (image / image_mask). Bespoke editing bodies still
- * win in `NodeContent` routing — for those this only ensures content-card
- * sizing and overlay behavior; the rest of the image nodes get the shared
- * image preview instead of the generic input/output layout.
+ * primary output is media. Bespoke editing bodies still win in `NodeContent`
+ * routing — for those this only ensures content-card sizing and overlay
+ * behavior.
  */
 export const isContentCardNode = (
   metadata: NodeMetadata | undefined
@@ -48,15 +48,22 @@ export const isContentCardNode = (
   if ((metadata.node_type ?? "").startsWith("nodetool.constant.")) {
     return false;
   }
-  // ImageInput is an input node: its `value` is set by the user via the image
-  // dropzone, not produced by a run. Render that editable value directly rather
-  // than the content-card result preview.
-  if (metadata.node_type === "nodetool.input.ImageInput") {
+  // Input nodes hold a value the user sets (the image dropzone, a file
+  // picker), not one produced by a run. Render that editable value directly
+  // rather than the content-card result preview.
+  if ((metadata.node_type ?? "").startsWith("nodetool.input.")) {
     return false;
   }
-  const variant = getContentCardVariant(getPrimaryOutput(metadata));
-  return variant === "image" || variant === "image_mask";
+  return MEDIA_VARIANTS.has(getContentCardVariant(getPrimaryOutput(metadata)));
 };
+
+const MEDIA_VARIANTS: ReadonlySet<ContentCardVariant> = new Set([
+  "image",
+  "image_mask",
+  "video",
+  "audio",
+  "model_3d"
+]);
 
 /**
  * Per-variant default card dimensions applied at node creation time.
@@ -125,8 +132,12 @@ export const getContentCardVariant = (
     return "generic";
   }
   // OutputSlot.type is a PropertyTypeMetadata; its top-level `type` string
-  // names the kind (e.g. "image", "video", "str").
-  const t = (output.type as { type?: string } | undefined)?.type ?? "";
+  // names the kind (e.g. "image", "video", "str"). A list of images previews
+  // as the image grid.
+  const t = output.type.type;
+  if (t === "list" && output.type.type_args?.[0]?.type === "image") {
+    return "image";
+  }
   switch (t) {
     case "image":
       return "image";

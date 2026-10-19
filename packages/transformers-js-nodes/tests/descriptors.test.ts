@@ -40,9 +40,9 @@ describe("Transformers.js node descriptors", () => {
     });
   });
 
-  it("exposes the primary text field as an inline body editor", () => {
-    expect(TextClassificationNode.inlineFields).toEqual(["text"]);
-    expect(TextClassificationNode.inputFields).toEqual([]);
+  it("exposes the primary text field as a handle on the content card", () => {
+    expect(TextClassificationNode.inlineFields).toEqual([]);
+    expect(TextClassificationNode.inputFields).toEqual(["text"]);
   });
 
   it("exposes media inputs as handle-only body ports", () => {
