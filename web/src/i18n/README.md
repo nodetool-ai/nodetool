@@ -7,9 +7,10 @@ Settings → General → Appearance → Language. The choice persists in the exi
 settings store. Missing or unsupported saved locales use English.
 
 Add messages to [locales/en.json](locales/en.json), then add matching keys to
-[locales/zh-CN.json](locales/zh-CN.json). English defines the TypeScript key schema.
-Use semantic keys grouped by feature. Translate complete sentences and preserve
-interpolation names. Pass counts to i18next for plurals instead of joining words.
+[locales/zh-CN.json](locales/zh-CN.json). Catalog tests check that both locales
+have matching keys and interpolation names. Use semantic keys grouped by
+feature. Translate complete sentences and preserve interpolation names. Pass
+counts to i18next for plurals instead of joining words.
 
 ```tsx
 import { useTranslation } from "react-i18next";
