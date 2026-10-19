@@ -51,6 +51,7 @@ import {
   MenuItemPrimitive,
   ContextMenu,
   MOTION,
+  reducedMotion,
   ResponsiveImage,
   ScrollArea,
   CONTROL,
@@ -472,6 +473,7 @@ const NewProjectSurface = ({
   const [entityPickerOpen, setEntityPickerOpen] = useState(false);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
+  const modelCreationInFlight = useRef(false);
   // The card that was clicked, while its documents are being made. Set, and
   // that card says so while the other cards are off (PRD § 6.1: one click
   // creates the row and the document, so a second one has nothing to add).
@@ -596,6 +598,10 @@ const NewProjectSurface = ({
     setSubmenu(null);
     useOnboardingStore.getState().markStep("keep-creating");
   });
+  const { entries: projectEntries } = useNewDocumentCatalog({}, () => {
+    useOnboardingStore.getState().markStep("keep-creating");
+  });
+  const modelEntry = projectEntries.find((entry) => entry.key === "model3d");
   const { data: exampleData, isLoading: examplesLoading } =
     useExampleStoryboards(submenu?.kind === "storyboards");
 
@@ -1520,6 +1526,27 @@ const NewProjectSurface = ({
     [handleEntryCard]
   );
 
+  const handleNewModel = async (): Promise<void> => {
+    if (
+      starting ||
+      pendingFlow !== null ||
+      isUploading ||
+      creating !== null ||
+      modelCreationInFlight.current ||
+      !modelEntry?.create
+    ) {
+      return;
+    }
+    modelCreationInFlight.current = true;
+    setStarting(true);
+    try {
+      await modelEntry.create();
+    } finally {
+      modelCreationInFlight.current = false;
+      setStarting(false);
+    }
+  };
+
   // The chosen card says what it is doing; the other cards are off, because a
   // second flow started over the first would create an unwanted draft.
   const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
@@ -2169,6 +2196,40 @@ const NewProjectSurface = ({
               </Text>
             </FlexColumn>
 
+            <FlexRow
+              role="group"
+              aria-label="Create a game or 3D model"
+              justify="center"
+              gap={SPACING.md}
+              wrap
+            >
+              <EditorButton
+                variant="outlined"
+                size="medium"
+                startIcon={<Box component="span" aria-hidden>{TYPE_GLYPH.game}</Box>}
+                disabled={
+                  starting || pendingFlow !== null || isUploading || creating !== null
+                }
+                disabledReason="Waiting for the current creation or upload to finish."
+                onClick={handleMakeGame}
+              >
+                Game
+              </EditorButton>
+              <EditorButton
+                variant="outlined"
+                size="medium"
+                startIcon={<Box component="span" aria-hidden>{TYPE_GLYPH.model3d}</Box>}
+                tooltip="Open a blank 3D model to edit by hand. No AI provider needed."
+                disabled={
+                  starting || pendingFlow !== null || isUploading || creating !== null
+                }
+                disabledReason="Waiting for the current creation or upload to finish."
+                onClick={() => void handleNewModel()}
+              >
+                New 3D model
+              </EditorButton>
+            </FlexRow>
+
             <FlexColumn
               sx={{
                 bgcolor: "background.paper",
@@ -2176,6 +2237,7 @@ const NewProjectSurface = ({
                 borderColor: "divider",
                 borderRadius: BORDER_RADIUS.xl,
                 transition: MOTION.border,
+                ...reducedMotion({ transition: MOTION.none }),
                 "&:hover": { borderColor: "action.active" },
                 "&:focus-within": { borderColor: "primary.main" }
               }}
@@ -2405,7 +2467,8 @@ const NewProjectSurface = ({
               },
               [`& .${OPTION_CARD_CLASS} img`]: {
                 opacity: 0.7,
-                transition: MOTION.opacity
+                transition: MOTION.opacity,
+                ...reducedMotion({ transition: MOTION.none })
               },
               [`& .${OPTION_CARD_CLASS}:not([aria-disabled="true"]):hover img`]:
                 {
@@ -2523,11 +2586,11 @@ const NewProjectSurface = ({
             }}
           >
             {entries.map((entry) => (
-              <Box
+              <EditorButton
                 key={entry.key}
-                component="button"
                 type="button"
-                disabled={creating !== null}
+                variant="text"
+                disabled={creating !== null || starting || pendingFlow !== null}
                 onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                   if (entry.submenu) {
                     setSubmenu({
@@ -2539,14 +2602,11 @@ const NewProjectSurface = ({
                   void entry.create?.();
                 }}
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  width: "100%",
                   gap: (theme) => theme.spacing(SPACING.md),
                   height: CONTROL.height.md,
                   px: SPACING.md,
-                  cursor: "pointer",
-                  border: "none",
-                  bgcolor: "transparent",
                   borderRadius: BORDER_RADIUS.md,
                   color: "text.primary",
                   "&:hover": { bgcolor: "action.hover" }
@@ -2562,7 +2622,7 @@ const NewProjectSurface = ({
                 <Label>
                   {entry.submenu ? `${entry.label} ▸` : entry.label}
                 </Label>
-              </Box>
+              </EditorButton>
             ))}
           </Box>
         </FlexColumn>
