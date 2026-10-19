@@ -122,8 +122,8 @@ const SynthKnobInner: React.FC<SynthKnobProps> = ({
   });
   const dragStart = useRef<{ y: number; t: number } | null>(null);
 
-  const t = knobNorm(spec, value);
-  const angle = START_DEG + t * SWEEP_DEG;
+  const normalizedValue = knobNorm(spec, value);
+  const angle = START_DEG + normalizedValue * SWEEP_DEG;
   // Bipolar knobs fill from their neutral point (where 0 sits); unipolar
   // knobs fill from the minimum.
   const neutralT = spec.bipolar ? knobNorm(spec, 0) : 0;

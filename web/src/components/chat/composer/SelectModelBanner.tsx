@@ -17,25 +17,26 @@ const SelectModelBanner: React.FC<SelectModelBannerProps> = ({
   onSelect
 }) => {
   const { t } = useTranslation();
-  return <AlertBanner
-    severity="info"
-    compact
-    icon={<AutoAwesomeIcon fontSize="small" />}
-    action={
-      <EditorButton
-        variant="outlined"
-        color="primary"
-        size="small"
-        onClick={onSelect}
-      >
-        {t("i18n-next18.chat.composer.selectModel")}
-      </EditorButton>
-    }
-    sx={{ mx: 1, mb: 0.5, alignItems: "center" }}
-  >
-    {reason}
-  </AlertBanner>
-  </AlertBanner>;
+  return (
+    <AlertBanner
+      severity="info"
+      compact
+      icon={<AutoAwesomeIcon fontSize="small" />}
+      action={
+        <EditorButton
+          variant="outlined"
+          color="primary"
+          size="small"
+          onClick={onSelect}
+        >
+          {t("i18n-next18.chat.composer.selectModel")}
+        </EditorButton>
+      }
+      sx={{ mx: 1, mb: 0.5, alignItems: "center" }}
+    >
+      {reason}
+    </AlertBanner>
+  );
 };
 
 export default memo(SelectModelBanner);

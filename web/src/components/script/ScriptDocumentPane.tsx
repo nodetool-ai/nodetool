@@ -338,6 +338,7 @@ const SectionBlockInner = ({
   dnd: LineDnd;
   onKeyNav: (lineId: string, nav: LineKeyNav) => void;
 }) => {
+  const { t } = useTranslation();
   const cast = useScriptCast(scriptId);
   const setSectionTitle = useScriptStore((s) => s.setSectionTitle);
   const addLine = useScriptStore((s) => s.addLine);
@@ -541,6 +542,7 @@ const VoiceAllButton = ({
   estimate: VoiceCostEstimate;
   onClick: () => void;
 }) => {
+  const { t } = useTranslation();
   const { lineCount, characters, cost, pricedLineCount, breakdowns, reasons, notes } =
     estimate;
   const priced = pricedLineCount > 0 && cost > 0;

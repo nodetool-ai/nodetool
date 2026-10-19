@@ -159,6 +159,7 @@ const StatusFooter = memo<StatusFooterProps>(
     pendingMediaMessage,
     activePredictions
   }) => {
+    const { t } = useTranslation();
     const isBusy = status === "loading" || status === "streaming";
     const elapsed = useElapsedTime(isBusy);
     const hasPredictions = activePredictions.length > 0;

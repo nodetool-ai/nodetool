@@ -212,6 +212,7 @@ const LinkPath: React.FC<LinkPathProps> = memo(
 LinkPath.displayName = "LinkPath";
 
 const LinkLayer: React.FC = () => {
+  const { t } = useTranslation();
   const { links, selectedLinkIds, setLinkSelection, deleteEdge, setSelectedNodes } =
     useNodes(
       (state) => ({

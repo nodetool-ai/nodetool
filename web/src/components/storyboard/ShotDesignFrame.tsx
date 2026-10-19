@@ -245,6 +245,7 @@ function ComposedShotPlayback({
   endMs: number;
   hoverControls: boolean;
 }): React.ReactElement {
+  const { t } = useTranslation();
   const playback = useTimelinePlaybackStoreApi();
   const playing = useTimelinePlaybackStore((state) => state.isPlaying);
   const clock = useRef<PlaybackClock | null>(null);

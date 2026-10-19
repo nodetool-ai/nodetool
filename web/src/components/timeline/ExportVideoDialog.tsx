@@ -111,7 +111,7 @@ export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
           label={t("timeline.export.format")}
           value={format}
           onChange={handleFormatChange}
-          options={formatOptions(mp4Supported)}
+          options={formatOptions}
           description={
             mp4Supported
               ? formatNote

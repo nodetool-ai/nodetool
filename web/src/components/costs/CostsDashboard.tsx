@@ -425,6 +425,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   visibleCount,
   totalCount
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const segmentedStyles = useMemo(() => segmentedSx(theme), [theme]);
   const stats = view.stats;
@@ -626,6 +627,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   onSelectAll,
   onClear
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);

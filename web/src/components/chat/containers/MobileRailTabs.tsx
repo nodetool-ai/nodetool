@@ -27,26 +27,27 @@ interface MobileRailTabsProps {
 
 const MobileRailTabs = ({ value, available, onChange }: MobileRailTabsProps) => {
   const { t } = useTranslation();
-  return <ToggleGroup
-    className="mobile-rail-tabs"
-    value={value}
-    exclusive
-    segmented
-    size="small"
-    aria-label={t("i18n-next23.chat.mobileRails.ariaLabel")}
-    onChange={(_event, next: MobileRail | null) => {
-      if (next !== null) {
-        onChange(next);
-      }
-    }}
-  >
-    {available.map((rail) => (
-      <ToggleOption key={rail} value={rail}>
-        {t(RAIL_LABEL_KEYS[rail])}
-      </ToggleOption>
-    ))}
-  </ToggleGroup>
-  </ToggleGroup>;
+  return (
+    <ToggleGroup
+      className="mobile-rail-tabs"
+      value={value}
+      exclusive
+      segmented
+      size="small"
+      aria-label={t("i18n-next23.chat.mobileRails.ariaLabel")}
+      onChange={(_event, next: MobileRail | null) => {
+        if (next !== null) {
+          onChange(next);
+        }
+      }}
+    >
+      {available.map((rail) => (
+        <ToggleOption key={rail} value={rail}>
+          {t(RAIL_LABEL_KEYS[rail])}
+        </ToggleOption>
+      ))}
+    </ToggleGroup>
+  );
 };
 
 export default memo(MobileRailTabs);

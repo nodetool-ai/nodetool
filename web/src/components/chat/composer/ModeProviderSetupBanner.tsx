@@ -18,25 +18,26 @@ const ModeProviderSetupBanner: React.FC<ModeProviderSetupBannerProps> = ({
   onConnect
 }) => {
   const { t } = useTranslation();
-  return <AlertBanner
-    severity="info"
-    compact
-    icon={<KeyRoundedIcon fontSize="small" />}
-    action={
-      <EditorButton
-        variant="outlined"
-        color="primary"
-        size="small"
-        onClick={onConnect}
-      >
-        {t("i18n-next18.chat.composer.connectProvider")}
-      </EditorButton>
-    }
-    sx={{ mx: 1, mb: 0.5, alignItems: "center" }}
-  >
-    {reason}
-  </AlertBanner>
-  </AlertBanner>;
+  return (
+    <AlertBanner
+      severity="info"
+      compact
+      icon={<KeyRoundedIcon fontSize="small" />}
+      action={
+        <EditorButton
+          variant="outlined"
+          color="primary"
+          size="small"
+          onClick={onConnect}
+        >
+          {t("i18n-next18.chat.composer.connectProvider")}
+        </EditorButton>
+      }
+      sx={{ mx: 1, mb: 0.5, alignItems: "center" }}
+    >
+      {reason}
+    </AlertBanner>
+  );
 };
 
 export default memo(ModeProviderSetupBanner);

@@ -11918,7 +11918,7 @@
     "downstreamCount_one": "{{count}} → downstream",
     "downstreamCount_other": "{{count}} → downstream"
   },
-  "i18n_next9": {
+  "i18n-next9": {
     "assets": {
       "anyModel": "Any model",
       "favorites": "Favorites",

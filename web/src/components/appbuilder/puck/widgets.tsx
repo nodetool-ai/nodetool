@@ -377,6 +377,7 @@ export const HeadingWidget: React.FC<
     subtitle?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value } = useBinding(props, "read");
   const text =
     props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
@@ -758,6 +759,7 @@ export const TableWidget: React.FC<
     maxHeight?: number;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value } = useBinding(props, "read");
   // Memoized because the column/row derivation below depends on it, and that
   // stringifies every cell.

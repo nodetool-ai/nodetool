@@ -11891,7 +11891,7 @@
     "downstreamCount_one": "{{count}} → 下游",
     "downstreamCount_other": "{{count}} → 下游"
   },
-  "i18n_next9": {
+  "i18n-next9": {
     "assets": {
       "anyModel": "任意模型",
       "favorites": "收藏",
