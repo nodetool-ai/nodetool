@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
-import { useTranslation, type TFunction } from "react-i18next";
+import { type TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import type { Config, ArrayField, Field } from "@puckeditor/core";
 import type { Theme } from "@mui/material/styles";
 import type { SystemCssProperties } from "@mui/system";

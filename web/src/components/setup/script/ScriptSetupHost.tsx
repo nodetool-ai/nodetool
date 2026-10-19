@@ -46,6 +46,7 @@ const ScriptSetupHost = ({
   onFinish,
   onChangeFlow
 }: ScriptSetupHostProps) => {
+  const { t } = useTranslation();
   const ensureScript = useScriptStore((state) => state.ensureScript);
   useEffect(() => {
     ensureScript(scriptId);

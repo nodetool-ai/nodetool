@@ -6,7 +6,8 @@
  * of that time and then the result.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslation, type TFunction } from "react-i18next";
+import { type TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   isOperationRunning,

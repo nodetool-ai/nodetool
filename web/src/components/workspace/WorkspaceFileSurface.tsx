@@ -62,6 +62,7 @@ const BinaryFallback = ({ name, url }: { name: string; url: string }) => {
  * written through the `workspace` tRPC router (see WorkspaceFileText).
  */
 const WorkspaceFileSurface = ({ refId, mode }: WorkspaceFileSurfaceProps) => {
+  const { t } = useTranslation();
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
   const parsed = useMemo(() => parseWorkspaceFileRef(refId), [refId]);
   const name = parsed ? workspaceFileName(parsed.path) : "";

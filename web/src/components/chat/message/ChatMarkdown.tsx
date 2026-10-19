@@ -529,6 +529,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
   content,
   onInsertCode
 }) => {
+  const { t } = useTranslation();
   const components = useMemo(
     () => ({
       code: (props: React.ComponentPropsWithoutRef<"code">) => <CodeBlock {...props} onInsert={onInsertCode} />,

@@ -2,7 +2,8 @@
 import { css } from "@emotion/react";
 import { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
-import { useTranslation, type TFunction } from "react-i18next";
+import { type TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { EditorButton, Text, Box, BORDER_RADIUS, getSpacingPx, SPACING } from "./ui_primitives";
 import ReportBugButton from "./support/ReportBugButton";
 import { ThemeContext } from "@emotion/react";

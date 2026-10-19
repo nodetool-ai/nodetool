@@ -955,6 +955,7 @@ export const ListWidget: React.FC<
     placeholder?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value } = useBinding(props, "read");
   const items = (
     props.formattedValue ? [props.formattedValue] : asItems(value)

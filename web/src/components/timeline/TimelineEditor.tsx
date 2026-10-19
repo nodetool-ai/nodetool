@@ -441,6 +441,7 @@ const MobilePanelSheet: React.FC<{
   tab: InspectorTab;
   onTabChange: (tab: InspectorTab) => void;
 }> = memo(({ open, onClose, sequenceId, tab, onTabChange }) => {
+  const { t } = useTranslation();
   const hasScript = useHasScript();
   const hasCode = useTimelineHasCode(sequenceId);
   const { tabs, activeTab } = useAvailableInspectorTabs(tab, hasScript, hasCode);
