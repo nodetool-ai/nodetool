@@ -39,7 +39,7 @@ export interface EntryCompatibility {
   unknowns: CompatibilityUnknown[];
 }
 
-const unique = (values: string[]): string[] => [...new Set(values)];
+const unique = <T extends string>(values: T[]): T[] => [...new Set(values)];
 
 const stringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter(isString) : [];

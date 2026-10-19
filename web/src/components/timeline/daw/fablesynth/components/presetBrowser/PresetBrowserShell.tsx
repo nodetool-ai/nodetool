@@ -218,7 +218,7 @@ export function PresetBrowserShell<I extends BrowserItem, S extends BrowserSnaps
             <div className="pbr-dname">{detailName}</div>
             <div className="pbr-dmeta">{[role, ...(current?.tags ?? [])].filter(Boolean).join(' · ') || t('i18n-next24.presetBrowser.untagged')}</div>
           </div>
-          <span className={`pbr-state ${mode}`}>{MODE_LABEL[mode]}</span>
+          <span className={`pbr-state ${mode}`}>{modeLabels[mode]}</span>
         </div>
         {a.renderDetail(MODE_COLOR[mode])}
         <div className="pbr-actions">

@@ -1090,6 +1090,7 @@ export const DownloadWidget: React.FC<
     placeholder?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, designMode } = useBinding(props, "read");
   const href = useResolvedMediaUri(resolveImageSrc(asItems(value)[0])) ?? null;
   if (!href && !designMode) {

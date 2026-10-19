@@ -24,9 +24,8 @@ export default function InspectorSearch({ contentRef }: InspectorSearchProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
 
   // Localized aliases make controls discoverable while their section is unmounted.
-  const searchSections = useMemo(
-    (): ReadonlyArray<readonly [string, string, string]> =>
-      [
+  const searchSections = useMemo(() => {
+    const sections: Array<[string, string, string]> = [
         [
           t("i18n-cont-inspector-02.search.sections.media.title"),
           t("i18n-cont-inspector-02.search.sections.media.aliases"),
@@ -117,9 +116,9 @@ export default function InspectorSearch({ contentRef }: InspectorSearchProps) {
           t("i18n-cont-inspector-02.search.sections.caption.aliases"),
           t("i18n-cont-inspector-02.search.sections.caption.legacyTitle")
         ]
-      ].sort(([a], [b]) => b.length - a.length),
-    [t]
-  );
+    ];
+    return sections.sort(([a], [b]) => b.length - a.length);
+  }, [t]);
 
   const search = useCallback(
     (value: string) => {

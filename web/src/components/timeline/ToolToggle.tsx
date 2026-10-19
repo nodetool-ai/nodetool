@@ -416,9 +416,9 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
           active={activeTool === tool.tool}
           compact={compact}
           iconOnly
-          onClick={() => setActiveTool(t.tool)}
+          onClick={() => setActiveTool(tool.tool)}
         >
-          <ToolGlyph d={t.glyph} />
+          <ToolGlyph d={tool.glyph} />
         </ToolButton>
       ))}
       <ToolButton
@@ -439,9 +439,9 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
           active={activeTool === tool.tool}
           compact={compact}
           iconOnly
-          onClick={() => setActiveTool(t.tool)}
+          onClick={() => setActiveTool(tool.tool)}
         >
-          <ToolGlyph d={t.glyph} />
+          <ToolGlyph d={tool.glyph} />
         </ToolButton>
       ))}
       <ToolButton

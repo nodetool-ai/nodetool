@@ -190,7 +190,7 @@ const ShareWorkflowDialog = ({
             align="center"
             justify="space-between"
           >
-            <TruncatedText size="small">
+            <TruncatedText>
               {collaborator.user_id}
             </TruncatedText>
             <FlexRow gap={SPACING.sm} align="center">

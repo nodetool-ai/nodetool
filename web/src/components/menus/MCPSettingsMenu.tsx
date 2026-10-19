@@ -225,11 +225,11 @@ const MCPSettingsMenu = () => {
               >
                 {data.defaultLaunch}
               </Text>
-              {data.targets.map((t) => (
-                <div key={t.target} className="settings-item">
+              {data.targets.map((target) => (
+                <div key={target.target} className="settings-item">
                   <FlexRow align="center" justify="space-between" fullWidth>
                     <FlexRow align="center" gap={1}>
-                      {t.installed ? (
+                      {target.installed ? (
                         <CheckCircleIcon
                           sx={{
                             color: theme.vars.palette.success.main,
@@ -245,24 +245,24 @@ const MCPSettingsMenu = () => {
                         />
                       )}
                       <FlexColumn gap={0}>
-                        <Text sx={{ fontWeight: 500 }}>{t.label}</Text>
-                        {t.installed && (t.command ?? t.url) && (
+                        <Text sx={{ fontWeight: 500 }}>{target.label}</Text>
+                        {target.installed && (target.command ?? target.url) && (
                           <Text
                             className="description"
                             sx={{ fontSize: "var(--fontSizeSmall) !important" }}
                           >
-                            {t.command ?? t.url}
+                            {target.command ?? target.url}
                           </Text>
                         )}
                       </FlexColumn>
                     </FlexRow>
                     <FlexRow gap={1}>
-                      {t.installed ? (
+                      {target.installed ? (
                         <NavButton
                           icon={<RemoveCircleOutlineIcon />}
                           label={t("screens4_4.mcp.remove")}
                           disabled={busy}
-                          onClick={() => handleUninstall(t.target)}
+                          onClick={() => handleUninstall(target.target)}
                           navSize="small"
                           sx={{
                             padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
@@ -276,7 +276,7 @@ const MCPSettingsMenu = () => {
                           label={t("screens4_4.mcp.install")}
                           color="primary"
                           disabled={busy}
-                          onClick={() => handleInstall(t.target)}
+                          onClick={() => handleInstall(target.target)}
                           navSize="small"
                           sx={{
                             padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,

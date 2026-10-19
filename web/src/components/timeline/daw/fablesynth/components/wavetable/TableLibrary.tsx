@@ -46,25 +46,25 @@ export function TableLibrary({
       </div>
       <div className="wte-lib-scroll">
         <div className="wte-lib-section">{t('i18n-next24.wavetable.factory')}</div>
-        {factory.map((t, i) => matches(t.name) && (
+        {factory.map((table, i) => matches(table.name) && (
           <div key={'f' + i}
                className={'wte-lib-row' + (selectedId === 'f' + i ? ' on' : '')}
                onClick={() => onSelectFactory(i)}>
-            <TableThumb table={t} accent={accent} selected={selectedId === 'f' + i} />
+            <TableThumb table={table} accent={accent} selected={selectedId === 'f' + i} />
             <div className="wte-lib-info">
-              <div className="wte-lib-name">{t.name}</div>
-              <div className="wte-lib-sub">{t.frames}f · {t('i18n-next24.wavetable.factory')}</div>
+              <div className="wte-lib-name">{table.name}</div>
+              <div className="wte-lib-sub">{table.frames}f · {t('i18n-next24.wavetable.factory')}</div>
             </div>
             <button title={t('i18n-next24.wavetable.duplicate')} className="wte-lib-btn"
                     onClick={(e) => { e.stopPropagation(); onDuplicateFactory(i); }}>⎘</button>
           </div>
         ))}
         <div className="wte-lib-section">{t('i18n-next24.wavetable.user')}</div>
-        {userTables.map((t, i) => matches(t.name) && (
+        {userTables.map((table, i) => matches(table.name) && (
           <div key={'u' + i}
                className={'wte-lib-row' + (selectedId === 'u' + i ? ' on' : '')}
                onClick={() => onSelectUser(i)}>
-            <TableThumb table={t.table} accent={accent} selected={selectedId === 'u' + i} />
+            <TableThumb table={table.table} accent={accent} selected={selectedId === 'u' + i} />
             <div className="wte-lib-info">
               {renameIdx === i ? (
                 <input autoFocus className="wte-rename" value={renameVal}
@@ -74,14 +74,14 @@ export function TableLibrary({
                        onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenameIdx(null); }} />
               ) : (
                 <>
-                  <div className="wte-lib-name">{t.name}</div>
-                  <div className="wte-lib-sub">{t.frames}f</div>
+                  <div className="wte-lib-name">{table.name}</div>
+                  <div className="wte-lib-sub">{table.frames}f</div>
                 </>
               )}
             </div>
             <div className="wte-lib-actions">
               <button title={t('i18n-next24.wavetable.rename')} className="wte-lib-btn"
-                      onClick={(e) => { e.stopPropagation(); setRenameIdx(i); setRenameVal(t.name); }}>✎</button>
+                      onClick={(e) => { e.stopPropagation(); setRenameIdx(i); setRenameVal(table.name); }}>✎</button>
               <button title={t('i18n-next24.wavetable.duplicate')} className="wte-lib-btn"
                       onClick={(e) => { e.stopPropagation(); onDuplicateUser(i); }}>⎘</button>
               <button title={t('i18n-next24.wavetable.delete')} className="wte-lib-btn wte-lib-del"

@@ -304,7 +304,7 @@ const TOOL_LABEL_KEYS: Record<SketchTool, string> = {
   pencil: "i18n-next4.sketch.tool.pencil",
   eraser: "i18n-next4.sketch.tool.eraser",
   fill: "i18n-next4.sketch.tool.fill",
-  color_picker: "i18n-next4.sketch.tool.colorPicker",
+  eyedropper: "i18n-next4.sketch.tool.colorPicker",
   blur: "i18n-next4.sketch.tool.blur",
   clone_stamp: "i18n-next4.sketch.tool.cloneStamp",
   shape: "i18n-next4.sketch.tool.shape",

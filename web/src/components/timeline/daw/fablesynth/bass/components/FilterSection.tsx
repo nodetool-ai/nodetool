@@ -34,18 +34,18 @@ function FilterView() {
       }
       const cutoff = vizCut > 0 ? vizCut : cut;
       const q = 0.7 + res * 9;
-      const t = type | 0;
+      const filterType = type | 0;
       const mag = (f: number): number => {
         const wn = f / cutoff;
         const den = Math.sqrt(Math.pow(1 - wn * wn, 2) + Math.pow(wn / q, 2));
         let m: number;
-        switch (t) {
+        switch (filterType) {
           case 2: m = (wn / q) / den; break; // BP
           case 3: m = (wn * wn) / den; break; // HP
           case 4: m = Math.abs(1 - wn * wn) / den; break; // notch
           default: m = 1 / den;
         }
-        return t === 1 ? m * m : m; // LP24 = squared slope
+        return filterType === 1 ? m * m : m; // LP24 = squared slope
       };
       const toY = (m: number): number => {
         const db = Math.max(-30, Math.min(24, 20 * Math.log10(Math.max(1e-6, m))));

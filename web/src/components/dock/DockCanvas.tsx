@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useStore, type StoreApi } from "zustand";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 import type { DockLayoutState } from "../../stores/dock/DockLayoutStore";
 import { DOCK_REGIONS, capitalizeLabel, type DockLayoutGroup, type DockRegion } from "../../stores/dock/DockLayout";
@@ -259,7 +260,7 @@ export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extr
   </FlexColumn>;
 }
 
-function describeTarget(target: DockDropTarget, t: (key: string) => string): string {
+function describeTarget(target: DockDropTarget, t: TFunction): string {
   if (target.kind === "region") { return t(`batch2_2.dock.regions.${target.region}`); }
   if (target.kind === "tab" || target.zone === "center") { return t("batch2_2.dock.thisGroup"); }
   return t("batch2_2.dock.newGroupPosition", { position: t(`batch2_2.dock.positions.${target.zone}`) });

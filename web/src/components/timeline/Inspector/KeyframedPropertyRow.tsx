@@ -342,12 +342,12 @@ export const KeyframeLane: React.FC<LaneProps> = memo(
               onKeyDown={(e) => handleDiamondKeyDown(e, keyframeMs)}
               onClick={(e) => {
                 // Pointer presses seek on pointerup; this is the keyboard path.
-                if (e.detail === 0) onSeek(t);
+                if (e.detail === 0) onSeek(keyframeMs);
               }}
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (!disabled) setMenu({ x: e.clientX, y: e.clientY, atMs: t });
+                if (!disabled) setMenu({ x: e.clientX, y: e.clientY, atMs: keyframeMs });
               }}
             />
           );

@@ -89,7 +89,7 @@ const InfoRow: React.FC<{
         {copyable && value && (
           <ContentCopyIcon
             aria-label={t("screens4_1.about.copyValue", { label })}
-            title={t("screens4_1.about.copyValue", { label })}
+            titleAccess={t("screens4_1.about.copyValue", { label })}
             sx={{
               fontSize: "inherit",
               cursor: "pointer",

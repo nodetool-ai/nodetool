@@ -67,7 +67,7 @@ class SearchErrorBoundary extends Component<
 
   declare context: Theme;
 
-  constructor(props: SearchErrorBoundaryProps) {
+  constructor(props: SearchErrorBoundaryProps & { t: TFunction }) {
     super(props);
     this.state = { hasError: false };
   }

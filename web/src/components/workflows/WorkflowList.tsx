@@ -358,7 +358,7 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
         <FlexRow
           className="toolbar-header"
           align="center"
-          gap={SPACING.comfortable}
+          gap={SPACING.lg}
           justify="space-between"
         >
           <WorkflowToolbar

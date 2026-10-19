@@ -9,9 +9,9 @@ function appI18nOptions(locale: Locale) {
     lng: locale,
     fallbackLng: DEFAULT_LOCALE,
     supportedLngs: ["en", "zh-CN"],
-    load: "currentOnly",
-    initAsync: false,
-    defaultNS: "translation",
+    load: "currentOnly" as const,
+    initAsync: false as const,
+    defaultNS: "translation" as const,
     resources: {
       en: { translation: en },
       "zh-CN": { translation: zhCN }

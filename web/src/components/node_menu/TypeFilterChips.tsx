@@ -49,6 +49,7 @@ const CONTROL_HEIGHT = "28px";
 type TypeOption = {
   value: string;
   label: string;
+  key?: string;
 };
 
 const ALL_INPUT_OPTION: TypeOption = {

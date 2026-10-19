@@ -138,6 +138,9 @@ const priceSuffix = (model: ShotModelRef | null, locale: string): string => {
     undefined,
     []
   ).cost;
+  if (cost == null) {
+    return "";
+  }
   const formatted = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "USD"

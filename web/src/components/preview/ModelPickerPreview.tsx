@@ -91,6 +91,9 @@ const PreviewModelPicker: React.FC = () => {
   });
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const models = SAMPLE_MODELS.map((sample) => {
+    if (!sample.execution) {
+      return sample;
+    }
     if (sample.execution.kind === "api") {
       return {
         ...sample,

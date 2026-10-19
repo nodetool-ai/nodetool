@@ -312,7 +312,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         <FlexRow align="center" gap={1}>
           <Caption sx={{ minWidth: "50px" }}>
             {t("i18n-cont-color-07.gradient.angle", {
-              angle: new Intl.NumberFormat(i18n.language).format(gradient.angle)
+              angle: new Intl.NumberFormat(i18n.language).format(gradient.angle ?? 90)
             })}
           </Caption>
           <NodeSlider
