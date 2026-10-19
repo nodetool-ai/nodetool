@@ -37,7 +37,7 @@ const ExampleNeedsPill = ({ needs }: ExampleNeedsPillProps) => {
         : labels[0]
           ? t("pass3_18.examples.needs.oneModel", {
               article:
-                i18n.language === "zh-CN"
+                i18n.language !== "en"
                   ? ""
                   : labels[0].startsWith("image") ||
                       labels[0].startsWith("embedding")

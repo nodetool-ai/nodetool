@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-export const localeSchema = z.enum(["en", "zh-CN"]);
+export const localeSchema = z.enum(["en", "de", "zh-CN"]);
 export type Locale = z.infer<typeof localeSchema>;
 export const DEFAULT_LOCALE: Locale = "en";
 
 export const LOCALE_OPTIONS = [
   { value: "en", label: "English" },
+  { value: "de", label: "Deutsch" },
   { value: "zh-CN", label: "简体中文" }
 ] as const;
 

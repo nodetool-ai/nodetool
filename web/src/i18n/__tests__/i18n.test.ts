@@ -2,15 +2,42 @@ import { createAppI18n } from "../i18n";
 import { resolveLocale } from "../locales";
 
 describe("translation resources", () => {
-  it("initializes bundled English and Chinese synchronously", () => {
+  it("initializes bundled English, German, and Chinese synchronously", () => {
     expect(createAppI18n().t("common.save")).toBe("Save");
+    expect(createAppI18n("de").t("common.save")).toBe("Speichern");
     expect(createAppI18n("zh-CN").t("common.save")).toBe("保存");
   });
 
-  it("falls back to English when a Chinese message is missing", () => {
-    const instance = createAppI18n("zh-CN");
-    instance.removeResourceBundle("zh-CN", "translation");
-    expect(instance.t("common.save")).toBe("Save");
+  it.each(["de", "zh-CN"] as const)(
+    "falls back to English when a %s message is missing",
+    (locale) => {
+      const instance = createAppI18n(locale);
+      instance.removeResourceBundle(locale, "translation");
+      expect(instance.t("common.save")).toBe("Save");
+    }
+  );
+
+  it("accepts German as a persisted locale", () => {
+    expect(resolveLocale("de")).toBe("de");
+  });
+
+  it("renders German messages with interpolation", () => {
+    expect(
+      createAppI18n("de").t("screen_editor.stepsProgress", {
+        completed: 2,
+        count: 5
+      })
+    ).toBe("2/5 Schritte");
+  });
+
+  it("uses singular and plural German collection labels", () => {
+    const instance = createAppI18n("de");
+    expect(instance.t("i18n-next30.collections.count", { count: 1 })).toBe(
+      "1 Sammlung"
+    );
+    expect(instance.t("i18n-next30.collections.count", { count: 2 })).toBe(
+      "2 Sammlungen"
+    );
   });
 
   it("supports interpolation and language-specific plural forms", () => {

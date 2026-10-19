@@ -13,30 +13,49 @@ afterEach(() => {
   localStorage.clear();
 });
 
-it("switches mounted consumers and document language and persists the choice", () => {
-  render(<TranslationProvider><TranslatedLabel /></TranslationProvider>);
-  expect(screen.getByText("Save")).toBeTruthy();
-  act(() => useSettingsStore.getState().updateSettings({ locale: "zh-CN" }));
-  expect(screen.getByText("保存")).toBeTruthy();
-  expect(document.documentElement.lang).toBe("zh-CN");
-  expect(JSON.parse(localStorage.getItem("settings-storage") ?? "{}").state.settings.locale).toBe("zh-CN");
-  act(() => useSettingsStore.getState().resetSettings());
-  expect(screen.getByText("Save")).toBeTruthy();
-  expect(document.documentElement.lang).toBe("en");
-});
+it.each([
+  ["zh-CN", "保存"],
+  ["de", "Speichern"]
+] as const)(
+  "switches mounted consumers and document language and persists %s",
+  (locale, saveLabel) => {
+    render(
+      <TranslationProvider>
+        <TranslatedLabel />
+      </TranslationProvider>
+    );
+    expect(screen.getByText("Save")).toBeTruthy();
+    act(() => useSettingsStore.getState().updateSettings({ locale }));
+    expect(screen.getByText(saveLabel)).toBeTruthy();
+    expect(document.documentElement.lang).toBe(locale);
+    expect(
+      JSON.parse(localStorage.getItem("settings-storage") ?? "{}").state
+        .settings.locale
+    ).toBe(locale);
+    act(() => useSettingsStore.getState().resetSettings());
+    expect(screen.getByText("Save")).toBeTruthy();
+    expect(document.documentElement.lang).toBe("en");
+  }
+);
 
 it("provides initialized English translations to tests without a provider", () => {
   render(<TranslatedLabel />);
   expect(screen.getByText("Save")).toBeTruthy();
 });
 
-it.each([{}, { locale: "invalid" }, { locale: "zh-CN" }])(
+it.each([{}, { locale: "invalid" }, { locale: "zh-CN" }, { locale: "de" }])(
   "rehydrates old and validated locale settings: %p",
   async (settings) => {
-    localStorage.setItem("settings-storage", JSON.stringify({ state: { settings }, version: 0 }));
+    localStorage.setItem(
+      "settings-storage",
+      JSON.stringify({ state: { settings }, version: 0 })
+    );
     await useSettingsStore.persist.rehydrate();
     expect(useSettingsStore.getState().settings.locale).toBe(
-      "locale" in settings && settings.locale === "zh-CN" ? "zh-CN" : "en"
+      "locale" in settings &&
+        (settings.locale === "zh-CN" || settings.locale === "de")
+        ? settings.locale
+        : "en"
     );
   }
 );
