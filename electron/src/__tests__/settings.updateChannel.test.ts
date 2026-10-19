@@ -1,27 +1,9 @@
 import fs from "fs";
 import path from "path";
-import os from "os";
 import * as yaml from "js-yaml";
+import { useFakeHome } from "../__mocks__/fakeHome";
 
-let tempDir: string;
-const originalPlatform = process.platform;
-
-function setPlatform(platform: NodeJS.Platform) {
-  Object.defineProperty(process, "platform", { value: platform });
-}
-
-beforeEach(() => {
-  jest.resetModules();
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "settings-uc-test-"));
-  jest.spyOn(os, "homedir").mockReturnValue(tempDir);
-  setPlatform("linux");
-});
-
-afterEach(() => {
-  fs.rmSync(tempDir, { recursive: true, force: true });
-  jest.mocked(os.homedir).mockRestore();
-  setPlatform(originalPlatform as NodeJS.Platform);
-});
+const home = useFakeHome("settings-uc-test-");
 
 describe("normalizeUpdateChannel", () => {
   test('returns "latest" for "latest"', async () => {
@@ -94,7 +76,7 @@ describe("getUpdateChannel", () => {
   });
 
   test("reads from settings file when no settings argument provided", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -118,7 +100,7 @@ describe("setUpdateChannel", () => {
     expect(result).toBe("nightly");
 
     const settingsPath = path.join(
-      tempDir,
+      home.dir,
       ".config",
       "nodetool",
       "settings.yaml"

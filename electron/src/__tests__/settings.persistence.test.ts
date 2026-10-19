@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import * as yaml from "js-yaml";
+import { setPlatform, useFakeHome } from "../__mocks__/fakeHome";
 
 /**
  * Persistence-focused tests for electron/src/settings.ts.
@@ -12,26 +13,15 @@ import * as yaml from "js-yaml";
  * payloads, and validation guards.
  */
 
-let tempDir: string;
-const originalPlatform = process.platform;
 const originalAppData = process.env.APPDATA;
 
-function setPlatform(platform: NodeJS.Platform) {
-  Object.defineProperty(process, "platform", { value: platform });
-}
+const home = useFakeHome("settings-persist-test-");
 
 beforeEach(() => {
-  jest.resetModules();
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "settings-persist-test-"));
-  jest.spyOn(os, "homedir").mockReturnValue(tempDir);
-  setPlatform("linux");
   delete process.env.APPDATA;
 });
 
 afterEach(() => {
-  fs.rmSync(tempDir, { recursive: true, force: true });
-  jest.mocked(os.homedir).mockRestore();
-  setPlatform(originalPlatform as NodeJS.Platform);
   if (originalAppData !== undefined) {
     process.env.APPDATA = originalAppData;
   } else {
@@ -49,14 +39,14 @@ describe("getAppConfigPath", () => {
     const { getAppConfigPath } = await import("../settings");
     const result = getAppConfigPath("settings.yaml");
     expect(result).toBe(
-      path.join(tempDir, ".config", "nodetool", "settings.yaml")
+      path.join(home.dir, ".config", "nodetool", "settings.yaml")
     );
     expect(fs.existsSync(path.dirname(result))).toBe(true);
   });
 
   test("creates win32 config path under APPDATA when set", async () => {
     setPlatform("win32");
-    const appDataDir = path.join(tempDir, "AppData", "Roaming");
+    const appDataDir = path.join(home.dir, "AppData", "Roaming");
     fs.mkdirSync(appDataDir, { recursive: true });
     process.env.APPDATA = appDataDir;
 
@@ -74,7 +64,7 @@ describe("getAppConfigPath", () => {
 
     const { getAppConfigPath } = await import("../settings");
     const result = getAppConfigPath("settings.yaml");
-    expect(result).toBe(path.join(tempDir, "nodetool", "settings.yaml"));
+    expect(result).toBe(path.join(home.dir, "nodetool", "settings.yaml"));
     expect(fs.existsSync(path.dirname(result))).toBe(true);
   });
 
@@ -109,7 +99,7 @@ describe("getAppConfigPath", () => {
 
 describe("readSettings", () => {
   test("returns cached settings on second call without re-reading disk", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     const settingsPath = path.join(settingsDir, "settings.yaml");
     fs.writeFileSync(settingsPath, yaml.dump({ cached: true }), "utf8");
@@ -129,7 +119,7 @@ describe("readSettings", () => {
   });
 
   test("returns empty object when YAML parses to a string", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -142,7 +132,7 @@ describe("readSettings", () => {
   });
 
   test("returns empty object when YAML parses to an array", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -155,7 +145,7 @@ describe("readSettings", () => {
   });
 
   test("returns empty object when YAML parses to a number", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -168,7 +158,7 @@ describe("readSettings", () => {
   });
 
   test("returns empty object when YAML parses to null (empty file)", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -181,7 +171,7 @@ describe("readSettings", () => {
   });
 
   test("returns empty object when YAML parses to boolean", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -194,7 +184,7 @@ describe("readSettings", () => {
   });
 
   test("throws on corrupt YAML (invalid syntax)", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -213,7 +203,7 @@ describe("readSettings", () => {
 
 describe("readSettingsAsync", () => {
   test("returns cached settings without re-reading disk", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     const settingsPath = path.join(settingsDir, "settings.yaml");
     fs.writeFileSync(settingsPath, yaml.dump({ asyncCached: 1 }), "utf8");
@@ -232,7 +222,7 @@ describe("readSettingsAsync", () => {
   });
 
   test("returns empty object when YAML parses to an array", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -245,7 +235,7 @@ describe("readSettingsAsync", () => {
   });
 
   test("returns empty object when YAML parses to a string", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -263,7 +253,7 @@ describe("readSettingsAsync", () => {
   });
 
   test("throws on corrupt YAML", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -282,7 +272,7 @@ describe("readSettingsAsync", () => {
 
 describe("writeSettings (via updateSetting / updateSettings)", () => {
   test("keeps the previous file when the write fails partway", async () => {
-    const configDir = path.join(tempDir, ".config", "nodetool");
+    const configDir = path.join(home.dir, ".config", "nodetool");
     const settingsPath = path.join(configDir, "settings.yaml");
     fs.mkdirSync(configDir, { recursive: true });
     fs.writeFileSync(settingsPath, yaml.dump({ kept: true }), "utf8");
@@ -305,7 +295,7 @@ describe("writeSettings (via updateSetting / updateSettings)", () => {
 
   test("creates settings file when it does not exist", async () => {
     const settingsPath = path.join(
-      tempDir,
+      home.dir,
       ".config",
       "nodetool",
       "settings.yaml"
@@ -324,7 +314,7 @@ describe("writeSettings (via updateSetting / updateSettings)", () => {
   });
 
   test("updateSetting preserves other keys", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     const settingsPath = path.join(settingsDir, "settings.yaml");
     fs.writeFileSync(
@@ -349,7 +339,7 @@ describe("writeSettings (via updateSetting / updateSettings)", () => {
 
     // Re-import to clear cache
     jest.resetModules();
-    jest.spyOn(os, "homedir").mockReturnValue(tempDir);
+    jest.spyOn(os, "homedir").mockReturnValue(home.dir);
     const { readSettings: freshRead } = await import("../settings");
     const settings = freshRead();
 
@@ -358,7 +348,7 @@ describe("writeSettings (via updateSetting / updateSettings)", () => {
   });
 
   test("updateSettings merges into existing settings", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     const settingsPath = path.join(settingsDir, "settings.yaml");
     fs.writeFileSync(
@@ -451,7 +441,7 @@ describe("setUpdateChannel persistence", () => {
 
     // Re-import to clear cache and verify disk
     jest.resetModules();
-    jest.spyOn(os, "homedir").mockReturnValue(tempDir);
+    jest.spyOn(os, "homedir").mockReturnValue(home.dir);
     const { readSettings } = await import("../settings");
     const settings = readSettings();
     expect(settings.updateChannel).toBe("nightly");
@@ -464,7 +454,7 @@ describe("setUpdateChannel persistence", () => {
     setUpdateChannel("latest");
 
     jest.resetModules();
-    jest.spyOn(os, "homedir").mockReturnValue(tempDir);
+    jest.spyOn(os, "homedir").mockReturnValue(home.dir);
     const { readSettings } = await import("../settings");
     const settings = readSettings();
     expect(settings.updateChannel).toBe("latest");
@@ -478,7 +468,7 @@ describe("setUpdateChannel persistence", () => {
 
 describe("getUpdateChannel disk fallback", () => {
   test("falls back to reading settings from disk when undefined is passed", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -508,7 +498,7 @@ describe("complex YAML values", () => {
     updateSetting("complex", nested);
 
     jest.resetModules();
-    jest.spyOn(os, "homedir").mockReturnValue(tempDir);
+    jest.spyOn(os, "homedir").mockReturnValue(home.dir);
     const { readSettings } = await import("../settings");
     const settings = readSettings();
     expect(settings.complex).toEqual(nested);
@@ -526,7 +516,7 @@ describe("complex YAML values", () => {
     updateSettings({ num: 3.14, flag: true, zero: 0, flagFalse: false });
 
     jest.resetModules();
-    jest.spyOn(os, "homedir").mockReturnValue(tempDir);
+    jest.spyOn(os, "homedir").mockReturnValue(home.dir);
     const { readSettings: freshRead } = await import("../settings");
     const settings = freshRead();
     expect(settings.num).toBe(3.14);

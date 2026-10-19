@@ -1,38 +1,20 @@
 import fs from "fs";
 import path from "path";
-import os from "os";
 import * as yaml from "js-yaml";
+import { useFakeHome } from "../__mocks__/fakeHome";
 
-let tempDir: string;
-const originalPlatform = process.platform;
-
-function setPlatform(platform: NodeJS.Platform) {
-  Object.defineProperty(process, "platform", { value: platform });
-}
+const home = useFakeHome("vaults-test-");
 
 function readPersistedSettings(): Record<string, unknown> {
-  const settingsPath = path.join(tempDir, ".config", "nodetool", "settings.yaml");
+  const settingsPath = path.join(home.dir, ".config", "nodetool", "settings.yaml");
   if (!fs.existsSync(settingsPath)) return {};
   return (yaml.load(fs.readFileSync(settingsPath, "utf8")) ?? {}) as Record<string, unknown>;
 }
 
 // Data dir on linux is <home>/.local/share/nodetool
 function dataDir(): string {
-  return path.join(tempDir, ".local", "share", "nodetool");
+  return path.join(home.dir, ".local", "share", "nodetool");
 }
-
-beforeEach(() => {
-  jest.resetModules();
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vaults-test-"));
-  jest.spyOn(os, "homedir").mockReturnValue(tempDir);
-  setPlatform("linux");
-});
-
-afterEach(() => {
-  fs.rmSync(tempDir, { recursive: true, force: true });
-  jest.mocked(os.homedir).mockRestore();
-  setPlatform(originalPlatform as NodeJS.Platform);
-});
 
 describe("vaults module", () => {
   test("listVaults returns a default vault when none configured", async () => {
@@ -138,7 +120,7 @@ describe("vaults module", () => {
 
   test("a hand-edited default vault with paths is normalized back to defaults", async () => {
     // Simulate a settings file where someone gave the default vault paths.
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
@@ -156,7 +138,7 @@ describe("vaults module", () => {
   });
 
   test("the default vault is pinned to the front even when listed later", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),

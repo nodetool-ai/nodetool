@@ -1,33 +1,15 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import * as yaml from 'js-yaml';
+import { useFakeHome } from '../__mocks__/fakeHome';
 
-let tempDir: string;
-const originalPlatform = process.platform;
-
-function setPlatform(platform: NodeJS.Platform) {
-  Object.defineProperty(process, 'platform', { value: platform });
-}
-
-beforeEach(() => {
-  jest.resetModules();
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'settings-test-'));
-  jest.spyOn(os, 'homedir').mockReturnValue(tempDir);
-  setPlatform('linux');
-});
-
-afterEach(() => {
-  fs.rmSync(tempDir, { recursive: true, force: true });
-  jest.mocked(os.homedir).mockRestore();
-  setPlatform(originalPlatform as NodeJS.Platform);
-});
+const home = useFakeHome('settings-test-');
 
 describe('settings module', () => {
   test('getAppConfigPath creates config path', async () => {
     const { getAppConfigPath } = await import('../settings');
     const result = getAppConfigPath('file.txt');
-    expect(result).toBe(path.join(tempDir, '.config', 'nodetool', 'file.txt'));
+    expect(result).toBe(path.join(home.dir, '.config', 'nodetool', 'file.txt'));
     expect(fs.existsSync(path.dirname(result))).toBe(true);
   });
 
@@ -38,7 +20,7 @@ describe('settings module', () => {
   });
 
   test('readSettings loads existing yaml', async () => {
-    const settingsDir = path.join(tempDir, '.config', 'nodetool');
+    const settingsDir = path.join(home.dir, '.config', 'nodetool');
     fs.mkdirSync(settingsDir, { recursive: true });
     const settingsPath = path.join(settingsDir, 'settings.yaml');
     fs.writeFileSync(settingsPath, yaml.dump({ foo: 'bar' }), 'utf8');
@@ -49,7 +31,7 @@ describe('settings module', () => {
   });
 
   test('updateSetting updates a single key', async () => {
-    const settingsDir = path.join(tempDir, '.config', 'nodetool');
+    const settingsDir = path.join(home.dir, '.config', 'nodetool');
     fs.mkdirSync(settingsDir, { recursive: true });
     const settingsPath = path.join(settingsDir, 'settings.yaml');
     fs.writeFileSync(settingsPath, yaml.dump({ foo: 'bar' }), 'utf8');
@@ -64,7 +46,7 @@ describe('settings module', () => {
   test('updateSettings merges keys', async () => {
     const { updateSettings } = await import('../settings');
     updateSettings({ alpha: 1 });
-    const settingsPath = path.join(tempDir, '.config', 'nodetool', 'settings.yaml');
+    const settingsPath = path.join(home.dir, '.config', 'nodetool', 'settings.yaml');
     const contents = yaml.load(fs.readFileSync(settingsPath, 'utf8')) as any;
     expect(contents).toEqual({ alpha: 1 });
   });
@@ -93,7 +75,7 @@ describe('settings module', () => {
   });
 
   test('autoUpdatesEnabled can be toggled on and off', async () => {
-    const settingsDir = path.join(tempDir, '.config', 'nodetool');
+    const settingsDir = path.join(home.dir, '.config', 'nodetool');
     fs.mkdirSync(settingsDir, { recursive: true });
     const settingsPath = path.join(settingsDir, 'settings.yaml');
     
@@ -117,7 +99,7 @@ describe('settings module', () => {
   });
 
   test('readSettingsAsync loads existing yaml', async () => {
-    const settingsDir = path.join(tempDir, '.config', 'nodetool');
+    const settingsDir = path.join(home.dir, '.config', 'nodetool');
     fs.mkdirSync(settingsDir, { recursive: true });
     const settingsPath = path.join(settingsDir, 'settings.yaml');
     fs.writeFileSync(settingsPath, yaml.dump({ foo: 'async' }), 'utf8');

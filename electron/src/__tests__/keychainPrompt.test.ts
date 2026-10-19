@@ -1,21 +1,13 @@
 import fs from "fs";
-import os from "os";
 import path from "path";
 import * as yaml from "js-yaml";
+import { setPlatform, useFakeHome } from "../__mocks__/fakeHome";
 
-let tempDir: string;
-const originalPlatform = process.platform;
 const originalEnv = { ...process.env };
 
-function setPlatform(platform: NodeJS.Platform) {
-  Object.defineProperty(process, "platform", { value: platform });
-}
+const home = useFakeHome("keychain-prompt-test-", "darwin");
 
 beforeEach(() => {
-  jest.resetModules();
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "keychain-prompt-test-"));
-  jest.spyOn(os, "homedir").mockReturnValue(tempDir);
-  setPlatform("darwin");
   // Don't treat tests as CI for this module under test — we gate explicitly.
   delete process.env.CI;
   delete process.env.NODE_ENV;
@@ -23,15 +15,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fs.rmSync(tempDir, { recursive: true, force: true });
-  jest.mocked(os.homedir).mockRestore();
-  setPlatform(originalPlatform as NodeJS.Platform);
   process.env = { ...originalEnv };
 });
 
 function readPersistedSettings(): Record<string, unknown> {
   const settingsPath = path.join(
-    tempDir,
+    home.dir,
     ".config",
     "nodetool",
     "settings.yaml",
@@ -64,7 +53,7 @@ describe("showKeychainExplanationIfNeeded", () => {
   });
 
   test("does not show dialog when already acknowledged", async () => {
-    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    const settingsDir = path.join(home.dir, ".config", "nodetool");
     fs.mkdirSync(settingsDir, { recursive: true });
     fs.writeFileSync(
       path.join(settingsDir, "settings.yaml"),
