@@ -377,19 +377,6 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.error.main
     },
 
-    ".thought-section-container": {
-      margin: theme.spacing(1, 0)
-    },
-
-    ".thought-section-container .labeled-toggle": {
-      paddingLeft: 0,
-      paddingRight: 0
-    },
-
-    ".thought-section-container .labeled-toggle-label": {
-      ...TYPOGRAPHY.sans.label
-    },
-
     // ── Tool call timeline ──────────────────────────────────────────────────
     // A message's tool calls read as a sequence of steps, not a stack of
     // cards: a glyph column, a hairline tying each row to the next, the verb

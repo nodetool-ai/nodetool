@@ -90,7 +90,7 @@ describe("MessageView tool-call timeline", () => {
     );
 
     expect(screen.queryByText("Private reasoning")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /show thought/i }));
+    await user.click(screen.getByRole("button", { name: /^thought$/i }));
     expect(screen.getByText("Private reasoning")).toBeInTheDocument();
   });
 

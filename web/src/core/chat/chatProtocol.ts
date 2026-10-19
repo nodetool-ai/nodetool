@@ -73,6 +73,11 @@ import {
 } from "./threadRuntime";
 import { applyMediaPrediction } from "./mediaPrediction";
 import { isNumber, isString } from "../../utils/typePredicates";
+import {
+  streamedChunkText,
+  stripThoughtContent,
+  thoughtBlocks
+} from "./thoughtContent";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -464,6 +469,18 @@ const appendTextContent = (
   return existing;
 };
 
+/** The text a message's content ends with, where the next chunk is appended. */
+const trailingText = (content: Message["content"]): string => {
+  if (isString(content)) {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    const lastBlock = content[content.length - 1];
+    return lastBlock && lastBlock.type === "text" ? lastBlock.text : "";
+  }
+  return "";
+};
+
 const applyChunk = (
   state: GlobalChatState,
   chunk: Chunk,
@@ -485,6 +502,10 @@ const applyChunk = (
   // reply — and its `done` marks the child settling, not the turn.
   const subAgentCall = subAgentCallId(chunk);
   if (subAgentCall) {
+    // A sub-agent's transcript shows its answers and tool rows only.
+    if (chunk.thinking) {
+      return noopUpdate;
+    }
     const text = isString(chunk.content) ? chunk.content : "";
     return {
       update: {
@@ -503,11 +524,20 @@ const applyChunk = (
 
   // Audio chunks carry binary payloads (native Float32Array or base64);
   // only text contributes to the assistant message stream.
-  const chunkText = isString(chunk.content) ? chunk.content : "";
+  const rawChunkText = isString(chunk.content) ? chunk.content : "";
+  const streamsIntoLast = lastMessage?.role === "assistant";
+  // Reasoning rides in a `<think>` block so it renders as its own row
+  // instead of running into the answer.
+  const chunkText = streamedChunkText(
+    streamsIntoLast ? trailingText(lastMessage.content) : "",
+    rawChunkText,
+    chunk.thinking === true,
+    chunk.done === true
+  );
 
   let updatedMessages: Message[];
 
-  if (lastMessage && lastMessage.role === "assistant") {
+  if (streamsIntoLast) {
     const updatedMessage: Message = {
       ...lastMessage,
       content: appendTextContent(lastMessage.content, chunkText)
@@ -860,7 +890,7 @@ const applyAgentExecutionMessage = (
 const normalizeTextForComparison = (text: string) =>
   text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
 
-const extractTextContent = (message: Message): string => {
+const rawTextContent = (message: Message): string => {
   if (isString(message.content)) {
     return message.content;
   }
@@ -871,6 +901,13 @@ const extractTextContent = (message: Message): string => {
   }
   return "";
 };
+
+/**
+ * The answer text, without reasoning: the server's finalized message carries
+ * no reasoning, so the placeholder it replaces is compared without it too.
+ */
+const extractTextContent = (message: Message): string =>
+  stripThoughtContent(rawTextContent(message));
 
 const isLocalStreamId = (id: string | null | undefined): boolean =>
   id?.startsWith("local-stream-") ?? false;
@@ -913,6 +950,19 @@ const findStreamPlaceholderIndex = (
   const incomingText = extractTextContent(msg);
   const candidateNormalized = normalizeTextForComparison(candidateText);
   const incomingNormalized = normalizeTextForComparison(incomingText);
+  // A placeholder that only holds reasoning becomes the reply the server
+  // finalizes after it. A tool-call message is not that reply: the reasoning
+  // stays its own row above the calls.
+  const isReplyText =
+    !!incomingNormalized &&
+    !(Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0);
+  if (
+    !candidateNormalized &&
+    isReplyText &&
+    thoughtBlocks(rawTextContent(candidate))
+  ) {
+    return index;
+  }
   if (!candidateNormalized || !incomingNormalized) {
     return -1;
   }
@@ -939,6 +989,27 @@ const findStreamPlaceholderIndex = (
 };
 
 /**
+ * The server's finalized content with the reasoning the placeholder streamed
+ * put back in front of it, so the Reasoning row survives the replacement.
+ */
+const withStreamedThought = (
+  placeholder: Message,
+  content: Message["content"]
+): Message["content"] => {
+  const thought = thoughtBlocks(rawTextContent(placeholder));
+  if (!thought || content === placeholder.content) {
+    return content;
+  }
+  if (isString(content)) {
+    return content.includes(thought) ? content : thought + content;
+  }
+  if (Array.isArray(content)) {
+    return [{ type: "text", text: thought }, ...content];
+  }
+  return content;
+};
+
+/**
  * Replace the message at `index` with the incoming server message (merging so
  * server fields like id/created_at/tool_calls win while keeping content when the
  * server omits it), or append when no placeholder matched.
@@ -961,7 +1032,7 @@ const replaceStreamPlaceholderOrAppend = (
   const replacement: Message = {
     ...existing,
     ...msg,
-    content: incomingContent
+    content: withStreamedThought(existing, incomingContent)
   };
   return [
     ...messages.slice(0, index),
