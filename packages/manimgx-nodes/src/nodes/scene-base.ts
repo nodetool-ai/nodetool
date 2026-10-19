@@ -6,10 +6,24 @@
  * `from nodetool_inputs import inputs`, media as file paths.
  */
 
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, prop, type NodeValue } from "@nodetool-ai/node-sdk";
 import { bytesToBase64 } from "@nodetool-ai/nodes-utils";
 
 import { ManimgxError } from "../run-manimgx.js";
+
+/**
+ * The wired dynamic inputs by handle name, without the reserved `_` values.
+ */
+export function wiredInputs(
+  dynamicProps: ReadonlyMap<string, unknown>
+): Record<string, NodeValue> {
+  // SAFETY: dynamic inputs carry NodeTool property values, which NodeValue
+  // describes; BaseNode types the map as unknown because it is untyped storage.
+  const values = dynamicProps as ReadonlyMap<string, NodeValue>;
+  return Object.fromEntries(
+    [...values.entries()].filter(([name]) => !name.startsWith("_"))
+  );
+}
 
 export const EXAMPLE_SCENE = `import manimgx as m
 from nodetool_inputs import inputs
@@ -108,10 +122,8 @@ export abstract class ManimgxSceneNode extends BaseNode {
   declare timeout: number;
 
   /** The values wired into dynamic inputs, by handle name. */
-  protected sceneInputs(): Record<string, unknown> {
-    return Object.fromEntries(
-      [...this.dynamicProps.entries()].filter(([name]) => !name.startsWith("_"))
-    );
+  protected sceneInputs(): Record<string, NodeValue> {
+    return wiredInputs(this.dynamicProps);
   }
 
   protected timeoutMs(): number {
