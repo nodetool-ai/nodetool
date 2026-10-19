@@ -437,6 +437,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://vgenv.com/developers/docs"
   },
   {
+    key: "TOAPIS_API_KEY",
+    providerId: PROVIDER_IDS.TOAPIS,
+    name: "ToAPIs",
+    description: "GPT Image generation and editing, and Seedance 2 video.",
+    section: "media",
+    docsUrl: "https://docs.toapis.com/"
+  },
+  {
     key: "REVE_API_KEY",
     providerId: PROVIDER_IDS.REVE,
     name: "Reve",

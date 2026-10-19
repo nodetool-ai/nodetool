@@ -116,6 +116,7 @@ const SOURCE_PROVIDERS = {
   "evolink-provider.ts": "evolink",
   "useapi-provider.ts": "useapi",
   "vgenv-provider.ts": "vgenv",
+  "toapis-provider.ts": "toapis",
   "openrouter-provider.ts": "openrouter",
   "requesty-provider.ts": "requesty",
   "opper-provider.ts": "opper",

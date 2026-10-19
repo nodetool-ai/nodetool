@@ -89,6 +89,7 @@ import { FakeProvider } from "./fake-provider.js";
 import { HiggsfieldProvider } from "./higgsfield-provider.js";
 import { UseapiProvider } from "./useapi-provider.js";
 import { VgenvProvider } from "./vgenv-provider.js";
+import { ToapisProvider } from "./toapis-provider.js";
 export { BaseProvider, estimatePromptTokens } from "./base-provider.js";
 export {
   FAL_PROVIDER_ID,
@@ -235,6 +236,7 @@ export { AnthropicProvider };
 export { HiggsfieldProvider };
 export { UseapiProvider };
 export { VgenvProvider };
+export { ToapisProvider };
 export { ClaudeAgentProvider };
 export { AntigravityProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
@@ -626,6 +628,9 @@ registerBuiltinProvider(PROVIDER_IDS.USEAPI, UseapiProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.VGENV, VgenvProvider, {
   VGENV_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.TOAPIS, ToapisProvider, {
+  TOAPIS_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {

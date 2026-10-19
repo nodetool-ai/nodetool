@@ -55,6 +55,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   requesty: "Requesty",
   reve: "Reve",
   rodin: "Rodin",
+  toapis: "ToAPIs",
   useapi: "useapi.net",
   vgenv: "vgenv",
   voyage: "Voyage AI",

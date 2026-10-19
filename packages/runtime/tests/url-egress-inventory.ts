@@ -426,6 +426,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Signed result URLs are screened; create, poll and cancel use the fixed API host."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/toapis-provider.ts",
+    "ToAPIs GPT Image and Seedance 2 result downloads",
+    "provider-response",
+    "Task result URLs are screened; upload, create and poll use the fixed API host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",

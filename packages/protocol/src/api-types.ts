@@ -1204,6 +1204,7 @@ export const PROVIDER_IDS = {
   HIGGSFIELD: "higgsfield",
   USEAPI: "useapi",
   VGENV: "vgenv",
+  TOAPIS: "toapis",
   AKI: "aki",
   MESHY: "meshy",
   RODIN: "rodin",
