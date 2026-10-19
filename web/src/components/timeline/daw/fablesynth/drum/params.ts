@@ -9,7 +9,6 @@ import {
 } from '../params';
 
 export const PAD_COUNT = 16;
-export const MIDI_BASE = 36; // pad 0 = MIDI C1, pads 0..15 = 36..51
 
 // 4 drum tables (Task 2) followed by WT-1's six procedural tables, followed
 // by 5 sample-derived TR-808 tables (Task 2 of the sampled-tables plan).
@@ -30,7 +29,6 @@ export const DRUM_SAMPLE_NAMES = [
   'CC0 BOUNCE OH', 'CC0 BOUNCE TOM', 'CC0 BOUNCE CY',
 ];
 export const DRUM_FILTER_TYPES = ['LP 12', 'LP 24', 'BP 12', 'HP 12', 'NOTCH'];
-export const NOISE_COLORS = ['WHITE'];
 // Mod sources are per-pad: MOD ENV (per-pad decay env), VELO (hit velocity ×
 // V→MOD), RAND (uniform ±1, drawn once per hit).
 export const DMOD_SOURCES = ['—', 'MOD ENV', 'VELO', 'RAND'];
