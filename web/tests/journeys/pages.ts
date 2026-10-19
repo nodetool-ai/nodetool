@@ -9,7 +9,7 @@
  * result list).
  */
 
-import type { Locator, Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { waitForAppReady } from "./fixtures";
 
 /** Open a route and wait until the app has finished booting. */
@@ -414,5 +414,84 @@ export class TextFilePage {
   async typeFast(text: string): Promise<void> {
     await this.lines().click();
     await this.page.keyboard.type(text, { delay: 15 });
+  }
+}
+
+/** Home actions must work at their first painted positions, without scrolling. */
+export class HomePage {
+  constructor(private readonly page: Page) {}
+
+  async open(projectId: string | null, mode: "light" | "dark"): Promise<void> {
+    await this.page.addInitScript(({ projectId, mode }) => {
+      localStorage.setItem("mode", mode);
+      localStorage.setItem("workspace-tabs-storage", JSON.stringify({
+        version: 4,
+        state: {
+          tabs: [],
+          activeTabId: null,
+          activeProjectId: projectId,
+          personalProjectId: null,
+          projectSessions: projectId
+            ? { [projectId]: { tabIds: [], activeTabId: null, selectedChatThreadId: null } }
+            : {}
+        }
+      }));
+    }, { projectId, mode });
+    await goto(this.page, "/workspace");
+    await this.actions().waitFor({ state: "visible" });
+    if (projectId) {
+      await expect(this.page.getByRole("button", { name: "Selected project: Scrapheart", exact: true })).toBeVisible();
+    }
+  }
+
+  actions(): Locator {
+    return this.page.getByRole("group", { name: "Create a game or 3D model", exact: true });
+  }
+
+  action(name: "Game" | "New 3D model"): Locator {
+    return this.actions().getByRole("button", { name, exact: true });
+  }
+
+  async firstScreenGeometry(name: "Game" | "New 3D model"): Promise<{
+    fullyInsideViewport: boolean;
+    unobstructed: boolean;
+    scrollPositions: number[][];
+    center: { x: number; y: number };
+  }> {
+    return this.action(name).evaluate((button) => {
+      const rect = button.getBoundingClientRect();
+      let fullyInsideViewport = rect.width > 0 && rect.height > 0 && rect.left >= 0 && rect.top >= 0 &&
+        rect.right <= window.innerWidth && rect.bottom <= window.innerHeight;
+      const scrollPositions = [[window.scrollX, window.scrollY]];
+      for (let ancestor = button.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        if (ancestor.scrollHeight > ancestor.clientHeight || ancestor.scrollWidth > ancestor.clientWidth) {
+          scrollPositions.push([ancestor.scrollLeft, ancestor.scrollTop]);
+        }
+        const style = getComputedStyle(ancestor);
+        const clip = ancestor.getBoundingClientRect();
+        if (/(auto|scroll|hidden|clip)/.test(style.overflowY)) {
+          fullyInsideViewport &&= rect.top >= clip.top && rect.bottom <= clip.bottom;
+        }
+        if (/(auto|scroll|hidden|clip)/.test(style.overflowX)) {
+          fullyInsideViewport &&= rect.left >= clip.left && rect.right <= clip.right;
+        }
+      }
+      const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const hit = document.elementFromPoint(center.x, center.y);
+      return { fullyInsideViewport, unobstructed: hit !== null && button.contains(hit), scrollPositions, center };
+    });
+  }
+
+  async clickWithoutScrolling(name: "Game" | "New 3D model"): Promise<void> {
+    const { center } = await this.firstScreenGeometry(name);
+    await this.page.mouse.click(center.x, center.y);
+  }
+
+  gameBrief(): Locator {
+    return this.page.getByRole("textbox", { name: "Your game", exact: true });
+  }
+
+  modelMoveTool(): Locator {
+    return this.page.getByRole("button", { name: "Move tool", exact: true });
   }
 }

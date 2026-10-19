@@ -119,6 +119,7 @@ jest.mock("../../../serverState/useEntities", () => ({
 }));
 
 const createWorkflow = jest.fn(async () => undefined);
+const createModelDocument = jest.fn(async () => undefined);
 const catalogOptions = jest.fn();
 jest.mock("../../workspace/newDocumentCatalog", () => ({
   TEXT_FILE_TEMPLATES: [
@@ -146,6 +147,17 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
           type: "text",
           icon: null,
           submenu: "texts"
+        },
+        {
+          key: "model3d",
+          label: "3D model",
+          menuLabel: "New 3D model",
+          type: "model3d",
+          icon: null,
+          create: async () => {
+            await createModelDocument();
+            onCreated?.();
+          }
         }
       ],
       createTextFile: jest.fn(),
@@ -987,6 +999,62 @@ describe("NewProjectSurface", () => {
     expect(catalogOptions).toHaveBeenCalledWith({ projectId: "default" });
     await userEvent.click(screen.getByRole("button", { name: "Workflow" }));
     expect(createWorkflow).toHaveBeenCalled();
+  });
+
+  it("starts Game from the Home action with the current project's brief", async () => {
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "project-current" });
+    renderSurface(null, false);
+    await userEvent.type(screen.getByRole("textbox", { name: "Chat prompt" }), "A fox collects acorns");
+    const actions = screen.getByRole("group", { name: "Create a game or 3D model" });
+    const game = within(actions).getByRole("button", { name: "Game" });
+    game.focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(await screen.findByTestId("game-setup-flow")).toHaveTextContent("wf-new");
+    expect(managerCreateWorkflow).toHaveBeenCalledWith(expect.objectContaining({
+      project_id: "project-current",
+      settings: expect.objectContaining({
+        game: expect.objectContaining({ brief: "A fox collects acorns" })
+      })
+    }));
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
+  it("opens a blank 3D model from Home without a provider or a prompt", async () => {
+    hasConfiguredProvider = false;
+    renderSurface(null, false);
+    const actions = screen.getByRole("group", { name: "Create a game or 3D model" });
+    const model = within(actions).getByRole("button", { name: "New 3D model" });
+    model.focus();
+    await userEvent.keyboard("{Enter}");
+
+    expect(createModelDocument).toHaveBeenCalledTimes(1);
+    expect(catalogOptions).toHaveBeenCalledWith({});
+    expect(useProviderOnboardingStore.getState().open).toBe(false);
+    expect(createProject).not.toHaveBeenCalled();
+    expect(createNewThread).not.toHaveBeenCalled();
+  });
+
+  it("blocks duplicate creation and other starts while a Home model opens", async () => {
+    let finishCreation: () => void = () => {};
+    createModelDocument.mockImplementationOnce(() => new Promise<undefined>((resolve) => {
+      finishCreation = () => resolve(undefined);
+    }));
+    renderSurface(null, false);
+    await userEvent.type(screen.getByRole("textbox", { name: "Chat prompt" }), "A new game");
+    const actions = screen.getByRole("group", { name: "Create a game or 3D model" });
+    const model = within(actions).getByRole("button", { name: "New 3D model" });
+    await userEvent.dblClick(model);
+
+    expect(createModelDocument).toHaveBeenCalledTimes(1);
+    expect(model).toBeDisabled();
+    expect(within(actions).getByRole("button", { name: "Game" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send to chat" })).toBeDisabled();
+    const cards = screen.getByRole("group", { name: "Guided creation flows" });
+    await userEvent.click(within(cards).getByRole("button", { name: /^Game / }));
+    expect(managerCreateWorkflow).not.toHaveBeenCalled();
+    finishCreation();
+    await waitFor(() => expect(model).toBeEnabled());
   });
 
   it("does not complete describe-idea when chat merely starts", async () => {
