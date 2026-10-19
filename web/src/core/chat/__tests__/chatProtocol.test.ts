@@ -1412,7 +1412,9 @@ describe("output_update store writes", () => {
         updateThreadTitle: jest.fn()
       });
 
-    const run = async (frames: unknown[]): Promise<GlobalChatState> => {
+    const run = async (
+      frames: Parameters<typeof stub<WebSocketMessage>>[0][]
+    ): Promise<GlobalChatState> => {
       let capturedState = makeState();
       const set = jest.fn((updater) => {
         capturedState = {
