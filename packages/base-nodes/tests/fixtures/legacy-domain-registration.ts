@@ -14544,9 +14544,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
-      'text'
-    ],
+    inline_fields: [],
     input_fields: [
       'text',
       'reference_audio'
@@ -48398,10 +48396,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
+    inline_fields: [],
+    input_fields: [
       'text'
     ],
-    input_fields: [],
     required_settings: [
       'GEMINI_API_KEY'
     ],
@@ -51376,10 +51374,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: [
+    inline_fields: [],
+    input_fields: [
       'input'
     ],
-    input_fields: [],
     required_settings: [
       'OPENAI_API_KEY'
     ],

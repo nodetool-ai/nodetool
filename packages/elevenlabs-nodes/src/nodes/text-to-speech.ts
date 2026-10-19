@@ -40,8 +40,8 @@ export class TextToSpeechNode extends BaseNode {
     "- Produce multilingual content\n" +
     "- Create audiobooks";
   static readonly metadataOutputTypes = { output: "audio" };
-  static readonly inlineFields: string[] = ["text"];
-  static readonly inputFields: string[] = ["voice_id"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["text", "voice_id"];
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
   static readonly autoSaveAsset = true;
 
