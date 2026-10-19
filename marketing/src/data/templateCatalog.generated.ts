@@ -26,7 +26,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "a-gradient-card-as-png",
         "name": "A Gradient Card as PNG",
-        "description": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
+        "description": "Draw a studio pass card as vector art, with an aurora of blurred gradients, film grain and a sparkline, then rasterise it to a 1600×960 PNG. Runs with no model or key.",
         "tags": [
           "image",
           "getting-started"
@@ -115,7 +115,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "circles-and-lines",
         "name": "Circles and Lines",
-        "description": "Three SVG elements — circle, ellipse and line — written as one Code node, so the array order is the paint order.",
+        "description": "An orbital poster drawn from circles, ellipses and lines in one Code node. The array order is the paint order, so the planets pass in front of the sun.",
         "tags": [
           "image"
         ]
@@ -123,7 +123,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "compose-directed-campaign-formats",
         "name": "Compose Directed Campaign Formats",
-        "description": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
+        "description": "Lay one accepted hero out as finished 4:5 and 9:16 ads, as PNGs and editable SVGs, then export a portable campaign record. Ships with a sample hero and contract.",
         "tags": [
           "campaign",
           "image",
@@ -185,7 +185,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "draw-a-badge-in-svg",
         "name": "Draw a Badge in SVG",
-        "description": "Compose a badge from SVG elements rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+        "description": "Draw a gold release seal from SVG paths, circles and rotated letters instead of generating an image. Every shape stays editable, with no regeneration and no resampling.",
         "tags": [
           "image"
         ]

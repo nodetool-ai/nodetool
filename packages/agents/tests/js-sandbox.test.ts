@@ -1442,6 +1442,51 @@ describe("runInSandbox binary helpers", () => {
     expect(result.result).toEqual({ b64: expected, same: true });
   });
 
+  it("encodes a photo-sized payload well inside the run timeout", async () => {
+    // One string append per byte group made QuickJS copy the growing result:
+    // 300 KB took 8 s, so composing a campaign layout from a real hero photo
+    // ran past the 30 s timeout. Every length mod 3 checks the padding.
+    const result = await runInSandbox({
+      code: `
+        const bytes = new Uint8Array(3000002);
+        for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 7 + (i >> 8)) & 255;
+        const started = Date.now();
+        const b64 = toBase64(bytes);
+        const back = fromBase64(b64);
+        const elapsed = Date.now() - started;
+        let same = back.length === bytes.length;
+        for (let i = 0; i < bytes.length && same; i += 997) same = back[i] === bytes[i];
+        const tails = [1, 2, 3, 4].map((n) => toBase64(bytes.subarray(0, n)));
+        return { elapsed, length: b64.length, same, tails, head: b64.slice(0, 16) };
+      `
+    });
+    expect(result.success).toBe(true);
+    const value = result.result as {
+      elapsed: number;
+      length: number;
+      same: boolean;
+      tails: string[];
+      head: string;
+    };
+    const bytes = Buffer.alloc(3000002);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 7 + (i >> 8)) & 255;
+    expect(value.length).toBe(bytes.toString("base64").length);
+    expect(value.head).toBe(bytes.toString("base64").slice(0, 16));
+    expect(value.same).toBe(true);
+    expect(value.tails).toEqual(
+      [1, 2, 3, 4].map((n) => bytes.subarray(0, n).toString("base64"))
+    );
+    expect(value.elapsed).toBeLessThan(10_000);
+  });
+
+  it("skips padding and whitespace in fromBase64", async () => {
+    const result = await runInSandbox({
+      code: `return new TextDecoder().decode(fromBase64("aGVs" + String.fromCharCode(10) + "bG8g" + String.fromCharCode(13, 10) + "d29y bGQ="));`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("hello world");
+  });
+
   it("round-trips hex", async () => {
     const result = await runInSandbox({
       code: `

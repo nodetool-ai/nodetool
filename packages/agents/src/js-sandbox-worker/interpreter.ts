@@ -1089,27 +1089,52 @@ const __asBytes = (input, where) => {
   }
   return input;
 };
+// Both directions work on char codes in blocks. Appending to one string per
+// byte group made QuickJS copy the growing result, so a 300 KB photo took
+// 8 s to encode and a photo-sized media payload ran past the run timeout.
+const __b64codes = [];
+const __b64lookup = new Int16Array(128).fill(-1);
+for (let i = 0; i < 64; i++) {
+  __b64codes.push(__b64chars.charCodeAt(i));
+  __b64lookup[__b64chars.charCodeAt(i)] = i;
+}
+__b64lookup[45] = 62; // "-" (base64url)
+__b64lookup[95] = 63; // "_" (base64url)
+const __B64_BLOCK = 3 * 4096;
 globalThis.toBase64 = (input) => {
   const b = __asBytes(input, "toBase64");
-  let out = "";
-  for (let i = 0; i < b.length; i += 3) {
-    const c = (b[i] << 16) | ((b[i + 1] || 0) << 8) | (b[i + 2] || 0);
-    out += __b64chars[(c >> 18) & 63] + __b64chars[(c >> 12) & 63] +
-      (i + 1 < b.length ? __b64chars[(c >> 6) & 63] : "=") +
-      (i + 2 < b.length ? __b64chars[c & 63] : "=");
+  const parts = [];
+  for (let start = 0; start < b.length; start += __B64_BLOCK) {
+    const end = Math.min(start + __B64_BLOCK, b.length);
+    const codes = [];
+    for (let i = start; i < end; i += 3) {
+      const c = (b[i] << 16) | ((i + 1 < end ? b[i + 1] : 0) << 8) | (i + 2 < end ? b[i + 2] : 0);
+      codes.push(
+        __b64codes[(c >> 18) & 63],
+        __b64codes[(c >> 12) & 63],
+        i + 1 < end ? __b64codes[(c >> 6) & 63] : 61,
+        i + 2 < end ? __b64codes[c & 63] : 61
+      );
+    }
+    parts.push(String.fromCharCode.apply(null, codes));
   }
-  return out;
+  return parts.join("");
 };
 globalThis.fromBase64 = (s) => {
-  const clean = String(s).replace(/-/g, "+").replace(/_/g, "/").replace(/[^A-Za-z0-9+/]/g, "");
-  const out = new Uint8Array((clean.length * 6) >> 3);
+  const text = String(s);
+  // Characters outside the alphabet (padding, whitespace, line breaks) are
+  // skipped, as before.
+  const out = new Uint8Array((text.length * 6) >> 3);
   let acc = 0, bits = 0, o = 0;
-  for (let i = 0; i < clean.length; i++) {
-    acc = (acc << 6) | __b64chars.indexOf(clean[i]);
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    const value = code < 128 ? __b64lookup[code] : -1;
+    if (value < 0) continue;
+    acc = ((acc << 6) | value) & 0xffffff;
     bits += 6;
     if (bits >= 8) { bits -= 8; out[o++] = (acc >> bits) & 255; }
   }
-  return out;
+  return o === out.length ? out : out.slice(0, o);
 };
 // Format console arguments guest-side, so only strings cross the boundary.
 // The wrapper's marshaler walks an argument property by property, and a

@@ -76,4 +76,22 @@ describe("shared QuickJS engine", () => {
       expect(result, `run ${run}`).toEqual({ ok: true, data: 42 });
     }
   }, 60_000);
+
+  it("frees the runtime after a job grows the WASM heap", async () => {
+    // A job that grows the heap detached the view executePendingJobs read
+    // the job's context pointer through. It got `undefined`, built a second
+    // context nobody freed, and the runtime aborted on free.
+    const engine = await loadSandboxEngine(variant);
+    const result = await engine.runSandboxed(
+      async ({ evalCode }) =>
+        evalCode(`
+await env.tick();
+const keep = [];
+for (let i = 0; i < 300000; i++) keep.push({ i });
+export default keep.length;
+`),
+      { env: { tick: async () => 1 } }
+    );
+    expect(result).toEqual({ ok: true, data: 300000 });
+  }, 60_000);
 });

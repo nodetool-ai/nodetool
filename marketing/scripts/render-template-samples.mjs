@@ -56,6 +56,15 @@ const routes = {
   "fal_ai:fal-ai/ltx-2.3/text-to-video/fast": { provider: "kie", id: "kling-2.6/text-to-video", name: "Kling 2.6" },
   "fal_ai:fal-ai/recraft/vectorize": { provider: "replicate", id: "recraft-ai/recraft-vectorize", name: "Recraft Vectorize" },
 };
+// Workflows whose result is several images: the sample sets these Output
+// nodes (by name) side by side instead of showing the first image. An
+// inputText replaces a text input that is data rather than something to read.
+const showcase = {
+  "compose-directed-campaign-formats": {
+    outputs: ["portrait", "story"],
+    inputText: "Accepted hero for House Blend Coffee. Headline: Roasted this week, brewed this morning. Call to action: Order a bag.",
+  },
+};
 const textInputs = {
   facts: "Field Coffee opens a new shop in Amsterdam on 15 October. The menu features espresso, filter coffee, and pastries. Opening hours are 8am to 6pm. Founders: Sam and Alex.",
   email: "Meet the Field Coffee subscription. Two freshly roasted bags delivered each month. Choose your grind and change or cancel your plan any time.",
@@ -134,7 +143,8 @@ function prepare(doc) {
       if (kind) {
         const file = kind === "image" ? "coffee.jpg" : kind === "video" ? transcribes ? "meeting.mp4" : "scored.mp4" : transcribes ? "meeting.wav" : "voice.wav";
         const location = file === "scored.mp4" ? path.join(PUBLIC, file) : path.join(INPUTS, file);
-        node.data.value = { type: kind, data: fs.readFileSync(location).toString("base64") };
+        // Package inputs stay references, as the shipped example has them.
+        node.data.value = location.startsWith(INPUTS) ? { type: kind, uri: `package://nodetool-base/recipe-inputs/${file}` } : { type: kind, data: fs.readFileSync(location).toString("base64") };
         inputs[node.id] = { type: kind, file };
       }
       if (node.type === "nodetool.input.StringInput") {
@@ -174,15 +184,32 @@ async function execute(doc, dir) {
   return run;
 }
 
-async function publish(entry, run, provenance) {
+async function sideBySide(refs) {
+  const height = 1280, gap = 48;
+  const tiles = await Promise.all(refs.map(async (ref) => sharp(await bytes(ref)).resize({ height }).png().toBuffer({ resolveWithObject: true })));
+  const width = tiles.reduce((sum, tile) => sum + tile.info.width, 0) + gap * (tiles.length + 1);
+  let left = gap;
+  const composite = tiles.map((tile) => { const input = { input: tile.data, left, top: gap }; left += tile.info.width + gap; return input; });
+  const data = await sharp({ create: { width, height: height + gap * 2, channels: 3, background: "#e7e5e4" } }).composite(composite).png().toBuffer();
+  return { type: "image", data: data.toString("base64") };
+}
+
+async function publish(entry, run, provenance, doc) {
   const outputEvents = run.messages.filter((event) => event.type === "generation_complete" && event.node_type === "nodetool.output.Output");
   const values = outputEvents.length ? outputEvents.flatMap((event) => Object.values(event.outputs)) : Object.values(run.outputs).flat();
   const flattened = values.flat(Infinity);
   const svg = flattened.find((value) => value?.content?.includes("<svg") || (typeof value?.data === "string" && Buffer.from(value.data, "base64").subarray(0, 200).toString().includes("<svg")));
-  const media = flattened.find((v) => ["image", "video", "audio"].includes(v?.type)) ?? (svg ? { type: "image", data: svg.content ? Buffer.from(svg.content).toString("base64") : svg.data } : null);
+  const shown = showcase[entry.slug]?.outputs.map((name) => {
+    const node = doc.graph.nodes.find((n) => n.type === "nodetool.output.Output" && n.data.name === name);
+    const event = outputEvents.find((e) => e.node_id === node?.id);
+    if (!event) throw new Error(`Missing showcase output ${name}`);
+    return Object.values(event.outputs).flat(Infinity)[0];
+  });
+  const media = shown ? await sideBySide(shown) : flattened.find((v) => ["image", "video", "audio"].includes(v?.type)) ?? (svg ? { type: "image", data: svg.content ? Buffer.from(svg.content).toString("base64") : svg.data } : null);
   const sample = { caption: "" };
   const textInput = Object.values(provenance.inputs).find((v) => v.type === "text" && v.value);
-  if (textInput) sample.inputText = textInput.value;
+  const inputText = showcase[entry.slug]?.inputText ?? textInput?.value;
+  if (inputText) sample.inputText = inputText;
   if (media) {
     const raw = await bytes(media);
     const stem = path.join(PUBLIC, entry.slug);
@@ -254,7 +281,7 @@ async function worker() {
         for (const event of run.messages) collectModels(event.properties, event.node_id);
         provenance = { ...provenance, models };
       }
-      if (!renderOnly) await publish(entry, run, provenance);
+      if (!renderOnly) await publish(entry, run, provenance, doc);
       console.log(`PASS ${entry.slug}`);
     } catch (error) {
       failures.push({ slug: entry.slug, error: String(error) });
