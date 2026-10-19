@@ -411,7 +411,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
       () =>
         NODE_SUBCATEGORIES.map((sub) => ({
           value: sub.id,
-          label: t(`i18n-next12.nodeLibrary.categories.${sub.id}`, { defaultValue: sub.label }),
+          label: t(`nodeLibrary.categories.${sub.id}`, { defaultValue: sub.label }),
           icon: isValidElement(sub.icon) ? sub.icon : undefined,
           count: counts[sub.id] ?? 0
         })),
@@ -431,7 +431,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     return (
       <div css={cssStyles} className="nl-root">
         <PanelHeader
-          title={t("i18n-next12.nodeLibrary.title")}
+          title={t("nodeLibrary.title")}
           count={nodes.length}
           docsTopic="nodes"
           description={getTopLevelCategory("nodes").description}
@@ -444,15 +444,15 @@ const NodeLibrary = memo<NodeLibraryProps>(
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("i18n-next12.nodeLibrary.search")}
-            aria-label={t("i18n-next12.nodeLibrary.search")}
+            placeholder={t("nodeLibrary.search")}
+            aria-label={t("nodeLibrary.search")}
           />
           {query && (
             <button
               type="button"
               className="nl-search-clear"
               onClick={() => setQuery("")}
-              aria-label={t("i18n-next12.nodeLibrary.clearSearch")}
+              aria-label={t("nodeLibrary.clearSearch")}
             >
               <ClearIcon />
             </button>
@@ -465,7 +465,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
               className="nl-rail"
               orientation="vertical"
               size="small"
-              aria-label={t("i18n-next12.nodeLibrary.categoriesLabel")}
+              aria-label={t("nodeLibrary.categoriesLabel")}
               tabs={railTabs}
               value={activeSubcategory}
               onChange={handleRailChange}
@@ -476,7 +476,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
                 <EmptyState
                   size="small"
                   variant="no-results"
-                  title={t("i18n-next12.nodeLibrary.noMatches")}
+                  title={t("nodeLibrary.noMatches")}
                 />
               </div>
             ) : (
@@ -524,7 +524,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
             ) : (
               <div className="nl-info-empty">
                 <Text component="span" size="small" color="secondary">
-                  {t("i18n-next12.nodeLibrary.hoverHint")}
+                  {t("nodeLibrary.hoverHint")}
                 </Text>
               </div>
             )}
@@ -535,7 +535,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
           <span>{category.label}</span>
           {!isMobile && (
             <span className="nl-footer-hint">
-              <span className="nl-kbd">{t("i18n-next12.nodeLibrary.drag")}</span> {t("i18n-next12.nodeLibrary.toAdd")}
+              <span className="nl-kbd">{t("nodeLibrary.drag")}</span> {t("nodeLibrary.toAdd")}
             </span>
           )}
         </div>

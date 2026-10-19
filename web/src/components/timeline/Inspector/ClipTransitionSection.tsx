@@ -48,6 +48,17 @@ type TransitionMode =
   | "slide"
   | "zoom";
 
+const TRANSITION_MODE_VALUES: readonly TransitionMode[] = [
+  "auto",
+  "none",
+  "crossfade",
+  "dipToColor",
+  "wipe",
+  "push",
+  "slide",
+  "zoom"
+];
+
 const transitionModes = (t: ReturnType<typeof useTranslation>["t"]) => [
   { value: "auto", label: t("pass3_27.clipTransition.modes.auto") },
   { value: "none", label: t("pass3_27.clipTransition.modes.none") },
@@ -65,10 +76,9 @@ const SCRUB_SECONDS = { step: 0.02, min: 0 };
 function modeOf(transition: ClipTransition | undefined): TransitionMode {
   if (!transition) return "auto";
   if (transition.durationMs <= 0) return "none";
-  const known = TRANSITION_MODES.find(
-    (mode) => mode.value === transition.type
-  );
-  return known ? (known.value as TransitionMode) : "crossfade";
+  return TRANSITION_MODE_VALUES.includes(transition.type as TransitionMode)
+    ? (transition.type as TransitionMode)
+    : "crossfade";
 }
 
 /** A transition of `mode`, carrying over what the previous one already set. */

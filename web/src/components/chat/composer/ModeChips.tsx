@@ -526,9 +526,9 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
         label={
           params.voice
             ? params.voice.charAt(0).toUpperCase() + params.voice.slice(1)
-            : t("i18n-next54.composer.voice")
+            : t("i18n-next54.composer.voiceLabel")
         }
-        header={t("i18n-next54.composer.voice")}
+        header={t("i18n-next54.composer.voiceLabel")}
         value={params.voice}
         options={voiceOptions}
         onChange={(voice) => setParams({ voice })}

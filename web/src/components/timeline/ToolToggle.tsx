@@ -445,7 +445,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         </ToolButton>
       ))}
       <ToolButton
-        label={t("i18n-next3.timeline.tools.ripple")}
+        label={t("i18n-next3.timeline.tools.ripple.label")}
         description={t("i18n-next3.timeline.tools.rippleDescription")}
         active={rippleMode}
         compact={compact}

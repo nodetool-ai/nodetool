@@ -9448,10 +9448,6 @@
       "kind": "Kind",
       "name": "Name",
       "noResourcesYet": "No {{kind}} yet. You can still bind all of them.",
-      "operationName": {
-        "one": "Operation {{count}}",
-        "other": "Operation {{count}}"
-      },
       "operations": "Operations",
       "operationsDescription": "The workflows and scripts this app runs. A Run action names one of these.",
       "perUserRememberOnly": "Only per-user variables can be remembered.",
@@ -9515,7 +9511,9 @@
         "array": "Enter a JSON array, for example [1, 2].",
         "object": "Enter a JSON object, for example {\"key\": \"value\"}.",
         "validJson": "Enter valid JSON for {{type}}."
-      }
+      },
+      "operationName_one": "Operation {{count}}",
+      "operationName_other": "Operation {{count}}"
     },
     "governance": {
       "budgetDescription": "Runs of the released app are checked against this ceiling before they reach a provider. An empty field means no limit.",
@@ -9568,18 +9566,14 @@
       "servingVersion": "Serving version {{version}} — {{capabilities}}",
       "since": " since {{date}}",
       "spendBudget": "Spend budget",
-      "usageSummary": {
-        "one": "Used {{amount}} across {{count}} run{{since}}.",
-        "other": "Used {{amount}} across {{count}} runs{{since}}."
-      },
       "version": "Version {{version}}",
       "versions": "Versions",
       "withdrawLink": "Withdraw link",
       "withdrawLinkError": "Could not withdraw the link: {{error}}",
-      "workflowCount": {
-        "one": "{{count}} workflow",
-        "other": "{{count}} workflows"
-      }
+      "workflowCount_one": "{{count}} workflow",
+      "workflowCount_other": "{{count}} workflows",
+      "usageSummary_one": "Used {{amount}} across {{count}} run{{since}}.",
+      "usageSummary_other": "Used {{amount}} across {{count}} runs{{since}}."
     },
     "history": {
       "closeSelection": "Close history selection",
@@ -11320,7 +11314,7 @@
       }
     }
   },
-  "i18n_next4": {
+  "i18n-next4": {
     "sketch": {
       "exportPsd": "Export PSD",
       "importPsd": "Import PSD…",
@@ -14916,6 +14910,11 @@
       "tapeEcho": "Tape echo",
       "time": "TIME",
       "visualizerAriaLabel": "{{name}} visualizer"
+    },
+    "wavetable": {
+      "frames": "Frames",
+      "deleteFrame": "Delete frame",
+      "addFrame": "Add frame"
     }
   },
   "i18n-next46": {
@@ -16805,7 +16804,8 @@
           "description": "Apple's array framework, tuned for the unified memory of M-series chips. Fast local inference on modern Macs. Needs the Python runtime and the MLX node pack from the Package Manager.",
           "platform": "Apple Silicon only"
         }
-      }
+      },
+      "nodePacksTitle": "Node packs"
     }
   },
   "i18n-next69": {
@@ -17691,7 +17691,14 @@
         "title": "Reasoning",
         "titleWithLevel": "Reasoning: {{level}}"
       },
-      "voice": "Voice",
+      "voiceLabel": "Voice",
+      "voice": {
+        "record": "Record voice message",
+        "recording": "Voice recording",
+        "discard": "Discard recording",
+        "accept": "Accept recording",
+        "transcribing": "Transcribing…"
+      },
       "skills": "Skills",
       "noMatchingSkills": "No matching skills",
       "selectModel": "Select model",

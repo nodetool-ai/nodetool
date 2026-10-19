@@ -424,7 +424,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <div className="audio" style={AUDIO_WRAPPER_STYLE}>
-            <React.Suspense fallback={<LoadingSpinner size="small" text={t("i18n-next12.output.loadingAudioPlayer")} />}>
+            <React.Suspense fallback={<LoadingSpinner size="small" text={t("output.loadingAudioPlayer")} />}>
               <LazyAudioPlayer
                 source={audioSource}
                 mimeType={mimeType}
@@ -443,7 +443,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               src={uri}
               sandbox=""
               style={IFRAME_STYLE}
-              title={t("i18n-next12.output.htmlOutput")}
+              title={t("output.htmlOutput")}
             />
           );
         }
@@ -459,7 +459,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             srcDoc={html}
             sandbox=""
             style={IFRAME_STYLE}
-            title={t("i18n-next12.output.htmlOutput")}
+            title={t("output.htmlOutput")}
           />
         );
       }
@@ -480,7 +480,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <iframe
               src={uri}
               style={IFRAME_PDF_STYLE}
-              title={t("i18n-next12.output.pdfOutput")}
+              title={t("output.pdfOutput")}
             />
           );
         }
@@ -489,7 +489,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (
             <div className="output value" style={DOCUMENT_LINK_STYLE}>
               <a href={uri} target="_blank" rel="noreferrer">
-                {t("i18n-next12.output.openDocument")}
+                {t("output.openDocument")}
               </a>
             </div>
           );
@@ -510,7 +510,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
             // the native controls (scrub, volume) get the mouse events.
             className="nodrag nopan"
-            aria-label={t("i18n-next12.output.videoOutput")}
+            aria-label={t("output.videoOutput")}
             style={FULL_SIZE_STYLE}
           />
         );
@@ -543,58 +543,58 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (
             <SketchRenderer
               document={sketchDocument}
-              ariaLabel={t("i18n-next12.output.sketchPreview")}
+              ariaLabel={t("output.sketchPreview")}
               showDimensions
             />
           );
         }
         if (shouldLoadSketch && sketchQuery.isLoading) {
-          return <LoadingSpinner size="small" text={t("i18n-next12.output.loadingSketch")} />;
+          return <LoadingSpinner size="small" text={t("output.loadingSketch")} />;
         }
         if (sketchQuery.isError) {
           return (
             <EmptyState
               variant="error"
-              title={t("i18n-next12.output.sketchLoadError")}
+              title={t("output.sketchLoadError")}
               description={sketchQuery.error.message}
             />
           );
         }
         return (
           <EmptyState
-            title={t("i18n-next12.output.noSketchSelected")}
-            description={t("i18n-next12.output.chooseSketch")}
+            title={t("output.noSketchSelected")}
+            description={t("output.chooseSketch")}
           />
         );
       }
       case "timeline": {
         if (timelineSequence) {
           return (
-            <React.Suspense fallback={<LoadingSpinner size="small" text={t("i18n-next12.output.loadingTimelinePreview")} />}>
+            <React.Suspense fallback={<LoadingSpinner size="small" text={t("output.loadingTimelinePreview")} />}>
               <LazyTimelineRenderer
                 sequence={timelineSequence}
-                ariaLabel={t("i18n-next12.output.timelinePreview")}
+                ariaLabel={t("output.timelinePreview")}
                 showMetadata
               />
             </React.Suspense>
           );
         }
         if (shouldLoadTimeline && timelineQuery.isLoading) {
-          return <LoadingSpinner size="small" text={t("i18n-next12.output.loadingTimeline")} />;
+          return <LoadingSpinner size="small" text={t("output.loadingTimeline")} />;
         }
         if (timelineQuery.isError) {
           return (
             <EmptyState
               variant="error"
-              title={t("i18n-next12.output.timelineLoadError")}
+              title={t("output.timelineLoadError")}
               description={timelineQuery.error.message}
             />
           );
         }
         return (
           <EmptyState
-            title={t("i18n-next12.output.noTimelineSelected")}
-            description={t("i18n-next12.output.chooseTimeline")}
+            title={t("output.noTimelineSelected")}
+            description={t("output.chooseTimeline")}
           />
         );
       }

@@ -78,11 +78,11 @@ const PrivacyMenu: React.FC = () => {
           <Text size="small" weight={500}>
             {t("i18n-cont-settings-01.privacy.whenEnabled")}
           </Text>
-          <BulletList items={t("i18n-cont-settings-01.privacy.collectedItems", { returnObjects: true }) as string[]} />
+          <BulletList items={t("screens4_5.privacy.collectedItems", { returnObjects: true }) as string[]} />
           <Text size="small" weight={500}>
             {t("i18n-cont-settings-01.privacy.never")}
           </Text>
-          <BulletList items={t("i18n-cont-settings-01.privacy.neverCollectedItems", { returnObjects: true }) as string[]} />
+          <BulletList items={t("screens4_5.privacy.neverCollectedItems", { returnObjects: true }) as string[]} />
           <Caption>
             {t("i18n-cont-settings-01.privacy.retention")}
           </Caption>

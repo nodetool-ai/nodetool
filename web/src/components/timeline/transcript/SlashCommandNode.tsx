@@ -46,7 +46,7 @@ const COMMANDS: SlashCommand[] = [
     hintKey: "batch2_24.slashCommand.newSceneHint",
     run: (doc, playback, sceneLabel) => {
       const { currentTimeMs } = playback.getState();
-      const { addScene } = doc.getState();
+      const { addScene, markers } = doc.getState();
       // Marker + split-all-at-playhead in one undo step.
       addScene(currentTimeMs, `${sceneLabel} ${markers.length + 1}`);
     }

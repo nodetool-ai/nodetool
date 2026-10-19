@@ -287,23 +287,23 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
       const sorted = Array.from(allTypes).sort((a, b) => a.localeCompare(b));
       return sorted.map((value) => ({
         value,
-        label: value === "float" ? t("i18n-next12.typeFilters.number") : value
+        label: value === "float" ? t("typeFilters.number") : value
       }));
     }, [metadata, t]);
 
     const inputTypeOptions = useMemo<TypeOption[]>(
-      () => [{ value: "", label: t(`i18n-next12.typeFilters.${ALL_INPUT_OPTION.key}`) }, ...allTypeOptions],
+      () => [{ value: "", label: t(`typeFilters.${ALL_INPUT_OPTION.key}`) }, ...allTypeOptions],
       [allTypeOptions, t]
     );
     const outputTypeOptions = useMemo<TypeOption[]>(
-      () => [{ value: "", label: t(`i18n-next12.typeFilters.${ALL_OUTPUT_OPTION.key}`) }, ...allTypeOptions],
+      () => [{ value: "", label: t(`typeFilters.${ALL_OUTPUT_OPTION.key}`) }, ...allTypeOptions],
       [allTypeOptions, t]
     );
 
     const selectedInputOption = useMemo<TypeOption>(
       () =>
         inputTypeOptions.find((option) => option.value === selectedInputType) ??
-        { value: "", label: t(`i18n-next12.typeFilters.${ALL_INPUT_OPTION.key}`) },
+        { value: "", label: t(`typeFilters.${ALL_INPUT_OPTION.key}`) },
       [inputTypeOptions, selectedInputType, t]
     );
 
@@ -311,7 +311,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
       () =>
         outputTypeOptions.find(
           (option) => option.value === selectedOutputType
-        ) ?? { value: "", label: t(`i18n-next12.typeFilters.${ALL_OUTPUT_OPTION.key}`) },
+        ) ?? { value: "", label: t(`typeFilters.${ALL_OUTPUT_OPTION.key}`) },
       [outputTypeOptions, selectedOutputType, t]
     );
 
@@ -383,22 +383,22 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
             <Chip
               className={`provider-quick-chip ${selectedProviderType === "local" ? "selected" : ""}`}
               size="small"
-              label={t("i18n-next12.typeFilters.local")}
+              label={t("typeFilters.local")}
               onClick={handleLocalProviderClick}
             />
             <Chip
               className={`provider-quick-chip ${selectedProviderType === "api" ? "selected" : ""}`}
               size="small"
-              label={t("i18n-next12.typeFilters.api")}
+              label={t("typeFilters.api")}
               onClick={handleApiProviderClick}
             />
           </Box>
-          <span className="quick-label">{t("i18n-next12.typeFilters.output")}</span>
+          <span className="quick-label">{t("typeFilters.output")}</span>
           <Box className="type-chips filter-section">
             {TYPE_CATEGORIES.map((type) => (
               <Tooltip
                 key={type.value}
-                title={t("i18n-next12.typeFilters.filterBy", { type: t(`i18n-next12.typeFilters.${type.key}`) })}
+                title={t("typeFilters.filterBy", { type: t(`typeFilters.${type.key}`) })}
                 placement="top"
               >
                 <Chip
@@ -415,7 +415,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                       containerStyle={TYPE_CHIP_ICON_CONTAINER_STYLE}
                     />
                   }
-                  label={t(`i18n-next12.typeFilters.${type.key}`)}
+                  label={t(`typeFilters.${type.key}`)}
                   data-type={type.value}
                   onClick={handleTypeChipClick}
                 />
@@ -431,10 +431,10 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
             startIcon={<FilterListIcon />}
             onClick={handleOpenMenu}
           >
-            {t("i18n-next12.typeFilters.filters")}
+            {t("typeFilters.filters")}
           </EditorButton>
           <span className="node-count">
-            {t("i18n-next12.typeFilters.nodeCount", { count: totalNodeCount })}
+            {t("typeFilters.nodeCount", { count: totalNodeCount })}
           </span>
         </Box>
 
@@ -457,7 +457,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   marginBottom: getSpacingPx(SPACING.xl)
                 }}
               >
-              {t("i18n-next12.typeFilters.description")}
+              {t("typeFilters.description")}
               </Text>
             </Box>
 
@@ -466,7 +466,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 marginBottom: getSpacingPx(SPACING.xs)
               }}
             >
-              {t("i18n-next12.typeFilters.inputType")}
+              {t("typeFilters.inputType")}
             </Text>
             <Autocomplete<TypeOption, false, false, false>
               className="filter-select"
@@ -487,10 +487,10 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 <TextField
                   {...params}
                   size="small"
-                  placeholder={t("i18n-next12.typeFilters.searchInputType")}
+                  placeholder={t("typeFilters.searchInputType")}
                   inputProps={{
                     ...params.inputProps,
-                    "aria-label": t("i18n-next12.typeFilters.searchInputType")
+                    "aria-label": t("typeFilters.searchInputType")
                   }}
                 />
               )}
@@ -509,7 +509,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 marginBottom: getSpacingPx(SPACING.xs)
               }}
             >
-              {t("i18n-next12.typeFilters.outputType")}
+              {t("typeFilters.outputType")}
             </Text>
             <Autocomplete<TypeOption, false, false, false>
               className="filter-select"
@@ -530,10 +530,10 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                 <TextField
                   {...params}
                   size="small"
-                  placeholder={t("i18n-next12.typeFilters.searchOutputType")}
+                  placeholder={t("typeFilters.searchOutputType")}
                   inputProps={{
                     ...params.inputProps,
-                    "aria-label": t("i18n-next12.typeFilters.searchOutputType")
+                    "aria-label": t("typeFilters.searchOutputType")
                   }}
                 />
               )}

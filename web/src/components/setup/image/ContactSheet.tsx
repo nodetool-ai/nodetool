@@ -92,7 +92,18 @@ const IMAGE_EXTENSION: Record<string, string> = {
 export const downloadVariation = async (
   assetId: string,
   label: string,
-  translate: (key: string, options?: Record<string, unknown>) => string
+  translate: (key: string, options?: Record<string, unknown>) => string = (
+    key,
+    options
+  ) => {
+    if (key === "pass3_7.imageSetup.contact.downloadMissing") {
+      return "Its file could not be found.";
+    }
+    if (key === "pass3_7.imageSetup.contact.downloadUnreadable") {
+      return `The image could not be downloaded (status ${String(options?.status)}).`;
+    }
+    return key;
+  }
 ): Promise<void> => {
   const url = await resolveMediaUri(`asset://${assetId}`);
   if (!url) {

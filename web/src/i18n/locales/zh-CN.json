@@ -3717,8 +3717,11 @@
           "valuesMissing_other": "有 {{count}} 个值未随镜头导入",
           "rowWithoutValue": "第 {{row}} 行，{{column}}：{{reason}}",
           "rowWithValue": "第 {{row}} 行，{{column}} — “{{value}}”：{{reason}}",
-          "dismiss": "关闭提示"
-        }
+          "dismiss": "关闭提示",
+          "shotsOnBoard_one": "已将 {{count}} 个镜头添加到分镜板。",
+          "valuesMissing_one": "有 {{count}} 个值未随镜头导入"
+        },
+        "primaryDetail_one": "{{count}} 张静帧 · 约 {{cost}}"
       },
       "review": {
         "title": "你的剧本",
@@ -3731,12 +3734,15 @@
           "keptAsWrittenTitle": "已按原文保留你的剧本",
           "correctedShots": "导演模型更改了 {{listed}} 的文字或顺序。已恢复导入的文本。",
           "correctedShotsWithMore_other": "导演模型更改了 {{listed}} 以及另外 {{count}} 个镜头的文字或顺序。已恢复导入的文本。",
-          "missingLinesTitle": "部分台词未分配到镜头"
+          "missingLinesTitle": "部分台词未分配到镜头",
+          "correctedShotsWithMore_one": "导演模型更改了 {{listed}} 以及另外 {{count}} 个镜头的文字或顺序。已恢复导入的文本。"
         },
         "summary": {
           "shots_other": "{{count}} 个镜头",
           "scenes_other": "{{count}} 个场景",
-          "duration": "约 {{seconds}} 秒"
+          "duration": "约 {{seconds}} 秒",
+          "shots_one": "{{count}} 个镜头",
+          "scenes_one": "{{count}} 个场景"
         },
         "fields": {
           "title": "标题",
@@ -3829,7 +3835,8 @@
           "missingDescription": "已跳过此行：镜头需要描述。",
           "invalidDuration": "时长必须为正数。已导入此镜头，但未设置时长。",
           "invalidChoice": "必须是以下选项之一：{{options}}。已导入此镜头，但未设置此项。"
-        }
+        },
+        "summary_one": "已导入 {{count}} 个镜头。镜头清单中未包含这些值。"
       },
       "host": {
         "documentLabel": "分镜",
@@ -4453,7 +4460,8 @@
         "triangleCount_other": "{{count, number}} 个三角形",
         "openNamed": "打开{{name}}",
         "opening": "正在打开模型…",
-        "open": "打开模型"
+        "open": "打开模型",
+        "triangleCount_one": "{{count, number}} 个三角形"
       },
       "sketches": {
         "installError": "无法添加示例草图，请重试。",
@@ -6328,7 +6336,8 @@
           "open": "打开 {{name}}"
         },
         "archived": "已归档 · {{count}}",
-        "archivedAt": "归档于 {{relativeTime}}"
+        "archivedAt": "归档于 {{relativeTime}}",
+        "importedWithProblems_one": "已导入 {{name}}，但有 {{count}} 个文件缺失或已损坏。"
       },
       "scope": {
         "projectLabel": "项目 {{name}}",
@@ -6710,7 +6719,8 @@
       "errors": {
         "openTask": "无法打开任务：{{error}}",
         "missingStarter": "未找到流程 {{flow}} 对应的入门模板"
-      }
+      },
+      "tutorialCount_one": "{{count}} 个教程"
     }
   },
   "pass3_5": {
@@ -6920,7 +6930,8 @@
             "description": "在一个有围墙的俯视房间里行走，拾取收藏品即可获胜。"
           }
         },
-        "animationFrames": "{{name}}（{{count}} 帧）"
+        "animationFrames": "{{name}}（{{count}} 帧）",
+        "assetCount_one": "{{count}} 个素材"
       },
       "review": {
         "heading": "审核设计",
@@ -7535,7 +7546,8 @@
       },
       "cardSize": {
         "label": "尺寸",
-        "valueDescription_other": "卡片宽度至少为 {{formattedCount}} 个字符"
+        "valueDescription_other": "卡片宽度至少为 {{formattedCount}} 个字符",
+        "valueDescription_one": "卡片宽度至少为 {{formattedCount}} 个字符"
       },
       "genreChip": {
         "setGenre": "设置类型",
@@ -7709,8 +7721,12 @@
           "noModel": "尚未选择视频模型。",
           "imageLimit_other": "{{count}} 张图片超过上限 {{limit}} 张。请移除 {{removeCount}} 张。",
           "durationUnavailable": "{{model}} 不支持 {{duration}} 的片段。请选择以下时长之一：{{options}}。",
-          "durationLimit": "片段时长为 {{duration}}。一镜到底最多可渲染 {{limit}}。"
-        }
+          "durationLimit": "片段时长为 {{duration}}。一镜到底最多可渲染 {{limit}}。",
+          "imageLimit_one": "{{count}} 张图片超过上限 {{limit}} 张。请移除 {{removeCount}} 张。"
+        },
+        "seconds_one": "{{value}} 秒",
+        "imageCount_one": "{{count}} / {{limit}} 张图片",
+        "imageLimitWarning_one": "此分镜板有 {{count}} 张静帧。渲染最多发送 {{limit}} 张。"
       },
       "remainingTime": {
         "remaining": "还剩 {{time}}"
@@ -7725,7 +7741,8 @@
         "noModelPicked": "此分镜尚未选择{{modelKind}}。",
         "noPublishedPrice": "{{model}} 没有已公布的价格。",
         "basePriceNote": "{{step}}：此模型没有公布 {{resolution}} 分辨率的价格，当前按基础规格显示",
-        "estimatedPartial_other": "预计费用：约 {{cost}}（{{requestCount}} 个请求中有 {{pricedCount}} 个已计价）"
+        "estimatedPartial_other": "预计费用：约 {{cost}}（{{requestCount}} 个请求中有 {{pricedCount}} 个已计价）",
+        "estimatedPartial_one": "预计费用：约 {{cost}}（{{requestCount}} 个请求中有 {{pricedCount}} 个已计价）"
       },
       "sceneHeader": {
         "title": "场景 {{number}}"
@@ -7775,7 +7792,9 @@
           "shotRange": "场景片段需包含 {{min}} 至 {{max}} 个镜头。"
         },
         "shot_other": "镜头 {{number}}",
-        "shots_other": "{{number}} 个镜头"
+        "shots_other": "{{number}} 个镜头",
+        "shot_one": "镜头 {{number}}",
+        "shots_one": "{{number}} 个镜头"
       }
     }
   },
@@ -7980,7 +7999,8 @@
         "scriptChangedTooltip": "关联台词与此镜头中的文本不一致",
         "reproject": "重新投影",
         "missingLinkedLines_other": "剧本中已不存在 {{count, number}} 条关联台词。",
-        "actionFailed": "镜头剧本操作失败"
+        "actionFailed": "镜头剧本操作失败",
+        "missingLinkedLines_one": "剧本中已不存在 {{count, number}} 条关联台词。"
       },
       "shotStatus": {
         "renderingClip": "正在渲染片段",
@@ -8126,7 +8146,8 @@
         "copiedWorkflowJson": "已将工作流 JSON 复制到剪贴板！",
         "workflowSaved": "已保存工作流“{{name}}”",
         "importedWorkflow": "已导入工作流“{{name}}”",
-        "importedWorkflowsFromBundle_other": "已从工作流包导入 {{formattedCount}} 个工作流"
+        "importedWorkflowsFromBundle_other": "已从工作流包导入 {{formattedCount}} 个工作流",
+        "importedWorkflowsFromBundle_one": "已从工作流包导入 {{formattedCount}} 个工作流"
       },
       "errors": {
         "unknown": "未知错误",
@@ -9292,7 +9313,8 @@
       },
       "orphanWarning": {
         "title_other": "{{count}} 个孤立工作器可能仍在产生费用，请在提供商控制台中停止它们",
-        "details": "{{count}} 个运行中，约 {{rate}}"
+        "details": "{{count}} 个运行中，约 {{rate}}",
+        "title_one": "{{count}} 个孤立工作器可能仍在产生费用，请在提供商控制台中停止它们"
       },
       "empty": {
         "title": "没有运行中的工作器",
@@ -9307,7 +9329,11 @@
         "seconds_other": "{{value}} 秒",
         "minutes_other": "{{value}} 分钟",
         "hours_other": "{{value}} 小时",
-        "days_other": "{{value}} 天"
+        "days_other": "{{value}} 天",
+        "seconds_one": "{{value}} 秒",
+        "minutes_one": "{{value}} 分钟",
+        "hours_one": "{{value}} 小时",
+        "days_one": "{{value}} 天"
       },
       "errors": {
         "action": "工作器操作失败：{{message}}",
@@ -9400,7 +9426,8 @@
         "bundleTooLarge": "附加数据超过 {{size}}。请移除一个文件后重试。",
         "sendAction": "发送",
         "saveAction": "保存",
-        "saveFailed": "无法{{action}}报告：{{error}}"
+        "saveFailed": "无法{{action}}报告：{{error}}",
+        "skippedAttachments_one": "已跳过 {{count}} 个超过 {{size}} 的文件"
       }
     }
   },
@@ -9421,10 +9448,6 @@
       "kind": "类型",
       "name": "名称",
       "noResourcesYet": "尚无{{kind}}。你仍然可以绑定全部资源。",
-      "operationName": {
-        "one": "操作 {{count}}",
-        "other": "操作 {{count}}"
-      },
       "operations": "操作",
       "operationsDescription": "此应用运行的工作流和脚本。运行操作会指定其中一项。",
       "perUserRememberOnly": "只有按用户作用域的变量才能记住。",
@@ -9488,7 +9511,9 @@
         "array": "请输入 JSON 数组，例如 [1, 2]。",
         "object": "请输入 JSON 对象，例如 {\"key\": \"value\"}。",
         "validJson": "请输入有效的 {{type}} JSON。"
-      }
+      },
+      "operationName_one": "操作 {{count}}",
+      "operationName_other": "操作 {{count}}"
     },
     "governance": {
       "budgetDescription": "已发布应用的运行会先经过此额度检查，然后才会调用提供方。留空表示不设上限。",
@@ -9541,18 +9566,14 @@
       "servingVersion": "正在提供版本 {{version}} — {{capabilities}}",
       "since": "，自 {{date}} 起",
       "spendBudget": "支出预算",
-      "usageSummary": {
-        "one": "已使用 {{amount}}，共运行 {{count}} 次{{since}}。",
-        "other": "已使用 {{amount}}，共运行 {{count}} 次{{since}}。"
-      },
       "version": "版本 {{version}}",
       "versions": "版本",
       "withdrawLink": "撤回链接",
       "withdrawLinkError": "无法撤回链接：{{error}}",
-      "workflowCount": {
-        "one": "{{count}} 个工作流",
-        "other": "{{count}} 个工作流"
-      }
+      "workflowCount_one": "{{count}} 个工作流",
+      "workflowCount_other": "{{count}} 个工作流",
+      "usageSummary_one": "已使用 {{amount}}，共运行 {{count}} 次{{since}}。",
+      "usageSummary_other": "已使用 {{amount}}，共运行 {{count}} 次{{since}}。"
     },
     "history": {
       "closeSelection": "关闭历史记录选择",
@@ -11293,7 +11314,7 @@
       }
     }
   },
-  "i18n_next4": {
+  "i18n-next4": {
     "sketch": {
       "exportPsd": "导出 PSD",
       "importPsd": "导入 PSD…",
@@ -12989,7 +13010,8 @@
         "rewindConversation": "无法回退对话：{{error}}"
       },
       "notifications": {
-        "copiedMessages_other": "已将 {{count}} 条消息复制为 Markdown。"
+        "copiedMessages_other": "已将 {{count}} 条消息复制为 Markdown。",
+        "copiedMessages_one": "已将 {{count}} 条消息复制为 Markdown。"
       },
       "mobileRails": {
         "ariaLabel": "对话面板",
@@ -13061,7 +13083,11 @@
       "entityCount_other": "{{count}} 个实体",
       "entitiesInScene_other": "{{scene}} 中有 {{count}} 个实体",
       "scriptCommandLimit_other": "{{count}} 条命令",
-      "scriptCallCount_other": "{{count}} 次调用"
+      "scriptCallCount_other": "{{count}} 次调用",
+      "entityCount_one": "{{count}} 个实体",
+      "entitiesInScene_one": "{{scene}} 中有 {{count}} 个实体",
+      "scriptCommandLimit_one": "{{count}} 条命令",
+      "scriptCallCount_one": "{{count}} 次调用"
     }
   },
   "i18n-next28": {
@@ -14884,6 +14910,11 @@
       "tapeEcho": "磁带回声",
       "time": "时间",
       "visualizerAriaLabel": "{{name}} 可视化器"
+    },
+    "wavetable": {
+      "frames": "帧",
+      "deleteFrame": "删除帧",
+      "addFrame": "添加帧"
     }
   },
   "i18n-next46": {
@@ -16130,7 +16161,8 @@
       "sendClipsToWorkflow_other": "将 {{count}} 个片段发送到工作流…",
       "openNodeEditor": "在节点编辑器中打开",
       "unlink": "取消链接",
-      "delete": "删除"
+      "delete": "删除",
+      "sendToWorkflow": "发送到工作流…"
     },
     "fadeShapes": {
       "fadeIn": "淡入形状",
@@ -16772,7 +16804,8 @@
           "description": "Apple 的数组框架，针对 M 系列芯片的统一内存进行了优化。在现代 Mac 上实现快速本地推理。需要 Python 运行时和包管理器中的 MLX 节点包。",
           "platform": "仅限 Apple Silicon"
         }
-      }
+      },
+      "nodePacksTitle": "节点包"
     }
   },
   "i18n-next69": {
@@ -17658,7 +17691,14 @@
         "title": "推理",
         "titleWithLevel": "推理：{{level}}"
       },
-      "voice": "声音",
+      "voiceLabel": "声音",
+      "voice": {
+        "record": "录制语音消息",
+        "recording": "语音录制中",
+        "discard": "放弃录音",
+        "accept": "使用录音",
+        "transcribing": "正在转录…"
+      },
       "skills": "技能",
       "noMatchingSkills": "没有匹配的技能",
       "selectModel": "选择模型",
@@ -18092,7 +18132,9 @@
       "noInputs": "没有输入。",
       "noOutputs": "没有输出。",
       "inputCount_other": "{{count}} 个输入",
-      "outputCount_other": "{{count}} 个输出"
+      "outputCount_other": "{{count}} 个输出",
+      "inputCount_one": "{{count}} 个输入",
+      "outputCount_one": "{{count}} 个输出"
     },
     "columns": {
       "name": "名称",

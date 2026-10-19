@@ -129,19 +129,19 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       () => [
         {
           icon: <AlignHorizontalLeft fontSize="small" />,
-          label: t("selectionToolbar.alignLeft"),
+          label: t("i18n-next32.selectionToolbar.alignLeft"),
           slug: "alignLeft",
           action: selectionActions.alignLeft
         },
         {
           icon: <AlignHorizontalCenter fontSize="small" />,
-          label: t("selectionToolbar.alignCenter"),
+          label: t("i18n-next32.selectionToolbar.alignCenter"),
           slug: "alignCenter",
           action: selectionActions.alignCenter
         },
         {
           icon: <AlignHorizontalRight fontSize="small" />,
-          label: t("selectionToolbar.alignRight"),
+          label: t("i18n-next32.selectionToolbar.alignRight"),
           slug: "alignRight",
           action: selectionActions.alignRight
         }
@@ -153,19 +153,19 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       () => [
         {
           icon: <AlignVerticalTop fontSize="small" />,
-          label: t("selectionToolbar.alignTop"),
+          label: t("i18n-next32.selectionToolbar.alignTop"),
           slug: "alignTop",
           action: selectionActions.alignTop
         },
         {
           icon: <AlignVerticalCenter fontSize="small" />,
-          label: t("selectionToolbar.alignMiddle"),
+          label: t("i18n-next32.selectionToolbar.alignMiddle"),
           slug: "alignMiddle",
           action: selectionActions.alignMiddle
         },
         {
           icon: <AlignVerticalBottom fontSize="small" />,
-          label: t("selectionToolbar.alignBottom"),
+          label: t("i18n-next32.selectionToolbar.alignBottom"),
           slug: "alignBottom",
           action: selectionActions.alignBottom
         }
@@ -177,13 +177,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       () => [
         {
           icon: <ViewColumn fontSize="small" />,
-          label: t("selectionToolbar.distributeHorizontally"),
+          label: t("i18n-next32.selectionToolbar.distributeHorizontally"),
           slug: "distributeHorizontal",
           action: selectionActions.distributeHorizontal
         },
         {
           icon: <ViewStream fontSize="small" />,
-          label: t("selectionToolbar.distributeVertically"),
+          label: t("i18n-next32.selectionToolbar.distributeVertically"),
           slug: "distributeVertical",
           action: selectionActions.distributeVertical
         }
@@ -195,7 +195,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       () => [
         {
           icon: <PlayArrow fontSize="small" />,
-          label: t("selectionToolbar.runSelected"),
+          label: t("i18n-next32.selectionToolbar.runSelected"),
           slug: "runSelected",
           // onClick forwards a MouseEvent; runSelectedNodes treats its first arg
           // as a run count (Math.floor(event) -> NaN -> no-op), so call it bare.
@@ -206,27 +206,27 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
         },
         {
           icon: <ContentCopy fontSize="small" />,
-          label: t("selectionToolbar.duplicate"),
+          label: t("i18n-next32.selectionToolbar.duplicate"),
           slug: "duplicate",
           action: selectionActions.duplicateSelected
         },
         {
           icon: <Layers fontSize="small" />,
-          label: t("selectionToolbar.group"),
+          label: t("i18n-next32.selectionToolbar.group"),
           slug: "groupSelected",
           action: selectionActions.groupSelected,
           disabled: !canArrange
         },
         {
           icon: <LinkIcon fontSize="small" />,
-          label: t("selectionToolbar.linkLineageOnly"),
+          label: t("i18n-next32.selectionToolbar.linkLineageOnly"),
           slug: "linkSelected",
           action: selectionActions.linkSelected,
           disabled: selectedCount !== 2
         },
         {
           icon: <PowerSettingsNew fontSize="small" />,
-          label: t("selectionToolbar.disable"),
+          label: t("i18n-next32.selectionToolbar.disable"),
           slug: "bypassNode",
           action: selectionActions.bypassSelected
         }
@@ -245,7 +245,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
     const deleteAction = useMemo<ToolbarAction>(
       () => ({
         icon: <Delete fontSize="small" />,
-        label: t("selectionToolbar.delete"),
+        label: t("i18n-next32.selectionToolbar.delete"),
         slug: "deleteSelected",
         action: selectionActions.deleteSelected
       }),
@@ -260,7 +260,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
       <FloatingToolbar
         className="selection-action-toolbar"
         role="region"
-        aria-label={t("selectionToolbar.ariaLabel")}
+        aria-label={t("i18n-next32.selectionToolbar.ariaLabel")}
         onKeyDown={handleKeyDown}
         sx={{
           position: "absolute",
@@ -278,8 +278,8 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
               <ArrowDropDown fontSize="small" />
             </>
           }
-          tooltip={t("selectionToolbar.arrangeTooltip")}
-          ariaLabel={t("selectionToolbar.arrange")}
+          tooltip={t("i18n-next32.selectionToolbar.arrangeTooltip")}
+          ariaLabel={t("i18n-next32.selectionToolbar.arrange")}
           onClick={openArrange}
           active={arrangeOpen}
           variant={arrangeOpen ? "primary" : "default"}
@@ -315,7 +315,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
               color="muted"
               sx={CAPTION_SX}
             >
-              {t("selectionToolbar.align")}
+              {t("i18n-next32.selectionToolbar.align")}
             </Caption>
             <FlexRow gap={0.5} align="center">
               {horizontalAlign.map((button) => (
@@ -344,7 +344,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
               color="muted"
               sx={CAPTION_SX}
             >
-              {t("selectionToolbar.distribute")}
+              {t("i18n-next32.selectionToolbar.distribute")}
             </Caption>
             <FlexRow gap={0.5} align="center">
               {distributeActions.map((button) => (

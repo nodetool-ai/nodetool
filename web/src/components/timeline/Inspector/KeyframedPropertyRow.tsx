@@ -316,12 +316,14 @@ export const KeyframeLane: React.FC<LaneProps> = memo(
         {playheadMs !== null && (
           <span css={playheadStyles(theme)} style={{ left: pct(playheadMs) }} />
         )}
-        {times.map((t) => {
-          const shownMs = drag && drag.fromMs === t ? drag.toMs : t;
-          const current = playheadMs !== null && Math.abs(playheadMs - t) <= 0.5;
+        {times.map((keyframeMs) => {
+          const shownMs =
+            drag && drag.fromMs === keyframeMs ? drag.toMs : keyframeMs;
+          const current =
+            playheadMs !== null && Math.abs(playheadMs - keyframeMs) <= 0.5;
           return (
             <button
-              key={t}
+              key={keyframeMs}
               type="button"
               css={diamondStyles(theme)}
               style={{ left: pct(shownMs) }}
@@ -329,15 +331,15 @@ export const KeyframeLane: React.FC<LaneProps> = memo(
               disabled={disabled}
               aria-label={t("i18n-cont-inspector-02.keyframes.keyframeAt", {
                 property: propertyLabel,
-                time: formatTimecode(clip.startMs + t, fps)
+                time: formatTimecode(clip.startMs + keyframeMs, fps)
               })}
               title={t("i18n-cont-inspector-02.keyframes.keyframeTooltip")}
               data-testid={`keyframe-diamond-${row.id}`}
-              onPointerDown={(e) => handleDiamondPointerDown(e, t)}
+              onPointerDown={(e) => handleDiamondPointerDown(e, keyframeMs)}
               onPointerMove={handleDiamondPointerMove}
               onPointerUp={handleDiamondPointerUp}
               onPointerCancel={() => setDrag(null)}
-              onKeyDown={(e) => handleDiamondKeyDown(e, t)}
+              onKeyDown={(e) => handleDiamondKeyDown(e, keyframeMs)}
               onClick={(e) => {
                 // Pointer presses seek on pointerup; this is the keyboard path.
                 if (e.detail === 0) onSeek(t);

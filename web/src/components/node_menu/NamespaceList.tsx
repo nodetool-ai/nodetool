@@ -321,22 +321,22 @@ const NoSelectionContent = memo(function NoSelectionContent({
           <p>
             {selectedPathString ? (
               <>
-                {t("i18n-next12.namespaceList.nothingInNamespace", { searchTerm })}
+                {t("namespaceList.nothingInNamespace", { searchTerm })}
               </>
             ) : (
               <>
-                {t("i18n-next12.namespaceList.nothingFound", { searchTerm })}
+                {t("namespaceList.nothingFound", { searchTerm })}
               </>
             )}
           </p>
           <ul className="no-results">
             {selectedPathString && (
               <li>
-                {t("i18n-next12.namespaceList.clickHighlighted")}
+                {t("namespaceList.clickHighlighted")}
               </li>
             )}
-            <li>{t("i18n-next12.namespaceList.typeToSearch")}</li>
-            <li>{t("i18n-next12.namespaceList.clearSearchHint")}</li>
+            <li>{t("namespaceList.typeToSearch")}</li>
+            <li>{t("namespaceList.clearSearchHint")}</li>
           </ul>
         </>
       ) : null}
@@ -355,7 +355,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
               padding: getSpacingPx(SPACING.xl)
             }}
           >
-            {t("i18n-next12.namespaceList.installPacks")}
+            {t("namespaceList.installPacks")}
           </EditorButton>
         </div>
       )}
