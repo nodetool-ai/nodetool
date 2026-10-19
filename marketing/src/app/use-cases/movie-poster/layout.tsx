@@ -3,9 +3,9 @@ import { breadcrumbSchema, howToSchema } from "../../../lib/jsonld";
 import { moviePosterUseCase } from "../../../data/useCaseEntries";
 import type { Metadata, Viewport } from "next";
 
-const TITLE = "AI Movie Poster Generator | NodeTool use case";
+const TITLE = "AI Movie Poster Generator with Billing Block | NodeTool";
 const DESCRIPTION =
-  "Type a title, genre, and audience and the canvas writes a creative strategy, spins up plot concepts, and renders a batch of cinematic movie posters. Prompt nodes shape every step, on one open canvas with your own keys.";
+  "Make AI movie posters from a title, genre, and audience: plot concepts, key art, tagline, and billing block, on an open-source canvas with your own keys.";
 
 export const metadata: Metadata = {
   title: TITLE,

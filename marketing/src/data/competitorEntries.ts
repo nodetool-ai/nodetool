@@ -133,6 +133,12 @@ export type Competitor = {
   /** Footer link label override, e.g. to note a product rename. */
   footerName?: string;
 
+  /**
+   * Other competitors that searchers treat as alternatives to this one, listed
+   * after same-category rivals on the /alternatives page.
+   */
+  related?: string[];
+
   /** Optional search snippet for pages with a distinct, high-volume query intent. */
   seo?: { title: string; description: string };
   starter?: { id: SearchStarter; source: LandingPage; heading: string };
@@ -1442,12 +1448,13 @@ export const competitors: Competitor[] = [
   },
   {
     slug: "comfyui",
+    related: ["figma-weave", "flora", "krea"],
     starter: { id: "generate-then-upscale-a-poster", source: "comfyui", heading: "Try a generation graph in NodeTool" },
     name: "ComfyUI",
     seo: {
-      title: "ComfyUI Alternatives for Creative Workflows | NodeTool",
+      title: "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea",
       description:
-        "Compare ComfyUI and NodeTool for image, video, audio, and editable creative projects. See where each workflow editor fits.",
+        "The best ComfyUI alternatives for image, video, and audio workflows, compared: NodeTool (open source, your own keys), Figma Weave, Flora, and Krea.",
     },
     theme: "blue",
     category: "Node editor",
@@ -1752,6 +1759,7 @@ export const competitors: Competitor[] = [
   },
   {
     slug: "langflow",
+    related: ["n8n"],
     name: "Langflow",
     theme: "blue",
     category: "Chatbot & agent builder",
@@ -1824,6 +1832,7 @@ export const competitors: Competitor[] = [
   },
   {
     slug: "n8n",
+    related: ["langflow", "flowise", "dify", "lindy"],
     name: "n8n",
     theme: "blue",
     category: "Workflow automation",
@@ -1895,6 +1904,7 @@ export const competitors: Competitor[] = [
   },
   {
     slug: "flowise",
+    related: ["n8n"],
     name: "Flowise",
     theme: "violet",
     category: "Chatbot & agent builder",
@@ -1967,6 +1977,7 @@ export const competitors: Competitor[] = [
   },
   {
     slug: "dify",
+    related: ["n8n", "lindy"],
     name: "Dify",
     theme: "amber",
     category: "Chatbot & agent builder",
@@ -2309,6 +2320,7 @@ export const competitors: Competitor[] = [
   },
   {
     slug: "lindy",
+    related: ["n8n", "gumloop"],
     name: "Lindy",
     theme: "violet",
     category: "Agent automation",
@@ -2376,6 +2388,7 @@ export const competitors: Competitor[] = [
   },
   {
     slug: "gumloop",
+    related: ["lindy", "dify"],
     name: "Gumloop",
     theme: "amber",
     category: "Workflow automation",
@@ -2479,7 +2492,8 @@ export function siblings(slug: string): Competitor[] {
 
 /**
  * The tool list for an `/alternatives/<slug>` page: NodeTool first (the
- * recommended alternative), then same-category rivals, capped at six entries.
+ * recommended alternative), then same-category rivals and `related` entries,
+ * capped at six entries. Unrelated competitors never fill the list.
  */
 export function alternativesFor(slug: string): {
   name: string;
@@ -2496,7 +2510,9 @@ export function alternativesFor(slug: string): {
       : "An open-source canvas for image, video, audio, and text that runs on your own keys.",
     isNodetool: true,
   };
+  const related = current?.related ?? [];
   const rivals = siblings(slug)
+    .filter((c) => c.category === current?.category || related.includes(c.slug))
     .slice(0, 5)
     .map((c) => ({
       name: c.name,

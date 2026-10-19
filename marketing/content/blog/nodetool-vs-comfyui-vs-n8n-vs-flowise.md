@@ -1,5 +1,5 @@
 ---
-title: "NodeTool vs ComfyUI vs n8n vs Flowise — which node canvas fits the job"
+title: "ComfyUI vs n8n vs Flowise vs NodeTool: which tool fits"
 description: "Four node-based tools, four different jobs. Where ComfyUI, n8n, and Flowise are the right pick, where they run out, and what an agent-first creative workspace changes."
 headline: "NodeTool vs ComfyUI vs n8n vs Flowise"
 excerpt: "They all draw boxes and arrows, and that is where the similarity ends. A straight read on what each tool is built for, where it runs out, and how to pick."

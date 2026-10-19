@@ -76,7 +76,7 @@
 - [Ideogram Alternative for Editable Image Workflows](https://nodetool.ai/alternatives/ideogram)
 - [Recraft Alternative for Repeatable AI Design Workflows](https://nodetool.ai/alternatives/recraft)
 - [Dreamina Alternative for Editable AI Media Projects](https://nodetool.ai/alternatives/dreamina)
-- [ComfyUI Alternatives for Creative Workflows](https://nodetool.ai/alternatives/comfyui)
+- [ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea](https://nodetool.ai/alternatives/comfyui)
 - [Weavy Alternative — Now Figma Weave](https://nodetool.ai/alternatives/weavy)
 - [Figma Weave Alternative: Open-Source, Self-Hosted](https://nodetool.ai/alternatives/figma-weave)
 - [Runway alternative — open source, your own keys](https://nodetool.ai/alternatives/runway)
