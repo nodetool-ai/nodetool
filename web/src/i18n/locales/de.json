@@ -17810,7 +17810,10 @@
       "pasteKey": "Schlüssel einfügen",
       "couldNotSaveKey": "Der Schlüssel konnte nicht gespeichert werden.",
       "saving": "Wird gespeichert…",
-      "saveKey": "Schlüssel speichern"
+      "saveKey": "Schlüssel speichern",
+      "thinking": "Denkt nach",
+      "thought": "Nachgedacht",
+      "thoughtFor": "{{seconds}} s nachgedacht"
     },
     "sidebar": {
       "activeTask": "Aktive Agent-Aufgabe",

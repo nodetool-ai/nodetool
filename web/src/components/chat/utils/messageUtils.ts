@@ -4,6 +4,7 @@ import {
   formatDayMonth
 } from "../../../utils/formatUtils";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
+import { stripThoughtContent } from "../../../core/chat/thoughtContent";
 
 interface ParsedThought {
   thoughtContent: string;
@@ -117,11 +118,14 @@ export const hasVisibleContent = (message: Message): boolean => {
   });
 };
 
-/** The text blocks of a message joined by newlines; what Copy puts on the clipboard. */
+/**
+ * The text blocks of a message joined by newlines, reasoning left out; what
+ * Copy puts on the clipboard.
+ */
 export const messageText = (message: Message): string => {
   const { content } = message;
   if (isString(content)) {
-    return content;
+    return stripThoughtContent(content);
   }
   if (!Array.isArray(content)) {
     return "";
@@ -134,7 +138,8 @@ export const messageText = (message: Message): string => {
         block.type === "text" &&
         isString(block.text)
     )
-    .map((block) => block.text)
+    .map((block) => stripThoughtContent(block.text))
+    .filter((text) => text.length > 0)
     .join("\n");
 };
 

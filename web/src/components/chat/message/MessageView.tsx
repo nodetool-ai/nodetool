@@ -139,12 +139,15 @@ const SubAgentTranscript: React.FC<{
     Record<string, boolean>
   >({});
   const isThoughtExpanded = useCallback(
-    (key: string) => expandedThoughts[key] ?? false,
+    (key: string) => expandedThoughts[key],
     [expandedThoughts]
   );
-  const handleToggleThought = useCallback((key: string) => {
-    setExpandedThoughts((current) => ({ ...current, [key]: !current[key] }));
-  }, []);
+  const handleToggleThought = useCallback(
+    (key: string, _anchorElement: HTMLElement | undefined, nextOpen: boolean) => {
+      setExpandedThoughts((current) => ({ ...current, [key]: nextOpen }));
+    },
+    []
+  );
 
   const toolResultsByCallId = useMemo(() => {
     const results: ToolResultLookup = {};
@@ -799,8 +802,13 @@ ToolCallTimeline.displayName = "ToolCallTimeline";
 
 interface MessageViewProps {
   message: Message;
-  isThoughtExpanded: (key: string) => boolean;
-  onToggleThought: (key: string, anchorElement?: HTMLElement) => void;
+  /** The reader's choice for a reasoning row; undefined follows the stream. */
+  isThoughtExpanded: (key: string) => boolean | undefined;
+  onToggleThought: (
+    key: string,
+    anchorElement: HTMLElement | undefined,
+    nextOpen: boolean
+  ) => void;
   onInsertCode?: (text: string, language?: string) => void;
   toolResultsByCallId?: Record<
     string,
@@ -916,15 +924,23 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
     toggleCallbackRef.current = onToggleThought;
     const [, setThoughtRenderVersion] = useState(0);
     const toggleHandlerCache = useRef(
-      new Map<string, (event?: React.MouseEvent) => void>()
+      new Map<
+        string,
+        (nextOpen: boolean, event?: React.MouseEvent | React.KeyboardEvent) => void
+      >()
     );
     const createToggleHandler = useCallback((key: string) => {
       let handler = toggleHandlerCache.current.get(key);
       if (!handler) {
-        handler = (event?: React.MouseEvent) => {
+        handler = (
+          nextOpen: boolean,
+          event?: React.MouseEvent | React.KeyboardEvent
+        ) => {
           const anchorElement =
-            event?.currentTarget.closest<HTMLElement>("[data-index]");
-          toggleCallbackRef.current(key, anchorElement ?? undefined);
+            event?.currentTarget instanceof Element
+              ? event.currentTarget.closest<HTMLElement>("[data-index]")
+              : null;
+          toggleCallbackRef.current(key, anchorElement ?? undefined, nextOpen);
           setThoughtRenderVersion((version) => version + 1);
         };
         toggleHandlerCache.current.set(key, handler);
@@ -958,6 +974,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                       <ThoughtSection
                         key={key}
                         thoughtContent={parsedThought.thoughtContent}
+                        hasClosingTag={parsedThought.hasClosingTag}
                         isExpanded={isExpanded}
                         onToggle={createToggleHandler(key)}
                         textBefore={parsedThought.textBeforeThought}
@@ -1005,6 +1022,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
           return (
             <ThoughtSection
               thoughtContent={parsedThought.thoughtContent}
+              hasClosingTag={parsedThought.hasClosingTag}
               isExpanded={isExpanded}
               onToggle={createToggleHandler(key)}
               textBefore={parsedThought.textBeforeThought}

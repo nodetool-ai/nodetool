@@ -17810,7 +17810,10 @@
       "pasteKey": "Paste the key",
       "couldNotSaveKey": "Could not save the key.",
       "saving": "Saving…",
-      "saveKey": "Save key"
+      "saveKey": "Save key",
+      "thinking": "Thinking",
+      "thought": "Thought",
+      "thoughtFor": "Thought for {{seconds}}s"
     },
     "sidebar": {
       "activeTask": "Active agent task",

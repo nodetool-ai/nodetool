@@ -17810,7 +17810,10 @@
       "pasteKey": "粘贴密钥",
       "couldNotSaveKey": "无法保存密钥。",
       "saving": "正在保存…",
-      "saveKey": "保存密钥"
+      "saveKey": "保存密钥",
+      "thinking": "思考中",
+      "thought": "已思考",
+      "thoughtFor": "已思考 {{seconds}} 秒"
     },
     "sidebar": {
       "activeTask": "当前代理任务",

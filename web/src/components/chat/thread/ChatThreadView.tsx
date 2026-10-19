@@ -513,16 +513,16 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }, [filteredMessages, focusMessage, messages, virtualizer, virtualizer.scrollElement]);
 
   const isThoughtExpanded = useCallback(
-    (key: string) => expandedThoughtsRef.current[key] ?? false,
+    (key: string) => expandedThoughtsRef.current[key],
     []
   );
   const handleToggleThought = useCallback(
-    (key: string, anchorElement?: HTMLElement) => {
+    (key: string, anchorElement: HTMLElement | undefined, nextOpen: boolean) => {
       const anchorBottomBeforeToggle =
         anchorElement?.getBoundingClientRect().bottom ?? null;
       expandedThoughtsRef.current = {
         ...expandedThoughtsRef.current,
-        [key]: !expandedThoughtsRef.current[key]
+        [key]: nextOpen
       };
 
       if (anchorBottomBeforeToggle == null || !anchorElement) return;

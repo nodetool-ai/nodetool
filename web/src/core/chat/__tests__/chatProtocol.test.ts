@@ -1395,4 +1395,90 @@ describe("output_update store writes", () => {
       useResultsStore.getState().getOutputResult("wf-1", "job-2", "n1")
     ).toEqual(["a", "b"]);
   });
+
+  describe("streamed reasoning", () => {
+    const makeState = (): GlobalChatState =>
+      partialChatState({
+        status: "streaming",
+        currentThreadId: "thread-1",
+        threads: {
+          "thread-1": { id: "thread-1", title: "T", updated_at: new Date().toISOString() }
+        },
+        messageCache: {
+          "thread-1": [{ role: "user", type: "message", content: "Why?" }]
+        },
+        selectedModel: { provider: "", id: "" },
+        summarizeThread: jest.fn(),
+        updateThreadTitle: jest.fn()
+      });
+
+    const run = async (frames: unknown[]): Promise<GlobalChatState> => {
+      let capturedState = makeState();
+      const set = jest.fn((updater) => {
+        capturedState = {
+          ...capturedState,
+          ...(isStateUpdater(updater) ? updater(capturedState) : updater)
+        };
+      });
+      for (const frame of frames) {
+        await handleChatWebSocketMessage(
+          stub<WebSocketMessage>(frame),
+          set,
+          () => capturedState
+        );
+      }
+      return capturedState;
+    };
+
+    const chunk = (content: string, thinking = false) => ({
+      type: "chunk",
+      thread_id: "thread-1",
+      content,
+      thinking,
+      done: false
+    });
+
+    it("keeps reasoning chunks in a think block ahead of the answer", async () => {
+      const state = await run([
+        chunk("Weigh ", true),
+        chunk("the options.", true),
+        chunk("Because "),
+        chunk("it is.")
+      ]);
+      const messages = state.messageCache["thread-1"];
+      expect(messages).toHaveLength(2);
+      expect(messages[1].content).toBe(
+        "<think>Weigh the options.</think>Because it is."
+      );
+    });
+
+    it("closes an open think block when the stream ends", async () => {
+      const state = await run([
+        chunk("Still weighing", true),
+        { type: "chunk", thread_id: "thread-1", content: "", done: true }
+      ]);
+      expect(state.messageCache["thread-1"][1].content).toBe(
+        "<think>Still weighing</think>"
+      );
+    });
+
+    it("replaces the placeholder with the finalized reply and keeps the reasoning", async () => {
+      const state = await run([
+        chunk("Weigh it.", true),
+        chunk("Because it is."),
+        {
+          type: "message",
+          role: "assistant",
+          id: "server-1",
+          thread_id: "thread-1",
+          created_at: new Date().toISOString(),
+          content: "Because it is."
+        }
+      ]);
+      const messages = state.messageCache["thread-1"];
+      expect(messages).toHaveLength(2);
+      expect(messages[1].id).toBe("server-1");
+      expect(messages[1].content).toBe("<think>Weigh it.</think>Because it is.");
+    });
+  });
 });
