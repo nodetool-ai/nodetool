@@ -53,7 +53,6 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       minWidth: "200px",
-      maxWidth: "600px",
       minHeight: "100px",
       borderRadius: theme.rounded.node,
       border: `1px solid ${theme.vars.palette.divider}`,
