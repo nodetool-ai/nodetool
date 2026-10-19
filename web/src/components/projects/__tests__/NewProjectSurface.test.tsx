@@ -1364,17 +1364,18 @@ describe("NewProjectSurface", () => {
   // The prompt box is the project's composer, so it carries the composer's own
   // triggers rather than making the user reach for the buttons beside it.
   it("completes a skill from `/` and starts the project on it", async () => {
-    renderSurface();
+    const user = userEvent.setup();
+    renderSurface(null, false);
     const prompt = screen.getByPlaceholderText(/30-second launch spot/);
-    await userEvent.type(prompt, "/launch");
+    await user.type(prompt, "/launch");
 
-    await userEvent.click(
+    await user.click(
       await screen.findByTestId("skill-option-launch-commercial")
     );
     expect(prompt).toHaveValue("/launch-commercial ");
 
-    await userEvent.type(prompt, "A spot for our desk lamp");
-    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+    await user.paste("A spot for our desk lamp");
+    await user.click(screen.getByRole("button", { name: "Send to chat" }));
 
     await waitFor(() => expect(createNewThread).toHaveBeenCalled());
     expect(createProject).not.toHaveBeenCalled();
@@ -1390,6 +1391,7 @@ describe("NewProjectSurface", () => {
   // UX research study 4: a text file picked with `@` showed as a broken
   // picture and was counted as "Ref images · 1".
   it("shows a file picked with `@` by its name, not as a reference image", async () => {
+    const user = userEvent.setup();
     mockMentionAssets = [
       {
         id: "notes-asset",
@@ -1398,12 +1400,14 @@ describe("NewProjectSurface", () => {
         get_url: "https://example.test/meeting-notes.txt"
       } as Asset
     ];
-    renderSurface();
+    renderSurface(null, false);
     const prompt = screen.getByPlaceholderText(/30-second launch spot/);
-    await userEvent.type(prompt, "When is the next meeting? @meet");
+    await user.click(prompt);
+    await user.paste("When is the next meeting? ");
+    await user.type(prompt, "@meet");
     await screen.findByText("meeting-notes.txt");
     // The entity row comes first; the file is the second row.
-    await userEvent.keyboard("{ArrowDown}{Enter}");
+    await user.keyboard("{ArrowDown}{Enter}");
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "meeting-notes.txt" })).toBeInTheDocument()
