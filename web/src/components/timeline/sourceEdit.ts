@@ -9,11 +9,8 @@ import type { Asset } from "../../stores/ApiTypes";
 import { targetedTrackIds } from "../../stores/timeline/TimelineStore";
 import type { TimelineStoreState } from "../../stores/timeline/TimelineStore";
 import type { TimelineUIState } from "../../stores/timeline/TimelineUIStore";
-import {
-  assetMediaType,
-  assetToClip,
-  isCompatibleWithTrack
-} from "./dnd/assetToClipAdapter";
+import { clipFitsTrack } from "@nodetool-ai/timeline";
+import { assetMediaType, assetToClip } from "./dnd/assetToClipAdapter";
 
 export type SourceEditKind = "append" | "insert" | "overwrite";
 
@@ -59,7 +56,7 @@ export function sourceTargetTrackId(
   const track = [...doc.tracks]
     .sort((a, b) => a.index - b.index)
     .find(
-      (t) => targeted.has(t.id) && isCompatibleWithTrack(mediaType, t.type)
+      (t) => targeted.has(t.id) && clipFitsTrack(mediaType, t.type)
     );
   return track?.id ?? null;
 }

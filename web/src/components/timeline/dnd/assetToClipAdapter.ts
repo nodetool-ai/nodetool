@@ -2,16 +2,11 @@ import type { Asset } from "../../../stores/ApiTypes";
 import {
   DEFAULT_MEDIA_CLIP_DURATION_MS,
   DEFAULT_MODEL3D_CLIP_DURATION_MS,
-  clipFitsTrack,
   makeClip,
   mediaTypeForContentType,
   model3dStyleWithPatch
 } from "@nodetool-ai/timeline";
-import type {
-  ClipMediaType,
-  TimelineClip,
-  TimelineTrack
-} from "@nodetool-ai/timeline";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { isModel3DAsset } from "../../../utils/nodeGenerations";
 
 /**
@@ -31,23 +26,6 @@ export function assetMediaType(
 ): "image" | "video" | "audio" | "model3d" | null {
   if (isModel3DAsset(contentType, name)) return "model3d";
   return mediaTypeForContentType(contentType);
-}
-
-/**
- * Return true if the given mediaType is compatible with the given track type.
- *
- *   image / video / model3d  → track.type "video" or "overlay"
- *   audio                    → track.type "audio"
- *
- * A midi track takes no asset at all: its clips are notes played by the
- * track's instrument, not a file. `clipFitsTrack` is the shared rule, so a
- * drop and a `ui_timeline_*` call refuse the same things.
- */
-export function isCompatibleWithTrack(
-  mediaType: ClipMediaType,
-  trackType: TimelineTrack["type"]
-): boolean {
-  return clipFitsTrack(mediaType, trackType);
 }
 
 /**
