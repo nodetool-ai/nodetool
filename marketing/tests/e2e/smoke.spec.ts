@@ -391,22 +391,36 @@ test.describe("marketing smoke", () => {
     await expect(page.locator(".sr-only-seo")).toHaveCount(0);
   });
 
+  test("the retired /apps hub redirects to the template hub", async ({
+    page
+  }) => {
+    const res = await page.goto("/apps");
+    expect(res?.status() ?? 0).toBeLessThan(400);
+    await expect(page).toHaveURL(/\/templates$/);
+  });
+
   test("search opportunity pages expose targeted metadata and links", async ({
     page
   }) => {
     await page.goto("/alternatives/comfyui");
     await expect(page).toHaveTitle(
-      "ComfyUI Alternatives for Creative Workflows | NodeTool"
+      "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea"
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
-      "ComfyUI Alternatives for Creative Workflows | NodeTool"
+      "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea"
     );
+    await expect(
+      page.locator('section[aria-labelledby="alt-list-title"] h3')
+    ).toHaveText([/^NodeTool/, "Figma Weave", "Flora", "Krea"]);
 
     await page.goto("/alternatives/lm-studio");
     await expect(page).toHaveTitle(
       "LM Studio Alternatives for Local AI Workflows | NodeTool"
     );
+    await expect(
+      page.locator('section[aria-labelledby="alt-list-title"] h3')
+    ).toHaveText([/^NodeTool/, "Jan"]);
 
     await page.goto("/alternatives/figma-weave");
     await expect(page).toHaveTitle(

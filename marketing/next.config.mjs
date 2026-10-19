@@ -156,6 +156,8 @@ const nextConfig = {
       // template hub. Temporary, so a future /apps route can take it back. The
       // pattern excludes dots so images under public/apps/ still serve.
       { source: '/apps/:slug([a-z0-9-]+)', destination: '/templates', permanent: false },
+      // The old /apps hub still ranks for "ai mini apps" searches.
+      { source: '/apps', destination: '/templates', permanent: false },
     ];
   },
 };

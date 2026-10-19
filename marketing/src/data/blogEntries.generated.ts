@@ -722,7 +722,7 @@ export const generatedBlogPosts: BlogPost[] = [
   },
   {
     "route": "/blog/nodetool-vs-comfyui-vs-n8n-vs-flowise",
-    "title": "NodeTool vs ComfyUI vs n8n vs Flowise — which node canvas fits the job",
+    "title": "ComfyUI vs n8n vs Flowise vs NodeTool: which tool fits",
     "description": "Four node-based tools, four different jobs. Where ComfyUI, n8n, and Flowise are the right pick, where they run out, and what an agent-first creative workspace changes.",
     "priority": 0.7,
     "changeFrequency": "monthly",
