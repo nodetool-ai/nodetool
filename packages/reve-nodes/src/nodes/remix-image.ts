@@ -30,8 +30,8 @@ export class RemixImageNode extends BaseNode {
     "Reference specific images in the prompt with <img>0</img>, <img>1</img>, " +
     "etc. (0 = first image).";
   static readonly metadataOutputTypes = { output: "image" };
-  static readonly inlineFields: string[] = ["prompt"];
-  static readonly inputFields: string[] = ["reference_images"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt", "reference_images"];
   static readonly requiredSettings = ["REVE_API_KEY"];
   static readonly autoSaveAsset = true;
 

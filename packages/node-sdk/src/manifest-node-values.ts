@@ -5,6 +5,7 @@
  */
 
 import type { BaseNode } from "./base-node.js";
+import { isNonBlankString } from "@nodetool-ai/protocol";
 import {
   mapPromptAssetsToInputs,
   type PromptAssetInputField,
@@ -131,6 +132,58 @@ export function assetKindOf(propType: string): ManifestAssetKind | null {
     default:
       return null;
   }
+}
+
+/**
+ * Media inputs that some provider schemas declare as a plain URL string. Typed
+ * as `str` they get no handle, so an upstream image or audio cannot connect.
+ */
+const MEDIA_URL_FIELD_KINDS: ReadonlyMap<string, ManifestAssetKind> = new Map([
+  ["image", "image"],
+  ["image_url", "image"],
+  ["model_image", "image"],
+  ["garment_image", "image"],
+  ["video_url", "video"],
+  ["audio_url", "audio"]
+]);
+
+/**
+ * Retype the media URL inputs listed in {@link MEDIA_URL_FIELD_KINDS} as asset
+ * fields, so they render as handles and upload like any other asset. A field
+ * is left alone when the node already has an asset input of that kind, where
+ * the URL string is an alternative to it. The retyped field drops its manifest
+ * default so the factory starts it at the empty AssetRef.
+ */
+export function retypeMediaUrlFields<
+  T extends { name: string; propType: string; parentField?: string }
+>(fields: readonly T[]): T[] {
+  const kinds = new Set(fields.map((f) => assetKindOf(f.propType)));
+  return fields.map((field) => {
+    const kind = MEDIA_URL_FIELD_KINDS.get(field.name);
+    if (
+      field.parentField ||
+      field.propType.toLowerCase() !== "str" ||
+      kind === undefined ||
+      kinds.has(kind)
+    ) {
+      return field;
+    }
+    return { ...field, propType: kind, default: null };
+  });
+}
+
+/**
+ * A saved graph can hold a URL string in a field {@link retypeMediaUrlFields}
+ * made an asset. Read it as a ref with that URI so the request still carries it.
+ */
+export function urlStringAsAssetRef(
+  value: NodeValue,
+  kind: ManifestAssetKind | null
+): NodeValue {
+  if (kind === null || !isNonBlankString(value)) {
+    return value;
+  }
+  return { type: kind, uri: value };
 }
 
 /** True for `list[image]` / `list[video]` / `list[audio]`. */

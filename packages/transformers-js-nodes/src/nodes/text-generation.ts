@@ -38,8 +38,8 @@ type TextGenerationNodeOutputs = {
 
 export class TextGenerationNode extends BaseNode {
   static readonly nodeType = "transformers.TextGeneration";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly title = "Text Generation";
   static readonly description =
     "Generate text completions using a Transformers.js text-generation pipeline.\n" +

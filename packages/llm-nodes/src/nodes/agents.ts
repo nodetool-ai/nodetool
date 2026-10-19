@@ -160,8 +160,8 @@ export class SummarizerNode extends BaseNode {
     text: "str",
     chunk: "chunk"
   };
-  static readonly inlineFields = ["text"];
-  static readonly inputFields = ["image", "audio", "system_prompt"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["text", "image", "audio", "system_prompt"];
   // Streamed output: each provider piece is emitted as a `chunk` iteration,
   // and the final aggregated summary is the `text` single output.
   static readonly outputCorrelation = {
@@ -347,8 +347,8 @@ export class EnhancePromptNode extends BaseNode {
     text: "str",
     chunk: "chunk"
   };
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["target", "system_prompt"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "target", "system_prompt"];
   // Streamed output: each provider piece is emitted as a `chunk` iteration,
   // and the final improved prompt is the `text` single output.
   static readonly outputCorrelation = {
@@ -548,8 +548,8 @@ export class ExtractorNode extends BaseNode {
   static readonly title = "Extractor";
   static readonly description =
     "Extract structured data from text content using LLM providers.\n    data-extraction, structured-data, nlp, parsing\n\n    Specialized for extracting structured information:\n    - Converting unstructured text into structured data\n    - Identifying and extracting specific fields from documents\n    - Parsing text according to predefined schemas\n    - Creating structured records from natural language content";
-  static readonly inlineFields = ["text"];
-  static readonly inputFields = ["image", "audio", "system_prompt"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["text", "image", "audio", "system_prompt"];
   static readonly supportsDynamicOutputs = true;
   static readonly recommendedModels = EXTRACTOR_RECOMMENDED_MODELS;
 
@@ -686,8 +686,8 @@ export class ClassifierNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly inlineFields = ["text"];
-  static readonly inputFields = ["image", "audio", "system_prompt"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["text", "image", "audio", "system_prompt"];
   static readonly recommendedModels = CLASSIFIER_RECOMMENDED_MODELS;
 
   @prop({
@@ -896,7 +896,7 @@ export class DecisionNode extends BaseNode {
     if_true: "any",
     if_false: "any"
   };
-  static readonly inlineFields = ["prompt"];
+  static readonly inlineFields = [];
   static readonly inputFields = ["value", "prompt", "system_prompt"];
   static readonly supportsDynamicInputs = true;
   static readonly recommendedModels = CLASSIFIER_RECOMMENDED_MODELS;
@@ -1050,7 +1050,7 @@ export class AgentNode extends BaseNode {
     audio: "audio"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = ["prompt", "image", "audio"];
+  static readonly inputFields = ["prompt", "image", "audio", "history"];
   static readonly supportsDynamicOutputs = true;
   // Streamed outputs: each yielded chunk/thinking/audio is a distinct
   // iteration step. Without this, the analyzer defaults to `single`, which

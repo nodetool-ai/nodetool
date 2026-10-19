@@ -163,8 +163,8 @@ export class WebSearch extends BaseNode {
     output: "str",
     citations: "list[str]"
   };
-  static readonly inlineFields = ["query"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["query"];
   static readonly requiredSettings = ["XAI_API_KEY"];
 
   @prop({
@@ -240,6 +240,7 @@ type ImageToTextOutputs = {
 
 export class ImageToText extends BaseNode {
   static readonly nodeType = "xai.vision.ImageToText";
+  static readonly body = "content_card";
   static readonly title = "Image To Text";
   static readonly description =
     "Analyze images and generate text using xAI's Grok vision models.\n    xai, grok, vision, image, ocr, analysis, multimodal\n\n    Uses Grok's multimodal models to understand and describe images via the\n    OpenAI-compatible chat completions endpoint. Can perform OCR, image\n    analysis, and answer questions about images. Requires an xAI API key.\n\n    Use cases:\n    - Describe image contents\n    - Answer questions about images\n    - Extract text from images (OCR)\n    - Analyze charts and diagrams";

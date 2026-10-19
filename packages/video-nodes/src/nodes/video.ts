@@ -805,7 +805,7 @@ export class LoadVideoFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly inlineFields: string[] = [];
+  static readonly inlineFields: string[] = ["path"];
   static readonly inputFields: string[] = [];
 
   @prop({
@@ -1627,6 +1627,7 @@ export class ResizeVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -1679,6 +1680,7 @@ export class RotateVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -1725,6 +1727,7 @@ export class SetSpeedVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -1805,6 +1808,7 @@ export class EaseCurveVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -1927,6 +1931,7 @@ export class OverlayVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["main_video", "overlay_video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -2034,6 +2039,7 @@ export class ColorBalanceVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -2102,6 +2108,7 @@ export class DenoiseVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -2149,6 +2156,7 @@ export class StabilizeVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -2258,6 +2266,7 @@ export class SharpnessVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -2315,6 +2324,7 @@ export class BlurVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -2362,6 +2372,7 @@ export class SaturationVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -2408,6 +2419,7 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video", "chunks"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -2589,6 +2601,7 @@ export class TransitionVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video_a", "video_b"];
   @prop({
     type: "video",
     default: defaultVideoRef(),
@@ -2891,6 +2904,7 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
   @prop({
     type: "video",
     default: defaultVideoRef(),

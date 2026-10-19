@@ -744,12 +744,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   // Two-pass field classification per field-classification.md:
   // 1. inlineFields: rendered as full editors in normal flow
   // 2. inputFields ∪ exposedInputs: rendered as handle-only on left edge
-  // Fallback when neither is set: all properties render as handles (old behavior)
-  // `!== undefined` so a node with explicitly empty arrays ("send everything
-  // to the Inspector") is honored — not treated as legacy.
-  const useNewLayout =
-    nodeMetadata.inline_fields !== undefined ||
-    nodeMetadata.input_fields !== undefined;
+  // A node that declares neither list shows no fields, as in the generic body.
   const properties = nodeMetadata.properties ?? EMPTY_PROPERTIES;
   // Classification reads the three placement lists and nothing else. Keying it
   // on `data` rebuilt both sets on every property edit and streamed result.
@@ -758,44 +753,15 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     () => ({ exposedInputs, exposedInputsLabeled, exposedInputsHidden }),
     [exposedInputs, exposedInputsLabeled, exposedInputsHidden]
   );
-  const inlineFieldNameSet = useMemo(
-    () => new Set(resolveInlineFieldNames(nodeMetadata, placement)),
-    [nodeMetadata, placement]
-  );
+  const inlineProps = useMemo(() => {
+    const names = new Set(resolveInlineFieldNames(nodeMetadata, placement));
+    return properties.filter((p) => names.has(p.name));
+  }, [nodeMetadata, placement, properties]);
   // Handle column = metadata input_fields ∪ user-promoted exposedInputs.
-  const handleNames = useMemo(
-    () =>
-      useNewLayout
-        ? new Set(resolveExposedInputNames(nodeMetadata, placement))
-        : null,
-    [useNewLayout, nodeMetadata, placement]
-  );
-  const inlineProps = useMemo(
-    () =>
-      useNewLayout
-        ? properties.filter((p) => inlineFieldNameSet.has(p.name))
-        : [],
-    [useNewLayout, properties, inlineFieldNameSet]
-  );
-  const handleProps = useMemo(
-    () =>
-      useNewLayout
-        ? properties.filter((p) => handleNames!.has(p.name))
-        : properties.filter(
-            (p) =>
-              !inlineFieldNameSet.has(p.name) &&
-              !(exposedInputsLabeled ?? []).includes(p.name) &&
-              !(exposedInputsHidden ?? []).includes(p.name)
-          ),
-    [
-      useNewLayout,
-      properties,
-      handleNames,
-      inlineFieldNameSet,
-      exposedInputsLabeled,
-      exposedInputsHidden
-    ]
-  );
+  const handleProps = useMemo(() => {
+    const names = new Set(resolveExposedInputNames(nodeMetadata, placement));
+    return properties.filter((p) => names.has(p.name));
+  }, [nodeMetadata, placement, properties]);
 
   // Only rendered when the node opts into `supports_dynamic_inputs`; delegates
   // to the same store flow as NodePropertyForm.
@@ -867,7 +833,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
           Labels are visible here (no display: none). Dynamic inputs are
           rendered separately below so they always appear — even when this
           node has no inline fields. */}
-      {useNewLayout && inlineProps.length > 0 && (
+      {inlineProps.length > 0 && (
         <div className="inline-fields">
           <NodeInputs
             id={id}

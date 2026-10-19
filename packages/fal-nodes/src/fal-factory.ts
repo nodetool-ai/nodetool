@@ -18,7 +18,9 @@ import {
   promptAssetOverridesFor,
   propertyOf,
   registerDeclaredProperty,
-  unsetZeroBelowMin
+  retypeMediaUrlFields,
+  unsetZeroBelowMin,
+  urlStringAsAssetRef
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -121,7 +123,7 @@ function resolveFieldValue(
     return propertyOf(instance, apiParamName);
   }
   if (primary !== undefined) {
-    return primary;
+    return urlStringAsAssetRef(primary, kind);
   }
   if (
     fieldName === "mask" &&
@@ -448,7 +450,11 @@ function mapOutput(spec: FalManifestEntry, res: Record<string, unknown>) {
   }
 }
 
-export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
+export function createFalNodeClass(manifestSpec: FalManifestEntry): NodeClass {
+  const spec: FalManifestEntry = {
+    ...manifestSpec,
+    inputFields: retypeMediaUrlFields(manifestSpec.inputFields)
+  };
   const nodeType = `fal.${spec.moduleName}.${spec.className}`;
   const title = classNameToTitle(spec.className);
   const descFirstLine = spec.docstring || `${spec.className} node`;

@@ -1190,7 +1190,7 @@ export class RenderTimelineNode extends BaseNode {
     frames: "document"
   };
   static readonly inlineFields = ["timeline"];
-  static readonly inputFields = ["timeline"];
+  static readonly inputFields = [];
 
   @prop({
     type: "timeline",
@@ -1651,7 +1651,7 @@ export class TimelineTranscriptNode extends BaseNode {
     lines: "list[str]"
   };
   static readonly inlineFields = ["timeline"];
-  static readonly inputFields = ["timeline"];
+  static readonly inputFields = [];
 
   @prop({
     type: "timeline",
@@ -1983,7 +1983,7 @@ export class FillTimelineTextNode extends BaseNode {
     unresolved: "list[str]"
   };
   static readonly inlineFields = ["timeline"];
-  static readonly inputFields = ["timeline", "values"];
+  static readonly inputFields = ["values"];
 
   @prop({
     type: "timeline",

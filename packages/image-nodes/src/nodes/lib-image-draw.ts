@@ -377,8 +377,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Render Text",
     description:
       "Draw text onto an image using a system-available font family.\n    text, font, label, title, watermark, caption, image, overlay\n\n    This node takes text, a font family name, coordinates (where to place the\n    text), and an image to work with. Use it to add a label or title to an\n    image, watermark an image, or place a caption directly on an image.\n\n    You can set the font family name, size, color, and alignment (left, center,\n    or right), and position the text anywhere on the image.\n\n    ### Fonts\n\n    Only the font's `name` is used, as a font-family name resolved against the\n    fonts available to the renderer (Canvas2D in the browser, sharp/librsvg on\n    the server). If the named family isn't available, the renderer falls back to\n    a default. The node does not download fonts, so the font's `source`, `url`,\n    and `weight` fields are ignored.\n\n    #### Applications\n    - Labeling images in an image gallery or database.\n    - Watermarking images for copyright protection.\n    - Adding custom captions to photographs.\n    - Creating instructional images to guide the reader's view.",
-    inlineFields: ["text"],
-    inputFields:  ["image"],
+    inlineFields: [],
+    inputFields:  ["image", "text"],
     outputs: {
       output: "image"
     },

@@ -41,7 +41,8 @@ export class TextToImageNode extends BaseNode {
     "- Create artwork from a description\n" +
     "- Generate product or concept images\n" +
     "- Prototype visual ideas";
-  static readonly inlineFields = ["prompt"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly autoSaveAsset = true;
   static readonly metadataOutputTypes = { output: "image" };
@@ -170,8 +171,8 @@ export class ImageToImageNode extends BaseNode {
     "- Edit or restyle an image\n" +
     "- Colorize or enhance photos\n" +
     "- Apply a target style";
-  static readonly inlineFields = ["prompt"];
-  static readonly inputFields = ["image"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["image", "prompt"];
   static readonly requiredSettings = ["HF_TOKEN"];
   static readonly autoSaveAsset = true;
   static readonly metadataOutputTypes = { output: "image" };

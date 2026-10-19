@@ -137,6 +137,8 @@ export class ComfyWorkflowNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",
@@ -568,6 +570,8 @@ export class ComfyWorkerWorkflowNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",

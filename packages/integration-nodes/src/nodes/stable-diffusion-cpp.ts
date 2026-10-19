@@ -60,6 +60,13 @@ export class StableDiffusionCppGenerateNode extends BaseNode {
     output: "image",
     images: "list[image]"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [
+    "prompt",
+    "image",
+    "mask",
+    "reference_images"
+  ];
 
   @prop({
     type: "str",

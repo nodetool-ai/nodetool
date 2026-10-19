@@ -84,7 +84,7 @@ export class StageGameAssetsNode extends BaseNode {
   static readonly description = "Validate generated media and stage candidate bindings for a native game.";
   static readonly metadataOutputTypes = { output: "dict", bindings: "dict", paths: "list[str]" };
   static readonly inlineFields = ["template", "game_id"];
-  static readonly inputFields = ["fills", "game_id", "preparation", "reference_asset_id", "fonts"];
+  static readonly inputFields = ["fills", "preparation", "reference_asset_id", "fonts"];
 
   @prop({ type: "str", default: "topdown", title: "Template", values: TEMPLATE_IDS })
   declare template: string;

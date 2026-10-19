@@ -70,6 +70,41 @@ describe("applyContentCardBody", () => {
     expect(cls.body).toBe("small");
   });
 
+  it("stamps a list of images", () => {
+    const cls = { metadataOutputTypes: { output: "list[image]" } };
+    applyContentCardBody(cls);
+    expect((cls as { body?: string }).body).toBe("content_card");
+  });
+
+  it("previews a later media or text output when the first is bookkeeping", () => {
+    const stt = {
+      outputTypes: { language_probability: "float", text: "str", words: "list" }
+    };
+    applyContentCardBody(stt);
+    expect(stt).toMatchObject({ body: "content_card", primaryOutput: "text" });
+
+    const video = { outputTypes: { seed: "int", video: "video" } };
+    applyContentCardBody(video);
+    expect(video).toMatchObject({ body: "content_card", primaryOutput: "video" });
+  });
+
+  it("keeps a declared primary output", () => {
+    const cls = {
+      outputTypes: { seed: "int", video: "video" },
+      primaryOutput: "seed"
+    };
+    applyContentCardBody(cls);
+    expect(cls.primaryOutput).toBe("seed");
+    expect((cls as { body?: string }).body).toBeUndefined();
+
+    const media = {
+      outputTypes: { seed: "int", video: "video" },
+      primaryOutput: "video"
+    };
+    applyContentCardBody(media);
+    expect((media as { body?: string }).body).toBe("content_card");
+  });
+
   it("ignores secondary outputs", () => {
     // Only the first slot drives the preview, matching getNodeMetadata.
     const cls = { outputTypes: { scores: "list", label: "str" } };

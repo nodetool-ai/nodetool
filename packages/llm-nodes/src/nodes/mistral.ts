@@ -155,6 +155,7 @@ type CodeCompleteOutputs = {
 
 export class CodeComplete extends BaseNode {
   static readonly nodeType = "mistral.text.CodeComplete";
+  static readonly body = "content_card";
   static readonly title = "Code Complete";
   static readonly description =
     "Generate code using Mistral AI's Codestral model.\n    mistral, code, codestral, ai, programming, completion\n\n    Uses Mistral AI's Codestral model specifically designed for code generation.\n    Supports fill-in-the-middle (FIM) for code completion tasks.\n    Requires a Mistral API key.\n\n    Use cases:\n    - Generate code from natural language descriptions\n    - Complete partial code snippets\n    - Fill in code between prefix and suffix\n    - Automated code generation for various programming languages";
@@ -335,6 +336,7 @@ type ImageToTextOutputs = {
 
 export class ImageToText extends BaseNode {
   static readonly nodeType = "mistral.vision.ImageToText";
+  static readonly body = "content_card";
   static readonly title = "Image To Text";
   static readonly description =
     "Analyze images and generate text descriptions using Mistral AI's Pixtral models.\n    mistral, pixtral, vision, image, ocr, analysis, multimodal\n\n    Uses Mistral AI's Pixtral vision models to understand and describe images.\n    Can perform OCR, image analysis, and answer questions about images.\n    Requires a Mistral API key.\n\n    Use cases:\n    - Extract text from images (OCR)\n    - Describe image contents\n    - Answer questions about images\n    - Analyze charts and diagrams\n    - Document understanding";
@@ -444,6 +446,7 @@ type OCROutputs = {
 
 export class OCR extends BaseNode {
   static readonly nodeType = "mistral.vision.OCR";
+  static readonly body = "content_card";
   static readonly title = "OCR";
   static readonly description =
     "Extract text from images using Mistral AI's Pixtral models.\n    mistral, pixtral, ocr, text extraction, document, image\n\n    Specialized node for optical character recognition (OCR) using Pixtral.\n    Optimized for extracting text content from documents, screenshots, and images.\n    Requires a Mistral API key.\n\n    Use cases:\n    - Extract text from scanned documents\n    - Read text from screenshots\n    - Digitize printed materials\n    - Extract data from forms and receipts";

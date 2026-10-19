@@ -19,7 +19,9 @@ import {
   promptAssetOverridesFor,
   propertyOf,
   registerDeclaredProperty,
-  unsetZeroBelowMin
+  retypeMediaUrlFields,
+  unsetZeroBelowMin,
+  urlStringAsAssetRef
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import {
@@ -130,15 +132,14 @@ async function buildArgs(
       continue;
     }
 
+    const kind = assetKindOf(field.propType);
     // SAFETY: both sources hold node property values, and NodeTool restricts
     // those to its own property types — the shapes `NodeValue` names.
-    const value = (
-      field.name in overrides
-        ? overrides[field.name]
-        : propertyOf(instance, field.name)
-    ) as NodeValue;
+    const raw = (field.name in overrides
+      ? overrides[field.name]
+      : propertyOf(instance, field.name)) as NodeValue;
+    const value = urlStringAsAssetRef(raw, kind);
     const apiName = field.apiParamName ?? field.name;
-    const kind = assetKindOf(field.propType);
 
     if (kind) {
       if (isListAssetPropType(field.propType)) {
@@ -194,8 +195,12 @@ function mapOutput(
 // ---------------------------------------------------------------------------
 
 export function createReplicateNodeClass(
-  spec: ReplicateManifestEntry
+  manifestSpec: ReplicateManifestEntry
 ): NodeClass {
+  const spec: ReplicateManifestEntry = {
+    ...manifestSpec,
+    inputFields: retypeMediaUrlFields(manifestSpec.inputFields)
+  };
   const moduleId = spec.moduleName.replace(/-/g, ".");
   const nodeType = `replicate.${moduleId}.${spec.className}`;
   const title = classNameToTitle(spec.className);

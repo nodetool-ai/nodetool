@@ -42,7 +42,13 @@ const INLINE_TEXT_FIELD_NAMES: ReadonlySet<string> = new Set([
   "template",
   "code",
   "expression",
-  "url"
+  "url",
+  "lyrics",
+  "script",
+  "text_prompt",
+  "instruction",
+  "input_text",
+  "html"
 ]);
 
 export interface ClassifyFieldInput {

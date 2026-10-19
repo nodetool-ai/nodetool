@@ -634,6 +634,8 @@ export class LoadTextFolderNode extends BaseNode {
     texts: "list",
     paths: "list"
   };
+  static readonly inlineFields: string[] = ["folder"];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",
@@ -758,6 +760,8 @@ export class LoadTextAssetsNode extends BaseNode {
     texts: "list",
     names: "list"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "folder",
@@ -843,6 +847,8 @@ export class FilterStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["value"];
   static readonly outputCorrelation = {
     output: { kind: "forward", source: "value" }
   } satisfies Record<string, OutputCorrelation>;
@@ -950,6 +956,8 @@ export class FilterRegexStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["value"];
   static readonly outputCorrelation = {
     output: { kind: "forward", source: "value" }
   } satisfies Record<string, OutputCorrelation>;
@@ -1064,6 +1072,8 @@ export class CollectTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["input_item"];
 
   private _items: string[] = [];
 
@@ -1178,6 +1188,8 @@ export class TemplateTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields: string[] = ["string"];
+  static readonly inputFields: string[] = [];
 
   static readonly supportsDynamicInputs = true;
 

@@ -266,7 +266,7 @@ export class RenderSketchNode extends BaseNode {
     mask: "image"
   };
   static readonly inlineFields = ["sketch"];
-  static readonly inputFields = ["sketch"];
+  static readonly inputFields = [];
 
   @prop({
     type: "sketch",
@@ -309,7 +309,7 @@ export class SketchLayersNode extends BaseNode {
     names: "list[str]"
   };
   static readonly inlineFields = ["sketch"];
-  static readonly inputFields = ["sketch"];
+  static readonly inputFields = [];
 
   @prop({
     type: "sketch",

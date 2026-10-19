@@ -53,9 +53,11 @@ type GroundedSearchNodeOutputs = {
 
 export class GroundedSearchNode extends BaseNode {
   static readonly nodeType = "gemini.text.GroundedSearch";
+  static readonly body = "content_card";
+  static readonly primaryOutput = "text";
   static readonly title = "Grounded Search";
-  static readonly inlineFields = ["query"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["query"];
   static readonly description =
     "Search the web using Google's Gemini API with grounding capabilities.\n    google, search, grounded, web, gemini, ai\n\n    This node uses Google's Gemini API to perform web searches and return structured results\n    with source information. Requires a Gemini API key.\n\n    Use cases:\n    - Research current events and latest information\n    - Find reliable sources for fact-checking\n    - Gather web-based information with citations\n    - Get up-to-date information beyond the model's training data";
   static readonly metadataOutputTypes = {

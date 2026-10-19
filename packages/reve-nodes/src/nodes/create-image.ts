@@ -27,7 +27,8 @@ export class CreateImageNode extends BaseNode {
     "- Render legible typography and posters\n" +
     "- Create on-brand marketing visuals";
   static readonly metadataOutputTypes = { output: "image" };
-  static readonly inlineFields: string[] = ["prompt"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly requiredSettings = ["REVE_API_KEY"];
   static readonly autoSaveAsset = true;
 

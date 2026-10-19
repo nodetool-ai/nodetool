@@ -52,7 +52,7 @@ export function registerAudioNodes(registry: NodeRegistry): void {
             { name: "name", type: { type: "str", type_args: [] }, default: "" }
           ],
           outputs: [{ name: "output", type: { type: "any", type_args: [] } }],
-          inline_fields: ["value", "name"]
+          inline_fields: ["name"]
         }
       });
       continue;

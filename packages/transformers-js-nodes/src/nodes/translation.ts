@@ -27,8 +27,8 @@ type TranslationNodeOutputs = {
 
 export class TranslationNode extends BaseNode {
   static readonly nodeType = "transformers.Translation";
-  static readonly inlineFields = ["text", "src_lang", "tgt_lang"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields: string[] = ["src_lang", "tgt_lang"];
+  static readonly inputFields: string[] = ["text"];
   static readonly title = "Translation";
   static readonly description =
     "Translate text between languages using a Transformers.js translation pipeline.\n" +

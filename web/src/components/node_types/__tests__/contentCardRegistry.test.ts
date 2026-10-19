@@ -88,8 +88,8 @@ describe("isContentCardNode", () => {
     ).toBe(true);
   });
 
-  it("returns false for non-image nodes without the body opt-in", () => {
-    // No output type matching beyond image — name/namespace heuristics are gone.
+  it("returns false for non-media nodes without the body opt-in", () => {
+    // Output type decides, not name/namespace heuristics.
     expect(
       isContentCardNode(mockMetadata({ node_type: "nodetool.image.TextToImage" }))
     ).toBe(false);
@@ -99,8 +99,8 @@ describe("isContentCardNode", () => {
     expect(
       isContentCardNode(
         mockMetadata({
-          node_type: "some.VideoModel",
-          outputs: [mockOutputSlot("video")]
+          node_type: "some.TextModel",
+          outputs: [mockOutputSlot("str")]
         })
       )
     ).toBe(false);

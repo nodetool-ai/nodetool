@@ -31,13 +31,31 @@ interface ContentCardTarget {
   metadataOutputTypes?: DeclaredOutputTypes | undefined;
   outputTypes?: DeclaredOutputTypes;
   body?: string | undefined;
+  primaryOutput?: string | undefined;
 }
 
-/** True when a node with this primary output type should render a content card. */
+/** Media types that may stand in for a non-displayable first output. */
+const MEDIA_OUTPUT_TYPES: ReadonlySet<string> = new Set([
+  "image",
+  "image_mask",
+  "mask",
+  "video",
+  "audio",
+  "model_3d",
+  "asset_3d"
+]);
+
+/**
+ * True when a node with this primary output type should render a content card.
+ * A list of images counts: the card previews it as an image grid.
+ */
 export function isContentCardOutputType(
   outputType: string | undefined
 ): boolean {
-  return outputType !== undefined && CONTENT_CARD_OUTPUT_TYPES.has(outputType);
+  return (
+    outputType !== undefined &&
+    (CONTENT_CARD_OUTPUT_TYPES.has(outputType) || outputType === "list[image]")
+  );
 }
 
 /**
@@ -63,9 +81,37 @@ export function applyContentCardBody(nodeClass: ContentCardTarget): void {
   if (nodeClass.body !== undefined) {
     return;
   }
-  if (!isContentCardOutputType(primaryDeclaredOutputType(nodeClass))) {
+  const declared = nodeClass.metadataOutputTypes ?? nodeClass.outputTypes ?? {};
+  if (nodeClass.primaryOutput !== undefined) {
+    if (isContentCardOutputType(declared[nodeClass.primaryOutput])) {
+      stampContentCard(nodeClass);
+    }
     return;
   }
+  if (isContentCardOutputType(primaryDeclaredOutputType(nodeClass))) {
+    stampContentCard(nodeClass);
+    return;
+  }
+  // Endpoints often list bookkeeping fields first (`language_probability`
+  // before `text`, `seed` before `video`). Preview the media output, or a
+  // string output named `text`, by naming it the primary output.
+  const preview = Object.entries(declared).find(
+    ([name, type]) =>
+      MEDIA_OUTPUT_TYPES.has(type) ||
+      type === "list[image]" ||
+      (name === "text" && type === "str")
+  );
+  if (!preview) {
+    return;
+  }
+  Object.defineProperty(nodeClass, "primaryOutput", {
+    value: preview[0],
+    configurable: true
+  });
+  stampContentCard(nodeClass);
+}
+
+function stampContentCard(nodeClass: ContentCardTarget): void {
   Object.defineProperty(nodeClass, "body", {
     value: "content_card",
     configurable: true
