@@ -33,6 +33,7 @@ import { findGap } from "@nodetool-ai/timeline";
 import TitleIcon from "@mui/icons-material/Title";
 
 import {
+  clipFitsTrack,
   makeClip,
   DEFAULT_TEXT_CLIP_COLOR,
   DEFAULT_TEXT_CLIP_DURATION_MS,
@@ -64,10 +65,7 @@ import {
 import { AddClipMenu } from "../AddClipMenu";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
-import {
-  assetMediaType,
-  isCompatibleWithTrack
-} from "../dnd/assetToClipAdapter";
+import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
@@ -413,7 +411,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
         return;
       }
 
-      if (!isCompatibleWithTrack(mediaType, track.type)) {
+      if (!clipFitsTrack(mediaType, track.type)) {
         const expected =
           mediaType === "audio" ? "an audio" : "a video or overlay";
         showWarning(

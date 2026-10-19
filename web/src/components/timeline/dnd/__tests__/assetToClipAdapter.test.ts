@@ -5,10 +5,9 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { DEFAULT_MODEL3D_STYLE } from "@nodetool-ai/timeline";
+import { DEFAULT_MODEL3D_STYLE, clipFitsTrack } from "@nodetool-ai/timeline";
 import {
   assetMediaType,
-  isCompatibleWithTrack,
   assetToClip
 } from "../assetToClipAdapter";
 import type { Asset } from "../../../../stores/ApiTypes";
@@ -62,43 +61,43 @@ describe("assetMediaType", () => {
   });
 });
 
-// ── isCompatibleWithTrack ──────────────────────────────────────────────────
+// ── clipFitsTrack ──────────────────────────────────────────────────
 
-describe("isCompatibleWithTrack", () => {
+describe("clipFitsTrack", () => {
   it("accepts image onto video track", () => {
-    expect(isCompatibleWithTrack("image", "video")).toBe(true);
+    expect(clipFitsTrack("image", "video")).toBe(true);
   });
 
   it("accepts image onto overlay track", () => {
-    expect(isCompatibleWithTrack("image", "overlay")).toBe(true);
+    expect(clipFitsTrack("image", "overlay")).toBe(true);
   });
 
   it("rejects image onto audio track", () => {
-    expect(isCompatibleWithTrack("image", "audio")).toBe(false);
+    expect(clipFitsTrack("image", "audio")).toBe(false);
   });
 
   it("accepts video onto video track", () => {
-    expect(isCompatibleWithTrack("video", "video")).toBe(true);
+    expect(clipFitsTrack("video", "video")).toBe(true);
   });
 
   it("accepts video onto overlay track", () => {
-    expect(isCompatibleWithTrack("video", "overlay")).toBe(true);
+    expect(clipFitsTrack("video", "overlay")).toBe(true);
   });
 
   it("rejects video onto audio track", () => {
-    expect(isCompatibleWithTrack("video", "audio")).toBe(false);
+    expect(clipFitsTrack("video", "audio")).toBe(false);
   });
 
   it("accepts audio onto audio track", () => {
-    expect(isCompatibleWithTrack("audio", "audio")).toBe(true);
+    expect(clipFitsTrack("audio", "audio")).toBe(true);
   });
 
   it("rejects audio onto video track", () => {
-    expect(isCompatibleWithTrack("audio", "video")).toBe(false);
+    expect(clipFitsTrack("audio", "video")).toBe(false);
   });
 
   it("rejects audio onto overlay track", () => {
-    expect(isCompatibleWithTrack("audio", "overlay")).toBe(false);
+    expect(clipFitsTrack("audio", "overlay")).toBe(false);
   });
 });
 
@@ -214,15 +213,15 @@ describe("3D model assets", () => {
   });
 
   it("accepts a 3D model onto a video track", () => {
-    expect(isCompatibleWithTrack("model3d", "video")).toBe(true);
+    expect(clipFitsTrack("model3d", "video")).toBe(true);
   });
 
   it("accepts a 3D model onto an overlay track", () => {
-    expect(isCompatibleWithTrack("model3d", "overlay")).toBe(true);
+    expect(clipFitsTrack("model3d", "overlay")).toBe(true);
   });
 
   it("rejects a 3D model onto an audio track", () => {
-    expect(isCompatibleWithTrack("model3d", "audio")).toBe(false);
+    expect(clipFitsTrack("model3d", "audio")).toBe(false);
   });
 
   it("builds a model3d clip from a model/* asset", () => {
