@@ -181,13 +181,18 @@ function FileBrowserDialog({
   const treeScrollRef = useRef<HTMLDivElement>(null);
   const localizedTreeItems = useMemo(() => {
     const localize = (items: ExtendedTreeItem[]): ExtendedTreeItem[] =>
-      items.map((item) => ({
-        ...item,
-        label: item.id.endsWith("_loading")
-          ? t("batch2_12.fileBrowser.loading")
-          : item.label,
-        ...(item.children ? { children: localize(item.children) } : {})
-      }));
+      items.map((item) => {
+        const localizedItem: ExtendedTreeItem = {
+          ...item,
+          label: item.id.endsWith("_loading")
+            ? t("batch2_12.fileBrowser.loading")
+            : item.label
+        };
+        if (item.children) {
+          localizedItem.children = localize(item.children);
+        }
+        return localizedItem;
+      });
     return localize(treeItems);
   }, [treeItems, t]);
 
