@@ -621,7 +621,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               ? undefined
               : {
                   label: t("screens4_15.storyboard.shotCard.useLastFrame", {
-                    number: shotNumber
+                    number: new Intl.NumberFormat(
+                      i18n.resolvedLanguage ?? i18n.language
+                    ).format(shot.index)
                   }),
                   disabled: isGenerating || !previousClipUri,
                   onSelect: handleUseLastFrame

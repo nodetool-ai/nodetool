@@ -79,13 +79,13 @@ it.each(["2d", "3d"] as const)("registers the particle editor in the actual %s i
 it("edits lifetime curves and gradients through the shared accessible primitives", async () => {
   const store = mountEditor(fixture("2d"));
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Add size over lifetime" }));
+  await user.click(screen.getByRole("button", { name: "Add Size over lifetime" }));
   expect(store.getState().document!.scenes[0].entities[0].particles?.emitters[0].sizeOverLifetime)
     .toEqual([{ t: 0, value: 1 }, { t: 1, value: 1 }]);
   expect(screen.getByRole("group", { name: "Size over lifetime" })).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Add color over lifetime" }));
   expect(store.getState().document!.scenes[0].entities[0].particles?.emitters[0].colorOverLifetime).toEqual([{ t: 0, color: "#ffffff" }]);
-  await user.click(screen.getByRole("button", { name: "Remove size over lifetime" }));
+  await user.click(screen.getByRole("button", { name: "Remove Size over lifetime" }));
   expect(store.getState().document!.scenes[0].entities[0].particles?.emitters[0].sizeOverLifetime).toBeUndefined();
 });
 

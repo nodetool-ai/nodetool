@@ -108,7 +108,7 @@ describe("CreateTimelineButton import", () => {
       missing_clips: 2,
       warnings: [
         "1 transition(s) were imported as overlapping cuts.",
-        "2 clip(s) were left out because their media was not supplied: a.mov."
+        "2 clips were left out because their media was not supplied: a.mov."
       ]
     });
 
@@ -120,7 +120,7 @@ describe("CreateTimelineButton import", () => {
         expect.objectContaining({
           type: "warning",
           content:
-            "2 clip(s) were left out because their media was not in the zip"
+            "2 clips were left out because their media was not in the zip"
         })
       )
     );
@@ -148,7 +148,7 @@ describe("CreateTimelineButton import", () => {
       expect(mockAddNotification).toHaveBeenCalledWith(
         expect.objectContaining({
           type: "warning",
-          content: "2 asset(s) were not in the archive"
+          content: "2 assets were not in the archive"
         })
       )
     );

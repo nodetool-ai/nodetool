@@ -259,6 +259,9 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
   const label = t(`pass3_15.setupStep.modelRoles.${role.role}`, {
     defaultValue: MODEL_ROLE_LABEL[role.role] ?? role.role
   });
+  const modelKind = t(`pass3_15.setupStep.modelKinds.${role.role}`, {
+    defaultValue: role.role
+  });
   const selection = role.selectedId?.split(":") ?? [];
   const selectedProvider = selection.length > 1 ? selection[0] : undefined;
   const selectedModel =
@@ -293,7 +296,7 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
         <FlexRow gap={GAP.normal} align="center">
           <LoadingSpinner size="small" />
           <Caption color="secondary" component="span">
-            {t("pass3_15.setupStep.modelStatus.loading", { role: label })}
+            {t("pass3_15.setupStep.modelStatus.loading", { role: modelKind })}
           </Caption>
         </FlexRow>
       ) : role.status === "error" ? (
@@ -308,12 +311,12 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
                 context={{
                   source: "operation-failure",
                   summary: t("pass3_15.setupStep.modelStatus.reportSummary", {
-                    role: label
+                    role: modelKind
                   }),
                   errorText:
                     role.errorMessage ??
                     t("pass3_15.setupStep.modelStatus.readError", {
-                      role: label
+                      role: modelKind
                     })
                 }}
               />
@@ -323,10 +326,10 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
           <Caption component="span">
             {role.errorMessage
               ? t("pass3_15.setupStep.modelStatus.readErrorWithDetail", {
-                  role: label,
+                  role: modelKind,
                   detail: role.errorMessage
                 })
-              : t("pass3_15.setupStep.modelStatus.readError", { role: label })}
+              : t("pass3_15.setupStep.modelStatus.readError", { role: modelKind })}
           </Caption>
         </AlertBanner>
       ) : role.status === "empty" ? (

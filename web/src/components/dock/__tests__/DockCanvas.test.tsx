@@ -121,7 +121,7 @@ it("clamps measured panel sizes without overwriting requested sizes, then resize
   const rendered = render(<Harness store={store} />);
   try {
     await act(async () => reportBounds(900, 800));
-    const handle = screen.getByRole("separator", { name: /Resize sample left panels/i });
+    const handle = screen.getByRole("separator", { name: /Resize Sample left dock panels/i });
     expect(handle).toHaveAttribute("aria-valuenow", "300");
     expect(store.getState().layout.sizes.left).toBe(600);
     await act(async () => reportBounds(2400, 800));
@@ -179,7 +179,7 @@ it("maximizes through the controller the canvas registers, so a command outside 
   await act(async () => maximizeRef.current?.toggle("bottom-main"));
   expect(maximizeRef.current?.current()).toBe("bottom-main");
   expect(screen.queryByRole("region", { name: "Sample center dock panels" })).not.toBeInTheDocument();
-  expect(screen.getByRole("tablist", { name: "bottom sample panel tabs" })).toBeInTheDocument();
+  expect(screen.getByRole("tablist", { name: "sample bottom dock panel tabs" })).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "Script source" })).toBeVisible();
   await act(async () => maximizeRef.current?.toggle("bottom-main"));
   expect(screen.getByRole("region", { name: "Sample center dock panels" })).toBeInTheDocument();
@@ -266,14 +266,14 @@ it("adds transient bottom room without changing the saved size", async () => {
   try {
     const rendered = render(<Harness store={store} extraBottom={100} />);
     await act(async () => reportBounds(1200, 1600));
-    const handle = screen.getByRole("separator", { name: "Resize sample bottom panels" });
+    const handle = screen.getByRole("separator", { name: "Resize Sample bottom dock panels" });
     expect(handle).toHaveAttribute("aria-valuenow", "340");
     expect(store.getState().layout.sizes.bottom).toBe(240);
     handle.focus();
     await userEvent.setup().keyboard("{ArrowUp}");
     expect(store.getState().layout.sizes.bottom).toBe(256);
     rendered.rerender(<Harness store={store} extraBottom={0} />);
-    expect(screen.getByRole("separator", { name: "Resize sample bottom panels" })).toHaveAttribute("aria-valuenow", "256");
+    expect(screen.getByRole("separator", { name: "Resize Sample bottom dock panels" })).toHaveAttribute("aria-valuenow", "256");
   } finally {
     globalThis.ResizeObserver = originalObserver;
   }
@@ -299,11 +299,11 @@ it("lets an editor raise the share of the height the bottom panels may take", as
   try {
     const half = render(<Harness store={halfStore} />);
     await act(async () => reportBounds(1200, 800));
-    expect(screen.getByRole("separator", { name: "Resize sample bottom panels" })).toHaveAttribute("aria-valuemax", "400");
+    expect(screen.getByRole("separator", { name: "Resize Sample bottom dock panels" })).toHaveAttribute("aria-valuemax", "400");
     half.unmount();
     render(<Harness store={tallStore} />);
     await act(async () => reportBounds(1200, 800));
-    expect(screen.getByRole("separator", { name: "Resize sample bottom panels" })).toHaveAttribute("aria-valuemax", "640");
+    expect(screen.getByRole("separator", { name: "Resize Sample bottom dock panels" })).toHaveAttribute("aria-valuemax", "640");
   } finally {
     globalThis.ResizeObserver = originalObserver;
   }

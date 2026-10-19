@@ -43,7 +43,7 @@ it("collapses repeated lines and shows the tick range and repeat count", () => {
   expect(lines()).toHaveLength(1);
   expect(lines()[0]).toHaveTextContent("Ticks 4–6");
   expect(within(lines()[0]).getByLabelText("Repeated 3 times")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Logs 3" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Log messages: 3" })).toBeInTheDocument();
 });
 
 it("filters by level and by text, including the entity's name", async () => {
@@ -55,14 +55,14 @@ it("filters by level and by text, including the entity's name", async () => {
   renderPanel(gameId, { liveEntries: [{ level: "warning", source: "runtime", message: "Missing camera", sceneId: "intro" }] });
   expect(lines()).toHaveLength(3);
 
-  await user.click(screen.getByRole("button", { name: "Logs 1" }));
-  expect(screen.getByRole("button", { name: "Logs 1" })).toHaveAttribute("aria-pressed", "false");
+  await user.click(screen.getByRole("button", { name: "Log messages: 1" }));
+  expect(screen.getByRole("button", { name: "Log messages: 1" })).toHaveAttribute("aria-pressed", "false");
   expect(lines().map((line) => line.dataset.level)).toEqual(["warning", "error"]);
 
-  await user.click(screen.getByRole("button", { name: "Warnings 1" }));
+  await user.click(screen.getByRole("button", { name: "Warning messages: 1" }));
   expect(lines().map((line) => line.dataset.level)).toEqual(["error"]);
 
-  await user.click(screen.getByRole("button", { name: "Logs 1" }));
+  await user.click(screen.getByRole("button", { name: "Log messages: 1" }));
   await user.type(screen.getByLabelText("Filter console"), "door");
   expect(lines()).toHaveLength(1);
   expect(lines()[0]).toHaveTextContent("opened");

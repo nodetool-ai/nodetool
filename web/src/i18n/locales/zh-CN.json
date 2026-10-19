@@ -4290,6 +4290,12 @@
         "video": "视频模型",
         "audio": "语音模型"
       },
+      "modelKinds": {
+        "language": "语言",
+        "image": "图像",
+        "video": "视频",
+        "audio": "语音"
+      },
       "buildDisclosure": {
         "regionLabel": "构建前说明",
         "title": "构建会放置节点，然后运行一次",
@@ -13232,7 +13238,11 @@
         "scriptContext": "脚本",
         "titledScript": "{{title}} — 脚本",
         "untitledScript": "未命名脚本",
-        "lineWordCount": "{{lines}} 行 · {{words}} 个词",
+        "lineWordCount": "{{lines}} · {{words}}",
+        "lineCount_one": "{{count}} 行",
+        "lineCount_other": "{{count}} 行",
+        "wordCount_one": "{{count}} 个词",
+        "wordCount_other": "{{count}} 个词",
         "voiceCount_one": "{{count}} 个语音",
         "voiceCount_other": "{{count}} 个语音",
         "undo": "撤销（⌘Z）",

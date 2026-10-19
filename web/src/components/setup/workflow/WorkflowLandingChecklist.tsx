@@ -11,7 +11,6 @@
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import i18next from "i18next";
 import type { WorkflowSetupRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 import {
@@ -60,7 +59,7 @@ export interface WorkflowLandingChecklistProps {
 /** The message the agent panel opens with when the build did not come out clean. */
 export const buildFailureMessage = (
   result: BuildFromPlanResult,
-  t: TFunction = i18next.t.bind(i18next)
+  t: TFunction
 ): string | null => {
   if (result.validationError !== undefined) {
     return [

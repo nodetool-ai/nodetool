@@ -288,7 +288,7 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
       <EditorButton startIcon={<AddIcon />} onClick={addState}>{t("i18n-cont-game-06.animation.state")}</EditorButton>
       {canAssignToEntity && <EditorButton onClick={assignToEntity}>{t("i18n-cont-game-06.animation.useOn", { entity: selectedEntity?.name || selectedEntity?.id })}</EditorButton>}
       <Caption role="status" color={live ? "success" : "secondary"} sx={{ marginLeft: "auto", whiteSpace: "nowrap", pr: SPACING.xs }}>
-        {live ? t("i18n-cont-game-06.animation.liveState", { entity: liveEntityName, state: liveCurrent ?? t("i18n-cont-game-06.common.none"), previous: livePrevious ? t("i18n-cont-game-06.animation.fromPrevious", { state: livePrevious }) : "" }) : t("i18n-cont-game-06.animation.playToSeeState")}
+        {live ? t("i18n-cont-game-06.animation.liveState", { entity: liveEntityName, state: liveCurrent ?? t("i18n-cont-game-06.common.none"), previous: livePrevious ? ` ${t("i18n-cont-game-06.animation.fromPrevious", { state: livePrevious })}` : "" }) : t("i18n-cont-game-06.animation.playToSeeState")}
       </Caption>
     </DockPanelHeader>
     {error && <Caption color="error" role="alert" sx={{ px: SPACING.md, py: SPACING.xs }}>{error}</Caption>}

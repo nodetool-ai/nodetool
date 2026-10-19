@@ -178,7 +178,7 @@ describe("ScriptDocumentPane voicing strip", () => {
     expect(screen.queryByText(/Voicing 1 of 2 lines/)).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        "Voicing stopped before it finished. Voiced 1 of 2 lines. Press Voice all to voice the rest."
+        "Stopped early. Voiced 1 of 2 lines. You can continue later."
       )
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Voice all/ })).toBeEnabled();
@@ -198,7 +198,7 @@ describe("ScriptDocumentPane voicing strip", () => {
       screen.queryByText("Voicing queued for 2 lines.")
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Voicing stopped before it finished\. Voiced 0 of 2 lines\./)
+      screen.getByText(/Stopped early\. Voiced 0 of 2 lines\./)
     ).toBeInTheDocument();
   });
 
@@ -207,7 +207,7 @@ describe("ScriptDocumentPane voicing strip", () => {
     renderPane();
 
     expect(
-      screen.getByText("Voiced 1 of 2 lines. 1 line could not be voiced.")
+      screen.getByText("Voiced 1 of 2 lines. 1 line failed.")
     ).toBeInTheDocument();
     expect(
       screen.getByText(/“And again\.” — that voice is offline/)

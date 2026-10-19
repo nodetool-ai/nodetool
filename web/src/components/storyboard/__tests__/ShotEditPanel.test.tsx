@@ -259,7 +259,7 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     seed([baseShot({ duration_seconds: 3 })]);
     renderPanel();
 
-    await typeInto("Duration in seconds", "9");
+    await typeInto("Shot duration in seconds", "9");
 
     expect(mockCostShot?.duration_seconds).toBe(9);
   });
@@ -279,14 +279,14 @@ describe("ShotEditPanel fields (criterion 14)", () => {
 
     await typeInto("Description", "A lighthouse at dawn");
     await typeInto("Shot motion", "Slow push-in");
-    await typeInto("End", "The lamp fills the frame");
+    await typeInto("End state", "The lamp fills the frame");
     await typeInto("Sound", "Gulls and surf");
     await typeInto("Dialogue", "We are open.");
-    await typeInto("Duration in seconds", "7");
-    await choose("Size", "wide");
-    await choose("Perspective", "low angle");
-    await choose("Movement", "pan left");
-    await choose("Equipment", "steadicam");
+    await typeInto("Shot duration in seconds", "7");
+    await choose("Shot size", "Wide");
+    await choose("Camera angle", "Low angle");
+    await choose("Camera movement", "Pan left");
+    await choose("Camera equipment", "Steadicam");
     await choose("Focal length", "35mm");
     await userEvent.click(screen.getByText("Advanced"));
     await typeInto("Notes", "Keep the gulls");
@@ -321,8 +321,8 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
-    await choose("Size", "wide");
-    await typeInto("Duration in seconds", "7");
+    await choose("Shot size", "Wide");
+    await typeInto("Shot duration in seconds", "7");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(storedShot().camera?.framing).toBe("wide");
 
@@ -351,7 +351,7 @@ describe("ShotEditPanel overflow actions", () => {
 
     await openOverflow();
     await userEvent.click(
-      await screen.findByRole("menuitem", { name: "Move earlier in scene" })
+      await screen.findByRole("menuitem", { name: "Move shot earlier" })
     );
 
     expect(storedShot("shot-2").index).toBe(0);
@@ -414,11 +414,11 @@ describe("ShotEditPanel save semantics", () => {
     await userEvent.click(screen.getByRole("button", { name: "Back to storyboard" }));
 
     expect(onClose).not.toHaveBeenCalled();
-    const confirm = await screen.findByText("Discard changes?");
+    const confirm = await screen.findByText("Discard your changes?");
     await userEvent.click(
       within(confirm.closest("[role='dialog']") as HTMLElement).getByRole(
         "button",
-        { name: "Discard" }
+        { name: "Discard changes" }
       )
     );
 
@@ -432,7 +432,7 @@ describe("ShotEditPanel save semantics", () => {
 
     await typeInto("Description", "A lighthouse at dawn");
     await userEvent.click(screen.getByRole("button", { name: "Back to storyboard" }));
-    const confirm = await screen.findByText("Discard changes?");
+    const confirm = await screen.findByText("Discard your changes?");
     await userEvent.click(
       within(confirm.closest("[role='dialog']") as HTMLElement).getByRole(
         "button",
@@ -449,7 +449,7 @@ describe("ShotEditPanel save semantics", () => {
     renderPanel();
     await userEvent.click(screen.getByRole("button", { name: "Back to storyboard" }));
     expect(onClose).toHaveBeenCalled();
-    expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
+    expect(screen.queryByText("Discard your changes?")).not.toBeInTheDocument();
   });
 
   it("asks for the still model with the saved values, not the ones on screen before Save", async () => {
@@ -457,7 +457,7 @@ describe("ShotEditPanel save semantics", () => {
     renderPanel();
 
     await typeInto("Description", "A lighthouse at dawn");
-    await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+    await userEvent.click(screen.getByRole("button", { name: "Regenerate still" }));
 
     expect(storedShot().action).toBe("A lighthouse at dawn");
     expect(screen.getByTestId("shot-render-dialog")).toHaveAttribute(
@@ -520,7 +520,7 @@ describe("ShotEditPanel keyboard", () => {
     await typeInto("Description", "A lighthouse at dawn");
     await userEvent.keyboard("{Escape}");
     expect(onClose).not.toHaveBeenCalled();
-    expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
+    expect(await screen.findByText("Discard your changes?")).toBeInTheDocument();
   });
 });
 
@@ -554,7 +554,7 @@ describe("ShotEditPanel render guards", () => {
       await screen.findByRole("menuitem", { name: /Render clip/ })
     ).toHaveAttribute("aria-disabled", "true");
     expect(
-      screen.getByText("Render a still first, or set render mode to Direct")
+      screen.getByText("Render a still before rendering a clip.")
     ).toBeInTheDocument();
   });
 
@@ -565,7 +565,7 @@ describe("ShotEditPanel render guards", () => {
     await openOverflow();
 
     expect(
-      await screen.findByRole("menuitem", { name: "Move later in scene" })
+      await screen.findByRole("menuitem", { name: "Move shot later" })
     ).toHaveAttribute("aria-disabled", "true");
   });
 
@@ -576,7 +576,7 @@ describe("ShotEditPanel render guards", () => {
       .setShotStatus(BOARD, "shot-1", "keyframe_generating");
     renderPanel();
 
-    expect(screen.getByRole("button", { name: "Regenerate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Regenerate still" })).toBeDisabled();
   });
 });
 
@@ -596,7 +596,7 @@ describe("ShotEditPanel on a linked board (PRD D9)", () => {
       "We are closed."
     );
     expect(
-      screen.getByRole("button", { name: "Edit in script" })
+      screen.getByRole("button", { name: "Edit dialogue in script" })
     ).toBeEnabled();
   });
 
@@ -606,12 +606,12 @@ describe("ShotEditPanel on a linked board (PRD D9)", () => {
 
     // 3400 ms + 250 ms of silence, rounded up — the takes' own duration.
     expect(
-      screen.getByLabelText("Duration in seconds")
+      screen.getByLabelText("Shot duration in seconds")
     ).toHaveAttribute("placeholder", "4");
     expect(screen.getByText("From voice takes")).toBeInTheDocument();
 
-    await typeInto("Duration in seconds", "9");
-    expect(screen.getByText("Set by hand")).toBeInTheDocument();
+    await typeInto("Shot duration in seconds", "9");
+    expect(screen.getByText("Manual")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(storedShot()).toMatchObject({
@@ -621,11 +621,11 @@ describe("ShotEditPanel on a linked board (PRD D9)", () => {
 
     // The chip hands timing back to the takes; the typed value stays put so
     // it can be pinned again.
-    await userEvent.click(screen.getByText("Set by hand"));
+    await userEvent.click(screen.getByText("Manual"));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(storedShot().duration_source).toBe("audio");
     expect(
-      screen.getByLabelText("Duration in seconds")
+      screen.getByLabelText("Shot duration in seconds")
     ).toHaveValue(9);
   });
 });
@@ -655,11 +655,11 @@ describe("ShotEditPanel placement (it is a row of the board, not a dialog)", () 
     await userEvent.click(screen.getByRole("button", { name: "Next shot" }));
 
     expect(onShotChange).not.toHaveBeenCalled();
-    const confirm = await screen.findByText("Discard changes?");
+    const confirm = await screen.findByText("Discard your changes?");
     await userEvent.click(
       within(confirm.closest("[role='dialog']") as HTMLElement).getByRole(
         "button",
-        { name: "Discard" }
+        { name: "Discard changes" }
       )
     );
     expect(onShotChange).toHaveBeenCalledWith("shot-2");

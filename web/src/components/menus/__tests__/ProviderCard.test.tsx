@@ -184,7 +184,7 @@ describe("ProviderCard registry availability", () => {
     renderCard({ ...oauthMeta, oauthOnly: true });
 
     expect(screen.getByText("Unavailable")).toBeInTheDocument();
-    expect(screen.getByText(/does not offer OpenAI/i)).toBeInTheDocument();
+    expect(screen.getByText(/this provider is not currently available on this server/i)).toBeInTheDocument();
     expect(screen.queryByText("Connected")).not.toBeInTheDocument();
   });
 
@@ -261,7 +261,7 @@ describe("ProviderCard registry availability", () => {
     renderCard({ ...oauthMeta, oauthProviderId: "codex" });
 
     expect(screen.getByText("Unavailable")).toBeInTheDocument();
-    expect(screen.getByText(/Signed in, but this server/i)).toBeInTheDocument();
+    expect(screen.getByText(/signed in to OpenAI, but this provider/i)).toBeInTheDocument();
   });
 
   it("stays available when either credential reaches an offered provider", () => {

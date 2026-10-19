@@ -54,7 +54,7 @@ const ShotInsertPointInner: React.FC<ShotInsertPointProps> = ({
   const handleClick = useCallback(() => {
     onInsert(afterShotId);
   }, [onInsert, afterShotId]);
-  const position = label.replace(/^after\s+/, "").trim();
+  const position = label.trim();
   const insertLabel = position
     ? t("screens4_17.storyboard.shotInsertPoint.insertAfter", {
         label: position

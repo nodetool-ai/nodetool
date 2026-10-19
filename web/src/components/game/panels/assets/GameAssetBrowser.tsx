@@ -324,7 +324,7 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
         sx={{ flexShrink: 0, minHeight: CONTROL.height.md, px: SPACING.sm, py: SPACING.micro, borderBottom: 1, borderColor: "divider" }}>
         <ToggleGroup quiet exclusive size="small" aria-label={t("i18n-cont-game-06.assets.browse")} value={tab}
           onChange={(_event, value: GameAssetBrowserTab | null) => { if (value) { setTab(value); } }} sx={{ flexShrink: 0 }}>
-          {TABS.map((value) => <ToggleOption key={value} value={value} aria-label={t("i18n-cont-game-06.assets.tabAria", { tab: tabLabels[value], count: formatCount(counts[value]) })}
+          {TABS.map((value) => <ToggleOption key={value} value={value} aria-label={t("i18n-cont-game-06.assets.tabAria", { tab: tabLabels[value], formattedCount: formatCount(counts[value]) })}
             sx={{ px: SPACING.sm, gap: SPACING.xs, ...TYPOGRAPHY.sans.label, textTransform: "none" }}>
             {tabLabels[value]}<Box component="span" sx={{ ...TYPOGRAPHY.sans.caption, color: "text.secondary" }}>{counts[value]}</Box>
           </ToggleOption>)}

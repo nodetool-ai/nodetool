@@ -485,7 +485,7 @@ describe("StoryboardBoard direct guard", () => {
     // With shots on the board the form is folded behind the toolbar.
     await user.click(screen.getByRole("button", { name: /Board settings/ }));
     // The button relabels once shots exist.
-    await user.click(screen.getByRole("button", { name: "Re-direct" }));
+    await user.click(screen.getByRole("button", { name: "Direct again" }));
 
     // The run is held until the confirmation is accepted.
     expect(onDirect).not.toHaveBeenCalled();
@@ -494,7 +494,7 @@ describe("StoryboardBoard direct guard", () => {
       within(dialog).getByText("Re-direct this storyboard?")
     ).toBeInTheDocument();
 
-    await user.click(within(dialog).getByRole("button", { name: "Re-direct" }));
+    await user.click(within(dialog).getByRole("button", { name: "Direct again" }));
 
     expect(onDirect).toHaveBeenCalledTimes(1);
   });
@@ -922,7 +922,7 @@ describe("StoryboardBoard toolbar", () => {
     await user.click(screen.getByRole("button", { name: "Still model" }));
 
     expect(
-      screen.getByRole("button", { name: "Render stills · ~$2" })
+      screen.getByRole("button", { name: "Render stills · ~$2.00" })
     ).toBeEnabled();
   });
 
@@ -957,7 +957,7 @@ describe("StoryboardBoard toolbar", () => {
       screen.getByRole("button", { name: "Render stills (2) · ~$0.02" })
     ).toBeEnabled();
     expect(
-      screen.getByRole("button", { name: "Render clips (1) · ~$0.5" })
+      screen.getByRole("button", { name: "Render clips (1) · ~$0.50" })
     ).toBeEnabled();
 
     boardModels = { imageModel: null, videoModel: null };
@@ -1000,7 +1000,7 @@ describe("StoryboardBoard keyboard navigation", () => {
   it("moves the selection to the next shot and focuses its card", () => {
     activeShot = "s1";
     renderBoard(jest.fn());
-    const grid = screen.getByRole("group", { name: "Shots" });
+    const grid = screen.getByRole("group", { name: "Storyboard shots" });
     screen.getByRole("button", { name: "s1" }).focus();
 
     fireEvent.keyDown(grid, { key: "ArrowRight" });
@@ -1011,7 +1011,7 @@ describe("StoryboardBoard keyboard navigation", () => {
   it("stops at the last shot rather than wrapping", () => {
     activeShot = "s3";
     renderBoard(jest.fn());
-    fireEvent.keyDown(screen.getByRole("group", { name: "Shots" }), {
+    fireEvent.keyDown(screen.getByRole("group", { name: "Storyboard shots" }), {
       key: "ArrowRight"
     });
     expect(mockSelectShot).not.toHaveBeenCalled();
@@ -1021,7 +1021,7 @@ describe("StoryboardBoard keyboard navigation", () => {
   it("jumps to the ends with Home and End", () => {
     activeShot = "s2";
     renderBoard(jest.fn());
-    const grid = screen.getByRole("group", { name: "Shots" });
+    const grid = screen.getByRole("group", { name: "Storyboard shots" });
     fireEvent.keyDown(grid, { key: "End" });
     expect(mockSelectShot).toHaveBeenLastCalledWith("board-1", "s3");
     fireEvent.keyDown(grid, { key: "Home" });
@@ -1045,7 +1045,7 @@ describe("StoryboardBoard keyboard navigation", () => {
     activeShot = "s1";
     renderBoard(jest.fn());
     screen.getByRole("button", { name: "s1" }).focus();
-    fireEvent.keyDown(screen.getByRole("group", { name: "Shots" }), {
+    fireEvent.keyDown(screen.getByRole("group", { name: "Storyboard shots" }), {
       key: "ArrowRight"
     });
     expect(screen.queryByTestId("slideshow")).not.toBeInTheDocument();
@@ -1054,7 +1054,7 @@ describe("StoryboardBoard keyboard navigation", () => {
   it("clears the selection on Escape", () => {
     activeShot = "s2";
     renderBoard(jest.fn());
-    fireEvent.keyDown(screen.getByRole("group", { name: "Shots" }), {
+    fireEvent.keyDown(screen.getByRole("group", { name: "Storyboard shots" }), {
       key: "Escape"
     });
     expect(mockSelectShot).toHaveBeenCalledWith("board-1", null);
@@ -1209,12 +1209,12 @@ describe("StoryboardBoard scene clips", () => {
     };
     renderBoard(jest.fn());
     expect(
-      screen.getByRole("button", { name: "Shots 2\u20133 \u00B7 not rendered" })
+      screen.getByRole("button", { name: "Open scene clip for Shots 2–3, status: not rendered" })
     ).toBeInTheDocument();
     const tags = screen
       .getAllByTestId("shot-card")
       .map((card) => card.getAttribute("data-scene-clip"));
-    expect(tags).toEqual([null, "Clip 1/2 \u00B7 0-5s", "Clip 2/2 \u00B7 5-10s"]);
+    expect(tags).toEqual([null, "Part 1 of 2 · 0-5s", "Part 2 of 2 · 5-10s"]);
   });
 });
 
@@ -1255,7 +1255,7 @@ describe("StoryboardBoard genre chip", () => {
     const user = userEvent.setup();
     renderBoard(jest.fn());
 
-    await user.click(screen.getByRole("button", { name: "Set genre" }));
+    await user.click(screen.getByRole("button", { name: "Choose a genre" }));
     const grid = await screen.findByRole("radiogroup", { name: "Genre" });
     await user.click(within(grid).getByRole("radio", { name: /Thriller/ }));
 
@@ -1267,7 +1267,7 @@ describe("StoryboardBoard genre chip", () => {
     mockGenre = "Noir";
     renderBoard(jest.fn());
 
-    expect(screen.getByRole("button", { name: "Noir" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Genre: Noir" })).toBeInTheDocument();
   });
 });
 
@@ -1395,12 +1395,12 @@ describe("StoryboardBoard next steps", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Rebuild linked timeline…" })
+      screen.getByRole("button", { name: "Rebuild linked timeline" })
     );
 
     expect(
       screen.getByText(
-        "This replaces 2 storyboard-owned clips, including trims and edits made to those clips."
+        "2 clips owned by this storyboard will be replaced."
       )
     ).toBeInTheDocument();
   });
@@ -1571,7 +1571,7 @@ describe("StoryboardBoard quick search", () => {
     renderBoard(jest.fn());
 
     await userEvent.type(
-      screen.getByRole("textbox", { name: "Search shots" }),
+      screen.getByRole("textbox", { name: "Search shots by title or description" }),
       "anyone"
     );
 
@@ -1588,7 +1588,7 @@ describe("StoryboardBoard quick search", () => {
     renderBoard(jest.fn());
 
     await userEvent.type(
-      screen.getByRole("textbox", { name: "Search shots" }),
+      screen.getByRole("textbox", { name: "Search shots by title or description" }),
       "spaceship"
     );
 
@@ -1602,7 +1602,7 @@ describe("StoryboardBoard quick search", () => {
     renderBoard(jest.fn());
 
     await userEvent.type(
-      screen.getByRole("textbox", { name: "Search shots" }),
+      screen.getByRole("textbox", { name: "Search shots by title or description" }),
       "door{Enter}"
     );
 

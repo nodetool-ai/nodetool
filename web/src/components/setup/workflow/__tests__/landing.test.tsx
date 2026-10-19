@@ -11,6 +11,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
+import { createAppI18n } from "../../../../i18n/i18n";
 import mockTheme from "../../../../__mocks__/themeMock";
 import type { BuildFromPlanResult } from "../../../../hooks/workflow/useBuildFromPlan";
 import {
@@ -238,7 +239,7 @@ describe("WorkflowLandingChecklist", () => {
 
 describe("buildFailureMessage", () => {
   it("is null on a clean build, so the checklist shows the next step", () => {
-    expect(buildFailureMessage(CLEAN)).toBeNull();
+    expect(buildFailureMessage(CLEAN, createAppI18n().t)).toBeNull();
   });
 
   it("reports validation before unwired steps, because it blocks first", () => {
@@ -246,7 +247,7 @@ describe("buildFailureMessage", () => {
       ...CLEAN,
       validationErrors: ["bad"],
       issues: ["also bad"]
-    });
+    }, createAppI18n().t);
     expect(message).toContain("does not validate");
     expect(message).not.toContain("also bad");
     expect(message).toContain("set the missing property");

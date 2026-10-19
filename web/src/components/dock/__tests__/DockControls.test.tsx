@@ -72,7 +72,7 @@ it("moves, reorders and closes panels from the tab menu by keyboard", async () =
   await user.click(screen.getByRole("menuitem", { name: "Move to right dock" }));
   expect(store.getState().layout.regions.right[0].panels.at(-1)).toBe("scripts");
   expect(store.getState().layout.regions.bottom.some((group) => group.panels.includes("scripts"))).toBe(false);
-  const rightTabs = within(screen.getByRole("tablist", { name: "right sample panel tabs" }));
+  const rightTabs = within(screen.getByRole("tablist", { name: "sample right dock panel tabs" }));
   rightTabs.getByRole("tab", { name: "Scripts" }).focus();
   await user.keyboard("{Shift>}{F10}{/Shift}");
   await user.click(screen.getByRole("menuitem", { name: "Move tab left" }));

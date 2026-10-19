@@ -251,7 +251,7 @@ describe("script ReviewStep", () => {
 
     expect(
       screen.getByRole("button", { name: "Assign speaker" })
-    ).toHaveTextContent("no speaker");
+    ).toHaveTextContent("No speaker");
     await user.click(
       screen.getByRole("button", { name: "Host, change speaker" })
     );

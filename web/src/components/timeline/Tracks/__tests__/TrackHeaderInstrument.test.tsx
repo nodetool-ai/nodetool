@@ -150,7 +150,7 @@ describe("TrackHeader — midi instrument", () => {
     expect(
       screen.queryByRole("combobox", { name: /waveform/i })
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("slider", { name: "DRIVE" })).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Drive" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "OSC" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "ENV" })).toBeInTheDocument();
     expect(screen.getByRole("slider", { name: "ACC AMT" })).toBeInTheDocument();
@@ -198,13 +198,13 @@ describe("TrackHeader — midi instrument", () => {
     expect(
       within(screen.getByRole("region", { name: "NOISE + RING" })).getByRole(
         "slider",
-        { name: "NOISE" }
+        { name: "Noise level" }
       )
     ).toBeInTheDocument();
     expect(
       within(screen.getByRole("region", { name: "PITCH ENV" })).getByRole(
         "slider",
-        { name: "AMT" }
+        { name: "Pitch amount" }
       )
     ).toBeInTheDocument();
   });

@@ -173,33 +173,33 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
     .join(", ");
 
   const confirmText = allInstalled
-    ? t("runtimeInstall.done")
+    ? t("i18n-next32.runtimeInstall.done")
     : installing
-      ? t("runtimeInstall.installing")
+      ? t("i18n-next32.runtimeInstall.installing")
       : failedCount > 0
-        ? t("runtimeInstall.retry")
-        : t("runtimeInstall.installAll");
+        ? t("i18n-next32.runtimeInstall.retry")
+        : t("i18n-next32.runtimeInstall.installAll");
 
   return (
     <Dialog
       open={open}
       onClose={handleDialogClose}
-      title={t("runtimeInstall.title")}
+      title={t("i18n-next32.runtimeInstall.title")}
       maxWidth="xs"
       fullWidth
       onConfirm={allInstalled ? onClose : handleInstall}
       confirmText={confirmText}
-      cancelText={t("runtimeInstall.later")}
+      cancelText={t("i18n-next32.runtimeInstall.later")}
       isLoading={installing}
       cancelDisabled={installing}
     >
       <FlexColumn gap={SPACING.md}>
         <Text size="smaller" color="secondary">
-          {t("runtimeInstall.descriptionPrefix")}{" "}
+          {t("i18n-next32.runtimeInstall.descriptionPrefix")}{" "}
           <Text component="span" weight={500} color="inherit">
             {runtimeNames}
           </Text>
-          {t("runtimeInstall.descriptionSuffix")}
+          {t("i18n-next32.runtimeInstall.descriptionSuffix")}
         </Text>
 
         <FlexColumn
@@ -225,7 +225,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
 
         {allInstalled && (
           <AlertBanner severity="success" compact>
-            {t("runtimeInstall.allInstalled")}
+            {t("i18n-next32.runtimeInstall.allInstalled")}
           </AlertBanner>
         )}
 
@@ -245,7 +245,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
               opacity: installing ? 0.5 : 1,
             }}
           >
-            {t("runtimeInstall.openPackageManager")}
+            {t("i18n-next32.runtimeInstall.openPackageManager")}
           </Text>
         )}
       </FlexColumn>
@@ -297,7 +297,7 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: t("runtimeInstall.installFailedSummary", { name }),
+              summary: t("i18n-next32.runtimeInstall.installFailedSummary", { name }),
               errorText: error
             }}
           >
@@ -309,7 +309,7 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
         compact
         color={STATUS_COLOR[status]}
         active={status !== "pending"}
-        label={error ? t("runtimeInstall.status.failed") : t(`runtimeInstall.status.${status}`)}
+        label={error ? t("i18n-next32.runtimeInstall.status.failed") : t(`i18n-next32.runtimeInstall.status.${status}`)}
       />
     </FlexRow>
   );

@@ -88,8 +88,8 @@ describe("CustomProvidersSection", () => {
     await waitFor(() =>
       expect(api.test.mutate).toHaveBeenCalledWith({ slug: "agnes" })
     );
-    expect(await screen.findByText("Image 2")).toBeInTheDocument();
-    expect(screen.getByText("Video 1")).toBeInTheDocument();
-    expect(screen.getByText("Chat 9")).toBeInTheDocument();
+    expect(await screen.findByText("2 image models")).toBeInTheDocument();
+    expect(screen.getByText("1 video model")).toBeInTheDocument();
+    expect(screen.getByText("9 chat models")).toBeInTheDocument();
   });
 });

@@ -139,12 +139,6 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
     : fullscreenLabel?.toLowerCase().includes("still")
       ? t("screens4_17.storyboard.shotHoverToolbar.viewStillFullscreen")
       : fullscreenLabel;
-  const translatedLastFrameLabel = useLastFrame?.label.match(/(\d+)$/);
-  const lastFrameLabel = translatedLastFrameLabel
-    ? t("screens4_17.storyboard.shotHoverToolbar.useLastFrame", {
-        shotNumber: Number(translatedLastFrameLabel[1])
-      })
-    : useLastFrame?.label;
   return (
     <FloatingToolbar
       onClick={swallowEvent}
@@ -216,7 +210,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         )}
         {useLastFrame && (
           <MenuItemPrimitive
-            label={lastFrameLabel ?? useLastFrame.label}
+            label={useLastFrame.label}
             icon={<LastPageIcon fontSize="small" />}
             disabled={useLastFrame.disabled}
             onClick={runAndClose(useLastFrame.onSelect)}

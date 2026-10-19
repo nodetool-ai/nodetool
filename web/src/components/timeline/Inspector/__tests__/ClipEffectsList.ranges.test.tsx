@@ -50,25 +50,25 @@ function commit(label: string, raw: string): void {
 describe("ClipEffectsList lift/gamma/gain", () => {
   it("refuses a gamma of 0 or below", () => {
     renderList();
-    commit("Lift / gamma / gain gamma R", "0");
-    commit("Lift / gamma / gain gamma G", "-1");
+    commit("Lift / gamma / gain Gamma R", "0");
+    commit("Lift / gamma / gain Gamma G", "-1");
     expect(patchClip).not.toHaveBeenCalled();
 
-    commit("Lift / gamma / gain gamma B", "0.5");
+    commit("Lift / gamma / gain Gamma B", "0.5");
     expect(patchClip).toHaveBeenCalledTimes(1);
   });
 
   it("refuses a negative gain but accepts 0", () => {
     renderList();
-    commit("Lift / gamma / gain gain R", "-0.5");
+    commit("Lift / gamma / gain Gain R", "-0.5");
     expect(patchClip).not.toHaveBeenCalled();
-    commit("Lift / gamma / gain gain R", "0");
+    commit("Lift / gamma / gain Gain R", "0");
     expect(patchClip).toHaveBeenCalledTimes(1);
   });
 
   it("accepts a negative lift", () => {
     renderList();
-    commit("Lift / gamma / gain lift R", "-0.2");
+    commit("Lift / gamma / gain Lift R", "-0.2");
     expect(patchClip).toHaveBeenCalledTimes(1);
   });
 });

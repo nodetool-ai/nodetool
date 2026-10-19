@@ -67,7 +67,7 @@ describe("VideoLandingStrip", () => {
       ]);
     renderStrip();
 
-    const button = screen.getByRole("button", { name: "Retry 2 failed" });
+    const button = screen.getByRole("button", { name: "Retry 2 failed clips" });
     await userEvent.click(button);
     expect(start.mock.calls.map(([id]) => id).sort()).toEqual(["c1", "c2"]);
   });
@@ -150,7 +150,7 @@ describe("VideoLandingStrip", () => {
     renderStrip();
 
     expect(
-      screen.getByRole("button", { name: "Retry 1 failed" })
+      screen.getByRole("button", { name: "Retry 1 failed clip" })
     ).toBeInTheDocument();
     expect(screen.queryByText("Next:")).not.toBeInTheDocument();
     expect(

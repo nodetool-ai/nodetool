@@ -37,9 +37,11 @@ describe("ToolToggle", () => {
       "aria-checked",
       "false"
     );
-    expect(screen.getByRole("button", { name: "Ripple edit" })).toHaveAttribute(
-      "aria-pressed"
-    );
+    const rippleControls = screen.getAllByRole("button", { name: "Ripple edit" });
+    expect(rippleControls).toHaveLength(2);
+    for (const control of rippleControls) {
+      expect(control).toHaveAttribute("aria-pressed");
+    }
   });
 
   it("moves the checked drop mode with the arrow keys", async () => {

@@ -4290,6 +4290,12 @@
         "video": "Video model",
         "audio": "Voice model"
       },
+      "modelKinds": {
+        "language": "language",
+        "image": "image",
+        "video": "video",
+        "audio": "voice"
+      },
       "buildDisclosure": {
         "regionLabel": "Before you build",
         "title": "Build places the nodes and then runs it once",
@@ -5068,8 +5074,8 @@
           "reverse": "Reverse"
         }
       },
-      "staggerOverrun_one": "Staggered over {{count}} {{unit}}s this runs {{duration}}ms, past the clip's {{clipDuration}}ms. The last units are cut off.",
-      "staggerOverrun_other": "Staggered over {{count}} {{unit}}s this runs {{duration}}ms, past the clip's {{clipDuration}}ms. The last units are cut off."
+      "staggerOverrun_one": "Staggered over {{count}} {{unit}} this runs {{duration}}ms, past the clip's {{clipDuration}}ms. The last units are cut off.",
+      "staggerOverrun_other": "Staggered over {{count}} {{unit}} this runs {{duration}}ms, past the clip's {{clipDuration}}ms. The last units are cut off."
     },
     "audioDrive": {
       "title": "Audio drive",
@@ -13232,7 +13238,11 @@
         "scriptContext": "Script",
         "titledScript": "{{title}} — Script",
         "untitledScript": "Untitled script",
-        "lineWordCount": "{{lines}} lines · {{words}} words",
+        "lineWordCount": "{{lines}} · {{words}}",
+        "lineCount_one": "{{count}} line",
+        "lineCount_other": "{{count}} lines",
+        "wordCount_one": "{{count}} word",
+        "wordCount_other": "{{count}} words",
         "voiceCount_one": "{{count}} voice",
         "voiceCount_other": "{{count}} voices",
         "undo": "Undo (⌘Z)",

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { createAppI18n } from "../../../i18n/i18n";
 import mockTheme from "../../../__mocks__/themeMock";
 import { trpcClient } from "../../../trpc/client";
 import SandboxPackDisclosure, {
@@ -54,7 +55,7 @@ describe("SandboxPackDisclosure", () => {
   it("states the consent sentence and this pack's module one-liners", async () => {
     renderPanel();
     expect(
-      await screen.findByText(SANDBOX_PACK_CONSENT_TEXT)
+      await screen.findByText(createAppI18n().t(SANDBOX_PACK_CONSENT_TEXT))
     ).toBeInTheDocument();
     expect(
       screen.getByText(/run inside your workflows with the node's capabilities/)

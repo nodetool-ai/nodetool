@@ -120,7 +120,7 @@ describe("SketchLayersPanel imported layer source line", () => {
     const line = container.querySelector(
       ".sketch-layers-panel__active-layer-ref"
     );
-    expect(line).toHaveTextContent("Variation 1 · source 1536×1024 · contain");
+    expect(line).toHaveTextContent("Variation 1 · source 1,536×1,024 · contain");
     expect(line).not.toHaveTextContent("/api/storage");
     expect(line).not.toHaveTextContent(".png");
   });

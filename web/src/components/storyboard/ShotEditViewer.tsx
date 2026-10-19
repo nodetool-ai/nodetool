@@ -517,7 +517,8 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
         role="region"
         aria-busy={generating || undefined}
         aria-label={t("screens4_16.shotEditViewer.stageAriaLabel", {
-          medium: shown === "clip"
+          shot: localizedShotNumber,
+          type: shown === "clip"
             ? t("screens4_16.shotEditViewer.clip")
             : t("screens4_16.shotEditViewer.still")
         })}
@@ -664,21 +665,21 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
             {isCurrent
               ? t("screens4_16.shotEditViewer.currentTake", {
                   take: numberFormat.format(index + 1),
-                  medium: shown === "clip"
+                  type: shown === "clip"
                     ? t("screens4_16.shotEditViewer.clip")
                     : t("screens4_16.shotEditViewer.still")
                 })
               : current
                 ? t("screens4_16.shotEditViewer.previewingTakeWithCurrent", {
-                    preview: numberFormat.format(index + 1),
-                    current: numberFormat.format(acceptedIndex + 1),
-                    medium: shown === "clip"
+                    take: numberFormat.format(index + 1),
+                    currentTake: numberFormat.format(acceptedIndex + 1),
+                    type: shown === "clip"
                       ? t("screens4_16.shotEditViewer.clip")
                       : t("screens4_16.shotEditViewer.still")
                   })
                 : t("screens4_16.shotEditViewer.previewingTakeNoCurrent", {
                     take: numberFormat.format(index + 1),
-                    medium: shown === "clip"
+                    type: shown === "clip"
                       ? t("screens4_16.shotEditViewer.clip")
                       : t("screens4_16.shotEditViewer.still")
                   })}
@@ -689,7 +690,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
             size="small"
             onClick={handleAccept}
             aria-label={t("screens4_16.shotEditViewer.setCurrentAriaLabel", {
-              medium: shown === "clip"
+              type: shown === "clip"
                 ? t("screens4_16.shotEditViewer.clip")
                 : t("screens4_16.shotEditViewer.still"),
               take: numberFormat.format(index + 1)

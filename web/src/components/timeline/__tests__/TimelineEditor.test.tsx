@@ -398,7 +398,7 @@ describe("TimelineEditor", () => {
       renderEditor();
 
       const separator = screen.getByRole("separator", {
-        name: "Resize timeline bottom panels"
+        name: "Resize Timeline bottom dock panels"
       });
       expect(separator).toHaveAttribute("aria-orientation", "horizontal");
       expect(separator).toHaveAttribute("aria-valuenow");
@@ -460,7 +460,7 @@ describe("TimelineEditor", () => {
         renderEditor();
 
         const separator = screen.getByRole("separator", {
-          name: "Resize timeline bottom panels"
+          name: "Resize Timeline bottom dock panels"
         });
         const initialHeight = Number(separator.getAttribute("aria-valuenow"));
 
@@ -474,7 +474,7 @@ describe("TimelineEditor", () => {
         renderEditor();
 
         const separator = screen.getByRole("separator", {
-          name: "Resize timeline bottom panels"
+          name: "Resize Timeline bottom dock panels"
         });
         const initialHeight = Number(separator.getAttribute("aria-valuenow"));
 
@@ -495,7 +495,7 @@ describe("TimelineEditor", () => {
         renderEditor();
 
         const separator = screen.getByRole("separator", {
-          name: "Resize timeline bottom panels"
+          name: "Resize Timeline bottom dock panels"
         });
         const max = Number(separator.getAttribute("aria-valuemax"));
 

@@ -103,7 +103,7 @@ function CommandFixture({ entityId, nearLimit = false }: { entityId: string; nea
   </ThemeProvider>;
 }
 
-it.each([{ entityId: "player", field: "position x", value: "4", label: "Move Player" },
+it.each([{ entityId: "player", field: "Position x", value: "4", label: "Move Player" },
   { entityId: "sun", field: "Intensity", value: "3", label: "Change Light Intensity" }])(
   "labels and reverses an ordinary $label inspector command", async ({ entityId, field, value, label }) => {
     const user = userEvent.setup();

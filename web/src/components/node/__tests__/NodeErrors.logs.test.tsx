@@ -49,7 +49,7 @@ describe("NodeErrors log filtering", () => {
     );
 
     await user.click(
-      screen.getByRole("button", { name: "View logs for this node and run" })
+      screen.getByRole("button", { name: "View logs" })
     );
 
     expect(useTraceStore.getState()).toMatchObject({

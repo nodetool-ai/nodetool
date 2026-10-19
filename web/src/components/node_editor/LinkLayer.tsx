@@ -159,8 +159,8 @@ const LinkPath: React.FC<LinkPathProps> = memo(
       ? theme.vars.palette.primary.main
       : theme.vars.palette.text.secondary;
     const name = link.label
-      ? t("linkLayer.namedLink", { label: link.label })
-      : t("linkLayer.lineageLink");
+      ? t("i18n-next32.linkLayer.namedLink", { label: link.label })
+      : t("i18n-next32.linkLayer.lineageLink");
 
     return (
       <g className="lineage-link" data-link-id={link.id}>
@@ -259,7 +259,7 @@ const LinkLayer: React.FC = () => {
 
   return (
     <ViewportPortal>
-      <svg style={LAYER_STYLE} aria-label={t("linkLayer.ariaLabel")}>
+      <svg style={LAYER_STYLE} aria-label={t("i18n-next32.linkLayer.ariaLabel")}>
         {links.map((link) => (
           <LinkPath
             key={link.id}

@@ -32,8 +32,10 @@ jest.mock("../../../stores/AssetStore", () => ({
     select: (state: { createAsset: typeof createAsset }) => T
   ) => select({ createAsset })
 }));
-jest.mock("../../../utils/notifyMutationError", () => ({
-  notifyMutationError: (...args: unknown[]) => notify(...args)
+jest.mock("../../../stores/NotificationStore", () => ({
+  useNotificationStore: <T,>(
+    select: (state: { addNotification: typeof notify }) => T
+  ) => select({ addNotification: notify })
 }));
 jest.mock("../../ui_primitives/ResponsiveImage", () => ({
   ResponsiveImage: ({ alt }: { alt: string }) => <img alt={alt} />
@@ -119,8 +121,10 @@ it("switches packs and reports a failed download", async () => {
   await userEvent.click(button);
   await waitFor(() =>
     expect(notify).toHaveBeenCalledWith(
-      "add the example model",
-      expect.any(Error)
+      expect.objectContaining({
+        type: "error",
+        content: "Could not add the example model. Please try again."
+      })
     )
   );
   expect(createAsset).not.toHaveBeenCalled();

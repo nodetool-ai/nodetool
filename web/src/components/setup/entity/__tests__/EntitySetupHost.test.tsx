@@ -155,7 +155,7 @@ describe("EntitySetupHost", () => {
     expect(
       screen.queryByRole("button", { name: "existing.png" })
     ).not.toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "nova.png" }));
+    await user.click(await screen.findByRole("button", { name: "Choose image nova.png" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     );
@@ -388,7 +388,7 @@ describe("EntitySetupHost", () => {
       screen.getByRole("button", { name: "Choose a reference" })
     );
     await user.click(screen.getByRole("button", { name: "Choose from assets" }));
-    await user.click(await screen.findByRole("button", { name: "nova.png" }));
+    await user.click(await screen.findByRole("button", { name: "Choose image nova.png" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     );

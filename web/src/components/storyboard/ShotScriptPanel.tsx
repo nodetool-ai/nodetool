@@ -106,7 +106,7 @@ const ScriptLineEntry = ({
       <FlexRow align="center" gap={SPACING.micro} sx={{ flexShrink: 0 }}>
         <StatusIndicator
           status={meta.status}
-          label={t(`screens4_19.storyboard.shotScript.status.${meta.key}`)}
+          label={t(`screens4_19.storyboard.shotScript.${meta.key}`)}
         />
         {voicing ? (
           <LoadingSpinner size="small" />

@@ -1074,7 +1074,10 @@ const ScriptDocumentPane = ({
         </TruncatedText>
         {!isEmpty && (
           <MetaChip>
-            {t("i18n-next25.script.document.lineWordCount", { lines: lineCount, words: wordCount })}
+            {t("i18n-next25.script.document.lineWordCount", {
+              lines: t("i18n-next25.script.document.lineCount", { count: lineCount }),
+              words: t("i18n-next25.script.document.wordCount", { count: wordCount })
+            })}
             {durationLabel ? ` · ${durationLabel}` : ""}
           </MetaChip>
         )}

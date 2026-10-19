@@ -160,7 +160,7 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
           {AVAILABILITY_FILTERS.map(({ value, key, color }) => (
             <Chip
               key={value}
-              label={t("i18n-next29.filters.availabilityCount", { status: t(`i18n-next29.${key}`), count: availabilityCounts[value] })}
+              label={t("i18n-next29.filters.availabilityCount", { status: t(`i18n-next29.filters.${key}`), count: availabilityCounts[value] })}
               compact
               color={color}
               active={selectedAvailability === value}

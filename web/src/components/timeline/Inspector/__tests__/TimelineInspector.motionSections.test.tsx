@@ -417,7 +417,7 @@ describe("Inspector control finder", () => {
     seedVideoClip();
     expect(screen.queryByRole("textbox", { name: /^opacity$/i })).toBeNull();
     await user.type(
-      screen.getByRole("textbox", { name: /find a control/i }),
+      screen.getByRole("textbox", { name: /search inspector sections/i }),
       "opacity"
     );
     const results = screen.getByRole("region", {
@@ -438,15 +438,15 @@ describe("Inspector control finder", () => {
     renderInspector();
     seedVideoClip();
     await user.type(
-      screen.getByRole("textbox", { name: /find a control/i }),
+      screen.getByRole("textbox", { name: /search inspector sections/i }),
       "unmatched-control"
     );
-    expect(screen.getByText("No matching controls")).toBeVisible();
+    expect(screen.getByText("No matching sections")).toBeVisible();
     seedVideoClip({ name: "another clip" });
     expect(
-      screen.getByRole("textbox", { name: /find a control/i })
+      screen.getByRole("textbox", { name: /search inspector sections/i })
     ).toHaveValue("");
-    expect(screen.queryByText("No matching controls")).toBeNull();
+    expect(screen.queryByText("No matching sections")).toBeNull();
   });
 });
 
@@ -465,7 +465,7 @@ describe("Text section", () => {
     });
 
     await openSection(user, "Text");
-    await commitField(user, /text letter spacing/i, "4");
+    await commitField(user, /letter spacing/i, "4");
     expect(clipById(clip.id)?.textStyle?.letterSpacingPx).toBe(4);
 
     await pickOption(user, /text vertical alignment/i, /^top$/i);

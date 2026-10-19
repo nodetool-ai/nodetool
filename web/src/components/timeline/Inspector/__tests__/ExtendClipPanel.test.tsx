@@ -117,8 +117,8 @@ describe("Extend inspector", () => {
     );
     expect(
       screen.getAllByRole("option").map((option) => option.textContent)
-    ).toEqual(["5 s", "10 s"]);
-    fireEvent.click(screen.getByRole("option", { name: "10 s" }));
+    ).toEqual(["5 seconds", "10 seconds"]);
+    fireEvent.click(screen.getByRole("option", { name: "10 seconds" }));
     fireEvent.change(screen.getByLabelText("Extension intent"), {
       target: { value: "Continue the camera pan" }
     });

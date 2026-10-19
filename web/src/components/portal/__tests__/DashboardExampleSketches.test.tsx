@@ -38,8 +38,10 @@ jest.mock("../../../trpc/client", () => ({
     }
   }
 }));
-jest.mock("../../../utils/notifyMutationError", () => ({
-  notifyMutationError: (...args: unknown[]) => notify(...args)
+jest.mock("../../../stores/NotificationStore", () => ({
+  useNotificationStore: <T,>(
+    select: (state: { addNotification: typeof notify }) => T
+  ) => select({ addNotification: notify })
 }));
 jest.mock("../../../utils/exampleSketches", () => ({
   ...jest.requireActual("../../../utils/exampleSketches"),
@@ -138,7 +140,10 @@ it("removes an incomplete copy and reports a failed save without opening it", as
     screen.getByRole("button", { name: "Open Moonlit Tide" })
   );
   await waitFor(() =>
-    expect(notify).toHaveBeenCalledWith("add the example sketch", error)
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({
+      type: "error",
+      content: "Could not add the example sketch. Please try again."
+    }))
   );
   expect(remove).toHaveBeenCalledWith({
     id: "1234567890abcdef1234567890abcdef"

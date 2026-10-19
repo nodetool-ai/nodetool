@@ -120,18 +120,18 @@ describe("ShotEditViewer keyboard", () => {
       })
     );
 
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 1 of 2");
     await userEvent.keyboard("{ArrowRight}");
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 1 of 2");
     expect(storedShot().keyframe?.asset_id).toBe("still-1");
 
     screen.getByTestId("shot-edit-stage").focus();
     await userEvent.keyboard("{ArrowRight}");
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("2 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 2 of 2");
     expect(storedShot().keyframe?.asset_id).toBe("still-1");
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Set still 2 as current still" })
+      screen.getByRole("button", { name: "Set Still take 2 as current" })
     );
     expect(storedShot().keyframe?.asset_id).toBe("still-2");
   });
@@ -152,7 +152,7 @@ describe("ShotEditViewer keyboard", () => {
     event.preventDefault();
     stage.dispatchEvent(event);
 
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 1 of 2");
   });
 
   it("leaves the arrows alone on a read-only board", async () => {
@@ -182,8 +182,9 @@ describe("ShotEditViewer versions (criterion 15)", () => {
         keyframe_versions: [image("still-1"), image("still-2")]
       })
     );
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("2 / 2");
-    expect(screen.getByText("Take 2, current still")).toBeInTheDocument();
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 2 of 2");
+    expect(screen.getByText("Current Still · Take 2")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Still preview for shot 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Next version" })).toBeDisabled();
   });
 
@@ -197,7 +198,7 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Previous version" })
     );
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 1 of 2");
     expect(storedShot().keyframe?.asset_id).toBe("still-2");
   });
 
@@ -234,12 +235,12 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     };
 
     swipe(100, 300);
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 1 of 2");
     // Mostly vertical: a scroll, not a swipe.
     swipe(300, 250, 400);
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 1 of 2");
     swipe(300, 100);
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("2 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 2 of 2");
     expect(storedShot().keyframe?.asset_id).toBe("still-2");
     window.PointerEvent = original;
   });
@@ -251,7 +252,7 @@ describe("ShotEditViewer versions (criterion 15)", () => {
         keyframe_versions: [image("still-1"), image("still-2"), image("still-3")]
       })
     );
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 3");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 1 of 3");
     act(() => {
       useStoryboardStore.getState().acceptKeyframeVersion(BOARD, "shot-1", 2);
     });
@@ -260,8 +261,8 @@ describe("ShotEditViewer versions (criterion 15)", () => {
         <ShotEditViewer boardId={BOARD} shot={storedShot()} />
       </ThemeProvider>
     );
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("3 / 3");
-    expect(screen.getByText("Take 3, current still")).toBeInTheDocument();
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 3 of 3");
+    expect(screen.getByText("Current Still · Take 3")).toBeInTheDocument();
   });
 
   it("shows a take that lands while open, without making it current", () => {
@@ -276,9 +277,9 @@ describe("ShotEditViewer versions (criterion 15)", () => {
         <ShotEditViewer boardId={BOARD} shot={storedShot()} />
       </ThemeProvider>
     );
-    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("2 / 2");
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("Version 2 of 2");
     expect(
-      screen.getByText("Previewing take 2. Take 1, current still")
+      screen.getByText("Previewing Still take 2 · Current take 1")
     ).toBeInTheDocument();
     expect(storedShot().keyframe?.asset_id).toBe("still-1");
   });
@@ -287,7 +288,7 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     renderViewer(seedShot());
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Flip horizontal" })
+      screen.getByRole("button", { name: "Flip image" })
     );
     await waitFor(() => expect(uploadAssetMock).toHaveBeenCalled());
     expect(flippedStillMock).toHaveBeenCalledWith(
@@ -309,7 +310,7 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     renderViewer(seedShot());
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Open in image editor" })
+      screen.getByRole("button", { name: "Open editor" })
     );
     await waitFor(() => expect(uploadAssetMock).toHaveBeenCalled());
     expect(copiedStillMock).toHaveBeenCalledWith(
@@ -339,10 +340,10 @@ describe("ShotEditViewer versions (criterion 15)", () => {
       </ThemeProvider>
     );
     expect(
-      screen.queryByRole("button", { name: "Flip horizontal" })
+      screen.queryByRole("button", { name: "Flip image" })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Open in image editor" })
+      screen.queryByRole("button", { name: "Open editor" })
     ).not.toBeInTheDocument();
   });
 
@@ -377,7 +378,7 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Open in image editor" })
+      screen.getByRole("button", { name: "Open editor" })
     );
     expect(onBeforeImageEditor).toHaveBeenCalled();
     expect(copiedStillMock).not.toHaveBeenCalled();

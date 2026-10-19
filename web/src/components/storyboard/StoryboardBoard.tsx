@@ -1785,7 +1785,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                           {!readOnly && !directing && !searching && (
                             <ShotInsertPoint
                               afterShotId={shot.id}
-                              label={t("screens4_20.storyboardBoard.insertAfterShot", { shot: captions.get(shot.id) ?? "" })}
+                              label={captions.get(shot.id) ?? ""}
                               onInsert={handleInsertShot}
                             />
                           )}

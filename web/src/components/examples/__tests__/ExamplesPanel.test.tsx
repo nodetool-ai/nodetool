@@ -74,7 +74,7 @@ beforeEach(() => jest.clearAllMocks());
 it("lists every kind of example and opens one on click", async () => {
   showPanel();
   expect(
-    screen.getByRole("region", { name: "Example workflows" })
+    screen.getByRole("region", { name: "Example Workflows" })
   ).toBeInTheDocument();
   expect(
     screen.getByRole("region", { name: "Example 3d models" })

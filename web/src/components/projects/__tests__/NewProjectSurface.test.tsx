@@ -869,7 +869,7 @@ describe("NewProjectSurface", () => {
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "warning",
-        content: "Reference images take pictures only. trip-notes.txt was not added."
+        content: "Reference images only accept pictures. trip-notes.txt was not added."
       })
     );
   });
