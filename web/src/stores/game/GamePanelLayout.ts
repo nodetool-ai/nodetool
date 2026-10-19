@@ -1,6 +1,6 @@
 import {
-  createDockLayoutModel, DOCK_REGIONS, sameDockLayout,
-  type DockLayoutGroup, type DockLayout, type DockLayoutAction, type DockRegion
+  createDockLayoutModel, DOCK_REGIONS,
+  type DockLayout, type DockRegion
 } from "../dock/DockLayout";
 
 export const GAME_PANEL_REGIONS = DOCK_REGIONS;
@@ -8,8 +8,6 @@ export const GAME_LAYOUT_PRESETS = ["Default", "Scripting", "Animation", "Wide"]
 export type GameLayoutPreset = typeof GAME_LAYOUT_PRESETS[number];
 
 export type GamePanelLayout = DockLayout;
-export type GamePanelGroup = DockLayoutGroup;
-export type GamePanelLayoutAction = DockLayoutAction;
 export type GamePanelRegion = DockRegion;
 
 function createPreset(name: string): GamePanelLayout {
@@ -39,9 +37,4 @@ export const gameDockLayoutModel = createDockLayoutModel({
   createPreset
 });
 
-export const gamePanelLayoutSchema = gameDockLayoutModel.schema;
 export const createGamePanelLayout = (name: GameLayoutPreset = "Default"): GamePanelLayout => gameDockLayoutModel.createLayout(name);
-export const hydrateGamePanelLayout = gameDockLayoutModel.hydrate;
-export const registerMissingGamePanels = gameDockLayoutModel.registerMissingPanels;
-export const sameGamePanelLayout = sameDockLayout;
-export const transitionGamePanelLayout = gameDockLayoutModel.transition;

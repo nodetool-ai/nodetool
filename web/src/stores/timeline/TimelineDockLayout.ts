@@ -12,7 +12,6 @@ export const TIMELINE_SIDE_PANEL_IDS: readonly TimelinePanelId[] = ["inspector",
 
 /** Built-in workspaces in menu order. The first is the default, and Alt+Shift+1 to 4 switch to them. */
 export const TIMELINE_WORKSPACES = ["Editing", "Script", "Assistant", "Review"] as const;
-export type TimelineWorkspace = typeof TIMELINE_WORKSPACES[number];
 
 const SIDE_PANELS = [...TIMELINE_SIDE_PANEL_IDS];
 

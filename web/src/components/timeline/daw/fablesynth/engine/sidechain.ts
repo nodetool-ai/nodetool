@@ -4,7 +4,6 @@
 // devices leave the input silent, so only DR-1's internal pad keys work there.
 
 export const KEY_CHANNELS = 5;
-export const KICK_CHANNEL = 4;
 
 /** WT-1, BL-1 and the SQ-4 master: `fx.comp.sc` index → key channel. */
 export const SC_SOURCES = ['OFF', 'KICK', 'TRACK 1', 'TRACK 2', 'TRACK 3', 'TRACK 4'];
