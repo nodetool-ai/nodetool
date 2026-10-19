@@ -589,7 +589,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                   label:
                     option.value === ""
                       ? t("pass3_11.storyboard.review.production.unspecified")
-                      : productionOptionLabel(option.value, String(option.label))
+                      : productionOptionLabel(String(option.value), String(option.label))
                 }))
               }))
             ]

@@ -99,11 +99,12 @@ function formatUsd(value: number, locale: string): string {
 
 function SpanStatus({ code, message }: SpanStatusProps): React.ReactElement {
   const { t } = useTranslation();
-  const status: { tone: StatusPillTone; label: string; hint: string } = {
+  const statusByCode = {
     OK: { tone: "done", label: t("i18n-cont-panels-12.trace.status.ok"), hint: t("i18n-cont-panels-12.trace.status.okHint") },
     ERROR: { tone: "failed", label: t("i18n-cont-panels-12.trace.status.error"), hint: t("i18n-cont-panels-12.trace.status.errorHint") },
     UNSET: { tone: "neutral", label: t("i18n-cont-panels-12.trace.status.unset"), hint: t("i18n-cont-panels-12.trace.status.unsetHint") }
-  }[code];
+  } satisfies Record<SpanStatusCode, { tone: StatusPillTone; label: string; hint: string }>;
+  const status = statusByCode[code];
   return <Tooltip title={message || status.hint}><span><StatusPill tone={status.tone}>{status.label}</StatusPill></span></Tooltip>;
 }
 

@@ -52,15 +52,15 @@ type TypeOption = {
   key?: string;
 };
 
-const ALL_INPUT_OPTION: TypeOption = {
+const ALL_INPUT_OPTION = {
   value: "",
   key: "allInputTypes"
-};
+} as const;
 
-const ALL_OUTPUT_OPTION: TypeOption = {
+const ALL_OUTPUT_OPTION = {
   value: "",
   key: "allOutputTypes"
-};
+} as const;
 
 const typeFilterChipsStyles = (theme: Theme) =>
   css({
