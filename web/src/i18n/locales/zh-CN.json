@@ -13152,7 +13152,7 @@
       "failed": "无法删除：{{error}}",
       "unknownError": "未知错误",
       "folderContains": "此文件夹包含 {{files}}。",
-      "folderSummary": "{{folders}}，包含 {{items}}。",
+      "folderSummary": "{{folders}}，包含 {{files}}和 {{items}}。",
       "titleOne": "删除 {{count}} 个项目？",
       "titleOther": "删除 {{count}} 个项目？",
       "delete": "删除",
