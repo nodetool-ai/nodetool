@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import type {
@@ -62,22 +63,10 @@ import {
   type Model3DSessionNames
 } from "./useModel3DSessionNames";
 
-const CAMERA_MODES = [
-  { value: "orbit", label: "Orbit" },
-  { value: "scene", label: "Scene camera" }
-] as const;
-
-const LIGHTING_PRESETS = [
-  { value: "studio", label: "Studio" },
-  { value: "soft", label: "Soft" },
-  { value: "flat", label: "Flat" }
-] as const;
-
 /** The picker value that means "whatever the glTF lists first / all of them". */
 const AUTO = "";
 
 const SCRUB_SPEED = { step: 0.01, min: 0.05, max: 8 };
-
 
 /**
  * What an opaque background starts at. Scene content, not chrome: it is the
@@ -87,19 +76,6 @@ const SCRUB_SPEED = { step: 0.01, min: 0.05, max: 8 };
  */
 const DEFAULT_BACKGROUND_COLOR = "#ffffff";
 
-/**
- * The button's label while a bake runs. It cancels while it runs, so the
- * label says what pressing it does as well as how far along the render is —
- * the frame counter arrives with the op's first rendered still.
- */
-function bakeProgressLabel(
-  progress: { done: number; total: number } | null
-): string {
-  if (!progress || progress.total <= 0) return "Cancel bake";
-  return `Cancel (${progress.done}/${progress.total})`;
-}
-
-
 export interface ClipModel3DSectionProps {
   clip: TimelineClip;
   model3dStyle: ClipModel3DStyle;
@@ -107,6 +83,7 @@ export interface ClipModel3DSectionProps {
 
 export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
   ({ clip, model3dStyle }) => {
+    const { t } = useTranslation();
     const patchClip = useTimelineStore((s) => s.patchClip);
     const [open, setOpen] = usePersistedFold("model3d");
 
@@ -203,13 +180,28 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
 
     const camera = model3dStyle.camera;
     const background = model3dStyle.background;
+    const cameraModes = [
+      { value: "orbit", label: t("pass3_25.timeline.inspector.model3d.orbit") },
+      {
+        value: "scene",
+        label: t("pass3_25.timeline.inspector.model3d.sceneCamera")
+      }
+    ] as const;
+    const lightingPresets = [
+      {
+        value: "studio",
+        label: t("pass3_25.timeline.inspector.model3d.studio")
+      },
+      { value: "soft", label: t("pass3_25.timeline.inspector.model3d.soft") },
+      { value: "flat", label: t("pass3_25.timeline.inspector.model3d.flat") }
+    ] as const;
 
     return (
       <>
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="3D model"
+              title={t("pass3_25.timeline.inspector.model3d.title")}
               icon={<ViewInArOutlinedIcon />}
             />
           }
@@ -218,11 +210,13 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
           unmountOnExit
         >
           <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-            <InspectorRow label="Camera">
+            <InspectorRow
+              label={t("pass3_25.timeline.inspector.model3d.camera")}
+            >
               <InspectorSelect
-                label="Camera mode"
+                label={t("pass3_25.timeline.inspector.model3d.cameraMode")}
                 value={camera.mode}
-                options={CAMERA_MODES}
+                options={cameraModes}
                 onChange={handleModeChange}
               />
             </InspectorRow>
@@ -237,9 +231,11 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
 
             {camera.mode === "scene" && (
               <NamePickerRow
-                label="Scene camera"
-                pickerLabel="Scene camera"
-                autoLabel="First camera"
+                label={t("pass3_25.timeline.inspector.model3d.sceneCamera")}
+                pickerLabel={t(
+                  "pass3_25.timeline.inspector.model3d.sceneCamera"
+                )}
+                autoLabel={t("pass3_25.timeline.inspector.model3d.firstCamera")}
                 value={camera.sceneCameraName ?? AUTO}
                 names={names.cameras}
                 session={names}
@@ -248,39 +244,47 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
             )}
 
             <NamePickerRow
-              label="Animation"
-              pickerLabel="glTF animation"
-              autoLabel="All animations"
+              label={t("pass3_25.timeline.inspector.model3d.animation")}
+              pickerLabel={t(
+                "pass3_25.timeline.inspector.model3d.gltfAnimation"
+              )}
+              autoLabel={t("pass3_25.timeline.inspector.model3d.allAnimations")}
               value={model3dStyle.animation.clipName ?? AUTO}
               names={names.animations}
               session={names}
               onChange={handleAnimationChange}
             />
             <InspectorToggleRow
-              label="Loop"
+              label={t("pass3_25.timeline.inspector.model3d.loop")}
               checked={model3dStyle.animation.loop}
               onChange={handleLoopChange}
             />
-            <InspectorRow label="Animation speed">
+            <InspectorRow
+              label={t("pass3_25.timeline.inspector.model3d.animationSpeed")}
+            >
               <InspectorPillInput
                 value={model3dStyle.animation.speed.toFixed(2)}
                 unit="×"
                 scrub={SCRUB_SPEED}
                 onCommit={handleSpeedCommit}
-                ariaLabel="Animation speed"
+                ariaLabel={t(
+                  "pass3_25.timeline.inspector.model3d.animationSpeed"
+                )}
               />
             </InspectorRow>
 
-            <InspectorRow label="Lighting">
+            <InspectorRow
+              label={t("pass3_25.timeline.inspector.model3d.lighting")}
+            >
               <InspectorSelect
-                label="Lighting preset"
+                label={t("pass3_25.timeline.inspector.model3d.lightingPreset")}
                 value={model3dStyle.lighting}
-                options={LIGHTING_PRESETS}
+                options={lightingPresets}
                 onChange={handleLightingChange}
               />
             </InspectorRow>
             <InspectorSliderRow
-              label="Light intensity"
+              label={t("pass3_25.timeline.inspector.model3d.lightIntensity")}
               min={0}
               max={4}
               step={0.05}
@@ -290,21 +294,27 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
             />
 
             <InspectorToggleRow
-              label="Transparent background"
+              label={t(
+                "pass3_25.timeline.inspector.model3d.transparentBackground"
+              )}
               checked={background.transparent}
               onChange={handleTransparentChange}
             />
             {!background.transparent && (
-              <InspectorRow label="Background color">
+              <InspectorRow
+                label={t("pass3_25.timeline.inspector.model3d.backgroundColor")}
+              >
                 <BatchedColorInput
                   value={background.color}
                   onChange={handleBackgroundColorChange}
-                  ariaLabel="Background color"
+                  ariaLabel={t(
+                    "pass3_25.timeline.inspector.model3d.backgroundColor"
+                  )}
                 />
               </InspectorRow>
             )}
 
-            <InspectorRow label="Bake">
+            <InspectorRow label={t("pass3_25.timeline.inspector.model3d.bake")}>
               <FlexColumn gap={SPACING.xs}>
                 <Button
                   size="small"
@@ -315,28 +325,31 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
                   }
                 >
                   {baking
-                    ? bakeProgressLabel(bake.state.progress)
-                    : "Bake with Blender"}
+                    ? !bake.state.progress || bake.state.progress.total <= 0
+                      ? t("pass3_25.timeline.inspector.model3d.cancelBake")
+                      : t(
+                          "pass3_25.timeline.inspector.model3d.cancelBakeProgress",
+                          bake.state.progress
+                        )
+                    : t("pass3_25.timeline.inspector.model3d.bakeWithBlender")}
                 </Button>
                 {stale && (
                   <Chip
                     compact
                     color="warning"
-                    label="Stale — the clip changed since this bake"
+                    label={t("pass3_25.timeline.inspector.model3d.staleBake")}
                   />
                 )}
               </FlexColumn>
             </InspectorRow>
             <Caption color="muted">
-              A bake is the intended look: Blender renders this clip and the
-              clip plays that video. What you see on the canvas now is the live
-              proxy, and its lighting is close, not identical.
+              {t("pass3_25.timeline.inspector.model3d.bakeHelp")}
             </Caption>
             {bake.state.error && (
               <ErrorBanner
                 report={{
                   source: "operation-failure",
-                  summary: "3D clip bake failed",
+                  summary: t("pass3_25.timeline.inspector.model3d.bakeFailed"),
                   errorText: bake.state.error
                 }}
               >
@@ -372,17 +385,25 @@ interface NamePickerRowProps {
  */
 const NamePickerRow: React.FC<NamePickerRowProps> = memo(
   ({ label, pickerLabel, autoLabel, value, names, session, onChange }) => {
+    const { t } = useTranslation();
     if (session.status === "loading") {
       return (
         <InspectorRow label={label}>
-          <InspectorStaticValue value="Loading model…" />
+          <InspectorStaticValue
+            value={t("pass3_25.timeline.inspector.model3d.loadingModel")}
+          />
         </InspectorRow>
       );
     }
     if (session.status === "unavailable") {
       return (
         <InspectorRow label={label}>
-          <InspectorStaticValue value={session.message ?? "Unavailable"} />
+          <InspectorStaticValue
+            value={
+              session.message ??
+              t("pass3_25.timeline.inspector.model3d.unavailable")
+            }
+          />
         </InspectorRow>
       );
     }
@@ -393,7 +414,14 @@ const NamePickerRow: React.FC<NamePickerRowProps> = memo(
       { value: AUTO, label: autoLabel },
       ...names.map((name) => ({ value: name, label: name })),
       ...(value !== AUTO && !names.includes(value)
-        ? [{ value, label: `${value} (missing)` }]
+        ? [
+            {
+              value,
+              label: t("pass3_25.timeline.inspector.model3d.missingName", {
+                name: value
+              })
+            }
+          ]
         : [])
     ];
     return (

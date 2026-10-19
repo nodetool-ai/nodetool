@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -61,6 +62,7 @@ const styles = (theme: Theme) =>
   });
 
 const CsvTableView = ({ text, name }: { text: string; name: string }) => {
+  const { t } = useTranslation();
   const { columns, rows, truncated } = useMemo(() => {
     const df = parseCsvToDataframe(text, csvDelimiterFor(name));
     const cols = (df.columns ?? []).map((c, i) => ({
@@ -85,7 +87,7 @@ const CsvTableView = ({ text, name }: { text: string; name: string }) => {
   if (columns.length === 0) {
     return (
       <FlexColumn className="status">
-        <EmptyState size="small" variant="no-data" title="This table is empty" />
+        <EmptyState size="small" variant="no-data" title={t("i18n-next51.common.tableEmpty")} />
       </FlexColumn>
     );
   }
@@ -109,6 +111,7 @@ const CsvTableView = ({ text, name }: { text: string; name: string }) => {
  * with TextDocumentEditor, so toggling view ↔ edit reuses the cached text.
  */
 const TextPreview = ({ asset }: TextPreviewProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const getUrl = asset.get_url ?? undefined;
   const language = useMemo(() => languageFromAsset(asset), [asset]);
@@ -144,7 +147,7 @@ const TextPreview = ({ asset }: TextPreviewProps) => {
               errorText: error.message
             }}
           >
-            Could not load this text file.
+              {t("i18n-next51.text.loadError")}
           </ErrorBanner>
         </FlexColumn>
       );

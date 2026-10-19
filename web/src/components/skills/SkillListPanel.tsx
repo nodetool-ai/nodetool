@@ -2,6 +2,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import {
   useCreateSkill,
@@ -31,6 +32,7 @@ const isSystemSkill = (id: string): boolean =>
   id.startsWith(SYSTEM_SKILL_ID_PREFIX);
 
 const SkillListPanel = () => {
+  const { t } = useTranslation();
   // Shipped skills are listed beside the user's own. They read the same in the
   // agent's catalog, so hiding them here made the panel disagree with what the
   // agent could actually load.
@@ -55,14 +57,14 @@ const SkillListPanel = () => {
         // A shipped skill opens as a read: the editor's save and autosave would
         // fail against a document with no row behind it.
         mode: isSystemSkill(id) ? "view" : "edit",
-        title: name || "Untitled skill"
+        title: name || t("screen_remaining.skills.untitled")
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, setVisibility]
+    [location.pathname, navigate, openTab, setVisibility, t]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -106,10 +108,10 @@ const SkillListPanel = () => {
         // already created with correct content, no second update needed
         void copy;
       } catch (error) {
-        notifyMutationError("duplicate the skill", error);
+        notifyMutationError(t("screen_remaining.skills.duplicateAction"), error);
       }
     },
-    [utils, createSkill]
+    [utils, createSkill, t]
   );
 
   const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
@@ -149,12 +151,12 @@ const SkillListPanel = () => {
       <ListPanelItem
         id={skill.id}
         name={skill.name}
-        fallbackName="Untitled skill"
-        renameLabel="Skill name"
+        fallbackName={t("screen_remaining.skills.untitled")}
+        renameLabel={t("screen_remaining.skills.name")}
         // A lock, and "Built in" under the name: enough to tell the two apart
         // at a glance without a second list or a heading.
         icon={skill.system ? LockOutlinedIcon : AutoAwesomeIcon}
-        secondary={skill.system ? "Built in" : undefined}
+        secondary={skill.system ? t("screen_remaining.skills.builtIn") : undefined}
         active={skill.id === activeSkillId}
         editing={!skill.system && skill.id === editingId}
         onOpen={handleOpen}
@@ -169,14 +171,15 @@ const SkillListPanel = () => {
       handleCancelRename,
       handleCommitRename,
       handleContextMenu,
-      handleOpen
+      handleOpen,
+      t
     ]
   );
 
   return (
     <DocumentListPanel
-      singular="skill"
-      plural="skills"
+      singular={t("screen_remaining.skills.singular")}
+      plural={t("screen_remaining.skills.plural")}
       documents={data}
       isLoading={isLoading}
       isError={isError}
@@ -185,13 +188,13 @@ const SkillListPanel = () => {
         <ReportBugButton
           context={{
             source: "panel-crash",
-            summary: "Skills panel failed to load",
+            summary: t("screen_remaining.skills.panelError"),
             errorText: error?.message,
             stackTrace: error instanceof Error ? error.stack : undefined
           }}
         />
       }
-      emptyDescription="Create a skill from the workspace New menu."
+      emptyDescription={t("screen_remaining.skills.emptyDescription")}
       deleteTarget={itemToDelete}
       onCancelDelete={handleCancelDelete}
       onConfirmDelete={handleConfirmDelete}

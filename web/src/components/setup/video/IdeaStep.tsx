@@ -25,6 +25,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -92,9 +93,6 @@ export interface IdeaStepProps {
   readOnly?: boolean;
 }
 
-/** Why the ways out of the step wait for an upload. */
-const UPLOAD_PENDING_REASON = "Wait for your files to finish uploading";
-
 const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onStartBlank,
   onStartFromScript,
@@ -102,6 +100,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onImportingChange,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const setSetup = useTimelineStore((state) => state.setSetup);
   const { importFiles, importing } = useSetupMediaImport();
@@ -180,10 +179,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
 
   const handleDragOver = useCallback(
     (event: React.DragEvent) => {
-      if (
-        readOnly ||
-        !Array.from(event.dataTransfer.types).includes("Files")
-      ) {
+      if (readOnly || !Array.from(event.dataTransfer.types).includes("Files")) {
         return;
       }
       event.preventDefault();
@@ -207,7 +203,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       }
       if (importing || importingRef.current) {
         setImportFailed(false);
-        setError("Wait for the current upload to finish, then drop again.");
+        setError(t("pass3_12.video.idea.errors.uploadInProgress"));
         return;
       }
       const media = files.filter(isMediaFile);
@@ -217,13 +213,15 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       if (media.length === 0) {
         setImportFailed(false);
         setError(
-          `No track takes ${notMedia.join(" · ")}. Drop video, audio or images.`
+          t("pass3_12.video.idea.errors.unsupportedFiles", {
+            files: notMedia.join(" · ")
+          })
         );
         return;
       }
       await runImport(media, notMedia);
     },
-    [importing, readOnly, runImport]
+    [importing, readOnly, runImport, t]
   );
 
   const skippedNames = useMemo(
@@ -249,45 +247,49 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     () => [
       {
         id: "media",
-        title: "Drop your media",
-        description: "Video, audio and images land on the timeline in order",
+        title: t("pass3_12.video.idea.alternatives.media.title"),
+        description: t("pass3_12.video.idea.alternatives.media.description"),
         onSelect: () => mediaInput.current?.click(),
         disabled: importing,
-        disabledReason: importing ? "Uploading your files…" : undefined
+        disabledReason: importing
+          ? t("pass3_12.video.idea.alternatives.uploading")
+          : undefined
       },
       {
         id: "script",
-        title: "Start from a script",
-        description: "Write the words first, then send them to the timeline",
+        title: t("pass3_12.video.idea.alternatives.script.title"),
+        description: t("pass3_12.video.idea.alternatives.script.description"),
         onSelect: onStartFromScript ?? (() => undefined),
         // Leaving the flow mid-upload would drop the media still arriving,
         // and leaving after it would drop the clips it placed.
         disabled: !onStartFromScript || importing || hasPlacedMedia,
         disabledReason: !onStartFromScript
-          ? "Not available here. Start a script from the project screen."
+          ? t("pass3_12.video.idea.alternatives.scriptUnavailable")
           : importing
-            ? UPLOAD_PENDING_REASON
+            ? t("pass3_12.video.idea.errors.uploadPendingReason")
             : hasPlacedMedia
-              ? "Your media is on this timeline and would be left behind. Plan the beats here instead."
+              ? t("pass3_12.video.idea.alternatives.scriptMediaWouldBeLeft")
               : undefined
       },
       {
         id: "blank",
-        title: "Start with a blank timeline",
-        description: "Skip the plan and cut it yourself",
+        title: t("pass3_12.video.idea.alternatives.blank.title"),
+        description: t("pass3_12.video.idea.alternatives.blank.description"),
         onSelect: onStartBlank,
         disabled: importing,
-        disabledReason: importing ? UPLOAD_PENDING_REASON : undefined
+        disabledReason: importing
+          ? t("pass3_12.video.idea.errors.uploadPendingReason")
+          : undefined
       }
     ],
-    [hasPlacedMedia, importing, onStartBlank, onStartFromScript]
+    [hasPlacedMedia, importing, onStartBlank, onStartFromScript, t]
   );
 
   return (
     <DropZone
       overlay
       over={dragging}
-      overlayLabel="Drop to place your media"
+      overlayLabel={t("pass3_12.video.idea.dropOverlayLabel")}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -295,7 +297,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         display: "grid",
         gridTemplateColumns: {
           xs: "1fr",
-          md: "minmax(0, 2fr) minmax(240px, 1fr)"
+          md: `minmax(0, 2fr) minmax(${getSpacingPx(60)}, 1fr)`
         },
         gap: GAP.spacious,
         alignItems: "start"
@@ -304,10 +306,10 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       <FlexColumn gap={GAP.comfortable}>
         <FlexColumn gap={GAP.tight}>
           <Text size="big" component="h2">
-            What&apos;s the video?
+            {t("pass3_12.video.idea.title")}
           </Text>
           <Text size="normal" color="secondary">
-            We&apos;ll plan the beats and cut it on the timeline.
+            {t("pass3_12.video.idea.description")}
           </Text>
         </FlexColumn>
 
@@ -315,9 +317,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           value={brief}
           autoFocus
           rows={4}
-          label="Your video"
+          label={t("pass3_12.video.idea.briefLabel")}
           hideLabel
-          placeholder="One sentence is enough."
+          placeholder={t("pass3_12.video.idea.briefPlaceholder")}
           onChange={handleChange}
           inputRef={briefField}
         />
@@ -330,7 +332,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
 
         {dragging ? (
           <Caption color="secondary" role="status">
-            Drop to place your media on the timeline.
+            {t("pass3_12.video.idea.dropStatus")}
           </Caption>
         ) : null}
 
@@ -344,7 +346,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                 <ReportBugButton
                   context={{
                     source: "operation-failure",
-                    summary: "Video media import failed",
+                    summary: t("pass3_12.video.idea.importReportSummary"),
                     errorText: error
                   }}
                 />
@@ -366,11 +368,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           >
             <FlexColumn gap={GAP.micro}>
               <Text size="normal" component="span">
-                {`Placed ${imported.placed.length} file${
-                  imported.placed.length === 1 ? "" : "s"
-                } on the timeline${
-                  imported.advanced ? "" : ". Say what to make of it above."
-                }`}
+                {t("pass3_12.video.idea.import.placed", {
+                  count: imported.placed.length,
+                  continuation: imported.advanced
+                    ? ""
+                    : t("pass3_12.video.idea.import.briefPrompt")
+                })}
               </Text>
               {imported.placed.length > 0 ? (
                 <Caption component="span" color="secondary">
@@ -381,7 +384,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                 <ErrorBanner
                   report={{
                     source: "operation-failure",
-                    summary: "Video media upload failed",
+                    summary: t("pass3_12.video.idea.uploadReportSummary"),
                     errorText: imported.failed
                       .map((failure) => `${failure.name}: ${failure.reason}`)
                       .join("\n")
@@ -389,16 +392,19 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                 >
                   {imported.failed.map((failure) => (
                     <div key={failure.name}>
-                      {`${failure.name} did not upload: ${failure.reason}`}
+                      {t("pass3_12.video.idea.import.fileFailed", {
+                        name: failure.name,
+                        reason: failure.reason
+                      })}
                     </div>
                   ))}
                 </ErrorBanner>
               ) : null}
               {skippedNames.length > 0 ? (
                 <Caption component="span" color="secondary">
-                  {`No track takes ${skippedNames.join(
-                    " · "
-                  )}. Video, audio and images only.`}
+                  {t("pass3_12.video.idea.import.skippedFiles", {
+                    files: skippedNames.join(" · ")
+                  })}
                 </Caption>
               ) : null}
             </FlexColumn>
@@ -409,9 +415,11 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           <FlexColumn
             gap={GAP.tight}
             role="group"
-            aria-label="Carried from your project screen"
+            aria-label={t("pass3_12.video.idea.carriedReferencesGroup")}
           >
-            <Caption color="muted">From your project screen</Caption>
+            <Caption color="muted">
+              {t("pass3_12.video.idea.fromProjectScreen")}
+            </Caption>
             {references.length > 0 ? (
               <FlexRow gap={GAP.tight} wrap>
                 {references.map((reference) => {
@@ -425,12 +433,18 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                         locator={reference.uri}
                         kind="image"
                         caption={reference.name ?? undefined}
-                        label={reference.name ?? "reference image"}
+                        label={
+                          reference.name ??
+                          t("pass3_12.video.idea.referenceImage")
+                        }
                       >
                         <ResponsiveImage
                           locator={reference.uri}
                           preferThumbnail
-                          alt={reference.name ?? "Reference image"}
+                          alt={
+                            reference.name ??
+                            t("pass3_12.video.idea.referenceImage")
+                          }
                           fit="cover"
                           borderRadius={BORDER_RADIUS.sm}
                           showErrorFallback
@@ -442,8 +456,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                       </GalleryFrame>
                       <Caption color="secondary">
                         {binding
-                          ? `${binding.kind} conditioning`
-                          : "inspiration only"}
+                          ? t("pass3_12.video.idea.referenceConditioning", {
+                              kind: t(
+                                `pass3_12.video.creativeContext.referenceKinds.${binding.kind}`
+                              )
+                            })
+                          : t("pass3_12.video.idea.inspirationOnly")}
                       </Caption>
                     </FlexColumn>
                   );
@@ -452,17 +470,24 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
             ) : null}
             {carriedEntities.length > 0 ? (
               <FlexRow gap={GAP.tight} wrap>
-                {carriedEntities.map((entity) => (
-                  <Chip
-                    key={entity.id}
-                    label={`${entity.name} · ${
-                      creativeContext?.reference_bindings?.find(
-                        (binding) => binding.entity_id === entity.id
-                      )?.kind ?? "inspiration only"
-                    }`}
-                    size="small"
-                  />
-                ))}
+                {carriedEntities.map((entity) => {
+                  const kind = creativeContext?.reference_bindings?.find(
+                    (binding) => binding.entity_id === entity.id
+                  )?.kind;
+                  return (
+                    <Chip
+                      key={entity.id}
+                      label={`${entity.name} · ${
+                        kind
+                          ? t(
+                              `pass3_12.video.creativeContext.referenceKinds.${kind}`
+                            )
+                          : t("pass3_12.video.idea.inspirationOnly")
+                      }`}
+                      size="small"
+                    />
+                  );
+                })}
               </FlexRow>
             ) : null}
           </FlexColumn>
@@ -477,7 +502,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       </FlexColumn>
 
       <AlternativesColumn
-        label="Other ways to start"
+        label={t("pass3_12.video.idea.otherWaysToStart")}
         alternatives={alternatives}
       />
 
@@ -488,7 +513,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         multiple
         ref={mediaInput}
         accept={MEDIA_ACCEPT}
-        aria-label="Drop your media"
+        aria-label={t("pass3_12.video.idea.mediaPickerLabel")}
         onChange={handlePicked}
       />
     </DropZone>

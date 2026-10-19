@@ -10,6 +10,7 @@
  * keys do. The labels here are the only copy.
  */
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -43,6 +44,7 @@ export interface Row {
   action?: TimelineAction;
   keys?: string[];
   label: string;
+  translationKey?: string;
 }
 
 export interface Group {
@@ -80,8 +82,8 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "rippleTrimNextToPlayhead", label: "Ripple trim the next edit to the playhead" },
       { action: "liftRange", label: "Lift the in to out range (leave the gap)" },
       { action: "extractRange", label: "Extract the in to out range (close the gap)" },
-      { keys: ["Ctrl", "drag edge"], label: "Roll the cut with its neighbour" },
-      { keys: ["click edge"], label: "Select the edit point" },
+      { keys: ["Ctrl", "drag edge"], label: "Roll the cut with its neighbour", translationKey: "rollCut" },
+      { keys: ["click edge"], label: "Select the edit point", translationKey: "selectEditPoint" },
       { action: "extendEdit", label: "Extend the edit point to the playhead" },
       { action: "trimEditLeft", label: "Trim edit point one frame back" },
       { action: "trimEditRight", label: "Trim edit point one frame on" },
@@ -120,14 +122,14 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "nudgeRight", label: "Nudge one frame on" },
       { action: "nudgeLeftLarge", label: "Nudge one second back" },
       { action: "nudgeRightLarge", label: "Nudge one second on" },
-      { keys: ["Alt", "drag"], label: "Disable snapping while moving or trimming" },
-      { keys: ["Ctrl", "drag clip"], label: "Insert on drop (push later clips right)" }
+      { keys: ["Alt", "drag"], label: "Disable snapping while moving or trimming", translationKey: "disableSnapping" },
+      { keys: ["Ctrl", "drag clip"], label: "Insert on drop (push later clips right)", translationKey: "insertOnDrop" }
     ]
   },
   {
     title: "Playback",
     rows: [
-      { keys: ["Space"], label: "Play / pause" },
+      { keys: ["Space"], label: "Play / pause", translationKey: "playPause" },
       { action: "stepFrameBack", label: "Step back one frame" },
       { action: "stepFrameForward", label: "Step forward one frame" },
       { action: "stepFramesBack", label: "Step back five frames" },
@@ -157,22 +159,22 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
     // focused (click it or Tab to it). Full screen on Ctrl+` works anywhere.
     title: "Preview (focused)",
     rows: [
-      { keys: ["←"], label: "Step back one frame" },
-      { keys: ["→"], label: "Step forward one frame" },
-      { keys: ["Shift", "←"], label: "Previous clip boundary" },
-      { keys: ["Shift", "→"], label: "Next clip boundary" },
-      { keys: ["Home"], label: "Go to start" },
-      { keys: ["End"], label: "Go to end" },
-      { keys: ["Esc"], label: "Exit the expanded preview" }
+      { keys: ["←"], label: "Step back one frame", translationKey: "stepBackOneFrame" },
+      { keys: ["→"], label: "Step forward one frame", translationKey: "stepForwardOneFrame" },
+      { keys: ["Shift", "←"], label: "Previous clip boundary", translationKey: "previousClipBoundary" },
+      { keys: ["Shift", "→"], label: "Next clip boundary", translationKey: "nextClipBoundary" },
+      { keys: ["Home"], label: "Go to start", translationKey: "goToStart" },
+      { keys: ["End"], label: "Go to end", translationKey: "goToEnd" },
+      { keys: ["Esc"], label: "Exit the expanded preview", translationKey: "exitExpandedPreview" }
     ]
   },
   {
     // TransformGizmoOverlay's own key handler, active while it has focus.
     title: "Transform handles (focused)",
     rows: [
-      { keys: ["Arrows"], label: "Move the clip one pixel" },
-      { keys: ["Shift", "Arrows"], label: "Move the clip ten pixels" },
-      { keys: ["."], label: "Reset the transform" }
+      { keys: ["Arrows"], label: "Move the clip one pixel", translationKey: "moveOnePixel" },
+      { keys: ["Shift", "Arrows"], label: "Move the clip ten pixels", translationKey: "moveTenPixels" },
+      { keys: ["."], label: "Reset the transform", translationKey: "resetTransform" }
     ]
   },
   {
@@ -237,6 +239,7 @@ const ShortcutRow: React.FC<{ row: Row; preset: TimelineKeyboardPreset }> = ({
   row,
   preset
 }) => {
+  const { t } = useTranslation();
   const combos: string[][] = row.action
     ? TIMELINE_KEYMAPS[preset][row.action].map(bindingKeys)
     : row.keys
@@ -250,12 +253,12 @@ const ShortcutRow: React.FC<{ row: Row; preset: TimelineKeyboardPreset }> = ({
       sx={rowSx}
     >
       <Text size="small" sx={{ minWidth: 0 }}>
-        {row.label}
+        {t(`i18n-next59.shortcuts.rows.${row.action ?? row.translationKey}`, { defaultValue: row.label })}
       </Text>
       <FlexRow align="center" gap={SPACING.xs} sx={{ flexShrink: 0 }}>
         {combos.map((keys, i) => (
           <React.Fragment key={keys.join("+")}>
-            {i > 0 && <Caption color="secondary">or</Caption>}
+            {i > 0 && <Caption color="secondary">{t("i18n-next59.shortcuts.or")}</Caption>}
             <ShortcutHint shortcut={keys} />
           </React.Fragment>
         ))}
@@ -272,6 +275,7 @@ interface TimelineShortcutsDialogProps {
 /** Two-column masonry of grouped shortcut rows inside a standard Dialog. */
 export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
   memo(({ open, onClose }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const preset = useSettingsStore(
       (s) => s.settings.timelineKeyboardPreset
@@ -291,22 +295,22 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
       <Dialog
         open={open}
         onClose={onClose}
-        title="Keyboard shortcuts"
+        title={t("i18n-next59.shortcuts.title")}
         maxWidth="md"
         fullWidth
       >
         <FlexRow align="center" gap={SPACING.xs} sx={{ pb: SPACING.xs }}>
-          <Caption sx={groupTitleSx}>Layout</Caption>
+          <Caption sx={groupTitleSx}>{t("i18n-next59.shortcuts.layout")}</Caption>
           <ToggleGroup
             value={preset}
             exclusive
             onChange={handlePreset}
             compact
-            aria-label="Keyboard layout"
+            aria-label={t("i18n-next59.shortcuts.keyboardLayout")}
           >
             {TIMELINE_KEYBOARD_PRESETS.map((p) => (
               <ToggleOption key={p} value={p}>
-                {TIMELINE_KEYBOARD_PRESET_LABELS[p]}
+                {t(`i18n-next59.shortcuts.presets.${p}`, { defaultValue: TIMELINE_KEYBOARD_PRESET_LABELS[p] })}
               </ToggleOption>
             ))}
           </ToggleGroup>
@@ -322,7 +326,7 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
         >
           {TIMELINE_SHORTCUT_GROUPS.map((group) => (
             <FlexColumn key={group.title} gap={SPACING.micro} css={groupStyles}>
-              <Caption sx={groupTitleSx}>{group.title}</Caption>
+              <Caption sx={groupTitleSx}>{t(`i18n-next59.shortcuts.groups.${group.title}`, { defaultValue: group.title })}</Caption>
               {group.rows.map((row) => (
                 <ShortcutRow key={row.label} row={row} preset={preset} />
               ))}
@@ -339,10 +343,10 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
             borderTop: `1px solid ${theme.vars.palette.divider}`
           }}
         >
-          <Caption color="secondary">Press</Caption>
+          <Caption color="secondary">{t("i18n-next59.shortcuts.press")}</Caption>
           <ShortcutHint shortcut={["?"]} />
           <Caption color="secondary">
-            any time to toggle this panel · Ctrl also responds to ⌘ on macOS
+            {t("i18n-next59.shortcuts.toggleHint")}
           </Caption>
         </FlexRow>
       </Dialog>

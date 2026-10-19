@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { useTranslation } from "react-i18next";
 import React, { useCallback, memo } from "react";
 import { shallow } from "zustand/shallow";
 import { ContextMenu, Divider } from "../ui_primitives";
@@ -17,6 +18,7 @@ interface EdgeContextMenuProps {
 }
 
 const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
+  const { t } = useTranslation();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -133,9 +135,9 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
         <ContextMenuItem
           onClick={handleDeleteEdge}
           IconComponent={<DeleteIcon />}
-          label="Delete link"
+          label={t("screen_editor.deleteLink")}
           destructive
-          tooltip="Remove this lineage link. Data connections are not affected."
+          tooltip={t("screen_editor.deleteLinkTooltip")}
         />
       </ContextMenu>
     );
@@ -153,15 +155,15 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
         <ContextMenuItem
           onClick={handleInsertReroute}
           IconComponent={<RouteIcon />}
-          label="Insert reroute"
-          tooltip="Insert a reroute node at this position"
+          label={t("screen_editor.insertReroute")}
+          tooltip={t("screen_editor.insertRerouteTooltip")}
         />
       )}
       {!isControlEdge && <Divider />}
       <ContextMenuItem
         onClick={handleDeleteEdge}
         IconComponent={<DeleteIcon />}
-        label="Delete edge"
+        label={t("screen_editor.deleteEdge")}
         destructive
         tooltip={
           <span
@@ -171,11 +173,10 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
               alignItems: "center"
             }}
           >
-            <span>Delete this connection</span>
+            <span>{t("screen_editor.deleteConnection")}</span>
             <span style={{ textAlign: "center" }}>
-              <kbd>Middle mouse button</kbd> or select the edge and press{" "}
-              <kbd>Delete</kbd> or <kbd>Backspace</kbd>. Select many edges by
-              holding <kbd>CTRL</kbd> or <kbd>Meta</kbd> while clicking.
+              <kbd>{t("screen_editor.middleMouseButton")}</kbd> {t("screen_editor.orSelectEdgeAndPress")}{" "}
+              <kbd>Delete</kbd> or <kbd>Backspace</kbd>. {t("screen_editor.selectManyEdgesByHolding")} <kbd>CTRL</kbd> {t("screen_editor.orKey")} <kbd>Meta</kbd> {t("screen_editor.whileClicking")}
             </span>
           </span>
         }

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import type { Data } from "@puckeditor/core";
 import { applicationBundle } from "@nodetool-ai/protocol/api-schemas/applications.js";
@@ -23,6 +24,7 @@ interface ExampleAppUseViewProps {
 }
 
 export default function ExampleAppUseView({ slug }: ExampleAppUseViewProps) {
+  const { t } = useTranslation();
   const query = useQuery({
     queryKey: ["example-app-bundle", slug],
     queryFn: async ({ signal }) => {
@@ -31,7 +33,7 @@ export default function ExampleAppUseView({ slug }: ExampleAppUseViewProps) {
         { signal }
       );
       if (!response.ok) {
-        throw new Error("Could not load example app");
+        throw new Error(t("pass3_18.examples.app.errors.loadFailed"));
       }
       return applicationBundle.parse(await response.json());
     },
@@ -49,29 +51,29 @@ export default function ExampleAppUseView({ slug }: ExampleAppUseViewProps) {
         }
       );
       if (!response.ok) {
-        throw new Error("Example app operation failed");
+        throw new Error(t("pass3_18.examples.app.errors.operationFailed"));
       }
       return runJsScriptResponse.parse(
         await readScriptRunBody(response, onLine)
       );
     },
-    [slug]
+    [slug, t]
   );
   if (query.isPending) {
-    return <LoadingSpinner text="Loading app" />;
+    return <LoadingSpinner text={t("pass3_18.examples.app.loading")} />;
   }
   if (query.isError) {
     return (
       <EmptyState
         variant="error"
-        title="Could not load app"
-        actionText="Retry"
+        title={t("pass3_18.examples.app.errors.loadTitle")}
+        actionText={t("pass3_18.examples.actions.retry")}
         onAction={() => void query.refetch()}
         description={
           <ReportBugButton
             context={{
               source: "panel-crash",
-              summary: "Example app failed",
+              summary: t("pass3_18.examples.app.errors.reportSummary"),
               errorText: query.error.message
             }}
           />
@@ -100,7 +102,12 @@ export default function ExampleAppUseView({ slug }: ExampleAppUseViewProps) {
   }
   const document = parseApplicationDocument(bundle.app);
   if (!document) {
-    return <EmptyState variant="error" title="Invalid app document" />;
+    return (
+      <EmptyState
+        variant="error"
+        title={t("pass3_18.examples.app.errors.invalidDocument")}
+      />
+    );
   }
   const host =
     workflows[document.operations[0]?.workflowId ?? ""] ??

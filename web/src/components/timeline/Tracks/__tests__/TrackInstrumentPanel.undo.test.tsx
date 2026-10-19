@@ -66,7 +66,7 @@ describe("TrackInstrumentPanel knob undo", () => {
       </ThemeProvider>
     );
 
-    const drive = screen.getByRole("slider", { name: "DRIVE" });
+    const drive = screen.getByRole("slider", { name: "Drive" });
     const before = useTimelineStore.getState().tracks[0].instrument;
     fireEvent.pointerDown(drive, { button: 0, pointerId: 1, clientY: 200 });
     for (let y = 190; y >= 150; y -= 10) {

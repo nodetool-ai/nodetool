@@ -6,6 +6,8 @@
  * of that time and then the result.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { type TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   isOperationRunning,
@@ -59,15 +61,15 @@ interface AgentActivityWidgetProps {
 const NO_ENTRIES: ReadonlyArray<ActivityEntry> = [];
 
 /** What the editor shows before any run, so the widget can be laid out. */
-const SAMPLE: ReadonlyArray<ActivityEntry> = [
-  { kind: "text", text: "Reading the approved storyboard." },
+const sampleActivity = (t: TFunction): ReadonlyArray<ActivityEntry> => [
+  { kind: "text", text: t("i18n-next69.appBuilder.agentActivity.sample.readingStoryboard") },
   {
     kind: "tool",
     id: "sample",
     name: "edit_timeline",
-    label: "Editing the timeline",
+    label: t("i18n-next69.appBuilder.agentActivity.sample.editingTimeline"),
     status: "done",
-    result: "Applied 3 edits."
+    result: t("i18n-next69.appBuilder.agentActivity.sample.appliedEdits")
   }
 ];
 
@@ -120,6 +122,7 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean; runId?: string; 
   runId,
   spanId
 }) => {
+  const { t } = useTranslation();
   const { openRunInspection } = useRunInspection();
   const [open, setOpen] = useState(false);
   const Icon = getToolIcon(entry.name);
@@ -212,7 +215,7 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean; runId?: string; 
           <Box sx={{ flex: 1 }} />
           {failed ? (
             <Caption component="span" sx={{ color: "error.main" }}>
-              Failed
+              {t("i18n-next69.appBuilder.agentActivity.failed")}
             </Caption>
           ) : null}
           {result ? (
@@ -254,7 +257,7 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean; runId?: string; 
           </Collapse>
         ) : null}
         {runId && spanId ? <FlexRow gap={SPACING.xs}>
-          <EditorButton onClick={() => openRunInspection({ runId, spanId })}>View trace</EditorButton>
+          <EditorButton onClick={() => openRunInspection({ runId, spanId })}>{t("i18n-next69.appBuilder.agentActivity.viewTrace")}</EditorButton>
           <AskRunAgentButton runId={runId} spanId={spanId} />
         </FlexRow> : null}
       </Box>
@@ -264,26 +267,28 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean; runId?: string; 
 
 /** Historical inspection always reads the explicitly selected run. */
 export function StoredRunActivity({ runId }: { runId: string }): React.ReactElement {
+  const { t } = useTranslation();
   const logs = useRunLogs(runId, { source: "agent", include_content: true, limit: 100 });
   const pages = logs.data?.pages ?? [];
   const unavailable = pages.some((page) => page.content_state !== "available");
   const activity = logs.error || unavailable ? [] : replayAppRunActivity(pages.flatMap((page) => page.logs));
   return <FlexColumn gap={SPACING.sm}>
-    <Text weight={600}>Recorded activity</Text>
-    {logs.isLoading ? <LoadingSpinner text="Loading activity" /> : null}
-    {logs.error ? <AlertBanner severity="error" action={<ReportBugButton context={{ source: "operation-failure", summary: "Historical activity could not load", errorText: logs.error.message }} />}>{logs.error.message}</AlertBanner> : null}
-    {unavailable ? <Caption>Activity content {pages[0]?.content_state}.</Caption> : null}
+    <Text weight={600}>{t("i18n-next69.appBuilder.agentActivity.recordedActivity")}</Text>
+    {logs.isLoading ? <LoadingSpinner text={t("i18n-next69.appBuilder.agentActivity.loadingActivity")} /> : null}
+    {logs.error ? <AlertBanner severity="error" action={<ReportBugButton context={{ source: "operation-failure", summary: t("i18n-next69.appBuilder.agentActivity.historicalLoadFailed"), errorText: logs.error.message }} />}>{logs.error.message}</AlertBanner> : null}
+    {unavailable ? <Caption>{t("i18n-next69.appBuilder.agentActivity.contentState", { state: pages[0]?.content_state })}</Caption> : null}
     {activity.map(({ key, entry, spanId }, index) => entry.kind === "tool"
       ? <ToolRow key={key} entry={entry} runId={runId} spanId={spanId} connected={activity[index + 1]?.entry.kind === "tool"} />
       : <MarkdownBlock key={key} text={entry.text} />)}
-    {pages.some((page) => page.limited || page.truncated) ? <Caption>Activity recording was limited.</Caption> : null}
-    {logs.hasNextPage && !unavailable ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>Load more activity</EditorButton> : null}
+    {pages.some((page) => page.limited || page.truncated) ? <Caption>{t("i18n-next69.appBuilder.agentActivity.recordingLimited")}</Caption> : null}
+    {logs.hasNextPage && !unavailable ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>{t("i18n-next69.appBuilder.agentActivity.loadMore")}</EditorButton> : null}
   </FlexColumn>;
 }
 
 export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
   props
 ) => {
+  const { t } = useTranslation();
   const { designMode, instanceId } = useAppRuntimeContext();
   const ref = parseBinding(props.binding);
   const operationId = ref?.kind === "execution" ? ref.operationId : null;
@@ -302,7 +307,7 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
   const excluded = pages.some((page) => page.content_state === "public" || page.content_state === "suppressed");
   const stored = expired || excluded || readError ? [] : replayAppRunActivity(pages.flatMap((page) => page.logs));
   const useLive = !expired && !excluded && !readError && running && (liveRunMatches || !instanceId);
-  const shown = designMode ? entries.length ? entries : SAMPLE : useLive ? entries : stored.map((item) => item.entry);
+  const shown = designMode ? entries.length ? entries : sampleActivity(t) : useLive ? entries : stored.map((item) => item.entry);
   const { openRunInspection } = useRunInspection();
 
   // Follow the newest entry while the agent works, the way a log does.
@@ -325,16 +330,16 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
     <FlexColumn gap={SPACING.sm} fullWidth>
       <FlexRow gap={SPACING.sm} align="center" fullWidth>
         {props.label ? <Label>{props.label}</Label> : null}
-        {running ? <StatusPill tone="rendering">Working</StatusPill> : null}
-        {runId ? <EditorButton onClick={() => openRunInspection({ runId })}>View trace</EditorButton> : null}
+        {running ? <StatusPill tone="rendering">{t("i18n-next69.appBuilder.agentActivity.working")}</StatusPill> : null}
+        {runId ? <EditorButton onClick={() => openRunInspection({ runId })}>{t("i18n-next69.appBuilder.agentActivity.viewTrace")}</EditorButton> : null}
         {runId ? <AskRunAgentButton runId={runId} /> : null}
       </FlexRow>
-      {historyLoading || logs.isLoading ? <LoadingSpinner text="Loading activity" /> : null}
-      {historyLimited ? <Caption>Recorded activity is outside the recent runs loaded.</Caption> : null}
-      {expired ? <Caption>Activity content expired.</Caption> : excluded ? <Caption>Activity content is unavailable for this run.</Caption> : null}
-      {readError ? <AlertBanner severity="error" action={<ReportBugButton context={{ source: "operation-failure", summary: "Run activity could not load", errorText: readError.message }} />}>{readError.message}</AlertBanner> : null}
+      {historyLoading || logs.isLoading ? <LoadingSpinner text={t("i18n-next69.appBuilder.agentActivity.loadingActivity")} /> : null}
+      {historyLimited ? <Caption>{t("i18n-next69.appBuilder.agentActivity.historyLimited")}</Caption> : null}
+      {expired ? <Caption>{t("i18n-next69.appBuilder.agentActivity.contentExpired")}</Caption> : excluded ? <Caption>{t("i18n-next69.appBuilder.agentActivity.contentUnavailable")}</Caption> : null}
+      {readError ? <AlertBanner severity="error" action={<ReportBugButton context={{ source: "operation-failure", summary: t("i18n-next69.appBuilder.agentActivity.runLoadFailed"), errorText: readError.message }} />}>{readError.message}</AlertBanner> : null}
       {runId && !logs.isLoading && !useLive && !expired && !excluded && !readError && shown.length === 0
-        ? <Caption>{props.placeholder ?? "No agent activity recorded."}</Caption> : null}
+        ? <Caption>{props.placeholder ?? t("i18n-next69.appBuilder.agentActivity.noActivity")}</Caption> : null}
       <ScrollArea ref={scroller} thin maxHeight={props.height ?? 360}>
         <FlexColumn gap={SPACING.xs} fullWidth>
           {shown.map((entry, index) =>
@@ -354,10 +359,10 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
           )}
         </FlexColumn>
       </ScrollArea>
-      {pages.some((page) => page.truncated || page.limited) ? <Caption>Activity recording was limited.</Caption> : null}
-      {traceIncomplete ? <Caption>Some browser activity could not be recorded.</Caption> : null}
-      {!traceIncomplete && pages.some((page) => page.incomplete) ? <Caption>Activity recording is incomplete.</Caption> : null}
-      {logs.hasNextPage && !expired && !excluded ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>Load more activity</EditorButton> : null}
+      {pages.some((page) => page.truncated || page.limited) ? <Caption>{t("i18n-next69.appBuilder.agentActivity.recordingLimited")}</Caption> : null}
+      {traceIncomplete ? <Caption>{t("i18n-next69.appBuilder.agentActivity.browserActivityMissing")}</Caption> : null}
+      {!traceIncomplete && pages.some((page) => page.incomplete) ? <Caption>{t("i18n-next69.appBuilder.agentActivity.recordingIncomplete")}</Caption> : null}
+      {logs.hasNextPage && !expired && !excluded ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>{t("i18n-next69.appBuilder.agentActivity.loadMore")}</EditorButton> : null}
     </FlexColumn>
   );
 };

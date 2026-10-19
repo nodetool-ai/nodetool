@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useMemo } from "react";
+import { type TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import type { Config, ArrayField, Field } from "@puckeditor/core";
 import type { Theme } from "@mui/material/styles";
 import type { SystemCssProperties } from "@mui/system";
@@ -1501,4 +1503,91 @@ export const appConfig: Config = {
       render: ({ height }) => <SpacerWidget height={height} />
     }
   }
+};
+
+type PuckField = Record<string, unknown>;
+
+const configTextKey = (text: string): string => {
+  const slug = text
+    .replace(/\([^)]*\)/g, "")
+    .replace(/[^A-Za-z0-9]+(.)?/g, (_, next: string | undefined) =>
+      next ? next.toUpperCase() : ""
+    )
+    .replace(/^[A-Z]/, (letter) => letter.toLowerCase());
+  return `i18n-next69.appBuilder.config.${slug || "text"}`;
+};
+
+const localizeText = (t: TFunction, value: unknown): unknown =>
+  typeof value === "string"
+    ? t(configTextKey(value), { defaultValue: value })
+    : value;
+
+const localizeField = (t: TFunction, field: PuckField): PuckField => {
+  const next: PuckField = { ...field };
+  if (typeof next.label === "string") next.label = localizeText(t, next.label);
+  if (Array.isArray(next.options)) {
+    next.options = next.options.map((option) =>
+      option && typeof option === "object"
+        ? {
+            ...option,
+            label: localizeText(t, (option as { label?: unknown }).label)
+          }
+        : option
+    );
+  }
+  if (next.arrayFields && typeof next.arrayFields === "object") {
+    next.arrayFields = Object.fromEntries(
+      Object.entries(next.arrayFields as Record<string, PuckField>).map(
+        ([key, value]) => [key, localizeField(t, value)]
+      )
+    );
+  }
+  return next;
+};
+
+const localizeAppConfig = (t: TFunction): Config => {
+  const source = appConfig as unknown as {
+    root: { fields?: Record<string, PuckField> };
+    categories?: Record<string, { title?: string }>;
+    components: Record<string, { label?: string; fields?: Record<string, PuckField> }>;
+  };
+  const config = { ...source };
+  config.root = {
+    ...source.root,
+    fields: Object.fromEntries(
+      Object.entries(source.root.fields ?? {}).map(([key, field]) => [
+        key,
+        localizeField(t, field)
+      ])
+    )
+  };
+  if (source.categories) {
+    config.categories = Object.fromEntries(
+      Object.entries(source.categories).map(([key, category]) => [key, {
+        ...category,
+        title: category.title ? String(localizeText(t, category.title)) : category.title
+      }])
+    );
+  }
+  config.components = Object.fromEntries(
+    Object.entries(source.components).map(([key, component]) => [key, {
+      ...component,
+      label: component.label ? String(localizeText(t, component.label)) : component.label,
+      fields: component.fields
+        ? Object.fromEntries(
+            Object.entries(component.fields).map(([fieldKey, field]) => [
+              fieldKey,
+              localizeField(t, field)
+            ])
+          )
+        : component.fields
+    }])
+  );
+  return config as Config;
+};
+
+/** Puck's editor catalog, rebuilt during render so language changes apply. */
+export const useAppConfig = (): Config => {
+  const { t } = useTranslation();
+  return useMemo(() => localizeAppConfig(t), [t]);
 };

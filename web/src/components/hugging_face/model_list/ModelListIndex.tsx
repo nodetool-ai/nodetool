@@ -9,6 +9,7 @@ import React, {
   useEffect,
   useRef
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FlexColumn,
   FlexRow,
@@ -150,6 +151,7 @@ type ListItem =
   | { type: "model"; model: UnifiedModel };
 
 const ModelListIndex: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
@@ -426,49 +428,44 @@ const ModelListIndex: React.FC = () => {
     if (modelSearchTerm) {
       return {
         searchOff: true,
-        title: `No models found for \u201C${modelSearchTerm}\u201D`,
-        description: "Try a different search term or adjust your filters."
+        title: t("i18n-next29.empty.search.title", { query: modelSearchTerm }),
+        description: t("i18n-next29.empty.search.description")
       };
     }
     if (source === "hub") {
       return {
         searchOff: false,
-        title: "Search the HuggingFace Hub",
-        description:
-          "Type a name above, or pick a category, to browse and download any public model from huggingface.co."
+        title: t("i18n-next29.empty.hub.title"),
+        description: t("i18n-next29.empty.hub.description")
       };
     }
     if (source === "recommended") {
       return {
         searchOff: false,
-        title: "No recommended models",
-        description:
-          "Recommended models are gathered from the nodes you have installed. Add nodes that run models to see suggestions here."
+        title: t("i18n-next29.empty.recommended.title"),
+        description: t("i18n-next29.empty.recommended.description")
       };
     }
     if (scope === "worker") {
       return {
         searchOff: false,
-        title: "No models cached on this worker yet",
-        description:
-          "While this worker is attached, any model you download lands on its volume."
+        title: t("i18n-next29.empty.worker.title"),
+        description: t("i18n-next29.empty.worker.description")
       };
     }
     if ((allModels?.length ?? 0) === 0) {
       return {
         searchOff: false,
-        title: "No models installed yet",
-        description:
-          "Download one from Recommended or the Hub, or open Get Started."
+        title: t("i18n-next29.empty.installed.title"),
+        description: t("i18n-next29.empty.installed.description")
       };
     }
     return {
       searchOff: true,
-      title: "No models available",
-      description:
-        "Try adjusting the size filter or selecting a different category."
+      title: t("i18n-next29.empty.available.title"),
+      description: t("i18n-next29.empty.available.description")
     };
-  }, [modelSearchTerm, source, scope, allModels]);
+  }, [modelSearchTerm, source, scope, allModels, t]);
 
   if (isLoading) {
     return (
@@ -482,7 +479,7 @@ const ModelListIndex: React.FC = () => {
           textAlign: "center"
         }}
       >
-        <LoadingSpinner size="medium" text="Loading models" />
+        <LoadingSpinner size="medium" text={t("i18n-next29.loading")} />
       </Box>
     );
   }
@@ -498,7 +495,7 @@ const ModelListIndex: React.FC = () => {
       ? err.detail
       : (err?.detail as Array<{ msg: string }>)?.[0]?.msg ||
         err?.message ||
-        "Unknown error";
+        t("i18n-next29.errors.unknown");
 
     const isOllamaError = errorMessage.toLowerCase().includes("ollama");
 
@@ -512,18 +509,17 @@ const ModelListIndex: React.FC = () => {
       >
         <EmptyState
           variant="error"
-          title="Could not load models"
+          title={t("i18n-next29.errors.loadTitle")}
           description={
             <FlexColumn gap={1} align="center" sx={{ maxWidth: 600 }}>
               <span>{errorMessage}</span>
               {isOllamaError && (
                 <>
                   <span>
-                    Ollama is a separate app. Install it from ollama.com and
-                    start it, then reopen this list.
+                    {t("i18n-next29.errors.ollamaHelp")}
                   </span>
                   <TextLink href="https://ollama.com/download" external>
-                    Download Ollama →
+                    {t("i18n-next29.errors.downloadOllama")}
                   </TextLink>
                 </>
               )}
@@ -615,7 +611,7 @@ const ModelListIndex: React.FC = () => {
                   <Text size="big" weight={600} sx={{ minWidth: 0 }}>
                     {selectedModelType !== "All"
                       ? prettifyModelType(selectedModelType)
-                      : `Results for \u201C${modelSearchTerm}\u201D`}
+                      : t("i18n-next29.resultsFor", { query: modelSearchTerm })}
                   </Text>
                 </FlexRow>
               )}

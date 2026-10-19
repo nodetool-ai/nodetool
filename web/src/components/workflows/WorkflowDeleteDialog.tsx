@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
@@ -24,6 +25,7 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
   onClose,
   workflowsToDelete
 }) => {
+  const { t } = useTranslation();
   const { removeWorkflow, openWorkflows } = useWorkflowManager(
     useShallow((state) => ({
       removeWorkflow: state.removeWorkflow,
@@ -79,11 +81,16 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
       if (failure?.status === "rejected") {
         throw failure.reason;
       }
-      addNotification({ content: "Workflows deleted", type: "success" });
+      addNotification({
+        content: t("pass3_37.workflowDelete.deleted"),
+        type: "success"
+      });
       onClose();
     } catch (error) {
       addNotification({
-        content: `Failed to delete workflows: ${error instanceof Error ? error.message : String(error)}`,
+        content: t("pass3_37.workflowDelete.deleteFailed", {
+          error: error instanceof Error ? error.message : String(error)
+        }),
         type: "error",
         alert: true
       });
@@ -100,7 +107,8 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
     navigate,
     onClose,
     removeWorkflow,
-    addNotification
+    addNotification,
+    t
   ]);
 
   const single = workflowsToDelete.length === 1;
@@ -114,16 +122,20 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
       showCloseButton={!isDeleting}
       destructive
       onConfirm={handleDelete}
-      confirmText="Delete"
-      title={single ? "Delete workflow?" : "Delete workflows?"}
+      confirmText={t("pass3_37.workflowDelete.confirm")}
+      title={
+        single
+          ? t("pass3_37.workflowDelete.titleSingle")
+          : t("pass3_37.workflowDelete.titleMultiple")
+      }
       maxWidth="xs"
       fullWidth
       content={
         <FlexColumn gap={SPACING.md}>
           <Text color="secondary">
             {single
-              ? "This workflow and its graph are permanently deleted. This cannot be undone."
-              : "These workflows and their graphs are permanently deleted. This cannot be undone."}
+              ? t("pass3_37.workflowDelete.descriptionSingle")
+              : t("pass3_37.workflowDelete.descriptionMultiple")}
           </Text>
           <ScrollArea maxHeight="40vh">
             <FlexColumn gap={SPACING.xs}>

@@ -5,6 +5,7 @@
  */
 
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -34,16 +35,25 @@ const ClipAudioEditorDialog = ({
   sourceWindow,
   onClose
 }: ClipAudioEditorDialogProps) => {
+  const { t } = useTranslation();
   const { data: asset, isPending, refetch } = useAssetById(assetId);
   const createAsset = useAssetStore((state) => state.createAsset);
-  const replaceClipOutput = useTimelineStore((state) => state.replaceClipOutput);
+  const replaceClipOutput = useTimelineStore(
+    (state) => state.replaceClipOutput
+  );
 
   const saveAsNewAsset = useCallback(
     async (sample: AudioSample): Promise<boolean> => {
-      const base = stripExtension(asset?.name || clipName || "audio");
-      const file = new File([encodeWav(sample)], `${base} (edited).wav`, {
-        type: "audio/wav"
-      });
+      const base = stripExtension(
+        asset?.name || clipName || t("pass3_23.audioEditor.audioFallback")
+      );
+      const file = new File(
+        [encodeWav(sample)],
+        `${base} ${t("pass3_23.audioEditor.editedSuffix")}.wav`,
+        {
+          type: "audio/wav"
+        }
+      );
       try {
         const stored = await createAsset(
           file,
@@ -55,24 +65,26 @@ const ClipAudioEditorDialog = ({
         replaceClipOutput(clipId, stored.id);
         useNotificationStore.getState().addNotification({
           type: "success",
-          content: "Saved the edit as a new audio asset and put it on the clip."
+          content: t("pass3_23.audioEditor.saved")
         });
         return true;
       } catch (error) {
         useNotificationStore.getState().addNotification({
           type: "error",
           alert: true,
-          content: `Failed to save audio: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+          content: t("pass3_23.audioEditor.saveFailed", {
+            error: error instanceof Error ? error.message : String(error)
+          })
         });
         return false;
       }
     },
-    [asset, clipName, clipId, createAsset, replaceClipOutput]
+    [asset, clipName, clipId, createAsset, replaceClipOutput, t]
   );
 
-  const title = `Edit audio: ${clipName || asset?.name || "clip"}`;
+  const title = t("pass3_23.audioEditor.title", {
+    name: clipName || asset?.name || t("pass3_23.audioEditor.clipFallback")
+  });
 
   return (
     <Dialog open onClose={onClose} title={title} variant="fullscreen">
@@ -87,10 +99,10 @@ const ClipAudioEditorDialog = ({
         ) : (
           <DocumentLoadStatus
             state={isPending ? "loading" : "error"}
-            label="audio asset"
+            label={t("pass3_23.audioEditor.assetLabel")}
             onRetry={() => void refetch()}
             onClose={onClose}
-            closeLabel="Close"
+            closeLabel={t("pass3_23.audioEditor.close")}
           />
         )}
       </Box>

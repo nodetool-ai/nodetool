@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { sourceRate } from "@nodetool-ai/timeline";
 
 import {
@@ -38,6 +39,7 @@ interface SpeedDurationDialogProps {
 
 export const SpeedDurationDialog: React.FC<SpeedDurationDialogProps> = memo(
   ({ clipIds, onClose }) => {
+    const { t } = useTranslation();
     const docStore = useTimelineStoreApi();
     const fps = useTimelineStore((s) => s.fps);
     const first = useMemo(
@@ -106,15 +108,15 @@ export const SpeedDurationDialog: React.FC<SpeedDurationDialogProps> = memo(
       <Dialog
         open
         onClose={onClose}
-        title="Clip speed / duration"
+        title={t("batch2_25.speedDuration.title")}
         onConfirm={handleConfirm}
-        confirmText="Apply"
+        confirmText={t("batch2_25.common.apply")}
         confirmDisabled={!speedValid}
       >
         <FlexColumn gap={SPACING.lg}>
           <FlexRow gap={SPACING.lg} align="flex-start">
             <NumberField
-              label="Speed"
+              label={t("batch2_25.speedDuration.speed")}
               size="small"
               unit="%"
               value={speedText}
@@ -125,12 +127,12 @@ export const SpeedDurationDialog: React.FC<SpeedDurationDialogProps> = memo(
               errorMessage={
                 speedValid
                   ? undefined
-                  : `${MIN_SPEED_PERCENT}–${MAX_SPEED_PERCENT}%`
+                  : t("batch2_25.speedDuration.rangeError", { min: MIN_SPEED_PERCENT, max: MAX_SPEED_PERCENT })
               }
               sx={{ flex: 1 }}
             />
             <TextInput
-              label="Duration"
+              label={t("batch2_25.speedDuration.duration")}
               size="small"
               monospace
               value={durationText}
@@ -143,11 +145,11 @@ export const SpeedDurationDialog: React.FC<SpeedDurationDialogProps> = memo(
             size="small"
             checked={ripple}
             onChange={(_, checked) => setRipple(checked)}
-            label="Ripple edit, shifting trailing clips"
+            label={t("batch2_25.speedDuration.ripple")}
           />
           {clipIds.length > 1 && (
             <Caption color="muted">
-              {`All ${clipIds.length} clips take this speed. Duration follows each clip's own length.`}
+              {t("batch2_25.speedDuration.multipleClips", { count: clipIds.length })}
             </Caption>
           )}
         </FlexColumn>

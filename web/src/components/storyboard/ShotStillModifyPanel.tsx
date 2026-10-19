@@ -17,9 +17,9 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
 import { entitiesForShot } from "@nodetool-ai/protocol";
-import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   Box,
@@ -77,13 +77,6 @@ import type { ImageModelValue } from "../../stores/ApiTypes";
 
 type ModifyTab = "edit" | "upscale" | "reframe" | "adjust";
 
-const TABS: { value: ModifyTab; label: string }[] = [
-  { value: "edit", label: "Edit" },
-  { value: "upscale", label: "Upscale" },
-  { value: "reframe", label: "Reframe" },
-  { value: "adjust", label: "Adjust" }
-];
-
 /**
  * The catalog task each model-backed change needs. A whole-image edit needs
  * an instruction editor: an inpainting model the picker also lists fails
@@ -98,10 +91,10 @@ const TASK_FOR_MODE: Record<StillVariantMode, ImageModelTask> = {
 
 const NEUTRAL: StillAdjustment = { brightness: 100, contrast: 100, saturation: 100 };
 
-const ADJUSTMENTS: { key: keyof StillAdjustment; label: string }[] = [
-  { key: "brightness", label: "Brightness" },
-  { key: "contrast", label: "Contrast" },
-  { key: "saturation", label: "Saturation" }
+const ADJUSTMENTS: (keyof StillAdjustment)[] = [
+  "brightness",
+  "contrast",
+  "saturation"
 ];
 
 const previewSx = {
@@ -111,12 +104,16 @@ const previewSx = {
   bgcolor: "c_overlay_subtle"
 } as const;
 
-const reportFailure = (error: unknown, what: string): void => {
+const reportFailure = (
+  error: unknown,
+  what: string,
+  tryAgain: string
+): void => {
   useNotificationStore.getState().addNotification({
     type: "error",
     alert: true,
     dismissable: true,
-    content: `${what} ${getErrorMessage(error, "Try again.")}`
+    content: `${what} ${getErrorMessage(error, tryAgain)}`
   });
 };
 
@@ -132,7 +129,7 @@ const asRef = (value: ImageModelValue | null): ShotModelRef | null =>
   value ? { id: value.id, provider: value.provider, name: value.name } : null;
 
 /** " · ~$0.04" for a priced model, nothing otherwise. */
-const priceSuffix = (model: ShotModelRef | null): string => {
+const priceSuffix = (model: ShotModelRef | null, locale: string): string => {
   const cost = priceRenderStep(
     "Still",
     model,
@@ -141,7 +138,14 @@ const priceSuffix = (model: ShotModelRef | null): string => {
     undefined,
     []
   ).cost;
-  return cost ? ` · ~${formatUsd(cost)}` : "";
+  if (cost == null) {
+    return "";
+  }
+  const formatted = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD"
+  }).format(cost);
+  return cost ? ` · ~${formatted}` : "";
 };
 
 /** The shot's still job has left the queue: settled one way or the other. */
@@ -171,6 +175,7 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
   boardId,
   shot
 }) => {
+  const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<ModifyTab>("edit");
   const [editModel, setEditModel] = useState<ImageModelValue | null>(
     () => rememberedFor("image_to_image") ?? rememberedFor("inpainting")
@@ -216,7 +221,9 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
   // stored on first use, so the server has bytes to read.
   const canSpend = (!!still?.asset_id || !!stillUrl) && !generating && !busy;
   const storedCopy = useRef<{ uri: string; assetId: string } | null>(null);
-  const stillName = `Shot ${shot.index + 1} still`;
+  const stillName = t("screens4_19.storyboard.shotStillModify.stillName", {
+    index: new Intl.NumberFormat(i18n.resolvedLanguage).format(shot.index + 1)
+  });
 
   const cast = useMemo(() => {
     const ids = new Set(boardEntityIds ?? []);
@@ -254,11 +261,13 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
       return storedCopy.current.assetId;
     }
     if (!stillUrl) {
-      throw new Error("The still has no file to edit.");
+      throw new Error(t("screens4_19.storyboard.shotStillModify.errors.noStillFile"));
     }
     const response = await fetch(stillUrl);
     if (!response.ok) {
-      throw new Error(`The still could not be loaded (${response.status}).`);
+      throw new Error(t("screens4_19.storyboard.shotStillModify.errors.stillLoadFailed", {
+        status: response.status
+      }));
     }
     const blob = await response.blob();
     const type = blob.type || "image/png";
@@ -268,7 +277,7 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
     const asset = await useAssetStore.getState().createAsset(file);
     storedCopy.current = { uri, assetId: asset.id };
     return asset.id;
-  }, [still, stillUrl, stillName]);
+  }, [still, stillUrl, stillName, t]);
 
   const editMode: StillVariantMode = strokes ? "inpaint" : "image_edit";
   const editModelFits = supports(editModel, TASK_FOR_MODE[editMode]);
@@ -316,7 +325,10 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
       if (strokes) {
         const mask = await useAssetStore
           .getState()
-          .createAsset(await maskFileFromStrokes(strokes, `${stillName} edit mask.png`));
+          .createAsset(await maskFileFromStrokes(strokes, `${stillName} edit mask.png`, {
+            noCanvas: t("i18n-next102.storyboard.shotMaskPainter.errors.noCanvas"),
+            encodeFailed: t("i18n-next102.storyboard.shotMaskPainter.errors.encodeFailed")
+          }));
         maskAssetId = mask.id;
       }
       const started = await run(editMode, editModel, {
@@ -327,7 +339,11 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
         setStrokes(null);
       }
     } catch (error) {
-      reportFailure(error, "The edit did not start.");
+      reportFailure(
+        error,
+        t("screens4_19.storyboard.shotStillModify.errors.editDidNotStart"),
+        t("screens4_19.storyboard.shotStillModify.errors.tryAgain")
+      );
     } finally {
       setBusy(false);
       // The mask is an input to this one request, not a take: drop it once the
@@ -342,18 +358,22 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
         });
       }
     }
-  }, [prompt, includeCast, cast, strokes, stillName, run, editMode, editModel, shot.id]);
+  }, [prompt, includeCast, cast, strokes, stillName, run, editMode, editModel, shot.id, t]);
 
   const handleUpscale = useCallback(async () => {
     setBusy(true);
     try {
       await run("upscale", upscaleModel, { scale });
     } catch (error) {
-      reportFailure(error, "The upscale did not start.");
+      reportFailure(
+        error,
+        t("screens4_19.storyboard.shotStillModify.errors.upscaleDidNotStart"),
+        t("screens4_19.storyboard.shotStillModify.errors.tryAgain")
+      );
     } finally {
       setBusy(false);
     }
-  }, [run, upscaleModel, scale]);
+  }, [run, upscaleModel, scale, t]);
 
   const handleReframe = useCallback(async () => {
     if (!stillUrl) {
@@ -368,11 +388,15 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
         padding: outpaintPadding(size.width, size.height, aspect)
       });
     } catch (error) {
-      reportFailure(error, "The reframe did not start.");
+      reportFailure(
+        error,
+        t("screens4_19.storyboard.shotStillModify.errors.reframeDidNotStart"),
+        t("screens4_19.storyboard.shotStillModify.errors.tryAgain")
+      );
     } finally {
       setBusy(false);
     }
-  }, [stillUrl, run, reframeModel, reframePrompt, aspect]);
+  }, [stillUrl, run, reframeModel, reframePrompt, aspect, t]);
 
   const handleSaveAdjustment = useCallback(async () => {
     if (!stillUrl) {
@@ -398,14 +422,22 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
         },
         onFailed: (error) => {
           setBusy(false);
-          reportFailure(error, "The adjusted still could not be saved.");
+          reportFailure(
+            error,
+            t("screens4_19.storyboard.shotStillModify.errors.adjustedStillCouldNotSave"),
+            t("screens4_19.storyboard.shotStillModify.errors.tryAgain")
+          );
         }
       });
     } catch (error) {
       setBusy(false);
-      reportFailure(error, "The still could not be adjusted.");
+      reportFailure(
+        error,
+        t("screens4_19.storyboard.shotStillModify.errors.stillCouldNotAdjust"),
+        t("screens4_19.storyboard.shotStillModify.errors.tryAgain")
+      );
     }
-  }, [stillUrl, stillName, adjustment, uploadAsset, appendShotKeyframeVersion, boardId, shot.id]);
+  }, [stillUrl, stillName, adjustment, uploadAsset, appendShotKeyframeVersion, boardId, shot.id, t]);
 
   const handlePainted = useCallback((next: HTMLCanvasElement | null) => {
     setStrokes(next);
@@ -415,7 +447,7 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
   if (!still) {
     return (
       <Caption color="muted">
-        Render or upload a still first. Edits start from the current still.
+        {t("screens4_19.storyboard.shotStillModify.emptyState")}
       </Caption>
     );
   }
@@ -428,17 +460,37 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
   return (
     <FlexColumn gap={SPACING.md} data-testid="shot-still-modify">
       <TabGroup
-        tabs={TABS}
+        tabs={[
+          {
+            value: "edit",
+            label: t("screens4_19.storyboard.shotStillModify.tabs.edit")
+          },
+          {
+            value: "upscale",
+            label: t("screens4_19.storyboard.shotStillModify.tabs.upscale")
+          },
+          {
+            value: "reframe",
+            label: t("screens4_19.storyboard.shotStillModify.tabs.reframe")
+          },
+          {
+            value: "adjust",
+            label: t("screens4_19.storyboard.shotStillModify.tabs.adjust")
+          }
+        ]}
         value={tab}
         onChange={(value) => setTab(value as ModifyTab)}
         size="small"
         fullWidth
-        aria-label="Change the current still"
+        aria-label={t("screens4_19.storyboard.shotStillModify.changeStill")}
       />
 
       {tab === "edit" && (
         <FlexColumn gap={SPACING.md}>
-          <FormField label="Edit model" sx={modelFieldSx}>
+          <FormField
+            label={t("screens4_19.storyboard.shotStillModify.editModel")}
+            sx={modelFieldSx}
+          >
             <ImageModelSelect
               value={editModel?.id ?? ""}
               provider={editModel?.provider}
@@ -452,23 +504,26 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
               onClick={() => setPainting(true)}
               disabled={!stillUrl}
             >
-              {strokes ? "Repaint area" : "Paint area"}
+              {strokes
+                ? t("screens4_19.storyboard.shotStillModify.repaintArea")
+                : t("screens4_19.storyboard.shotStillModify.paintArea")}
             </EditorButton>
             {strokes ? (
               <Chip
                 compact
-                label="Only the painted area changes"
+                label={t("screens4_19.storyboard.shotStillModify.paintedAreaOnly")}
+                aria-label={t("screens4_19.storyboard.shotStillModify.clearPaintedArea")}
                 onDelete={() => setStrokes(null)}
               />
             ) : (
               <Caption color="secondary">
-                Without a painted area the whole still can change.
+                {t("screens4_19.storyboard.shotStillModify.wholeStillMayChange")}
               </Caption>
             )}
           </FlexRow>
           <TextArea
-            label="What to change"
-            placeholder="Make her scarf deep red"
+            label={t("screens4_19.storyboard.shotStillModify.whatToChange")}
+            placeholder={t("screens4_19.storyboard.shotStillModify.editPromptPlaceholder")}
             rows={3}
             value={prompt}
             onChange={(value) => setPrompt(value)}
@@ -477,8 +532,10 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
             <LabeledSwitch
               id={`shot-modify-cast-${shot.id}`}
               size="small"
-              label={`Keep ${cast.map((entity) => entity.name).join(", ")} on model`}
-              description="Sends the cast's reference images with the edit."
+              label={t("screens4_19.storyboard.shotStillModify.keepCast", {
+                cast: cast.map((entity) => entity.name).join(", ")
+              })}
+              description={t("screens4_19.storyboard.shotStillModify.keepCastDescription")}
               checked={includeCast}
               onChange={setIncludeCast}
             />
@@ -486,10 +543,10 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
           {editModel && !editModelFits && (
             <Caption color="error">
               {strokes
-                ? "This model cannot change only a painted area. Pick an inpainting model, or clear the area."
+                ? t("screens4_19.storyboard.shotStillModify.modelCannotInpaint")
                 : supports(editModel, "inpainting")
-                  ? "This model only changes a painted area. Paint an area, or pick an editing model."
-                  : "This model cannot edit an existing image. Pick an editing model."}
+                  ? t("screens4_19.storyboard.shotStillModify.modelRequiresPaintedArea")
+                  : t("screens4_19.storyboard.shotStillModify.modelCannotEdit")}
             </Caption>
           )}
           <EditorButton
@@ -498,14 +555,21 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
             onClick={() => void handleEdit()}
             disabled={!canSpend || !editModel || !editModelFits || !prompt.trim()}
           >
-            {`Generate edit${priceSuffix(asRef(editModel))}`}
+            {t("screens4_19.storyboard.shotStillModify.generateEdit")}
+            {priceSuffix(
+              asRef(editModel),
+              i18n.resolvedLanguage ?? i18n.language
+            )}
           </EditorButton>
         </FlexColumn>
       )}
 
       {tab === "upscale" && (
         <FlexColumn gap={SPACING.md}>
-          <FormField label="Upscale model" sx={modelFieldSx}>
+          <FormField
+            label={t("screens4_19.storyboard.shotStillModify.upscaleModel")}
+            sx={modelFieldSx}
+          >
             <ImageModelSelect
               value={upscaleModel?.id ?? ""}
               provider={upscaleModel?.provider}
@@ -513,7 +577,7 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
               onChange={setUpscaleModel}
             />
           </FormField>
-          <FormField label="Scale">
+          <FormField label={t("screens4_19.storyboard.shotStillModify.scale")}>
             <ToggleGroup
               exclusive
               size="small"
@@ -524,7 +588,7 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
                   setScale(next);
                 }
               }}
-              aria-label="Upscale factor"
+              aria-label={t("screens4_19.storyboard.shotStillModify.upscaleFactor")}
             >
               <ToggleOption value={2}>2×</ToggleOption>
               <ToggleOption value={4}>4×</ToggleOption>
@@ -536,16 +600,22 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
             onClick={() => void handleUpscale()}
             disabled={!canSpend || !upscaleModel}
           >
-            {`Upscale${priceSuffix(asRef(upscaleModel))}`}
+            {t("screens4_19.storyboard.shotStillModify.upscale")}
+            {priceSuffix(
+              asRef(upscaleModel),
+              i18n.resolvedLanguage ?? i18n.language
+            )}
           </EditorButton>
         </FlexColumn>
       )}
 
       {tab === "reframe" && (
         <FlexColumn gap={SPACING.md}>
-          <FormField label="New aspect ratio">
+          <FormField
+            label={t("screens4_19.storyboard.shotStillModify.newAspectRatio")}
+          >
             <SelectField
-              label="New aspect ratio"
+              label={t("screens4_19.storyboard.shotStillModify.newAspectRatio")}
               hideLabel
               size="small"
               value={aspect}
@@ -553,7 +623,10 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
               options={[...ASPECT_OPTIONS]}
             />
           </FormField>
-          <FormField label="Reframe model" sx={modelFieldSx}>
+          <FormField
+            label={t("screens4_19.storyboard.shotStillModify.reframeModel")}
+            sx={modelFieldSx}
+          >
             <ImageModelSelect
               value={reframeModel?.id ?? ""}
               provider={reframeModel?.provider}
@@ -562,8 +635,8 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
             />
           </FormField>
           <TextInput
-            label="What fills the new space (optional)"
-            placeholder="Leave empty to continue the scene"
+            label={t("screens4_19.storyboard.shotStillModify.reframePromptLabel")}
+            placeholder={t("screens4_19.storyboard.shotStillModify.reframePromptPlaceholder")}
             value={reframePrompt}
             onChange={(event) => setReframePrompt(event.target.value)}
           />
@@ -573,7 +646,11 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
             onClick={() => void handleReframe()}
             disabled={!canSpend || !reframeModel || !stillUrl}
           >
-            {`Reframe to ${aspect}${priceSuffix(asRef(reframeModel))}`}
+            {t("screens4_19.storyboard.shotStillModify.reframeTo", { aspect })}
+            {priceSuffix(
+              asRef(reframeModel),
+              i18n.resolvedLanguage ?? i18n.language
+            )}
           </EditorButton>
         </FlexColumn>
       )}
@@ -586,12 +663,16 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
               filter: adjustmentFilter(adjustment)
             }}
           >
-            <ResponsiveImage locator={still} alt="Adjusted still preview" fit="contain" />
+            <ResponsiveImage
+              locator={still}
+              alt={t("screens4_19.storyboard.shotStillModify.adjustedStillPreview")}
+              fit="contain"
+            />
           </Box>
-          {ADJUSTMENTS.map(({ key, label }) => (
+          {ADJUSTMENTS.map((key) => (
             <FlexRow key={key} align="center" gap={SPACING.md}>
               <Caption color="secondary" sx={{ minWidth: "6rem" }} id={`shot-adjust-${key}-${shot.id}`}>
-                {label}
+                {t(`screens4_19.storyboard.shotStillModify.adjustments.${key}`)}
               </Caption>
               <Slider
                 density="compact"
@@ -616,23 +697,23 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
               onClick={() => setAdjustment(NEUTRAL)}
               disabled={!adjusted}
             >
-              Reset
+              {t("screens4_19.storyboard.shotStillModify.reset")}
             </EditorButton>
             <EditorButton
               variant="contained"
               color="primary"
               onClick={() => void handleSaveAdjustment()}
               disabled={!adjusted || busy || !stillUrl}
-              tooltip="Made in your browser, no provider involved"
+              tooltip={t("screens4_19.storyboard.shotStillModify.saveAdjustmentTooltip")}
             >
-              Save as new take
+              {t("screens4_19.storyboard.shotStillModify.saveAsNewTake")}
             </EditorButton>
           </FlexRow>
         </FlexColumn>
       )}
 
       <Caption color="secondary">
-        Each change arrives as a new take. Use Set current to put it on the shot.
+        {t("screens4_19.storyboard.shotStillModify.newTakeHelp")}
       </Caption>
 
       {painting && stillUrl && (

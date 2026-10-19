@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -30,13 +31,14 @@ interface TaskViewProps {
 }
 
 const TaskView: React.FC<TaskViewProps> = memo(({ task }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   return (
     <div css={cssStyles} className="noscroll">
       <Card className="task-container" variant="elevated" elevation={1}>
         <Text size="normal" weight={600} className="task-title">
-          Task: {task.title}
+          {t("i18n-next61.taskView.taskTitle", { title: task.title })}
         </Text>
         {task.description && (
           <Text size="small" className="task-description">

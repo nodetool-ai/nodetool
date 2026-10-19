@@ -1,4 +1,5 @@
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Caption, Dialog, FlexColumn, SPACING, Text } from "../ui_primitives";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
@@ -11,6 +12,7 @@ import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialo
  * itself once a fresh token is stored.
  */
 const ProviderSignInDialog: React.FC = () => {
+  const { t } = useTranslation();
   const provider = useProviderSignInStore((state) => state.provider);
   const dismiss = useProviderSignInStore((state) => state.dismiss);
   const oauth = useOAuthConnection(provider?.oauth ?? null, {
@@ -32,14 +34,14 @@ const ProviderSignInDialog: React.FC = () => {
       <Dialog
         open
         onClose={handleClose}
-        title={`Sign in to ${provider.label} again`}
+        title={t("batch2_7.providerOnboarding.signInAgain", { provider: provider.label })}
         onConfirm={oauth.connect}
         confirmText={
           oauth.isConnecting
-            ? "Waiting for sign-in…"
-            : `Sign in with ${provider.account}`
+            ? t("batch2_7.providerOnboarding.waitingSignIn")
+            : t("batch2_7.providerOnboarding.signInWith", { account: provider.account })
         }
-        cancelText="Not now"
+        cancelText={t("batch2_7.providerOnboarding.notNow")}
         confirmDisabled={oauth.isConnecting}
         isLoading={oauth.isConnecting}
         maxWidth="xs"
@@ -47,12 +49,10 @@ const ProviderSignInDialog: React.FC = () => {
       >
         <FlexColumn gap={SPACING.md}>
           <Text size="small">
-            Your {provider.account} sign-in expired, so {provider.label} refused
-            the request. Sign in again, then run the workflow again.
+            {t("batch2_7.providerOnboarding.expiredDescription", { account: provider.account, provider: provider.label })}
           </Text>
           <Caption color="secondary">
-            The sign-in opens in a new window. This dialog closes when it
-            finishes.
+            {t("batch2_7.providerOnboarding.signInWindowNote")}
           </Caption>
         </FlexColumn>
       </Dialog>

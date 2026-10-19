@@ -2,6 +2,7 @@
 /** One row in the generated-layer version history list. */
 
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -79,6 +80,7 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
     isDeleting = false
   }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
     const handleRestoreClick = useCallback(() => {
@@ -120,7 +122,7 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
             <FlexRow gap={1} align="center">
               <StatusIndicator
                 status={versionStatusType(version.status)}
-                label={version.status}
+                label={t(`i18n-next52.sketch.statuses.${version.status}`)}
                 size="small"
               />
               {version.costCredits !== undefined && (
@@ -136,24 +138,24 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
               variant="star"
               buttonSize="small"
               disabled={isFavoriting}
-              addTooltip="Mark as favorite (prevents pruning)"
-              removeTooltip="Remove from favorites"
+              addTooltip={t("i18n-next52.sketch.versions.favorite")}
+              removeTooltip={t("i18n-next52.sketch.versions.unfavorite")}
             />
             {canRestore && (
               <ToolbarIconButton
                 icon={<RestoreIcon fontSize="small" />}
-                tooltip="Restore this version"
+                tooltip={t("i18n-next52.sketch.versions.restore")}
                 onClick={handleRestoreClick}
                 disabled={isRestoring}
-                aria-label="Restore version"
+                aria-label={t("i18n-next52.sketch.versions.restoreLabel")}
               />
             )}
             <ToolbarIconButton
               icon={<DeleteIcon fontSize="small" />}
-              tooltip="Delete version"
+              tooltip={t("i18n-next52.sketch.versions.delete")}
               onClick={handleDeleteClick}
               disabled={isDeleting}
-              aria-label="Delete version"
+              aria-label={t("i18n-next52.sketch.versions.deleteLabel")}
             />
           </HoverActionGroup>
         </FlexRow>
@@ -161,14 +163,13 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
         <Dialog
           open={deleteDialogOpen}
           onClose={handleDeleteCancel}
-          title="Delete version?"
+          title={t("i18n-next52.sketch.versions.deleteTitle")}
           onConfirm={handleDeleteConfirm}
-          confirmText="Delete"
+          confirmText={t("i18n-next52.sketch.versions.deleteConfirm")}
           destructive
         >
           <Text size="small">
-            This version will be permanently removed. The underlying job and
-            asset are not deleted.
+            {t("i18n-next52.sketch.versions.deleteDescription")}
           </Text>
         </Dialog>
       </>

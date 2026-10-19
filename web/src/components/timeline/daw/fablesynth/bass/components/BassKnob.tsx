@@ -2,6 +2,7 @@
 // burst is one undo entry on the timeline.
 import type * as React from 'react';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useBatchedGesture, useWheelBatch } from '../../../../../../hooks/timeline/useBatchedGesture';
 import { normToValue, valueToNorm } from '../../params';
 import { BASS_PARAMS } from '../params';
@@ -36,6 +37,7 @@ interface BassKnobProps {
 }
 
 export function BassKnob({ paramId, size = 'md', accent, label }: BassKnobProps) {
+  const { t } = useTranslation();
   const def = BASS_PARAMS[paramId];
   const api = useBassStoreApi();
   const value = useBassStore((s) => s.params[paramId]);
@@ -106,7 +108,7 @@ export function BassKnob({ paramId, size = 'md', accent, label }: BassKnobProps)
       data-accent={accent}
       tabIndex={0}
       role="slider"
-      aria-label={label || def.label || def.id}
+      aria-label={t('i18n-next48.knob.control', { label: label || def.label || def.id })}
       aria-valuemin={def.min}
       aria-valuemax={def.max}
       aria-valuenow={value}

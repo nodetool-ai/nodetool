@@ -33,7 +33,7 @@ it("auditions chromatic pitches from the labelled keyboard", async () => {
 
 it("resets a bass knob to its actual default", () => {
   const onChange = setup("bl1-acid");
-  const drive = screen.getByRole("slider", {name: "DRIVE"});
+  const drive = screen.getByRole("slider", {name: "Drive"});
   fireEvent.doubleClick(drive);
   expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({drive: 0}), undefined);
 });
@@ -45,7 +45,7 @@ it("edits only the selected drum pad and auditions its MIDI pitch", async () => 
   if (preset.type !== "drum") throw new Error("Expected drum preset");
   await user.click(screen.getByRole("button", {name: "Edit pad 3: Snare"}));
   expect(onChange).toHaveBeenLastCalledWith(preset, preset.baseNote + 2);
-  fireEvent.change(screen.getByRole("slider", {name: "LEVEL"}), {target: {value: "0.42"}});
+  fireEvent.change(screen.getByRole("slider", {name: "Level"}), {target: {value: "0.42"}});
   const updated = onChange.mock.lastCall![0];
   expect(updated.pads[2].level).toBeCloseTo(0.42);
   expect(updated.pads[0]).toEqual(preset.pads[0]);

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { idleReverb, type ReverbMessage } from '../../engine/reverb';
 import { setupCanvas } from '../displays/canvas';
 import './reverb.css';
@@ -9,6 +10,7 @@ const db = (value: number) => value <= -89 ? '−∞' : value.toFixed(1);
 const level = (value: number) => Math.max(0, Math.min(1, (value + 72) / 72));
 
 export function ReverbPanel({ adapter }: { adapter: FxPanelAdapter }) {
+  const { t } = useTranslation();
   const params = adapter.params;
   const source = adapter.context;
   const prefix = adapter.prefix ?? '', id = (key: string) => fxId(prefix, `fx.reverb.${key}`);
@@ -33,8 +35,8 @@ export function ReverbPanel({ adapter }: { adapter: FxPanelAdapter }) {
       const half = (w - 32) / 2, center = w / 2;
       const now = stamp || performance.now();
       c.clearRect(0, 0, w, h); c.font = '8px "IBM Plex Mono", monospace';
-      c.fillStyle = slate; c.textAlign = 'left'; c.fillText(source ? `${source} RETURN` : 'LIVE TAIL', 12, 14);
-      c.textAlign = 'right'; c.fillText(motion.matches ? 'STEREO LEVEL' : '3 s HISTORY', w - 12, 14);
+      c.fillStyle = slate; c.textAlign = 'left'; c.fillText(source ? t('i18n-next24.reverb.return', { source }) : t('i18n-next24.reverb.liveTail'), 12, 14);
+      c.textAlign = 'right'; c.fillText(motion.matches ? t('i18n-next24.reverb.stereoLevel') : t('i18n-next24.reverb.history'), w - 12, 14);
       // Perspective is an age axis, not a simulated room. Each cross-section
       // represents measured L/R wet RMS; nothing moves without new audio data.
       const project = (depth: number) => ({ scale: 1 - depth * 0.72, y: h - 23 - depth * 69 });
@@ -87,9 +89,9 @@ export function ReverbPanel({ adapter }: { adapter: FxPanelAdapter }) {
         correlation.current.style.setProperty('--position', `${(data.correlation + 1) * 50}%`);
         correlation.current.dataset.silent = String(silent);
         correlation.current.querySelector('output')!.textContent = corr;
-        correlation.current.setAttribute('aria-label', `Stereo correlation ${silent ? 'unavailable in silence' : corr}`);
+        correlation.current.setAttribute('aria-label', t('i18n-next24.reverb.stereoCorrelationStatus', { status: silent ? t('i18n-next24.reverb.unavailableInSilence') : corr }));
       }
-      el.setAttribute('aria-label', `${source ? `${source} shared reverb, pad send ${enabled.current ? 'active' : 'off'}` : `Reverb ${enabled.current ? 'active' : 'bypassed'}`}. Left return ${values[0]}, right return ${values[1]}. Stereo correlation ${corr}.`);
+      el.setAttribute('aria-label', t('i18n-next24.reverb.visualDescription', { source: source ?? '', state: t(enabled.current ? 'i18n-next24.reverb.active' : source ? 'i18n-next24.reverb.off' : 'i18n-next24.reverb.bypassed'), left: values[0], right: values[1], correlation: corr }));
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(draw); };
     redraw.current = schedule;
@@ -109,24 +111,24 @@ export function ReverbPanel({ adapter }: { adapter: FxPanelAdapter }) {
       unsubscribe(); resize.disconnect(); clearInterval(stale); cancelAnimationFrame(frame);
       motion.removeEventListener('change', schedule); redraw.current = () => {};
     };
-  }, [activeEngine, prefix, source]);
+  }, [activeEngine, prefix, source, t]);
   useEffect(() => { redraw.current(); }, [on]);
 
-  return <section className={`panel panel-reverb${on ? '' : ' reverb-bypassed'}`} style={{ gridArea: 'reverb' }} aria-label={`Visual stereo reverb${adapter.context ? `, ${adapter.context}` : ''}`}>
-    <div className="panel-head">{power(id('on'))}<h2>REVERB</h2><span className="reverb-state">{source ? (on ? 'PAD SEND' : 'SEND OFF') : (on ? 'STEREO' : 'BYPASS')}</span></div>
-    <canvas className="reverb-field" ref={canvas} role="img" aria-label="Stereo reverb tail" />
+  return <section className={`panel panel-reverb${on ? '' : ' reverb-bypassed'}`} style={{ gridArea: 'reverb' }} aria-label={t('i18n-next24.reverb.visualStereoReverb', { context: adapter.context ? t('i18n-next24.reverb.contextSuffix', { context: adapter.context }) : '' })}>
+    <div className="panel-head">{power(id('on'))}<h2>{t('i18n-next24.reverb.title')}</h2><span className="reverb-state">{source ? (on ? t('i18n-next24.reverb.padSend') : t('i18n-next24.reverb.sendOff')) : (on ? t('i18n-next24.reverb.stereo') : t('i18n-next24.reverb.bypass'))}</span></div>
+    <canvas className="reverb-field" ref={canvas} role="img" aria-label={t('i18n-next24.reverb.stereoReverbTail')} />
     <div className="reverb-readouts" ref={readings}>
-      <div><span>L RETURN</span><output>−∞ dB</output></div><div><span>R RETURN</span><output>−∞ dB</output></div>
+      <div><span>{t('i18n-next24.reverb.leftReturn')}</span><output>−∞ dB</output></div><div><span>{t('i18n-next24.reverb.rightReturn')}</span><output>−∞ dB</output></div>
     </div>
     <div className="reverb-controls">
       {knob(id('size'), 'size')}
       {knob(id('mix'), 'mix')}
-      <div className="reverb-correlation" ref={correlation} role="img" aria-label="Stereo correlation unavailable in silence" data-silent="true" title="Wet L/R correlation: +1 is mono, 0 is decorrelated, −1 is opposite polarity">
-        <span>CORRELATION</span><output>—</output>
+      <div className="reverb-correlation" ref={correlation} role="img" aria-label={t('i18n-next24.reverb.unavailableInSilence', { context: t('i18n-next24.reverb.stereoCorrelation') })} data-silent="true" title={t('i18n-next24.reverb.correlationTooltip')}>
+        <span>{t('i18n-next24.reverb.correlation')}</span><output>—</output>
         <div className="reverb-correlation-track"><i /></div>
         <div className="reverb-correlation-scale"><span>−1</span><span>0</span><span>+1</span></div>
       </div>
     </div>
-    {source && <div className="reverb-source-note">SHARED BUS RETURN · CONTROLS APPLY TO THIS PAD</div>}
+    {source && <div className="reverb-source-note">{t('i18n-next24.reverb.sharedBusNote')}</div>}
   </section>;
 }

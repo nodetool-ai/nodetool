@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useStore, type StoreApi } from "zustand";
+import { useTranslation } from "react-i18next";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import CheckIcon from "@mui/icons-material/Check";
@@ -24,6 +25,7 @@ type NameDialog = { readonly mode: "save" | "rename"; readonly from?: string } |
 
 /** The editor's Layout menu: built-in and saved layouts, saving the current one, and which panels are open. */
 export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNode {
+  const { t } = useTranslation();
   const model = store.getState().model;
   const customLayouts = useStore(store, (state) => state.customLayouts);
   const hidden = useStore(store, (state) => state.layout.hidden);
@@ -37,7 +39,7 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
   const custom = customLayouts.some((entry) => entry.name === current);
   const act = (action: () => void): boolean => {
     try { action(); setError(null); return true; }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to change saved layout"); return false; }
+    catch { setError(t("batch2_2.layout.changeError")); return false; }
   };
   const close = (): void => setOpen(false);
   const openDialog = (next: NonNullable<NameDialog>): void => {
@@ -57,39 +59,39 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
     <EditorButton ref={button} size="small" data-dock-layout-menu aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(true)}
       startIcon={<DashboardOutlinedIcon fontSize="small" />} endIcon={<ArrowDropDownIcon fontSize="small" />}
       sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
-      {current ?? "Layout"}
+      {current ?? t("batch2_2.layout.layout")}
     </EditorButton>
-    <ContextMenu open={open} anchorEl={button.current} onClose={close} aria-label="Layout">
-      <ListSubheader>Layouts</ListSubheader>
+    <ContextMenu open={open} anchorEl={button.current} onClose={close} aria-label={t("batch2_2.layout.layout")}>
+      <ListSubheader>{t("batch2_2.layout.layouts")}</ListSubheader>
       {[...model.presets, ...customLayouts.map((entry) => entry.name)].map((layoutName) => <MenuItemPrimitive key={layoutName}
         label={layoutName} selected={layoutName === current} icon={layoutName === current ? <CheckIcon /> : <span />}
         onClick={() => { close(); act(() => store.getState().selectLayout(layoutName)); }} />)}
-      <MenuItemPrimitive dividerBefore label="Reset to saved layout" icon={<RestartAltIcon />} disabled={current === null}
-        tooltip={current === null ? "Choose a layout first" : undefined}
+      <MenuItemPrimitive dividerBefore label={t("batch2_2.layout.resetToSaved")} icon={<RestartAltIcon />} disabled={current === null}
+        tooltip={current === null ? t("batch2_2.layout.chooseFirst") : undefined}
         onClick={() => { close(); act(() => store.getState().resetLayout()); }} />
-      <MenuItemPrimitive dividerBefore label="Save layout as…" icon={<SaveOutlinedIcon />} onClick={() => openDialog({ mode: "save" })} />
-      <MenuItemPrimitive label="Rename layout…" icon={<DriveFileRenameOutlineIcon />} disabled={!custom}
-        tooltip={custom ? undefined : "Built-in layouts cannot be renamed"} onClick={() => openDialog({ mode: "rename", from: current ?? "" })} />
-      <MenuItemPrimitive label="Delete layout" icon={<DeleteOutlineIcon />} color="error" disabled={!custom}
-        tooltip={custom ? undefined : "Built-in layouts cannot be deleted"}
+      <MenuItemPrimitive dividerBefore label={t("batch2_2.layout.saveAs")} icon={<SaveOutlinedIcon />} onClick={() => openDialog({ mode: "save" })} />
+      <MenuItemPrimitive label={t("batch2_2.layout.renameMenu")} icon={<DriveFileRenameOutlineIcon />} disabled={!custom}
+        tooltip={custom ? undefined : t("batch2_2.layout.builtInRenameError")} onClick={() => openDialog({ mode: "rename", from: current ?? "" })} />
+      <MenuItemPrimitive label={t("batch2_2.layout.delete")} icon={<DeleteOutlineIcon />} color="error" disabled={!custom}
+        tooltip={custom ? undefined : t("batch2_2.layout.builtInDeleteError")}
         onClick={() => { close(); act(() => store.getState().deleteLayout(current ?? "")); }} />
-      {panels.length > 0 && <ListSubheader>Panels</ListSubheader>}
+      {panels.length > 0 && <ListSubheader>{t("batch2_2.layout.panels")}</ListSubheader>}
       {panels.map((panel) => {
         const shown = !hidden.includes(panel.id);
         return <MenuItemPrimitive key={panel.id} label={panel.title}
           icon={shown ? <VisibilityOutlinedIcon /> : <VisibilityOffOutlinedIcon />}
-          disabled={model.requiredPanels.includes(panel.id)} secondary={shown ? undefined : "Hidden"}
+          disabled={model.requiredPanels.includes(panel.id)} secondary={shown ? undefined : t("batch2_2.layout.hidden")}
           onClick={() => act(() => store.getState().dispatch({ type: shown ? "hide" : "reveal", panelId: panel.id }))} />;
       })}
     </ContextMenu>
     <Dialog open={dialog !== null} onClose={() => setDialog(null)} maxWidth="xs" fullWidth
-      title={dialog?.mode === "rename" ? "Rename layout" : "Save layout"}
-      onConfirm={confirmName} confirmText={dialog?.mode === "rename" ? "Rename" : "Save"} confirmDisabled={!name.trim()}>
+      title={dialog?.mode === "rename" ? t("batch2_2.layout.renameTitle") : t("batch2_2.layout.saveTitle")}
+      onConfirm={confirmName} confirmText={dialog?.mode === "rename" ? t("batch2_2.layout.rename") : t("batch2_2.layout.save")} confirmDisabled={!name.trim()}>
       <FlexColumn gap={SPACING.md}>
-        <TextInput label="Layout name" autoFocus value={name} onChange={(event) => setName(event.target.value)}
+        <TextInput label={t("batch2_2.layout.nameLabel")} autoFocus value={name} onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter" && name.trim()) { event.preventDefault(); confirmName(); } }} />
         {error && <FlexRow gap={SPACING.xs} align="center"><Caption role="alert" color="error">{error}</Caption>
-          <ReportBugButton context={{ source: "panel-crash", summary: `${capitalizeLabel(model.editorLabel)} layout could not be changed`, errorText: error }} />
+          <ReportBugButton context={{ source: "panel-crash", summary: t("batch2_2.layout.reportSummary", { editor: capitalizeLabel(model.editorLabel) }), errorText: error }} />
         </FlexRow>}
       </FlexColumn>
     </Dialog>

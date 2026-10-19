@@ -381,7 +381,7 @@ describe("Custom curve keyframes", () => {
 
     await openSection(user, "Animate");
     expect(
-      screen.getByText(/not an easing this build reads; plays linear/i)
+      screen.getByText(/This build cannot read this easing; it will play as linear/i)
     ).toBeInTheDocument();
   });
 });

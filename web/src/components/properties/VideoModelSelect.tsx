@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import type {
@@ -37,6 +38,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   recommendedModels,
   modelPacks
 }) => {
+  const { t } = useTranslation();
   const { anchorEl, buttonRef, handleClick, handleClose, handleSelect } =
     useModelSelectMenu("video_model", onChange);
   const inStudio = useInStudio();
@@ -59,7 +61,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
     return (
       <CuratedModelSelect
         capability="text_to_video"
-        label="Video model"
+        label={t("i18n-next119.properties.videoModel")}
         options={
           Array.isArray(task)
             ? forAllTasks(STUDIO_CLIP_MODELS, task)
@@ -76,7 +78,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select model"}
+        label={currentSelectedModelDetails?.name || value || t("i18n-next119.properties.selectModel")}
         subLabel="Select video model"
         onClick={handleClick}
       />

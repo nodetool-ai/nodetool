@@ -7,6 +7,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import {
@@ -27,6 +28,7 @@ import StudioShell from "./StudioShell";
 const TOPUP_CREDITS = 1_000;
 
 const StudioAccountPage = () => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { status, loading, unavailable, refetch } = useStudioCredits();
   const utils = trpc.useUtils();
@@ -43,7 +45,7 @@ const StudioAccountPage = () => {
   const topup = trpc.credits.topup.useMutation(onSettled);
 
   return (
-    <StudioShell title="Plan & credits">
+    <StudioShell title={t("screen_remaining.studio.accountTitle")}>
       <FlexColumn
         align="center"
         gap={SPACING.xl}
@@ -52,9 +54,9 @@ const StudioAccountPage = () => {
         {loading && <LoadingSpinner />}
         {unavailable && (
           <AlertBanner severity="warning">
-            Couldn&apos;t load the credit balance — it is unknown, not empty.{" "}
+            {t("screen_remaining.studio.balanceUnknown")} {" "}
             <EditorButton size="small" onClick={refetch}>
-              Retry
+              {t("screen_remaining.studio.retry")}
             </EditorButton>
           </AlertBanner>
         )}
@@ -74,12 +76,15 @@ const StudioAccountPage = () => {
                 <BoltRoundedIcon />
                 <FlexColumn sx={{ flex: 1, minWidth: 200 }}>
                   <Text size="giant" weight={600}>
-                    {status.balanceCredits} credits
+                {t("screen_remaining.studio.creditsCount", { count: status.balanceCredits })}
                   </Text>
                   <Text size="small" color="secondary">
-                    {status.plan.name} plan · {status.spentCredits} used of{" "}
-                    {status.grantedCredits} granted · resets monthly (
-                    {status.periodKey})
+                    {t("i18n-next99.studio.account.balanceSummary", {
+                      plan: status.plan.name,
+                      spent: status.spentCredits,
+                      granted: status.grantedCredits,
+                      period: status.periodKey
+                    })}
                   </Text>
                 </FlexColumn>
                 {status.testTopupEnabled && (
@@ -89,20 +94,19 @@ const StudioAccountPage = () => {
                     onClick={() => topup.mutate({ credits: TOPUP_CREDITS })}
                   >
                     {topup.isPending
-                      ? "Adding…"
-                      : `Add ${TOPUP_CREDITS} credits (test)`}
+                      ? t("screen_remaining.studio.adding")
+                      : t("screen_remaining.studio.addCredits", { count: TOPUP_CREDITS })}
                   </EditorButton>
                 )}
               </FlexRow>
               <Text size="smaller" color="secondary" sx={{ mt: SPACING.md }}>
-                Credits meter NodeTool's managed models only — bring your own
-                provider keys and those calls stay unmetered.
+                {t("screen_remaining.studio.creditMeterNotice")}
               </Text>
             </Card>
 
             <FlexColumn gap={SPACING.sm} sx={{ width: "100%", maxWidth: 880 }}>
               <Text size="small" weight={600} color="secondary">
-                Plans
+                {t("screen_remaining.studio.plans")}
               </Text>
               <FlexRow gap={SPACING.lg} wrap>
                 {status.plans.map((plan) => {
@@ -130,15 +134,22 @@ const StudioAccountPage = () => {
                           <Text size="big" weight={600}>
                             {plan.name}
                           </Text>
-                          {current && <Chip compact label="Current" />}
+                          {current && <Chip compact label={t("screen_remaining.studio.current")} />}
                         </FlexRow>
                         <Text size="normal">
-                          {plan.monthlyCredits.toLocaleString()} credits / month
+                          {t("i18n-next99.studio.account.monthlyCredits", {
+                            count: plan.monthlyCredits,
+                            formattedCount: new Intl.NumberFormat(
+                              i18n.language
+                            ).format(plan.monthlyCredits)
+                          })}
                         </Text>
                         <Text size="small" color="secondary">
                           {plan.priceUsdPerMonth === 0
-                            ? "Free"
-                            : `$${plan.priceUsdPerMonth}/month`}
+                            ? t("screen_remaining.studio.free")
+                            : t("i18n-next99.studio.account.pricePerMonth", {
+                                price: plan.priceUsdPerMonth
+                              })}
                         </Text>
                         <Text size="small" color="secondary">
                           {plan.blurb}
@@ -148,7 +159,7 @@ const StudioAccountPage = () => {
                           disabled={current || setPlan.isPending}
                           onClick={() => setPlan.mutate({ planId: plan.id })}
                         >
-                          {current ? "Selected" : "Switch to " + plan.name}
+                          {current ? t("screen_remaining.studio.selected") : t("screen_remaining.studio.switchTo", { plan: plan.name })}
                         </EditorButton>
                       </FlexColumn>
                     </Card>
@@ -156,8 +167,7 @@ const StudioAccountPage = () => {
                 })}
               </FlexRow>
               <Text size="smaller" color="secondary">
-                Plan changes are instant and unbilled in this prototype — a
-                payment provider hooks in behind the same ledger.
+                {t("screen_remaining.studio.planChanges")}
               </Text>
             </FlexColumn>
           </>

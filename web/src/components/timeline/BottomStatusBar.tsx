@@ -6,6 +6,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import {
   FlexRow,
@@ -65,10 +66,11 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
     actionSlot,
     readoutSlot
   }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
 
     const modeStatus: StatusType = mode === "cloud" ? "success" : "info";
-    const modeLabel = mode === "cloud" ? "Cloud" : "Local";
+    const modeLabel = t(mode === "cloud" ? "timeline.status.cloud" : "timeline.status.local");
     const ModeIcon = mode === "cloud" ? CloudIcon : ComputerIcon;
 
     return (
@@ -88,21 +90,21 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
           {generatingCount > 0 && (
             <FlexRow gap={0.5} align="center">
               <StatusDot tone="primary" />
-              <Caption>{generatingCount} generating</Caption>
+              <Caption>{t("timeline.status.generating", { count: generatingCount })}</Caption>
             </FlexRow>
           )}
 
           {failedCount > 0 && (
             <FlexRow gap={0.5} align="center">
               <StatusDot tone="error" />
-              <Caption color="error">{failedCount} failed</Caption>
+              <Caption color="error">{t("timeline.status.failed", { count: failedCount })}</Caption>
             </FlexRow>
           )}
 
           <CostEstimateLine
             estimate={costEstimate}
-            title="Estimated cost of generating every clip in this sequence"
-            ariaPrefix="Estimated sequence cost"
+            title={t("timeline.status.estimatedSequenceCost")}
+            ariaPrefix={t("timeline.status.estimatedSequenceCostAria")}
           />
         </FlexRow>
 

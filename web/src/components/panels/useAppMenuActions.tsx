@@ -19,6 +19,7 @@ import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { openPageTab } from "../workspace/openPageTab";
 import { type PageTabKey } from "../workspace/pageTabs";
+import { useTranslation } from "react-i18next";
 
 export interface AppMenuAction {
   key: string;
@@ -44,6 +45,7 @@ export interface AppMenuAction {
  * App-level dialog hosts own Help and Downloads independently of menu lifetime.
  */
 export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
+  const { t } = useTranslation();
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
   const { downloads, openDownloadsDialog } = useModelDownloadStore(
     useShallow((state) => ({
@@ -77,21 +79,21 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     const actions: AppMenuAction[] = [
       {
         key: "tutorials",
-        label: "Tutorials",
+        label: t("batch2_3.navigation.tutorials"),
         icon: <SchoolOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("tutorials")
       },
       {
         key: "examples",
-        label: "Examples",
+        label: t("batch2_3.navigation.examples"),
         icon: <AutoAwesomeOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("examples")
       },
       {
         key: "costs",
-        label: "Costs",
+        label: t("batch2_3.navigation.costs"),
         icon: <PaidOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("costs"),
@@ -106,7 +108,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     if (!cloud) {
       actions.push({
         key: "models",
-        label: "Model manager",
+        label: t("batch2_3.navigation.modelManager"),
         icon: <ViewInArOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("models")
@@ -116,7 +118,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     if (!isProduction) {
       actions.push({
         key: "packages",
-        label: "Package manager",
+        label: t("batch2_3.navigation.packageManager"),
         icon: <Inventory2OutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("packages")
@@ -126,28 +128,28 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     actions.push(
       {
         key: "assets",
-        label: "Assets",
+        label: t("batch2_3.navigation.assets"),
         icon: <PermMediaOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("assets")
       },
       {
         key: "collections",
-        label: "Collections",
+        label: t("batch2_3.navigation.collections"),
         icon: <LibraryBooksOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("collections")
       },
       {
         key: "workspaces",
-        label: "Workspaces",
+        label: t("batch2_3.navigation.workspaces"),
         icon: <FolderSpecialOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("workspaces")
       },
       {
         key: "memory",
-        label: "Memory",
+        label: t("batch2_3.navigation.memory"),
         icon: <PsychologyOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("memory"),
@@ -155,14 +157,14 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
       },
       {
         key: "settings",
-        label: "Settings",
+        label: t("batch2_3.navigation.settings"),
         icon: <SettingsIcon />,
         placement: "both",
         onClick: () => openPage("settings")
       },
       {
         key: "help",
-        label: "Help",
+        label: t("batch2_3.navigation.help"),
         icon: <HelpOutlineIcon />,
         placement: "both",
         onClick: () => {
@@ -175,7 +177,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     if (!cloud) {
       actions.push({
         key: "downloads",
-        label: "Downloads",
+        label: t("batch2_3.navigation.downloads"),
         icon: <DownloadIcon />,
         placement: "logo",
         onClick: () => {
@@ -187,5 +189,5 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     }
 
     return actions;
-  }, [openPage, finish, handleOpenHelp, openDownloadsDialog, downloadProgress]);
+  }, [openPage, finish, handleOpenHelp, openDownloadsDialog, downloadProgress, t]);
 };

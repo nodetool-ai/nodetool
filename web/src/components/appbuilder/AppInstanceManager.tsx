@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useAppInstances,
   useAppInstanceMutations
@@ -40,6 +41,7 @@ export default function AppInstanceManager({
   latestVersion,
   onAdvanced
 }: AppInstanceManagerProps): React.ReactElement | null {
+  const { t } = useTranslation();
   const { instance, flushInstance, refreshInstance } = useAppRuntimeContext();
   const visitor = getAppSessionToken() !== null;
   const scope = {
@@ -84,12 +86,15 @@ export default function AppInstanceManager({
     try {
       await flushInstance?.();
       const selected = choices.find((item) => item.id === id);
-      navigate(id, selected?.name ?? "App instance");
+      navigate(
+        id,
+        selected?.name ?? t("i18n-cont-appbuilder-10.instances.appInstance")
+      );
     } catch (failure) {
       setError(
         failure instanceof Error
           ? failure.message
-          : "Could not switch instances."
+          : t("i18n-cont-appbuilder-10.instances.switchError")
       );
     } finally {
       setBusy(false);
@@ -141,7 +146,9 @@ export default function AppInstanceManager({
       setAction(null);
     } catch (failure) {
       setError(
-        failure instanceof Error ? failure.message : "Instance action failed."
+        failure instanceof Error
+          ? failure.message
+          : t("i18n-cont-appbuilder-10.instances.actionError")
       );
     } finally {
       setBusy(false);
@@ -152,8 +159,10 @@ export default function AppInstanceManager({
       next === "rename"
         ? instance.name
         : next === "duplicate"
-          ? `${instance.name} copy`
-          : "New instance"
+          ? t("i18n-cont-appbuilder-10.instances.copyName", {
+              name: instance.name
+            })
+          : t("i18n-cont-appbuilder-10.instances.newInstance")
     );
     setAction(next);
     setError(null);
@@ -166,7 +175,7 @@ export default function AppInstanceManager({
     <FlexColumn gap={SPACING.sm} padding={SPACING.lg}>
       <FlexRow gap={SPACING.sm} align="center" sx={{ flexWrap: "wrap" }}>
         <SelectField
-          label="App instance"
+          label={t("i18n-cont-appbuilder-10.instances.appInstance")}
           value={instance.id}
           disabled={busy}
           options={[
@@ -179,8 +188,10 @@ export default function AppInstanceManager({
         />
         <Caption>
           {instance.version === null
-            ? "Draft working copy"
-            : `Pinned version ${instance.version}`}
+            ? t("i18n-cont-appbuilder-10.instances.draftWorkingCopy")
+            : t("i18n-cont-appbuilder-10.instances.pinnedVersion", {
+                version: instance.version
+              })}
         </Caption>
         <EditorButton
           variant="outlined"
@@ -188,7 +199,7 @@ export default function AppInstanceManager({
           disabled={busy}
           onClick={() => show("new")}
         >
-          New instance
+          {t("i18n-cont-appbuilder-10.instances.newInstance")}
         </EditorButton>
         <EditorButton
           variant="outlined"
@@ -196,7 +207,7 @@ export default function AppInstanceManager({
           disabled={busy}
           onClick={() => show("rename")}
         >
-          Rename
+          {t("i18n-cont-appbuilder-10.instances.rename")}
         </EditorButton>
         <EditorButton
           variant="outlined"
@@ -204,7 +215,7 @@ export default function AppInstanceManager({
           disabled={busy}
           onClick={() => show("duplicate")}
         >
-          Duplicate
+          {t("i18n-cont-appbuilder-10.instances.duplicate")}
         </EditorButton>
         <EditorButton
           variant="outlined"
@@ -212,7 +223,7 @@ export default function AppInstanceManager({
           disabled={busy}
           onClick={() => show("delete")}
         >
-          Delete instance
+          {t("i18n-cont-appbuilder-10.instances.deleteInstance")}
         </EditorButton>
         {latestVersion !== undefined &&
         latestVersion > (instance.version ?? 0) ? (
@@ -222,7 +233,9 @@ export default function AppInstanceManager({
             disabled={busy}
             onClick={() => show("advance")}
           >
-            Advance to version {latestVersion}
+            {t("i18n-cont-appbuilder-10.instances.advanceToVersion", {
+              version: latestVersion
+            })}
           </EditorButton>
         ) : null}
         {pageIndex > 0 ? (
@@ -231,7 +244,7 @@ export default function AppInstanceManager({
             color="inherit"
             onClick={() => setPageIndex((index) => index - 1)}
           >
-            Newer instances
+            {t("i18n-cont-appbuilder-10.instances.newerInstances")}
           </EditorButton>
         ) : null}
         {list.hasNextPage || list.data?.pages[pageIndex + 1] ? (
@@ -241,7 +254,7 @@ export default function AppInstanceManager({
             disabled={list.isFetchingNextPage}
             onClick={() => void older()}
           >
-            Older instances
+            {t("i18n-cont-appbuilder-10.instances.olderInstances")}
           </EditorButton>
         ) : null}
       </FlexRow>
@@ -252,7 +265,9 @@ export default function AppInstanceManager({
             <ReportBugButton
               context={{
                 source: "operation-failure",
-                summary: "Instance management failed",
+                summary: t(
+                  "i18n-cont-appbuilder-10.instances.managementFailed"
+                ),
                 errorText: outerError
               }}
             />
@@ -270,26 +285,26 @@ export default function AppInstanceManager({
         }}
         title={
           action === "advance"
-            ? "Advance instance version"
+            ? t("i18n-cont-appbuilder-10.instances.advanceVersion")
             : action === "delete"
-              ? "Delete instance?"
+              ? t("i18n-cont-appbuilder-10.instances.confirmDeleteTitle")
               : action === "duplicate"
-                ? "Duplicate instance"
+                ? t("i18n-cont-appbuilder-10.instances.duplicateInstance")
                 : action === "rename"
-                  ? "Rename instance"
-                  : "New instance"
+                  ? t("i18n-cont-appbuilder-10.instances.renameInstance")
+                  : t("i18n-cont-appbuilder-10.instances.newInstance")
         }
         onConfirm={() => void confirm()}
         confirmText={
           action === "delete"
-            ? "Delete"
+            ? t("i18n-cont-appbuilder-10.instances.delete")
             : action === "new"
-              ? "Create"
+              ? t("i18n-cont-appbuilder-10.instances.create")
               : action === "duplicate"
-                ? "Duplicate"
+                ? t("i18n-cont-appbuilder-10.instances.duplicate")
                 : action === "advance"
-                  ? "Advance"
-                  : "Save"
+                  ? t("i18n-cont-appbuilder-10.instances.advance")
+                  : t("i18n-cont-appbuilder-10.instances.save")
         }
         isLoading={busy}
         confirmDisabled={named && !name.trim()}
@@ -297,7 +312,7 @@ export default function AppInstanceManager({
       >
         {named ? (
           <TextInput
-            label="Instance name"
+            label={t("i18n-cont-appbuilder-10.instances.instanceName")}
             value={name}
             onChange={(event) => setName(event.target.value)}
             autoFocus
@@ -305,8 +320,8 @@ export default function AppInstanceManager({
         ) : (
           <Text>
             {action === "delete"
-              ? "This removes the instance, its history and associations. Generated media remains in your library. Running work is not cancelled."
-              : "Future runs will use the selected published version. Historical runs keep their original version. Incompatible state prevents advancement."}
+              ? t("i18n-cont-appbuilder-10.instances.deleteDescription")
+              : t("i18n-cont-appbuilder-10.instances.advanceDescription")}
           </Text>
         )}
         {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}

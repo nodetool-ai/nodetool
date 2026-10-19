@@ -6,13 +6,13 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { sourceRate, type TimelineClip } from "@nodetool-ai/timeline";
 
 import { useTimelineStoreApi } from "../../../stores/timeline/TimelineStore";
 import {
   attributeGroupApplies,
   PASTE_ATTRIBUTE_GROUPS,
-  PASTE_ATTRIBUTE_LABELS,
   type PasteAttributeGroup
 } from "../../../stores/timeline/pasteAttributes";
 import { runAsOneUndoEntry } from "../../../stores/timeline/useTimelineHistoryBatch";
@@ -56,6 +56,7 @@ interface PasteAttributesDialogProps {
 
 export const PasteAttributesDialog: React.FC<PasteAttributesDialogProps> =
   memo(({ clipIds, source, onClose }) => {
+    const { t } = useTranslation();
     const docStore = useTimelineStoreApi();
     const groups = useMemo(() => {
       const targets = docStore
@@ -102,15 +103,15 @@ export const PasteAttributesDialog: React.FC<PasteAttributesDialogProps> =
       <Dialog
         open
         onClose={onClose}
-        title="Paste attributes"
+        title={t("batch2_25.pasteAttributes.title")}
         onConfirm={handleConfirm}
-        confirmText="Paste"
+        confirmText={t("batch2_25.pasteAttributes.confirm")}
         confirmDisabled={chosen.size === 0}
       >
         <FlexColumn gap={SPACING.sm}>
-          <Caption color="muted">{`From "${source.name}"`}</Caption>
+          <Caption color="muted">{t("batch2_25.pasteAttributes.from", { name: source.name })}</Caption>
           {groups.length === 0 ? (
-            <Caption>The copied clip has nothing these clips can take.</Caption>
+            <Caption>{t("batch2_25.pasteAttributes.empty")}</Caption>
           ) : (
             groups.map((group) => (
               <Checkbox
@@ -118,7 +119,7 @@ export const PasteAttributesDialog: React.FC<PasteAttributesDialogProps> =
                 size="small"
                 checked={chosen.has(group)}
                 onChange={() => toggle(group)}
-                label={PASTE_ATTRIBUTE_LABELS[group]}
+                label={t(`batch2_25.pasteAttributes.groups.${group}`)}
               />
             ))
           )}

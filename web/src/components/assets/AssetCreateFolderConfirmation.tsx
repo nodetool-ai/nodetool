@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AlertBanner,
   Dialog,
@@ -13,6 +14,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { Asset } from "../../stores/ApiTypes";
 
 const AssetCreateFolderConfirmation: React.FC = () => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next27" });
   const setDialogOpen = useAssetGridStore(
     (state) => state.setCreateFolderDialogOpen
   );
@@ -29,7 +31,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     (state) => state.setFoldersVisible
   );
 
-  const [folderName, setFolderName] = useState("New Folder");
+  const [folderName, setFolderName] = useState(() => t("assetCreateFolder.defaultName"));
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const handleClose = useCallback(() => {
     setDialogOpen(false);
@@ -66,7 +68,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
   useEffect(() => {
     if (dialogOpen) {
-      setFolderName("New Folder");
+      setFolderName(t("assetCreateFolder.defaultName"));
       setShowAlert(null);
       const timer = setTimeout(() => {
         if (inputRef.current) {
@@ -95,17 +97,17 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       folderName.startsWith(" ") ||
       folderName.match(/^[-#*&]/)
     ) {
-      setShowAlert("Name cannot start with a special character.");
+      setShowAlert(t("assetCreateFolder.specialCharacter"));
       return;
     }
 
     const invalidCharsFound = folderName.match(invalidCharsRegex);
 
     if (!folderName) {
-      setShowAlert("Name cannot be empty.");
+      setShowAlert(t("assetCreateFolder.nameRequired"));
       return;
     } else if (folderName.length > 100) {
-      setShowAlert("Max folder name length is 100 characters.");
+      setShowAlert(t("assetCreateFolder.maxLength"));
       return;
     }
 
@@ -134,9 +136,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
         addNotification({
           type: "success",
-          content: `Created folder "${cleanedName}" and moved ${
-            selectedAssetIds.length
-          } item${selectedAssetIds.length === 1 ? "" : "s"}`
+          content: t(selectedAssetIds.length === 1 ? "assetCreateFolder.createdAndMovedOne" : "assetCreateFolder.createdAndMovedOther", { name: cleanedName, count: selectedAssetIds.length })
         });
 
         setSelectedAssetIds([]);
@@ -144,7 +144,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       } else {
         addNotification({
           type: "success",
-          content: `Created folder "${cleanedName}"`
+          content: t("assetCreateFolder.created", { name: cleanedName })
         });
       }
 
@@ -155,7 +155,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       refetchAssetsAndFolders();
     } catch (error) {
       console.error("Failed to create folder", error);
-      setShowAlert("Failed to create folder. Please try again.");
+      setShowAlert(t("assetCreateFolder.failed"));
     }
   }, [
     folderName,
@@ -180,9 +180,9 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       onClose={handleClose}
       maxWidth="xs"
       fullWidth
-      title={hasSelectedAssets ? "Move to new folder" : "Create folder"}
+      title={hasSelectedAssets ? t("assetCreateFolder.moveTitle") : t("assetCreateFolder.createTitle")}
       onConfirm={() => void handleCreateFolder()}
-      confirmText={hasSelectedAssets ? "Move" : "Create"}
+      confirmText={hasSelectedAssets ? t("assetCreateFolder.move") : t("assetCreateFolder.create")}
       actionButtonsProps={{
         confirmButtonProps: {
           className: "asset-create-folder-confirm-button button-confirm"
@@ -204,7 +204,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
         )}
         <TextInput
           className="asset-create-folder-input"
-          label="Name"
+          label={t("assetCreateFolder.nameLabel")}
           inputRef={inputRef}
           value={folderName}
           onKeyDown={(e) => {
@@ -218,7 +218,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           spellCheck="false"
           helperText={
             hasSelectedAssets
-              ? `${selectedAssets.length} assets selected: they will be moved to the new folder.`
+              ? t("assetCreateFolder.selectedHelper", { count: selectedAssets.length })
               : undefined
           }
         />

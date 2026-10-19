@@ -8,6 +8,7 @@ interface ModRowProps {
 }
 
 function ModRow({ sel, route }: ModRowProps) {
+  const { t } = useTranslation();
   const sourceId = pad(sel, `mod${route}.src`);
   const destinationId = pad(sel, `mod${route}.dst`);
   const amountId = pad(sel, `mod${route}.amt`);
@@ -20,7 +21,7 @@ function ModRow({ sel, route }: ModRowProps) {
       <select
         className="mod-select"
         value={source}
-        aria-label={`Mod ${route} source`}
+        aria-label={t('i18n-next48.modulation.source', { route })}
         onChange={(event) => setParam(sourceId, Number(event.target.value))}
       >
         {DMOD_SOURCES.map((name, index) => <option key={name} value={index}>{name}</option>)}
@@ -29,7 +30,7 @@ function ModRow({ sel, route }: ModRowProps) {
       <select
         className="mod-select"
         value={destination}
-        aria-label={`Mod ${route} destination`}
+        aria-label={t('i18n-next48.modulation.destination', { route })}
         onChange={(event) => setParam(destinationId, Number(event.target.value))}
       >
         {DMOD_DESTS.map((name, index) => <option key={name} value={index}>{name}</option>)}
@@ -42,6 +43,7 @@ function ModRow({ sel, route }: ModRowProps) {
 const ROUTES: Array<1 | 2 | 3 | 4> = [1, 2, 3, 4];
 
 export function ModPanel() {
+  const { t } = useTranslation();
   const sel = useDrumStore((s) => s.sel);
   const decayId = pad(sel, 'modenv.dec');
   const decay = useDrumStore((s) => s.params[decayId]);
@@ -52,13 +54,13 @@ export function ModPanel() {
   return (
     <section className="panel dr-edit-panel dr-mod-panel">
       <div className="panel-head dr-mod-head">
-        <h2>MOD</h2>
+        <h2>{t('i18n-next48.modulation.title')}</h2>
         <div className="dr-mod-env">
-          <span className="panel-hint">MOD ENV DEC {decayText}</span>
+          <span className="panel-hint">{t('i18n-next48.modulation.envDecay', { value: decayText })}</span>
           <DrumKnob paramId={decayId} size="xs" label="" />
         </div>
       </div>
-      {noRoutesAssigned && <div className="dr-mod-hint">ROUTE A SOURCE TO ANY PAD PARAM</div>}
+      {noRoutesAssigned && <div className="dr-mod-hint">{t('i18n-next48.modulation.routeHint')}</div>}
       <div className="dr-mod-routes">
         <ModRow sel={sel} route={1} />
         <ModRow sel={sel} route={2} />
@@ -68,3 +70,4 @@ export function ModPanel() {
     </section>
   );
 }
+import { useTranslation } from 'react-i18next';

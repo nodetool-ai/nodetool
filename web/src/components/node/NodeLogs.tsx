@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import isEqual from "../../utils/isEqual";
@@ -54,6 +55,7 @@ const styles = (theme: Theme) =>
 
 export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
+    const { t } = useTranslation();
     const logsRef = useRef<HTMLDivElement>(null);
     // O(1) lookup via pre-keyed map instead of filtering the full logs array.
     const logs = useLogsStore(
@@ -132,11 +134,15 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
         onClose={onClose}
         fullWidth
         maxWidth="md"
-        title="Node logs"
+        title={t("i18n-next36.nodeEditor.nodeLogs.title")}
         titleActions={
           <>
             <Chip size="small" label={`${count}`} />
-            <CopyButton value={logText} tooltip="Copy logs" nodrag={false} />
+            <CopyButton
+              value={logText}
+              tooltip={t("i18n-next36.nodeEditor.nodeLogs.copyLogs")}
+              nodrag={false}
+            />
           </>
         }
       >
@@ -144,20 +150,20 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
           <FlexRow gap={SPACING.xs} align="center">
             <Chip
               size="small"
-              label="Info"
+              label={t("i18n-next36.nodeEditor.nodeLogs.info")}
               active={selectedSeverities.includes("info")}
               onClick={toggleInfoSeverity}
             />
             <Chip
               size="small"
-              label="Warnings"
+              label={t("i18n-next36.nodeEditor.nodeLogs.warnings")}
               color="warning"
               active={selectedSeverities.includes("warning")}
               onClick={toggleWarningSeverity}
             />
             <Chip
               size="small"
-              label="Errors"
+              label={t("i18n-next36.nodeEditor.nodeLogs.errors")}
               color="error"
               active={selectedSeverities.includes("error")}
               onClick={toggleErrorSeverity}
@@ -180,6 +186,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
 NodeLogsDialog.displayName = "NodeLogsDialog";
 
 const NodeLogsImpl: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const memoizedStyles = useMemo(() => styles(theme), [theme]);
   // O(1) lookup via pre-keyed map instead of filtering the full logs array.
@@ -212,7 +219,7 @@ const NodeLogsImpl: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
           onClick={handleOpen}
           startIcon={<ListAltIcon />}
         >
-          <span>Logs</span>
+          <span>{t("i18n-next36.nodeEditor.nodeLogs.logs")}</span>
           <Chip size="small" label={count} sx={{ ml: 1 }} />
         </EditorButton>
       </div>

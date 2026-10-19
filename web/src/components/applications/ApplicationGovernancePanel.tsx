@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { appDeploymentPath } from "@nodetool-ai/protocol";
 
@@ -41,17 +42,27 @@ type Version = RouterOutputs["applications"]["versions"][number];
 type BudgetPeriod = RouterOutputs["applications"]["setBudget"]["period"];
 
 const PERIOD_OPTIONS = [
-  { value: "day", label: "Per day" },
-  { value: "month", label: "Per month" },
-  { value: "total", label: "Lifetime" }
+  { value: "day" },
+  { value: "month" },
+  { value: "total" }
 ] as const;
 
 const isBudgetPeriod = (value: string): value is BudgetPeriod =>
   PERIOD_OPTIONS.some((option) => option.value === value);
 
-const formatUsd = (value: number): string => `$${value.toFixed(4)}`;
+const formatUsd = (value: number, locale: string): string =>
+  new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4
+  }).format(value);
 
-const formatDate = (iso: string): string => new Date(iso).toLocaleString();
+const formatDate = (iso: string, locale: string): string =>
+  new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(iso));
 
 type ParsedLimit = { ok: true; value: number | null } | { ok: false };
 
@@ -65,13 +76,14 @@ const parseLimit = (raw: string): ParsedLimit => {
     : { ok: false };
 };
 
-const LIMIT_HINT = "Enter a number of 0 or more, or leave empty for no limit.";
-
 /** "2 workflows · asset (read, create)" — what a release is allowed to touch. */
-const capabilitySummary = (version: Version): string => {
+const capabilitySummary = (
+  version: Version,
+  workflowCount: (count: number) => string
+): string => {
   const workflows = version.capabilities.workflows.length;
   const parts = [
-    workflows === 1 ? "1 workflow" : `${workflows} workflows`,
+    workflowCount(workflows),
     ...version.capabilities.resources.map(
       (resource) => `${resource.kind} (${resource.operations.join(", ")})`
     )
@@ -90,6 +102,7 @@ const VersionRow = memo(function VersionRow({
   onRelease,
   releasing
 }: VersionRowProps) {
+  const { t, i18n } = useTranslation();
   const handleRelease = useCallback(
     () => onRelease(version.version),
     [onRelease, version.version]
@@ -98,11 +111,24 @@ const VersionRow = memo(function VersionRow({
     <FlexRow align="center" justify="space-between" gap={SPACING.md} fullWidth>
       <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
         <FlexRow align="center" gap={SPACING.xs}>
-          <Text size="small" weight={500}>{`Version ${version.version}`}</Text>
-          {version.released && <Chip label="Released" size="small" />}
+          <Text size="small" weight={500}>
+            {t("i18n-cont-appbuilder-10.governance.version", {
+              version: version.version
+            })}
+          </Text>
+          {version.released && (
+            <Chip
+              label={t("i18n-cont-appbuilder-10.governance.released")}
+              size="small"
+            />
+          )}
         </FlexRow>
-        <Caption>{capabilitySummary(version)}</Caption>
-        <Caption>{formatDate(version.createdAt)}</Caption>
+        <Caption>
+          {capabilitySummary(version, (count) =>
+            t("i18n-cont-appbuilder-10.governance.workflowCount", { count })
+          )}
+        </Caption>
+        <Caption>{formatDate(version.createdAt, i18n.language)}</Caption>
       </FlexColumn>
       {!version.released && (
         <Button
@@ -111,7 +137,9 @@ const VersionRow = memo(function VersionRow({
           disabled={releasing}
           onClick={handleRelease}
         >
-          {`Roll back to version ${version.version}`}
+          {t("i18n-cont-appbuilder-10.governance.rollback", {
+            version: version.version
+          })}
         </Button>
       )}
     </FlexRow>
@@ -125,6 +153,7 @@ interface BudgetSectionProps {
 const BudgetSection = memo(function BudgetSection({
   applicationId
 }: BudgetSectionProps) {
+  const { t, i18n } = useTranslation();
   const {
     data: budget,
     isLoading,
@@ -168,44 +197,64 @@ const BudgetSection = memo(function BudgetSection({
     });
   }, [applicationId, maxInvocations, maxUsd, period, setBudget]);
 
-  if (isLoading) return <LoadingSpinner text="Loading budget" />;
+  if (isLoading)
+    return (
+      <LoadingSpinner
+        text={t("i18n-cont-appbuilder-10.governance.loadingBudget")}
+      />
+    );
 
   if (isError) {
     return (
       <AlertBanner severity="error">
-        {`Could not load the budget: ${error?.message ?? "try again later."}`}
+        {t("i18n-cont-appbuilder-10.governance.loadBudgetError", {
+          error:
+            error?.message ?? t("i18n-cont-appbuilder-10.common.tryAgainLater")
+        })}
       </AlertBanner>
     );
   }
 
   return (
     <FlexColumn gap={SPACING.md} fullWidth>
-      <SectionHeader title="Spend budget" />
+      <SectionHeader
+        title={t("i18n-cont-appbuilder-10.governance.spendBudget")}
+      />
       <Caption>
-        Runs of the released app are checked against this ceiling before they
-        reach a provider. An empty field means no limit.
+        {t("i18n-cont-appbuilder-10.governance.budgetDescription")}
       </Caption>
       <SelectField
-        label="Period"
+        label={t("i18n-cont-appbuilder-10.governance.period")}
         value={period}
         onChange={handlePeriodChange}
-        options={PERIOD_OPTIONS}
+        options={PERIOD_OPTIONS.map((option) => ({
+          ...option,
+          label: t(`i18n-cont-appbuilder-10.governance.periods.${option.value}`)
+        }))}
         size="small"
       />
       <TextInput
-        label="Max spend (USD)"
+        label={t("i18n-cont-appbuilder-10.governance.maxSpend")}
         size="small"
         inputMode="decimal"
         value={maxUsd}
-        errorMessage={parsedUsd.ok ? undefined : LIMIT_HINT}
+        errorMessage={
+          parsedUsd.ok
+            ? undefined
+            : t("i18n-cont-appbuilder-10.governance.limitHint")
+        }
         onChange={(event) => setMaxUsd(event.target.value)}
       />
       <TextInput
-        label="Max invocations"
+        label={t("i18n-cont-appbuilder-10.governance.maxInvocations")}
         size="small"
         inputMode="numeric"
         value={maxInvocations}
-        errorMessage={parsedInvocations.ok ? undefined : LIMIT_HINT}
+        errorMessage={
+          parsedInvocations.ok
+            ? undefined
+            : t("i18n-cont-appbuilder-10.governance.limitHint")
+        }
         onChange={(event) => setMaxInvocations(event.target.value)}
       />
       <FlexRow gap={SPACING.md} align="center">
@@ -215,19 +264,27 @@ const BudgetSection = memo(function BudgetSection({
           disabled={setBudget.isPending || !canSave}
           onClick={handleSave}
         >
-          Save budget
+          {t("i18n-cont-appbuilder-10.governance.saveBudget")}
         </Button>
       </FlexRow>
       {setBudget.isError && (
         <AlertBanner severity="error">
-          {`Could not save the budget: ${setBudget.error.message}`}
+          {t("i18n-cont-appbuilder-10.governance.saveBudgetError", {
+            error: setBudget.error.message
+          })}
         </AlertBanner>
       )}
       {usage && (
         <Caption>
-          {`Used ${formatUsd(usage.spentUsd)} across ${usage.invocations} run${
-            usage.invocations === 1 ? "" : "s"
-          }${usage.since ? ` since ${formatDate(usage.since)}` : ""}.`}
+          {t("i18n-cont-appbuilder-10.governance.usageSummary", {
+            amount: formatUsd(usage.spentUsd, i18n.language),
+            count: usage.invocations,
+            since: usage.since
+              ? t("i18n-cont-appbuilder-10.governance.since", {
+                  date: formatDate(usage.since, i18n.language)
+                })
+              : ""
+          })}
         </Caption>
       )}
     </FlexColumn>
@@ -249,6 +306,7 @@ interface DeploySectionProps {
 const DeploySection = memo(function DeploySection({
   applicationId
 }: DeploySectionProps) {
+  const { t } = useTranslation();
   const {
     data: deployment,
     isLoading,
@@ -271,26 +329,38 @@ const DeploySection = memo(function DeploySection({
     ? `${window.location.origin}${appDeploymentPath(deployment.token)}`
     : null;
 
-  if (isLoading) return <LoadingSpinner text="Loading link" />;
+  if (isLoading)
+    return (
+      <LoadingSpinner
+        text={t("i18n-cont-appbuilder-10.governance.loadingLink")}
+      />
+    );
 
   return (
     <FlexColumn gap={SPACING.md} fullWidth>
-      <SectionHeader title="Public link" />
+      <SectionHeader
+        title={t("i18n-cont-appbuilder-10.governance.publicLink")}
+      />
       {isError && isProductionOnlyDeploymentError(error) ? (
         <Caption>
-          Public links are available on nodetool.ai. This server does not serve
-          them.
+          {t("i18n-cont-appbuilder-10.governance.publicLinkUnavailable")}
         </Caption>
       ) : isError ? (
         <FlexColumn gap={SPACING.xs}>
           <AlertBanner severity="error">
-            {`Could not load the public link: ${error?.message ?? "try again later."}`}
+            {t("i18n-cont-appbuilder-10.governance.loadLinkError", {
+              error:
+                error?.message ??
+                t("i18n-cont-appbuilder-10.common.tryAgainLater")
+            })}
           </AlertBanner>
           <ReportBugButton
-            label="Report deployment issue"
+            label={t(
+              "i18n-cont-appbuilder-10.governance.reportDeploymentIssue"
+            )}
             context={{
               source: "panel-crash",
-              summary: "Public link status failed to load",
+              summary: t("i18n-cont-appbuilder-10.governance.linkStatusFailed"),
               errorText: error?.message,
               stackTrace: error instanceof Error ? error.stack : undefined
             }}
@@ -299,25 +369,28 @@ const DeploySection = memo(function DeploySection({
       ) : (
         <>
           <Caption>
-            Anyone with the link can open and run the released version — no
-            account needed. Runs execute on your account and count against the
-            spend budget below.
+            {t("i18n-cont-appbuilder-10.governance.publicLinkDescription")}
           </Caption>
           {url && (
             <FlexRow align="center" gap={SPACING.md} fullWidth>
               <TextInput
-                label="Link"
+                label={t("i18n-cont-appbuilder-10.governance.link")}
                 size="small"
                 value={url}
                 slotProps={{ htmlInput: { readOnly: true } }}
                 fullWidth
               />
-              <CopyButton value={url} tooltip="Copy link" />
+              <CopyButton
+                value={url}
+                tooltip={t("i18n-cont-appbuilder-10.governance.copyLink")}
+              />
             </FlexRow>
           )}
           {deployment?.blockedReason && (
             <AlertBanner severity="warning">
-              {`The link is not serving this app. ${deployment.blockedReason}`}
+              {t("i18n-cont-appbuilder-10.governance.linkBlocked", {
+                reason: deployment.blockedReason
+              })}
             </AlertBanner>
           )}
           <FlexRow gap={SPACING.md} align="center">
@@ -328,7 +401,7 @@ const DeploySection = memo(function DeploySection({
                 disabled={undeploy.isPending}
                 onClick={handleUndeploy}
               >
-                Withdraw link
+                {t("i18n-cont-appbuilder-10.governance.withdrawLink")}
               </Button>
             ) : (
               <Button
@@ -337,20 +410,26 @@ const DeploySection = memo(function DeploySection({
                 disabled={deploy.isPending}
                 onClick={handleDeploy}
               >
-                Create public link
+                {t("i18n-cont-appbuilder-10.governance.createPublicLink")}
               </Button>
             )}
           </FlexRow>
           {deploy.isError && (
             <FlexColumn gap={SPACING.xs}>
               <AlertBanner severity="error">
-                {`Could not create the link: ${deploy.error.message}`}
+                {t("i18n-cont-appbuilder-10.governance.createLinkError", {
+                  error: deploy.error.message
+                })}
               </AlertBanner>
               <ReportBugButton
-                label="Report deployment issue"
+                label={t(
+                  "i18n-cont-appbuilder-10.governance.reportDeploymentIssue"
+                )}
                 context={{
                   source: "panel-crash",
-                  summary: "Public link creation failed",
+                  summary: t(
+                    "i18n-cont-appbuilder-10.governance.linkCreationFailed"
+                  ),
                   errorText: deploy.error.message,
                   stackTrace:
                     deploy.error instanceof Error
@@ -363,13 +442,19 @@ const DeploySection = memo(function DeploySection({
           {undeploy.isError && (
             <FlexColumn gap={SPACING.xs}>
               <AlertBanner severity="error">
-                {`Could not withdraw the link: ${undeploy.error.message}`}
+                {t("i18n-cont-appbuilder-10.governance.withdrawLinkError", {
+                  error: undeploy.error.message
+                })}
               </AlertBanner>
               <ReportBugButton
-                label="Report deployment issue"
+                label={t(
+                  "i18n-cont-appbuilder-10.governance.reportDeploymentIssue"
+                )}
                 context={{
                   source: "panel-crash",
-                  summary: "Public link withdrawal failed",
+                  summary: t(
+                    "i18n-cont-appbuilder-10.governance.linkWithdrawalFailed"
+                  ),
                   errorText: undeploy.error.message,
                   stackTrace:
                     undeploy.error instanceof Error
@@ -392,15 +477,24 @@ interface InvocationsSectionProps {
 const InvocationsSection = memo(function InvocationsSection({
   applicationId
 }: InvocationsSectionProps) {
+  const { t, i18n } = useTranslation();
   const { data, isLoading, isError, error } =
     useApplicationInvocations(applicationId);
 
-  if (isLoading) return <LoadingSpinner text="Loading invocations" />;
+  if (isLoading)
+    return (
+      <LoadingSpinner
+        text={t("i18n-cont-appbuilder-10.governance.loadingInvocations")}
+      />
+    );
 
   if (isError) {
     return (
       <AlertBanner severity="error">
-        {`Could not load invocations: ${error?.message ?? "try again later."}`}
+        {t("i18n-cont-appbuilder-10.governance.loadInvocationsError", {
+          error:
+            error?.message ?? t("i18n-cont-appbuilder-10.common.tryAgainLater")
+        })}
       </AlertBanner>
     );
   }
@@ -409,11 +503,15 @@ const InvocationsSection = memo(function InvocationsSection({
 
   return (
     <FlexColumn gap={SPACING.md} fullWidth>
-      <SectionHeader title="Recent invocations" />
+      <SectionHeader
+        title={t("i18n-cont-appbuilder-10.governance.recentInvocations")}
+      />
       {invocations.length === 0 ? (
         <EmptyState
-          title="No invocations yet"
-          description="Runs of the released app show up here with their cost."
+          title={t("i18n-cont-appbuilder-10.governance.noInvocations")}
+          description={t(
+            "i18n-cont-appbuilder-10.governance.noInvocationsDescription"
+          )}
         />
       ) : (
         <FlexColumn gap={SPACING.sm} fullWidth>
@@ -426,16 +524,23 @@ const InvocationsSection = memo(function InvocationsSection({
               fullWidth
             >
               <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
-                <Text size="small" weight={500}>{record.operationId}</Text>
+                <Text size="small" weight={500}>
+                  {record.operationId}
+                </Text>
                 <Caption>
-                  {`${formatDate(record.createdAt)} · ${record.status}${
+                  {`${formatDate(record.createdAt, i18n.language)} · ${record.status}${
                     record.version === null ? "" : ` · v${record.version}`
                   }`}
                 </Caption>
               </FlexColumn>
               <Text>
-                {formatUsd(record.actualUsd ?? record.estimatedUsd)}
-                {record.actualUsd === null ? " (est.)" : ""}
+                {formatUsd(
+                  record.actualUsd ?? record.estimatedUsd,
+                  i18n.language
+                )}
+                {record.actualUsd === null
+                  ? ` (${t("i18n-cont-appbuilder-10.governance.estimated")})`
+                  : ""}
               </Text>
             </FlexRow>
           ))}
@@ -459,6 +564,7 @@ const ApplicationGovernancePanel = ({
   applicationId,
   beforePublish
 }: ApplicationGovernancePanelProps) => {
+  const { t } = useTranslation();
   const {
     data: versions,
     isLoading,
@@ -476,7 +582,9 @@ const ApplicationGovernancePanel = ({
     setSavingBeforePublish(true);
     try {
       const baseUpdatedAt = await beforePublish?.();
-      const input: RouterInputs["applications"]["publish"] = { id: applicationId };
+      const input: RouterInputs["applications"]["publish"] = {
+        id: applicationId
+      };
       if (baseUpdatedAt) {
         input.baseUpdatedAt = baseUpdatedAt;
       }
@@ -509,13 +617,20 @@ const ApplicationGovernancePanel = ({
         fullWidth
       >
         <FlexColumn gap={SPACING.micro}>
-          <SectionHeader title="Release" />
+          <SectionHeader
+            title={t("i18n-cont-appbuilder-10.governance.release")}
+          />
           <Caption>
             {released
-              ? `Serving version ${released.version} — ${capabilitySummary(
-                  released
-                )}`
-              : "Nothing released yet."}
+              ? t("i18n-cont-appbuilder-10.governance.servingVersion", {
+                  version: released.version,
+                  capabilities: capabilitySummary(released, (count) =>
+                    t("i18n-cont-appbuilder-10.governance.workflowCount", {
+                      count
+                    })
+                  )
+                })
+              : t("i18n-cont-appbuilder-10.governance.nothingReleased")}
           </Caption>
         </FlexColumn>
         <Button
@@ -524,7 +639,7 @@ const ApplicationGovernancePanel = ({
           disabled={publish.isPending || savingBeforePublish}
           onClick={handlePublish}
         >
-          Publish new version
+          {t("i18n-cont-appbuilder-10.governance.publishVersion")}
         </Button>
       </FlexRow>
       {saveError && (
@@ -534,40 +649,58 @@ const ApplicationGovernancePanel = ({
             <ReportBugButton
               context={{
                 source: "notification",
-                summary: "Could not save before publishing",
+                summary: t(
+                  "i18n-cont-appbuilder-10.governance.saveBeforePublishFailed"
+                ),
                 errorText: saveError
               }}
             />
           }
         >
-          {`Could not save before publishing: ${saveError}`}
+          {t("i18n-cont-appbuilder-10.governance.saveBeforePublishError", {
+            error: saveError
+          })}
         </AlertBanner>
       )}
       {publish.isError && (
         <AlertBanner severity="error">
-          {`Could not publish: ${publish.error.message}`}
+          {t("i18n-cont-appbuilder-10.governance.publishError", {
+            error: publish.error.message
+          })}
         </AlertBanner>
       )}
       {release.isError && (
         <AlertBanner severity="error">
-          {`Could not change the release: ${release.error.message}`}
+          {t("i18n-cont-appbuilder-10.governance.changeReleaseError", {
+            error: release.error.message
+          })}
         </AlertBanner>
       )}
 
       <Divider />
 
       <FlexColumn gap={SPACING.md} fullWidth>
-        <SectionHeader title="Versions" />
+        <SectionHeader
+          title={t("i18n-cont-appbuilder-10.governance.versions")}
+        />
         {isLoading ? (
-          <LoadingSpinner text="Loading versions" />
+          <LoadingSpinner
+            text={t("i18n-cont-appbuilder-10.governance.loadingVersions")}
+          />
         ) : isError ? (
           <AlertBanner severity="error">
-            {`Could not load versions: ${error?.message ?? "try again later."}`}
+            {t("i18n-cont-appbuilder-10.governance.loadVersionsError", {
+              error:
+                error?.message ??
+                t("i18n-cont-appbuilder-10.common.tryAgainLater")
+            })}
           </AlertBanner>
         ) : sortedVersions.length === 0 ? (
           <EmptyState
-            title="No versions yet"
-            description="Publish the app to cut its first version."
+            title={t("i18n-cont-appbuilder-10.governance.noVersions")}
+            description={t(
+              "i18n-cont-appbuilder-10.governance.noVersionsDescription"
+            )}
           />
         ) : (
           <FlexColumn gap={SPACING.md} fullWidth>

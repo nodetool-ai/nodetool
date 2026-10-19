@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { Badge, BadgeProps } from "@mui/material";
 import { Box } from "./Box";
@@ -90,6 +91,7 @@ const CountBadgeInternal: React.FC<CountBadgeProps> = ({
   className,
   ariaLabel
 }) => {
+  const { t } = useTranslation();
   const getAriaLabel = () => {
     if (ariaLabel) {
       return ariaLabel;
@@ -104,10 +106,12 @@ const CountBadgeInternal: React.FC<CountBadgeProps> = ({
     }
 
     if (dot) {
-      return "New notification";
+      return t("i18n-next92.countBadge.notificationNew", { count: 1 });
     }
 
-    return `${count > max ? `${max}+` : count} notification${count === 1 ? "" : "s"}`;
+    return count > max
+      ? t("i18n-next92.countBadge.notificationMax", { max })
+      : t("i18n-next92.countBadge.notificationNew", { count });
   };
   
   if (children === undefined) {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import ErrorBanner from "../support/ErrorBanner";
 import {
@@ -24,6 +25,7 @@ import type { ProjectDocument } from "./projectStatus";
 const DOCUMENTS_PER_PAGE = 4;
 
 const CurrentProjectDocuments = () => {
+  const { t } = useTranslation();
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
   );
@@ -103,11 +105,13 @@ const CurrentProjectDocuments = () => {
   const documents = data?.documents ?? [];
   const firstDocument = page * DOCUMENTS_PER_PAGE;
   return (
-    <FlexColumn gap={SPACING.md} aria-label="Current project documents">
+    <FlexColumn gap={SPACING.md} aria-label={t("pass3_32.projects.documents.regionLabel")}>
       <FlexRow align="center" gap={SPACING.md} wrap>
         <ProjectSelector inline />
         <Caption color="muted">
-          Documents{total > 0 ? ` · ${total} · most recent first` : ""}
+          {total > 0
+            ? t("pass3_32.projects.documents.countAndSort", { count: total })
+            : t("pass3_32.projects.documents.title")}
         </Caption>
       </FlexRow>
       {isPending ? (
@@ -116,14 +120,14 @@ const CurrentProjectDocuments = () => {
         <ErrorBanner
           report={{
             source: "operation-failure",
-            summary: "Project documents failed to load",
+            summary: t("pass3_32.projects.documents.loadFailureSummary"),
             errorText: error.message
           }}
         >
           {error.message}
         </ErrorBanner>
       ) : documents.length === 0 ? (
-        <EmptyState size="small" title="No documents in this project yet" />
+        <EmptyState size="small" title={t("pass3_32.projects.documents.emptyTitle")} />
       ) : (
         <Box
           sx={{
@@ -153,11 +157,14 @@ const CurrentProjectDocuments = () => {
             disabled={page === 0}
             onClick={() => setPageState({ projectId, page: page - 1 })}
           >
-            Previous
+            {t("pass3_32.projects.documents.previousPage")}
           </EditorButton>
           <Caption color="secondary">
-            {firstDocument + 1}–
-            {Math.min(firstDocument + DOCUMENTS_PER_PAGE, total)} of {total}
+            {t("pass3_32.projects.documents.pagination", {
+              start: firstDocument + 1,
+              end: Math.min(firstDocument + DOCUMENTS_PER_PAGE, total),
+              total
+            })}
           </Caption>
           <EditorButton
             variant="outlined"
@@ -165,7 +172,7 @@ const CurrentProjectDocuments = () => {
             disabled={!hasNextPage}
             onClick={() => setPageState({ projectId, page: page + 1 })}
           >
-            Next
+            {t("pass3_32.projects.documents.nextPage")}
           </EditorButton>
         </FlexRow>
       )}

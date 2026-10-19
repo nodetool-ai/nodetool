@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { SxProps } from "@mui/material";
@@ -52,12 +53,12 @@ import {
 import { useCostsDashboard } from "./useCostsDashboard";
 
 const RANGE_OPTIONS: DateRange[] = ["7d", "14d", "30d", "90d"];
-const GROUP_OPTIONS: { value: GroupByKey; label: string }[] = [
-  { value: "execution", label: "Execution" },
-  { value: "nodeType", label: "Node type" },
-  { value: "workflow", label: "Workflow" },
-  { value: "provider", label: "Provider" },
-  { value: "model", label: "Model" }
+const GROUP_OPTIONS: { value: GroupByKey; key: string }[] = [
+  { value: "execution", key: "execution" },
+  { value: "nodeType", key: "nodeType" },
+  { value: "workflow", key: "workflow" },
+  { value: "provider", key: "provider" },
+  { value: "model", key: "model" }
 ];
 
 const segmentedSx = (theme: Theme): SxProps<Theme> => ({
@@ -114,6 +115,7 @@ const matchesSearch = (
 };
 
 const CostsDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const [range, setRange] = useState<DateRange>("14d");
@@ -228,23 +230,25 @@ const CostsDashboard: React.FC = () => {
         {/* header */}
         <PageHeader
           variant="plain"
-          title="Costs"
+          title={t("i18n-next1.costs.title")}
           subtitle={
             view ? (
               <>
-                Spend per node execution across{" "}
+                {t("i18n-next1.costs.spendAcross")}{" "}
                 <Text
                   component="span"
                   size="small"
                   weight={600}
                   sx={{ color: theme.vars.palette.text.primary }}
                 >
-                  {view.stats.workflowCount} workflows
+                  {t("i18n-next1.costs.workflowCount", {
+                    count: view.stats.workflowCount
+                  })}
                 </Text>{" "}
                 · {rangeLabel}
               </>
             ) : (
-              "Spend per node execution"
+              t("i18n-next1.costs.spendPerExecution")
             )
           }
           sx={{
@@ -255,102 +259,110 @@ const CostsDashboard: React.FC = () => {
             mb: 3
           }}
           actions={
-          <FlexRow gap={1.5} align="center" wrap sx={{ rowGap: 1 }}>
-            <ToggleGroup
-              exclusive
-              value={range}
-              onChange={(_, v) => v && setRange(v as DateRange)}
-              sx={segmentedStyles}
-            >
-              {RANGE_OPTIONS.map((r) => (
-                <ToggleOption key={r} value={r}>
-                  {r}
-                </ToggleOption>
-              ))}
-            </ToggleGroup>
+            <FlexRow gap={1.5} align="center" wrap sx={{ rowGap: 1 }}>
+              <ToggleGroup
+                exclusive
+                value={range}
+                onChange={(_, v) => v && setRange(v as DateRange)}
+                sx={segmentedStyles}
+              >
+                {RANGE_OPTIONS.map((r) => (
+                  <ToggleOption key={r} value={r}>
+                    {r}
+                  </ToggleOption>
+                ))}
+              </ToggleGroup>
 
-            {view && (
-              <>
-                <FilterDropdown
-                  icon={<FilterListIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                  label={providersAllSelected ? "All providers" : "Providers"}
-                  count={
-                    providersAllSelected
-                      ? String(providerUniverse.length)
-                      : `${providerSel.size}/${providerUniverse.length}`
-                  }
-                  options={providerOptions}
-                  selected={providerSel ?? new Set(providerUniverse)}
-                  onToggle={(key) =>
-                    setProviderSel((prev) => {
-                      const next = toggleSet(
-                        prev ?? new Set(providerUniverse),
-                        key
-                      );
-                      return next.size === providerUniverse.length
-                        ? null
-                        : next;
-                    })
-                  }
-                  onSelectAll={() => setProviderSel(null)}
-                  onClear={() => setProviderSel(new Set())}
-                />
-
-                <FilterDropdown
-                  icon={<AccountTreeIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                  label={workflowsAllSelected ? "All workflows" : "Workflows"}
-                  count={
-                    workflowsAllSelected
-                      ? undefined
-                      : `${workflowSel.size}/${workflowUniverse.length}`
-                  }
-                  options={workflowOptions}
-                  selected={workflowSel ?? new Set(workflowUniverse)}
-                  onToggle={(key) =>
-                    setWorkflowSel((prev) => {
-                      const next = toggleSet(
-                        prev ?? new Set(workflowUniverse),
-                        key
-                      );
-                      return next.size === workflowUniverse.length
-                        ? null
-                        : next;
-                    })
-                  }
-                  onSelectAll={() => setWorkflowSel(null)}
-                  onClear={() => setWorkflowSel(new Set())}
-                />
-
-                <Box
-                  component="button"
-                  type="button"
-                  onClick={handleExport}
-                  sx={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: getSpacingPx(SPACING.md),
-                    height: 38,
-                    padding: `0 ${getSpacingPx(SPACING.xl)}`,
-                    borderRadius: BORDER_RADIUS.lg,
-                    border: "none",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    fontSize: "var(--fontSizeSmall)",
-                    fontWeight: 600,
-                    color: theme.vars.palette.primary.contrastText,
-                    backgroundColor: theme.vars.palette.primary.main,
-                    transition: MOTION.background,
-                    "&:hover": {
-                      backgroundColor: theme.vars.palette.primary.dark
+              {view && (
+                <>
+                  <FilterDropdown
+                    icon={<FilterListIcon sx={{ fontSize: ICON_SIZE.sm }} />}
+                    label={
+                      providersAllSelected
+                        ? t("i18n-next1.costs.allProviders")
+                        : t("i18n-next1.costs.providers")
                     }
-                  }}
-                >
-                  <FileDownloadIcon sx={{ fontSize: ICON_SIZE.md }} />
-                  Export CSV
-                </Box>
-              </>
-            )}
-          </FlexRow>
+                    count={
+                      providersAllSelected
+                        ? String(providerUniverse.length)
+                        : `${providerSel.size}/${providerUniverse.length}`
+                    }
+                    options={providerOptions}
+                    selected={providerSel ?? new Set(providerUniverse)}
+                    onToggle={(key) =>
+                      setProviderSel((prev) => {
+                        const next = toggleSet(
+                          prev ?? new Set(providerUniverse),
+                          key
+                        );
+                        return next.size === providerUniverse.length
+                          ? null
+                          : next;
+                      })
+                    }
+                    onSelectAll={() => setProviderSel(null)}
+                    onClear={() => setProviderSel(new Set())}
+                  />
+
+                  <FilterDropdown
+                    icon={<AccountTreeIcon sx={{ fontSize: ICON_SIZE.sm }} />}
+                    label={
+                      workflowsAllSelected
+                        ? t("i18n-next1.costs.allWorkflows")
+                        : t("i18n-next1.costs.workflows")
+                    }
+                    count={
+                      workflowsAllSelected
+                        ? undefined
+                        : `${workflowSel.size}/${workflowUniverse.length}`
+                    }
+                    options={workflowOptions}
+                    selected={workflowSel ?? new Set(workflowUniverse)}
+                    onToggle={(key) =>
+                      setWorkflowSel((prev) => {
+                        const next = toggleSet(
+                          prev ?? new Set(workflowUniverse),
+                          key
+                        );
+                        return next.size === workflowUniverse.length
+                          ? null
+                          : next;
+                      })
+                    }
+                    onSelectAll={() => setWorkflowSel(null)}
+                    onClear={() => setWorkflowSel(new Set())}
+                  />
+
+                  <Box
+                    component="button"
+                    type="button"
+                    onClick={handleExport}
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: getSpacingPx(SPACING.md),
+                      height: 38,
+                      padding: `0 ${getSpacingPx(SPACING.xl)}`,
+                      borderRadius: BORDER_RADIUS.lg,
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      fontSize: "var(--fontSizeSmall)",
+                      fontWeight: 600,
+                      color: theme.vars.palette.primary.contrastText,
+                      backgroundColor: theme.vars.palette.primary.main,
+                      transition: MOTION.background,
+                      "&:hover": {
+                        backgroundColor: theme.vars.palette.primary.dark
+                      }
+                    }}
+                  >
+                    <FileDownloadIcon sx={{ fontSize: ICON_SIZE.md }} />
+                    {t("i18n-next1.costs.exportCsv")}
+                  </Box>
+                </>
+              )}
+            </FlexRow>
           }
         />
 
@@ -360,9 +372,7 @@ const CostsDashboard: React.FC = () => {
           </StateMessage>
         ) : isError ? (
           <StateMessage>
-            <Text color="secondary">
-              Couldn&apos;t load cost data. Please try again.
-            </Text>
+            <Text color="secondary">{t("i18n-next1.costs.loadError")}</Text>
           </StateMessage>
         ) : view ? (
           <DashboardContent
@@ -379,7 +389,10 @@ const CostsDashboard: React.FC = () => {
           />
         ) : (
           <StateMessage>
-            <EmptyState variant="no-data" title="No cost data for this period" />
+            <EmptyState
+              variant="no-data"
+              title={t("i18n-next1.costs.noData")}
+            />
           </StateMessage>
         )}
       </Box>
@@ -412,6 +425,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   visibleCount,
   totalCount
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const segmentedStyles = useMemo(() => segmentedSx(theme), [theme]);
   const stats = view.stats;
@@ -430,11 +444,13 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       {/* stat cards */}
       <FlexRow gap={2} wrap sx={{ mb: 3 }}>
         <CostStatCard
-          label="Total spend"
+          label={t("i18n-next1.costs.totalSpend")}
           icon={AttachMoneyIcon}
           value={total.whole}
           decimal={total.decimal}
-          caption={`vs prior ${range}`}
+          caption={t("i18n-next1.costs.vsPrior", {
+            range: t(`i18n-next1.costs.ranges.${range}`)
+          })}
           badge={
             delta === null ? undefined : (
               <FlexRow
@@ -449,9 +465,13 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 }}
               >
                 {deltaUp ? (
-                  <NorthIcon sx={{ fontSize: ICON_SIZE.xs, color: deltaColor }} />
+                  <NorthIcon
+                    sx={{ fontSize: ICON_SIZE.xs, color: deltaColor }}
+                  />
                 ) : (
-                  <SouthIcon sx={{ fontSize: ICON_SIZE.xs, color: deltaColor }} />
+                  <SouthIcon
+                    sx={{ fontSize: ICON_SIZE.xs, color: deltaColor }}
+                  />
                 )}
                 <Text size="smaller" weight={600} sx={{ color: deltaColor }}>
                   {formatPercent(Math.abs(delta))}
@@ -461,29 +481,33 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           }
         />
         <CostStatCard
-          label="Node executions"
+          label={t("i18n-next1.costs.nodeExecutions")}
           icon={GridViewIcon}
           value={String(stats.executionCount)}
-          caption={`${stats.failedCount} failed · ${stats.workflowCount} workflows`}
+          caption={t("i18n-next1.costs.executionSummary", {
+            failedCount: stats.failedCount,
+            workflowCount: stats.workflowCount
+          })}
         />
         <CostStatCard
-          label="Avg / execution"
+          label={t("i18n-next1.costs.avgExecution")}
           icon={ShowChartIcon}
           value={formatMoney(stats.avgPerExecution)}
-          caption="across all node types"
+          caption={t("i18n-next1.costs.acrossNodeTypes")}
         />
         <CostStatCard
-          label="Top cost driver"
+          label={t("i18n-next1.costs.topCostDriver")}
           icon={BarChartIcon}
           value={driver ? driver.label : "—"}
           valueVariant="label"
           valueDotColor={driver ? providerColor(driver.providerId) : undefined}
           caption={
             driver
-              ? `${formatMoney(driver.cost)} · ${formatPercent(
-                  driverShare
-                )} of spend`
-              : "no spend yet"
+              ? t("i18n-next1.costs.driverSpend", {
+                  cost: formatMoney(driver.cost),
+                  share: formatPercent(driverShare)
+                })
+              : t("i18n-next1.costs.noSpendYet")
           }
         />
       </FlexRow>
@@ -495,7 +519,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           providers={view.providers}
           stackOrder={view.stackOrder}
           activeProviders={providerSel ?? undefined}
-          rangeLabel={`daily · last ${view.days.length} days`}
+          rangeLabel={t("i18n-next1.costs.dailyLastDays", {
+            count: view.days.length
+          })}
         />
       </Box>
 
@@ -516,7 +542,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
               color: theme.vars.palette.text.disabled
             }}
           >
-            Group by
+            {t("i18n-next1.costs.groupBy")}
           </Text>
           <ToggleGroup
             exclusive
@@ -526,7 +552,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           >
             {GROUP_OPTIONS.map((o) => (
               <ToggleOption key={o.value} value={o.value}>
-                {o.label}
+                {t(`i18n-next1.costs.group.${o.key}`)}
               </ToggleOption>
             ))}
           </ToggleGroup>
@@ -537,7 +563,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
             <SearchInput
               value={search}
               onChange={setSearch}
-              placeholder="Filter nodes, models"
+              placeholder={t("i18n-next1.costs.filterPlaceholder")}
               fullWidth
             />
           </Box>
@@ -549,7 +575,10 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
               whiteSpace: "nowrap"
             }}
           >
-            {visibleCount} of {totalCount}
+            {t("i18n-next1.costs.visibleOfTotal", {
+              visible: visibleCount,
+              total: totalCount
+            })}
           </Text>
         </FlexRow>
       </FlexRow>
@@ -598,6 +627,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   onSelectAll,
   onClear
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -677,7 +707,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               onClick={onSelectAll}
               sx={linkButtonSx(theme)}
             >
-              Select all
+              {t("i18n-next1.costs.selectAll")}
             </Box>
             <Box
               component="button"
@@ -685,7 +715,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               onClick={onClear}
               sx={linkButtonSx(theme)}
             >
-              Clear
+              {t("i18n-next1.costs.clear")}
             </Box>
           </FlexRow>
           {options.map((o) => (
@@ -715,7 +745,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           ))}
           {options.length === 0 && (
             <Text size="small" color="secondary" sx={{ px: 1, py: 0.5 }}>
-              No options
+              {t("i18n-next1.costs.noOptions")}
             </Text>
           )}
         </FlexColumn>

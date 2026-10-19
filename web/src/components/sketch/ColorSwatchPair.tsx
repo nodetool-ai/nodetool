@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -54,6 +55,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
   onSwapColors,
   onResetColors
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [fgAnchor, setFgAnchor] = useState<HTMLElement | null>(null);
   const [bgAnchor, setBgAnchor] = useState<HTMLElement | null>(null);
@@ -94,7 +96,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         }}
       >
         <Tooltip
-          title="Background color"
+          title={t("screens4_24.sketch.colorSwatches.backgroundColor", { value: bgHex6 })}
           placement="right"
         >
           <Container
@@ -105,7 +107,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             role="button"
             tabIndex={0}
             aria-haspopup="dialog"
-            aria-label="Background color"
+            aria-label={t("screens4_24.sketch.colorSwatches.backgroundColor", { value: bgHex6 })}
             sx={{
               ...colorSwatchSx,
               "&:focus-visible": focusRing(theme, 2),
@@ -123,7 +125,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         </Tooltip>
 
         <Tooltip
-          title="Foreground color"
+          title={t("screens4_24.sketch.colorSwatches.foregroundColor", { value: fgHex6 })}
           placement="right"
         >
           <Container
@@ -134,7 +136,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             role="button"
             tabIndex={0}
             aria-haspopup="dialog"
-            aria-label="Foreground color"
+            aria-label={t("screens4_24.sketch.colorSwatches.foregroundColor", { value: fgHex6 })}
             sx={{
               ...colorSwatchSx,
               "&:focus-visible": focusRing(theme, 2),
@@ -161,28 +163,28 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         sx={{ width: `${STACK}px` }}
       >
         <Tooltip
-          title="Swap colors"
+          title={t("screens4_24.sketch.colorSwatches.swapColors")}
           shortcut={["X"]}
           placement="right"
         >
           <EditorButton
             density="compact"
             onClick={onSwapColors}
-            aria-label="Swap colors"
+            aria-label={t("screens4_24.sketch.colorSwatches.swapColors")}
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
             <SwapHorizIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </EditorButton>
         </Tooltip>
         <Tooltip
-          title="Reset to black and white"
+          title={t("screens4_24.sketch.colorSwatches.resetColors")}
           shortcut={["D"]}
           placement="right"
         >
           <EditorButton
             density="compact"
             onClick={onResetColors}
-            aria-label="Reset to black and white"
+            aria-label={t("screens4_24.sketch.colorSwatches.resetColors")}
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
             <Text

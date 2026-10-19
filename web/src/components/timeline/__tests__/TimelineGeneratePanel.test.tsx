@@ -176,9 +176,9 @@ describe("TimelineGeneratePanel", () => {
         screen.getByRole("button", { name: "Pick music model" })
       );
       await userEvent.click(
-        screen.getByRole("button", { name: "30 Sec" })
+        screen.getByRole("button", { name: "30 sec" })
       );
-      await userEvent.click(screen.getByText("60 Sec"));
+      await userEvent.click(screen.getByText("60 sec"));
       await userEvent.click(
         screen.getByRole("button", { name: "Generate music" })
       );
@@ -404,14 +404,14 @@ describe("TimelineGeneratePanel", () => {
     };
     renderPrompt();
     expect(screen.getByRole("button", { name: "Seedance" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "5 Sec" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "5 sec" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "1080p" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "9:16" })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "5 Sec" }));
+    await userEvent.click(screen.getByRole("button", { name: "5 sec" }));
     expect(
       screen.getAllByRole("menuitemradio").map((item) => item.textContent)
-    ).toEqual(["5 Sec", "10 Sec"]);
+    ).toEqual(["5 sec", "10 sec"]);
   });
 
   it("reports a started generation so the dialog can close", async () => {

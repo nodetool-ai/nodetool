@@ -1,4 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx, ICON_SIZE } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
@@ -25,6 +26,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
   nodeId,
   data
 }) => {
+  const { t } = useTranslation();
   const nodeStore = useNodeStoreRef();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
 
   const handleLoad = useCallback(async (force = false) => {
     if (!modelInfo) {
-      setError("Node definition not found.");
+      setError(t("i18n-next39.nodeEditor.schemaLoader.nodeDefinitionNotFound"));
       return;
     }
     setError(null);
@@ -115,11 +117,15 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
         })
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load schema");
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("i18n-next39.nodeEditor.schemaLoader.failedToLoadSchema")
+      );
     } finally {
       setLoading(false);
     }
-  }, [nodeId, modelInfo, nodeStore]);
+  }, [nodeId, modelInfo, nodeStore, t]);
 
   const previousModelInfoRef = React.useRef(modelInfo);
   React.useEffect(() => {
@@ -152,7 +158,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
   return (
     <Box sx={{ display: "inline-flex", alignItems: "center" }}>
       <ToolbarIconButton
-        title="Reload schema"
+        title={t("i18n-next39.nodeEditor.schemaLoader.reloadSchema")}
         size="small"
         disabled={loading}
         onClick={() => void handleLoad(true)}

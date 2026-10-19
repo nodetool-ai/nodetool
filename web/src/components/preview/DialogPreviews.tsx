@@ -11,7 +11,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useLogsStore from "../../stores/LogStore";
 import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
 import type { Asset } from "../../stores/ApiTypes";
-import { Box } from "../ui_primitives";
+import { Box, SPACING } from "../ui_primitives";
 
 const AssetRenameConfirmation = React.lazy(
   () => import("../assets/AssetRenameConfirmation")
@@ -30,7 +30,9 @@ const ExportVideoDialog = React.lazy(
 const TimelineShortcutsDialog = React.lazy(
   () => import("../timeline/TimelineShortcutsDialog")
 );
-const NewProjectDialog = React.lazy(() => import("../projects/NewProjectDialog"));
+const NewProjectDialog = React.lazy(
+  () => import("../projects/NewProjectDialog")
+);
 const ShareWorkflowDialog = React.lazy(
   () => import("../workflows/ShareWorkflowDialog")
 );
@@ -230,7 +232,7 @@ const PreviewNodeLogs: React.FC = () => {
 
 const PreviewCollectionForm: React.FC = () => (
   <DialogFrame preview="form-collection">
-    <Box sx={{ maxWidth: 560, p: 4 }}>
+    <Box sx={{ maxWidth: 560, p: SPACING.xl }}>
       <CollectionForm onClose={noop} />
     </Box>
   </DialogFrame>
@@ -273,54 +275,41 @@ const PreviewSearchProvider: React.FC = () => {
   );
 };
 
-export const DIALOG_PREVIEWS: Record<
-  string,
-  { label: string; component: React.FC }
-> = {
-  "dialog-rename-asset": { label: "Rename asset", component: PreviewRenameAsset },
+export const DIALOG_PREVIEWS: Record<string, { component: React.FC }> = {
+  "dialog-rename-asset": { component: PreviewRenameAsset },
   "dialog-delete-assets": {
-    label: "Delete assets",
     component: PreviewDeleteAssets
   },
-  "dialog-add-output": { label: "Add output", component: PreviewAddOutput },
-  "dialog-bug-report": { label: "Report a bug", component: PreviewBugReport },
-  "dialog-help": { label: "Help", component: PreviewHelp },
+  "dialog-add-output": { component: PreviewAddOutput },
+  "dialog-bug-report": { component: PreviewBugReport },
+  "dialog-help": { component: PreviewHelp },
   "dialog-export-video": {
-    label: "Export video",
     component: PreviewExportVideo
   },
   "dialog-timeline-shortcuts": {
-    label: "Timeline shortcuts",
     component: PreviewTimelineShortcuts
   },
-  "dialog-new-project": { label: "New project", component: PreviewNewProject },
+  "dialog-new-project": { component: PreviewNewProject },
   "dialog-share-workflow": {
-    label: "Share workflow",
     component: PreviewShareWorkflow
   },
   "dialog-run-js-script": {
-    label: "Run script with inputs",
     component: PreviewRunJsScript
   },
   "dialog-model-shortcuts": {
-    label: "3D editor shortcuts",
     component: PreviewModelShortcuts
   },
-  "dialog-node-logs": { label: "Node logs", component: PreviewNodeLogs },
+  "dialog-node-logs": { component: PreviewNodeLogs },
   "form-collection": {
-    label: "New collection",
     component: PreviewCollectionForm
   },
   "dialog-save-to-my-nodes": {
-    label: "Save to my nodes",
     component: PreviewSaveToMyNodes
   },
   "dialog-worker-profiles": {
-    label: "Worker profiles",
     component: PreviewWorkerProfiles
   },
   "dialog-search-provider": {
-    label: "Search provider setup",
     component: PreviewSearchProvider
   }
 };

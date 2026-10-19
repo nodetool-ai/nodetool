@@ -1,8 +1,9 @@
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { TRIGGER_MAX_CONSECUTIVE_FAILURES } from "@nodetool-ai/protocol";
 import BoltIcon from "@mui/icons-material/Bolt";
 import { Box, Tooltip, ICON_SIZE } from "../ui_primitives";
 import { useRunningTriggers } from "../../serverState/useTriggers";
-import { describeTriggerDisabledReason } from "@nodetool-ai/protocol";
 
 interface WorkflowTriggerIndicatorProps {
   workflowId: string;
@@ -20,6 +21,7 @@ interface WorkflowTriggerIndicatorProps {
 const WorkflowTriggerIndicatorInternal: React.FC<
   WorkflowTriggerIndicatorProps
 > = ({ workflowId, className }) => {
+  const { t } = useTranslation();
   const { data } = useRunningTriggers();
   const triggers = useMemo(
     () => (data ?? []).filter((r) => r.workflow_id === workflowId),
@@ -33,14 +35,26 @@ const WorkflowTriggerIndicatorInternal: React.FC<
   const stopped = triggers.find((r) => r.disabled_reason);
   const armed = triggers.filter((r) => r.enabled);
   const failing = Boolean(stopped) || armed.some((r) => r.last_error);
+  const disabledReason = stopped?.disabled_reason;
   const label = stopped
-    ? (describeTriggerDisabledReason(stopped.disabled_reason) ??
-      "Trigger disabled")
+    ? disabledReason === "failures"
+      ? t("pass3_39.workflowTriggerIndicator.disabledAfterFailures", {
+          count: TRIGGER_MAX_CONSECUTIVE_FAILURES
+        })
+      : disabledReason === "expired"
+        ? t("pass3_39.workflowTriggerIndicator.disabledExpired")
+        : disabledReason === "max_runs"
+          ? t("pass3_39.workflowTriggerIndicator.disabledRunLimit")
+          : t("pass3_39.workflowTriggerIndicator.disabled")
     : failing
-      ? `Trigger armed — last run failed: ${armed.find((r) => r.last_error)?.last_error}`
+      ? t("pass3_39.workflowTriggerIndicator.lastRunFailed", {
+          error: armed.find((r) => r.last_error)?.last_error
+        })
       : armed.length === 1
-        ? "Trigger armed"
-        : `${armed.length} triggers armed`;
+        ? t("pass3_39.workflowTriggerIndicator.armed")
+        : t("pass3_39.workflowTriggerIndicator.armedCount", {
+            count: armed.length
+          });
 
   return (
     <Tooltip title={label} placement="top">

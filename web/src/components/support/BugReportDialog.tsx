@@ -8,6 +8,7 @@
  * its own backend (`bugReports.submit`), so a reporter needs no GitHub account.
  */
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { MAX_BUG_REPORT_BUNDLE_BYTES } from "@nodetool-ai/protocol/api-schemas/bug-reports.js";
 import {
@@ -46,7 +47,6 @@ import {
   buildIssueUrl,
   bundleFileName,
   bytesToBase64,
-  sourceLabel,
   zipBundle,
   zipBundleBytes,
   type BugReportContext,
@@ -65,10 +65,71 @@ const SERVER_ERROR_WINDOW_MS = 60 * 60 * 1000;
 /** Cap on a single user-attached file. GitHub refuses more than 25 MB anyway. */
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
-function formatBytes(byteLength: number): string {
-  if (byteLength < 1024) return `${byteLength} B`;
-  if (byteLength < 1024 * 1024) return `${Math.round(byteLength / 1024)} KB`;
-  return `${(byteLength / (1024 * 1024)).toFixed(1)} MB`;
+function formatBytes(byteLength: number, locale: string): string {
+  if (byteLength < 1024) {
+    return new Intl.NumberFormat(locale, {
+      style: "unit",
+      unit: "byte",
+      unitDisplay: "narrow",
+      maximumFractionDigits: 0
+    }).format(byteLength);
+  }
+  if (byteLength < 1024 * 1024) {
+    return new Intl.NumberFormat(locale, {
+      style: "unit",
+      unit: "kilobyte",
+      unitDisplay: "narrow",
+      maximumFractionDigits: 0
+    }).format(byteLength / 1024);
+  }
+  return new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit: "megabyte",
+    unitDisplay: "narrow",
+    maximumFractionDigits: 1
+  }).format(byteLength / (1024 * 1024));
+}
+
+function sectionTranslationKey(
+  sectionId: string,
+  field: "label" | "description"
+) {
+  switch (sectionId) {
+    case "error":
+      return field === "label"
+        ? "screens4_9.support.bugReport.sections.error.label"
+        : "screens4_9.support.bugReport.sections.error.description";
+    case "node":
+      return field === "label"
+        ? "screens4_9.support.bugReport.sections.node.label"
+        : "screens4_9.support.bugReport.sections.node.description";
+    case "provider-call":
+      return field === "label"
+        ? "screens4_9.support.bugReport.sections.provider-call.label"
+        : "screens4_9.support.bugReport.sections.provider-call.description";
+    case "workflow":
+      return field === "label"
+        ? "screens4_9.support.bugReport.sections.workflow.label"
+        : "screens4_9.support.bugReport.sections.workflow.description";
+    case "logs":
+      return field === "label"
+        ? "screens4_9.support.bugReport.sections.logs.label"
+        : "screens4_9.support.bugReport.sections.logs.description";
+    case "console":
+      return field === "label"
+        ? "screens4_9.support.bugReport.sections.console.label"
+        : "screens4_9.support.bugReport.sections.console.description";
+    case "notifications":
+      return field === "label"
+        ? "screens4_9.support.bugReport.sections.notifications.label"
+        : "screens4_9.support.bugReport.sections.notifications.description";
+    case "server-errors":
+      return field === "label"
+        ? "screens4_9.support.bugReport.sections.server-errors.label"
+        : "screens4_9.support.bugReport.sections.server-errors.description";
+    default:
+      return undefined;
+  }
 }
 
 interface BugReportDialogProps {
@@ -77,6 +138,8 @@ interface BugReportDialogProps {
 }
 
 const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const [description, setDescription] = useState("");
   const [steps, setSteps] = useState("");
   const [expected, setExpected] = useState("");
@@ -194,7 +257,10 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
       if (tooBig.length > 0) {
         addNotification({
           type: "warning",
-          content: `Skipped ${tooBig.length} file(s) over ${formatBytes(MAX_ATTACHMENT_BYTES)}`,
+          content: t("screens4_9.support.bugReport.skippedAttachments", {
+            count: tooBig.length,
+            size: formatBytes(MAX_ATTACHMENT_BYTES, locale)
+          }),
           alert: true
         });
       }
@@ -203,7 +269,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         ...picked.filter((file) => file.size <= MAX_ATTACHMENT_BYTES)
       ]);
     },
-    [addNotification]
+    [addNotification, locale, t]
   );
 
   const removeAttachment = useCallback((name: string) => {
@@ -248,7 +314,9 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         const zipped = zipBundleBytes(files);
         if (zipped.length > MAX_BUG_REPORT_BUNDLE_BYTES) {
           throw new Error(
-            `the attached data is over ${formatBytes(MAX_BUG_REPORT_BUNDLE_BYTES)}. Remove a file and try again.`
+            t("screens4_9.support.bugReport.bundleTooLarge", {
+              size: formatBytes(MAX_BUG_REPORT_BUNDLE_BYTES, locale)
+            })
           );
         }
         await trpcClient.bugReports.submit.mutate({
@@ -294,9 +362,14 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     } catch (error) {
       addNotification({
         type: "error",
-        content: `Could not ${SUBMIT_TO_BACKEND ? "send" : "build"} the report: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        content: t("screens4_9.support.bugReport.saveFailed", {
+          action: t(
+            SUBMIT_TO_BACKEND
+              ? "screens4_9.support.bugReport.sendAction"
+              : "screens4_9.support.bugReport.saveAction"
+          ),
+          error: error instanceof Error ? error.message : String(error)
+        }),
         alert: true
       });
     } finally {
@@ -311,7 +384,9 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     attachments,
     context,
     systemInfo,
-    addNotification
+    addNotification,
+    locale,
+    t
   ]);
 
   const handleOpenIssue = useCallback(() => {
@@ -326,12 +401,12 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         className="bug-report-dialog"
         open
         onClose={onClose}
-        title="Report sent"
+        title={t("screens4_9.support.bugReport.reportSentTitle")}
         maxWidth="sm"
         fullWidth
       >
         <AlertBanner severity="success">
-          Thanks. Your report was sent.
+          {t("screens4_9.support.bugReport.reportSentMessage")}
         </AlertBanner>
       </Dialog>
     );
@@ -343,20 +418,21 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         className="bug-report-dialog"
         open
         onClose={onClose}
-        title="Report saved"
+        title={t("screens4_9.support.bugReport.reportSavedTitle")}
         maxWidth="sm"
         fullWidth
         onConfirm={handleOpenIssue}
-        confirmText="Open GitHub issue"
-        cancelText="Later"
+        confirmText={t("screens4_9.support.bugReport.openGitHubIssue")}
+        cancelText={t("screens4_9.support.bugReport.later")}
       >
         <FlexColumn gap={SPACING.lg}>
           <AlertBanner severity="success">
-            Saved <strong>{saved.zipName}</strong> to your downloads.
+            {t("screens4_9.support.bugReport.savedToDownloads", {
+              fileName: saved.zipName
+            })}
           </AlertBanner>
           <Text>
-            Now open the GitHub issue. It is pre-filled with your description.
-            Drag the saved zip into it before you submit.
+            {t("screens4_9.support.bugReport.openIssueInstructions")}
           </Text>
         </FlexColumn>
       </Dialog>
@@ -368,44 +444,52 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
       className="bug-report-dialog"
       open
       onClose={onClose}
-      title="Report a bug"
+      title={t("screens4_9.support.bugReport.title")}
       maxWidth="md"
       fullWidth
       onConfirm={() => void handleSaveBundle()}
-      confirmText={SUBMIT_TO_BACKEND ? "Send report" : "Save report bundle"}
+      confirmText={t(
+        SUBMIT_TO_BACKEND
+          ? "screens4_9.support.bugReport.sendReport"
+          : "screens4_9.support.bugReport.saveReportBundle"
+      )}
       confirmDisabled={description.trim() === ""}
       isLoading={busy}
     >
       <FlexColumn gap={SPACING.lg}>
         <AlertBanner severity="info">
           {SUBMIT_TO_BACKEND
-            ? "Your report and the data checked below are sent to this NodeTool server. Review what it contains before you send it."
-            : "Nothing is uploaded. NodeTool saves a zip to your downloads. You then open a pre-filled GitHub issue and attach the zip there. Review what it contains below."}
+            ? t("screens4_9.support.bugReport.hostedPrivacyNotice")
+            : t("screens4_9.support.bugReport.localPrivacyNotice")}
         </AlertBanner>
 
-        <Caption>Reported from: {sourceLabel(context.source)}</Caption>
+        <Caption>
+          {t("screens4_9.support.bugReport.reportedFrom", {
+            source: t(`screens4_9.support.bugReport.sources.${context.source}`)
+          })}
+        </Caption>
 
         <TextInput
-          label="What went wrong?"
+          label={t("screens4_9.support.bugReport.descriptionLabel")}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           multiline
           minRows={3}
           fullWidth
           autoFocus
-          placeholder="Describe the problem in a sentence or two."
+          placeholder={t("screens4_9.support.bugReport.descriptionPlaceholder")}
         />
         <TextInput
-          label="Steps to reproduce"
+          label={t("screens4_9.support.bugReport.stepsLabel")}
           value={steps}
           onChange={(event) => setSteps(event.target.value)}
           multiline
           minRows={3}
           fullWidth
-          placeholder={"1. Open …\n2. Add a … node\n3. Run the workflow"}
+          placeholder={t("screens4_9.support.bugReport.stepsPlaceholder")}
         />
         <TextInput
-          label="What did you expect?"
+          label={t("screens4_9.support.bugReport.expectedLabel")}
           value={expected}
           onChange={(event) => setExpected(event.target.value)}
           multiline
@@ -416,85 +500,114 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         <FlexColumn gap={SPACING.sm}>
           <SectionHeader
             size="small"
-            title="Attached data"
-            subtitle="API keys and inlined media are removed before the file is written. Open any file to read it first."
+            title={t("screens4_9.support.bugReport.attachedDataTitle")}
+            subtitle={t("screens4_9.support.bugReport.attachedDataDescription")}
           />
 
           {allSections.length === 0 ? (
-            <Caption>Nothing was captured to attach to this report.</Caption>
+            <Caption>
+              {t("screens4_9.support.bugReport.noCapturedData")}
+            </Caption>
           ) : (
-            allSections.map((section) => (
-              <FlexColumn
-                key={section.id}
-                gap={SPACING.xs}
-                sx={{
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: BORDER_RADIUS.md,
-                  p: SPACING.md
-                }}
-              >
-                <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
-                  <Checkbox
-                    size="small"
-                    checked={isIncluded(section)}
-                    onChange={() => toggleSection(section)}
-                    label={
-                      <FlexColumn gap={0}>
-                        <Text size="small">{section.label}</Text>
-                        <Caption>{section.description}</Caption>
-                      </FlexColumn>
-                    }
-                  />
-                  <FlexRow align="center" gap={SPACING.sm}>
-                    <Caption>{formatBytes(section.content.length)}</Caption>
-                    <EditorButton
-                      variant="text"
-                      aria-label={`${revealed[section.id] ? "Hide" : "View"} ${section.label}`}
-                      onClick={() =>
-                        setRevealed((prev) => ({
-                          ...prev,
-                          [section.id]: !prev[section.id]
-                        }))
-                      }
-                    >
-                      {revealed[section.id] ? "Hide" : "View"}
-                    </EditorButton>
-                  </FlexRow>
-                </FlexRow>
-                {revealed[section.id] ? (
-                  <Text
-                    component="pre"
-                    size="small"
-                    family="secondary"
-                    sx={{
-                      m: 0,
-                      p: SPACING.xs,
-                      maxHeight: 220,
-                      overflow: "auto",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      bgcolor: "background.default",
-                      borderRadius: BORDER_RADIUS.sm
-                    }}
+            allSections.map((section) => {
+              const labelKey = sectionTranslationKey(section.id, "label");
+              const descriptionKey = sectionTranslationKey(
+                section.id,
+                "description"
+              );
+              const sectionLabel = labelKey ? t(labelKey) : section.label;
+              return (
+                <FlexColumn
+                  key={section.id}
+                  gap={SPACING.xs}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: BORDER_RADIUS.md,
+                    p: SPACING.md
+                  }}
+                >
+                  <FlexRow
+                    align="center"
+                    justify="space-between"
+                    gap={SPACING.sm}
                   >
-                    {section.content}
-                  </Text>
-                ) : null}
-              </FlexColumn>
-            ))
+                    <Checkbox
+                      size="small"
+                      checked={isIncluded(section)}
+                      onChange={() => toggleSection(section)}
+                      label={
+                        <FlexColumn gap={0}>
+                          <Text size="small">{sectionLabel}</Text>
+                          <Caption>
+                            {descriptionKey
+                              ? t(descriptionKey)
+                              : section.description}
+                          </Caption>
+                        </FlexColumn>
+                      }
+                    />
+                    <FlexRow align="center" gap={SPACING.sm}>
+                      <Caption>
+                        {formatBytes(section.content.length, locale)}
+                      </Caption>
+                      <EditorButton
+                        variant="text"
+                        aria-label={t(
+                          revealed[section.id]
+                            ? "screens4_9.support.bugReport.hideSection"
+                            : "screens4_9.support.bugReport.viewSection",
+                          { section: sectionLabel }
+                        )}
+                        onClick={() =>
+                          setRevealed((prev) => ({
+                            ...prev,
+                            [section.id]: !prev[section.id]
+                          }))
+                        }
+                      >
+                        {t(
+                          revealed[section.id]
+                            ? "screens4_9.support.bugReport.hide"
+                            : "screens4_9.support.bugReport.view"
+                        )}
+                      </EditorButton>
+                    </FlexRow>
+                  </FlexRow>
+                  {revealed[section.id] ? (
+                    <Text
+                      component="pre"
+                      size="small"
+                      family="secondary"
+                      sx={{
+                        m: 0,
+                        p: SPACING.xs,
+                        maxHeight: 220,
+                        overflow: "auto",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        bgcolor: "background.default",
+                        borderRadius: BORDER_RADIUS.sm
+                      }}
+                    >
+                      {section.content}
+                    </Text>
+                  ) : null}
+                </FlexColumn>
+              );
+            })
           )}
         </FlexColumn>
 
         <FlexColumn gap={SPACING.sm}>
           <SectionHeader
             size="small"
-            title="Screenshots and other files"
-            subtitle="A screenshot of the broken screen is the most useful thing you can add."
+            title={t("screens4_9.support.bugReport.attachmentsTitle")}
+            subtitle={t("screens4_9.support.bugReport.attachmentsDescription")}
           />
           <UploadButton
-            label="Add files"
-            tooltip="Attach files to the bug report"
+            label={t("screens4_9.support.bugReport.addFiles")}
+            tooltip={t("screens4_9.support.bugReport.addFilesTooltip")}
             iconVariant="file"
             nodrag={false}
             onFileSelect={handleAttach}
@@ -503,13 +616,17 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
           {attachments.map((file) => (
             <FlexRow key={file.name} align="center" gap={SPACING.sm}>
               <Caption>
-                {file.name} ({formatBytes(file.size)})
+                {file.name} ({formatBytes(file.size, locale)})
               </Caption>
               <EditorButton
                 variant="text"
+                aria-label={t(
+                  "screens4_9.support.bugReport.removeAttachmentLabel",
+                  { fileName: file.name }
+                )}
                 onClick={() => removeAttachment(file.name)}
               >
-                Remove
+                {t("screens4_9.support.bugReport.removeAttachment")}
               </EditorButton>
             </FlexRow>
           ))}

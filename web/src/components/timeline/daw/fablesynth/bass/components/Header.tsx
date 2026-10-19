@@ -3,6 +3,7 @@
 // belong to the timeline, so they are not here.
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScopeView } from '../../components/displays/ScopeView';
 import { patchOptions } from '../patches';
 import { useBassStore } from '../bassStoreContext';
@@ -10,6 +11,7 @@ import { BassPatchBrowser } from './BassPatchBrowser';
 import { BassKnob } from './BassKnob';
 
 export function Header() {
+  const { t } = useTranslation();
   const device = useBassStore((s) => s.device);
   const patchValue = useBassStore((s) => s.patchValue);
   const userPatches = useBassStore((s) => s.userPatches);
@@ -47,16 +49,16 @@ export function Header() {
   return (
     <header className="top-bar bl-header">
       <div className="brand">FABLE<em>SYNTH</em><small>BL-1</small></div>
-      <div className="preset-bar bl-patchbar" aria-label="patch selection">
-        <span className="bl-patch-label">PATCH</span>
-        <button className="pb-btn" aria-label="previous patch" disabled={readOnly} onClick={() => stepPatch(-1)}>◂</button>
+      <div className="preset-bar bl-patchbar" aria-label={t('i18n-next48.patch.selection')}>
+        <span className="bl-patch-label">{t('i18n-next48.patch.label')}</span>
+        <button className="pb-btn" aria-label={t('i18n-next48.patch.previous')} disabled={readOnly} onClick={() => stepPatch(-1)}>◂</button>
         {naming ? (
           <input
             ref={inputRef}
             className="bl-patchname-input"
             value={draft}
             maxLength={24}
-            aria-label="patch name"
+            aria-label={t('i18n-next48.patch.name')}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={() => setNaming(false)}
             onKeyDown={(e) => {
@@ -71,20 +73,20 @@ export function Header() {
             {currentPatch}
           </span>
         )}
-        <button className="pb-btn" aria-label="next patch" disabled={readOnly} onClick={() => stepPatch(1)}>▸</button>
+        <button className="pb-btn" aria-label={t('i18n-next48.patch.next')} disabled={readOnly} onClick={() => stepPatch(1)}>▸</button>
         <button
           className="pb-btn pb-save pb-browse"
           aria-expanded={browsing}
           disabled={readOnly}
           onClick={() => setBrowsing(!browsing)}
-        >BROWSE</button>
-        <button className="pb-btn pb-save" onClick={startNaming}>SAVE</button>
+        >{t('i18n-next48.common.browse')}</button>
+        <button className="pb-btn pb-save" onClick={startNaming}>{t('i18n-next48.common.save')}</button>
       </div>
-      <div className="bl-voicemode">MONO · LAST-NOTE<br />SLIDES RIDE THE ENVS</div>
+      <div className="bl-voicemode">{t('i18n-next48.bass.voiceMode')}</div>
       <div className="hud bl-hud">
         <div className="hud-cell">
           {device ? <ScopeView analyser={device.getAnalyser()} accent="#4dff9e" /> : <canvas />}
-          <span>SCOPE</span>
+          <span>{t('i18n-next48.common.scope')}</span>
         </div>
       </div>
       <div className="bl-master">

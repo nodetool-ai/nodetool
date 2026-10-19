@@ -8,6 +8,7 @@
  */
 
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot } from "@nodetool-ai/protocol";
 
 import {
@@ -26,16 +27,23 @@ interface ScriptShotChipProps {
 }
 
 const ScriptShotChipInner = ({ shot, onOpen }: ScriptShotChipProps) => {
+  const { t, i18n } = useTranslation("translation", { keyPrefix: "screen_scripts_text" });
   const uri = useResolvedMediaUri(shot.keyframe);
-  const label = `Shot ${shot.index + 1}${shot.slug ? `: ${shot.slug}` : ""}`;
+  const number = new Intl.NumberFormat(i18n.resolvedLanguage).format(
+    shot.index + 1
+  );
+  const label = t("script.shot.label", {
+    number,
+    slug: shot.slug ? `: ${shot.slug}` : ""
+  });
 
   return (
-    <Tooltip title={`${label} — open on the storyboard`}>
+    <Tooltip title={t("script.shot.openTooltip", { label })}>
       <Box
         component="button"
         type="button"
         onClick={onOpen}
-        aria-label={`Open ${label} on the storyboard`}
+        aria-label={t("script.shot.openAria", { label })}
         sx={{
           display: "flex",
           alignItems: "center",
@@ -65,7 +73,7 @@ const ScriptShotChipInner = ({ shot, onOpen }: ScriptShotChipProps) => {
             sx={{ width: "100%", height: "100%" }}
           />
         ) : (
-          `#${shot.index + 1}`
+          `#${number}`
         )}
       </Box>
     </Tooltip>

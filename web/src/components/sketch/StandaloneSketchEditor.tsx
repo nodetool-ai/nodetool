@@ -22,6 +22,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import { css } from "@emotion/react";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
@@ -130,6 +131,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
     suspendKeyboardShortcuts = false
   }) {
     const theme = useTheme();
+    const { t } = useTranslation();
     const styles = useMemo(() => containerStyles(theme), [theme]);
     const editorRef = useRef<SketchEditorHandle | null>(null);
     const { save, saving } = useSaveSketchDocument();
@@ -221,7 +223,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
         <ListItemIcon>
           <SaveOutlinedIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>{saving ? "Saving…" : "Save"}</ListItemText>
+        <ListItemText>{saving ? t("i18n-next52.sketch.document.saving") : t("i18n-next52.sketch.document.save")}</ListItemText>
       </EditorMenuItem>,
       <EditorMenuItem
         key="save-as-asset"
@@ -236,7 +238,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
           <AddPhotoAlternateOutlinedIcon fontSize="small" />
         </ListItemIcon>
         <ListItemText>
-          {savingAsAsset ? "Saving…" : "Save as asset"}
+          {savingAsAsset ? t("i18n-next52.sketch.document.saving") : t("i18n-next52.sketch.document.saveAsAsset")}
         </ListItemText>
       </EditorMenuItem>,
       <EditorMenuItem
@@ -250,7 +252,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
         <ListItemIcon>
           <FileDownloadOutlinedIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>Export PNG</ListItemText>
+        <ListItemText>{t("i18n-next52.sketch.document.exportPng")}</ListItemText>
       </EditorMenuItem>,
       <EditorMenuItem
         key="export-psd"
@@ -263,7 +265,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
         <ListItemIcon>
           <LayersOutlinedIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>Export PSD</ListItemText>
+        <ListItemText>{t("i18n-next52.sketch.document.exportPsd")}</ListItemText>
       </EditorMenuItem>,
       <EditorMenuItem
         key="import-psd"
@@ -276,7 +278,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
         <ListItemIcon>
           <FileUploadOutlinedIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>Import PSD…</ListItemText>
+        <ListItemText>{t("i18n-next52.sketch.document.importPsd")}</ListItemText>
       </EditorMenuItem>
     ];
 
@@ -289,8 +291,8 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
           <FlexColumn align="center" justify="center" sx={centered}>
             <EmptyState
               variant="error"
-              title="Sketch document not found"
-              description="The image document you requested does not exist or you do not have access to it."
+              title={t("i18n-next52.sketch.document.notFound")}
+              description={t("i18n-next52.sketch.document.notFoundDescription")}
             />
           </FlexColumn>
         );

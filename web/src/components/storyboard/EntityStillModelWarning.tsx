@@ -11,8 +11,10 @@
  * it runs only when the warning could actually fire.
  */
 
-import { Caption } from "../ui_primitives";
+import { useTranslation } from "react-i18next";
+
 import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
+import { Caption } from "../ui_primitives";
 
 interface EntityStillModelWarningProps {
   /** The board's selected still model, if one is chosen. */
@@ -24,6 +26,7 @@ const EntityStillModelWarning = ({
   modelId,
   provider
 }: EntityStillModelWarningProps) => {
+  const { t } = useTranslation();
   const { models } = useImageModelsByProvider();
   const details = modelId
     ? models.find((m) => m.id === modelId && m.provider === provider)
@@ -36,8 +39,7 @@ const EntityStillModelWarning = ({
   }
   return (
     <Caption color="warning">
-      Entities carry reference images, but this model only takes text. Pick an
-      image-to-image model to use them.
+      {t("screens4_12.entityStillModelWarning.message")}
     </Caption>
   );
 };

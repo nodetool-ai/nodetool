@@ -5,6 +5,7 @@
  */
 
 import type * as React from "react";
+import { useTranslation } from "react-i18next";
 
 import type { FableEffectKind } from "@nodetool-ai/timeline";
 
@@ -47,6 +48,7 @@ function FableFxDevice({
   trackId,
   effectId
 }: FxDeviceViewProps & { kind: FableEffectKind }): React.ReactElement | null {
+  const { t } = useTranslation();
   const { effect, adapter } = useFableFxDevice(trackId, effectId);
   if (!effect || !adapter) return null;
   if (effect.kind !== kind) return null;
@@ -55,7 +57,7 @@ function FableFxDevice({
       className="fablesynth fable-fx-device"
       data-kind={kind}
       data-testid={`fable-fx-${effectId}`}
-      aria-label={`${FABLE_FX_LABELS[kind]} device`}
+      aria-label={t("i18n-next77.fxDevice.ariaLabel", { name: FABLE_FX_LABELS[kind] })}
     >
       {renderPanel(kind, adapter)}
     </div>

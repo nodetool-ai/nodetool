@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import FolderIcon from "@mui/icons-material/FolderOutlined";
 
 import { Caption, FlexRow, SPACING, getSpacingPx } from "../ui_primitives";
@@ -19,6 +20,7 @@ interface SaveDestinationHintProps {
  */
 const SaveDestinationHint: React.FC<SaveDestinationHintProps> = React.memo(
   ({ data }) => {
+    const { t } = useTranslation();
     const savesToWorkspace = data?.properties?.save_to_workspace === true;
     const { workspace } = useCurrentWorkspace();
 
@@ -47,7 +49,9 @@ const SaveDestinationHint: React.FC<SaveDestinationHintProps> = React.memo(
           }}
           title={workspace?.path ?? undefined}
         >
-          {missing ? "Workspace" : workspace.name || workspace.path}
+          {missing
+            ? t("i18n-next36.nodeEditor.saveDestinationHint.workspace")
+            : workspace.name || workspace.path}
         </Caption>
       </FlexRow>
     );

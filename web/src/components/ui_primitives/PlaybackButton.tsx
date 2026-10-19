@@ -15,6 +15,7 @@
  */
 
 import { forwardRef, memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton, IconButtonProps } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -116,6 +117,7 @@ export const PlaybackButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
 
       const handleClick = useCallback(() => {
         switch (playbackAction) {
@@ -151,19 +153,21 @@ export const PlaybackButton = memo(
           default:
             return state === "playing" ? <PauseIcon /> : <PlayArrowIcon />;
         }
-      }, [playbackAction, state]);
+      }, [playbackAction, state, t]);
 
       const tooltip = useMemo(() => {
         switch (playbackAction) {
           case "play":
-            return "Play";
+            return t("i18n-next103.playbackButton.play");
           case "pause":
-            return "Pause";
+            return t("i18n-next103.playbackButton.pause");
           case "stop":
-            return "Stop";
+            return t("i18n-next103.playbackButton.stop");
           case "toggle":
           default:
-            return state === "playing" ? "Pause" : "Play";
+            return state === "playing"
+              ? t("i18n-next103.playbackButton.pause")
+              : t("i18n-next103.playbackButton.play");
         }
       }, [playbackAction, state]);
 

@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 
 import type { RouterOutputs } from "../../../trpc/client";
@@ -83,10 +84,11 @@ const SkillMentionMenu: React.FC<SkillMentionMenuProps> = ({
   onHighlight
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   return (
     <div
       role="listbox"
-      aria-label="Skills"
+      aria-label={t("i18n-next54.composer.skills")}
       css={[
         menuPaperStyles(theme),
         menuListStyles(theme),
@@ -124,7 +126,7 @@ const SkillMentionMenu: React.FC<SkillMentionMenuProps> = ({
           color="secondary"
           sx={{ px: SPACING.lg, py: SPACING.xs }}
         >
-          No matching skills
+          {t("i18n-next54.composer.noMatchingSkills")}
         </Text>
       )}
     </div>

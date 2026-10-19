@@ -10,6 +10,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SKETCH_Z_INDEX } from "./sketchStyles";
 import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { isFunction } from "../../utils/typePredicates";
@@ -167,6 +168,7 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
   maxWidth = MAX_CANVAS_SIZE,
   maxHeight = MAX_CANVAS_SIZE
 }) => {
+  const { t } = useTranslation();
   const [activeEdge, setActiveEdge] = useState<ResizeEdge | null>(null);
   const dragStartRef = useRef<{
     x: number;
@@ -492,6 +494,7 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
         <div
           key={edge}
           className={`resize-handle resize-handle--${edge}${activeEdge === edge ? " active" : ""}`}
+          aria-label={t(`i18n-cont-sketch-03.resizeHandles.${edge}`)}
           css={handleStyles}
           style={style}
           onPointerDown={(e) => handlePointerDown(e, edge)}

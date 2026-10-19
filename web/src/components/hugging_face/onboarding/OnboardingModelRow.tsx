@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -20,7 +21,6 @@ import {
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 import {
-  FIT_LABELS,
   getEngine,
   type FitLevel,
   type OnboardingModel
@@ -46,6 +46,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
   downloaded,
   onDownload
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const downloadId = entry.model.repo_id || entry.model.id;
   const download = useModelDownloadStore((state) => state.downloads[downloadId]);
@@ -72,7 +73,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
               {entry.name}
             </Text>
             {entry.featured && (
-              <Chip label="Popular" compact color="primary" variant="outlined" />
+              <Chip label={t("i18n-next33.models.popular")} compact color="primary" variant="outlined" />
             )}
             {engine && (
               <Tooltip title={engine.description}>
@@ -93,14 +94,14 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
             </Caption>
             <Caption sx={{ opacity: 0.5 }}>·</Caption>
             <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>
-              ~{entry.minVramGb} GB memory
+              {t("i18n-next33.models.memoryEstimate", { count: entry.minVramGb })}
             </Caption>
           </FlexRow>
         </FlexColumn>
 
         <FlexColumn gap={SPACING.xs} align="flex-end" sx={{ flexShrink: 0 }}>
           <Chip
-            label={FIT_LABELS[fit]}
+            label={t(`i18n-next33.models.fit.${fit}`)}
             compact
             color={FIT_COLOR[fit]}
           />
@@ -112,7 +113,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
                   color: theme.vars.palette.success.main
                 }}
               />
-              <Caption color="secondary">Installed</Caption>
+              <Caption color="secondary">{t("i18n-next33.models.installed")}</Caption>
             </FlexRow>
           ) : (
             <EditorButton
@@ -122,7 +123,7 @@ const OnboardingModelRow: React.FC<OnboardingModelRowProps> = ({
               startIcon={<DownloadIcon />}
               onClick={handleDownload}
             >
-              Download
+              {t("i18n-next33.models.download")}
             </EditorButton>
           )}
         </FlexColumn>

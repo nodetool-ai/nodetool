@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useTheme } from "@mui/material/styles";
 
@@ -133,6 +134,7 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
   onSmoothSelectionBorders,
   onConvertSelectionToBorder
 }: RefineSelectionPopoverProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [modifyPx, setModifyPx] = useState(1);
   const expandCurrentSelection = useSketchStore(
@@ -221,7 +223,7 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
     >
       <FlexColumn gap={1.5} sx={{ width: 340 }}>
         <RefineRow
-          label="Modify"
+          label={t("i18n-next13.sketch.refineSelection.modify")}
           value={modifyPx}
           min={1}
           max={MAX_MODIFY_PX}
@@ -234,7 +236,7 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
                   markDirty();
                 }}
               >
-                Grow
+                {t("i18n-next13.sketch.refineSelection.grow")}
               </ApplyButton>
               <ApplyButton
                 onClick={() => {
@@ -242,14 +244,14 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
                   markDirty();
                 }}
               >
-                Shrink
+                {t("i18n-next13.sketch.refineSelection.shrink")}
               </ApplyButton>
             </FlexRow>
           }
         />
 
         <RefineRow
-          label="Feather"
+          label={t("i18n-next13.sketch.refineSelection.feather")}
           value={settings.featherRadius}
           min={0}
           max={MAX_SELECTION_FEATHER_RADIUS}
@@ -261,13 +263,13 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
                 markDirty();
               }}
             >
-              Apply
+              {t("i18n-next13.sketch.actions.apply")}
             </ApplyButton>
           }
         />
 
         <RefineRow
-          label="Smooth"
+          label={t("i18n-next13.sketch.refineSelection.smooth")}
           value={null}
           action={
             <ApplyButton
@@ -276,13 +278,13 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
                 markDirty();
               }}
             >
-              Apply
+              {t("i18n-next13.sketch.actions.apply")}
             </ApplyButton>
           }
         />
 
         <RefineRow
-          label="Border"
+          label={t("i18n-next13.sketch.refineSelection.border")}
           value={settings.borderWidth}
           min={1}
           max={MAX_BORDER_WIDTH}
@@ -294,17 +296,17 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
                 markDirty();
               }}
             >
-              Apply
+              {t("i18n-next13.sketch.actions.apply")}
             </ApplyButton>
           }
         />
 
         <FlexRow gap={1} justify="flex-end" sx={{ mt: 1 }}>
           <EditorButton variant="outlined" onClick={handleCancel}>
-            Cancel
+            {t("i18n-next13.sketch.actions.cancel")}
           </EditorButton>
           <EditorButton variant="contained" onClick={handleApply}>
-            Apply
+            {t("i18n-next13.sketch.actions.apply")}
           </EditorButton>
         </FlexRow>
       </FlexColumn>

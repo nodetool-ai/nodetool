@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useRunContent, useRuns } from "../../serverState/useRuns";
 import { useRunInspection } from "../../hooks/useRunInspection";
@@ -38,6 +39,7 @@ const mediaValue = z.object({
   uri: z.string().optional()
 });
 function ReadOnlyValue({ value }: { value: unknown }): React.ReactElement {
+  const { t } = useTranslation();
   const media = mediaValue.safeParse(value);
   if (media.success) {
     const locator = media.data.asset_id
@@ -48,17 +50,24 @@ function ReadOnlyValue({ value }: { value: unknown }): React.ReactElement {
         return (
           <ResponsiveImage
             locator={locator}
-            alt="Historical output"
+            alt={t("i18n-cont-appbuilder-10.history.historicalOutput")}
             fit="contain"
           />
         );
       }
       if (media.data.type === "video") {
-        return <VideoPlayer locator={locator} label="Historical output" />;
+        return (
+          <VideoPlayer
+            locator={locator}
+            label={t("i18n-cont-appbuilder-10.history.historicalOutput")}
+          />
+        );
       }
       return <AudioPlayback locator={locator} />;
     }
-    return <Caption>Media reference unavailable.</Caption>;
+    return (
+      <Caption>{t("i18n-cont-appbuilder-10.history.mediaUnavailable")}</Caption>
+    );
   }
   return (
     <Text
@@ -96,6 +105,7 @@ export default function AppRunHistory({
   selectedRunId,
   onSelect
 }: AppRunHistoryProps): React.ReactElement {
+  const { t, i18n } = useTranslation();
   const history = useRuns({ kind: "app", instance_id: instanceId, limit: 20 });
   const detail = useRunContent(selectedRunId);
   const { openRunInspection } = useRunInspection();
@@ -115,7 +125,9 @@ export default function AppRunHistory({
   const error = history.error ?? detail.error;
   return (
     <FlexColumn gap={SPACING.md} padding={SPACING.lg}>
-      <Text weight={600}>Run history</Text>
+      <Text weight={600}>
+        {t("i18n-cont-appbuilder-10.history.runHistory")}
+      </Text>
       {error ? (
         <AlertBanner
           severity="error"
@@ -123,7 +135,7 @@ export default function AppRunHistory({
             <ReportBugButton
               context={{
                 source: "operation-failure",
-                summary: "Run history could not load",
+                summary: t("i18n-cont-appbuilder-10.history.loadFailed"),
                 errorText: error.message
               }}
             />
@@ -132,7 +144,11 @@ export default function AppRunHistory({
           {error.message}
         </AlertBanner>
       ) : null}
-      {history.isLoading ? <LoadingSpinner text="Loading history" /> : null}
+      {history.isLoading ? (
+        <LoadingSpinner
+          text={t("i18n-cont-appbuilder-10.history.loadingHistory")}
+        />
+      ) : null}
       <ScrollArea maxHeight={360}>
         <FlexColumn gap={SPACING.sm}>
           {records.map((record) => (
@@ -141,22 +157,32 @@ export default function AppRunHistory({
                 aria-pressed={selectedRunId === record.id}
                 onClick={() => onSelect(record.id)}
               >
-                {record.app?.operation_id ?? "Unknown operation"} ·{" "}
-                {record.status} · {record.started_at}
+                {record.app?.operation_id ??
+                  t("i18n-cont-appbuilder-10.history.unknownOperation")}{" "}
+                · {record.status} ·{" "}
+                {new Intl.DateTimeFormat(i18n.language, {
+                  dateStyle: "medium",
+                  timeStyle: "short"
+                }).format(new Date(record.started_at))}
               </EditorButton>
               <Caption>
                 {record.origin} ·{" "}
                 {record.app?.cost_state === "settled"
-                  ? `$${record.app.actual_usd?.toFixed(4)}`
+                  ? new Intl.NumberFormat(i18n.language, {
+                      style: "currency",
+                      currency: "USD",
+                      minimumFractionDigits: 4,
+                      maximumFractionDigits: 4
+                    }).format(record.app.actual_usd ?? 0)
                   : record.app?.cost_state === "unsettled"
-                    ? "Cost pending"
-                    : "Cost unavailable"}
+                    ? t("i18n-cont-appbuilder-10.history.costPending")
+                    : t("i18n-cont-appbuilder-10.history.costUnavailable")}
               </Caption>
               {record.app?.result_reference ? (
                 <ResponsiveImage
                   locator={`asset://${record.app.result_reference.asset_id}`}
                   preferThumbnail
-                  alt="Run result thumbnail"
+                  alt={t("i18n-cont-appbuilder-10.history.runResultThumbnail")}
                 />
               ) : null}
             </FlexRow>
@@ -164,12 +190,15 @@ export default function AppRunHistory({
         </FlexColumn>
       </ScrollArea>
       {!history.isLoading && !records.length ? (
-        <EmptyState size="small" title="No runs recorded for this instance" />
+        <EmptyState
+          size="small"
+          title={t("i18n-cont-appbuilder-10.history.noRuns")}
+        />
       ) : null}
       <FlexRow gap={SPACING.sm}>
         {pageIndex > 0 ? (
           <EditorButton onClick={() => setPageIndex((index) => index - 1)}>
-            Newer runs
+            {t("i18n-cont-appbuilder-10.history.newerRuns")}
           </EditorButton>
         ) : null}
         {history.hasNextPage || history.data?.pages[pageIndex + 1] ? (
@@ -177,31 +206,48 @@ export default function AppRunHistory({
             disabled={history.isFetchingNextPage}
             onClick={() => void older()}
           >
-            Older runs
+            {t("i18n-cont-appbuilder-10.history.olderRuns")}
           </EditorButton>
         ) : null}
       </FlexRow>
       {selectedRunId ? (
-        <FlexColumn gap={SPACING.md} role="region" aria-label="Historical run">
+        <FlexColumn
+          gap={SPACING.md}
+          role="region"
+          aria-label={t("i18n-cont-appbuilder-10.history.historicalRun")}
+        >
           <FlexRow gap={SPACING.sm}>
-            <Text weight={600}>Historical result (read-only)</Text>
+            <Text weight={600}>
+              {t("i18n-cont-appbuilder-10.history.historicalResult")}
+            </Text>
             <EditorButton onClick={() => onSelect(null)}>
-              Close history selection
+              {t("i18n-cont-appbuilder-10.history.closeSelection")}
             </EditorButton>
           </FlexRow>
           {candidate && !run ? (
             <Caption>
-              This run does not belong to the selected instance.
+              {t("i18n-cont-appbuilder-10.history.runBelongsElsewhere")}
             </Caption>
           ) : null}
           {detail.isLoading ? (
-            <LoadingSpinner text="Loading historical result" />
+            <LoadingSpinner
+              text={t(
+                "i18n-cont-appbuilder-10.history.loadingHistoricalResult"
+              )}
+            />
           ) : null}
           {run && !detail.error ? (
             <>
               <Caption>
-                {run.app?.operation_id ?? "Unknown operation"} · version{" "}
-                {run.app?.app_version ?? "draft"} · {run.status}
+                {run.app?.operation_id ??
+                  t("i18n-cont-appbuilder-10.history.unknownOperation")}{" "}
+                ·{" "}
+                {t("i18n-cont-appbuilder-10.history.version", {
+                  version:
+                    run.app?.app_version ??
+                    t("i18n-cont-appbuilder-10.history.draft")
+                })}{" "}
+                · {run.status}
               </Caption>
               <FlexRow gap={SPACING.sm}>
                 <EditorButton
@@ -212,7 +258,7 @@ export default function AppRunHistory({
                     })
                   }
                 >
-                  View trace
+                  {t("i18n-cont-appbuilder-10.history.viewTrace")}
                 </EditorButton>
                 <AskRunAgentButton
                   runId={run.id}
@@ -221,14 +267,18 @@ export default function AppRunHistory({
               </FlexRow>
               {summary?.content_state !== "available" ? (
                 <Caption>
-                  Run content {summary?.content_state ?? "unavailable"}.
+                  {t("i18n-cont-appbuilder-10.history.runContentState", {
+                    state:
+                      summary?.content_state ??
+                      t("i18n-cont-appbuilder-10.history.unavailable")
+                  })}
                 </Caption>
               ) : (
                 <>
                   {(["inputs", "outputs"] as const).map((field) => (
                     <FlexColumn key={field} gap={SPACING.sm}>
                       <Text weight={600}>
-                        {field === "inputs" ? "Inputs" : "Outputs"}
+                        {t(`i18n-cont-appbuilder-10.history.${field}`)}
                       </Text>
                       {Object.entries(run.app?.[field] ?? {}).map(
                         ([name, value]) => (
@@ -241,8 +291,8 @@ export default function AppRunHistory({
                       {!Object.keys(run.app?.[field] ?? {}).length ? (
                         <Caption>
                           {run.app?.content_limited
-                            ? "Content exceeds the read limit."
-                            : "No values recorded."}
+                            ? t("i18n-cont-appbuilder-10.history.contentLimit")
+                            : t("i18n-cont-appbuilder-10.history.noValues")}
                         </Caption>
                       ) : null}
                     </FlexColumn>
@@ -250,10 +300,14 @@ export default function AppRunHistory({
                 </>
               )}
               {run.app?.content_limited || summary?.truncated ? (
-                <Caption>Some recorded content was limited.</Caption>
+                <Caption>
+                  {t("i18n-cont-appbuilder-10.history.contentLimited")}
+                </Caption>
               ) : null}
               {summary?.incomplete ? (
-                <Caption>Recording is incomplete.</Caption>
+                <Caption>
+                  {t("i18n-cont-appbuilder-10.history.recordingIncomplete")}
+                </Caption>
               ) : null}
               {summary?.documents.map((document) => {
                 const type = documentType(document.kind);
@@ -269,11 +323,16 @@ export default function AppRunHistory({
                       })
                     }
                   >
-                    Open current {document.kind}
+                    {t("i18n-cont-appbuilder-10.history.openCurrentDocument", {
+                      kind: document.kind
+                    })}
                   </EditorButton>
                 ) : (
                   <Caption key={`${document.kind}:${document.id}`}>
-                    Document type unavailable: {document.kind}
+                    {t(
+                      "i18n-cont-appbuilder-10.history.documentTypeUnavailable",
+                      { kind: document.kind }
+                    )}
                   </Caption>
                 );
               })}

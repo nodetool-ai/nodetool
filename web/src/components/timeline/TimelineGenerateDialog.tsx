@@ -5,6 +5,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Dialog } from "../ui_primitives";
 import { TimelineGeneratePanel } from "./TimelineGeneratePanel";
@@ -17,17 +18,20 @@ interface TimelineGenerateDialogProps {
 const TimelineGenerateDialogInner: React.FC<TimelineGenerateDialogProps> = ({
   open,
   onClose
-}) => (
-  <Dialog
-    open={open}
-    onClose={onClose}
-    title="Generate at the playhead"
-    maxWidth="md"
-    fullWidth
-  >
-    <TimelineGeneratePanel onGenerated={onClose} />
-  </Dialog>
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t("screen_timeline.generate.title")}
+      maxWidth="md"
+      fullWidth
+    >
+      <TimelineGeneratePanel onGenerated={onClose} />
+    </Dialog>
+  );
+};
 
 export const TimelineGenerateDialog = memo(TimelineGenerateDialogInner);
 TimelineGenerateDialog.displayName = "TimelineGenerateDialog";

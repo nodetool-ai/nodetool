@@ -8,6 +8,8 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   NATIVE_GAME_TEMPLATES,
   findNativeGameTemplate
@@ -19,16 +21,48 @@ import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { OptionCardGrid } from "../OptionCardGrid";
 import type { OptionCardItem } from "../OptionCardGrid";
 import { SetupFooterField } from "../SetupFooterField";
-import { describeGameSlot } from "./gameSetupModel";
 
-const TEMPLATE_OPTIONS: readonly OptionCardItem[] = NATIVE_GAME_TEMPLATES.map(
-  (template) => ({
-    id: template.id,
-    title: template.name,
-    description: template.description,
-    meta: `${template.manifest.slots.length} assets`
-  })
-);
+const describeSlot = (
+  slot: (typeof NATIVE_GAME_TEMPLATES)[number]["manifest"]["slots"][number],
+  t: TFunction
+): string => {
+  switch (slot.kind) {
+    case "spritesheet": {
+      const animations = Object.entries(slot.animations)
+        .map(([name, frames]) =>
+          frames === 1
+            ? name
+            : t("pass3_6.game.template.animationFrames", {
+                name,
+                count: frames
+              })
+        )
+        .join(", ");
+      return t("pass3_6.game.template.slotSprite", {
+        id: slot.id,
+        width: slot.cell[0],
+        height: slot.cell[1],
+        animations
+      });
+    }
+    case "tileset":
+      return t("pass3_6.game.template.slotTile", {
+        id: slot.id,
+        width: slot.cell[0],
+        height: slot.cell[1]
+      });
+    case "image":
+      return t("pass3_6.game.template.slotImage", {
+        id: slot.id,
+        width: slot.size[0],
+        height: slot.size[1]
+      });
+    case "sfx":
+      return t("pass3_6.game.template.slotSound", { id: slot.id });
+    case "music":
+      return t("pass3_6.game.template.slotMusic", { id: slot.id });
+  }
+};
 
 export interface GameTemplateStepProps {
   selectedId: string | null;
@@ -41,21 +75,41 @@ const TemplateStepInternal: React.FC<GameTemplateStepProps> = ({
   onSelect,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const chosen = selectedId ? findNativeGameTemplate(selectedId) : null;
+  const options: readonly OptionCardItem[] = NATIVE_GAME_TEMPLATES.map(
+    (template) => {
+      const localized =
+        template.id === "topdown"
+          ? {
+              title: t("pass3_6.game.template.templates.topdown.title"),
+              description: t(
+                "pass3_6.game.template.templates.topdown.description"
+              )
+            }
+          : { title: template.name, description: template.description };
+      return {
+        id: template.id,
+        ...localized,
+        meta: t("pass3_6.game.template.assetCount", {
+          count: template.manifest.slots.length
+        })
+      };
+    }
+  );
   return (
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Pick how it plays
+          {t("pass3_6.game.template.heading")}
         </Text>
         <Text size="normal" color="secondary">
-          The template sets the rules and the pieces of art. The design you
-          review next fills them in for your idea.
+          {t("pass3_6.game.template.description")}
         </Text>
       </FlexColumn>
       <OptionCardGrid
-        label="Game template"
-        options={TEMPLATE_OPTIONS.map((option) => ({
+        label={t("pass3_6.game.template.groupLabel")}
+        options={options.map((option) => ({
           ...option,
           disabled: readOnly
         }))}
@@ -66,12 +120,12 @@ const TemplateStepInternal: React.FC<GameTemplateStepProps> = ({
         <FlexColumn
           gap={GAP.tight}
           component="ul"
-          aria-label="Assets this template uses"
+          aria-label={t("pass3_6.game.template.assetsLabel")}
           sx={{ listStyle: "none", m: 0, p: 0, "& li": { listStyle: "none" } }}
         >
           {chosen.manifest.slots.map((slot) => (
             <Caption key={slot.id} component="li" color="secondary">
-              {describeGameSlot(slot)}
+              {describeSlot(slot, t)}
             </Caption>
           ))}
         </FlexColumn>
@@ -90,19 +144,22 @@ export interface DesignerModelFooterFieldProps {
 /** The designer model, for the shell's footer. */
 export const DesignerModelFooterField: React.FC<
   DesignerModelFooterFieldProps
-> = ({ designerModel, onDesignerModelChange, readOnly = false }) => (
-  <SetupFooterField label="Model">
-    <LanguageModelSelect
-      value={designerModel?.id ?? ""}
-      provider={designerModel?.provider}
-      placeholder="Designer model"
-      disabled={readOnly}
-      onChange={(value: LanguageModelValue) =>
-        onDesignerModelChange({ provider: value.provider, id: value.id })
-      }
-    />
-  </SetupFooterField>
-);
+> = ({ designerModel, onDesignerModelChange, readOnly = false }) => {
+  const { t } = useTranslation();
+  return (
+    <SetupFooterField label={t("pass3_6.game.template.modelLabel")}>
+      <LanguageModelSelect
+        value={designerModel?.id ?? ""}
+        provider={designerModel?.provider}
+        placeholder={t("pass3_6.game.template.modelPlaceholder")}
+        disabled={readOnly}
+        onChange={(value: LanguageModelValue) =>
+          onDesignerModelChange({ provider: value.provider, id: value.id })
+        }
+      />
+    </SetupFooterField>
+  );
+};
 
 export const GameTemplateStep = memo(TemplateStepInternal);
 GameTemplateStep.displayName = "GameTemplateStep";

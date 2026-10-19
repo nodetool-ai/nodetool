@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { Suspense, lazy, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { LoadingSpinner, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
 import type { PlotlyConfig } from "../../../stores/ApiTypes";
 import type { Data, Layout, Config, Frame } from "plotly.js";
@@ -13,8 +14,10 @@ interface PlotlyRendererProps {
 }
 
 const PlotlyRenderer: React.FC<PlotlyRendererProps> = ({ config }) => {
+  const { t } = useTranslation();
+
   if (!config.config) {
-    return <div>Invalid Plotly config</div>;
+    return <div>{t("i18n-next114.plotly.invalidConfiguration")}</div>;
   }
   return (
     <div className="render-content" style={FULL_SIZE_STYLE}>

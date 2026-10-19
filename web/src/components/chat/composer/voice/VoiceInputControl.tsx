@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import MicNoneRoundedIcon from "@mui/icons-material/MicNoneRounded";
 import { ToolbarIconButton } from "../../../ui_primitives";
@@ -48,6 +49,7 @@ export const VoiceInputControl = memo(function VoiceInputControl({
   } = useVoiceInput({ onTranscript });
 
   const isActive = phase !== "idle";
+  const { t } = useTranslation();
 
   return (
     <>
@@ -66,8 +68,8 @@ export const VoiceInputControl = memo(function VoiceInputControl({
       <ToolbarIconButton
         ref={micRef}
         className="voice-input-button"
-        aria-label="Record voice message"
-        tooltip="Record voice message"
+        aria-label={t("i18n-next54.composer.voice.record")}
+        tooltip={t("i18n-next54.composer.voice.record")}
         icon={<MicNoneRoundedIcon fontSize="small" />}
         onClick={startRecording}
         disabled={disabled || isActive}

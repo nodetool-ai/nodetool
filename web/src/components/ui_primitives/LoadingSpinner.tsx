@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -69,6 +70,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   className
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const diameter = isNumber(size) ? size : SPINNER_SIZE[size];
   const sizePreset: SizePreset = isNumber(size) ? "small" : size;
@@ -91,7 +93,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       className={`loading-spinner ${className || ""}`}
       role="status"
       aria-live="polite"
-      aria-label={text || "Loading"}
+      aria-label={text || t("i18n-next91.loadingSpinner.loading")}
     >
       {ring}
       {text && (

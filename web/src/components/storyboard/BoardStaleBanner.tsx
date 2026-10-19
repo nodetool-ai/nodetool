@@ -17,7 +17,8 @@
  */
 
 import { memo, useCallback, useMemo, useState } from "react";
-import { formatUsd } from "@nodetool-ai/model-pricing";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   currentRenderInputs,
   isVersionStale,
@@ -88,9 +89,15 @@ const renderInputReasons = (
 };
 
 /** " · ~$0.12" when the batch prices, nothing when it does not. */
-const costSuffix = (estimate: RenderBatchCostEstimate): string =>
+const costSuffix = (
+  estimate: RenderBatchCostEstimate,
+  locale: string
+): string =>
   estimate.pricedRequestCount > 0 && estimate.cost > 0
-    ? ` · ~${formatUsd(estimate.cost)}`
+    ? ` · ~${new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: "USD"
+      }).format(estimate.cost)}`
     : "";
 
 /** "3 stills", "1 clip" — the count and its noun. */
@@ -106,7 +113,8 @@ const countLabel = (count: number, noun: string): string =>
 export const staleBannerMessage = (
   staleStills: number,
   staleClips: number,
-  reasons: readonly StaleInputReason[] = []
+  reasons: readonly StaleInputReason[] = [],
+  translate?: TFunction
 ): string | null => {
   const parts: string[] = [];
   if (staleStills > 0) {
@@ -117,6 +125,40 @@ export const staleBannerMessage = (
   }
   if (parts.length === 0) {
     return null;
+  }
+  if (translate) {
+    const translatedParts: string[] = [];
+    if (staleStills > 0) {
+      translatedParts.push(
+        translate("screens4_12.boardStaleBanner.stillCount", {
+          count: staleStills
+        })
+      );
+    }
+    if (staleClips > 0) {
+      translatedParts.push(
+        translate("screens4_12.boardStaleBanner.clipCount", {
+          count: staleClips
+        })
+      );
+    }
+    return translate("screens4_12.boardStaleBanner.message", {
+      reasons:
+        reasons.length > 0
+          ? ` (${reasons
+              .map((reason) =>
+                translate(`screens4_12.boardStaleBanner.reasons.${reason}`)
+              )
+              .join(
+                ` ${translate("screens4_12.boardStaleBanner.and")} `
+              )})`
+          : "",
+      items: translatedParts.join(` ${translate("screens4_12.boardStaleBanner.and")} `),
+      verb:
+        translatedParts.length === 1 && staleStills + staleClips === 1
+          ? translate("screens4_12.boardStaleBanner.is")
+          : translate("screens4_12.boardStaleBanner.are")
+    });
   }
   const verb = parts.length === 1 && staleStills + staleClips === 1 ? "is" : "are";
   const reasonText = reasons.length > 0 ? ` (${reasons.join(" and ")})` : "";
@@ -142,6 +184,7 @@ const BoardStaleBannerImpl = ({
   boardId,
   disabled = false
 }: BoardStaleBannerProps) => {
+  const { t, i18n } = useTranslation();
   const board = useBoard(boardId);
   const { data: allEntities } = useEntities();
   const { generateKeyframe, generateClip } = useGenerateShot();
@@ -210,7 +253,8 @@ const BoardStaleBannerImpl = ({
   const message = staleBannerMessage(
     staleStills.length,
     staleClips.length,
-    reasons
+    reasons,
+    t
   );
   if (!message) {
     return null;
@@ -235,7 +279,9 @@ const BoardStaleBannerImpl = ({
                 onClick={() => setConfirming("stills")}
                 disabled={disabled}
               >
-                {`Regenerate stale stills${costSuffix(stillsCost)}`}
+                {t("screens4_12.boardStaleBanner.regenerateStaleStills", {
+                  cost: costSuffix(stillsCost, i18n.language)
+                })}
               </EditorButton>
             )}
             {staleClips.length > 0 && (
@@ -244,7 +290,9 @@ const BoardStaleBannerImpl = ({
                 onClick={() => setConfirming("clips")}
                 disabled={disabled}
               >
-                {`Regenerate stale clips${costSuffix(clipsCost)}`}
+                {t("screens4_12.boardStaleBanner.regenerateStaleClips", {
+                  cost: costSuffix(clipsCost, i18n.language)
+                })}
               </EditorButton>
             )}
           </FlexRow>
@@ -255,17 +303,21 @@ const BoardStaleBannerImpl = ({
       <Dialog
         open={confirming !== null}
         onClose={closeConfirm}
-        title={`Regenerate ${countLabel(confirmCount, `stale ${confirmNoun}`)}?`}
+        title={t(`screens4_12.boardStaleBanner.confirmTitle.${confirmNoun}`, {
+          count: confirmCount
+        })}
         onConfirm={handleConfirm}
-        confirmText={`Regenerate${costSuffix(confirmCost)}`}
+        confirmText={t("screens4_12.boardStaleBanner.confirm", {
+          cost: costSuffix(confirmCost, i18n.language)
+        })}
       >
         <FlexColumn gap={SPACING.md}>
           <Text>
-            {`Each shot renders a new ${confirmNoun} with the model it last used. It arrives as a new take, and the current ${confirmNoun} stays selected until you choose the new one.`}
+            {t(`screens4_12.boardStaleBanner.confirmDescription.${confirmNoun}`)}
           </Text>
           <RenderCostSummary estimate={confirmCost} />
           <Caption color="secondary">
-            Only the shots whose current {confirmNoun} is stale are rendered.
+            {t(`screens4_12.boardStaleBanner.confirmScope.${confirmNoun}`, { count: confirmCount })}
           </Caption>
         </FlexColumn>
       </Dialog>

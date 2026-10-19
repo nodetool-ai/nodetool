@@ -12,6 +12,7 @@
  */
 
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
@@ -99,6 +100,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
   onDelete,
   children
 }) => {
+  const { t } = useTranslation();
   const inStudio = useInStudio();
   const [moreButton, setMoreButton] = useState<HTMLButtonElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -126,7 +128,17 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
   if (!showDragHandle && !children && !onFullscreen && !hasMenu) {
     return null;
   }
-  const what = downloadLabel ?? "still";
+  const what =
+    downloadLabel === "clip"
+      ? t("screens4_17.storyboard.shotHoverToolbar.media.clip")
+      : t("screens4_17.storyboard.shotHoverToolbar.media.still");
+  const translatedFullscreenLabel = fullscreenLabel
+    ?.toLowerCase()
+    .includes("clip")
+    ? t("screens4_17.storyboard.shotHoverToolbar.viewClipFullscreen")
+    : fullscreenLabel?.toLowerCase().includes("still")
+      ? t("screens4_17.storyboard.shotHoverToolbar.viewStillFullscreen")
+      : fullscreenLabel;
   return (
     <FloatingToolbar
       onClick={swallowEvent}
@@ -150,8 +162,10 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
       {onFullscreen && (
         <ToolbarIconButton
           icon={<FullscreenIcon sx={iconSx} />}
-          tooltip="View fullscreen (double-click)"
-          ariaLabel={fullscreenLabel}
+          tooltip={t(
+            "screens4_17.storyboard.shotHoverToolbar.viewFullscreenTooltip"
+          )}
+          ariaLabel={translatedFullscreenLabel}
           onClick={onFullscreen}
         />
       )}
@@ -159,8 +173,8 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         <ToolbarIconButton
           ref={setMoreButton}
           icon={<MoreVertIcon sx={iconSx} />}
-          tooltip="Shot actions"
-          ariaLabel="Shot actions"
+          tooltip={t("screens4_17.storyboard.shotHoverToolbar.actions")}
+          ariaLabel={t("screens4_17.storyboard.shotHoverToolbar.actions")}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           onClick={openMenu}
@@ -172,11 +186,15 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         onClose={closeMenu}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ list: { "aria-label": "Shot actions" } }}
+        slotProps={{
+          list: {
+            "aria-label": t("screens4_17.storyboard.shotHoverToolbar.actions")
+          }
+        }}
       >
         {onRenderStill && (
           <MenuItemPrimitive
-            label="Render still…"
+            label={t("screens4_17.storyboard.shotHoverToolbar.renderStill")}
             icon={<ImageOutlinedIcon fontSize="small" />}
             disabled={renderDisabled}
             onClick={runAndClose(onRenderStill)}
@@ -184,7 +202,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         )}
         {onRenderClip && (
           <MenuItemPrimitive
-            label="Render clip…"
+            label={t("screens4_17.storyboard.shotHoverToolbar.renderClip")}
             icon={<MovieOutlinedIcon fontSize="small" />}
             disabled={renderDisabled}
             onClick={runAndClose(onRenderClip)}
@@ -201,7 +219,9 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         {onDownload && (
           <MenuItemPrimitive
             dividerBefore={hasRender}
-            label={`Download ${what}`}
+            label={t("screens4_17.storyboard.shotHoverToolbar.download", {
+              media: what
+            })}
             icon={<DownloadIcon fontSize="small" />}
             onClick={runAndClose(onDownload)}
           />
@@ -209,7 +229,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         {sendItems && (
           <MenuItemPrimitive
             dividerBefore={hasRender && !onDownload}
-            label="Send to workflow…"
+            label={t("screens4_17.storyboard.shotHoverToolbar.sendToWorkflow")}
             icon={<AccountTreeOutlinedIcon fontSize="small" />}
             onClick={openSend}
           />
@@ -217,7 +237,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
         {onDuplicate && (
           <MenuItemPrimitive
             dividerBefore={hasRender && !onDownload && !sendItems}
-            label="Duplicate shot"
+            label={t("screens4_17.storyboard.shotHoverToolbar.duplicateShot")}
             icon={<ContentCopyIcon fontSize="small" />}
             onClick={runAndClose(onDuplicate)}
           />
@@ -228,7 +248,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
             dividerBefore={Boolean(
               hasRender || onDownload || sendItems || onDuplicate
             )}
-            label="Delete shot"
+            label={t("screens4_17.storyboard.shotHoverToolbar.deleteShot")}
             icon={<DeleteOutlineIcon fontSize="small" />}
             onClick={runAndClose(onDelete)}
           />

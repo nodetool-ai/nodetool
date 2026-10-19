@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { Entity } from "@nodetool-ai/protocol";
@@ -83,11 +84,16 @@ const EntityTile: React.FC<{
   removeLabel: string;
   onRemove?: (entity: Entity) => void;
 }> = memo(({ entity, removeLabel, onRemove }) => {
+  const { t } = useTranslation();
   const Icon = ENTITY_KIND_ICON[entity.kind];
-  const name = entity.name || "Untitled";
+  const name = entity.name || t("screens4_13.storyboard.entityTiles.untitled");
   const reference = entity.reference_images?.[0];
   return (
-    <Box sx={tileSx} title={entity.descriptor || name} data-testid="entity-tile">
+    <Box
+      sx={tileSx}
+      title={entity.descriptor || name}
+      data-testid="entity-tile"
+    >
       {reference ? (
         <ResponsiveImage
           locator={reference}
@@ -133,6 +139,7 @@ const EntityTilesFieldInner: React.FC<EntityTilesFieldProps> = ({
   extraAction,
   "data-testid": testId
 }) => {
+  const { t } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
   const chooseRef = useRef<HTMLButtonElement | null>(null);
 
@@ -145,7 +152,10 @@ const EntityTilesFieldInner: React.FC<EntityTilesFieldProps> = ({
               <EntityTile
                 key={entity.id}
                 entity={entity}
-                removeLabel={removeLabel(entity.name || "Untitled")}
+                removeLabel={removeLabel(
+                  entity.name ||
+                    t("screens4_13.storyboard.entityTiles.untitled")
+                )}
                 onRemove={readOnly ? undefined : onRemove}
               />
             ))}
@@ -166,7 +176,7 @@ const EntityTilesFieldInner: React.FC<EntityTilesFieldProps> = ({
                 aria-expanded={pickerOpen}
                 sx={{ justifyContent: "space-between" }}
               >
-                Choose entities
+                {t("screens4_13.storyboard.entityTiles.chooseEntities")}
               </EditorButton>
               {extraAction}
             </FlexRow>

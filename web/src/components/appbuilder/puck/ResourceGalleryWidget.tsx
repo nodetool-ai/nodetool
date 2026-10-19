@@ -8,6 +8,7 @@
  * gallery, arrows to move, Enter or Space to pick.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AutoGrid,
@@ -148,6 +149,7 @@ export const ResourceGalleryWidget: React.FC<ResourceGalleryProps> = ({
   tileSize,
   disabled
 }) => {
+  const { t } = useTranslation();
   const { binding, items, isLoading, designMode, selected, select } =
     useBoundResource(resourceBindingId);
 
@@ -189,8 +191,8 @@ export const ResourceGalleryWidget: React.FC<ResourceGalleryProps> = ({
     return (
       <Caption color="secondary">
         {designMode
-          ? "Pick a resource binding for this gallery."
-          : "This gallery is not bound to a resource."}
+          ? t("i18n-next53.appBuilder.resources.pickBindingGallery")
+          : t("i18n-next53.appBuilder.resources.galleryUnbound")}
       </Caption>
     );
   }
@@ -202,7 +204,7 @@ export const ResourceGalleryWidget: React.FC<ResourceGalleryProps> = ({
       <FlexColumn gap={SPACING.xs} fullWidth>
         <Label>{title}</Label>
         <Caption color="secondary">
-          {binding.kind} collection — tiles appear when the app runs.
+          {t("i18n-next53.appBuilder.resources.collectionTilesOnRun", { kind: binding.kind })}
         </Caption>
       </FlexColumn>
     );
@@ -213,13 +215,13 @@ export const ResourceGalleryWidget: React.FC<ResourceGalleryProps> = ({
       <Label>{title}</Label>
       {items.length === 0 ? (
         isLoading ? (
-          <LoadingSpinner size="small" text="Loading" />
+          <LoadingSpinner size="small" text={t("i18n-next53.appBuilder.status.loading")} />
         ) : (
           <EmptyState
             variant="empty"
             size="small"
-            title="Empty collection"
-            description={`No ${binding.kind} resources in this collection yet.`}
+            title={t("i18n-next53.appBuilder.resources.emptyCollection")}
+            description={t("i18n-next53.appBuilder.resources.noResources", { kind: binding.kind })}
           />
         )
       ) : (

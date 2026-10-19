@@ -9,6 +9,7 @@
  */
 
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 
 import {
@@ -35,12 +36,14 @@ const ScriptLinkControlInner = ({
   const scriptId = useStoryboardStore(
     (state) => state.boards[boardId]?.screenplay?.script_id ?? null
   );
+  const { t } = useTranslation();
   const hasShots = useStoryboardStore(
     (state) => (state.boards[boardId]?.shots.length ?? 0) > 0
   );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const { extract, extracting, error } = useExtractScriptFromBoard();
-  const { messages } = useBoardScriptLinkIssues(boardId);
+  const { errors: linkErrors, warnings: linkWarnings } =
+    useBoardScriptLinkIssues(boardId);
 
   const onExtract = useCallback(() => {
     void extract(boardId).catch(() => {
@@ -52,8 +55,36 @@ const ScriptLinkControlInner = ({
     if (!scriptId) {
       return;
     }
-    openTab({ type: "script", ref: scriptId, mode: "edit", title: "Script" });
-  }, [openTab, scriptId]);
+    openTab({
+      type: "script",
+      ref: scriptId,
+      mode: "edit",
+      title: t("screens4_15.storyboard.scriptLink.script")
+    });
+  }, [openTab, scriptId, t]);
+
+  const issueMessages = [
+    ...linkErrors.map((issue) =>
+      issue.code === "duplicate_line_reference"
+        ? t("screens4_15.storyboard.scriptLink.issues.duplicateLine", {
+            lineId: issue.lineId ?? "",
+            shotId: issue.shotId ?? ""
+          })
+        : issue.code === "unknown_line_reference"
+          ? t("screens4_15.storyboard.scriptLink.issues.unknownLine", {
+              shotId: issue.shotId ?? "",
+              lineId: issue.lineId ?? ""
+            })
+          : t("screens4_15.storyboard.scriptLink.issues.unlinkedBoard", {
+              shotId: issue.shotId ?? ""
+            })
+    ),
+    ...linkWarnings.map((issue) =>
+      t("screens4_15.storyboard.scriptLink.issues.missingScript", {
+        scriptId: scriptId ?? ""
+      })
+    )
+  ];
 
   return (
     <FlexColumn gap={SPACING.xs}>
@@ -64,18 +95,22 @@ const ScriptLinkControlInner = ({
         disabled={disabled || extracting || (!scriptId && !hasShots)}
         tooltip={
           scriptId
-            ? "Open the script this board's words come from"
-            : "Project this board's dialogue and narration into a script"
+            ? t("screens4_15.storyboard.scriptLink.openTooltip")
+            : t("screens4_15.storyboard.scriptLink.extractTooltip")
         }
       >
-        {scriptId ? "Open script" : extracting ? "Extracting…" : "Extract script"}
+        {scriptId
+          ? t("screens4_15.storyboard.scriptLink.open")
+          : extracting
+            ? t("screens4_15.storyboard.scriptLink.extracting")
+            : t("screens4_15.storyboard.scriptLink.extract")}
       </EditorButton>
       {error && (
         <AlertBanner severity="error" compact>
           {error}
         </AlertBanner>
       )}
-      {messages.map((message) => (
+      {issueMessages.map((message) => (
         <AlertBanner key={message} severity="warning" compact>
           {message}
         </AlertBanner>

@@ -27,6 +27,7 @@
  */
 
 import React, { useCallback, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Box } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -134,10 +135,11 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
   nodrag = true
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const labelText = isOpen
-    ? hideLabel || label || "Hide"
-    : showLabel || label || "Show";
+    ? hideLabel ?? label ?? t("i18n-next96.uiPrimitives.labeledToggle.hide")
+    : showLabel ?? label ?? t("i18n-next96.uiPrimitives.labeledToggle.show");
 
   const handleToggle = useCallback(
     (event: React.MouseEvent) => {

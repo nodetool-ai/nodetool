@@ -196,7 +196,7 @@ describe("ClipContextMenu", () => {
       const onSendToWorkflow = jest.fn();
       renderMenu({ onSendToWorkflow });
 
-      await userEvent.click(screen.getByText("Send to workflow…"));
+      await userEvent.click(screen.getByText("Send 1 clip to workflow…"));
 
       expect(onSendToWorkflow).toHaveBeenCalledWith(
         [{ type: "video", asset_id: "asset-v", title: "Clip clip-1" }],

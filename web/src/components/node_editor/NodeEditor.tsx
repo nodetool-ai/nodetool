@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo, useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 import { LoadingSpinner, Box, Dialog } from "../ui_primitives";
 // store
@@ -55,6 +56,7 @@ interface NodeEditorProps {
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const editorBgStyle = useMemo<React.CSSProperties>(
     () => ({ backgroundColor: theme.vars.palette.c_editor_bg_color }),
@@ -152,7 +154,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         >
           {isUploading && (
             <div className="loading-overlay">
-              <LoadingSpinner size="medium" text="Uploading assets" />
+              <LoadingSpinner size="medium" text={t("nodeEditor.uploadingAssets")} />
             </div>
           )}
           <ReactFlowWrapper workflowId={workflowId} active={active} />
@@ -169,7 +171,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <Dialog
                 open={showShortcuts}
                 onClose={() => setShowShortcuts(false)}
-                title="Keyboard shortcuts"
+                title={t("nodeEditor.keyboardShortcuts")}
                 maxWidth="lg"
                 fullWidth
               >

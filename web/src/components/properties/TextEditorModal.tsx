@@ -24,7 +24,19 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, InspectorSelect, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion, SHADOW, ResizeHandle } from "../ui_primitives";
+import {
+  Tooltip,
+  InspectorSelect,
+  LoadingSpinner,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  Z_INDEX,
+  getSpacingPx,
+  reducedMotion,
+  SHADOW,
+  ResizeHandle
+} from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -40,6 +52,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 
 import { CopyButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import type { Theme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import LexicalPlugins from "../textEditor/LexicalEditor";
@@ -112,25 +125,25 @@ const LANGUAGES = [
   "ruby"
 ] as const;
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  "": "Plain text",
-  plaintext: "Plain text",
-  text: "Plain text",
-  markdown: "Markdown",
-  javascript: "JavaScript",
-  typescript: "TypeScript",
-  python: "Python",
-  json: "JSON",
-  lua: "Lua",
-  yaml: "YAML",
-  html: "HTML",
-  css: "CSS",
-  sql: "SQL",
-  bash: "Bash",
-  ruby: "Ruby"
+const LANGUAGE_KEYS: Record<string, string> = {
+  "": "plainText",
+  plaintext: "plainText",
+  text: "plainText",
+  markdown: "markdown",
+  javascript: "javascript",
+  typescript: "typescript",
+  python: "python",
+  json: "json",
+  lua: "lua",
+  yaml: "yaml",
+  html: "html",
+  css: "css",
+  sql: "sql",
+  bash: "bash",
+  ruby: "ruby"
 };
 
-const TYPE_LABELS: Record<string, string> = {
+const TYPE_KEYS: Record<string, string> = {
   str: "string",
   int: "integer",
   float: "float",
@@ -698,6 +711,7 @@ const TextEditorModal = ({
   showStatusBar = true,
   showFindReplace = true
 }: TextEditorModalProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const modalStyles = useMemo(() => styles(theme), [theme]);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
@@ -986,7 +1000,9 @@ const TextEditorModal = ({
     debouncedExternalOnChange(original);
   }, [debouncedExternalOnChange, monacoRef]);
 
-  const addNotification = useNotificationStore((state) => state.addNotification);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const handleQuickStart = useCallback(
     (prompt: string) => {
@@ -1077,20 +1093,31 @@ const TextEditorModal = ({
       decorationIdsRef.current,
       decorations
     );
-  }, [isCodeEditor, editorReady, currentText, includeSingle, language, monacoRef]);
+  }, [
+    isCodeEditor,
+    editorReady,
+    currentText,
+    includeSingle,
+    language,
+    monacoRef
+  ]);
 
-  const { handleFind, handleReplace, handleNavigateNext, handleNavigatePrevious } =
-    useEditorActions({
-      setWordWrapEnabled,
-      setFindReplaceVisible,
-      setSearchResults,
-      undoFnRef,
-      redoFnRef,
-      formatCodeBlockFnRef,
-      findFnRef,
-      replaceFnRef,
-      navigateFnRef
-    });
+  const {
+    handleFind,
+    handleReplace,
+    handleNavigateNext,
+    handleNavigatePrevious
+  } = useEditorActions({
+    setWordWrapEnabled,
+    setFindReplaceVisible,
+    setSearchResults,
+    undoFnRef,
+    redoFnRef,
+    formatCodeBlockFnRef,
+    findFnRef,
+    replaceFnRef,
+    navigateFnRef
+  });
 
   const handleToggleWordWrap = useCallback(() => {
     setWordWrapEnabled((v) => !v);
@@ -1124,13 +1151,19 @@ const TextEditorModal = ({
 
   const breadcrumbItems = useMemo(() => {
     const nodeLabel = humanizeNodeType(nodeType);
-    return [nodeLabel, "inputs", propertyName].filter(Boolean);
-  }, [nodeType, propertyName]);
+    return [nodeLabel, t("i18n-next1.textEditor.inputs"), propertyName].filter(
+      Boolean
+    );
+  }, [nodeType, propertyName, t]);
 
   const typeLabel = propertyType
-    ? TYPE_LABELS[propertyType] ?? propertyType
+    ? TYPE_KEYS[propertyType]
+      ? t(`i18n-next1.textEditor.types.${TYPE_KEYS[propertyType]}`)
+      : propertyType
     : null;
-  const languageLabel = LANGUAGE_LABELS[language] ?? language;
+  const languageLabel = LANGUAGE_KEYS[language]
+    ? t(`i18n-next1.textEditor.languages.${LANGUAGE_KEYS[language]}`)
+    : language;
   // A language passed in from outside the list stays selectable, so the
   // field never shows a value it has no option for.
   const languageOptions = useMemo(
@@ -1138,8 +1171,13 @@ const TextEditorModal = ({
       (LANGUAGES.includes(language as (typeof LANGUAGES)[number])
         ? [...LANGUAGES]
         : [language, ...LANGUAGES]
-      ).map((lang) => ({ value: lang, label: LANGUAGE_LABELS[lang] ?? lang })),
-    [language]
+      ).map((lang) => ({
+        value: lang,
+        label: LANGUAGE_KEYS[lang]
+          ? t(`i18n-next1.textEditor.languages.${LANGUAGE_KEYS[lang]}`)
+          : lang
+      })),
+    [language, t]
   );
   const showVariablesPanel = variablesVisible && !focusMode;
   const showAssistant = assistantVisible && !focusMode;
@@ -1190,9 +1228,7 @@ const TextEditorModal = ({
                 </div>
                 <div className="title-row">
                   {propertyDescription ? (
-                    <Tooltip
-                      title={propertyDescription}
-                    >
+                    <Tooltip title={propertyDescription}>
                       <h4 className="title">{propertyName}</h4>
                     </Tooltip>
                   ) : (
@@ -1204,36 +1240,42 @@ const TextEditorModal = ({
             </div>
             <div className="actions">
               {!readOnly && (
-                <Tooltip title="Revert to original">
+                <Tooltip title={t("i18n-next1.textEditor.revert")}>
                   <button
                     type="button"
                     className="button"
                     onClick={handleRevert}
-                    aria-label="Revert to original"
+                    aria-label={t("i18n-next1.textEditor.revert")}
                   >
                     <HistoryIcon />
                   </button>
                 </Tooltip>
               )}
-              <Tooltip title="Download">
+              <Tooltip title={t("i18n-next1.textEditor.download")}>
                 <button
                   type="button"
                   className="button"
                   onClick={handleDownload}
-                  aria-label="Download"
+                  aria-label={t("i18n-next1.textEditor.download")}
                 >
                   <DownloadIcon />
                 </button>
               </Tooltip>
               <Tooltip
-                title={assistantVisible ? "Hide assistant" : "Show assistant"}
+                title={
+                  assistantVisible
+                    ? t("i18n-next1.textEditor.hideAssistant")
+                    : t("i18n-next1.textEditor.showAssistant")
+                }
               >
                 <button
                   type="button"
                   className={`button ${assistantVisible ? "active" : ""}`}
                   onClick={toggleAssistantVisible}
                   aria-label={
-                    assistantVisible ? "Hide assistant" : "Show assistant"
+                    assistantVisible
+                      ? t("i18n-next1.textEditor.hideAssistant")
+                      : t("i18n-next1.textEditor.showAssistant")
                   }
                 >
                   {assistantVisible ? (
@@ -1244,35 +1286,54 @@ const TextEditorModal = ({
                 </button>
               </Tooltip>
               <Tooltip
-                title={focusMode ? "Exit focus mode" : "Focus mode (hide panels)"}
+                title={
+                  focusMode
+                    ? t("i18n-next1.textEditor.exitFocusMode")
+                    : t("i18n-next1.textEditor.focusModeTooltip")
+                }
               >
                 <button
                   type="button"
                   className={`button ${focusMode ? "active" : ""}`}
                   onClick={() => setFocusMode((v) => !v)}
-                  aria-label={focusMode ? "Exit focus mode" : "Focus mode"}
+                  aria-label={
+                    focusMode
+                      ? t("i18n-next1.textEditor.exitFocusMode")
+                      : t("i18n-next1.textEditor.focusMode")
+                  }
                 >
                   {focusMode ? <OpenInFullIcon /> : <CloseFullscreenIcon />}
                 </button>
               </Tooltip>
               <Tooltip
-                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                title={
+                  isFullscreen
+                    ? t("i18n-next1.textEditor.exitFullscreen")
+                    : t("i18n-next1.textEditor.fullscreen")
+                }
               >
                 <button
                   type="button"
                   className="button"
                   onClick={toggleFullscreen}
-                  aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  aria-label={
+                    isFullscreen
+                      ? t("i18n-next1.textEditor.exitFullscreen")
+                      : t("i18n-next1.textEditor.fullscreen")
+                  }
                 >
                   {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                 </button>
               </Tooltip>
-              <Tooltip title="Close editor" shortcut={["Esc"]}>
+              <Tooltip
+                title={t("i18n-next1.textEditor.closeEditor")}
+                shortcut={["Esc"]}
+              >
                 <button
                   type="button"
                   className="button button-close"
                   onClick={onClose}
-                  aria-label="Close editor"
+                  aria-label={t("i18n-next1.textEditor.closeEditor")}
                 >
                   <CloseIcon />
                 </button>
@@ -1287,8 +1348,8 @@ const TextEditorModal = ({
                   <Tooltip
                     title={
                       isCodeEditor
-                        ? "Switch to rich text"
-                        : "Switch to code editor"
+                        ? t("i18n-next1.textEditor.switchRichText")
+                        : t("i18n-next1.textEditor.switchCodeEditor")
                     }
                   >
                     <button
@@ -1297,8 +1358,8 @@ const TextEditorModal = ({
                       onClick={handleToggleEditorMode}
                       aria-label={
                         isCodeEditor
-                          ? "Switch to rich text"
-                          : "Switch to code editor"
+                          ? t("i18n-next1.textEditor.switchRichText")
+                          : t("i18n-next1.textEditor.switchCodeEditor")
                       }
                     >
                       {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}
@@ -1306,7 +1367,7 @@ const TextEditorModal = ({
                   </Tooltip>
                 )}
                 <InspectorSelect
-                  label="Language"
+                  label={t("i18n-next1.textEditor.language")}
                   value={language}
                   options={languageOptions}
                   onChange={setLanguage}
@@ -1318,7 +1379,7 @@ const TextEditorModal = ({
                   onClick={handleFindClick}
                 >
                   <SearchIcon />
-                  Find
+                  {t("i18n-next1.textEditor.find")}
                 </button>
                 {!readOnly && (
                   <button
@@ -1327,7 +1388,7 @@ const TextEditorModal = ({
                     onClick={handleFormatClick}
                   >
                     <FormatAlignLeftIcon />
-                    Format
+                    {t("i18n-next1.textEditor.format")}
                   </button>
                 )}
                 <button
@@ -1336,7 +1397,7 @@ const TextEditorModal = ({
                   onClick={handleToggleWordWrap}
                 >
                   <WrapTextIcon />
-                  Wrap
+                  {t("i18n-next1.textEditor.wrap")}
                 </button>
                 <span className="toolbar-divider" />
                 <button
@@ -1345,7 +1406,7 @@ const TextEditorModal = ({
                   onClick={toggleVariables}
                 >
                   <DataObjectIcon />
-                  Variables
+                  {t("i18n-next1.textEditor.variables")}
                 </button>
                 {!readOnly && (
                   <button
@@ -1354,29 +1415,29 @@ const TextEditorModal = ({
                     onClick={handleInsertVarClick}
                   >
                     <AddIcon />
-                    Insert var
+                    {t("i18n-next1.textEditor.insertVariable")}
                   </button>
                 )}
               </div>
               <div className="toolbar-side">
                 <div className="font-controls">
-                  <Tooltip title="Decrease font size">
+                  <Tooltip title={t("i18n-next1.textEditor.decreaseFontSize")}>
                     <button
                       type="button"
                       className="button-ghost"
                       onClick={() => changeFontSize(-1)}
-                      aria-label="Decrease font size"
+                      aria-label={t("i18n-next1.textEditor.decreaseFontSize")}
                     >
                       <TextDecreaseIcon />
                     </button>
                   </Tooltip>
                   <span className="font-size-value">{fontSize}</span>
-                  <Tooltip title="Increase font size">
+                  <Tooltip title={t("i18n-next1.textEditor.increaseFontSize")}>
                     <button
                       type="button"
                       className="button-ghost"
                       onClick={() => changeFontSize(1)}
-                      aria-label="Increase font size"
+                      aria-label={t("i18n-next1.textEditor.increaseFontSize")}
                     >
                       <TextIncreaseIcon />
                     </button>
@@ -1518,86 +1579,92 @@ const TextEditorModal = ({
                     defaultWidth={360}
                     maxWidth={560}
                     enabled={!assistantStacks}
-                    ariaLabel="Resize text editor assistant"
+                    ariaLabel={t("i18n-next1.textEditor.resizeAssistant")}
                   >
-                  <div className="assistant-pane">
-                    <div className="assistant-header">
-                      <div className="assistant-id">
-                        <span className="assistant-avatar">
-                          <AutoAwesomeIcon />
-                        </span>
-                        <div className="assistant-meta">
-                          <span className="assistant-name">Assistant</span>
-                          <span className="assistant-sub">
-                            writes &amp; edits this prompt
+                    <div className="assistant-pane">
+                      <div className="assistant-header">
+                        <div className="assistant-id">
+                          <span className="assistant-avatar">
+                            <AutoAwesomeIcon />
                           </span>
+                          <div className="assistant-meta">
+                            <span className="assistant-name">
+                              {t("i18n-next1.textEditor.assistant")}
+                            </span>
+                            <span className="assistant-sub">
+                              {t("i18n-next1.textEditor.assistantDescription")}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="assistant-head-actions">
+                          <Tooltip title={t("i18n-next1.textEditor.newChat")}>
+                            <button
+                              type="button"
+                              className="button-ghost"
+                              onClick={() => void createNewThread()}
+                              aria-label={t("i18n-next1.textEditor.newChat")}
+                            >
+                              <AddIcon />
+                            </button>
+                          </Tooltip>
+                          <Tooltip
+                            title={t("i18n-next1.textEditor.hideAssistant")}
+                          >
+                            <button
+                              type="button"
+                              className="button-ghost"
+                              onClick={toggleAssistantVisible}
+                              aria-label={t(
+                                "i18n-next1.textEditor.hideAssistant"
+                              )}
+                            >
+                              <ChevronRightIcon />
+                            </button>
+                          </Tooltip>
                         </div>
                       </div>
-                      <div className="assistant-head-actions">
-                        <Tooltip title="New chat">
-                          <button
-                            type="button"
-                            className="button-ghost"
-                            onClick={() => void createNewThread()}
-                            aria-label="New chat"
-                          >
-                            <AddIcon />
-                          </button>
-                        </Tooltip>
-                        <Tooltip
-                          title="Hide assistant"
-                        >
-                          <button
-                            type="button"
-                            className="button-ghost"
-                            onClick={toggleAssistantVisible}
-                            aria-label="Hide assistant"
-                          >
-                            <ChevronRightIcon />
-                          </button>
-                        </Tooltip>
-                      </div>
-                    </div>
-                    <ChatView
-                      threadId={threadId}
-                      status={
-                        runtime.status === "idle" ||
-                        runtime.status === "stopping"
-                          ? "connected"
-                          : runtime.status
-                      }
-                      progress={runtime.progress.current}
-                      total={runtime.progress.total}
-                      messages={messages}
-                      sendMessage={sendMessage}
-                      progressMessage={runtime.statusMessage}
-                      model={
-                        selectedModel || {
-                          type: "language_model",
-                          provider: "empty",
-                          id: DEFAULT_MODEL,
-                          name: DEFAULT_MODEL
+                      <ChatView
+                        threadId={threadId}
+                        status={
+                          runtime.status === "idle" ||
+                          runtime.status === "stopping"
+                            ? "connected"
+                            : runtime.status
                         }
-                      }
-                      onModelChange={setSelectedModel}
-                      workflowAssistant={true}
-                      chatSource="text_editor"
-                      onStop={stopGeneration}
-                      currentPlanningUpdate={runtime.planningUpdate}
-                      currentTaskUpdate={runtime.taskUpdate}
-                      currentLogUpdate={runtime.logUpdate}
-                      runningToolCallId={runtime.runningToolCallId}
-                      onNewChat={() => void createNewThread()}
-                      onInsertCode={(text) => insertIntoEditor(text)}
-                      composerPlaceholder="Ask the assistant to write or edit…"
-                      noMessagesPlaceholder={
-                        <AssistantQuickStarts
-                          propertyName={propertyName}
-                          onQuickStart={handleQuickStart}
-                        />
-                      }
-                    />
-                  </div>
+                        progress={runtime.progress.current}
+                        total={runtime.progress.total}
+                        messages={messages}
+                        sendMessage={sendMessage}
+                        progressMessage={runtime.statusMessage}
+                        model={
+                          selectedModel || {
+                            type: "language_model",
+                            provider: "empty",
+                            id: DEFAULT_MODEL,
+                            name: DEFAULT_MODEL
+                          }
+                        }
+                        onModelChange={setSelectedModel}
+                        workflowAssistant={true}
+                        chatSource="text_editor"
+                        onStop={stopGeneration}
+                        currentPlanningUpdate={runtime.planningUpdate}
+                        currentTaskUpdate={runtime.taskUpdate}
+                        currentLogUpdate={runtime.logUpdate}
+                        runningToolCallId={runtime.runningToolCallId}
+                        onNewChat={() => void createNewThread()}
+                        onInsertCode={(text) => insertIntoEditor(text)}
+                        composerPlaceholder={t(
+                          "i18n-next1.textEditor.assistantPlaceholder"
+                        )}
+                        noMessagesPlaceholder={
+                          <AssistantQuickStarts
+                            propertyName={propertyName}
+                            onQuickStart={handleQuickStart}
+                          />
+                        }
+                      />
+                    </div>
                   </ResizableSideDock>
                 )}
               </EditorInsertionProvider>
@@ -1632,7 +1699,7 @@ const TextEditorModal = ({
             max={maxHeight}
             thickness={SPACING.md}
             grip
-            ariaLabel="Resize text editor height"
+            ariaLabel={t("i18n-next1.textEditor.resizeHeight")}
             onResize={resizeBy}
           />
         </div>

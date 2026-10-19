@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 
@@ -44,6 +45,7 @@ interface PianoRollRulerProps {
 export const PianoRollRuler: React.FC<PianoRollRulerProps> = memo(
   ({ geometry, widthPx, tempo, tickToTimelineMs, timelineMsToTick, onSeekTick }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const { mode, systemMode } = useColorScheme();
     const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -105,7 +107,7 @@ export const PianoRollRuler: React.FC<PianoRollRulerProps> = memo(
     ]);
 
     return (
-      <Tooltip title="Click or drag to position the playhead" followCursor>
+      <Tooltip title={t("pass3_21.timeline.pianoRoll.ruler.positionPlayheadTooltip")} followCursor>
         <canvas
           ref={canvasRef}
           css={canvasStyles}

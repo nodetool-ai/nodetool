@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Button,
   FlexColumn,
@@ -49,9 +50,9 @@ const COMFY_WORKER_IMAGE = "ghcr.io/nodetool-ai/nodetool-worker-comfy:latest";
 // Sentinel select value that keeps the free-text image field for a custom build.
 const CUSTOM_IMAGE = "__custom_image__";
 const IMAGE_PRESETS = [
-  { value: DEFAULT_WORKER_IMAGE, label: "NodeTool Worker" },
-  { value: COMFY_WORKER_IMAGE, label: "NodeTool Worker + ComfyUI" },
-  { value: CUSTOM_IMAGE, label: "Custom…" }
+  { value: DEFAULT_WORKER_IMAGE, labelKey: "imagePreset.worker" },
+  { value: COMFY_WORKER_IMAGE, labelKey: "imagePreset.comfy" },
+  { value: CUSTOM_IMAGE, labelKey: "imagePreset.custom" }
 ] as const;
 const DEFAULT_IDLE_TIMEOUT = "30";
 // Persistent volume default — big enough for several HF image models. Models
@@ -78,7 +79,7 @@ const TARGET_OPTIONS = [
 const CPU_MACHINE = "";
 
 const RUNPOD_GPU_OPTIONS = [
-  { value: CPU_MACHINE, label: "CPU only (no GPU)" },
+  { value: CPU_MACHINE, labelKey: "gpu.cpuOnly" },
   { value: "NVIDIA RTX A5000", label: "RTX A5000 · 24 GB" },
   { value: "NVIDIA GeForce RTX 4090", label: "RTX 4090 · 24 GB" },
   { value: "NVIDIA L4", label: "L4 · 24 GB" },
@@ -87,13 +88,13 @@ const RUNPOD_GPU_OPTIONS = [
   { value: "NVIDIA L40S", label: "L40S · 48 GB" },
   { value: "NVIDIA A100 80GB PCIe", label: "A100 · 80 GB" },
   { value: "NVIDIA H100 80GB HBM3", label: "H100 · 80 GB" },
-  { value: CUSTOM_GPU, label: "Other (enter GPU id)…" }
+  { value: CUSTOM_GPU, labelKey: "gpu.other" }
 ] as const;
 
 // Vast searches the marketplace, so "Any" (empty id) is valid and picks the
 // cheapest offer. RunPod provisions a specific pod type, so a GPU is required.
 const VAST_GPU_OPTIONS = [
-  { value: "", label: "Any (cheapest offer)" },
+  { value: "", labelKey: "gpu.anyCheapest" },
   { value: "RTX_3090", label: "RTX 3090 · 24 GB" },
   { value: "RTX_4090", label: "RTX 4090 · 24 GB" },
   { value: "RTX_A6000", label: "RTX A6000 · 48 GB" },
@@ -102,7 +103,7 @@ const VAST_GPU_OPTIONS = [
   { value: "A100_PCIE", label: "A100 · 80 GB" },
   { value: "A100_SXM4", label: "A100 SXM4 · 80 GB" },
   { value: "H100_PCIE", label: "H100 · 80 GB" },
-  { value: CUSTOM_GPU, label: "Other (enter GPU id)…" }
+  { value: CUSTOM_GPU, labelKey: "gpu.other" }
 ] as const;
 
 // Verda rents whole machines, so its selector is an INSTANCE TYPE
@@ -110,7 +111,7 @@ const VAST_GPU_OPTIONS = [
 // account- and region-specific, so it is entered rather than picked from a
 // list that could go stale: `GET /v1/instance-types` lists the live ids.
 const VERDA_INSTANCE_TYPE_OPTIONS = [
-  { value: CUSTOM_GPU, label: "Enter instance type…" }
+  { value: CUSTOM_GPU, labelKey: "gpu.enterInstanceType" }
 ] as const;
 
 // Default GPU per target: a solid mid-range card for RunPod, "Any cheapest"
@@ -133,8 +134,8 @@ const VCPU_OPTIONS = [
 const DEFAULT_VCPU = "4";
 
 const TOKEN_POLICY_OPTIONS = [
-  { value: "generate", label: "Generate (recommended)" },
-  { value: "fixed", label: "Fixed" }
+  { value: "generate", labelKey: "tokenPolicy.generate" },
+  { value: "fixed", labelKey: "tokenPolicy.fixed" }
 ] as const;
 
 interface WorkerProfilesDialogProps {
@@ -165,6 +166,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
   deleteProfile,
   apiKeyStatus
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [target, setTarget] = useState<WorkerTarget>("runpod");
   const [image, setImage] = useState(DEFAULT_WORKER_IMAGE);
@@ -184,7 +186,9 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
   // provider's API key isn't available yet — provisioning would fail without it.
   // `apiKeyStatus` reflects store OR env (the same resolution provisioning uses),
   // so an env-provided key does NOT false-warn. Only warn on an explicit false.
-  const apiKeyName = API_KEYS_BY_TARGET[target].join(" and ");
+  const apiKeyName = API_KEYS_BY_TARGET[target].join(
+    t("screens4_8.workers.profiles.keySeparator")
+  );
   const apiKeyMissing = apiKeyStatus?.[target] === false;
 
   const gpuOptions =
@@ -267,7 +271,9 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
       await createProfile(input);
       resetForm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(t("screens4_8.workers.profiles.createError", {
+        message: err instanceof Error ? err.message : String(err)
+      }));
     } finally {
       setBusy(false);
     }
@@ -284,7 +290,8 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
     idleTimeout,
     maxLifetime,
     createProfile,
-    resetForm
+    resetForm,
+    t
   ]);
 
   const handleDelete = useCallback(
@@ -294,32 +301,34 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
       try {
         await deleteProfile(profileName);
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(t("screens4_8.workers.profiles.deleteError", {
+          message: err instanceof Error ? err.message : String(err)
+        }));
       } finally {
         setBusy(false);
       }
     },
-    [deleteProfile]
+    [deleteProfile, t]
   );
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="Manage worker profiles"
+      title={t("screens4_8.workers.profiles.title")}
       maxWidth="sm"
       fullWidth
       actions={
         <>
           <Button variant="text" color="inherit" onClick={onClose}>
-            Close
+            {t("screens4_8.workers.common.close")}
           </Button>
           <Button
             variant="contained"
             onClick={handleCreate}
             disabled={!canCreate}
           >
-            Create profile
+            {t("screens4_8.workers.profiles.create")}
           </Button>
         </>
       }
@@ -336,12 +345,12 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
         )}
 
         <FlexColumn gap={SPACING.xs}>
-          <SectionHeader size="small" title="Existing profiles" />
+          <SectionHeader size="small" title={t("screens4_8.workers.profiles.existingHeading")} />
           {profiles.length === 0 ? (
             <EmptyState
               size="small"
-              title="No profiles yet"
-              description="Create one below."
+              title={t("screens4_8.workers.profiles.emptyTitle")}
+              description={t("screens4_8.workers.profiles.emptyDescription")}
             />
           ) : (
             profiles.map((profile) => (
@@ -360,10 +369,10 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
                     density="compact"
                     variant="text"
                     disabled={busy}
-                    aria-label={`Delete profile ${profile.name}`}
+                    aria-label={t("screens4_8.workers.profiles.deleteAria", { name: profile.name })}
                     onClick={() => handleDelete(profile.name)}
                   >
-                    Delete
+                    {t("screens4_8.workers.common.delete")}
                   </EditorButton>
                 </FlexRow>
               </Card>
@@ -371,69 +380,73 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           )}
         </FlexColumn>
 
-        <FormSection label="Create a profile">
+        <FormSection label={t("screens4_8.workers.profiles.createSection")}>
           <Caption size="small">
-            A profile is a saved template. Provisioning it rents one GPU box
-            and connects this app to it.
+            {t("screens4_8.workers.profiles.intro")}
           </Caption>
 
           <TextInput
-            label="Name"
+            label={t("screens4_8.workers.profiles.nameLabel")}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            helperText="A label to recognise this template, e.g. “A40 image worker”."
+            helperText={t("screens4_8.workers.profiles.nameHelp")}
             fullWidth
             compact
           />
 
           <SelectField
-            label="Provider"
+            label={t("screens4_8.workers.profiles.providerLabel")}
             value={target}
             onChange={(value) => handleTargetChange(value as WorkerTarget)}
             options={TARGET_OPTIONS}
             variant="outlined"
             size="small"
-            description="Where the GPU is rented. RunPod runs a dedicated pod; Vast picks the cheapest matching offer on its marketplace."
+            description={t("screens4_8.workers.profiles.providerHelp")}
           />
 
           {apiKeyMissing && (
             <AlertBanner
               severity="warning"
               compact
-              title={`No ${apiKeyName} configured`}
+              title={t("screens4_8.workers.profiles.missingApiKeyTitle", { key: apiKeyName })}
             >
-              {`Add it in Settings → Models & Providers before provisioning a ${
-                target === "runpod" ? "RunPod" : "Vast.ai"
-              } worker — provisioning fails without it.`}
+              {t("screens4_8.workers.profiles.missingApiKeyDescription", {
+                provider: target === "runpod" ? "RunPod" : target === "vast" ? "Vast.ai" : "Verda"
+              })}
             </AlertBanner>
           )}
 
           <SelectField
-            label="GPU"
+            label={t("screens4_8.workers.profiles.gpuLabel")}
             value={gpu}
             onChange={setGpu}
-            options={gpuOptions}
+            options={gpuOptions.map((option) => {
+              if ("labelKey" in option) {
+                return { value: option.value, label: t(`screens4_8.workers.profiles.${option.labelKey}`) };
+              }
+              return option;
+            })}
             variant="outlined"
             size="small"
             description={
               target === "runpod"
-                ? "Which machine to rent. Pick a GPU for model inference, or “CPU only” for a cheaper CPU pod (e.g. data/text nodes). More VRAM runs larger models."
-                : "Which GPU to rent. More VRAM runs larger models; pick the smallest that fits to save money."
+                ? t("screens4_8.workers.profiles.runpodGpuHelp")
+                : t("screens4_8.workers.profiles.gpuHelp")
             }
           />
           {gpu === CUSTOM_GPU && (
             <TextInput
               label={
                 target === "runpod"
-                  ? "GPU id (RunPod gpuTypeId)"
-                  : "GPU id (Vast gpu_name)"
+                  ? t("screens4_8.workers.profiles.runpodGpuIdLabel")
+                  : t("screens4_8.workers.profiles.vastGpuIdLabel")
               }
               value={customGpu}
               onChange={(e) => setCustomGpu(e.target.value)}
               helperText={
                 target === "runpod"
-                  ? "Exact RunPod id, e.g. “NVIDIA RTX 6000 Ada Generation”."
-                  : "Exact Vast name, e.g. “RTX_6000Ada”."
+                  ? t("screens4_8.workers.profiles.runpodGpuIdHelp")
+                  : t("screens4_8.workers.profiles.vastGpuIdHelp")
               }
               fullWidth
               compact
@@ -441,41 +454,44 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
           )}
           {isCpuMachine && (
             <SelectField
-              label="vCPU"
+              label={t("screens4_8.workers.profiles.vcpuLabel")}
               value={vcpu}
               onChange={setVcpu}
-              options={VCPU_OPTIONS}
+              options={VCPU_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t("screens4_8.workers.profiles.vcpuOption", { value: Number(option.value) })
+              }))}
               variant="outlined"
               size="small"
-              description="Number of virtual CPUs for the CPU-only pod. RunPod picks a matching CPU flavor."
+              description={t("screens4_8.workers.profiles.vcpuHelp")}
             />
           )}
 
           <NumberField
-            label="Disk (GB)"
+            label={t("screens4_8.workers.profiles.diskLabel")}
             value={disk}
             onChange={(e) => setDisk(e.target.value)}
-            helperText="Persistent volume for the model cache. Models download here once and survive a stop/resume. HF models are large — keep this generous."
+            helperText={t("screens4_8.workers.profiles.diskHelp")}
             fullWidth
             compact
           />
 
           <NumberField
-            label="Idle timeout (minutes)"
+            label={t("screens4_8.workers.profiles.idleTimeoutLabel")}
             value={idleTimeout}
             onChange={(e) => setIdleTimeout(e.target.value)}
-            helperText="Idle this long → pause (GPU freed, volume + models kept). Your main guard against runaway GPU bills. Blank = never."
+            helperText={t("screens4_8.workers.profiles.idleTimeoutHelp")}
             fullWidth
             compact
           />
 
           <CollapsibleSection
-            title={<InspectorSectionTitle title="Advanced" />}
+            title={<InspectorSectionTitle title={t("screens4_8.workers.profiles.advanced")} />}
             defaultOpen={false}
           >
             <FlexColumn gap={SPACING.lg} sx={{ pt: SPACING.xs }}>
               <SelectField
-                label="Worker image preset"
+                label={t("screens4_8.workers.profiles.imagePresetLabel")}
                 value={
                   IMAGE_PRESETS.some((p) => p.value === image)
                     ? image
@@ -484,33 +500,33 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
                 onChange={(value) => {
                   if (value !== CUSTOM_IMAGE) setImage(value);
                 }}
-                options={IMAGE_PRESETS}
+                options={IMAGE_PRESETS.map((preset) => ({ value: preset.value, label: t(`screens4_8.workers.profiles.${preset.labelKey}`) }))}
                 variant="outlined"
                 size="small"
-                description="ComfyUI worker fronts a co-located ComfyUI server for the “Run ComfyUI Workflow (Worker)” node."
+                description={t("screens4_8.workers.profiles.comfyImageHelp")}
               />
               <TextInput
-                label="Worker image"
+                label={t("screens4_8.workers.profiles.workerImageLabel")}
                 value={image}
                 onChange={(e) => setImage(e.target.value)}
-                helperText="Container image the provider runs. Pick a preset above, or set your own worker build."
+                helperText={t("screens4_8.workers.profiles.workerImageHelp")}
                 fullWidth
                 compact
               />
               <SelectField
-                label="Token policy"
+                label={t("screens4_8.workers.profiles.tokenPolicyLabel")}
                 value={tokenPolicy}
                 onChange={(value) => setTokenPolicy(value as TokenPolicy)}
-                options={TOKEN_POLICY_OPTIONS}
+                options={TOKEN_POLICY_OPTIONS.map((option) => ({ value: option.value, label: t(`screens4_8.workers.profiles.${option.labelKey}`) }))}
                 variant="outlined"
                 size="small"
-                description="Generate issues a fresh auth token per worker (recommended). Fixed reuses a token you set elsewhere."
+                description={t("screens4_8.workers.profiles.tokenPolicyHelp")}
               />
               <NumberField
-                label="Max lifetime (minutes)"
+                label={t("screens4_8.workers.profiles.maxLifetimeLabel")}
                 value={maxLifetime}
                 onChange={(e) => setMaxLifetime(e.target.value)}
-                helperText="Hard cap: at this age the worker is TERMINATED — pod and volume destroyed (models lost) — to stop all billing. Blank = no cap."
+                helperText={t("screens4_8.workers.profiles.maxLifetimeHelp")}
                 fullWidth
                 compact
               />

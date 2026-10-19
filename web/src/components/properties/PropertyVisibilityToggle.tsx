@@ -7,6 +7,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
@@ -103,6 +104,8 @@ const PropertyVisibilityToggle = memo<PropertyVisibilityToggleProps>(
 
   ({ placement, connected = false, onToggle }) => {
 
+    const { t } = useTranslation();
+
     const theme = useTheme();
 
     const handleClick = useCallback(() => onToggle(), [onToggle]);
@@ -115,9 +118,9 @@ const PropertyVisibilityToggle = memo<PropertyVisibilityToggleProps>(
 
         return connected
 
-          ? "Input on top (click for bottom; edge stays connected)"
+          ? t("i18n-next63.properties.visibility.inputOnTopConnected")
 
-          : "Input on top — click for bottom labeled row";
+          : t("i18n-next63.properties.visibility.inputOnTop");
 
       }
 
@@ -125,15 +128,15 @@ const PropertyVisibilityToggle = memo<PropertyVisibilityToggleProps>(
 
         return connected
 
-          ? "Input on bottom (click to hide; disconnects edge)"
+          ? t("i18n-next63.properties.visibility.inputOnBottomConnected")
 
-          : "Input on bottom — click to hide";
+          : t("i18n-next63.properties.visibility.inputOnBottom");
 
       }
 
-      return "Show as input on top";
+      return t("i18n-next63.properties.visibility.showInputOnTop");
 
-    }, [connected, placement]);
+    }, [connected, placement, t]);
 
 
 

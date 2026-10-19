@@ -34,7 +34,7 @@ describe("EntityCard", () => {
   it("renders the name, kind, and descriptor", () => {
     renderWithTheme(<EntityCard entity={entity} />);
     expect(screen.getByText("Mara")).toBeInTheDocument();
-    expect(screen.getByText("character")).toBeInTheDocument();
+    expect(screen.getByText("Character")).toBeInTheDocument();
     expect(
       screen.getByText("a tall woman with red hair and a green coat")
     ).toBeInTheDocument();

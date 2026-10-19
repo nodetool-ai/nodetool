@@ -20,6 +20,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -79,6 +80,7 @@ const SceneRow: React.FC<{
   scene: TimelineCodeScene;
   onSelect: (groupId: string) => void;
 }> = memo(({ scene, onSelect }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const handleClick = useCallback(
     () => onSelect(scene.groupId),
@@ -93,7 +95,7 @@ const SceneRow: React.FC<{
       onClick={handleClick}
       role="button"
       tabIndex={0}
-      aria-label={`Select scene ${scene.name} on the timeline`}
+      aria-label={t("timeline.code.selectScene", { name: scene.name })}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
@@ -105,7 +107,7 @@ const SceneRow: React.FC<{
         {scene.name}
       </Text>
       {scene.edited && (
-        <Chip label="Edited" compact color="warning" size="small" />
+        <Chip label={t("timeline.code.edited")} compact color="warning" size="small" />
       )}
     </FlexRow>
   );
@@ -121,6 +123,7 @@ const emptyBakeResult: TimelineCodeBakeResult = {
 };
 
 export const CodePanel: React.FC = memo(() => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const sequenceId = useTimelineStore((s) => s.sequenceId);
   const clips = useTimelineStore((s) => s.clips);
@@ -213,9 +216,9 @@ export const CodePanel: React.FC = memo(() => {
         });
       }
     } catch (err) {
-      notifyMutationError("rebake the timeline from its code", err);
+      notifyMutationError(t("timeline.code.rebakeError"), err);
     }
-  }, [sequenceId, draftCode, setCode, setCodeDraft]);
+  }, [sequenceId, draftCode, setCode, setCodeDraft, t]);
 
   const handleOverwriteScene = useCallback(
     async (scene: string) => {
@@ -223,10 +226,10 @@ export const CodePanel: React.FC = memo(() => {
         const result = await rebake({ force: [scene] });
         setBakeResult(result);
       } catch (err) {
-        notifyMutationError("overwrite that scene from the code", err);
+        notifyMutationError(t("timeline.code.overwriteError"), err);
       }
     },
-    [rebake]
+    [rebake, t]
   );
 
   const handleDetachScene = useCallback(
@@ -238,10 +241,10 @@ export const CodePanel: React.FC = memo(() => {
           conflicts: current.conflicts.filter((c) => c.scene !== scene)
         }));
       } catch (err) {
-        notifyMutationError("detach that scene from the code", err);
+        notifyMutationError(t("timeline.code.detachError"), err);
       }
     },
-    [detachScenes]
+    [detachScenes, t]
   );
 
   const handleSelectScene = useCallback(
@@ -258,9 +261,9 @@ export const CodePanel: React.FC = memo(() => {
     () =>
       bakeResult.conflicts.map((conflict) => ({
         unitId: conflict.scene,
-        label: `Scene "${conflict.scene}" was edited in the editor since the last bake — kept. (${conflict.reason})`
+        label: t("timeline.code.conflict", { name: conflict.scene, reason: conflict.reason })
       })),
-    [bakeResult.conflicts]
+    [bakeResult.conflicts, t]
   );
 
   const toolbarActions = useMemo(
@@ -272,16 +275,16 @@ export const CodePanel: React.FC = memo(() => {
           onClick={handleRebake}
           disabled={!sequenceId || isSettingCode || !dirty}
         >
-          {isSettingCode ? "Rebaking…" : "Rebake"}
+          {isSettingCode ? t("timeline.code.rebaking") : t("timeline.code.rebake")}
         </EditorButton>
       ) : null,
-    [hasCode, handleRebake, sequenceId, isSettingCode, dirty]
+    [hasCode, handleRebake, sequenceId, isSettingCode, dirty, t]
   );
 
   if (isLoading) {
     return (
       <FlexColumn align="center" justify="center" fullHeight sx={{ flex: 1 }}>
-        <LoadingSpinner size="small" text="Loading code" />
+        <LoadingSpinner size="small" text={t("timeline.code.loading")} />
       </FlexColumn>
     );
   }
@@ -290,10 +293,10 @@ export const CodePanel: React.FC = memo(() => {
     return (
       <FlexColumn gap={SPACING.micro} sx={{ p: SPACING.md }}>
         <ErrorBanner
-          title="Could not load the timeline's code"
+          title={t("timeline.code.loadErrorTitle")}
           report={{
             source: "operation-failure",
-            summary: "Timeline code failed to load",
+            summary: t("timeline.code.loadErrorSummary"),
             errorText: error instanceof Error ? error.message : String(error)
           }}
         >
@@ -312,8 +315,8 @@ export const CodePanel: React.FC = memo(() => {
         sx={{ flex: 1, px: SPACING.md }}
       >
         <EmptyState
-          title="No code"
-          description="This timeline wasn't built from code, so there is nothing to edit here."
+          title={t("timeline.code.noCodeTitle")}
+          description={t("timeline.code.noCodeDescription")}
         />
       </FlexColumn>
     );
@@ -322,7 +325,7 @@ export const CodePanel: React.FC = memo(() => {
   return (
     <FlexColumn fullWidth fullHeight sx={{ minHeight: 0, overflow: "hidden" }}>
       <PanelHeader
-        title="Code"
+        title={t("timeline.code.title")}
         count={scenes.length || undefined}
         actions={toolbarActions}
       />
@@ -341,8 +344,8 @@ export const CodePanel: React.FC = memo(() => {
           <ConflictBanner
             sx={{ m: SPACING.sm }}
             conflicts={conflictRows}
-            acceptLabel="Overwrite with code"
-            discardLabel="Detach"
+            acceptLabel={t("timeline.code.overwriteWithCode")}
+            discardLabel={t("timeline.code.detach")}
             onAccept={handleOverwriteScene}
             onDiscard={handleDetachScene}
           />
@@ -380,7 +383,7 @@ export const CodePanel: React.FC = memo(() => {
           <ErrorBanner
             report={{
               source: "panel-crash",
-              summary: "Timeline code editor could not start",
+              summary: t("timeline.code.editorStartError"),
               errorText: monacoLoadError
             }}
           >

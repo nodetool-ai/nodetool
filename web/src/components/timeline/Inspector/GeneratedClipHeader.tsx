@@ -10,6 +10,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { ClipStatus, TimelineClip } from "@nodetool-ai/timeline";
 
 import { GENERATION_STATUS } from "../../ui_primitives";
@@ -19,13 +20,30 @@ import {
   Text,
   Caption,
   StatusIndicator,
-  FONT_WEIGHT
+  FONT_WEIGHT,
+  SPACING
 } from "../../ui_primitives";
-import { relativeTime } from "../../../utils/formatDateAndTime";
 
 // ── Status mapping (PRD §5.5), shared with sketch layers ──────────────────
 
 const CLIP_STATUS_MAP = GENERATION_STATUS satisfies Record<ClipStatus, unknown>;
+const STATUS_LABEL_KEYS: Record<ClipStatus, string> = {
+  draft: "pass3_28.timeline.inspector.generatedClipHeader.status.draft",
+  queued: "pass3_28.timeline.inspector.generatedClipHeader.status.queued",
+  generating:
+    "pass3_28.timeline.inspector.generatedClipHeader.status.generating",
+  generated: "pass3_28.timeline.inspector.generatedClipHeader.status.generated",
+  stale: "pass3_28.timeline.inspector.generatedClipHeader.status.stale",
+  failed: "pass3_28.timeline.inspector.generatedClipHeader.status.failed",
+  locked: "pass3_28.timeline.inspector.generatedClipHeader.status.locked",
+  missing: "pass3_28.timeline.inspector.generatedClipHeader.status.missing"
+};
+
+const MEDIA_TYPE_LABEL_KEYS: Record<string, string> = {
+  audio: "pass3_28.timeline.inspector.generatedClipHeader.mediaType.audio",
+  image: "pass3_28.timeline.inspector.generatedClipHeader.mediaType.image",
+  video: "pass3_28.timeline.inspector.generatedClipHeader.mediaType.video"
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -39,6 +57,47 @@ function formatDuration(ms: number): string {
 const capitalize = (s: string): string =>
   s.charAt(0).toUpperCase() + s.slice(1);
 
+function formatRelativeTime(date: Date | string, locale: string): string {
+  const timestamp = date instanceof Date ? date : new Date(date);
+  const differenceMs = timestamp.getTime() - new Date().getTime();
+  const absoluteSeconds = Math.abs(differenceMs) / 1000;
+  if (absoluteSeconds < 30) {
+    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+      0,
+      "second"
+    );
+  }
+  const units = [
+    { limitSeconds: 60, milliseconds: 1000, unit: "second" as const },
+    { limitSeconds: 3600, milliseconds: 60_000, unit: "minute" as const },
+    { limitSeconds: 86_400, milliseconds: 3_600_000, unit: "hour" as const },
+    { limitSeconds: 604_800, milliseconds: 86_400_000, unit: "day" as const },
+    {
+      limitSeconds: 2_629_746,
+      milliseconds: 604_800_000,
+      unit: "week" as const
+    },
+    {
+      limitSeconds: 31_556_952,
+      milliseconds: 2_629_746_000,
+      unit: "month" as const
+    },
+    {
+      limitSeconds: Number.POSITIVE_INFINITY,
+      milliseconds: 31_556_952_000,
+      unit: "year" as const
+    }
+  ];
+  const selected =
+    units.find((candidate) => absoluteSeconds < candidate.limitSeconds) ??
+    units[units.length - 1];
+  const value = Math.round(differenceMs / selected.milliseconds);
+  return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+    value,
+    selected.unit
+  );
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────
 
 interface GeneratedClipHeaderProps {
@@ -49,6 +108,7 @@ interface GeneratedClipHeaderProps {
 
 export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
   ({ clip }) => {
+    const { t, i18n } = useTranslation();
     const statusInfo = CLIP_STATUS_MAP[clip.status];
 
     const latestVersion = clip.versions[clip.versions.length - 1] ?? null;
@@ -62,7 +122,11 @@ export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
 
     // One dotted meta line: type · duration · when. The status badge already
     // says "Generated", so the metadata never repeats it.
-    const metaParts: string[] = [capitalize(clip.mediaType)];
+    const metaParts: string[] = [
+      MEDIA_TYPE_LABEL_KEYS[clip.mediaType]
+        ? t(MEDIA_TYPE_LABEL_KEYS[clip.mediaType])
+        : capitalize(clip.mediaType)
+    ];
     if (showBothDurations && generatedDurationMs !== null) {
       metaParts.push(
         `${formatDuration(timelineDurationMs)} (src ${formatDuration(
@@ -73,12 +137,17 @@ export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
       metaParts.push(formatDuration(timelineDurationMs));
     }
     if (latestVersion?.createdAt) {
-      metaParts.push(relativeTime(latestVersion.createdAt));
+      metaParts.push(
+        formatRelativeTime(latestVersion.createdAt, i18n.language)
+      );
     }
 
     return (
-      <FlexColumn gap={0.5} sx={{ px: 1, pt: 1, pb: 0.5 }}>
-        <FlexRow align="center" gap={1}>
+      <FlexColumn
+        gap={SPACING.xs}
+        sx={{ px: SPACING.md, pt: SPACING.md, pb: SPACING.xs }}
+      >
+        <FlexRow align="center" gap={SPACING.md}>
           <Text
             size="small"
             sx={{
@@ -94,7 +163,7 @@ export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
           </Text>
           <StatusIndicator
             status={statusInfo.status}
-            label={statusInfo.label}
+            label={t(STATUS_LABEL_KEYS[clip.status])}
             pulse={statusInfo.pulse}
             size="small"
           />

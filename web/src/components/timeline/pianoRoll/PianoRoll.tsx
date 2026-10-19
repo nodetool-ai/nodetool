@@ -28,6 +28,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -187,6 +188,7 @@ interface PianoRollProps {
 
 export const PianoRoll: React.FC<PianoRollProps> = memo(
   ({ clipId, onClose, toolbarStart, toolbarEnd }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
     const tempo = useTimelineStore((s) => resolveTempo(s));
@@ -865,7 +867,9 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         data-testid="piano-roll"
         tabIndex={0}
         role="application"
-        aria-label={`Note editor for ${clip.name || "midi clip"}`}
+        aria-label={t("pass3_20.pianoRoll.accessibility.noteEditor", {
+          name: clip.name || t("pass3_20.pianoRoll.labels.midiClip")
+        })}
         onKeyDown={handleKeyDown}
         onCopy={event => copySelection(event, false)}
         onCut={event => copySelection(event, true)}
@@ -892,14 +896,14 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
               </FlexRow>
             )}
             <Caption aria-live="polite" sx={{ whiteSpace: "nowrap" }}>
-              {selectedNotes.map(note => `${pitchName(note.pitch)} · velocity ${note.velocity}`).slice(0, 1).join("") || "Click to add a note"}
-              {selectedNotes.length > 1 ? ` · ${selectedNotes.length} selected` : ""}
+              {selectedNotes.map(note => `${pitchName(note.pitch)} · ${t("pass3_20.pianoRoll.labels.velocityValue", { value: note.velocity })}`).slice(0, 1).join("") || t("pass3_20.pianoRoll.empty.clickToAddNote")}
+              {selectedNotes.length > 1 ? ` · ${t("pass3_20.pianoRoll.selection.selectedCount", { count: selectedNotes.length })}` : ""}
             </Caption>
             <NoteSelectionInspector notes={notes} selectedIds={selectedIds}
               beatTicks={msToTicks(beatDurationMs(tempo), tempo.bpm)}
               onChange={next => setClipNotes(clipId, next)}
               velocityAdjust={
-                <Slider aria-label="Selected note velocity" min={1} max={127} step={1}
+                <Slider aria-label={t("pass3_20.pianoRoll.accessibility.selectedNoteVelocity")} min={1} max={127} step={1}
                   density="compact" sx={{ width: 64 }} disabled={selectedNotes.length === 0}
                   value={selectedVelocity} valueLabelDisplay="auto"
                   onPointerDown={handleVelocityStart}
@@ -912,30 +916,19 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
                   onChangeCommitted={handleVelocityEnd} onPointerCancel={handleVelocityEnd} />
               } />
           </FlexRow>
-          <ToolbarIconButton onClick={() => setShortcutsOpen(true)} tooltip="Note editing shortcuts (?)" aria-label="Note editing shortcuts">
+          <ToolbarIconButton onClick={() => setShortcutsOpen(true)} tooltip={t("pass3_20.pianoRoll.shortcuts.titleWithHint")} aria-label={t("pass3_20.pianoRoll.shortcuts.title")}>
             <KeyboardOutlinedIcon fontSize="small" />
           </ToolbarIconButton>
           {toolbarEnd}
         </FlexRow>
-        <Dialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} title="Note editing shortcuts">
+        <Dialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} title={t("pass3_20.pianoRoll.shortcuts.title")}>
           <FlexColumn gap={SPACING.sm}>
             {[
-              "⌘C / ⌘X / ⌘V — Copy / cut / paste at the playhead",
-              "⌘R / ⌘D — Repeat selection immediately after its end",
-              "Q — Quantize note starts to the Note grid",
-              "↑ / ↓ — Transpose one semitone",
-              "⇧↑ / ⇧↓ — Transpose one octave",
-              "← / → — Nudge by the Note grid",
-              "⌥← / ⌥→ — Nudge one tick",
-              "⇧← / ⇧→ — Shorten / lengthen by the Note grid (⇧⌥ for one tick)",
-              "⌘T — Split selected notes at the playhead",
-              "⌘A — Select all notes · Delete — Delete selection",
-              "⌘Z / ⇧⌘Z — Undo / redo",
-              "Shift-click — Toggle selection · Drag empty space — Select notes",
-              "Option-drag — Duplicate selection · ⌘/Ctrl-drag — Bypass snapping",
-              "Note fields — Pitch and Start move the selection as a group; Length and Velocity set every selected note",
-              "Ctrl substitutes for ⌘ on Windows."
-            ].map(shortcut => <Caption key={shortcut}>{shortcut}</Caption>)}
+              "copyCutPaste", "repeat", "quantize", "transposeSemitone",
+              "transposeOctave", "nudgeGrid", "nudgeTick", "resizeGrid",
+              "splitAtPlayhead", "selectAllDelete", "undoRedo", "toggleOrMarquee",
+              "duplicateOrBypassSnap", "noteFields", "windowsControl"
+            ].map((shortcut) => <Caption key={shortcut}>{t(`pass3_20.pianoRoll.shortcuts.${shortcut}`)}</Caption>)}
           </FlexColumn>
         </Dialog>
         <FlexRow fullWidth sx={{ flex: 1, minHeight: 0 }}>

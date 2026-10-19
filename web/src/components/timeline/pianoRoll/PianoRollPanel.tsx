@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -82,6 +83,7 @@ interface PianoRollPanelProps {
 export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
   ({ fullHeight = false, docked = false }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const clipId = useTimelineUIStore((s) => s.pianoRollClipId);
     const heightPx = useTimelineUIStore((s) => s.pianoRollHeightPx);
     const setHeightPx = useTimelineUIStore((s) => s.setPianoRollHeightPx);
@@ -161,7 +163,7 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
             ref={handleRef}
             role="separator"
             aria-orientation="horizontal"
-            aria-label="Resize note editor"
+            aria-label={t("pass3_21.timeline.pianoRoll.panel.resizeNoteEditor")}
             aria-valuenow={heightPx}
             aria-valuemin={MIN_PIANO_ROLL_HEIGHT_PX}
             aria-valuemax={MAX_PIANO_ROLL_HEIGHT_PX}
@@ -189,29 +191,31 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
                 {fullHeight && !docked && (
                   <ToolbarIconButton
                     onClick={closePianoRoll}
-                    tooltip="Back to tracks"
-                    aria-label="Back to tracks"
+                    tooltip={t("pass3_21.timeline.pianoRoll.panel.backToTracks")}
+                    aria-label={t("pass3_21.timeline.pianoRoll.panel.backToTracks")}
                   >
                     <ArrowBackIosNewIcon fontSize="small" />
                   </ToolbarIconButton>
                 )}
                 <TruncatedText maxWidth={180}>
-                  {clip.name || "Midi clip"}
+                  {clip.name || t("pass3_21.timeline.pianoRoll.panel.midiClip")}
                 </TruncatedText>
                 <Caption color="muted" sx={{ whiteSpace: "nowrap" }}>
-                  {clip.notes?.length ?? 0} {(clip.notes?.length ?? 0) === 1 ? "note" : "notes"}
+                  {t("pass3_21.timeline.pianoRoll.panel.noteCount", {
+                    count: clip.notes?.length ?? 0
+                  })}
                 </Caption>
-                <SelectField label="Note grid" hideLabel size="small" value={gridDivision}
+                <SelectField label={t("pass3_21.timeline.pianoRoll.panel.noteGrid")} hideLabel size="small" value={gridDivision}
                   options={GRID_DIVISION_OPTIONS} css={css({ width: 96 })}
                   onChange={(value) => setGridDivision(value as TempoGridDivision)} />
-                <EditorButton variant={snapEnabled ? "contained" : "text"} onClick={toggleSnap} aria-label="Snap notes" aria-pressed={snapEnabled}>Snap</EditorButton>
+                <EditorButton variant={snapEnabled ? "contained" : "text"} onClick={toggleSnap} aria-label={t("pass3_21.timeline.pianoRoll.panel.snapNotes")} aria-pressed={snapEnabled}>{t("pass3_21.timeline.pianoRoll.panel.snap")}</EditorButton>
               </>
             }
             toolbarEnd={
               (!fullHeight || docked) && (
                 <CloseButton
                   onClick={closePianoRoll}
-                  tooltip="Close note editor"
+                  tooltip={t("pass3_21.timeline.pianoRoll.panel.closeNoteEditor")}
                 />
               )
             }

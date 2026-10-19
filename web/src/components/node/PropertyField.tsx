@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, Position } from "@xyflow/react";
 import usePropertyHighlightStore from "../../stores/PropertyHighlightStore";
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -97,6 +98,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   conditionalUnavailable = false,
   onValueChange
 }) => {
+  const { t } = useTranslation();
   const { connectType, connectDirection, connectNodeId } = useConnectionStore(
     useShallow((state) => ({
       connectType: state.connectType,
@@ -235,7 +237,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             handleTooltipPosition="left"
           />
           <Caption size="smaller" color="muted">
-            Unavailable for the selected model; disconnect to hide.
+            {t("i18n-next39.nodeEditor.propertyField.unavailableForSelectedModel")}
           </Caption>
         </div>
       ) : showFields ? (

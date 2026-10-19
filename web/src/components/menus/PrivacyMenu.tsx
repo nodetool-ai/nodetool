@@ -1,4 +1,5 @@
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import type { AnalyticsClientType } from "@nodetool-ai/analytics";
 import { useProductAnalytics } from "../../hooks/useProductAnalytics";
 import { resolveWebClientType } from "../../lib/analytics";
@@ -14,28 +15,6 @@ import {
   Text
 } from "../ui_primitives";
 
-const CLIENT_LABEL: Record<AnalyticsClientType, string> = {
-  cloud_web: "NodeTool Cloud in this browser",
-  local_desktop: "the NodeTool desktop app on this computer",
-  local_web: "this local NodeTool web app in this browser",
-  npm_cli: "the nodetool command line",
-  cloud_backend: "the NodeTool Cloud server"
-};
-
-const COLLECTED = [
-  "Which kind of app sent the event (Cloud, desktop, local web), the app version and the operating system family.",
-  "That the app started, a workflow was created, or a workflow ran.",
-  "For a run: local or cloud, the node count as a range (such as 6-20), the duration as a range, and for a failure a category such as provider or timeout.",
-  "A random ID kept in this browser that changes every 30 days, and a random ID for this session."
-];
-
-const NEVER_COLLECTED = [
-  "Your account, email, name, organization, or any project or workflow ID.",
-  "Prompts, workflow content, node settings, file names, paths, or outputs.",
-  "IP addresses, hostnames, ports, page URLs, or the browser user agent.",
-  "Keystrokes, clicks on the page, screen recordings, or error messages."
-];
-
 const BulletList: React.FC<{ items: readonly string[] }> = ({ items }) => (
   <Box component="ul" sx={{ margin: 0, paddingLeft: SPACING.xl }}>
     {items.map((item) => (
@@ -48,6 +27,7 @@ const BulletList: React.FC<{ items: readonly string[] }> = ({ items }) => (
 
 /** Settings → Privacy: analytics consent and the exact events sent. */
 const PrivacyMenu: React.FC = () => {
+  const { t } = useTranslation();
   const { client, consent, recentEvents } = useProductAnalytics();
   const enabled = consent?.productAnalytics === "granted";
 
@@ -65,64 +45,61 @@ const PrivacyMenu: React.FC = () => {
   return (
     <Box>
       <Text size="big" id="product-analytics">
-        Product analytics
+        {t("i18n-cont-settings-01.privacy.title")}
       </Text>
       <div className="settings-section">
         {client ? (
           <FlexColumn gap={GAP.comfortable}>
             <LabeledSwitch
               id="product-analytics-switch"
-              label="Share anonymous usage statistics"
-              description={`Off by default. Applies only to ${CLIENT_LABEL[resolveWebClientType()]}. Signing in or out does not change it, and it never carries over to another NodeTool app.`}
+              label={t("i18n-cont-settings-01.privacy.shareAnalytics")}
+              description={t("i18n-cont-settings-01.privacy.shareAnalyticsDescription", {
+                client: t(`i18n-cont-settings-01.privacy.clients.${resolveWebClientType()}` as `i18n-cont-settings-01.privacy.clients.${AnalyticsClientType}`)
+              })}
               checked={enabled}
               onChange={handleToggle}
             />
             <Caption>
-              Turning this off deletes the anonymous ID and any unsent events
-              from this browser right away.
+            {t("i18n-cont-settings-01.privacy.disableDescription")}
             </Caption>
           </FlexColumn>
         ) : (
           <Caption>
-            Analytics is unavailable because this browser blocks local storage.
-            Nothing is sent.
+            {t("i18n-cont-settings-01.privacy.unavailable")}
           </Caption>
         )}
       </div>
 
       <Text size="big" id="what-is-collected">
-        What is collected
+        {t("i18n-cont-settings-01.privacy.collectedTitle")}
       </Text>
       <div className="settings-section">
         <FlexColumn gap={GAP.normal}>
           <Text size="small" weight={500}>
-            When it is on
+            {t("i18n-cont-settings-01.privacy.whenEnabled")}
           </Text>
-          <BulletList items={COLLECTED} />
+          <BulletList items={t("screens4_5.privacy.collectedItems", { returnObjects: true }) as string[]} />
           <Text size="small" weight={500}>
-            Never
+            {t("i18n-cont-settings-01.privacy.never")}
           </Text>
-          <BulletList items={NEVER_COLLECTED} />
+          <BulletList items={t("screens4_5.privacy.neverCollectedItems", { returnObjects: true }) as string[]} />
           <Caption>
-            Events go to this app&apos;s own server, which checks them against a
-            fixed list and forwards nothing else. Raw events are deleted after 30
-            days. Only daily counts are kept after that.
+            {t("i18n-cont-settings-01.privacy.retention")}
           </Caption>
         </FlexColumn>
       </div>
 
       <Text size="big" id="diagnostics">
-        Diagnostics and crash reports
+        {t("i18n-cont-settings-01.privacy.diagnosticsTitle")}
       </Text>
       <div className="settings-section">
         <Text size="small">
-          NodeTool does not collect diagnostics or crash reports. They would
-          need their own permission, separate from usage statistics.
+          {t("i18n-cont-settings-01.privacy.diagnosticsDescription")}
         </Text>
       </div>
 
       <Text size="big" id="recent-events">
-        Recent events
+        {t("i18n-cont-settings-01.privacy.recentEventsTitle")}
       </Text>
       <div className="settings-section">
         <FlexColumn gap={GAP.normal}>
@@ -133,14 +110,14 @@ const PrivacyMenu: React.FC = () => {
           ) : (
             <Caption>
               {enabled
-                ? "No events recorded in this session yet."
-                : "Nothing is recorded while usage statistics are off."}
+                ? t("i18n-cont-settings-01.privacy.noRecentEvents")
+                : t("i18n-cont-settings-01.privacy.analyticsOff")}
             </Caption>
           )}
           {enabled && (
             <Box>
               <EditorButton size="small" variant="outlined" onClick={handleResetId}>
-                Reset anonymous ID
+                {t("i18n-cont-settings-01.privacy.resetAnonymousId")}
               </EditorButton>
             </Box>
           )}

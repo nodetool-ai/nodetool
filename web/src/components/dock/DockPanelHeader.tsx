@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 
 import { FlexRow, SPACING, CONTROL, TYPOGRAPHY, getSpacingPx } from "../ui_primitives";
 
@@ -22,8 +23,9 @@ interface DockPanelHeaderProps {
  */
 export default function DockPanelHeader({ title, icon, label, children, fill = false }: DockPanelHeaderProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   if (!children && !label) { return null; }
-  return <FlexRow role="toolbar" aria-label={`${title} toolbar`} align="center" gap={SPACING.xs} sx={{
+  return <FlexRow role="toolbar" aria-label={t("batch2_2.dock.panelToolbar", { panel: title })} align="center" gap={SPACING.xs} sx={{
     flexShrink: 0, minHeight: CONTROL.height.md, boxSizing: "border-box",
     paddingInline: getSpacingPx(SPACING.sm), borderBottom: `1px solid ${theme.vars.palette.divider}`,
     color: "text.secondary", userSelect: "none"

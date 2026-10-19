@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import { tabId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -23,6 +24,7 @@ interface AudioSurfaceProps {
  * suspended while the editor is hidden.
  */
 const AudioSurface = ({ refId, mode, active }: AudioSurfaceProps) => {
+  const { t } = useTranslation();
   const { data: asset, isPending, refetch } = useAssetById(refId);
   const [editorOpened, setEditorOpened] = useState(mode === "edit");
   if (mode === "edit" && !editorOpened) {
@@ -38,7 +40,7 @@ const AudioSurface = ({ refId, mode, active }: AudioSurfaceProps) => {
     return (
       <DocumentLoadStatus
         state={isPending ? "loading" : "error"}
-        label="audio asset"
+        label={t("i18n-next51.audio.asset")}
         onRetry={() => void refetch()}
         onClose={() =>
           useWorkspaceTabsStore.getState().closeTab(tabId("audio", refId))

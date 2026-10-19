@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
 import {
   Box,
@@ -24,7 +25,9 @@ interface FilePreviewProps {
 
 const PREVIEW_SIZE = 48;
 
-export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRemove }) => (
+export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRemove }) => {
+  const { t } = useTranslation();
+  return (
   <Box className="file-preview" sx={{ width: PREVIEW_SIZE, height: PREVIEW_SIZE, position: "relative" }}>
     {file.type.startsWith("image/") && isDisplayableImage(file.dataUri) ? (
       <ResponsiveImage
@@ -49,7 +52,7 @@ export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRem
     )}
     <CloseButton
       onClick={onRemove}
-      tooltip={`Remove ${file.name}`}
+      tooltip={t("i18n-next54.composer.filePreview.remove", { name: file.name })}
       buttonSize="small"
       iconVariant="clear"
       nodrag={false}
@@ -65,6 +68,7 @@ export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRem
       }}
     />
   </Box>
-));
+  );
+});
 
 FilePreview.displayName = "FilePreview";

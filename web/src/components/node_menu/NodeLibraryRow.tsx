@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Caption, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { FavoriteButton } from "../ui_primitives";
@@ -81,6 +82,7 @@ interface NodeLibraryRowProps {
  */
 const NodeLibraryRow = memo<NodeLibraryRowProps>(
   ({ node, onDragStart, onDragEnd, onClick, onHover }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const outputType =
       node.outputs.length > 0 ? node.outputs[0].type.type : "";
@@ -161,7 +163,14 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
         onKeyDown={handleKeyDown}
         title={
           node.deprecated
-            ? `${node.title}${replacementTitle ? ` — use ${replacementTitle}` : ""}`
+            ? replacementTitle
+              ? t("i18n-next50-node-menu.library.deprecatedTitleWithReplacement", {
+                  title: node.title,
+                  replacement: replacementTitle
+                })
+              : t("i18n-next50-node-menu.library.deprecatedTitle", {
+                  title: node.title
+                })
             : node.title
         }
       >
@@ -176,7 +185,7 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
           {node.title}
           {node.deprecated && (
             <Caption component="span" sx={{ marginLeft: getSpacingPx(SPACING.sm), color: "warning.main" }}>
-              Deprecated
+              {t("i18n-next50-node-menu.library.deprecated")}
             </Caption>
           )}
         </Text>

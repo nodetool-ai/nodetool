@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import TimelineRenderer from "../timeline/TimelineRenderer";
 import {
@@ -34,18 +35,21 @@ const emptySx = {
   textAlign: "center"
 } as const;
 
-/** "3 shots · 1 still · 2 not rendered", dropping the zero parts. */
+/** A localized summary, dropping the zero-count parts. */
 const statusLine = (
+  t: ReturnType<typeof useTranslation>["t"],
   clipCount: number,
   stillCount: number,
   skippedCount: number
 ): string => {
-  const parts = [`${clipCount} shot${clipCount === 1 ? "" : "s"}`];
+  const parts = [t("screens4_21.storyboardPreview.shots", { count: clipCount })];
   if (stillCount > 0) {
-    parts.push(`${stillCount} still${stillCount === 1 ? "" : "s"}`);
+    parts.push(t("screens4_21.storyboardPreview.stills", { count: stillCount }));
   }
   if (skippedCount > 0) {
-    parts.push(`${skippedCount} not rendered`);
+    parts.push(
+      t("screens4_21.storyboardPreview.notRendered", { count: skippedCount })
+    );
   }
   return parts.join(" · ");
 };
@@ -60,6 +64,7 @@ const StoryboardPreviewInner: React.FC<StoryboardPreviewProps> = ({
   boardId,
   height = PREVIEW_HEIGHT
 }) => {
+  const { t } = useTranslation();
   // Subscribe to a signature string, not the board: a board object is replaced
   // on every edit (typing in the brief, changing selection), and a fresh
   // `sequence` prop resets playback in TimelineRenderer.
@@ -77,8 +82,8 @@ const StoryboardPreviewInner: React.FC<StoryboardPreviewProps> = ({
       <Box sx={emptySx} className="storyboard-preview storyboard-preview--empty">
         <EmptyState
           size="small"
-          title="Nothing to preview yet"
-          description="Generate stills or clips first."
+          title={t("screens4_21.storyboardPreview.emptyTitle")}
+          description={t("screens4_21.storyboardPreview.emptyDescription")}
         />
       </Box>
     );
@@ -90,12 +95,13 @@ const StoryboardPreviewInner: React.FC<StoryboardPreviewProps> = ({
         <TimelineRenderer
           sequence={preview.sequence}
           showMetadata={false}
-          ariaLabel="Storyboard preview"
+          ariaLabel={t("screens4_21.storyboardPreview.playerLabel")}
         />
       </Box>
       <FlexRow gap={SPACING.sm} align="center">
         <Caption color="secondary">
           {statusLine(
+            t,
             preview.shotCount,
             preview.stillShotIds.length,
             preview.skippedShotIds.length

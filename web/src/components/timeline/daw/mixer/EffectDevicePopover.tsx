@@ -5,6 +5,7 @@
  */
 
 import React, { Suspense, memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { PopoverActions } from "@mui/material/Popover";
 import type { TrackEffect } from "@nodetool-ai/timeline";
 
@@ -46,6 +47,7 @@ function opensUpward(anchor: HTMLElement): boolean {
 
 export const EffectDevicePopover: React.FC<EffectDevicePopoverProps> = memo(
   ({ open, onClose }) => {
+    const { t } = useTranslation();
     const trackId = open?.trackId ?? null;
     const effects = useTimelineStore((s) =>
       trackId === null
@@ -104,7 +106,7 @@ export const EffectDevicePopover: React.FC<EffectDevicePopoverProps> = memo(
                 </Suspense>
               </PanelErrorBoundary>
             ) : effect.type === "fable" ? (
-              <Caption color="secondary">This effect has no editor yet.</Caption>
+              <Caption color="secondary">{t("batch2_26.daw.effects.noEditor")}</Caption>
             ) : (
               <TrackEffectParams effect={effect} onPatch={patch} disabled={!effect.enabled} />
             )}

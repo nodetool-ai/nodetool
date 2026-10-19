@@ -56,7 +56,7 @@ describe("InstallRuntimePackageDialog", () => {
 
     expect(screen.getByText("whisper.cpp is not installed")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Open package manager" })
+      screen.getByRole("button", { name: "Open Package Manager" })
     ).toBeInTheDocument();
   });
 });

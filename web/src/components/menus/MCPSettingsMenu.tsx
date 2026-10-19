@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -67,6 +68,7 @@ async function uninstallMcp(
 }
 
 const MCPSettingsMenu = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
@@ -92,7 +94,7 @@ const MCPSettingsMenu = () => {
         addNotification({
           type: "success",
           alert: true,
-          content: `MCP installed for ${ok.map((r) => r.label).join(", ")}`
+          content: t("screens4_4.mcp.installed", { labels: ok.map((r) => r.label).join(", ") })
         });
       }
     },
@@ -100,7 +102,7 @@ const MCPSettingsMenu = () => {
       addNotification({
         type: "error",
         alert: true,
-        content: `MCP install failed: ${err}`
+        content: t("screens4_4.mcp.installFailed", { error: String(err) })
       });
     }
   });
@@ -114,7 +116,7 @@ const MCPSettingsMenu = () => {
         addNotification({
           type: "info",
           alert: true,
-          content: `MCP removed from ${ok.map((r) => r.label).join(", ")}`
+          content: t("screens4_4.mcp.removed", { labels: ok.map((r) => r.label).join(", ") })
         });
       }
     }
@@ -160,33 +162,33 @@ const MCPSettingsMenu = () => {
           type: "error",
           alert: true,
           content:
-            result.error ?? "Could not find the NodeTool extension bundle."
+            result.error ?? t("screens4_4.mcp.bundleNotFound")
         });
       } else if (result.opened) {
         addNotification({
           type: "success",
           alert: true,
           content:
-            "Opening the NodeTool extension in Claude Desktop — confirm the install there."
+            t("screens4_4.mcp.openingBundle")
         });
       } else {
         addNotification({
           type: "info",
           alert: true,
           content:
-            "Revealed nodetool.mcpb — drag it into Claude Desktop → Settings → Extensions."
+            t("screens4_4.mcp.bundleRevealed")
         });
       }
     } catch (err) {
       addNotification({
         type: "error",
         alert: true,
-        content: `Extension install failed: ${err}`
+        content: t("screens4_4.mcp.extensionInstallFailed", { error: String(err) })
       });
     } finally {
       setBundleBusy(false);
     }
-  }, [installBundle, addNotification]);
+  }, [installBundle, addNotification, t]);
 
   return (
     <div
@@ -195,23 +197,27 @@ const MCPSettingsMenu = () => {
     >
       <div className="settings-main-content">
         <Text className="description" sx={{ mb: 1 }}>
-          Use NodeTool from Claude Code, Codex, or OpenCode through the{" "}
-          <strong>Model Context Protocol</strong>. The agent gets NodeTool
-          workflows, media generation, assets, nodes, and collections as tools.
+          {t("screens4_4.mcp.descriptionLead")}{" "}
+          <strong>{t("screens4_4.mcp.modelContextProtocol")}</strong>{t("screens4_4.mcp.descriptionTail")}
         </Text>
 
-        {isLoading && <LoadingSpinner size="small" />}
+        {isLoading && (
+          <LoadingSpinner
+            size="small"
+            text={t("screens4_4.mcp.loading")}
+          />
+        )}
 
         {data && (
           <>
             <div className="settings-section">
               <Text sx={{ fontWeight: 500, mb: 0.5 }}>
-                Install on this machine
+                {t("screens4_4.mcp.installOnMachine")}
               </Text>
               <Text className="description" sx={{ mb: 1 }}>
                 {data.defaultLaunch.startsWith("http")
-                  ? "The client connects to this server. It works while NodeTool runs."
-                  : "The client starts NodeTool itself. It works whether or not this app runs."}
+                  ? t("screens4_4.mcp.connectToServer")
+                  : t("screens4_4.mcp.startNodeTool")}
               </Text>
               <Text
                 className="description"
@@ -219,11 +225,11 @@ const MCPSettingsMenu = () => {
               >
                 {data.defaultLaunch}
               </Text>
-              {data.targets.map((t) => (
-                <div key={t.target} className="settings-item">
+              {data.targets.map((target) => (
+                <div key={target.target} className="settings-item">
                   <FlexRow align="center" justify="space-between" fullWidth>
                     <FlexRow align="center" gap={1}>
-                      {t.installed ? (
+                      {target.installed ? (
                         <CheckCircleIcon
                           sx={{
                             color: theme.vars.palette.success.main,
@@ -239,24 +245,24 @@ const MCPSettingsMenu = () => {
                         />
                       )}
                       <FlexColumn gap={0}>
-                        <Text sx={{ fontWeight: 500 }}>{t.label}</Text>
-                        {t.installed && (t.command ?? t.url) && (
+                        <Text sx={{ fontWeight: 500 }}>{target.label}</Text>
+                        {target.installed && (target.command ?? target.url) && (
                           <Text
                             className="description"
                             sx={{ fontSize: "var(--fontSizeSmall) !important" }}
                           >
-                            {t.command ?? t.url}
+                            {target.command ?? target.url}
                           </Text>
                         )}
                       </FlexColumn>
                     </FlexRow>
                     <FlexRow gap={1}>
-                      {t.installed ? (
+                      {target.installed ? (
                         <NavButton
                           icon={<RemoveCircleOutlineIcon />}
-                          label="Remove"
+                          label={t("screens4_4.mcp.remove")}
                           disabled={busy}
-                          onClick={() => handleUninstall(t.target)}
+                          onClick={() => handleUninstall(target.target)}
                           navSize="small"
                           sx={{
                             padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
@@ -267,10 +273,10 @@ const MCPSettingsMenu = () => {
                       ) : (
                         <NavButton
                           icon={<AddCircleOutlineIcon />}
-                          label="Install"
+                          label={t("screens4_4.mcp.install")}
                           color="primary"
                           disabled={busy}
-                          onClick={() => handleInstall(t.target)}
+                          onClick={() => handleInstall(target.target)}
                           navSize="small"
                           sx={{
                             padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
@@ -289,7 +295,7 @@ const MCPSettingsMenu = () => {
               <FlexRow justify="flex-start" sx={{ mt: 1 }}>
                 <NavButton
                   icon={<InstallDesktopIcon />}
-                  label="Install all"
+                  label={t("screens4_4.mcp.installAll")}
                   color="primary"
                   disabled={busy}
                   onClick={handleInstallAll}
@@ -304,14 +310,12 @@ const MCPSettingsMenu = () => {
           className="settings-section"
           style={{ marginTop: getSpacingPx(SPACING.xxl) }}
         >
-          <Text sx={{ fontWeight: 500, mb: 0.5 }}>Install from a terminal</Text>
+          <Text sx={{ fontWeight: 500, mb: 0.5 }}>{t("screens4_4.mcp.installFromTerminal")}</Text>
           <Text className="description" sx={{ mb: 1 }}>
-            Registers NodeTool with every agent harness found on the machine.
-            The agent starts NodeTool on demand, so this app does not need to
-            run.
+            {t("screens4_4.mcp.terminalDescription")}
           </Text>
           <FlexColumn gap={0.5}>
-            <Caption>Run this</Caption>
+            <Caption>{t("screens4_4.mcp.runThis")}</Caption>
             <FlexRow align="center" gap={1}>
               <Text
                 sx={{
@@ -323,22 +327,21 @@ const MCPSettingsMenu = () => {
               >
                 {TERMINAL_INSTALL}
               </Text>
-              <CopyButton value={TERMINAL_INSTALL} tooltip="Copy command" />
+              <CopyButton value={TERMINAL_INSTALL} tooltip={t("screens4_4.mcp.copyCommand")} />
             </FlexRow>
           </FlexColumn>
         </div>
 
         {installBundle && (
           <div className="settings-section" style={{ marginTop: getSpacingPx(SPACING.xxl) }}>
-            <Text sx={{ fontWeight: 500, mb: 0.5 }}>Claude Desktop</Text>
+            <Text sx={{ fontWeight: 500, mb: 0.5 }}>{t("screens4_4.mcp.claudeDesktop")}</Text>
             <Text className="description" sx={{ mb: 1 }}>
-              Install the NodeTool extension bundled with this app. Claude
-              Desktop opens its install dialog; confirm it there.
+              {t("screens4_4.mcp.claudeDesktopDescription")}
             </Text>
             <FlexRow justify="flex-start">
               <NavButton
                 icon={<InstallDesktopIcon />}
-                label="Install extension"
+                label={t("screens4_4.mcp.installExtension")}
                 color="primary"
                 disabled={bundleBusy}
                 onClick={handleInstallBundle}

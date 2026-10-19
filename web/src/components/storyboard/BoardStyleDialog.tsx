@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Caption,
@@ -43,6 +44,7 @@ const BoardStyleDialogInner: React.FC<BoardStyleDialogProps> = ({
   open,
   onClose
 }) => {
+  const { t } = useTranslation();
   const setStylePreset = useStoryboardStore((state) => state.setStylePreset);
   const entityIds = useStoryboardStore(
     useCallback(
@@ -85,21 +87,27 @@ const BoardStyleDialogInner: React.FC<BoardStyleDialogProps> = ({
   );
 
   return (
-    <Dialog open={open} onClose={onClose} title="Change style" maxWidth="md">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t("screens4_12.boardStyleDialog.title")}
+      maxWidth="md"
+    >
       <FlexColumn gap={SPACING.lg} sx={{ pt: SPACING.md }}>
         <Caption color="secondary">
-          The new style applies to every shot. Stills and clips already
-          rendered are marked stale — nothing re-renders until you ask for it.
+          {t("screens4_12.boardStyleDialog.description")}
         </Caption>
         <PresetTileGrid
-          label="Art style"
+          label={t("screens4_12.boardStyleDialog.artStyle")}
           presets={tiles}
           selectedId={selectedId}
           onSelect={handleSelect}
           onAddOwn={noop}
-          addOwnLabel="Add your own style"
+          addOwnLabel={t("screens4_12.boardStyleDialog.addOwnStyle")}
           addOwnDisabled
-          addOwnDisabledReason="Custom styles are added while setting up a board."
+          addOwnDisabledReason={t(
+            "screens4_12.boardStyleDialog.addOwnDisabledReason"
+          )}
         />
       </FlexColumn>
     </Dialog>

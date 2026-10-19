@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import { formatBarsBeats, resolveTempo } from "@nodetool-ai/timeline";
 import type { TimelineTempo } from "@nodetool-ai/timeline";
@@ -36,6 +37,7 @@ const format = (
   mode === "bars" ? formatBarsBeats(timeMs, tempo) : formatTimecode(timeMs, fps);
 
 export const PlayheadReadout: React.FC = memo(() => {
+  const { t } = useTranslation();
   const rulerMode = useTimelineUIStore((s) => s.rulerMode);
   const tempo = useTimelineStore((s) => resolveTempo(s));
   const fps = useTimelineStore((s) => s.fps);
@@ -65,17 +67,17 @@ export const PlayheadReadout: React.FC = memo(() => {
 
   return (
     <FlexRow gap={0.5} align="center" data-testid="timeline-playhead-readout">
-      <Caption sx={readoutSx}>{rulerMode === "bars" ? "Bar" : "TC"}</Caption>
+      <Caption sx={readoutSx}>{t(rulerMode === "bars" ? "timeline.readout.bar" : "timeline.readout.timecode")}</Caption>
       {rulerMode === "bars" ? (
         <Caption
           component="span"
           ref={valueRef}
           sx={readoutSx}
           aria-live="off"
-          aria-label="Playhead position"
+          aria-label={t("timeline.readout.playheadPosition")}
         />
       ) : (
-        <EditableTimecode sx={readoutSx} ariaLabel="Current time" />
+        <EditableTimecode sx={readoutSx} ariaLabel={t("timeline.timecode.currentTime")} />
       )}
     </FlexRow>
   );

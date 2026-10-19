@@ -219,7 +219,7 @@ describe("TimelineInspector section headers", () => {
     await user.click(
       screen.getByRole("combobox", { name: /new animation preset/i })
     );
-    await user.click(screen.getByRole("option", { name: "pop" }));
+    await user.click(screen.getByRole("option", { name: "Pop" }));
     await user.click(screen.getByRole("button", { name: /^add$/i }));
 
     expect(
@@ -242,7 +242,7 @@ describe("TimelineInspector section headers", () => {
     const clip = seedAnimatedClip();
 
     await user.click(screen.getByRole("button", { name: /^animate$/i }));
-    const slider = screen.getByRole("slider", { name: "overshoot" });
+    const slider = screen.getByRole("slider", { name: "Overshoot" });
     act(() => slider.focus());
     await user.keyboard("{ArrowRight}");
 

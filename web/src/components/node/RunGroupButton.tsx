@@ -5,6 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { Tooltip, ToolbarIconButton, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const styles = (theme: Theme, _isRunning: boolean) =>
   css({
@@ -42,6 +43,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
   onClick
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const isRunning = state === "running";
   const cssStyles = useMemo(() => styles(theme, isRunning), [theme, isRunning]);
 
@@ -53,10 +55,17 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
 
   return (
     <Tooltip
-      title={isWorkflowRunning ? "Group is running" : "Run group"}
+      title={isWorkflowRunning
+        ? t("i18n-next36.nodeEditor.runGroup.groupRunning")
+        : t("i18n-next36.nodeEditor.runGroup.runGroup")}
     >
       <ToolbarIconButton
-        title=""
+        title={isWorkflowRunning
+          ? t("i18n-next36.nodeEditor.runGroup.groupRunning")
+          : t("i18n-next36.nodeEditor.runGroup.runGroup")}
+        aria-label={isWorkflowRunning
+          ? t("i18n-next36.nodeEditor.runGroup.groupRunning")
+          : t("i18n-next36.nodeEditor.runGroup.runGroup")}
         size="small"
         tabIndex={-1}
         css={cssStyles}

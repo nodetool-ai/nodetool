@@ -194,7 +194,7 @@ it("assigns a selected entity to matching shots, then allows shot refinement", a
   renderStep();
 
   await user.click(
-    await screen.findByRole("checkbox", { name: "Mara · character" })
+    await screen.findByRole("checkbox", { name: "Mara · Character" })
   );
 
   let board = useStoryboardStore.getState().getBoard(BOARD_ID);
@@ -222,7 +222,7 @@ it("assigns a selected entity to matching shots, then allows shot refinement", a
   ]);
 
   await user.click(
-    screen.getByRole("checkbox", { name: "Station · location" })
+    screen.getByRole("checkbox", { name: "Station · Location" })
   );
   board = useStoryboardStore.getState().getBoard(BOARD_ID);
   expect(board?.shots.map((shot) => shot.entity_ids)).toEqual([
@@ -241,17 +241,17 @@ it("filters the library without losing selections or shot assignments", async ()
   renderStep();
 
   await user.click(
-    await screen.findByRole("checkbox", { name: "Mara · character" })
+    await screen.findByRole("checkbox", { name: "Mara · Character" })
   );
   await user.type(
     screen.getByRole("textbox", { name: "Search entities" }),
     "concrete"
   );
   expect(
-    screen.queryByRole("checkbox", { name: "Mara · character" })
+    screen.queryByRole("checkbox", { name: "Mara · Character" })
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole("checkbox", { name: "Station · location" })
+    screen.getByRole("checkbox", { name: "Station · Location" })
   ).not.toBeChecked();
   expect(screen.getByRole("status")).toHaveTextContent(
     "1 selected for this storyboard"
@@ -260,10 +260,10 @@ it("filters the library without losing selections or shot assignments", async ()
   await user.click(screen.getByRole("button", { name: "Clear search" }));
   await user.click(screen.getByRole("button", { name: "Selected only" }));
   expect(
-    screen.getByRole("checkbox", { name: "Mara · character" })
+    screen.getByRole("checkbox", { name: "Mara · Character" })
   ).toBeChecked();
   expect(
-    screen.queryByRole("checkbox", { name: "Station · location" })
+    screen.queryByRole("checkbox", { name: "Station · Location" })
   ).not.toBeInTheDocument();
   expect(screen.getAllByRole("checkbox", { name: "Mara" })[0]).toBeChecked();
 });
@@ -273,7 +273,7 @@ it("opens a reference image fullscreen without selecting the entity", async () =
   renderStep();
 
   const checkbox = await screen.findByRole("checkbox", {
-    name: "Mara · character"
+    name: "Mara · Character"
   });
   await user.click(
     screen.getByRole("button", { name: "View Mara reference image" })
@@ -321,7 +321,7 @@ it("finds entities in the screenplay and creates a selected reference", async ()
   ).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Create The Lantern" }));
   await user.click(
-    await screen.findByRole("checkbox", { name: "Station · location" })
+    await screen.findByRole("checkbox", { name: "Station · Location" })
   );
   finishImage({ asset_ids: ["lantern-asset"] });
 
@@ -755,7 +755,7 @@ it("holds every pick and paid action in view mode", async () => {
   );
 
   const pick = await screen.findByRole("checkbox", {
-    name: "Mara · character"
+    name: "Mara · Character"
   });
   expect(pick).toBeDisabled();
   expect(screen.getByRole("button", { name: "Find entities" })).toBeDisabled();
@@ -806,7 +806,7 @@ it("says the library failed to load rather than that it is empty", async () => {
 
   await user.click(screen.getByRole("button", { name: "Try again" }));
   expect(
-    await screen.findByRole("checkbox", { name: "Mara · character" })
+    await screen.findByRole("checkbox", { name: "Mara · Character" })
   ).toBeInTheDocument();
 });
 

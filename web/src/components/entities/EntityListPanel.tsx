@@ -7,6 +7,7 @@
 
 import AddIcon from "@mui/icons-material/AddOutlined";
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import { useDeleteEntity, useEntities } from "../../serverState/useEntities";
@@ -41,6 +42,7 @@ export const CreateEntityButton = memo(function CreateEntityButton({
   label,
   onCreated
 }: CreateEntityButtonProps) {
+  const { t } = useTranslation();
   const scopedProjectId = projectId ?? creationProjectId();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [assetId, setAssetId] = useState<string | null>(null);
@@ -71,9 +73,9 @@ export const CreateEntityButton = memo(function CreateEntityButton({
           {label}
         </EditorButton>
       ) : (
-        <Tooltip title="New entity" placement="right-start">
+        <Tooltip title={t("screens4_23.entities.newEntity")} placement="right-start">
           <ToolbarIconButton
-            ariaLabel="New entity"
+            ariaLabel={t("screens4_23.entities.newEntity")}
             onClick={() => setPickerOpen(true)}
             tabIndex={-1}
             icon={<AddIcon />}
@@ -109,6 +111,7 @@ interface EntityListPanelProps {
 const EntityListPanelInternal: React.FC<EntityListPanelProps> = ({
   projectId
 }) => {
+  const { t } = useTranslation();
   const { data: entities, isLoading } = useEntities(projectId);
   const deleteEntity = useDeleteEntity();
   const [editing, setEditing] = useState<Entity | null>(null);
@@ -123,7 +126,7 @@ const EntityListPanelInternal: React.FC<EntityListPanelProps> = ({
   if (isLoading) {
     return (
       <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-        <LoadingSpinner size="large" text="Loading entities" />
+        <LoadingSpinner size="large" text={t("screens4_23.entities.loading")} />
       </FlexColumn>
     );
   }
@@ -132,8 +135,8 @@ const EntityListPanelInternal: React.FC<EntityListPanelProps> = ({
     return (
       <EmptyState
         variant="empty"
-        title="No entities yet"
-        description="Tag an image as a character, location, style, or prop with the + button above, or right-click an image in the Library and choose Use as entity."
+        title={t("screens4_23.entities.emptyTitle")}
+        description={t("screens4_23.entities.panelEmptyDescription")}
         size="small"
       />
     );

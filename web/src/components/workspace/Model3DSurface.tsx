@@ -1,4 +1,5 @@
 import React, { Suspense, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
@@ -102,6 +103,7 @@ const withVersion = (url: string, version: string): string =>
  * but loads the asset here and passes data down so no editor edits are needed.
  */
 const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
+  const { t } = useTranslation();
   const { data: asset, isPending, refetch } = useAssetById(refId);
 
   const updateAsset = useAssetStore((state) => state.update);
@@ -168,7 +170,7 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
   const persistBlob = useCallback(
     async (blob: Blob) => {
       if (!asset) {
-        throw new Error("Asset is not loaded.");
+        throw new Error(t("i18n-next51.model3d.assetNotLoaded"));
       }
       const drafts = useDocumentDraftStore.getState();
       drafts.setSaving(documentTabId, true);
@@ -197,7 +199,7 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
       }
       useNotificationStore.getState().addNotification({
         type: "success",
-        content: `Saved ${asset.name || "3D model"}.`
+        content: t("i18n-next51.model3d.saved", { name: asset.name || t("i18n-next51.model3d.model") })
       });
     },
     [asset, updateAsset, invalidateQueries, documentTabId]
@@ -211,7 +213,7 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
     return (
       <DocumentLoadStatus
         state={isPending ? "loading" : "error"}
-        label="3D asset"
+        label={t("i18n-next51.model3d.asset")}
         onRetry={() => { void refetch(); }}
         onClose={() => useWorkspaceTabsStore.getState().closeTab(tabId("model3d", refId))}
       />

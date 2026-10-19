@@ -6,6 +6,7 @@
 
 import { css } from "@emotion/react";
 import React, { useState, useMemo, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -88,6 +89,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
   onSelect,
   onClose
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const autoFocusEnabled = useAutoFocusEnabled();
@@ -148,7 +150,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Add node"
+      title={t("pass3_1.nodePicker.title")}
       maxWidth="sm"
       fullWidth
     >
@@ -158,7 +160,8 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
         <TextInput
           fullWidth
           size="small"
-          placeholder="Search nodes"
+          placeholder={t("pass3_1.nodePicker.searchPlaceholder")}
+          aria-label={t("pass3_1.nodePicker.searchLabel")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           autoFocus={autoFocusEnabled}
@@ -182,7 +185,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
           {!hasSearch ? (
             <FlexColumn gap={SPACING.md}>
               <Text size="small" weight={600} color="secondary">
-                Quick actions
+                {t("pass3_1.nodePicker.quickActions")}
               </Text>
               <div css={tileStyles}>
                 {QUICK_ACTION_BUTTONS.map((action) => (
@@ -203,7 +206,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                     >
                       {action.icon}
                     </div>
-                    <span className="tile-label">{action.label}</span>
+                    <span className="tile-label">{t(`pass3_1.nodePicker.quickActionsByKey.${action.key}`)}</span>
                   </div>
                 ))}
               </div>
@@ -212,7 +215,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
             <EmptyState
               variant="no-results"
               size="small"
-              title="No nodes found"
+              title={t("pass3_1.nodePicker.noNodesFound")}
             />
           ) : (
             <FlexColumn gap={SPACING.none}>
@@ -221,8 +224,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                 color="secondary"
                 sx={{ mb: SPACING.micro, px: SPACING.micro }}
               >
-                {searchResults.length}{" "}
-                {searchResults.length === 1 ? "result" : "results"}
+                {t("pass3_1.nodePicker.searchResultCount", { count: searchResults.length })}
               </Text>
               <div
                 ref={listScrollRef}

@@ -19,6 +19,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { saveTimelineThroughEditor } from "../../stores/timeline/timelineSaveRegistry";
@@ -50,11 +51,7 @@ import {
   PanelHeader
 } from "../ui_primitives";
 
-const SAVE_TYPE_LABEL = {
-  manual: "Manual",
-  autosave: "Auto",
-  restore: "Restore"
-} satisfies Record<TimelineVersionSaveType, string>;
+
 
 const SAVE_TYPE_COLOR = {
   manual: "primary",
@@ -91,6 +88,7 @@ interface VersionRowProps {
 
 const VersionRow: React.FC<VersionRowProps> = memo(
   ({ version, busy, onRestore, onDelete }) => {
+    const { t } = useTranslation();
     const handleRestore = useCallback(
       () => onRestore(version),
       [onRestore, version]
@@ -107,7 +105,7 @@ const VersionRow: React.FC<VersionRowProps> = memo(
             v{version.version}
           </Text>
           <Chip
-            label={SAVE_TYPE_LABEL[version.saveType]}
+            label={t(`i18n-next3.timeline.history.saveTypes.${version.saveType}`)}
             color={SAVE_TYPE_COLOR[version.saveType]}
             compact
             size="small"
@@ -128,19 +126,19 @@ const VersionRow: React.FC<VersionRowProps> = memo(
               variant="text"
               disabled={busy}
               onClick={handleRestore}
-              aria-label={`Restore version ${version.version}`}
+              aria-label={t("i18n-next3.timeline.history.restoreVersionLabel", { version: version.version })}
             >
-              Restore
+              {t("i18n-next3.timeline.history.restore")}
             </EditorButton>
             <EditorButton
               density="compact"
               variant="text"
               disabled={busy}
               onClick={handleDelete}
-              aria-label={`Delete version ${version.version}`}
+              aria-label={t("i18n-next3.timeline.history.deleteVersionLabel", { version: version.version })}
               sx={{ color: "text.secondary" }}
             >
-              Delete
+              {t("i18n-next3.timeline.history.delete")}
             </EditorButton>
           </FlexRow>
         </FlexRow>
@@ -165,6 +163,7 @@ interface TimelineVersionHistoryPanelProps {
 export const TimelineVersionHistoryPanel: React.FC<
   TimelineVersionHistoryPanelProps
 > = ({ sequenceId }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const store = useTimelineStoreApi();
   const {
@@ -218,10 +217,10 @@ export const TimelineVersionHistoryPanel: React.FC<
   const handleConfirmSave = useCallback(async () => {
     setSaveDialogOpen(false);
     try {
-      if (!(await flushPendingEdits("save a version"))) return;
+      if (!(await flushPendingEdits(t("i18n-next3.timeline.history.saveAction")))) return;
       await createVersion(saveName);
     } catch (err) {
-      notifyMutationError("save a version", err);
+      notifyMutationError(t("i18n-next3.timeline.history.saveAction"), err);
     }
   }, [createVersion, flushPendingEdits, saveName]);
 
@@ -230,14 +229,14 @@ export const TimelineVersionHistoryPanel: React.FC<
     setRestoreTarget(null);
     if (!target) return;
     try {
-      if (!(await flushPendingEdits("restore that version"))) return;
+      if (!(await flushPendingEdits(t("i18n-next3.timeline.history.restoreAction")))) return;
       const restored = await restoreVersion(target.version);
       // The editor holds the pre-restore document in memory and autosaves it
       // 750 ms after any change; without this the next flush would PATCH the
       // stale state straight back over the restore.
       applyTimelineSequenceToStore(store, restored);
     } catch (err) {
-      notifyMutationError("restore that version", err);
+      notifyMutationError(t("i18n-next3.timeline.history.restoreAction"), err);
     }
   }, [flushPendingEdits, restoreTarget, restoreVersion, store]);
 
@@ -248,7 +247,7 @@ export const TimelineVersionHistoryPanel: React.FC<
     try {
       await deleteVersion(target.version);
     } catch (err) {
-      notifyMutationError("delete that version", err);
+      notifyMutationError(t("i18n-next3.timeline.history.deleteAction"), err);
     }
   }, [deleteTarget, deleteVersion]);
 
@@ -270,7 +269,7 @@ export const TimelineVersionHistoryPanel: React.FC<
         onClick={openSaveDialog}
         disabled={!sequenceId || isCreatingVersion}
       >
-        {isCreatingVersion ? "Saving…" : "Save version"}
+        {isCreatingVersion ? t("i18n-next3.timeline.history.saving") : t("i18n-next3.timeline.history.saveVersion")}
       </EditorButton>
     ),
     [openSaveDialog, sequenceId, isCreatingVersion]
@@ -279,7 +278,7 @@ export const TimelineVersionHistoryPanel: React.FC<
   return (
     <FlexColumn fullWidth fullHeight sx={{ minHeight: 0, overflow: "hidden" }}>
       <PanelHeader
-        title="History"
+        title={t("i18n-next3.timeline.history.title")}
         count={ordered.length}
         actions={toolbarActions}
       />
@@ -287,12 +286,12 @@ export const TimelineVersionHistoryPanel: React.FC<
       <ScrollArea css={listStyles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         {isLoading ? (
           <FlexColumn align="center" justify="center" sx={{ py: 4 }}>
-            <LoadingSpinner size="small" text="Loading versions" />
+            <LoadingSpinner size="small" text={t("i18n-next3.timeline.history.loading")} />
           </FlexColumn>
         ) : error ? (
           <FlexColumn gap={0.5} sx={{ p: 2 }}>
             <ErrorBanner
-              title="Could not load versions"
+              title={t("i18n-next3.timeline.history.loadError")}
               report={{
                 source: "operation-failure",
                 summary: "Timeline versions failed to load",
@@ -305,8 +304,8 @@ export const TimelineVersionHistoryPanel: React.FC<
         ) : ordered.length === 0 ? (
           <FlexColumn align="center" sx={{ py: 4, px: 2 }}>
             <EmptyState
-              title="No versions yet"
-              description="Save a version to snapshot the sequence you can come back to."
+              title={t("i18n-next3.timeline.history.emptyTitle")}
+              description={t("i18n-next3.timeline.history.emptyDescription")}
             />
           </FlexColumn>
         ) : (
@@ -325,20 +324,20 @@ export const TimelineVersionHistoryPanel: React.FC<
       <Dialog
         open={saveDialogOpen}
         onClose={closeSaveDialog}
-        title="Save a version"
+        title={t("i18n-next3.timeline.history.saveDialogTitle")}
         onConfirm={handleConfirmSave}
-        confirmText="Save version"
+        confirmText={t("i18n-next3.timeline.history.saveVersion")}
       >
         <FlexColumn gap={SPACING.xs}>
           <TextInput
-            label="Name (optional)"
+            label={t("i18n-next3.timeline.history.nameLabel")}
             value={saveName}
             onChange={handleSaveNameChange}
             size="small"
             autoFocus
           />
           <Caption size="smaller" color="secondary">
-            Snapshots the sequence as it is right now.
+            {t("i18n-next3.timeline.history.snapshotHelp")}
           </Caption>
         </FlexColumn>
       </Dialog>
@@ -347,20 +346,18 @@ export const TimelineVersionHistoryPanel: React.FC<
         open={restoreTarget !== null}
         onClose={clearRestoreTarget}
         title={
-          restoreTarget ? `Restore v${restoreTarget.version}?` : "Restore?"
+          restoreTarget ? t("i18n-next3.timeline.history.restoreVersionQuestion", { version: restoreTarget.version }) : t("i18n-next3.timeline.history.restoreQuestion")
         }
         onConfirm={handleConfirmRestore}
-        confirmText="Restore"
+        confirmText={t("i18n-next3.timeline.history.restore")}
         maxWidth="xs"
       >
         <FlexColumn gap={SPACING.xs}>
           <Text color="secondary">
-            This replaces the current tracks, clips, and markers with that
-            snapshot.
+            {t("i18n-next3.timeline.history.restoreDescription")}
           </Text>
           <Caption size="smaller" color="muted">
-            A snapshot of the current state is saved first, so you can undo the
-            restore from this list.
+            {t("i18n-next3.timeline.history.restoreHelp")}
           </Caption>
         </FlexColumn>
       </Dialog>
@@ -368,12 +365,12 @@ export const TimelineVersionHistoryPanel: React.FC<
       <Dialog
         open={deleteTarget !== null}
         onClose={clearDeleteTarget}
-        title={deleteTarget ? `Delete v${deleteTarget.version}?` : "Delete?"}
+        title={deleteTarget ? t("i18n-next3.timeline.history.deleteVersionQuestion", { version: deleteTarget.version }) : t("i18n-next3.timeline.history.deleteQuestion")}
         onConfirm={handleConfirmDelete}
-        confirmText="Delete"
+        confirmText={t("i18n-next3.timeline.history.delete")}
         destructive
       >
-        <Text color="secondary">This action cannot be undone.</Text>
+        <Text color="secondary">{t("i18n-next3.timeline.history.deleteWarning")}</Text>
       </Dialog>
     </FlexColumn>
   );

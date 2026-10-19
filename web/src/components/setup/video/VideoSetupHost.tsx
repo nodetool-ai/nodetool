@@ -10,6 +10,7 @@
  */
 
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { trpc } from "../../../trpc/client";
 import {
@@ -65,6 +66,7 @@ const VideoSetupBody = ({
   onStartFromScript,
   onChangeFlow
 }: VideoSetupHostProps) => {
+  const { t } = useTranslation();
   const query = trpc.timeline.get.useQuery({ id: sequenceId });
   useLoadTimelineIntoStore(query.data);
   const { flush } = useTimelineAutosave();
@@ -118,10 +120,20 @@ const VideoSetupBody = ({
   useFinishIfLoadedDone(loaded, config.stage, onFinish);
 
   if (query.isError) {
-    return <DocumentLoadStatus state="error" label="video" />;
+    return (
+      <DocumentLoadStatus
+        state="error"
+        label={t("pass3_13.video.host.documentLabel")}
+      />
+    );
   }
   if (!loaded) {
-    return <DocumentLoadStatus state="loading" label="video" />;
+    return (
+      <DocumentLoadStatus
+        state="loading"
+        label={t("pass3_13.video.host.documentLabel")}
+      />
+    );
   }
   // Generate writes `done` before it saves and sends the clips, and the host
   // opens the timeline only after that. The shell has no step for `done`, so
@@ -134,7 +146,11 @@ const VideoSetupBody = ({
         sx={{ padding: PADDING.section }}
       >
         <ThinkingIndicator
-          label={submitting ? "Starting your clips" : "Opening your timeline"}
+          label={
+            submitting
+              ? t("pass3_13.video.host.startingClips")
+              : t("pass3_13.video.host.openingTimeline")
+          }
           announce
         />
       </FlexColumn>

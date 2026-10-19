@@ -209,11 +209,11 @@ describe("ProjectSettingsDialog", () => {
   it("says what a tempo change does to the parts already in the document", () => {
     storeState = { ...freshStore(), clips: [{ mediaType: "midi" }] };
     renderDialog();
-    expect(screen.getByText(/play at the new speed/i)).toBeInTheDocument();
+    expect(screen.getByText(/plays at the new speed/i)).toBeInTheDocument();
   });
 
   it("says nothing about parts when the document has none", () => {
     renderDialog();
-    expect(screen.queryByText(/play at the new speed/i)).toBeNull();
+    expect(screen.queryByText(/plays at the new speed/i)).toBeNull();
   });
 });

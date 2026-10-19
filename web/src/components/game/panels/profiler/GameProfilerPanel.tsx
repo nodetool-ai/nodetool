@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 
@@ -30,10 +31,6 @@ interface GameProfilerPanelProps {
 const GRAPH_POINTS = 600;
 const SCRIPT_ROWS = 8;
 const NO_VALUE = "—";
-
-function count(value: number): string {
-  return Math.round(value).toLocaleString("en-US");
-}
 
 /** The newest recorded values of a column, skipping missing ones. */
 function graphValues(values: Float32Array | undefined): number[] {
@@ -80,24 +77,21 @@ function Section({ title, children }: { readonly title: string; readonly childre
   </FlexColumn>;
 }
 
-function msStat(stat: GameProfileStat | null): string {
-  return stat ? `${formatGameProfileMs(stat.avg)} avg · ${formatGameProfileMs(stat.p95 ?? stat.max)} p95 · ${formatGameProfileMs(stat.max)} max` : NO_VALUE;
-}
-
-function countStat(stat: GameProfileStat | null): string {
-  return stat ? `${count(stat.last)} now · ${count(stat.max)} max` : NO_VALUE;
-}
-
-function bytesStat(stat: GameProfileStat | null): string {
-  return stat ? `${formatGameProfileBytes(stat.last)} now · ${formatGameProfileBytes(stat.max)} max` : NO_VALUE;
-}
-
 /**
  * Frame time, simulation and script CPU time, renderer, physics and audio counts from the running play session.
  * It records while shown and redraws a few times per second. Record captures a profile. Export JSON saves the
  * capture on screen, or the live window when no capture is shown.
  */
 export default function GameProfilerPanel({ profiler, source, document }: GameProfilerPanelProps): ReactElement {
+  const { t, i18n } = useTranslation();
+  const count = (value: number): string => Math.round(value).toLocaleString(i18n.language);
+  const msStat = (stat: GameProfileStat | null): string => stat ? t("i18n-next2.profiler.msStat", {
+    avg: formatGameProfileMs(stat.avg), p95: formatGameProfileMs(stat.p95 ?? stat.max), max: formatGameProfileMs(stat.max)
+  }) : NO_VALUE;
+  const countStat = (stat: GameProfileStat | null): string => stat ? t("i18n-next2.profiler.countStat", { now: count(stat.last), max: count(stat.max) }) : NO_VALUE;
+  const bytesStat = (stat: GameProfileStat | null): string => stat ? t("i18n-next2.profiler.bytesStat", {
+    now: formatGameProfileBytes(stat.last), max: formatGameProfileBytes(stat.max)
+  }) : NO_VALUE;
   const theme = useTheme();
   const root = useRef<HTMLDivElement>(null);
   const { view, refresh } = useGameProfilerView(profiler, root);
@@ -126,11 +120,11 @@ export default function GameProfilerPanel({ profiler, source, document }: GamePr
     else if (view.live) { downloadGameProfile(gameProfileExport(source, { kind: "live", data: view.live })); }
   };
   const captureSeconds = capture ? ((capture.endedAt - capture.startedAt) / 1000).toFixed(1) : "0";
-  const status = view.capturing ? "Recording a capture · showing the live window"
-    : viewingCapture ? `Capture · ${captureSeconds} s · ${count(summary?.ticks ?? 0)} ticks${capture.full ? " · stopped when full" : ""}`
-      : `Live · last ${count(summary?.ticks ?? 0)} ticks`;
+  const status = view.capturing ? t("i18n-next2.profiler.recordingStatus")
+    : viewingCapture ? t("i18n-next2.profiler.captureStatus", { seconds: captureSeconds, count: count(summary?.ticks ?? 0), full: capture.full ? t("i18n-next2.profiler.stoppedWhenFull") : "" })
+      : t("i18n-next2.profiler.liveStatus", { count: count(summary?.ticks ?? 0) });
   return <FlexColumn ref={root} sx={{ height: "100%", minHeight: 0 }}>
-    <DockPanelHeader title="Profiler" fill>
+    <DockPanelHeader title={t("i18n-next2.profiler.title")} fill>
       <Caption role="status" data-testid="profiler-status" color="secondary" sx={{ flex: 1, minWidth: 0, pl: SPACING.xs, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {status}
       </Caption>
@@ -139,56 +133,56 @@ export default function GameProfilerPanel({ profiler, source, document }: GamePr
           ? <StopRoundedIcon aria-hidden sx={{ fontSize: FONT_SIZE_SANS.body }} />
           : <FiberManualRecordIcon aria-hidden sx={{ fontSize: FONT_SIZE_SANS.body, color: theme.vars.palette.error.main }} />}
         sx={{ height: CONTROL.height.sm, px: SPACING.sm, "& .MuiButton-startIcon": { mr: SPACING.xs } }}>
-        {view.capturing ? "Stop" : "Record"}
+        {view.capturing ? t("i18n-next2.profiler.stop") : t("i18n-next2.profiler.record")}
       </EditorButton>
-      {viewingCapture && <EditorButton onClick={() => setLiveOver(capture)} sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Live</EditorButton>}
+      {viewingCapture && <EditorButton onClick={() => setLiveOver(capture)} sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>{t("i18n-next2.profiler.live")}</EditorButton>}
       <Divider orientation="vertical" flexItem sx={{ mx: SPACING.xs, my: SPACING.xs }} />
-      <EditorButton disabled={view.capturing || empty} onClick={exportProfile} sx={{ height: CONTROL.height.sm }}>Export JSON</EditorButton>
+      <EditorButton disabled={view.capturing || empty} onClick={exportProfile} sx={{ height: CONTROL.height.sm }}>{t("i18n-next2.profiler.exportJson")}</EditorButton>
       <EditorButton disabled={!profiler} onClick={() => { profiler?.clear(); refresh(); }}
-        sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Clear</EditorButton>
+        sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>{t("i18n-next2.profiler.clear")}</EditorButton>
     </DockPanelHeader>
     <ScrollArea sx={{ flex: 1, minHeight: 0 }}>
       {empty || !summary || !metrics
-        ? <EmptyState variant="no-data" size="small" title="No samples yet"
-          description="Press Play. The profiler records each tick while this panel is open." />
+        ? <EmptyState variant="no-data" size="small" title={t("i18n-next2.profiler.noSamples")}
+          description={t("i18n-next2.profiler.noSamplesDescription")} />
         : <Box sx={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${getSpacingPx(SPACING.xxl * 10)}, 1fr))`,
           gap: getSpacingPx(SPACING.lg), p: SPACING.md, alignItems: "start" }}>
-          <Section title="Frame time">
+          <Section title={t("i18n-next2.profiler.frameTime")}>
             <Sparkline values={frameValues} budget={tickBudgetMs}
-              label={`Frame time per rendered frame, ${msStat(metrics.frameMs)}, tick budget ${formatGameProfileMs(tickBudgetMs)}`} />
-            <Row label="Frame">{msStat(metrics.frameMs)}</Row>
-            <Row label="Tick budget">{formatGameProfileMs(tickBudgetMs)}</Row>
+              label={t("i18n-next2.profiler.frameSparkline", { stats: msStat(metrics.frameMs), budget: formatGameProfileMs(tickBudgetMs) })} />
+            <Row label={t("i18n-next2.profiler.frame")}>{msStat(metrics.frameMs)}</Row>
+            <Row label={t("i18n-next2.profiler.tickBudget")}>{formatGameProfileMs(tickBudgetMs)}</Row>
           </Section>
-          <Section title="Simulation CPU">
-            <Sparkline values={stepValues} label={`Simulation step time, ${msStat(metrics.stepMs)}`} />
-            <Row label="Step">{msStat(metrics.stepMs)}</Row>
+          <Section title={t("i18n-next2.profiler.simulationCpu")}>
+            <Sparkline values={stepValues} label={t("i18n-next2.profiler.simulationSparkline", { stats: msStat(metrics.stepMs) })} />
+            <Row label={t("i18n-next2.profiler.step")}>{msStat(metrics.stepMs)}</Row>
             {summary.systems.map((system) => <FlexColumn key={system.system} gap={SPACING.micro}>
-              <Row label={system.system}>{`${formatGameProfileMs(system.avgMs)} avg · ${formatGameProfileMs(system.maxMs)} max`}</Row>
+              <Row label={system.system}>{t("i18n-next2.profiler.averageMaximum", { avg: formatGameProfileMs(system.avgMs), max: formatGameProfileMs(system.maxMs) })}</Row>
               <Box aria-hidden sx={{ height: getSpacingPx(SPACING.micro), borderRadius: BORDER_RADIUS.pill, backgroundColor: theme.vars.palette.primary.main,
                 width: `${Math.max(1, (system.avgMs / slowestSystem) * 100)}%` }} />
             </FlexColumn>)}
           </Section>
-          <Section title="Scripts">
-            <Row label="All scripts">{msStat(metrics.scriptMs)}</Row>
+          <Section title={t("i18n-next2.profiler.scripts")}>
+            <Row label={t("i18n-next2.profiler.allScripts")}>{msStat(metrics.scriptMs)}</Row>
             {summary.scripts.length === 0
-              ? <Caption color="muted">No script ran.</Caption>
+              ? <Caption color="muted">{t("i18n-next2.profiler.noScriptRan")}</Caption>
               : summary.scripts.slice(0, SCRIPT_ROWS).map((script) =>
-                <Row key={script.entityId} label={script.entityId === GAME_PROFILER_OTHER_ENTITIES ? "Other entities" : entityNames.get(script.entityId) || script.entityId}>
-                  {`${formatGameProfileMs(script.avgMs)} avg · ${formatGameProfileMs(script.maxMs)} max · ${count(script.calls)} calls`}
+                <Row key={script.entityId} label={script.entityId === GAME_PROFILER_OTHER_ENTITIES ? t("i18n-next2.profiler.otherEntities") : entityNames.get(script.entityId) || script.entityId}>
+                  {t("i18n-next2.profiler.scriptStats", { avg: formatGameProfileMs(script.avgMs), max: formatGameProfileMs(script.maxMs), count: count(script.calls) })}
                 </Row>)}
-            {summary.scripts.length > SCRIPT_ROWS && <Caption color="muted">{`${summary.scripts.length - SCRIPT_ROWS} more entities in the export`}</Caption>}
-            {!viewingCapture && summary.scripts.length > 0 && <Caption color="muted">Totals since Play or Clear.</Caption>}
+            {summary.scripts.length > SCRIPT_ROWS && <Caption color="muted">{t("i18n-next2.profiler.moreEntities", { count: summary.scripts.length - SCRIPT_ROWS })}</Caption>}
+            {!viewingCapture && summary.scripts.length > 0 && <Caption color="muted">{t("i18n-next2.profiler.totalsSincePlayOrClear")}</Caption>}
           </Section>
-          <Section title="Rendering">
-            <Row label="Draw calls">{countStat(metrics.drawCalls)}</Row>
-            <Row label="Triangles">{source.dimension === "2d" ? "Not reported in 2D" : countStat(metrics.triangles)}</Row>
-            <Row label="Texture memory">{bytesStat(metrics.textureBytes)}</Row>
-            <Row label="Geometry memory">{source.dimension === "2d" ? "Not reported in 2D" : bytesStat(metrics.geometryBytes)}</Row>
+          <Section title={t("i18n-next2.profiler.rendering")}>
+            <Row label={t("i18n-next2.profiler.drawCalls")}>{countStat(metrics.drawCalls)}</Row>
+            <Row label={t("i18n-next2.profiler.triangles")}>{source.dimension === "2d" ? t("i18n-next2.profiler.notReported2d") : countStat(metrics.triangles)}</Row>
+            <Row label={t("i18n-next2.profiler.textureMemory")}>{bytesStat(metrics.textureBytes)}</Row>
+            <Row label={t("i18n-next2.profiler.geometryMemory")}>{source.dimension === "2d" ? t("i18n-next2.profiler.notReported2d") : bytesStat(metrics.geometryBytes)}</Row>
           </Section>
-          <Section title="Physics and audio">
-            <Row label="Bodies">{countStat(metrics.bodies)}</Row>
-            <Row label="Contacts">{countStat(metrics.contacts)}</Row>
-            <Row label="Audio voices">{countStat(metrics.voices)}</Row>
+          <Section title={t("i18n-next2.profiler.physicsAudio")}>
+            <Row label={t("i18n-next2.profiler.bodies")}>{countStat(metrics.bodies)}</Row>
+            <Row label={t("i18n-next2.profiler.contacts")}>{countStat(metrics.contacts)}</Row>
+            <Row label={t("i18n-next2.profiler.audioVoices")}>{countStat(metrics.voices)}</Row>
           </Section>
         </Box>}
     </ScrollArea>

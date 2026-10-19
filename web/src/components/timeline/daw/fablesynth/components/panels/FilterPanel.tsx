@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Knob } from '../Knob';
 import { Stepper } from '../Stepper';
 import { PowerButton } from '../PowerButton';
@@ -26,6 +27,7 @@ function FilterBlock({ prefix, label, on, uid }: { prefix: string; label: string
 }
 
 export function FilterPanel() {
+  const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<0 | 1>(0);
   const uid = useId();
   const t1 = useStore((s) => s.params['filter.type']);
@@ -49,8 +51,8 @@ export function FilterPanel() {
   return (
     <section className="panel panel-filter" data-accent="f" style={{ gridArea: 'filter' }}>
       <div className="panel-head">
-        <h2>FILTERS</h2>
-        <div className="filter-tabs" role="tablist" aria-label="Filter controls">
+        <h2>{t('i18n-next45-fablesynth-effects.filter.title')}</h2>
+        <div className="filter-tabs" role="tablist" aria-label={t('i18n-next45-fablesynth-effects.filter.controls')}>
           {(['F1', 'F2'] as const).map((label, index) => (
             <button
               key={label}
@@ -75,7 +77,7 @@ export function FilterPanel() {
             </button>
           ))}
         </div>
-        <span className="filter-active-power" aria-label={`${activeLabel} power`}>
+        <span className="filter-active-power" aria-label={t('i18n-next45-fablesynth-effects.filter.power', { filter: activeLabel })}>
           <PowerButton paramId={`${activePrefix}.on`} />
         </span>
         <span className="filter-type"><Stepper paramId={`${activePrefix}.type`} accent="f" /></span>

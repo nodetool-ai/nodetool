@@ -4,6 +4,7 @@ import {
   useSyncExternalStore,
   type ReactNode
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
@@ -78,6 +79,7 @@ const PlaybackClock = memo(function PlaybackClock({
   playhead: PlayheadStore;
   duration: number;
 }) {
+  const { t } = useTranslation();
   const seconds = useSyncExternalStore(
     playhead.subscribe,
     playhead.get,
@@ -87,7 +89,7 @@ const PlaybackClock = memo(function PlaybackClock({
     <FlexRow
       align="baseline"
       gap={SPACING.xs}
-      aria-label="Playback position"
+      aria-label={t("batch2_16.transport.playbackPosition")}
       sx={{ whiteSpace: "nowrap" }}
     >
       <Text size="small" family="secondary" weight={500}>
@@ -121,6 +123,7 @@ const AudioTransportBar = memo(function AudioTransportBar({
   onZoomFit,
   onZoomChange
 }: AudioTransportBarProps) {
+  const { t } = useTranslation();
   const handleZoomSliderChange = useCallback(
     (_event: Event, value: number | number[]) => {
       if (isNumber(value)) {
@@ -143,7 +146,7 @@ const AudioTransportBar = memo(function AudioTransportBar({
       <FlexRow align="center" gap={SPACING.md}>
         <FlexRow
           role="group"
-          aria-label="Transport"
+          aria-label={t("batch2_16.transport.transport")}
           align="center"
           gap={SPACING.micro}
           sx={{
@@ -156,7 +159,7 @@ const AudioTransportBar = memo(function AudioTransportBar({
         >
           <ToolbarIconButton
             icon={<StopIcon fontSize="small" />}
-            tooltip="Stop"
+            tooltip={t("batch2_16.transport.stop")}
             tooltipPlacement="top"
             onClick={onStop}
           />
@@ -168,7 +171,7 @@ const AudioTransportBar = memo(function AudioTransportBar({
                 <PlayArrowIcon fontSize="small" />
               )
             }
-            tooltip={isPlaying ? "Pause" : "Play"}
+            tooltip={isPlaying ? t("batch2_16.transport.pause") : t("batch2_16.transport.play")}
             tooltipPlacement="top"
             onClick={onTogglePlay}
             sx={{
@@ -182,8 +185,8 @@ const AudioTransportBar = memo(function AudioTransportBar({
           />
           <ToolbarIconButton
             icon={<RepeatIcon fontSize="small" />}
-            tooltip={loop ? "Loop on" : "Loop off"}
-            ariaLabel="Loop"
+            tooltip={loop ? t("batch2_16.transport.loopOn") : t("batch2_16.transport.loopOff")}
+            ariaLabel={t("batch2_16.transport.loop")}
             tooltipPlacement="top"
             active={loop}
             aria-pressed={loop}
@@ -197,17 +200,17 @@ const AudioTransportBar = memo(function AudioTransportBar({
         {status}
       </FlexRow>
 
-      <FlexRow role="group" aria-label="Zoom" align="center" gap={SPACING.micro}>
+      <FlexRow role="group" aria-label={t("batch2_16.transport.zoom")} align="center" gap={SPACING.micro}>
         <ToolbarIconButton
           icon={<ZoomOutIcon fontSize="small" />}
-          tooltip="Zoom out"
+          tooltip={t("batch2_16.transport.zoomOut")}
           tooltipPlacement="top"
           onClick={onZoomOut}
           disabled={zoom <= minZoom}
         />
         <Box sx={{ width: 96, mx: SPACING.xs }}>
           <Slider
-            aria-label="Waveform zoom"
+            aria-label={t("batch2_16.transport.waveformZoom")}
             density="compact"
             value={zoomToSliderValue(zoom, minZoom, maxZoom)}
             min={0}
@@ -218,14 +221,14 @@ const AudioTransportBar = memo(function AudioTransportBar({
         </Box>
         <ToolbarIconButton
           icon={<ZoomInIcon fontSize="small" />}
-          tooltip="Zoom in"
+          tooltip={t("batch2_16.transport.zoomIn")}
           tooltipPlacement="top"
           onClick={onZoomIn}
           disabled={zoom >= maxZoom}
         />
         <ToolbarIconButton
           icon={<FitScreenOutlinedIcon fontSize="small" />}
-          tooltip="Fit to window"
+          tooltip={t("batch2_16.transport.fit")}
           tooltipPlacement="top"
           onClick={onZoomFit}
           disabled={zoom === minZoom}

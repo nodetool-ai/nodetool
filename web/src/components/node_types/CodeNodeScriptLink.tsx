@@ -9,6 +9,7 @@
  * tab; nothing here edits a document.
  */
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useJsScripts } from "../../hooks/jsScript/useJsScripts";
 import { useCodeNodeScriptLink } from "../../hooks/nodes/useCodeNodeScriptLink";
@@ -25,9 +26,6 @@ interface CodeNodeScriptLinkProps {
   nodeType: string;
 }
 
-const NEW_SCRIPT_NAME = "Extracted from a Code node";
-const DEFAULT_CATEGORY = "My Nodes";
-
 // EditorButton pins its height, so a label that wraps spills over the toolbar
 // below it. The row wraps instead; each button stays one line.
 const BUTTON_SX = { whiteSpace: "nowrap", flex: "0 0 auto" } as const;
@@ -37,6 +35,8 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
   data,
   nodeType
 }) => {
+  const { t } = useTranslation();
+  const newScriptName = t("i18n-next64.codeNodeScriptLink.extractedScriptName");
   const {
     link,
     linkedName,
@@ -67,21 +67,21 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
   const onPick = useCallback(
     (scriptId: string) => {
       if (!scriptId) return;
-      void guard("link the script", () => linkScript(scriptId));
+      void guard(t("i18n-next64.codeNodeScriptLink.linkScriptErrorAction"), () => linkScript(scriptId));
     },
-    [guard, linkScript]
+    [guard, linkScript, t]
   );
 
   const saveDialog = (
     <SaveToMyNodesDialog
       open={saveOpen}
-      initialName={link ? undefined : data.title || NEW_SCRIPT_NAME}
-      initialCategory={DEFAULT_CATEGORY}
+      initialName={link ? undefined : data.title || newScriptName}
+      initialCategory={t("i18n-next64.codeNodeScriptLink.myNodesCategory")}
       busy={busy}
       onCancel={() => setSaveOpen(false)}
       onConfirm={({ name, category }) => {
         setSaveOpen(false);
-        void guard("save the node", async () => {
+        void guard(t("i18n-next64.codeNodeScriptLink.saveNodeErrorAction"), async () => {
           if (link) {
             await addToPalette(category);
           } else {
@@ -111,7 +111,7 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
           }}
           title={`${linkedName ?? link.id} v${link.version}`}
         >
-          {`${isCustomCodeNode(nodeType, data) ? "My node" : "Linked to"} ${
+          {`${isCustomCodeNode(nodeType, data) ? t("i18n-next64.codeNodeScriptLink.myNode") : t("i18n-next64.codeNodeScriptLink.linkedTo")} ${
             linkedName ?? link.id
           } v${link.version}`}
         </Caption>
@@ -120,10 +120,10 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
             density="compact"
             disabled={busy}
             sx={BUTTON_SX}
-            tooltip="Re-pin this node to the script's current content"
-            onClick={() => void guard("re-pin the script", updateToLatest)}
+            tooltip={t("i18n-next64.codeNodeScriptLink.updateTooltip")}
+            onClick={() => void guard(t("i18n-next64.codeNodeScriptLink.updateErrorAction"), updateToLatest)}
           >
-            Update
+            {t("i18n-next64.codeNodeScriptLink.update")}
           </EditorButton>
           <EditorButton
             density="compact"
@@ -131,7 +131,7 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
             sx={BUTTON_SX}
             onClick={() => setSaveOpen(true)}
           >
-            Add to My Nodes
+            {t("i18n-next64.codeNodeScriptLink.addToMyNodes")}
           </EditorButton>
           <EditorButton
             density="compact"
@@ -139,7 +139,7 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
             sx={BUTTON_SX}
             onClick={detach}
           >
-            Detach
+            {t("i18n-next64.codeNodeScriptLink.detach")}
           </EditorButton>
         </FlexRow>
         {saveDialog}
@@ -158,8 +158,8 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
           value=""
           disabled={busy}
           onChange={(event) => onPick(String(event.target.value ?? ""))}
-          renderValue={() => "Link script"}
-          aria-label="Link script"
+          renderValue={() => t("i18n-next64.codeNodeScriptLink.linkScript")}
+          aria-label={t("i18n-next64.codeNodeScriptLink.linkScript")}
         >
           {(scripts.data ?? []).map((script) => (
             <NodeMenuItem key={script.id} value={script.id}>
@@ -172,12 +172,12 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
         density="compact"
         disabled={busy}
         sx={BUTTON_SX}
-        tooltip="Lift this node's body into a new script"
+        tooltip={t("i18n-next64.codeNodeScriptLink.extractTooltip")}
         onClick={() =>
-          void guard("extract the script", () => extractToScript(NEW_SCRIPT_NAME))
+          void guard(t("i18n-next64.codeNodeScriptLink.extractErrorAction"), () => extractToScript(newScriptName))
         }
       >
-        Extract
+        {t("i18n-next64.codeNodeScriptLink.extract")}
       </EditorButton>
       <EditorButton
         density="compact"
@@ -185,7 +185,7 @@ const CodeNodeScriptLinkInner: React.FC<CodeNodeScriptLinkProps> = ({
         sx={BUTTON_SX}
         onClick={() => setSaveOpen(true)}
       >
-        Save to My Nodes
+        {t("i18n-next64.codeNodeScriptLink.saveToMyNodes")}
       </EditorButton>
       {saveDialog}
     </FlexRow>

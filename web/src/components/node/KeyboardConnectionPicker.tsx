@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Node } from "@xyflow/react";
 
 import { useNodeStoreRef } from "../../contexts/NodeContext";
@@ -79,6 +80,7 @@ export const KeyboardConnectionPicker = ({
   typeMetadata,
   onClose
 }: KeyboardConnectionPickerProps) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const optionListRef = useRef<VirtualListHandle>(null);
@@ -244,7 +246,9 @@ export const KeyboardConnectionPicker = ({
     <Dialog
       open={open}
       onClose={handleClose}
-      title={`Connect ${titleize(handleId)}`}
+      title={t("i18n-next36.nodeEditor.keyboardConnectionPicker.connectHandle", {
+        handle: titleize(handleId)
+      })}
       maxWidth="sm"
       fullWidth
       actions={
@@ -255,7 +259,9 @@ export const KeyboardConnectionPicker = ({
             onClick={disconnect}
             sx={{ mr: "auto" }}
           >
-            Disconnect {connectedEdgeIds.length === 1 ? "edge" : "all edges"}
+            {t("i18n-next36.nodeEditor.keyboardConnectionPicker.disconnectEdges", {
+              count: connectedEdgeIds.length
+            })}
           </Button>
         ) : undefined
       }
@@ -281,8 +287,8 @@ export const KeyboardConnectionPicker = ({
               focusOption(0);
             }
           }}
-          label="Find a compatible node or port"
-          placeholder="Search compatible ports"
+          label={t("i18n-next36.nodeEditor.keyboardConnectionPicker.findCompatible")}
+          placeholder={t("i18n-next36.nodeEditor.keyboardConnectionPicker.searchPorts")}
         />
         {filteredOptions.length > 0 ? (
           <VirtualList
@@ -290,7 +296,7 @@ export const KeyboardConnectionPicker = ({
             items={filteredOptions}
             estimateSize={PORT_OPTION_HEIGHT}
             getItemKey={(option) => option.key}
-            ariaLabel="Compatible ports"
+            ariaLabel={t("i18n-next36.nodeEditor.keyboardConnectionPicker.compatiblePorts")}
             scrollToIndex={boundedActiveIndex}
             sx={{ maxHeight: PORT_OPTIONS_MAX_HEIGHT }}
             getItemProps={(_option, index) => ({
@@ -325,7 +331,9 @@ export const KeyboardConnectionPicker = ({
                   <Text>{option.nodeTitle}</Text>
                   <Caption color="muted">{option.handleTitle}</Caption>
                   <Caption color="muted">
-                    {option.kind === "existing" ? "Existing node" : "Create node"}
+                    {option.kind === "existing"
+                      ? t("i18n-next36.nodeEditor.keyboardConnectionPicker.existingNode")
+                      : t("i18n-next36.nodeEditor.keyboardConnectionPicker.createNode")}
                   </Caption>
                 </FlexRow>
               </EditorButton>
@@ -335,7 +343,7 @@ export const KeyboardConnectionPicker = ({
           <EmptyState
             variant="no-results"
             size="small"
-            title="No compatible ports found"
+            title={t("i18n-next36.nodeEditor.keyboardConnectionPicker.noCompatiblePorts")}
           />
         )}
       </FlexColumn>

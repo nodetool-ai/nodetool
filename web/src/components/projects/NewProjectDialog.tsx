@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   useCreateProject,
@@ -17,6 +18,7 @@ interface NewProjectDialogProps {
  * point uses it, so a click always leaves a project in the Projects list.
  */
 const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | undefined>();
   const createProject = useCreateProject();
@@ -44,9 +46,9 @@ const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
       }
     } catch (createError) {
       setError(
-        `Could not create the project: ${
-          createError instanceof Error ? createError.message : String(createError)
-        }`
+        t("pass3_32.projects.newProject.createError", {
+          error: createError instanceof Error ? createError.message : String(createError)
+        })
       );
     }
   }, [
@@ -55,6 +57,7 @@ const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
     isPending,
     openNewProjectTab,
     openProject,
+    t,
     trimmed
   ]);
 
@@ -62,14 +65,14 @@ const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
     <Dialog
       open={open}
       onClose={close}
-      title="New project"
+      title={t("pass3_32.projects.newProject.title")}
       onConfirm={() => void create()}
-      confirmText="Create project"
+      confirmText={t("pass3_32.projects.newProject.confirm")}
       confirmDisabled={!trimmed}
       isLoading={isPending}
     >
       <TextInput
-        label="Project name"
+        label={t("pass3_32.projects.newProject.nameLabel")}
         value={name}
         autoFocus
         inputProps={{ maxLength: 200 }}

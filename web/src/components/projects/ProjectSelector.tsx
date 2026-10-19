@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
@@ -12,10 +13,12 @@ import {
   Caption,
   CONTROL,
   ContextMenu,
+  FlexRow,
   MenuItemPrimitive,
   MOTION,
   SearchInput,
   SPACING,
+  TruncatedText,
   getSpacingPx,
   LoadingSpinner
 } from "../ui_primitives";
@@ -35,15 +38,14 @@ import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 const selectorStyles = (theme: Theme, inline: boolean, mobile: boolean) =>
   css({
     WebkitAppRegion: "no-drag",
-    display: "flex",
-    alignItems: "stretch",
     flexShrink: 0,
     height: inline ? "auto" : "100%",
     maxWidth: inline ? "100%" : "220px",
     "& .selector-button": {
-      display: "flex",
+      display: "grid",
+      gridTemplateColumns: "auto minmax(0, 1fr) auto",
       alignItems: "center",
-      gap: getSpacingPx(SPACING.md),
+      columnGap: getSpacingPx(SPACING.md),
       minWidth: 0,
       maxWidth: "100%",
       height: inline ? "auto" : "100%",
@@ -69,8 +71,6 @@ const selectorStyles = (theme: Theme, inline: boolean, mobile: boolean) =>
       flexShrink: 0
     },
     "& .selector-name": {
-      overflow: "hidden",
-      textOverflow: "ellipsis",
       whiteSpace: "nowrap",
       minWidth: 0
     },
@@ -88,7 +88,8 @@ const selectorStyles = (theme: Theme, inline: boolean, mobile: boolean) =>
         : {
             "& .selector-name, & .selector-caret": { display: "none" },
             "& .selector-button": {
-              justifyContent: "center",
+              gridTemplateColumns: "auto",
+              justifyItems: "center",
               minWidth: CONTROL.height.xl,
               padding: `0 ${getSpacingPx(SPACING.md)}`
             }
@@ -108,6 +109,7 @@ const ProjectSelector = ({
   inline = false,
   mobile = false
 }: ProjectSelectorProps) => {
+  const { t } = useTranslation();
   const anchorRef = useRef<HTMLButtonElement>(null);
   const theme = useTheme();
   const [open, setOpen] = useState(false);
@@ -139,10 +141,10 @@ const ProjectSelector = ({
   const name =
     activeProject?.name ??
     (activeProjectId === personalProjectId
-      ? "Personal"
+      ? t("pass3_34.projects.selector.personal")
       : activeProjectId
-        ? (activeTabTitle ?? "Project")
-        : "Personal");
+        ? (activeTabTitle ?? t("pass3_34.projects.selector.project"))
+        : t("pass3_34.projects.selector.personal"));
   const personalProject = projects?.find((project) => project.isPersonal);
   const resolvedPersonalId =
     personalProject?.id ??
@@ -159,7 +161,10 @@ const ProjectSelector = ({
   const selectPersonal = useCallback(() => {
     close();
     if (resolvedPersonalId) {
-      void openProject({ id: resolvedPersonalId, name: "Personal" }).then(
+      void openProject({
+        id: resolvedPersonalId,
+        name: t("pass3_34.projects.selector.personal")
+      }).then(
         (opened) => {
           if (opened && inline) openNewProjectTab();
         }
@@ -173,7 +178,8 @@ const ProjectSelector = ({
     openNewProjectTab,
     openProject,
     resolvedPersonalId,
-    setActiveProjectId
+    setActiveProjectId,
+    t
   ]);
 
   const selectProject = useCallback(
@@ -205,7 +211,8 @@ const ProjectSelector = ({
   );
 
   return (
-    <div
+    <FlexRow
+      align="stretch"
       css={selectorStyles(theme, inline, mobile)}
       className="project-selector"
     >
@@ -216,16 +223,22 @@ const ProjectSelector = ({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={
-          inline || mobile ? `Selected project: ${name}` : "Select project"
+          inline || mobile
+            ? t("pass3_34.projects.selector.selectedProject", { name })
+            : t("pass3_34.projects.selector.selectProject")
         }
         onClick={() => setOpen((value) => !value)}
       >
         <span className="selector-glyph" aria-hidden>
           {PROJECT_GLYPH}
         </span>
-        <span className="selector-name">
-          {inline || mobile ? name : "Project"}
-        </span>
+        <TruncatedText
+          component="span"
+          className="selector-name"
+          sx={{ flex: 1 }}
+        >
+          {inline || mobile ? name : t("pass3_34.projects.selector.project")}
+        </TruncatedText>
         <span className="selector-caret" aria-hidden>
           ▾
         </span>
@@ -246,7 +259,7 @@ const ProjectSelector = ({
       >
         {mobile && (
           <MenuItemPrimitive
-            label="Project home"
+            label={t("pass3_34.projects.selector.projectHome")}
             icon={<HomeRoundedIcon />}
             onClick={openProjectHome}
             dividerAfter
@@ -254,7 +267,7 @@ const ProjectSelector = ({
         )}
         {!inline && (
           <MenuItemPrimitive
-            label="New project"
+            label={t("pass3_34.projects.selector.newProject")}
             icon={<AddOutlinedIcon />}
             onClick={openNewProject}
             color="primary"
@@ -264,13 +277,13 @@ const ProjectSelector = ({
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Search projects"
-          ariaLabel="Search projects"
+          placeholder={t("pass3_34.projects.selector.searchProjects")}
+          ariaLabel={t("pass3_34.projects.selector.searchProjects")}
           fullWidth
           sx={{ my: SPACING.xs, px: SPACING.xs, boxSizing: "border-box" }}
         />
         <MenuItemPrimitive
-          label="Personal"
+          label={t("pass3_34.projects.selector.personal")}
           className="project-menu-item"
           selected={
             activeProjectId === resolvedPersonalId ||
@@ -280,18 +293,21 @@ const ProjectSelector = ({
           onClick={selectPersonal}
         />
         {isPending && (
-          <LoadingSpinner size="small" text="Loading projects" />
+          <LoadingSpinner
+            size="small"
+            text={t("pass3_34.projects.selector.loadingProjects")}
+          />
         )}
         {error && (
           <ErrorBanner
             sx={{ mx: SPACING.sm, my: SPACING.xs }}
             report={{
               source: "operation-failure",
-              summary: "Project list failed to load",
+              summary: t("pass3_34.projects.selector.projectListLoadFailed"),
               errorText: error.message
             }}
           >
-            Could not load projects
+            {t("pass3_34.projects.selector.couldNotLoadProjects")}
           </ErrorBanner>
         )}
         {visibleProjects.map((project) => (
@@ -305,12 +321,14 @@ const ProjectSelector = ({
         ))}
         {!isPending && !error && visibleProjects.length === 0 && (
           <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
-            {needle ? "No matching projects" : "No named projects yet"}
+            {needle
+              ? t("pass3_34.projects.selector.noMatchingProjects")
+              : t("pass3_34.projects.selector.noNamedProjects")}
           </Caption>
         )}
       </ContextMenu>
       <NewProjectDialog open={newProjectOpen} onClose={closeNewProject} />
-    </div>
+    </FlexRow>
   );
 };
 

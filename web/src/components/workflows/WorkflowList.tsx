@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import WorkflowToolbar from "./WorkflowToolbar";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
@@ -24,7 +25,7 @@ import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
+import { EmptyState, FlexColumn, FlexRow, LoadingSpinner, SPACING } from "../ui_primitives";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
 import { nextCopyName } from "../../utils/nextCopyName";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -64,6 +65,7 @@ interface WorkflowListProps {
 }
 
 const WorkflowList = ({ projectId }: WorkflowListProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const memoizedStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -227,9 +229,9 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
         addNotification({
           type: "error",
           alert: true,
-          content: `Could not duplicate workflow: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+          content: t("pass3_38.workflowList.duplicateError", {
+            error: error instanceof Error ? error.message : String(error)
+          })
         });
         return;
       }
@@ -244,6 +246,7 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
     },
     [
       addNotification,
+      t,
       copyWorkflow,
       createWorkflow,
       workflowNames,
@@ -296,14 +299,14 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
         addNotification({
           type: "error",
           alert: true,
-          content: `Failed to rename "${workflow.name}".`
+          content: t("pass3_38.workflowList.renameError", { name: workflow.name })
         });
         // Refetch so any optimistically displayed name reverts to the
         // server's value.
         queryClient.invalidateQueries({ queryKey: ["workflows"] });
       }
     },
-    [queryClient, projectId, getWorkflow, updateWorkflow, addNotification]
+    [queryClient, projectId, getWorkflow, updateWorkflow, addNotification, t]
   );
 
   const handleToggleFavorites = useCallback(() => {
@@ -345,17 +348,17 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
           availableTags={availableTags}
         />
       )}
-      <FlexColumn gap={0} fullHeight css={memoizedStyles}>
+      <FlexColumn gap={SPACING.none} fullHeight css={memoizedStyles}>
         <CategorySearchBar
           ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
-          placeholder="Search workflows"
+          placeholder={t("pass3_38.workflowList.searchPlaceholder")}
         />
         <FlexRow
           className="toolbar-header"
           align="center"
-          gap={3}
+          gap={SPACING.lg}
           justify="space-between"
         >
           <WorkflowToolbar
@@ -369,43 +372,43 @@ const WorkflowList = ({ projectId }: WorkflowListProps) => {
           />
         </FlexRow>
         {isLoading ? (
-          <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-            <LoadingSpinner size="large" text="Loading workflows" />
+          <FlexColumn gap={SPACING.md} justify="center" align="center" sx={{ flex: 1 }}>
+            <LoadingSpinner size="large" text={t("pass3_38.workflowList.loading")} />
           </FlexColumn>
         ) : isError ? (
-          <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
+          <FlexColumn gap={SPACING.md} justify="center" align="center" sx={{ flex: 1, px: SPACING.md }}>
             <EmptyState
               variant="error"
-              title="Couldn't load workflows"
-              description="Try again later."
-              actionText="Retry"
+              title={t("pass3_38.workflowList.loadErrorTitle")}
+              description={t("pass3_38.workflowList.loadErrorDescription")}
+              actionText={t("pass3_38.workflowList.retry")}
               onAction={() => refetch()}
             />
           </FlexColumn>
         ) : workflows.length === 0 ? (
-          <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
+          <FlexColumn gap={SPACING.md} justify="center" align="center" sx={{ flex: 1, px: SPACING.md }}>
             {showFavoritesOnly ? (
               <EmptyState
-                title="No favorite workflows"
-                description="Click the star icon on a workflow to add it to your favorites."
+                title={t("pass3_38.workflowList.emptyFavoritesTitle")}
+                description={t("pass3_38.workflowList.emptyFavoritesDescription")}
               />
             ) : data?.workflows && data.workflows.length > 0 ? (
               <EmptyState
-                title="No matching workflows"
+                title={t("pass3_38.workflowList.noMatchesTitle")}
                 description={
                   filterValue && selectedTags.length > 0
-                    ? "Try adjusting your search term or tag filters."
+                    ? t("pass3_38.workflowList.adjustSearchAndTags")
                     : filterValue
-                      ? "Try a different search term."
+                      ? t("pass3_38.workflowList.adjustSearch")
                       : selectedTags.length > 0
-                        ? "Try removing some tag filters."
-                        : "No workflows match the current filters."
+                        ? t("pass3_38.workflowList.adjustTags")
+                        : t("pass3_38.workflowList.noFilterMatches")
                 }
               />
             ) : (
               <EmptyState
-                title="No workflows yet"
-                description="Create your first workflow with the + button above."
+                title={t("pass3_38.workflowList.emptyTitle")}
+                description={t("pass3_38.workflowList.emptyDescription")}
               />
             )}
           </FlexColumn>

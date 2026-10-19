@@ -15,6 +15,7 @@ import "./cryptoUUIDPolyfill";
 import "./lib/staleDeployPrompt";
 
 import React, { Suspense, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMenuHandler } from "./hooks/useIpcRenderer";
 import type { MenuEventData } from "./window";
@@ -633,6 +634,7 @@ const MenuNavigationBridge = () => {
 };
 
 const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<string>("pending");
   const [metadataError, setMetadataError] = useState<string>("");
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -706,18 +708,17 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   return (
     <React.StrictMode>
       <TRPCProvider>
-        <AppThemeRoot>
-          <MobileClassProvider>
-            <MenuProvider>
-              <MenuNavigationBridge />
-              <CustomNodeMetadataBridge />
-              <WorkflowManagerProvider queryClient={queryClient}>
-                <KeyboardProvider active={true}>
+        <MobileClassProvider>
+          <MenuProvider>
+            <MenuNavigationBridge />
+            <CustomNodeMetadataBridge />
+            <WorkflowManagerProvider queryClient={queryClient}>
+              <KeyboardProvider active={true}>
                   {status === "success" && <SeedDefaultModelsBridge />}
                   {status === "pending" && !isDevTestRoute && (
                     <div
                       role="status"
-                      aria-label="Loading NodeTool"
+                      aria-label={t("i18n-next117.bootstrap.loadingNodeTool")}
                       style={{
                         display: "flex",
                         flexDirection: "column",
@@ -734,7 +735,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                           fontSize: "var(--fontSizeNormal)"
                         }}
                       >
-                        Loading NodeTool…
+                        {t("i18n-next117.bootstrap.loadingNodeTool")}
                       </span>
                     </div>
                   )}
@@ -756,7 +757,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                           fontSize: "var(--fontSizeNormal)"
                         }}
                       >
-                        Error loading application metadata.
+                        {t("i18n-next117.bootstrap.metadataError")}
                       </span>
                       <button
                         type="button"
@@ -771,11 +772,11 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                           fontSize: "var(--fontSizeNormal)"
                         }}
                       >
-                        Refresh Page
+                        {t("i18n-next117.bootstrap.refreshPage")}
                       </button>
                       <ReportBugButton
                         variant="outlined"
-                        label="Report a bug"
+                        label={t("i18n-next117.bootstrap.reportBug")}
                         context={{
                           source: "app-crash",
                           summary: "Error loading application metadata",
@@ -791,7 +792,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                         fallback={
                           <div
                             role="status"
-                            aria-label="Loading"
+                            aria-label={t("i18n-next117.bootstrap.loading")}
                             style={{
                               display: "flex",
                               flexDirection: "column",
@@ -809,7 +810,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                                 fontSize: "var(--fontSizeNormal)"
                               }}
                             >
-                              Preparing workspace…
+                              {t("i18n-next117.bootstrap.preparingWorkspace")}
                             </span>
                           </div>
                         }
@@ -834,11 +835,10 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                   <BugReportDialogHost />
                   <HelpDialogHost />
                   <StaleDeployDialog />
-                </KeyboardProvider>
-              </WorkflowManagerProvider>
-            </MenuProvider>
-          </MobileClassProvider>
-        </AppThemeRoot>
+              </KeyboardProvider>
+            </WorkflowManagerProvider>
+          </MenuProvider>
+        </MobileClassProvider>
       </TRPCProvider>
     </React.StrictMode>
   );
@@ -868,4 +868,8 @@ configReady.catch((err) => console.error(err));
 // Render the shell right away — the loading spinner appears without waiting on
 // the /api/config round-trip. AppWrapper holds back the router (and any
 // auth-mode metadata decision) until `configReady` resolves.
-root.render(<AppWrapper configReady={configReady} />);
+root.render(
+  <AppThemeRoot>
+    <AppWrapper configReady={configReady} />
+  </AppThemeRoot>
+);

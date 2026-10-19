@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -70,6 +71,7 @@ const useStudioModelPolicy = (
 };
 
 const StudioStoryboardPage = () => {
+  const { t } = useTranslation();
   const { boardId = "" } = useParams<{ boardId: string }>();
   const theme = useTheme();
   const navigate = useNavigate();
@@ -149,13 +151,13 @@ const StudioStoryboardPage = () => {
 
   if (loadState !== "ready") {
     return (
-      <StudioShell title={title || "Storyboard"}>
+      <StudioShell title={title || t("screen_remaining.studio.storyboard")}>
         <DocumentLoadStatus
           state={loadState}
-          label="storyboard"
+          label={t("screen_remaining.studio.storyboard")}
           onRetry={() => setRetryToken((value) => value + 1)}
           onClose={() => navigate("/workspace")}
-          closeLabel="Back to workspace"
+          closeLabel={t("screen_remaining.studio.backToWorkspace")}
         />
       </StudioShell>
     );
@@ -163,25 +165,25 @@ const StudioStoryboardPage = () => {
 
   if (setupStage !== "done") {
     return (
-      <StudioShell title={title || "Untitled storyboard"}>
+      <StudioShell title={title || t("screen_remaining.studio.untitledStoryboard")}>
         <SetupFlow config={setupConfig} />
       </StudioShell>
     );
   }
 
   return (
-    <StudioShell title={title || "Untitled storyboard"}>
+    <StudioShell title={title || t("screen_remaining.studio.untitledStoryboard")}>
       {assemblyNotice && (
         <AlertBanner
           severity="warning"
-          title="Timeline created with omissions"
+          title={t("screen_remaining.studio.timelineOmissions")}
           action={
             <EditorButton
               onClick={() =>
                 navigate(`/studio/timeline/${assemblyNotice.sequenceId}`)
               }
             >
-              Open timeline
+              {t("screen_remaining.studio.openTimeline")}
             </EditorButton>
           }
         >

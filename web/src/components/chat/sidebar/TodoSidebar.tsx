@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import {
@@ -101,6 +102,7 @@ const STATUS_ICONS = {
 } as const;
 
 export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const counts = useMemo(() => todos.reduce(
@@ -119,7 +121,7 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
           weight={600}
           sx={{ letterSpacing: 0.6, textTransform: "uppercase" }}
         >
-          Tasks
+          {t("i18n-next108.todoSidebar.tasks")}
         </Text>
         {todos.length > 0 && (
           <Text size="smaller" sx={{ opacity: 0.6 }}>
@@ -131,8 +133,8 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
         {todos.length === 0 ? (
           <EmptyState
             size="small"
-            title="No tasks yet"
-            description="The agent will list its plan here as it works."
+            title={t("i18n-next108.todoSidebar.noTasks")}
+            description={t("i18n-next108.todoSidebar.noTasksDescription")}
           />
         ) : (
           <FlexColumn gap={0}>

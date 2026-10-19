@@ -17,6 +17,7 @@ import {
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useLanguageModelProviders } from "../../../hooks/useProviders";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import { isElectron, isLocalhost } from "../../../lib/env";
@@ -118,13 +119,13 @@ const styles = (theme: Theme) =>
 // Each chip is the start of a brief the user finishes in the composer, one
 // per job the studio is built for: a product spot, a creator-style cut, a
 // narrated explainer, a whole campaign, and the pipeline that repeats it.
-const SUGGESTIONS = [
-  "Storyboard a 30-second ad for …",
-  "Direct a UGC-style testimonial for …",
-  "Narrate a 60-second explainer about …",
-  "Turn this brief into a launch campaign: …",
-  "Build a workflow that renders an ad for every …"
-];
+const SUGGESTION_KEYS = [
+  "i18n-next23.chat.welcome.suggestions.storyboardAd",
+  "i18n-next23.chat.welcome.suggestions.ugcTestimonial",
+  "i18n-next23.chat.welcome.suggestions.narratedExplainer",
+  "i18n-next23.chat.welcome.suggestions.launchCampaign",
+  "i18n-next23.chat.welcome.suggestions.repeatedAdWorkflow"
+] as const;
 
 // Cloud LLM providers we point first-time users at. Each maps to an API key
 // they can add on the Settings → Models & Providers tab.
@@ -139,11 +140,6 @@ const SETUP_PROVIDERS = [
  * gets offered the sign-in first. A hosted deployment cannot, and is pointed
  * at an API key instead.
  */
-const SETUP_SUBTITLE =
-  isElectron || isLocalhost
-    ? "Sign in with Claude or OpenAI to use a subscription you already pay for, or add an API key. Your credentials are encrypted and stored securely."
-    : "Add an API key for OpenAI, Anthropic, or Gemini to start chatting. Your keys are encrypted and stored securely.";
-
 interface WelcomePlaceholderProps {
   onSuggestionClick?: (suggestion: string) => void;
 }
@@ -158,6 +154,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   onSuggestionClick
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const { providers, isLoading, error } = useLanguageModelProviders();
 
@@ -171,12 +168,11 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   const handleConnectProvider = useCallback(() => {
     openProviderOnboarding({
       capability: "generate_message",
-      reason:
-        isElectron || isLocalhost
-          ? "Chat needs a language model. Sign in with Claude or OpenAI, or connect any provider with an API key."
-          : "Chat needs a language model. Connect a provider to start."
+      reason: isElectron || isLocalhost
+        ? t("i18n-next23.chat.welcome.onboarding.localReason")
+        : t("i18n-next23.chat.welcome.onboarding.hostedReason")
     });
-  }, []);
+  }, [t]);
 
   // Only treat the chat as "no provider" once the provider query has settled
   // successfully — while loading (or on a transient fetch error, which the
@@ -190,10 +186,12 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
           <FlexColumn align="center" gap={SPACING.lg} sx={{ textAlign: "center" }}>
             <KeyRoundedIcon className="welcome-icon" />
             <Text className="welcome-title">
-              Connect an AI provider to get started
+              {t("i18n-next23.chat.welcome.connectProviderTitle")}
             </Text>
             <Text className="welcome-subtitle">
-              {SETUP_SUBTITLE}
+              {isElectron || isLocalhost
+                ? t("i18n-next23.chat.welcome.onboarding.localSubtitle")
+                : t("i18n-next23.chat.welcome.onboarding.hostedSubtitle")}
             </Text>
             <FlexRow gap={SPACING.xs} justify="center" wrap>
               {SETUP_PROVIDERS.map((provider) => (
@@ -235,25 +233,30 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
               startIcon={<KeyRoundedIcon />}
               onClick={handleConnectProvider}
             >
-              Connect a provider
+              {t("i18n-next23.chat.welcome.connectProviderButton")}
             </EditorButton>
           </FlexColumn>
         ) : (
           <div className="chat-suggestions-block">
             <AutoAwesomeIcon className="welcome-icon" />
-            <Text className="welcome-title">How can I help you today?</Text>
+            <Text className="welcome-title">
+              {t("i18n-next23.chat.welcome.title")}
+            </Text>
             <Text className="welcome-subtitle">
-              Ask anything, drop in files, or start with one of these:
+              {t("i18n-next23.chat.welcome.subtitle")}
             </Text>
             <div className="suggestions">
-              {SUGGESTIONS.map((suggestion) => (
+              {SUGGESTION_KEYS.map((key) => {
+                const suggestion = t(key);
+                return (
                 <Chip
-                  key={suggestion}
+                  key={key}
                   label={suggestion}
                   variant="outlined"
                   onClick={() => handleClick(suggestion)}
                 />
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

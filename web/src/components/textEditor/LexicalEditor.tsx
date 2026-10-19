@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { EditorState, LexicalEditor } from "lexical";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -178,6 +179,7 @@ const LexicalPlugins = ({
 }: LexicalPluginsProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -207,7 +209,9 @@ const LexicalPlugins = ({
             />
           }
           placeholder={
-            <div className="editor-placeholder">{isFocused ? "" : "// ..."}</div>
+            <div className="editor-placeholder">
+              {isFocused ? "" : t("i18n-next83.lexicalEditor.placeholder")}
+            </div>
           }
           ErrorBoundary={() => null}
         />

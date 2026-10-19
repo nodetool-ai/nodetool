@@ -14,6 +14,7 @@
  */
 
 import { forwardRef, memo, useEffect, useImperativeHandle, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Box } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { CopyButton } from "./CopyButton";
@@ -68,7 +69,7 @@ const LogViewInternal = forwardRef<HTMLDivElement, LogViewProps>(
   function LogView(
     {
       lines,
-      emptyText = "No output yet.",
+      emptyText,
       copyable = false,
       autoScroll = false,
       maxHeight = "220px",
@@ -77,6 +78,7 @@ const LogViewInternal = forwardRef<HTMLDivElement, LogViewProps>(
     },
     ref
   ) {
+    const { t } = useTranslation();
     const innerRef = useRef<HTMLDivElement>(null);
     useImperativeHandle(ref, () => innerRef.current as HTMLDivElement);
 
@@ -90,6 +92,7 @@ const LogViewInternal = forwardRef<HTMLDivElement, LogViewProps>(
     const normalized = lines.map((line) =>
       typeof line === "string" ? { text: line } : line
     );
+    const resolvedEmptyText = emptyText ?? t("i18n-next96.uiPrimitives.logView.noOutputYet");
 
     return (
       <Box
@@ -130,7 +133,7 @@ const LogViewInternal = forwardRef<HTMLDivElement, LogViewProps>(
               color: logLevelColor(theme, "debug")
             })}
           >
-            {emptyText}
+            {resolvedEmptyText}
           </Box>
         ) : (
           normalized.map((line, index) => (

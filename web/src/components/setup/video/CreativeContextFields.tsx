@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   creativeContext,
   type CreativeContext,
@@ -30,11 +31,11 @@ interface CreativeContextFieldsProps {
 }
 
 const TEXT_FIELDS = [
-  ["product_name", "Product name"],
-  ["product_description", "Product description"],
-  ["audience", "Audience"],
-  ["objective", "Objective"],
-  ["tone", "Tone"]
+  ["product_name", "productName"],
+  ["product_description", "productDescription"],
+  ["audience", "audience"],
+  ["objective", "objective"],
+  ["tone", "tone"]
 ] as const;
 
 interface ContextTextProps {
@@ -140,13 +141,14 @@ export default function CreativeContextFields({
   onValidationChange,
   readOnly = false
 }: CreativeContextFieldsProps) {
+  const { t } = useTranslation();
   const [pickerKind, setPickerKind] = useState<ProductionReferenceKind | null>(
     null
   );
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const error =
     invalidFields.length > 0
-      ? "Context was not saved. Use at most 64 claims per list and 32 references."
+      ? t("pass3_12.video.creativeContext.validationError")
       : undefined;
   useEffect(() => {
     onValidationChange?.(error);
@@ -194,16 +196,16 @@ export default function CreativeContextFields({
   };
   return (
     <CollapsibleSection
-      title="Creative context (optional)"
+      title={t("pass3_12.video.creativeContext.title")}
       defaultOpen={false}
       unmountOnExit
     >
       <FlexColumn gap={GAP.comfortable}>
-        <Caption>Leave fields blank when they do not apply.</Caption>
-        {TEXT_FIELDS.map(([key, label]) => (
+        <Caption>{t("pass3_12.video.creativeContext.leaveBlankHint")}</Caption>
+        {TEXT_FIELDS.map(([key, labelKey]) => (
           <ContextText
             key={`${key}:${value?.[key] ?? ""}`}
-            label={label}
+            label={t(`pass3_12.video.creativeContext.fields.${labelKey}`)}
             value={value?.[key] ?? ""}
             multiline={key === "product_description"}
             readOnly={readOnly}
@@ -216,12 +218,12 @@ export default function CreativeContextFields({
           <ContextText
             key={`${key}:${value?.[key]?.join("\n") ?? ""}`}
             multiline
-            helperText="One claim per line."
+            helperText={t("pass3_12.video.creativeContext.oneClaimPerLine")}
             readOnly={readOnly}
             label={
               key === "approved_claims"
-                ? "Approved claims"
-                : "Prohibited claims"
+                ? t("pass3_12.video.creativeContext.fields.approvedClaims")
+                : t("pass3_12.video.creativeContext.fields.prohibitedClaims")
             }
             value={value?.[key]?.join("\n") ?? ""}
             onCommit={(text) => update(claimsPatch(key, text))}
@@ -238,7 +240,9 @@ export default function CreativeContextFields({
                 readOnly || (value?.reference_bindings?.length ?? 0) >= 32
               }
             >
-              Add {kind} reference
+              {t("pass3_12.video.creativeContext.addReference", {
+                kind: t(`pass3_12.video.creativeContext.referenceKinds.${kind}`)
+              })}
             </EditorButton>
           ))}
         </FlexRow>
@@ -250,24 +254,39 @@ export default function CreativeContextFields({
             <GalleryFrame
               locator={`asset://${reference.asset_id}`}
               kind="image"
-              caption={`${reference.kind} reference`}
+              caption={t("pass3_12.video.creativeContext.referenceCaption", {
+                kind: t(
+                  `pass3_12.video.creativeContext.referenceKinds.${reference.kind}`
+                )
+              })}
               sx={{ width: "100%", maxWidth: SETUP_FIELD_WIDTH }}
             >
               <ResponsiveImage
                 locator={`asset://${reference.asset_id}`}
-                alt={`${reference.kind} reference`}
+                alt={t("pass3_12.video.creativeContext.referenceCaption", {
+                  kind: t(
+                    `pass3_12.video.creativeContext.referenceKinds.${reference.kind}`
+                  )
+                })}
                 fit="contain"
                 aspectRatio="1/1"
                 showErrorFallback
               />
             </GalleryFrame>
             <SelectField
-              label={`Reference ${index + 1} role`}
+              label={t("pass3_12.video.creativeContext.referenceRole", {
+                count: index + 1
+              })}
               value={reference.kind}
               disabled={readOnly}
-              options={["product", "character", "location", "style"].map(
-                (kind) => ({ value: kind, label: kind })
-              )}
+              options={(
+                ["product", "character", "location", "style"] as const
+              ).map((kind) => ({
+                value: kind,
+                label: t(
+                  `pass3_12.video.creativeContext.referenceKinds.${kind}`
+                )
+              }))}
               onChange={(kind) => {
                 if (readOnly) {
                   return;
@@ -292,18 +311,24 @@ export default function CreativeContextFields({
                 })
               }
             >
-              Remove reference {index + 1}
+              {t("pass3_12.video.creativeContext.removeReference", {
+                count: index + 1
+              })}
             </EditorButton>
           </FlexColumn>
         ))}
         <Caption>
-          Reference assets are included in reviewed production requests.
+          {t("pass3_12.video.creativeContext.referenceAssetsHint")}
         </Caption>
         {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
         {pickerKind && !readOnly ? (
           <EntityAssetPickerDialog
             open
-            title={`Choose ${pickerKind} reference`}
+            title={t("pass3_12.video.creativeContext.chooseReference", {
+              kind: t(
+                `pass3_12.video.creativeContext.referenceKinds.${pickerKind}`
+              )
+            })}
             onClose={() => setPickerKind(null)}
             onPick={(assetId) => {
               update({

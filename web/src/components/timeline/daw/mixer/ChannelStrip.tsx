@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -277,6 +278,7 @@ const DbReadout: React.FC<{
   db: number;
   onCommit: (db: number) => void;
 }> = memo(({ channel, db, onCommit }) => {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<string | null>(null);
   const cancelled = useRef(false);
   const commit = useCallback(() => {
@@ -291,7 +293,7 @@ const DbReadout: React.FC<{
       <button
         type="button"
         className="strip__readout"
-        aria-label={`${channel} level ${formatDb(db)}, edit`}
+        aria-label={t("batch2_26.daw.mixer.levelEdit", { channel, level: formatDb(db) })}
         onClick={() =>
           setDraft(db <= FADER_MIN_DB ? "-inf" : (Math.round(db * 10) / 10).toFixed(1))
         }
@@ -303,7 +305,7 @@ const DbReadout: React.FC<{
   return (
     <input
       className="strip__readout-input"
-      aria-label={`${channel} level in dB`}
+      aria-label={t("batch2_26.daw.mixer.levelDb", { channel })}
       value={draft}
       // The readout was clicked to type a level; the field takes focus.
       autoFocus
@@ -355,6 +357,7 @@ export interface ChannelStripViewProps {
 
 /** The strip itself, from plain values, so the master and tracks share it. */
 export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) => {
+  const { t } = useTranslation();
   const { channel } = props;
   const theme = useTheme();
   const master = channel.type === "master";
@@ -369,7 +372,7 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
     <section
       css={styles}
       className={STRIP_CLASS}
-      aria-label={`${channel.name} channel`}
+      aria-label={t("batch2_26.daw.mixer.channelAriaLabel", { channel: channel.name })}
       data-testid={master ? "mixer-strip-master" : undefined}
       data-muted={channel.muted ? "true" : undefined}
     >
@@ -380,19 +383,19 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
         </Tooltip>
       </div>
       {channel.instrument !== undefined ? (
-        <Tooltip title={`Open ${channel.instrument}`}>
+        <Tooltip title={t("batch2_26.daw.mixer.openInstrument", { instrument: channel.instrument })}>
           <button
             type="button"
             className="strip__device"
             onClick={props.onOpenDevice}
-            aria-label={`Open ${channel.name} instrument, ${channel.instrument}`}
+            aria-label={t("batch2_26.daw.mixer.openTrackInstrument", { channel: channel.name, instrument: channel.instrument })}
           >
             {channel.instrument}
           </button>
         </Tooltip>
       ) : (
         <span className="strip__device" data-static="true">
-          {master ? "Stereo out" : "Audio"}
+          {master ? t("batch2_26.daw.mixer.stereoOut") : t("batch2_26.daw.devices.audio")}
         </span>
       )}
       <InsertSlots
@@ -415,7 +418,7 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
                   bipolar
                   defaultValue={0}
                   size={KNOB_PX}
-                  label={`${channel.name} pan`}
+                  label={t("batch2_26.daw.mixer.pan", { channel: channel.name })}
                   valueText={panValueText}
                   onChangeStart={props.onPanStart}
                   onChange={props.onPan}
@@ -428,25 +431,25 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
             ) : null}
             {props.onMute && props.onSolo ? (
               <div className="strip__buttons">
-                <Tooltip title={channel.muted ? "Unmute" : "Mute"}>
+                <Tooltip title={channel.muted ? t("batch2_26.daw.transport.unmute") : t("batch2_26.daw.transport.mute")}>
                   <button
                     type="button"
                     className="strip__toggle"
                     data-tone="warning"
                     aria-pressed={!!channel.muted}
-                    aria-label={`${channel.muted ? "Unmute" : "Mute"} ${channel.name}`}
+                    aria-label={t(channel.muted ? "batch2_26.daw.mixer.unmuteChannel" : "batch2_26.daw.mixer.muteChannel", { channel: channel.name })}
                     onClick={props.onMute}
                   >
                     M
                   </button>
                 </Tooltip>
-                <Tooltip title={channel.solo ? "Unsolo" : "Solo"}>
+                <Tooltip title={channel.solo ? t("batch2_26.daw.mixer.unsolo") : t("batch2_26.daw.mixer.solo")}>
                   <button
                     type="button"
                     className="strip__toggle"
                     data-tone="success"
                     aria-pressed={!!channel.solo}
-                    aria-label={`${channel.solo ? "Unsolo" : "Solo"} ${channel.name}`}
+                    aria-label={t(channel.solo ? "batch2_26.daw.mixer.unsoloChannel" : "batch2_26.daw.mixer.soloChannel", { channel: channel.name })}
                     onClick={props.onSolo}
                   >
                     S

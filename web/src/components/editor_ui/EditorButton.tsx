@@ -10,6 +10,7 @@
  */
 
 import { memo, type ReactNode, type Ref } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, ButtonProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
@@ -81,6 +82,7 @@ export function EditorButton({
   disabledReason,
   ...props
 }: EditorButtonProps) {
+  const { t } = useTranslation();
   const showReason = Boolean(props.disabled && disabledReason);
   const tooltip = showReason ? disabledReason : tooltipProp;
   const theme = useTheme();
@@ -117,6 +119,12 @@ export function EditorButton({
         ...(Array.isArray(sx) ? sx : [sx])
       ]}
       {...props}
+      aria-label={
+        props["aria-label"] ??
+        (!props.children
+          ? t("i18n-next60.editorUi.button.editorButton")
+          : undefined)
+      }
     />
   );
 

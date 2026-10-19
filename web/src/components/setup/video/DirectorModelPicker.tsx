@@ -8,6 +8,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Caption, EditorButton, FlexRow, GAP } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
@@ -18,6 +19,7 @@ import { directorModelKey, useDirectorModel } from "./directorModel";
 const DirectorModelPickerInternal: React.FC<{ readOnly?: boolean }> = ({
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const { model, options, select, loading, error, noProvider, refetch } =
     useDirectorModel();
 
@@ -27,15 +29,15 @@ const DirectorModelPickerInternal: React.FC<{ readOnly?: boolean }> = ({
     return (
       <FlexRow gap={GAP.tight} align="center" wrap>
         <Caption color="error" role="alert">
-          {`The model list could not be read: ${error}`}
+          {t("pass3_12.video.director.modelListError", { error })}
         </Caption>
         <EditorButton size="small" variant="text" onClick={refetch}>
-          Try again
+          {t("pass3_12.video.director.tryAgain")}
         </EditorButton>
         <ReportBugButton
           context={{
             source: "provider-call",
-            summary: "Director model list could not be read",
+            summary: t("pass3_12.video.director.reportSummary"),
             errorText: error
           }}
         />
@@ -45,17 +47,21 @@ const DirectorModelPickerInternal: React.FC<{ readOnly?: boolean }> = ({
   if (noProvider) {
     return (
       <Caption color="warning" role="alert">
-        No provider offers a language model. Add a key in Settings.
+        {t("pass3_12.video.director.noProvider")}
       </Caption>
     );
   }
 
   return (
-    <SetupFooterField label="Model">
+    <SetupFooterField label={t("pass3_12.video.director.modelLabel")}>
       <LanguageModelSelect
         value={model?.id ?? ""}
         provider={model?.provider}
-        placeholder={loading ? "Reading providers…" : "Model for the beats"}
+        placeholder={
+          loading
+            ? t("pass3_12.video.director.loadingProviders")
+            : t("pass3_12.video.director.modelPlaceholder")
+        }
         onChange={(value) => select(directorModelKey(value))}
         disabled={readOnly || loading || options.length === 0}
       />

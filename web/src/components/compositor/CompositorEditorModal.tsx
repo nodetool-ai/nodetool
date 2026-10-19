@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import ReactDOM from "react-dom";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -53,10 +54,11 @@ const styles = (theme: Theme) =>
 
 const CompositorEditorModalInner: React.FC<CompositorEditorModalProps> = ({
   open,
-  title = "Compositor",
+  title,
   onClose,
   ...editorProps
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   if (!open) return null;
@@ -64,8 +66,8 @@ const CompositorEditorModalInner: React.FC<CompositorEditorModalProps> = ({
   return ReactDOM.createPortal(
     <div css={cssStyles} className="compositor-modal">
       <div className="compositor-modal-header">
-        <Text sx={{ fontWeight: 500, mr: "auto" }}>{title}</Text>
-        <CloseButton onClick={onClose} tooltip="Close compositor editor" />
+        <Text sx={{ fontWeight: 500, mr: "auto" }}>{title ?? t("screen_sketch.compositor.title")}</Text>
+        <CloseButton onClick={onClose} tooltip={t("screen_sketch.compositor.closeEditor")} />
       </div>
       <div className="compositor-modal-body">
         <CompositorEditor {...editorProps} />

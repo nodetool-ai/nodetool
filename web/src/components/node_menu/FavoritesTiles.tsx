@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ConfirmDialog, EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
@@ -145,6 +146,7 @@ const FavoritesTiles = memo(function FavoritesTiles({
   showEmpty = false,
   hideHeader = false
 }: FavoritesTilesProps = {}) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
@@ -214,7 +216,9 @@ const FavoritesTiles = memo(function FavoritesTiles({
         console.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
-          content: `Unable to find metadata for ${nodeType}.`,
+          content: t("i18n-next50-node-menu.quickActions.metadataMissing", {
+            name: nodeType
+          }),
           timeout: NOTIFICATION_TIMEOUT_MEDIUM
         });
         return;
@@ -251,7 +255,7 @@ const FavoritesTiles = memo(function FavoritesTiles({
       removeFavorite(nodeType);
       addNotification({
         type: "info",
-        content: "Node removed from favorites",
+        content: t("i18n-next50-node-menu.favorites.removedNotification"),
         timeout: NOTIFICATION_TIMEOUT_SHORT
       });
     },
@@ -286,14 +290,14 @@ const FavoritesTiles = memo(function FavoritesTiles({
         {!hideHeader && (
           <div className="tiles-header">
             <Text size="normal" weight={600}>
-              Favorites
+              {t("i18n-next50-node-menu.favorites.title")}
             </Text>
           </div>
         )}
         <EmptyState
           size="small"
-          title="No favorites yet"
-          description="Click the star next to any node to add it here."
+          title={t("i18n-next50-node-menu.favorites.emptyTitle")}
+          description={t("i18n-next50-node-menu.favorites.emptyDescription")}
         />
       </Box>
     );
@@ -304,16 +308,16 @@ const FavoritesTiles = memo(function FavoritesTiles({
       {!hideHeader && (
         <div className="tiles-header">
           <Text size="normal" weight={600}>
-            Favorites
+            {t("i18n-next50-node-menu.favorites.title")}
           </Text>
           <ToolbarIconButton
             icon={<ClearIcon fontSize="small" />}
-            tooltip="Clear all favorites"
+            tooltip={t("i18n-next50-node-menu.favorites.clear")}
             tooltipPlacement="top"
             size="small"
             className="clear-button"
             onClick={() => setClearConfirmOpen(true)}
-            aria-label="Clear all favorites"
+            aria-label={t("i18n-next50-node-menu.favorites.clear")}
           />
         </div>
       )}
@@ -329,7 +333,7 @@ const FavoritesTiles = memo(function FavoritesTiles({
                 <div>
                   <div>{displayName}</div>
                   <div style={tooltipHintStyle}>
-                    Click to place · Drag to canvas
+                    {t("i18n-next50-node-menu.common.placeHint")}
                   </div>
                 </div>
               }
@@ -357,12 +361,12 @@ const FavoritesTiles = memo(function FavoritesTiles({
               >
                 <ToolbarIconButton
                   icon={<CloseIcon fontSize="small" />}
-                  tooltip={`Remove ${displayName} from favorites`}
+                  tooltip={t("i18n-next50-node-menu.favorites.remove", { name: displayName })}
                   size="small"
                   className="unfavorite-btn"
                   onClick={handleUnfavorite}
                   data-node-type={nodeType}
-                  aria-label={`Remove ${displayName} from favorites`}
+                  aria-label={t("i18n-next50-node-menu.favorites.remove", { name: displayName })}
                 />
                 <Text className="tile-label">{displayName}</Text>
               </div>
@@ -374,12 +378,12 @@ const FavoritesTiles = memo(function FavoritesTiles({
         open={clearConfirmOpen}
         onClose={() => setClearConfirmOpen(false)}
         onConfirm={handleClearFavorites}
-        title="Clear all favorites?"
-        content={`This removes all ${favorites.length} favorite nodes. This cannot be undone.`}
-        confirmText="Clear favorites"
+        title={t("i18n-next50-node-menu.favorites.clearConfirmTitle")}
+        content={t("i18n-next50-node-menu.favorites.clearConfirmContent", { count: favorites.length })}
+        confirmText={t("i18n-next50-node-menu.favorites.clear")}
         destructive
-        cancelText="Cancel"
-        notificationMessage="Favorites cleared"
+        cancelText={t("i18n-next50-node-menu.common.cancel")}
+        notificationMessage={t("i18n-next50-node-menu.favorites.clearedNotification")}
         notificationType="success"
       />
     </Box>

@@ -99,7 +99,7 @@ describe("BoardRetryFailed", () => {
     renderRetry();
 
     expect(
-      screen.getByRole("button", { name: "Retry 1 failed" })
+      screen.getByRole("button", { name: "Retry 1 failed request" })
     ).toBeInTheDocument();
   });
 
@@ -112,7 +112,7 @@ describe("BoardRetryFailed", () => {
 
     renderRetry();
     await userEvent.click(
-      screen.getByRole("button", { name: "Retry 2 failed" })
+      screen.getByRole("button", { name: "Retry 2 failed requests" })
     );
 
     expect(mockRetryFailedRequest).toHaveBeenCalledTimes(2);
@@ -129,7 +129,7 @@ describe("BoardRetryFailed", () => {
     setJobs([job({ shotId: "s-failed-still" })]);
     const { rerender } = renderRetry();
     expect(
-      screen.getByRole("button", { name: "Retry 1 failed" })
+      screen.getByRole("button", { name: "Retry 1 failed request" })
     ).toBeInTheDocument();
 
     useStoryboardGenerationStore.setState((state) => ({

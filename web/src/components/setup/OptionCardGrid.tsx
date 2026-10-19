@@ -5,6 +5,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 
 import {
@@ -149,6 +150,7 @@ const OptionCardGridInternal: React.FC<OptionCardGridProps> = ({
   // does not is routing somewhere. The entry grids are the latter.
   mode = selectedId === undefined ? "navigation" : "single-select"
 }) => {
+  const { t } = useTranslation();
   const single = mode === "single-select";
   const radioProps = useRovingRadioGroup(options, selectedId, onSelect);
   return (
@@ -168,7 +170,9 @@ const OptionCardGridInternal: React.FC<OptionCardGridProps> = ({
               ? radioProps(option)
               : { role: "navigation" as const })}
             disabled={option.disabled}
-            disabledReason={option.disabledReason}
+            disabledReason={option.disabledReason?.startsWith("Available in P")
+              ? t("i18n-next33.setup.availableInPhase", { phase: option.disabledReason.slice("Available in P".length) })
+              : option.disabledReason}
             padding={filled ? PADDING.none : undefined}
             onSelect={() => onSelect(option.id)}
           >

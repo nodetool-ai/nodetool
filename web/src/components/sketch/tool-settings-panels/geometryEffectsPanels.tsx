@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -51,17 +52,18 @@ interface CloneStampSettingsPanelProps {
   onChange: (settings: Partial<CloneStampSettings>) => void;
 }
 
-const SHAPE_TYPES: { value: ShapeToolType; label: string }[] = [
-  { value: "line", label: "Line" },
-  { value: "rectangle", label: "Rect" },
-  { value: "ellipse", label: "Ellipse" },
-  { value: "arrow", label: "Arrow" }
+const SHAPE_TYPES: { value: ShapeToolType; labelKey: string }[] = [
+  { value: "line", labelKey: "line" },
+  { value: "rectangle", labelKey: "rect" },
+  { value: "ellipse", labelKey: "ellipse" },
+  { value: "arrow", labelKey: "arrow" }
 ];
 
 export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
   settings,
   onChange
 }: ShapeSettingsPanelProps) {
+  const { t } = useTranslation();
   const canFill =
     settings.shapeType === "rectangle" || settings.shapeType === "ellipse";
   return (
@@ -75,18 +77,18 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
         }}
         sx={{ mb: getSpacingPx(SPACING.xs) }}
       >
-        {SHAPE_TYPES.map(({ value, label }) => (
+        {SHAPE_TYPES.map(({ value, labelKey }) => (
           <SketchModeOption key={value} value={value}>
-            {label}
+            {t(`i18n-cont-sketch-tools-08.geometry.${labelKey}`)}
           </SketchModeOption>
         ))}
       </SketchModeToggle>
       <Box className="setting-row">
-        <Text className="setting-label">Stroke</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.stroke")}</Text>
         <input
           type="color"
           className="color-input"
-          aria-label="Stroke color"
+          aria-label={t("i18n-cont-sketch-tools-08.geometry.strokeColor")}
           value={colorToHex6(settings.strokeColor)}
           onChange={(e) =>
             onChange({
@@ -99,7 +101,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
         />
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Width</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.width")}</Text>
         <Slider
           size="small"
           min={1}
@@ -122,16 +124,16 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
               />
             }
             label={
-              <Text sx={{ fontSize: FONT_SIZE_SANS.label }}>Fill</Text>
+              <Text sx={{ fontSize: FONT_SIZE_SANS.label }}>{t("i18n-cont-sketch-tools-08.geometry.fill")}</Text>
             }
           />
           {settings.filled && (
             <Box className="setting-row">
-              <Text className="setting-label">Fill</Text>
+              <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.fill")}</Text>
               <input
                 type="color"
                 className="color-input"
-                aria-label="Fill color"
+                aria-label={t("i18n-cont-sketch-tools-08.geometry.fillColor")}
                 value={colorToHex6(settings.fillColor)}
                 onChange={(e) =>
                   onChange({
@@ -154,9 +156,10 @@ export const FillSettingsPanel = memo(function FillSettingsPanel({
   settings,
   onChange
 }: FillSettingsPanelProps) {
+  const { t } = useTranslation();
   return (
     <Box className="setting-row">
-      <Text className="setting-label">Tolerance</Text>
+      <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.tolerance")}</Text>
       <Slider
         size="small"
         min={0}
@@ -173,10 +176,11 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
   settings,
   onChange
 }: BlurSettingsPanelProps) {
+  const { t } = useTranslation();
   return (
     <>
       <Box className="setting-row">
-        <Text className="setting-label">Size</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.size")}</Text>
         <Slider
           size="small"
           min={1}
@@ -187,7 +191,7 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
         <Text className="setting-value">{settings.size}</Text>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Strength</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.strength")}</Text>
         <Slider
           size="small"
           min={1}
@@ -205,6 +209,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
   settings,
   onChange
 }: GradientSettingsPanelProps) {
+  const { t } = useTranslation();
   const [startAnchor, setStartAnchor] = useState<HTMLElement | null>(null);
   const [endAnchor, setEndAnchor] = useState<HTMLElement | null>(null);
   const [startInitial, setStartInitial] = useState(settings.startColor);
@@ -213,12 +218,12 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
   return (
     <>
       <Box className="setting-row">
-        <Text className="setting-label">Start</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.start")}</Text>
         <Box
           sx={{ ...colorSwatchSx }}
           role="button"
           tabIndex={0}
-          aria-label="Gradient start color"
+          aria-label={t("i18n-cont-sketch-tools-08.geometry.gradientStartColor")}
           aria-haspopup="dialog"
           onClick={(e) => {
             setStartInitial(settings.startColor);
@@ -239,12 +244,12 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
         </Box>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">End</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.end")}</Text>
         <Box
           sx={{ ...colorSwatchSx }}
           role="button"
           tabIndex={0}
-          aria-label="Gradient end color"
+          aria-label={t("i18n-cont-sketch-tools-08.geometry.gradientEndColor")}
           aria-haspopup="dialog"
           onClick={(e) => {
             setEndInitial(settings.endColor);
@@ -272,8 +277,8 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
           }
         }}
       >
-        <SketchModeOption value="linear">Linear</SketchModeOption>
-        <SketchModeOption value="radial">Radial</SketchModeOption>
+        <SketchModeOption value="linear">{t("i18n-cont-sketch-tools-08.geometry.linear")}</SketchModeOption>
+        <SketchModeOption value="radial">{t("i18n-cont-sketch-tools-08.geometry.radial")}</SketchModeOption>
       </SketchModeToggle>
 
       <ColorPickerPopover
@@ -298,10 +303,11 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
   settings,
   onChange
 }: CloneStampSettingsPanelProps) {
+  const { t } = useTranslation();
   return (
     <>
       <Box className="setting-row">
-        <Text className="setting-label">Size</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.size")}</Text>
         <Slider
           size="small"
           min={1}
@@ -312,7 +318,7 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
         <Text className="setting-value">{settings.size}</Text>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Opacity</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.opacity")}</Text>
         <Slider
           size="small"
           min={0}
@@ -326,7 +332,7 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
         </Text>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Hardness</Text>
+        <Text className="setting-label">{t("i18n-cont-sketch-tools-08.geometry.hardness")}</Text>
         <Slider
           size="small"
           min={0}
@@ -347,11 +353,11 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
           }
         }}
       >
-        <SketchModeOption value="active_layer">Active layer</SketchModeOption>
-        <SketchModeOption value="composited">All layers</SketchModeOption>
+        <SketchModeOption value="active_layer">{t("i18n-cont-sketch-tools-08.geometry.activeLayer")}</SketchModeOption>
+        <SketchModeOption value="composited">{t("i18n-cont-sketch-tools-08.geometry.allLayers")}</SketchModeOption>
       </SketchModeToggle>
       <Text sx={{ ...sketchHintTextSx, mt: 1 }}>
-        Alt+click to set source point
+        {t("i18n-cont-sketch-tools-08.geometry.setSourcePointHint")}
       </Text>
     </>
   );

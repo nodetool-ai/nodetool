@@ -14,6 +14,7 @@ import {
   useState
 } from "react";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import type { Entity } from "@nodetool-ai/protocol";
@@ -114,29 +115,11 @@ interface EntitiesStepProps {
 const EMPTY_ENTITY_IDS: string[] = [];
 const ENTITY_PREVIEW_SIZE = SPACING_PX.xxxl * 4;
 const ENTITY_GROUPS = [
-  { kind: "character", label: "Characters" },
-  { kind: "location", label: "Locations" },
-  { kind: "prop", label: "Props" },
-  { kind: "style", label: "Styles" }
+  { kind: "character", labelKey: "characters" },
+  { kind: "location", labelKey: "locations" },
+  { kind: "prop", labelKey: "props" },
+  { kind: "style", labelKey: "styles" }
 ] as const;
-
-const REFERENCE_MODEL_HELPER =
-  "Used only for missing entities you choose to create. The same model carries into the Look step.";
-
-const editOnlyMessage = (name: string): string =>
-  `${name} only edits images, so it cannot draw a reference from a description. Pick a model that creates images from text.`;
-
-const referenceModelHelperText = (
-  model: ReferenceImageModel | null
-): string => {
-  if (model?.kind === "edit_only") {
-    return editOnlyMessage(model.name);
-  }
-  if (model?.substituteFor) {
-    return `${model.substituteFor} only edits images, so references use ${model.model.name}. Stills in the Look step keep ${model.substituteFor}.`;
-  }
-  return REFERENCE_MODEL_HELPER;
-};
 
 const setIdSelected = (
   ids: readonly string[],
@@ -154,6 +137,23 @@ export const EntitiesStep = ({
   readOnly = false,
   onCreationStart
 }: EntitiesStepProps) => {
+  const { t } = useTranslation();
+  const editOnlyMessage = (name: string): string =>
+    t("pass3_10.storyboard.entities.editOnlyModel", { model: name });
+  const referenceModelHelperText = (
+    model: ReferenceImageModel | null
+  ): string => {
+    if (model?.kind === "edit_only") {
+      return editOnlyMessage(model.name);
+    }
+    if (model?.substituteFor) {
+      return t("pass3_10.storyboard.entities.substituteModelHelper", {
+        originalModel: model.substituteFor,
+        referenceModel: model.model.name
+      });
+    }
+    return t("pass3_10.storyboard.entities.referenceModelHelper");
+  };
   const theme = useTheme();
   const {
     data: entities,
@@ -280,8 +280,10 @@ export const EntitiesStep = ({
     createPrice === null
       ? null
       : createPrice.cost === null
-        ? "Price unknown"
-        : `About ${formatUsd(createPrice.cost)}`;
+        ? t("pass3_10.storyboard.entities.priceUnknown")
+        : t("pass3_10.storyboard.entities.aboutPrice", {
+            price: formatUsd(createPrice.cost)
+          });
 
   const handleCreated = (entity: Entity | null): void => {
     if (entity) {
@@ -302,7 +304,7 @@ export const EntitiesStep = ({
     if (!screenplay || !model?.id) {
       setAssistFailure("find");
       setAssistError(
-        "The storyboard needs a screenplay and Director model first."
+        t("pass3_10.storyboard.entities.missingScreenplayOrModel")
       );
       return;
     }
@@ -335,7 +337,7 @@ export const EntitiesStep = ({
       setAssistError(
         error instanceof Error
           ? error.message
-          : "Could not find entities in the story."
+          : t("pass3_10.storyboard.entities.findFailedFallback")
       );
     } finally {
       if (finishEntityFind(boardId, controller, found) && mountedRef.current) {
@@ -370,7 +372,7 @@ export const EntitiesStep = ({
       useStoryboardStore.getState().getBoard(boardId)?.imageModel ?? null;
     if (!selected?.id) {
       setAssistFailure("create");
-      setAssistError("Pick a reference image model first.");
+      setAssistError(t("pass3_10.storyboard.entities.pickReferenceModelFirst"));
       return;
     }
     const resolved = referenceImageModel(selected, imageModels);
@@ -406,7 +408,7 @@ export const EntitiesStep = ({
         ? answer.asset_ids.find((id): id is string => typeof id === "string")
         : undefined;
       if (!assetId) {
-        throw new Error("The image model returned no reference image.");
+        throw new Error(t("pass3_10.storyboard.entities.noReferenceImageReturned"));
       }
       const entity = await saveEntity.mutateAsync({
         assetId,
@@ -417,7 +419,7 @@ export const EntitiesStep = ({
         reference_asset_id: assetId
       });
       if (!entity) {
-        throw new Error("The entity could not be saved.");
+        throw new Error(t("pass3_10.storyboard.entities.entitySaveFailed"));
       }
       // A creation canceled while it was being saved stays off the board: the
       // creator asked for it to stop (F10).
@@ -434,7 +436,9 @@ export const EntitiesStep = ({
       if (!mountedRef.current || signal?.aborted) return;
       setAssistFailure("create");
       setAssistError(
-        error instanceof Error ? error.message : "The entity could not be made."
+        error instanceof Error
+          ? error.message
+          : t("pass3_10.storyboard.entities.entityCreateFailedFallback")
       );
     } finally {
       creation?.done();
@@ -482,11 +486,10 @@ export const EntitiesStep = ({
     >
       <FlexColumn gap={SPACING.xs}>
         <Text size="big" component="h1">
-          Keep people and places consistent
+          {t("pass3_10.storyboard.entities.title")}
         </Text>
         <Text color="secondary" sx={{ maxWidth: "65ch" }}>
-          Choose the characters, places, and props that need to look consistent
-          across shots.
+          {t("pass3_10.storyboard.entities.description")}
         </Text>
       </FlexColumn>
 
@@ -503,13 +506,12 @@ export const EntitiesStep = ({
           >
             <SectionHeader
               size="small"
-              title="Suggested from your story"
+              title={t("pass3_10.storyboard.entities.suggestedFromStory")}
               role="heading"
               aria-level={2}
             />
             <Caption>
-              Find recurring references in your screenplay. Create only the ones
-              you want to use.
+              {t("pass3_10.storyboard.entities.suggestionsDescription")}
             </Caption>
           </FlexColumn>
           <FlexColumn gap={SPACING.xs} align="flex-end">
@@ -521,10 +523,10 @@ export const EntitiesStep = ({
                 disabled={readOnly || suggesting}
               >
                 {suggesting
-                  ? "Finding entities"
+                  ? t("pass3_10.storyboard.entities.findingEntities")
                   : suggestions.length > 0
-                    ? "Refresh suggestions"
-                    : "Find entities"}
+                    ? t("pass3_10.storyboard.entities.refreshSuggestions")
+                    : t("pass3_10.storyboard.entities.findEntities")}
               </EditorButton>
               {suggesting ? (
                 // Named apart from the footer's Cancel, which stops entity
@@ -532,27 +534,28 @@ export const EntitiesStep = ({
                 <EditorButton
                   variant="text"
                   onClick={cancelFind}
-                  aria-label="Cancel finding entities"
+                  aria-label={t("pass3_10.storyboard.entities.cancelFinding")}
                 >
-                  Cancel
+                  {t("pass3_10.storyboard.entities.cancel")}
                 </EditorButton>
               ) : null}
             </FlexRow>
             {foundNone && !suggesting ? (
               <Caption role="status">
-                No recurring characters, places or props were found in your
-                screenplay.
+                {t("pass3_10.storyboard.entities.noSuggestionsFound")}
               </Caption>
             ) : null}
             {readOnly ? null : (
               <Suspense
                 fallback={
-                  <Caption color="secondary">Loading estimate…</Caption>
+                  <Caption color="secondary">
+                    {t("pass3_10.storyboard.entities.loadingEstimate")}
+                  </Caption>
                 }
               >
                 <GenerationEstimateLine
-                  result="Find the characters, places, and props in your screenplay"
-                  next="Nothing is created until you choose."
+                  result={t("pass3_10.storyboard.entities.findEstimateResult")}
+                  next={t("pass3_10.storyboard.entities.findEstimateNext")}
                   model={board?.directorModel ?? null}
                   brief={`${ENTITY_SUGGESTIONS_SYSTEM_PROMPT}\n${suggestionsPrompt}`}
                   maxOutputTokens={SUGGESTIONS_MAX_OUTPUT_TOKENS}
@@ -567,8 +570,8 @@ export const EntitiesStep = ({
             severity="error"
             title={
               assistFailure === "find"
-                ? "Could not find entities"
-                : "Could not create entities"
+                ? t("pass3_10.storyboard.entities.findFailureTitle")
+                : t("pass3_10.storyboard.entities.createFailureTitle")
             }
             action={
               <ReportBugButton
@@ -576,8 +579,8 @@ export const EntitiesStep = ({
                   source: "provider-call",
                   summary:
                     assistFailure === "find"
-                      ? "Storyboard entity suggestions failed"
-                      : "Storyboard entity creation failed",
+                      ? t("pass3_10.storyboard.entities.findFailureSummary")
+                      : t("pass3_10.storyboard.entities.createFailureSummary"),
                   errorText: assistError
                 }}
               />
@@ -599,7 +602,7 @@ export const EntitiesStep = ({
                 )
             ) ? (
               <FormField
-                label="Reference image model"
+                label={t("pass3_10.storyboard.entities.referenceImageModel")}
                 helperText={referenceModelHelperText(referenceModel)}
                 sx={{ maxWidth: SETUP_FIELD_WIDTH }}
               >
@@ -644,7 +647,9 @@ export const EntitiesStep = ({
                     <FlexColumn gap={SPACING.xs} sx={{ flex: "1 1 320px" }}>
                       <FlexRow gap={SPACING.sm} align="baseline">
                         <Label component="h3">{suggestion.name}</Label>
-                        <Caption>{suggestion.kind}</Caption>
+                        <Caption>
+                          {t(`pass3_10.storyboard.entities.kinds.${suggestion.kind}`)}
+                        </Caption>
                       </FlexRow>
                       <Text color="secondary">{suggestion.descriptor}</Text>
                     </FlexColumn>
@@ -670,12 +675,18 @@ export const EntitiesStep = ({
                       >
                         {creating ? (
                           <ThinkingIndicator
-                            label={`Creating ${suggestion.name}`}
+                            label={t("pass3_10.storyboard.entities.creatingEntity", {
+                              name: suggestion.name
+                            })}
                           />
                         ) : existing ? (
-                          `Use ${suggestion.name}`
+                          t("pass3_10.storyboard.entities.useEntity", {
+                            name: suggestion.name
+                          })
                         ) : (
-                          `Create ${suggestion.name}`
+                          t("pass3_10.storyboard.entities.createEntity", {
+                            name: suggestion.name
+                          })
                         )}
                       </EditorButton>
                     </FlexRow>
@@ -691,12 +702,14 @@ export const EntitiesStep = ({
         <FlexRow gap={SPACING.md} wrap align="baseline">
           <SectionHeader
             size="small"
-            title="Your entity library"
+            title={t("pass3_10.storyboard.entities.libraryTitle")}
             role="heading"
             aria-level={2}
           />
           <Caption role="status">
-            {selectedEntities.length} selected for this storyboard
+            {t("pass3_10.storyboard.entities.selectedCount", {
+              count: selectedEntities.length
+            })}
           </Caption>
         </FlexRow>
         <EditorButton
@@ -705,18 +718,18 @@ export const EntitiesStep = ({
           onClick={() => setPickerOpen(true)}
           disabled={readOnly}
         >
-          Create entity from an image
+          {t("pass3_10.storyboard.entities.createFromImage")}
         </EditorButton>
       </FlexRow>
 
       {isLoading ? (
-        <LoadingSpinner text="Loading entities" />
+        <LoadingSpinner text={t("pass3_10.storyboard.entities.loadingEntities")} />
       ) : entitiesFailed && !entities ? (
         // A failed load is not an empty library: saying "No entities yet"
         // would send the creator to make again what they already have.
         <AlertBanner
           severity="error"
-          title="Could not load your entities"
+          title={t("pass3_10.storyboard.entities.loadFailedTitle")}
           action={
             <FlexRow gap={SPACING.sm}>
               <EditorButton
@@ -724,12 +737,12 @@ export const EntitiesStep = ({
                 size="small"
                 onClick={() => void refetchEntities()}
               >
-                Try again
+                {t("pass3_10.storyboard.entities.tryAgain")}
               </EditorButton>
               <ReportBugButton
                 context={{
                   source: "operation-failure",
-                  summary: "Storyboard entity library failed to load",
+                  summary: t("pass3_10.storyboard.entities.loadFailureSummary"),
                   errorText: entitiesError?.message
                 }}
               />
@@ -737,13 +750,13 @@ export const EntitiesStep = ({
           }
         >
           {entitiesError?.message ??
-            "The entity library did not load. Try again, or skip this step."}
+            t("pass3_10.storyboard.entities.loadFailedFallback")}
         </AlertBanner>
       ) : !entities || entities.length === 0 ? (
         <EmptyState
           variant="no-data"
-          title="No entities yet"
-          description="Create one from a generated or uploaded image, or skip this step."
+          title={t("pass3_10.storyboard.entities.emptyTitle")}
+          description={t("pass3_10.storyboard.entities.emptyDescription")}
           size="small"
         />
       ) : (
@@ -765,7 +778,7 @@ export const EntitiesStep = ({
               <SearchInput
                 value={search}
                 onChange={setSearch}
-                placeholder="Search entities"
+                placeholder={t("pass3_10.storyboard.entities.searchPlaceholder")}
                 fullWidth
               />
             </FlexColumn>
@@ -774,7 +787,7 @@ export const EntitiesStep = ({
               aria-pressed={onlySelected}
               onClick={() => setOnlySelected(!onlySelected)}
             >
-              Selected only
+              {t("pass3_10.storyboard.entities.selectedOnly")}
             </EditorButton>
           </FlexRow>
           <ScrollArea maxHeight="min(48vh, 480px)">
@@ -784,18 +797,19 @@ export const EntitiesStep = ({
                   variant="no-data"
                   title={
                     onlySelected && !query
-                      ? "No entities selected"
-                      : "No matching entities"
+                      ? t("pass3_10.storyboard.entities.noEntitiesSelected")
+                      : t("pass3_10.storyboard.entities.noMatchingEntities")
                   }
                   description={
                     onlySelected && !query
-                      ? "Browse your library to choose references for this storyboard."
-                      : "Try another name or change the selected filter."
+                      ? t("pass3_10.storyboard.entities.noSelectedDescription")
+                      : t("pass3_10.storyboard.entities.noMatchingDescription")
                   }
                   size="small"
                 />
               ) : (
-                ENTITY_GROUPS.map(({ kind, label }) => {
+                ENTITY_GROUPS.map(({ kind, labelKey }) => {
+                  const label = t(`pass3_10.storyboard.entities.groups.${labelKey}`);
                   const group = visibleEntities.filter(
                     (entity) => entity.kind === kind
                   );
@@ -852,7 +866,10 @@ export const EntitiesStep = ({
                             {entity.reference_images?.[0] ? (
                               <EditorButton
                                 variant="text"
-                                aria-label={`View ${entity.name} reference image`}
+                                aria-label={t(
+                                  "pass3_10.storyboard.entities.viewReferenceImage",
+                                  { name: entity.name }
+                                )}
                                 onClick={() =>
                                   openGallery?.(entity.reference_images?.[0])
                                 }
@@ -910,7 +927,15 @@ export const EntitiesStep = ({
                               }}
                               slotProps={{
                                 input: {
-                                  "aria-label": `${entity.name} · ${entity.kind}`
+                                  "aria-label": t(
+                                    "pass3_10.storyboard.entities.selectEntity",
+                                    {
+                                      name: entity.name,
+                                      kind: t(
+                                        `pass3_10.storyboard.entities.kinds.${entity.kind}`
+                                      )
+                                    }
+                                  )
                                 }
                               }}
                               labelProps={{
@@ -948,7 +973,8 @@ export const EntitiesStep = ({
                                       overflowWrap: "anywhere"
                                     }}
                                   >
-                                    {entity.descriptor || "No description"}
+                                    {entity.descriptor ||
+                                      t("pass3_10.storyboard.entities.noDescription")}
                                   </Caption>
                                 </FlexColumn>
                               }
@@ -969,10 +995,10 @@ export const EntitiesStep = ({
         <FlexColumn gap={SPACING.xl}>
           <FlexColumn gap={SPACING.xs}>
             <Text size="big" component="h2">
-              Assign each shot
+              {t("pass3_10.storyboard.entities.assignEachShot")}
             </Text>
             <Text color="secondary">
-              Remove an entity from shots where it should not appear.
+              {t("pass3_10.storyboard.entities.assignDescription")}
             </Text>
           </FlexColumn>
           <FlexColumn
@@ -991,7 +1017,9 @@ export const EntitiesStep = ({
                 <FlexColumn
                   key={shot.id}
                   component="section"
-                  aria-label={`Shot ${shot.index + 1}`}
+                  aria-label={t("pass3_10.storyboard.entities.shotNumber", {
+                    number: shot.index + 1
+                  })}
                   gap={SPACING.xl}
                   justify="space-between"
                   sx={{
@@ -1004,7 +1032,11 @@ export const EntitiesStep = ({
                   }}
                 >
                   <FlexColumn gap={SPACING.sm}>
-                    <Label component="h3">Shot {shot.index + 1}</Label>
+                    <Label component="h3">
+                      {t("pass3_10.storyboard.entities.shotNumber", {
+                        number: shot.index + 1
+                      })}
+                    </Label>
                     <Text>{shot.slug ?? shot.action}</Text>
                   </FlexColumn>
                   <FlexRow gap={SPACING.md} wrap>

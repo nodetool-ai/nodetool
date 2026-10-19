@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { DEFAULT_LOCALE, resolveLocale, type Locale } from "../i18n/locales";
 import { isMac } from "../utils/platform";
 import {
   DEFAULT_TEXT_SIZE,
@@ -33,6 +34,7 @@ export const defaultAutosaveSettings: AutosaveSettings = {
 };
 
 export interface Settings {
+  locale: Locale;
   /** Snap nodes to the canvas grid while dragging. Toggled from the View menu. */
   snapToGrid: boolean;
   /** Grid size in canvas units used when {@link snapToGrid} is on. */
@@ -114,6 +116,7 @@ interface SettingsStore {
 }
 
 export const defaultSettings: Settings = {
+  locale: DEFAULT_LOCALE,
   snapToGrid: false,
   // Matches the canvas background grid gap, so a snapped node lands on a
   // visible grid crossing.
@@ -237,7 +240,11 @@ export const useSettingsStore = create<SettingsStore>()(
 
       updateSettings: (newSettings: Partial<Settings>) =>
         set((state) => ({
-          settings: { ...state.settings, ...newSettings }
+          settings: {
+            ...state.settings,
+            ...newSettings,
+            locale: resolveLocale(newSettings.locale ?? state.settings.locale)
+          }
         })),
 
       resetSettings: () => set({ settings: { ...defaultSettings } }),
@@ -314,6 +321,7 @@ export const useSettingsStore = create<SettingsStore>()(
         if (legacyGridSnap) {
           settings.gridSnap = defaultSettings.gridSnap;
         }
+        settings.locale = resolveLocale(settings.locale);
         if (!isTextSize(settings.textSize)) {
           settings.textSize = DEFAULT_TEXT_SIZE;
         }

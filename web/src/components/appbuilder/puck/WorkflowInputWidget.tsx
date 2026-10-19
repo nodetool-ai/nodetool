@@ -11,6 +11,7 @@
  * without it, so a running app needs no graph editor around it.
  */
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -175,6 +176,7 @@ export const WorkflowInputControl: React.FC<{
   value: unknown;
   onValue: (value: unknown) => void;
 }> = ({ input, value, onValue }) => {
+  const { t } = useTranslation();
   const property = useMemo(() => createPropertyForInput(input), [input]);
   const Component = useMemo(
     () =>
@@ -225,7 +227,7 @@ export const WorkflowInputControl: React.FC<{
         {maxLength > 0 && (
           <Caption color={exceeds ? "warning" : "secondary"}>
             {draft.length}/{maxLength}
-            {exceeds ? " — extra characters will not be sent" : ""}
+            {exceeds ? ` — ${t("i18n-next69.appBuilder.workflowInput.extraCharactersNotSent")}` : ""}
           </Caption>
         )}
       </FlexColumn>
@@ -268,6 +270,7 @@ export const WorkflowInputControl: React.FC<{
 export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
   props
 ) => {
+  const { t } = useTranslation();
   const { ioFor } = useAppRuntimeContext();
   const ref = useBindingRef(props.binding, "write");
   const { value, setValue, emit } = useWidgetRuntime({
@@ -297,8 +300,8 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
       <Placeholder
         text={
           props.binding
-            ? `Unknown workflow input "${props.binding}"`
-            : "Bind to a workflow input"
+            ? t("i18n-next69.appBuilder.workflowInput.unknownInput", { binding: props.binding })
+            : t("i18n-next69.appBuilder.workflowInput.bindInput")
         }
       />
     );
@@ -362,6 +365,7 @@ interface ModelSelectWidgetProps {
  * the bound input or node property.
  */
 export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
+  const { t } = useTranslation();
   const kind = isModelKind(props.modelKind) ? props.modelKind : "language_model";
   const { value, setValue, emit } = useWidgetRuntime({
     id: props.id,
@@ -389,12 +393,12 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
     () => ({
       nodeId: props.id,
       nodeType: MODEL_KIND_NODE_TYPE[kind],
-      name: props.label || "Model",
-      label: props.label || "Model",
+      name: props.label || t("i18n-next69.appBuilder.workflowInput.model"),
+      label: props.label || t("i18n-next69.appBuilder.workflowInput.model"),
       kind,
       task
     }),
-    [kind, props.id, props.label, task]
+    [kind, props.id, props.label, t, task]
   );
 
   return (

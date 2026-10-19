@@ -1,10 +1,7 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import {
-  $getSelection,
-  $isRangeSelection,
-  FORMAT_TEXT_COMMAND
-} from "lexical";
+import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from "lexical";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatItalicIcon from "@mui/icons-material/FormatItalic";
 import FormatSizeIcon from "@mui/icons-material/FormatSize";
@@ -23,6 +20,7 @@ import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 const MOD_KEY = isMac() ? "⌘" : "Ctrl";
 
 const ToolbarPlugin = () => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_text" });
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
@@ -158,44 +156,48 @@ const ToolbarPlugin = () => {
   return (
     <FloatingToolbar
       className="format-toolbar-actions"
-      aria-label="Text formatting"
+      aria-label={t("textEditor.textFormatting")}
     >
       <ToolbarIconButton
         icon={<FormatBoldIcon />}
-        tooltip="Bold"
+        tooltip={t("textEditor.bold")}
         shortcut={[MOD_KEY, "B"]}
-        ariaLabel="Format bold"
+        ariaLabel={t("textEditor.formatBold")}
         active={isBold}
         aria-pressed={isBold}
         onClick={handleFormatBold}
       />
       <ToolbarIconButton
         icon={<FormatItalicIcon />}
-        tooltip="Italic"
+        tooltip={t("textEditor.italic")}
         shortcut={[MOD_KEY, "I"]}
-        ariaLabel="Format italic"
+        ariaLabel={t("textEditor.formatItalic")}
         active={isItalic}
         aria-pressed={isItalic}
         onClick={handleFormatItalic}
       />
       <ToolbarIconButton
         icon={<FormatSizeIcon />}
-        tooltip="Toggle large font size"
-        ariaLabel="Toggle large font size"
+        tooltip={t("textEditor.toggleLargeFont")}
+        ariaLabel={t("textEditor.toggleLargeFont")}
         active={isLargeFont}
         aria-pressed={isLargeFont}
         onClick={toggleFontSize}
       />
       <ToolbarIconButton
         icon={<HorizontalRuleIcon />}
-        tooltip="Insert horizontal rule"
-        ariaLabel="Insert horizontal rule"
+        tooltip={t("textEditor.insertHorizontalRule")}
+        ariaLabel={t("textEditor.insertHorizontalRule")}
         onClick={handleInsertHR}
       />
       <ToolbarIconButton
         icon={<ContentCopyIcon />}
-        tooltip="Copy as Markdown"
-        ariaLabel="Copy as Markdown"
+        tooltip={
+          copied ? t("textEditor.markdownCopied") : t("textEditor.copyMarkdown")
+        }
+        ariaLabel={
+          copied ? t("textEditor.markdownCopied") : t("textEditor.copyMarkdown")
+        }
         active={copied}
         onClick={handleCopyAsMarkdown}
       />

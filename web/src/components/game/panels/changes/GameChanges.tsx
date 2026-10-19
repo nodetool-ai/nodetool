@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import UndoIcon from "@mui/icons-material/Undo";
@@ -22,6 +23,7 @@ interface GameChangesProps {
 }
 
 export default function GameChanges({ gameId, document, onOps, onHover, onFocusMessage }: GameChangesProps) {
+  const { t } = useTranslation();
   const { data: changes } = trpc.games.draftChanges.useQuery({ id: gameId }, { staleTime: 5_000 });
   const [undoing, setUndoing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,15 +73,15 @@ export default function GameChanges({ gameId, document, onOps, onHover, onFocusM
   };
 
   if (groups.length === 0) return null;
-  return <FlexColumn role="region" aria-label="Agent changes" sx={{ flexShrink: 0, maxHeight: CONTROL.height.lg * 6,
+  return <FlexColumn role="region" aria-label={t("screen_game.changes.title")} sx={{ flexShrink: 0, maxHeight: CONTROL.height.lg * 6,
     borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
     <FlexRow align="center" gap={SPACING.xs} sx={{ flexShrink: 0, minHeight: CONTROL.height.sm, px: SPACING.md }}>
       <AutoAwesomeOutlinedIcon aria-hidden="true" sx={{ fontSize: FONT_SIZE_SANS.body, color: "text.secondary" }} />
-      <Label component="span" sx={{ mb: 0, color: "text.secondary" }}>Agent changes</Label>
+      <Label component="span" sx={{ mb: 0, color: "text.secondary" }}>{t("screen_game.changes.title")}</Label>
       <Caption>{groups.length}</Caption>
     </FlexRow>
     {error && <Caption color="error" role="alert" sx={{ px: SPACING.md, pb: SPACING.xs }}>{error}</Caption>}
-    <FlexColumn role="list" aria-label="Agent changes list" sx={{ minHeight: 0, overflowY: "auto", px: SPACING.xs, pb: SPACING.xs }}>
+    <FlexColumn role="list" aria-label={t("screen_game.changes.listLabel")} sx={{ minHeight: 0, overflowY: "auto", px: SPACING.xs, pb: SPACING.xs }}>
       {groups.map((group) => {
         const summary = group.summary.join("; ");
         return <FlexRow key={group.id} role="listitem" align="center" gap={SPACING.xs}
@@ -88,10 +90,10 @@ export default function GameChanges({ gameId, document, onOps, onHover, onFocusM
             "&:hover": { bgcolor: "action.hover" } }}>
           <Text size="small" weight={400} truncate title={summary} sx={{ flex: 1, minWidth: 0, color: "text.primary" }}>{summary}</Text>
           {group.threadId && group.messageId && <ToolbarIconButton icon={<ChatBubbleOutlineIcon fontSize="small" />}
-            tooltip="View in chat" onClick={() => {
+            tooltip={t("screen_game.changes.viewInChat")} onClick={() => {
               if (group.threadId && group.messageId) onFocusMessage(group.threadId, group.messageId);
             }} />}
-          <ToolbarIconButton icon={<UndoIcon fontSize="small" />} tooltip="Undo" disabled={undoing !== null}
+          <ToolbarIconButton icon={<UndoIcon fontSize="small" />} tooltip={t("screen_game.toolbar.undo")} disabled={undoing !== null}
             onClick={() => void undo(group)} />
         </FlexRow>;
       })}

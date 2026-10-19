@@ -9,9 +9,9 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CLIP_RESOLUTION, shotRenderMode } from "@nodetool-ai/protocol";
 import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
-import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   AlertBanner,
@@ -27,7 +27,6 @@ import VideoModelSelect from "../properties/VideoModelSelect";
 import EntityStillModelWarning from "./EntityStillModelWarning";
 import RenderCostSummary from "./RenderCostSummary";
 import {
-  CLIP_TASK_LABELS,
   STILL_MODEL_TASKS,
   clipTaskForShot,
   imageValue,
@@ -73,6 +72,7 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
   step,
   onClose
 }) => {
+  const { t, i18n } = useTranslation();
   const { generateKeyframe, generateClip } = useGenerateShot();
   const { models: imageModels } = useImageModelsByProvider();
   const { models: videoModels } = useVideoModelsByProvider();
@@ -192,7 +192,13 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
 
   const isClip = step === "clip";
   const priced = estimate.pricedRequestCount > 0 && estimate.cost > 0;
-  const verb = isClip ? "Render clip" : "Render still";
+  const formattedCost = new Intl.NumberFormat(
+    i18n.resolvedLanguage ?? i18n.language,
+    { style: "currency", currency: "USD" }
+  ).format(estimate.cost);
+  const verb = isClip
+    ? t("i18n-cont-storyboard-04.storyboard.shotRender.renderClip")
+    : t("i18n-cont-storyboard-04.storyboard.shotRender.renderStill");
 
   return (
     <Dialog
@@ -200,18 +206,30 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
       onClose={onClose}
       title={verb}
       onConfirm={handleConfirm}
-      confirmText={`${verb}${priced ? ` · ~${formatUsd(estimate.cost)}` : ""}`}
+      confirmText={
+        priced
+          ? t("i18n-cont-storyboard-04.storyboard.shotRender.confirmWithCost", {
+              verb,
+              cost: formattedCost
+            })
+          : verb
+      }
       confirmDisabled={!selection || (isClip && needsStill)}
     >
       <FlexColumn gap={SPACING.lg}>
         <Caption color="secondary">
           {isClip
-            ? "Pick the model for this shot's clip. The shot keeps the choice for the next render."
-            : "Pick the model for this shot's still. The shot keeps the choice for the next render."}
+            ? t("i18n-cont-storyboard-04.storyboard.shotRender.clipDescription")
+            : t("i18n-cont-storyboard-04.storyboard.shotRender.stillDescription")}
         </Caption>
         {isClip ? (
           <>
-            <FormField label={CLIP_TASK_LABELS[clipTask]} sx={modelFieldSx}>
+            <FormField
+              label={t(
+                `i18n-cont-storyboard-04.storyboard.shotRender.clipTask.${clipTask}`
+              )}
+              sx={modelFieldSx}
+            >
               <VideoModelSelect
                 value={clipSelection?.id ?? ""}
                 provider={clipSelection?.provider}
@@ -220,14 +238,17 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
               />
             </FormField>
             <SelectField
-              label="Resolution"
+              label={t("i18n-cont-storyboard-04.storyboard.shotRender.resolution")}
               value={resolution}
               onChange={setPickedResolution}
               options={resolutionOptions}
             />
           </>
         ) : (
-          <FormField label="Still model" sx={modelFieldSx}>
+          <FormField
+            label={t("i18n-cont-storyboard-04.storyboard.shotRender.stillModel")}
+            sx={modelFieldSx}
+          >
             <ImageModelSelect
               value={stillSelection?.id ?? ""}
               provider={stillSelection?.provider}
@@ -244,8 +265,7 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
         )}
         {isClip && needsStill ? (
           <AlertBanner severity="error">
-            This shot animates its still. Render a still first, or set the shot
-            to render directly from its prompt.
+            {t("i18n-cont-storyboard-04.storyboard.shotRender.stillRequired")}
           </AlertBanner>
         ) : (
           <RenderCostSummary estimate={estimate} />

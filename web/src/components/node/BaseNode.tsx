@@ -7,6 +7,7 @@ import { useUndoGroup } from "../../hooks/useUndoGroup";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Handle,
   Node,
@@ -372,6 +373,7 @@ const getHeaderColors = (
 };
 
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
   const { id, type, data, selected, parentId, dragging, height: nodeHeight } = props;
@@ -786,7 +788,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         isTitleEditable={isCodeTitleEditable}
         showCodeBadge={showCodeBadge}
-        codeBadgeTooltip="Code node"
+        codeBadgeTooltip={t("i18n-next82.node.base.codeNode")}
       />
       <NodeErrors id={id} workflow_id={workflow_id} nodeType={type} />
       {!hasError && metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
@@ -844,7 +846,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
       {isFocused && (
         <div style={focusedIndicatorStyle}>
-          FOCUSED
+          {t("i18n-next82.node.base.focused")}
         </div>
       )}
 
@@ -858,7 +860,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {showConcurrencyBadge && (
         <div
           style={ambientBadgeStyle}
-          title={`Running in ${concurrentRunCount} runs at once`}
+          title={t("i18n-next82.node.base.runningInRunsAtOnce", {
+            count: concurrentRunCount
+          })}
         >
           {concurrentRunCount}
         </div>

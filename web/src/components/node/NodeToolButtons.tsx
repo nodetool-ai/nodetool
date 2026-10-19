@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useReactFlow } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
@@ -44,6 +45,7 @@ const BUTTON_BOX = {
 const ICON_SX = { fontSize: 18 } as const;
 
 const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { getNode } = useReactFlow();
   const { deleteNode, updateNodeData, selectNodesByType, toggleBypass } = useNodes(
@@ -131,7 +133,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     <>
       <FloatingToolbar className="node-toolbar" sx={{ marginBottom: 2 }}>
         <ToolbarIconButton
-          title={isWorkflowRunning ? "Running…" : "Run node"}
+          title={isWorkflowRunning ? t("screen_editor.nodeTools.running") : t("screen_editor.nodeTools.runNode")}
           className="nodrag"
           onClick={runFromHere}
           tabIndex={-1}
@@ -163,11 +165,11 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         <ToolbarIconButton
           title={
             <>
-              {isBypassed ? "Enable node" : "Disable node"}{" "}
+              {isBypassed ? t("screen_editor.nodeTools.enableNode") : t("screen_editor.nodeTools.disableNode")}{" "}
               {getShortcutTooltip("bypassNode", undefined, "combo")}
             </>
           }
-          ariaLabel={isBypassed ? "Enable node" : "Disable node"}
+          ariaLabel={isBypassed ? t("screen_editor.nodeTools.enableNode") : t("screen_editor.nodeTools.disableNode")}
           className="nodrag"
           onClick={handleToggleBypass}
           tabIndex={-1}
@@ -184,10 +186,10 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         <ToolbarIconButton
           title={
             <>
-              Duplicate {getShortcutTooltip("duplicate", undefined, "combo")}
+              {t("screen_editor.nodeTools.duplicate")} {getShortcutTooltip("duplicate", undefined, "combo")}
             </>
           }
-          ariaLabel="Duplicate"
+          ariaLabel={t("screen_editor.nodeTools.duplicate")}
           className="nodrag"
           onClick={handleDuplicateNodes}
           tabIndex={-1}
@@ -198,7 +200,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         </ToolbarIconButton>
 
         <ToolbarIconButton
-          title="More actions"
+          title={t("screen_editor.nodeTools.moreActions")}
           className="nodrag"
           onClick={handleOpenDropdown}
           tabIndex={-1}
@@ -226,7 +228,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       >
         {isInGroup && (
           <MenuItemPrimitive
-            label="Remove from group"
+            label={t("screen_editor.nodeTools.removeFromGroup")}
             icon={<GroupRemoveIcon />}
             onClick={handleRemoveFromGroup}
           />
@@ -234,7 +236,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         {conditions.canConvertToInput && (
           <MenuItemPrimitive
-            label="Convert to input"
+            label={t("screen_editor.nodeTools.convertToInput")}
             icon={<SwapHorizIcon />}
             onClick={handlers.handleConvertToInput}
           />
@@ -242,38 +244,38 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
 
         {conditions.canConvertToConstant && (
           <MenuItemPrimitive
-            label="Convert to constant"
+            label={t("screen_editor.nodeTools.convertToConstant")}
             icon={<SwapHorizIcon />}
             onClick={handlers.handleConvertToConstant}
           />
         )}
 
         <MenuItemPrimitive
-          label={hasCommentTitle ? "Delete comment" : "Add comment"}
+          label={hasCommentTitle ? t("screen_editor.nodeTools.deleteComment") : t("screen_editor.nodeTools.addComment")}
           icon={<EditIcon />}
           onClick={handleToggleComment}
         />
 
         <MenuItemPrimitive
-          label="Show templates"
+          label={t("screen_editor.nodeTools.showTemplates")}
           icon={<SearchIcon />}
           onClick={handleFindTemplates}
         />
 
         <MenuItemPrimitive
-          label="Select all of same type"
+          label={t("screen_editor.nodeTools.selectAllSameType")}
           icon={<FilterListIcon />}
           onClick={handleSelectAllSameType}
         />
 
         <MenuItemPrimitive
-          label="Copy node as JSON"
+          label={t("screen_editor.nodeTools.copyNodeAsJson")}
           icon={<DataArrayIcon />}
           onClick={handlers.handleCopyMetadataToClipboard}
         />
 
         <MenuItemPrimitive
-          label="Delete"
+          label={t("screen_editor.nodeTools.delete")}
           icon={<DeleteIcon />}
           shortcut={isMac() ? "⌫" : "Del"}
           color="error"

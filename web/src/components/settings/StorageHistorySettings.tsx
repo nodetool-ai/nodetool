@@ -1,27 +1,104 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import type { StorageRetentionPolicy } from "@nodetool-ai/protocol/api-schemas/settings.js";
 import { useStorageHistory } from "../../serverState/useStorageHistory";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { ConfirmDialog, LoadingSpinner } from "../ui_primitives";
-import { NumberSetting } from "../menus/NumberSetting";
 import {
   AlertBanner,
   EditorButton,
   FlexRow,
   LabeledSwitch,
+  NumberField,
+  SPACING,
   Text
 } from "../ui_primitives";
 
-function formatBytes(bytes: number | null): string {
-  if (bytes === null) return "Not available";
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  if (bytes < 1024 * 1024 * 1024) {
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+interface RetentionSettingProps {
+  label: string;
+  description: ReactNode;
+  value: number;
+  onCommit: (value: number) => void;
+  min: number;
+  max: number;
+  fallback: number;
+  disabled: boolean;
+  rangeHint: (values: { min: number; max: number; fallback: number }) => string;
+}
+
+function RetentionSetting({
+  label,
+  description,
+  value,
+  onCommit,
+  min,
+  max,
+  fallback,
+  disabled,
+  rangeHint
+}: RetentionSettingProps) {
+  const [local, setLocal] = useState(String(value));
+
+  useEffect(() => {
+    setLocal(String(value));
+  }, [value]);
+
+  const commit = useCallback(() => {
+    const clamped = Math.max(min, Math.min(max, Number(local) || fallback));
+    setLocal(String(clamped));
+    if (clamped !== value) onCommit(clamped);
+  }, [fallback, local, max, min, onCommit, value]);
+
+  return (
+    <NumberField
+      autoComplete="off"
+      min={min}
+      max={max}
+      id={label}
+      label={label}
+      helperText={<>{description} {rangeHint({ min, max, fallback })}</>}
+      value={local}
+      onChange={(event) => setLocal(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") commit();
+      }}
+      size="small"
+      disabled={disabled}
+    />
+  );
+}
+
+function formatBytes(
+  bytes: number | null,
+  locale: string,
+  unavailable: string
+): string {
+  if (bytes === null) return unavailable;
+  const unit =
+    bytes < 1024 * 1024 ? "KB" : bytes < 1024 * 1024 * 1024 ? "MB" : "GB";
+  const divisor =
+    unit === "KB" ? 1024 : unit === "MB" ? 1024 * 1024 : 1024 * 1024 * 1024;
+  const fractionDigits = unit === "KB" ? 0 : unit === "MB" ? 1 : 2;
+  return `${new Intl.NumberFormat(locale, {
+    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: unit === "KB" ? 0 : fractionDigits
+  }).format(bytes / divisor)} ${unit}`;
 }
 
 export default function StorageHistorySettings() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+  const rangeHint = useCallback(
+    ({ min, max, fallback }: { min: number; max: number; fallback: number }) =>
+      t("screens4_0.settings.storageHistory.rangeHint", {
+        min: new Intl.NumberFormat(locale).format(min),
+        max: new Intl.NumberFormat(locale).format(max),
+        fallback: new Intl.NumberFormat(locale).format(fallback)
+      }),
+    [locale, t]
+  );
   const history = useStorageHistory();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -38,7 +115,9 @@ export default function StorageHistorySettings() {
       void history.updatePolicy({ ...policy, ...changes }).catch((error) => {
         addNotification({
           type: "error",
-          content: `Could not update history limits: ${String(error)}`
+          content: t("screens4_0.settings.storageHistory.updateFailed", {
+            error: String(error)
+          })
         });
       });
     },
@@ -55,14 +134,21 @@ export default function StorageHistorySettings() {
             type: "success",
             content:
               redactedPredictions > 0
-                ? `Removed ${total} old history records and cleared prompt data from ${redactedPredictions} generation records.`
-                : `Removed ${total} old history records.`
+              ? t("screens4_0.settings.storageHistory.cleanupCompletedWithRedactions", {
+                  count: total,
+                  redactedCount: redactedPredictions
+                })
+                : t("screens4_0.settings.storageHistory.cleanupCompleted", {
+                    count: total
+                  })
           });
         })
         .catch((error) => {
           addNotification({
             type: "error",
-            content: `History cleanup failed: ${String(error)}`
+            content: t("screens4_0.settings.storageHistory.cleanupFailed", {
+              error: String(error)
+            })
           });
         });
     } else if (confirmation === "compact") {
@@ -71,25 +157,27 @@ export default function StorageHistorySettings() {
         .then(() => {
           addNotification({
             type: "success",
-            content: "Database compaction completed."
+            content: t("screens4_0.settings.storageHistory.compactionCompleted")
           });
         })
         .catch((error) => {
           addNotification({
             type: "error",
-            content: `Database compaction failed: ${String(error)}`
+            content: t("screens4_0.settings.storageHistory.compactionFailed", {
+              error: String(error)
+            })
           });
         });
     }
-  }, [addNotification, confirmation, history]);
+  }, [addNotification, confirmation, history, t]);
 
   if (history.isLoading) {
-    return <LoadingSpinner size="small" text="Loading history status" />;
+    return <LoadingSpinner size="small" text={t("screens4_0.settings.storageHistory.loading")} />;
   }
   if (history.error || !policy || !status) {
     return (
       <AlertBanner severity="error" compact>
-        Could not load database history settings.
+        {t("screens4_0.settings.storageHistory.loadFailed")}
       </AlertBanner>
     );
   }
@@ -106,33 +194,35 @@ export default function StorageHistorySettings() {
   return (
     <>
       <div className="settings-item">
-        <NumberSetting
-          label="Autosaves per workflow"
-          description="Maximum recent autosaves kept for each workflow. Manual versions do not count toward this limit."
+        <RetentionSetting
+          label={t("screens4_0.settings.storageHistory.autosavesPerWorkflow.label")}
+          description={t("screens4_0.settings.storageHistory.autosavesPerWorkflow.description")}
           value={policy.maxAutosavesPerWorkflow}
           onCommit={(value) => updatePolicy({ maxAutosavesPerWorkflow: value })}
           min={1}
           max={500}
           fallback={10}
           disabled={disabled}
+          rangeHint={rangeHint}
         />
       </div>
       <div className="settings-item">
-        <NumberSetting
-          label="Keep autosaves (days)"
-          description="Autosaves older than this are removed even when the workflow is below its count limit."
+        <RetentionSetting
+          label={t("screens4_0.settings.storageHistory.autosaveRetention.label")}
+          description={t("screens4_0.settings.storageHistory.autosaveRetention.description")}
           value={policy.autosaveRetentionDays}
           onCommit={(value) => updatePolicy({ autosaveRetentionDays: value })}
           min={1}
           max={3650}
           fallback={7}
           disabled={disabled}
+          rangeHint={rangeHint}
         />
       </div>
       <div className="settings-item">
-        <NumberSetting
-          label="Keep manual versions (days)"
-          description="Manual workflow snapshots older than this are removed. Checkpoints are always preserved."
+        <RetentionSetting
+          label={t("screens4_0.settings.storageHistory.manualVersionRetention.label")}
+          description={t("screens4_0.settings.storageHistory.manualVersionRetention.description")}
           value={policy.manualVersionRetentionDays}
           onCommit={(value) =>
             updatePolicy({ manualVersionRetentionDays: value })
@@ -141,12 +231,13 @@ export default function StorageHistorySettings() {
           max={3650}
           fallback={90}
           disabled={disabled}
+          rangeHint={rangeHint}
         />
       </div>
       <div className="settings-item">
-        <NumberSetting
-          label="Keep completed runs (days)"
-          description="Completed, failed, and cancelled run records older than this are removed. Active runs are preserved."
+        <RetentionSetting
+          label={t("screens4_0.settings.storageHistory.completedRunRetention.label")}
+          description={t("screens4_0.settings.storageHistory.completedRunRetention.description")}
           value={policy.terminalJobRetentionDays}
           onCommit={(value) =>
             updatePolicy({ terminalJobRetentionDays: value })
@@ -155,76 +246,87 @@ export default function StorageHistorySettings() {
           max={3650}
           fallback={30}
           disabled={disabled}
+          rangeHint={rangeHint}
         />
       </div>
       <div className="settings-item">
-        <NumberSetting
-          label="Keep run event logs (days)"
-          description="Per-node event logs from a run are removed after this many days. The run record itself follows the limit above."
+        <RetentionSetting
+          label={t("screens4_0.settings.storageHistory.runEventRetention.label")}
+          description={t("screens4_0.settings.storageHistory.runEventRetention.description")}
           value={policy.runEventRetentionDays ?? 30}
           onCommit={(value) => updatePolicy({ runEventRetentionDays: value })}
           min={1}
           max={3650}
           fallback={30}
           disabled={disabled}
+          rangeHint={rangeHint}
         />
       </div>
       <div className="settings-item">
-        <NumberSetting
-          label="Keep app run inputs and outputs (days)"
-          description="After this many days, inputs, outputs, and document snapshots expire. Status, timing, and cost remain until the completed run record expires."
+        <RetentionSetting
+          label={t("screens4_0.settings.storageHistory.runTraceRetention.label")}
+          description={t("screens4_0.settings.storageHistory.runTraceRetention.description")}
           value={policy.runTraceRetentionDays ?? 30}
           onCommit={(value) => updatePolicy({ runTraceRetentionDays: value })}
           min={1}
           max={3650}
           fallback={30}
           disabled={disabled}
+          rangeHint={rangeHint}
         />
       </div>
       <div className="settings-item">
-        <NumberSetting
-          label="Keep generation details (days)"
-          description="After this many days, prompts, parameters, and logs are cleared from generation records. The billing record — model, provider, tokens, cost, and date — is kept."
+        <RetentionSetting
+          label={t("screens4_0.settings.storageHistory.generationRetention.label")}
+          description={t("screens4_0.settings.storageHistory.generationRetention.description")}
           value={policy.predictionRetentionDays ?? 400}
           onCommit={(value) => updatePolicy({ predictionRetentionDays: value })}
           min={1}
           max={3650}
           fallback={400}
           disabled={disabled}
+          rangeHint={rangeHint}
         />
       </div>
       <div className="settings-item">
         <LabeledSwitch
-          label="Automatic history cleanup"
+          label={t("screens4_0.settings.storageHistory.automaticCleanup.label")}
           checked={policy.automaticCleanup}
           onChange={(checked) => updatePolicy({ automaticCleanup: checked })}
-          description="Apply these limits in the background once per day. Database compaction remains manual."
+          description={t("screens4_0.settings.storageHistory.automaticCleanup.description")}
           disabled={disabled}
         />
       </div>
       <div className="settings-item">
         <Text>
-          Database: {formatBytes(status.databaseBytes)} ·{" "}
-          {status.workflowVersions} workflow versions · {status.jobs} runs ·{" "}
-          {status.runEvents} run events
+          {t("screens4_0.settings.storageHistory.databaseSummary", {
+            databaseSize: formatBytes(status.databaseBytes, locale, t("screens4_0.settings.storageHistory.notAvailable")),
+            workflowVersions: status.workflowVersions,
+            runs: status.jobs,
+            runEvents: status.runEvents
+          })}
         </Text>
         <Text className="description">
-          {cleanupCount} records exceed the current limits. Deleted SQLite pages
-          currently use {formatBytes(status.unusedBytes)} and are returned to
-          disk only after compaction.
+          {t("screens4_0.settings.storageHistory.cleanupStatus", {
+            count: cleanupCount,
+            unusedBytes: formatBytes(status.unusedBytes, locale, t("screens4_0.settings.storageHistory.notAvailable"))
+          })}
         </Text>
         <Text className="description">
-          {redactionCount} of {status.predictionsWithPayload} generation records
-          still holding prompts and parameters are past the limit. Cleaning
-          clears that text and keeps the billing record.
+          {t("screens4_0.settings.storageHistory.redactionStatus", {
+            count: redactionCount,
+            total: status.predictionsWithPayload
+          })}
         </Text>
-        <FlexRow gap={2} wrap sx={{ marginTop: 2 }}>
+        <FlexRow gap={SPACING.md} wrap sx={{ marginTop: SPACING.md }}>
           <EditorButton
             variant="outlined"
             onClick={() => setConfirmation("cleanup")}
             disabled={disabled || pendingCount === 0}
           >
-            {history.isCleaning ? "Cleaning…" : `Clean now (${pendingCount})`}
+            {history.isCleaning
+              ? t("screens4_0.settings.storageHistory.cleaning")
+              : t("screens4_0.settings.storageHistory.cleanNow", { count: pendingCount })}
           </EditorButton>
           {isSqlite && (
             <EditorButton
@@ -232,7 +334,9 @@ export default function StorageHistorySettings() {
               onClick={() => setConfirmation("compact")}
               disabled={disabled}
             >
-              {history.isCompacting ? "Compacting…" : "Compact database"}
+              {history.isCompacting
+                ? t("screens4_0.settings.storageHistory.compacting")
+                : t("screens4_0.settings.storageHistory.compactDatabase")}
             </EditorButton>
           )}
         </FlexRow>
@@ -243,16 +347,21 @@ export default function StorageHistorySettings() {
         onConfirm={runConfirmedAction}
         title={
           confirmation === "compact"
-            ? "Compact database?"
-            : "Clean old history?"
+            ? t("screens4_0.settings.storageHistory.confirmCompactTitle")
+            : t("screens4_0.settings.storageHistory.confirmCleanupTitle")
         }
         content={
           confirmation === "compact"
-            ? "Compaction returns unused SQLite pages to disk. It can pause database writes while it rebuilds a large local database."
-            : `Remove ${cleanupCount} old workflow-history, completed-run, and run-event records, and clear prompts and parameters from ${redactionCount} generation records? The billing record for each generation is kept. Current workflows, assets, checkpoints, and active runs are not changed.`
+            ? t("screens4_0.settings.storageHistory.confirmCompactDescription")
+            : t("screens4_0.settings.storageHistory.confirmCleanupDescription", {
+                cleanupCount,
+                redactionCount
+              })
         }
-        confirmText={confirmation === "compact" ? "Compact" : "Clean"}
-        cancelText="Cancel"
+        confirmText={confirmation === "compact"
+          ? t("screens4_0.settings.storageHistory.compact")
+          : t("screens4_0.settings.storageHistory.clean")}
+        cancelText={t("screens4_0.settings.storageHistory.cancel")}
       />
     </>
   );

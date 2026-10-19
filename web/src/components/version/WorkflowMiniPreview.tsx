@@ -12,6 +12,7 @@
  */
 
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { Caption, FlexColumn, Surface, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Graph } from "../../stores/ApiTypes";
@@ -192,6 +193,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   width = 200,
   height = 120
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "batch2_9" });
   const theme = useTheme();
 
   // Keyed on the graph, not the workflow: a list re-fetch hands every row a
@@ -261,7 +263,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
               letterSpacing: "0.08em"
             }}
           >
-            Empty workflow
+            {t("versionHistory.emptyWorkflow")}
           </Caption>
         </FlexColumn>
       </Surface>
@@ -385,7 +387,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           pointerEvents: "none"
         }}
       >
-        {nodeCount} {nodeCount === 1 ? "node" : "nodes"}
+        {t("versionHistory.nodeCount", { count: nodeCount })}
       </Caption>
     </Surface>
   );

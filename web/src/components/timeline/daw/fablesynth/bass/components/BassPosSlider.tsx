@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useBatchedGesture, useWheelBatch } from '../../../../../../hooks/timeline/useBatchedGesture';
 import { normToValue, valueToNorm } from '../../params';
 import { BASS_PARAMS } from '../params';
@@ -13,6 +14,7 @@ interface BassPosSliderProps {
 }
 
 export function BassPosSlider({ paramId, accent }: BassPosSliderProps) {
+  const { t } = useTranslation();
   const def = BASS_PARAMS[paramId];
   const api = useBassStoreApi();
   const value = useBassStore((s) => s.params[paramId]);
@@ -73,7 +75,7 @@ export function BassPosSlider({ paramId, accent }: BassPosSliderProps) {
       data-accent={accent}
       role="slider"
       tabIndex={0}
-      aria-label="wavetable position"
+      aria-label={t('i18n-next48.slider.wavetablePosition')}
       aria-valuemin={def.min}
       aria-valuemax={def.max}
       aria-valuenow={Number(value.toFixed(3))}

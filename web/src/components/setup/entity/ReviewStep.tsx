@@ -1,4 +1,5 @@
 import type { EntityKind } from "@nodetool-ai/protocol";
+import { useTranslation } from "react-i18next";
 
 import {
   BORDER_RADIUS,
@@ -30,48 +31,50 @@ export const ReviewStep = ({
   name,
   descriptor,
   tags
-}: ReviewStepProps) => (
-  <FlexColumn gap={GAP.spacious} sx={{ maxWidth: SETUP_CONTENT_WIDTH }}>
-    <FlexColumn gap={GAP.tight}>
-      <Text size="big" component="h1">
-        Review your entity
-      </Text>
-      <Text color="secondary">
-        This reference and descriptor will be available anywhere entities can
-        be added.
-      </Text>
-    </FlexColumn>
+}: ReviewStepProps) => {
+  const { t } = useTranslation();
+  return (
+    <FlexColumn gap={GAP.spacious} sx={{ maxWidth: SETUP_CONTENT_WIDTH }}>
+      <FlexColumn gap={GAP.tight}>
+        <Text size="big" component="h1">
+          {t("pass3_5.entity.review.title")}
+        </Text>
+        <Text color="secondary">{t("pass3_5.entity.review.description")}</Text>
+      </FlexColumn>
 
-    <GalleryFrame
-      locator={`asset://${assetId}`}
-      kind="image"
-      caption={`${name} reference`}
-    >
-      <ResponsiveImage
+      <GalleryFrame
         locator={`asset://${assetId}`}
-        alt={`${name} reference`}
-        aspectRatio="1/1"
-        fit="contain"
-        borderRadius={BORDER_RADIUS.md}
-        showErrorFallback
-        sx={{ width: SETUP_MEDIA_WIDTH, maxWidth: "100%", maxHeight: "44vh" }}
-      />
-    </GalleryFrame>
-    <FlexRow gap={GAP.normal} align="center" wrap>
-      <Text size="big">{name}</Text>
-      <Chip
-        label={kind}
-        compact
-        variant="outlined"
-        color={ENTITY_KIND_COLOR[kind]}
-      />
-    </FlexRow>
-    <Text>{descriptor}</Text>
-    {tags.length > 0 ? (
-      <Caption color="secondary">Tags: {tags.join(", ")}</Caption>
-    ) : null}
-  </FlexColumn>
-);
+        kind="image"
+        caption={t("pass3_5.entity.review.imageCaption", { name })}
+      >
+        <ResponsiveImage
+          locator={`asset://${assetId}`}
+          alt={t("pass3_5.entity.review.imageAlt", { name })}
+          aspectRatio="1/1"
+          fit="contain"
+          borderRadius={BORDER_RADIUS.md}
+          showErrorFallback
+          sx={{ width: SETUP_MEDIA_WIDTH, maxWidth: "100%", maxHeight: "44vh" }}
+        />
+      </GalleryFrame>
+      <FlexRow gap={GAP.normal} align="center" wrap>
+        <Text size="big">{name}</Text>
+        <Chip
+          label={t(`pass3_5.entity.kinds.${kind}`)}
+          compact
+          variant="outlined"
+          color={ENTITY_KIND_COLOR[kind]}
+        />
+      </FlexRow>
+      <Text>{descriptor}</Text>
+      {tags.length > 0 ? (
+        <Caption color="secondary">
+          {t("pass3_5.entity.review.tags", { tags: tags.join(", ") })}
+        </Caption>
+      ) : null}
+    </FlexColumn>
+  );
+};
 
 export default ReviewStep;
 
@@ -84,16 +87,18 @@ interface ReviewFallbackProps {
  * still loading, or the reference is missing or already used by another
  * entity. The footer names what to do about it.
  */
-export const ReviewFallback = ({ loading }: ReviewFallbackProps) =>
-  loading ? (
+export const ReviewFallback = ({ loading }: ReviewFallbackProps) => {
+  const { t } = useTranslation();
+  return loading ? (
     <FlexRow gap={GAP.normal} align="center">
       <LoadingSpinner inline size="small" />
-      <Text color="secondary">Loading your entity library…</Text>
+      <Text color="secondary">{t("pass3_5.entity.review.loadingLibrary")}</Text>
     </FlexRow>
   ) : (
     <EmptyState
       variant="empty"
-      title="No reference image yet"
-      description="Go back to the reference step and choose or generate one."
+      title={t("pass3_5.entity.review.empty.title")}
+      description={t("pass3_5.entity.review.empty.description")}
     />
   );
+};

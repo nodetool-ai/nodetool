@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -86,6 +87,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   onSaveReady,
   onAgentWorkflowIdChange
 }) => {
+  const { t } = useTranslation();
   const { data: application, isLoading, isError, error } =
     useApplication(applicationId);
   const updateApplication = useUpdateApplication();
@@ -481,7 +483,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       }
       const pending = (async (): Promise<string> => {
         if (!application) {
-          throw new Error("App is not loaded");
+          throw new Error(t("i18n-next53.appBuilder.errors.appNotLoaded"));
         }
         useDocumentDraftStore
           .getState()
@@ -501,7 +503,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
           setConflict(null);
           revisionRef.current = saved.updatedAt;
           lastSyncedRef.current = JSON.stringify(saved.document);
-          addNotification({ type: "success", content: "App saved" });
+          addNotification({ type: "success", content: t("i18n-next53.appBuilder.status.appSaved") });
           return saved.updatedAt;
         } catch (err) {
           if (isConcurrencyConflict(err)) {
@@ -516,7 +518,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
           addNotification({
             type: "error",
             alert: true,
-            content: err instanceof Error ? err.message : "Failed to save app"
+            content: err instanceof Error ? err.message : t("i18n-next53.appBuilder.errors.saveFailed")
           });
           throw err;
         } finally {
@@ -564,22 +566,22 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
         await saveInFlightRef.current;
       }
       if (!hasPuckAgentHandler(applicationId)) {
-        throw new Error("App editor is not ready");
+        throw new Error(t("i18n-next53.appBuilder.errors.editorNotReady"));
       }
       return handleSave(getPuckAgentHandler(applicationId).document());
     });
   }, [applicationId, handleSave, onSaveReady]);
 
   if (isLoading) {
-    return <LoadingSpinner size="large" text="Loading app" />;
+    return <LoadingSpinner size="large" text={t("i18n-next53.appBuilder.status.loadingApp")} />;
   }
 
   if (isError || !application || !document) {
     return (
       <EmptyState
         variant="error"
-        title="Could not load app"
-        description={error?.message ?? (application && !document ? "The Application document is invalid or uses an unsupported version." : "The app may have been deleted.")}
+        title={t("i18n-next53.appBuilder.errors.loadAppTitle")}
+        description={error?.message ?? (application && !document ? t("i18n-next53.appBuilder.errors.invalidDocument") : t("i18n-next53.appBuilder.errors.appDeleted"))}
       />
     );
   }
@@ -604,20 +606,18 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
           <FlexColumn sx={{ px: SPACING.lg, py: SPACING.md }}>
             <AlertBanner
               severity="warning"
-              title="Saved elsewhere"
+              title={t("i18n-next53.appBuilder.conflicts.savedElsewhere")}
               action={
                 <EditorButton
                   size="small"
                   variant="text"
                   onClick={() => void handleReload()}
                 >
-                  Reload
+                  {t("i18n-next53.appBuilder.actions.reload")}
                 </EditorButton>
               }
             >
-              This app changed since it was opened, so the last save was
-              rejected. Reload to start from the current version — reloading
-              discards what is on this canvas.
+              {t("i18n-next53.appBuilder.conflicts.saveRejected")}
             </AlertBanner>
           </FlexColumn>
         ) : (

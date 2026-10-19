@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import useAssets from "../../serverState/useAssets";
@@ -26,6 +27,9 @@ const ChipLabel: React.FC<{ label: string; count: number }> = ({
  * Hidden when the folder holds a single type and no type is filtered in.
  */
 const AssetTypeFilterBar: React.FC = () => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const { typeCounts } = useAssets();
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
@@ -72,7 +76,7 @@ const AssetTypeFilterBar: React.FC = () => {
     <FlexRow
       className="asset-type-filter"
       role="toolbar"
-      aria-label="Filter by file type"
+      aria-label={t("filters.ariaLabel")}
       align="center"
       gap={SPACING.xs}
       wrap
@@ -80,7 +84,7 @@ const AssetTypeFilterBar: React.FC = () => {
     >
       <Chip
         compact
-        label={<ChipLabel label="All types" count={total} />}
+        label={<ChipLabel label={t("filters.allTypes")} count={total} />}
         active={typeFilter === "all"}
         onClick={() => setTypeFilter("all")}
       />
@@ -90,7 +94,12 @@ const AssetTypeFilterBar: React.FC = () => {
           compact
           icon={<AssetGroupIcon group={key} />}
           label={
-            <ChipLabel label={assetTypeLabel(key)} count={typeCounts[key]} />
+            <ChipLabel
+              label={t(`types.${key}`, {
+                defaultValue: assetTypeLabel(key)
+              })}
+              count={typeCounts[key]}
+            />
           }
           active={typeFilter === key}
           onClick={() => pick(key)}
@@ -105,7 +114,7 @@ const AssetTypeFilterBar: React.FC = () => {
           onClick={toggleAll}
           sx={{ ml: "auto" }}
         >
-          {anyExpanded ? "Collapse all" : "Expand all"}
+          {anyExpanded ? t("filters.collapseAll") : t("filters.expandAll")}
         </EditorButton>
       )}
     </FlexRow>

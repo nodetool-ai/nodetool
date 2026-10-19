@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import {
   Text,
@@ -73,6 +74,7 @@ const styles = (theme: Theme) =>
 
 function Login() {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <FlexColumn
@@ -87,14 +89,13 @@ function Login() {
           <img className="logo" src="/logo192.png" alt="NodeTool" />
           <FlexColumn align="center" gap={SPACING.md}>
             <Caption className="alpha-badge" size="smaller" color="warning">
-              Cloud alpha
+              {t("screen_remaining.login.cloudAlpha")}
             </Caption>
             <Text component="h1" size="big" className="headline">
-              Sign in to NodeTool Cloud
+              {t("screen_remaining.login.title")}
             </Text>
             <Text component="p" size="normal" className="subhead">
-              Describe what you want. The agent builds it, and you can take
-              over at any step.
+              {t("screen_remaining.login.description")}
             </Text>
           </FlexColumn>
           <FlexColumn fullWidth>
@@ -105,10 +106,10 @@ function Login() {
 
       <FlexColumn className="footnotes" align="center" gap={SPACING.xs}>
         <Caption size="small" color="secondary">
-          Use your own API keys and pay providers at their list prices.
+          {t("screen_remaining.login.ownKeys")}
         </Caption>
         <Caption size="small" color="secondary">
-          Cloud is in alpha. For production work, use{" "}
+          {t("screen_remaining.login.cloudAlphaNotice")} {" "}
           <ExternalLink href={STUDIO_URL} size="small" iconVariant="arrow">
             NodeTool Studio
           </ExternalLink>

@@ -14,6 +14,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { KNOWN_TRANSITION_TYPE_LIST } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type { TimelineBeat } from "@nodetool-ai/timeline";
 
@@ -33,14 +34,25 @@ import {
   productionGenerationBlocker
 } from "./productionAuthoring";
 
-/** "12s", "1m 04s" — a length as a creator reads it. */
-export const formatSeconds = (ms: number): string => {
+/** A length as a creator reads it. */
+export const formatSeconds = (
+  ms: number,
+  t?: ReturnType<typeof useTranslation>["t"]
+): string => {
   const total = Math.max(0, Math.round(ms / 1000));
   if (total < 60) {
-    return `${total}s`;
+    return t
+      ? t("pass3_13.video.review.duration.seconds", { count: total })
+      : `${total}s`;
   }
   const minutes = Math.floor(total / 60);
-  return `${minutes}m ${String(total % 60).padStart(2, "0")}s`;
+  const seconds = total % 60;
+  return t
+    ? t("pass3_13.video.review.duration.minutesSeconds", {
+        minutes,
+        seconds: String(seconds).padStart(2, "0")
+      })
+    : `${minutes}m ${String(seconds).padStart(2, "0")}s`;
 };
 
 /** The shortest beat any clip model will render. */
@@ -83,10 +95,55 @@ export interface ReviewStepProps {
  * empty value renders blank, which says nothing.
  */
 const PLAIN_CUT = "cut";
-const TRANSITION_OPTIONS = [
-  { value: PLAIN_CUT, label: "Cut" },
-  ...KNOWN_TRANSITION_TYPE_LIST.map((type) => ({ value: type, label: type }))
-] as const;
+const PRODUCTION_TEXT_KEYS: Record<string, string> = {
+  "Add a line before choosing a speech mode.":
+    "production.addLineBeforeSpeechMode",
+  "Bound to a Script line. Edit the words and the voice in Script.":
+    "production.boundToScriptLine",
+  "Bound to a recorded audio take.": "production.boundToAudioTake",
+  "Uses local speech. Production voice and audio resolution are unavailable in this setup.":
+    "production.localSpeechUnavailable",
+  "Editorial purpose": "production.editorialPurpose",
+  Unspecified: "production.unspecified",
+  Hook: "production.purpose.hook",
+  Problem: "production.purpose.problem",
+  Demonstration: "production.purpose.demonstration",
+  Proof: "production.purpose.proof",
+  "Call to action": "production.purpose.callToAction",
+  Story: "production.purpose.story",
+  "Visual treatment": "production.visualTreatment",
+  "Actor to camera": "production.treatment.actorToCamera",
+  "Product close-up": "production.treatment.productCloseUp",
+  "Lifestyle B-roll": "production.treatment.lifestyleBroll",
+  "Generated scene": "production.treatment.generatedScene",
+  "Requested takes": "production.requestedTakes",
+  "Speech mode": "production.speechMode",
+  None: "production.none",
+  "Off-camera": "production.offCamera",
+  "On-camera (unavailable in guided flow)": "production.onCameraUnavailable",
+  "Script line": "production.scriptLine",
+  "Production direction": "production.direction",
+  "Optional performance or camera direction": "production.directionPlaceholder",
+  "Complete production requirements: speech needs a binding and takes must be 1–3.":
+    "production.errors.completeRequirements",
+  "Add the local speech line, or choose Speech mode None. The last saved binding is retained.":
+    "production.errors.addLocalSpeech",
+  "Complete the production requirements: speech needs a line or audio binding, and takes must be 1–3.":
+    "production.errors.completeGenerationRequirements",
+  "On-camera speech is unavailable in this guided flow. Choose Off-camera or None.":
+    "production.errors.onCameraUnavailable"
+};
+
+const translateProductionText = (
+  text: string | undefined,
+  t: ReturnType<typeof useTranslation>["t"]
+): string | undefined => {
+  if (text === undefined) {
+    return undefined;
+  }
+  const key = PRODUCTION_TEXT_KEYS[text];
+  return key ? t(`pass3_13.video.review.${key}`) : text;
+};
 
 const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onReplan,
@@ -95,6 +152,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onValidationChange,
   generation
 }) => {
+  const { t } = useTranslation();
   const beats = useTimelineStore((state) => state.setup?.beats);
   const formatId = useTimelineStore((state) => state.setup?.format);
   const updateBeat = useTimelineStore((state) => state.updateBeat);
@@ -107,7 +165,19 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   );
   const over = format ? totalMs > format.durationMs : false;
   const maxBeatMs = format?.durationMs ?? FALLBACK_MAX_BEAT_MS;
-  const rangeText = `${secondsText(MIN_BEAT_MS)}–${secondsText(maxBeatMs)}s`;
+  const rangeText = t("pass3_13.video.review.duration.range", {
+    min: secondsText(MIN_BEAT_MS),
+    max: secondsText(maxBeatMs)
+  });
+  const transitionOptions = [
+    { value: PLAIN_CUT, label: t("pass3_13.video.review.transitions.cut") },
+    ...KNOWN_TRANSITION_TYPE_LIST.map((type) => ({
+      value: type,
+      label: t(`pass3_13.video.review.transitions.${type}`, {
+        defaultValue: type
+      })
+    }))
+  ];
 
   // What is in the length fields, as typed. The document takes an entry only
   // once it reads as a length, so a half-typed "1." or a cleared field stays
@@ -151,7 +221,9 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       updateBeat(beatId, patch);
       // The typed text now matches the plan, so it stays as typed.
       setDrafts((current) =>
-        current[beatId] ? { ...current, [beatId]: { value, base: ms } } : current
+        current[beatId]
+          ? { ...current, [beatId]: { value, base: ms } }
+          : current
       );
     }
   };
@@ -162,31 +234,34 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   }).length;
   const validationReason =
     unusable > 0
-      ? `Correct the length outside ${rangeText}.`
-      : productionAuthoringBlocker(beats ?? []);
+      ? t("pass3_13.video.review.correctLength", { range: rangeText })
+      : translateProductionText(productionAuthoringBlocker(beats ?? []), t);
   useEffect(() => {
     onValidationChange?.(validationReason);
     return () => onValidationChange?.(undefined);
   }, [onValidationChange, validationReason]);
-  const productionNote = productionGenerationBlocker(beats ?? [], false);
+  const productionNote = translateProductionText(
+    productionGenerationBlocker(beats ?? [], false),
+    t
+  );
 
   const sections: PlanReviewSection[] = (beats ?? []).map((beat, index) => ({
     id: beat.id,
-    header: `${index + 1}. ${formatSeconds(beat.duration_ms)}`,
+    header: `${index + 1}. ${formatSeconds(beat.duration_ms, t)}`,
     // The header is a number and a length, so the remove control names
     // what it drops rather than reading "Delete 1. 3s".
-    removeLabel: `Delete beat ${index + 1}`,
+    removeLabel: t("pass3_13.video.review.deleteBeat", { number: index + 1 }),
     rows: [
       {
         id: `${beat.id}-prompt`,
-        label: "Beat",
+        label: t("pass3_13.video.review.fields.beat"),
         value: beat.prompt,
         multiline: true,
         onChange: (value: string) => updateBeat(beat.id, { prompt: value })
       },
       {
         id: `${beat.id}-duration`,
-        label: "Seconds",
+        label: t("pass3_13.video.review.fields.seconds"),
         value: lengths[beat.id] ?? secondsText(beat.duration_ms),
         placeholder: rangeText,
         compact: true,
@@ -196,13 +271,13 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       },
       {
         id: `${beat.id}-transition`,
-        label: "Transition",
+        label: t("pass3_13.video.review.fields.transition"),
         value: beat.transition ?? PLAIN_CUT,
         // A closed set the renderer already enumerates, so it is a select:
         // typed free text left the row holding a word the cut has no
         // meaning for, and the list of legal words in a placeholder read
         // as data rather than as help.
-        options: TRANSITION_OPTIONS,
+        options: transitionOptions,
         compact: true,
         onChange: (value: string) =>
           updateBeat(beat.id, {
@@ -211,13 +286,13 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       },
       {
         id: `${beat.id}-voiceover`,
-        label: "Voiceover",
+        label: t("pass3_13.video.review.fields.voiceover"),
         readOnly:
           !!beat.production?.speech_binding?.script_line_id ||
           !!beat.production?.speech_binding?.audio_asset_id,
         value: beat.voiceover ?? beat.production?.speech_binding?.text ?? "",
         multiline: true,
-        placeholder: "Leave empty for no line over this beat",
+        placeholder: t("pass3_13.video.review.fields.voiceoverPlaceholder"),
         onChange: (value: string) => {
           const production =
             beat.production?.speech_binding?.text && value.trim()
@@ -241,7 +316,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         speechText:
           beat.voiceover ?? beat.production?.speech_binding?.text ?? "",
         onChange: (production) => updateBeat(beat.id, { production })
-      })
+      }).map((field) => ({
+        ...field,
+        label: translateProductionText(field.label, t) ?? field.label,
+        hint: translateProductionText(field.hint, t),
+        placeholder: translateProductionText(field.placeholder, t),
+        options: field.options?.map((option) => ({
+          ...option,
+          label: translateProductionText(option.label, t) ?? option.label
+        }))
+      }))
     ]
   }));
 
@@ -251,22 +335,28 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Review your beats
+          {t("pass3_13.video.review.title")}
         </Text>
         <FlexRow gap={GAP.normal} align="baseline">
           <Text size="normal" color={over ? "warning" : "secondary"}>
             {format
-              ? `${formatSeconds(totalMs)} of ${formatSeconds(format.durationMs)}`
-              : formatSeconds(totalMs)}
+              ? t("pass3_13.video.review.durationOf", {
+                  current: formatSeconds(totalMs, t),
+                  total: formatSeconds(format.durationMs, t)
+                })
+              : formatSeconds(totalMs, t)}
           </Text>
           {over ? (
             <Text size="small" color="warning" role="status">
-              Longer than the format. Shorten a beat or drop one.
+              {t("pass3_13.video.review.overFormat")}
             </Text>
           ) : null}
           {unusable > 0 ? (
             <Text size="small" color="warning" role="status">
-              {`${unusable} length${unusable === 1 ? " is" : "s are"} outside ${rangeText}. The plan keeps the last usable one.`}
+              {t("pass3_13.video.review.invalidLengths", {
+                count: unusable,
+                range: rangeText
+              })}
             </Text>
           ) : null}
         </FlexRow>
@@ -278,18 +368,18 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       ) : null}
       <PlanReview
         sections={sections}
-        replanLabel="Re-plan"
+        replanLabel={t("pass3_13.video.review.actions.replan")}
         onReplan={handleReplan}
         replanPending={replanPending}
         onRemoveSection={removeBeat}
-        sectionNoun="beat"
+        sectionNoun={t("pass3_13.video.review.fields.beat")}
       />
       {generation ? <GenerationSummary {...generation} compact /> : null}
       {error ? (
         <ErrorBanner
           report={{
             source: "provider-call",
-            summary: "Video beat re-plan failed",
+            summary: t("pass3_13.video.review.errors.replanFailed"),
             errorText: error
           }}
         >

@@ -7,6 +7,7 @@ import {
   SPACING
 } from "../ui_primitives";
 import { useCallback, useState, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { validateIdentifierName } from "../../utils/identifierValidation";
 
@@ -31,6 +32,7 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
   onAdd,
   takenNames = []
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [type, setType] = useState("str");
   const [nameError, setNameError] = useState<string | undefined>();
@@ -54,7 +56,7 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
       return;
     }
     if (takenNames.includes(trimmed)) {
-      setNameError(`An output named "${trimmed}" already exists`);
+      setNameError(t("screen_nodes.outputNameExists", { name: trimmed }));
       return;
     }
     onAdd(trimmed, { type, type_args: [], optional: false });
@@ -68,14 +70,14 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
       onClose={handleClose}
       maxWidth="xs"
       fullWidth
-      title="Add output"
+      title={t("screen_nodes.addOutput")}
       onConfirm={handleSubmit}
-      confirmText="Add output"
+      confirmText={t("screen_nodes.addOutput")}
     >
       <FlexRow gap={SPACING.lg} align="flex-start">
         <TextInput
           autoFocus
-          label="Name"
+          label={t("screen_nodes.name")}
           size="small"
           value={name}
           onChange={(e) => {
@@ -91,12 +93,12 @@ const AddDynamicOutputDialog: React.FC<AddDynamicOutputDialogProps> = ({
             }
           }}
           errorMessage={nameError}
-          helperText="Cannot start with a number"
+          helperText={t("screen_nodes.cannotStartWithNumber")}
           sx={{ flex: 1 }}
         />
         <Box sx={{ width: 140, flexShrink: 0 }}>
           <SelectField
-            label="Type"
+            label={t("screen_nodes.type")}
             size="small"
             value={type}
             onChange={setType}

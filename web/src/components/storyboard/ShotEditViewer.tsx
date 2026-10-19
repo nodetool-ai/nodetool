@@ -14,6 +14,7 @@
  */
 
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 import { resolveEffectiveProductionRequirement } from "@nodetool-ai/protocol";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -101,12 +102,12 @@ const pagerSx = {
   textAlign: "center"
 } as const;
 
-const reportFailure = (error: unknown, what: string): void => {
+const reportFailure = (error: unknown, what: string, retryMessage: string): void => {
   useNotificationStore.getState().addNotification({
     type: "error",
     alert: true,
     dismissable: true,
-    content: `${what} ${getErrorMessage(error, "Try again.")}`
+    content: `${what} ${getErrorMessage(error, retryMessage)}`
   });
 };
 
@@ -161,6 +162,8 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
   onLeave,
   onBeforeImageEditor
 }) => {
+  const { t, i18n } = useTranslation();
+  const numberFormat = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language);
   const stillVersions = stillVersionsOf(shot);
   const clipVersions = clipVersionsOf(shot);
   const hasClip =
@@ -273,7 +276,9 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
   // Flip and the editor hand-off both need bytes, and only the still has an
   // editable one; the player resolves its own.
   const stillUrl = useResolvedMediaUri(previewedStill);
-  const stillName = `Shot ${shot.index + 1} still`;
+  const localizedShotNumber = numberFormat.format(shot.index + 1);
+  const stillName = t("screens4_16.shotEditViewer.stillName", { shot: localizedShotNumber });
+  const stableStillName = `Shot ${shot.index + 1} still`;
 
   const step = useCallback(
     (delta: number) => {
@@ -378,7 +383,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
         },
         onFailed: (error) => {
           setBusy(false);
-          reportFailure(error, failure);
+          reportFailure(error, failure, t("screens4_16.shotEditViewer.errors.tryAgain"));
         }
       }),
     [uploadAsset, setShotKeyframe, boardId, shot.id]
@@ -437,14 +442,14 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
     try {
       // `busy` clears when the upload settles, not when it is queued.
       addVersion(
-        await flippedStill(stillUrl, `${stillName} flipped.png`),
-        "The flip could not be saved."
+        await flippedStill(stillUrl, `${stableStillName} flipped.png`),
+        t("screens4_16.shotEditViewer.errors.flipSaveFailed")
       );
     } catch (error) {
       setBusy(false);
-      reportFailure(error, "The still could not be flipped.");
+      reportFailure(error, t("screens4_16.shotEditViewer.errors.flipFailed"), t("screens4_16.shotEditViewer.errors.tryAgain"));
     }
-  }, [stillUrl, stillName, addVersion]);
+  }, [stillUrl, stableStillName, addVersion, t]);
 
   const handleOpenImageEditor = useCallback(async () => {
     if (!stillUrl) {
@@ -455,7 +460,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
         return;
       }
       setBusy(true);
-      const file = await copiedStill(stillUrl, `${stillName} edit.png`);
+      const file = await copiedStill(stillUrl, `${stableStillName} edit.png`);
       uploadAsset({
         file,
         onCompleted: (asset) => {
@@ -476,12 +481,12 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
         },
         onFailed: (error) => {
           setBusy(false);
-          reportFailure(error, "The still could not be opened for editing.");
+          reportFailure(error, t("screens4_16.shotEditViewer.errors.openEditorFailed"), t("screens4_16.shotEditViewer.errors.tryAgain"));
         }
       });
     } catch (error) {
       setBusy(false);
-      reportFailure(error, "The still could not be opened for editing.");
+      reportFailure(error, t("screens4_16.shotEditViewer.errors.openEditorFailed"), t("screens4_16.shotEditViewer.errors.tryAgain"));
     }
   }, [
     stillUrl,
@@ -493,6 +498,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
     openTab,
     onLeave,
     onBeforeImageEditor
+    ,t
   ]);
 
   const canEditStill = !readOnly && !!stillUrl && !busy;
@@ -510,7 +516,12 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
         sx={{ ...stageSx, touchAction: zoom > 1 ? "none" : "pan-y" }}
         role="region"
         aria-busy={generating || undefined}
-        aria-label={`${shown === "clip" ? "Clip" : "Still"} take preview. Focus this region to browse takes with the left and right arrow keys.`}
+        aria-label={t("screens4_16.shotEditViewer.stageAriaLabel", {
+          shot: localizedShotNumber,
+          type: shown === "clip"
+            ? t("screens4_16.shotEditViewer.clip")
+            : t("screens4_16.shotEditViewer.still")
+        })}
         tabIndex={0}
         data-panning={panFrom.current ? "true" : undefined}
         onKeyDown={handleStageKeyDown}
@@ -549,16 +560,16 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           ) : previewedClip ? (
             <VideoPlayer
               locator={previewedClip}
-              label={`Shot ${shot.index + 1}`}
+              label={t("screens4_16.shotEditViewer.shotLabel", { shot: localizedShotNumber })}
             />
           ) : previewedStill ? (
             <ResponsiveImage
               locator={previewedStill}
-              alt={`Shot ${shot.index + 1} still`}
+              alt={t("screens4_16.shotEditViewer.stillAlt", { shot: localizedShotNumber })}
               fit="contain"
             />
           ) : (
-            <Caption color="muted">No still yet</Caption>
+            <Caption color="muted">{t("screens4_16.shotEditViewer.noStill")}</Caption>
           )}
         </Box>
         {generating && (
@@ -577,26 +588,31 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
             segmented
             value={shown}
             onChange={handleMedium}
-            aria-label="Show the still or the clip"
+            aria-label={t("screens4_16.shotEditViewer.mediumToggle")}
           >
-            <ToggleOption value="still">Still</ToggleOption>
-            <ToggleOption value="clip">Clip</ToggleOption>
+            <ToggleOption value="still">{t("screens4_16.shotEditViewer.still")}</ToggleOption>
+            <ToggleOption value="clip">{t("screens4_16.shotEditViewer.clip")}</ToggleOption>
           </ToggleGroup>
         )}
         <ToolbarIconButton
           icon={<ChevronLeftIcon fontSize="inherit" />}
-          tooltip="Previous version"
-          ariaLabel="Previous version"
+          tooltip={t("screens4_16.shotEditViewer.previousVersion")}
+          ariaLabel={t("screens4_16.shotEditViewer.previousVersion")}
           onClick={handlePrevious}
           disabled={index <= 0}
         />
         <Box sx={pagerSx} data-testid="shot-version-pager">
-          {versions.length > 0 ? `${index + 1} / ${versions.length}` : "0 / 0"}
+          {versions.length > 0
+            ? t("screens4_16.shotEditViewer.versionPosition", {
+                current: numberFormat.format(index + 1),
+                total: numberFormat.format(versions.length)
+              })
+            : t("screens4_16.shotEditViewer.noVersions")}
         </Box>
         <ToolbarIconButton
           icon={<ChevronRightIcon fontSize="inherit" />}
-          tooltip="Next version"
-          ariaLabel="Next version"
+          tooltip={t("screens4_16.shotEditViewer.nextVersion")}
+          ariaLabel={t("screens4_16.shotEditViewer.nextVersion")}
           onClick={handleNext}
           disabled={index >= versions.length - 1}
         />
@@ -611,35 +627,35 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
             pointers and keyboards. */}
         <FlexRow
           role="group"
-          aria-label="Pan controls"
+          aria-label={t("screens4_16.shotEditViewer.panControls")}
           gap={SPACING.micro}
           sx={{ "@media (pointer: coarse)": { display: "none" } }}
         >
           <ToolbarIconButton
             icon={<ArrowUpwardIcon fontSize="inherit" />}
-            tooltip="Pan up"
-            ariaLabel="Pan up"
+            tooltip={t("screens4_16.shotEditViewer.panUp")}
+            ariaLabel={t("screens4_16.shotEditViewer.panUp")}
             onClick={() => nudgePan(0, -PAN_STEP)}
             disabled={!previewed}
           />
           <ToolbarIconButton
             icon={<ArrowDownwardIcon fontSize="inherit" />}
-            tooltip="Pan down"
-            ariaLabel="Pan down"
+            tooltip={t("screens4_16.shotEditViewer.panDown")}
+            ariaLabel={t("screens4_16.shotEditViewer.panDown")}
             onClick={() => nudgePan(0, PAN_STEP)}
             disabled={!previewed}
           />
           <ToolbarIconButton
             icon={<ArrowBackIcon fontSize="inherit" />}
-            tooltip="Pan left"
-            ariaLabel="Pan left"
+            tooltip={t("screens4_16.shotEditViewer.panLeft")}
+            ariaLabel={t("screens4_16.shotEditViewer.panLeft")}
             onClick={() => nudgePan(-PAN_STEP, 0)}
             disabled={!previewed}
           />
           <ToolbarIconButton
             icon={<ArrowForwardIcon fontSize="inherit" />}
-            tooltip="Pan right"
-            ariaLabel="Pan right"
+            tooltip={t("screens4_16.shotEditViewer.panRight")}
+            ariaLabel={t("screens4_16.shotEditViewer.panRight")}
             onClick={() => nudgePan(PAN_STEP, 0)}
             disabled={!previewed}
           />
@@ -647,19 +663,40 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
         {versions.length > 0 && (
           <Caption color="secondary">
             {isCurrent
-              ? `Take ${index + 1}, current ${shown}`
+              ? t("screens4_16.shotEditViewer.currentTake", {
+                  take: numberFormat.format(index + 1),
+                  type: shown === "clip"
+                    ? t("screens4_16.shotEditViewer.clip")
+                    : t("screens4_16.shotEditViewer.still")
+                })
               : current
-                ? `Previewing take ${index + 1}. Take ${acceptedIndex + 1}, current ${shown}`
-                : `Previewing take ${index + 1}. No current ${shown}`}
+                ? t("screens4_16.shotEditViewer.previewingTakeWithCurrent", {
+                    take: numberFormat.format(index + 1),
+                    currentTake: numberFormat.format(acceptedIndex + 1),
+                    type: shown === "clip"
+                      ? t("screens4_16.shotEditViewer.clip")
+                      : t("screens4_16.shotEditViewer.still")
+                  })
+                : t("screens4_16.shotEditViewer.previewingTakeNoCurrent", {
+                    take: numberFormat.format(index + 1),
+                    type: shown === "clip"
+                      ? t("screens4_16.shotEditViewer.clip")
+                      : t("screens4_16.shotEditViewer.still")
+                  })}
           </Caption>
         )}
         {!readOnly && previewed && !isCurrent && (
           <EditorButton
             size="small"
             onClick={handleAccept}
-            aria-label={`Set ${shown} ${index + 1} as current ${shown}`}
+            aria-label={t("screens4_16.shotEditViewer.setCurrentAriaLabel", {
+              type: shown === "clip"
+                ? t("screens4_16.shotEditViewer.clip")
+                : t("screens4_16.shotEditViewer.still"),
+              take: numberFormat.format(index + 1)
+            })}
           >
-            Set current
+            {t("screens4_16.shotEditViewer.setCurrent")}
           </EditorButton>
         )}
         <Box sx={{ flex: 1 }} />
@@ -667,8 +704,8 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           <>
             <ToolbarIconButton
               icon={<FlipIcon fontSize="inherit" />}
-              tooltip="Mirror this still as a new version"
-              ariaLabel="Flip horizontal"
+              tooltip={t("screens4_16.shotEditViewer.flipTooltip")}
+              ariaLabel={t("screens4_16.shotEditViewer.flip")}
               onClick={() => void handleFlip()}
               disabled={!canEditStill}
             />
@@ -676,9 +713,9 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
               size="small"
               onClick={() => void handleOpenImageEditor()}
               disabled={!canEditStill}
-              tooltip="Edit a copy of this still; the edit comes back as a new version"
+              tooltip={t("screens4_16.shotEditViewer.openEditorTooltip")}
             >
-              Open in image editor
+              {t("screens4_16.shotEditViewer.openEditor")}
             </EditorButton>
           </>
         )}

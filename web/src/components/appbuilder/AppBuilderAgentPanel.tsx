@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import type { BuildUiContextOptions } from "../../lib/chat/uiContext";
 import { getPuckAgentHandler } from "./puck/puckAgentBridge";
@@ -88,6 +89,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
   applicationId,
   workflowId
 }) => {
+  const { t } = useTranslation();
   const {
     connect,
     openWorkflowThread,
@@ -180,13 +182,13 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
       }}
     >
       <ChatPanelHeader
-        title="App builder agent"
-        description="Build the app layout and bind widgets to workflow inputs and outputs."
+        title={t("i18n-next8.appBuilder.agent.title")}
+        description={t("i18n-next8.appBuilder.agent.description")}
         onNewChat={handleNewChat}
         onSelectThread={selectThread}
         threadId={threadId}
         docsTopic="appBuilder"
-        docsLabel="App builder"
+        docsLabel={t("i18n-next8.appBuilder.agent.docsLabel")}
       />
       <Box sx={{ flex: 1, minHeight: 0 }}>
         <ChatView
@@ -210,7 +212,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           chatSource="app_builder"
           uiContext={appBuilderUiContext}
           hideModePicker
-          composerPlaceholder="Ask the agent to build your app or edit the workflow…"
+          composerPlaceholder={t("i18n-next8.appBuilder.agent.composerPlaceholder")}
           threadId={threadId}
           key={threadId ?? "no-thread"}
         />

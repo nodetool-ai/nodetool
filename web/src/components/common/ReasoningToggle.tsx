@@ -3,6 +3,7 @@ import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import { LabeledToggle } from "../ui_primitives";
 import type { TooltipProps } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { useTranslation } from "react-i18next";
 
 export interface ReasoningToggleProps {
   isOpen: boolean;
@@ -18,13 +19,14 @@ export interface ReasoningToggleProps {
 export const ReasoningToggle: React.FC<ReasoningToggleProps> = memo(({
   isOpen,
   onToggle,
-  showLabel = "Show reasoning",
-  hideLabel = "Hide reasoning",
+  showLabel,
+  hideLabel,
   icon = <LightbulbIcon fontSize="inherit" />,
   tooltipPlacement = "bottom-start",
   enterDelay = TOOLTIP_ENTER_DELAY,
   className
 }) => {
+  const { t } = useTranslation();
   const handleToggle = useCallback(
     (event?: React.MouseEvent) => {
       if (event) {
@@ -39,8 +41,8 @@ export const ReasoningToggle: React.FC<ReasoningToggleProps> = memo(({
     <LabeledToggle
       isOpen={isOpen}
       onToggle={handleToggle}
-      showLabel={showLabel}
-      hideLabel={hideLabel}
+      showLabel={showLabel ?? t("batch2_10.reasoningToggle.show")}
+      hideLabel={hideLabel ?? t("batch2_10.reasoningToggle.hide")}
       icon={icon}
       tooltipPlacement={tooltipPlacement}
       enterDelay={enterDelay}

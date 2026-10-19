@@ -13,6 +13,7 @@
  */
 
 import { forwardRef, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton, IconButtonProps } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -91,8 +92,8 @@ export const ExpandCollapseButton = memo(
       {
         expanded,
         iconVariant = "rotate",
-        expandTooltip = "Expand",
-        collapseTooltip = "Collapse",
+        expandTooltip,
+        collapseTooltip,
         tooltipPlacement = "top",
         nodrag = true,
         buttonSize = "small",
@@ -104,8 +105,17 @@ export const ExpandCollapseButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const resolvedExpandTooltip =
+        expandTooltip === undefined
+          ? t("i18n-next97.expandCollapseButton.expand")
+          : expandTooltip;
+      const resolvedCollapseTooltip =
+        collapseTooltip === undefined
+          ? t("i18n-next97.expandCollapseButton.collapse")
+          : collapseTooltip;
 
-      const tooltip = expanded ? collapseTooltip : expandTooltip;
+      const tooltip = expanded ? resolvedCollapseTooltip : resolvedExpandTooltip;
 
       const getIcon = () => {
         if (iconVariant === "chevron") {

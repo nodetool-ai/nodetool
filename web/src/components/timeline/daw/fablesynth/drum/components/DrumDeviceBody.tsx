@@ -3,6 +3,7 @@
 // The pad sidebar stays on EDIT and PAD FX; GROUP FX takes the full width.
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DeviceTabs, type DeviceTab } from '../../components/DeviceTabs';
 import { AmpEnvPanel } from './AmpEnvPanel';
 import { FilterSection } from './FilterSection';
@@ -19,14 +20,23 @@ import { SelBar } from './SelBar';
 type Page = 'edit' | 'padFx' | 'groupFx';
 
 const TABS: DeviceTab<Page>[] = [
-  { id: 'edit', label: 'EDIT', width: 76 },
-  { id: 'padFx', label: 'PAD FX', width: 96 },
-  { id: 'groupFx', label: 'GROUP FX', width: 112 },
+  { id: 'edit', label: '', width: 76 },
+  { id: 'padFx', label: '', width: 96 },
+  { id: 'groupFx', label: '', width: 112 },
 ];
 
 export function DrumDeviceBody() {
+  const { t } = useTranslation();
   const [page, setPage] = useState<Page>('edit');
-  const tabs = <DeviceTabs tabs={TABS} page={page} onSelect={setPage} label="DR-1 pages" />;
+  const tabs = <DeviceTabs
+    tabs={TABS.map((tab) => ({
+      ...tab,
+      label: t(`i18n-next107.drum.tabs.${tab.id}`),
+    }))}
+    page={page}
+    onSelect={setPage}
+    label={t('i18n-next107.drum.devicePages')}
+  />;
 
   return (
     <div className="device-body dr-body" data-page={page}>

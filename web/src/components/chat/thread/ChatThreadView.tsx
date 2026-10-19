@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useRef, useCallback, useEffect, useMemo, useState, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import {
   Caption,
@@ -158,6 +159,7 @@ const StatusFooter = memo<StatusFooterProps>(
     pendingMediaMessage,
     activePredictions
   }) => {
+    const { t } = useTranslation();
     const isBusy = status === "loading" || status === "streaming";
     const elapsed = useElapsedTime(isBusy);
     const hasPredictions = activePredictions.length > 0;
@@ -193,8 +195,8 @@ const StatusFooter = memo<StatusFooterProps>(
                   {progressMessage && !runningToolCallId
                     ? progressMessage
                     : status === "streaming"
-                      ? "Responding…"
-                      : "Thinking…"}
+                      ? t("i18n-next54.thread.responding")
+                      : t("i18n-next54.thread.thinking")}
                 </ShimmerText>
               </Text>
               <Caption className="chat-status-elapsed" color="muted">
@@ -257,6 +259,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   focusMessage,
   onResendFrom
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   // Pending tool-approval prompts for the active thread, rendered inline at the
@@ -549,7 +552,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           role="log"
           aria-live="polite"
           aria-relevant="additions text"
-          aria-label="Conversation"
+          aria-label={t("i18n-next54.thread.conversation")}
         >
           <div ref={realContentRef} className="chat-messages-real-content">
             <FlexRow justify="center" sx={{ minHeight: SPACING_PX.xxxl }}>

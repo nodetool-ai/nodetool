@@ -80,7 +80,7 @@ describe("WorkflowTriggerIndicator", () => {
     renderIndicator();
     expect(
       screen.getByRole("img", {
-        name: "Trigger armed — last run failed: connection refused"
+        name: "Trigger armed, but the last run failed: connection refused"
       })
     ).toBeInTheDocument();
   });
@@ -98,7 +98,7 @@ describe("WorkflowTriggerIndicator", () => {
     renderIndicator();
     expect(
       screen.getByRole("img", {
-        name: "Disabled after 5 consecutive failures."
+        name: "Trigger disabled after 5 consecutive failures."
       })
     ).toBeInTheDocument();
   });

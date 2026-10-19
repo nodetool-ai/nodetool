@@ -17,6 +17,7 @@ import {
   useState,
   type MouseEvent
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 
@@ -77,29 +78,37 @@ const saveCategory = (cat: PMCategory) => {
   }
 };
 
+const PACKAGE_GROUP_KEYS: Record<string, string> = {
+  Languages: "language",
+  "Media & documents": "media",
+  "AI runtimes": "ai"
+};
+
 /**
  * Soft, borderless status badges — a faint tint of the status color with
  * matching text, quieter than an outlined pill (esp. the ubiquitous
  * "Installed"). "Always on" / "Not installed" stay neutral.
  */
 const BadgeChip = ({ badge }: { badge: PMRow["badge"] }) => {
+  const { t } = useTranslation();
   if (!badge) return null;
   const styles: Record<
     Exclude<PMRow["badge"], null>,
     { label: string; color: "default" | "success" | "warning" }
   > = {
-    alwaysOn: { label: "Always on", color: "default" },
-    installed: { label: "Installed", color: "success" },
-    included: { label: "Included", color: "default" },
-    update: { label: "Update available", color: "warning" },
-    incompatible: { label: "Cannot load", color: "warning" },
-    notInstalled: { label: "Not installed", color: "default" }
+    alwaysOn: { label: t("i18n-next31.packages.badge.alwaysOn"), color: "default" },
+    installed: { label: t("i18n-next31.packages.badge.installed"), color: "success" },
+    included: { label: t("i18n-next31.packages.badge.included"), color: "default" },
+    update: { label: t("i18n-next31.packages.badge.update"), color: "warning" },
+    incompatible: { label: t("i18n-next31.packages.badge.incompatible"), color: "warning" },
+    notInstalled: { label: t("i18n-next31.packages.badge.notInstalled"), color: "default" }
   };
   const s = styles[badge];
   return <Chip label={s.label} compact variant="outlined" color={s.color} />;
 };
 
 const RowActions = ({ row }: { row: PMRow }) => {
+  const { t } = useTranslation();
   if (row.toggle) {
     return (
       <LabeledSwitch
@@ -122,7 +131,7 @@ const RowActions = ({ row }: { row: PMRow }) => {
           disabled={busy}
           onClick={onUpdate}
         >
-          {busy ? "Working…" : "Update"}
+          {busy ? t("i18n-next31.packages.working") : t("i18n-next31.packages.update")}
         </EditorButton>
       )}
       {install && (
@@ -132,7 +141,7 @@ const RowActions = ({ row }: { row: PMRow }) => {
           disabled={busy}
           onClick={onInstall}
         >
-          {busy ? "Installing…" : "Install"}
+          {busy ? t("i18n-next31.packages.installing") : t("i18n-next31.packages.install")}
         </EditorButton>
       )}
       {uninstall && (
@@ -142,7 +151,7 @@ const RowActions = ({ row }: { row: PMRow }) => {
           disabled={busy}
           onClick={onUninstall}
         >
-          {busy ? "Working…" : "Uninstall"}
+          {busy ? t("i18n-next31.packages.working") : t("i18n-next31.packages.uninstall")}
         </EditorButton>
       )}
     </>
@@ -170,12 +179,14 @@ const PackageRowItem = memo(function PackageRowItem({ row }: { row: PMRow }) {
 });
 
 function PackageManager() {
+  const { t } = useTranslation();
   const [cat, setCat] = useState(loadCategory);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<PMFilter>("all");
   const searchRef = useRef<HTMLInputElement>(null);
 
   const model = usePackageManager({ cat, q, filter });
+  const filterMode = cat === "included" ? "switch" : "install";
 
   useEffect(() => {
     saveCategory(cat);
@@ -254,10 +265,10 @@ function PackageManager() {
                 weight={600}
                 sx={{ textTransform: "uppercase", letterSpacing: "0.09em" }}
               >
-                Install location
+                {t("i18n-next31.packages.installLocation")}
               </Text>
               <Text size="small" family="secondary" truncate>
-                {model.installLocation || "Default conda environment"}
+                {model.installLocation || t("i18n-next31.packages.defaultCondaEnvironment")}
               </Text>
               <Box sx={{ ml: "auto" }}>
                 <EditorButton
@@ -265,7 +276,7 @@ function PackageManager() {
                   density="compact"
                   onClick={model.onChangeLocation}
                 >
-                  Change…
+                  {t("i18n-next31.packages.changeLocation")}
                 </EditorButton>
               </Box>
             </FlexRow>
@@ -275,7 +286,7 @@ function PackageManager() {
             <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minWidth: 0 }}>
               <FlexRow gap={SPACING.sm} align="center">
                 <Text size="big" weight={600}>
-                  {model.title}
+                  {t(`i18n-next31.packages.category.${cat}`)}
                 </Text>
                 <Box
                   sx={(theme) => ({
@@ -293,7 +304,7 @@ function PackageManager() {
                 </Box>
               </FlexRow>
               <Text size="small" color="secondary" sx={{ maxWidth: "72ch" }}>
-                {model.subtitle}
+                {t(`i18n-next31.packages.subtitle.${cat}`)}
               </Text>
             </FlexColumn>
             {showSearch && (
@@ -306,8 +317,8 @@ function PackageManager() {
                     onClick={model.bulkUpdate.onUpdateAll}
                   >
                     {model.bulkUpdate.busy
-                      ? "Updating…"
-                      : `Update all (${model.bulkUpdate.count})`}
+                      ? t("i18n-next31.packages.updating")
+                      : t("i18n-next31.packages.updateAll", { count: model.bulkUpdate.count })}
                   </EditorButton>
                 )}
                 <Box sx={{ width: { xs: "100%", sm: 250 } }}>
@@ -315,7 +326,7 @@ function PackageManager() {
                     ref={searchRef}
                     value={q}
                     onChange={setQ}
-                    placeholder="Search (press /)"
+                    placeholder={t("i18n-next31.packages.searchPlaceholder")}
                     showClear
                   />
                 </Box>
@@ -330,11 +341,11 @@ function PackageManager() {
                 exclusive
                 segmented
                 onChange={handleFilter}
-                aria-label="Status filter"
+                aria-label={t("i18n-next31.packages.statusFilter")}
               >
                 {model.filters.map((option) => (
                   <ToggleOption key={option.id} value={option.id}>
-                    {option.label}
+                    {t(`i18n-next31.packages.filter.${filterMode}.${option.id}`)}
                     <Box
                       component="span"
                       sx={{ ml: SPACING.sm, color: "text.secondary" }}
@@ -396,7 +407,11 @@ function PackageManager() {
                         pt: index === 0 ? 0 : SPACING.md
                       }}
                     >
-                      {row.group}
+                      {row.group
+                        ? t(
+                            `i18n-next31.packages.group.${PACKAGE_GROUP_KEYS[row.group] ?? row.group}`
+                          )
+                        : null}
                     </Text>
                   )}
                   <PackageRowItem row={row} />
@@ -406,13 +421,13 @@ function PackageManager() {
           ) : (
             <EmptyState
               variant={narrowed ? "no-results" : "empty"}
-              title={narrowed ? "Nothing matches" : "Nothing here yet"}
+              title={narrowed ? t("i18n-next31.packages.nothingMatches") : t("i18n-next31.packages.nothingHere")}
               description={
                 narrowed
-                  ? "No package in this list matches the search and the status filter."
-                  : "This list has no packages."
+                  ? t("i18n-next31.packages.noPackageMatches")
+                  : t("i18n-next31.packages.noPackages")
               }
-              actionText={narrowed ? "Show all" : undefined}
+              actionText={narrowed ? t("i18n-next31.packages.showAll") : undefined}
               onAction={narrowed ? clearSearchAndFilter : undefined}
             />
           )}

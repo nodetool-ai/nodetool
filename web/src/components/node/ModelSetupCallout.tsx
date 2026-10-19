@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -71,6 +72,7 @@ interface ModelSetupCalloutProps {
  */
 const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const { providers, isLoading, error } = useProviders();
 
@@ -79,17 +81,17 @@ const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
   const handleAddKeys = useCallback(() => {
     onDismiss();
     openProviderOnboarding({
-      reason: "This node needs an AI model. Connect a provider to run it."
+      reason: t("i18n-next36.nodeEditor.modelSetupCallout.onboardingReason")
     });
-  }, [onDismiss]);
+  }, [onDismiss, t]);
 
   return (
     <div css={cssStyles} className="nodrag nowheel">
       <ToolbarIconButton
         className="callout-close"
         size="small"
-        aria-label="Dismiss"
-        tooltip="Dismiss"
+        aria-label={t("i18n-next36.nodeEditor.modelSetupCallout.dismiss")}
+        tooltip={t("i18n-next36.nodeEditor.modelSetupCallout.dismiss")}
         onClick={onDismiss}
         icon={<CloseOutlinedIcon sx={{ fontSize: ICON_SIZE.xs }} />}
       />
@@ -101,8 +103,8 @@ const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
         )}
         <Text size="small" sx={{ pr: 2 }}>
           {noProvider
-            ? "Connect an AI provider to use models — add an API key to get started."
-            : "Pick a model here before running this workflow."}
+            ? t("i18n-next36.nodeEditor.modelSetupCallout.connectProvider")
+            : t("i18n-next36.nodeEditor.modelSetupCallout.pickModel")}
         </Text>
       </div>
       {noProvider && (
@@ -114,7 +116,7 @@ const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
           onClick={handleAddKeys}
           sx={{ alignSelf: "flex-start" }}
         >
-          Add API keys
+          {t("i18n-next36.nodeEditor.modelSetupCallout.addApiKeys")}
         </EditorButton>
       )}
     </div>

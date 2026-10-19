@@ -6,6 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -68,6 +69,7 @@ const styles = (theme: Theme) =>
   });
 
 const AudioProperty = (props: PropertyProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next47" });
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
@@ -92,7 +94,7 @@ const AudioProperty = (props: PropertyProps) => {
           {isStreaming ? (
             <div
               className="realtime-visualizer"
-              aria-label="Realtime audio visualizer"
+              aria-label={t("audio.realtimeVisualizer")}
             >
               <AudioVisualizer
                 stream={stream}
@@ -108,7 +110,7 @@ const AudioProperty = (props: PropertyProps) => {
               onClick={toggle}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } }}
             >
-              Click to start microphone
+              {t("audio.clickToStartMicrophone")}
             </div>
           )}
           <div className="controls-row">
@@ -132,7 +134,7 @@ const AudioProperty = (props: PropertyProps) => {
               onClick={toggle}
               sx={{ flex: 1, minHeight: 36 }}
             >
-              {isStreaming ? "Stop" : "Start mic"}
+              {isStreaming ? t("audio.stop") : t("audio.startMic")}
             </EditorButton>
           </div>
         </div>

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import Check from "@mui/icons-material/Check";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -41,6 +42,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
   targetLabel,
   style
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const downloadId = useMemo(() => {
@@ -84,7 +86,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
         onKeyDown={downloaded ? activateOnKey(onSelect) : undefined}
         role={downloaded ? "button" : undefined}
         tabIndex={downloaded ? 0 : undefined}
-        aria-label={downloaded ? `Use ${model.id}` : undefined}
+        aria-label={downloaded ? t("screen_modelMenu.useModel", { model: model.id }) : undefined}
         sx={{
           px: 1.5,
           height: "100%",
@@ -139,11 +141,11 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
           >
             <LoadingSpinner inline size={14} color="inherit" />
             <Text sx={{ fontSize: theme.vars.fontSizeSmall, color: "text.secondary" }}>
-              Checking…
+              {t("screen_modelMenu.checking")}
             </Text>
           </FlexRow>
         ) : downloaded ? (
-          <Tooltip title="Use this model">
+          <Tooltip title={t("screen_modelMenu.useThisModel")}>
             <EditorButton
               variant="contained"
               onClick={(e) => {
@@ -153,15 +155,15 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
               startIcon={<Check />}
               sx={{ flexShrink: 0 }}
             >
-              Use
+              {t("screen_modelMenu.use")}
             </EditorButton>
           </Tooltip>
         ) : (
           <Tooltip
             title={
               model.size_on_disk
-                ? `Download ${formatBytes(model.size_on_disk)} to ${targetLabel ?? "this computer"}`
-                : `Downloads to ${targetLabel ?? "this computer"}`
+                ? t("screen_modelMenu.downloadSizeToTarget", { size: formatBytes(model.size_on_disk), target: targetLabel ?? t("screen_modelMenu.thisComputer") })
+                : t("screen_modelMenu.downloadsToTarget", { target: targetLabel ?? t("screen_modelMenu.thisComputer") })
             }
           >
             <EditorButton
@@ -170,7 +172,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
               startIcon={<DownloadIcon />}
               sx={{ flexShrink: 0 }}
             >
-              Download
+              {t("screen_modelMenu.download")}
             </EditorButton>
           </Tooltip>
         )}

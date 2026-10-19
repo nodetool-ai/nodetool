@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo } from "react";
 import type { UiDocumentRef } from "@nodetool-ai/protocol";
+import { useTranslation } from "react-i18next";
 
 import AssistantChatPanel from "../chat/assistant/AssistantChatPanel";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
@@ -9,6 +10,7 @@ interface StoryboardAgentPanelProps {
 }
 
 const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
+  const { t } = useTranslation();
   const title = useStoryboardStore(
     (state) => state.boards[boardId]?.title ?? ""
   );
@@ -31,9 +33,9 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
       getSelection={getSelection}
       workflowId={boardId}
       docsTopic="storyboards"
-      docsLabel="Storyboards"
-      welcomeTitle="Storyboard assistant"
-      welcomeBody='Ask me to direct the board — e.g. "break this brief into six shots", "add a close-up after shot 3", "generate keyframes for every planned shot", or "assemble the shots into a timeline".'
+      docsLabel={t("screens4_20.storyboardAgentPanel.docsLabel")}
+      welcomeTitle={t("screens4_20.storyboardAgentPanel.welcomeTitle")}
+      welcomeBody={t("screens4_20.storyboardAgentPanel.welcomeBody")}
     />
   );
 };

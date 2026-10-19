@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Text, FlexRow, EditorButton, FormField } from "../ui_primitives";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
@@ -31,49 +32,50 @@ const RemoveBackgroundModelSelect = React.memo(
 const MODEL_TYPE_CONFIG = [
   {
     type: "language_model",
-    label: "Language model",
+    labelKey: "languageModel",
     Select: LanguageModelSelect
   },
-  { type: "image_model", label: "Image model", Select: ImageModelSelect },
+  { type: "image_model", labelKey: "imageModel", Select: ImageModelSelect },
   {
     type: IMAGE_TASK_DEFAULTS["nodetool.image.Upscale"],
-    label: "Upscale model",
+    labelKey: "upscaleModel",
     Select: UpscaleModelSelect,
-    hint: "Fills Upscale nodes. Falls back to the image model when unset."
+    hintKey: "upscaleHint"
   },
   {
     type: IMAGE_TASK_DEFAULTS["nodetool.image.RemoveBackground"],
-    label: "Remove background model",
+    labelKey: "removeBackgroundModel",
     Select: RemoveBackgroundModelSelect,
-    hint: "Fills Remove Background nodes. Falls back to the image model when unset."
+    hintKey: "removeBackgroundHint"
   },
   {
     type: "embedding_model",
-    label: "Embedding model",
+    labelKey: "embeddingModel",
     Select: EmbeddingModelSelect
   },
   {
     type: "tts_model",
-    label: "Text-to-speech model",
+    labelKey: "ttsModel",
     Select: TTSModelSelect
   },
   {
     type: "asr_model",
-    label: "Speech recognition model",
+    labelKey: "asrModel",
     Select: ASRModelSelect
   },
-  { type: "video_model", label: "Video model", Select: VideoModelSelect },
+  { type: "video_model", labelKey: "videoModel", Select: VideoModelSelect },
   {
     type: CODE_MODEL_PREFERENCE,
-    label: "Code generation",
+    labelKey: "codeGeneration",
     Select: LanguageModelSelect,
     // The submission is a tool call, so non-tool-capable models are hidden.
-    selectProps: { placeholder: "Use chat model", requireToolSupport: true },
-    hint: "Writes Code Node code. Falls back to the chat model when unset."
+    selectProps: { placeholderKey: "useChatModel", requireToolSupport: true },
+    hintKey: "codeGenerationHint"
   }
 ] as const;
 
 function DefaultModelsMenu() {
+  const { t } = useTranslation();
   const defaults = useModelPreferencesStore((s) => s.defaults);
   const setDefault = useModelPreferencesStore((s) => s.setDefault);
   const clearDefault = useModelPreferencesStore((s) => s.clearDefault);
@@ -81,11 +83,10 @@ function DefaultModelsMenu() {
   return (
     <div>
       <Text size="big" id="default-models" className="settings-heading">
-        Default models
+        {t("screens4_3.defaultModels.heading")}
       </Text>
       <Text className="description" sx={{ mb: 2 }}>
-        Set default models for each type. These will auto-fill when you create
-        new nodes.
+        {t("screens4_3.defaultModels.description")}
       </Text>
 
       <div className="default-models-list">
@@ -93,10 +94,10 @@ function DefaultModelsMenu() {
           <DefaultModelRow
             key={config.type}
             modelType={config.type}
-            label={config.label}
+            label={t(`screens4_3.defaultModels.labels.${config.labelKey}`)}
             Select={config.Select}
-            selectProps={"selectProps" in config ? config.selectProps : undefined}
-            hint={"hint" in config ? config.hint : undefined}
+            selectProps={"selectProps" in config && config.selectProps ? { ...config.selectProps, placeholder: t(`screens4_3.defaultModels.placeholders.${config.selectProps.placeholderKey}`) } : undefined}
+            hint={"hintKey" in config ? t(`screens4_3.defaultModels.hints.${config.hintKey}`) : undefined}
             current={defaults[config.type]}
             onSelect={setDefault}
             onClear={clearDefault}
@@ -141,6 +142,7 @@ function DefaultModelRow({
   onSelect,
   onClear
 }: DefaultModelRowProps) {
+  const { t } = useTranslation();
   const handleChange = useCallback(
     (value: unknown) => {
       const v = value as { provider?: string; id?: string; name?: string };
@@ -170,7 +172,7 @@ function DefaultModelRow({
           />
           {current && (
             <EditorButton size="small" onClick={handleClear}>
-              Clear
+              {t("screens4_3.common.clear")}
             </EditorButton>
           )}
         </FlexRow>

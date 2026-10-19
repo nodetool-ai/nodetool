@@ -196,7 +196,7 @@ describe("MessageView edit in place", () => {
     const field = screen.getByRole("textbox", { name: "Edit message" });
     await user.clear(field);
     await user.type(field, "make it red");
-    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(screen.getByRole("button", { name: "send" }));
 
     expect(onResend).toHaveBeenCalledWith(sent, "make it red");
     expect(useChatDraftStore.getState().drafts).toEqual({});

@@ -5,6 +5,7 @@
  */
 
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import type { Entity } from "@nodetool-ai/protocol";
@@ -67,38 +68,44 @@ const ImageThumb: React.FC<{
   assetId: string;
   caption: string;
   onRemove?: () => void;
-}> = ({ assetId, caption, onRemove }) => (
-  <Box sx={thumbSx} data-testid="timeline-reference-image">
-    <ResponsiveImage
-      locator={{ asset_id: assetId }}
-      preferThumbnail
-      alt={caption}
-      aspectRatio="3 / 4"
-      fit="cover"
-    />
-    <TruncatedText variant="caption" sx={{ px: SPACING.xs }}>
-      {caption}
-    </TruncatedText>
-    {onRemove && (
-      <Box sx={removeSx}>
-        <ToolbarIconButton
-          icon={<CloseIcon fontSize="inherit" />}
-          tooltip={`Remove ${caption}`}
-          ariaLabel={`Remove ${caption}`}
-          onClick={onRemove}
-        />
-      </Box>
-    )}
-  </Box>
-);
-
-const entityRemoveLabel = (name: string): string => `Remove ${name}`;
+}> = ({ assetId, caption, onRemove }) => {
+  const { t } = useTranslation();
+  return (
+    <Box sx={thumbSx} data-testid="timeline-reference-image">
+      <ResponsiveImage
+        locator={{ asset_id: assetId }}
+        preferThumbnail
+        alt={caption}
+        aspectRatio="3 / 4"
+        fit="cover"
+      />
+      <TruncatedText variant="caption" sx={{ px: SPACING.xs }}>
+        {caption}
+      </TruncatedText>
+      {onRemove && (
+        <Box sx={removeSx}>
+          <ToolbarIconButton
+            icon={<CloseIcon fontSize="inherit" />}
+            tooltip={t("i18n-next65.timeline.references.remove", {
+              name: caption
+            })}
+            ariaLabel={t("i18n-next65.timeline.references.remove", {
+              name: caption
+            })}
+            onClick={onRemove}
+          />
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 const TimelineReferencesFieldInner: React.FC<TimelineReferencesFieldProps> = ({
   value,
   onChange,
   disabled
 }) => {
+  const { t } = useTranslation();
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
 
   const addImage = useCallback(
@@ -145,8 +152,8 @@ const TimelineReferencesFieldInner: React.FC<TimelineReferencesFieldProps> = ({
   return (
     <FlexColumn gap={SPACING.lg} data-testid="timeline-references">
       <FormField
-        label="Reference images"
-        helperText="Write [Image 1], [Image 2], … in the prompt to place each one."
+        label={t("i18n-next65.timeline.references.imagesLabel")}
+        helperText={t("i18n-next65.timeline.references.imagesHelper")}
       >
         <FlexColumn gap={SPACING.sm}>
           {value.imageIds.length > 0 ? (
@@ -155,14 +162,16 @@ const TimelineReferencesFieldInner: React.FC<TimelineReferencesFieldProps> = ({
                 <ImageThumb
                   key={assetId}
                   assetId={assetId}
-                  caption={`Image ${index + 1}`}
+                  caption={t("i18n-next65.timeline.references.imageLabel", {
+                    index: index + 1
+                  })}
                   onRemove={disabled ? undefined : () => removeImage(assetId)}
                 />
               ))}
             </FlexRow>
           ) : (
             <Caption color="secondary">
-              Add images to condition the clip on.
+              {t("i18n-next65.timeline.references.noImages")}
             </Caption>
           )}
           {!disabled && (
@@ -172,29 +181,34 @@ const TimelineReferencesFieldInner: React.FC<TimelineReferencesFieldProps> = ({
                 startIcon={<AddPhotoAlternateOutlinedIcon />}
                 onClick={() => setImagePickerOpen(true)}
               >
-                Add image
+                {t("i18n-next65.timeline.references.addImage")}
               </EditorButton>
             </FlexRow>
           )}
         </FlexColumn>
       </FormField>
       <EntityTilesField
-        label="Entities"
+        label={t("i18n-next65.timeline.references.entitiesLabel")}
         entities={value.entities}
         selectedIds={value.entities.map((entity) => entity.id)}
         onPick={toggleEntity}
         onRemove={toggleEntity}
-        removeLabel={entityRemoveLabel}
-        emptyText="Choose a character, location, style or prop to keep it consistent in the clip."
+        removeLabel={(name) =>
+          t("i18n-next65.timeline.references.remove", { name })
+        }
+        emptyText={t("i18n-next65.timeline.references.entitiesEmpty")}
         readOnly={disabled}
         extraAction={
-          <CreateEntityButton label="New entity" onCreated={addEntity} />
+          <CreateEntityButton
+            label={t("i18n-next65.timeline.references.newEntity")}
+            onCreated={addEntity}
+          />
         }
       />
       {imagePickerOpen && (
         <EntityAssetPickerDialog
           open
-          title="Pick a reference image"
+          title={t("i18n-next65.timeline.references.pickImageTitle")}
           onClose={() => setImagePickerOpen(false)}
           onPick={addImage}
         />

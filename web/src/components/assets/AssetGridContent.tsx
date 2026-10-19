@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useAssets from "../../serverState/useAssets";
@@ -89,6 +90,9 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   isHorizontal,
   onDoubleClick
 }) => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const { folderFilesFiltered, isLoading, error, refetchAssets } = useAssets();
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
@@ -340,22 +344,26 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
         }}
       >
         {isLoading ? (
-          <LoadingSpinner size="small" text="Loading assets" />
+          <LoadingSpinner size="small" text={t("states.loading")} />
         ) : error ? (
           <EmptyState
             variant="error"
-            title="Could not load assets"
-            description={error.message || "An error occurred. Please try again."}
-            actionText="Retry"
+            title={t("states.loadError.title")}
+            description={error.message || t("states.loadError.description")}
+            actionText={t("actions.retry")}
             onAction={refetchAssets}
             size="small"
           />
         ) : typeFilter !== "all" ? (
           <EmptyState
             variant="no-results"
-            title={`No ${assetTypeLabel(typeFilter).toLowerCase()} here`}
-            description="Other file types are hidden by the type filter."
-            actionText="Show all types"
+            title={t("states.filteredEmpty.title", {
+              type: t(`types.${typeFilter}`, {
+                defaultValue: assetTypeLabel(typeFilter)
+              }).toLowerCase()
+            })}
+            description={t("states.filteredEmpty.description")}
+            actionText={t("actions.showAllTypes")}
             onAction={() => setTypeFilter("all")}
             size="small"
           />
@@ -364,17 +372,17 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
             variant="no-data"
             title={
               favoritesOnly
-                ? "No favorites yet"
+                ? t("states.empty.favorites.title")
                 : workflowFilter
-                  ? "No outputs from this workflow yet"
-                  : "This folder is empty"
+                  ? t("states.empty.workflow.title")
+                  : t("states.empty.folder.title")
             }
             description={
               favoritesOnly
-                ? "Star an asset to find it here from any folder."
+                ? t("states.empty.favorites.description")
                 : workflowFilter
-                  ? "Run the workflow to generate assets, or drop files here to add inputs."
-                  : "Drop files here or use the upload button to add assets"
+                  ? t("states.empty.workflow.description")
+                  : t("states.empty.folder.description")
             }
             size="small"
           />

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { CustomField } from "@puckeditor/core";
 import { useGetPuck } from "@puckeditor/core";
 
@@ -78,10 +79,11 @@ const OperationSelect: React.FC<{
   readOnly?: boolean;
   onChange: (operationId: string) => void;
 }> = ({ operations, value, readOnly, onChange }) => {
+  const { t } = useTranslation();
   if (operations.length < 2) return null;
   return (
     <SelectField
-      label="Operation"
+      label={t("i18n-next53.appBuilder.fields.operation")}
       value={value}
       options={operations.map((op) => ({
         label: op.name || op.id,
@@ -171,6 +173,7 @@ const ReadBindingPicker: React.FC<{
   readOnly?: boolean;
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
+  const { t } = useTranslation();
   const { operationId, operations, workflow, select } =
     useBindingOperation(value);
   const { outputs } = workflow;
@@ -208,7 +211,7 @@ const ReadBindingPicker: React.FC<{
         // Execution fields are always bindable, so "nothing to bind" is about
         // the workflow's own outputs and variables.
         hintVisible={outputs.length === 0 && scope.variables.length === 0}
-        emptyHint="Add an Output node or Set Variable node to the workflow."
+        emptyHint={t("i18n-next53.appBuilder.fields.addOutputOrVariable")}
         readOnly={readOnly}
         onChange={onChange}
       />
@@ -269,6 +272,7 @@ const WriteBindingPicker: React.FC<{
   readOnly?: boolean;
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
+  const { t } = useTranslation();
   const { operationId, operations, workflow, select } =
     useBindingOperation(value);
   const { inputs, nodes } = workflow;
@@ -405,7 +409,7 @@ const WriteBindingPicker: React.FC<{
       />
       <Autocomplete<BindingOption>
         label={label}
-        placeholder="Search inputs and node properties"
+        placeholder={t("i18n-next53.appBuilder.fields.searchInputsProperties")}
         options={resolvedOptions}
         value={selectedOption}
         disabled={readOnly || !hasOptions}
@@ -424,7 +428,7 @@ const WriteBindingPicker: React.FC<{
       />
       {!hasOptions && (
         <Caption color="secondary">
-          Add an Input node — or any node with properties — to bind this control.
+          {t("i18n-next53.appBuilder.fields.addInputOrProperties")}
         </Caption>
       )}
     </FlexColumn>
@@ -456,6 +460,7 @@ const EventOperationPicker: React.FC<{
   readOnly?: boolean;
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
+  const { t } = useTranslation();
   const { operations } = useBuilderOperations();
   if (operations.length < 2) return null;
   return (
@@ -463,7 +468,7 @@ const EventOperationPicker: React.FC<{
       label={label}
       value={operations.some((op) => op.id === value) ? value : ""}
       options={[
-        { label: "— default —", value: "" },
+        { label: t("i18n-next53.appBuilder.fields.defaultOption"), value: "" },
         ...operations.map((op) => ({ label: op.name || op.id, value: op.id }))
       ]}
       disabled={readOnly}
@@ -492,6 +497,7 @@ const VariablePicker: React.FC<{
   readOnly?: boolean;
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
+  const { t } = useTranslation();
   const scope = useBuilderBindingScope();
   return (
     <Picker
@@ -501,7 +507,7 @@ const VariablePicker: React.FC<{
         label: variable.name,
         value: encodeBinding({ kind: "variable", variableId: variable.id })
       }))}
-      emptyHint="Add a Set Variable node to the workflow to create app state."
+      emptyHint={t("i18n-next53.appBuilder.fields.addSetVariable")}
       readOnly={readOnly}
       onChange={onChange}
     />
@@ -574,6 +580,7 @@ const ConditionEditor: React.FC<{
   readOnly?: boolean;
   onChange: (value: ConditionProps) => void;
 }> = ({ label, value, readOnly, onChange }) => {
+  const { t } = useTranslation();
   const { operationId, operations, workflow, select } = useBindingOperation(
     value.binding ?? ""
   );
@@ -621,14 +628,14 @@ const ConditionEditor: React.FC<{
         hintVisible={
           outputs.length === 0 && inputs.length === 0 && scope.variables.length === 0
         }
-        emptyHint="Add an Input, Output, or Set Variable node to condition on."
+        emptyHint={t("i18n-next53.appBuilder.fields.addConditionNode")}
         readOnly={readOnly}
         onChange={(binding) => onChange({ ...value, binding })}
       />
       {value.binding ? (
         <>
           <SelectField
-            label="Condition"
+            label={t("i18n-next53.appBuilder.fields.condition")}
             value={op}
             options={CONDITION_OPS}
             disabled={readOnly}
@@ -636,7 +643,7 @@ const ConditionEditor: React.FC<{
           />
           {OPS_WITH_VALUE.has(op) ? (
             <TextInput
-              label="Value"
+              label={t("i18n-next53.appBuilder.fields.value")}
               value={value.value ?? ""}
               disabled={readOnly}
               onChange={(event) =>
@@ -676,6 +683,7 @@ const ResourceBindingPicker: React.FC<{
   readOnly?: boolean;
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
+  const { t } = useTranslation();
   const { resources } = useBuilderWorkflow();
   return (
     <Picker
@@ -685,7 +693,7 @@ const ResourceBindingPicker: React.FC<{
         label: `${r.kind} · ${r.name}`,
         value: r.id
       }))}
-      emptyHint="Add a resource binding to the app to connect a collection."
+      emptyHint={t("i18n-next53.appBuilder.fields.addResourceBinding")}
       readOnly={readOnly}
       onChange={onChange}
     />

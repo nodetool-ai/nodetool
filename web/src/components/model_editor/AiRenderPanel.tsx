@@ -7,6 +7,7 @@
  * reused as the style reference of the next one to keep a look consistent.
  */
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import ImageIcon from "@mui/icons-material/Image";
@@ -114,6 +115,7 @@ const isImageAsset = (asset: Pick<Asset, "content_type">): boolean =>
   asset.content_type.startsWith("image/");
 
 const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { render } = useSceneAiRender();
 
@@ -166,12 +168,12 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
         return prev;
       }
       if (prev.length >= MAX_REFERENCES) {
-        setNotice(`Use up to ${MAX_REFERENCES} style references.`);
+        setNotice(t("i18n-cont-model-editor-11.aiRender.maxReferences", { count: MAX_REFERENCES }));
         return prev;
       }
       return [...prev, reference];
     });
-  }, []);
+  }, [t]);
 
   const handleUpload = useCallback(
     async (files: File[]) => {
@@ -180,11 +182,11 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
           const asset = await useAssetStore.getState().createAsset(file, undefined, undefined, undefined, "file");
           addReference({ assetId: asset.id, name: asset.name });
         } catch (error) {
-          setNotice(error instanceof Error ? error.message : "The image could not be uploaded.");
+          setNotice(error instanceof Error ? error.message : t("i18n-cont-model-editor-11.aiRender.errors.upload"));
         }
       }
     },
-    [addReference]
+    [addReference, t]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -212,7 +214,7 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
       if (dragData?.type === "asset") {
         const asset = dragData.payload;
         if (!isImageAsset(asset)) {
-          setNotice(`${asset.name} is not an image.`);
+          setNotice(t("i18n-cont-model-editor-11.aiRender.errors.notImage", { name: asset.name }));
           return;
         }
         addReference({ assetId: asset.id, name: asset.name });
@@ -222,24 +224,24 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
         void handleUpload(Array.from(e.dataTransfer.files));
       }
     },
-    [addReference, handleUpload]
+    [addReference, handleUpload, t]
   );
 
-  const passLabel = CAPTURE_PASSES.find((p) => p.id === settings.pass)?.label ?? settings.pass;
+  const passLabel = t(`i18n-cont-model-editor-11.aiRender.passes.${settings.pass}.label`);
 
   const handleRender = useCallback(async () => {
     let view: ViewportCapture;
     try {
       view = capture(settings.pass);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "The viewport could not be captured.");
+      setNotice(error instanceof Error ? error.message : t("i18n-cont-model-editor-11.aiRender.errors.capture"));
       return;
     }
     const size = deriveImageSizePreset(view.width, view.height);
     const id = crypto.randomUUID();
-    const captionParts = [settings.modelName || settings.model, `${passLabel} view`];
+    const captionParts = [settings.modelName || settings.model, t("i18n-cont-model-editor-11.aiRender.viewCaption", { pass: passLabel })];
     if (references.length > 0) {
-      captionParts.push(`${references.length} style ${references.length === 1 ? "reference" : "references"}`);
+      captionParts.push(t("i18n-cont-model-editor-11.aiRender.referenceCount", { count: references.length, formattedCount: new Intl.NumberFormat(i18n.language).format(references.length) }));
     }
     const entry: RenderEntry = { id, status: "rendering", caption: captionParts.join(" · ") };
     setRenders((prev) => [entry, ...prev]);
@@ -257,10 +259,10 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
       });
       setRenders((prev) => prev.map((r) => (r.id === id ? { ...r, status: "done", assetId } : r)));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "The render failed.";
+      const message = error instanceof Error ? error.message : t("i18n-cont-model-editor-11.aiRender.errors.render");
       setRenders((prev) => prev.map((r) => (r.id === id ? { ...r, status: "failed", error: message } : r)));
     }
-  }, [capture, settings, passLabel, references, render, prompt, constraints]);
+  }, [capture, settings, passLabel, references, render, prompt, constraints, t, i18n.language]);
 
   const shown = useMemo(
     () => renders.find((r) => r.id === shownId) ?? renders[0] ?? null,
@@ -272,10 +274,10 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
   const errorContext = useMemo(
     () => ({
       source: "operation-failure" as const,
-      summary: "AI render of a 3D editor view failed",
+      summary: t("i18n-cont-model-editor-11.aiRender.errors.context"),
       errorText: shown?.error
     }),
-    [shown?.error]
+    [shown?.error, t]
   );
 
   return (
@@ -283,7 +285,7 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
       <DropZone
         overlay
         over={dropActive}
-        overlayLabel="Drop an image as a style reference"
+        overlayLabel={t("i18n-cont-model-editor-11.aiRender.dropReference")}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -303,13 +305,13 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
           {!shown ? (
             <EmptyState
               size="small"
-              title="No renders yet"
-              description="Frame the shot in the viewport, then render it with an image model."
+              title={t("i18n-cont-model-editor-11.aiRender.emptyTitle")}
+              description={t("i18n-cont-model-editor-11.aiRender.emptyDescription")}
             />
           ) : shown.status === "rendering" ? (
             <FlexColumn align="center" justify="center" gap={SPACING.sm} sx={{ aspectRatio: "16 / 9" }}>
               <LoadingSpinner />
-              <Caption>Rendering this view…</Caption>
+              <Caption>{t("i18n-cont-model-editor-11.aiRender.rendering")}</Caption>
             </FlexColumn>
           ) : shown.status === "failed" ? (
             <Box sx={{ padding: getSpacingPx(SPACING.sm) }}>
@@ -324,7 +326,7 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
           ) : (
             <ResponsiveImage
               locator={`asset://${shown.assetId}`}
-              alt={`AI render: ${shown.caption}`}
+              alt={t("i18n-cont-model-editor-11.aiRender.renderAlt", { caption: shown.caption })}
               fit="contain"
               showSkeleton
             />
@@ -339,18 +341,18 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
             disabled={references.some((r) => r.assetId === shown.assetId)}
             onClick={() => addReference({ assetId: shown.assetId as string, name: shown.caption })}
           >
-            Use this render as a style reference
+            {t("i18n-cont-model-editor-11.aiRender.useRenderReference")}
           </EditorButton>
         )}
 
         <TextArea
           value={prompt}
           onChange={(value) => setPrompt(value)}
-          placeholder="Describe the finished image, e.g. moonlit bedroom, Pixar style, soft rim light"
+          placeholder={t("i18n-cont-model-editor-11.aiRender.promptPlaceholder")}
           minRows={2}
           maxRows={6}
           fullWidth
-          inputProps={{ "aria-label": "Render prompt" }}
+          inputProps={{ "aria-label": t("i18n-cont-model-editor-11.aiRender.promptLabel") }}
           onKeyDown={(e) => {
             if (
               e.key === "Enter" &&
@@ -365,11 +367,11 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
         />
 
         <FlexColumn gap={SPACING.xs}>
-          <Label size="small">Model</Label>
+          <Label size="small">{t("i18n-cont-model-editor-11.aiRender.model")}</Label>
           <MediaControlChip
             ref={modelAnchorRef}
             icon={<ImageIcon fontSize="small" />}
-            label={settings.modelName || settings.model || "Select an image model"}
+            label={settings.modelName || settings.model || t("i18n-cont-model-editor-11.aiRender.selectModel")}
             active={modelMenuOpen}
             onClick={() => setModelMenuOpen(true)}
             truncate
@@ -388,7 +390,7 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
         </FlexColumn>
 
         <FlexColumn gap={SPACING.xs}>
-          <Label size="small">Send the model</Label>
+          <Label size="small">{t("i18n-cont-model-editor-11.aiRender.sendModel")}</Label>
           <ToggleGroup
             size="small"
             exclusive
@@ -397,9 +399,9 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
             onChange={(_e, value) => value && updateSettings({ pass: value as CapturePass })}
           >
             {CAPTURE_PASSES.map((pass) => (
-              <ToggleOption key={pass.id} value={pass.id} size="small" aria-label={`${pass.label} view`}>
-                <Tooltip title={pass.hint}>
-                  <span>{pass.label}</span>
+              <ToggleOption key={pass.id} value={pass.id} size="small" aria-label={t("i18n-cont-model-editor-11.aiRender.passView", { pass: t(`i18n-cont-model-editor-11.aiRender.passes.${pass.id}.label`) })}>
+                <Tooltip title={t(`i18n-cont-model-editor-11.aiRender.passes.${pass.id}.hint`)}>
+                  <span>{t(`i18n-cont-model-editor-11.aiRender.passes.${pass.id}.label`)}</span>
                 </Tooltip>
               </ToggleOption>
             ))}
@@ -408,10 +410,10 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
 
         <FlexColumn gap={SPACING.xs}>
           <FlexRow align="center" justify="space-between">
-            <Label size="small">Style references</Label>
+            <Label size="small">{t("i18n-cont-model-editor-11.aiRender.references")}</Label>
             <UploadButton
               onFileSelect={(files) => void handleUpload(files)}
-              tooltip="Upload a style reference image"
+              tooltip={t("i18n-cont-model-editor-11.aiRender.uploadReference")}
               accept="image/*"
               disabled={references.length >= MAX_REFERENCES}
             />
@@ -424,7 +426,7 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
                 border: `1px dashed ${theme.vars.palette.divider}`
               }}
             >
-              <Caption>Drop an image here, or use a render below, to keep a look across shots.</Caption>
+              <Caption>{t("i18n-cont-model-editor-11.aiRender.referenceHint")}</Caption>
             </Box>
           ) : (
             <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap" }}>
@@ -435,15 +437,15 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
                 >
                   <ResponsiveImage
                     locator={`asset://${reference.assetId}`}
-                    alt={`Style reference ${reference.name}`}
+                    alt={t("i18n-cont-model-editor-11.aiRender.referenceAlt", { name: reference.name })}
                     aspectRatio="1/1"
                     fit="cover"
                     preferThumbnail
                   />
                   <ToolbarIconButton
                     icon={<CloseIcon fontSize="small" />}
-                    tooltip="Remove reference"
-                    ariaLabel={`Remove style reference ${reference.name}`}
+                    tooltip={t("i18n-cont-model-editor-11.aiRender.removeReference")}
+                    ariaLabel={t("i18n-cont-model-editor-11.aiRender.removeReferenceNamed", { name: reference.name })}
                     size="small"
                     onClick={() =>
                       setReferences((prev) => prev.filter((r) => r.assetId !== reference.assetId))
@@ -468,9 +470,9 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
           disabled={!canRender}
           fullWidth
         >
-          Render this view
+            {t("i18n-cont-model-editor-11.aiRender.render")}
         </EditorButton>
-        {!canRender && <Caption>Pick an image model that can edit images.</Caption>}
+        {!canRender && <Caption>{t("i18n-cont-model-editor-11.aiRender.modelRequired")}</Caption>}
         {notice && (
           <AlertBanner severity="warning" compact onClose={() => setNotice(null)}>
             {notice}
@@ -479,14 +481,14 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
 
         {renders.length > 1 && (
           <FlexColumn gap={SPACING.xs}>
-            <Label size="small">Earlier renders</Label>
+            <Label size="small">{t("i18n-cont-model-editor-11.aiRender.earlierRenders")}</Label>
             <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap" }}>
               {renders.map((entry) => (
                 <FlexColumn key={entry.id} gap={SPACING.micro} sx={{ width: 96 }}>
                   <Box
                     component="button"
                     type="button"
-                    aria-label={`Show render: ${entry.caption}`}
+                    aria-label={t("i18n-cont-model-editor-11.aiRender.showRender", { caption: entry.caption })}
                     aria-pressed={entry.id === shown?.id}
                     onClick={() => setShownId(entry.id)}
                     sx={{
@@ -513,7 +515,7 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
                         {entry.status === "rendering" ? (
                           <LoadingSpinner inline size={14} />
                         ) : (
-                          <Caption color="error">Failed</Caption>
+                          <Caption color="error">{t("i18n-cont-model-editor-11.aiRender.failed")}</Caption>
                         )}
                       </FlexRow>
                     )}

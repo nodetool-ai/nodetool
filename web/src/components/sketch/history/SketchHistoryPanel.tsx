@@ -7,6 +7,7 @@
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useSketchStore } from "../state/useSketchStore";
 import { hasUncommittedHistoryTip } from "../state/slices/historySlice";
@@ -31,6 +32,7 @@ export const SketchHistoryPanel = memo(function SketchHistoryPanel({
   onUndo,
   onRedo
 }: SketchHistoryPanelProps) {
+  const { t } = useTranslation();
   const history = useSketchStore((s) => s.history);
   const historyIndex = useSketchStore((s) => s.historyIndex);
   const uncommittedTip = useSketchStore(hasUncommittedHistoryTip);
@@ -73,14 +75,14 @@ export const SketchHistoryPanel = memo(function SketchHistoryPanel({
   if (rows.length === 0) {
     return (
       <Caption sx={{ px: 1.5, py: 1 }} data-testid="sketch-history-empty">
-        Your edits appear here.
+        {t("i18n-next52.sketch.history.empty")}
       </Caption>
     );
   }
 
   return (
     <ScrollArea ref={scrollRef} maxHeight={LIST_MAX_HEIGHT} data-testid="sketch-history-panel">
-      <FlexColumn role="list" aria-label="History" gap={0}>
+      <FlexColumn role="list" aria-label={t("i18n-next52.sketch.history.label")} gap={0}>
         {rows.map((row, i) => (
           <SelectableListItem
             key={row.index ?? "live"}
@@ -89,7 +91,7 @@ export const SketchHistoryPanel = memo(function SketchHistoryPanel({
             selected={row.current}
             onClick={() => handleSelect(row)}
             aria-current={row.current ? "step" : undefined}
-            aria-label={row.undone ? `${row.label} (undone)` : row.label}
+            aria-label={row.undone ? t("i18n-next52.sketch.history.undone", { label: row.label }) : row.label}
             data-testid="sketch-history-row"
             data-current={row.current ? "true" : undefined}
             data-undone={row.undone ? "true" : undefined}

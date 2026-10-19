@@ -5,6 +5,7 @@ import { ModSourceChip } from '../ModSourceChip';
 import { ACCENTS } from '../../constants';
 import type * as React from 'react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LFO_DIV_F, SYNC_BPM, lfoSource } from '../../params';
 import { useStore } from '../../store';
 
@@ -55,16 +56,17 @@ function LfoBlock({ id, src, accentKey, picker }: { id: string; src: number; acc
 // Four LFOs in two slots: each slot shows one of two LFOs (left 1|3, right
 // 2|4), picked by the number buttons beside its title.
 export function LfoPanel() {
+  const { t } = useTranslation();
   const [choice, setChoice] = useState([0, 0]);
   return (
     <section className="panel panel-lfos" style={{ gridArea: 'lfos' }}>
       {[0, 1].map((slot) => {
         const n = slot + 1 + choice[slot]! * 2;
         const picker = (
-          <span className="lfo-pick" role="tablist" aria-label={`LFO slot ${slot + 1}`}>
+          <span className="lfo-pick" role="tablist" aria-label={t('i18n-next45-fablesynth-effects.lfo.slot', { slot: slot + 1 })}>
             {[0, 1].map((c) => (
               <button key={c} type="button" role="tab" className="lfo-pick-btn" aria-selected={choice[slot] === c}
-                title={`show LFO ${slot + 1 + c * 2}`}
+                title={t('i18n-next45-fablesynth-effects.lfo.show', { number: slot + 1 + c * 2 })}
                 onClick={() => setChoice((cur) => cur.map((v, i) => (i === slot ? c : v)))}>{slot + 1 + c * 2}</button>
             ))}
           </span>

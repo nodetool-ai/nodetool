@@ -11,6 +11,7 @@
  * only reason `WorkflowFormRow` exists.
  */
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Caption, FlexColumn, Label, SPACING } from "../../ui_primitives";
 import { AppEvent } from "../types";
@@ -74,6 +75,7 @@ export const WorkflowFormWidget: React.FC<WorkflowFormWidgetProps> = ({
   showDescriptions,
   events
 }) => {
+  const { t } = useTranslation();
   const { ioFor, scope, designMode } = useAppRuntimeContext();
   // The form owns no single binding, so it takes "none": a "write" mode would
   // claim a view slot of its own, which would hold a value nothing reads. All
@@ -92,7 +94,7 @@ export const WorkflowFormWidget: React.FC<WorkflowFormWidgetProps> = ({
         {heading}
         {io.inputs.length === 0 ? (
           <Caption color="secondary">
-            This form shows every input of its operation when the app runs.
+            {t("i18n-next109.appbuilder.puck.workflowForm.designModeDescription")}
           </Caption>
         ) : (
           io.inputs.map((input) => (
@@ -109,7 +111,9 @@ export const WorkflowFormWidget: React.FC<WorkflowFormWidgetProps> = ({
     return (
       <FlexColumn gap={SPACING.xs} fullWidth>
         {heading}
-        <Caption color="secondary">This operation has no inputs.</Caption>
+        <Caption color="secondary">
+          {t("i18n-next109.appbuilder.puck.workflowForm.noInputs")}
+        </Caption>
       </FlexColumn>
     );
   }

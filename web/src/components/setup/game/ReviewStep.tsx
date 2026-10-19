@@ -13,6 +13,8 @@
  */
 
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { GameSlotSpec } from "@nodetool-ai/protocol";
 import type { GameDesign } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
@@ -26,7 +28,6 @@ import {
 import { PlanReview } from "../PlanReview";
 import type { PlanReviewField, PlanReviewSection } from "../PlanReview";
 import ErrorBanner from "../../support/ErrorBanner";
-import { describeGameSlot } from "./gameSetupModel";
 
 export interface GameReviewStepProps {
   workflowId: string;
@@ -42,8 +43,41 @@ export interface GameReviewStepProps {
   readOnly?: boolean;
 }
 
-const FILLED_HINT =
-  "The designer left this out, so it is the template's own words. Write your own.";
+const describeSlot = (slot: GameSlotSpec, t: TFunction): string => {
+  switch (slot.kind) {
+    case "spritesheet": {
+      const animations = Object.entries(slot.animations)
+        .map(([name, frames]) =>
+          frames === 1
+            ? name
+            : t("pass3_6.game.review.animationFrames", { name, count: frames })
+        )
+        .join(", ");
+      return t("pass3_6.game.review.slotSprite", {
+        id: slot.id,
+        width: slot.cell[0],
+        height: slot.cell[1],
+        animations
+      });
+    }
+    case "tileset":
+      return t("pass3_6.game.review.slotTile", {
+        id: slot.id,
+        width: slot.cell[0],
+        height: slot.cell[1]
+      });
+    case "image":
+      return t("pass3_6.game.review.slotImage", {
+        id: slot.id,
+        width: slot.size[0],
+        height: slot.size[1]
+      });
+    case "sfx":
+      return t("pass3_6.game.review.slotSound", { id: slot.id });
+    case "music":
+      return t("pass3_6.game.review.slotMusic", { id: slot.id });
+  }
+};
 
 const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
   workflowId,
@@ -57,6 +91,7 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
   error,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const locked = readOnly || redesignPending;
 
   const sections = useMemo<PlanReviewSection[]>(() => {
@@ -76,7 +111,9 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
     const cast: PlanReviewField[] = design.cast.flatMap((member, index) => [
       {
         id: `cast-${member.slot_id}-name`,
-        label: `${member.slot_id} name`,
+        label: t("pass3_6.game.review.characterNameLabel", {
+          slot: member.slot_id
+        }),
         value: member.name,
         compact: true,
         readOnly: locked,
@@ -90,12 +127,14 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
       },
       {
         id: `cast-${member.slot_id}-descriptor`,
-        label: `How ${member.name.trim() || member.slot_id} looks`,
+        label: t("pass3_6.game.review.characterLookLabel", {
+          name: member.name.trim() || member.slot_id
+        }),
         value: member.descriptor,
         multiline: true,
         readOnly: locked,
         hint: filled.includes(`cast.${member.slot_id}`)
-          ? FILLED_HINT
+          ? t("pass3_6.game.review.filledHint")
           : undefined,
         onChange: (value: string) =>
           onDesignChange({
@@ -114,14 +153,14 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
           ?.prompt ?? "";
       return {
         id: `slot-${slot.id}`,
-        label: describeGameSlot(slot),
+        label: describeSlot(slot, t),
         value: current,
         multiline: true,
         readOnly: locked || sound,
         hint: sound
-          ? "Sounds keep the template's built-in effect for now."
+          ? t("pass3_6.game.review.soundHint")
           : filled.includes(`slot_prompts.${slot.id}`)
-            ? FILLED_HINT
+            ? t("pass3_6.game.review.filledHint")
             : undefined,
         onChange: (value: string) => {
           const exists = design.slot_prompts.some(
@@ -144,41 +183,39 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
     return [
       {
         id: "game",
-        header: "The game",
+        header: t("pass3_6.game.review.gameSection"),
         rows: [
-          field("title", "Title"),
-          field("premise", "Premise", true),
-          field("core_loop", "How it plays", true),
-          field("level", "The level", true),
-          field("win", "How you win"),
-          field("lose", "How you lose")
+          field("title", t("pass3_6.game.review.titleField")),
+          field("premise", t("pass3_6.game.review.premiseField"), true),
+          field("core_loop", t("pass3_6.game.review.coreLoopField"), true),
+          field("level", t("pass3_6.game.review.levelField"), true),
+          field("win", t("pass3_6.game.review.winField")),
+          field("lose", t("pass3_6.game.review.loseField"))
         ]
       },
       {
         id: "cast",
-        header: "Characters",
-        subheader:
-          "Each look is pasted into its sprite's prompt, so the art matches it.",
+        header: t("pass3_6.game.review.charactersSection"),
+        subheader: t("pass3_6.game.review.charactersDescription"),
         rows: cast
       },
       {
         id: "art",
-        header: "Art",
-        subheader: "What each piece of art shows. The style is added next.",
+        header: t("pass3_6.game.review.artSection"),
+        subheader: t("pass3_6.game.review.artDescription"),
         rows: art
       }
     ];
-  }, [design, filled, locked, onDesignChange, slots]);
+  }, [design, filled, locked, onDesignChange, slots, t]);
 
   return (
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Review the design
+          {t("pass3_6.game.review.heading")}
         </Text>
         <Text size="normal" color="secondary">
-          Edit anything before the art is drawn. Nothing has been generated
-          yet.
+          {t("pass3_6.game.review.description")}
         </Text>
       </FlexColumn>
 
@@ -188,7 +225,7 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
         <ErrorBanner
           report={{
             source: "operation-failure",
-            summary: "Designing a game failed",
+            summary: t("pass3_6.game.review.designFailed"),
             errorText: error,
             workflowId
           }}
@@ -204,11 +241,13 @@ const ReviewStepInternal: React.FC<GameReviewStepProps> = ({
           onClick={onRedesign}
           disabled={locked}
         >
-          {redesignPending ? "Re-designing" : "Re-design"}
+          {redesignPending
+            ? t("pass3_6.game.review.redesigning")
+            : t("pass3_6.game.review.redesign")}
         </EditorButton>
         {redesignPending && !readOnly ? (
           <EditorButton variant="text" size="small" onClick={onCancelRedesign}>
-            Cancel
+            {t("pass3_6.game.review.cancelRedesign")}
           </EditorButton>
         ) : null}
       </FlexRow>

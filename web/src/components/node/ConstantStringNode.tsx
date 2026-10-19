@@ -9,6 +9,7 @@ import {
   useLayoutEffect,
   useEffect
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
   NodeProps,
   Node,
@@ -157,6 +158,7 @@ const styles = (theme: Theme) =>
 const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected } = props;
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   // The text area exists only while editing; a static preview stands in
   // for it otherwise, so the body never catches a pan or a zoom.
@@ -382,7 +384,11 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </HandleTooltip>
         </div>
         <div className="header-actions nodrag nopan">
-          <ToolbarIconButton title="Open editor" size="small" onClick={toggleExpand}>
+          <ToolbarIconButton
+            title={t("i18n-next36.nodeEditor.constantString.openEditor")}
+            size="small"
+            onClick={toggleExpand}
+          >
             <OpenInFullIcon />
           </ToolbarIconButton>
           <CopyButton value={localValue} buttonSize="small" />
@@ -401,7 +407,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           <textarea
             ref={setTextareaRef}
             className="constant-string-textarea"
-            aria-label="String value"
+            aria-label={t("i18n-next36.nodeEditor.constantString.stringValue")}
             value={localValue}
             onChange={handleChange}
             onFocus={() => setIsFocused(true)}
@@ -424,7 +430,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             className="constant-string-textarea"
             value={localValue}
             onActivate={isConnected ? NO_ACTIVATE : startEditing}
-            ariaLabel="Edit string value"
+            ariaLabel={t("i18n-next36.nodeEditor.constantString.editStringValue")}
           />
         </div>
       )}
@@ -442,7 +448,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onChange={handleEditorChange}
           onClose={toggleExpand}
           propertyName="value"
-          propertyDescription="String value"
+          propertyDescription={t("i18n-next36.nodeEditor.constantString.stringValueDescription")}
         />
       )}
     </Container>

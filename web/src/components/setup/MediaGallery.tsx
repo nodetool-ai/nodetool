@@ -33,6 +33,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import type { SxProps, Theme } from "@mui/material/styles";
 
@@ -352,6 +353,7 @@ export const GalleryExpandButton: React.FC<GalleryExpandButtonProps> = ({
   caption,
   label
 }) => {
+  const { t } = useTranslation();
   const ref = useRef<HTMLButtonElement>(null);
   const open = useMediaGallery();
   useGalleryMedia({ locator, kind, caption }, ref);
@@ -373,8 +375,12 @@ export const GalleryExpandButton: React.FC<GalleryExpandButtonProps> = ({
     <ToolbarIconButton
       ref={ref}
       icon={<FullscreenIcon fontSize="small" />}
-      tooltip="View fullscreen"
-      ariaLabel={name ? `View ${name} fullscreen` : "View fullscreen"}
+      tooltip={t("pass3_2.setup.mediaGallery.viewFullscreen")}
+      ariaLabel={
+        name
+          ? t("pass3_2.setup.mediaGallery.viewNamedFullscreen", { name })
+          : t("pass3_2.setup.mediaGallery.viewFullscreen")
+      }
       onClick={handleClick}
       data-testid="media-gallery-expand"
       sx={expandButtonSx}

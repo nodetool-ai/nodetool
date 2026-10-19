@@ -7,6 +7,7 @@
  * opens the copy; a viewer who is not signed in is sent to sign in first.
  */
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   EditorButton,
@@ -29,6 +30,7 @@ import { rememberPostLoginReturn } from "../../utils/postLoginReturn";
 const PREVIEW_WORKFLOW_ID = "public-share-preview";
 
 const PublicWorkflowPage = () => {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const authState = useAuth((auth) => auth.state);
@@ -53,23 +55,25 @@ const PublicWorkflowPage = () => {
       const copy = await duplicate.mutateAsync(token);
       addNotification({
         type: "success",
-        content: `Added "${copy.name}" to your workflows`,
+        content: t("pass3_36.workflows.publicWorkflow.addedToWorkflows", {
+          name: copy.name
+        }),
         alert: true
       });
       navigate(`/editor/${copy.id}`);
     } catch {
       addNotification({
         type: "error",
-        content: "Could not copy this workflow",
+        content: t("pass3_36.workflows.publicWorkflow.copyError"),
         alert: true
       });
     }
-  }, [token, signedIn, duplicate, addNotification, navigate]);
+  }, [token, signedIn, duplicate, addNotification, navigate, t]);
 
   if (isLoading) {
     return (
       <FlexColumn align="center" justify="center" sx={{ height: "100vh" }}>
-        <LoadingSpinner />
+        <LoadingSpinner text={t("pass3_36.workflows.publicWorkflow.loading")} />
       </FlexColumn>
     );
   }
@@ -84,8 +88,8 @@ const PublicWorkflowPage = () => {
       >
         <EmptyState
           variant="error"
-          title="This workflow is not available"
-          description="The link may have been revoked. Ask the person who shared it for a new one."
+          title={t("pass3_36.workflows.publicWorkflow.unavailableTitle")}
+          description={t("pass3_36.workflows.publicWorkflow.unavailableDescription")}
         />
       </FlexColumn>
     );
@@ -109,7 +113,9 @@ const PublicWorkflowPage = () => {
             disabled={duplicate.isPending || authState === "loading"}
             onClick={() => void handleDuplicate()}
           >
-            {signedIn ? "Duplicate to my workflows" : "Sign in to duplicate"}
+            {signedIn
+              ? t("pass3_36.workflows.publicWorkflow.duplicateToMyWorkflows")
+              : t("pass3_36.workflows.publicWorkflow.signInToDuplicate")}
           </EditorButton>
         }
       />

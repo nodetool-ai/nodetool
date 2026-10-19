@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useSyncExternalStore
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
   NodeStore,
   NodeStoreState,
@@ -47,9 +48,10 @@ interface NodeProviderProps {
 }
 
 export const NodeProvider = ({ createStore, children }: NodeProviderProps) => {
+  const { t } = useTranslation();
   const store = useMemo(() => createStore(), [createStore]);
   if (!store) {
-    return <div>Loading workflow…</div>;
+    return <div>{t("screen_remaining.common.loading")}</div>;
   }
   return <NodeContext.Provider value={store}>{children}</NodeContext.Provider>;
 };

@@ -20,6 +20,7 @@ import { CollectionCreate } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import EmbeddingModelSelect from "../properties/EmbeddingModelSelect";
+import { useTranslation } from "react-i18next";
 
 const slideIn = keyframes`
   from {
@@ -50,6 +51,7 @@ interface CollectionFormProps {
 }
 
 const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<CollectionCreate>({
@@ -108,7 +110,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
     >
       <FlexRow gap={SPACING.lg} align="center" wrap>
         <TextInput
-          label="Collection name"
+          label={t("screen_assets.collections.name")}
           sx={{ flex: 1, minWidth: 180 }}
           value={formData.name}
           onChange={(e) =>
@@ -117,7 +119,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
               name: e.target.value
             }))
           }
-          placeholder="my-collection"
+          placeholder={t("i18n-next5.collections.namePlaceholder")}
           required
           fullWidth
           size="small"
@@ -126,7 +128,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
         />
 
         <FormField
-          label="Embedding model"
+          label={t("screen_assets.collections.embeddingModel")}
           compact
           sx={{ flex: 1, minWidth: 200 }}
         >
@@ -151,7 +153,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
             )
           }
         >
-          {createMutation.isPending ? "Creating…" : "Create"}
+          {createMutation.isPending ? t("screen_assets.collections.creating") : t("screen_assets.collections.create")}
         </EditorButton>
       </FlexRow>
 
@@ -159,7 +161,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
         <AlertBanner severity="error" sx={{ mt: SPACING.lg }}>
           {createMutation.error instanceof Error
             ? createMutation.error.message
-            : "Failed to create collection"}
+            : t("screen_assets.collections.createFailed")}
         </AlertBanner>
       )}
     </FlexColumn>

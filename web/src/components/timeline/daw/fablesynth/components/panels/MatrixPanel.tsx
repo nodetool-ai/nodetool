@@ -5,6 +5,7 @@
 
 import type * as React from 'react';
 import { useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MOD_SOURCES, MOD_DESTS, SOURCE_COLORS, MACRO_COUNT, fmtBi, routeBipolar, polarityFor, macroSource } from '../../params';
 import { useStore } from '../../store';
 import { MOD_MATRIX_SIZE } from '../../store/slotHelpers';
@@ -102,6 +103,7 @@ function ModSelect({ value, options, label, onChange }: { value: number; options
 }
 
 export function MatrixPanel() {
+  const { t } = useTranslation();
   const params = useStore((s) => s.params);
   const addRoute = useStore((s) => s.addRoute);
   const updateSlot = useStore((s) => s.updateSlot);
@@ -125,14 +127,14 @@ export function MatrixPanel() {
   return (
     <section className="panel panel-matrix" style={{ gridArea: 'matrix' }}>
       <div className="mx-rail">
-        <div className="panel-head"><h2>MOD MATRIX</h2></div>
-        <div className="mx-sources" aria-label="Modulation sources">
+        <div className="panel-head"><h2>{t('i18n-next45-fablesynth-effects.matrix.title')}</h2></div>
+        <div className="mx-sources" aria-label={t('i18n-next45-fablesynth-effects.matrix.sources')}>
           {RAIL_SOURCES.map((s) => <ModSourceChip key={s} src={s} />)}
         </div>
-        <button className="mx-add" onClick={() => addRoute(1, 0)}>+ ADD ROUTE</button>
+        <button className="mx-add" onClick={() => addRoute(1, 0)}>+ {t('i18n-next45-fablesynth-effects.matrix.addRoute')}</button>
       </div>
 
-      <div className="mx-macros" aria-label="Macros">
+      <div className="mx-macros" aria-label={t('i18n-next45-fablesynth-effects.matrix.macros')}>
         {Array.from({ length: MACRO_COUNT }, (_, i) => (
           <div className="mx-macro" key={i}>
             <ModSourceChip src={macroSource(i + 1)} compact />
@@ -145,22 +147,22 @@ export function MatrixPanel() {
         </div>
       </div>
 
-      <div className="matrix-rows" aria-label="Modulation routes">
+      <div className="matrix-rows" aria-label={t('i18n-next45-fablesynth-effects.matrix.routes')}>
         {rows.map((r) => (
           <div className="mx-row" key={r.slot}>
-            <AmtKnob amt={r.amt} color={SOURCE_COLORS[r.src]} label={`Route ${r.slot} amount`} onChange={(a) => updateSlot(r.slot, { amt: a })} />
-            <ModSelect value={r.src} options={MOD_SOURCES} label={`Route ${r.slot} source`} onChange={(v) => updateSlot(r.slot, { src: v })} />
+            <AmtKnob amt={r.amt} color={SOURCE_COLORS[r.src]} label={t('i18n-next45-fablesynth-effects.matrix.routeAmount', { route: r.slot })} onChange={(a) => updateSlot(r.slot, { amt: a })} />
+            <ModSelect value={r.src} options={MOD_SOURCES} label={t('i18n-next45-fablesynth-effects.matrix.routeSource', { route: r.slot })} onChange={(v) => updateSlot(r.slot, { src: v })} />
             <span className="mx-arrow">▸</span>
-            <ModSelect value={r.dst} options={MOD_DESTS} label={`Route ${r.slot} destination`} onChange={(v) => updateSlot(r.slot, { dst: v })} />
+            <ModSelect value={r.dst} options={MOD_DESTS} label={t('i18n-next45-fablesynth-effects.matrix.routeDestination', { route: r.slot })} onChange={(v) => updateSlot(r.slot, { dst: v })} />
             <span className="mx-arrow" aria-hidden="true">×</span>
-            <ModSelect value={r.aux} options={AUX_OPTIONS} label={`Route ${r.slot} aux source`} onChange={(v) => updateSlot(r.slot, { aux: v })} />
+            <ModSelect value={r.aux} options={AUX_OPTIONS} label={t('i18n-next45-fablesynth-effects.matrix.routeAuxSource', { route: r.slot })} onChange={(v) => updateSlot(r.slot, { aux: v })} />
             <button className={`mx-pol${r.bi ? ' on' : ''}`} aria-pressed={r.bi}
-              aria-label={`Route ${r.slot} polarity`} title="UNI pushes one way, BI swings both ways"
+              aria-label={t('i18n-next45-fablesynth-effects.matrix.routePolarity', { route: r.slot })} title={t('i18n-next45-fablesynth-effects.matrix.polarityTitle')}
               onClick={() => updateSlot(r.slot, { pol: polarityFor(r.src, !r.bi) })}>{r.bi ? 'BI' : 'UNI'}</button>
-            <button className="mx-del" aria-label={`Remove route ${r.slot}`} title="remove" onClick={() => clearSlot(r.slot)}>×</button>
+            <button className="mx-del" aria-label={t('i18n-next45-fablesynth-effects.matrix.removeRoute', { route: r.slot })} title={t('i18n-next45-fablesynth-effects.common.remove')} onClick={() => clearSlot(r.slot)}>×</button>
           </div>
         ))}
-        {!rows.length && <p className="mx-empty">No modulation routes yet.</p>}
+        {!rows.length && <p className="mx-empty">{t('i18n-next45-fablesynth-effects.matrix.empty')}</p>}
       </div>
     </section>
   );

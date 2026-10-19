@@ -1,4 +1,5 @@
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import useMetadataStore from "../../stores/MetadataStore";
 import { ToolbarIconButton } from "../ui_primitives";
@@ -16,16 +17,17 @@ interface OutputQuickActionButtonsProps {
 
 const QuickActionButton: React.FC<{
   action: OutputQuickAction;
+  label: string;
   onRun: (action: OutputQuickAction) => void;
-}> = ({ action, onRun }) => {
+}> = ({ action, label, onRun }) => {
   const handleClick = useCallback(() => onRun(action), [action, onRun]);
   return (
     <ToolbarIconButton
-      title={action.label}
+      title={label}
       size="small"
       onClick={handleClick}
       className={`overlay-icon-btn output-quick-action-${action.key}`}
-      aria-label={action.label}
+      aria-label={label}
     >
       <action.Icon />
     </ToolbarIconButton>
@@ -41,6 +43,7 @@ const OutputQuickActionButtons: React.FC<OutputQuickActionButtonsProps> = ({
   outputName,
   outputType
 }) => {
+  const { t } = useTranslation();
   const metadata = useMetadataStore((state) => state.metadata);
   const addConnectedNode = useAddConnectedNode();
   const handleRun = useCallback(
@@ -65,7 +68,12 @@ const OutputQuickActionButtons: React.FC<OutputQuickActionButtonsProps> = ({
   return (
     <>
       {actions.map((action) => (
-        <QuickActionButton key={action.key} action={action} onRun={handleRun} />
+        <QuickActionButton
+          key={action.key}
+          action={action}
+          label={t(`i18n-next36.nodeEditor.outputQuickActions.${action.key}`)}
+          onRun={handleRun}
+        />
       ))}
     </>
   );

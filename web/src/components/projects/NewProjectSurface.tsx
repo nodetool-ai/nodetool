@@ -21,6 +21,8 @@ import {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   DEFAULT_NATIVE_GAME_TEMPLATE,
   isModelSelected,
@@ -323,7 +325,7 @@ const SETUP_TAB_TYPE = {
 } as const;
 
 /** What a flow makes, in the creator's words. */
-const SETUP_KIND_NOUN: Record<SetupTarget["kind"], string> = {
+const setupKindTranslationKey: Record<SetupTarget["kind"], string> = {
   entity: "entity",
   storyboard: "storyboard",
   video: "video",
@@ -406,37 +408,35 @@ const deleteSetupDocument = async (target: SetupTarget): Promise<void> => {
  * one run a test run, the Game flow just runs the graph, and the two results
  * differ only in that name.
  */
-const buildFailures = (result: BuildFromPlanResult): string[] => {
+const buildFailures = (result: BuildFromPlanResult, t: TFunction): string[] => {
   const lines: string[] = [];
   if (result.issues.length > 0) {
     lines.push(
-      `${result.issues.length} connection${
-        result.issues.length === 1 ? "" : "s"
-      } could not be wired.`
+      t("pass3_32.projects.home.buildFailures.connections", { count: result.issues.length })
     );
   }
   if (result.validationErrors.length > 0) {
     lines.push(
-      `The graph did not validate: ${result.validationErrors.join("; ")}`
+      t("pass3_32.projects.home.buildFailures.validation", { errors: result.validationErrors.join("; ") })
     );
   }
   const run = result.testRun;
   if (run.error) {
-    lines.push(`The run was refused: ${run.error}`);
+    lines.push(t("pass3_32.projects.home.buildFailures.runRefused", { error: run.error }));
   }
   return lines;
 };
 
 /** What a game build could not draw, one line. Empty when every slot drew. */
-const gameBuildFailures = (game: BuildGameResult): string[] =>
+const gameBuildFailures = (game: BuildGameResult, t: TFunction): string[] =>
   game.failures.length === 0
     ? []
     : [
-        `${game.failures.length} piece${
-          game.failures.length === 1 ? "" : "s"
-        } of art kept the placeholder (${game.failures
-          .map((failure) => failure.slot)
-          .join(", ")}): ${game.failures[0]?.reason ?? ""}`
+        t("pass3_32.projects.home.buildFailures.gameArt", {
+          count: game.failures.length,
+          slots: game.failures.map((failure) => failure.slot).join(", "),
+          reason: game.failures[0]?.reason ?? ""
+        })
       ];
 
 /**
@@ -464,6 +464,12 @@ const NewProjectSurface = ({
   initialSetupTarget,
   active = true
 }: NewProjectSurfaceProps) => {
+  const { t } = useTranslation();
+  const setupKindName = useCallback(
+    (kind: SetupTarget["kind"]) =>
+      t(`pass3_32.projects.home.flowNames.${setupKindTranslationKey[kind]}`),
+    [t]
+  );
   const [prompt, setPrompt] = useState("");
   const [showMoreFlows, setShowMoreFlows] = useState(false);
   const [gameDimension, setGameDimension] = useState<"2d" | "3d">("2d");
@@ -758,9 +764,10 @@ const NewProjectSurface = ({
         addNotification({
           type: "warning",
           alert: true,
-          content: `Reference images take pictures only. ${skipped
-            .map((file) => file.name)
-            .join(", ")} ${skipped.length === 1 ? "was" : "were"} not added.`
+          content: t("pass3_32.projects.home.unsupportedReferenceFiles", {
+            files: skipped.map((file) => file.name).join(", "),
+            count: skipped.length
+          })
         });
       }
       if (images.length > 0) {
@@ -769,7 +776,7 @@ const NewProjectSurface = ({
       // Clear the input so picking the same file twice still registers.
       event.target.value = "";
     },
-    [addNotification, uploadFiles]
+    [addNotification, uploadFiles, t]
   );
 
   const handleStart = useCallback(async () => {
@@ -783,7 +790,7 @@ const NewProjectSurface = ({
       addNotification({
         type: "info",
         alert: true,
-        content: "Still checking your language models. Try again in a moment."
+        content: t("pass3_32.projects.home.checkingModels")
       });
       return;
     }
@@ -791,7 +798,7 @@ const NewProjectSurface = ({
       setPendingStart(true);
       openProviderOnboarding({
         capability: "generate_message",
-        reason: "Almost there — chat needs a model to run."
+        reason: t("pass3_32.projects.home.chatNeedsModel")
       });
       return;
     }
@@ -821,7 +828,7 @@ const NewProjectSurface = ({
       addNotification({
         type: "info",
         alert: true,
-        content: "Pick a language model and the chat starts.",
+        content: t("pass3_32.projects.home.pickModelToStartChat"),
         dedupeKey: PICK_MODEL_NOTICE_KEY
       });
       return;
@@ -846,7 +853,7 @@ const NewProjectSurface = ({
         type: "chat",
         ref: threadId,
         mode: "view",
-        title: "New chat",
+        title: t("pass3_32.projects.home.newChat"),
         projectId
       });
       useOnboardingStore.getState().markIdeaDescribed();
@@ -857,9 +864,9 @@ const NewProjectSurface = ({
       addNotification({
         type: "error",
         alert: true,
-        content: `Could not open chat: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        content: t("pass3_32.projects.home.openChatError", {
+          error: error instanceof Error ? error.message : String(error)
+        })
       });
     } finally {
       setStarting(false);
@@ -875,6 +882,7 @@ const NewProjectSurface = ({
     providerReadiness.loading,
     openTab,
     prompt,
+    t,
     selectedEntities,
     selectedModel,
     setSelectedModel,
@@ -911,7 +919,7 @@ const NewProjectSurface = ({
           type: "project-new",
           ref: PROJECT_NEW_REF,
           mode: "view",
-          title: "Home"
+          title: t("pass3_32.projects.home.homeTab")
         });
       }
       const ref = crypto.randomUUID();
@@ -932,7 +940,8 @@ const NewProjectSurface = ({
     hasHomeTab,
     openTab,
     setActiveTab,
-    setGuidedFlowTarget
+    setGuidedFlowTarget,
+    t
   ]);
 
   // Carry an in-progress flow from the former single-tab session storage into
@@ -951,12 +960,13 @@ const NewProjectSurface = ({
       addNotification({
         type: "error",
         alert: true,
-        content: `Could not start the ${flow}: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        content: t("pass3_32.projects.home.startFlowError", {
+          flow: t(`pass3_32.projects.home.flowNames.${flow}`, { defaultValue: flow }),
+          error: error instanceof Error ? error.message : String(error)
+        })
       });
     },
-    [addNotification]
+    [addNotification, t]
   );
 
   /**
@@ -982,15 +992,13 @@ const NewProjectSurface = ({
             : carries.references;
       const leftOver = droppedFiles.length - carried;
       if (leftOver > 0) {
-        left.push(
-          `${leftOver} reference ${leftOver === 1 ? "image" : "images"}`
-        );
+        left.push(t("pass3_32.projects.home.referenceImageCount", { count: leftOver }));
       }
       if (!carries.entities && selectedEntities.length > 0) {
         left.push(
           selectedEntities.length === 1
-            ? `the entity ${selectedEntities[0].name}`
-            : `${selectedEntities.length} entities`
+            ? t("pass3_32.projects.home.singleEntity", { name: selectedEntities[0].name })
+            : t("pass3_32.projects.home.entityCount", { count: selectedEntities.length })
         );
       }
       if (left.length === 0) {
@@ -999,12 +1007,13 @@ const NewProjectSurface = ({
       addNotification({
         type: "info",
         alert: true,
-        content: `The ${flow} flow starts from your prompt, so ${left.join(
-          " and "
-        )} stay on this screen. Add them from the flow's own step.`
+        content: t("pass3_32.projects.home.uncarriedContext", {
+          flow: t(`pass3_32.projects.home.flowNames.${flow}`, { defaultValue: flow }),
+          items: left.join(", ")
+        })
       });
     },
-    [addNotification, droppedFiles, selectedEntities]
+    [addNotification, droppedFiles, selectedEntities, t]
   );
 
   // The Storyboard entry card (PRD § 6.1, D2). Explicit: nothing typed in the
@@ -1020,7 +1029,7 @@ const NewProjectSurface = ({
       }
       const text = flowPrompt.trim();
       const name =
-        text.length > 0 ? projectNameFromPrompt(text, null) : "New storyboard";
+        text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.storyboard");
       setStarting(true);
       try {
         const board = await createStoryboard.mutateAsync({
@@ -1057,7 +1066,8 @@ const NewProjectSurface = ({
       noteUncarriedContext,
       flowPrompt,
       reportEntryFailure,
-      starting
+      starting,
+      t
     ]
   );
 
@@ -1070,7 +1080,7 @@ const NewProjectSurface = ({
       }
       const text = flowPrompt.trim();
       const name =
-        text.length > 0 ? projectNameFromPrompt(text, null) : "New video";
+        text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.video");
       setStarting(true);
       // The sequence made before its setup PATCH. A failure in between
       // deletes it, so no empty timeline is left in the project (F15).
@@ -1149,7 +1159,8 @@ const NewProjectSurface = ({
       reportEntryFailure,
       seedTimelineDetail,
       selectedEntities,
-      starting
+      starting,
+      t
     ]
   );
 
@@ -1160,7 +1171,7 @@ const NewProjectSurface = ({
       }
       const text = flowPrompt.trim();
       const name =
-        text.length > 0 ? projectNameFromPrompt(text, null) : "New script";
+        text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.script");
       setStarting(true);
       try {
         const references = await uploadComposerReferences(droppedFiles);
@@ -1198,7 +1209,8 @@ const NewProjectSurface = ({
       noteUncarriedContext,
       flowPrompt,
       reportEntryFailure,
-      starting
+      starting,
+      t
     ]
   );
 
@@ -1212,7 +1224,7 @@ const NewProjectSurface = ({
       }
       const text = flowPrompt.trim();
       const name =
-        text.length > 0 ? projectNameFromPrompt(text, null) : "New image";
+        text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.image");
       setStarting(true);
       try {
         const references = await uploadComposerReferences(droppedFiles);
@@ -1235,7 +1247,7 @@ const NewProjectSurface = ({
             type: "project-new",
             ref: PROJECT_NEW_REF,
             mode: "view",
-            title: "Home"
+            title: t("pass3_32.projects.home.homeTab")
           });
         }
         openTab({
@@ -1263,7 +1275,8 @@ const NewProjectSurface = ({
       flowPrompt,
       reportEntryFailure,
       showDocumentProject,
-      starting
+      starting,
+      t
     ]
   );
 
@@ -1274,7 +1287,7 @@ const NewProjectSurface = ({
       }
       const text = flowPrompt.trim();
       const name =
-        text.length > 0 ? projectNameFromPrompt(text, null) : "New workflow";
+        text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.workflow");
       setStarting(true);
       try {
         const created = await createWorkflow({
@@ -1308,7 +1321,8 @@ const NewProjectSurface = ({
       noteUncarriedContext,
       flowPrompt,
       reportEntryFailure,
-      starting
+      starting,
+      t
     ]
   );
 
@@ -1322,12 +1336,12 @@ const NewProjectSurface = ({
         kind: "app",
         id: crypto.randomUUID(),
         projectId,
-        name: text.length > 0 ? projectNameFromPrompt(text, null) : "New app",
+        name: text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.app"),
         ownsProject: false,
         initialDescriptor: text
       });
     },
-    [applySetupTarget, flowPrompt, noteUncarriedContext]
+    [applySetupTarget, flowPrompt, noteUncarriedContext, t]
   );
 
   const startGameFlow = useCallback(
@@ -1337,7 +1351,7 @@ const NewProjectSurface = ({
       }
       const text = flowPrompt.trim();
       const name =
-        text.length > 0 ? projectNameFromPrompt(text, null) : "New game";
+        text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.game");
       setStarting(true);
       try {
         // A 2D game is designed first: the flow's document is a workflow row
@@ -1404,7 +1418,8 @@ const NewProjectSurface = ({
       flowPrompt,
       reportEntryFailure,
       showDocumentProject,
-      starting
+      starting,
+      t
     ]
   );
 
@@ -1415,7 +1430,7 @@ const NewProjectSurface = ({
       }
       const text = flowPrompt.trim();
       const name =
-        text.length > 0 ? projectNameFromPrompt(text, null) : "New entity";
+        text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.entity");
       setStarting(true);
       try {
         const references = await uploadComposerReferences(droppedFiles);
@@ -1441,7 +1456,7 @@ const NewProjectSurface = ({
         }
         applySetupTarget(target);
       } catch (error) {
-        reportEntryFailure("entity flow", error);
+        reportEntryFailure("entity", error);
       } finally {
         setStarting(false);
       }
@@ -1452,7 +1467,8 @@ const NewProjectSurface = ({
       noteUncarriedContext,
       flowPrompt,
       reportEntryFailure,
-      starting
+      starting,
+      t
     ]
   );
 
@@ -1557,18 +1573,26 @@ const NewProjectSurface = ({
       )
     ).map((card) => ({
       ...card,
+      title: t(`pass3_32.projects.home.entryCards.${card.id}.title`),
       description: card.id === "game" && gameDimension === "3d"
-        ? "Start with a playable 3D exploration scene in the built-in engine."
-        : card.description,
+        ? t("pass3_32.projects.home.entryCards.game.description3d")
+        : t(`pass3_32.projects.home.entryCards.${card.id}.description`),
       image: ENTRY_BACKGROUNDS[card.id]
     }));
     if (pendingFlow === null) {
+      if (starting) {
+        return cards.map((card) => ({
+          ...card,
+          disabled: true,
+          disabledReason: t("pass3_32.projects.home.disabled.documentOpening")
+        }));
+      }
       // A card started now would take only the references already uploaded.
       return isUploading
         ? cards.map((card) => ({
             ...card,
             disabled: true,
-            disabledReason: "Waiting for your reference images to upload."
+            disabledReason: t("pass3_32.projects.home.disabled.uploadingReferences")
           }))
         : cards;
     }
@@ -1576,18 +1600,18 @@ const NewProjectSurface = ({
       card.id === pendingFlow
         ? {
             ...card,
-            meta: "Creating…",
+            meta: t("pass3_32.projects.home.disabled.creatingMeta"),
             disabled: true,
             // Every card files a draft into the open project and makes none.
-            disabledReason: "Creating your draft…"
+            disabledReason: t("pass3_32.projects.home.disabled.creatingDraft")
           }
         : {
             ...card,
             disabled: true,
-            disabledReason: "One flow is already starting."
+            disabledReason: t("pass3_32.projects.home.disabled.flowStarting")
           }
     );
-  }, [isUploading, pendingFlow, showMoreFlows, gameDimension]);
+  }, [isUploading, pendingFlow, showMoreFlows, gameDimension, starting, t]);
 
   /**
    * The flow's last step wrote stage `done`: hand the finished board its own
@@ -1629,21 +1653,24 @@ const NewProjectSurface = ({
         // hand-off is kept with a way to try it again.
         setHeldFinish({ result, game, app });
         setFinishError(
-          `Your ${SETUP_KIND_NOUN[target.kind]} is ready, but its project did not open.`
+          t("pass3_32.projects.home.finishProjectOpenError", { kind: setupKindName(target.kind) })
         );
         return;
       }
       setFinishError(null);
       const failures = game
-        ? gameBuildFailures(game)
+        ? gameBuildFailures(game, t)
         : result
-          ? buildFailures(result)
+          ? buildFailures(result, t)
           : [];
       if (failures.length > 0) {
         addNotification({
           type: "warning",
           alert: true,
-          content: `Opened your ${SETUP_KIND_NOUN[target.kind]}, but ${failures.join(" ")}`
+          content: t("pass3_32.projects.home.openedWithBuildFailures", {
+            kind: setupKindName(target.kind),
+            failures: failures.join(" ")
+          })
         });
       }
       openTab({
@@ -1665,7 +1692,7 @@ const NewProjectSurface = ({
       applySetupTarget(null);
       if (flowRef) closeTab(tabId("guided-flow", flowRef));
     },
-    [addNotification, applySetupTarget, closeTab, flowRef, openTab, showDocumentProject]
+    [addNotification, applySetupTarget, closeTab, flowRef, openTab, showDocumentProject, setupKindName, t]
   );
 
   useEffect(() => {
@@ -2020,15 +2047,15 @@ const NewProjectSurface = ({
       <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl, maxWidth: COLUMN_WIDTH }}>
         <AlertBanner
           severity="error"
-          title="Could not open it yet"
+          title={t("pass3_32.projects.home.openFailureTitle")}
           action={
             <ReportBugButton
-              label="Report this failure"
+              label={t("pass3_32.projects.home.reportFailure")}
               variant="outlined"
               size="small"
               context={{
                 source: "manual",
-                summary: `Guided ${SETUP_KIND_NOUN[setupTarget.kind]} flow could not open its project`,
+                summary: t("pass3_32.projects.home.guidedFlowOpenFailure", { kind: setupKindName(setupTarget.kind) }),
                 errorText: finishError
               }}
             />
@@ -2042,7 +2069,7 @@ const NewProjectSurface = ({
           onClick={retryFinish}
           sx={{ alignSelf: "flex-start" }}
         >
-          {`Open your ${SETUP_KIND_NOUN[setupTarget.kind]}`}
+          {t("pass3_32.projects.home.openDocument", { kind: setupKindName(setupTarget.kind) })}
         </EditorButton>
       </FlexColumn>
     );
@@ -2172,33 +2199,30 @@ const NewProjectSurface = ({
             />
           )}
 
-          {/* The prompt is the page's first action, so it sits under the
-              question it answers. Its `/` and `@` menus open downward when
+          {/* The prompt's `/` and `@` menus open downward when
               the field is too near the top of the viewport for them to fit
               above it (`mentionMenuPosition`). */}
           <FlexColumn
             component="section"
-            aria-label="Describe what you want to make"
+            aria-label={t("pass3_32.projects.home.describeRegion")}
             gap={SPACING.lg}
             sx={{ pt: showOnboarding ? 0 : SPACING.xxl }}
           >
             <FlexColumn gap={SPACING.sm} align="center">
               <Text size="giant" component="h1" sx={{ textAlign: "center" }}>
-                What do you want to make?
+                {t("pass3_32.projects.home.heading")}
               </Text>
               <Text
                 color="secondary"
                 sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
               >
-                Ask a question and get an answer, or describe something to make.
-                An agent plans it and builds it while you watch, and
-                everything it makes stays editable.
+                {t("pass3_32.projects.home.intro")}
               </Text>
             </FlexColumn>
 
             <FlexRow
               role="group"
-              aria-label="Create a game or 3D model"
+              aria-label={t("pass3_32.projects.home.quickCreateGroup")}
               justify="center"
               gap={SPACING.md}
               wrap
@@ -2210,23 +2234,23 @@ const NewProjectSurface = ({
                 disabled={
                   starting || pendingFlow !== null || isUploading || creating !== null
                 }
-                disabledReason="Waiting for the current creation or upload to finish."
+                disabledReason={t("pass3_32.projects.home.disabled.waitForCurrentWork")}
                 onClick={handleMakeGame}
               >
-                Game
+                {t("pass3_32.projects.home.game")}
               </EditorButton>
               <EditorButton
                 variant="outlined"
                 size="medium"
                 startIcon={<Box component="span" aria-hidden>{TYPE_GLYPH.model3d}</Box>}
-                tooltip="Open a blank 3D model to edit by hand. No AI provider needed."
+                tooltip={t("pass3_32.projects.home.newModelTooltip")}
                 disabled={
                   starting || pendingFlow !== null || isUploading || creating !== null
                 }
-                disabledReason="Waiting for the current creation or upload to finish."
+                disabledReason={t("pass3_32.projects.home.disabled.waitForCurrentWork")}
                 onClick={() => void handleNewModel()}
               >
-                New 3D model
+                {t("pass3_32.projects.home.newModel")}
               </EditorButton>
             </FlexRow>
 
@@ -2249,10 +2273,10 @@ const NewProjectSurface = ({
                 minRows={3}
                 maxRows={12}
                 variant="standard"
-                label="Chat prompt"
+                label={t("pass3_32.projects.home.chatPromptLabel")}
                 hideLabel
                 inputRef={promptRef}
-                placeholder="Ask a question, or describe what to make: a 30-second launch spot for our desk lamp. Type / for a skill, @ for a file or entity."
+                placeholder={t("pass3_32.projects.home.promptPlaceholder")}
                 onChange={(event) => setPrompt(event.target.value)}
                 onKeyDown={handlePromptKeyDown}
                 slotProps={{ input: { disableUnderline: true } }}
@@ -2285,7 +2309,7 @@ const NewProjectSurface = ({
                       />
                       <CloseButton
                         onClick={() => removeFile(file.id)}
-                        tooltip={`Remove ${file.name}`}
+                        tooltip={t("pass3_32.projects.home.removeReference", { name: file.name })}
                         buttonSize="small"
                         iconVariant="clear"
                         sx={{
@@ -2317,15 +2341,15 @@ const NewProjectSurface = ({
                   sx={composerToolSx}
                 >
                   {referenceImageCount === 0
-                    ? "Reference images"
-                    : `Ref images · ${referenceImageCount}`}
+                    ? t("pass3_32.projects.home.referenceImages")
+                    : t("pass3_32.projects.home.referenceImageCountShort", { count: referenceImageCount })}
                 </EditorButton>
                 <input
                   ref={refInputRef}
                   type="file"
                   accept="image/*"
                   multiple
-                  aria-label="Reference images"
+                  aria-label={t("pass3_32.projects.home.referenceImages")}
                   onChange={handleRefImages}
                   style={{ display: "none" }}
                 />
@@ -2338,10 +2362,10 @@ const NewProjectSurface = ({
                   sx={composerToolSx}
                 >
                   {selectedEntities.length === 0
-                    ? "Entities · none"
-                    : `Entities · ${selectedEntities
-                        .map((entity) => entity.name)
-                        .join(", ")}`}
+                    ? t("pass3_32.projects.home.entitiesNone")
+                    : t("pass3_32.projects.home.entitiesSelected", {
+                        entities: selectedEntities.map((entity) => entity.name).join(", ")
+                      })}
                 </EditorButton>
                 <EditorButton
                   ref={modelButtonRef}
@@ -2353,8 +2377,10 @@ const NewProjectSurface = ({
                   sx={composerToolSx}
                 >
                   {isModelSelected(selectedModel)
-                    ? `Model · ${selectedModel?.name || selectedModel?.id}`
-                    : "Select a model"}
+                    ? t("pass3_32.projects.home.selectedModel", {
+                        name: selectedModel?.name || selectedModel?.id
+                      })
+                    : t("pass3_32.projects.home.selectModel")}
                 </EditorButton>
                 <Box sx={{ flex: 1 }} />
                 {estimate && (
@@ -2383,7 +2409,7 @@ const NewProjectSurface = ({
                   onClick={() => void handleStart()}
                   sx={{ borderRadius: BORDER_RADIUS.pill }}
                 >
-                  Send to chat
+                  {t("pass3_32.projects.home.sendToChat")}
                 </EditorButton>
               </FlexRow>
             </FlexColumn>
@@ -2395,7 +2421,7 @@ const NewProjectSurface = ({
                   gap={SPACING.sm}
                   wrap
                   role="group"
-                  aria-label="Start from a skill"
+                  aria-label={t("pass3_32.projects.home.startFromSkill")}
                 >
                   {visibleStarters.map((entry) => {
                     const active = entry.name === starter?.name;
@@ -2425,8 +2451,8 @@ const NewProjectSurface = ({
                       aria-expanded={showAllStarters}
                       label={
                         showAllStarters
-                          ? "Show fewer"
-                          : `${hiddenStarterCount} more`
+                          ? t("pass3_32.projects.home.showFewer")
+                          : t("pass3_32.projects.home.moreStarters", { count: hiddenStarterCount })
                       }
                       onClick={() => setShowAllStarters((shown) => !shown)}
                       sx={{ borderStyle: "dashed" }}
@@ -2442,7 +2468,7 @@ const NewProjectSurface = ({
                   </Caption>
                 ) : (
                   <Caption color="muted">
-                    Pick a skill to start from, or just describe what you want.
+                    {t("pass3_32.projects.home.pickSkillOrDescribe")}
                   </Caption>
                 )}
               </FlexColumn>
@@ -2454,7 +2480,7 @@ const NewProjectSurface = ({
           <FlexColumn
             component="section"
             id="guided-flows"
-            aria-label="Start with a guided flow"
+            aria-label={t("pass3_32.projects.home.guidedFlowsRegion")}
             gap={SPACING.lg}
             // Only the flow cards sit on black. The section's other buttons
             // (More formats, the game dimension select, a card's expand
@@ -2479,21 +2505,20 @@ const NewProjectSurface = ({
             <FlexRow align="flex-end" gap={SPACING.md} wrap>
               <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minWidth: 0 }}>
                 <Text size="big" component="h2">
-                  Start with a guided flow
+                  {t("pass3_32.projects.home.guidedFlowsHeading")}
                 </Text>
                 <Caption color="secondary">
-                  A few short steps, each ending in a document you keep
-                  editing.
+                  {t("pass3_32.projects.home.guidedFlowsDescription")}
                 </Caption>
               </FlexColumn>
               {showMoreFlows && <FlexRow align="center" gap={SPACING.sm}>
-                <Caption color="muted">Game card starts as</Caption>
+                <Caption color="muted">{t("pass3_32.projects.home.gameStartsAs")}</Caption>
                 <InspectorSelect
-                  label="Game dimension"
+                  label={t("pass3_32.projects.home.gameDimension")}
                   value={gameDimension}
                   options={[
-                    { value: "2d", label: "2D game" },
-                    { value: "3d", label: "3D exploration" }
+                    { value: "2d", label: t("pass3_32.projects.home.game2d") },
+                    { value: "3d", label: t("pass3_32.projects.home.game3d") }
                   ]}
                   onChange={(value) => {
                     if (value === "2d" || value === "3d") {
@@ -2504,7 +2529,7 @@ const NewProjectSurface = ({
               </FlexRow>}
             </FlexRow>
             <OptionCardGrid
-              label="Guided creation flows"
+              label={t("pass3_32.projects.home.guidedFlowsRegion")}
               options={entryOptions}
               onSelect={handleEntryCard}
               minColumnWidth={190}
@@ -2517,7 +2542,7 @@ const NewProjectSurface = ({
               aria-expanded={showMoreFlows}
               onClick={() => setShowMoreFlows((shown) => !shown)}
             >
-              {showMoreFlows ? "Fewer formats" : "More formats"}
+              {showMoreFlows ? t("pass3_32.projects.home.fewerFormats") : t("pass3_32.projects.home.moreFormats")}
             </EditorButton>
           </FlexColumn>
 
@@ -2553,10 +2578,10 @@ const NewProjectSurface = ({
               color="muted"
               sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
             >
-              Blank document
+              {t("pass3_32.projects.home.blankDocument")}
             </Caption>
             <Caption color="muted">
-              — opens as a loose tab, outside any project
+              {t("pass3_32.projects.home.blankDocumentDescription")}
             </Caption>
             <Box sx={{ flex: 1 }} />
             <EditorButton
@@ -2564,14 +2589,14 @@ const NewProjectSurface = ({
               density="compact"
               onClick={handleOpenExamples}
             >
-              Browse examples
+              {t("pass3_32.projects.home.browseExamples")}
             </EditorButton>
             <EditorButton
               variant="text"
               density="compact"
               onClick={handleOpenTutorials}
             >
-              Tutorials
+              {t("pass3_32.projects.home.tutorials")}
             </EditorButton>
           </FlexRow>
           <Box
@@ -2620,7 +2645,9 @@ const NewProjectSurface = ({
                   {TYPE_GLYPH[entry.type]}
                 </Box>
                 <Label>
-                  {entry.submenu ? `${entry.label} ▸` : entry.label}
+                {entry.submenu
+                  ? `${t(`pass3_32.projects.home.blankEntries.${entry.key}`)} ▸`
+                  : t(`pass3_32.projects.home.blankEntries.${entry.key}`)}
                 </Label>
               </EditorButton>
             ))}
@@ -2632,7 +2659,7 @@ const NewProjectSurface = ({
         open={entityPickerOpen}
         onClose={() => setEntityPickerOpen(false)}
         onSelect={toggleEntity}
-        title="Entities for this project"
+        title={t("pass3_32.projects.home.entitiesDialogTitle")}
         multiple
         selectedIds={entityIds}
         entities={entities}
@@ -2668,7 +2695,7 @@ const NewProjectSurface = ({
           TEXT_FILE_TEMPLATES.map((template) => (
             <MenuItemPrimitive
               key={template.filename}
-              label={template.label}
+              label={t(`pass3_32.projects.home.textTemplates.${template.filename.slice(template.filename.lastIndexOf(".") + 1)}`)}
               disabled={creating !== null}
               onClick={() => {
                 void createTextFile(template);
@@ -2677,7 +2704,7 @@ const NewProjectSurface = ({
           ))}
         {submenu?.kind === "storyboards" && (
           <MenuItemPrimitive
-            label="Blank storyboard"
+            label={t("pass3_32.projects.home.blankStoryboard")}
             dividerAfter
             disabled={creating !== null}
             onClick={() => {
@@ -2691,9 +2718,7 @@ const NewProjectSurface = ({
             <MenuItemPrimitive
               key={example.slug}
               label={example.name}
-              secondary={`${example.shotCount} shot${
-                example.shotCount === 1 ? "" : "s"
-              }, already rendered`}
+              secondary={t("pass3_32.projects.home.renderedExampleShots", { count: example.shotCount })}
               disabled={creating !== null}
               onClick={() => {
                 void installStoryboardExample(example.slug, example.name);

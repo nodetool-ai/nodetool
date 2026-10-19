@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { useMutation } from "@tanstack/react-query";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -46,6 +47,7 @@ interface WorkspaceChipProps {
 }
 
 const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -73,7 +75,7 @@ const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
       addNotification({
         type: "error",
         alert: true,
-        content: String(error),
+        content: t("batch2_1.errors.operation", { error: String(error) }),
         dismissable: true
       });
     }
@@ -93,9 +95,9 @@ const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
         ref={anchorRef}
         icon={<FolderIcon fontSize="small" />}
         label={
-          isMobile || compact ? undefined : selected?.name || "Workspace"
+          isMobile || compact ? undefined : selected?.name || t("batch2_1.common.workspace")
         }
-        title={selected?.path ?? "Select a workspace folder"}
+        title={selected?.path ?? t("batch2_1.folderPicker.title")}
         active={open}
         showChevron={false}
         truncate
@@ -110,9 +112,9 @@ const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
         transformOrigin={{ vertical: "bottom", horizontal: "left" }}
         minWidth={260}
         paperSx={{ maxWidth: 420 }}
-        slotProps={{ list: { "aria-label": "Workspace" } }}
+        slotProps={{ list: { "aria-label": t("batch2_1.common.workspace") } }}
       >
-        <ListSubheader>Workspace</ListSubheader>
+        <ListSubheader>{t("batch2_1.common.workspace")}</ListSubheader>
         {workspaces.map((workspace) => {
           const isSelected = workspace.id === workspaceId;
           return (
@@ -132,7 +134,7 @@ const WorkspaceChip: React.FC<WorkspaceChipProps> = ({ compact = false }) => {
         })}
         {canManage && (
           <MenuItemPrimitive
-            label="Add workspace…"
+            label={t("batch2_1.select.addWorkspace")}
             icon={<AddIcon fontSize="small" />}
             dividerBefore={workspaces.length > 0}
             onClick={() => void handleAdd()}

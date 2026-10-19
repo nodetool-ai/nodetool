@@ -5,6 +5,7 @@
  * asked, so it does not come back. Settings → Privacy changes the answer.
  */
 import React, { memo, useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
 import { useProductAnalytics } from "../../hooks/useProductAnalytics";
 import {
   isConsentPromptRequested,
@@ -24,6 +25,7 @@ import {
 } from "../ui_primitives";
 
 const AnalyticsConsentPrompt: React.FC = () => {
+  const { t } = useTranslation();
   const { client, consent } = useProductAnalytics();
   const requested = useSyncExternalStore(
     subscribeConsentPrompt,
@@ -63,7 +65,7 @@ const AnalyticsConsentPrompt: React.FC = () => {
   return (
     <Card
       role="region"
-      aria-label="Usage statistics"
+      aria-label={t("screen_shell.privacy.usageStatistics")}
       variant="elevated"
       padding="comfortable"
       sx={{
@@ -76,22 +78,20 @@ const AnalyticsConsentPrompt: React.FC = () => {
     >
       <FlexColumn gap={GAP.normal}>
         <Text size="normal" weight={500}>
-          Help improve NodeTool?
+          {t("screen_shell.privacy.title")}
         </Text>
         <Text size="small">
-          Share anonymous usage statistics such as how many workflows run and
-          how often they fail. No prompts, workflow content, file names or
-          account details are sent.{" "}
+          {t("screen_shell.privacy.description")}{" "}
           <TextLink asButton onClick={handleDetails}>
-            See exactly what is sent
+            {t("screen_shell.privacy.details")}
           </TextLink>
         </Text>
         <FlexRow gap={GAP.normal} justify="flex-end">
           <EditorButton size="small" variant="text" onClick={() => answer(false)}>
-            No thanks
+            {t("screen_shell.privacy.noThanks")}
           </EditorButton>
           <EditorButton size="small" variant="contained" onClick={() => answer(true)}>
-            Share statistics
+            {t("screen_shell.privacy.share")}
           </EditorButton>
         </FlexRow>
       </FlexColumn>

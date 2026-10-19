@@ -15,6 +15,7 @@
  */
 
 import { forwardRef, useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, ButtonProps } from "@mui/material";
 import { LoadingSpinner } from "./LoadingSpinner";
 import DialogActions from "@mui/material/DialogActions";
@@ -83,8 +84,8 @@ export const DialogActionButtons = memo(
       {
         onConfirm,
         onCancel,
-        confirmText = "Confirm",
-        cancelText = "Cancel",
+        confirmText,
+        cancelText,
         isLoading = false,
         confirmDisabled = false,
         cancelDisabled = false,
@@ -95,6 +96,9 @@ export const DialogActionButtons = memo(
       },
       ref
     ) => {
+      const { t } = useTranslation();
+      const resolvedConfirmText = confirmText ?? t("i18n-next103.dialogActionButtons.confirm");
+      const resolvedCancelText = cancelText ?? t("i18n-next103.dialogActionButtons.cancel");
       const handleConfirm = useCallback(() => {
         if (!isLoading && !confirmDisabled) {
           onConfirm();
@@ -120,7 +124,7 @@ export const DialogActionButtons = memo(
             sx={{ transition: MOTION.all }}
             {...cancelButtonProps}
           >
-            {cancelText}
+            {resolvedCancelText}
           </Button>
           <Button
             className="button-confirm"
@@ -135,7 +139,7 @@ export const DialogActionButtons = memo(
             {isLoading ? (
               <LoadingSpinner inline size={20} color="inherit" />
             ) : (
-              confirmText
+              resolvedConfirmText
             )}
           </Button>
         </DialogActions>

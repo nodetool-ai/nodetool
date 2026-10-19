@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
@@ -27,16 +28,8 @@ async function copyText(text: string): Promise<void> {
   await navigator.clipboard.writeText(text);
 }
 
-const STEPS: readonly string[] = [
-  "Click “Connect to Chrome” below once, so Chrome can start NodeTool’s browser bridge.",
-  "Download the extension (or use the build folder below).",
-  "Open chrome://extensions in the Chrome you use for the target sites.",
-  "Enable “Developer mode” (top-right).",
-  "Click “Load unpacked” and select the extension folder.",
-  "Open a site to automate, click the Nodetool extension, and press “Attach to this tab”."
-];
-
 const BrowserExtensionSettingsMenu = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -64,17 +57,17 @@ const BrowserExtensionSettingsMenu = () => {
         addNotification({
           type: "success",
           alert: true,
-          content: `Copied ${what}`
+          content: t("screens4_1.browserExtension.copied", { item: what })
         });
       } catch {
         addNotification({
           type: "error",
           alert: true,
-          content: `Could not copy ${what}`
+          content: t("screens4_1.browserExtension.copyError", { item: what })
         });
       }
     },
-    [addNotification]
+    [addNotification, t]
   );
 
   return (
@@ -84,11 +77,7 @@ const BrowserExtensionSettingsMenu = () => {
     >
       <div className="settings-main-content">
         <Text className="description" sx={{ mb: 1 }}>
-          The <strong>Nodetool browser extension</strong> lets the{" "}
-          <strong>Live Browser Agent</strong> drive your own logged-in Chrome —
-          automating media-generation sites, saving results as assets, and
-          uploading assets into pages. Chrome can’t install it for you, so load
-          it unpacked once with the steps below.
+          {t("screens4_1.browserExtension.description")}
         </Text>
 
         <FlexRow gap={1} sx={{ alignItems: "center", mb: 1 }}>
@@ -102,22 +91,22 @@ const BrowserExtensionSettingsMenu = () => {
             }
             label={
               isLoading
-                ? "Checking…"
+                ? t("screens4_1.browserExtension.checking")
                 : connected
-                  ? "Extension connected"
-                  : "Not connected"
+                  ? t("screens4_1.browserExtension.connected")
+                  : t("screens4_1.browserExtension.notConnected")
             }
             color={connected ? "success" : "default"}
           />
           {!connected && !isLoading && (
             <Text size="small" sx={{ opacity: 0.7 }}>
-              Install and attach the extension to see it here.
+              {t("screens4_1.browserExtension.installHint")}
             </Text>
           )}
         </FlexRow>
 
         <FlexColumn gap={0.5} sx={{ mb: 1.5 }}>
-          {STEPS.map((step, i) => (
+          {Array.from({ length: 6 }, (_, i) => t(`screens4_1.browserExtension.steps.${i + 1}`)).map((step, i) => (
             <Text key={i} size="small">
               {i + 1}. {step}
             </Text>
@@ -129,7 +118,7 @@ const BrowserExtensionSettingsMenu = () => {
             sx={{ mb: SPACING.sm }}
             report={{
               source: "operation-failure",
-              summary: "Browser bridge registration failed",
+              summary: t("screens4_1.browserExtension.registrationFailed"),
               errorText: host.error
             }}
           >
@@ -141,7 +130,7 @@ const BrowserExtensionSettingsMenu = () => {
           {!isLoading && !data?.hostInstalled && (
             <NavButton
               icon={<LinkIcon />}
-              label={host.isInstalling ? "Connecting…" : "Connect to Chrome"}
+              label={host.isInstalling ? t("screens4_1.browserExtension.connecting") : t("screens4_1.browserExtension.connectToChrome")}
               color="primary"
               onClick={() => host.install()}
               disabled={host.isInstalling}
@@ -151,7 +140,7 @@ const BrowserExtensionSettingsMenu = () => {
           )}
           <NavButton
             icon={<DownloadIcon />}
-            label="Download extension"
+            label={t("screens4_1.browserExtension.downloadExtension")}
             color="primary"
             onClick={() => window.open(downloadUrl, "_blank")}
             navSize="small"
@@ -160,7 +149,7 @@ const BrowserExtensionSettingsMenu = () => {
           {canReveal ? (
             <NavButton
               icon={<FolderOpenIcon />}
-              label="Reveal build folder"
+              label={t("screens4_1.browserExtension.revealBuildFolder")}
               onClick={handleReveal}
               navSize="small"
               sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`, minWidth: "unset" }}
@@ -169,8 +158,8 @@ const BrowserExtensionSettingsMenu = () => {
             distExists && (
               <NavButton
                 icon={<ContentCopyIcon />}
-                label="Copy build path"
-                onClick={() => handleCopy(distPath, "build path")}
+                label={t("screens4_1.browserExtension.copyBuildPath")}
+                onClick={() => handleCopy(distPath, t("screens4_1.browserExtension.buildPath"))}
                 navSize="small"
                 sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`, minWidth: "unset" }}
               />
@@ -178,7 +167,7 @@ const BrowserExtensionSettingsMenu = () => {
           )}
           <NavButton
             icon={<ContentCopyIcon />}
-            label="Copy chrome://extensions"
+            label={t("screens4_1.browserExtension.copyExtensionsUrl")}
             onClick={() => handleCopy(CHROME_EXTENSIONS_URL, CHROME_EXTENSIONS_URL)}
             navSize="small"
             sx={{ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`, minWidth: "unset" }}

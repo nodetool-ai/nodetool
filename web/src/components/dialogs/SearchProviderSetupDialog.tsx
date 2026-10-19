@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -14,19 +15,11 @@ import ExternalLink from "../common/ExternalLink";
 import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { formatSettingLabel } from "../menus/settingsLabel";
 import {
   SEARCH_PROVIDER_CONFIGS,
   SUGGESTED_SERP_PROVIDER,
   type SerpProviderId
 } from "../../utils/searchProviders";
-
-const PROVIDER_OPTIONS: SelectOption[] = Object.values(
-  SEARCH_PROVIDER_CONFIGS
-).map((config) => ({
-  value: config.id,
-  label: config.free ? `${config.label} (Free)` : config.label
-}));
 
 /**
  * Pre-run prompt shown when a node uses a web-search tool but no search
@@ -35,6 +28,7 @@ const PROVIDER_OPTIONS: SelectOption[] = Object.values(
  * Mounted once at the app root; driven by {@link useSearchProviderCalloutStore}.
  */
 const SearchProviderSetupDialog: React.FC = () => {
+  const { t } = useTranslation();
   const open = useSearchProviderCalloutStore((s) => s.open);
   const nodes = useSearchProviderCalloutStore((s) => s.nodes);
   const dismiss = useSearchProviderCalloutStore((s) => s.dismiss);
@@ -50,6 +44,19 @@ const SearchProviderSetupDialog: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const config = SEARCH_PROVIDER_CONFIGS[provider];
+  const providerOptions = useMemo<SelectOption[]>(
+    () =>
+      Object.values(SEARCH_PROVIDER_CONFIGS).map((option) => ({
+        value: option.id,
+        label: option.free
+          ? t("batch2_12.searchProvider.freeProvider", { provider: option.label })
+          : option.label
+      })),
+    [t]
+  );
+
+  const providerDescription = t(`batch2_12.searchProvider.descriptions.${provider}`);
+  const apiKeyLabel = t(`batch2_12.searchProvider.apiKeyLabels.${provider}`);
 
   const handleProviderChange = useCallback((value: string) => {
     setProvider(value as SerpProviderId);
@@ -84,7 +91,7 @@ const SearchProviderSetupDialog: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
       queryClient.invalidateQueries({ queryKey: ["secrets"] });
       addNotification({
-        content: `${config.label} configured — you can run the workflow now.`,
+        content: t("batch2_12.searchProvider.configured", { provider: config.label }),
         type: "success",
         alert: true
       });
@@ -94,7 +101,7 @@ const SearchProviderSetupDialog: React.FC = () => {
         content:
           error instanceof Error
             ? error.message
-            : "Failed to save search provider",
+            : t("batch2_12.searchProvider.saveFailed"),
         type: "error",
         alert: true
       });
@@ -108,6 +115,7 @@ const SearchProviderSetupDialog: React.FC = () => {
     credentials,
     provider,
     updateSettings,
+    t,
     queryClient,
     addNotification,
     dismiss
@@ -122,26 +130,26 @@ const SearchProviderSetupDialog: React.FC = () => {
     <Dialog
       open={open}
       onClose={dismiss}
-      title="Set up web search"
+      title={t("batch2_12.searchProvider.title")}
       onConfirm={handleSave}
-      confirmText="Save & continue"
+      confirmText={t("batch2_12.searchProvider.saveAndContinue")}
       confirmDisabled={!allFilled}
       isLoading={saving}
       content={
         <FlexColumn gap={SPACING.lg}>
           <Text>
             {nodeNames
-              ? `${nodeNames} uses a web-search tool, but no search provider is configured. `
-              : "This agent uses a web-search tool, but no search provider is configured. "}
-            Add one below to run the workflow.
+              ? t("batch2_12.searchProvider.nodeIntro", { nodes: nodeNames })
+              : t("batch2_12.searchProvider.agentIntro")}
+            {" "}{t("batch2_12.searchProvider.addProviderInstruction")}
           </Text>
 
           <SelectField
-            label="Search provider"
+            label={t("batch2_12.searchProvider.providerLabel")}
             value={provider}
             onChange={handleProviderChange}
-            options={PROVIDER_OPTIONS}
-            description={config.description}
+            options={providerOptions}
+            description={providerDescription}
             size="small"
           />
 
@@ -151,7 +159,7 @@ const SearchProviderSetupDialog: React.FC = () => {
               type="password"
               autoComplete="off"
               id={`${field.toLowerCase()}-setup-input`}
-              label={formatSettingLabel(field)}
+              label={t(`batch2_12.searchProvider.credentials.${field}`)}
               value={credentials[field] ?? ""}
               onChange={handleCredentialChange(field)}
               size="small"
@@ -161,9 +169,9 @@ const SearchProviderSetupDialog: React.FC = () => {
 
           <ExternalLink
             href={config.getApiKeyUrl}
-            tooltipText={`Visit ${config.label} to get your API key`}
+            tooltipText={t("batch2_12.searchProvider.visitForApiKey", { provider: config.label })}
           >
-            {config.getApiKeyLabel}
+            {apiKeyLabel}
           </ExternalLink>
         </FlexColumn>
       }

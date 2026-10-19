@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import TrackChangesOutlinedIcon from "@mui/icons-material/TrackChangesOutlined";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
@@ -32,12 +33,7 @@ import {
   INSPECTOR_SECTION_CONTENT_SX
 } from "./InspectorPrimitives";
 
-const BIND_MODE_OPTIONS = [
-  { value: "position", label: "Position" },
-  { value: "position_scale", label: "Position + scale" }
-] as const;
-
-type LiveBindMode = (typeof BIND_MODE_OPTIONS)[number]["value"];
+type LiveBindMode = "position" | "position_scale";
 
 /** `bindToTrack` writes only the live modes; other modes edit as position. */
 const liveModeOf = (binding: TrackBinding): LiveBindMode =>
@@ -48,6 +44,7 @@ interface ClipTrackingProps {
 }
 
 const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = usePersistedFold("tracking");
   const { selection, select } = useTrackingSelection();
   const tracks = useTimelineStore((state) => state.mediaTracks);
@@ -91,7 +88,7 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
       <CollapsibleSection
         title={
           <InspectorSectionTitle
-            title="Tracking"
+            title={t("pass3_27.clipTracking.title")}
             icon={<TrackChangesOutlinedIcon />}
           />
         }
@@ -105,28 +102,24 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
             onClick={startSelection}
             disabled={!clip.currentAssetId}
           >
-            Select subject in preview
+            {t("pass3_27.clipTracking.selectSubject")}
           </EditorButton>
           <Caption color="muted">
-            Drag a rectangle around the subject. With the preview focused, press
-            Enter to create a box, use arrow keys to move it, or Alt and arrow
-            keys to resize it. Shift uses larger steps. Delete clears the box.
-            Escape stops selection.
+            {t("pass3_27.clipTracking.selectionHelp")}
           </Caption>
           <Caption color="muted" aria-live="polite">
             {active?.region
-              ? `Selected at ${active.sourceMs} source ms: ${Math.round(active.region.x * 100)}%, ${Math.round(active.region.y * 100)}%, ${Math.round(active.region.width * 100)}% wide, ${Math.round(active.region.height * 100)}% high.`
-              : "No subject selected."}
+              ? t("pass3_27.clipTracking.selectionSummary", { sourceMs: active.sourceMs, x: Math.round(active.region.x * 100), y: Math.round(active.region.y * 100), width: Math.round(active.region.width * 100), height: Math.round(active.region.height * 100) })
+              : t("pass3_27.clipTracking.noSubjectSelected")}
           </Caption>
           {active && (
             <EditorButton onClick={() => select(null)}>
-              Stop selecting
+              {t("pass3_27.clipTracking.stopSelecting")}
             </EditorButton>
           )}
           {stale && (
             <Caption color="warning">
-              The source changed. Previous tracking samples are unavailable for
-              this take. Select the subject again.
+              {t("pass3_27.clipTracking.staleSource")}
             </Caption>
           )}
           <EditorButton
@@ -137,13 +130,13 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
             onClick={() => void start()}
             data-testid="track-object"
           >
-            {status === "pending" ? "Tracking subject…" : "Track subject"}
+            {status === "pending" ? t("pass3_27.clipTracking.tracking") : t("pass3_27.clipTracking.trackSubject")}
           </EditorButton>
           {error && (
             <ErrorBanner
               report={{
                 source: "operation-failure",
-                summary: "Subject tracking failed",
+                summary: t("pass3_27.clipTracking.failed"),
                 errorText: error
               }}
             >
@@ -152,16 +145,16 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
           )}
           <Caption color="muted" aria-live="polite">
             {isLoadingModel
-              ? "Checking tracking providers and models."
+              ? t("pass3_27.clipTracking.checkingModels")
               : modelError
-                ? "Tracking models could not be loaded. Try again when connected."
+                ? t("pass3_27.clipTracking.modelsLoadError")
                 : !model
-                  ? "No subject-tracking provider or model is available."
+                  ? t("pass3_27.clipTracking.noModel")
                   : status === "pending"
-                    ? "Tracking is running and will update this timeline when it finishes."
+                    ? t("pass3_27.clipTracking.running")
                     : active?.region
-                      ? `Using ${model.name}. Ready to track the selected subject.`
-                      : `Using ${model.name}. Select a subject rectangle to begin.`}
+                      ? t("pass3_27.clipTracking.ready", { model: model.name })
+                      : t("pass3_27.clipTracking.selectToBegin", { model: model.name })}
           </Caption>
         </FlexColumn>
       </CollapsibleSection>
@@ -175,6 +168,7 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
  */
 const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
   ({ clip }) => {
+    const { t } = useTranslation();
     const [open, setOpen] = usePersistedFold("followObject");
     const bindToTrack = useTimelineStore((s) => s.bindToTrack);
     const unbindTrack = useTimelineStore((s) => s.unbindTrack);
@@ -285,7 +279,7 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Follow object"
+            title={t("pass3_27.clipTracking.followObject")}
               icon={<LinkOutlinedIcon />}
             />
           }
@@ -295,21 +289,20 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
         >
           <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
             <Caption color="muted">
-              Track id — from list_tracks, or the track_object result once a
-              provider is wired up.
+              {t("pass3_27.clipTracking.trackIdHelp")}
             </Caption>
-            <InspectorRow label="Track id">
+            <InspectorRow label={t("pass3_27.clipTracking.trackId")}>
               <InspectorPillInput
                 value={trackIdInput}
                 onCommit={handleTrackIdCommit}
-                ariaLabel="Track id to follow"
+                ariaLabel={t("pass3_27.clipTracking.trackIdAria")}
               />
             </InspectorRow>
-            <InspectorRow label="Mode">
+            <InspectorRow label={t("pass3_27.clipTracking.mode")}>
               <InspectorSelect
-                label="Follow mode"
+                label={t("pass3_27.clipTracking.followMode")}
                 value={mode}
-                options={BIND_MODE_OPTIONS}
+                options={[{ value: "position", label: t("pass3_27.clipTracking.position") }, { value: "position_scale", label: t("pass3_27.clipTracking.positionScale") }]}
                 onChange={handleModeChange}
                 grow
               />
@@ -325,31 +318,31 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
                 onClick={handleBind}
                 data-testid="bind-to-track"
               >
-                Follow
+                {t("pass3_27.clipTracking.follow")}
               </EditorButton>
             )}
 
             {binding && (
               <>
-                <InspectorRow label="Offset X">
+                <InspectorRow label={t("pass3_27.clipTracking.offsetX")}>
                   <InspectorPillInput
                     value={String(binding.offset?.x ?? 0)}
                     unit="px"
                     onCommit={handleOffsetX}
-                    ariaLabel="Follow offset X"
+                    ariaLabel={t("pass3_27.clipTracking.offsetXAria")}
                   />
                 </InspectorRow>
-                <InspectorRow label="Offset Y">
+                <InspectorRow label={t("pass3_27.clipTracking.offsetY")}>
                   <InspectorPillInput
                     value={String(binding.offset?.y ?? 0)}
                     unit="px"
                     onCommit={handleOffsetY}
-                    ariaLabel="Follow offset Y"
+                    ariaLabel={t("pass3_27.clipTracking.offsetYAria")}
                   />
                 </InspectorRow>
                 {mode === "position_scale" && (
                   <InspectorSliderRow
-                    label="Scale"
+                    label={t("pass3_27.clipTracking.scale")}
                     value={binding.scale ?? 1}
                     display={(binding.scale ?? 1).toFixed(2)}
                     min={0}
@@ -360,7 +353,7 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
                   />
                 )}
                 <InspectorSliderRow
-                  label="Smoothing"
+                  label={t("pass3_27.clipTracking.smoothing")}
                   value={binding.smoothing ?? 0}
                   display={(binding.smoothing ?? 0).toFixed(2)}
                   min={0}
@@ -377,7 +370,7 @@ const FollowObjectSection: React.FC<{ clip: TimelineClip }> = memo(
                   onClick={handleUnbind}
                   data-testid="unbind-track"
                 >
-                  Unfollow
+                  {t("pass3_27.clipTracking.unfollow")}
                 </EditorButton>
               </>
             )}

@@ -21,6 +21,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 
 import { Box, PADDING, ScrollArea, Z_INDEX } from "../../ui_primitives";
@@ -49,6 +50,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   onFinish,
   onCoveringChange
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const createWorkflow = useWorkflowManager((state) => state.create);
   const [batch, setBatch] = useState<readonly string[]>([]);
@@ -113,7 +115,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
         setMakeMoreError(
           cause instanceof Error
             ? cause.message
-            : "Another batch could not be started."
+            : t("pass3_7.imageSetup.overlay.batchStartFailed")
         );
       })
       .finally(() => {
@@ -121,7 +123,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
           setMakingMore(false);
         }
       });
-  }, [look]);
+  }, [look, t]);
 
   // Back to the look step with every variation kept: they are layers on the
   // document, and the next batch is added beside them (F7).
@@ -138,13 +140,14 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
       const assetId =
         useSketchSessionStore.getState().bindings[layerId]?.currentAssetId;
       if (!assetId) {
-        throw new Error("That variation has not rendered yet.");
+        throw new Error(t("pass3_7.imageSetup.overlay.variationNotRendered"));
       }
       const setup = useSketchStore.getState().document.setup;
-      const name = (setup?.refined?.subject || setup?.brief || "Image").slice(
-        0,
-        60
-      );
+      const name = (
+        setup?.refined?.subject ||
+        setup?.brief ||
+        t("pass3_7.imageSetup.overlay.defaultEntityName")
+      ).slice(0, 60);
       // A generated picture is a thing a board can cast, so it lands as a
       // `prop`: the kind whose descriptor seasons the shots it appears in.
       await saveEntity.mutateAsync({
@@ -154,21 +157,24 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
         descriptor: setup?.refined?.subject ?? ""
       });
     },
-    [saveEntity]
+    [saveEntity, t]
   );
 
   const openCanvas = useCallback(
     async (layerId: string, animate: boolean) => {
       const assetId =
         useSketchSessionStore.getState().bindings[layerId]?.currentAssetId;
-      if (!assetId) throw new Error("That variation has not rendered yet.");
+      if (!assetId)
+        throw new Error(t("pass3_7.imageSetup.overlay.variationNotRendered"));
       const projectId = creationProjectId();
       const image = {
         type: "image",
         asset_id: assetId,
         uri: `asset://${assetId}`
       };
-      const name = animate ? "Image to video" : "Image canvas";
+      const name = animate
+        ? t("pass3_7.imageSetup.overlay.imageToVideo")
+        : t("pass3_7.imageSetup.overlay.imageCanvas");
       const workflow = await createWorkflow({
         name,
         project_id: projectId,
@@ -196,7 +202,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
         projectId
       });
     },
-    [createWorkflow]
+    [createWorkflow, t]
   );
 
   // Nothing to show once the flow is finished and its batch has been picked

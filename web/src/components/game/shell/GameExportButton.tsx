@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 
 import { ContextMenu, MenuItemPrimitive, ToolbarIconButton } from "../../ui_primitives";
@@ -13,16 +14,17 @@ interface GameExportButtonProps {
 
 /** Toolbar menu that downloads the published revision as a web player or a desktop app project, or compiles it. */
 export default function GameExportButton({ exporting, onExport, onBuildExecutable }: GameExportButtonProps): ReactNode {
+  const { t } = useTranslation();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const choose = (target: GameExportTarget): void => { setAnchor(null); onExport(target); };
   return <>
-    <ToolbarIconButton icon={<ArchiveOutlinedIcon fontSize="small" />} tooltip={exporting ? "Exporting build" : "Export build"}
+    <ToolbarIconButton icon={<ArchiveOutlinedIcon fontSize="small" />} tooltip={exporting ? t("screen_game.export.exportingBuild") : t("screen_game.export.exportBuild")}
       aria-haspopup="menu" aria-expanded={anchor !== null} disabled={exporting} onClick={(event) => setAnchor(event.currentTarget)} />
     <ContextMenu open={anchor !== null} anchorEl={anchor} onClose={() => setAnchor(null)}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
-      <MenuItemPrimitive label="Web player" secondary="Static site, published revision (.zip)" onClick={() => choose("web")} />
-      <MenuItemPrimitive label="Desktop app" secondary="Tauri project for Windows, macOS and Linux (.zip)" onClick={() => choose("tauri")} />
-      {onBuildExecutable && <MenuItemPrimitive label="Desktop executable" secondary="Compile on this computer with cargo, output in the Console"
+      <MenuItemPrimitive label={t("screen_game.export.webPlayer")} secondary={t("screen_game.export.webPlayerDescription")} onClick={() => choose("web")} />
+      <MenuItemPrimitive label={t("screen_game.export.desktopApp")} secondary={t("screen_game.export.desktopAppDescription")} onClick={() => choose("tauri")} />
+      {onBuildExecutable && <MenuItemPrimitive label={t("screen_game.export.desktopExecutable")} secondary={t("screen_game.export.desktopExecutableDescription")}
         onClick={() => { setAnchor(null); onBuildExecutable(); }} />}
     </ContextMenu>
   </>;

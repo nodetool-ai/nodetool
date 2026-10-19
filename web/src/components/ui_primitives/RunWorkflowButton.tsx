@@ -14,6 +14,7 @@
  */
 
 import { forwardRef, memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, ButtonProps, Fab, FabProps } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import { LoadingSpinner } from "./LoadingSpinner";
@@ -122,8 +123,8 @@ export const RunWorkflowButton = memo(
         variant = "button",
         size = "medium",
         showLabel = false,
-        runLabel = "Run",
-        stopLabel = "Stop",
+        runLabel,
+        stopLabel,
         tooltipPlacement = "top",
         nodrag = true,
         className,
@@ -132,6 +133,9 @@ export const RunWorkflowButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const resolvedRunLabel = runLabel ?? t("i18n-next95.runWorkflowButton.runLabel");
+      const resolvedStopLabel = stopLabel ?? t("i18n-next95.runWorkflowButton.stopLabel");
 
       const handleClick = useCallback(() => {
         if (isRunning) {
@@ -141,7 +145,7 @@ export const RunWorkflowButton = memo(
         }
       }, [isRunning, onRun, onStop]);
 
-      const tooltip = isRunning ? stopLabel : runLabel;
+      const tooltip = isRunning ? resolvedStopLabel : resolvedRunLabel;
       const icon = isRunning ? <StopIcon /> : <PlayArrowIcon />;
 
       const getSizeStyles = useMemo(() => {

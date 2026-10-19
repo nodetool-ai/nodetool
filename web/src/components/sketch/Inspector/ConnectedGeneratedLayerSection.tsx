@@ -8,6 +8,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 
 import { CollapsibleSection, InspectorSectionTitle } from "../../ui_primitives";
@@ -19,6 +20,7 @@ import { SketchInspector } from "./SketchInspector";
 import { sketchSectionSx } from "./sketchSectionSx";
 
 const ConnectedGeneratedLayerSectionInner: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const activeLayerId = useSketchStore((s) => s.document.activeLayerId);
   const binding = useLayerBinding(activeLayerId);
@@ -28,7 +30,7 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
   if (layer?.type === "vector") {
     return (
       <CollapsibleSection
-        title={<InspectorSectionTitle title="Vector layer" />}
+        title={<InspectorSectionTitle title={t("screens4_25.sketch.generatedLayerSection.vectorLayer")} />}
         defaultOpen
         compact
         sx={sectionSx}
@@ -45,7 +47,9 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
   // Direct-gen layers (text-to-image / image-to-image) share the "Prompt"
   // section, matching the timeline inspector; workflow-bound layers keep
   // their own label.
-  const titleText = isWorkflowBound ? "Generated layer" : "Prompt";
+  const titleText = isWorkflowBound
+    ? t("screens4_25.sketch.generatedLayerSection.generatedLayer")
+    : t("screens4_25.sketch.generatedLayerSection.prompt");
 
   return (
     <CollapsibleSection

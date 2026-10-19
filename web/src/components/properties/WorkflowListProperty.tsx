@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { SelectChangeEvent } from "../ui_primitives";
 import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
@@ -14,6 +15,7 @@ import {
   OutlinedInput
 } from "../ui_primitives";
 const WorkflowListProperty = (props: PropertyProps<WorkflowValue[] | null>) => {
+  const { t } = useTranslation();
   const id = `workflow-list-${props.property.name}-${props.propertyIndex}`;
   const workflowIds: string[] = props.value?.map((workflow) => workflow.id) || [];
   const load = useWorkflowManager((state) => state.load);
@@ -57,11 +59,11 @@ const WorkflowListProperty = (props: PropertyProps<WorkflowValue[] | null>) => {
         multiple
         value={workflowIds}
         onChange={handleChange}
-        input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
+        input={<OutlinedInput id="select-multiple-chip" label={t("i18n-next104.properties.chip")} />}
         renderValue={renderSelectedValue}
       >
-        {isLoading && <NodeMenuItem disabled>Loading…</NodeMenuItem>}
-        {error && <NodeMenuItem disabled>Error: {error.message}</NodeMenuItem>}
+        {isLoading && <NodeMenuItem disabled>{t("i18n-next104.properties.loading")}</NodeMenuItem>}
+        {error && <NodeMenuItem disabled>{t("i18n-next104.properties.error", { message: error.message })}</NodeMenuItem>}
         {data?.workflows &&
           data.workflows.map((workflow) => (
             <NodeMenuItem key={workflow.id} value={workflow.id}>

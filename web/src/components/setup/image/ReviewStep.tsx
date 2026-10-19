@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { SketchRefinedBrief } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 import {
@@ -40,11 +41,11 @@ const COUNT_CARD_WIDTH = SPACING_PX.xxxl * 2;
 const COUNT_OPTIONS = VARIATION_COUNTS.map((count) => ({ id: String(count) }));
 
 const FIELD_LABELS: ReadonlyArray<[keyof SketchRefinedBrief, string]> = [
-  ["subject", "Subject"],
-  ["composition", "Composition"],
-  ["lighting", "Lighting"],
-  ["style_words", "Style words"],
-  ["negative", "Leave out"]
+  ["subject", "subject"],
+  ["composition", "composition"],
+  ["lighting", "lighting"],
+  ["style_words", "styleWords"],
+  ["negative", "leaveOut"]
 ];
 
 const EMPTY: SketchRefinedBrief = {
@@ -70,6 +71,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   error = null,
   generation
 }) => {
+  const { t } = useTranslation();
   const refined = useSketchStore(
     (state) => state.document.setup?.refined ?? EMPTY
   );
@@ -100,18 +102,18 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     () => [
       {
         id: "brief",
-        header: "Your brief",
-        subheader: "Edit anything here before it is rendered.",
+        header: t("pass3_8.image.review.brief.heading"),
+        subheader: t("pass3_8.image.review.brief.description"),
         rows: FIELD_LABELS.map(([field, label]) => ({
           id: field,
-          label,
+          label: t(`pass3_8.image.review.fields.${label}`),
           value: refined[field],
           multiline: true,
           onChange: (value: string) => setField(field, value)
         }))
       }
     ],
-    [refined, setField]
+    [refined, setField, t]
   );
 
   return (
@@ -119,7 +121,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       <BriefModelSelect />
       <PlanReview
         sections={sections}
-        replanLabel="Re-refine"
+        replanLabel={t("pass3_8.image.review.reRefine")}
         onReplan={onReRefine}
         replanPending={refining}
       />
@@ -137,12 +139,12 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 onClick={onReRefine}
                 disabled={refining}
               >
-                Try again
+                {t("pass3_8.common.tryAgain")}
               </EditorButton>
               <ReportBugButton
                 context={{
                   source: "provider-call",
-                  summary: "Image brief refinement failed",
+                  summary: t("pass3_8.image.review.refinementFailed"),
                   errorText: error
                 }}
               />
@@ -152,11 +154,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           {error}
         </AlertBanner>
       ) : null}
-      <FormField label="How many variations?">
+      <FormField label={t("pass3_8.image.review.variationCountLabel")}>
         {/* One count out of three, so the cards are radios in a named radio
             group: three chips announcing themselves as independent toggles
             described the wrong control (F26). */}
-        <FlexRow role="radiogroup" aria-label="Variations" gap={GAP.normal} wrap>
+        <FlexRow
+          role="radiogroup"
+          aria-label={t("pass3_8.image.review.variations")}
+          gap={GAP.normal}
+          wrap
+        >
           {COUNT_OPTIONS.map((option) => (
             <Box key={option.id} sx={{ width: COUNT_CARD_WIDTH }}>
               <SetupCardButton

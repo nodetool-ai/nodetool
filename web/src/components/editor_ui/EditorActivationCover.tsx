@@ -7,6 +7,7 @@
  */
 
 import { memo, useCallback, type MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Box } from "@mui/material";
 import { Z_INDEX } from "../ui_primitives";
 
@@ -17,6 +18,7 @@ export interface EditorActivationCoverProps {
 export function EditorActivationCover({
   onActivate
 }: EditorActivationCoverProps) {
+  const { t } = useTranslation();
   const handleClick = useCallback(
     (event: MouseEvent<HTMLElement>) => {
       event.stopPropagation();
@@ -29,6 +31,7 @@ export function EditorActivationCover({
     <Box
       className="editor-activation-cover"
       aria-hidden
+      aria-label={t("i18n-next60.editorUi.activationCover.activateEditor")}
       onClick={handleClick}
       // Above Monaco's own layers (scrollbars sit near 10).
       sx={{ position: "absolute", inset: 0, zIndex: Z_INDEX.sticky, cursor: "text" }}

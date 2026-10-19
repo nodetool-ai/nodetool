@@ -32,7 +32,7 @@ function setup() {
 describe("TrackEffectsPanel keyboard", () => {
   it("moves an EQ band with the arrow keys", () => {
     const { effects, eq } = setup();
-    const handle = screen.getByRole("slider", { name: "low band" });
+    const handle = screen.getByRole("slider", { name: "Low band" });
     fireEvent.keyDown(handle, { key: "ArrowUp" });
     const after = effects().find((e) => e.id === eq.id) as typeof eq & {
       lowGainDb: number;

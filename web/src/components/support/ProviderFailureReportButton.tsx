@@ -8,6 +8,7 @@
  * the error text alone, which is what a transport failure has to offer.
  */
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import ReportBugButton from "./ReportBugButton";
 import {
   latestRecentFailure,
@@ -31,6 +32,7 @@ const ProviderFailureReportButton = ({
   label,
   className
 }: ProviderFailureReportButtonProps) => {
+  const { t } = useTranslation();
   const failures = useProviderCallFailureStore((state) => state.failures);
 
   const context = useMemo<BugReportContext>(() => {
@@ -51,7 +53,11 @@ const ProviderFailureReportButton = ({
   }, [failures, errorText]);
 
   return (
-    <ReportBugButton context={context} label={label} className={className} />
+    <ReportBugButton
+      context={context}
+      label={label ?? t("screens4_9.support.report")}
+      className={className}
+    />
   );
 };
 

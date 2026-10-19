@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import CompareArrowsOutlinedIcon from "@mui/icons-material/CompareArrowsOutlined";
 import type { ClipTransition, TimelineClip } from "@nodetool-ai/timeline";
 
@@ -47,27 +48,27 @@ type TransitionMode =
   | "slide"
   | "zoom";
 
-const TRANSITION_MODES = [
-  { value: "auto", label: "Auto" },
-  { value: "none", label: "None (hard cut)" },
-  { value: "crossfade", label: "Crossfade" },
-  { value: "dipToColor", label: "Dip to color" },
-  { value: "wipe", label: "Wipe" },
-  { value: "push", label: "Push" },
-  { value: "slide", label: "Slide" },
-  { value: "zoom", label: "Zoom" }
-] as const;
+const TRANSITION_MODE_VALUES: readonly TransitionMode[] = [
+  "auto",
+  "none",
+  "crossfade",
+  "dipToColor",
+  "wipe",
+  "push",
+  "slide",
+  "zoom"
+];
 
-const MODE_HINTS: Record<TransitionMode, string> = {
-  auto: "Overlap this clip with the previous one on the same track to cross-fade.",
-  none: "Always a hard cut, even when clips overlap.",
-  crossfade: "Both clips fade across the window, measured from this clip's start.",
-  dipToColor: "Both clips fade through a solid colour that peaks at the midpoint.",
-  wipe: "A feathered edge reveals this clip over the outgoing one.",
-  push: "This clip pushes the outgoing one off the frame.",
-  slide: "This clip slides in over a stationary outgoing one.",
-  zoom: "The outgoing clip scales up while this one scales in."
-};
+const transitionModes = (t: ReturnType<typeof useTranslation>["t"]) => [
+  { value: "auto", label: t("pass3_27.clipTransition.modes.auto") },
+  { value: "none", label: t("pass3_27.clipTransition.modes.none") },
+  { value: "crossfade", label: t("pass3_27.clipTransition.modes.crossfade") },
+  { value: "dipToColor", label: t("pass3_27.clipTransition.modes.dipToColor") },
+  { value: "wipe", label: t("pass3_27.clipTransition.modes.wipe") },
+  { value: "push", label: t("pass3_27.clipTransition.modes.push") },
+  { value: "slide", label: t("pass3_27.clipTransition.modes.slide") },
+  { value: "zoom", label: t("pass3_27.clipTransition.modes.zoom") }
+] as const;
 
 const DEFAULT_DURATION_MS = 500;
 const SCRUB_SECONDS = { step: 0.02, min: 0 };
@@ -75,10 +76,9 @@ const SCRUB_SECONDS = { step: 0.02, min: 0 };
 function modeOf(transition: ClipTransition | undefined): TransitionMode {
   if (!transition) return "auto";
   if (transition.durationMs <= 0) return "none";
-  const known = TRANSITION_MODES.find(
-    (mode) => mode.value === transition.type
-  );
-  return known ? (known.value as TransitionMode) : "crossfade";
+  return TRANSITION_MODE_VALUES.includes(transition.type as TransitionMode)
+    ? (transition.type as TransitionMode)
+    : "crossfade";
 }
 
 /** A transition of `mode`, carrying over what the previous one already set. */
@@ -153,6 +153,7 @@ interface ClipTransitionSectionProps {
 
 export const ClipTransitionSection: React.FC<ClipTransitionSectionProps> = memo(
   ({ clip }) => {
+    const { t } = useTranslation();
     const patchClip = useTimelineStore((s) => s.patchClip);
     const setTransitionDuration = useTimelineStore(
       (s) => s.setTransitionDuration
@@ -228,6 +229,7 @@ export const ClipTransitionSection: React.FC<ClipTransitionSectionProps> = memo(
         : DEFAULT_DURATION_MS;
     const configurable = mode !== "auto" && mode !== "none";
     const hasDirection = mode === "wipe" || mode === "push" || mode === "slide";
+    const modeHint = t(`pass3_27.clipTransition.hints.${mode}`);
 
     return (
       <>
@@ -235,7 +237,7 @@ export const ClipTransitionSection: React.FC<ClipTransitionSectionProps> = memo(
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Transition"
+              title={t("pass3_27.clipTransition.title")}
               icon={<CompareArrowsOutlinedIcon />}
             />
           }
@@ -244,44 +246,44 @@ export const ClipTransitionSection: React.FC<ClipTransitionSectionProps> = memo(
           unmountOnExit
         >
           <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-            <InspectorRow label="Type">
+            <InspectorRow label={t("pass3_27.clipTransition.type")}>
               <InspectorSelect
-                label="Transition type"
+                label={t("pass3_27.clipTransition.typeAria")}
                 value={mode}
-                options={TRANSITION_MODES}
+                options={transitionModes(t)}
                 onChange={handleModeChange}
                 disabled={locked}
               />
             </InspectorRow>
 
             {configurable && (
-              <InspectorRow label="Duration">
+              <InspectorRow label={t("pass3_27.clipTransition.duration")}>
                 <InspectorPillInput
                   value={(durationMs / 1000).toFixed(2)}
                   unit="s"
                   scrub={SCRUB_SECONDS}
                   onCommit={handleDurationCommit}
                   disabled={locked}
-                  ariaLabel="Transition duration"
+                  ariaLabel={t("pass3_27.clipTransition.durationAria")}
                 />
               </InspectorRow>
             )}
 
             {mode === "dipToColor" && (
-              <InspectorRow label="Color">
+              <InspectorRow label={t("pass3_27.clipTransition.color")}>
                 <BatchedColorInput
                   value={readString(transition, "color") ?? "#000000"}
                   onChange={(color) => patchField({ color })}
                   disabled={locked}
-                  ariaLabel="Transition color"
+                  ariaLabel={t("pass3_27.clipTransition.colorAria")}
                 />
               </InspectorRow>
             )}
 
             {hasDirection && (
-              <InspectorRow label="Direction">
+              <InspectorRow label={t("pass3_27.clipTransition.direction")}>
                 <InspectorSelect
-                  label="Transition direction"
+                  label={t("pass3_27.clipTransition.directionAria")}
                   value={readString(transition, "direction") ?? "left"}
                   options={DIRECTION_OPTIONS}
                   onChange={(direction) => patchField({ direction })}
@@ -292,7 +294,7 @@ export const ClipTransitionSection: React.FC<ClipTransitionSectionProps> = memo(
 
             {mode === "wipe" && (
               <InspectorSliderRow
-                label="Softness"
+                label={t("pass3_27.clipTransition.softness")}
                 min={0}
                 max={1}
                 step={0.01}
@@ -307,17 +309,17 @@ export const ClipTransitionSection: React.FC<ClipTransitionSectionProps> = memo(
             {configurable && (
               <EasingField
                 value={transition?.easing}
-                ariaLabel="Transition easing"
+                ariaLabel={t("pass3_27.clipTransition.easingAria")}
                 onChange={handleEasingChange}
               />
             )}
 
             <Caption color="muted">
               {clip.locked
-                ? "Unlock the clip to edit its transition."
+                ? t("pass3_27.clipTransition.unlockClip")
                 : trackLocked
-                  ? "Unlock the track to edit this transition."
-                  : MODE_HINTS[mode]}
+                  ? t("pass3_27.clipTransition.unlockTrack")
+                  : modeHint}
             </Caption>
           </FlexColumn>
         </CollapsibleSection>

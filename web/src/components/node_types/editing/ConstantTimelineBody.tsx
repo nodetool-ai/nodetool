@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import ViewTimelineIcon from "@mui/icons-material/ViewTimeline";
@@ -51,6 +52,7 @@ const ConstantTimelineBody: React.FC<ConstantTimelineBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const value = data.properties?.value;
   const valueProperty = useMemo(
     () => nodeMetadata.properties?.find((property) => property.name === "value"),
@@ -73,7 +75,7 @@ const ConstantTimelineBody: React.FC<ConstantTimelineBodyProps> = ({
     >
       <FlexColumn className="constant-timeline-body__preview" fullWidth>
         {value === undefined || value === null ? (
-          <CheckerDropzone message="Choose a timeline" icon={<ViewTimelineIcon />} />
+          <CheckerDropzone message={t("i18n-next80.constantTimeline.chooseTimeline")} icon={<ViewTimelineIcon />} />
         ) : (
           <OutputRenderer value={value} showTextActions={false} />
         )}

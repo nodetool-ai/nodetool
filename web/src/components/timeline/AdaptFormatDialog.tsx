@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   isMediaTrackStale,
@@ -49,6 +50,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
   sequence,
   mediaTracks
 }) => {
+  const { t } = useTranslation();
   const [formats, setFormats] = useState<Set<string>>(new Set(["9:16"]));
   const [strategy, setStrategy] = useState<AdaptFormatStrategy>("smart");
   const [safeMarginPercent, setSafeMarginPercent] = useState(10);
@@ -139,10 +141,10 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
   const strategyHelp =
     [
       readyTracks.length === 0
-        ? "Track a subject first to use “Follow selected object.”"
+        ? t("i18n-next3.timeline.adaptFormat.trackUnavailable")
         : undefined,
       smartUnavailable
-        ? "Smart reframe needs a current subject track or authored framing for every visual clip. Use Center until those signals exist."
+        ? t("i18n-next3.timeline.adaptFormat.smartUnavailable")
         : undefined
     ]
       .filter(Boolean)
@@ -152,22 +154,22 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Adapt format"
+      title={t("i18n-next3.timeline.adaptFormat.title")}
       onConfirm={() => void handleCreate()}
       confirmText={
-        formats.size > 1 ? "Create adaptations" : "Create adaptation"
+        formats.size > 1 ? t("i18n-next3.timeline.adaptFormat.createPlural", { count: formats.size }) : t("i18n-next3.timeline.adaptFormat.createSingular")
       }
       confirmDisabled={cannotCreate}
       isLoading={isCreating}
     >
       <FlexColumn gap={SPACING.lg}>
-        <FormField label="Original">
+        <FormField label={t("i18n-next3.timeline.adaptFormat.original")}>
           <Text size="small">
             {sequence ? `${sequence.width} × ${sequence.height}` : "—"}
           </Text>
         </FormField>
 
-        <FormField label="Target formats">
+        <FormField label={t("i18n-next3.timeline.adaptFormat.targetFormats")}>
           <FlexColumn gap={SPACING.xs}>
             {FORMAT_OPTIONS.map((format) => (
               <Checkbox
@@ -181,18 +183,18 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
           </FlexColumn>
         </FormField>
 
-        <FormField label="Strategy" helperText={strategyHelp}>
+        <FormField label={t("i18n-next3.timeline.adaptFormat.strategy")} helperText={strategyHelp}>
           <RadioSet value={strategy} onChange={handleStrategyChange}>
-            <Radio value="center" label="Center" size="small" />
+            <Radio value="center" label={t("i18n-next3.timeline.adaptFormat.center")} size="small" />
             <Radio
               value="smart"
-              label="Smart reframe"
+              label={t("i18n-next3.timeline.adaptFormat.smartReframe")}
               size="small"
               disabled={smartUnavailable}
             />
             <Radio
               value="track"
-              label="Follow selected object"
+              label={t("i18n-next3.timeline.adaptFormat.followObject")}
               size="small"
               disabled={readyTracks.length === 0}
             />
@@ -200,7 +202,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
         </FormField>
         {strategy === "track" && (
           <SelectField
-            label="Reframe subject"
+            label={t("i18n-next3.timeline.adaptFormat.reframeSubject")}
             value={trackId}
             onChange={setTrackId}
             options={trackOptions}
@@ -208,7 +210,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
           />
         )}
 
-        <FormField label="Safe margin">
+        <FormField label={t("i18n-next3.timeline.adaptFormat.safeMargin")}>
           <FlexRow gap={SPACING.lg} align="center">
             <Slider
               value={safeMarginPercent}
@@ -218,7 +220,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
               onChange={(_event, value) =>
                 setSafeMarginPercent(Array.isArray(value) ? value[0] : value)
               }
-              aria-label="Safe margin"
+              aria-label={t("i18n-next3.timeline.adaptFormat.safeMargin")}
               sx={{ flex: 1 }}
             />
             <Text size="small">{safeMarginPercent}%</Text>
@@ -227,8 +229,7 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
 
         {error && <AlertBanner severity="error">{error}</AlertBanner>}
         <Caption color="muted">
-          New sequences share the source media. The original edit is not resized
-          or changed.
+          {t("i18n-next3.timeline.adaptFormat.note")}
         </Caption>
       </FlexColumn>
     </Dialog>

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { LoadingSpinner, TabGroup } from "../ui_primitives";
 import DashboardExampleApps from "../portal/DashboardExampleApps";
 
@@ -25,29 +26,39 @@ interface StartExamplesProps {
   onMakeGame?: () => void;
 }
 
-const EXAMPLE_TABS = [
-  { value: "apps", label: "Apps" },
-  { value: "workflows", label: "Workflows" },
-  { value: "storyboards", label: "Storyboards" },
-  { value: "timelines", label: "Timelines" },
-  { value: "sketches", label: "Sketches" },
-  { value: "models", label: "3D models" },
-  { value: "games", label: "Games" }
-];
-
 const StartExamples = ({ onBrowseAll, onMakeGame }: StartExamplesProps) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("apps");
+  const exampleTabs = [
+    { value: "apps", label: t("pass3_35.startExamples.tabs.apps") },
+    { value: "workflows", label: t("pass3_35.startExamples.tabs.workflows") },
+    {
+      value: "storyboards",
+      label: t("pass3_35.startExamples.tabs.storyboards")
+    },
+    { value: "timelines", label: t("pass3_35.startExamples.tabs.timelines") },
+    { value: "sketches", label: t("pass3_35.startExamples.tabs.sketches") },
+    { value: "models", label: t("pass3_35.startExamples.tabs.models3d") },
+    { value: "games", label: t("pass3_35.startExamples.tabs.games") }
+  ];
 
   return (
-    <section aria-label="Examples">
+    <section aria-label={t("pass3_35.startExamples.sectionLabel")}>
       <TabGroup
-        tabs={EXAMPLE_TABS}
+        tabs={exampleTabs}
         value={activeTab}
         onChange={setActiveTab}
-        aria-label="Example types"
+        aria-label={t("pass3_35.startExamples.tabListLabel")}
         size="small"
       />
-      <Suspense fallback={<LoadingSpinner size="medium" text="Loading examples" />}>
+      <Suspense
+        fallback={
+          <LoadingSpinner
+            size="medium"
+            text={t("pass3_35.startExamples.loading")}
+          />
+        }
+      >
         {activeTab === "apps" ? (
           <DashboardExampleApps compact onBrowseAll={onBrowseAll} />
         ) : activeTab === "workflows" ? (

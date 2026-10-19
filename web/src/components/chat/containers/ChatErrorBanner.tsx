@@ -6,6 +6,7 @@
  * to try again.
  */
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -27,29 +28,32 @@ const ChatErrorBanner = ({
   error,
   onDismiss,
   onRetry
-}: ChatErrorBannerProps) => (
-  <AlertBanner
-    className="chat-error-banner"
-    severity="error"
-    compact
-    onClose={onDismiss}
-  >
-    <FlexRow align="center" gap={SPACING.sm} wrap>
-      <Text
-        component="span"
-        size="small"
-        sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
-      >
-        {error}
-      </Text>
-      <ProviderFailureReportButton errorText={error} />
-      {onRetry && (
-        <EditorButton density="compact" onClick={onRetry}>
-          Retry
-        </EditorButton>
-      )}
-    </FlexRow>
-  </AlertBanner>
-);
+}: ChatErrorBannerProps) => {
+  const { t } = useTranslation();
+  return (
+    <AlertBanner
+      className="chat-error-banner"
+      severity="error"
+      compact
+      onClose={onDismiss}
+    >
+      <FlexRow align="center" gap={SPACING.sm} wrap>
+        <Text
+          component="span"
+          size="small"
+          sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+        >
+          {error}
+        </Text>
+        <ProviderFailureReportButton errorText={error} />
+        {onRetry && (
+          <EditorButton density="compact" onClick={onRetry}>
+            {t("i18n-next11.chat.retry")}
+          </EditorButton>
+        )}
+      </FlexRow>
+    </AlertBanner>
+  );
+};
 
 export default memo(ChatErrorBanner);

@@ -12,6 +12,7 @@
  */
 
 import { memo, type Ref } from "react";
+import { useTranslation } from "react-i18next";
 import { TextField, TextFieldProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
@@ -70,6 +71,7 @@ export function NodeTextField({
   ref,
   ...props
 }: NodeTextFieldProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const scope = useEditorScope();
   const scopeClass =
@@ -109,6 +111,7 @@ export function NodeTextField({
         },
         htmlInput: {
           // Merge legacy inputProps (from Autocomplete) with slotProps.htmlInput
+          "aria-label": t("i18n-next60.editorUi.textField.textInput"),
           ...inputProps,
           ...slotProps?.htmlInput,
           className: cn(

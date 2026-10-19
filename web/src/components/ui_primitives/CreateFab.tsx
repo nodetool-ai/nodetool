@@ -14,6 +14,7 @@
  */
 
 import React, { forwardRef, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Fab, FabProps } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -89,8 +90,9 @@ export const CreateFab = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
 
-      const tooltipText = tooltip ?? label ?? "Create new";
+      const tooltipText = tooltip ?? label ?? t("i18n-next95.createFab.tooltip");
 
       const getColorStyles = () => {
         switch (fabColor) {

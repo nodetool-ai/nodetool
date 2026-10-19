@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 /** The selected MIDI track's instrument in the right-panel Instruments tab. */
 import React, { Suspense, memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -30,6 +31,7 @@ interface TrackInstrumentPanelProps {
 
 export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
   ({ trackId }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const [auditionError, setAuditionError] = useState("");
     const instrument = useTimelineStore(
@@ -64,15 +66,15 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
           clearTimeout(auditionTimerRef.current);
         }
         if (next === instrument) {
-          void playAuditionNote(next, auditionPitch).catch(error => { setAuditionError(error instanceof Error ? error.message : "Could not play this instrument."); });
+          void playAuditionNote(next, auditionPitch).catch(error => { setAuditionError(error instanceof Error ? error.message : t("i18n-next59.instrument.auditionError")); });
           return;
         }
         auditionTimerRef.current = setTimeout(() => {
           auditionTimerRef.current = null;
-          void playAuditionNote(next, auditionPitch).catch(error => { setAuditionError(error instanceof Error ? error.message : "Could not play this instrument."); });
+          void playAuditionNote(next, auditionPitch).catch(error => { setAuditionError(error instanceof Error ? error.message : t("i18n-next59.instrument.auditionError")); });
         }, AUDITION_DEBOUNCE_MS);
       },
-      [setTrackInstrument, trackId, instrument]
+      [setTrackInstrument, trackId, instrument, t]
     );
 
     return (
@@ -82,7 +84,7 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
       >
         <FlexColumn gap={SPACING.md}>
           <SelectField
-            label="Instrument preset"
+            label={t("i18n-next59.instrument.preset")}
             css={css({ width: "100%", alignSelf: "flex-start" })}
             size="small"
             value={presetId}
@@ -91,7 +93,7 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
                 value: preset.id,
                 label: preset.name
               })),
-              { value: "custom", label: "Custom" }
+              { value: "custom", label: t("i18n-next59.instrument.custom") }
             ]}
             onChange={(id) => {
               const preset = findInstrumentPreset(id);
@@ -100,24 +102,23 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
           />
           <Button size="small" variant="text" aria-pressed={showKeyboard}
             sx={{ alignSelf: "flex-start", color: showKeyboard ? "primary.main" : "text.secondary", backgroundColor: showKeyboard ? "action.selected" : "transparent" }}
-            onClick={() => toggleKeyboard(trackId)}>Keyboard</Button>
+            onClick={() => toggleKeyboard(trackId)}>{t("i18n-next59.instrument.keyboard")}</Button>
           {showKeyboard && <div className={`fs-editor fs-${instrument.type}`}>
             <InstrumentKeyboard start={instrument.type === "sampler" ? Math.min(103, auditionPitch(instrument)) : instrument.type === "drum" ? instrument.baseNote : instrument.type === "bass" ? 36 : 48}
               onPlay={pitch => commit(instrument, pitch)} />
           </div>}
           {DeviceView ? (
-            <PanelErrorBoundary panelName="Instrument device">
-              <Suspense fallback={<LoadingSpinner size="small" text="Loading instrument" />}>
+            <PanelErrorBoundary panelName={t("i18n-next59.instrument.device")}>
+              <Suspense fallback={<LoadingSpinner size="small" text={t("i18n-next59.instrument.loading")} />}>
                 <DeviceView trackId={trackId} />
               </Suspense>
             </PanelErrorBoundary>
-          ) : instrument.type === "sampler" ? <SamplerInstrumentEditor key={trackId} instrument={instrument} onChange={commit} /> : instrument.type === "subtractive" ? <Caption color="muted">Choose a sampler, WT-1, BL-1, or DR-1 preset to edit this track’s instrument.</Caption> : (
+          ) : instrument.type === "sampler" ? <SamplerInstrumentEditor key={trackId} instrument={instrument} onChange={commit} /> : instrument.type === "subtractive" ? <Caption color="muted">{t("i18n-next59.instrument.choosePreset")}</Caption> : (
             <FableSynthInstrumentEditor key={trackId} instrument={instrument} onChange={commit} />
           )}
           {auditionError && <Caption role="alert">{auditionError}</Caption>}
           <Caption color="muted">
-            Every clip on this track plays this voice. Changes are auditioned on{" "}
-            {instrument.type === "drum" ? "the selected pad" : instrument.type === "sampler" ? "the mapped sample key" : "middle C"}.
+            {t("i18n-next59.instrument.auditionDescription", { target: instrument.type === "drum" ? t("i18n-next59.instrument.selectedPad") : instrument.type === "sampler" ? t("i18n-next59.instrument.mappedSampleKey") : t("i18n-next59.instrument.middleC") })}
           </Caption>
         </FlexColumn>
       </div>

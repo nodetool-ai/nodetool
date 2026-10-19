@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -60,6 +61,7 @@ const ImageTile = memo<ImageTileProps>(({
   onOpenInViewer,
   onToggleSelect
 }) => {
+  const { t } = useTranslation();
   const handleDownloadClick = useCallback((e: React.MouseEvent) => onDownload(idx, e), [onDownload, idx]);
   const handleOpenClick = useCallback((e: React.MouseEvent) => onOpenInViewer(idx, e), [onOpenInViewer, idx]);
   const handleCheckboxClick = useCallback((e: React.MouseEvent) => onToggleSelect(idx, e), [onToggleSelect, idx]);
@@ -68,7 +70,7 @@ const ImageTile = memo<ImageTileProps>(({
     <div
       role="button"
       tabIndex={0}
-      aria-label={`Image ${idx + 1}`}
+      aria-label={t("i18n-next66.node.previewImageGrid.image", { index: idx + 1 })}
       className={`tile ${isSelected ? "selected" : ""}`}
       onDoubleClick={() => {
         if (selectionMode) return;
@@ -101,12 +103,12 @@ const ImageTile = memo<ImageTileProps>(({
         <img
           className="img"
           src={url}
-          alt={`image-${idx + 1}`}
+          alt={t("i18n-next66.node.previewImageGrid.image", { index: idx + 1 })}
           loading="lazy"
           draggable={false}
         />
       ) : (
-        <div className="placeholder">IMAGE</div>
+        <div className="placeholder">{t("i18n-next66.node.previewImageGrid.imagePlaceholder")}</div>
       )}
       {showActions && !selectionMode && (
         <div className="tile-actions">
@@ -116,22 +118,22 @@ const ImageTile = memo<ImageTileProps>(({
             className="tile-action-btn"
           />
           <ToolbarIconButton
-            tooltip="Download"
+            tooltip={t("i18n-next66.node.previewImageGrid.download")}
             tooltipPlacement="top"
             icon={<DownloadIcon />}
             className="tile-action-btn"
             size="small"
             onClick={handleDownloadClick}
-            ariaLabel={`Download image ${idx + 1}`}
+            ariaLabel={t("i18n-next66.node.previewImageGrid.downloadImage", { index: idx + 1 })}
           />
           <ToolbarIconButton
-            tooltip="Open in Viewer (double-click)"
+            tooltip={t("i18n-next66.node.previewImageGrid.openInViewer")}
             tooltipPlacement="top"
             icon={<OpenInNewIcon />}
             className="tile-action-btn"
             size="small"
             onClick={handleOpenClick}
-            ariaLabel={`Open image ${idx + 1} in viewer`}
+            ariaLabel={t("i18n-next66.node.previewImageGrid.openImageInViewer", { index: idx + 1 })}
           />
         </div>
       )}
@@ -332,6 +334,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   enableSelection = true,
   showActions = true
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -521,7 +524,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           onClick={toggleSelectionMode}
           startIcon={selectionMode ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
         >
-          {selectionMode ? "Exit select" : "Select"}
+          {selectionMode
+            ? t("i18n-next66.node.previewImageGrid.exitSelect")
+            : t("i18n-next66.node.previewImageGrid.select")}
         </EditorButton>
       )}
 
@@ -553,7 +558,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
       {/* Action bar when items are selected */}
       {selectionMode && selectedIndices.size > 0 && (
         <Box className="action-bar">
-          <Tooltip title="Compare the two selected images">
+          <Tooltip title={t("i18n-next66.node.previewImageGrid.compareSelectedImages")}>
             <span>
               <EditorButton
                 className="action-button"
@@ -562,12 +567,12 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 onClick={handleCompare}
                 disabled={selectedIndices.size !== 2}
               >
-                Compare
+                {t("i18n-next66.node.previewImageGrid.compare")}
               </EditorButton>
             </span>
           </Tooltip>
           <ToolbarIconButton
-            title="Clear selection"
+            title={t("i18n-next66.node.previewImageGrid.clearSelection")}
             size="small"
             onClick={clearSelection}
             sx={{ color: theme.vars.palette.common.white }}
@@ -575,7 +580,9 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             <ClearIcon fontSize="small" />
           </ToolbarIconButton>
           <Box sx={{ fontSize: "var(--fontSizeSmall)", color: "grey.400", ml: SPACING.xs }}>
-            {selectedIndices.size} selected
+            {t("i18n-next66.node.previewImageGrid.selectedCount", {
+              count: selectedIndices.size
+            })}
           </Box>
         </Box>
       )}
@@ -587,11 +594,11 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           open={compareDialogOpen}
           onClose={handleCloseCompare}
           maxWidth={false}
-          aria-label="Compare outputs"
+          aria-label={t("i18n-next66.node.previewImageGrid.compareOutputs")}
         >
           <Box sx={{ width: "90vw", height: "90vh", position: "relative" }}>
             <ToolbarIconButton
-              title="Close image comparison dialog"
+              title={t("i18n-next66.node.previewImageGrid.closeComparison")}
               onClick={handleCloseCompare}
               sx={{
                 position: "absolute",
@@ -608,8 +615,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
             <ImageComparer
               imageA={compareImages[0]}
               imageB={compareImages[1]}
-              labelA="Image 1"
-              labelB="Image 2"
+              labelA={t("i18n-next66.node.previewImageGrid.image", { index: 1 })}
+              labelB={t("i18n-next66.node.previewImageGrid.image", { index: 2 })}
               showLabels={true}
               showMetadata={true}
               initialMode="horizontal"

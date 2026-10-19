@@ -7,6 +7,7 @@
 // snapshot a sound, the row glyph, the detail readout, and the audition.
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { favoriteKey, filterEntries, loadFavorites, saveFavorites, type BrowserItem } from '../../shared/presetBrowser';
 import './presetBrowser.css';
 
@@ -48,8 +49,6 @@ export interface PresetBrowserAdapter<I extends BrowserItem, S extends BrowserSn
 
 const ROW_DIM = 'rgba(147, 160, 184, 0.38)';
 const MODE_COLOR: Record<BrowserMode, string> = { kept: '#9fb4d8', audition: '#9fb4d8', variant: '#b18cff', b: '#ffa14d' };
-const MODE_LABEL: Record<BrowserMode, string> = { kept: 'KEPT', audition: 'AUDITION', variant: 'VARIANT', b: 'B · KEPT' };
-
 function toggle<T>(set: ReadonlySet<T>, v: T): Set<T> {
   const next = new Set(set);
   if (next.has(v)) next.delete(v); else next.add(v);
@@ -60,6 +59,8 @@ export function PresetBrowserShell<I extends BrowserItem, S extends BrowserSnaps
   adapter: PresetBrowserAdapter<I, S>;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
+  const modeLabels: Record<BrowserMode, string> = { kept: t('i18n-next24.presetBrowser.mode.kept'), audition: t('i18n-next24.presetBrowser.mode.audition'), variant: t('i18n-next24.presetBrowser.mode.variant'), b: t('i18n-next24.presetBrowser.mode.bKept') };
   const [query, setQuery] = useState('');
   const [roles, setRoles] = useState<ReadonlySet<string>>(new Set());
   const [tags, setTags] = useState<ReadonlySet<string>>(new Set());
@@ -140,18 +141,18 @@ export function PresetBrowserShell<I extends BrowserItem, S extends BrowserSnaps
   const isKept = mode === 'kept' || mode === 'b';
 
   return (
-    <div className="pbr" role="dialog" aria-label="Preset browser">
+    <div className="pbr" role="dialog" aria-label={t('i18n-next24.presetBrowser.dialogLabel')}>
       <div className="pbr-col pbr-filters">
         <input
           className="pbr-search"
           type="search"
-          placeholder="Search"
-          aria-label="Search presets"
+          placeholder={t('i18n-next24.presetBrowser.search')}
+          aria-label={t('i18n-next24.presetBrowser.searchPresets')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="pbr-group">
-          <span className="pbr-label">Role</span>
+          <span className="pbr-label">{t('i18n-next24.presetBrowser.role')}</span>
           <div className="pbr-chips">
             {a.roles.map((r) => (
               <button key={r} type="button" className="pbr-chip" aria-pressed={roles.has(r)} onClick={() => setRoles(toggle(roles, r))}>{r}</button>
@@ -159,7 +160,7 @@ export function PresetBrowserShell<I extends BrowserItem, S extends BrowserSnaps
           </div>
         </div>
         <div className="pbr-group">
-          <span className="pbr-label">Character</span>
+          <span className="pbr-label">{t('i18n-next24.presetBrowser.character')}</span>
           <div className="pbr-chips">
             {a.characters.map((t) => (
               <button key={t} type="button" className="pbr-chip" aria-pressed={tags.has(t)} onClick={() => setTags(toggle(tags, t))}>{t}</button>
@@ -167,15 +168,15 @@ export function PresetBrowserShell<I extends BrowserItem, S extends BrowserSnaps
           </div>
         </div>
         <div className="pbr-group">
-          <span className="pbr-label">Collection</span>
+          <span className="pbr-label">{t('i18n-next24.presetBrowser.collection')}</span>
           <div className="pbr-chips">
-            <button type="button" className="pbr-chip fav" aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly(!favoritesOnly)}>♥ favorites</button>
+            <button type="button" className="pbr-chip fav" aria-pressed={favoritesOnly} onClick={() => setFavoritesOnly(!favoritesOnly)}>♥ {t('i18n-next24.presetBrowser.favorites')}</button>
             {hasUser && (
-              <button type="button" className="pbr-chip" aria-pressed={userOnly} onClick={() => setUserOnly(!userOnly)}>user</button>
+              <button type="button" className="pbr-chip" aria-pressed={userOnly} onClick={() => setUserOnly(!userOnly)}>{t('i18n-next24.presetBrowser.user')}</button>
             )}
           </div>
         </div>
-        <span className="pbr-count">{visible.length} of {a.items.length}</span>
+        <span className="pbr-count">{t('i18n-next24.presetBrowser.itemCount', { visible: visible.length, total: a.items.length })}</span>
       </div>
 
       <div className="pbr-col pbr-main">
@@ -184,7 +185,7 @@ export function PresetBrowserShell<I extends BrowserItem, S extends BrowserSnaps
           {a.glyphLegend && <span className="pbr-label">{a.glyphLegend}</span>}
         </div>
         <div className="pbr-list" ref={listRef}>
-          {visible.length === 0 && <div className="pbr-empty">Nothing matches these filters. Clear a chip to see more.</div>}
+          {visible.length === 0 && <div className="pbr-empty">{t('i18n-next24.presetBrowser.noMatches')}</div>}
           {visible.map((e) => {
             const sel = e.value === shownValue;
             const fav = favorites.has(favoriteKey(e));
@@ -201,7 +202,7 @@ export function PresetBrowserShell<I extends BrowserItem, S extends BrowserSnaps
                 <button
                   type="button"
                   className={`pbr-heart${fav ? ' on' : ''}`}
-                  aria-label={fav ? `Remove ${e.name} from favorites` : `Add ${e.name} to favorites`}
+                  aria-label={fav ? t('i18n-next24.presetBrowser.removeFavorite', { name: e.name }) : t('i18n-next24.presetBrowser.addFavorite', { name: e.name })}
                   aria-pressed={fav}
                   onClick={() => toggleFavorite(e)}
                 >{fav ? '♥' : '♡'}</button>
@@ -215,23 +216,23 @@ export function PresetBrowserShell<I extends BrowserItem, S extends BrowserSnaps
         <div className="pbr-detail-head">
           <div>
             <div className="pbr-dname">{detailName}</div>
-            <div className="pbr-dmeta">{[role, ...(current?.tags ?? [])].filter(Boolean).join(' · ') || 'untagged'}</div>
+            <div className="pbr-dmeta">{[role, ...(current?.tags ?? [])].filter(Boolean).join(' · ') || t('i18n-next24.presetBrowser.untagged')}</div>
           </div>
-          <span className={`pbr-state ${mode}`}>{MODE_LABEL[mode]}</span>
+          <span className={`pbr-state ${mode}`}>{modeLabels[mode]}</span>
         </div>
         {a.renderDetail(MODE_COLOR[mode])}
         <div className="pbr-actions">
-          <button type="button" className="pbr-btn primary" onClick={keep} disabled={isKept}>KEEP</button>
-          <button type="button" className="pbr-btn" onClick={revert} disabled={isKept}>REVERT</button>
+          <button type="button" className="pbr-btn primary" onClick={keep} disabled={isKept}>{t('i18n-next24.presetBrowser.keep')}</button>
+          <button type="button" className="pbr-btn" onClick={revert} disabled={isKept}>{t('i18n-next24.presetBrowser.revert')}</button>
           <button type="button" className="pbr-btn" aria-pressed={mode === 'b'} onClick={ab} disabled={mode === 'kept'}>A / B</button>
-          {a.vary && <button type="button" className="pbr-btn vary" onClick={vary} disabled={!current || mode === 'b'}>VARY</button>}
+          {a.vary && <button type="button" className="pbr-btn vary" onClick={vary} disabled={!current || mode === 'b'}>{t('i18n-next24.presetBrowser.vary')}</button>}
         </div>
         <div className="pbr-foot">
           <button type="button" className="pbr-chip" aria-pressed={phraseOn} onClick={() => { setPhraseOn(!phraseOn); a.stopAudition(); }}>
-            ♪ phrase
+            ♪ {t('i18n-next24.presetBrowser.phrase')}
           </button>
           <span className="pbr-hint">{a.auditionHint(phraseOn)}</span>
-          <button type="button" className="pbr-btn close" onClick={close}>CLOSE</button>
+          <button type="button" className="pbr-btn close" onClick={close}>{t('i18n-next24.presetBrowser.close')}</button>
         </div>
       </div>
     </div>

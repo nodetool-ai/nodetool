@@ -16,6 +16,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -58,47 +59,51 @@ import {
   type CuratedAvailability
 } from "./modelAvailability";
 
-/** What the button says when no catalog figure covers the plan (PRD § 8.3). */
-export const COST_UNKNOWN_TEXT = "cost unknown until the first clip returns";
-
-const countLabel = (count: number, singular: string, plural: string): string =>
-  `${count} ${count === 1 ? singular : plural}`;
-
 /** The exact request manifest and its priced portion, beside the paid action. */
 export const videoCommitmentDetail = (
-  estimate: NonNullable<ReturnType<typeof useBeatPlanCostEstimate>>
+  estimate: NonNullable<ReturnType<typeof useBeatPlanCostEstimate>>,
+  t: ReturnType<typeof useTranslation>["t"]
 ): string => {
   const parts = [
-    countLabel(estimate.destinationCount, "destination", "destinations"),
-    countLabel(estimate.videoRequestCount, "video take", "video takes")
+    t("pass3_13.video.look.commitment.destinations", {
+      count: estimate.destinationCount
+    }),
+    t("pass3_13.video.look.commitment.videoTakes", {
+      count: estimate.videoRequestCount
+    })
   ];
   if (estimate.voiceRequestCount > 0) {
     parts.push(
-      countLabel(estimate.voiceRequestCount, "voice request", "voice requests")
+      t("pass3_13.video.look.commitment.voiceRequests", {
+        count: estimate.voiceRequestCount
+      })
     );
   }
   if (estimate.videoRequestCount + estimate.voiceRequestCount === 0) {
-    parts.push("no generation requests", "no generation cost");
+    parts.push(
+      t("pass3_13.video.look.commitment.noGenerationRequests"),
+      t("pass3_13.video.look.commitment.noGenerationCost")
+    );
   } else if (estimate.pricedCount === 0) {
     parts.push(
-      "cost unknown",
-      countLabel(
-        estimate.unpricedCount,
-        "unpriced request",
-        "unpriced requests"
-      )
+      t("pass3_13.video.look.commitment.costUnknown"),
+      t("pass3_13.video.look.commitment.unpricedRequests", {
+        count: estimate.unpricedCount
+      })
     );
   } else if (estimate.unpricedCount > 0) {
     parts.push(
-      `known subtotal ${estimate.label}`,
-      countLabel(
-        estimate.unpricedCount,
-        "unpriced request",
-        "unpriced requests"
-      )
+      t("pass3_13.video.look.commitment.knownSubtotal", {
+        amount: estimate.label
+      }),
+      t("pass3_13.video.look.commitment.unpricedRequests", {
+        count: estimate.unpricedCount
+      })
     );
   } else {
-    parts.push(`about ${estimate.label}`);
+    parts.push(
+      t("pass3_13.video.look.commitment.about", { amount: estimate.label })
+    );
   }
   return parts.join(" · ");
 };
@@ -283,6 +288,7 @@ export function useLookStep({
   voiceOn,
   musicOn
 }: LookStepChoices): LookStepControls {
+  const { t } = useTranslation();
   const beats = useTimelineStore((state) => state.setup?.beats);
   const width = useTimelineStore((state) => state.width);
   const height = useTimelineStore((state) => state.height);
@@ -314,60 +320,66 @@ export function useLookStep({
     voiced
   });
 
-  const generate = useCallback(async (signal?: AbortSignal) => {
-    // The two toggles are the only look choices that are not already on the
-    // document, so they are passed rather than re-derived. Music is not passed
-    // at all: see MUSIC_AVAILABLE.
-    await generateFromBeats({
-      provider: video?.provider,
-      model: video?.model,
-      voiceover: voiced,
-      voice: audio?.voice,
-      voiceProvider: audio?.provider,
-      voiceModel: audio?.model,
-      music: MUSIC_AVAILABLE && musicOn,
-      signal
-    });
-  }, [audio, generateFromBeats, musicOn, video, voiced]);
+  const generate = useCallback(
+    async (signal?: AbortSignal) => {
+      // The two toggles are the only look choices that are not already on the
+      // document, so they are passed rather than re-derived. Music is not passed
+      // at all: see MUSIC_AVAILABLE.
+      await generateFromBeats({
+        provider: video?.provider,
+        model: video?.model,
+        voiceover: voiced,
+        voice: audio?.voice,
+        voiceProvider: audio?.provider,
+        voiceModel: audio?.model,
+        music: MUSIC_AVAILABLE && musicOn,
+        signal
+      });
+    },
+    [audio, generateFromBeats, musicOn, video, voiced]
+  );
 
   const clipCount = beats?.length ?? 0;
   const primaryDetail = estimate
-    ? videoCommitmentDetail(estimate)
-    : COST_UNKNOWN_TEXT;
+    ? videoCommitmentDetail(estimate, t)
+    : t("pass3_13.video.look.commitment.costUnknownUntilFirstClip");
 
   const blockedReason = firstBlocker([
-    [clipCount === 0, "Plan the beats first — there is nothing to render yet"],
+    [clipCount === 0, t("pass3_13.video.look.blockers.planBeatsFirst")],
     [
       needsVideoGeneration && clipModels.noProvider,
-      "No provider is set up to render video. Connect one above."
+      t("pass3_13.video.look.blockers.videoProviderMissing")
     ],
-    [needsVideoGeneration && !video?.model, "Pick a video model"],
+    [
+      needsVideoGeneration && !video?.model,
+      t("pass3_13.video.look.blockers.pickVideoModel")
+    ],
     [
       needsVideoGeneration &&
         !!video?.model &&
         !isAvailable(clipModels, video.model),
-      "Your providers do not offer that video model. Pick another."
+      t("pass3_13.video.look.blockers.videoModelUnavailable")
     ],
     // A remembered model can be one the providers have since dropped, so
     // Generate waits for the list that can say so. A list that failed keeps
     // Generate live and names the unchecked model above the grid instead.
     [
       needsVideoGeneration && !!video?.model && clipModels.loading,
-      "Checking that your providers still offer that video model"
+      t("pass3_13.video.look.blockers.checkingVideoModel")
     ],
     [
       needsVoiceGeneration && !audio?.voice,
-      "Pick a voice, or switch Voiceover off"
+      t("pass3_13.video.look.blockers.pickVoiceOrDisable")
     ],
     [
       needsVoiceGeneration && !!audio?.voice && voices.loading,
-      "Checking that your providers still offer that voice"
+      t("pass3_13.video.look.blockers.checkingVoice")
     ],
     [
       needsVoiceGeneration &&
         !!audio?.voice &&
         !isAvailable(voices, audio.voice),
-      "Your providers do not offer that voice. Pick another, or switch Voiceover off."
+      t("pass3_13.video.look.blockers.voiceUnavailable")
     ]
   ]);
 
@@ -393,19 +405,20 @@ const ModelAvailabilityNote: React.FC<{
   /** The picked model's name, which a failed list could not check. */
   pickedLabel?: string;
 }> = ({ availability, kind, noCompatible, pickedLabel }) => {
+  const { t } = useTranslation();
   const connect = useCallback(() => {
     openProviderOnboarding(
       kind === "video"
         ? {
             capability: "text_to_video",
-            reason: "Connect a provider that renders video to keep going."
+            reason: t("pass3_13.video.look.connectReasons.video")
           }
         : {
             capability: "text_to_speech",
-            reason: "Connect a provider that reads lines aloud to keep going."
+            reason: t("pass3_13.video.look.connectReasons.voice")
           }
     );
-  }, [kind]);
+  }, [kind, t]);
 
   if (availability.loading) {
     return (
@@ -413,8 +426,8 @@ const ModelAvailabilityNote: React.FC<{
         <LoadingSpinner size="small" inline />
         <Caption color="secondary">
           {kind === "video"
-            ? "Checking which video models your providers offer…"
-            : "Checking which voices your providers offer…"}
+            ? t("pass3_13.video.look.availability.checkingVideo")
+            : t("pass3_13.video.look.availability.checkingVoices")}
         </Caption>
       </FlexRow>
     );
@@ -425,24 +438,26 @@ const ModelAvailabilityNote: React.FC<{
         <FlexRow gap={GAP.normal} align="center" wrap>
           <Text size="normal" component="span">
             {kind === "video"
-              ? "Could not read the video models your providers offer."
-              : "Could not read the voices your providers offer."}
+              ? t("pass3_13.video.look.availability.videoReadFailed")
+              : t("pass3_13.video.look.availability.voicesReadFailed")}
           </Text>
           {pickedLabel ? (
             <Text size="normal" component="span">
-              {`Could not check that your providers still offer ${pickedLabel}. Generate will try it anyway.`}
+              {t("pass3_13.video.look.availability.pickedModelUnchecked", {
+                model: pickedLabel
+              })}
             </Text>
           ) : null}
           <EditorButton variant="outlined" onClick={availability.refetch}>
-            Try again
+            {t("pass3_13.video.look.actions.tryAgain")}
           </EditorButton>
           <ReportBugButton
             context={{
               source: "provider-call",
               summary:
                 kind === "video"
-                  ? "Video model list could not be read"
-                  : "Voice list could not be read",
+                  ? t("pass3_13.video.look.errorSummaries.videoList")
+                  : t("pass3_13.video.look.errorSummaries.voiceList"),
               errorText: availability.error
             }}
           />
@@ -456,11 +471,11 @@ const ModelAvailabilityNote: React.FC<{
         <FlexRow gap={GAP.normal} align="center" wrap>
           <Text size="normal" component="span">
             {kind === "video"
-              ? "No provider is set up to render video."
-              : "No provider is set up to read lines aloud, so switch Voiceover off or connect one."}
+              ? t("pass3_13.video.look.availability.noVideoProvider")
+              : t("pass3_13.video.look.availability.noVoiceProvider")}
           </Text>
           <EditorButton variant="outlined" onClick={connect}>
-            Connect a provider
+            {t("pass3_13.video.look.actions.connectProvider")}
           </EditorButton>
         </FlexRow>
       </AlertBanner>
@@ -472,11 +487,11 @@ const ModelAvailabilityNote: React.FC<{
         <FlexRow gap={GAP.normal} align="center" wrap>
           <Text size="normal" component="span">
             {kind === "video"
-              ? "Your providers offer no video model."
-              : "Your providers offer no voice, so switch Voiceover off or connect one that does."}
+              ? t("pass3_13.video.look.availability.noVideoModel")
+              : t("pass3_13.video.look.availability.noVoice")}
           </Text>
           <EditorButton variant="outlined" onClick={connect}>
-            Connect a provider
+            {t("pass3_13.video.look.actions.connectProvider")}
           </EditorButton>
         </FlexRow>
       </AlertBanner>
@@ -502,6 +517,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   musicAvailable,
   error
 }) => {
+  const { t } = useTranslation();
   const width = useTimelineStore((state) => state.width);
   const height = useTimelineStore((state) => state.height);
   const hasLines = useTimelineStore((state) =>
@@ -530,9 +546,9 @@ const LookStepInternal: React.FC<LookStepProps> = ({
         title: option.label,
         video: samples[option.id],
         disabled: !isAvailable(clipModels, option.id),
-        disabledReason: "Your providers do not offer this model."
+        disabledReason: t("pass3_13.video.look.tileUnavailable.model")
       })),
-    [clipModels, samples]
+    [clipModels, samples, t]
   );
 
   const voiceTiles = useMemo<PresetTile[]>(
@@ -541,9 +557,9 @@ const LookStepInternal: React.FC<LookStepProps> = ({
         id: voice.id,
         title: voice.label,
         disabled: !isAvailable(voices, voice.id),
-        disabledReason: "Your providers do not offer this voice."
+        disabledReason: t("pass3_13.video.look.tileUnavailable.voice")
       })),
-    [voices]
+    [voices, t]
   );
 
   // The curated tiles are NodeTool's own managed models, so only the cloud
@@ -583,25 +599,25 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   const pickedVoice = settings.voice?.voice;
   const pickedModel = settings.video?.model;
   const pickedModelLabel = pickedModel
-    ? (STUDIO_CLIP_MODELS.find((option) => option.id === pickedModel)
-        ?.label ?? pickedModel)
+    ? (STUDIO_CLIP_MODELS.find((option) => option.id === pickedModel)?.label ??
+      pickedModel)
     : undefined;
   // A curated voice label reads "Ada — warm, female". The name goes in a sentence.
   const pickedVoiceLabel = pickedVoice
-    ? (STUDIO_VOICES.find(
-        (option) => option.id === pickedVoice
-      )?.label.split(" — ")[0] ?? pickedVoice)
+    ? (STUDIO_VOICES.find((option) => option.id === pickedVoice)?.label.split(
+        " — "
+      )[0] ?? pickedVoice)
     : undefined;
   // The reason the final button is dead belongs beside the control that fixes
   // it as well as beside the button (F11).
   const voiceNote =
     voiceOn && !hasLines
-      ? "No beat has a line to read. Add one in the review."
+      ? t("pass3_13.video.look.voiceNotes.noLine")
       : voiceOn && !pickedVoice
-      ? "Pick a voice, or switch Voiceover off — nothing is read otherwise."
-      : voiceOn && pickedVoice && !isAvailable(voices, pickedVoice)
-        ? "Your providers do not offer the voice you picked. Pick another, or switch Voiceover off."
-        : null;
+        ? t("pass3_13.video.look.voiceNotes.pickVoice")
+        : voiceOn && pickedVoice && !isAvailable(voices, pickedVoice)
+          ? t("pass3_13.video.look.voiceNotes.voiceUnavailable")
+          : null;
 
   const handleAspect = useCallback(
     (value: string) => void saveProjectSettings(dimensionsForAspect(value)),
@@ -676,16 +692,18 @@ const LookStepInternal: React.FC<LookStepProps> = ({
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Choose your look
+          {t("pass3_13.video.look.title")}
         </Text>
         <Text size="normal" color="secondary">
-          The frame, the model that renders every beat, and whether the cut is
-          spoken over. You can change all of it in the editor.
+          {t("pass3_13.video.look.description")}
         </Text>
       </FlexColumn>
 
       {error ? (
-        <AlertBanner severity="error" title="Your clips did not start">
+        <AlertBanner
+          severity="error"
+          title={t("pass3_13.video.look.errors.clipsDidNotStart")}
+        >
           <FlexRow gap={GAP.normal} align="center" wrap>
             <Text size="normal" component="span">
               {error}
@@ -693,7 +711,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
             <ReportBugButton
               context={{
                 source: "operation-failure",
-                summary: "Video clips did not start",
+                summary: t("pass3_13.video.look.errors.clipsDidNotStart"),
                 errorText: error
               }}
             />
@@ -703,14 +721,19 @@ const LookStepInternal: React.FC<LookStepProps> = ({
 
       <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
         <SelectField
-          label="Aspect ratio"
+          label={t("pass3_13.video.look.fields.aspectRatio")}
           value={aspectOf(width, height)}
           onChange={handleAspect}
-          options={ASPECT_OPTIONS}
+          options={ASPECT_OPTIONS.map((option) => ({
+            ...option,
+            label: t(
+              `pass3_13.video.look.aspectOptions.${option.value.replace(":", "_")}`
+            )
+          }))}
         />
       </Box>
 
-      <FormField label="Video model">
+      <FormField label={t("pass3_13.video.look.fields.videoModel")}>
         <FlexColumn gap={GAP.normal}>
           <ModelAvailabilityNote
             availability={clipModels}
@@ -723,19 +746,21 @@ const LookStepInternal: React.FC<LookStepProps> = ({
                held open from the first paint rather than appearing under the
                reader. */
             <PresetTileGrid
-              label="Video model"
+              label={t("pass3_13.video.look.fields.videoModel")}
               presets={modelTiles}
               selectedId={settings.video?.model ?? null}
               onSelect={handleModel}
               onAddOwn={() => undefined}
-              addOwnLabel="More models in the editor"
+              addOwnLabel={t("pass3_13.video.look.actions.moreModels")}
               addOwnDisabled
-              addOwnDisabledReason="The timeline's inspector offers every configured provider."
+              addOwnDisabledReason={t(
+                "pass3_13.video.look.actions.allModelsInInspector"
+              )}
               reservePreview
             />
           ) : clipModels.reported.length > 0 ? (
             <FormField
-              helperText="Every model your configured providers render clips with. You can change it in the editor."
+              helperText={t("pass3_13.video.look.fields.videoModelHelp")}
               sx={{ maxWidth: SETUP_FIELD_WIDTH }}
             >
               <VideoModelSelect
@@ -752,8 +777,8 @@ const LookStepInternal: React.FC<LookStepProps> = ({
       {voiceLane ? (
         <FlexColumn gap={GAP.comfortable}>
           <LabeledSwitch
-            label="Voiceover"
-            description="Reads each beat's line over its clip"
+            label={t("pass3_13.video.look.fields.voiceover")}
+            description={t("pass3_13.video.look.fields.voiceoverDescription")}
             checked={voiceOn}
             onChange={onVoiceChange}
           />
@@ -776,24 +801,26 @@ const LookStepInternal: React.FC<LookStepProps> = ({
           ) : null}
           {readsLines && curatedVoiceOffered ? (
             <PresetTileGrid
-              label="Voice"
+              label={t("pass3_13.video.look.fields.voice")}
               presets={voiceTiles}
               selectedId={settings.voice?.voice ?? null}
               onSelect={handleVoice}
               onAddOwn={() => undefined}
-              addOwnLabel="More voices in the editor"
+              addOwnLabel={t("pass3_13.video.look.actions.moreVoices")}
               addOwnDisabled
-              addOwnDisabledReason="The timeline's inspector offers every configured voice."
+              addOwnDisabledReason={t(
+                "pass3_13.video.look.actions.allVoicesInInspector"
+              )}
               aspectRatio="1/1"
             />
           ) : null}
           {readsLines && !curatedVoiceOffered && voices.reported.length > 0 ? (
             <FormField
-              label="Voice model"
-              helperText="Every voice your configured providers read lines with."
+              label={t("pass3_13.video.look.fields.voiceModel")}
+              helperText={t("pass3_13.video.look.fields.voiceModelHelp")}
               error={
                 noPresetVoice
-                  ? "This model has no preset voices. Pick another model."
+                  ? t("pass3_13.video.look.errors.noPresetVoices")
                   : undefined
               }
               sx={{ maxWidth: SETUP_FIELD_WIDTH }}
@@ -809,11 +836,11 @@ const LookStepInternal: React.FC<LookStepProps> = ({
 
       {musicLane ? (
         <LabeledSwitch
-          label="Music"
+          label={t("pass3_13.video.look.fields.music")}
           description={
             musicAvailable === false
-              ? "Music generation is unavailable. Add an audio track in the editor."
-              : "One bed under the whole cut"
+              ? t("pass3_13.video.look.fields.musicUnavailable")
+              : t("pass3_13.video.look.fields.musicDescription")
           }
           checked={musicOn && musicAvailable !== false}
           disabled={musicAvailable === false}

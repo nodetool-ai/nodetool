@@ -2,6 +2,7 @@
 
 import ReactDOM from "react-dom";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { css } from "@emotion/react";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
@@ -405,6 +406,7 @@ const DataframeEditorModal = ({
   propertyDescription,
   readOnly = false
 }: DataframeEditorModalProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const theme = useTheme();
   const modalStyles = useMemo(() => styles(theme), [theme]);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
@@ -529,26 +531,26 @@ const DataframeEditorModal = ({
             <div className="actions">
               <div className="toolbar-group">
                 <Tooltip
-                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                  title={isFullscreen ? t("dataframe.exitFullscreen") : t("dataframe.fullscreen")}
                 >
                   <button
                     type="button"
                     className="button"
                     onClick={toggleFullscreen}
-                    aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                    aria-label={isFullscreen ? t("dataframe.exitFullscreen") : t("dataframe.fullscreen")}
                   >
                     {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                   </button>
                 </Tooltip>
                 <Tooltip
-                  title="Close editor"
+                  title={t("dataframe.closeEditor")}
                   shortcut={["Esc"]}
                 >
                   <button
                     type="button"
                     className="button button-close"
                     onClick={onClose}
-                    aria-label="Close editor"
+                    aria-label={t("dataframe.closeEditor")}
                   >
                     <CloseIcon />
                   </button>
@@ -566,7 +568,7 @@ const DataframeEditorModal = ({
                       className="add-column" 
                       onClick={addColumn}
                       icon={<TableRowsIcon style={{ rotate: "90deg" }} />}
-                      label="Add column"
+                      label={t("dataframe.addColumn")}
                     />
                   </div>
                   <ColumnsManager
@@ -579,7 +581,7 @@ const DataframeEditorModal = ({
               <div className="table-section">
                 <div className="search-bar">
                   <NodeTextField
-                    placeholder="Search in table"
+                    placeholder={t("dataframe.searchTable")}
                     value={searchFilter}
                     onChange={handleSearchChange}
                     InputProps={{
@@ -593,7 +595,7 @@ const DataframeEditorModal = ({
                           <CloseButtonPrimitive
                             buttonSize="small"
                             onClick={handleClearSearch}
-                            tooltip="Clear search"
+                            tooltip={t("dataframe.clearSearch")}
                           />
                         </InputAdornment>
                       )
@@ -619,7 +621,7 @@ const DataframeEditorModal = ({
             max={maxHeight}
             thickness={SPACING.md}
             grip
-            ariaLabel="Resize dataframe editor height"
+            ariaLabel={t("dataframe.resizeEditor")}
             onResize={resizeBy}
           />
         </div>

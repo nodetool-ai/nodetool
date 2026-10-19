@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -17,11 +18,6 @@ import type { Entity } from "@nodetool-ai/protocol";
 import { MentionAssetTile } from "./MentionAssetTile";
 import { MentionEntityTile } from "./MentionEntityTile";
 import type { MentionTab } from "./useAssetMentionSearch";
-
-const MENTION_TABS: TabItem[] = [
-  { value: "recent", label: "Recent" },
-  { value: "saved", label: "Saved" }
-];
 
 const assetMentionMenuStyles = (theme: Theme) =>
   css({
@@ -183,17 +179,22 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
   onLoadMore,
   className
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const menuStyles = useMemo(() => assetMentionMenuStyles(theme), [theme]);
+  const mentionTabs: TabItem[] = [
+    { value: "recent", label: t("i18n-next34.assetMention.recent") },
+    { value: "saved", label: t("i18n-next34.assetMention.saved") }
+  ];
   const entityCount = entities.length;
   const emptyMessage =
     activeTab === "recent"
       ? queryString
-        ? "No recent assets match."
-        : "No assets used yet. Generate or drag one in."
+        ? t("i18n-next34.assetMention.noRecentMatch")
+        : t("i18n-next34.assetMention.noRecentAssets")
       : queryString
-        ? "No assets match."
-        : "No saved assets yet.";
+        ? t("i18n-next34.assetMention.noAssetsMatch")
+        : t("i18n-next34.assetMention.noSavedAssets");
 
   const handleTabChange = (tab: string) => {
     if (tab === "recent" || tab === "saved") {
@@ -217,8 +218,14 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
       className={`asset-mention-menu nowheel${className ? ` ${className}` : ""}`}
     >
       {entityCount > 0 && (
-        <div className="mention-entities" role="listbox" aria-label="Entities">
-          <span className="mention-entities-label">Entities</span>
+        <div
+          className="mention-entities"
+          role="listbox"
+          aria-label={t("i18n-next34.assetMention.entities")}
+        >
+          <span className="mention-entities-label">
+            {t("i18n-next34.assetMention.entities")}
+          </span>
           {entities.map((entity, index) => (
             <EntityRow
               key={entity.id}
@@ -234,8 +241,8 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
       <TabGroup
         className="mention-tabs"
         size="small"
-        aria-label="Asset source"
-        tabs={MENTION_TABS}
+        aria-label={t("i18n-next34.assetMention.assetSource")}
+        tabs={mentionTabs}
         value={activeTab}
         onChange={handleTabChange}
         // Keep focus in the prompt editor: the menu is driven from its caret.

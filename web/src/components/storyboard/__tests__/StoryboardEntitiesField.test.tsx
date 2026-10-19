@@ -79,7 +79,7 @@ describe("StoryboardEntitiesField", () => {
   it("removes an entity from the board", async () => {
     renderField(["mark", "bazaar"]);
     await userEvent.click(
-      screen.getByRole("button", { name: "Remove Mark Cruise from the board" })
+      screen.getByRole("button", { name: "Remove Mark Cruise" })
     );
     expect(boardEntityIds()).toEqual(["bazaar"]);
   });

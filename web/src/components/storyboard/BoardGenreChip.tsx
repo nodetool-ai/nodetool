@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Chip,
@@ -34,10 +35,15 @@ export interface BoardGenreChipProps {
   readOnly?: boolean;
 }
 
-const toOption = (item: StoryboardGenre): OptionCardItem => ({
+const toOption = (
+  item: StoryboardGenre,
+  t: ReturnType<typeof useTranslation>["t"]
+): OptionCardItem => ({
   id: item.id,
-  title: item.label,
-  description: item.description,
+  title: t(`screens4_11.storyboard.genreChip.options.${item.id}.title`),
+  description: t(
+    `screens4_11.storyboard.genreChip.options.${item.id}.description`
+  ),
   image: genreStill(item)
 });
 
@@ -46,6 +52,7 @@ const BoardGenreChipInner: React.FC<BoardGenreChipProps> = ({
   genre,
   readOnly
 }) => {
+  const { t } = useTranslation();
   const setSetup = useStoryboardStore((state) => state.setSetup);
   // The anchor is state, not a ref: the popover needs the element on the
   // render that opens it, and a ref read during render is not that.
@@ -57,8 +64,14 @@ const BoardGenreChipInner: React.FC<BoardGenreChipProps> = ({
     []
   );
 
-  const options = useMemo(() => STORYBOARD_GENRES.map(toOption), []);
+  const options = useMemo(
+    () => STORYBOARD_GENRES.map((item) => toOption(item, t)),
+    [t]
+  );
   const selectedId = genreByLabel(genre)?.id ?? null;
+  const localizedGenre = selectedId
+    ? t(`screens4_11.storyboard.genreChip.options.${selectedId}.title`)
+    : genre;
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -72,7 +85,7 @@ const BoardGenreChipInner: React.FC<BoardGenreChipProps> = ({
   );
 
   if (readOnly) {
-    return genre ? <Chip compact label={genre} /> : null;
+    return genre ? <Chip compact label={localizedGenre} /> : null;
   }
 
   return (
@@ -80,7 +93,14 @@ const BoardGenreChipInner: React.FC<BoardGenreChipProps> = ({
       <Chip
         compact
         active={!!genre}
-        label={genre || "Set genre"}
+        label={localizedGenre || t("screens4_11.storyboard.genreChip.setGenre")}
+        aria-label={
+          localizedGenre
+            ? t("screens4_11.storyboard.genreChip.selectedGenre", {
+                genre: localizedGenre
+              })
+            : t("screens4_11.storyboard.genreChip.chooseGenre")
+        }
         onClick={openGrid}
         aria-haspopup="dialog"
         aria-expanded={anchorEl !== null}
@@ -95,10 +115,10 @@ const BoardGenreChipInner: React.FC<BoardGenreChipProps> = ({
       >
         <FlexColumn gap={SPACING.md} sx={{ p: SPACING.xl }}>
           <Text size="small" component="h3">
-            Genre
+            {t("screens4_11.storyboard.genreChip.title")}
           </Text>
           <OptionCardGrid
-            label="Genre"
+            label={t("screens4_11.storyboard.genreChip.optionsLabel")}
             options={options}
             selectedId={selectedId}
             onSelect={handleSelect}

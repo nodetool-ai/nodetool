@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -105,6 +106,7 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -157,7 +159,7 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
             value={channel}
             exclusive
             onChange={handleChannelChange}
-            aria-label="Channel"
+            aria-label={t("i18n-next46.channels.channel")}
             fullWidth
             compact
           >
@@ -165,8 +167,8 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
               <ToggleOption
                 key={c.value}
                 value={c.value}
-                aria-label={c.label}
-                title={c.label}
+                aria-label={t(`i18n-next46.channels.options.${c.value}`)}
+                title={t(`i18n-next46.channels.options.${c.value}`)}
               >
                 {c.short}
               </ToggleOption>

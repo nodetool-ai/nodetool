@@ -18,6 +18,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -44,7 +45,6 @@ import {
 } from "../../../hooks/timeline/useBatchedGesture";
 import {
   effectDeviceWidth,
-  EFFECT_LABELS,
   KNOBS,
   type Knob,
   AUDIO_EFFECT_TYPES,
@@ -69,14 +69,13 @@ import {
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import {
   FABLE_FX_KINDS,
-  FABLE_FX_LABELS,
   makeFableEffect
 } from "../daw/fx/fableFxParams";
 import { FableFxInline } from "../daw/fx/FableFxInline";
 
 /** The name an effect's card shows: a FableSynth insert goes by its kind. */
-const effectLabel = (effect: TrackEffect): string =>
-  effect.type === "fable" ? FABLE_FX_LABELS[effect.kind] : EFFECT_LABELS[effect.type];
+const effectLabel = (effect: TrackEffect, t: (key: string) => string): string =>
+  t(`i18n-cont-music-09.effects.labels.${effect.type === "fable" ? effect.kind : effect.type}`);
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -294,12 +293,13 @@ const KnobList = <E extends TrackEffect>({
   knobs,
   onPatch,
   disabled
-}: KnobListProps<E>) => (
-  <>
+}: KnobListProps<E>) => {
+  const { t } = useTranslation();
+  return <>
     {knobs.map((knob) => (
       <ParamRow
         key={String(knob.key)}
-        label={knob.label}
+        label={t(`i18n-cont-music-09.effects.parameters.${String(knob.key)}`)}
         value={effect[knob.key] as number}
         min={knob.min}
         max={knob.max}
@@ -314,8 +314,8 @@ const KnobList = <E extends TrackEffect>({
         disabled={disabled}
       />
     ))}
-  </>
-);
+  </>;
+};
 
 interface EffectEditorProps<E extends TrackEffect> {
   effect: E;
@@ -487,6 +487,7 @@ interface Eq3CurveProps {
 }
 
 const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [width, setWidth] = useState(600);
@@ -782,7 +783,7 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
               onKeyDown={handleKeyDown(band, freq, gainDb)}
               tabIndex={disabled ? -1 : 0}
               role="slider"
-              aria-label={`${band} band`}
+              aria-label={t("i18n-cont-music-09.effects.eq.band", { band: t(`i18n-cont-music-09.effects.eq.bands.${band}`) })}
               aria-valuetext={`${Math.round(freq)} Hz, ${gainDb.toFixed(1)} dB`}
               aria-valuemin={-EQ_DB_RANGE}
               aria-valuemax={EQ_DB_RANGE}
@@ -816,6 +817,7 @@ const Eq3Editor: React.FC<EffectEditorProps<TrackEq3Effect>> = ({
   onPatch,
   disabled
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   // Dragging a band re-renders this per frame; the row style alone was
   // serialized seven times each render.
@@ -838,42 +840,42 @@ const Eq3Editor: React.FC<EffectEditorProps<TrackEq3Effect>> = ({
       <FlexRow gap={0.5}>
         <div css={lowCss}>
           <div css={rowCss}>
-            <span>Low shelf</span>
+            <span>{t("i18n-cont-music-09.effects.eq.lowShelf")}</span>
             <b>{effect.lowGainDb >= 0 ? "+" : ""}{effect.lowGainDb.toFixed(1)} dB</b>
           </div>
           <div css={rowCss}>
-            <span>Freq</span>
+            <span>{t("i18n-cont-music-09.effects.frequencyShort")}</span>
             <b>{formatHz(effect.lowFreq)}</b>
           </div>
         </div>
         <div css={midCss}>
           <div css={rowCss}>
-            <span>Mid peak</span>
+            <span>{t("i18n-cont-music-09.effects.eq.midPeak")}</span>
             <b>{effect.midGainDb >= 0 ? "+" : ""}{effect.midGainDb.toFixed(1)} dB</b>
           </div>
           <div css={rowCss}>
-            <span>Freq</span>
+            <span>{t("i18n-cont-music-09.effects.frequencyShort")}</span>
             <b>{formatHz(effect.midFreq)}</b>
           </div>
           <div css={rowCss}>
-            <span>Q</span>
+            <span>{t("i18n-cont-music-09.effects.q")}</span>
             <b>{effect.midQ.toFixed(2)}</b>
           </div>
         </div>
         <div css={highCss}>
           <div css={rowCss}>
-            <span>High shelf</span>
+            <span>{t("i18n-cont-music-09.effects.eq.highShelf")}</span>
             <b>{effect.highGainDb >= 0 ? "+" : ""}{effect.highGainDb.toFixed(1)} dB</b>
           </div>
           <div css={rowCss}>
-            <span>Freq</span>
+            <span>{t("i18n-cont-music-09.effects.frequencyShort")}</span>
             <b>{formatHz(effect.highFreq)}</b>
           </div>
         </div>
       </FlexRow>
-      <Tooltip title="Drag handles to set frequency & gain. Scroll on the mid handle to change Q.">
+      <Tooltip title={t("i18n-cont-music-09.effects.eq.curveHelp")}>
         <Text size="smaller" color="secondary">
-          Drag bands · scroll mid for Q
+          {t("i18n-cont-music-09.effects.eq.curveHint")}
         </Text>
       </Tooltip>
     </FlexColumn>
@@ -884,18 +886,20 @@ const FilterEditor: React.FC<EffectEditorProps<TrackFilterEffect>> = ({
   effect,
   onPatch,
   disabled
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <FlexColumn gap={0.5}>
     <SelectField
-      label="Mode"
+      label={t("i18n-cont-music-09.effects.mode")}
       value={effect.mode}
       onChange={(v) =>
         onPatch({ mode: v as TrackFilterEffect["mode"] })
       }
       options={[
-        { value: "lowpass", label: "Low-pass" },
-        { value: "highpass", label: "High-pass" },
-        { value: "bandpass", label: "Band-pass" }
+        { value: "lowpass", label: t("i18n-cont-music-09.effects.filter.lowPass") },
+        { value: "highpass", label: t("i18n-cont-music-09.effects.filter.highPass") },
+        { value: "bandpass", label: t("i18n-cont-music-09.effects.filter.bandPass") }
       ]}
       size="small"
       disabled={disabled}
@@ -907,7 +911,8 @@ const FilterEditor: React.FC<EffectEditorProps<TrackFilterEffect>> = ({
       disabled={disabled}
     />
   </FlexColumn>
-);
+  );
+}
 
 // Compressor visualizer (Logic-style transfer curve)
 const COMP_DB_MIN = -60;
@@ -1313,6 +1318,7 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
   onPatch,
   disabled
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   // Dragging the transfer curve re-renders this per frame; the four tiles cost
   // thirteen serializations each time.
@@ -1338,25 +1344,25 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
         />
         <div css={gridCss}>
           <div css={threshTileCss}>
-            <span css={tileLabelCss}>Threshold</span>
+            <span css={tileLabelCss}>{t("i18n-cont-music-09.effects.parameters.thresholdDb")}</span>
             <span css={tileValueCss}>
               {effect.thresholdDb.toFixed(1)} dB
             </span>
           </div>
           <div css={accentTileCss}>
-            <span css={tileLabelCss}>Ratio</span>
+            <span css={tileLabelCss}>{t("i18n-cont-music-09.effects.compressor.ratio")}</span>
             <span css={tileValueCss}>
               {effect.ratio.toFixed(1)}:1
             </span>
           </div>
           <div css={plainTileCss}>
-            <span css={tileLabelCss}>Knee</span>
+            <span css={tileLabelCss}>{t("i18n-cont-music-09.effects.parameters.kneeDb")}</span>
             <span css={tileValueCss}>
               {effect.kneeDb.toFixed(1)} dB
             </span>
           </div>
           <div css={plainTileCss}>
-            <span css={tileLabelCss}>Attack</span>
+            <span css={tileLabelCss}>{t("i18n-cont-music-09.effects.parameters.attackMs")}</span>
             <span css={tileValueCss}>
               {formatMs(effect.attackMs)}
             </span>
@@ -1371,9 +1377,9 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
           disabled={disabled}
         />
       </FlexColumn>
-      <Tooltip title="Drag T to set threshold, R to set ratio. Scroll on T to change knee width.">
+      <Tooltip title={t("i18n-cont-music-09.effects.compressor.curveHelp")}>
         <Text size="smaller" color="secondary">
-          Drag T = threshold · R = ratio · scroll T = knee
+          {t("i18n-cont-music-09.effects.compressor.curveHint")}
         </Text>
       </Tooltip>
     </FlexColumn>
@@ -1475,17 +1481,18 @@ const ChromaKeyEditor: React.FC<
   EffectEditorProps<TrackChromaKeyEffect>
 > = ({ effect, onPatch, disabled }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   return (
     <FlexColumn gap={0.5}>
       <FlexRow gap={1} align="center">
         <span css={paramLabelStyles(theme)}>
-          Key color
+          {t("i18n-cont-music-09.effects.chromaKeyColor")}
         </span>
         <BatchedColorInput
           value={effect.keyColor}
           disabled={disabled}
           onChange={(keyColor) => onPatch({ keyColor })}
-          ariaLabel="Chroma key color"
+          ariaLabel={t("i18n-cont-music-09.effects.chromaKeyColor")}
         />
         <span
           css={{
@@ -1556,6 +1563,7 @@ const DRAG_MIME = "application/x-nodetool-effect-index";
 
 const EffectCard: React.FC<EffectCardProps> = memo(
   ({ trackId, effect, index }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const updateTrackEffect = useTimelineStore((s) => s.updateTrackEffect);
     const removeTrackEffect = useTimelineStore((s) => s.removeTrackEffect);
@@ -1651,7 +1659,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
     // `effect` is a new object every knob frame, so the card re-renders; none
     // of these three styles read a parameter value.
     const width = effectDeviceWidth(effect);
-    const label = effectLabel(effect);
+    const label = effectLabel(effect, t);
     const cardCss = useMemo(
       () => effectCardStyles(theme, width, dragOver, dragging),
       [theme, width, dragOver, dragging]
@@ -1669,13 +1677,13 @@ const EffectCard: React.FC<EffectCardProps> = memo(
       >
         <FlexRow css={effectHeaderStyles} sx={{ mb: 0.5 }}>
           <FlexRow gap={0.5} align="center">
-            <Tooltip title="Drag to reorder, or use Alt + arrow keys">
+            <Tooltip title={t("i18n-cont-music-09.effects.reorderHelp")}>
               <div
                 css={gripCss}
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                aria-label={`Reorder ${label} effect`}
+                aria-label={t("i18n-cont-music-09.effects.reorder", { label })}
                 aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
                 role="button"
                 tabIndex={0}
@@ -1692,12 +1700,12 @@ const EffectCard: React.FC<EffectCardProps> = memo(
             />
           </FlexRow>
           <FlexRow gap={0.5}>
-            <Tooltip title="Remove effect">
+            <Tooltip title={t("i18n-cont-music-09.effects.removeHelp")}>
               <button
                 type="button"
                 css={removeButtonCss}
                 onClick={handleRemove}
-                aria-label={`Remove ${label} effect`}
+                aria-label={t("i18n-cont-music-09.effects.remove", { label })}
               >
                 <DeleteOutlineIcon />
               </button>
@@ -1722,6 +1730,7 @@ interface TrackEffectsPanelProps {
 
 export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
   ({ trackId }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const track = useTimelineStore((s) =>
       s.tracks.find((t) => t.id === trackId)
@@ -1764,7 +1773,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
     const availableTypes = isVideo
       ? VIDEO_EFFECT_TYPES
       : AUDIO_EFFECT_TYPES;
-    const chainLabel = isVideo ? "FX chain" : "DSP chain";
+    const chainLabel = isVideo ? t("i18n-cont-music-09.effects.fxChain") : t("i18n-cont-music-09.effects.dspChain");
 
     return (
       <div css={containerStyles(theme)} data-testid="track-effects-panel">
@@ -1777,7 +1786,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
           </Text>
           <button type="button" css={addButtonStyles(theme)} onClick={handleOpenAdd}>
             <AddIcon />
-            Add
+            {t("i18n-cont-music-09.effects.add")}
           </button>
           <EditorMenu
             anchorEl={addAnchor}
@@ -1786,18 +1795,18 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
-            {availableTypes.map((t) => (
+            {availableTypes.map((effectType) => (
               <MenuItemPrimitive
-                key={t}
-                label={EFFECT_LABELS[t]}
-                onClick={() => handleAdd(t)}
+                key={effectType}
+                label={t(`i18n-cont-music-09.effects.labels.${effectType}`)}
+                onClick={() => handleAdd(effectType)}
               />
             ))}
             {!isVideo &&
               FABLE_FX_KINDS.map((kind) => (
                 <MenuItemPrimitive
                   key={`fable:${kind}`}
-                  label={FABLE_FX_LABELS[kind]}
+                  label={t(`i18n-cont-music-09.effects.labels.${kind}`)}
                   onClick={() => handleAddFable(kind)}
                 />
               ))}
@@ -1806,7 +1815,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
 
         {effects.length === 0 ? (
           <Text size="small" color="secondary">
-            No effects. Click <strong>Add</strong> to insert one.
+            {t("i18n-cont-music-09.effects.emptyPrefix")} <strong>{t("i18n-cont-music-09.effects.add")}</strong> {t("i18n-cont-music-09.effects.emptySuffix")}
           </Text>
         ) : (
           <div css={deviceRackStyles(theme)}>

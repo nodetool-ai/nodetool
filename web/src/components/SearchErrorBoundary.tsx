@@ -2,6 +2,8 @@
 import { css } from "@emotion/react";
 import { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
+import { type TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { EditorButton, Text, Box, BORDER_RADIUS, getSpacingPx, SPACING } from "./ui_primitives";
 import ReportBugButton from "./support/ReportBugButton";
 import { ThemeContext } from "@emotion/react";
@@ -58,14 +60,14 @@ interface SearchErrorBoundaryProps {
 }
 
 class SearchErrorBoundary extends Component<
-  SearchErrorBoundaryProps,
+  SearchErrorBoundaryProps & { t: TFunction },
   SearchErrorBoundaryState
 > {
   static contextType = ThemeContext;
 
   declare context: Theme;
 
-  constructor(props: SearchErrorBoundaryProps) {
+  constructor(props: SearchErrorBoundaryProps & { t: TFunction }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -91,11 +93,10 @@ class SearchErrorBoundary extends Component<
       return (
         <Box css={boundaryStyles}>
           <Text size="normal" weight={600} className="error-title">
-            {this.props.fallbackTitle || "Search error"}
+            {this.props.fallbackTitle || this.props.t("i18n-next89.searchErrorBoundary.errorTitle")}
           </Text>
           <Text size="small" className="error-message">
-            Something went wrong with the search functionality. Please try
-            again.
+            {this.props.t("i18n-next89.searchErrorBoundary.errorDescription")}
           </Text>
           <EditorButton
             variant="contained"
@@ -103,13 +104,15 @@ class SearchErrorBoundary extends Component<
             className="retry-button"
             density="normal"
           >
-            Try again
+            {this.props.t("i18n-next89.searchErrorBoundary.retry")}
           </EditorButton>
           <ReportBugButton
-            label="Report a bug"
+            label={this.props.t("i18n-next89.searchErrorBoundary.reportBug")}
             context={{
               source: "panel-crash",
-              summary: this.props.fallbackTitle || "Search error",
+              summary:
+                this.props.fallbackTitle ||
+                this.props.t("i18n-next89.searchErrorBoundary.errorTitle"),
               errorText: this.state.error?.message,
               stackTrace: this.state.error?.stack
             }}
@@ -122,4 +125,9 @@ class SearchErrorBoundary extends Component<
   }
 }
 
-export default SearchErrorBoundary;
+function SearchErrorBoundaryWithTranslation(props: SearchErrorBoundaryProps) {
+  const { t } = useTranslation();
+  return <SearchErrorBoundary {...props} t={t} />;
+}
+
+export default SearchErrorBoundaryWithTranslation;

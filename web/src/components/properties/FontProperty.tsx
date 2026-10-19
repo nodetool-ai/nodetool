@@ -1,4 +1,5 @@
 import React, { useMemo, useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import isEqual from "../../utils/isEqual";
 import PropertyLabel from "../node/PropertyLabel";
@@ -30,6 +31,7 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
   onChange,
   tabIndex
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next47" });
   const id = `font-${property.name}-${propertyIndex}`;
 
   const {
@@ -55,16 +57,16 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
 
   const options = useMemo(() => {
     if (!fonts || isLoading || isError)
-      {return [{ value: "", label: "Select a font" }];}
+      {return [{ value: "", label: t("font.select") }];}
 
     return [
-      { value: "", label: "Select a font" },
+      { value: "", label: t("font.select") },
       ...fonts.map((font) => ({
         value: font.name,
-        label: font.portable ? `${font.name} · portable` : font.name
+        label: font.portable ? `${font.name} · ${t("font.portable")}` : font.name
       }))
     ];
-  }, [fonts, isLoading, isError]);
+  }, [fonts, isLoading, isError, t]);
 
   return (
     <div className="font-property">
@@ -75,16 +77,16 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
       />
       <div className="select-wrapper">
         {isLoading ? (
-          <div className="loading-state">Loading fonts…</div>
+          <div className="loading-state">{t("font.loading")}</div>
         ) : isError ? (
-          <div className="error-state">Error loading fonts</div>
+          <div className="error-state">{t("font.error")}</div>
         ) : (
           <Select
             value={currentValue}
             onChange={handleChange}
             options={options}
             tabIndex={tabIndex}
-            placeholder="Select a font"
+            placeholder={t("font.select")}
           />
         )}
       </div>

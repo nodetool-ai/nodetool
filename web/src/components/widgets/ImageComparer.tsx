@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ToolbarIconButton, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
@@ -158,6 +159,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   metadataA,
   metadataB
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<"horizontal" | "vertical">(initialMode);
@@ -326,7 +328,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
 
         {/* Toggle button */}
         <ToolbarIconButton
-          tooltip={mode === "horizontal" ? "Switch to vertical" : "Switch to horizontal"}
+          tooltip={mode === "horizontal" ? t("screen_apps.imageComparer.switchVertical") : t("screen_apps.imageComparer.switchHorizontal")}
           icon={mode === "horizontal" ? <SwapVertIcon fontSize="small" /> : <SwapHorizIcon fontSize="small" />}
           className="toggle-button"
           onClick={toggleMode}

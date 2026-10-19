@@ -48,7 +48,7 @@ describe("PlanDocument", () => {
       parallelizable: 2,
       executed: false
     });
-    expect(screen.getByText("2 can run together")).toBeInTheDocument();
+    expect(screen.getByText("2 tasks can run together")).toBeInTheDocument();
     expect(
       screen.getByText(
         "Nothing ran. Switch to Default or Auto, then send a message."

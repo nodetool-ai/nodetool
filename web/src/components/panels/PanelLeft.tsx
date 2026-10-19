@@ -91,6 +91,7 @@ import type { LeftPanelTopLevelCategory } from "../../config/quickAccessCategori
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   TOOLBAR_WIDTH,
   LEFT_PANEL_MIN_DRAWER_WIDTH
@@ -271,6 +272,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
   /** Projects open as tabs, so the entry only exists in the workspace shell. */
   showProjects?: boolean;
 }) {
+  const { t } = useTranslation();
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
   // Sidebar shows the view as "active" only when the panel is open and
@@ -288,10 +290,10 @@ const VerticalToolbar = memo(function VerticalToolbar({
       />
       <Divider className="toolbar-divider" sx={{ mx: SPACING.lg }} />
       <ThemeToggle />
-      <Tooltip title="Toggle panel" placement="right-start">
+      <Tooltip title={t("i18n-cont-panels-12.left.togglePanel")} placement="right-start">
         <ToolbarIconButton
           tabIndex={-1}
-          ariaLabel="Toggle panel"
+          ariaLabel={t("i18n-cont-panels-12.left.togglePanel")}
           onClick={handlePanelToggle}
           icon={<CodeIcon />}
         />
@@ -317,6 +319,7 @@ const PanelContent = memo(function PanelContent({
   readonly hiddenViews: readonly LeftPanelView[];
   readonly isMobile?: boolean;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const path = useLocation().pathname;
   const currentWorkflow = useWorkflowManager((state) =>
@@ -328,7 +331,7 @@ const PanelContent = memo(function PanelContent({
   const setVisibility = usePanelStore((state) => state.setVisibility);
   const closePanel = useCallback(() => setVisibility(false), [setVisibility]);
   const activeCategory = getTopLevelCategory(activeView);
-  const headlineDescription = activeCategory.description;
+  const headlineDescription = categoryDescription(activeView, activeCategory.description, t);
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   // The asset library is a workspace tab like the other manager pages, not a
@@ -393,7 +396,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Recent nodes"
+              title={t("i18n-cont-panels-12.left.recentNodes")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -412,7 +415,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Favorite nodes"
+              title={t("i18n-cont-panels-12.left.favoriteNodes")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -433,17 +436,17 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Library"
+              title={t("i18n-cont-panels-12.left.library")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={
-                <Tooltip title="Open in full page" placement="right-start">
+                <Tooltip title={t("i18n-cont-panels-12.left.openFullPage")} placement="right-start">
                   <ToolbarIconButton
                     className={`${path === "/assets" ? "active" : ""}`}
                     onClick={handleFullscreenClick}
                     tabIndex={-1}
                     icon={<Fullscreen />}
-                    ariaLabel="Open library in full page"
+                    ariaLabel={t("i18n-cont-panels-12.left.openLibraryFullPage")}
                   />
                 </Tooltip>
               }
@@ -477,7 +480,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Workflows"
+              title={t("i18n-cont-panels-12.left.workflows")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={<CreateWorkflowButton projectId={projectId} />}
@@ -499,7 +502,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Chats"
+              title={t("i18n-cont-panels-12.left.chats")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -518,7 +521,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Sketches"
+              title={t("i18n-cont-panels-12.left.sketches")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={<CreateSketchButton />}
@@ -538,7 +541,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Timelines"
+              title={t("i18n-cont-panels-12.left.timelines")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={<CreateTimelineButton />}
@@ -558,7 +561,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Storyboards"
+              title={t("i18n-cont-panels-12.left.storyboards")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={<CreateStoryboardButton />}
@@ -578,17 +581,17 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Entities"
+              title={t("i18n-cont-panels-12.left.entities")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={
                 <>
-                  <Tooltip title="Open in full page" placement="right-start">
+                  <Tooltip title={t("i18n-cont-panels-12.left.openFullPage")} placement="right-start">
                     <ToolbarIconButton
                       onClick={handleEntitiesFullscreenClick}
                       tabIndex={-1}
                       icon={<Fullscreen />}
-                      ariaLabel="Open entities in full page"
+                      ariaLabel={t("i18n-cont-panels-12.left.openEntitiesFullPage")}
                     />
                   </Tooltip>
                   <CreateEntityButton projectId={projectId} />
@@ -610,7 +613,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Examples"
+              title={t("i18n-cont-panels-12.left.examples")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -629,7 +632,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Scripts"
+              title={t("i18n-cont-panels-12.left.scripts")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={<CreateScriptButton />}
@@ -649,7 +652,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="JS scripts"
+              title={t("i18n-cont-panels-12.left.jsScripts")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={<CreateJsScriptButton />}
@@ -669,7 +672,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Skills"
+              title={t("i18n-cont-panels-12.left.skills")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -688,7 +691,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Apps"
+              title={t("i18n-cont-panels-12.left.apps")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
               actions={
@@ -713,7 +716,7 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeader
-              title="Workflow settings"
+              title={t("i18n-cont-panels-12.left.workflowSettings")}
               docsTopic={activeCategory.docsTopic}
               description={headlineDescription}
             />
@@ -827,6 +830,23 @@ const MOBILE_CREATE_ACTIONS: Partial<
   apps: CreateApplicationButton
 };
 
+const CATEGORY_TRANSLATION_KEYS: Partial<Record<LeftPanelView, string>> = {
+  documents: "documents", nodes: "nodes", favorites: "favoriteNodes", history: "recentNodes", settings: "workflowSettings",
+  workflows: "workflows", apps: "apps", chats: "chats", sketches: "sketches", scripts: "scripts", storyboards: "storyboards",
+  entities: "entities", examples: "examples", timelines: "timelines", jsscripts: "jsScripts", skills: "skills", assets: "assets",
+  "workspace-files": "workspace", library: "library", more: "more"
+};
+
+const categoryLabel = (id: LeftPanelView, fallback: string, t: ReturnType<typeof useTranslation>["t"]): string => {
+  const key = CATEGORY_TRANSLATION_KEYS[id];
+  return key ? t(`i18n-cont-panels-12.left.categories.${key}`) : fallback;
+};
+
+const categoryDescription = (id: LeftPanelView, fallback: string, t: ReturnType<typeof useTranslation>["t"]): string => {
+  const key = CATEGORY_TRANSLATION_KEYS[id];
+  return key ? t(`i18n-cont-panels-12.left.categoryDescriptions.${key}`) : fallback;
+};
+
 interface MobilePanelCategoryButtonProps {
   readonly category: LeftPanelTopLevelCategory;
   readonly active: boolean;
@@ -838,6 +858,8 @@ const MobilePanelCategoryButton = ({
   active,
   onSelect
 }: MobilePanelCategoryButtonProps) => {
+  const { t } = useTranslation();
+  const label = categoryLabel(category.id, category.label, t);
   const handleClick = useCallback(
     () => onSelect(category.id),
     [category.id, onSelect]
@@ -845,7 +867,7 @@ const MobilePanelCategoryButton = ({
 
   return (
     <Tooltip
-      title={category.label}
+      title={label}
       placement="bottom"
     >
       <ToolbarIconButton
@@ -853,7 +875,7 @@ const MobilePanelCategoryButton = ({
         active={active}
         aria-pressed={active}
         onClick={handleClick}
-        ariaLabel={category.label}
+        ariaLabel={label}
         tabIndex={-1}
         icon={category.icon}
       />
@@ -896,6 +918,7 @@ const MobilePanelLeft: React.FC<{
   hideLauncher = false,
   showProjects = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const handleSheetViewChange = useCallback(
@@ -906,7 +929,7 @@ const MobilePanelLeft: React.FC<{
   );
 
   const CreateAction = MOBILE_CREATE_ACTIONS[activeView];
-  const launcherTitle = getTopLevelCategory(activeView).label;
+  const launcherTitle = categoryLabel(activeView, getTopLevelCategory(activeView).label, t);
 
   return (
     <>
@@ -916,7 +939,7 @@ const MobilePanelLeft: React.FC<{
             className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
             css={mobileLauncherStyles(theme)}
             onClick={isVisible ? onClose : onOpen}
-            ariaLabel={isVisible ? "Close panel" : "Open left panel"}
+            ariaLabel={isVisible ? t("i18n-cont-panels-12.left.closePanel") : t("i18n-cont-panels-12.left.openLeftPanel")}
             aria-expanded={isVisible}
             tabIndex={-1}
             icon={<MenuIcon />}
@@ -928,7 +951,7 @@ const MobilePanelLeft: React.FC<{
         open={isVisible}
         onClose={onClose}
         title={launcherTitle}
-        ariaLabel="Project navigation panel"
+        ariaLabel={t("i18n-cont-panels-12.left.projectNavigationPanel")}
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
             <FlexRow className="mobile-tab-group" gap={SPACING.xs}>
@@ -988,6 +1011,7 @@ const MobilePanelLeft: React.FC<{
 MobilePanelLeft.displayName = "MobilePanelLeft";
 
 const PanelLeft: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
@@ -1133,7 +1157,7 @@ const PanelLeft: React.FC = () => {
           ref={panelRef}
           className={`drawer-content ${isDragging ? "dragging" : ""}`}
           role="region"
-          aria-label="Left panel"
+          aria-label={t("i18n-cont-panels-12.left.leftPanel")}
           aria-hidden={!isVisible}
           style={{
             width: `${Math.max(
@@ -1168,7 +1192,7 @@ const PanelLeft: React.FC = () => {
             value={panelSize}
             min={PANEL_MIN_SIZE}
             max={PANEL_MAX_SIZE}
-            ariaLabel="Resize panel"
+            ariaLabel={t("i18n-cont-panels-12.left.resizePanel")}
             onResize={handleResize}
             onResizeStart={handleResizeStart}
             onResizeEnd={handleResizeEnd}

@@ -24,6 +24,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -289,6 +290,7 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -685,7 +687,7 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
             </>
           ) : (
             <CheckerDropzone
-              message="Connect an image, then run"
+              message={t("i18n-next46.crop.connectImageThenRun")}
               icon={<ImageIcon />}
             />
           )}
@@ -698,28 +700,32 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
       </div>
 
       <div className="controls">
-        <span className="ctrl-label">Aspect</span>
+        <span className="ctrl-label">{t("i18n-next46.crop.aspect")}</span>
         <NodeSelect
           className="aspect-select"
           value={aspect}
           onChange={handleAspectChange}
-          aria-label="Aspect ratio"
+          aria-label={t("i18n-next46.crop.aspectRatio")}
         >
           {ASPECT_OPTIONS.map((o) => (
             <NodeMenuItem key={o.value} value={o.value}>
-              {o.label}
+              {o.value === "free"
+                ? t("i18n-next46.crop.aspectOptions.free")
+                : o.value === "1:1"
+                  ? t("i18n-next46.crop.aspectOptions.square")
+                  : o.label}
             </NodeMenuItem>
           ))}
         </NodeSelect>
 
-        <span className="ctrl-label">Size</span>
+        <span className="ctrl-label">{t("i18n-next46.crop.size")}</span>
         <div className="dims-cluster">
           <div className="dim-field">
             <NumberInput
               id={`crop-width-${id}`}
               nodeId={id}
               name="width"
-              description={widthProperty?.description ?? "Crop width"}
+              description={widthProperty?.description ?? t("i18n-next46.crop.cropWidth")}
               value={cropW}
               min={1}
               max={imgDims?.w ?? 8192}
@@ -738,7 +744,7 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
               id={`crop-height-${id}`}
               nodeId={id}
               name="height"
-              description={heightProperty?.description ?? "Crop height"}
+              description={heightProperty?.description ?? t("i18n-next46.crop.cropHeight")}
               value={cropH}
               min={1}
               max={imgDims?.h ?? 8192}
@@ -752,12 +758,12 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
             />
           </div>
         </div>
-        <Tooltip title="Reset crop" describeChild>
+        <Tooltip title={t("i18n-next46.crop.resetCrop")} describeChild>
           <button
             type="button"
             className="reset-btn"
             onClick={handleReset}
-            aria-label="Reset crop"
+            aria-label={t("i18n-next46.crop.resetCrop")}
           >
             <RestartAltIcon fontSize="small" />
           </button>

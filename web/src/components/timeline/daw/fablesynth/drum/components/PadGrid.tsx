@@ -1,4 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CHOKE_NAMES, OUT_NAMES, pad } from '../params';
 import { useDrumStore } from '../dr1Store';
 
@@ -7,6 +8,7 @@ const PAD_ORDER = Array.from({ length: 4 }, (_, row) =>
 ).flat();
 
 export function PadGrid() {
+  const { t } = useTranslation();
   const sel = useDrumStore((s) => s.sel);
   const padNames = useDrumStore((s) => s.padNames);
   const hitTick = useDrumStore((s) => s.hitTick);
@@ -41,8 +43,8 @@ export function PadGrid() {
   return (
     <section className="panel dr-pads-panel" data-accent="a">
       <div className="panel-head">
-        <h2>PADS</h2>
-        <span className="panel-hint">CLICK TO HEAR · DOUBLE-CLICK NAME TO RENAME</span>
+        <h2>{t('i18n-next48.pads.title')}</h2>
+        <span className="panel-hint">{t('i18n-next48.pads.hint')}</span>
       </div>
       <div className="pad-grid">
         {PAD_ORDER.map((i) => {
@@ -71,7 +73,7 @@ export function PadGrid() {
                     onDoubleClick={(e) => e.stopPropagation()}
                     onBlur={() => commitRename(i)}
                     onKeyDown={renameKeyDown}
-                    aria-label={`Rename pad ${i + 1}`}
+                    aria-label={t('i18n-next48.pads.rename', { number: i + 1 })}
                   />
                 ) : (
                   <span
@@ -88,8 +90,8 @@ export function PadGrid() {
         })}
       </div>
       <label className="dr-pad-output">
-        <span>OUTPUT</span>
-        <select className="mod-select" aria-label="Selected pad output" value={params[pad(sel, 'out')] | 0}
+        <span>{t('i18n-next48.common.output')}</span>
+        <select className="mod-select" aria-label={t('i18n-next48.pads.selectedOutput')} value={params[pad(sel, 'out')] | 0}
           onChange={(e) => setParam(pad(sel, 'out'), Number(e.target.value))}>
           {OUT_NAMES.map((name, index) => <option key={name} value={index}>{name}</option>)}
         </select>

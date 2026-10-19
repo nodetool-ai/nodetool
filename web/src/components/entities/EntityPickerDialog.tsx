@@ -6,6 +6,7 @@
  * Done, so several can be picked in one visit.
  */
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import EntityPicker from "./EntityPicker";
@@ -27,11 +28,12 @@ const EntityPickerDialogInternal: React.FC<EntityPickerDialogProps> = ({
   open,
   onClose,
   onSelect,
-  title = "Pick an entity",
+  title,
   multiple = false,
   selectedIds,
   entities
 }) => {
+  const { t } = useTranslation();
   const handleSelect = (entity: Entity) => {
     onSelect(entity);
     if (!multiple) {
@@ -43,11 +45,11 @@ const EntityPickerDialogInternal: React.FC<EntityPickerDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      title={title}
+      title={title ?? t("screens4_23.entities.pickTitle")}
       maxWidth="md"
       fullWidth
       onConfirm={multiple ? onClose : undefined}
-      confirmText="Done"
+      confirmText={t("screens4_23.entities.done")}
     >
       <EntityPicker
         onSelect={handleSelect}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Command } from "cmdk";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -97,6 +98,7 @@ type CommandMenuProps = {
 };
 
 const WorkflowCommands = memo(function WorkflowCommands() {
+  const { t, i18n } = useTranslation();
   // Optimization: use shallow equality to prevent the CommandMenu from
   // re-rendering 60 times a second on unrelated node position updates
   const {
@@ -145,9 +147,9 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     addNotification({
       type: "info",
       alert: true,
-      content: "Copied workflow JSON to Clipboard!"
+      content: t("screens4_2.commandMenu.notifications.copiedWorkflowJson")
     });
-  }, [writeClipboard, workflowJSON, addNotification]);
+  }, [writeClipboard, workflowJSON, addNotification, t]);
 
   const handleSave = useCallback(async () => {
     const workflow = getCurrentWorkflow();
@@ -155,19 +157,25 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       try {
         await saveWorkflow(workflow);
         addNotification({
-          content: `Workflow "${workflow.name}" saved`,
+          content: t("screens4_2.commandMenu.notifications.workflowSaved", {
+            name: workflow.name
+          }),
           type: "success",
           alert: true
         });
       } catch (error) {
         addNotification({
-          content: `Failed to save workflow: ${error instanceof Error ? error.message : "Unknown error"}`,
+          content: t("screens4_2.commandMenu.errors.saveWorkflow", {
+            error: error instanceof Error
+              ? error.message
+              : t("screens4_2.commandMenu.errors.unknown")
+          }),
           type: "error",
           alert: true
         });
       }
     }
-  }, [saveWorkflow, getCurrentWorkflow, addNotification]);
+  }, [saveWorkflow, getCurrentWorkflow, addNotification, t]);
 
   const handleNewWorkflow = useCallback(async () => {
     const projectId = creationProjectId();
@@ -214,18 +222,20 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         addNotification({
           type: "success",
           alert: true,
-          content: `Imported workflow "${imported.name}"`
+          content: t("screens4_2.commandMenu.notifications.importedWorkflow", {
+            name: imported.name
+          })
         });
       } catch {
         addNotification({
           type: "error",
           alert: true,
-          content: "Failed to import workflow — invalid JSON file"
+          content: t("screens4_2.commandMenu.errors.importWorkflowInvalidJson")
         });
       }
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [createWorkflow, navigate, addNotification]
+    [createWorkflow, navigate, addNotification, t]
   );
 
   const exportBundle = useCallback(async () => {
@@ -236,10 +246,14 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       addNotification({
         type: "error",
         alert: true,
-        content: `Failed to export bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+        content: t("screens4_2.commandMenu.errors.exportWorkflowBundle", {
+          error: error instanceof Error
+            ? error.message
+            : t("screens4_2.commandMenu.errors.unknown")
+        })
       });
     }
-  }, [currentWorkflow, addNotification]);
+  }, [currentWorkflow, addNotification, t]);
 
   const openShareDialog = useWorkflowShareDialogStore((state) => state.open);
   const shareWorkflow = useCallback(() => {
@@ -269,18 +283,25 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         addNotification({
           type: "success",
           alert: true,
-          content: `Imported ${result.workflows.length} workflow(s) from bundle`
+          content: t("screens4_2.commandMenu.notifications.importedWorkflowsFromBundle", {
+            count: result.workflows.length,
+            formattedCount: new Intl.NumberFormat(i18n.language).format(result.workflows.length)
+          })
         });
       } catch (error) {
         addNotification({
           type: "error",
           alert: true,
-          content: `Failed to import bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+          content: t("screens4_2.commandMenu.errors.importWorkflowBundle", {
+            error: error instanceof Error
+              ? error.message
+              : t("screens4_2.commandMenu.errors.unknown")
+          })
         });
       }
       if (bundleInputRef.current) bundleInputRef.current.value = "";
     },
-    [queryClient, navigate, addNotification]
+    [queryClient, navigate, addNotification, t, i18n.language]
   );
 
   return (
@@ -289,7 +310,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         ref={fileInputRef}
         type="file"
         accept=".json"
-        aria-label="Import workflow file"
+        aria-label={t("screens4_2.commandMenu.accessibility.importWorkflowFile")}
         style={{ display: "none" }}
         onChange={handleImportFileChange}
       />
@@ -297,46 +318,46 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         ref={bundleInputRef}
         type="file"
         accept=".nodetool,application/zip"
-        aria-label="Import workflow bundle file"
+        aria-label={t("screens4_2.commandMenu.accessibility.importWorkflowBundleFile")}
         style={{ display: "none" }}
         onChange={handleBundleFileChange}
       />
-    <Command.Group heading="Workflow">
+    <Command.Group heading={t("screens4_2.commandMenu.groups.workflow")}>
       <Command.Item onSelect={() => runCommandAndClose(handleRun)}>
-        <PlayArrowRoundedIcon /> Run Entire Workflow
+        <PlayArrowRoundedIcon /> {t("screens4_2.commandMenu.actions.runEntireWorkflow")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handleSave)}>
-        <SaveRoundedIcon /> Save Workflow
+        <SaveRoundedIcon /> {t("screens4_2.commandMenu.actions.saveWorkflow")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handleNewWorkflow)}>
-        <AddOutlinedIcon /> New Workflow
+        <AddOutlinedIcon /> {t("screens4_2.commandMenu.actions.newWorkflow")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handleCloseWorkflow)}>
-        <CloseOutlinedIcon /> Close Workflow
+        <CloseOutlinedIcon /> {t("screens4_2.commandMenu.actions.closeWorkflow")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(downloadWorkflow)}>
-        <FileDownloadRoundedIcon /> Download Workflow as JSON
+        <FileDownloadRoundedIcon /> {t("screens4_2.commandMenu.actions.downloadWorkflowJson")}
       </Command.Item>
       <Command.Item onSelect={handleImportWorkflow}>
-        <FileUploadRoundedIcon /> Import Workflow from JSON
+        <FileUploadRoundedIcon /> {t("screens4_2.commandMenu.actions.importWorkflowJson")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(exportBundle)}>
-        <FolderZipRoundedIcon /> Export Workflow as Bundle (.nodetool)
+        <FolderZipRoundedIcon /> {t("screens4_2.commandMenu.actions.exportWorkflowBundle")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(shareWorkflow)}>
-        Share Workflow…
+        {t("screens4_2.commandMenu.actions.shareWorkflow")}
       </Command.Item>
       <Command.Item onSelect={handleImportBundle}>
-        <FolderZipRoundedIcon /> Import Workflow from Bundle (.nodetool)
+        <FolderZipRoundedIcon /> {t("screens4_2.commandMenu.actions.importWorkflowBundle")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(copyWorkflow)}>
-        <ContentCopyRoundedIcon /> Copy Workflow as JSON
+        <ContentCopyRoundedIcon /> {t("screens4_2.commandMenu.actions.copyWorkflowJson")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(cancel)}>
-        <CancelRoundedIcon /> Cancel Workflow
+        <CancelRoundedIcon /> {t("screens4_2.commandMenu.actions.cancelWorkflow")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(autoLayout)}>
-        <AutoFixHighRoundedIcon /> Auto Layout
+        <AutoFixHighRoundedIcon /> {t("screens4_2.commandMenu.actions.autoLayout")}
       </Command.Item>
     </Command.Group>
     </>
@@ -352,6 +373,7 @@ const EditCommands = memo(function EditCommands({
   undo,
   redo
 }: HistoryActions) {
+  const { t } = useTranslation();
   const { handleCopy, handlePaste, handleCut } = useCopyPaste();
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -379,149 +401,158 @@ const EditCommands = memo(function EditCommands({
   }, [surroundWithGroup, selectedNodes]);
 
   return (
-    <Command.Group heading="Edit">
+    <Command.Group heading={t("screens4_2.commandMenu.groups.edit")}>
       <Command.Item onSelect={() => runCommandAndClose(undo)}>
-        <UndoRoundedIcon /> Undo
+        <UndoRoundedIcon /> {t("screens4_2.commandMenu.actions.undo")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(redo)}>
-        <RedoRoundedIcon /> Redo
+        <RedoRoundedIcon /> {t("screens4_2.commandMenu.actions.redo")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handleCopy)}>
-        <FileCopyRoundedIcon /> Copy
+        <FileCopyRoundedIcon /> {t("screens4_2.commandMenu.actions.copy")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handleCut)}>
-        <ContentCutRoundedIcon /> Cut
+        <ContentCutRoundedIcon /> {t("screens4_2.commandMenu.actions.cut")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handlePaste)}>
-        <ContentPasteRoundedIcon /> Paste
+        <ContentPasteRoundedIcon /> {t("screens4_2.commandMenu.actions.paste")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectAllNodes)}>
-        <SelectAllRoundedIcon /> Select All
+        <SelectAllRoundedIcon /> {t("screens4_2.commandMenu.actions.selectAll")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.deleteSelected)}>
-        <DeleteOutlineIcon /> Delete Selected
+        <DeleteOutlineIcon /> {t("screens4_2.commandMenu.actions.deleteSelected")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(duplicateNodes)}>
-        <ContentCopyRoundedIcon /> Duplicate
+        <ContentCopyRoundedIcon /> {t("screens4_2.commandMenu.actions.duplicate")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(duplicateNodesVertical)}>
-        <ContentCopyRoundedIcon /> Duplicate Vertical
+        <ContentCopyRoundedIcon /> {t("screens4_2.commandMenu.actions.duplicateVertical")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(handleGroup)}>
-        <GroupWorkRoundedIcon /> Group Selected
+        <GroupWorkRoundedIcon /> {t("screens4_2.commandMenu.actions.groupSelected")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(toggleBypassSelected)}>
-        <BlockRoundedIcon /> Disable Selected Nodes
+        <BlockRoundedIcon /> {t("screens4_2.commandMenu.actions.disableSelectedNodes")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(openFind)}>
-        <SearchRoundedIcon /> Find in Workflow
+        <SearchRoundedIcon /> {t("screens4_2.commandMenu.actions.findInWorkflow")}
       </Command.Item>
     </Command.Group>
   );
 });
 
 const LayoutCommands = memo(function LayoutCommands() {
+  const { t } = useTranslation();
   const alignNodes = useAlignNodes();
   const selectionActions = useSelectionActions();
 
   return (
-    <Command.Group heading="Layout & alignment">
+    <Command.Group heading={t("screens4_2.commandMenu.groups.layoutAlignment")}>
       <Command.Item
         onSelect={() =>
           runCommandAndClose(() => alignNodes({ arrangeSpacing: false }))
         }
       >
-        <AlignVerticalCenterRoundedIcon /> Align Nodes
+        <AlignVerticalCenterRoundedIcon /> {t("screens4_2.commandMenu.actions.alignNodes")}
       </Command.Item>
       <Command.Item
         onSelect={() =>
           runCommandAndClose(() => alignNodes({ arrangeSpacing: true }))
         }
       >
-        <SpaceBarRoundedIcon /> Align Nodes with Spacing
+        <SpaceBarRoundedIcon /> {t("screens4_2.commandMenu.actions.alignNodesWithSpacing")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignLeft)}>
-        <AlignHorizontalLeftRoundedIcon /> Align Left
+        <AlignHorizontalLeftRoundedIcon /> {t("screens4_2.commandMenu.actions.alignLeft")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignCenter)}>
-        <AlignHorizontalCenterRoundedIcon /> Align Center
+        <AlignHorizontalCenterRoundedIcon /> {t("screens4_2.commandMenu.actions.alignCenter")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignRight)}>
-        <AlignHorizontalRightRoundedIcon /> Align Right
+        <AlignHorizontalRightRoundedIcon /> {t("screens4_2.commandMenu.actions.alignRight")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignTop)}>
-        <VerticalAlignTopRoundedIcon /> Align Top
+        <VerticalAlignTopRoundedIcon /> {t("screens4_2.commandMenu.actions.alignTop")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignMiddle)}>
-        <VerticalAlignCenterRoundedIcon /> Align Middle
+        <VerticalAlignCenterRoundedIcon /> {t("screens4_2.commandMenu.actions.alignMiddle")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.alignBottom)}>
-        <VerticalAlignBottomRoundedIcon /> Align Bottom
+        <VerticalAlignBottomRoundedIcon /> {t("screens4_2.commandMenu.actions.alignBottom")}
       </Command.Item>
       <Command.Item onSelect={() => runCommandAndClose(selectionActions.distributeHorizontal)}>
-        <ViewColumnRoundedIcon /> Distribute Horizontally
+        <ViewColumnRoundedIcon /> {t("screens4_2.commandMenu.actions.distributeHorizontally")}
       </Command.Item>
     </Command.Group>
   );
 });
 
 const ViewCommands = memo(function ViewCommands() {
+  const { t, i18n } = useTranslation();
   const visible = useMiniMapStore((state) => state.visible);
   const toggleVisible = useMiniMapStore((state) => state.toggleVisible);
   const handleFitView = useFitView();
   const reactFlow = useReactFlow();
   const snapToGrid = useSettingsStore((state) => state.settings.snapToGrid);
   const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
+  const formatPercent = (value: number): string =>
+    new Intl.NumberFormat(i18n.language, { style: "percent" }).format(value);
 
   return (
-    <Command.Group heading="View">
+    <Command.Group heading={t("screens4_2.commandMenu.groups.view")}>
       <Command.Item
         onSelect={() => runCommandAndClose(toggleVisible)}
       >
         {visible ? <MapOutlinedIcon /> : <MapRoundedIcon />}
-        {visible ? "Hide mini map" : "Show mini map"}
+        {visible
+          ? t("screens4_2.commandMenu.actions.hideMiniMap")
+          : t("screens4_2.commandMenu.actions.showMiniMap")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => setSnapToGrid(!snapToGrid))}
       >
         {snapToGrid ? <GridOffRoundedIcon /> : <GridOnRoundedIcon />}
-        {snapToGrid ? "Turn off snap to grid" : "Snap to grid"}
+        {snapToGrid
+          ? t("screens4_2.commandMenu.actions.turnOffSnapToGrid")
+          : t("screens4_2.commandMenu.actions.snapToGrid")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => handleFitView({ padding: 0.5 }))}
       >
-        <FitScreenRoundedIcon /> Fit View
+        <FitScreenRoundedIcon /> {t("screens4_2.commandMenu.actions.fitView")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => reactFlow.zoomIn({ duration: 200 }))}
       >
-        <ZoomInRoundedIcon /> Zoom In
+        <ZoomInRoundedIcon /> {t("screens4_2.commandMenu.actions.zoomIn")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => reactFlow.zoomOut({ duration: 200 }))}
       >
-        <ZoomOutRoundedIcon /> Zoom Out
+        <ZoomOutRoundedIcon /> {t("screens4_2.commandMenu.actions.zoomOut")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => reactFlow.zoomTo(0.5, { duration: 200 }))}
       >
-        <RestartAltRoundedIcon /> Reset Zoom (50%)
+        <RestartAltRoundedIcon /> {t("screens4_2.commandMenu.actions.resetZoom", { percent: formatPercent(0.5) })}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => reactFlow.zoomTo(1, { duration: 200 }))}
       >
-        <ZoomInRoundedIcon /> Zoom to 100%
+        <ZoomInRoundedIcon /> {t("screens4_2.commandMenu.actions.zoomToPercent", { percent: formatPercent(1) })}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => reactFlow.zoomTo(2, { duration: 200 }))}
       >
-        <ZoomInRoundedIcon /> Zoom to 200%
+        <ZoomInRoundedIcon /> {t("screens4_2.commandMenu.actions.zoomToPercent", { percent: formatPercent(2) })}
       </Command.Item>
     </Command.Group>
   );
 });
 
 const PanelCommands = memo(function PanelCommands() {
+  const { t } = useTranslation();
   const rightPanelToggle = useRightPanelStore((state) => state.toggleInspector);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
   const toggleConversation = useCanvasChatDockStore(
@@ -529,31 +560,31 @@ const PanelCommands = memo(function PanelCommands() {
   );
 
   return (
-    <Command.Group heading="Panels">
+    <Command.Group heading={t("screens4_2.commandMenu.groups.panels")}>
       <Command.Item
         onSelect={() => runCommandAndClose(rightPanelToggle)}
       >
-        <InfoOutlinedIcon /> Toggle Inspector
+        <InfoOutlinedIcon /> {t("screens4_2.commandMenu.actions.toggleInspector")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => leftPanelToggle("settings"))}
       >
-        <SettingsRoundedIcon /> Toggle Workflow Settings
+        <SettingsRoundedIcon /> {t("screens4_2.commandMenu.actions.toggleWorkflowSettings")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => toggleConversation())}
       >
-        <ChatRoundedIcon /> Toggle Conversation
+        <ChatRoundedIcon /> {t("screens4_2.commandMenu.actions.toggleConversation")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => leftPanelToggle("assets"))}
       >
-        <PermMediaRoundedIcon /> Toggle Assets
+        <PermMediaRoundedIcon /> {t("screens4_2.commandMenu.actions.toggleAssets")}
       </Command.Item>
       <Command.Item
         onSelect={() => runCommandAndClose(() => leftPanelToggle("workflows"))}
       >
-        <AccountTreeRoundedIcon /> Toggle Workflows Panel
+        <AccountTreeRoundedIcon /> {t("screens4_2.commandMenu.actions.toggleWorkflowsPanel")}
       </Command.Item>
     </Command.Group>
   );

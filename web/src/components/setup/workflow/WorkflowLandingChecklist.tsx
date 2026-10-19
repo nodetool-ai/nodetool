@@ -9,6 +9,8 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { WorkflowSetupRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 import {
@@ -25,19 +27,19 @@ import type { BuildFromPlanResult } from "../../../hooks/workflow/useBuildFromPl
 
 /** What each run mode leaves to do once the graph runs (PRD § 11.4). */
 const NEXT_STEP: Readonly<
-  Record<WorkflowSetupRunMode, { label: string; detail: string }>
+  Record<WorkflowSetupRunMode, { labelKey: string; detailKey: string }>
 > = {
   manual: {
-    label: "Continue on canvas",
-    detail: "Adjust inputs or run the workflow from the canvas."
+    labelKey: "nextSteps.manual.label",
+    detailKey: "nextSteps.manual.detail"
   },
   app: {
-    label: "Create mini app",
-    detail: "Create and open a Mini App backed by this workflow."
+    labelKey: "nextSteps.app.label",
+    detailKey: "nextSteps.app.detail"
   },
   trigger: {
-    label: "Add a trigger",
-    detail: "Open the trigger-node picker on this canvas."
+    labelKey: "nextSteps.trigger.label",
+    detailKey: "nextSteps.trigger.detail"
   }
 };
 
@@ -56,69 +58,80 @@ export interface WorkflowLandingChecklistProps {
 
 /** The message the agent panel opens with when the build did not come out clean. */
 export const buildFailureMessage = (
-  result: BuildFromPlanResult
+  result: BuildFromPlanResult,
+  t: TFunction
 ): string | null => {
   if (result.validationError !== undefined) {
     return [
-      `Validation could not run: ${result.validationError}`,
+      t("pass3_15.landingChecklist.failure.validationCouldNotRun", {
+        detail: result.validationError
+      }),
       "",
-      "Repair: check that the editor reached the workflow, then run the graph check again. Propose any graph change and wait for me before applying it."
+      t("pass3_15.landingChecklist.failure.repairValidationCouldNotRun")
     ].join("\n");
   }
   if (result.validationErrors.length > 0) {
     return [
-      "The graph I just built does not validate:",
+      t("pass3_15.landingChecklist.failure.graphInvalid"),
       ...result.validationErrors.map((error) => `- ${error}`),
       "",
-      "Repair: inspect each named node, set the missing property, or reconnect the invalid handle. Propose the change and wait for me before applying it."
+      t("pass3_15.landingChecklist.failure.repairGraphInvalid")
     ].join("\n");
   }
   if (result.issues.length > 0) {
     return [
-      "The graph I just built validates, but part of the plan was never wired:",
+      t("pass3_15.landingChecklist.failure.graphUnwired"),
       ...result.issues.map((issue) => `- ${issue}`),
       "",
-      "Repair: connect each unwired output to the named upstream step, or remove the output that the plan does not produce. Propose the change and wait for me."
+      t("pass3_15.landingChecklist.failure.repairGraphUnwired")
     ].join("\n");
   }
   if (result.testRun.error !== null) {
     return [
       result.testRun.started
-        ? `The test run failed: ${result.testRun.error}`
-        : `The test run did not start: ${result.testRun.error}`,
+        ? t("pass3_15.landingChecklist.failure.testRunFailed", {
+            detail: result.testRun.error
+          })
+        : t("pass3_15.landingChecklist.failure.testRunDidNotStart", {
+            detail: result.testRun.error
+          }),
       "",
-      "Repair: check the named provider, worker, or runtime, then retry the sample run. Propose any graph change and wait for me before applying it."
+      t("pass3_15.landingChecklist.failure.repairTestRun")
     ].join("\n");
   }
   if (result.status === "failed") {
     return [
       result.explanation,
       "",
-      "Repair: inspect the graph's last failed step and propose one targeted change. Wait for me before applying it."
+      t("pass3_15.landingChecklist.failure.repairBuildFailed")
     ].join("\n");
   }
   return null;
 };
 
-const outputDetail = (output: unknown): string => {
+const outputDetail = (output: unknown, t: TFunction): string => {
   if (output === null || output === undefined) {
-    return "Output is ready";
+    return t("pass3_15.landingChecklist.output.ready");
   }
   if (typeof output === "string") {
-    return output.length > 0 ? `Output: ${output}` : "Output is ready";
+    return output.length > 0
+      ? t("pass3_15.landingChecklist.output.value", { value: output })
+      : t("pass3_15.landingChecklist.output.ready");
   }
   if (Array.isArray(output)) {
-    return `Output is ready (${output.length} value${
-      output.length === 1 ? "" : "s"
-    })`;
+    return t("pass3_15.landingChecklist.output.valueCount", {
+      count: output.length
+    });
   }
   if (typeof output === "object") {
     const keys = Object.keys(output);
     return keys.length > 0
-      ? `Output is ready (${keys.join(", ")})`
-      : "Output is ready";
+      ? t("pass3_15.landingChecklist.output.fields", {
+          fields: keys.join(", ")
+        })
+      : t("pass3_15.landingChecklist.output.ready");
   }
-  return `Output: ${String(output)}`;
+  return t("pass3_15.landingChecklist.output.value", { value: String(output) });
 };
 
 type LineTone = "done" | "rendering" | "failed" | "neutral";
@@ -131,66 +144,89 @@ interface LineState {
 }
 
 /** The `Validated` line, read from where the build got to. */
-const validationLine = (result: BuildFromPlanResult): LineState => {
+const validationLine = (
+  result: BuildFromPlanResult,
+  t: TFunction
+): LineState => {
   if (result.status === "built") {
-    return { tone: "rendering", pill: "checking", detail: "Checking…" };
+    return {
+      tone: "rendering",
+      pill: t("pass3_15.landingChecklist.pills.checking"),
+      detail: t("pass3_15.landingChecklist.validation.checking")
+    };
   }
   if (result.validationError !== undefined) {
-    return { tone: "failed", pill: "failed", detail: "Validation could not run" };
+    return {
+      tone: "failed",
+      pill: t("pass3_15.landingChecklist.pills.failed"),
+      detail: t("pass3_15.landingChecklist.validation.couldNotRun")
+    };
   }
   if (result.validationPending) {
     return {
       tone: "neutral",
-      pill: "unknown",
+      pill: t("pass3_15.landingChecklist.pills.unknown"),
       detail:
         result.status === "unrecorded"
-          ? "The check's result was not recorded"
-          : "Not checked"
+          ? t("pass3_15.landingChecklist.validation.resultNotRecorded")
+          : t("pass3_15.landingChecklist.validation.notChecked")
     };
   }
   if (result.validationErrors.length > 0) {
     const count = result.validationErrors.length;
     return {
       tone: "failed",
-      pill: "failed",
-      detail: `${count} error${count === 1 ? "" : "s"}`
+      pill: t("pass3_15.landingChecklist.pills.failed"),
+      detail: t("pass3_15.landingChecklist.validation.errors", { count })
     };
   }
   if (result.issues.length > 0) {
     return {
       tone: "failed",
-      pill: "failed",
-      detail: "Validates, but part of the plan is unwired"
+      pill: t("pass3_15.landingChecklist.pills.failed"),
+      detail: t("pass3_15.landingChecklist.validation.unwired")
     };
   }
-  return { tone: "done", pill: "validated", detail: "No problems found" };
+  return {
+    tone: "done",
+    pill: t("pass3_15.landingChecklist.pills.validated"),
+    detail: t("pass3_15.landingChecklist.validation.noProblems")
+  };
 };
 
 /** The `Test run` line. Why a run did not start matters as much as that it did not. */
-const testRunLine = (result: BuildFromPlanResult): LineState => {
+const testRunLine = (result: BuildFromPlanResult, t: TFunction): LineState => {
   switch (result.status) {
     case "completed-with-output":
       return {
         tone: "done",
-        pill: "completed",
-        detail: outputDetail(result.output ?? result.testRun.output)
+        pill: t("pass3_15.landingChecklist.pills.completed"),
+        detail: outputDetail(result.output ?? result.testRun.output, t)
       };
     case "running":
       return {
         tone: "rendering",
-        pill: "running",
-        detail: "Running with your sample inputs"
+        pill: t("pass3_15.landingChecklist.pills.running"),
+        detail: t("pass3_15.landingChecklist.testRun.running")
       };
     case "built":
     case "validated":
-      return { tone: "neutral", pill: "waiting", detail: "Not run yet" };
+      return {
+        tone: "neutral",
+        pill: t("pass3_15.landingChecklist.pills.waiting"),
+        detail: t("pass3_15.landingChecklist.testRun.notRun")
+      };
     case "canceled":
-      return { tone: "neutral", pill: "canceled", detail: "Test run canceled" };
+      return {
+        tone: "neutral",
+        pill: t("pass3_15.landingChecklist.pills.canceled"),
+        detail: t("pass3_15.landingChecklist.testRun.canceled")
+      };
     case "unrecorded":
       return {
         tone: "neutral",
-        pill: "unknown",
-        detail: "The test run's result was not recorded"
+        pill: t("pass3_15.landingChecklist.pills.unknown"),
+        detail: t("pass3_15.landingChecklist.testRun.resultNotRecorded")
       };
     case "failed":
       break;
@@ -198,31 +234,39 @@ const testRunLine = (result: BuildFromPlanResult): LineState => {
   if (result.testRun.started) {
     return {
       tone: "failed",
-      pill: "failed",
+      pill: t("pass3_15.landingChecklist.pills.failed"),
       detail: result.testRun.error
-        ? `Run failed: ${result.testRun.error}`
-        : "Run failed"
+        ? t("pass3_15.landingChecklist.testRun.failedWithDetail", {
+            detail: result.testRun.error
+          })
+        : t("pass3_15.landingChecklist.testRun.failed")
     };
   }
   if (result.validationError !== undefined) {
-    return { tone: "neutral", pill: "skipped", detail: "Not run yet" };
+    return {
+      tone: "neutral",
+      pill: t("pass3_15.landingChecklist.pills.skipped"),
+      detail: t("pass3_15.landingChecklist.testRun.notRun")
+    };
   }
   if (result.testRun.error !== null) {
     return {
       tone: "failed",
-      pill: "failed",
-      detail: `Did not start: ${result.testRun.error}`
+      pill: t("pass3_15.landingChecklist.pills.failed"),
+      detail: t("pass3_15.landingChecklist.testRun.didNotStartWithDetail", {
+        detail: result.testRun.error
+      })
     };
   }
   return {
     tone: "neutral",
-    pill: "skipped",
+    pill: t("pass3_15.landingChecklist.pills.skipped"),
     detail:
       result.validationErrors.length > 0
-        ? "Not started, the graph did not validate"
+        ? t("pass3_15.landingChecklist.testRun.notStartedInvalid")
         : result.issues.length > 0
-          ? "Not started, part of the plan is unwired"
-          : "Not started, the build stopped first"
+          ? t("pass3_15.landingChecklist.testRun.notStartedUnwired")
+          : t("pass3_15.landingChecklist.testRun.notStartedBuildStopped")
   };
 };
 
@@ -233,22 +277,31 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
   nextStepPending = false,
   onAskAgent
 }) => {
-  const failure = buildFailureMessage(result);
+  const { t } = useTranslation();
+  const failure = buildFailureMessage(result, t);
   const next = NEXT_STEP[runMode];
 
   return (
     <FlexColumn gap={GAP.normal}>
       <Line
         tone="done"
-        pill="built"
-        label="Graph built"
-        detail={`${result.nodeCount} node${result.nodeCount === 1 ? "" : "s"} placed`}
+        pill={t("pass3_15.landingChecklist.pills.built")}
+        label={t("pass3_15.landingChecklist.graphBuilt.label")}
+        detail={t("pass3_15.landingChecklist.graphBuilt.detail", {
+          count: result.nodeCount
+        })}
       />
-      <Line label="Validated" {...validationLine(result)} />
+      <Line
+        label={t("pass3_15.landingChecklist.validation.label")}
+        {...validationLine(result, t)}
+      />
       {/* The creator was told on the setup step that building would run it
           once, so a missing run is a promise this screen has to account for
           (F1, F8). */}
-      <Line label="Test run" {...testRunLine(result)} />
+      <Line
+        label={t("pass3_15.landingChecklist.testRun.label")}
+        {...testRunLine(result, t)}
+      />
 
       {failure === null ? (
         <FlexRow gap={GAP.normal} align="center">
@@ -257,17 +310,19 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
             onClick={() => void onNextStep()}
             disabled={nextStepPending}
           >
-            {next.label}
+            {t(`pass3_15.landingChecklist.${next.labelKey}`)}
           </EditorButton>
-          <Caption color="secondary">{next.detail}</Caption>
+          <Caption color="secondary">
+            {t(`pass3_15.landingChecklist.${next.detailKey}`)}
+          </Caption>
         </FlexRow>
       ) : (
         <AlertBanner
           severity="error"
-          title="This needs a fix before it works"
+          title={t("pass3_15.landingChecklist.failure.title")}
           action={
             <EditorButton variant="text" onClick={() => onAskAgent(failure)}>
-              Ask the agent
+              {t("pass3_15.landingChecklist.failure.askAgent")}
             </EditorButton>
           }
         >

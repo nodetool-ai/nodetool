@@ -1,4 +1,5 @@
 import { useModelProviderSetup } from "../../hooks/useModelProviderSetup";
+import { useTranslation } from "react-i18next";
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
 import isEqual from "../../utils/isEqual";
 
@@ -23,6 +24,7 @@ interface LlamaModelSelectProps {
 }
 
 const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const open = Boolean(anchorEl);
@@ -85,8 +87,8 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select model"}
-        subLabel="Select model"
+        label={currentSelectedModelDetails?.name || value || t("modelSelect.selectModel")}
+        subLabel={t("modelSelect.selectModel")}
         onClick={handleClick}
       />
       <EditorMenu
@@ -116,10 +118,10 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
         ) : ollamaError ? (
           <div style={{ padding: getSpacingPx(SPACING.md), maxWidth: 300 }}>
             <ErrorBanner
-              title="Could not load Ollama models"
+              title={t("llama.loadErrorTitle")}
               report={{
                 source: "operation-failure",
-                summary: "Ollama models failed to load",
+                summary: t("llama.loadErrorSummary"),
                 errorText: isString((ollamaError as { detail?: unknown })?.detail)
                   ? (ollamaError as { detail?: string }).detail
                   : String(ollamaError)
@@ -127,14 +129,13 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             >
               {isString((ollamaError as { detail?: unknown })?.detail)
                 ? (ollamaError as { detail?: string }).detail
-                : "Check that Ollama is running."}
+                : t("llama.checkRunning")}
             </ErrorBanner>
             <Caption
               color="secondary"
               sx={{ display: "block", mt: 1 }}
             >
-              Ollama is a separate app. Install it from ollama.com and start
-              it.
+              {t("llama.separateApp")}
             </Caption>
             <Caption
               component="a"
@@ -143,11 +144,11 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
               rel="noopener noreferrer"
               sx={{ color: "primary.main", textDecoration: "underline" }}
             >
-              Download Ollama →
+              {t("llama.download")}
             </Caption>
           </div>
         ) : sortedModels.length === 0 ? (
-          <MenuItemPrimitive label="No models available" disabled />
+          <MenuItemPrimitive label={t("modelSelect.noModels")} disabled />
         ) : (
           sortedModels.map((model) => (
             <MenuItemPrimitive
@@ -158,7 +159,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             />
           ))
         )}
-        <MenuItemPrimitive label="Add providers" dividerBefore onClick={openSetup} />
+        <MenuItemPrimitive label={t("modelSelect.addProviders")} dividerBefore onClick={openSetup} />
       </EditorMenu>
     </>
   );

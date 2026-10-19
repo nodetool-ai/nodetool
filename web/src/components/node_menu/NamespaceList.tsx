@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Text,
   EditorButton,
@@ -310,6 +311,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
   selectedPathString: string;
   minSearchTermLength: number;
 }) {
+  const { t } = useTranslation();
   const openPacksPanel = useOpenPackageManager();
 
   return (
@@ -319,31 +321,22 @@ const NoSelectionContent = memo(function NoSelectionContent({
           <p>
             {selectedPathString ? (
               <>
-                Nothing found in this namespace for
-                <strong className="highlighted-text">
-                  {" "}
-                  &quot;{searchTerm}&quot;
-                </strong>
+                {t("namespaceList.nothingInNamespace", { searchTerm })}
               </>
             ) : (
               <>
-                Nothing found for
-                <strong className="highlighted-text">
-                  {" "}
-                  &quot;{searchTerm}&quot;
-                </strong>
+                {t("namespaceList.nothingFound", { searchTerm })}
               </>
             )}
           </p>
           <ul className="no-results">
             {selectedPathString && (
               <li>
-                click on <span className="highlighted">highlighted </span>
-                namespaces to find results.
+                {t("namespaceList.clickHighlighted")}
               </li>
             )}
-            <li>just start typing to enter a new search term</li>
-            <li>clear search by clicking the clear button</li>
+            <li>{t("namespaceList.typeToSearch")}</li>
+            <li>{t("namespaceList.clearSearchHint")}</li>
           </ul>
         </>
       ) : null}
@@ -362,7 +355,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
               padding: getSpacingPx(SPACING.xl)
             }}
           >
-            Install additional node packs
+            {t("namespaceList.installPacks")}
           </EditorButton>
         </div>
       )}

@@ -101,10 +101,10 @@ describe("OneTakeRenderDialog", () => {
     renderDialog(onClose);
 
     expect(setting("Model")).toBe("Seedance");
-    expect(setting("Duration")).toBe("10s");
+    expect(setting("Duration")).toBe("10 seconds");
     expect(setting("Aspect ratio")).toBe("16:9");
     expect(setting("Resolution")).toBe("1080p");
-    expect(setting("Images")).toBe("2 of 9");
+    expect(setting("Images")).toBe("2 / 9 images");
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(confirmButton()).toBeEnabled();
 
@@ -135,7 +135,7 @@ describe("OneTakeRenderDialog", () => {
     });
     renderDialog();
 
-    expect(setting("Duration")).toBe("15s");
+    expect(setting("Duration")).toBe("15 seconds");
     expect(setting("Aspect ratio")).toBe("1:1");
     expect(setting("Resolution")).toBe("720p");
 
@@ -163,9 +163,9 @@ describe("OneTakeRenderDialog", () => {
   it("disables confirm when the images are over the limit", () => {
     seed([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 10);
     renderDialog();
-    expect(setting("Images")).toBe("10 of 9");
+    expect(setting("Images")).toBe("10 / 9 images");
     expect(
-      screen.getByText("10 images is over the limit of 9. Remove 1.")
+      screen.getByText("10 images are over the limit of 9. Remove 1.")
     ).toBeInTheDocument();
     expect(confirmButton()).toBeDisabled();
   });
@@ -175,7 +175,7 @@ describe("OneTakeRenderDialog", () => {
     renderDialog();
     expect(
       screen.getByText(
-        "Seedance does not offer a 20s clip. Pick one of 5s, 10s, 15s."
+        "Seedance does not offer a 20 seconds clip. Choose one of 5 seconds, 10 seconds, 15 seconds."
       )
     ).toBeInTheDocument();
     expect(confirmButton()).toBeDisabled();

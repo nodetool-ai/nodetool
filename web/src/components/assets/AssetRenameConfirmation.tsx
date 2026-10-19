@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AlertBanner,
   Dialog,
@@ -18,6 +19,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   props
 ) => {
   const { assets } = props;
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next27" });
   const setDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
   const dialogOpen = useAssetGridStore((state) => state.renameDialogOpen);
   const [baseNewName, setBaseNewName] = useState("");
@@ -65,7 +67,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       baseNewName.startsWith(" ") ||
       baseNewName.match(/^[-#*&]/)
     ) {
-      setShowAlert("Name cannot start with a special character.");
+      setShowAlert(t("assetRename.specialCharacter"));
       return;
     }
 
@@ -74,10 +76,10 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
 
     // Check for empty or overly long names
     if (!baseNewName) {
-      setShowAlert("Name cannot be empty.");
+      setShowAlert(t("assetRename.nameRequired"));
       return;
     } else if (baseNewName.length > 100) {
-      setShowAlert("Max file name length is 100 characters.");
+      setShowAlert(t("assetRename.maxLength"));
       return;
     }
 
@@ -86,7 +88,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       const uniqueInvalidChars = invalidCharsFound.filter(
         (char, index, array) => array.indexOf(char) === index
       );
-      setShowAlert(`Invalid characters: ${uniqueInvalidChars.join(", ")}`);
+      setShowAlert(t("assetRename.invalidCharacters", { characters: uniqueInvalidChars.join(", ") }));
       return;
     }
 
@@ -115,9 +117,9 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
       onClose={handleClose}
       maxWidth="xs"
       fullWidth
-      title={count === 1 ? "Rename asset" : `Rename ${count} assets`}
+      title={count === 1 ? t("assetRename.titleOne") : t("assetRename.titleOther", { count })}
       onConfirm={() => void handleRename()}
-      confirmText="Rename"
+      confirmText={t("assetRename.rename")}
       actionButtonsProps={{
         className: "asset-rename-actions",
         confirmButtonProps: {
@@ -140,7 +142,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
         )}
         <TextInput
           className="asset-rename-input input-field"
-          label="Name"
+          label={t("assetRename.nameLabel")}
           inputRef={inputRef}
           value={baseNewName}
           onKeyDown={(e) => {
@@ -154,7 +156,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
           spellCheck="false"
           helperText={
             count > 1
-              ? "Multiple assets selected: names will be appended with a number."
+              ? t("assetRename.multipleHelper")
               : undefined
           }
         />

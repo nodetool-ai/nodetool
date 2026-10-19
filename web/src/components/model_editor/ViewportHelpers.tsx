@@ -5,6 +5,7 @@
  * never saved, and `captureView` hides them before rendering a screenshot.
  */
 import { memo, useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Environment, Html, Lightformer } from "@react-three/drei";
@@ -284,6 +285,7 @@ interface LightIconProps {
 }
 
 const LightIcon = memo(({ light, selected, palette, onSelect }: LightIconProps) => {
+  const { t } = useTranslation();
   const group = useRef<THREE.Group>(null);
   const icon = useRef<HTMLDivElement>(null);
   const line = useMemo(() => {
@@ -369,7 +371,7 @@ const LightIcon = memo(({ light, selected, palette, onSelect }: LightIconProps) 
           ref={icon}
           role="button"
           tabIndex={-1}
-          aria-label={`Select ${light.name || light.type}`}
+          aria-label={t("i18n-next38.lightGizmo.select", { name: light.name || light.type })}
           title={light.name || light.type}
           onPointerDown={(e) => {
             e.stopPropagation();

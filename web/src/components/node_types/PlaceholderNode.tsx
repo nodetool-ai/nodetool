@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
@@ -155,6 +156,7 @@ const typeForValue = (value: unknown) => {
 
 const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const placeholderStyles = useMemo(() => styles(theme), [theme]);
   const nodeType = props.type;
   const nodeData = props.data;
@@ -187,7 +189,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     const originalType = nodeData?.originalType;
     const nodeDataType = nodeData?.node_type;
     return originalType || nodeType || nodeDataType || "";
-  }, [nodeType, nodeData]);
+  }, [nodeType, nodeData, t]);
 
   const resolvedNamespace = useMemo(() => {
     return resolvedType.split(".").slice(0, -1).join(".") || "unknown";
@@ -264,13 +266,16 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         ? preferredTitle
         : sourceType;
     const lastSegment = raw?.split(".").pop() || "";
-    return humanizeType(lastSegment) || "Missing node";
-  }, [nodeType, nodeData]);
+    return humanizeType(lastSegment) || t("i18n-next64.placeholderNode.missingNode");
+  }, [nodeType, nodeData, t]);
 
   const mockMetadata: NodeMetadata = useMemo(
     () => ({
-      title: computedHeaderTitle || nodeTitle || "Missing node",
-      description: "This node is missing",
+      title:
+        computedHeaderTitle ||
+        nodeTitle ||
+        t("i18n-next64.placeholderNode.missingNode"),
+      description: t("i18n-next64.placeholderNode.nodeMissingDescription"),
       namespace: resolvedNamespace,
       node_type: resolvedType || "unknown",
       layout: "default",
@@ -281,7 +286,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         {
           name: "output",
           type: { type: "any", optional: true, type_args: [] },
-          description: "Default output",
+          description: t("i18n-next64.placeholderNode.defaultOutput"),
           stream: false
         }
       ],
@@ -297,7 +302,8 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       nodeTitle,
       resolvedNamespace,
       resolvedType,
-      mockProperties
+      mockProperties,
+      t
     ]
   );
   const className = useMemo(
@@ -318,15 +324,15 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     >
       <NodeHeader
         id={props.id}
-        metadataTitle={computedHeaderTitle || nodeTitle || "Missing Node!"}
+        metadataTitle={computedHeaderTitle || nodeTitle || t("i18n-next64.placeholderNode.missingNodeExclamation")}
         data={nodeData || {}}
         showMenu={false}
         selected={props.selected}
         workflowId={nodeData?.workflow_id}
       />
-      <Tooltip title="This node type is missing. Search the node menu for a replacement or install the package that provides it.">
+      <Tooltip title={t("i18n-next64.placeholderNode.missingNodeTooltip")}>
         <Text size="big" className="missing-node-text">
-          Missing node
+          {t("i18n-next64.placeholderNode.missingNode")}
         </Text>
       </Tooltip>
 
@@ -341,7 +347,9 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         >
           {disabledPack ? (
             <Tooltip
-              title={`This node is part of the ${disabledPack.name} pack, which is currently disabled. Enable it to load the node.`}
+              title={t("i18n-next64.placeholderNode.disabledPackTooltip", {
+                pack: disabledPack.name
+              })}
             >
               <EditorButton
                 variant="contained"
@@ -351,11 +359,19 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
                 disabled={enabling}
                 startIcon={<ExtensionIcon />}
               >
-                {enabling ? "Enabling…" : `Enable ${disabledPack.name} Nodes`}
+                {enabling
+                  ? t("i18n-next64.placeholderNode.enabling")
+                  : t("i18n-next64.placeholderNode.enablePack", {
+                      pack: disabledPack.name
+                    })}
               </EditorButton>
             </Tooltip>
           ) : (
-            <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
+            <Tooltip
+              title={t("i18n-next64.placeholderNode.searchPackageTooltip", {
+                nodeType: resolvedType
+              })}
+            >
               <EditorButton
                 variant="contained"
                 density="compact"
@@ -363,7 +379,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
                 onClick={openPackageManager}
                 startIcon={<CloudDownloadIcon />}
               >
-                Search package manager
+                {t("i18n-next64.placeholderNode.searchPackageManager")}
               </EditorButton>
             </Tooltip>
           )}

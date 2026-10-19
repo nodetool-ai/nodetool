@@ -9,6 +9,7 @@
  * IPC is unavailable or an install fails.
  */
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import ErrorBanner from "../support/ErrorBanner";
 import {
@@ -58,7 +59,8 @@ interface RuntimeRowState {
  */
 async function installAll(
   missing: MissingRuntime[],
-  setRowState: (id: string, patch: RuntimeRowState) => void
+  setRowState: (id: string, patch: RuntimeRowState) => void,
+  fallbackErrorMessage: string
 ): Promise<boolean> {
   const api = window.api;
   if (!api?.packages?.installRuntime) return false;
@@ -77,20 +79,13 @@ async function installAll(
     } catch (err: unknown) {
       setRowState(rt.id, {
         status: "failed",
-        error: createErrorMessage(err, "Install failed").message,
+        error: createErrorMessage(err, fallbackErrorMessage).message,
       });
       allInstalled = false;
     }
   }
   return allInstalled;
 }
-
-const STATUS_LABEL = {
-  pending: "Required",
-  installing: "Installing…",
-  installed: "Installed",
-  failed: "Failed",
-} satisfies Record<RuntimeStatus, string>;
 
 const STATUS_COLOR: Record<
   RuntimeStatus,
@@ -107,6 +102,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
   open,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const openPackageManager = useOpenPackageManager();
   const [installing, setInstalling] = useState(false);
@@ -142,7 +138,11 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
 
   const handleInstall = useCallback(async () => {
     setInstalling(true);
-    const ok = await installAll(missing, setRowState);
+    const ok = await installAll(
+      missing,
+      setRowState,
+      t("i18n-next104-node.runtimeInstall.installFailed")
+    );
     // Refresh the shared status cache so other surfaces
     // (NodeDependencyWarning, Package Manager) see the new state.
     await ensureRuntimeStatuses(true);
@@ -152,7 +152,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
       // Let the success state render briefly before auto-closing.
       setTimeout(onClose, 900);
     }
-  }, [missing, setRowState, onClose]);
+  }, [missing, setRowState, onClose, t]);
 
   const handleOpenPackageManager = useCallback(() => {
     onClose();
@@ -173,33 +173,33 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
     .join(", ");
 
   const confirmText = allInstalled
-    ? "Done"
+    ? t("i18n-next32.runtimeInstall.done")
     : installing
-      ? "Installing…"
+      ? t("i18n-next32.runtimeInstall.installing")
       : failedCount > 0
-        ? "Retry"
-        : "Install all";
+        ? t("i18n-next32.runtimeInstall.retry")
+        : t("i18n-next32.runtimeInstall.installAll");
 
   return (
     <Dialog
       open={open}
       onClose={handleDialogClose}
-      title="Install required runtimes"
+      title={t("i18n-next32.runtimeInstall.title")}
       maxWidth="xs"
       fullWidth
       onConfirm={allInstalled ? onClose : handleInstall}
       confirmText={confirmText}
-      cancelText="Later"
+      cancelText={t("i18n-next32.runtimeInstall.later")}
       isLoading={installing}
       cancelDisabled={installing}
     >
       <FlexColumn gap={SPACING.md}>
         <Text size="smaller" color="secondary">
-          This workflow uses nodes that need{" "}
+          {t("i18n-next32.runtimeInstall.descriptionPrefix")}{" "}
           <Text component="span" weight={500} color="inherit">
             {runtimeNames}
           </Text>
-          . Install them now to run it.
+          {t("i18n-next32.runtimeInstall.descriptionSuffix")}
         </Text>
 
         <FlexColumn
@@ -225,7 +225,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
 
         {allInstalled && (
           <AlertBanner severity="success" compact>
-            All runtimes installed. You can run this workflow now.
+            {t("i18n-next32.runtimeInstall.allInstalled")}
           </AlertBanner>
         )}
 
@@ -245,7 +245,7 @@ const RuntimeInstallDialog: React.FC<RuntimeInstallDialogProps> = ({
               opacity: installing ? 0.5 : 1,
             }}
           >
-            Open package manager instead
+            {t("i18n-next32.runtimeInstall.openPackageManager")}
           </Text>
         )}
       </FlexColumn>
@@ -260,6 +260,7 @@ interface RuntimeRowProps {
 }
 
 const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
+  const { t } = useTranslation();
   return (
     <FlexRow
       gap={SPACING.xs}
@@ -296,7 +297,7 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: `Installing the ${name} runtime failed`,
+              summary: t("i18n-next32.runtimeInstall.installFailedSummary", { name }),
               errorText: error
             }}
           >
@@ -308,7 +309,7 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
         compact
         color={STATUS_COLOR[status]}
         active={status !== "pending"}
-        label={error ? "Failed" : STATUS_LABEL[status]}
+        label={error ? t("i18n-next32.runtimeInstall.status.failed") : t(`i18n-next32.runtimeInstall.status.${status}`)}
       />
     </FlexRow>
   );

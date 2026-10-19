@@ -61,7 +61,7 @@ it("routes a public registered panel to its named default region and disposes re
     </ThemeProvider>
   );
   const rendered = render(view("2d"));
-  expect(within(screen.getByRole("region", { name: "Game bottom panels" }))
+  expect(within(screen.getByRole("region", { name: "Game bottom dock panels" }))
     .getByRole("button", { name: "Extension action" })).toBeInTheDocument();
   await act(async () => rendered.rerender(view("3d")));
   expect(screen.queryByRole("button", { name: "Extension action" })).not.toBeInTheDocument();
@@ -212,7 +212,7 @@ it.each(["2d", "3d"] as const)("reveals a hidden registered %s panel through the
     panels={[{ id: "extension", node: <input aria-label="Extension draft" defaultValue="original" /> }]} /></ThemeProvider>);
   const input = screen.getByRole("textbox", { name: "Extension draft" });
   await user.type(input, " changed");
-  await user.click(within(screen.getByRole("region", { name: "Game bottom panels" })).getByRole("button", { name: "Close Extension" }));
+  await user.click(within(screen.getByRole("region", { name: "Game bottom dock panels" })).getByRole("button", { name: "Close Extension" }));
   expect(screen.queryByRole("textbox", { name: "Extension draft" })).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Default" }));
   await user.click(screen.getByRole("menuitem", { name: "Default" }));

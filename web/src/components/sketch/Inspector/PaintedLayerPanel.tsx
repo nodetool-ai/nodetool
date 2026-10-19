@@ -9,6 +9,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Layer } from "../types";
 import {
   Caption,
@@ -24,14 +25,14 @@ interface PaintedLayerPanelProps {
   layer: Layer;
 }
 
-function describeKind(layer: Layer): string {
-  if (layer.type === "mask") return "Mask layer";
-  if (layer.type === "group") return "Group";
-  return "Painted layer";
-}
-
 export const PaintedLayerPanel: React.FC<PaintedLayerPanelProps> = memo(
   ({ layer }) => {
+    const { t } = useTranslation();
+    const kind = layer.type === "mask"
+      ? t("i18n-next52.sketch.inspector.mask")
+      : layer.type === "group"
+        ? t("i18n-next52.sketch.inspector.group")
+        : t("i18n-next52.sketch.inspector.painted");
     return (
       <Panel
         background="default"
@@ -45,22 +46,22 @@ export const PaintedLayerPanel: React.FC<PaintedLayerPanelProps> = memo(
                 {layer.name}
               </Label>
             </FlexRow>
-            <Caption color="secondary">{describeKind(layer)}</Caption>
+            <Caption color="secondary">{kind}</Caption>
           </FlexColumn>
 
-          <InspectorSection title="Layer" divider={false}>
+          <InspectorSection title={t("i18n-next52.sketch.inspector.layer")} divider={false}>
             <FlexColumn gap={0.5}>
               <Text size="small">
-                Opacity: {Math.round(layer.opacity * 100)}%
+                {t("i18n-next52.sketch.inspector.opacity")}: {Math.round(layer.opacity * 100)}%
               </Text>
-              <Text size="small">Blend mode: {layer.blendMode}</Text>
+              <Text size="small">{t("i18n-next52.sketch.inspector.blendMode")}: {layer.blendMode}</Text>
               <Text size="small">
-                Bounds: {layer.contentBounds.width}×
+                {t("i18n-next52.sketch.inspector.bounds")}: {layer.contentBounds.width}×
                 {layer.contentBounds.height} @ ({layer.contentBounds.x},{" "}
                 {layer.contentBounds.y})
               </Text>
               <Text size="small">
-                Effects: {layer.effects.length === 0 ? "none" : layer.effects.length}
+                {t("i18n-next52.sketch.inspector.effects")}: {layer.effects.length === 0 ? t("i18n-next52.sketch.inspector.none") : layer.effects.length}
               </Text>
             </FlexColumn>
           </InspectorSection>

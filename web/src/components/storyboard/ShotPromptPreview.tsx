@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Scene, Shot } from "@nodetool-ai/protocol";
 import {
   clipPromptFor,
@@ -53,16 +54,25 @@ const promptSx = {
   bgcolor: "c_overlay_subtle"
 } as const;
 
-const PromptBlock: React.FC<{ label: string; text: string }> = ({
+interface PromptBlockProps {
+  label: string;
+  copyLabel: string;
+  emptyText: string;
+  text: string;
+}
+
+const PromptBlock: React.FC<PromptBlockProps> = ({
   label,
+  copyLabel,
+  emptyText,
   text
 }) => (
   <FlexColumn gap={SPACING.xs}>
     <FlexRow align="center" gap={SPACING.xs}>
       <Label sx={{ color: "text.secondary" }}>{label}</Label>
-      <CopyButton value={text} tooltip={`Copy ${label.toLowerCase()}`} buttonSize="small" />
+      <CopyButton value={text} tooltip={copyLabel} buttonSize="small" />
     </FlexRow>
-    <Box sx={promptSx}>{text || "Nothing to send yet."}</Box>
+    <Box sx={promptSx}>{text || emptyText}</Box>
   </FlexColumn>
 );
 
@@ -72,6 +82,7 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
   style,
   castNames
 }) => {
+  const { t } = useTranslation();
   const mode = shotRenderMode(shot);
   const { still, clip } = useMemo(
     () => ({
@@ -82,13 +93,53 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
   );
 
   return (
-    <CollapsibleSection title="Prompts" compact unmountOnExit>
+    <CollapsibleSection
+      title={t("screens4_18.storyboard.shotPromptPreview.title")}
+      compact
+      unmountOnExit
+    >
       <FlexColumn gap={SPACING.md}>
-        {mode === "keyframe" && <PromptBlock label="Still prompt" text={still} />}
-        <PromptBlock label="Clip prompt" text={clip} />
+        {mode === "keyframe" && (
+          <PromptBlock
+            label={t("screens4_18.storyboard.shotPromptPreview.stillPrompt")}
+            copyLabel={t(
+              "screens4_18.storyboard.shotPromptPreview.copyPrompt",
+              {
+                promptType: t(
+                  "screens4_18.storyboard.shotPromptPreview.stillPrompt"
+                )
+              }
+            )}
+            emptyText={t(
+              "screens4_18.storyboard.shotPromptPreview.emptyPrompt"
+            )}
+            text={still}
+          />
+        )}
+        <PromptBlock
+          label={t("screens4_18.storyboard.shotPromptPreview.clipPrompt")}
+          copyLabel={t(
+            "screens4_18.storyboard.shotPromptPreview.copyPrompt",
+            {
+              promptType: t(
+                "screens4_18.storyboard.shotPromptPreview.clipPrompt"
+              )
+            }
+          )}
+          emptyText={t(
+            "screens4_18.storyboard.shotPromptPreview.emptyPrompt"
+          )}
+          text={clip}
+        />
         {castNames.length > 0 && (
           <Caption color="secondary">
-            {`Reference images for ${castNames.join(", ")} are attached when the render starts.`}
+            {t(
+              "screens4_18.storyboard.shotPromptPreview.referenceImages",
+              {
+                count: castNames.length,
+                names: castNames.join(", ")
+              }
+            )}
           </Caption>
         )}
       </FlexColumn>

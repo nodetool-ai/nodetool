@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type {
   AudioToAudioModel,
@@ -25,6 +26,7 @@ function AudioToAudioModelMenuDialog({
   recommendedModels,
   modelPacks
 }: AudioToAudioModelMenuDialogProps) {
+  const { t } = useTranslation();
   const modelData = useAudioToAudioModelsByProvider();
   return (
     <ModelMenuDialogBase<AudioToAudioModel>
@@ -33,8 +35,8 @@ function AudioToAudioModelMenuDialog({
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
-      title="Select audio-to-audio model"
-      searchPlaceholder="Search voice changers, separators, denoisers"
+      title={t("screen_modelMenu.selectAudioToAudioModel")}
+      searchPlaceholder={t("screen_modelMenu.searchAudioToAudioModels")}
       storeHook={useAudioToAudioModelMenuStore}
       modelType="audio_to_audio_model"
       recommendedModels={recommendedModels}

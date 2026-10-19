@@ -90,7 +90,7 @@ describe("ScriptLineRow speaker picker", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Assign speaker" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Add speaker" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Add a speaker" }));
 
     const script = useScriptStore.getState().getScript(SCRIPT_ID);
     expect(script?.cast).toHaveLength(1);

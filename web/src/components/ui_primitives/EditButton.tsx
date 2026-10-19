@@ -8,6 +8,7 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import EditIcon from "@mui/icons-material/EditOutlined";
@@ -86,7 +87,7 @@ export const EditButton = memo(
     (
       {
         onClick,
-        tooltip = "Edit",
+        tooltip,
         tooltipPlacement = "bottom",
         buttonSize = "small",
         iconVariant = "edit",
@@ -99,6 +100,8 @@ export const EditButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const tooltipText = tooltip ?? t("i18n-next85.uiPrimitives.edit");
 
       const handleClick = useCallback(
         (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -117,7 +120,7 @@ export const EditButton = memo(
 
       return (
         <Tooltip
-          title={tooltip}
+          title={tooltipText}
           enterDelay={TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
@@ -126,7 +129,7 @@ export const EditButton = memo(
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
-            aria-label={tooltip}
+            aria-label={tooltipText}
             className={cn(
               "edit-button",
               nodrag && editorClassNames.nodrag,

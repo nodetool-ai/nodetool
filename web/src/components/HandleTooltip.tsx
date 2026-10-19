@@ -1,4 +1,5 @@
 import React, { memo, useState, useCallback, useContext, useMemo, useRef, useEffect, isValidElement, cloneElement, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { colorForType } from "../config/data_types";
 import { typeToString } from "../utils/TypeHandler";
 import { TypeMetadata } from "../stores/ApiTypes";
@@ -58,6 +59,7 @@ const HandleTooltip = memo(function HandleTooltip({
   nodeId,
   handleDirection
 }: HandleTooltipProps) {
+  const { t } = useTranslation();
   const isPropertyVariant = variant === "property";
   const [showTooltip, setShowTooltip] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
@@ -263,7 +265,14 @@ const HandleTooltip = memo(function HandleTooltip({
       onKeyDown={isPropertyVariant ? undefined : handleKeyDown}
       tabIndex={isPropertyVariant ? -1 : 0}
       role={isPropertyVariant ? undefined : "button"}
-      aria-label={isPropertyVariant ? undefined : `${prettyName} (${displayType})`}
+      aria-label={
+        isPropertyVariant
+          ? undefined
+          : t("i18n-next89.handleTooltip.ariaLabel", {
+              name: prettyName,
+              type: displayType
+            })
+      }
       aria-describedby={effectiveShow ? tooltipIdRef.current : undefined}
       aria-haspopup={canOpenConnectionPicker ? "dialog" : undefined}
       aria-expanded={canOpenConnectionPicker ? connectionPickerOpen : undefined}

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Chip,
   FlexRow,
@@ -35,16 +36,10 @@ import { executionForDisplay } from "../../../utils/modelNormalization";
 
 const IMPORTANT_TAGS = new Set(["gguf", "mlx"]);
 
-const FIT_CHIP: Record<
-  Exclude<FitLevel, "unknown">,
-  {
-    color: "success" | "warning" | "error";
-    label: (requiredGb: number) => string;
-  }
-> = {
-  fits: { color: "success", label: () => "Fits your machine" },
-  tight: { color: "warning", label: () => "Tight fit" },
-  over: { color: "error", label: (gb) => `Needs ~${Math.ceil(gb)} GB` }
+const FIT_CHIP: Record<Exclude<FitLevel, "unknown">, { color: "success" | "warning" | "error"; key: string }> = {
+  fits: { color: "success", key: "fit.fits" },
+  tight: { color: "warning", key: "fit.tight" },
+  over: { color: "error", key: "fit.over" }
 };
 
 /**
@@ -126,6 +121,7 @@ const ModelListItem: React.FC<
   isCheckingCache = false,
   fitBudgetGb = null
 }) => {
+  const { t } = useTranslation();
   const baseId = model.repo_id || model.id;
   const downloadId = model.path ? `${baseId}/${model.path}` : baseId;
   const download = useModelDownloadStore(
@@ -228,7 +224,7 @@ const ModelListItem: React.FC<
               ))}
               {model.pipeline_tag && (
                 <Tooltip
-                  title="View trending models with this tag on HuggingFace"
+                  title={t("i18n-next29.item.trendingTagTooltip")}
                   delay={TOOLTIP_DESCRIPTION_DELAY}
                   nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
                 >
@@ -248,12 +244,10 @@ const ModelListItem: React.FC<
               )}
               {fit !== "unknown" && (
                 <Tooltip
-                  title={`Estimated from the model's ${formatBytes(
-                    model.size_on_disk ?? 0
-                  )} size against your ${fitBudgetGb} GB memory budget (set it under Get Started).`}
+                  title={t("i18n-next29.item.fitTooltip", { size: formatBytes(model.size_on_disk ?? 0), budget: fitBudgetGb })}
                 >
                   <Chip
-                    label={FIT_CHIP[fit].label(estimateRequiredGb(model) ?? 0)}
+                    label={t(`i18n-next29.item.${FIT_CHIP[fit].key}`, { gb: Math.ceil(estimateRequiredGb(model) ?? 0) })}
                     compact
                     component="span"
                     color={FIT_CHIP[fit].color}
@@ -264,7 +258,7 @@ const ModelListItem: React.FC<
               )}
               {nodeCount > 0 && (
                 <Chip
-                  label={`Works with ${nodeCount} node${nodeCount > 1 ? "s" : ""}`}
+                  label={t("i18n-next29.item.worksWithNode", { count: nodeCount })}
                   compact
                   color="primary"
                   variant="outlined"

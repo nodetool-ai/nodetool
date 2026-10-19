@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -220,6 +221,7 @@ interface PreviewNodeProps extends NodeProps {
 }
 
 const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const addNotification = useNotificationStore(
@@ -342,18 +344,18 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
       addNotification({
         type: "success",
-        content: `${assetFiles.length} file${
-          assetFiles.length === 1 ? "" : "s"
-        } added to assets`
+        content: t("i18n-next37.previewNode.filesAddedToAssets", {
+          count: assetFiles.length
+        })
       });
     } catch (error) {
       console.error("Error in handleAddToAssets:", error);
       addNotification({
         type: "error",
-        content: "Failed to add preview to assets"
+        content: t("i18n-next37.previewNode.addToAssetsFailed")
       });
     }
-  }, [previewOutput, props.id, createAsset, addNotification]);
+  }, [previewOutput, props.id, createAsset, addNotification, t]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -364,16 +366,16 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       });
       addNotification({
         type: "success",
-        content: "Download started successfully"
+        content: t("i18n-next37.previewNode.downloadStarted")
       });
     } catch (error) {
       console.error("Error in handleDownload:", error);
       addNotification({
         type: "error",
-        content: "Failed to start download"
+        content: t("i18n-next37.previewNode.downloadFailed")
       });
     }
-  }, [previewOutput, displayResult, props.id, addNotification]);
+  }, [previewOutput, displayResult, props.id, addNotification, t]);
 
   const handleContentFocus = useCallback(() => {
     setIsContentFocused(true);
@@ -457,7 +459,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             id={props.id}
             data={props.data}
             hasParent={hasParent}
-            metadataTitle="Preview"
+            metadataTitle={t("i18n-next37.previewNode.metadataTitle")}
             selected={props.selected}
             iconType="preview"
             workflowId={props.data.workflow_id}
@@ -480,7 +482,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             isScrollable ? "scrollable nowheel" : "noscroll"
           } nodrag`}
           role="region"
-          aria-label="Preview output"
+          aria-label={t("i18n-next37.previewNode.ariaLabel")}
           style={{ width: "100%", height: "100%" }}
           tabIndex={0}
           onFocus={handleContentFocus}
@@ -491,7 +493,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             memoizedOutputRenderer
           ) : (
             <CheckerDropzone
-              message="Run to preview connected data"
+              message={t("i18n-next37.previewNode.runToPreview")}
               icon={<VisibilityIcon />}
             />
           )}

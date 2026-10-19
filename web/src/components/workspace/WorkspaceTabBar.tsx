@@ -8,6 +8,7 @@ import React, {
   useState,
   type DragEvent
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -420,6 +421,7 @@ const styles = (theme: Theme) =>
   });
 
 const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const tabBarStyles = useMemo(() => styles(theme), [theme]);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -631,7 +633,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       ref={newTabButtonRef}
       type="button"
       className="new-tab"
-      aria-label="Open or create a tab"
+      aria-label={t("i18n-next51.tabBar.openOrCreateTab")}
       aria-haspopup="menu"
       aria-expanded={menuOpen}
       onClick={() => setMenuOpen((v) => !v)}
@@ -639,7 +641,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       <span className="new-tab-plus" aria-hidden>
         +
       </span>
-      <span className="new-tab-label">New</span>
+      <span className="new-tab-label">{t("i18n-next51.tabBar.new")}</span>
       <span className="new-tab-caret" aria-hidden>
         ▾
       </span>
@@ -662,7 +664,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         aria-pressed={activeTab.mode === "view"}
         onClick={() => setMode(activeTab.id, "view")}
       >
-        View
+        {t("i18n-next51.tabBar.view")}
       </button>
       <button
         type="button"
@@ -670,7 +672,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         aria-pressed={activeTab.mode === "edit"}
         onClick={() => setMode(activeTab.id, "edit")}
       >
-        Edit
+        {t("i18n-next51.tabBar.edit")}
       </button>
     </div>
   );
@@ -728,7 +730,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         <div className="home-button active">
           <InlineEditableText
             className="tab-input"
-            ariaLabel="Project name"
+            ariaLabel={t("i18n-next51.tabBar.projectName")}
             value={displayedHomeTitle}
             editing
             onEditingChange={setEditingHome}
@@ -761,7 +763,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         onClose={() => setHomeMenuPosition(null)}
       >
         <MenuItemPrimitive
-          label="Rename"
+          label={t("i18n-next51.tabBar.rename")}
           onClick={() => {
             setHomeMenuPosition(null);
             setEditingHome(true);

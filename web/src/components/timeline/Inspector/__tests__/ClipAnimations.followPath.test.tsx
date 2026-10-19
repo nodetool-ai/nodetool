@@ -112,13 +112,13 @@ describe("followPath animation params", () => {
 
     await openSection(user, "Animate");
     await pickOption(user, /new animation role/i, /^emphasis$/i);
-    await pickOption(user, /new animation preset/i, /^followPath$/i);
+    await pickOption(user, /new animation preset/i, /^Follow path$/i);
     await user.click(screen.getByRole("button", { name: /^add$/i }));
 
     expect(
-      screen.getByRole("textbox", { name: /emphasis d/i })
+      screen.getByRole("textbox", { name: /emphasis path data/i })
     ).toBeInTheDocument();
-    const orientSwitch = screen.getByRole("switch", { name: /^orient$/i });
+    const orientSwitch = screen.getByRole("switch", { name: /^orient to path$/i });
     expect(orientSwitch).toBeInTheDocument();
     expect(orientSwitch).not.toBeChecked();
   });
@@ -137,7 +137,7 @@ describe("followPath animation params", () => {
 
     await openSection(user, "Animate");
     await pickOption(user, /new animation role/i, /^emphasis$/i);
-    await pickOption(user, /new animation preset/i, /^followPath$/i);
+    await pickOption(user, /new animation preset/i, /^Follow path$/i);
     await user.click(screen.getByRole("button", { name: /^add$/i }));
 
     await pickOption(user, /use shape clip/i, /^shape-1$/i);

@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { AlertBanner, EditorButton } from "../../ui_primitives";
 
@@ -14,25 +15,28 @@ interface SelectModelBannerProps {
 const SelectModelBanner: React.FC<SelectModelBannerProps> = ({
   reason,
   onSelect
-}) => (
-  <AlertBanner
-    severity="info"
-    compact
-    icon={<AutoAwesomeIcon fontSize="small" />}
-    action={
-      <EditorButton
-        variant="outlined"
-        color="primary"
-        size="small"
-        onClick={onSelect}
-      >
-        Select a model
-      </EditorButton>
-    }
-    sx={{ mx: 1, mb: 0.5, alignItems: "center" }}
-  >
-    {reason}
-  </AlertBanner>
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <AlertBanner
+      severity="info"
+      compact
+      icon={<AutoAwesomeIcon fontSize="small" />}
+      action={
+        <EditorButton
+          variant="outlined"
+          color="primary"
+          size="small"
+          onClick={onSelect}
+        >
+          {t("i18n-next18.chat.composer.selectModel")}
+        </EditorButton>
+      }
+      sx={{ mx: 1, mb: 0.5, alignItems: "center" }}
+    >
+      {reason}
+    </AlertBanner>
+  );
+};
 
 export default memo(SelectModelBanner);

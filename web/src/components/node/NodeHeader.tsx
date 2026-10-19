@@ -4,6 +4,7 @@ import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import { NodeData } from "../../stores/NodeData";
 import { useToggleCollapse } from "../../hooks/nodes/useToggleCollapse";
@@ -130,8 +131,9 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
   externalLinkTitle,
   isTitleEditable = false,
   showCodeBadge = false,
-  codeBadgeTooltip = "Code node"
+  codeBadgeTooltip
 }: NodeHeaderProps) => {
+  const { t } = useTranslation();
   const { openContextMenu } = useContextMenuActions();
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -293,7 +295,12 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
           onDoubleClick={handleTitleDoubleClick}
         >
           {showCodeBadge && (
-            <Tooltip title={codeBadgeTooltip} placement="top">
+            <Tooltip
+              title={
+                codeBadgeTooltip ?? t("i18n-next39.nodeEditor.header.codeNode")
+              }
+              placement="top"
+            >
               <span style={{ display: "inline-flex", flexShrink: 0 }}>
                 <Chip compact label="C" />
               </span>
@@ -302,7 +309,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
           {isEditingTitle ? (
             <input
               className="node-title-input nodrag nopan"
-              aria-label="Node title"
+              aria-label={t("i18n-next39.nodeEditor.header.nodeTitle")}
               autoFocus
               value={draftTitle}
               onBlur={commitTitleEdit}
@@ -316,7 +323,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
         </span>
         {externalLink && (
           <ToolbarIconButton
-            title={externalLinkTitle || "Open link"}
+            title={externalLinkTitle || t("i18n-next39.nodeEditor.header.openLink")}
             size="small"
             onClick={(e) => {
               e.stopPropagation();
@@ -336,11 +343,11 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
           </ToolbarIconButton>
         )}
         {data.bypassed && (
-          <span className="bypass-badge">Disabled</span>
+          <span className="bypass-badge">{t("i18n-next39.nodeEditor.header.disabled")}</span>
         )}
         {logCount > 0 && !hideLogs && (
           <ToolbarIconButton
-            title={`${logCount} logs`}
+            title={t("i18n-next39.nodeEditor.header.logs", { count: logCount })}
             size="small"
             onClick={handleOpenLogsDialog}
             sx={{ padding: getSpacingPx(SPACING.xs) }}

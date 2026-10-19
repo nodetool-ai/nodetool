@@ -8,6 +8,7 @@ import React, {
   useRef,
   memo
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme, type Theme } from "@mui/material/styles";
 import FolderIcon from "@mui/icons-material/FolderOutlined";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
@@ -25,6 +26,7 @@ import {
   Button,
   CopyButton,
   Dialog,
+  EmptyState,
   EditorButton,
   FlexColumn,
   FlexRow,
@@ -127,13 +129,19 @@ const createFolder = async (path: string, name: string): Promise<string> => {
   return entry.path;
 };
 
-const formatBytes = (bytes: number, decimals = 2) => {
+const formatBytes = (bytes: number, bytesLabel: string, decimals = 2) => {
   if (!+bytes) {
-    return "0 Bytes";
+    return `0 ${bytesLabel}`;
   }
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ["Bytes", "KiB", "MiB", "GiB", "TiB"];
+  const sizes = [
+    bytesLabel,
+    "KiB",
+    "MiB",
+    "GiB",
+    "TiB"
+  ];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 };
@@ -142,11 +150,19 @@ function FileBrowserDialog({
   open,
   onClose,
   onConfirm,
-  title = "Select file",
+  title,
   initialPath = "~",
   selectionMode = "file"
 }: FileBrowserDialogProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
+  const dialogTitle =
+    title ??
+    t(
+      selectionMode === "directory"
+        ? "batch2_12.fileBrowser.selectFolderTitle"
+        : "batch2_12.fileBrowser.selectFileTitle"
+    );
 
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [isEditingPath, setIsEditingPath] = useState(false);
@@ -163,6 +179,22 @@ function FileBrowserDialog({
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   const treeScrollRef = useRef<HTMLDivElement>(null);
+  const localizedTreeItems = useMemo(() => {
+    const localize = (items: ExtendedTreeItem[]): ExtendedTreeItem[] =>
+      items.map((item) => {
+        const localizedItem: ExtendedTreeItem = {
+          ...item,
+          label: item.id.endsWith("_loading")
+            ? t("batch2_12.fileBrowser.loading")
+            : item.label
+        };
+        if (item.children) {
+          localizedItem.children = localize(item.children);
+        }
+        return localizedItem;
+      });
+    return localize(treeItems);
+  }, [treeItems, t]);
 
   // Folders first, then files.
   const sortedFiles = useMemo(() => {
@@ -194,14 +226,14 @@ function FileBrowserDialog({
     // Special handling for root based on OS style
     if (currentPath.startsWith("/")) {
       // Unix absolute
-      items.push({ label: "Root", path: "/" });
+      items.push({ label: t("batch2_12.fileBrowser.root"), path: "/" });
       pathAcc = "";
     } else if (currentPath.includes(":")) {
       // Windows absolute probably
       pathAcc = "";
     } else if (currentPath.startsWith("~")) {
       // Home relative
-      items.push({ label: "Home", path: "~" });
+      items.push({ label: t("batch2_12.fileBrowser.home"), path: "~" });
       pathAcc = "~";
       parts.shift();
     }
@@ -221,7 +253,7 @@ function FileBrowserDialog({
       items.push({ label: part, path: pathAcc });
     });
     return items;
-  }, [currentPath]);
+  }, [currentPath, t]);
 
   // Sync input value when path changes externally
   useEffect(() => {
@@ -257,7 +289,7 @@ function FileBrowserDialog({
             label: f.name,
             path: f.path,
             children: [
-              { id: `${f.path}_loading`, label: "Loading…", path: "" }
+              { id: `${f.path}_loading`, label: "", path: "" }
             ] as ExtendedTreeItem[]
           }));
         setTreeItems(roots);
@@ -399,7 +431,7 @@ function FileBrowserDialog({
                   label: f.name,
                   path: f.path,
                   children: [
-                    { id: `${f.path}_loading`, label: "Loading…", path: "" }
+                    { id: `${f.path}_loading`, label: "", path: "" }
                   ] as ExtendedTreeItem[]
                 }));
               return { id: path, children: folders.length > 0 ? folders : [] };
@@ -574,10 +606,12 @@ function FileBrowserDialog({
       handleNavigate(created);
     } catch (err) {
       setNewFolderError(
-        err instanceof Error ? err.message : "Could not create the folder"
+        err instanceof Error
+          ? err.message
+          : t("batch2_12.fileBrowser.createFolderFailed")
       );
     }
-  }, [newFolderName, currentPath, handleNavigate]);
+  }, [newFolderName, currentPath, handleNavigate, t]);
 
   const handleNewFolderKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -680,7 +714,7 @@ function FileBrowserDialog({
               label: f.name,
               path: f.path,
               children: [
-                { id: `${f.path}_loading`, label: "Loading…", path: "" }
+                { id: `${f.path}_loading`, label: "", path: "" }
               ] as ExtendedTreeItem[]
             }));
 
@@ -734,7 +768,7 @@ function FileBrowserDialog({
       className="file-browser-dialog"
       open={open}
       onClose={onClose}
-      title={title}
+      title={dialogTitle}
       maxWidth="md"
       fullWidth
       actions={
@@ -746,25 +780,27 @@ function FileBrowserDialog({
             sx={{ mr: "auto", minWidth: 0 }}
           >
             <Text size="small" color="secondary" truncate>
-              {selectedPath ? `Selected: ${selectedPath}` : "No selection"}
+              {selectedPath
+                ? t("batch2_12.fileBrowser.selectedPath", { path: selectedPath })
+                : t("batch2_12.fileBrowser.noSelection")}
             </Text>
             {selectedPath && (
               <CopyButton
                 value={selectedPath}
-                tooltip="Copy path"
+                tooltip={t("batch2_12.fileBrowser.copyPath")}
                 buttonSize="small"
               />
             )}
           </FlexRow>
           <Button variant="text" color="inherit" onClick={onClose}>
-            Cancel
+            {t("batch2_12.common.cancel")}
           </Button>
           <Button
             variant="contained"
             onClick={handleConfirmClick}
             disabled={!selectedPath}
           >
-            Select
+            {t("batch2_12.fileBrowser.select")}
           </Button>
         </>
       }
@@ -787,7 +823,7 @@ function FileBrowserDialog({
         >
           <ToolbarIconButton
             icon={<ArrowUpwardIcon fontSize="small" />}
-            tooltip="Up one level"
+            tooltip={t("batch2_12.fileBrowser.upOneLevel")}
             onClick={handleUp}
             disabled={currentPath === "~" || currentPath === "/"}
             size="small"
@@ -795,7 +831,7 @@ function FileBrowserDialog({
 
           {isEditingPath ? (
             <TextInput
-              label="Folder path"
+              label={t("batch2_12.fileBrowser.folderPath")}
               hideLabel
               size="small"
               fullWidth
@@ -829,7 +865,7 @@ function FileBrowserDialog({
               />
               {/* Clicking the bar edits the path; this is the keyboard way. */}
               <ToolbarIconButton
-                tooltip="Type a path"
+                tooltip={t("batch2_12.fileBrowser.typePath")}
                 onClick={(event) => {
                   event.stopPropagation();
                   handleStartEditPath();
@@ -845,14 +881,14 @@ function FileBrowserDialog({
             <SearchInput
               value={searchQuery}
               onChange={handleSearchQueryChange}
-              placeholder="Search in current folder"
+              placeholder={t("batch2_12.fileBrowser.searchPlaceholder")}
               fullWidth
             />
           </div>
 
           <ToolbarIconButton
             icon={<CreateNewFolderIcon fontSize="small" />}
-            tooltip="New folder here"
+            tooltip={t("batch2_12.fileBrowser.newFolderHere")}
             onClick={handleStartNewFolder}
             size="small"
           />
@@ -860,7 +896,7 @@ function FileBrowserDialog({
           <RefreshButton
             onClick={handleRefresh}
             buttonSize="small"
-            tooltip="Refresh"
+            tooltip={t("batch2_12.fileBrowser.refresh")}
           />
         </FlexRow>
 
@@ -877,15 +913,15 @@ function FileBrowserDialog({
           >
             <FlexRow align="flex-start" gap={SPACING.xs}>
               <TextInput
-                label="New folder name"
+                label={t("batch2_12.fileBrowser.newFolderName")}
                 hideLabel
                 size="small"
                 autoFocus
                 value={newFolderName}
-                placeholder="New folder name"
+                placeholder={t("batch2_12.fileBrowser.newFolderName")}
                 onChange={handleNewFolderChange}
                 onKeyDown={handleNewFolderKeyDown}
-                helperText={`Creates a folder in ${currentPath}`}
+                helperText={t("batch2_12.fileBrowser.createFolderIn", { path: currentPath })}
                 errorMessage={newFolderError || undefined}
                 sx={{ flex: 1 }}
               />
@@ -895,14 +931,14 @@ function FileBrowserDialog({
                 density="compact"
                 disabled={!newFolderName.trim()}
               >
-                Create
+                {t("batch2_12.fileBrowser.create")}
               </EditorButton>
               <EditorButton
                 onClick={handleCancelNewFolder}
                 variant="text"
                 density="compact"
               >
-                Cancel
+                {t("batch2_12.common.cancel")}
               </EditorButton>
             </FlexRow>
           </FlexColumn>
@@ -923,7 +959,7 @@ function FileBrowserDialog({
           >
             <div className="folder-tree" ref={treeScrollRef}>
               <RichTreeView
-                items={treeItems}
+                items={localizedTreeItems}
                 onItemClick={handleTreeItemClick}
                 onItemExpansionToggle={handleItemExpansionToggle}
                 expandedItems={expandedItems}
@@ -1016,13 +1052,32 @@ function FileBrowserDialog({
                           </Text>
                           {file.size !== undefined && !file.is_dir && (
                             <Caption color="secondary" sx={{ ml: SPACING.xs }}>
-                              {formatBytes(file.size)}
+                {formatBytes(
+                  file.size,
+                  t("batch2_12.fileBrowser.byteUnits.bytes")
+                )}
                             </Caption>
                           )}
                         </FlexRow>
                       </ListItemRow>
                     );
                   })}
+                  {filteredFiles.length === 0 && (
+                    <EmptyState
+                      variant={searchQuery ? "no-results" : "empty"}
+                      title={t(
+                        searchQuery
+                          ? "batch2_12.fileBrowser.noSearchResults"
+                          : "batch2_12.fileBrowser.folderEmpty"
+                      )}
+                      description={t(
+                        searchQuery
+                          ? "batch2_12.fileBrowser.noSearchResultsDescription"
+                          : "batch2_12.fileBrowser.folderEmptyDescription"
+                      )}
+                      size="small"
+                    />
+                  )}
                 </div>
               </div>
             )}

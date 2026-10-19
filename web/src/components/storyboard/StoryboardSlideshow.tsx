@@ -24,6 +24,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot } from "@nodetool-ai/protocol";
 import { resolveEffectiveProductionRequirement } from "@nodetool-ai/protocol";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -158,17 +159,25 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
   onClose,
   onEditShot
 }) => {
+  const { t, i18n } = useTranslation();
   const { shots, screenplay, aspectRatio } = useBoard(boardId);
   const thumbAspect = (aspectRatio || "16:9").replace(":", " / ");
+  const numberFormat = useMemo(
+    () => new Intl.NumberFormat(i18n.language),
+    [i18n.language]
+  );
   const slides = useMemo<Slide[]>(
     () =>
       sceneOrder(shots, screenplay?.scenes).flatMap((group, sceneIndex) =>
         group.shots.map((shot, shotIndex) => ({
           shot,
-          caption: `Scene ${sceneIndex + 1}, Shot ${shotIndex + 1}`
+          caption: t("screens4_21.storyboardSlideshow.slideCaption", {
+            scene: numberFormat.format(sceneIndex + 1),
+            shot: numberFormat.format(shotIndex + 1)
+          })
         }))
       ),
-    [shots, screenplay?.scenes]
+    [shots, screenplay?.scenes, t, numberFormat]
   );
 
   const [shotId, setShotId] = useState<string | null>(
@@ -294,7 +303,7 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
   const theme = useTheme();
   const compact = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const title = slide ? slide.caption : "Slideshow";
+  const title = slide ? slide.caption : t("screens4_21.storyboardSlideshow.title");
 
   return (
     <Dialog
@@ -308,7 +317,7 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
         <FlexRow align="center" gap={SPACING.md}>
           <LabeledSwitch
             id="storyboard-slideshow-autoplay"
-            label="Autoplay"
+            label={t("screens4_21.storyboardSlideshow.autoplay")}
             size="small"
             checked={autoplay}
             onChange={setAutoplay}
@@ -318,12 +327,13 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
             (compact ? (
               <ToolbarIconButton
                 icon={<EditOutlinedIcon />}
-                tooltip="Edit shot"
+                tooltip={t("screens4_21.storyboardSlideshow.editShot")}
+                ariaLabel={t("screens4_21.storyboardSlideshow.editShot")}
                 onClick={handleEdit}
               />
             ) : (
               <EditorButton size="small" onClick={handleEdit}>
-                Edit shot
+                {t("screens4_21.storyboardSlideshow.editShot")}
               </EditorButton>
             ))}
         </FlexRow>
@@ -338,8 +348,8 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
           <FlexRow align="center" sx={arrowSx("left")}>
             <ToolbarIconButton
               icon={<ChevronLeftIcon />}
-              tooltip="Previous shot"
-              ariaLabel="Previous shot"
+              tooltip={t("screens4_21.storyboardSlideshow.previousShot")}
+              ariaLabel={t("screens4_21.storyboardSlideshow.previousShot")}
               onClick={() => step(-1)}
               disabled={index <= 0}
             />
@@ -351,7 +361,9 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
             onTouchEnd={handleTouchEnd}
           >
             {!slide ? (
-              <Caption color="muted">This board has no shots.</Caption>
+              <Caption color="muted">
+                {t("screens4_21.storyboardSlideshow.noShots")}
+              </Caption>
             ) : hasGraphics(slide.shot) ? (
               <Box sx={mediaSx}>
                 <ShotDesignFrame boardId={boardId} shot={slide.shot} />
@@ -370,20 +382,24 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
               <Box sx={mediaSx}>
                 <ResponsiveImage
                   locator={slide.shot.keyframe}
-                  alt={`${slide.caption} still`}
+                  alt={t("screens4_21.storyboardSlideshow.stillAlt", {
+                    caption: slide.caption
+                  })}
                   fit="contain"
                   sx={{ height: "100%" }}
                 />
               </Box>
             ) : (
-              <Caption color="muted">Not rendered yet</Caption>
+              <Caption color="muted">
+                {t("screens4_21.storyboardSlideshow.notRendered")}
+              </Caption>
             )}
           </Box>
           <FlexRow align="center" sx={arrowSx("right")}>
             <ToolbarIconButton
               icon={<ChevronRightIcon />}
-              tooltip="Next shot"
-              ariaLabel="Next shot"
+              tooltip={t("screens4_21.storyboardSlideshow.nextShot")}
+              ariaLabel={t("screens4_21.storyboardSlideshow.nextShot")}
               onClick={() => step(1)}
               disabled={atEnd}
             />
@@ -392,7 +408,7 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
 
         {slide && (
           <Text size="small" sx={descriptionSx} aria-live="polite">
-            {slide.shot.action || "No description"}
+            {slide.shot.action || t("screens4_21.storyboardSlideshow.noDescription")}
           </Text>
         )}
 
@@ -400,7 +416,7 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
           <FlexRow
             gap={SPACING.sm}
             role="group"
-            aria-label="Shots"
+            aria-label={t("screens4_21.storyboardSlideshow.shots")}
             sx={{ pb: SPACING.xs, justifyContent: "safe center" }}
           >
             {slides.map((entry, entryIndex) => {
@@ -425,7 +441,9 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
                       preferThumbnail
                     />
                   ) : (
-                    <Caption color="muted">{entryIndex + 1}</Caption>
+                  <Caption color="muted">
+                    {numberFormat.format(entryIndex + 1)}
+                  </Caption>
                   )}
                 </Box>
               );

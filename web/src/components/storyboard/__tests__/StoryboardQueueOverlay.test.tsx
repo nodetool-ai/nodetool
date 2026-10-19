@@ -227,10 +227,10 @@ describe("StoryboardQueueOverlay", () => {
     );
     expect(
       screen.getByText(
-        "6 requests: 0 running, 4 completed, 2 failed, 0 awaiting review, 0 stopped."
+        "6 requests: 0 queued, 0 running, 4 completed, 2 failed, 0 awaiting review, 0 stopped."
       )
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Retry 2 failed" }));
+    await user.click(screen.getByRole("button", { name: "Retry 2 failed renders" }));
     expect(
       mockRetryFailedRequest.mock.calls.map(([requestId]) => requestId)
     ).toEqual(["receipt-request-4", "receipt-request-5"]);
@@ -338,7 +338,7 @@ describe("StoryboardQueueOverlay", () => {
 
     expect(
       screen.getByText(
-        "2 requests: 0 running, 2 completed, 0 failed, 1 awaiting review, 0 stopped."
+        "2 requests: 0 queued, 0 running, 2 completed, 0 failed, 1 awaiting review, 0 stopped."
       )
     ).toBeInTheDocument();
   });

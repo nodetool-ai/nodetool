@@ -3,6 +3,7 @@ import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { Card, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW } from "../ui_primitives";
 import type { Tutorial } from "./tutorialsData";
@@ -155,6 +156,7 @@ const TutorialCardInner: React.FC<TutorialCardProps> = ({
   onClick
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   return (
     <Card
       component="button"
@@ -164,7 +166,9 @@ const TutorialCardInner: React.FC<TutorialCardProps> = ({
       radius="lg"
       sx={styles(theme, tutorial.accent, active, compact)}
       onClick={() => onClick(tutorial.id)}
-      aria-label={`Play tutorial: ${tutorial.title}`}
+      aria-label={t("pass3_41.tutorialCard.playTutorial", {
+        title: tutorial.title
+      })}
       aria-pressed={active}
     >
       <span className="thumb">

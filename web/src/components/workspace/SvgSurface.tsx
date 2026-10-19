@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -75,6 +76,7 @@ const styles = (theme: Theme) =>
  * renders to. Saving writes the markup back to the asset.
  */
 const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const surfaceStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -90,8 +92,8 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
 
   useEffect(() => {
     if (!asset) return;
-    setTabTitle(refId, "svg", asset.name || "Untitled");
-  }, [asset, refId, setTabTitle]);
+    setTabTitle(refId, "svg", asset.name || t("i18n-next51.svg.untitled"));
+  }, [asset, refId, setTabTitle, t]);
 
   const getUrl = asset?.get_url ?? undefined;
   const {
@@ -180,13 +182,13 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
               errorText: error.message
             }}
           >
-            Could not load this SVG.
+            {t("i18n-next51.svg.loadError")}
           </ErrorBanner>
         ) : (
           <EmptyState
             variant="no-data"
-            title="SVG not found"
-            description="It may have been deleted."
+            title={t("i18n-next51.svg.notFound")}
+            description={t("i18n-next51.svg.mayHaveBeenDeleted")}
           />
         )}
       </FlexColumn>
@@ -203,7 +205,7 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
             errorText: markupError.message
           }}
         >
-          Could not load the SVG content.
+          {t("i18n-next51.svg.contentLoadError")}
         </ErrorBanner>
       </FlexColumn>
     );
@@ -234,7 +236,7 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
             disabled={!isDirty || isSaving}
             onClick={handleSave}
           >
-            {isSaving ? "Saving…" : "Save"}
+            {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
           </EditorButton>
         </FlexRow>
       </Toolbar>

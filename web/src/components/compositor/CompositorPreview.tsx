@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -49,6 +50,7 @@ const CompositorPreviewInner: React.FC<CompositorPreviewProps> = ({
   bitmaps,
   maxHeight
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -81,7 +83,7 @@ const CompositorPreviewInner: React.FC<CompositorPreviewProps> = ({
       className="compositor-preview"
       style={{ maxHeight }}
       role="img"
-      aria-label="Composited preview"
+      aria-label={t("screen_sketch.compositor.preview")}
     />
   );
 };

@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Text, Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
@@ -30,6 +31,7 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
       status,
       workflowId
     }) => {
+      const { t } = useTranslation();
       const hasModel =
         data.dynamic_inputs && Object.keys(data.dynamic_inputs).length > 0;
 
@@ -45,13 +47,10 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
           {!hasModel && (
             <Box sx={{ px: 1.5, py: 1, opacity: 0.7 }}>
               <Text size="small" color="secondary">
-                Run any model on kie.ai.
+                {t("i18n-next78.nodeEditor.dynamicSchema.kie.description")}
               </Text>
-              <Caption
-                component="p"
-              >
-                Paste the API documentation from a kie.ai model page into the
-                model_info field.
+              <Caption component="p">
+                {t("i18n-next78.nodeEditor.dynamicSchema.kie.instructions")}
               </Caption>
             </Box>
           )}

@@ -2,6 +2,7 @@
 import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { useMemo, useState, useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Text, FlexColumn, FlexRow, getSpacingPx, SPACING, LoadingSpinner } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -48,6 +49,7 @@ interface OpenFolderButtonProps {
 }
 
 const OpenFolderButton = memo(({ settingValue }: OpenFolderButtonProps) => {
+  const { t } = useTranslation();
   const handleClick = useCallback(() => {
     if (settingValue) {
       openInExplorer(settingValue);
@@ -61,7 +63,7 @@ const OpenFolderButton = memo(({ settingValue }: OpenFolderButtonProps) => {
   return (
     <ToolbarIconButton
       icon={<FolderOutlinedIcon fontSize="small" />}
-      tooltip="Open folder in file explorer"
+      tooltip={t("screens4_3.folders.openInExplorer")}
       onClick={handleClick}
       sx={{ ml: 1 }}
     />
@@ -71,6 +73,7 @@ const OpenFolderButton = memo(({ settingValue }: OpenFolderButtonProps) => {
 OpenFolderButton.displayName = "OpenFolderButton";
 
 const FoldersSettings = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const updateSettings = useRemoteSettingsStore((state) => state.updateSettings);
   const fetchSettings = useRemoteSettingsStore((state) => state.fetchSettings);
@@ -133,7 +136,7 @@ const FoldersSettings = () => {
     },
     onError: (error: Error) => {
       addNotification({
-        content: `Could not save folder settings: ${error.message}`,
+        content: t("screens4_3.folders.saveError", { error: error.message }),
         type: "error",
         alert: true
       });
@@ -168,7 +171,7 @@ const FoldersSettings = () => {
       {
         onSuccess: () => {
           addNotification({
-            content: "Folder settings have been saved successfully",
+            content: t("screens4_3.folders.saved"),
             type: "success",
             alert: true
           });
@@ -185,34 +188,34 @@ const FoldersSettings = () => {
   return (
     <>
       {isLoading && (
-        <LoadingSpinner text="Loading folder settings" />
+        <LoadingSpinner text={t("screens4_3.folders.loading")} />
       )}
       <div
         className="remote-settings-content"
         css={getSharedSettingsStyles(theme)}
       >
         <div className="settings-main-content">
-          <Text size="giant">Folder settings</Text>
+          <Text size="giant">{t("screens4_3.folders.heading")}</Text>
 
           {canOpenSystemFolders && (
             <div className="settings-section">
               <Text size="big" id="system-folders">
-                System folders
+                {t("screens4_3.folders.systemFolders")}
               </Text>
               <Text className="description" sx={{ mb: 2 }}>
-                Open important Nodetool directories in your file explorer.
+                {t("screens4_3.folders.systemFoldersDescription")}
               </Text>
               <FlexColumn gap={1.5}>
                 <FolderButton
-                  label="NodeTool installation"
+                  label={t("screens4_3.folders.installation")}
                   onClick={openInstallationPath}
                 />
                 <FolderButton
-                  label="NodeTool logs"
+                  label={t("screens4_3.folders.logs")}
                   onClick={openLogsPath}
                 />
                 <FolderButton
-                  label="Assets storage"
+                  label={t("screens4_3.folders.assets")}
                   onClick={openAssetsPath}
                 />
               </FlexColumn>
@@ -222,18 +225,18 @@ const FoldersSettings = () => {
           {canOpenFolders && (
             <div className="settings-section">
               <Text size="big" id="model-folders">
-                Model folders
+                {t("screens4_3.folders.modelFolders")}
               </Text>
               <Text className="description" sx={{ mb: 2 }}>
-                Open model cache directories in your file explorer.
+                {t("screens4_3.folders.modelFoldersDescription")}
               </Text>
               <FlexColumn gap={1.5}>
                 <FolderButton
-                  label="HuggingFace models"
+                  label={t("screens4_3.folders.huggingFaceModels")}
                   onClick={openHuggingfacePath}
                 />
                 <FolderButton
-                  label="Ollama models"
+                  label={t("screens4_3.folders.ollamaModels")}
                   onClick={openOllamaPath}
                 />
               </FlexColumn>
@@ -246,7 +249,7 @@ const FoldersSettings = () => {
                 ([groupName, groupSettings]) => {
                   // "Custom" prefix disambiguates from the system/model folder sections above.
                   const showCustomPrefix = canOpenFolders || canOpenSystemFolders;
-                  const sectionTitle = showCustomPrefix ? `Custom ${groupName}` : groupName;
+                  const sectionTitle = showCustomPrefix ? t("screens4_3.folders.customGroup", { groupName }) : groupName;
                   
                   return (
                     <div key={groupName} className="settings-section">
@@ -283,7 +286,7 @@ const FoldersSettings = () => {
               <div className="save-button-container">
                 <NavButton
                   icon={<SaveIcon />}
-                  label="SAVE FOLDER SETTINGS"
+                  label={t("screens4_3.folders.saveButton")}
                   onClick={handleSave}
                   color="primary"
                   className="save-button"
@@ -300,8 +303,7 @@ const FoldersSettings = () => {
             
             return showNoSettingsMessage ? (
               <Text sx={{ textAlign: "center", padding: getSpacingPx(SPACING.xxxl) }}>
-                No folder settings available or defined in the &apos;Folders&apos;
-                group.
+                {t("screens4_3.folders.empty")}
               </Text>
             ) : null;
           })()}

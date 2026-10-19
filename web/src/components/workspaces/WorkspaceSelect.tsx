@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useId, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import ErrorBanner from "../support/ErrorBanner";
 import {
@@ -115,6 +116,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     disabled = false,
     compact = false
   }) {
+    const { t } = useTranslation();
     const theme = useTheme();
     const fieldId = useId();
     const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -144,7 +146,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
         addNotification({
           type: "success",
           alert: true,
-          content: "Workspace added",
+          content: t("batch2_1.notifications.added"),
           dismissable: true
         });
       },
@@ -152,7 +154,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
         addNotification({
           type: "error",
           alert: true,
-          content: String(error),
+          content: t("batch2_1.errors.operation", { error: String(error) }),
           dismissable: true
         });
       }
@@ -180,7 +182,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
         <FlexRow css={cssStyles} gap={1} align="center" sx={{ py: 1 }}>
           <LoadingSpinner size="small" />
           <Text size="small" color="secondary">
-            Loading…
+            {t("batch2_1.common.loading")}
           </Text>
         </FlexRow>
       );
@@ -192,11 +194,11 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: "Workspaces failed to load",
+              summary: t("batch2_1.errors.loadSummary"),
               errorText: error instanceof Error ? error.message : String(error)
             }}
           >
-            Could not load workspaces. Check your connection or try again later.
+            {t("batch2_1.errors.loadDescription")}
           </ErrorBanner>
         </Box>
       );
@@ -209,8 +211,8 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
         return (
           <span className="none-option">
             {defaultWorkspace
-              ? `Default (${compactPath(defaultWorkspace.path)})`
-              : "Default workspace"}
+              ? t("batch2_1.select.defaultWithPath", { path: compactPath(defaultWorkspace.path) })
+              : t("batch2_1.manager.defaultWorkspace")}
           </span>
         );
       }
@@ -230,7 +232,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     };
 
     const labeled = Boolean(label) || Boolean(helperText);
-    const visibleLabel = labeled ? label ?? "Workspace" : undefined;
+    const visibleLabel = labeled ? label ?? t("batch2_1.common.workspace") : undefined;
 
     const select = (
       <FormControl fullWidth={fullWidth} css={cssStyles}>
@@ -238,7 +240,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           className={`workspace-select${compact ? " compact" : ""}`}
           id={labeled ? fieldId : undefined}
           labelId={labeled ? `${fieldId}-label` : undefined}
-          aria-label={labeled ? undefined : "Workspace"}
+          aria-label={labeled ? undefined : t("batch2_1.common.workspace")}
           value={value || ""}
           onChange={handleChange}
           disabled={disabled || createMutation.isPending}
@@ -271,15 +273,12 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 wordBreak: "break-word"
               }}
             >
-              Agents read and write files here during execution - saved images,
-              text, data, and other outputs. Browse the results in the Workspace
-              panel. Agents can only access files inside this folder. A workflow
-              left on Default uses your default workspace.
+              {t("batch2_1.select.description")}
             </Caption>
           </Box>
           <Divider />
           <MenuItem value="">
-            <ListItemText primary="Default workspace" />
+            <ListItemText primary={t("batch2_1.manager.defaultWorkspace")} />
           </MenuItem>
           {workspaces.map((workspace) => (
             <MenuItem key={workspace.id} value={workspace.id}>
@@ -305,7 +304,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
               <ListItemIcon>
                 <AddIcon />
               </ListItemIcon>
-              <ListItemText primary="Create new workspace" />
+              <ListItemText primary={t("batch2_1.select.createNew")} />
             </MenuItem>
           )}
         </Select>

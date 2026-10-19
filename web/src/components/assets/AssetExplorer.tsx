@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import AssetGrid from "./AssetGrid";
 import StorageAnalytics from "./StorageAnalytics";
@@ -49,14 +50,17 @@ const gridFillStyles = css({
  * with the Collections, Models, and Workspaces pages.
  */
 const AssetExplorer: React.FC = memo(() => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const { folderFiles, isLoading, error, refetchAssetsAndFolders } =
     useAssets();
 
   return (
     <PageLayout
       icon={<PermMediaOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
-      title="Assets"
-      subtitle="Browse, organize, and preview your images, audio, video, and other files."
+      title={t("explorer.title")}
+      subtitle={t("explorer.subtitle")}
       docsTopic="assets"
       padded={false}
       actions={<StorageAnalytics assets={folderFiles} />}
@@ -64,15 +68,15 @@ const AssetExplorer: React.FC = memo(() => {
       <Box css={gridFillStyles}>
         {isLoading ? (
           <FlexColumn justify="center" align="center" sx={{ flex: 1 }}>
-            <LoadingSpinner size="large" text="Loading assets" />
+            <LoadingSpinner size="large" text={t("states.loading")} />
           </FlexColumn>
         ) : error ? (
           <FlexColumn justify="center" align="center" sx={{ flex: 1 }}>
             <EmptyState
               variant="error"
-              title="Could not load assets"
-              description={error.message || "An error occurred. Please try again."}
-              actionText="Retry"
+              title={t("states.loadError.title")}
+              description={error.message || t("states.loadError.description")}
+              actionText={t("actions.retry")}
               onAction={refetchAssetsAndFolders}
             />
           </FlexColumn>

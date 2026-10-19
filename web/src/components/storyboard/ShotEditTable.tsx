@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Chip,
@@ -66,9 +67,9 @@ const pairGridSx = {
 } as const;
 
 const RENDER_MODE_OPTIONS = [
-  { value: "keyframe", label: "Keyframe" },
-  { value: "direct", label: "Direct" },
-  { value: "reference", label: "Reference" }
+  { value: "keyframe" },
+  { value: "direct" },
+  { value: "reference" }
 ];
 
 const chipSx = { alignSelf: "flex-start" } as const;
@@ -83,6 +84,7 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   focusDialogue,
   onEditInScript
 }) => {
+  const { t, i18n } = useTranslation();
   const set = useCallback(
     (patch: Partial<ShotDraft>) => onChange({ ...draft, ...patch }),
     [onChange, draft]
@@ -98,25 +100,66 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
     [onChange, draft]
   );
 
-  const framingOptions = useMemo(
-    () => cameraOptions(FRAMING_OPTIONS, draft.framing),
-    [draft.framing]
+  const cameraLabels = useMemo<Record<string, string>>(() => ({
+    "extreme wide": t("screens4_16.shotEditTable.camera.framing.extremeWide"),
+    wide: t("screens4_16.shotEditTable.camera.framing.wide"),
+    "medium wide": t("screens4_16.shotEditTable.camera.framing.mediumWide"),
+    medium: t("screens4_16.shotEditTable.camera.framing.medium"),
+    "medium close-up": t("screens4_16.shotEditTable.camera.framing.mediumCloseUp"),
+    "close-up": t("screens4_16.shotEditTable.camera.framing.closeUp"),
+    "extreme close-up": t("screens4_16.shotEditTable.camera.framing.extremeCloseUp"),
+    "over-the-shoulder": t("screens4_16.shotEditTable.camera.framing.overTheShoulder"),
+    "two-shot": t("screens4_16.shotEditTable.camera.framing.twoShot"),
+    insert: t("screens4_16.shotEditTable.camera.framing.insert"),
+    "eye level": t("screens4_16.shotEditTable.camera.angle.eyeLevel"),
+    "low angle": t("screens4_16.shotEditTable.camera.angle.low"),
+    "high angle": t("screens4_16.shotEditTable.camera.angle.high"),
+    overhead: t("screens4_16.shotEditTable.camera.angle.overhead"),
+    "bird's eye": t("screens4_16.shotEditTable.camera.angle.birdsEye"),
+    "worm's eye": t("screens4_16.shotEditTable.camera.angle.wormsEye"),
+    "dutch angle": t("screens4_16.shotEditTable.camera.angle.dutch"),
+    static: t("screens4_16.shotEditTable.camera.movement.static"),
+    "slow push in": t("screens4_16.shotEditTable.camera.movement.slowPushIn"),
+    "slow pull out": t("screens4_16.shotEditTable.camera.movement.slowPullOut"),
+    "pan left": t("screens4_16.shotEditTable.camera.movement.panLeft"),
+    "pan right": t("screens4_16.shotEditTable.camera.movement.panRight"),
+    "tilt up": t("screens4_16.shotEditTable.camera.movement.tiltUp"),
+    "tilt down": t("screens4_16.shotEditTable.camera.movement.tiltDown"),
+    "dolly in": t("screens4_16.shotEditTable.camera.movement.dollyIn"),
+    "dolly out": t("screens4_16.shotEditTable.camera.movement.dollyOut"),
+    tracking: t("screens4_16.shotEditTable.camera.movement.tracking"),
+    handheld: t("screens4_16.shotEditTable.camera.equipment.handheld"),
+    "crane up": t("screens4_16.shotEditTable.camera.movement.craneUp"),
+    "crane down": t("screens4_16.shotEditTable.camera.movement.craneDown"),
+    orbit: t("screens4_16.shotEditTable.camera.movement.orbit"),
+    "zoom in": t("screens4_16.shotEditTable.camera.movement.zoomIn"),
+    "zoom out": t("screens4_16.shotEditTable.camera.movement.zoomOut"),
+    tripod: t("screens4_16.shotEditTable.camera.equipment.tripod"),
+    steadicam: t("screens4_16.shotEditTable.camera.equipment.steadicam"),
+    gimbal: t("screens4_16.shotEditTable.camera.equipment.gimbal"),
+    dolly: t("screens4_16.shotEditTable.camera.equipment.dolly"),
+    slider: t("screens4_16.shotEditTable.camera.equipment.slider"),
+    crane: t("screens4_16.shotEditTable.camera.equipment.crane"),
+    drone: t("screens4_16.shotEditTable.camera.equipment.drone"),
+    macro: t("screens4_16.shotEditTable.camera.lens.macro"),
+    anamorphic: t("screens4_16.shotEditTable.camera.lens.anamorphic")
+  }), [t]);
+  const translateOptions = useCallback(
+    (suggestions: readonly string[], current: string) =>
+      cameraOptions(suggestions, current).map((option) => ({
+        ...option,
+        label: cameraLabels[option.value] ?? option.label
+      })),
+    [cameraLabels]
   );
-  const angleOptions = useMemo(
-    () => cameraOptions(ANGLE_OPTIONS, draft.angle),
-    [draft.angle]
-  );
-  const movementOptions = useMemo(
-    () => cameraOptions(MOVEMENT_OPTIONS, draft.movement),
-    [draft.movement]
-  );
-  const equipmentOptions = useMemo(
-    () => cameraOptions(EQUIPMENT_OPTIONS, draft.equipment),
-    [draft.equipment]
-  );
-  const lensOptions = useMemo(
-    () => cameraOptions(LENS_OPTIONS, draft.lens),
-    [draft.lens]
+  const framingOptions = translateOptions(FRAMING_OPTIONS, draft.framing);
+  const angleOptions = translateOptions(ANGLE_OPTIONS, draft.angle);
+  const movementOptions = translateOptions(MOVEMENT_OPTIONS, draft.movement);
+  const equipmentOptions = translateOptions(EQUIPMENT_OPTIONS, draft.equipment);
+  const lensOptions = translateOptions(LENS_OPTIONS, draft.lens);
+  const formatDuration = useMemo(
+    () => new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
   );
 
   const pinned = draft.durationSource === "manual";
@@ -128,8 +171,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           compact
           size="small"
           minRows={1}
-          label="Description"
-          placeholder="What the shot shows"
+          label={t("screens4_16.shotEditTable.description.label")}
+          placeholder={t("screens4_16.shotEditTable.description.placeholder")}
           disabled={readOnly}
           value={draft.action}
           onChange={(value) => set({ action: value })}
@@ -138,8 +181,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           compact
           size="small"
           minRows={1}
-          label="Shot motion"
-          placeholder="What moves, and how the camera moves, over the clip"
+          label={t("screens4_16.shotEditTable.motion.label")}
+          placeholder={t("screens4_16.shotEditTable.motion.placeholder")}
           disabled={readOnly}
           value={draft.motion}
           onChange={(value) => set({ motion: value })}
@@ -148,8 +191,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           compact
           size="small"
           minRows={1}
-          label="End"
-          placeholder="The picture the shot ends on"
+          label={t("screens4_16.shotEditTable.end.label")}
+          placeholder={t("screens4_16.shotEditTable.end.placeholder")}
           disabled={readOnly}
           value={draft.endState}
           onChange={(value) => set({ endState: value })}
@@ -158,15 +201,15 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           compact
           size="small"
           minRows={1}
-          label="Sound"
-          placeholder="What is heard"
+          label={t("screens4_16.shotEditTable.sound.label")}
+          placeholder={t("screens4_16.shotEditTable.sound.placeholder")}
           disabled={readOnly}
           value={draft.sound}
           onChange={(value) => set({ sound: value })}
         />
 
         {linksLines ? (
-          <FormField label="Dialogue" helperText="The script owns these words.">
+          <FormField label={t("screens4_16.shotEditTable.dialogue.label")} helperText={t("screens4_16.shotEditTable.dialogue.scriptOwnsWords")}>
             <FlexColumn gap={SPACING.xs}>
               <Text
                 sx={{ whiteSpace: "pre-wrap" }}
@@ -179,7 +222,7 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
                 onClick={onEditInScript}
                 sx={{ alignSelf: "flex-start" }}
               >
-                Edit in script
+                {t("screens4_16.shotEditTable.dialogue.editInScript")}
               </EditorButton>
             </FlexColumn>
           </FormField>
@@ -188,8 +231,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
             compact
             size="small"
             minRows={1}
-            label="Dialogue"
-            placeholder="What is said in shot"
+            label={t("screens4_16.shotEditTable.dialogue.label")}
+            placeholder={t("screens4_16.shotEditTable.dialogue.placeholder")}
             disabled={readOnly}
             autoFocus={focusDialogue}
             value={draft.dialogue}
@@ -200,11 +243,11 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
 
       {entities}
 
-      <FormSection label="Shot details">
+      <FormSection label={t("screens4_16.shotEditTable.details")}>
         <Box sx={pairGridSx}>
           <SelectField
             size="small"
-            label="Size"
+            label={t("screens4_16.shotEditTable.size")}
             disabled={readOnly}
             value={draft.framing}
             onChange={(value) => set({ framing: value })}
@@ -212,7 +255,7 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           />
           <SelectField
             size="small"
-            label="Focal length"
+            label={t("screens4_16.shotEditTable.focalLength")}
             disabled={readOnly}
             value={draft.lens}
             onChange={(value) => set({ lens: value })}
@@ -220,7 +263,7 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           />
           <SelectField
             size="small"
-            label="Perspective"
+            label={t("screens4_16.shotEditTable.perspective")}
             disabled={readOnly}
             value={draft.angle}
             onChange={(value) => set({ angle: value })}
@@ -228,7 +271,7 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           />
           <SelectField
             size="small"
-            label="Movement"
+            label={t("screens4_16.shotEditTable.movement")}
             disabled={readOnly}
             value={draft.movement}
             onChange={(value) => set({ movement: value })}
@@ -236,7 +279,7 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           />
           <SelectField
             size="small"
-            label="Equipment"
+            label={t("screens4_16.shotEditTable.equipment")}
             disabled={readOnly}
             value={draft.equipment}
             onChange={(value) => set({ equipment: value })}
@@ -247,39 +290,39 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
               compact
               size="small"
               type="number"
-              label="Duration (seconds)"
+              label={t("screens4_16.shotEditTable.duration.label")}
               placeholder={
                 !pinned && takesDuration != null
-                  ? String(takesDuration)
-                  : "Model default"
+                  ? formatDuration.format(takesDuration)
+                  : t("screens4_16.shotEditTable.duration.modelDefault")
               }
               disabled={readOnly}
               value={draft.durationSeconds}
               onChange={handleDuration}
               errorMessage={
                 isDurationInvalid(draft.durationSeconds)
-                  ? "Enter a length above 0 seconds"
+                  ? t("screens4_16.shotEditTable.duration.error")
                   : undefined
               }
               inputProps={{
                 min: 1,
                 step: 1,
-                "aria-label": "Duration in seconds"
+                "aria-label": t("screens4_16.shotEditTable.duration.ariaLabel")
               }}
             />
             {linksLines && (
               <Tooltip
                 title={
                   pinned
-                    ? "The duration is the value you typed. Click to use the length of the voice takes for this shot's lines."
-                    : "The duration is the length of the voice takes for this shot's lines. Click to type your own value."
+                    ? t("screens4_16.shotEditTable.duration.useVoiceTakes")
+                    : t("screens4_16.shotEditTable.duration.setManually")
                 }
                 describeChild
               >
                 <Chip
                   compact
                   variant="outlined"
-                  label={pinned ? "Set by hand" : "From voice takes"}
+                  label={pinned ? t("screens4_16.shotEditTable.duration.manual") : t("screens4_16.shotEditTable.duration.fromVoiceTakes")}
                   sx={chipSx}
                   onClick={readOnly ? undefined : handleToggleDurationSource}
                 />
@@ -297,29 +340,39 @@ const ShotAdvancedFieldsInner: React.FC<{
   draft: ShotDraft;
   onChange: (draft: ShotDraft) => void;
   readOnly?: boolean;
-}> = ({ draft, onChange, readOnly }) => (
-  <Box sx={pairGridSx}>
-    <TextInput
-      compact
-      size="small"
-      label="Shot title"
-      placeholder="Untitled shot"
-      disabled={readOnly}
-      value={draft.slug}
-      onChange={(event) => onChange({ ...draft, slug: event.target.value })}
-    />
-    <SelectField
-      size="small"
-      label="Render mode"
-      disabled={readOnly}
-      value={draft.renderMode}
-      onChange={(value) =>
-        onChange({ ...draft, renderMode: value as ShotDraft["renderMode"] })
-      }
-      options={RENDER_MODE_OPTIONS}
-    />
-  </Box>
-);
+}> = ({ draft, onChange, readOnly }) => {
+  const { t } = useTranslation();
+  return (
+    <Box sx={pairGridSx}>
+      <TextInput
+        compact
+        size="small"
+        label={t("screens4_16.shotEditTable.shotTitle.label")}
+        placeholder={t("screens4_16.shotEditTable.shotTitle.placeholder")}
+        disabled={readOnly}
+        value={draft.slug}
+        onChange={(event) => onChange({ ...draft, slug: event.target.value })}
+      />
+      <SelectField
+        size="small"
+        label={t("screens4_16.shotEditTable.renderMode.label")}
+        disabled={readOnly}
+        value={draft.renderMode}
+        onChange={(value) =>
+          onChange({ ...draft, renderMode: value as ShotDraft["renderMode"] })
+        }
+        options={RENDER_MODE_OPTIONS.map((option) => ({
+          value: option.value,
+          label: option.value === "keyframe"
+            ? t("screens4_16.shotEditTable.renderMode.options.keyframe")
+            : option.value === "direct"
+              ? t("screens4_16.shotEditTable.renderMode.options.direct")
+              : t("screens4_16.shotEditTable.renderMode.options.reference")
+        }))}
+      />
+    </Box>
+  );
+};
 
 export const ShotAdvancedFields = memo(ShotAdvancedFieldsInner);
 

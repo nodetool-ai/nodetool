@@ -5,6 +5,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { canClipFade } from "@nodetool-ai/timeline";
 
 import { useTimelineStoreApi } from "../../../stores/timeline/TimelineStore";
@@ -32,6 +33,7 @@ interface AudioGainDialogProps {
 
 export const AudioGainDialog: React.FC<AudioGainDialogProps> = memo(
   ({ clipIds, onClose }) => {
+    const { t } = useTranslation();
     const docStore = useTimelineStoreApi();
     const audible = useMemo(
       () =>
@@ -72,20 +74,20 @@ export const AudioGainDialog: React.FC<AudioGainDialogProps> = memo(
       <Dialog
         open
         onClose={onClose}
-        title="Audio gain"
+        title={t("batch2_25.audioGain.title")}
         onConfirm={handleConfirm}
-        confirmText="Apply"
+        confirmText={t("batch2_25.common.apply")}
         confirmDisabled={!valid || audible.length === 0}
       >
         <FlexColumn gap={SPACING.lg}>
-          <FormField label="Change">
+          <FormField label={t("batch2_25.audioGain.change")}>
             <RadioSet value={mode} onChange={handleMode}>
-              <Radio value="set" label="Set gain to" size="small" />
-              <Radio value="adjust" label="Adjust gain by" size="small" />
+              <Radio value="set" label={t("batch2_25.audioGain.setGainTo")} size="small" />
+              <Radio value="adjust" label={t("batch2_25.audioGain.adjustGainBy")} size="small" />
             </RadioSet>
           </FormField>
           <NumberField
-            label={mode === "set" ? "Gain" : "Change"}
+            label={mode === "set" ? t("batch2_25.audioGain.gain") : t("batch2_25.audioGain.change")}
             size="small"
             unit="dB"
             value={dbText}
@@ -93,14 +95,14 @@ export const AudioGainDialog: React.FC<AudioGainDialogProps> = memo(
             min={mode === "set" ? MIN_DB : undefined}
             max={mode === "set" ? MAX_DB : undefined}
             step={1}
-            errorMessage={valid ? undefined : `${MIN_DB} to ${MAX_DB} dB`}
+            errorMessage={valid ? undefined : t("batch2_25.audioGain.rangeError", { min: MIN_DB, max: MAX_DB })}
           />
           <Caption color="muted">
             {audible.length === 0
-              ? "None of the selected clips has sound."
+              ? t("batch2_25.audioGain.noAudio")
               : audible.length === 1
-                ? "Applies to the selected clip."
-                : `Applies to ${audible.length} clips with sound.`}
+                ? t("batch2_25.audioGain.appliesToOne")
+                : t("batch2_25.audioGain.appliesToMany", { count: audible.length })}
           </Caption>
         </FlexColumn>
       </Dialog>

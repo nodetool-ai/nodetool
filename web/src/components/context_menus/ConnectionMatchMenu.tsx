@@ -1,4 +1,5 @@
 import React, { useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Caption,
@@ -25,6 +26,7 @@ export interface ConnectionMatchMenuPayload {
 }
 
 const ConnectionMatchMenu: React.FC = () => {
+  const { t } = useTranslation();
   const { openMenuType, menuPosition, payload, closeContextMenu } =
     useContextMenu((state) => ({
       openMenuType: state.openMenuType,
@@ -63,7 +65,7 @@ const ConnectionMatchMenu: React.FC = () => {
       onContextMenu={(event) => event.preventDefault()}
       position={menuPosition}
     >
-      <ListSubheader>Select connection</ListSubheader>
+      <ListSubheader>{t("screen_editor.selectConnection")}</ListSubheader>
       {options.map((option) => (
         <MenuItem key={option.id} onClick={createSelectOptionHandler(option)}>
           <ListItemText

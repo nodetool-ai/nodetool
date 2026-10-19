@@ -15,6 +15,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -137,6 +138,7 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(
     () => [styles(theme), adjustmentSliderStyles(theme)],
@@ -223,7 +225,7 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
   return (
     <div css={cssStyles} className="generator-body" data-bespoke-body="Generator">
       <div className="preview-area">
-        <ImagePreview value={previewValue} message="Run to preview" icon={null} />
+        <ImagePreview value={previewValue} message={t("i18n-next80.generator.runToPreview")} icon={null} />
       </div>
 
       {colorSpecs.map((spec) => (

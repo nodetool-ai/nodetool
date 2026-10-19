@@ -9,6 +9,7 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +24,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  GAP,
   Label,
   LoadingSpinner,
   SearchInput,
@@ -51,16 +53,12 @@ interface PickerWorkflow {
   outputNodes: ImageOutputNode[];
 }
 
-const ROW_GAP_PX = 4;
-
 const listStyles = (theme: Theme) =>
   css({
-    display: "flex",
-    flexDirection: "column",
-    gap: ROW_GAP_PX,
+    gap: theme.spacing(GAP.tight),
     maxHeight: 360,
     overflow: "auto",
-    padding: theme.spacing(0.5),
+    padding: theme.spacing(SPACING.micro),
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
     backgroundColor: theme.vars.palette.background.default
@@ -122,6 +120,8 @@ const CreateGeneratedLayerDialogBody: React.FC<{
   onCreated?: (layerId: string) => void;
 }> = ({ onClose, onCreated }) => {
     const theme = useTheme();
+    const { t, i18n } = useTranslation();
+    const numberFormat = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language);
     const [filter, setFilter] = useState("");
     const autoFocusEnabled = useAutoFocusEnabled();
     const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(
@@ -148,13 +148,13 @@ const CreateGeneratedLayerDialogBody: React.FC<{
       return workflows
         .map((w) => ({
           id: w.id,
-          name: w.name || "Untitled workflow",
+          name: w.name || t("screens4_25.sketch.createGeneratedLayer.untitledWorkflow"),
           description: w.description ?? null,
           outputNodes: extractImageOutputs(w)
         }))
         .filter((w) => w.outputNodes.length > 0)
-        .sort((a, b) => a.name.localeCompare(b.name));
-    }, [data]);
+        .sort((a, b) => a.name.localeCompare(b.name, i18n.resolvedLanguage ?? i18n.language));
+    }, [data, i18n.language, i18n.resolvedLanguage, t]);
 
     const filteredWorkflows = useMemo(() => {
       const q = filter.trim().toLowerCase();
@@ -209,41 +209,42 @@ const CreateGeneratedLayerDialogBody: React.FC<{
         onCreated?.(result.layerId);
         handleClose();
       } else if (result.reason === "no-document") {
-        setError("No image document is open.");
+        setError(t("screens4_25.sketch.createGeneratedLayer.noImageDocument"));
       } else if (result.reason === "error") {
-        setError(result.message ?? "Failed to create layer.");
+        setError(result.message ?? t("screens4_25.sketch.createGeneratedLayer.createFailed"));
       }
     }, [
       createGeneratedLayer,
       handleClose,
       onCreated,
       selectedOutputNodeId,
-      selectedWorkflow
+      selectedWorkflow,
+      t
     ]);
 
     return (
       <Dialog
         open
         onClose={handleClose}
-        title="Create generated layer"
+        title={t("screens4_25.sketch.createGeneratedLayer.title")}
         maxWidth="sm"
         fullWidth
         onConfirm={() => void handleConfirm()}
-        confirmText="Create layer"
+        confirmText={t("screens4_25.sketch.createGeneratedLayer.createLayer")}
         confirmDisabled={confirmDisabled}
         isLoading={isBusy}
       >
         <FlexColumn gap={SPACING.sm}>
           <Caption color="secondary">
-            Pick any workflow whose graph has an image output node.
+            {t("screens4_25.sketch.createGeneratedLayer.description")}
           </Caption>
 
           {/* autoFocus is skipped on touch, where the virtual keyboard
               would cover the workflow list below. */}
           <SearchInput
             autoFocus={autoFocusEnabled}
-            placeholder="Search workflows"
-            ariaLabel="Search workflows"
+            placeholder={t("screens4_25.sketch.createGeneratedLayer.searchPlaceholder")}
+            ariaLabel={t("screens4_25.sketch.createGeneratedLayer.searchLabel")}
             value={filter}
             onChange={setFilter}
             fullWidth
@@ -259,7 +260,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
             <EmptyState
               variant="error"
               size="small"
-              description="Could not load workflows."
+              description={t("screens4_25.sketch.createGeneratedLayer.loadFailed")}
             />
           )}
 
@@ -267,13 +268,13 @@ const CreateGeneratedLayerDialogBody: React.FC<{
             <EmptyState
               variant="empty"
               size="small"
-              title="No matching workflows"
-              description="None of your workflows have an image output. Add an ImageOutput, MaskOutput, or Output node to a workflow to use it here."
+              title={t("screens4_25.sketch.createGeneratedLayer.noWorkflowsTitle")}
+              description={t("screens4_25.sketch.createGeneratedLayer.noWorkflowsDescription")}
             />
           )}
 
           {!isLoading && !isError && filteredWorkflows.length > 0 && (
-            <div css={listStyles(theme)}>
+            <FlexColumn css={listStyles(theme)}>
               {filteredWorkflows.map((w) => {
                 const selected = w.id === selectedWorkflowId;
                 return (
@@ -297,8 +298,10 @@ const CreateGeneratedLayerDialogBody: React.FC<{
                           {w.name}
                         </Label>
                         <Caption color="secondary">
-                          {w.outputNodes.length} output
-                          {w.outputNodes.length === 1 ? "" : "s"}
+                          {t("screens4_25.sketch.createGeneratedLayer.outputCount", {
+                            count: w.outputNodes.length,
+                            formattedCount: numberFormat.format(w.outputNodes.length)
+                          })}
                         </Caption>
                       </FlexRow>
                       {w.description && (
@@ -310,7 +313,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
                   </div>
                 );
               })}
-            </div>
+            </FlexColumn>
           )}
 
           {!isLoading &&
@@ -319,14 +322,14 @@ const CreateGeneratedLayerDialogBody: React.FC<{
             filteredWorkflows.length === 0 &&
             pickerWorkflows.length > 0 && (
               <Caption color="secondary" sx={{ pl: SPACING.xs }}>
-                No workflows match &ldquo;{filter}&rdquo;.
+                {t("screens4_25.sketch.createGeneratedLayer.noSearchResults", { filter })}
               </Caption>
             )}
 
           {requiresOutputPick && selectedWorkflow && (
             <FlexColumn gap={SPACING.xs}>
               <Text size="small">
-                This workflow has multiple image outputs. Pick one:
+                {t("screens4_25.sketch.createGeneratedLayer.chooseOutput")}
               </Text>
               <FlexRow gap={SPACING.micro} wrap>
                 {selectedWorkflow.outputNodes.map((node) => (

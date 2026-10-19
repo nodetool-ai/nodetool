@@ -869,7 +869,7 @@ describe("NewProjectSurface", () => {
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "warning",
-        content: "Reference images take pictures only. trip-notes.txt was not added."
+        content: "Reference images only accept pictures. trip-notes.txt was not added."
       })
     );
   });
@@ -893,7 +893,7 @@ describe("NewProjectSurface", () => {
       new File(["image bytes"], "lamp.png", { type: "image/png" })
     );
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     expect(
@@ -927,7 +927,7 @@ describe("NewProjectSurface", () => {
     );
     await screen.findByRole("button", { name: "Ref images · 5" });
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await userEvent.click(within(cards).getByRole("button", { name: /^Image / }));
 
@@ -1050,7 +1050,7 @@ describe("NewProjectSurface", () => {
     expect(model).toBeDisabled();
     expect(within(actions).getByRole("button", { name: "Game" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Send to chat" })).toBeDisabled();
-    const cards = screen.getByRole("group", { name: "Guided creation flows" });
+    const cards = screen.getByRole("group", { name: "Start with a guided flow" });
     await userEvent.click(within(cards).getByRole("button", { name: /^Game / }));
     expect(managerCreateWorkflow).not.toHaveBeenCalled();
     finishCreation();
@@ -1078,7 +1078,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(
       within(cards).getByRole("button", { name: /^Storyboard / })
@@ -1473,7 +1473,7 @@ describe("NewProjectSurface", () => {
     const flowTabs = openTab.mock.calls.filter(([input]) => input.type === "guided-flow").map(([input]) => input);
     expect(flowTabs[0].ref).not.toBe(flowTabs[1].ref);
     expect(flowTabs.map((tab) => tab.setupTarget.kind)).toEqual(["storyboard", "video"]);
-    expect(await screen.findByRole("group", { name: "Guided creation flows" })).toBeInTheDocument();
+    expect(await screen.findByRole("group", { name: "Start with a guided flow" })).toBeInTheDocument();
   });
 
   it("starts a guided card in the current project without a destination dialog", async () => {
@@ -1591,7 +1591,7 @@ describe("NewProjectSurface", () => {
   it("offers all seven flows, none of them disabled", () => {
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     for (const title of [
       "Entity",
@@ -1620,7 +1620,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
     const card = within(
-      within(section).getByRole("group", { name: "Guided creation flows" })
+      within(section).getByRole("group", { name: "Start with a guided flow" })
     ).getByRole("button", { name: /^Video / });
     const more = within(section).getByRole("button", { name: /formats$/ });
     expect(card).toHaveClass(OPTION_CARD_CLASS);
@@ -1649,7 +1649,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
@@ -1668,7 +1668,7 @@ describe("NewProjectSurface", () => {
     timelineUpdate.mockRejectedValueOnce(new Error("PATCH refused"));
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
@@ -1690,7 +1690,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(
@@ -1730,7 +1730,7 @@ describe("NewProjectSurface", () => {
       "A fox collects acorns"
     );
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Game / }));
@@ -1763,7 +1763,7 @@ describe("NewProjectSurface", () => {
       "A page that writes a product blurb"
     );
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(within(cards).getByRole("button", { name: /^App / }));
 
@@ -1788,7 +1788,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface(null, false);
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     expect(
       within(cards).getByRole("button", { name: /^Game / })
@@ -1811,7 +1811,7 @@ describe("NewProjectSurface", () => {
       });
       renderSurface();
       const cards = screen.getByRole("group", {
-        name: "Guided creation flows"
+        name: "Start with a guided flow"
       });
 
       await user.click(
@@ -1833,7 +1833,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
@@ -1864,7 +1864,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
 
@@ -1901,7 +1901,7 @@ describe("NewProjectSurface", () => {
       ).not.toBeInTheDocument()
     );
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(within(cards).getByRole("button", { name: /^Video / }));
 
@@ -1934,7 +1934,7 @@ describe("NewProjectSurface", () => {
     );
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Script / }));
@@ -1969,7 +1969,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
@@ -1997,7 +1997,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
@@ -2034,7 +2034,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
@@ -2057,7 +2057,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     const view = renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
     await screen.findByTestId("setup-flow");
@@ -2089,7 +2089,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     const view = renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
     await screen.findByTestId("setup-flow");
@@ -2112,7 +2112,7 @@ describe("NewProjectSurface", () => {
     actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "other-project" });
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
     await screen.findByTestId("setup-flow");
@@ -2143,7 +2143,7 @@ describe("NewProjectSurface", () => {
     actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "other-project" });
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
     await screen.findByTestId("setup-flow");
@@ -2165,7 +2165,7 @@ describe("NewProjectSurface", () => {
     actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "other-project" });
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
     await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
     await screen.findByTestId("setup-flow");
@@ -2189,7 +2189,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
-      name: "Guided creation flows"
+      name: "Start with a guided flow"
     });
 
     await user.click(within(cards).getByRole("button", { name: /^Image / }));
@@ -2223,7 +2223,7 @@ describe("NewProjectSurface", () => {
     expect(storyboardDelete).toHaveBeenCalledWith({ id: "b7" });
     // The entry cards are back, with what was typed in step 1 in the box.
     expect(
-      await screen.findByRole("group", { name: "Guided creation flows" })
+      await screen.findByRole("group", { name: "Start with a guided flow" })
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/30-second launch spot/)).toHaveValue(
       "A board I did not want"
@@ -2383,14 +2383,14 @@ describe("NewProjectSurface", () => {
     );
     expect(projectDelete).not.toHaveBeenCalled();
     expect(
-      await screen.findByRole("group", { name: "Guided creation flows" })
+      await screen.findByRole("group", { name: "Start with a guided flow" })
     ).toBeInTheDocument();
   });
 });
 
 it("starts with six formats and reveals other formats on request", async () => {
     renderSurface(null, false);
-    const cards = screen.getByRole("group", { name: "Guided creation flows" });
+    const cards = screen.getByRole("group", { name: "Start with a guided flow" });
     expect(within(cards).getAllByRole("button")).toHaveLength(6);
     expect(
       within(cards).getByRole("button", { name: /Read aloud/ })

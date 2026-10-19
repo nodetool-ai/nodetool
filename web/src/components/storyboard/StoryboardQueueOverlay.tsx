@@ -13,6 +13,7 @@
 import { css, keyframes } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot } from "@nodetool-ai/protocol";
 import {
   Box,
@@ -91,11 +92,6 @@ const requestAwaitsReview = (
   return Boolean(candidate && (!current || !sameMediaRef(candidate, current)));
 };
 
-const KIND_LABEL = {
-  keyframe: "Still",
-  clip: "Clip"
-} satisfies Record<ShotJobKind, string>;
-
 const panelEnter = keyframes`
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -106,6 +102,7 @@ const panelEnter = keyframes`
  * progress, an indeterminate sweep otherwise.
  */
 const RenderBar = memo(function RenderBar({ progress }: { progress?: number }) {
+  const { t } = useTranslation();
   const determinate = progress != null && progress > 0 && progress < 100;
   return (
     <ProgressBar
@@ -113,7 +110,7 @@ const RenderBar = memo(function RenderBar({ progress }: { progress?: number }) {
       progressVariant={determinate ? "determinate" : "indeterminate"}
       showValue={false}
       size="small"
-      aria-label="Rendering"
+      aria-label={t("screens4_21.storyboardQueue.rendering")}
     />
   );
 });
@@ -127,18 +124,21 @@ const cardSx: SxProps<Theme> = {
   py: SPACING.xs
 };
 
-const KindTag = ({ kind }: { kind: ShotJobKind }) => (
-  <Caption
-    color="secondary"
-    sx={{
-      flex: "0 0 auto",
-      textTransform: "uppercase",
-      letterSpacing: "0.05em"
-    }}
-  >
-    {KIND_LABEL[kind]}
-  </Caption>
-);
+const KindTag = ({ kind }: { kind: ShotJobKind }) => {
+  const { t } = useTranslation();
+  return (
+    <Caption
+      color="secondary"
+      sx={{
+        flex: "0 0 auto",
+        textTransform: "uppercase",
+        letterSpacing: "0.05em"
+      }}
+    >
+      {t(`screens4_21.storyboardQueue.kind.${kind}`)}
+    </Caption>
+  );
+};
 
 const RequestCard = memo(function RequestCard({
   row,
@@ -147,12 +147,10 @@ const RequestCard = memo(function RequestCard({
   row: JobRow;
   onStopTracking?: (requestId: string) => void;
 }) {
-  const statusLabel =
-    row.status === "stopped"
-      ? "Stopped tracking; provider may still finish and charge"
-      : row.awaitingReview
-        ? "Completed · awaiting review"
-        : row.status;
+  const { t } = useTranslation();
+  const statusLabel = row.awaitingReview
+    ? t("screens4_21.storyboardQueue.status.awaitingReview")
+    : t(`screens4_21.storyboardQueue.status.${row.status}`);
   return (
     <Box sx={cardSx}>
       <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
@@ -164,8 +162,8 @@ const RequestCard = memo(function RequestCard({
         {row.status === "running" && onStopTracking && (
           <ToolbarIconButton
             icon={<CloseIcon fontSize="inherit" />}
-            tooltip="Stop tracking. The provider request may still finish and charge."
-            ariaLabel="Stop tracking render"
+            tooltip={t("screens4_21.storyboardQueue.stopTrackingTooltip")}
+            ariaLabel={t("screens4_21.storyboardQueue.stopTrackingRender")}
             variant="error"
             onClick={() => onStopTracking(row.jobId)}
           />
@@ -187,12 +185,17 @@ const HeaderCount = ({
 }: {
   icon: React.ReactNode;
   count: number;
-}) => (
-  <FlexRow align="center" gap={SPACING.micro} sx={{ color: "text.secondary" }}>
-    {icon}
-    <Caption color="secondary">{count}</Caption>
-  </FlexRow>
-);
+}) => {
+  const { i18n } = useTranslation();
+  return (
+    <FlexRow align="center" gap={SPACING.micro} sx={{ color: "text.secondary" }}>
+      {icon}
+      <Caption color="secondary">
+        {new Intl.NumberFormat(i18n.language).format(count)}
+      </Caption>
+    </FlexRow>
+  );
+};
 
 const overlayStyles = (theme: Theme) =>
   css({
@@ -226,6 +229,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
   onReviewCompleted
 }: StoryboardQueueOverlayProps) {
   const theme = useTheme();
+  const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const shots = useStoryboardStore((state) => state.boards[boardId]?.shots);
@@ -254,8 +258,8 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         return {
           ...job,
           name: shot
-            ? `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`
-            : "Shot",
+            ? `${new Intl.NumberFormat(i18n.language).format(shot.index + 1)}. ${shot.slug ?? t("screens4_21.storyboardQueue.untitledShot")}`
+            : t("screens4_21.storyboardQueue.shot"),
           index: shot?.index ?? Number.MAX_SAFE_INTEGER,
           awaitingReview: requestAwaitsReview(job, shot)
         };
@@ -264,12 +268,13 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         (a, b) => a.index - b.index || (a.startedAt ?? 0) - (b.startedAt ?? 0)
       );
     return { id: latest.batchId, rows };
-  }, [requestRecords, shots, boardId]);
+  }, [requestRecords, shots, boardId, i18n.language, t]);
 
   const counts = useMemo(() => {
     const rows = batch?.rows ?? [];
     return {
       total: rows.length,
+      queued: rows.filter((row) => row.status === "queued").length,
       running: rows.filter((row) => row.status === "running").length,
       completed: rows.filter((row) => row.status === "completed").length,
       failed: rows.filter((row) => row.status === "failed").length,
@@ -324,8 +329,31 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
   if (!expanded) {
     const summary =
       counts.running > 0
-        ? `${counts.total} request${counts.total === 1 ? "" : "s"} · ${counts.running} running`
-        : `${counts.completed} completed · ${counts.failed} failed${counts.stopped > 0 ? ` · ${counts.stopped} stopped` : ""}`;
+        ? t("screens4_21.storyboardQueue.compactRunningSummary", {
+            requests: t("screens4_21.storyboardQueue.requestCount", {
+              count: counts.total
+            }),
+            running: t("screens4_21.storyboardQueue.runningCount", {
+              count: counts.running
+            })
+          })
+        : t("screens4_21.storyboardQueue.compactFinishedSummary", {
+            completed: t("screens4_21.storyboardQueue.completedCount", {
+              count: counts.completed
+            }),
+            queued: t("screens4_21.storyboardQueue.queuedCount", {
+              count: counts.queued
+            }),
+            failed: t("screens4_21.storyboardQueue.failedCount", {
+              count: counts.failed
+            }),
+            stopped:
+              counts.stopped > 0
+                ? t("screens4_21.storyboardQueue.stoppedCount", {
+                    count: counts.stopped
+                  })
+                : ""
+          });
     return (
       <Box css={overlayStyles(theme)}>
         <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.sm }}>
@@ -336,8 +364,8 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
             </Text>
             <ToolbarIconButton
               icon={<KeyboardArrowUpIcon fontSize="inherit" />}
-              tooltip="Expand render queue"
-              ariaLabel="Expand render queue"
+              tooltip={t("screens4_21.storyboardQueue.expandQueue")}
+              ariaLabel={t("screens4_21.storyboardQueue.expandQueue")}
               onClick={() => setExpanded(true)}
             />
           </FlexRow>
@@ -356,7 +384,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
       >
         <TheatersIcon sx={{ fontSize: "inherit", color: "text.secondary" }} />
         <Text size="small" sx={{ flex: 1 }}>
-          Render queue
+          {t("screens4_21.storyboardQueue.title")}
         </Text>
         <HeaderCount
           icon={<PlayArrowOutlinedIcon fontSize="inherit" />}
@@ -365,34 +393,58 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
         {counts.running > 0 && !readOnly && (
           <ToolbarIconButton
             icon={<CloseIcon fontSize="inherit" />}
-            tooltip="Stop tracking all. Provider requests may still finish and charge."
-            ariaLabel="Stop tracking all renders"
+            tooltip={t("screens4_21.storyboardQueue.stopTrackingAllTooltip")}
+            ariaLabel={t("screens4_21.storyboardQueue.stopTrackingAll")}
             variant="error"
             onClick={handleStopAll}
           />
         )}
         <ToolbarIconButton
           icon={<RemoveIcon fontSize="inherit" />}
-          tooltip="Collapse render queue"
-          ariaLabel="Collapse render queue"
+          tooltip={t("screens4_21.storyboardQueue.collapseQueue")}
+          ariaLabel={t("screens4_21.storyboardQueue.collapseQueue")}
           onClick={() => setExpanded(false)}
         />
       </FlexRow>
 
       <FlexColumn gap={SPACING.xs} sx={{ px: SPACING.md }}>
         <Text role="status" aria-live="polite" size="small">
-          {`${counts.total} ${counts.total === 1 ? "request" : "requests"}: ${counts.running} running, ${counts.completed} completed, ${counts.failed} failed, ${counts.awaitingReview} awaiting review, ${counts.stopped} stopped.`}
+          {t("screens4_21.storyboardQueue.statusSummary", {
+            requests: t("screens4_21.storyboardQueue.requestCount", {
+              count: counts.total
+            }),
+            running: t("screens4_21.storyboardQueue.runningCount", {
+              count: counts.running
+            }),
+            completed: t("screens4_21.storyboardQueue.completedCount", {
+              count: counts.completed
+            }),
+            queued: t("screens4_21.storyboardQueue.queuedCount", {
+              count: counts.queued
+            }),
+            failed: t("screens4_21.storyboardQueue.failedCount", {
+              count: counts.failed
+            }),
+            awaitingReview: t(
+              "screens4_21.storyboardQueue.awaitingReviewCount",
+              { count: counts.awaitingReview }
+            ),
+            stopped: t("screens4_21.storyboardQueue.stoppedCount", {
+              count: counts.stopped
+            })
+          })}
         </Text>
         {counts.running > 0 && (
           <Caption color="secondary">
-            Stop tracking hides local progress only. The provider may still
-            finish the request and charge for it.
+            {t("screens4_21.storyboardQueue.stopTrackingNotice")}
           </Caption>
         )}
         <FlexRow gap={SPACING.xs} wrap>
           {counts.failed > 0 && !readOnly && (
             <EditorButton variant="outlined" onClick={handleRetryFailed}>
-              {`Retry ${counts.failed} failed`}
+              {t("screens4_21.storyboardQueue.retryFailed", {
+                count: counts.failed
+              })}
             </EditorButton>
           )}
           {reviewTarget && onReviewCompleted && (
@@ -405,12 +457,12 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
                 })
               }
             >
-              Review completed takes
+              {t("screens4_21.storyboardQueue.reviewCompletedTakes")}
             </EditorButton>
           )}
           {counts.stopped > 0 && !readOnly && (
             <EditorButton variant="outlined" onClick={handleResumeTracking}>
-              Resume tracking
+              {t("screens4_21.storyboardQueue.resumeTracking")}
             </EditorButton>
           )}
           {counts.running === 0 && !readOnly && (
@@ -418,7 +470,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
               variant="outlined"
               onClick={() => dismissBatch(batch.id)}
             >
-              Dismiss receipt
+              {t("screens4_21.storyboardQueue.dismissReceipt")}
             </EditorButton>
           )}
         </FlexRow>

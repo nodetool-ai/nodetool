@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Tooltip,
@@ -51,6 +52,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   showPortLabels = false,
   onTogglePortLabels
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const currentPreset = useStore((s) => findZoomPreset(s.transform[2]));
   const { zoomTo, fitView, getNodes, getZoom } = useReactFlow();
@@ -181,7 +183,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
             <Box>
               <Box>{getShortcutTooltip("resetZoom")}</Box>
               <Box sx={{ mt: SPACING.micro, fontSize: "var(--fontSizeSmaller)", opacity: 0.8 }}>
-                Click for zoom presets
+                {t("i18n-next32.viewportStatus.clickForZoomPresets")}
               </Box>
             </Box>
           }
@@ -225,7 +227,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
 
         <ToolbarIconButton
           icon={<FilterCenterFocusIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-          tooltip="Fit selection"
+          tooltip={t("i18n-next32.viewportStatus.fitSelection")}
           tooltipPlacement="top"
           onClick={handleFitSelection}
           size="small"
@@ -235,10 +237,10 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         {onTogglePortLabels ? (
           <ToolbarIconButton
             icon={<LabelOutlinedIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-            tooltip={showPortLabels ? "Hide port labels" : "Show port labels"}
+            tooltip={showPortLabels ? t("i18n-next32.viewportStatus.hidePortLabels") : t("i18n-next32.viewportStatus.showPortLabels")}
             tooltipPlacement="top"
             onClick={onTogglePortLabels}
-            ariaLabel={showPortLabels ? "Hide port labels" : "Show port labels"}
+            ariaLabel={showPortLabels ? t("i18n-next32.viewportStatus.hidePortLabels") : t("i18n-next32.viewportStatus.showPortLabels")}
             aria-pressed={showPortLabels}
             size="small"
             sx={zoomButtonSx}

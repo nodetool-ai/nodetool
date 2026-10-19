@@ -38,6 +38,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
@@ -147,9 +148,10 @@ const ConnectedColorPanel = memo(function ConnectedColorPanel() {
 
 /** Section header that mirrors the active foreground color as a hex chip. */
 const ColorSectionHeader = memo(function ColorSectionHeader() {
+  const { t } = useTranslation();
   const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
   return (
-    <InspectorSectionTitle title="Color" meta={colorToHex6(foregroundColor)} />
+    <InspectorSectionTitle title={t("i18n-next4.sketch.color.title")} meta={colorToHex6(foregroundColor)} />
   );
 });
 
@@ -191,6 +193,7 @@ function SketchEditor({
   menuItems,
   ref
 }: SketchEditorProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   // Tab toggles a fully chrome-less canvas view: hide the left tools
   // column AND the entire right panel column (color / layers / canvas).
@@ -299,7 +302,7 @@ function SketchEditor({
       paintStrokes: (strokes) => {
         const canvas = canvasRef.current;
         if (!canvas) {
-          throw new Error("The canvas is not ready yet.");
+          throw new Error(t("i18n-next102.sketch.errors.canvasNotReady"));
         }
         // A pointer stroke may still be waiting for its rAF merge; drain it so
         // the checkpoint below snapshots the layer as the user last saw it.
@@ -337,7 +340,7 @@ function SketchEditor({
       applyLayerRasterOp: (layerId, label, mutate) => {
         const canvas = canvasRef.current;
         if (!canvas) {
-          throw new Error("The canvas is not ready yet.");
+          throw new Error(t("i18n-next102.sketch.errors.canvasNotReady"));
         }
         canvas.drainPendingStrokeCommit();
         pushHistory(
@@ -357,7 +360,7 @@ function SketchEditor({
       sampleColor: (layerId, x, y) => {
         const canvas = canvasRef.current;
         if (!canvas) {
-          throw new Error("The canvas is not ready yet.");
+          throw new Error(t("i18n-next102.sketch.errors.canvasNotReady"));
         }
         if (layerId === null) {
           return canvas.sampleComposite(x, y);
@@ -414,7 +417,7 @@ function SketchEditor({
 
       <CollapsibleSection
         className="sketch-editor__layers-section"
-        title={<InspectorSectionTitle title="Layers" />}
+        title={<InspectorSectionTitle title={t("i18n-next4.sketch.layers")} />}
         defaultOpen
         compact
         sx={{ ...sectionSx, minHeight: 0 }}
@@ -468,7 +471,7 @@ function SketchEditor({
 
       <CollapsibleSection
         className="sketch-editor__history-section"
-        title={<InspectorSectionTitle title="History" />}
+        title={<InspectorSectionTitle title={t("i18n-next4.sketch.history")} />}
         defaultOpen={false}
         compact
         sx={sectionSx}
@@ -481,7 +484,7 @@ function SketchEditor({
 
       <CollapsibleSection
         className="sketch-editor__canvas-section"
-        title={<InspectorSectionTitle title="Canvas" />}
+        title={<InspectorSectionTitle title={t("i18n-next4.sketch.canvas")} />}
         defaultOpen={false}
         compact
         sx={sectionSx}
@@ -621,11 +624,11 @@ function SketchEditor({
               has no Tab key — keep one always-visible affordance on the bare
               canvas. */}
           {panelsHidden && (
-            <Tooltip title="Show panels">
+            <Tooltip title={t("i18n-next4.sketch.showPanels")}>
               <Fab
                 className="sketch-editor__show-panels-fab"
                 size="small"
-                aria-label="Show panels"
+                aria-label={t("i18n-next4.sketch.showPanels")}
                 onClick={togglePanelsHidden}
                 sx={{
                   position: "absolute",
@@ -673,7 +676,7 @@ function SketchEditor({
           <ResizableSideDock
             storageKey="sketch_assistant"
             className="sketch-editor__assistant-panel"
-            ariaLabel="Resize sketch assistant"
+            ariaLabel={t("i18n-next4.sketch.resizeAssistant")}
           >
             <SketchAgentPanel />
           </ResizableSideDock>
@@ -686,12 +689,12 @@ function SketchEditor({
           the panels sheet. Gated on the same panelsHidden chrome toggle. */}
       {isMobile && !panelsHidden && (
         <>
-          <Tooltip title="Layers & color">
+          <Tooltip title={t("i18n-next4.sketch.layersAndColor")}>
             <Fab
               className="sketch-editor__mobile-panels-fab"
               size="medium"
               color="primary"
-              aria-label="Open layers and color panel"
+              aria-label={t("i18n-next4.sketch.openLayersAndColorPanel")}
               onClick={() => {
                 // Last action wins — never stack the two mobile sheets.
                 setAssistantPanelOpen(false);
@@ -712,8 +715,8 @@ function SketchEditor({
             <MobileBottomSheet
               open={mobilePanelsOpen}
               onClose={() => setMobilePanelsOpen(false)}
-              title="Layers & color"
-              ariaLabel="Layers and color panel"
+              title={t("i18n-next4.sketch.layersAndColor")}
+              ariaLabel={t("i18n-next4.sketch.layersAndColorPanel")}
             >
               <FlexColumn
                 className="sketch-editor__panel-right sketch-editor__panel-right--mobile"
@@ -729,8 +732,8 @@ function SketchEditor({
             <MobileBottomSheet
               open={assistantPanelOpen}
               onClose={() => setAssistantPanelOpen(false)}
-              title="Assistant"
-              ariaLabel="AI assistant panel"
+              title={t("i18n-next4.sketch.assistant")}
+              ariaLabel={t("i18n-next4.sketch.aiAssistantPanel")}
               maxHeight="85vh"
             >
               <FlexColumn

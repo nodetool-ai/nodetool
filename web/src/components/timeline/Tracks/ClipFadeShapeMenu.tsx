@@ -4,6 +4,7 @@
  */
 
 import { CLIP_FADE_SHAPES, type ClipFadeShape } from "@nodetool-ai/timeline";
+import { useTranslation } from "react-i18next";
 
 import { ContextMenu, MenuItemPrimitive } from "../../ui_primitives";
 import {
@@ -27,20 +28,21 @@ export function ClipFadeShapeMenu({
   onSelect,
   onClose
 }: ClipFadeShapeMenuProps) {
+  const { t } = useTranslation();
   return (
     <ContextMenu
       open
       position={position}
       onClose={onClose}
       MenuListProps={{
-        "aria-label": edge === "in" ? "Fade-in shape" : "Fade-out shape"
+        "aria-label": t(edge === "in" ? "i18n-next59.fadeShapes.fadeIn" : "i18n-next59.fadeShapes.fadeOut")
       }}
     >
       {CLIP_FADE_SHAPES.map((shape) => (
         <MenuItemPrimitive
           key={shape}
-          label={CLIP_FADE_SHAPE_LABELS[shape]}
-          tooltip={CLIP_FADE_SHAPE_HINTS[shape]}
+          label={t(`i18n-next59.fadeShapes.labels.${shape}`, { defaultValue: CLIP_FADE_SHAPE_LABELS[shape] })}
+          tooltip={t(`i18n-next59.fadeShapes.hints.${shape}`, { defaultValue: CLIP_FADE_SHAPE_HINTS[shape] })}
           selected={shape === current}
           onClick={() => {
             onSelect(shape);

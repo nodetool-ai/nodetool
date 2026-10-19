@@ -6,15 +6,16 @@
  * the conversation's place one at a time.
  */
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 
 export type MobileRail = "chat" | "todos" | "task";
 
-const RAIL_LABELS: Record<MobileRail, string> = {
-  chat: "Chat",
-  todos: "Tasks",
-  task: "Task"
+const RAIL_LABEL_KEYS: Record<MobileRail, string> = {
+  chat: "i18n-next23.chat.mobileRails.chat",
+  todos: "i18n-next23.chat.mobileRails.tasks",
+  task: "i18n-next23.chat.mobileRails.task"
 };
 
 interface MobileRailTabsProps {
@@ -24,26 +25,29 @@ interface MobileRailTabsProps {
   onChange: (rail: MobileRail) => void;
 }
 
-const MobileRailTabs = ({ value, available, onChange }: MobileRailTabsProps) => (
-  <ToggleGroup
-    className="mobile-rail-tabs"
-    value={value}
-    exclusive
-    segmented
-    size="small"
-    aria-label="Conversation panel"
-    onChange={(_event, next: MobileRail | null) => {
-      if (next !== null) {
-        onChange(next);
-      }
-    }}
-  >
-    {available.map((rail) => (
-      <ToggleOption key={rail} value={rail}>
-        {RAIL_LABELS[rail]}
-      </ToggleOption>
-    ))}
-  </ToggleGroup>
-);
+const MobileRailTabs = ({ value, available, onChange }: MobileRailTabsProps) => {
+  const { t } = useTranslation();
+  return (
+    <ToggleGroup
+      className="mobile-rail-tabs"
+      value={value}
+      exclusive
+      segmented
+      size="small"
+      aria-label={t("i18n-next23.chat.mobileRails.ariaLabel")}
+      onChange={(_event, next: MobileRail | null) => {
+        if (next !== null) {
+          onChange(next);
+        }
+      }}
+    >
+      {available.map((rail) => (
+        <ToggleOption key={rail} value={rail}>
+          {t(RAIL_LABEL_KEYS[rail])}
+        </ToggleOption>
+      ))}
+    </ToggleGroup>
+  );
+};
 
 export default memo(MobileRailTabs);

@@ -12,6 +12,7 @@
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot } from "@nodetool-ai/protocol";
 
 import {
@@ -40,12 +41,6 @@ import {
 } from "../../storyboard/shotDraft";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 
-const RENDER_MODE_OPTIONS = [
-  { value: "keyframe", label: "Animate a still" },
-  { value: "direct", label: "From the prompt" },
-  { value: "reference", label: "From references" }
-];
-
 interface TimelineShotFormProps {
   boardId: string;
   shot: Shot;
@@ -57,6 +52,7 @@ const TimelineShotFormInner = ({
   shot,
   readOnly
 }: TimelineShotFormProps) => {
+  const { t } = useTranslation();
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const scene = useStoryboardStore(
     (state) =>
@@ -87,6 +83,24 @@ const TimelineShotFormInner = ({
     []
   );
 
+  const renderModeOptions = [
+    { value: "keyframe", label: t("batch2_28.form.renderModes.keyframe") },
+    { value: "direct", label: t("batch2_28.form.renderModes.direct") },
+    { value: "reference", label: t("batch2_28.form.renderModes.reference") }
+  ];
+  const localizeCameraOptions = useCallback(
+    (options: ReturnType<typeof cameraOptions>) =>
+      options.map((option) => ({
+        ...option,
+        label: option.value
+          ? t(`batch2_28.form.cameraValues.${option.value}`, {
+              defaultValue: option.label
+            })
+          : option.label
+      })),
+    [t]
+  );
+
   const dirty = isDraftDirty(draft, original);
   const durationInvalid = isDurationInvalid(draft.durationSeconds);
 
@@ -109,27 +123,36 @@ const TimelineShotFormInner = ({
       sceneId: shot.scene_id ?? null
     });
     setOriginal(draft);
-  }, [applyShotDraft, boardId, draft, durationInvalid, original, readOnly, shot]);
+  }, [
+    applyShotDraft,
+    boardId,
+    draft,
+    durationInvalid,
+    original,
+    readOnly,
+    shot
+  ]);
 
   const handleRevert = useCallback(() => setDraft(original), [original]);
 
   const framingOptions = useMemo(
-    () => cameraOptions(FRAMING_OPTIONS, draft.framing),
-    [draft.framing]
+    () => localizeCameraOptions(cameraOptions(FRAMING_OPTIONS, draft.framing)),
+    [draft.framing, localizeCameraOptions]
   );
   const angleOptions = useMemo(
-    () => cameraOptions(ANGLE_OPTIONS, draft.angle),
-    [draft.angle]
+    () => localizeCameraOptions(cameraOptions(ANGLE_OPTIONS, draft.angle)),
+    [draft.angle, localizeCameraOptions]
   );
   const movementOptions = useMemo(
-    () => cameraOptions(MOVEMENT_OPTIONS, draft.movement),
-    [draft.movement]
+    () =>
+      localizeCameraOptions(cameraOptions(MOVEMENT_OPTIONS, draft.movement)),
+    [draft.movement, localizeCameraOptions]
   );
 
   return (
     <FlexColumn gap={SPACING.lg} data-testid="timeline-shot-form">
       <TextInput
-        label="Name"
+        label={t("batch2_28.form.name")}
         value={draft.slug}
         onChange={(event) => set({ slug: event.target.value })}
         disabled={readOnly}
@@ -137,18 +160,18 @@ const TimelineShotFormInner = ({
         fullWidth
       />
       <TextArea
-        label="Description"
+        label={t("batch2_28.form.description")}
         value={draft.action}
         onChange={(value) => set({ action: value })}
         disabled={readOnly}
-        placeholder="What the shot shows"
+        placeholder={t("batch2_28.form.descriptionPlaceholder")}
         minRows={1}
         maxRows={8}
         compact
         fullWidth
       />
       <TextArea
-        label="Dialogue"
+        label={t("batch2_28.form.dialogue")}
         value={draft.dialogue}
         onChange={(value) => set({ dialogue: value })}
         disabled={readOnly}
@@ -157,17 +180,17 @@ const TimelineShotFormInner = ({
         fullWidth
       />
       <TextArea
-        label="Motion"
+        label={t("batch2_28.form.motion")}
         value={draft.motion}
         onChange={(value) => set({ motion: value })}
         disabled={readOnly}
-        placeholder="What moves, and how the camera moves"
+        placeholder={t("batch2_28.form.motionPlaceholder")}
         maxRows={4}
         compact
         fullWidth
       />
       <TextInput
-        label="Sound"
+        label={t("batch2_28.form.sound")}
         value={draft.sound}
         onChange={(event) => set({ sound: event.target.value })}
         disabled={readOnly}
@@ -176,7 +199,7 @@ const TimelineShotFormInner = ({
       />
       <SelectField
         size="small"
-        label="Size"
+        label={t("batch2_28.form.size")}
         disabled={readOnly}
         value={draft.framing}
         onChange={(value) => set({ framing: value })}
@@ -184,7 +207,7 @@ const TimelineShotFormInner = ({
       />
       <SelectField
         size="small"
-        label="Perspective"
+        label={t("batch2_28.form.perspective")}
         disabled={readOnly}
         value={draft.angle}
         onChange={(value) => set({ angle: value })}
@@ -192,7 +215,7 @@ const TimelineShotFormInner = ({
       />
       <SelectField
         size="small"
-        label="Movement"
+        label={t("batch2_28.form.movement")}
         disabled={readOnly}
         value={draft.movement}
         onChange={(value) => set({ movement: value })}
@@ -200,21 +223,21 @@ const TimelineShotFormInner = ({
       />
       <SelectField
         size="small"
-        label="Render from"
+        label={t("batch2_28.form.renderFrom")}
         disabled={readOnly}
         value={draft.renderMode}
         onChange={(value) =>
           set({ renderMode: value as ShotDraft["renderMode"] })
         }
-        options={RENDER_MODE_OPTIONS}
+        options={renderModeOptions}
       />
       <TextInput
-        label="Length (s)"
+        label={t("batch2_28.form.length")}
         value={draft.durationSeconds}
         onChange={(event) => set({ durationSeconds: event.target.value })}
         disabled={readOnly}
         errorMessage={
-          durationInvalid ? "Enter a length in seconds." : undefined
+          durationInvalid ? t("batch2_28.form.durationError") : undefined
         }
         inputProps={{ inputMode: "decimal" }}
         compact
@@ -222,9 +245,13 @@ const TimelineShotFormInner = ({
       />
       {!readOnly && (
         <FlexRow gap={SPACING.sm} justify="flex-end" align="center">
-          {dirty && <Caption color="secondary">Unsaved changes</Caption>}
+          {dirty && (
+            <Caption color="secondary">
+              {t("batch2_28.form.unsavedChanges")}
+            </Caption>
+          )}
           <EditorButton onClick={handleRevert} disabled={!dirty}>
-            Revert
+            {t("batch2_28.form.revert")}
           </EditorButton>
           <EditorButton
             variant="contained"
@@ -232,7 +259,7 @@ const TimelineShotFormInner = ({
             disabled={!dirty || durationInvalid}
             data-testid="timeline-shot-form-save"
           >
-            Save
+            {t("batch2_28.form.save")}
           </EditorButton>
         </FlexRow>
       )}

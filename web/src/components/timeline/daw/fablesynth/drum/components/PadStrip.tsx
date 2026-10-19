@@ -1,15 +1,17 @@
+import { useTranslation } from 'react-i18next';
 import { pad } from '../params';
 import { useDrumStore } from '../dr1Store';
 import { DrumKnob } from './DrumKnob';
 import { DrumStepper } from './DrumStepper';
 
 export function PadStrip() {
+  const { t } = useTranslation();
   const sel = useDrumStore((s) => s.sel);
 
   return (
     <section className="panel dr-padstrip" data-accent="a">
       <div className="panel-head">
-        <h2>PAD</h2>
+        <h2>{t('i18n-next107.drum.pad.title')}</h2>
         <div className="padstrip-steppers">
           <DrumStepper paramId={pad(sel, 'choke')} label="CHOKE" />
         </div>

@@ -7,6 +7,7 @@
  */
 
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { Menu, MenuItem, type MenuItemProps, type MenuProps } from "@mui/material";
 import { editorUiClasses } from "../../constants/editorUiClasses";
@@ -40,12 +41,16 @@ export const EditorMenu = memo(function EditorMenu({
   slotProps,
   ...props
 }: EditorMenuProps) {
+  const { t } = useTranslation();
   const paperSlot = (slotProps?.paper ?? {}) as SlotPropsWithSx;
   const listSlot = (slotProps?.list ?? {}) as SlotPropsWithSx;
 
   return (
     <Menu
       {...props}
+      aria-label={
+        props["aria-label"] ?? t("i18n-next60.editorUi.menu.editorMenu")
+      }
       slotProps={{
         ...slotProps,
         paper: {

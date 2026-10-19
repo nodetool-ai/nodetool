@@ -2,6 +2,7 @@
 /** Generate Layer + Re-generate Stale Layers toolbar. */
 
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
@@ -20,6 +21,7 @@ import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 
 const SketchAIToolbarInner: React.FC = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
   // Derive the counts directly via Zustand selectors so we don't iterate
   // every binding on every render of the toolbar.
   const staleCount = useSketchSessionStore((s) =>
@@ -47,10 +49,10 @@ const SketchAIToolbarInner: React.FC = () => {
     const summary = await regenerateStaleLayers();
     if (summary.failed > 0) {
       reportError(
-        `Regenerated ${summary.started}, failed at ${summary.failed} layer(s).`
+        t("i18n-next52.sketch.ai.summary", { started: summary.started, failed: summary.failed })
       );
     }
-  }, [regenerateStaleLayers]);
+  }, [regenerateStaleLayers, reportError, t]);
 
   return (
     <>
@@ -64,7 +66,7 @@ const SketchAIToolbarInner: React.FC = () => {
         }}
       >
         <Tooltip
-          title="Generate a layer from any workflow with an image output"
+          title={t("i18n-next52.sketch.ai.generateTitle")}
           placement="bottom"
         >
           <span>
@@ -74,7 +76,7 @@ const SketchAIToolbarInner: React.FC = () => {
               startIcon={<AddPhotoAlternateIcon />}
               data-testid="sketch-action-generate-layer"
             >
-              Generate layer
+              {t("i18n-next52.sketch.ai.generate")}
             </EditorButton>
           </span>
         </Tooltip>
@@ -82,8 +84,8 @@ const SketchAIToolbarInner: React.FC = () => {
         <Tooltip
           title={
             staleCount === 0
-              ? "No stale layers."
-              : `Re-generate ${staleCount} stale layer${staleCount === 1 ? "" : "s"} in dependency order.`
+              ? t("i18n-next52.sketch.ai.noStale")
+              : t("i18n-next52.sketch.ai.stale", { count: staleCount })
           }
           placement="bottom"
         >
@@ -95,7 +97,7 @@ const SketchAIToolbarInner: React.FC = () => {
               startIcon={<RefreshIcon />}
               data-testid="sketch-action-regenerate-stale"
             >
-              Re-generate Stale ({staleCount})
+              {t("i18n-next52.sketch.ai.regenerate", { count: staleCount })}
             </EditorButton>
           </span>
         </Tooltip>
@@ -109,22 +111,18 @@ const SketchAIToolbarInner: React.FC = () => {
       <Dialog
         open={confirmRegenOpen}
         onClose={() => setConfirmRegenOpen(false)}
-        title="Re-generate stale layers?"
+        title={t("i18n-next52.sketch.ai.confirmTitle")}
         onConfirm={() => void handleConfirmRegen()}
-        confirmText="Re-generate"
+        confirmText={t("i18n-next52.sketch.ai.confirm")}
       >
         <Text size="small">
-          {staleCount} stale layer{staleCount === 1 ? " is" : "s are"} ready to
-          run.
+          {t("i18n-next52.sketch.ai.ready", { count: staleCount })}{" "}
           {lockedCount > 0 && (
             <>
-              {" "}
-              {lockedCount} locked layer
-              {lockedCount === 1 ? " is" : "s are"} skipped.
+              {t("i18n-next52.sketch.ai.skipped", { count: lockedCount })}{" "}
             </>
-          )}{" "}
-          Layers run sequentially; the queue stops at the first failure so you
-          can address it before continuing.
+          )}
+          {t("i18n-next52.sketch.ai.queue")}
         </Text>
       </Dialog>
     </>

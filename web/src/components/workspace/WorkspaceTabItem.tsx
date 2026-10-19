@@ -6,6 +6,7 @@ import React, {
   type DragEvent,
   type MouseEvent
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { useIsWorkflowRunning } from "../../hooks/useWorkflowRunnerState";
@@ -65,6 +66,7 @@ const WorkspaceTabItem = ({
   onCommitRename,
   onCancelRename
 }: WorkspaceTabItemProps) => {
+  const { t } = useTranslation();
   const workflowId = tab.type === "workflow" ? tab.ref : undefined;
   const isWorkflowDirty = useWorkflowDirty(workflowId);
   const isRunning = useIsWorkflowRunning(workflowId);
@@ -189,7 +191,7 @@ const WorkspaceTabItem = ({
         {isEditing ? (
           <InlineEditableText
             className="tab-input"
-            ariaLabel="Tab name"
+            ariaLabel={t("batch2_0.tabName")}
             value={tab.title}
             editing
             onEditingChange={handleEditingChange}
@@ -220,14 +222,14 @@ const WorkspaceTabItem = ({
               </span>
             </Tooltip>
             {isWorkflowDirty && (
-              <StatusDot tone="warning" size="medium" label="unsaved changes" />
+              <StatusDot tone="warning" size="medium" label={t("batch2_0.unsavedChanges")} />
             )}
           </>
         )}
         <CloseButton
           className="tab-close close-icon"
           buttonSize="small"
-          tooltip={`Close ${displayTitle}`}
+          tooltip={t("batch2_0.closeTabNamed", { name: displayTitle })}
           onClick={(event) => {
             event.stopPropagation();
             onClose(tab);
@@ -242,7 +244,7 @@ const WorkspaceTabItem = ({
       >
         {canRename && (
           <MenuItemPrimitive
-            label="Rename"
+            label={t("batch2_0.rename")}
             onClick={() => {
               closeContextMenu();
               onBeginRename(tab);
@@ -250,21 +252,21 @@ const WorkspaceTabItem = ({
           />
         )}
         <MenuItemPrimitive
-          label="Close tab"
+          label={t("batch2_0.closeTab")}
           onClick={() => {
             closeContextMenu();
             onClose(tab);
           }}
         />
         <MenuItemPrimitive
-          label="Close other tabs"
+          label={t("batch2_0.closeOtherTabs")}
           onClick={() => {
             closeContextMenu();
             onCloseOthers(tab);
           }}
         />
         <MenuItemPrimitive
-          label="Close all tabs"
+          label={t("batch2_0.closeAllTabs")}
           onClick={() => {
             closeContextMenu();
             onCloseAll();

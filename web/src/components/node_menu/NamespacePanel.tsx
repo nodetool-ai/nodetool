@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Text,
   BORDER_RADIUS,
@@ -160,6 +161,7 @@ const namespacePanelStyles = (theme: Theme) =>
   });
 
 const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const panelStyles = useMemo(() => namespacePanelStyles(theme), [theme]);
   const { searchTerm, selectedPath, setSelectedPath } = useNodeMenuStore(
@@ -248,15 +250,17 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
               <HomeNamespaceIcon />
               <span className="namespace-label">
                 {searchTerm.length > minSearchTermLength
-                  ? "All results"
-                  : "Home"}
+                  ? t("i18n-next74.nodeMenu.namespacePanel.allResults")
+                  : t("i18n-next74.nodeMenu.namespacePanel.home")}
               </span>
             </div>
           </div>
         </div>
         {Object.keys(localTree).length > 0 && (
           <>
-            <Text className="namespace-section-title">Local</Text>
+            <Text className="namespace-section-title">
+              {t("i18n-next74.nodeMenu.namespacePanel.local")}
+            </Text>
             <div className="namespace-list-local">
               <RenderNamespaces tree={localTree} />
             </div>
@@ -265,7 +269,7 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
         {Object.keys(providerTree).length > 0 && (
           <>
             <Text className="namespace-section-title providers">
-              Providers
+              {t("i18n-next74.nodeMenu.namespacePanel.providers")}
             </Text>
             <div className="namespace-list-providers">
               <RenderNamespaces tree={providerTree} />

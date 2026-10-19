@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -33,11 +34,6 @@ interface ScriptTakeGalleryProps {
   currentTakeId: string | null;
 }
 
-const formatDuration = (ms: number): string => {
-  const s = ms / 1000;
-  return `${s.toFixed(1)}s`;
-};
-
 const TakeRow = ({
   scriptId,
   lineId,
@@ -49,6 +45,7 @@ const TakeRow = ({
   take: ScriptTake;
   isCurrent: boolean;
 }) => {
+  const { t } = useTranslation();
   const setCurrentTake = useScriptStore((s) => s.setCurrentTake);
   const toggleFavorite = useScriptStore((s) => s.toggleTakeFavorite);
   const removeTake = useScriptStore((s) => s.removeTake);
@@ -97,7 +94,11 @@ const TakeRow = ({
       })}
     >
       <ToolbarIconButton
-        tooltip={isCurrent ? "Current take" : "Use this take"}
+        tooltip={t(
+          isCurrent
+            ? "i18n-next62.scriptTakeGallery.currentTake"
+            : "i18n-next62.scriptTakeGallery.useTake"
+        )}
         onClick={useTake}
         icon={
           <CheckCircleIcon
@@ -113,27 +114,35 @@ const TakeRow = ({
           title={take.textSnapshot}
           sx={{ fontStyle: "italic" }}
         >
-          {take.textSnapshot || "(empty)"}
+          {take.textSnapshot || t("i18n-next62.scriptTakeGallery.empty")}
         </Text>
         <Text size="smaller" color="secondary">
-          {formatDuration(take.durationMs)}
+          {t("i18n-next62.scriptTakeGallery.duration", {
+            seconds: (take.durationMs / 1000).toFixed(1)
+          })}
           {take.voiceSnapshot ? ` · ${take.voiceSnapshot.voice}` : ""}
           {take.costCredits != null
-            ? ` · ${take.costCredits} cr`
+            ? ` · ${t("i18n-next62.scriptTakeGallery.credits", {
+                credits: take.costCredits
+              })}`
             : ""}
         </Text>
       </FlexColumn>
       <ToolbarIconButton
-        tooltip="Play take"
+        tooltip={t("i18n-next62.scriptTakeGallery.playTake")}
         onClick={() => void play()}
         icon={<PlayArrowIcon fontSize="small" />}
       />
       <SendToWorkflowButton
         items={workflowMedia}
-        tooltip="Send take to a workflow"
+        tooltip={t("i18n-next62.scriptTakeGallery.sendToWorkflow")}
       />
       <ToolbarIconButton
-        tooltip={take.favorite ? "Unfavorite" : "Favorite"}
+        tooltip={t(
+          take.favorite
+            ? "i18n-next62.scriptTakeGallery.unfavorite"
+            : "i18n-next62.scriptTakeGallery.favorite"
+        )}
         onClick={() => toggleFavorite(scriptId, lineId, take.id)}
         icon={
           take.favorite ? (
@@ -144,7 +153,7 @@ const TakeRow = ({
         }
       />
       <ToolbarIconButton
-        tooltip="Delete take"
+        tooltip={t("i18n-next62.scriptTakeGallery.deleteTake")}
         onClick={deleteTake}
         icon={<DeleteOutlineIcon fontSize="small" />}
       />
@@ -159,12 +168,13 @@ const ScriptTakeGallery = ({
   takes,
   currentTakeId
 }: ScriptTakeGalleryProps) => {
+  const { t } = useTranslation();
   if (takes.length === 0) {
     return (
       <Box sx={{ minWidth: 260, padding: SPACING.md }}>
         <EmptyState
-          title="No takes yet"
-          description="Voice this line to create the first take."
+          title={t("i18n-next62.scriptTakeGallery.noTakes")}
+          description={t("i18n-next62.scriptTakeGallery.noTakesDescription")}
         />
       </Box>
     );
@@ -175,7 +185,7 @@ const ScriptTakeGallery = ({
       sx={{ minWidth: 320, padding: SPACING.md }}
     >
       <Text size="smaller" color="secondary">
-        {takes.length} take{takes.length === 1 ? "" : "s"}
+        {t("i18n-next62.scriptTakeGallery.takeCount", { count: takes.length })}
       </Text>
       <Divider />
       {takes

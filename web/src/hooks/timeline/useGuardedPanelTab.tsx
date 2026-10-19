@@ -13,6 +13,7 @@
  */
 
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "../../components/ui_primitives";
 import {
   useTimelineUIStore,
@@ -30,6 +31,7 @@ export interface UseGuardedPanelTabResult {
 }
 
 export const useGuardedPanelTab = (): UseGuardedPanelTabResult => {
+  const { t } = useTranslation();
   const panelTab = useTimelineUIStore((s) => s.panelTab);
   const codePanelDirty = useTimelineUIStore((s) => s.codePanelDirty);
   const setPanelTabRaw = useTimelineUIStore((s) => s.setPanelTab);
@@ -60,7 +62,7 @@ export const useGuardedPanelTab = (): UseGuardedPanelTabResult => {
       open={pendingTab !== null}
       onClose={handleCancel}
       onConfirm={handleConfirm}
-      title="Unsaved code changes"
+      title={t("i18n-next119.guardedPanelTab.unsavedCodeChanges")}
       content="You have unsaved code changes. Leave without baking them?"
       confirmText="Leave"
       cancelText="Cancel"

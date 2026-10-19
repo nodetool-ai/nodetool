@@ -1,4 +1,5 @@
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import type { Ref } from "react";
 
 import { SearchInput } from "../ui_primitives";
@@ -17,9 +18,10 @@ interface CategorySearchBarProps {
 const CategorySearchBar = memo(function CategorySearchBar({
   value,
   onChange,
-  placeholder = "Filter",
+  placeholder,
   ref
 }: CategorySearchBarProps) {
+  const { t } = useTranslation();
   const handleClear = useCallback(() => onChange(""), [onChange]);
 
   return (
@@ -29,9 +31,9 @@ const CategorySearchBar = memo(function CategorySearchBar({
       value={value}
       onChange={onChange}
       onClear={handleClear}
-      placeholder={placeholder}
-      ariaLabel="Filter category"
-      clearTooltip="Clear filter"
+      placeholder={placeholder ?? t("screen_nodes.filter")}
+      ariaLabel={t("screen_nodes.filterCategory")}
+      clearTooltip={t("screen_nodes.clearFilter")}
       fullWidth
     />
   );

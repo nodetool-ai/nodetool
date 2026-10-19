@@ -125,7 +125,7 @@ describe("WorkersPanel", () => {
     // ("Booting…" appears on both the status chip and the Attach button.)
     expect(screen.getAllByText(/booting/i).length).toBeGreaterThan(0);
     expect(
-      screen.getByText(/worker still loading/i)
+      screen.getByText(/worker is still loading/i)
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /attach worker i-1/i })

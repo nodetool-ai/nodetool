@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useAssetStore } from "../../stores/AssetStore";
 import TextEditorModal from "./TextEditorModal";
@@ -13,6 +14,7 @@ interface TextAssetDisplayProps {
 }
 
 const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next47" });
   const getAsset = useAssetStore((state) => state.get);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -36,8 +38,8 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
   }, [data]);
 
   const memoizedPreviewText = useMemo(() => {
-    return data ? data.substring(0, MAX_TEXT_LENGTH) : "Loading preview…";
-  }, [data]);
+    return data ? data.substring(0, MAX_TEXT_LENGTH) : t("text.loadingPreview");
+  }, [data, t]);
 
   return (
     <div
@@ -48,7 +50,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
         overflow: "auto"
       }}
     >
-      <Tooltip title="Open editor">
+      <Tooltip title={t("text.openEditor")}>
         <button type="button" className="button-expand" onClick={toggleExpand}>
           {isExpanded ? "↙" : "↗"}
         </button>
@@ -58,9 +60,9 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
         sx={{ whiteSpace: "pre-wrap" }}
       >
         {error
-          ? "Error loading preview."
+          ? t("text.errorLoadingPreview")
           : isLoading
-          ? "Loading preview…"
+          ? t("text.loadingPreview")
           : memoizedPreviewText}
       </Text>
 
@@ -68,8 +70,8 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
         <TextEditorModal
           value={memoizedModalText}
           onClose={toggleExpand}
-          propertyName="Text asset"
-          propertyDescription="READ ONLY"
+          propertyName={t("text.asset")}
+          propertyDescription={t("text.readOnly")}
           readOnly={true}
           isLoading={isLoading}
         />

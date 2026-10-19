@@ -21,6 +21,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -178,6 +179,7 @@ const VariableInsertBar: React.FC<{
   showLabel: boolean;
   onAdd: () => void;
 }> = ({ variables, showLabel, onAdd }) => {
+  const { t } = useTranslation();
   const [editor] = useLexicalComposerContext();
   const insertVariable = useCallback(
     (name: string) => {
@@ -189,11 +191,19 @@ const VariableInsertBar: React.FC<{
   );
   return (
     <div className="variable-bar">
-      {showLabel && <span className="variable-bar-label">Variables</span>}
+      {showLabel && (
+        <span className="variable-bar-label">
+          {t("i18n-next34.promptComposer.variables")}
+        </span>
+      )}
       {variables.map(({ name, source }) => (
         <Tooltip
           key={name}
-          title={source === "graph" ? "Set by a Set Variable node" : ""}
+          title={
+            source === "graph"
+              ? t("i18n-next34.promptComposer.setByVariableNode")
+              : ""
+          }
           describeChild
         >
           <button
@@ -204,15 +214,20 @@ const VariableInsertBar: React.FC<{
             onClick={() => insertVariable(name)}
             aria-label={
               source === "graph"
-                ? `Insert variable ${name} set by a Set Variable node`
-                : `Insert variable ${name}`
+                ? t("i18n-next34.promptComposer.insertVariableFromNode", {
+                    name
+                  })
+                : t("i18n-next34.promptComposer.insertVariable", { name })
             }
           >
             {`{{ ${name} }}`}
           </button>
         </Tooltip>
       ))}
-      <DynamicInputButton itemLabel="variable" onAdd={onAdd} />
+      <DynamicInputButton
+        itemLabel={t("i18n-next34.promptComposer.variable")}
+        onAdd={onAdd}
+      />
     </div>
   );
 };
@@ -236,6 +251,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -428,7 +444,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
               contentEditable={
                 <ContentEditable
                   className="composer-input"
-                  aria-label="Prompt"
+                  aria-label={t("i18n-next34.promptComposer.prompt")}
                   spellCheck={false}
                   onFocus={() => setIsEditing(true)}
                   onBlur={() => setIsEditing(false)}
@@ -436,7 +452,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
               }
               placeholder={
                 <div className="composer-placeholder">
-                  Write a prompt… @ to mention an asset
+                  {t("i18n-next34.promptComposer.placeholder")}
                 </div>
               }
               ErrorBoundary={LexicalErrorBoundary}

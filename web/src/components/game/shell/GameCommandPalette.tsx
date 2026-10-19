@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Caption, Dialog, EmptyState, FlexColumn, SearchInput, SelectableListItem, ShortcutHint, SPACING, Text } from "../../ui_primitives";
 import { isMac } from "../../../utils/platform";
@@ -27,6 +28,7 @@ function matches(entry: GameCommandDefinition, query: string): boolean {
 }
 
 function PaletteBody({ dimension, playing, bindings, handler, onClose }: Omit<GameCommandPaletteProps, "open">): ReactNode {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
   const commands = availableGameCommands(dimension, playing, handler);
@@ -52,15 +54,15 @@ function PaletteBody({ dimension, playing, bindings, handler, onClose }: Omit<Ga
   const mac = isMac();
   return <FlexColumn gap={SPACING.sm} onKeyDown={onKeyDown}>
     <SearchInput value={query} onChange={(value) => { setQuery(value); setHighlight(0); }} autoFocus fullWidth
-      placeholder="Search commands" ariaLabel="Search commands" />
-    {visible.length === 0 ? <EmptyState title="No matching commands" size="small" /> :
+      placeholder={t("screen_game.commands.searchPlaceholder")} ariaLabel={t("screen_game.commands.searchLabel")} />
+    {visible.length === 0 ? <EmptyState title={t("screen_game.commands.noMatches")} size="small" /> :
       <FlexColumn gap={SPACING.micro}>
         {visible.map((entry, index) => {
           const binding = bindings.get(entry.id)?.[0];
           return <SelectableListItem key={entry.id} selected={index === active} onClick={() => run(entry)}
             onMouseEnter={() => setHighlight(index)} paddingX={SPACING.md} paddingY={SPACING.xs}>
-            <Text sx={{ flex: 1, minWidth: 0 }}>{entry.title}</Text>
-            <Caption>{entry.category}</Caption>
+            <Text sx={{ flex: 1, minWidth: 0 }}>{t(`screen_game.commandTitles.${entry.id}`)}</Text>
+            <Caption>{t(`screen_game.commandCategories.${entry.category}`)}</Caption>
             {binding && <ShortcutHint shortcut={formatGameBinding(binding, mac)} />}
           </SelectableListItem>;
         })}
@@ -70,7 +72,8 @@ function PaletteBody({ dimension, playing, bindings, handler, onClose }: Omit<Ga
 
 /** Ctrl/Cmd+K palette listing every available editor command and assistant action with its current shortcut. */
 export default function GameCommandPalette({ open, onClose, ...rest }: GameCommandPaletteProps): ReactNode {
-  return <Dialog open={open} onClose={onClose} title="Commands" maxWidth="sm" fullWidth>
+  const { t } = useTranslation();
+  return <Dialog open={open} onClose={onClose} title={t("screen_game.commands.title")} maxWidth="sm" fullWidth>
     {open && <PaletteBody {...rest} onClose={onClose} />}
   </Dialog>;
 }

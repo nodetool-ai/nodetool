@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useCallback, useMemo, useState, memo } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -36,6 +37,7 @@ import type { WorkflowMediaItem } from "../../hooks/handlers/useGenerationToCanv
 import { useShallow } from "zustand/react/shallow";
 
 const AssetItemContextMenu = () => {
+  const { t } = useTranslation();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore((state) => state.closeContextMenu);
 
@@ -131,46 +133,46 @@ const AssetItemContextMenu = () => {
       await copyAssetToClipboard(asset.content_type, asset.get_url, asset.name || undefined);
 
       const contentTypeLabel = asset.content_type.startsWith("image/")
-        ? "Image"
+        ? t("screen_editor.image")
         : asset.content_type.startsWith("video/")
-        ? "Video info"
+        ? t("screen_editor.videoInfo")
         : asset.content_type.startsWith("audio/")
-        ? "Audio info"
-        : "Content";
+        ? t("screen_editor.audioInfo")
+        : t("screen_editor.content");
 
       addNotification({
         type: "success",
-        content: `${contentTypeLabel} copied to clipboard`,
+        content: t("screen_editor.copiedToClipboard", { item: contentTypeLabel }),
         alert: true
       });
     } catch (error) {
-      console.error("Failed to copy to clipboard", error);
+      console.error(t("screen_editor.copyFailed"), error);
       addNotification({
         type: "error",
-        content: "Failed to copy to clipboard",
+        content: t("screen_editor.copyFailed"),
         alert: true
       });
     }
-  }, [isSingleClipboardSupported, selectedAssets, addNotification]);
+  }, [isSingleClipboardSupported, selectedAssets, addNotification, t]);
 
   const handleDownloadAssets = async (selectedAssetIds: string[]) => {
     addNotification({
       type: "info",
-      content: "Download started. This may take a while.",
+      content: t("screen_editor.downloadStarted"),
       alert: true
     });
     try {
       await download(selectedAssetIds);
       addNotification({
         type: "success",
-        content: "Download finished successfully.",
+        content: t("screen_editor.downloadFinished"),
         alert: true
       });
     } catch (error) {
-      console.error("Download failed", error);
+      console.error(t("screen_editor.downloadFailed"), error);
       addNotification({
         type: "error",
-        content: "Download failed. Please check the console for more details.",
+        content: t("screen_editor.downloadFailedDetails"),
         alert: true
       });
     }
@@ -209,7 +211,7 @@ const AssetItemContextMenu = () => {
         type: openableTabType,
         ref: asset.id,
         mode: "view",
-        title: asset.name || "Untitled",
+        title: asset.name || t("screen_editor.untitled"),
         projectId: asset.project_id
       });
       navigate("/workspace");
@@ -270,35 +272,33 @@ const AssetItemContextMenu = () => {
       >
         <ListSubheader className="title">
           {isFolder
-            ? "Folder"
-            : `${selectedAssetIds.length} item${
-                selectedAssetIds.length > 1 ? "s" : ""
-              }`}
+            ? t("screen_editor.folder")
+            : t("screen_editor.selectedItems", { count: selectedAssetIds.length })}
         </ListSubheader>
         {hasSelectedAssets && (
           <ContextMenuItem
             onClick={toggleFavorite}
-            label={allFavorite ? "Remove from favorites" : "Add to favorites"}
+            label={allFavorite ? t("screen_editor.removeFromFavorites") : t("screen_editor.addToFavorites")}
             IconComponent={allFavorite ? <StarBorderIcon /> : <StarIcon />}
             tooltip={
               allFavorite
-                ? "Unstar the selected assets"
-                : "Star the selected assets to find them under Favorites"
+                ? t("screen_editor.unstarSelectedAssets")
+                : t("screen_editor.starSelectedAssets")
             }
           />
         )}
         <ContextMenuItem
           onClick={openRenameDialog}
-          label="Rename"
+          label={t("screen_editor.rename")}
           IconComponent={<DriveFileRenameOutlineIcon />}
-          tooltip="Rename selected assets"
+          tooltip={t("screen_editor.renameSelectedAssets")}
         />
         {openableTabType && (
           <ContextMenuItem
             onClick={handleOpenAsTab}
-            label="Open as tab"
+            label={t("screen_editor.openAsTab")}
             IconComponent={<TabIcon />}
-            tooltip="Open this asset in a new editor tab"
+            tooltip={t("screen_editor.openAssetAsTabTooltip")}
           />
         )}
         {workflowMedia.length > 0 && (
@@ -307,94 +307,94 @@ const AssetItemContextMenu = () => {
               event?.stopPropagation();
               setSendingToWorkflow(true);
             }}
-            label="Send to workflow"
+            label={t("screen_editor.sendToWorkflow")}
             IconComponent={<AccountTreeOutlinedIcon />}
-            tooltip="Add the selected media to a workflow canvas as constant nodes"
+            tooltip={t("screen_editor.sendMediaToWorkflowTooltip")}
           />
         )}
         {entityCandidate && (
           <ContextMenuItem
             onClick={handleUseAsEntity}
-            label="Use as entity…"
+            label={t("screen_editor.useAsEntity")}
             IconComponent={<PersonAddAltOutlinedIcon />}
-            tooltip="Tag this image as a character, location, style, or prop to reuse it across shots"
+            tooltip={t("screen_editor.useAsEntityTooltip")}
           />
         )}
         {singleVideo && (
           <ContextMenuItem
             onClick={handleEditVideo}
-            label={singleVideo.timeline_id ? "Edit timeline" : "Create timeline from video"}
+            label={singleVideo.timeline_id ? t("screen_editor.editTimeline") : t("screen_editor.createTimelineFromVideo")}
             IconComponent={<MovieEditIcon />}
             tooltip={
               singleVideo.timeline_id
-                ? "Open the timeline this video was rendered from"
-                : "Create a timeline from this video and open it for editing"
+                ? t("screen_editor.openRenderedTimelineTooltip")
+                : t("screen_editor.createTimelineTooltip")
             }
           />
         )}
         <Divider />
         <ContextMenuItem
           onClick={openMoveDialog}
-          label="Move to existing folder"
+          label={t("screen_editor.moveToExistingFolder")}
           IconComponent={<DriveFileMoveIcon />}
-          tooltip="Move selected assets to an existing folder"
+          tooltip={t("screen_editor.moveSelectedAssetsTooltip")}
         />
         <ContextMenuItem
           onClick={openCreateFolderDialog}
-          label={hasSelectedAssets ? "Move to new folder" : "Create new folder"}
+          label={hasSelectedAssets ? t("screen_editor.moveToNewFolder") : t("screen_editor.createFolder")}
           IconComponent={<CreateNewFolderIcon />}
           tooltip={
             hasSelectedAssets
-              ? "Create a new folder and move selected assets into it"
-              : "Create a new folder in the current location"
+              ? t("screen_editor.createFolderAndMoveTooltip")
+              : t("screen_editor.createFolderHereTooltip")
           }
         />
         <Divider />
         <ContextMenuItem
           onClick={downloadSelected}
-          label="Download selected assets"
+          label={t("screen_editor.downloadSelectedAssets")}
           IconComponent={<FileDownloadIcon />}
-          tooltip="Download selected assets to your Downloads folder"
+          tooltip={t("screen_editor.downloadSelectedAssetsTooltip")}
         />
         {isElectron && isSingleClipboardSupported && (
           <ContextMenuItem
             onClick={copyToClipboard}
             label={
               selectedAssets[0]?.content_type?.startsWith("image/")
-                ? "Copy image"
+                ? t("screen_editor.copyImage")
                 : selectedAssets[0]?.content_type?.startsWith("video/")
-                ? "Copy video info"
+                ? t("screen_editor.copyVideoInfo")
                 : selectedAssets[0]?.content_type?.startsWith("audio/")
-                ? "Copy audio info"
-                : "Copy content"
+                ? t("screen_editor.copyAudioInfo")
+                : t("screen_editor.copyContent")
             }
             IconComponent={<ContentCopyIcon />}
             tooltip={
               selectedAssets[0]?.content_type?.startsWith("image/")
-                ? "Copy image"
+                ? t("screen_editor.copyImage")
                 : selectedAssets[0]?.content_type?.startsWith("video/")
-                ? "Copy video URL and metadata"
+                ? t("screen_editor.copyVideoMetadata")
                 : selectedAssets[0]?.content_type?.startsWith("audio/")
-                ? "Copy audio URL and metadata"
-                : "Copy content"
+                ? t("screen_editor.copyAudioMetadata")
+                : t("screen_editor.copyContent")
             }
           />
         )}
         {isTwoImages && (
           <ContextMenuItem
             onClick={handleCompareImages}
-            label="Compare images"
+            label={t("screen_editor.compareImages")}
             IconComponent={<CompareIcon />}
-            tooltip="Compare the two selected images side-by-side"
+            tooltip={t("screen_editor.compareImagesTooltip")}
           />
         )}
         <Divider />
         <ContextMenuItem
           onClick={openDeleteDialog}
-          label="Delete"
+          label={t("screen_editor.delete")}
           destructive
           IconComponent={<RemoveCircleIcon />}
-          tooltip="Delete selected assets"
+          tooltip={t("screen_editor.deleteSelectedAssets")}
         />
         {singleAsset && (
           <AssetInfoPanel

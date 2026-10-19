@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import type { Entity } from "@nodetool-ai/protocol";
 
@@ -26,6 +27,7 @@ import {
  */
 const EntityProperty = (props: PropertyProps<Entity | Entity[] | null>) => {
   const { property, value, onChange, propertyIndex } = props;
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const multiple = property.type?.type === "list";
   const id = `entity-${property.name}-${propertyIndex}`;
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -62,7 +64,7 @@ const EntityProperty = (props: PropertyProps<Entity | Entity[] | null>) => {
     [multiple, onChange, selected]
   );
 
-  const addLabel = multiple ? "Add entity" : "Pick entity";
+  const addLabel = multiple ? t("entity.add") : t("entity.pick");
 
   return (
     <>
@@ -77,7 +79,7 @@ const EntityProperty = (props: PropertyProps<Entity | Entity[] | null>) => {
             key={entity.id}
             compact
             variant="outlined"
-            label={entity.name || "Untitled"}
+            label={entity.name || t("entity.untitled")}
             icon={<Box sx={getEntityKindDotSx(entity.kind, true)} />}
             sx={getEntityChipSx(true)}
             onDelete={() => handleRemove(entity.id)}

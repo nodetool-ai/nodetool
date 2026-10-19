@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -74,6 +75,7 @@ const styles = (theme: Theme) =>
   });
 
 const CsvTableView = ({ text, name }: { text: string; name: string }) => {
+  const { t } = useTranslation();
   const { columns, rows, truncated } = useMemo(() => {
     const df = parseCsvToDataframe(text, csvDelimiterFor(name));
     const cols = (df.columns ?? []).map((c, i) => ({
@@ -98,7 +100,7 @@ const CsvTableView = ({ text, name }: { text: string; name: string }) => {
   if (columns.length === 0) {
     return (
       <FlexColumn className="status">
-        <EmptyState size="small" variant="no-data" title="This table is empty" />
+        <EmptyState size="small" variant="no-data" title={t("i18n-next51.common.tableEmpty")} />
       </FlexColumn>
     );
   }
@@ -131,6 +133,7 @@ const WorkspaceFileText = ({
   kind,
   mode
 }: WorkspaceFileTextProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const paneStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -228,7 +231,7 @@ const WorkspaceFileText = ({
               errorText: error.message
             }}
           >
-            {`Could not load ${name}.`}
+            {t("i18n-next51.workspaceFile.loadError", { name })}
           </ErrorBanner>
         </FlexColumn>
       );
@@ -296,7 +299,7 @@ const WorkspaceFileText = ({
                 disabled={!canSave}
                 onClick={handleSave}
               >
-                {isSaving ? "Saving…" : "Save"}
+                {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
               </EditorButton>
             </>
           )}

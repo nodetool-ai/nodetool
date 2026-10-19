@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { UiDocumentRef } from "@nodetool-ai/protocol";
 
 import AssistantChatPanel from "../chat/assistant/AssistantChatPanel";
@@ -11,6 +12,7 @@ import { useSketchStore } from "./state/useSketchStore";
  * `source: sketch_assistant`.
  */
 const SketchAgentPanel = () => {
+  const { t } = useTranslation();
   const documentId = useSketchSessionStore((s) => s.documentId);
   const name = useSketchSessionStore((s) => s.name);
 
@@ -40,9 +42,9 @@ const SketchAgentPanel = () => {
       getSelection={getSelection}
       workflowId={documentId}
       docsTopic="sketches"
-      docsLabel="Sketch editor"
-      welcomeTitle="Editor assistant"
-      welcomeBody="Describe an image to generate, or ask for an edit to your layers."
+      docsLabel={t("i18n-cont-sketch-03.agent.docsLabel")}
+      welcomeTitle={t("i18n-cont-sketch-03.agent.welcomeTitle")}
+      welcomeBody={t("i18n-cont-sketch-03.agent.welcomeBody")}
     />
   );
 };

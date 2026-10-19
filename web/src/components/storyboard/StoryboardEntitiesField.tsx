@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import { useEntities } from "../../serverState/useEntities";
@@ -21,13 +22,12 @@ interface StoryboardEntitiesFieldProps {
   readOnly?: boolean;
 }
 
-const removeLabel = (name: string): string => `Remove ${name} from the board`;
-
 const StoryboardEntitiesFieldInner: React.FC<StoryboardEntitiesFieldProps> = ({
   boardId,
   entityIds,
   readOnly
 }) => {
+  const { t } = useTranslation();
   const { data: allEntities } = useEntities();
   const setEntityIds = useStoryboardStore((state) => state.setEntityIds);
 
@@ -65,8 +65,8 @@ const StoryboardEntitiesFieldInner: React.FC<StoryboardEntitiesFieldProps> = ({
       selectedIds={entityIds}
       onPick={handlePick}
       onRemove={handleRemove}
-      removeLabel={removeLabel}
-      emptyText="No entities yet. Choose a character, location, style or prop to keep it consistent across shots."
+      removeLabel={(name) => t("screens4_20.storyboardEntitiesField.removeLabel", { name })}
+      emptyText={t("screens4_20.storyboardEntitiesField.emptyText")}
       readOnly={readOnly}
     />
   );

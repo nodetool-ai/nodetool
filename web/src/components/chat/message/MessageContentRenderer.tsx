@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import AddToCanvasIcon from "@mui/icons-material/AddPhotoAlternate";
 import { MessageContent } from "../../../stores/ApiTypes";
@@ -73,6 +74,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
 }) => {
   const objectUrlRef = useRef<string | null>(null);
   const { isCanvasAvailable, addBlocksToCanvas } = useAddMediaToCanvas();
+  const { t } = useTranslation();
 
   // Persisted chat media is sanitized to `asset://<asset_id>`, which no
   // renderer can fetch — resolve each branch's ref to the asset's own
@@ -155,7 +157,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
   const addButton = isCanvasAvailable ? (
     <ToolbarIconButton
       className="add-to-canvas-button"
-      tooltip="Add to canvas"
+      tooltip={t("i18n-next54.message.addToCanvas")}
       size="small"
       onClick={handleAddToCanvas}
     >
@@ -203,7 +205,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       } else if (content.image?.uri || content.image?.asset_id) {
         imageSource = resolvedImageUri;
       } else {
-        return <div>Error: No image source available</div>;
+        return <div>{t("i18n-next54.message.noImageSource")}</div>;
       }
 
       return (
@@ -236,14 +238,14 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
             preload="metadata"
             style={videoStyle}
             src={videoObjectUrl}
-            aria-label="Video content"
+            aria-label={t("i18n-next54.message.videoContent")}
           />
           {addButton}
         </div>
       );
     }
     case "document":
-      return <div>Document</div>;
+      return <div>{t("i18n-next54.message.document")}</div>;
     default:
       return null;
   }

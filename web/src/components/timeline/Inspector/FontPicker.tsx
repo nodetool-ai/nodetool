@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 
 import { trpcClient } from "../../../trpc/client";
@@ -30,6 +31,7 @@ interface FontPickerProps {
 
 export const FontPicker: React.FC<FontPickerProps> = memo(
   ({ label, value, onChange }) => {
+    const { t } = useTranslation();
     const { data } = useQuery({
       queryKey: ["fonts"],
       queryFn: () => trpcClient.fonts.list.query(),
@@ -41,7 +43,11 @@ export const FontPicker: React.FC<FontPickerProps> = memo(
     const options = useMemo<SelectOption[]>(() => {
       const listed = (data?.fonts ?? []).map((font) => ({
         value: font.name,
-        label: font.portable ? `${font.name} · portable` : font.name
+        label: font.portable
+          ? t("pass3_28.timeline.inspector.fontPicker.portableFont", {
+              font: font.name
+            })
+          : font.name
       }));
       // A document authored elsewhere can name a family this machine has
       // neither bundled nor installed. Without an option for it the select
@@ -49,18 +55,36 @@ export const FontPicker: React.FC<FontPickerProps> = memo(
       const known = new Set(listed.map((option) => option.value));
       const unknown =
         value !== undefined && value !== "" && !known.has(value)
-          ? [{ value, label: `${value} · not installed` }]
+          ? [
+              {
+                value,
+                label: t(
+                  "pass3_28.timeline.inspector.fontPicker.unavailableFont",
+                  { font: value }
+                )
+              }
+            ]
           : [];
       return [
-        { value: DEFAULT_VALUE, label: "Default (Inter)" },
+        {
+          value: DEFAULT_VALUE,
+          label: t("pass3_28.timeline.inspector.fontPicker.defaultFont")
+        },
         ...listed,
         ...unknown
       ];
-    }, [data, value]);
+    }, [data, t, value]);
+
+    const translatedLabel =
+      label === "Caption font family"
+        ? t("pass3_28.timeline.inspector.fontPicker.captionFontFamily")
+        : label === "Text font family"
+          ? t("pass3_28.timeline.inspector.fontPicker.textFontFamily")
+          : label;
 
     return (
       <InspectorSelect
-        label={label}
+        label={translatedLabel}
         value={value ?? DEFAULT_VALUE}
         options={options}
         onChange={(next) => onChange(next === DEFAULT_VALUE ? undefined : next)}

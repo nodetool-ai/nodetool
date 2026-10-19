@@ -1,4 +1,5 @@
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import {
   Caption,
@@ -27,9 +28,6 @@ interface WorkflowOption {
   name: string;
 }
 
-const cycleMessage = (name: string): string =>
-  `"${name}" runs this workflow, so it cannot run inside it.`;
-
 interface WorkflowLoaderProps {
   nodeId: string;
   data: NodeData;
@@ -37,6 +35,7 @@ interface WorkflowLoaderProps {
 
 export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
   ({ nodeId, data }) => {
+    const { t } = useTranslation();
     const selectedWorkflowId = useMemo(
       () =>
         (data.properties?.workflow_id as string | undefined) ??
@@ -101,7 +100,11 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
             (workflowId) => getWorkflow(workflowId)?.graph
           )
         ) {
-          setError(cycleMessage(workflow.name));
+          setError(
+            t("i18n-next37.workflowLoader.cycleError", {
+              name: workflow.name
+            })
+          );
           return false;
         }
         setError(null);
@@ -149,7 +152,8 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
         data.properties,
         data.dynamic_inputs,
         data.dynamic_outputs,
-        data.dynamic_properties
+        data.dynamic_properties,
+        t
       ]
     );
 
@@ -176,18 +180,22 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
             getWorkflow(option.id) ??
             (await fetchWorkflow(option.id, { makeCurrent: false }));
           if (!workflow) {
-            throw new Error("Failed to load workflow");
+            throw new Error(t("i18n-next37.workflowLoader.loadFailed"));
           }
           if (!applyWorkflowSelection(workflow)) {
             addNotification({
               type: "error",
-              content: cycleMessage(workflow.name),
+              content: t("i18n-next37.workflowLoader.cycleError", {
+                name: workflow.name
+              }),
               alert: true
             });
           }
         } catch (err) {
           setError(
-            err instanceof Error ? err.message : "Failed to load workflow"
+            err instanceof Error
+              ? err.message
+              : t("i18n-next37.workflowLoader.loadFailed")
           );
         } finally {
           setLoading(false);
@@ -200,7 +208,8 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
         getWorkflow,
         fetchWorkflow,
         applyWorkflowSelection,
-        addNotification
+        addNotification,
+        t
       ]
     );
 
@@ -269,7 +278,7 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
           renderInput={(params) => (
             <TextField
               {...params}
-              label="Select workflow"
+              label={t("i18n-next37.workflowLoader.selectWorkflow")}
               variant="outlined"
               size="small"
               slotProps={{

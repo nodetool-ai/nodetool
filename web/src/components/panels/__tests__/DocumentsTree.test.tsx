@@ -237,7 +237,7 @@ it.each(["timeline"] as const)(
     });
     renderTree();
     await userEvent.click(
-      screen.getByRole("treeitem", { name: `My document ${type}` })
+      screen.getByRole("treeitem", { name: "My document Timeline" })
     );
     expect(mockOpenTab).toHaveBeenCalledWith(
       expect.objectContaining({ type, ref: "document-1", mode: "view" })

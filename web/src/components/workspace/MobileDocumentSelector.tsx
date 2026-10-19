@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
@@ -123,6 +124,7 @@ const DocumentStatus = memo(function DocumentStatus({
 }: {
   tab: WorkspaceTab;
 }) {
+  const { t } = useTranslation();
   const workflowId = tab.type === "workflow" ? tab.ref : undefined;
   const isDirty = useWorkflowDirty(workflowId);
   const isRunning = useIsWorkflowRunning(workflowId);
@@ -137,7 +139,7 @@ const DocumentStatus = memo(function DocumentStatus({
         <LoadingSpinner inline size={14} color="primary" />
       )}
       {isDirty && (
-        <StatusDot tone="warning" size="medium" label="unsaved changes" />
+        <StatusDot tone="warning" size="medium" label={t("i18n-next51.documents.unsavedChanges")} />
       )}
     </>
   );
@@ -159,6 +161,7 @@ const MobileDocumentSelector = ({
   onClose,
   onCloseAll
 }: MobileDocumentSelectorProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const buttonStyles = useMemo(() => styles(theme), [theme]);
   const listStyles = useMemo(() => sheetStyles(theme), [theme]);
@@ -194,10 +197,10 @@ const MobileDocumentSelector = ({
         aria-expanded={open}
         aria-label={
           activeTab
-            ? `Open document: ${tabDisplayTitle(activeTab)}`
+            ? t("i18n-next51.documents.openDocument", { title: tabDisplayTitle(activeTab) })
             : homeIsActive
-              ? "Project home, switch document"
-              : "Open documents"
+              ? t("i18n-next51.documents.projectHomeSwitch")
+              : t("i18n-next51.documents.openDocuments")
         }
         onClick={() => setOpen(true)}
       >
@@ -216,12 +219,12 @@ const MobileDocumentSelector = ({
           {activeTab
             ? tabDisplayTitle(activeTab)
             : homeIsActive
-              ? "Project home"
-              : "No document open"}
+              ? t("i18n-next51.documents.projectHome")
+              : t("i18n-next51.documents.noDocumentOpen")}
         </span>
         {activeTab && <DocumentStatus tab={activeTab} />}
         {tabs.length > 1 && (
-          <span className="doc-count">{tabs.length} open</span>
+          <span className="doc-count">{t("i18n-next51.documents.openCount", { count: tabs.length })}</span>
         )}
         <ExpandMoreRoundedIcon className="caret" aria-hidden />
       </button>
@@ -229,15 +232,15 @@ const MobileDocumentSelector = ({
       <MobileBottomSheet
         open={open}
         onClose={closeSheet}
-        title="Open documents"
-        ariaLabel="Switch between open documents"
+        title={t("i18n-next51.documents.openDocuments")}
+        ariaLabel={t("i18n-next51.documents.switchDocuments")}
       >
         <div css={listStyles}>
           {tabs.length === 0 && (
             <EmptyState
               size="small"
-              title="No documents open"
-              description="Tap New to open or create one."
+              title={t("i18n-next51.documents.noDocumentsOpen")}
+              description={t("i18n-next51.documents.noDocumentsDescription")}
             />
           )}
           <List dense disablePadding>
@@ -248,7 +251,7 @@ const MobileDocumentSelector = ({
                 secondaryAction={
                   <CloseButton
                     className="row-close"
-                    tooltip={`Close ${tabDisplayTitle(tab)}`}
+                    tooltip={t("i18n-next51.documents.closeDocument", { title: tabDisplayTitle(tab) })}
                     onClick={() => onClose(tab)}
                   />
                 }
@@ -283,7 +286,7 @@ const MobileDocumentSelector = ({
                     className="close-all"
                     onClick={handleCloseAll}
                   >
-                    <ListItemText primary="Close all documents" />
+                    <ListItemText primary={t("i18n-next51.documents.closeAll")} />
                   </ListItemButton>
                 </ListItem>
               </List>

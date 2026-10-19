@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { css } from "@emotion/react";
 import {
   FlexColumn,
@@ -58,23 +60,51 @@ const panelStyles =
     }
   });
 
-function formatUptime(createdAt: string, now: number): string {
+function formatUptime(
+  createdAt: string,
+  now: number,
+  locale: string,
+  t: TFunction
+): string {
   const startedMs = Date.parse(createdAt);
-  if (Number.isNaN(startedMs)) return "—";
+  if (Number.isNaN(startedMs)) return t("screens4_8.workers.common.unavailable");
   const seconds = Math.max(0, Math.floor((now - startedMs) / 1000));
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-  return `${Math.floor(seconds / 86400)}d`;
+  const numberFormat = new Intl.NumberFormat(locale);
+  if (seconds < 60) {
+    return t("screens4_8.workers.uptime.seconds", {
+      count: seconds,
+      value: numberFormat.format(seconds)
+    });
+  }
+  if (seconds < 3600) {
+    const value = Math.floor(seconds / 60);
+    return t("screens4_8.workers.uptime.minutes", {
+      count: value,
+      value: numberFormat.format(value)
+    });
+  }
+  if (seconds < 86400) {
+    const value = Math.floor(seconds / 3600);
+    return t("screens4_8.workers.uptime.hours", {
+      count: value,
+      value: numberFormat.format(value)
+    });
+  }
+  const value = Math.floor(seconds / 86400);
+  return t("screens4_8.workers.uptime.days", {
+    count: value,
+    value: numberFormat.format(value)
+  });
 }
 
-function formatCost(cost: number | null): string {
-  if (cost === null) return "—";
-  return `$${cost.toFixed(2)}`;
+function formatCost(cost: number | null, locale: string, t: TFunction): string {
+  if (cost === null) return t("screens4_8.workers.common.unavailable");
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(cost);
 }
 
-function formatRate(cost: number): string {
-  return `$${cost.toFixed(2)}/hr`;
+function formatRate(cost: number, locale: string, t: TFunction): string {
+  const amount = new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(cost);
+  return t("screens4_8.workers.rate", { amount });
 }
 
 function statusTone(status: string): StatusType {
@@ -96,6 +126,7 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
   onClose,
   isProvisioning
 }) => {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string>(profileNames[0] ?? "");
   const effective = profileNames.includes(selected)
     ? selected
@@ -116,23 +147,22 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Start a worker"
+      title={t("screens4_8.workers.provision.title")}
       maxWidth="xs"
       fullWidth
       onConfirm={handleProvision}
-      confirmText="Provision"
+      confirmText={t("screens4_8.workers.provision.confirm")}
       confirmDisabled={!effective}
       isLoading={isProvisioning}
     >
       <FlexColumn gap={SPACING.md}>
         {profileNames.length === 0 ? (
           <Caption size="small">
-            No worker profiles yet. Open <strong>Manage profiles</strong> to
-            create one.
+            {t("screens4_8.workers.provision.noProfiles")}
           </Caption>
         ) : (
           <SelectField
-            label="Profile"
+            label={t("screens4_8.workers.provision.profileLabel")}
             value={effective}
             onChange={setSelected}
             options={options}
@@ -166,6 +196,7 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   stopping,
   busy
 }) => {
+  const { t, i18n } = useTranslation();
   const isAttached = instance.status === "attached";
   const isPaused = instance.status === "stopped";
   const isRunning = instance.status === "running";
@@ -179,27 +210,28 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
 
   // Effective status presentation: the raw status, except a `running` worker is
   // shown as "booting" until it answers the probe, then "ready".
-  const displayLabel = isRunning
+  const displayLabelKey = isRunning
     ? isHealthy
       ? "ready"
       : "booting"
     : instance.status;
+  const displayLabel = t(`screens4_8.workers.status.${displayLabelKey}`);
   const displayTone: StatusType = isRunning
     ? isHealthy
       ? "success"
       : "running"
     : statusTone(instance.status);
   const statusHint = isBooting
-    ? "GPU up — worker still loading"
+    ? t("screens4_8.workers.status.bootingHint")
     : isRunning && isHealthy
-      ? "Worker is answering — safe to attach"
+      ? t("screens4_8.workers.status.readyHint")
       : null;
 
   return (
     <Card variant="outlined" padding="normal">
-      <FlexRow align="center" justify="space-between" gap={3}>
-        <FlexColumn gap={0.5}>
-          <FlexRow gap={2} align="center">
+      <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
+        <FlexColumn gap={SPACING.micro}>
+          <FlexRow gap={SPACING.md} align="center">
             <Text size="normal" weight={600}>
               {instance.profile_name}
             </Text>
@@ -220,44 +252,50 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
             <Caption size="small">{instance.id}</Caption>
           )}
         </FlexColumn>
-        <FlexRow gap={3} align="center">
+        <FlexRow gap={SPACING.lg} align="center">
           <Caption size="small">
-            Uptime: {formatUptime(instance.created_at, now)}
+            {t("screens4_8.workers.instance.uptime", {
+              value: formatUptime(instance.created_at, now, i18n.language, t)
+            })}
           </Caption>
           <Caption size="small">
-            Cost: {formatCost(instance.estimated_cost_usd)}
+            {t("screens4_8.workers.instance.cost", {
+              value: formatCost(instance.estimated_cost_usd, i18n.language, t)
+            })}
           </Caption>
           {isAttached ? (
             <EditorButton
               density="compact"
               variant="outlined"
-              aria-label={`Detach worker ${instance.id}`}
+              aria-label={t("screens4_8.workers.instance.detachAria", { id: instance.id })}
               disabled={busy}
               onClick={onDetach}
             >
-              Detach
+              {t("screens4_8.workers.instance.detach")}
             </EditorButton>
           ) : isPaused ? (
             <EditorButton
               density="compact"
               variant="outlined"
-              aria-label={`Resume worker ${instance.id}`}
+              aria-label={t("screens4_8.workers.instance.resumeAria", { id: instance.id })}
               disabled={stopping}
               onClick={() => onResume(instance.id)}
             >
-              Resume
+              {t("screens4_8.workers.instance.resume")}
             </EditorButton>
           ) : (
             <EditorButton
               density="compact"
               variant="outlined"
-              aria-label={`Attach worker ${instance.id}`}
+              aria-label={t("screens4_8.workers.instance.attachAria", { id: instance.id })}
               // Only enable once the worker is actually answering — attaching
               // mid-boot just fails the handshake and rolls back.
               disabled={busy || !isRunning || !isHealthy}
               onClick={() => onAttach(instance.id)}
             >
-              {isBooting ? "Booting…" : "Attach"}
+              {isBooting
+                ? t("screens4_8.workers.status.bootingEllipsis")
+                : t("screens4_8.workers.instance.attach")}
             </EditorButton>
           )}
           {/* Pause (keep the volume) — only meaningful while the pod runs. */}
@@ -265,22 +303,22 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
             <EditorButton
               density="compact"
               variant="text"
-              aria-label={`Stop worker ${instance.id}`}
+              aria-label={t("screens4_8.workers.instance.stopAria", { id: instance.id })}
               disabled={stopping}
               onClick={() => onStop(instance.id)}
             >
-              Stop
+              {t("screens4_8.workers.instance.stop")}
             </EditorButton>
           )}
           {/* Destroy the pod + volume. The real teardown. */}
           <EditorButton
             density="compact"
             variant="text"
-            aria-label={`Terminate worker ${instance.id}`}
+            aria-label={t("screens4_8.workers.instance.terminateAria", { id: instance.id })}
             disabled={stopping}
             onClick={() => onTerminate(instance.id)}
           >
-            Terminate
+            {t("screens4_8.workers.instance.terminate")}
           </EditorButton>
         </FlexRow>
       </FlexRow>
@@ -315,6 +353,7 @@ interface OrphanWarning {
 }
 
 const WorkersPanel: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const {
     profiles,
     instances,
@@ -370,11 +409,13 @@ const WorkersPanel: React.FC = () => {
         setError(null);
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(t("screens4_8.workers.errors.action", {
+          message: err instanceof Error ? err.message : String(err)
+        }));
         return false;
       }
     },
-    []
+    [t]
   );
 
   const handleProvision = useCallback(
@@ -458,52 +499,58 @@ const WorkersPanel: React.FC = () => {
           : null
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(t("screens4_8.workers.errors.reconcile", {
+        message: err instanceof Error ? err.message : String(err)
+      }));
     } finally {
       setBusy(false);
     }
-  }, [reconcile]);
+  }, [reconcile, t]);
 
   return (
     <FlexColumn gap={0} fullHeight css={panelStyles}>
       <PanelHeader
-        title="Workers"
-        count={shownInstances.length > 0 ? formatRate(totalCost) : undefined}
+        title={t("screens4_8.workers.panelTitle")}
+        count={
+          shownInstances.length > 0
+            ? formatRate(totalCost, i18n.language, t)
+            : undefined
+        }
         actions={
           <>
             <EditorButton
               density="compact"
               variant="text"
               onClick={() => setProfilesOpen(true)}
-              aria-label="Manage profiles"
+              aria-label={t("screens4_8.workers.actions.manageProfiles")}
             >
-              Manage profiles
+              {t("screens4_8.workers.actions.manageProfiles")}
             </EditorButton>
             <EditorButton
               density="compact"
               variant="outlined"
               onClick={() => setDialogOpen(true)}
-              aria-label="Start worker"
+              aria-label={t("screens4_8.workers.actions.startWorker")}
             >
-              Start worker
+              {t("screens4_8.workers.actions.startWorker")}
             </EditorButton>
             <EditorButton
               density="compact"
               variant="text"
               onClick={handleReconcile}
               disabled={busy}
-              aria-label="Reconcile workers"
+              aria-label={t("screens4_8.workers.actions.reconcile")}
             >
-              Reconcile
+              {t("screens4_8.workers.actions.reconcile")}
             </EditorButton>
             <EditorButton
               density="compact"
               variant="text"
               onClick={handleStopAll}
               disabled={shownInstances.length === 0}
-              aria-label="Stop all workers"
+              aria-label={t("screens4_8.workers.actions.stopAll")}
             >
-              Stop all
+              {t("screens4_8.workers.actions.stopAll")}
             </EditorButton>
           </>
         }
@@ -514,7 +561,7 @@ const WorkersPanel: React.FC = () => {
             severity="error"
             compact
             onClose={() => setError(null)}
-            sx={{ mt: 2 }}
+            sx={{ mt: SPACING.md }}
           >
             {error}
           </AlertBanner>
@@ -523,27 +570,32 @@ const WorkersPanel: React.FC = () => {
         {orphanWarning && (
           <AlertBanner
             severity="warning"
-            title={`${orphanWarning.count} orphaned worker(s) may still be billing — stop them in your provider console`}
+            title={t("screens4_8.workers.orphanWarning.title", { count: orphanWarning.count })}
             onClose={() => setOrphanWarning(null)}
             className="nodrag"
             compact
           >
-            {`${orphanWarning.liveCount} live, ~${formatRate(
-              orphanWarning.estimatedCostUsd
-            )}`}
+            {t("screens4_8.workers.orphanWarning.details", {
+              count: orphanWarning.liveCount,
+              rate: formatRate(orphanWarning.estimatedCostUsd, i18n.language, t)
+            })}
           </AlertBanner>
         )}
 
-        <FlexColumn className="scrollable-content" gap={2} sx={{ mt: 2 }}>
+        <FlexColumn
+          className="scrollable-content"
+          gap={SPACING.md}
+          sx={{ mt: SPACING.md }}
+        >
           {instancesQuery.isLoading ? (
-            <FlexRow justify="center" sx={{ py: 4 }}>
+            <FlexRow justify="center" sx={{ py: SPACING.xl }}>
               <LoadingSpinner size="small" />
             </FlexRow>
           ) : shownInstances.length === 0 ? (
             <EmptyState
               size="small"
-              title="No workers running"
-              description="Start one to rent a GPU for your graphs."
+              title={t("screens4_8.workers.empty.title")}
+              description={t("screens4_8.workers.empty.description")}
             />
           ) : (
             shownInstances.map((instance) => (
@@ -585,10 +637,10 @@ const WorkersPanel: React.FC = () => {
         open={terminateTargetId !== null}
         onClose={closeTerminateConfirm}
         onConfirm={handleConfirmTerminate}
-        title="Terminate worker?"
-        content="Its volume and all cached models are permanently deleted. This stops all billing."
-        confirmText="Terminate"
-        cancelText="Cancel"
+        title={t("screens4_8.workers.terminate.title")}
+        content={t("screens4_8.workers.terminate.description")}
+        confirmText={t("screens4_8.workers.instance.terminate")}
+        cancelText={t("screens4_8.workers.common.cancel")}
         destructive
       />
     </FlexColumn>

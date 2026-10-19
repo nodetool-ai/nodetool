@@ -5,6 +5,7 @@
 
 import React from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Box, Caption, FlexRow, GAP } from "../ui_primitives";
 
@@ -23,6 +24,21 @@ export function SetupFooterField({
   children,
   width = SETUP_FOOTER_CONTROL_WIDTH
 }: SetupFooterFieldProps): React.ReactElement {
+  const { t } = useTranslation();
+  const translatedLabel =
+    label === "Model"
+      ? t("pass3_4.setupFooterField.labels.model")
+      : label === "Art"
+        ? t("pass3_4.setupFooterField.labels.art")
+        : label === "Image model"
+          ? t("pass3_4.setupFooterField.labels.imageModel")
+          : label === "Stills"
+            ? t("pass3_4.setupFooterField.labels.stills")
+            : label === "Brief model"
+              ? t("pass3_4.setupFooterField.labels.briefModel")
+              : label === "Music"
+                ? t("pass3_4.setupFooterField.labels.music")
+                : label;
   return (
     <FlexRow gap={GAP.tight} align="center">
       <Caption
@@ -31,7 +47,7 @@ export function SetupFooterField({
         component="span"
         sx={{ whiteSpace: "nowrap" }}
       >
-        {label}
+        {translatedLabel}
       </Caption>
       <Box sx={{ width, minWidth: 0 }}>{children}</Box>
     </FlexRow>

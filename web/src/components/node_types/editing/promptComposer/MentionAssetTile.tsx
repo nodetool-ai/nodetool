@@ -17,6 +17,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -241,6 +242,7 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = React.memo(({
   onRename,
   focusable = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const tileStyles = useMemo(() => styles(theme), [theme]);
   const kind = mediaKindOf(asset);
@@ -327,7 +329,9 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = React.memo(({
           <button
             type="button"
             className="rename-button"
-            aria-label={`Rename ${displayName}`}
+            aria-label={t("i18n-next34.assetMention.rename", {
+              name: displayName
+            })}
             onClick={(e) => {
               e.stopPropagation();
               startEditing();
@@ -343,7 +347,7 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = React.memo(({
             ref={inputRef}
             className={`name-input${error ? " error" : ""}`}
             value={draft}
-            aria-label="Asset name"
+            aria-label={t("i18n-next34.assetMention.assetName")}
             aria-invalid={error}
             onChange={(e) => {
               setDraft(e.target.value);

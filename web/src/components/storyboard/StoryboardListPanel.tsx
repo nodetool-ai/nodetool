@@ -1,6 +1,7 @@
 import AddIcon from "@mui/icons-material/AddOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -14,9 +15,9 @@ import {
   creationProjectId
 } from "../../stores/WorkspaceTabsStore";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
-import { notifyMutationError } from "../../utils/notifyMutationError";
 import { downgradeScriptsLinkedToBoard } from "../../lib/scriptStoryboardDowngrade";
 import {
   DocumentListPanel,
@@ -25,7 +26,17 @@ import {
   Tooltip
 } from "../ui_primitives";
 
+const notifyStoryboardMutationError = (message: string, error: unknown) => {
+  console.error("Storyboard mutation failed", error);
+  useNotificationStore.getState().addNotification({
+    type: "error",
+    content: message,
+    alert: true
+  });
+};
+
 export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
+  const { t } = useTranslation();
   const createStoryboard = useCreateStoryboard();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -35,14 +46,16 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
   const handleCreate = useCallback(async () => {
     try {
       const created = await createStoryboard.mutateAsync({
-        name: "Untitled storyboard",
+        name: t("i18n-cont-storyboard-04.storyboard.listPanel.untitled"),
         projectId: creationProjectId()
       });
       openTab({
         type: "storyboard",
         ref: created.id,
         mode: "edit",
-        title: created.name || "Untitled storyboard",
+        title:
+          created.name ||
+          t("i18n-cont-storyboard-04.storyboard.listPanel.untitled"),
         projectId: created.projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
@@ -50,14 +63,20 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
       }
       setVisibility(false);
     } catch (error) {
-      notifyMutationError("create the storyboard", error);
+      notifyStoryboardMutationError(
+        t("i18n-cont-storyboard-04.storyboard.listPanel.createError"),
+        error
+      );
     }
-  }, [createStoryboard, location.pathname, navigate, openTab, setVisibility]);
+  }, [createStoryboard, location.pathname, navigate, openTab, setVisibility, t]);
 
   return (
-    <Tooltip title="New storyboard" placement="right-start">
+    <Tooltip
+      title={t("i18n-cont-storyboard-04.storyboard.listPanel.newStoryboard")}
+      placement="right-start"
+    >
       <ToolbarIconButton
-        ariaLabel="New storyboard"
+        ariaLabel={t("i18n-cont-storyboard-04.storyboard.listPanel.newStoryboard")}
         onClick={() => void handleCreate()}
         disabled={createStoryboard.isPending}
         icon={<AddIcon />}
@@ -71,7 +90,8 @@ interface StoryboardListPanelProps {
 }
 
 const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
-  const { data, isLoading, isError, error } = useStoryboards(projectId);
+  const { t } = useTranslation();
+  const { data, isLoading, isError } = useStoryboards(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -88,7 +108,8 @@ const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
         type: "storyboard",
         ref: id,
         mode: "edit",
-        title: name || "Untitled storyboard",
+        title:
+          name || t("i18n-cont-storyboard-04.storyboard.listPanel.untitled"),
         projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
@@ -96,7 +117,7 @@ const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, projectId, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility, t]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -133,7 +154,9 @@ const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
       try {
         const source = await utils.storyboards.get.fetch({ id: item.id });
         const copy = await createStoryboard.mutateAsync({
-          name: `${source.name} (copy)`.substring(0, 200),
+          name: t("i18n-cont-storyboard-04.storyboard.listPanel.copyName", {
+            name: source.name
+          }).substring(0, 200),
           projectId: source.projectId
         });
         await updateStoryboard.mutateAsync({
@@ -141,10 +164,13 @@ const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
           document: source.document
         });
       } catch (error) {
-        notifyMutationError("duplicate the storyboard", error);
+        notifyStoryboardMutationError(
+          t("i18n-cont-storyboard-04.storyboard.listPanel.duplicateError"),
+          error
+        );
       }
     },
-    [utils, createStoryboard, updateStoryboard]
+    [utils, createStoryboard, updateStoryboard, t]
   );
 
   const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
@@ -180,20 +206,30 @@ const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
             }
           });
         },
-        onError: (error) => notifyMutationError("delete the storyboard", error)
+        onError: (error) =>
+          notifyStoryboardMutationError(
+            t("i18n-cont-storyboard-04.storyboard.listPanel.deleteError"),
+            error
+          )
       }
     );
-  }, [itemToDelete, deleteStoryboard, utils]);
+  }, [itemToDelete, deleteStoryboard, utils, t]);
 
   return (
     <DocumentListPanel
-      singular="storyboard"
-      plural="storyboards"
+      singular={t("i18n-cont-storyboard-04.storyboard.listPanel.singular")}
+      plural={t("i18n-cont-storyboard-04.storyboard.listPanel.plural")}
       documents={data}
       isLoading={isLoading}
       isError={isError}
-      errorMessage={error?.message}
-      emptyDescription="Create a new storyboard with the + button above."
+      errorMessage={
+        isError
+          ? t("i18n-cont-storyboard-04.storyboard.listPanel.loadErrorDescription")
+          : undefined
+      }
+      emptyDescription={t(
+        "i18n-cont-storyboard-04.storyboard.listPanel.emptyDescription"
+      )}
       deleteTarget={itemToDelete}
       onCancelDelete={() => setItemToDelete(null)}
       onConfirmDelete={handleConfirmDelete}
@@ -201,8 +237,12 @@ const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
         <ListPanelItem
           id={board.id}
           name={board.name}
-          fallbackName="Untitled storyboard"
-          renameLabel="Storyboard name"
+          fallbackName={t(
+            "i18n-cont-storyboard-04.storyboard.listPanel.untitled"
+          )}
+          renameLabel={t(
+            "i18n-cont-storyboard-04.storyboard.listPanel.nameLabel"
+          )}
           icon={DashboardOutlinedIcon}
           active={board.id === activeStoryboardId}
           editing={board.id === editingId}

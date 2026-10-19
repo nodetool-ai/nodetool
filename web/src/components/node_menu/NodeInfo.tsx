@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Tooltip, Text, Divider, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
@@ -183,6 +184,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   menuWidth = 300,
   showConnections = true
 }) => {
+  const { t } = useTranslation();
   const searchTerm = useNodeMenuStore((state) => state.searchTerm);
   const setSearchTerm = useNodeMenuStore((state) => state.setSearchTerm);
 
@@ -315,7 +317,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       {showConnections && (
         <div className="inputs-outputs">
           <div className="inputs">
-            <Text size="big">Inputs</Text>
+            <Text size="big">{t("i18n-next50-node-menu.nodeInfo.inputs")}</Text>
             {nodeMetadata.properties.map((property) => (
               <div key={property.name} className="item">
                 <Tooltip
@@ -347,7 +349,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
             ))}
           </div>
           <div className="outputs">
-            <Text size="big">Outputs</Text>
+            <Text size="big">{t("i18n-next50-node-menu.nodeInfo.outputs")}</Text>
             {nodeMetadata.outputs.map((property) => (
               <div key={property.name} className="item">
                 <Text className="property">{property.name}</Text>

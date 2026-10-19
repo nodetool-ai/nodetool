@@ -8,6 +8,7 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton, Button } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import { LoadingSpinner } from "./LoadingSpinner";
@@ -94,7 +95,7 @@ export const DownloadButton = memo(
     (
       {
         onClick,
-        tooltip = "Download",
+        tooltip,
         label,
         tooltipPlacement = "bottom",
         buttonSize = "small",
@@ -109,6 +110,8 @@ export const DownloadButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const tooltipText = tooltip ?? t("i18n-next85.uiPrimitives.download");
 
       const handleClick = useCallback(
         (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -131,7 +134,7 @@ export const DownloadButton = memo(
       if (label) {
         return (
           <Tooltip
-            title={tooltip}
+            title={tooltipText}
             enterDelay={TOOLTIP_ENTER_DELAY}
             enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
             placement={tooltipPlacement}
@@ -140,7 +143,7 @@ export const DownloadButton = memo(
             <Button
               ref={ref}
               tabIndex={tabIndex}
-              aria-label={tooltip}
+              aria-label={tooltipText}
               className={cn(
                 "download-button",
                 nodrag && editorClassNames.nodrag,
@@ -168,7 +171,7 @@ export const DownloadButton = memo(
 
       return (
         <Tooltip
-          title={tooltip}
+          title={tooltipText}
           enterDelay={TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
@@ -177,7 +180,7 @@ export const DownloadButton = memo(
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
-            aria-label={tooltip}
+            aria-label={tooltipText}
             className={cn(
               "download-button",
               nodrag && editorClassNames.nodrag,

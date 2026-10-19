@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { Asset } from "../../stores/ApiTypes";
@@ -48,6 +49,7 @@ const AssetFilmstrip = ({
   onNext,
   onThumbnail
 }: AssetFilmstripProps) => {
+  const { t } = useTranslation(undefined, { keyPrefix: "i18n-next57" });
   const renderThumb = ({ asset, index }: FilmstripThumb) => (
     <EditorButton
       className={`item ${compareSelectedId === asset.id ? "compare-selected" : ""}`}
@@ -65,7 +67,7 @@ const AssetFilmstrip = ({
         <>
           <ToolbarIconButton
             icon={<KeyboardArrowLeftIcon />}
-            tooltip="Previous asset"
+            tooltip={t("filmstrip.previousAsset")}
             onClick={onPrev}
             disabled={!strip.hasPrev}
             className="prev-next-button left"
@@ -73,7 +75,7 @@ const AssetFilmstrip = ({
           />
           <ToolbarIconButton
             icon={<KeyboardArrowRightIcon />}
-            tooltip="Next asset"
+            tooltip={t("filmstrip.nextAsset")}
             onClick={onNext}
             disabled={!strip.hasNext}
             className="prev-next-button right"

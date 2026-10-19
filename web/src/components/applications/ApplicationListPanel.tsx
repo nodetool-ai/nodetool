@@ -6,6 +6,7 @@ import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   isConcurrencyConflict,
@@ -60,6 +61,7 @@ const pickerStyles = (theme: Theme) =>
   });
 
 export const CreateApplicationButton = memo(function CreateApplicationButton() {
+  const { t } = useTranslation();
   const createApplication = useCreateApplication();
   const openApplication = useOpenApplication();
 
@@ -77,9 +79,12 @@ export const CreateApplicationButton = memo(function CreateApplicationButton() {
   }, [createApplication, openApplication]);
 
   return (
-    <Tooltip title="New app" placement="right-start">
+    <Tooltip
+      title={t("i18n-next30.applications.newApp")}
+      placement="right-start"
+    >
       <ToolbarIconButton
-        ariaLabel="New app"
+        ariaLabel={t("i18n-next30.applications.newApp")}
         onClick={() => void handleCreate()}
         disabled={createApplication.isPending}
         tabIndex={-1}
@@ -102,6 +107,7 @@ export const CreateApplicationFromWorkflowButton = memo(
   function CreateApplicationFromWorkflowButton({
     projectId
   }: CreateApplicationFromWorkflowButtonProps) {
+    const { t } = useTranslation();
     const theme = useTheme();
     const pickerCss = useMemo(() => pickerStyles(theme), [theme]);
     const [open, setOpen] = useState(false);
@@ -130,7 +136,7 @@ export const CreateApplicationFromWorkflowButton = memo(
           setCreateError(
             error instanceof Error
               ? error.message
-              : "Could not create the app from this workflow."
+              : t("i18n-next30.applications.createFromWorkflowError")
           );
         }
       },
@@ -141,9 +147,12 @@ export const CreateApplicationFromWorkflowButton = memo(
 
     return (
       <>
-        <Tooltip title="Create app from workflow" placement="right-start">
+        <Tooltip
+          title={t("i18n-next30.applications.createFromWorkflow")}
+          placement="right-start"
+        >
           <ToolbarIconButton
-            ariaLabel="Create app from workflow"
+            ariaLabel={t("i18n-next30.applications.createFromWorkflow")}
             onClick={() => setOpen(true)}
             tabIndex={-1}
             icon={<AccountTreeOutlinedIcon />}
@@ -155,20 +164,29 @@ export const CreateApplicationFromWorkflowButton = memo(
             setOpen(false);
             setCreateError(null);
           }}
-          title="Create app from workflow"
+          title={t("i18n-next30.applications.createFromWorkflow")}
         >
           <div css={pickerCss}>
             {createError ? (
-              <AlertBanner severity="error" title="Could not create app">
-                {createError} Select the workflow again to retry.
+              <AlertBanner
+                severity="error"
+                title={t("i18n-next30.applications.createAppErrorTitle")}
+              >
+                {t("i18n-next30.applications.createAppErrorRetry", {
+                  error: createError
+                })}
               </AlertBanner>
             ) : null}
             {isLoading ? (
-              <LoadingSpinner text="Loading workflows" />
+              <LoadingSpinner
+                text={t("i18n-next30.applications.loadingWorkflows")}
+              />
             ) : workflows.length === 0 ? (
               <EmptyState
-                title="No workflows"
-                description="Create a workflow first, then build an app on top of it."
+                title={t("i18n-next30.applications.noWorkflows")}
+                description={t(
+                  "i18n-next30.applications.noWorkflowsDescription"
+                )}
               />
             ) : (
               <FlexColumn className="workflow-options" gap={SPACING.micro}>
@@ -183,7 +201,8 @@ export const CreateApplicationFromWorkflowButton = memo(
                     }
                   >
                     <TruncatedText component="span">
-                      {workflow.name || "Untitled workflow"}
+                      {workflow.name ||
+                        t("i18n-next30.applications.untitledWorkflow")}
                     </TruncatedText>
                   </button>
                 ))}
@@ -201,6 +220,7 @@ interface ApplicationListPanelProps {
 }
 
 const ApplicationListPanel = ({ projectId }: ApplicationListPanelProps) => {
+  const { t } = useTranslation();
   const { data, isLoading, isError, error } = useApplications(projectId);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const openApplication = useOpenApplication();
@@ -240,8 +260,14 @@ const ApplicationListPanel = ({ projectId }: ApplicationListPanelProps) => {
               type: "error",
               alert: true,
               content: isConcurrencyConflict(error)
-                ? `"${current.name}" changed elsewhere — the rename to "${trimmed}" was not saved.`
-                : `Could not rename "${current.name}": ${error.message}`
+                ? t("i18n-next30.applications.renameConflict", {
+                    currentName: current.name,
+                    newName: trimmed
+                  })
+                : t("i18n-next30.applications.renameError", {
+                    name: current.name,
+                    error: error.message
+                  })
             });
             void utils.applications.list.invalidate();
           }
@@ -265,9 +291,13 @@ const ApplicationListPanel = ({ projectId }: ApplicationListPanelProps) => {
         addNotification({
           type: "error",
           alert: true,
-          content: `Could not duplicate "${item.name}": ${
-            error instanceof Error ? error.message : "unknown error"
-          }`
+          content: t("i18n-next30.applications.duplicateError", {
+            name: item.name,
+            error:
+              error instanceof Error
+                ? error.message
+                : t("i18n-next30.applications.unknownError")
+          })
         });
       }
     },
@@ -298,7 +328,7 @@ const ApplicationListPanel = ({ projectId }: ApplicationListPanelProps) => {
           addNotification({
             type: "error",
             alert: true,
-            content: `Could not delete "${name}": ${error.message}`
+            content: t("i18n-next30.applications.deleteError", { name, error: error.message })
           });
           void utils.applications.list.invalidate();
         }
@@ -308,13 +338,13 @@ const ApplicationListPanel = ({ projectId }: ApplicationListPanelProps) => {
 
   return (
     <DocumentListPanel
-      singular="app"
-      plural="apps"
+      singular={t("i18n-next100.applications.singular")}
+      plural={t("i18n-next100.applications.plural")}
       documents={data}
       isLoading={isLoading}
       isError={isError}
       errorMessage={error?.message}
-      emptyDescription="Create an app with the + button above, or scaffold one from a workflow."
+      emptyDescription={t("i18n-next30.applications.emptyDescription")}
       deleteTarget={itemToDelete}
       onCancelDelete={() => setItemToDelete(null)}
       onConfirmDelete={handleConfirmDelete}
@@ -323,12 +353,14 @@ const ApplicationListPanel = ({ projectId }: ApplicationListPanelProps) => {
           id={app.id}
           name={app.name}
           fallbackName={UNTITLED}
-          renameLabel="App name"
+          renameLabel={t("i18n-next30.applications.appName")}
           icon={DashboardCustomizeOutlinedIcon}
           secondary={
             app.operationCount === 1
-              ? "1 operation"
-              : `${app.operationCount} operations`
+              ? t("i18n-next30.applications.operationCount", { count: 1 })
+              : t("i18n-next30.applications.operationCount", {
+                  count: app.operationCount
+                })
           }
           active={app.id === activeApplicationId}
           editing={app.id === editingId}

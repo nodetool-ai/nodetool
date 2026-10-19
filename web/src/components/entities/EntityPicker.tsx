@@ -9,6 +9,7 @@
  * is made by sight rather than by name.
  */
 import React, { memo, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 
 import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
@@ -37,12 +38,12 @@ import {
 
 type KindFilter = "all" | EntityKind;
 
-const KIND_FILTERS: { value: KindFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "character", label: "Characters" },
-  { value: "location", label: "Locations" },
-  { value: "style", label: "Styles" },
-  { value: "prop", label: "Props" }
+const KIND_FILTERS: { value: KindFilter; key: string }[] = [
+  { value: "all", key: "all" },
+  { value: "character", key: "characters" },
+  { value: "location", key: "locations" },
+  { value: "style", key: "styles" },
+  { value: "prop", key: "props" }
 ];
 
 export interface EntityPickerProps {
@@ -74,8 +75,9 @@ const EntityPickCard: React.FC<{
   selected: boolean;
   onSelect: (entity: Entity) => void;
 }> = memo(({ entity, selected, onSelect }) => {
+  const { t } = useTranslation();
   const Icon = ENTITY_KIND_ICON[entity.kind];
-  const name = entity.name || "Untitled";
+  const name = entity.name || t("screens4_23.entities.untitled");
   return (
     <Tooltip title={entity.descriptor || name} describeChild>
       <Card
@@ -128,7 +130,7 @@ const EntityPickCard: React.FC<{
           </Text>
           <FlexRow>
             <Chip
-              label={entity.kind}
+              label={t(`screens4_23.entities.kinds.${entity.kind}`)}
               compact
               variant="outlined"
               color={ENTITY_KIND_COLOR[entity.kind]}
@@ -149,6 +151,7 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
   autoFocus = false,
   onCreateStarted
 }) => {
+  const { t, i18n } = useTranslation();
   const { data, isLoading } = useEntities();
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
@@ -173,8 +176,8 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
       <SearchInput
         value={query}
         onChange={setQuery}
-        placeholder="Search entities by name, kind, or tag"
-        ariaLabel="Search entities"
+        placeholder={t("screens4_23.entities.searchPlaceholder")}
+        ariaLabel={t("screens4_23.entities.searchLabel")}
         size="small"
         autoFocus={autoFocus}
         fullWidth
@@ -184,7 +187,7 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
         exclusive
         segmented
         size="small"
-        aria-label="Entity kind"
+        aria-label={t("screens4_23.entities.kindLabel")}
         onChange={(_, value: KindFilter | null) => {
           if (value) {
             setKind(value);
@@ -193,33 +196,33 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
       >
         {KIND_FILTERS.map((filter) => (
           <ToggleOption key={filter.value} value={filter.value}>
-            {filter.label}
+            {t(`screens4_23.entities.kindFilters.${filter.key}`)}
           </ToggleOption>
         ))}
       </ToggleGroup>
       <Box sx={{ height, overflowY: "auto" }}>
         {!library && isLoading ? (
-          <LoadingSpinner size="small" text="Loading entities" />
+          <LoadingSpinner size="small" text={t("screens4_23.entities.loading")} />
         ) : libraryEmpty ? (
           <EmptyState
             variant="empty"
-            title="No entities yet"
-            description="Characters, locations, styles, and props you create show up here."
-            actionText={handleCreate ? "New entity" : undefined}
+            title={t("screens4_23.entities.emptyTitle")}
+            description={t("screens4_23.entities.emptyPickerDescription")}
+            actionText={handleCreate ? t("screens4_23.entities.newEntity") : undefined}
             onAction={handleCreate}
             size="small"
           />
         ) : visible.length === 0 ? (
           <EmptyState
             variant="no-results"
-            title="No entities match"
-            description="Try another name, kind, or tag."
-            actionText={handleCreate ? "New entity" : undefined}
+            title={t("screens4_23.entities.noMatches")}
+            description={t("screens4_23.entities.noMatchesDescription")}
+            actionText={handleCreate ? t("screens4_23.entities.newEntity") : undefined}
             onAction={handleCreate}
             size="small"
           />
         ) : (
-          <AutoGrid minItemWidth={132} gap={SPACING.md} aria-label="Entities">
+          <AutoGrid minItemWidth={132} gap={SPACING.md} aria-label={t("screens4_23.entities.entitiesLabel")}>
             {visible.map((entity) => (
               <EntityPickCard
                 key={entity.id}
@@ -232,7 +235,12 @@ const EntityPickerInternal: React.FC<EntityPickerProps> = ({
         )}
       </Box>
       {selected.size > 0 && (
-        <Caption color="secondary">{selected.size} selected</Caption>
+        <Caption color="secondary">
+          {t("screens4_23.entities.selectedCount", {
+            count: selected.size,
+            formattedCount: new Intl.NumberFormat(i18n.resolvedLanguage).format(selected.size)
+          })}
+        </Caption>
       )}
     </FlexColumn>
   );

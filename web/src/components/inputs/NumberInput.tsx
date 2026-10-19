@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useCombo } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useTheme } from "@mui/material/styles";
@@ -72,6 +73,7 @@ export interface NumberInputState {
 }
 
 const NumberInput: React.FC<InputProps> = (props) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const hasBounds =
     props.min != null && props.max != null;
@@ -400,7 +402,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
               <button
                 type="button"
                 className="step-button"
-                aria-label={`Decrease ${stepLabelTarget}`}
+                aria-label={t("i18n-next49-color-inputs.numberInput.decrease", { name: stepLabelTarget })}
                 onMouseDown={handleStepMouseDown}
                 onClick={handleStepChange(-1)}
               >
@@ -409,7 +411,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
               <button
                 type="button"
                 className="step-button"
-                aria-label={`Increase ${stepLabelTarget}`}
+                aria-label={t("i18n-next49-color-inputs.numberInput.increase", { name: stepLabelTarget })}
                 onMouseDown={handleStepMouseDown}
                 onClick={handleStepChange(1)}
               >

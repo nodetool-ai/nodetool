@@ -10,6 +10,7 @@
  */
 
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -37,6 +38,7 @@ function providerLabel(provider: string): string {
 }
 
 const IntegrationLinkPage = () => {
+  const { t } = useTranslation();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const code = params.get("code") ?? "";
@@ -76,19 +78,21 @@ const IntegrationLinkPage = () => {
       <Card variant="outlined" padding="comfortable" sx={{ maxWidth: 480 }}>
         <FlexColumn gap={SPACING.lg}>
           {describe.isLoading && !expired && (
-            <LoadingSpinner text="Checking this link" />
+            <LoadingSpinner
+              text={t("screens4_0.settings.integrationLink.checkingLink")}
+            />
           )}
 
           {expired && (
             <>
               <AlertBanner severity="error">
-                This link code has expired or was already used. Send the bot
+                {t("screens4_0.settings.integrationLink.expiredCodeStart")}
                 <strong> /link </strong>
-                again to get a new one.
+                {t("screens4_0.settings.integrationLink.expiredCodeEnd")}
               </AlertBanner>
               <FlexRow>
                 <EditorButton variant="outlined" onClick={handleDone}>
-                  Back to NodeTool
+                  {t("screens4_0.settings.integrationLink.backToNodeTool")}
                 </EditorButton>
               </FlexRow>
             </>
@@ -97,16 +101,17 @@ const IntegrationLinkPage = () => {
           {describe.data && !confirm.isSuccess && (
             <>
               <Text weight={500}>
-                Link {providerLabel(describe.data.provider)} account{" "}
-                {describe.data.external_id}?
+                {t("screens4_0.settings.integrationLink.confirmLinkQuestion", {
+                  provider: providerLabel(describe.data.provider),
+                  id: describe.data.external_id
+                })}
               </Text>
               <Caption>
-                It will run as your NodeTool account — your threads, assets,
-                secrets, and budget.
+                {t("screens4_0.settings.integrationLink.confirmLinkDescription")}
               </Caption>
               {confirm.isError && (
                 <AlertBanner severity="error">
-                  Could not complete the link. The code may have just expired.
+                  {t("screens4_0.settings.integrationLink.confirmLinkFailed")}
                 </AlertBanner>
               )}
               <FlexRow gap={SPACING.md}>
@@ -116,10 +121,10 @@ const IntegrationLinkPage = () => {
                   disabled={confirm.isPending}
                   onClick={handleConfirm}
                 >
-                  Confirm
+                  {t("screens4_0.settings.integrationLink.confirm")}
                 </EditorButton>
                 <EditorButton variant="text" onClick={handleDone}>
-                  Cancel
+                  {t("screens4_0.settings.integrationLink.cancel")}
                 </EditorButton>
               </FlexRow>
             </>
@@ -128,13 +133,14 @@ const IntegrationLinkPage = () => {
           {confirm.isSuccess && (
             <>
               <AlertBanner severity="success">
-                {providerLabel(describe.data?.provider ?? "")} account{" "}
-                {confirm.data.external_id} is linked. Go back to the chat and
-                say hello.
+                {t("screens4_0.settings.integrationLink.linkSucceeded", {
+                  provider: providerLabel(describe.data?.provider ?? ""),
+                  id: confirm.data.external_id
+                })}
               </AlertBanner>
               <FlexRow>
                 <EditorButton variant="outlined" onClick={handleDone}>
-                  Back to NodeTool
+                  {t("screens4_0.settings.integrationLink.backToNodeTool")}
                 </EditorButton>
               </FlexRow>
             </>

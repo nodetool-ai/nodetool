@@ -7,6 +7,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 import type { Layer } from "../types";
 
@@ -19,9 +20,9 @@ import {
 } from "../../ui_primitives";
 import { LAYER_STATUS_MAP } from "./layerStatusMapping";
 
-function formatTimestamp(isoString: string): string {
+function formatTimestamp(isoString: string, locale: string): string {
   try {
-    return new Date(isoString).toLocaleString(undefined, {
+    return new Date(isoString).toLocaleString(locale, {
       dateStyle: "short",
       timeStyle: "short"
     });
@@ -37,6 +38,7 @@ interface GeneratedLayerHeaderProps {
 
 export const GeneratedLayerHeader: React.FC<GeneratedLayerHeaderProps> = memo(
   ({ layer, binding }) => {
+    const { t, i18n } = useTranslation();
     const visual = LAYER_STATUS_MAP[binding.status];
     const latestVersion =
       binding.versions[binding.versions.length - 1] ?? null;
@@ -49,17 +51,27 @@ export const GeneratedLayerHeader: React.FC<GeneratedLayerHeaderProps> = memo(
           </Label>
           <StatusIndicator
             status={visual.status}
-            label={visual.label}
+            label={t(
+              `screens4_26.sketch.generatedLayerHeader.status.${binding.status}`,
+              { defaultValue: visual.label }
+            )}
             pulse={visual.pulse}
             size="small"
           />
         </FlexRow>
 
-        <Caption color="secondary">Generated layer</Caption>
+        <Caption color="secondary">
+          {t("screens4_26.sketch.generatedLayerHeader.generatedLayer")}
+        </Caption>
 
         {latestVersion && (
           <Caption color="secondary">
-            Generated: {formatTimestamp(latestVersion.createdAt)}
+            {t("screens4_26.sketch.generatedLayerHeader.generatedAt", {
+              timestamp: formatTimestamp(
+                latestVersion.createdAt,
+                i18n.language
+              )
+            })}
           </Caption>
         )}
       </FlexColumn>

@@ -8,6 +8,8 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 import {
   Box,
@@ -47,13 +49,22 @@ const CUSTOM_FIELD_WIDTH = 200;
 const LENGTH_CARD_WIDTH = 96;
 
 /** What the field holds while it is being typed, and what it means. */
-const customSecondsError = (draft: string): string | null => {
+const customSecondsError = (
+  draft: string,
+  t: TFunction
+): string | null => {
   const value = Number(draft.trim());
   if (draft.trim() === "" || !Number.isInteger(value)) {
-    return `Enter a whole number of seconds, ${MIN_CUSTOM_SECONDS}–${MAX_CUSTOM_SECONDS}.`;
+    return t("pass3_8.script.format.customLength.wholeNumberError", {
+      min: MIN_CUSTOM_SECONDS,
+      max: MAX_CUSTOM_SECONDS
+    });
   }
   if (value < MIN_CUSTOM_SECONDS || value > MAX_CUSTOM_SECONDS) {
-    return `Scripts run between ${MIN_CUSTOM_SECONDS} seconds and ${MAX_CUSTOM_SECONDS / 60} minutes.`;
+    return t("pass3_8.script.format.customLength.rangeError", {
+      minSeconds: MIN_CUSTOM_SECONDS,
+      maxMinutes: MAX_CUSTOM_SECONDS / 60
+    });
   }
   return null;
 };
@@ -70,16 +81,17 @@ export const WriterModelFooterField: React.FC<{
   scriptId: string;
   readOnly?: boolean;
 }> = ({ scriptId, readOnly = false }) => {
+  const { t } = useTranslation();
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
   const chatModel = useGlobalChatStore((state) => state.selectedModel);
   const writerModel = setup?.writer_model ?? chatModel;
   return (
-    <SetupFooterField label="Model">
+    <SetupFooterField label={t("pass3_8.script.format.modelLabel")}>
       <LanguageModelSelect
         value={writerModel?.id ?? ""}
         provider={writerModel?.provider}
-        placeholder="Writer model"
+        placeholder={t("pass3_8.script.format.writerModelPlaceholder")}
         disabled={readOnly}
         onChange={(value) => {
           if (readOnly) {
@@ -99,6 +111,7 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
   onValidationChange,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
   const seconds = setup?.length_seconds ?? DEFAULT_LENGTH_SECONDS;
@@ -121,10 +134,13 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
 
   const formatCards = useMemo(
     () =>
-      readOnly
-        ? FORMAT_CARDS.map((card) => ({ ...card, disabled: true }))
-        : FORMAT_CARDS,
-    [readOnly]
+      FORMAT_CARDS.map((card) => ({
+        ...card,
+        title: t(`pass3_8.script.format.cards.${card.id}.title`),
+        description: t(`pass3_8.script.format.cards.${card.id}.description`),
+        disabled: readOnly || card.disabled
+      })),
+    [readOnly, t]
   );
 
   const startCustom = useCallback(() => {
@@ -141,12 +157,23 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
     () => [
       ...LENGTH_CHOICES.map((choice) => ({
         id: choice.id,
-        label: choice.label,
+        label:
+          choice.seconds < 60
+            ? t("pass3_8.script.format.length.secondsShort", {
+                count: choice.seconds
+              })
+            : t("pass3_8.script.format.length.minutesShort", {
+                count: choice.seconds / 60
+              }),
         disabled: readOnly
       })),
-      { id: CUSTOM_LENGTH_ID, label: "Custom", disabled: readOnly }
+      {
+        id: CUSTOM_LENGTH_ID,
+        label: t("pass3_8.script.format.length.custom"),
+        disabled: readOnly
+      }
     ],
-    [readOnly]
+    [readOnly, t]
   );
 
   const selectedLengthId = custom
@@ -188,13 +215,13 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
   // Confirmed on blur, and only when it means something: an unreadable draft
   // leaves the document's length alone and says why under the field.
   const commitCustom = useCallback(() => {
-    if (readOnly || customSecondsError(customDraft) !== null) {
+    if (readOnly || customSecondsError(customDraft, t) !== null) {
       return;
     }
     setSetup(scriptId, { length_seconds: Number(customDraft) });
-  }, [customDraft, readOnly, scriptId, setSetup]);
+  }, [customDraft, readOnly, scriptId, setSetup, t]);
 
-  const customError = custom ? customSecondsError(customDraft) : null;
+  const customError = custom ? customSecondsError(customDraft, t) : null;
 
   useEffect(() => {
     onValidationChange?.(customError);
@@ -217,15 +244,15 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
     <FlexColumn gap={GAP.spacious}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Choose your format
+          {t("pass3_8.script.format.heading")}
         </Text>
         <Text size="normal" color="secondary">
-          It sets who speaks and how the script is laid out.
+          {t("pass3_8.script.format.description")}
         </Text>
       </FlexColumn>
 
       <OptionCardGrid
-        label="Format"
+        label={t("pass3_8.script.format.groupLabel")}
         options={formatCards}
         selectedId={setup?.format ?? null}
         onSelect={selectFormat}
@@ -236,8 +263,13 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
             options — four cards announcing themselves as independent toggles
             described the wrong control (F26). The seconds field is not one of
             the options and stays outside the group. */}
-        <FormField label="How long should it run?">
-          <FlexRow role="radiogroup" aria-label="Length" gap={GAP.normal} wrap>
+        <FormField label={t("pass3_8.script.format.length.label")}>
+          <FlexRow
+            role="radiogroup"
+            aria-label={t("pass3_8.script.format.length.groupLabel")}
+            gap={GAP.normal}
+            wrap
+          >
             {lengthOptions.map((option) => {
               const radio = radioProps(option);
               return (
@@ -260,7 +292,7 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
           <Box sx={{ width: CUSTOM_FIELD_WIDTH }}>
             <TextInput
               type="number"
-              label="Custom seconds"
+              label={t("pass3_8.script.format.customLength.label")}
               value={customDraft}
               slotProps={{
                 htmlInput: {
@@ -269,10 +301,13 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({
                   step: 1
                 }
               }}
-              placeholder="Custom"
+              placeholder={t("pass3_8.script.format.length.custom")}
               disabled={readOnly}
               errorMessage={customError ?? undefined}
-              helperText={`${MIN_CUSTOM_SECONDS}–${MAX_CUSTOM_SECONDS} seconds`}
+              helperText={t("pass3_8.script.format.customLength.helper", {
+                min: MIN_CUSTOM_SECONDS,
+                max: MAX_CUSTOM_SECONDS
+              })}
               onChange={handleCustom}
               onBlur={commitCustom}
               onKeyDown={handleCustomKeyDown}

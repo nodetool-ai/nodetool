@@ -20,6 +20,7 @@ import {
   MOTION,
   BORDER_RADIUS
 } from "../ui_primitives";
+import { useTranslation } from "react-i18next";
 
 const logoButtonStyles = (theme: Theme) =>
   css({
@@ -65,6 +66,7 @@ interface RailAppMenuProps {
  * browse sheet (AppPagesList), so the top row carries one menu, not two.
  */
 const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -136,13 +138,13 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
 
   return (
     <>
-      <Tooltip title="Menu" placement="right-start">
+      <Tooltip title={t("batch2_3.navigation.menu")} placement="right-start">
         <button
           ref={anchorRef}
           type="button"
           css={logoButtonStyles(theme)}
           className="rail-app-logo"
-          aria-label="Open app menu"
+          aria-label={t("batch2_3.navigation.openMenu")}
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}

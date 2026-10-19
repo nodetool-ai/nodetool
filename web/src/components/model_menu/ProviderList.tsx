@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -568,6 +569,7 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
   orientation = "vertical",
   quickViews
 }) => {
+  const { t } = useTranslation();
   const selected = storeHook((s) => s.selectedProvider);
   const setSelected = storeHook((s) => s.setSelectedProvider);
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
@@ -682,9 +684,9 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
         dimmed={!enabled}
         tooltip={
           !enabled
-            ? "Disabled. Right-click to enable it"
+            ? t("screen_modelMenu.disabledRightClickToEnable")
             : !hasKey
-              ? "Add an API key to use these models. Right-click for options"
+              ? t("screen_modelMenu.addApiKeyRightClickForOptions")
               : undefined
         }
         count={modelCounts.get(p)}
@@ -692,7 +694,7 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
           enabled && !hasKey ? (
             <WarningAmberIcon
               className="model-menu__provider-missing-key-icon"
-              aria-label="API key required"
+              aria-label={t("screen_modelMenu.apiKeyRequired")}
               sx={{ width: 14, height: 14, color: "warning.main", flexShrink: 0 }}
             />
           ) : undefined
@@ -706,12 +708,12 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
       css={isHorizontal ? horizontalListStyles : listStyles}
       className={`model-menu__providers-list ${isHorizontal ? "is-horizontal" : ""}`}
       role="navigation"
-      aria-label="Model sources"
+      aria-label={t("screen_modelMenu.modelSources")}
     >
       <ModelMenuNavItem
         className="model-menu__provider-item model-menu__provider-item--all"
         orientation={orientation}
-        label={isHorizontal ? "All" : "All models"}
+        label={isHorizontal ? t("screen_modelMenu.all") : t("screen_modelMenu.allModels")}
         icon={<AppsIcon />}
         selected={selected === null && !forceUnselect}
         onClick={handleSelectNull}
@@ -720,7 +722,7 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
       {quickViews}
       {!isHorizontal && cloudList.length > 0 && (
         <SectionHeader
-          title="Cloud"
+          title={t("screen_modelMenu.cloud")}
           size="small"
           sx={{ px: SPACING.md, pt: SPACING.md, pb: SPACING.xs }}
         />
@@ -732,13 +734,13 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
       )}
       {isError && (
         <Box className="model-menu__providers-error">
-          <EmptyState variant="error" size="small" title="Providers did not load" />
+          <EmptyState variant="error" size="small" title={t("screen_modelMenu.providersDidNotLoad")} />
         </Box>
       )}
       {cloudList.map(renderProvider)}
       {localList.length > 0 && !isHorizontal && (
         <SectionHeader
-          title="Local"
+          title={t("screen_modelMenu.local")}
           size="small"
           sx={{ px: SPACING.md, pt: SPACING.md, pb: SPACING.xs }}
         />
@@ -746,7 +748,7 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
       {localList.map(renderProvider)}
       {disabledList.length > 0 && !isHorizontal && (
         <SectionHeader
-          title="Disabled"
+          title={t("screen_modelMenu.disabled")}
           size="small"
           sx={{ px: SPACING.md, pt: SPACING.md, pb: SPACING.xs }}
         />
@@ -759,18 +761,18 @@ const ProviderList: React.FC<ProviderListProps> = React.memo(({
         onClose={handleMenuClose}
       >
         {menuNeedsKey && (
-          <MenuItemPrimitive label="Add API key…" onClick={handleAddKey} />
+          <MenuItemPrimitive label={t("screen_modelMenu.addApiKeyEllipsis")} onClick={handleAddKey} />
         )}
         <MenuItemPrimitive
           label={
             menuProvider && isProviderEnabled(menuProvider)
-              ? "Disable provider"
-              : "Enable provider"
+              ? t("screen_modelMenu.disableProvider")
+              : t("screen_modelMenu.enableProvider")
           }
           onClick={handleToggleProvider}
         />
         <MenuItemPrimitive
-          label="Open provider website"
+          label={t("screen_modelMenu.openProviderWebsite")}
           disabled={!menuProvider || !getProviderUrl(menuProvider)}
           onClick={handleOpenWebsite}
         />

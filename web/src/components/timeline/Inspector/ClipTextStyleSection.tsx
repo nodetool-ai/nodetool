@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import TitleOutlinedIcon from "@mui/icons-material/TitleOutlined";
 import type { ClipTextStyle, ShapeFill, TimelineClip } from "@nodetool-ai/timeline";
 
@@ -34,44 +35,6 @@ import { parseFiniteNumber } from "./InspectorPrimitives.helpers";
 import { FillFields } from "./InspectorMotionFields";
 import { FontPicker } from "./FontPicker";
 
-const TEXT_ALIGNMENTS = [
-  { value: "left", label: "Left" },
-  { value: "center", label: "Center" },
-  { value: "right", label: "Right" }
-] as const;
-
-const VERTICAL_ALIGNMENTS = [
-  { value: "top", label: "Top" },
-  { value: "middle", label: "Middle" },
-  { value: "bottom", label: "Bottom" }
-] as const;
-
-const FONT_WEIGHTS = [
-  { value: "100", label: "Thin (100)" },
-  { value: "200", label: "Extra light (200)" },
-  { value: "300", label: "Light (300)" },
-  { value: "400", label: "Regular (400)" },
-  { value: "500", label: "Medium (500)" },
-  { value: "600", label: "Semibold (600)" },
-  { value: "700", label: "Bold (700)" },
-  { value: "800", label: "Extra bold (800)" },
-  { value: "900", label: "Black (900)" }
-] as const;
-
-/**
- * The weight menu, plus the stored weight when it is off the 100 grid (an
- * agent or an import can write 450), so the select still shows what renders.
- */
-const fontWeightOptions = (weight: number) =>
-  FONT_WEIGHTS.some((option) => option.value === String(weight))
-    ? FONT_WEIGHTS
-    : [...FONT_WEIGHTS, { value: String(weight), label: `Custom (${weight})` }];
-
-const FONT_STYLES = [
-  { value: "normal", label: "Normal" },
-  { value: "italic", label: "Italic" }
-] as const;
-
 // These colours are drawn into the exported frame by the compositor, not into
 // the editor's chrome: a palette token would make the render follow the user's
 // theme. They are document defaults, so they stay literal.
@@ -89,8 +52,6 @@ const DEFAULT_BACKGROUND = { color: "#000000", paddingPx: 16, radiusPx: 8 };
 const SCRUB_PX = { step: 1 };
 const SCRUB_UNIT = { step: 0.01, min: 0 };
 
-const TEXT_CONTENT_INPUT_PROPS = { "aria-label": "Text content" };
-
 interface ClipTextStyleSectionProps {
   clip: TimelineClip;
   textStyle: ClipTextStyle;
@@ -98,6 +59,7 @@ interface ClipTextStyleSectionProps {
 
 export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
   ({ clip, textStyle }) => {
+    const { t } = useTranslation();
     const patchClip = useTimelineStore((s) => s.patchClip);
     const [open, setOpen] = usePersistedFold("text");
 
@@ -141,6 +103,36 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
       },
       [patchStyle]
     );
+
+    const textAlignments = [
+      { value: "left", label: t("pass3_26.timelineInspector.text.alignments.left") },
+      { value: "center", label: t("pass3_26.timelineInspector.text.alignments.center") },
+      { value: "right", label: t("pass3_26.timelineInspector.text.alignments.right") }
+    ];
+    const verticalAlignments = [
+      { value: "top", label: t("pass3_26.timelineInspector.text.verticalAlignments.top") },
+      { value: "middle", label: t("pass3_26.timelineInspector.text.verticalAlignments.middle") },
+      { value: "bottom", label: t("pass3_26.timelineInspector.text.verticalAlignments.bottom") }
+    ];
+    const fontWeights = [
+      { value: "100", label: t("pass3_26.timelineInspector.text.weights.thin") },
+      { value: "200", label: t("pass3_26.timelineInspector.text.weights.extraLight") },
+      { value: "300", label: t("pass3_26.timelineInspector.text.weights.light") },
+      { value: "400", label: t("pass3_26.timelineInspector.text.weights.regular") },
+      { value: "500", label: t("pass3_26.timelineInspector.text.weights.medium") },
+      { value: "600", label: t("pass3_26.timelineInspector.text.weights.semibold") },
+      { value: "700", label: t("pass3_26.timelineInspector.text.weights.bold") },
+      { value: "800", label: t("pass3_26.timelineInspector.text.weights.extraBold") },
+      { value: "900", label: t("pass3_26.timelineInspector.text.weights.black") }
+    ];
+    const weightOptions = (weight: number) =>
+      fontWeights.some((option) => option.value === String(weight))
+        ? fontWeights
+        : [...fontWeights, { value: String(weight), label: t("pass3_26.timelineInspector.text.weights.custom", { weight }) }];
+    const fontStyles = [
+      { value: "normal", label: t("pass3_26.timelineInspector.text.styles.normal") },
+      { value: "italic", label: t("pass3_26.timelineInspector.text.styles.italic") }
+    ];
 
     const handleFillChange = useCallback(
       (fill: ShapeFill | undefined) => patchStyle({ fill }),
@@ -310,7 +302,7 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
       <>
         <CollapsibleSection
           title={
-            <InspectorSectionTitle title="Text" icon={<TitleOutlinedIcon />} />
+            <InspectorSectionTitle title={t("pass3_26.timelineInspector.text.title")} icon={<TitleOutlinedIcon />} />
           }
           open={open}
           onToggle={setOpen}
@@ -324,144 +316,144 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
               onChange={handleTextChange}
               onFocus={handleTextFocus}
               onBlur={handleTextBlur}
-              inputProps={TEXT_CONTENT_INPUT_PROPS}
+              inputProps={{ "aria-label": t("pass3_26.timelineInspector.text.content") }}
             />
-            <InspectorRow label="Font">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.font")}>
               <FontPicker
-                label="Text font family"
+                label={t("pass3_26.timelineInspector.text.fontFamily")}
                 value={textStyle.fontFamily}
                 onChange={handleFontFamilyChange}
               />
             </InspectorRow>
-            <InspectorRow label="Font size">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.fontSize")}>
               <InspectorPillInput
                 value={String(textStyle.fontSizePx)}
                 unit="px"
                 scrub={SCRUB_PX}
                 onCommit={handleFontSizeCommit}
-                ariaLabel="Text font size"
+                ariaLabel={t("pass3_26.timelineInspector.text.fontSize")}
               />
             </InspectorRow>
-            <InspectorRow label="Weight">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.weight")}>
               <InspectorSelect
-                label="Text font weight"
+                label={t("pass3_26.timelineInspector.text.fontWeight")}
                 value={String(textStyle.fontWeight ?? 400)}
-                options={fontWeightOptions(textStyle.fontWeight ?? 400)}
+                options={weightOptions(textStyle.fontWeight ?? 400)}
                 onChange={handleFontWeightChange}
               />
             </InspectorRow>
-            <InspectorRow label="Style">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.style")}>
               <InspectorSelect
-                label="Text font style"
+                label={t("pass3_26.timelineInspector.text.fontStyle")}
                 value={textStyle.fontStyle ?? "normal"}
-                options={FONT_STYLES}
+                options={fontStyles}
                 onChange={handleFontStyleChange}
               />
             </InspectorRow>
-            <InspectorRow label="Color">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.color")}>
               <BatchedColorInput
                 value={textStyle.color}
                 onChange={handleColorChange}
-                ariaLabel="Text color"
+                ariaLabel={t("pass3_26.timelineInspector.text.color")}
               />
             </InspectorRow>
-            <InspectorRow label="Align">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.align")}>
               <InspectorSelect
-                label="Text alignment"
+                label={t("pass3_26.timelineInspector.text.alignment")}
                 value={textStyle.align ?? "center"}
-                options={TEXT_ALIGNMENTS}
+                options={textAlignments}
                 onChange={handleAlignChange}
               />
             </InspectorRow>
-            <InspectorRow label="Vertical align">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.verticalAlign")}>
               <InspectorSelect
-                label="Text vertical alignment"
+                label={t("pass3_26.timelineInspector.text.verticalAlignment")}
                 value={textStyle.verticalAlign ?? "middle"}
-                options={VERTICAL_ALIGNMENTS}
+                options={verticalAlignments}
                 onChange={handleVerticalAlignChange}
               />
             </InspectorRow>
-            <InspectorRow label="Letter spacing">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.letterSpacing")}>
               <InspectorPillInput
                 value={String(textStyle.letterSpacingPx ?? 0)}
                 unit="px"
                 scrub={SCRUB_PX}
                 onCommit={handleLetterSpacingCommit}
-                ariaLabel="Text letter spacing"
+                ariaLabel={t("pass3_26.timelineInspector.text.letterSpacing")}
               />
             </InspectorRow>
-            <InspectorRow label="Line height">
+            <InspectorRow label={t("pass3_26.timelineInspector.text.lineHeight")}>
               <InspectorPillInput
                 value={(textStyle.lineHeight ?? 1.2).toFixed(2)}
                 unit="×"
                 scrub={SCRUB_UNIT}
                 onCommit={handleLineHeightCommit}
-                ariaLabel="Text line height"
+                ariaLabel={t("pass3_26.timelineInspector.text.lineHeight")}
               />
             </InspectorRow>
 
             <InspectorToggleRow
-              label="Strikethrough"
+              label={t("pass3_26.timelineInspector.text.strikethrough")}
               checked={textStyle.strikethrough === true}
               onChange={handleStrikethroughToggle}
             />
             <InspectorToggleRow
-              label="Stroke"
+              label={t("pass3_26.timelineInspector.text.stroke")}
               checked={textStyle.stroke !== undefined}
               onChange={handleStrokeToggle}
             />
             {textStyle.stroke && (
               <>
-                <InspectorRow label="Stroke color">
+                <InspectorRow label={t("pass3_26.timelineInspector.text.strokeColor")}>
                   <BatchedColorInput
                     value={textStyle.stroke.color}
                     onChange={handleStrokeColorChange}
-                    ariaLabel="Text stroke color"
+                    ariaLabel={t("pass3_26.timelineInspector.text.strokeColor")}
                   />
                 </InspectorRow>
-                <InspectorRow label="Stroke width">
+                <InspectorRow label={t("pass3_26.timelineInspector.text.strokeWidth")}>
                   <InspectorPillInput
                     value={String(textStyle.stroke.widthPx)}
                     unit="px"
                     scrub={SCRUB_PX}
                     onCommit={handleStrokeWidthCommit}
-                    ariaLabel="Text stroke width"
+                    ariaLabel={t("pass3_26.timelineInspector.text.strokeWidth")}
                   />
                 </InspectorRow>
               </>
             )}
 
             <InspectorToggleRow
-              label="Shadow"
+              label={t("pass3_26.timelineInspector.text.shadow")}
               checked={textStyle.shadow !== undefined}
               onChange={handleShadowToggle}
             />
             {textStyle.shadow && (
               <>
-                <InspectorRow label="Shadow color">
+                <InspectorRow label={t("pass3_26.timelineInspector.text.shadowColor")}>
                   <BatchedColorInput
                     value={textStyle.shadow.color}
                     onChange={handleShadowColorChange}
-                    ariaLabel="Text shadow color"
+                    ariaLabel={t("pass3_26.timelineInspector.text.shadowColor")}
                   />
                 </InspectorRow>
-                <InspectorRow label="Shadow blur">
+                <InspectorRow label={t("pass3_26.timelineInspector.text.shadowBlur")}>
                   <InspectorPillInput
                     value={String(textStyle.shadow.blurPx)}
                     unit="px"
                     scrub={SCRUB_PX}
                     onCommit={handleShadowBlurCommit}
-                    ariaLabel="Text shadow blur"
+                    ariaLabel={t("pass3_26.timelineInspector.text.shadowBlur")}
                   />
                 </InspectorRow>
-                <InspectorRow label="Shadow offset">
+                <InspectorRow label={t("pass3_26.timelineInspector.text.shadowOffset")}>
                   <InspectorPillInput
                     value={String(textStyle.shadow.offsetX)}
                     unit="px"
                     minWidth={64}
                     scrub={SCRUB_PX}
                     onCommit={handleShadowOffsetXCommit}
-                    ariaLabel="Text shadow offset X"
+                    ariaLabel={t("pass3_26.timelineInspector.text.shadowOffsetX")}
                   />
                   <InspectorPillInput
                     value={String(textStyle.shadow.offsetY)}
@@ -469,42 +461,42 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
                     minWidth={64}
                     scrub={SCRUB_PX}
                     onCommit={handleShadowOffsetYCommit}
-                    ariaLabel="Text shadow offset Y"
+                    ariaLabel={t("pass3_26.timelineInspector.text.shadowOffsetY")}
                   />
                 </InspectorRow>
               </>
             )}
 
             <InspectorToggleRow
-              label="Background"
+              label={t("pass3_26.timelineInspector.text.background")}
               checked={textStyle.background !== undefined}
               onChange={handleBackgroundToggle}
             />
             {textStyle.background && (
               <>
-                <InspectorRow label="Background color">
+                <InspectorRow label={t("pass3_26.timelineInspector.text.backgroundColor")}>
                   <BatchedColorInput
                     value={textStyle.background.color}
                     onChange={handleBackgroundColorChange}
-                    ariaLabel="Text background color"
+                    ariaLabel={t("pass3_26.timelineInspector.text.backgroundColor")}
                   />
                 </InspectorRow>
-                <InspectorRow label="Background padding">
+                <InspectorRow label={t("pass3_26.timelineInspector.text.backgroundPadding")}>
                   <InspectorPillInput
                     value={String(textStyle.background.paddingPx)}
                     unit="px"
                     scrub={SCRUB_PX}
                     onCommit={handleBackgroundPaddingCommit}
-                    ariaLabel="Text background padding"
+                    ariaLabel={t("pass3_26.timelineInspector.text.backgroundPadding")}
                   />
                 </InspectorRow>
-                <InspectorRow label="Background radius">
+                <InspectorRow label={t("pass3_26.timelineInspector.text.backgroundRadius")}>
                   <InspectorPillInput
                     value={String(textStyle.background.radiusPx ?? 0)}
                     unit="px"
                     scrub={SCRUB_PX}
                     onCommit={handleBackgroundRadiusCommit}
-                    ariaLabel="Text background radius"
+                    ariaLabel={t("pass3_26.timelineInspector.text.backgroundRadius")}
                   />
                 </InspectorRow>
               </>
@@ -512,11 +504,11 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
 
             <FillFields
               fill={textStyle.fill}
-              labelPrefix="Text fill"
+              labelPrefix={t("pass3_26.timelineInspector.text.fill")}
               onChange={handleFillChange}
             />
             <Caption color="muted">
-              A gradient fill is drawn instead of the color above.
+              {t("pass3_26.timelineInspector.text.gradientHelp")}
             </Caption>
           </FlexColumn>
         </CollapsibleSection>

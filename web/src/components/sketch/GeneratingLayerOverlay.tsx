@@ -12,6 +12,7 @@
  */
 
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchInstance";
@@ -41,8 +42,10 @@ const aabbOf = (corners: ReadonlyArray<{ x: number; y: number }>): Rect => {
   };
 };
 
-const MagicBox = ({ rect }: { rect: Rect }) => (
+const MagicBox = ({ rect, label }: { rect: Rect; label: string }) => (
   <div
+    role="img"
+    aria-label={label}
     style={{
       position: "absolute",
       left: rect.x,
@@ -56,6 +59,7 @@ const MagicBox = ({ rect }: { rect: Rect }) => (
 );
 
 const GeneratingLayerOverlay = memo(function GeneratingLayerOverlay() {
+  const { t } = useTranslation();
   const layers = useSketchStore((s) => s.document.layers);
   const canvas = useSketchStore((s) => s.document.canvas);
   const bindings = useSketchSessionStore((s) => s.bindings);
@@ -90,7 +94,11 @@ const GeneratingLayerOverlay = memo(function GeneratingLayerOverlay() {
   return (
     <>
       {boxes.map(({ id, rect }) => (
-        <MagicBox key={id} rect={rect} />
+        <MagicBox
+          key={id}
+          rect={rect}
+          label={t("screens4_24.sketch.generatingLayer")}
+        />
       ))}
     </>
   );

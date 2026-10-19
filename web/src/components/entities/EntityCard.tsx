@@ -5,6 +5,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -34,6 +35,7 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
   onEdit,
   onRemove
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const referenceImage = entity.reference_images?.[0];
 
@@ -67,20 +69,20 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
               sx={{ width: "100%", height: "100%" }}
             >
               <Caption sx={{ color: theme.vars.palette.text.disabled }}>
-                No image
+                {t("screens4_22.entities.noImage")}
               </Caption>
             </FlexRow>
           }
         />
       </div>
 
-      <FlexColumn gap={SPACING.xs} sx={{ p: 1 }}>
-        <FlexRow align="center" justify="space-between" gap={0.5}>
+      <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.xs }}>
+        <FlexRow align="center" justify="space-between" gap={SPACING.micro}>
           <TruncatedText sx={{ ...TYPOGRAPHY.sans.label }}>
-            {entity.name || "Untitled"}
+            {entity.name || t("screens4_22.entities.untitled")}
           </TruncatedText>
           <Chip
-            label={entity.kind}
+            label={t(`screens4_22.entities.kinds.${entity.kind}`)}
             compact
             variant="outlined"
             color={ENTITY_KIND_COLOR[entity.kind]}
@@ -100,11 +102,14 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
           {entity.descriptor}
         </Caption>
 
-        <FlexRow gap={0.5} justify="flex-end">
+        <FlexRow gap={SPACING.micro} justify="flex-end">
           {onEdit && (
             <ToolbarIconButton
               size="small"
-              title="Edit entity"
+              title={t("screens4_22.entities.editEntity")}
+              ariaLabel={t("screens4_22.entities.editEntityFor", {
+                name: entity.name || t("screens4_22.entities.untitled")
+              })}
               onClick={handleEdit}
             >
               <EditIcon fontSize="small" />
@@ -113,7 +118,10 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
           {onRemove && (
             <ToolbarIconButton
               size="small"
-              title="Remove entity"
+              title={t("screens4_22.entities.removeEntity")}
+              ariaLabel={t("screens4_22.entities.removeEntityFor", {
+                name: entity.name || t("screens4_22.entities.untitled")
+              })}
               onClick={handleRemove}
             >
               <DeleteOutlineIcon fontSize="small" />

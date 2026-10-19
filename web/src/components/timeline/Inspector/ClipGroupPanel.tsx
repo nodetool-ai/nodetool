@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import type { TimelineClip } from "@nodetool-ai/timeline";
@@ -45,6 +46,7 @@ interface ClipGroupPanelProps {
 
 export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
   ({ clip, onUngroup }) => {
+    const { t } = useTranslation();
     const [timingOpen, setTimingOpen] = usePersistedFold("timing");
     const [groupOpen, setGroupOpen] = usePersistedFold("group", true);
     const patchClip = useTimelineStore((s) => s.patchClip);
@@ -100,7 +102,7 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Group"
+              title={t("pass3_24.timeline.groupPanel.group")}
               icon={<FolderOutlinedIcon />}
             />
           }
@@ -109,24 +111,22 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
           unmountOnExit
         >
           <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-            <InspectorRow label="Name">
+            <InspectorRow label={t("pass3_24.timeline.groupPanel.name")}>
               <InspectorPillInput
                 value={clip.name}
                 minWidth={140}
                 onCommit={handleName}
-                ariaLabel="Group name"
+                ariaLabel={t("pass3_24.timeline.groupPanel.groupNameAriaLabel")}
               />
             </InspectorRow>
-            <InspectorRow label="Children">
+            <InspectorRow label={t("pass3_24.timeline.groupPanel.children")}>
               <InspectorStaticValue value={String(childCount)} />
             </InspectorRow>
             <Caption color="muted">
-              A group draws nothing. Its transform, opacity and window apply to
-              every clip that names it as a parent; each child keeps its own
-              track, so layer order is unchanged.
+              {t("pass3_24.timeline.groupPanel.groupDescription")}
             </Caption>
             <Button size="small" variant="outlined" onClick={onUngroup}>
-              Ungroup
+              {t("pass3_24.timeline.groupPanel.ungroup")}
             </Button>
           </FlexColumn>
         </CollapsibleSection>
@@ -136,7 +136,7 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Timing"
+              title={t("pass3_24.timeline.groupPanel.timing")}
               icon={<ScheduleOutlinedIcon />}
             />
           }
@@ -145,33 +145,32 @@ export const ClipGroupPanel: React.FC<ClipGroupPanelProps> = memo(
           unmountOnExit
         >
           <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-            <InspectorRow label="Start">
+            <InspectorRow label={t("pass3_24.timeline.groupPanel.start")}>
               <InspectorPillInput
                 value={formatTimecode(clip.startMs, fps)}
                 minWidth={112}
                 onCommit={handleStart}
                 disabled={timingLocked}
-                ariaLabel="Start timecode"
+                ariaLabel={t("pass3_24.timeline.groupPanel.startTimecodeAriaLabel")}
               />
             </InspectorRow>
-            <InspectorRow label="Duration">
+            <InspectorRow label={t("pass3_24.timeline.groupPanel.duration")}>
               <InspectorPillInput
                 value={(clip.durationMs / 1000).toFixed(2)}
                 unit="s"
                 scrub={SCRUB_DURATION}
                 onCommit={handleDuration}
                 disabled={timingLocked}
-                ariaLabel="Duration in seconds"
+                ariaLabel={t("pass3_24.timeline.groupPanel.durationSecondsAriaLabel")}
               />
             </InspectorRow>
             <InspectorToggleRow
-              label="Hidden"
+              label={t("pass3_24.timeline.groupPanel.hidden")}
               checked={!!clip.hidden}
               onChange={handleHidden}
             />
             <Caption color="muted">
-              Trimming the group pulls its children inside the window that
-              leaves.
+              {t("pass3_24.timeline.groupPanel.trimHint")}
             </Caption>
           </FlexColumn>
         </CollapsibleSection>

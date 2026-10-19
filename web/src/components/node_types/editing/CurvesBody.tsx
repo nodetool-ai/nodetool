@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -146,6 +147,7 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(
     () => [styles(theme), adjustmentSliderStyles(theme)],
@@ -189,12 +191,12 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
 
       <div className="section">
         <FlexRow className="section-header" align="center" justify="space-between">
-          <span className="section-title">Tonal</span>
+          <span className="section-title">{t("i18n-next80.curves.tonal")}</span>
           <StateIconButton
             size="small"
             icon={<RestartAltIcon fontSize="small" />}
-            tooltip="Reset all curves"
-            ariaLabel="Reset all curves"
+            tooltip={t("i18n-next80.curves.reset")}
+            ariaLabel={t("i18n-next80.curves.reset")}
             onClick={handleReset}
           />
         </FlexRow>
@@ -205,7 +207,7 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
             return (
               <AdjustmentSlider
                 key={spec.name}
-                spec={spec}
+                spec={{ ...spec, label: t(`i18n-next80.curves.sliders.${spec.name}`) }}
                 value={value}
                 onChange={handleChange}
                 onCommit={setPropertyComplete}
@@ -217,7 +219,7 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
 
       <div className="section">
         <FlexRow className="section-header" align="center" justify="space-between">
-          <span className="section-title">RGB Midtones</span>
+          <span className="section-title">{t("i18n-next80.curves.rgbMidtones")}</span>
         </FlexRow>
         <div className="controls">
           {RGB_SLIDERS.map((spec) => {
@@ -226,7 +228,7 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
             return (
               <AdjustmentSlider
                 key={spec.name}
-                spec={spec}
+                spec={{ ...spec, label: t(`i18n-next80.curves.sliders.${spec.name}`) }}
                 value={value}
                 onChange={handleChange}
                 onCommit={setPropertyComplete}

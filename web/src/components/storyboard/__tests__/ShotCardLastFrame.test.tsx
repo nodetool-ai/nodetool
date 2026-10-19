@@ -114,7 +114,7 @@ it("makes the previous shot's last frame this shot's current still", async () =>
 
   await openMenu();
   await userEvent.click(
-    screen.getByRole("menuitem", { name: "Use last frame of shot 1" })
+    screen.getByRole("menuitem", { name: "Use the last frame of shot 1" })
   );
 
   await waitFor(() =>
@@ -136,7 +136,7 @@ it("disables the item while the previous shot has no clip", async () => {
 
   await openMenu();
   expect(
-    screen.getByRole("menuitem", { name: /Use last frame of shot 1/ })
+    screen.getByRole("menuitem", { name: /Use the last frame of shot 1/ })
   ).toHaveAttribute("aria-disabled", "true");
 });
 

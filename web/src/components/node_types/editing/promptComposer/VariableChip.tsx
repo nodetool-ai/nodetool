@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -30,6 +31,7 @@ const chipStyles = (theme: Theme, known: boolean) =>
   });
 
 export const VariableChip: React.FC<{ expr: string }> = ({ expr }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { knownVariables, graphVariables } = usePromptComposerContext();
   // The leading identifier (before any filter) is the variable name.
@@ -39,9 +41,9 @@ export const VariableChip: React.FC<{ expr: string }> = ({ expr }) => {
   const known = isInput || isGraphVariable;
   const title = known
     ? isGraphVariable && !isInput
-      ? `Variable "${name}" — set by a Set Variable node`
-      : `Variable "${name}"`
-    : `"${name}" has no matching input — add it as a variable or set it with a Set Variable node`;
+      ? t("i18n-next81.promptComposer.graphVariableTitle", { name })
+      : t("i18n-next81.promptComposer.variableTitle", { name })
+    : t("i18n-next81.promptComposer.missingInputTitle", { name });
   return (
     <span
       css={chipStyles(theme, known)}

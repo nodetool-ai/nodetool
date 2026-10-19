@@ -14,6 +14,7 @@ import {
   type MouseEvent,
   type Ref
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
@@ -58,6 +59,7 @@ export function NodeTextPreview({
   sx,
   ref
 }: NodeTextPreviewProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const padY = theme.editor.padYNode;
 
@@ -82,7 +84,9 @@ export function NodeTextPreview({
     <Box
       ref={ref}
       role="button"
-      aria-label={ariaLabel}
+      aria-label={
+        ariaLabel || t("i18n-next60.editorUi.textPreview.editText")
+      }
       tabIndex={tabIndex}
       className={cn("node-text-preview", className)}
       onClick={handleClick}

@@ -2,6 +2,7 @@
 /** Timeline document actions rendered in the workspace tab row. */
 
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Caption,
@@ -70,7 +71,8 @@ interface TopBarProps {
 /** Autosave state of one sequence, as the caption beside Save reads it. */
 const useSaveStateLabel = (
   sequenceId: string | undefined,
-  isSaving: boolean
+  isSaving: boolean,
+  t: (key: string) => string
 ): string | null => {
   const key = sequenceId ? `timeline:${sequenceId}` : null;
   const autosaving = useDocumentDraftStore((s) =>
@@ -80,8 +82,8 @@ const useSaveStateLabel = (
     key ? Boolean(s.dirtyTabs[key]) : false
   );
   if (!key) return null;
-  if (isSaving || autosaving) return "Saving…";
-  return dirty ? "Unsaved changes" : "Saved";
+  if (isSaving || autosaving) return t("i18n-next6.topBar.saving");
+  return dirty ? t("i18n-next6.topBar.unsavedChanges") : t("i18n-next6.topBar.saved");
 };
 
 export const TopBar: React.FC<TopBarProps> = memo(
@@ -111,11 +113,12 @@ export const TopBar: React.FC<TopBarProps> = memo(
     onSetDawMode,
     dawMode = false
   }) => {
+    const { t } = useTranslation();
     const keyboardPreset = useSettingsStore(
       (s) => s.settings.timelineKeyboardPreset
     );
     const dawShortcut = formatActionShortcut(keyboardPreset, "toggleDawMode");
-    const saveStateLabel = useSaveStateLabel(sequenceId, isSaving);
+    const saveStateLabel = useSaveStateLabel(sequenceId, isSaving, t);
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
     const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(
       null
@@ -141,7 +144,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {activitySlot}
         {onSetDawMode && (
           <Tooltip
-            title={`Video layout or DAW mode for audio work${dawShortcut ? ` (${dawShortcut})` : ""}`}
+            title={t("i18n-next6.topBar.layoutTooltip", { shortcut: dawShortcut ? ` (${dawShortcut})` : "" })}
           >
             <ToggleGroup
               value={dawMode ? "daw" : "video"}
@@ -150,13 +153,13 @@ export const TopBar: React.FC<TopBarProps> = memo(
               onChange={(_event, value: string | null) => {
                 if (value === "daw" || value === "video") onSetDawMode(value === "daw");
               }}
-              aria-label="Editor layout"
+              aria-label={t("i18n-next6.topBar.editorLayout")}
             >
-              <ToggleOption value="video" aria-label="Video layout">
-                Video
+              <ToggleOption value="video" aria-label={t("i18n-next6.topBar.videoLayout")}>
+                {t("i18n-next6.topBar.video")}
               </ToggleOption>
-              <ToggleOption value="daw" aria-label="DAW mode">
-                DAW
+              <ToggleOption value="daw" aria-label={t("i18n-next6.topBar.dawMode")}>
+                {t("i18n-next6.topBar.daw")}
               </ToggleOption>
             </ToggleGroup>
           </Tooltip>
@@ -165,8 +168,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {onToggleTranscript && (
           <ToolbarIconButton
             onClick={onToggleTranscript}
-            tooltip={transcriptVisible ? "Hide transcript" : "Show transcript"}
-            aria-label={transcriptVisible ? "Hide transcript" : "Show transcript"}
+            tooltip={transcriptVisible ? t("i18n-next6.topBar.hideTranscript") : t("i18n-next6.topBar.showTranscript")}
+            aria-label={transcriptVisible ? t("i18n-next6.topBar.hideTranscript") : t("i18n-next6.topBar.showTranscript")}
             aria-pressed={transcriptVisible}
             sx={{ color: transcriptVisible ? "primary.main" : undefined }}
           >
@@ -176,8 +179,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {onToggleSidePanel && (
           <ToolbarIconButton
             onClick={onToggleSidePanel}
-            tooltip={sidePanelVisible ? "Hide side panel" : "Show side panel"}
-            aria-label={sidePanelVisible ? "Hide side panel" : "Show side panel"}
+            tooltip={sidePanelVisible ? t("i18n-next6.topBar.hideSidePanel") : t("i18n-next6.topBar.showSidePanel")}
+            aria-label={sidePanelVisible ? t("i18n-next6.topBar.hideSidePanel") : t("i18n-next6.topBar.showSidePanel")}
             aria-pressed={sidePanelVisible}
             sx={{ color: sidePanelVisible ? "primary.main" : undefined }}
           >
@@ -187,8 +190,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {hasCode && onOpenCode && (
           <ToolbarIconButton
             onClick={onOpenCode}
-            tooltip="Code"
-            aria-label="Open the timeline's code"
+            tooltip={t("i18n-next6.topBar.code")}
+            aria-label={t("i18n-next6.topBar.openTimelineCode")}
           >
             <CodeIcon fontSize="small" />
           </ToolbarIconButton>
@@ -207,8 +210,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
           <ToolbarIconButton
             onClick={onSave}
             disabled={isSaving}
-            tooltip={isSaving ? "Saving…" : "Save"}
-            aria-label={isSaving ? "Saving…" : "Save"}
+            tooltip={isSaving ? t("i18n-next6.topBar.saving") : t("i18n-next6.common.save")}
+            aria-label={isSaving ? t("i18n-next6.topBar.saving") : t("i18n-next6.common.save")}
           >
             <SaveIcon fontSize="small" />
           </ToolbarIconButton>
@@ -217,8 +220,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
           <ToolbarIconButton
             onClick={onExportVideo}
             disabled={isExporting}
-            tooltip={isExporting ? "Exporting…" : "Export video"}
-            aria-label={isExporting ? "Exporting…" : "Export video"}
+            tooltip={isExporting ? t("i18n-next6.topBar.exporting") : t("i18n-next6.topBar.exportVideo")}
+            aria-label={isExporting ? t("i18n-next6.topBar.exporting") : t("i18n-next6.topBar.exportVideo")}
           >
             <FileDownloadIcon fontSize="small" />
           </ToolbarIconButton>
@@ -228,8 +231,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
             <ToolbarIconButton
               ref={overflowButtonRef}
               onClick={(event) => setOverflowAnchor(event.currentTarget)}
-              tooltip="More timeline actions"
-              aria-label="More timeline actions"
+              tooltip={t("i18n-next6.topBar.moreTimelineActions")}
+              aria-label={t("i18n-next6.topBar.moreTimelineActions")}
               aria-haspopup="menu"
               aria-expanded={!!overflowAnchor}
             >
@@ -243,21 +246,21 @@ export const TopBar: React.FC<TopBarProps> = memo(
               {onOpenSettings && (
                 <MenuItemPrimitive
                   icon={<TuneIcon fontSize="small" />}
-                  label="Project settings"
+                  label={t("i18n-next6.topBar.projectSettings")}
                   onClick={runFromMenu(onOpenSettings)}
                 />
               )}
               {onAdaptFormat && (
                 <MenuItemPrimitive
                   icon={<AspectRatioOutlinedIcon fontSize="small" />}
-                  label="Adapt format"
+                  label={t("i18n-next6.topBar.adaptFormat")}
                   onClick={runFromMenu(onAdaptFormat)}
                 />
               )}
               {onSaveToAssets && (
                 <MenuItemPrimitive
                   icon={<VideoLibraryOutlinedIcon fontSize="small" />}
-                  label="Save as asset"
+                  label={t("i18n-next6.topBar.saveAsAsset")}
                   disabled={isExporting}
                   onClick={runFromMenu(() => {
                     const anchor = overflowButtonRef.current;
@@ -269,7 +272,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
                 <MenuItemPrimitive
                   icon={<FolderZipOutlinedIcon fontSize="small" />}
                   label={
-                    isExportingBundle ? "Exporting…" : "Export project (.zip)"
+                    isExportingBundle ? t("i18n-next6.topBar.exporting") : t("i18n-next6.topBar.exportProjectZip")
                   }
                   disabled={isExportingBundle}
                   onClick={runFromMenu(onExportBundle)}
@@ -280,8 +283,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
                   icon={<MovieCreationOutlinedIcon fontSize="small" />}
                   label={
                     isExportingPremiere
-                      ? "Exporting for Premiere…"
-                      : "Export for Premiere Pro"
+                      ? t("i18n-next6.topBar.exportingForPremiere")
+                      : t("i18n-next6.topBar.exportForPremiere")
                   }
                   disabled={isExportingPremiere}
                   onClick={runFromMenu(onExportPremiere)}
@@ -291,7 +294,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
                 <MenuItemPrimitive
                   icon={<PermMediaOutlinedIcon fontSize="small" />}
                   label={
-                    isExportingMedia ? "Exporting media…" : "Export media (.zip)"
+                    isExportingMedia ? t("i18n-next6.topBar.exportingMedia") : t("i18n-next6.topBar.exportMediaZip")
                   }
                   disabled={isExportingMedia}
                   onClick={runFromMenu(onExportMedia)}

@@ -22,6 +22,7 @@
  * <DemoPlayer> directly — but it is handy for quick visual checks.
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ReactDOM from "react-dom/client";
 
 import { DemoPlayer } from "./demo/DemoPlayer";
@@ -36,6 +37,7 @@ import type { ChatDemoCast } from "./demo/chat/chatCastTypes";
 import { TimelineDemoPlayer } from "./demo/timeline/TimelineDemoPlayer";
 import { timelineCasts } from "./demo/timeline/casts";
 import type { TimelineDemoCast } from "./demo/timeline/timelineCastTypes";
+import TranslationProvider from "./contexts/TranslationProvider";
 
 interface NodetoolDemoApi {
   ready: boolean;
@@ -128,6 +130,7 @@ const START_MS = Number(params.get("t") ?? 0) || 0;
 const BARE = params.get("bare") === "1";
 
 function App(): React.JSX.Element {
+  const { t } = useTranslation();
   const [preview, setPreview] = useState<PreviewCast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timeMs, setTimeMs] = useState(START_MS);
@@ -192,7 +195,7 @@ function App(): React.JSX.Element {
   if (!preview) {
     return (
       <div style={styles.center} data-ready="false">
-        Loading…
+        {t("i18n-next120.demo.loading")}
       </div>
     );
   }
@@ -260,4 +263,8 @@ const styles: Record<string, React.CSSProperties> = {
 };
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
-root.render(<App />);
+root.render(
+  <TranslationProvider>
+    <App />
+  </TranslationProvider>
+);

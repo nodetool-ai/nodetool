@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 import type { ModelSource } from "../../../stores/ModelManagerStore";
 
@@ -18,6 +19,7 @@ const SourceToggleInternal: React.FC<SourceToggleProps> = ({
   source,
   onChange
 }) => {
+  const { t } = useTranslation();
   const handleChange = useCallback(
     (_e: React.MouseEvent<HTMLElement>, value: ModelSource | null) => {
       if (value) {
@@ -33,19 +35,19 @@ const SourceToggleInternal: React.FC<SourceToggleProps> = ({
       exclusive
       segmented
       onChange={handleChange}
-      aria-label="model source"
+      aria-label={t("i18n-next29.source.ariaLabel")}
     >
-      <ToggleOption value="onboarding" aria-label="get started">
-        Get started
+      <ToggleOption value="onboarding" aria-label={t("i18n-next29.source.getStarted")}>
+        {t("i18n-next29.source.getStarted")}
       </ToggleOption>
-      <ToggleOption value="installed" aria-label="installed models">
-        Installed
+      <ToggleOption value="installed" aria-label={t("i18n-next29.source.installed")}>
+        {t("i18n-next29.source.installed")}
       </ToggleOption>
-      <ToggleOption value="recommended" aria-label="recommended models">
-        Recommended
+      <ToggleOption value="recommended" aria-label={t("i18n-next29.source.recommended")}>
+        {t("i18n-next29.source.recommended")}
       </ToggleOption>
-      <ToggleOption value="hub" aria-label="search hugging face hub">
-        Hub
+      <ToggleOption value="hub" aria-label={t("i18n-next29.source.hubAriaLabel")}>
+        {t("i18n-next29.source.hub")}
       </ToggleOption>
     </ToggleGroup>
   );

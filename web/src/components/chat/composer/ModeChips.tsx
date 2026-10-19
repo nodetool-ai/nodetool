@@ -7,6 +7,7 @@
  * "close everything on mode change" effect: there is nothing left to close.
  */
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import AppsIcon from "@mui/icons-material/Apps";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
@@ -82,21 +83,6 @@ const { strengthOptions: STRENGTH_OPTIONS, stepsOptions: STEPS_OPTIONS } =
   buildImageEditOptions();
 
 /** Whether the first reference video's own audio survives into the result. */
-const REFERENCE_AUDIO_OPTIONS: MediaOption<string>[] = [
-  {
-    id: "off",
-    label: "Model audio",
-    description: "let the model score the clip",
-    icon: <VolumeUpIcon fontSize="small" />
-  },
-  {
-    id: "on",
-    label: "Reference audio",
-    description: "keep the reference video's track",
-    icon: <VolumeUpIcon fontSize="small" />
-  }
-];
-
 interface ModeChipsProps {
   mode: MediaMode;
   /** Lets the composer open the mode's model picker when a send is refused. */
@@ -108,6 +94,7 @@ interface ClusterProps {
 }
 
 function MusicModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.music);
   const setParams = useMediaGenerationStore((s) => s.setMusicParams);
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
@@ -130,7 +117,7 @@ function MusicModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<AudiotrackIcon fontSize="small" />}
-        label={params.model?.name || "Select music model"}
+        label={params.model?.name || t("i18n-next54.composer.selectMusicModel")}
         picker={{
           kind: "music",
           onPick: handlePickMusic
@@ -139,11 +126,11 @@ function MusicModeChips({ openModelPickerRef }: ClusterProps) {
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
-        label={`${params.duration} Sec`}
-        header="Target duration"
-        title={`Target duration: ${params.duration} seconds. The model may adjust or ignore this.`}
+        label={t("i18n-next54.composer.durationSeconds", { count: params.duration })}
+        header={t("i18n-next54.composer.targetDuration")}
+        title={t("i18n-next54.composer.targetDurationTitle", { seconds: params.duration })}
         value={params.duration}
-        options={MUSIC_DURATIONS.map((id) => ({ id, label: `${id} Sec` }))}
+        options={MUSIC_DURATIONS.map((id) => ({ id, label: t("i18n-next54.composer.durationSeconds", { count: id }) }))}
         onChange={(duration) => setParams({ duration })}
       />
     </>
@@ -151,6 +138,7 @@ function MusicModeChips({ openModelPickerRef }: ClusterProps) {
 }
 
 function ImageModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.image);
   const setParams = useMediaGenerationStore((s) => s.setImageParams);
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
@@ -164,7 +152,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={null}
-        label={params.model?.name || "Select model"}
+        label={params.model?.name || t("i18n-next54.composer.selectModel")}
         picker={{
           kind: "image",
           task: "text_to_image",
@@ -178,7 +166,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Image resolution"
+        header={t("i18n-next54.composer.imageResolution")}
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -195,7 +183,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AppsIcon fontSize="small" />}
         label={`${params.variations}`}
-        header="Number of variations"
+        header={t("i18n-next54.composer.numberOfVariations")}
         value={params.variations}
         options={VARIATIONS_OPTIONS}
         onChange={(variations) => setParams({ variations })}
@@ -205,6 +193,7 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
 }
 
 function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.imageEdit);
   const setParams = useMediaGenerationStore((s) => s.setImageEditParams);
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
@@ -218,7 +207,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<AutoFixHighIcon fontSize="small" />}
-        label={params.model?.name || "Select edit model"}
+        label={params.model?.name || t("i18n-next54.composer.selectEditModel")}
         picker={{
           kind: "image",
           task: "image_to_image",
@@ -250,7 +239,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Image resolution"
+        header={t("i18n-next54.composer.imageResolution")}
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -266,8 +255,8 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
       <OptionChip
         menu="option"
         icon={<TuneIcon fontSize="small" />}
-        label={`Strength ${params.strength.toFixed(2)}`}
-        header="Edit strength"
+        label={t("i18n-next54.composer.strength", { value: params.strength.toFixed(2) })}
+        header={t("i18n-next54.composer.editStrength")}
         value={params.strength}
         options={STRENGTH_OPTIONS}
         onChange={(strength) => setParams({ strength })}
@@ -275,8 +264,8 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
       <OptionChip
         menu="option"
         icon={<LayersIcon fontSize="small" />}
-        label={`${params.numInferenceSteps} steps`}
-        header="Inference steps"
+        label={t("i18n-next54.composer.steps", { count: params.numInferenceSteps })}
+        header={t("i18n-next54.composer.inferenceSteps")}
         value={params.numInferenceSteps}
         options={STEPS_OPTIONS}
         onChange={(numInferenceSteps) => setParams({ numInferenceSteps })}
@@ -285,7 +274,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AppsIcon fontSize="small" />}
         label={`${params.variations}`}
-        header="Number of variations"
+        header={t("i18n-next54.composer.numberOfVariations")}
         value={params.variations}
         options={VARIATIONS_OPTIONS}
         onChange={(variations) => setParams({ variations })}
@@ -295,6 +284,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
 }
 
 function VideoModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.video);
   const setParams = useMediaGenerationStore((s) => s.setVideoParams);
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
@@ -308,7 +298,7 @@ function VideoModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<MovieIcon fontSize="small" />}
-        label={params.model?.name || "Select video model"}
+        label={params.model?.name || t("i18n-next54.composer.selectVideoModel")}
         picker={{
           kind: "video",
           task: "text_to_video",
@@ -321,7 +311,7 @@ function VideoModeChips({ openModelPickerRef }: ClusterProps) {
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
-        label={`${params.duration} Sec`}
+        label={t("i18n-next54.composer.durationSeconds", { count: params.duration })}
         value={params.duration}
         options={durationOptions}
         onChange={(duration) => setParams({ duration })}
@@ -330,7 +320,7 @@ function VideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Video resolution"
+        header={t("i18n-next54.composer.videoResolution")}
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -348,6 +338,7 @@ function VideoModeChips({ openModelPickerRef }: ClusterProps) {
 }
 
 function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.imageToVideo);
   const setParams = useMediaGenerationStore((s) => s.setImageToVideoParams);
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
@@ -361,7 +352,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<MovieFilterIcon fontSize="small" />}
-        label={params.model?.name || "Select I2V model"}
+        label={params.model?.name || t("i18n-next54.composer.selectI2VModel")}
         picker={{
           kind: "video",
           task: "image_to_video",
@@ -393,7 +384,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
         label={`${params.duration} Sec`}
-        header="Clip duration"
+        header={t("i18n-next54.composer.clipDuration")}
         value={params.duration}
         options={durationOptions}
         onChange={(duration) => setParams({ duration })}
@@ -402,7 +393,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Video resolution"
+        header={t("i18n-next54.composer.videoResolution")}
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -418,8 +409,8 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
       <OptionChip
         menu="option"
         icon={<LayersIcon fontSize="small" />}
-        label={`${params.numInferenceSteps} steps`}
-        header="Inference steps"
+        label={t("i18n-next54.composer.steps", { count: params.numInferenceSteps })}
+        header={t("i18n-next54.composer.inferenceSteps")}
         value={params.numInferenceSteps}
         options={STEPS_OPTIONS}
         onChange={(numInferenceSteps) => setParams({ numInferenceSteps })}
@@ -429,6 +420,11 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
 }
 
 function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
+  const referenceAudioOptions: MediaOption<string>[] = [
+    { id: "off", label: t("i18n-next54.composer.modelAudio"), description: t("i18n-next54.composer.modelAudioDescription"), icon: <VolumeUpIcon fontSize="small" /> },
+    { id: "on", label: t("i18n-next54.composer.referenceAudio"), description: t("i18n-next54.composer.referenceAudioDescription"), icon: <VolumeUpIcon fontSize="small" /> }
+  ];
   const params = useMediaGenerationStore((s) => s.referenceToVideo);
   const setParams = useMediaGenerationStore((s) => s.setReferenceToVideoParams);
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
@@ -442,7 +438,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<BurstModeIcon fontSize="small" />}
-        label={params.model?.name || "Select reference model"}
+        label={params.model?.name || t("i18n-next54.composer.selectReferenceModel")}
         picker={{
           kind: "video",
           task: "reference_to_video",
@@ -455,8 +451,8 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
-        label={`${params.duration} Sec`}
-        header="Clip duration"
+        label={t("i18n-next54.composer.durationSeconds", { count: params.duration })}
+        header={t("i18n-next54.composer.clipDuration")}
         value={params.duration}
         options={durationOptions}
         onChange={(duration) => setParams({ duration })}
@@ -465,7 +461,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
         label={params.resolution}
-        header="Video resolution"
+        header={t("i18n-next54.composer.videoResolution")}
         value={params.resolution}
         options={resolutionOptions}
         onChange={(resolution) => setParams({ resolution })}
@@ -481,10 +477,10 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
       <OptionChip
         menu="option"
         icon={<VolumeUpIcon fontSize="small" />}
-        label={params.useReferenceVideoAudio ? "Reference audio" : "Model audio"}
-        header="Audio source"
+        label={params.useReferenceVideoAudio ? t("i18n-next54.composer.referenceAudio") : t("i18n-next54.composer.modelAudio")}
+        header={t("i18n-next54.composer.audioSource")}
         value={params.useReferenceVideoAudio ? "on" : "off"}
-        options={REFERENCE_AUDIO_OPTIONS}
+        options={referenceAudioOptions}
         onChange={(value) =>
           setParams({ useReferenceVideoAudio: value === "on" })
         }
@@ -494,6 +490,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
 }
 
 function AudioModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.audio);
   const setParams = useMediaGenerationStore((s) => s.setAudioParams);
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
@@ -514,7 +511,7 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
       <ModelChip
         openRef={openModelPickerRef}
         icon={<GraphicEqIcon fontSize="small" />}
-        label={params.model?.name || "Select TTS model"}
+        label={params.model?.name || t("i18n-next54.composer.selectTTSModel")}
         picker={{
           kind: "tts",
           onPick: (model) => {
@@ -529,9 +526,9 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
         label={
           params.voice
             ? params.voice.charAt(0).toUpperCase() + params.voice.slice(1)
-            : "Voice"
+            : t("i18n-next54.composer.voiceLabel")
         }
-        header="Voice"
+        header={t("i18n-next54.composer.voiceLabel")}
         value={params.voice}
         options={voiceOptions}
         onChange={(voice) => setParams({ voice })}
@@ -540,7 +537,7 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<SpeedIcon fontSize="small" />}
         label={`${params.speed}x`}
-        header="Speech rate"
+        header={t("i18n-next54.composer.speechRate")}
         value={params.speed}
         options={SPEED_OPTIONS}
         onChange={(speed) => setParams({ speed })}
@@ -549,7 +546,7 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
         menu="option"
         icon={<AudiotrackIcon fontSize="small" />}
         label={params.format.toUpperCase()}
-        header="Audio format"
+        header={t("i18n-next54.composer.audioFormat")}
         value={params.format}
         options={AUDIO_FORMAT_OPTIONS}
         onChange={(format) => setParams({ format })}

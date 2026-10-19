@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { Text, Box } from "../ui_primitives";
+import { useTranslation } from "react-i18next";
 interface VideoViewerProps {
   asset?: Asset;
   url?: string;
@@ -31,6 +32,7 @@ const styles = () =>
   });
 
 const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asset, url }) {
+  const { t } = useTranslation();
   return (
     <Box className="video-viewer" css={styles()}>
       <video
@@ -38,9 +40,9 @@ const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asse
         playsInline
         preload="metadata"
         src={asset?.get_url || url || ""}
-        aria-label={asset?.name || "Video"}
+        aria-label={asset?.name || t("screen_assets.viewer.video")}
       >
-        Your browser does not support the video element.
+        {t("screen_assets.viewer.videoUnsupported")}
       </video>
       <Text size="big" color="secondary">
         {asset?.name}

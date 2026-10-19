@@ -10,6 +10,7 @@
  */
 
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   chordName,
   createTimeOrderedUuid,
@@ -54,6 +55,7 @@ export interface ChordLaneBodyProps {
 }
 
 export function ChordLaneBody({ track, msPerPx }: ChordLaneBodyProps): React.JSX.Element {
+  const { t } = useTranslation();
   const tempoState = useTimelineStore((s) => s.tempo);
   const setTrackChords = useTimelineStore((s) => s.setTrackChords);
   const tempo = useMemo(() => resolveTempo({ tempo: tempoState }), [tempoState]);
@@ -203,7 +205,7 @@ export function ChordLaneBody({ track, msPerPx }: ChordLaneBodyProps): React.JSX
       ref={laneRef}
       className="fablesynth harmony-root harmony-lane"
       data-testid={`chord-lane-body-${track.id}`}
-      aria-label={`Chord track ${track.name}: click an empty spot to add a chord`}
+      aria-label={t("i18n-next77.harmony.chordLane.ariaLabel", { track: track.name })}
       onPointerDown={(e) => begin(e, { mode: "draw", fromTick: tickAt(e.clientX), startX: e.clientX, moved: false })}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -227,7 +229,7 @@ export function ChordLaneBody({ track, msPerPx }: ChordLaneBodyProps): React.JSX
             data-chord-id={c.id}
             className={`hl-chord${isSelected ? " selected" : ""}${draft ? " draft" : ""}`}
             style={{ left, width: Math.max(2, width - 1), "--hue": chordHue(c.root) } as React.CSSProperties}
-            aria-label={`${chordName(c)} chord`}
+            aria-label={t("i18n-next77.harmony.chordLane.chordAriaLabel", { chord: chordName(c) })}
             aria-pressed={isSelected}
             onPointerDown={(e) => {
               selectChord({ trackId: track.id, chordId: c.id });
@@ -268,14 +270,14 @@ export function ChordLaneBody({ track, msPerPx }: ChordLaneBodyProps): React.JSX
           </div>
         );
       })}
-      {!chords.length && <span className="hl-empty">CLICK TO ADD A CHORD · OR LOAD A PROGRESSION</span>}
+      {!chords.length && <span className="hl-empty">{t("i18n-next77.harmony.chordLane.empty")}</span>}
       <div className="hl-tools" style={{ left: 0, transform: `translateX(${scrollLeftPx}px)` }} onPointerDown={(e) => e.stopPropagation()}>
         <button type="button" className="ns-btn" disabled={track.locked} onClick={() => setBrowsing(true)}>
-          PROGRESSION
+          {t("i18n-next77.harmony.chordLane.progression")}
         </button>
-        <select className="ns-btn" aria-label="Chord snap" value={snap} onChange={(e) => setSnap(e.target.value as ChordSnap)}>
-          <option value="bar">BAR</option>
-          <option value="beat">BEAT</option>
+        <select className="ns-btn" aria-label={t("i18n-next77.harmony.chordLane.snap")} value={snap} onChange={(e) => setSnap(e.target.value as ChordSnap)}>
+          <option value="bar">{t("i18n-next77.harmony.chordLane.bar")}</option>
+          <option value="beat">{t("i18n-next77.harmony.chordLane.beat")}</option>
           <option value="sixteenth">1/16</option>
         </select>
       </div>
@@ -298,7 +300,7 @@ export function ChordLaneBody({ track, msPerPx }: ChordLaneBodyProps): React.JSX
             current={progression}
             load={loadProgression}
             onClose={() => setBrowsing(false)}
-            target="THE CHORDS IN THE VISIBLE BARS"
+            target={t("i18n-next77.harmony.chordLane.target")}
           />
         </div>
       )}

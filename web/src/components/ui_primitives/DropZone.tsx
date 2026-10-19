@@ -16,6 +16,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import type { SxProps } from "@mui/material/styles";
@@ -113,6 +114,11 @@ const DropZoneInner: React.FC<DropZoneProps> = ({
   sx,
   ...rest
 }) => {
+  const { t } = useTranslation();
+  const resolvedOverlayLabel =
+    overlayLabel === undefined
+      ? t("i18n-next97.dropZone.overlayLabel")
+      : overlayLabel;
   const tracking = useDragOverState({
     filesOnly: filesOnly ?? Boolean(onFilesDrop),
     leaveDelayMs
@@ -198,7 +204,7 @@ const DropZoneInner: React.FC<DropZoneProps> = ({
     >
       {children}
       {overlay && state !== "idle" && (
-        <DropZoneOverlay state={state} label={overlayLabel} />
+        <DropZoneOverlay state={state} label={resolvedOverlayLabel} />
       )}
     </Box>
   );
@@ -212,36 +218,42 @@ export interface DropZoneOverlayProps {
 /** The label layer of an `overlay` drop zone. Pointer events pass through. */
 export const DropZoneOverlay: React.FC<DropZoneOverlayProps> = ({
   state = "over",
-  label = "Drop files to upload"
-}) => (
-  <Box
-    className="drop-zone-overlay"
-    sx={(theme) => ({
-      position: "absolute",
-      inset: 0,
-      zIndex: Z_INDEX.overlay,
-      pointerEvents: "none",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: theme.spacing(SPACING.md),
-      borderRadius: BORDER_RADIUS.md,
-      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
-      color:
-        state === "reject"
-          ? theme.vars.palette.error.main
-          : theme.vars.palette.primary.main,
-      fontSize: theme.fontSizeNormal,
-      fontWeight: FONT_WEIGHT.semibold,
-      textTransform: "uppercase",
-      letterSpacing: "0.05em",
-      ...dropZoneOutline(theme, state)
-    })}
-  >
-    <UploadFileIcon fontSize="small" />
-    {label}
-  </Box>
-);
+  label
+}) => {
+  const { t } = useTranslation();
+  const resolvedLabel =
+    label === undefined ? t("i18n-next97.dropZone.overlayLabel") : label;
+
+  return (
+    <Box
+      className="drop-zone-overlay"
+      sx={(theme) => ({
+        position: "absolute",
+        inset: 0,
+        zIndex: Z_INDEX.overlay,
+        pointerEvents: "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: theme.spacing(SPACING.md),
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
+        color:
+          state === "reject"
+            ? theme.vars.palette.error.main
+            : theme.vars.palette.primary.main,
+        fontSize: theme.fontSizeNormal,
+        fontWeight: FONT_WEIGHT.semibold,
+        textTransform: "uppercase",
+        letterSpacing: "0.05em",
+        ...dropZoneOutline(theme, state)
+      })}
+    >
+      <UploadFileIcon fontSize="small" />
+      {resolvedLabel}
+    </Box>
+  );
+};
 
 export const DropZone = memo(DropZoneInner);
 DropZone.displayName = "DropZone";

@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useCallback
 } from "react";
+import { useTranslation } from "react-i18next";
 import OnScreenKeyboard from "./OnScreenKeyboard";
 import { ToggleGroup, ToggleOption, getSpacingPx, SPACING } from "../../ui_primitives";
 import { Tooltip } from "../../ui_primitives";
@@ -50,6 +51,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   listenToPhysicalKeyboard = true,
   imageEditorShortcuts = false
 }) => {
+  const { t } = useTranslation();
   const [os, setOs] = useState<"mac" | "win">(isMac() ? "mac" : "win");
   const [layoutName, setLayoutName] = useState<"english" | "german">(() => {
     if (typeof navigator !== "undefined") {
@@ -381,13 +383,23 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         sx={{ mb: 2, ml: imageEditorShortcuts ? 2 : 8 }}
       >
         {imageEditorShortcuts ? (
-          <ToggleOption value="image-editor">Image editor</ToggleOption>
+          <ToggleOption value="image-editor">
+            {t("i18n-next35.help.categories.imageEditor")}
+          </ToggleOption>
         ) : (
           <>
-            <ToggleOption value="editor">Editor</ToggleOption>
-            <ToggleOption value="workflow">Workflow</ToggleOption>
-            <ToggleOption value="panel">Panels</ToggleOption>
-            <ToggleOption value="assets">Assets</ToggleOption>
+            <ToggleOption value="editor">
+              {t("i18n-next35.help.categories.editor")}
+            </ToggleOption>
+            <ToggleOption value="workflow">
+              {t("i18n-next35.help.categories.workflow")}
+            </ToggleOption>
+            <ToggleOption value="panel">
+              {t("i18n-next35.help.categories.panels")}
+            </ToggleOption>
+            <ToggleOption value="assets">
+              {t("i18n-next35.help.categories.assets")}
+            </ToggleOption>
           </>
         )}
       </ToggleGroup>
@@ -427,12 +439,14 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
                 <React.Fragment key={idx}>
                   {slug === "switchToTabGroup" ? (
                     <div className="tooltip-span">
-                      <div className="tooltip-title">Switch to tab</div>
+                      <div className="tooltip-title">
+                        {t("i18n-next35.help.switchToTab")}
+                      </div>
                       <div className="tooltip-key">
                         <kbd>{os === "mac" ? "⌘" : "CTRL"}</kbd>+<kbd>1-9</kbd>
                       </div>
                       <div className="tooltip-description">
-                        Activate workflow tab 1-9
+                        {t("i18n-next35.help.activateWorkflowTabs")}
                       </div>
                     </div>
                   ) : (

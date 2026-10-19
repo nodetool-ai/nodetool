@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Button,
   Caption,
@@ -7,33 +8,6 @@ import {
   SearchInput,
   SPACING
 } from "../../ui_primitives";
-
-// These aliases make controls discoverable while their section is unmounted.
-const SECTION_CONTROLS: Readonly<Record<string, string>> = {
-  Media: "type asset parent group",
-  Timing: "start duration speed playback hidden",
-  Render: "opacity blend volume mute fade in fade out",
-  Audio: "volume gain mute fade in fade out",
-  Transform: "position scale rotation anchor crop radius",
-  Color:
-    "brightness contrast saturation hue temperature tint shadows highlights",
-  Effects:
-    "blur radius glow shadow vignette sharpen chroma key curves levels lift gamma gain grain",
-  Transition: "wipe crossfade direction easing duration",
-  Mask: "rectangle ellipse feather invert",
-  Matte: "source alpha luma invert",
-  Animate: "animation preset motion curve keyframes",
-  Keyframes: "animation property curve easing",
-  Text: "font family size color align stroke spacing",
-  Shape: "geometry fill stroke dash points",
-  "Time remap": "speed freeze reverse playback",
-  "Smart reframe": "crop subject focus zoom",
-  "Audio drive": "reactive envelope frequency band strength",
-  Caption: "font size color spoken bottom outline scrim"
-};
-const SEARCH_SECTIONS = Object.entries(SECTION_CONTROLS).sort(
-  ([a], [b]) => b.length - a.length
-);
 
 interface SearchResult {
   title: string;
@@ -45,8 +19,106 @@ interface InspectorSearchProps {
 }
 
 export default function InspectorSearch({ contentRef }: InspectorSearchProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+
+  // Localized aliases make controls discoverable while their section is unmounted.
+  const searchSections = useMemo(() => {
+    const sections: Array<[string, string, string]> = [
+        [
+          t("i18n-cont-inspector-02.search.sections.media.title"),
+          t("i18n-cont-inspector-02.search.sections.media.aliases"),
+          t("i18n-cont-inspector-02.search.sections.media.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.timing.title"),
+          t("i18n-cont-inspector-02.search.sections.timing.aliases"),
+          t("i18n-cont-inspector-02.search.sections.timing.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.render.title"),
+          t("i18n-cont-inspector-02.search.sections.render.aliases"),
+          t("i18n-cont-inspector-02.search.sections.render.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.audio.title"),
+          t("i18n-cont-inspector-02.search.sections.audio.aliases"),
+          t("i18n-cont-inspector-02.search.sections.audio.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.transform.title"),
+          t("i18n-cont-inspector-02.search.sections.transform.aliases"),
+          t("i18n-cont-inspector-02.search.sections.transform.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.color.title"),
+          t("i18n-cont-inspector-02.search.sections.color.aliases"),
+          t("i18n-cont-inspector-02.search.sections.color.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.effects.title"),
+          t("i18n-cont-inspector-02.search.sections.effects.aliases"),
+          t("i18n-cont-inspector-02.search.sections.effects.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.transition.title"),
+          t("i18n-cont-inspector-02.search.sections.transition.aliases"),
+          t("i18n-cont-inspector-02.search.sections.transition.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.mask.title"),
+          t("i18n-cont-inspector-02.search.sections.mask.aliases"),
+          t("i18n-cont-inspector-02.search.sections.mask.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.matte.title"),
+          t("i18n-cont-inspector-02.search.sections.matte.aliases"),
+          t("i18n-cont-inspector-02.search.sections.matte.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.animate.title"),
+          t("i18n-cont-inspector-02.search.sections.animate.aliases"),
+          t("i18n-cont-inspector-02.search.sections.animate.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.keyframes.title"),
+          t("i18n-cont-inspector-02.search.sections.keyframes.aliases"),
+          t("i18n-cont-inspector-02.search.sections.keyframes.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.text.title"),
+          t("i18n-cont-inspector-02.search.sections.text.aliases"),
+          t("i18n-cont-inspector-02.search.sections.text.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.shape.title"),
+          t("i18n-cont-inspector-02.search.sections.shape.aliases"),
+          t("i18n-cont-inspector-02.search.sections.shape.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.timeRemap.title"),
+          t("i18n-cont-inspector-02.search.sections.timeRemap.aliases"),
+          t("i18n-cont-inspector-02.search.sections.timeRemap.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.smartReframe.title"),
+          t("i18n-cont-inspector-02.search.sections.smartReframe.aliases"),
+          t("i18n-cont-inspector-02.search.sections.smartReframe.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.audioDrive.title"),
+          t("i18n-cont-inspector-02.search.sections.audioDrive.aliases"),
+          t("i18n-cont-inspector-02.search.sections.audioDrive.legacyTitle")
+        ],
+        [
+          t("i18n-cont-inspector-02.search.sections.caption.title"),
+          t("i18n-cont-inspector-02.search.sections.caption.aliases"),
+          t("i18n-cont-inspector-02.search.sections.caption.legacyTitle")
+        ]
+    ];
+    return sections.sort(([a], [b]) => b.length - a.length);
+  }, [t]);
 
   const search = useCallback(
     (value: string) => {
@@ -60,19 +132,20 @@ export default function InspectorSearch({ contentRef }: InspectorSearchProps) {
       setResults(
         Array.from(headers ?? []).flatMap((header) => {
           const heading = header.textContent?.trim() ?? "";
-          const section = SEARCH_SECTIONS.find(([name]) =>
-            heading.toLowerCase().startsWith(name.toLowerCase())
+          const section = searchSections.find(([title, , englishTitle]) =>
+            heading.toLowerCase().startsWith(title.toLowerCase()) ||
+            heading.toLowerCase().startsWith(englishTitle.toLowerCase())
           );
           const title = section?.[0] ?? heading;
           const aliases = section?.[1] ?? "";
-          const text = `${title} ${aliases}`.toLowerCase();
+          const text = `${title} ${aliases} ${section?.[2] ?? ""}`.toLowerCase();
           return words.every((word) => text.includes(word))
             ? [{ title, header }]
             : [];
         })
       );
     },
-    [contentRef]
+    [contentRef, searchSections]
   );
 
   const reveal = useCallback((result: SearchResult) => {
@@ -97,16 +170,18 @@ export default function InspectorSearch({ contentRef }: InspectorSearchProps) {
         value={query}
         onChange={search}
         onSubmit={submit}
-        placeholder="Find a control"
+        placeholder={t("i18n-cont-inspector-02.search.placeholder")}
         fullWidth
       />
       {query.trim() && (
         <FlexColumn
           gap={SPACING.none}
           role="region"
-          aria-label="Matching inspector sections"
+          aria-label={t("i18n-cont-inspector-02.search.matchingSections")}
         >
-          <Caption color="muted">Jump to section</Caption>
+          <Caption color="muted">
+            {t("i18n-cont-inspector-02.search.jumpToSection")}
+          </Caption>
           {results.map((result, index) => (
             <Button
               key={`${result.title}-${index}`}
@@ -119,7 +194,10 @@ export default function InspectorSearch({ contentRef }: InspectorSearchProps) {
             </Button>
           ))}
           {results.length === 0 && (
-            <EmptyState size="small" title="No matching controls" />
+            <EmptyState
+              size="small"
+              title={t("i18n-cont-inspector-02.search.noMatchingControls")}
+            />
           )}
         </FlexColumn>
       )}

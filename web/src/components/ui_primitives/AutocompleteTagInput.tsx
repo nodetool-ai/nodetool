@@ -24,6 +24,7 @@
  */
 
 import React, { memo, useCallback, useId } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Autocomplete,
   TextField,
@@ -59,13 +60,15 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
   value,
   onChange,
   suggestions = [],
-  placeholder = "Type or select…",
+  placeholder,
   description,
   disabled = false,
   size = "small"
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const fieldId = useId();
+  const placeholderText = placeholder ?? t("i18n-next87.autocompleteTagInput.placeholder");
 
   const handleChange = useCallback(
     (_event: React.SyntheticEvent, newValue: (string | { inputValue?: string })[]) => {
@@ -102,11 +105,13 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
       const isNew = option !== "" && !suggestions.includes(option);
       return (
         <li key={key} {...rest}>
-          {isNew ? `Add "${option}"` : option}
+          {isNew
+            ? t("i18n-next87.autocompleteTagInput.addOption", { option })
+            : option}
         </li>
       );
     },
-    [suggestions]
+    [suggestions, t]
   );
 
   return (
@@ -132,7 +137,7 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
         renderInput={(params) => (
           <TextField
             {...params}
-            placeholder={placeholder}
+            placeholder={placeholderText}
             sx={{
               // Shared form-control sizing with TextInput/SelectField: value at
               // the 15px body token, placeholder softened to read as a hint.

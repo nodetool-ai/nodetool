@@ -24,6 +24,7 @@
  */
 
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 
 import AssetViewer from "../assets/AssetViewer";
@@ -53,10 +54,6 @@ const shotMedia = (shot: Shot, kind: "image" | "video"): (ImageRef | VideoRef)[]
     ? (shot.clip_versions ?? (shot.clip ? [shot.clip] : []))
     : (shot.keyframe_versions ?? (shot.keyframe ? [shot.keyframe] : []));
 
-/** The caption over a shot's media identifies it without repeating its description. */
-const shotCaption = (shot: Shot): string =>
-  `SH ${String(shot.index + 1).padStart(2, "0")}`;
-
 /**
  * The open gallery. Mounted only while there is something to show, so a
  * board's cards fetch nothing just by sitting in the grid.
@@ -66,6 +63,8 @@ const ShotMediaGallery: React.FC<ShotMediaGalleryProps> = ({
   media,
   onClose
 }) => {
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const { shots } = useBoard(boardId);
   const kind = media.type === "video" ? "video" : "image";
 
@@ -91,11 +90,15 @@ const ShotMediaGallery: React.FC<ShotMediaGalleryProps> = ({
     const byAssetId: Record<string, string> = {};
     boardAssets.forEach((asset, index) => {
       if (asset) {
-        byAssetId[asset.id] = shotCaption(entries[index].shot);
+        const shotNumber = new Intl.NumberFormat(locale, {
+          minimumIntegerDigits: 2,
+          useGrouping: false
+        }).format(entries[index].shot.index + 1);
+        byAssetId[asset.id] = `SH ${shotNumber}`;
       }
     });
     return byAssetId;
-  }, [boardAssets, entries]);
+  }, [boardAssets, entries, locale]);
 
   const activeId = assetIdOf(media);
   const activeAsset = useMemo(

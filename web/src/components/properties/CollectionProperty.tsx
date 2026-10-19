@@ -3,6 +3,7 @@ import { trpcClient, type RouterOutputs } from "../../trpc/client";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import Select from "../inputs/Select";
@@ -16,6 +17,7 @@ interface CollectionValue {
 }
 
 const CollectionProperty = (props: PropertyProps<CollectionValue | null>) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const id = `collection-${props.property.name}-${props.propertyIndex}`;
   const isConnectedSelector = useIsConnectedSelector(
     props.nodeId,
@@ -60,14 +62,14 @@ const CollectionProperty = (props: PropertyProps<CollectionValue | null>) => {
         id={id}
       />
       {isLoading && <LoadingSpinner size="small" />}
-      {error && <p>Error: {error.message}</p>}
+      {error && <p>{t("property.error", { error: error.message })}</p>}
       <Select
         value={selectValue}
         options={options}
         onChange={(newValue) =>
           props.onChange({ type: "collection", name: newValue })
         }
-        placeholder="Select collection…"
+        placeholder={t("collection.select")}
         label={props.property.name}
       />
     </>

@@ -1,4 +1,5 @@
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import Check from "@mui/icons-material/Check";
 import {
   Chip,
@@ -40,6 +41,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   showFileExplorerButton = true,
   isCheckingCache = false
 }) => {
+  const { t } = useTranslation();
   const isHuggingFace = model.type?.startsWith("hf") ?? false;
   const isOllama = model.type === "llama_model";
   const downloaded = model.downloaded ?? false;
@@ -81,7 +83,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
       {isCheckingCache && !downloaded && (
         <Chip
           icon={<LoadingSpinner inline size={14} color="inherit" />}
-          label="Checking cache…"
+          label={t("i18n-next29.actions.checkingCache")}
         />
       )}
       {onDownload && canDownload && !downloaded && !isCheckingCache && (
@@ -91,7 +93,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           variant="outlined"
           startIcon={<DownloadIcon />}
         >
-          Download
+          {t("i18n-next29.actions.download")}
         </EditorButton>
       )}
       {downloaded && executionReady && onSelect && (
@@ -101,20 +103,20 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           variant="contained"
           startIcon={<Check />}
         >
-          Use
+          {t("i18n-next29.actions.use")}
         </EditorButton>
       )}
       {downloaded && !onSelect && (
         <Tooltip
           title={
             handleShowInExplorer && !isProduction && isElectron
-              ? "Show in Explorer"
-              : "Downloaded"
+              ? t("i18n-next29.actions.showInExplorer")
+              : t("i18n-next29.actions.downloaded")
           }
           delay={TOOLTIP_DESCRIPTION_DELAY}
         >
           <Chip
-            label="Downloaded"
+            label={t("i18n-next29.actions.downloaded")}
             color="success"
             variant="outlined"
             size="small"
@@ -132,7 +134,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
       <div className="model-actions">
         <CopyButton
           value={model.repo_id || model.id}
-          tooltip={isOllama ? "Copy model name" : "Copy repo ID"}
+          tooltip={isOllama ? t("i18n-next29.actions.copyModelName") : t("i18n-next29.actions.copyRepoId")}
           nodrag={false}
         />
         {canShowExplorerButton && !isProduction && isElectron && (
@@ -142,7 +144,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           />
         )}
         {handleModelDelete && (
-          <DeleteButton onClick={handleDeleteClick} tooltip="Delete model" />
+          <DeleteButton onClick={handleDeleteClick} tooltip={t("i18n-next29.actions.deleteModel")} />
         )}
       </div>
       {isHuggingFace && <HuggingFaceLink modelId={model.repo_id || model.id} />}

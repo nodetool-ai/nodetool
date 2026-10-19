@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -144,6 +145,7 @@ const stripStyles = (theme: Theme) =>
 
 export const DawTransport: React.FC<DawTransportProps> = memo(
   ({ isPlaying, onPlayPause, onStop, fps, volume, isMuted, onVolumeChange, onToggleMute, playPauseKey }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const playbackApi = useTimelinePlaybackStoreApi();
     const timelineApi = useTimelineStoreApi();
@@ -258,34 +260,34 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
     const stripCss = useMemo(() => stripStyles(theme), [theme]);
 
     return (
-      <div css={stripCss} role="toolbar" aria-label="Transport" data-testid="daw-transport">
+      <div css={stripCss} role="toolbar" aria-label={t("batch2_26.daw.transport.toolbar")} data-testid="daw-transport">
         <div className="daw-transport__group">
           <ToolbarIconButton
             icon={<SkipPreviousIcon />}
-            tooltip="Return to start"
-            aria-label="Return to start"
+            tooltip={t("batch2_26.daw.transport.returnToStart")}
+            aria-label={t("batch2_26.daw.transport.returnToStart")}
             onClick={returnToStart}
             size="small"
           />
           <ToolbarIconButton
             icon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-            tooltip={`${isPlaying ? "Pause" : "Play"} (${playPauseKey})`}
-            aria-label={isPlaying ? "Pause" : "Play"}
+            tooltip={`${isPlaying ? t("batch2_26.daw.transport.pause") : t("batch2_26.daw.transport.play")} (${playPauseKey})`}
+            aria-label={isPlaying ? t("batch2_26.daw.transport.pause") : t("batch2_26.daw.transport.play")}
             onClick={onPlayPause}
             variant="primary"
             size="small"
           />
           <ToolbarIconButton
             icon={<StopIcon />}
-            tooltip="Stop and return to start"
-            aria-label="Stop"
+            tooltip={t("batch2_26.daw.transport.stopAndReturn")}
+            aria-label={t("batch2_26.daw.transport.stop")}
             onClick={onStop}
             size="small"
           />
           <ToolbarIconButton
             icon={<RepeatIcon />}
-            tooltip={loopOn ? "Loop on: plays the in to out range" : "Loop the selection or the bars on screen"}
-            aria-label="Loop"
+            tooltip={loopOn ? t("batch2_26.daw.transport.loopOn") : t("batch2_26.daw.transport.loopOff")}
+            aria-label={t("batch2_26.daw.transport.loop")}
             aria-pressed={loopOn}
             active={loopOn}
             onClick={toggleLoop}
@@ -293,8 +295,8 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
           />
           <ToolbarIconButton
             icon={<AvTimerOutlinedIcon />}
-            tooltip={metronomeOn ? "Metronome on" : "Metronome off"}
-            aria-label="Metronome"
+            tooltip={metronomeOn ? t("batch2_26.daw.transport.metronomeOn") : t("batch2_26.daw.transport.metronomeOff")}
+            aria-label={t("batch2_26.daw.transport.metronome")}
             aria-pressed={metronomeOn}
             active={metronomeOn}
             onClick={handleMetronome}
@@ -302,11 +304,11 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
           />
         </div>
 
-        <div className="daw-transport__group" aria-label="Position">
-          <Text ref={barsRef} component="span" className="daw-transport__position" aria-label="Bars, beats and ticks">
+        <div className="daw-transport__group" aria-label={t("batch2_26.daw.transport.position")}>
+          <Text ref={barsRef} component="span" className="daw-transport__position" aria-label={t("batch2_26.daw.transport.barsBeatsTicks")}>
             {formatBarsBeatsTicks(currentTimeMs, tempo)}
           </Text>
-          <Text ref={timecodeRef} component="span" className="daw-transport__timecode" aria-label="Timecode">
+          <Text ref={timecodeRef} component="span" className="daw-transport__timecode" aria-label={t("batch2_26.daw.transport.timecode")}>
             {formatTimecode(currentTimeMs, fps)}
           </Text>
         </div>
@@ -314,7 +316,7 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
         <div className="daw-transport__group">
           <NumberField
             className="daw-transport__bpm"
-            ariaLabel="Tempo in BPM"
+            ariaLabel={t("batch2_26.daw.transport.tempoBpm")}
             value={bpmText}
             onValueChange={setBpmText}
             onBlur={commitBpm}
@@ -325,7 +327,7 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
             unit="BPM"
           />
           <SelectField
-            label="Time signature"
+            label={t("batch2_26.daw.transport.timeSignature")}
             hideLabel
             size="small"
             value={signature}
@@ -338,15 +340,15 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
         <div className="daw-transport__group daw-transport__output">
           <ToolbarIconButton
             icon={isSilent ? <VolumeOffIcon /> : volume < 0.5 ? <VolumeDownIcon /> : <VolumeUpIcon />}
-            tooltip={isSilent ? "Unmute" : "Mute"}
-            aria-label={isSilent ? "Unmute" : "Mute"}
+            tooltip={isSilent ? t("batch2_26.daw.transport.unmute") : t("batch2_26.daw.transport.mute")}
+            aria-label={isSilent ? t("batch2_26.daw.transport.unmute") : t("batch2_26.daw.transport.mute")}
             aria-pressed={isSilent}
             onClick={onToggleMute}
             size="small"
           />
           <div className="daw-transport__volume">
             <Slider
-              aria-label="Volume"
+              aria-label={t("batch2_26.daw.transport.volume")}
               min={0}
               max={1}
               step={0.01}
@@ -358,7 +360,7 @@ export const DawTransport: React.FC<DawTransportProps> = memo(
           </div>
           <div className="daw-transport__master">
             <Text component="span" className="daw-transport__master-label" aria-hidden>
-              Master
+              {t("batch2_26.daw.transport.master")}
             </Text>
             <MasterMeter />
           </div>

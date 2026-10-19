@@ -6,6 +6,7 @@
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 
 import ErrorBanner from "../support/ErrorBanner";
 import {
@@ -33,6 +34,7 @@ const JsScriptEditorPane = ({
   readOnly = false,
   deterministicReadOnly = false
 }: JsScriptEditorPaneProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const code = useJsScriptCode(scriptId);
@@ -97,7 +99,7 @@ const JsScriptEditorPane = ({
           <ErrorBanner
             report={{
               source: "panel-crash",
-              summary: "JS script editor could not start",
+              summary: t("editor.loadError"),
               errorText: monacoLoadError
             }}
           >
@@ -108,7 +110,7 @@ const JsScriptEditorPane = ({
         ) : (
           <Box
             component="pre"
-            aria-label="Script body"
+            aria-label={t("editor.bodyLabel")}
             sx={{
               ...TYPOGRAPHY.mono.code,
               margin: 0,

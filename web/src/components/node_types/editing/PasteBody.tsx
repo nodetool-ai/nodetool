@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -105,6 +106,7 @@ const PasteBodyInner: React.FC<PasteBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -188,7 +190,7 @@ const PasteBodyInner: React.FC<PasteBodyProps> = ({
       <div className="preview-area">
         <ImagePreview
           value={previewValue ?? baseValue}
-          message="Connect Image and Paste, then run"
+          message={t("i18n-next80.paste.connectInputs")}
         />
         {overlayRect && (
           <div
@@ -215,7 +217,7 @@ const PasteBodyInner: React.FC<PasteBodyProps> = ({
               id={`paste-left-${id}`}
               nodeId={id}
               name="left"
-              description={leftProperty.description ?? "Left offset"}
+              description={leftProperty.description ?? t("i18n-next80.paste.leftOffset")}
               value={left}
               min={leftProperty.min ?? 0}
               max={leftProperty.max ?? 4096}
@@ -234,7 +236,7 @@ const PasteBodyInner: React.FC<PasteBodyProps> = ({
               id={`paste-top-${id}`}
               nodeId={id}
               name="top"
-              description={topProperty.description ?? "Top offset"}
+              description={topProperty.description ?? t("i18n-next80.paste.topOffset")}
               value={top}
               min={topProperty.min ?? 0}
               max={topProperty.max ?? 4096}

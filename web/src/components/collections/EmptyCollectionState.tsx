@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   Text,
   FlexColumn,
@@ -8,29 +9,30 @@ import {
 } from "../ui_primitives";
 
 const EmptyCollectionState = () => {
+  const { t } = useTranslation();
   return (
     <Box sx={{ marginTop: 2, maxWidth: 600 }}>
-      <Text size="big" sx={{ margin: `${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)} 0` }}>
-        Vector collections
+      <Text
+        size="big"
+        sx={{
+          margin: `${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)} 0`
+        }}
+      >
+        {t("i18n-next1.collections.title")}
       </Text>
       <Text sx={{ marginBottom: 1 }}>
-        Collections organize vector representations of your text and images in a
-        local SQLite database.
+        {t("i18n-next1.collections.description")}
       </Text>
       <Text sx={{ marginBottom: 2 }}>
-        Creating a collection enables semantic search in your workflows,
-        allowing nodes to find and process data based on conceptual meaning
-        rather than exact keyword matches.
+        {t("i18n-next1.collections.semanticSearchDescription")}
       </Text>
 
       <Divider sx={{ my: 3 }} />
 
       <FlexColumn gap={2}>
-        <Text size="big">
-          No collections found. Create one to get started.
-        </Text>
+        <Text size="big">{t("i18n-next1.collections.emptyTitle")}</Text>
 
-        <Text>With a collection, you can:</Text>
+        <Text>{t("i18n-next1.collections.capabilitiesIntro")}</Text>
         <ul
           style={{
             paddingLeft: getSpacingPx(SPACING.xl),
@@ -38,16 +40,19 @@ const EmptyCollectionState = () => {
             listStyle: "disc"
           }}
         >
-          <li>Index text and images as vector embeddings</li>
-          <li>Perform semantic similarity searches</li>
-          <li>Filter search results using metadata</li>
-          <li>Batch process large sets of documents</li>
+          <li>{t("i18n-next1.collections.capabilityIndex")}</li>
+          <li>{t("i18n-next1.collections.capabilitySearch")}</li>
+          <li>{t("i18n-next1.collections.capabilityFilter")}</li>
+          <li>{t("i18n-next1.collections.capabilityBatch")}</li>
         </ul>
         <Text>
-          Key nodes include <strong>Index Image</strong> and{" "}
-          <strong>Index Text Chunk</strong> for populating data, and{" "}
-          <strong>Query Image</strong>, <strong>Query Text</strong>, or{" "}
-          <strong>Hybrid Search</strong> for retrieval.
+          {t("i18n-next1.collections.keyNodes", {
+            indexImage: t("i18n-next1.collections.nodes.indexImage"),
+            indexTextChunk: t("i18n-next1.collections.nodes.indexTextChunk"),
+            queryImage: t("i18n-next1.collections.nodes.queryImage"),
+            queryText: t("i18n-next1.collections.nodes.queryText"),
+            hybridSearch: t("i18n-next1.collections.nodes.hybridSearch")
+          })}
         </Text>
       </FlexColumn>
     </Box>

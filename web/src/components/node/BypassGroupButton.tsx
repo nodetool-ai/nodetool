@@ -5,6 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 const styles = (theme: Theme, isBypassed: boolean) =>
   css({
@@ -46,6 +47,7 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
   onClick
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const tooltipContainerStyles = useMemo(
     () => ({
@@ -86,7 +88,9 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
           style={tooltipContainerStyles}
         >
           <span style={titleTextStyles}>
-            {isBypassed ? "Enable all nodes" : "Disable all nodes"}
+            {isBypassed
+              ? t("i18n-next36.nodeEditor.bypass.enableAllNodes")
+              : t("i18n-next36.nodeEditor.bypass.disableAllNodes")}
           </span>
           <span style={shortcutStyles}>
             <kbd>B</kbd>
@@ -95,7 +99,12 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
       }
     >
       <ToolbarIconButton
-        title=""
+        title={isBypassed
+          ? t("i18n-next36.nodeEditor.bypass.enableAllNodes")
+          : t("i18n-next36.nodeEditor.bypass.disableAllNodes")}
+        aria-label={isBypassed
+          ? t("i18n-next36.nodeEditor.bypass.enableAllNodes")
+          : t("i18n-next36.nodeEditor.bypass.disableAllNodes")}
         size="small"
         tabIndex={-1}
         css={buttonStyles}

@@ -21,6 +21,7 @@
  */
 
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { STYLE_DESCRIPTIONS } from "../styleDescriptions";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import { composeImagePrompt } from "@nodetool-ai/protocol/api-schemas/sketch.js";
@@ -113,6 +114,7 @@ export interface LookStepControls {
  * path to fill it in.
  */
 export function useLookStep(): LookStepControls {
+  const { t } = useTranslation();
   const setup = useSketchStore((state) => state.document.setup);
   const setSetup = useSketchStore((state) => state.setSetup);
   const remembered = useLastModelStore((state) => state.byKind.image);
@@ -246,33 +248,36 @@ export function useLookStep(): LookStepControls {
   // PRD § 6.2: nothing shows when nothing was measured.
   const primaryDetail =
     estimate && estimate.total > 0
-      ? `${variations} image${variations === 1 ? "" : "s"} · about ${formatUsd(
-          estimate.total
-        )}`
+      ? t("pass3_8.image.look.cost.total", {
+          count: variations,
+          cost: formatUsd(estimate.total)
+        })
       : undefined;
   const perImageDetail =
     estimate && estimate.total > 0
-      ? `about ${formatUsd(estimate.total / variations)}`
+      ? t("pass3_8.image.look.cost.perImage", {
+          cost: formatUsd(estimate.total / variations)
+        })
       : undefined;
 
   const blockedReason =
     availability === "loading"
-      ? "Loading the image models"
+      ? t("pass3_8.image.look.blocked.loading")
       : availability === "error"
-        ? "The image models could not be loaded"
+        ? t("pass3_8.image.look.blocked.loadError")
         : availability === "no-provider"
-          ? "Connect an image provider first"
+          ? t("pass3_8.image.look.blocked.noProvider")
           : availability === "no-model"
-            ? "No image model can render a picture yet"
+            ? t("pass3_8.image.look.blocked.noModel")
             : modelMissing
-              ? "That model is no longer offered — pick another"
+              ? t("pass3_8.image.look.blocked.modelUnavailable")
               : sizePresets.length === 0
-                ? "That model has no size supported by this guided flow"
+                ? t("pass3_8.image.look.blocked.noSupportedSize")
                 : sizeUnsupported
-                  ? "Pick a size supported by this image model"
+                  ? t("pass3_8.image.look.blocked.unsupportedSize")
                   : styleLoading
-                    ? "Loading the chosen style"
-                    : "Pick an image model";
+                    ? t("pass3_8.image.look.blocked.styleLoading")
+                    : t("pass3_8.image.look.blocked.chooseModel");
 
   return {
     styleChoice: persisted.styleChoice,
@@ -300,10 +305,10 @@ export function useLookStep(): LookStepControls {
 }
 
 /** Open the provider dialog filtered to providers that make images. */
-const connectImageProvider = (): void => {
+const connectImageProvider = (reason: string): void => {
   openProviderOnboarding({
     capability: "text_to_image",
-    reason: "Connect a provider that makes images to generate this picture."
+    reason
   });
 };
 
@@ -312,12 +317,13 @@ const ModelListState: React.FC<{
   availability: ModelAvailability;
   onRetry: () => void;
 }> = ({ availability, onRetry }) => {
+  const { t } = useTranslation();
   if (availability === "loading") {
     return (
       <FlexRow gap={GAP.normal} align="center">
         <LoadingSpinner size="small" inline />
         <Text size="small" color="secondary">
-          Loading the image models…
+          {t("pass3_8.image.look.models.loading")}
         </Text>
       </FlexRow>
     );
@@ -329,18 +335,18 @@ const ModelListState: React.FC<{
         action={
           <FlexRow gap={GAP.tight} align="center">
             <EditorButton variant="text" onClick={onRetry}>
-              Try again
+              {t("pass3_8.common.tryAgain")}
             </EditorButton>
             <ReportBugButton
               context={{
                 source: "operation-failure",
-                summary: "Image model list failed to load"
+                summary: t("pass3_8.image.look.models.failureSummary")
               }}
             />
           </FlexRow>
         }
       >
-        The image models could not be loaded.
+        {t("pass3_8.image.look.models.loadError")}
       </AlertBanner>
     );
   }
@@ -349,13 +355,17 @@ const ModelListState: React.FC<{
       <AlertBanner
         severity="warning"
         action={
-          <EditorButton variant="text" onClick={connectImageProvider}>
-            Connect a provider
+          <EditorButton
+            variant="text"
+            onClick={() =>
+              connectImageProvider(t("pass3_8.image.look.models.connectReason"))
+            }
+          >
+            {t("pass3_8.image.look.models.connectProvider")}
           </EditorButton>
         }
       >
-        No image provider is connected. Connect one to generate — your brief
-        and look are saved with the document.
+        {t("pass3_8.image.look.models.noProvider")}
       </AlertBanner>
     );
   }
@@ -364,12 +374,11 @@ const ModelListState: React.FC<{
       severity="warning"
       action={
         <EditorButton variant="text" onClick={onRetry}>
-          Try again
+          {t("pass3_8.common.tryAgain")}
         </EditorButton>
       }
     >
-      None of the connected providers offers a model that renders a picture from
-      text.
+      {t("pass3_8.image.look.models.noCompatibleModel")}
     </AlertBanner>
   );
 };
@@ -386,6 +395,7 @@ export const ImageModelFooterField: React.FC<{
   look: LookStepControls;
   readOnly?: boolean;
 }> = ({ look, readOnly = false }) => {
+  const { t } = useTranslation();
   const canvas = useSketchStore((state) => state.document.canvas);
   const resizeCanvas = useSketchStore((state) => state.resizeCanvas);
   const { setModel } = look;
@@ -413,7 +423,7 @@ export const ImageModelFooterField: React.FC<{
     return null;
   }
   return (
-    <SetupFooterField label="Image model">
+    <SetupFooterField label={t("pass3_8.image.look.modelLabel")}>
       <ImageModelSelect
         value={look.model}
         provider={look.provider}
@@ -426,6 +436,7 @@ export const ImageModelFooterField: React.FC<{
 };
 
 export const LookStep: React.FC<LookStepProps> = ({ look }) => {
+  const { t } = useTranslation();
   const canvas = useSketchStore((state) => state.document.canvas);
   const resizeCanvas = useSketchStore((state) => state.resizeCanvas);
   const { data: presets } = useStylePresets();
@@ -435,10 +446,10 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
     () =>
       look.sizePresets.map((preset) => ({
         id: preset.id,
-        title: preset.label,
+        title: t(`pass3_8.image.look.sizes.${preset.id}`),
         description: `${preset.width} × ${preset.height}`
       })),
-    [look.sizePresets]
+    [look.sizePresets, t]
   );
 
   const selectedSizeId = sizePresetFor(canvas.width, canvas.height)?.id ?? null;
@@ -459,10 +470,13 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
         id: preset.entityId,
         title: preset.name,
         description:
-          STYLE_DESCRIPTIONS[preset.presetId] ?? preset.descriptor.trim(),
+          t(`pass3_8.image.look.styles.${preset.presetId}`, {
+            defaultValue:
+              STYLE_DESCRIPTIONS[preset.presetId] ?? preset.descriptor.trim()
+          }),
         image: preset.thumbnail
       })),
-    [presets]
+    [presets, t]
   );
 
   const handleStyle = useCallback(
@@ -475,12 +489,12 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
   return (
     <FlexColumn gap={GAP.spacious}>
       <Text size="big" component="h2">
-        Choose the look
+        {t("pass3_8.image.look.heading")}
       </Text>
 
-      <FormField label="Size">
+      <FormField label={t("pass3_8.image.look.sizeLabel")}>
         <OptionCardGrid
-          label="Size"
+          label={t("pass3_8.image.look.sizeLabel")}
           options={sizeOptions}
           selectedId={selectedSizeId}
           onSelect={handleSize}
@@ -488,16 +502,16 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
         />
       </FormField>
 
-      <FormField label="Style">
+      <FormField label={t("pass3_8.image.look.styleLabel")}>
         <PresetTileGrid
-          label="Style"
+          label={t("pass3_8.image.look.styleLabel")}
           presets={styleTiles}
           selectedId={look.styleChoice}
           onSelect={handleStyle}
           onAddOwn={noop}
           addOwnOptionId={NO_STYLE_ID}
-          addOwnLabel="No style"
-          addOwnDescription="Render exactly what the brief says"
+          addOwnLabel={t("pass3_8.image.look.noStyle")}
+          addOwnDescription={t("pass3_8.image.look.noStyleDescription")}
         />
       </FormField>
 
@@ -506,11 +520,11 @@ export const LookStep: React.FC<LookStepProps> = ({ look }) => {
       {availability === "ready" ? (
         modelMissing ? (
           <AlertBanner severity="warning">
-            {`${look.model} is not offered by any connected provider. Pick another model.`}
+            {t("pass3_8.image.look.modelUnavailable", { model: look.model })}
           </AlertBanner>
         ) : null
       ) : (
-        <FormField label="Image model">
+        <FormField label={t("pass3_8.image.look.modelLabel")}>
           <ModelListState
             availability={availability}
             onRetry={look.refetchModels}

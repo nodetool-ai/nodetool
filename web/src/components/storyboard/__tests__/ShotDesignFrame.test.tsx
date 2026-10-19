@@ -122,7 +122,7 @@ describe("Storyboard design frame adapter", () => {
     getAssetQuery.mockImplementation(async ({id}) => id === canonical ? sourceAsset(canonical, "another-project", replacement) : sourceAsset(replacement));
     const candidate: Shot = {...shot, production: {schema_version: 1, speech_mode: "none", requested_take_count: 1, media_strategy: "still_motion_graphics", protected_inputs: [{id: "product-input", kind: "product", asset_id: canonical, entity_id: canonical, allowed_transformations: ["position", "scale", "opacity", "composite"]}]}, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical, entity_id: canonical, protected_input_id: "product-input"}]}};
     render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("no longer points to the exact declared source asset"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("does not match the selected entity"));
     expect(screen.queryByTestId("timeline-compositor-input")).not.toBeInTheDocument();
     expect(candidate.production?.protected_inputs?.[0].asset_id).toBe(canonical);
   });
@@ -131,7 +131,7 @@ describe("Storyboard design frame adapter", () => {
     getAssetQuery.mockImplementation(async ({id}) => id === canonical ? sourceAsset() : sourceAsset(replacement, "another-project", canonical));
     const candidate: Shot = {...shot, production: {schema_version: 1, speech_mode: "none", requested_take_count: 1, media_strategy: "still_motion_graphics", protected_inputs: [{id: "product-input", kind: "product", asset_id: canonical, entity_id: replacement, allowed_transformations: ["position", "scale", "opacity", "composite"]}]}, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical, entity_id: canonical, protected_input_id: "product-input"}]}};
     render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("different entity from its protected source"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("does not match this entity"));
     expect(screen.queryByTestId("timeline-compositor-input")).not.toBeInTheDocument();
   });
 
@@ -141,7 +141,7 @@ describe("Storyboard design frame adapter", () => {
     await waitFor(() => expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(canonical));
     getAssetQuery.mockImplementation(async ({id}) => id === canonical ? sourceAsset(canonical, "another-project", replacement) : sourceAsset(replacement));
     await act(async () => queryClient.invalidateQueries({queryKey: ["assets"]}));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("no longer points to the exact declared source asset"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("does not match the selected entity"));
     expect(screen.queryByTestId("timeline-compositor-input")).not.toBeInTheDocument();
   });
 
@@ -168,21 +168,21 @@ describe("Storyboard design frame adapter", () => {
     );
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Play composed shot" })
+        screen.getByRole("button", { name: "Play preview" })
       ).toBeVisible()
     );
     expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(
       '"mediaType":"video"'
     );
-    fireEvent.click(screen.getByRole("button", { name: "Play composed shot" }));
+    fireEvent.click(screen.getByRole("button", { name: "Play preview" }));
     expect(
-      screen.getByRole("button", { name: "Pause composed shot" })
+      screen.getByRole("button", { name: "Pause preview" })
     ).toBeVisible();
     fireEvent.click(
-      screen.getByRole("button", { name: "Pause composed shot" })
+      screen.getByRole("button", { name: "Pause preview" })
     );
     expect(
-      screen.getByRole("button", { name: "Play composed shot" })
+      screen.getByRole("button", { name: "Play preview" })
     ).toBeVisible();
   });
   it("does not play or prefer an old video under still-motion-graphics policy", async () => {
@@ -208,7 +208,7 @@ describe("Storyboard design frame adapter", () => {
       )
     );
     expect(
-      screen.queryByRole("button", { name: "Play composed shot" })
+      screen.queryByRole("button", { name: "Play preview" })
     ).not.toBeInTheDocument();
     expect(
       screen.getByTestId("timeline-compositor-input")

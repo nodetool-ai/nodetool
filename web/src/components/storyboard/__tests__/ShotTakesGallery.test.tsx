@@ -123,11 +123,11 @@ describe("ShotTakesGallery", () => {
 
     expect(screen.getByText("Stills")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Still 1, current still" })
+      screen.getByRole("button", { name: "Still 1 is current" })
     ).toBeInTheDocument();
     expect(screen.getByText("Clips")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Clip 1, current clip" })
+      screen.getByRole("button", { name: "Clip 1 is current" })
     ).toHaveAttribute("aria-current", "true");
   });
 
@@ -142,12 +142,12 @@ describe("ShotTakesGallery", () => {
 
     expect(
       screen.getAllByRole("button", {
-        name: /^(Use still \d as current still|Still \d, current still)/
+        name: /^(Use still \d as the current still|Still \d is current)/
       })
     ).toHaveLength(2);
     expect(
       screen.getAllByRole("button", {
-        name: /^(Use clip \d as current clip|Clip \d, current clip)/
+        name: /^(Use clip \d as the current clip|Clip \d is current)/
       })
     ).toHaveLength(3);
     expect(screen.queryByTestId("output-renderer")).not.toBeInTheDocument();
@@ -172,13 +172,13 @@ describe("ShotTakesGallery", () => {
     renderGallery(shot);
 
     expect(
-      screen.getByRole("button", { name: "Still 2, current still" })
+      screen.getByRole("button", { name: "Still 2 is current" })
     ).toHaveAttribute("aria-current", "true");
     expect(
       screen.queryByRole("button", { name: /Set still 1 as current/ })
     ).toBeNull();
     await userEvent.click(
-      screen.getByRole("button", { name: "Use still 1 as current still" })
+      screen.getByRole("button", { name: "Use still 1 as the current still" })
     );
 
     const updated = useStoryboardStore
@@ -196,7 +196,7 @@ describe("ShotTakesGallery", () => {
     renderGallery(shot);
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Use clip 1 as current clip" })
+      screen.getByRole("button", { name: "Use clip 1 as the current clip" })
     );
 
     const updated = useStoryboardStore
@@ -225,7 +225,7 @@ describe("ShotTakesGallery", () => {
     expect(storedClip(shot.id)).toEqual(video(2));
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Use clip 1 as current clip" })
+      screen.getByRole("button", { name: "Use clip 1 as the current clip" })
     );
     const accepted = useStoryboardStore
       .getState()
@@ -250,7 +250,7 @@ describe("ShotTakesGallery", () => {
     expect(syncShotClipToTimelineMock).not.toHaveBeenCalled();
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Use clip 1 as current clip" })
+      screen.getByRole("button", { name: "Use clip 1 as the current clip" })
     );
 
     const updated = useStoryboardStore
@@ -288,7 +288,7 @@ describe("ShotTakesGallery", () => {
     expect(screen.getByTestId("asset-viewer")).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Use clip 1 as current clip" })
+      screen.getByRole("button", { name: "Use clip 1 as the current clip" })
     );
     expect(
       useStoryboardStore

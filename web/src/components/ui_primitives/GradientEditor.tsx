@@ -9,6 +9,7 @@
  */
 
 import { forwardRef, useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import { useTheme, type SxProps, type Theme } from "@mui/material/styles";
 
@@ -57,6 +58,7 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
   disabled = false,
   sx
 }, ref) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const hintId = useId();
   const [selected, setSelected] = useState(0);
@@ -237,12 +239,12 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
                 ref={(element: HTMLDivElement | null) => { handleRefs.current[index] = element; }}
                 role="slider"
                 tabIndex={disabled ? -1 : 0}
-                aria-label={`${label} stop ${index + 1}`}
+                aria-label={t("i18n-next88.gradientEditor.stopLabel", { label, index: index + 1 })}
                 aria-describedby={hintId}
                 aria-valuemin={0}
                 aria-valuemax={1}
                 aria-valuenow={stop.t}
-                aria-valuetext={`Position ${roundKeyNumber(stop.t)}, colour ${stop.color}`}
+                aria-valuetext={t("i18n-next88.gradientEditor.positionValue", { position: roundKeyNumber(stop.t), color: stop.color })}
                 aria-disabled={disabled || undefined}
                 onFocus={() => setSelected(index)}
                 onKeyDown={handleKeyDown(index)}
@@ -280,7 +282,7 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
           ref={colorRef}
           component="input"
           type="color"
-          aria-label={`Stop ${selectedIndex + 1} colour`}
+          aria-label={t("i18n-next88.gradientEditor.stopColor", { index: selectedIndex + 1 })}
           value={selectedStop.color}
           disabled={disabled}
           onChange={(event: ChangeEvent<HTMLInputElement>) => setColorDraft(event.target.value.toLowerCase())}
@@ -299,7 +301,7 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
           }}
         />
         <InspectorValueInput
-          ariaLabel={`Stop ${selectedIndex + 1} position`}
+          ariaLabel={t("i18n-next88.gradientEditor.stopPosition", { index: selectedIndex + 1 })}
           value={String(roundKeyNumber(selectedStop.t))}
           disabled={disabled}
           onCommit={(raw) => {
@@ -309,10 +311,10 @@ export const GradientEditor = forwardRef<HTMLDivElement, GradientEditorProps>(fu
             }
           }}
         />
-        <EditorButton density="compact" disabled={disabled || value.length >= maxStops} onClick={() => addStopAt(insertionTime(value, selectedIndex))}>Add stop</EditorButton>
-        <EditorButton density="compact" disabled={disabled || value.length <= minStops} onClick={() => removeStopAt(selectedIndex)}>Delete stop</EditorButton>
+        <EditorButton density="compact" disabled={disabled || value.length >= maxStops} onClick={() => addStopAt(insertionTime(value, selectedIndex))}>{t("i18n-next88.gradientEditor.addStop")}</EditorButton>
+        <EditorButton density="compact" disabled={disabled || value.length <= minStops} onClick={() => removeStopAt(selectedIndex)}>{t("i18n-next88.gradientEditor.deleteStop")}</EditorButton>
       </FlexRow>
-      <Caption id={hintId}>Arrow keys move a stop, Shift moves further. Insert adds a stop, Delete removes it. Double-click the bar to add a stop there.</Caption>
+      <Caption id={hintId}>{t("i18n-next88.gradientEditor.keyboardHint")}</Caption>
     </FlexColumn>
   );
 });

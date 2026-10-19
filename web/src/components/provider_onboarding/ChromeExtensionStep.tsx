@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
@@ -30,12 +31,6 @@ import { BASE_URL } from "../../stores/BASE_URL";
 export const CHROME_EXTENSIONS_URL = "chrome://extensions";
 
 /** What the extension makes possible, in the order a new user cares about. */
-export const EXTENSION_BENEFITS: readonly string[] = [
-  "Generate images with ChatGPT, and images and Veo video with Gemini, on the plans you already pay for. There is no API key and no per-image bill.",
-  "Every result is saved to your NodeTool assets, ready for workflows, sketches and the timeline.",
-  "The agent can work on any site you are signed in to: it clicks, types and saves media inside your own tab."
-];
-
 const isWindows = (): boolean =>
   typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
 
@@ -77,6 +72,7 @@ const SetupStep: React.FC<SetupStepProps> = ({ index, title, children }) => {
  * a live connection status so the user sees the moment it works.
  */
 const ChromeExtensionStep: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { status, isLoading } = useExtensionStatus();
   const connected = status?.connected ?? false;
@@ -113,9 +109,7 @@ const ChromeExtensionStep: React.FC = () => {
     <FlexColumn gap={SPACING.xxl}>
       <FlexColumn gap={SPACING.md}>
         <Text sx={{ maxWidth: "60ch" }}>
-          ChatGPT and Gemini have no API for the images and video your plan
-          includes. The NodeTool extension for Chrome lets NodeTool use them
-          through your own signed-in browser.
+          {t("i18n-next7.chromeExtension.intro")}
         </Text>
         <FlexRow gap={SPACING.md} align="center" wrap>
           <Chip
@@ -128,47 +122,42 @@ const ChromeExtensionStep: React.FC = () => {
             }
             label={
               isLoading
-                ? "Checking…"
+                ? t("i18n-next7.chromeExtension.checking")
                 : connected
-                  ? "Extension connected"
-                  : "Extension not connected"
+                  ? t("i18n-next7.chromeExtension.connected")
+                  : t("i18n-next7.chromeExtension.notConnected")
             }
             color={connected ? "success" : "default"}
           />
           {!connected && !isLoading && (
-            <Caption>This updates on its own once the setup below is done.</Caption>
+            <Caption>{t("i18n-next7.chromeExtension.autoUpdate")}</Caption>
           )}
         </FlexRow>
       </FlexColumn>
 
       <FlexColumn gap={SPACING.md}>
-        <Text component="h3" size="small">Why add it</Text>
+        <Text component="h3" size="small">{t("i18n-next7.chromeExtension.whyAdd")}</Text>
         <FlexColumn component="ul" gap={SPACING.sm} sx={{ m: 0, pl: SPACING.xl }}>
-          {EXTENSION_BENEFITS.map((benefit) => (
-            <Text component="li" key={benefit} size="small" weight={400}>
-              {benefit}
+          {["benefitImages", "benefitAssets", "benefitAgent"].map((key) => (
+            <Text component="li" key={key} size="small" weight={400}>
+              {t(`i18n-next7.chromeExtension.${key}`)}
             </Text>
           ))}
         </FlexColumn>
       </FlexColumn>
 
       <FlexColumn gap={SPACING.md}>
-        <Text component="h3" size="small">How it works</Text>
+        <Text component="h3" size="small">{t("i18n-next7.chromeExtension.howItWorks")}</Text>
         <Text size="small" weight={400} sx={{ maxWidth: "60ch" }}>
-          When a workflow or the chat asks ChatGPT or Gemini for an image or a
-          video, NodeTool finds your open chatgpt.com or gemini.google.com tab
-          and submits the prompt through the site&apos;s own page. The finished
-          file comes back to NodeTool. Your password and cookies stay in
-          Chrome, and each request appears in your ChatGPT or Gemini history.
+          {t("i18n-next7.chromeExtension.workflow")}
         </Text>
         <Caption>
-          Chrome shows a &ldquo;Nodetool is debugging this browser&rdquo; bar while a
-          request runs. The extension does nothing on other tabs.
+          {t("i18n-next7.chromeExtension.debuggingNotice")}
         </Caption>
       </FlexColumn>
 
       <FlexColumn gap={SPACING.md}>
-        <Text component="h3" size="small">Set it up</Text>
+        <Text component="h3" size="small">{t("i18n-next7.chromeExtension.setup")}</Text>
         <FlexColumn
           component="ol"
           gap={SPACING.lg}
@@ -180,21 +169,20 @@ const ChromeExtensionStep: React.FC = () => {
             borderRadius: BORDER_RADIUS.lg
           }}
         >
-          <SetupStep index={1} title="Let Chrome start NodeTool's browser bridge.">
+          <SetupStep index={1} title={t("i18n-next7.chromeExtension.step1")}>
             {isWindows() ? (
               <Caption color="warning">
-                This is not supported on Windows yet. Media generation through
-                the extension works on macOS and Linux.
+                {t("i18n-next7.chromeExtension.windowsUnsupported")}
               </Caption>
             ) : hostInstalled ? (
               <FlexRow gap={SPACING.xs} align="center">
                 <CheckCircleRoundedIcon sx={{ fontSize: "1.2em", color: theme.vars.palette.success.main }} />
-                <Caption>Done. NodeTool registered its bridge with your browsers.</Caption>
+                <Caption>{t("i18n-next7.chromeExtension.bridgeRegistered")}</Caption>
               </FlexRow>
             ) : host.isInstalling || !status ? (
               <FlexRow gap={SPACING.sm} align="center">
                 <LoadingSpinner size="small" inline />
-                <Caption>Registering with your browsers…</Caption>
+                <Caption>{t("i18n-next7.chromeExtension.registering")}</Caption>
               </FlexRow>
             ) : (
               <FlexColumn gap={SPACING.sm} align="flex-start">
@@ -202,7 +190,7 @@ const ChromeExtensionStep: React.FC = () => {
                   <ErrorBanner
                     report={{
                       source: "operation-failure",
-                      summary: "Browser bridge registration failed",
+                      summary: t("i18n-next7.chromeExtension.registrationFailed"),
                       errorText: host.error
                     }}
                   >
@@ -210,14 +198,14 @@ const ChromeExtensionStep: React.FC = () => {
                   </ErrorBanner>
                 )}
                 <EditorButton density="compact" variant="outlined" size="small" onClick={() => install()}>
-                  {host.error ? "Try again" : "Register"}
+                  {host.error ? t("i18n-next7.chromeExtension.tryAgain") : t("i18n-next7.chromeExtension.register")}
                 </EditorButton>
               </FlexColumn>
             )}
           </SetupStep>
           <SetupStep
             index={2}
-            title={canReveal ? "Open the extension folder that comes with NodeTool." : "Download the extension NodeTool provides and unzip it."}
+            title={t(canReveal ? "i18n-next7.chromeExtension.step2Open" : "i18n-next7.chromeExtension.step2Download")}
           >
             <FlexRow gap={SPACING.md} wrap>
               {canReveal ? (
@@ -228,7 +216,7 @@ const ChromeExtensionStep: React.FC = () => {
                   startIcon={<FolderOpenIcon />}
                   onClick={handleReveal}
                 >
-                  Show extension folder
+                  {t("i18n-next7.chromeExtension.showFolder")}
                 </EditorButton>
               ) : (
                 <EditorButton
@@ -238,30 +226,28 @@ const ChromeExtensionStep: React.FC = () => {
                   startIcon={<DownloadIcon />}
                   onClick={handleDownload}
                 >
-                  Download extension
+                  {t("i18n-next7.chromeExtension.downloadExtension")}
                 </EditorButton>
               )}
             </FlexRow>
           </SetupStep>
           <SetupStep
             index={3}
-            title="Open chrome://extensions, turn on Developer mode, click Load unpacked and choose that folder."
+            title={t("i18n-next7.chromeExtension.step3")}
           >
             <FlexRow gap={SPACING.sm} align="center">
               <Box component="code" sx={{ fontFamily: theme.fontFamily2 }}>
                 {CHROME_EXTENSIONS_URL}
               </Box>
-              <CopyButton value={CHROME_EXTENSIONS_URL} tooltip="Copy address" />
+              <CopyButton value={CHROME_EXTENSIONS_URL} tooltip={t("i18n-next7.chromeExtension.copyAddress")} />
             </FlexRow>
             <Caption>
-              Chrome does not open this address from a link, so paste it into
-              the address bar. If NodeTool is already in the list, click its
-              reload button instead.
+              {t("i18n-next7.chromeExtension.extensionAddressHelp")}
             </Caption>
           </SetupStep>
           <SetupStep
             index={4}
-            title="Sign in to ChatGPT and Gemini in Chrome and keep those tabs open."
+            title={t("i18n-next7.chromeExtension.step4")}
           >
             <FlexRow gap={SPACING.lg} wrap>
               <ExternalLink href="https://chatgpt.com" size="small">chatgpt.com</ExternalLink>

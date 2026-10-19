@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import * as THREE from "three";
@@ -133,9 +134,10 @@ export const colorEdit = (
   label: string,
   color: THREE.Color,
   picked: string,
-  mergeKey: string
+  mergeKey: string,
+  editLabel = label
 ): ValueEdit<THREE.Color> => ({
-  label: `Change ${label.toLowerCase()}`,
+  label: editLabel,
   mergeKey,
   get: () => color.clone(),
   set: (value) => {
@@ -152,20 +154,23 @@ interface ColorRowProps {
   mergeKey: string;
 }
 
-const ColorRow = ({ label, color, record, mergeKey }: ColorRowProps) => (
-  <InspectorFieldRow label={label}>
-    <ColorPicker
-      showCustom
-      color={`#${color.getHexString()}`}
-      onColorChange={(c) => {
-        if (!c) {
-          return;
-        }
-        record(colorEdit(label, color, c, mergeKey));
-      }}
-    />
-  </InspectorFieldRow>
-);
+const ColorRow = ({ label, color, record, mergeKey }: ColorRowProps) => {
+  const { t } = useTranslation();
+  return (
+    <InspectorFieldRow label={label}>
+      <ColorPicker
+        showCustom
+        color={`#${color.getHexString()}`}
+        onColorChange={(c) => {
+          if (!c) {
+            return;
+          }
+          record(colorEdit(label, color, c, mergeKey, t("i18n-cont-model-editor-11.properties.change", { label: label.toLowerCase() })));
+        }}
+      />
+    </InspectorFieldRow>
+  );
+};
 
 type Axis = "x" | "y" | "z";
 const AXES: readonly Axis[] = ["x", "y", "z"];
@@ -230,9 +235,10 @@ const Vector3Row = ({
   resetValue,
   record
 }: Vector3RowProps) => {
+  const { t } = useTranslation();
   const commit = (axis: Axis) => (display: number) =>
     record({
-      label: `Change ${label.toLowerCase()}`,
+      label: t("i18n-cont-model-editor-11.properties.change", { label: label.toLowerCase() }),
       mergeKey: `${objectUuid}:${label}:${axis}`,
       get: () => vector[axis],
       set: (v) => {
@@ -247,12 +253,12 @@ const Vector3Row = ({
         <Label component="span" sx={{ mb: 0 }}>{label}</Label>
         <ToolbarIconButton
           icon={<RestartAltIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-          tooltip={`Reset ${label.toLowerCase()}`}
+          tooltip={t("i18n-cont-model-editor-11.properties.reset", { label: label.toLowerCase() })}
           size="small"
           disabled={isDefault}
           onClick={() =>
             record({
-              label: `Reset ${label.toLowerCase()}`,
+              label: t("i18n-cont-model-editor-11.properties.reset", { label: label.toLowerCase() }),
               get: () => [vector.x, vector.y, vector.z] as const,
               set: ([x, y, z]) => {
                 vector.x = x;
@@ -317,7 +323,6 @@ const bagOf = (value: THREE.Material | THREE.Object3D): PropertyBag =>
 
 interface MaterialNumberSpec {
   key: string;
-  label: string;
   min?: number;
   max?: number;
   step: number;
@@ -326,49 +331,48 @@ interface MaterialNumberSpec {
 // Ordered so common PBR controls come first; physical-only fields are skipped
 // automatically when absent on the material.
 const MATERIAL_NUMBER_FIELDS: readonly MaterialNumberSpec[] = [
-  { key: "metalness", label: "Metalness", min: 0, max: 1, step: 0.05 },
-  { key: "roughness", label: "Roughness", min: 0, max: 1, step: 0.05 },
-  { key: "emissiveIntensity", label: "Emission", min: 0, step: 0.05 },
-  { key: "ior", label: "IOR", min: 1, max: 2.333, step: 0.01 },
-  { key: "reflectivity", label: "Reflectivity", min: 0, max: 1, step: 0.05 },
-  { key: "specularIntensity", label: "Specular", min: 0, max: 1, step: 0.05 },
-  { key: "clearcoat", label: "Clearcoat", min: 0, max: 1, step: 0.05 },
-  { key: "clearcoatRoughness", label: "Clearcoat roughness", min: 0, max: 1, step: 0.05 },
-  { key: "sheen", label: "Sheen", min: 0, max: 1, step: 0.05 },
-  { key: "sheenRoughness", label: "Sheen roughness", min: 0, max: 1, step: 0.05 },
-  { key: "transmission", label: "Transmission", min: 0, max: 1, step: 0.05 },
-  { key: "thickness", label: "Thickness", min: 0, step: 0.1 },
-  { key: "iridescence", label: "Iridescence", min: 0, max: 1, step: 0.05 },
-  { key: "iridescenceIOR", label: "Iridescence IOR", min: 1, max: 2.333, step: 0.01 },
-  { key: "dispersion", label: "Dispersion", min: 0, step: 0.1 }
+  { key: "metalness", min: 0, max: 1, step: 0.05 },
+  { key: "roughness", min: 0, max: 1, step: 0.05 },
+  { key: "emissiveIntensity", min: 0, step: 0.05 },
+  { key: "ior", min: 1, max: 2.333, step: 0.01 },
+  { key: "reflectivity", min: 0, max: 1, step: 0.05 },
+  { key: "specularIntensity", min: 0, max: 1, step: 0.05 },
+  { key: "clearcoat", min: 0, max: 1, step: 0.05 },
+  { key: "clearcoatRoughness", min: 0, max: 1, step: 0.05 },
+  { key: "sheen", min: 0, max: 1, step: 0.05 },
+  { key: "sheenRoughness", min: 0, max: 1, step: 0.05 },
+  { key: "transmission", min: 0, max: 1, step: 0.05 },
+  { key: "thickness", min: 0, step: 0.1 },
+  { key: "iridescence", min: 0, max: 1, step: 0.05 },
+  { key: "iridescenceIOR", min: 1, max: 2.333, step: 0.01 },
+  { key: "dispersion", min: 0, step: 0.1 }
 ];
 
-const MATERIAL_COLOR_FIELDS: readonly { key: string; label: string }[] = [
-  { key: "color", label: "Base color" },
-  { key: "emissive", label: "Emissive" },
-  { key: "sheenColor", label: "Sheen color" },
-  { key: "specularColor", label: "Specular" },
-  { key: "attenuationColor", label: "Attenuation color" }
+const MATERIAL_COLOR_FIELDS: readonly { key: string }[] = [
+  { key: "color" },
+  { key: "emissive" },
+  { key: "sheenColor" },
+  { key: "specularColor" },
+  { key: "attenuationColor" }
 ];
 
 // `recompile` fields change the shader program and require needsUpdate = true.
 const MATERIAL_FLAG_FIELDS: readonly {
   key: string;
-  label: string;
   recompile: boolean;
 }[] = [
-  { key: "transparent", label: "Transparent", recompile: true },
-  { key: "wireframe", label: "Wireframe", recompile: false },
-  { key: "flatShading", label: "Flat shading", recompile: true },
-  { key: "vertexColors", label: "Vertex colors", recompile: true },
-  { key: "depthTest", label: "Depth test", recompile: false },
-  { key: "depthWrite", label: "Depth write", recompile: false }
+  { key: "transparent", recompile: true },
+  { key: "wireframe", recompile: false },
+  { key: "flatShading", recompile: true },
+  { key: "vertexColors", recompile: true },
+  { key: "depthTest", recompile: false },
+  { key: "depthWrite", recompile: false }
 ];
 
 const SIDE_OPTIONS = [
-  { value: String(THREE.FrontSide), label: "Front" },
-  { value: String(THREE.BackSide), label: "Back" },
-  { value: String(THREE.DoubleSide), label: "Double" }
+  { value: String(THREE.FrontSide), key: "front" },
+  { value: String(THREE.BackSide), key: "back" },
+  { value: String(THREE.DoubleSide), key: "double" }
 ] as const;
 
 /**
@@ -399,10 +403,11 @@ interface MaterialSectionProps {
 }
 
 const MaterialSection = ({ material, record }: MaterialSectionProps) => {
+  const { t } = useTranslation();
   const key = (field: string) => `${material.uuid}:${field}`;
   const setNumber = (field: string, label: string, value: number) =>
     record({
-      label: `Change ${label.toLowerCase()}`,
+      label: t("i18n-cont-model-editor-11.properties.change", { label: label.toLowerCase() }),
       mergeKey: key(field),
       get: () => getNumberProp(bagOf(material), field) ?? 0,
       set: (v) => {
@@ -415,10 +420,10 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
       <Caption>
         {material.name ? `${material.name} · ${material.type}` : material.type}
       </Caption>
-      {MATERIAL_COLOR_FIELDS.map(({ key: field, label }) => {
+      {MATERIAL_COLOR_FIELDS.map(({ key: field }) => {
         const color = getColorProp(bagOf(material), field);
         return color ? (
-          <ColorRow key={field} label={label} color={color} record={record} mergeKey={key(field)} />
+          <ColorRow key={field} label={t(`i18n-cont-model-editor-11.properties.materialColors.${field}`)} color={color} record={record} mergeKey={key(field)} />
         ) : null;
       })}
       {MATERIAL_NUMBER_FIELDS.map((spec) => {
@@ -426,7 +431,7 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
         return current === undefined ? null : (
           <NumberRow
             key={spec.key}
-            label={spec.label}
+            label={t(`i18n-cont-model-editor-11.properties.materialNumbers.${spec.key}`)}
             value={current}
             min={spec.min}
             max={spec.max}
@@ -439,20 +444,20 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
               if (spec.max !== undefined) {
                 next = Math.min(spec.max, next);
               }
-              setNumber(spec.key, spec.label, next);
+              setNumber(spec.key, t(`i18n-cont-model-editor-11.properties.materialNumbers.${spec.key}`), next);
             }}
           />
         );
       })}
       <NumberRow
-        label="Opacity"
+        label={t("i18n-cont-model-editor-11.properties.opacity")}
         value={material.opacity}
         min={0}
         max={1}
         step={0.05}
         onCommit={(v) =>
           record({
-            label: "Change opacity",
+            label: t("i18n-cont-model-editor-11.properties.change", { label: t("i18n-cont-model-editor-11.properties.opacity").toLowerCase() }),
             mergeKey: key("opacity"),
             get: () => material.opacity,
             set: (o) => applyOpacity(material, o),
@@ -461,14 +466,14 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
         }
       />
       <NumberRow
-        label="Alpha test"
+        label={t("i18n-cont-model-editor-11.properties.alphaTest")}
         value={material.alphaTest}
         min={0}
         max={1}
         step={0.05}
         onCommit={(v) =>
           record({
-            label: "Change alpha test",
+            label: t("i18n-cont-model-editor-11.properties.change", { label: t("i18n-cont-model-editor-11.properties.alphaTest").toLowerCase() }),
             mergeKey: key("alphaTest"),
             get: () => material.alphaTest,
             set: (a) => {
@@ -479,15 +484,15 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
           })
         }
       />
-      <InspectorFieldRow label="Side">
+      <InspectorFieldRow label={t("i18n-cont-model-editor-11.properties.side")}>
         <InspectorSelect
           grow
-          label="Side"
+          label={t("i18n-cont-model-editor-11.properties.side")}
           value={String(material.side)}
-          options={SIDE_OPTIONS}
+          options={SIDE_OPTIONS.map((option) => ({ ...option, label: t(`i18n-cont-model-editor-11.properties.sideOptions.${option.key}`) }))}
           onChange={(v) =>
             record({
-              label: "Change side",
+              label: t("i18n-cont-model-editor-11.properties.change", { label: t("i18n-cont-model-editor-11.properties.side").toLowerCase() }),
               get: () => material.side,
               set: (side) => {
                 material.side = side;
@@ -498,16 +503,16 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
           }
         />
       </InspectorFieldRow>
-      {MATERIAL_FLAG_FIELDS.map(({ key: field, label, recompile }) => {
+      {MATERIAL_FLAG_FIELDS.map(({ key: field, recompile }) => {
         const checked = getBoolProp(bagOf(material), field);
         return checked === undefined ? null : (
           <ToggleRow
             key={field}
-            label={label}
+            label={t(`i18n-cont-model-editor-11.properties.materialFlags.${field}`)}
             checked={checked}
             onChange={(c) =>
               record({
-                label: `Toggle ${label.toLowerCase()}`,
+                label: t("i18n-cont-model-editor-11.properties.toggle", { label: t(`i18n-cont-model-editor-11.properties.materialFlags.${field}`).toLowerCase() }),
                 get: () => getBoolProp(bagOf(material), field) ?? false,
                 set: (value) => {
                   setProp(bagOf(material), field, value);
@@ -533,6 +538,7 @@ interface PropertiesPanelProps {
 }
 
 const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [materialSlot, setMaterialSlot] = useState(0);
   // `tick` is intentionally a render trigger: bumping it re-renders this panel
@@ -546,8 +552,8 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
           variant="empty"
           size="small"
           icon={<TouchAppOutlinedIcon />}
-          title="Nothing selected"
-          description="Click an object in the viewport or the scene list to inspect it."
+          title={t("i18n-cont-model-editor-11.properties.emptyTitle")}
+          description={t("i18n-cont-model-editor-11.properties.emptyDescription")}
         />
       </FlexColumn>
     );
@@ -578,7 +584,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
     const raw = isAngle ? toRadians(display) : display;
     const next: GeometryParams = { ...readGeometryParams(mesh.geometry), [key]: raw };
     record({
-      label: "Edit geometry",
+      label: t("i18n-cont-model-editor-11.properties.editGeometry"),
       mergeKey: `${uuid}:geometry:${key}`,
       get: () => mesh.geometry,
       set: (geometry) => {
@@ -596,7 +602,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
     value: number
   ) =>
     record({
-      label: `Change ${label.toLowerCase()}`,
+      label: t("i18n-cont-model-editor-11.properties.change", { label: label.toLowerCase() }),
       mergeKey: `${uuid}:${field}`,
       get: () => getNumberProp(bagOf(target), field) ?? 0,
       set: (v) => {
@@ -607,7 +613,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
 
   const setFlag = (label: string, field: string, target: THREE.Object3D, value: boolean) =>
     record({
-      label: `Toggle ${label.toLowerCase()}`,
+      label: t("i18n-cont-model-editor-11.properties.toggle", { label: label.toLowerCase() }),
       get: () => getBoolProp(bagOf(target), field) ?? false,
       set: (v) => {
         setProp(bagOf(target), field, v);
@@ -620,13 +626,13 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
       <FlexColumn css={headerStyles(theme)} gap={SPACING.xs} key={`header-${uuid}`}>
         <TextInput
           className="nodrag"
-          label="Name"
+          label={t("i18n-cont-model-editor-11.properties.name")}
           hideLabel
           size="small"
           value={object.name}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             record({
-              label: "Rename",
+              label: t("i18n-cont-model-editor-11.properties.rename"),
               mergeKey: `${uuid}:name`,
               get: () => object.name,
               set: (name) => {
@@ -642,10 +648,10 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
         {/* Remount fields only when the selected object changes; live value
             updates from gizmo drags are handled by InspectorValueInput's value sync. */}
         <FlexColumn key={uuid} fullWidth sx={{ px: SPACING.lg }}>
-          <InspectorSection title="Transform" divider={false}>
-            <Vector3Row label="Position" objectUuid={uuid} vector={object.position} step={0.1} resetValue={0} record={record} />
+          <InspectorSection title={t("i18n-cont-model-editor-11.properties.transform")} divider={false}>
+            <Vector3Row label={t("i18n-cont-model-editor-11.properties.position")} objectUuid={uuid} vector={object.position} step={0.1} resetValue={0} record={record} />
             <Vector3Row
-              label="Rotation"
+              label={t("i18n-cont-model-editor-11.properties.rotation")}
               objectUuid={uuid}
               vector={object.rotation}
               toDisplay={toDegrees}
@@ -654,54 +660,54 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
               resetValue={0}
               record={record}
             />
-            <Vector3Row label="Scale" objectUuid={uuid} vector={object.scale} step={0.1} resetValue={1} record={record} />
+            <Vector3Row label={t("i18n-cont-model-editor-11.properties.scale")} objectUuid={uuid} vector={object.scale} step={0.1} resetValue={1} record={record} />
           </InspectorSection>
 
           {light && (
-            <InspectorSection title="Light">
-              <ColorRow label="Color" color={light.color} record={record} mergeKey={`${uuid}:lightColor`} />
+            <InspectorSection title={t("i18n-cont-model-editor-11.properties.light")}>
+              <ColorRow label={t("i18n-cont-model-editor-11.properties.color")} color={light.color} record={record} mergeKey={`${uuid}:lightColor`} />
               <NumberRow
-                label="Intensity"
+                label={t("i18n-cont-model-editor-11.properties.intensity")}
                 value={light.intensity}
                 min={0}
                 step={0.1}
-                onCommit={(v) => setNumber("Intensity", "intensity", light, Math.max(0, v))}
+                onCommit={(v) => setNumber(t("i18n-cont-model-editor-11.properties.intensity"), "intensity", light, Math.max(0, v))}
               />
               {(pointLight ?? spotLight) && (
                 <>
                   <NumberRow
-                    label="Range"
+                    label={t("i18n-cont-model-editor-11.properties.range")}
                     value={(pointLight ?? spotLight)?.distance ?? 0}
                     min={0}
                     step={0.5}
-                    onCommit={(v) => setNumber("Range", "distance", light, Math.max(0, v))}
+                    onCommit={(v) => setNumber(t("i18n-cont-model-editor-11.properties.range"), "distance", light, Math.max(0, v))}
                   />
                   <NumberRow
-                    label="Decay"
+                    label={t("i18n-cont-model-editor-11.properties.decay")}
                     value={(pointLight ?? spotLight)?.decay ?? 2}
                     min={0}
                     step={0.1}
-                    onCommit={(v) => setNumber("Decay", "decay", light, Math.max(0, v))}
+                    onCommit={(v) => setNumber(t("i18n-cont-model-editor-11.properties.decay"), "decay", light, Math.max(0, v))}
                   />
                 </>
               )}
               {spotLight && (
                 <>
                   <NumberRow
-                    label="Angle"
+                    label={t("i18n-cont-model-editor-11.properties.angle")}
                     value={toDegrees(spotLight.angle)}
                     min={1}
                     max={90}
                     step={1}
-                    onCommit={(v) => setNumber("Angle", "angle", spotLight, toRadians(THREE.MathUtils.clamp(v, 1, 90)))}
+                    onCommit={(v) => setNumber(t("i18n-cont-model-editor-11.properties.angle"), "angle", spotLight, toRadians(THREE.MathUtils.clamp(v, 1, 90)))}
                   />
                   <NumberRow
-                    label="Penumbra"
+                    label={t("i18n-cont-model-editor-11.properties.penumbra")}
                     value={spotLight.penumbra}
                     min={0}
                     max={1}
                     step={0.05}
-                    onCommit={(v) => setNumber("Penumbra", "penumbra", spotLight, THREE.MathUtils.clamp(v, 0, 1))}
+                    onCommit={(v) => setNumber(t("i18n-cont-model-editor-11.properties.penumbra"), "penumbra", spotLight, THREE.MathUtils.clamp(v, 0, 1))}
                   />
                 </>
               )}
@@ -709,7 +715,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
           )}
 
           {hasGeometry && mesh && geometryParams && isEditableGeometryType(geometryType) && (
-            <InspectorSection title="Geometry">
+            <InspectorSection title={t("i18n-cont-model-editor-11.properties.geometry")}>
               <Caption>{geometryType}</Caption>
               {GEOMETRY_PARAM_SPECS[geometryType].map((spec) => {
                 const isAngle = spec.kind === "angle";
@@ -719,7 +725,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
                 return (
                   <NumberRow
                     key={spec.key}
-                    label={spec.label}
+                  label={t(`i18n-cont-model-editor-11.properties.geometryParams.${spec.key}`)}
                     value={display}
                     integer={spec.kind === "int"}
                     min={isAngle ? 0 : spec.min}
@@ -733,12 +739,12 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
           )}
 
           {material && (
-            <InspectorSection title="Material">
+            <InspectorSection title={t("i18n-cont-model-editor-11.properties.material")}>
               {materials.length > 1 && (
-                <InspectorFieldRow label="Slot">
+                <InspectorFieldRow label={t("i18n-cont-model-editor-11.properties.slot")}>
                   <InspectorSelect
                     grow
-                    label="Material slot"
+                    label={t("i18n-cont-model-editor-11.properties.materialSlot")}
                     value={String(slot)}
                     options={materials.map((m, i) => ({
                       value: String(i),
@@ -752,21 +758,21 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
             </InspectorSection>
           )}
 
-          <InspectorSection title="Rendering">
-            <ToggleRow label="Visible" checked={object.visible} onChange={(c) => setFlag("Visible", "visible", object, c)} />
+          <InspectorSection title={t("i18n-cont-model-editor-11.properties.rendering")}>
+            <ToggleRow label={t("i18n-cont-model-editor-11.properties.visible")} checked={object.visible} onChange={(c) => setFlag(t("i18n-cont-model-editor-11.properties.visible"), "visible", object, c)} />
             {mesh && (
               <>
-                <ToggleRow label="Cast shadow" checked={mesh.castShadow} onChange={(c) => setFlag("Cast shadow", "castShadow", mesh, c)} />
-                <ToggleRow label="Receive shadow" checked={mesh.receiveShadow} onChange={(c) => setFlag("Receive shadow", "receiveShadow", mesh, c)} />
+                <ToggleRow label={t("i18n-cont-model-editor-11.properties.castShadow")} checked={mesh.castShadow} onChange={(c) => setFlag(t("i18n-cont-model-editor-11.properties.castShadow"), "castShadow", mesh, c)} />
+                <ToggleRow label={t("i18n-cont-model-editor-11.properties.receiveShadow")} checked={mesh.receiveShadow} onChange={(c) => setFlag(t("i18n-cont-model-editor-11.properties.receiveShadow"), "receiveShadow", mesh, c)} />
               </>
             )}
-            <ToggleRow label="Frustum cull" checked={object.frustumCulled} onChange={(c) => setFlag("Frustum cull", "frustumCulled", object, c)} />
+            <ToggleRow label={t("i18n-cont-model-editor-11.properties.frustumCull")} checked={object.frustumCulled} onChange={(c) => setFlag(t("i18n-cont-model-editor-11.properties.frustumCull"), "frustumCulled", object, c)} />
             <NumberRow
-              label="Render order"
+              label={t("i18n-cont-model-editor-11.properties.renderOrder")}
               value={object.renderOrder}
               integer
               step={1}
-              onCommit={(v) => setNumber("Render order", "renderOrder", object, v)}
+              onCommit={(v) => setNumber(t("i18n-cont-model-editor-11.properties.renderOrder"), "renderOrder", object, v)}
             />
           </InspectorSection>
         </FlexColumn>

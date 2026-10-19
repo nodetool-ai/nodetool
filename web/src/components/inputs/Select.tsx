@@ -10,6 +10,7 @@ import React, {
   useState
 } from "react";
 import ReactDOM from "react-dom";
+import { useTranslation } from "react-i18next";
 import useSelect from "../../hooks/nodes/useSelect";
 import { fuzzyScore } from "../../utils/fuzzyMatch";
 import { Tooltip } from "../ui_primitives";
@@ -67,6 +68,7 @@ const Select: React.FC<SelectProps> = ({
   changed,
   onOpenChange
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const selectRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLUListElement>(null);
@@ -294,7 +296,7 @@ const Select: React.FC<SelectProps> = ({
               <span className="select-header-text">
                 {selectedOption
                   ? selectedOption.label
-                  : placeholder || "Select an option"}
+                  : placeholder || t("screen_properties.inputs.selectOption")}
               </span>
               <ChevronIcon
                 className={`chevron ${activeSelect === id ? "open" : ""}`}
@@ -311,8 +313,8 @@ const Select: React.FC<SelectProps> = ({
                 setSearchQuery(e.target.value);
                 setHighlightedIndex(-1);
               }}
-              placeholder="Search"
-              aria-label="Search options"
+              placeholder={t("screen_properties.inputs.search")}
+              aria-label={t("screen_properties.inputs.searchOptions")}
               onClick={(e) => e.stopPropagation()}
             />
           )}

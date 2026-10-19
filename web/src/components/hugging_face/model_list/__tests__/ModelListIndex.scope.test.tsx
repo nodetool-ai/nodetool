@@ -127,10 +127,10 @@ describe("ModelListIndex scope toggle", () => {
     useModelManagerStore.setState({ scope: "worker" });
     renderIndex();
     expect(
-      screen.getByText(/No models cached on this worker yet/i)
+      screen.getByText(/No models on this worker/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/any model you download lands on its volume/i)
+      screen.getByText(/Download a model to the worker to use it here/i)
     ).toBeInTheDocument();
   });
 
@@ -138,10 +138,10 @@ describe("ModelListIndex scope toggle", () => {
     mockUseWorkers.mockReturnValue({ activeWorker: null });
     renderIndex();
     expect(
-      screen.getByRole("button", { name: /installed models/i })
+      screen.getByRole("button", { name: /^Installed$/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /recommended models/i })
+      screen.getByRole("button", { name: /^Recommended$/i })
     ).toBeInTheDocument();
   });
 
@@ -158,7 +158,7 @@ describe("ModelListIndex scope toggle", () => {
     renderIndex();
 
     await userEvent.click(
-      screen.getByRole("button", { name: /Unavailable 1/i })
+      screen.getByRole("button", { name: /Unavailable \(1\)/i })
     );
 
     expect(useModelManagerStore.getState().selectedAvailability).toBe(
@@ -173,7 +173,7 @@ describe("ModelListIndex scope toggle", () => {
     renderIndex();
 
     await userEvent.click(
-      screen.getByRole("button", { name: /recommended models/i })
+      screen.getByRole("button", { name: /^Recommended$/i })
     );
 
     const state = useModelManagerStore.getState();
@@ -186,7 +186,7 @@ describe("ModelListIndex scope toggle", () => {
     renderIndex();
     expect(screen.getByText(/No recommended models/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/gathered from the nodes you have installed/i)
+      screen.getByText(/Recommended models will appear when compatible nodes are available/i)
     ).toBeInTheDocument();
   });
 

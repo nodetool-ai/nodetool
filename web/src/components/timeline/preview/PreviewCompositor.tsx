@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -394,6 +395,7 @@ export const PreviewCompositor: React.FC<{ quality?: PreviewQuality }> = ({
 const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const { onFailure: reportFailure, onReady, quality } = props;
   const theme = useTheme();
+  const { i18n, t } = useTranslation();
   const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
@@ -2703,7 +2705,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             css={overlayBadgeStyles(theme, theme.vars.palette.warning.dark)}
             style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
-            stale
+            {t("i18n-next112-timeline.preview.stale")}
           </div>
         ))}
 
@@ -2713,7 +2715,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             css={overlayBadgeStyles(theme, theme.vars.palette.warning.dark)}
             style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
-            bake unplayable — live 3D
+            {t("i18n-next112-timeline.preview.bakeUnplayable")}
           </div>
         ))}
 
@@ -2727,7 +2729,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             css={overlayBadgeStyles(theme, theme.vars.palette.info.dark)}
             style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
-            generating…
+            {t("i18n-next112-timeline.preview.generating")}
           </div>
         ))}
 
@@ -2740,7 +2742,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             }}
           >
             <span style={{ fontSize: theme.fontSizeSmall }}>
-              Preview rendering unavailable
+              {t("i18n-next112-timeline.preview.renderingUnavailable")}
             </span>
           </div>
         )}
@@ -2754,7 +2756,11 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
               ▶
             </span>
             <span style={{ fontSize: theme.fontSizeSmall, opacity: 0.25 }}>
-              No media at {Math.round(currentTimeMs / 1000)}s
+              {t("i18n-next112-timeline.preview.noMediaAt", {
+                seconds: new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language).format(
+                  Math.round(currentTimeMs / 1000)
+                )
+              })}
             </span>
           </div>
         )}

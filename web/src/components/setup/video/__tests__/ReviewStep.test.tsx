@@ -7,6 +7,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
+import { createAppI18n } from "../../../../i18n/i18n";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import type { TimelineBeat } from "@nodetool-ai/timeline";
@@ -225,7 +226,9 @@ describe("video ReviewStep (criterion 4)", () => {
     );
     expect(offered).toEqual([
       "Cut",
-      ...KNOWN_TRANSITION_TYPE_LIST.map((type) => type)
+      ...KNOWN_TRANSITION_TYPE_LIST.map((type) =>
+        createAppI18n().t(`pass3_13.video.review.transitions.${type}`)
+      )
     ]);
   });
 

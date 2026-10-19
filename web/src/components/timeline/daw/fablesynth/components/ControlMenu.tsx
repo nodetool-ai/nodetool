@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { DEST_OF_PARAM, MOD_SOURCES, SOURCE_COLORS, routeBipolar, routeLabel, polarityFor } from '../params';
 import { useStoreApi } from '../store';
 import { findFreeSlot } from '../store/slotHelpers';
@@ -8,6 +9,7 @@ type MachineId = 'DR1' | 'BL1' | 'WT1';
 import './controlMenu.css';
 
 export function useControlMenu(machine: MachineId, paramId: string) {
+  const { t } = useTranslation();
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [sources, setSources] = useState(false);
   const [polarity, setPolarity] = useState(false);
@@ -51,7 +53,7 @@ export function useControlMenu(machine: MachineId, paramId: string) {
       y: Math.max(0, Math.min(e.clientY, window.innerHeight - 230)) });
   };
   const menu = position && createPortal(
-    <div ref={menuRef} className="control-menu" role="menu" aria-label="Control actions"
+    <div ref={menuRef} className="control-menu" role="menu" aria-label={t('i18n-next44-fablesynth-controls.controlMenu.actions')}
       style={{ left: position.x, top: position.y }}
       onClick={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}
       onPointerDown={e => e.stopPropagation()} onContextMenu={e => e.preventDefault()}
@@ -68,7 +70,7 @@ export function useControlMenu(machine: MachineId, paramId: string) {
         }
       }}>
       <button type="button" role="menuitem" disabled={!modAvailable} aria-expanded={sources}
-        onClick={() => setSources(!sources)}>Set modulation source ▸</button>
+        onClick={() => setSources(!sources)}>{t('i18n-next44-fablesynth-controls.controlMenu.setModulationSource')} ▸</button>
       {sources && MOD_SOURCES.slice(1).map((label, i) => <button type="button" role="menuitem"
         key={label} className="control-menu-source" onClick={() => {
           if (dest) api.getState().addRoute(i + 1, dest);
@@ -76,19 +78,19 @@ export function useControlMenu(machine: MachineId, paramId: string) {
         }}>{label}</button>)}
       {mods.length > 0 && <div className="control-menu-sep" role="separator" />}
       {mods.length > 0 && <button type="button" role="menuitem" aria-expanded={polarity}
-        onClick={() => setPolarity(!polarity)}>Route polarity ▸</button>}
+        onClick={() => setPolarity(!polarity)}>{t('i18n-next44-fablesynth-controls.controlMenu.routePolarity')} ▸</button>}
       {polarity && mods.map(m => {
         const bi = routeBipolar(m.src, m.pol);
         return <button type="button" role="menuitemcheckbox" aria-checked={bi} key={`pol${m.slot}`}
           className="control-menu-source control-menu-remove" style={{ ['--src' as string]: SOURCE_COLORS[m.src] }}
           onClick={() => api.getState().updateSlot(m.slot, { pol: polarityFor(m.src, !bi) })}>
-          {MOD_SOURCES[m.src]} bipolar {bi ? '✓' : ''}</button>;
+          {MOD_SOURCES[m.src]} {t('i18n-next44-fablesynth-controls.controlMenu.bipolar')} {bi ? '✓' : ''}</button>;
       })}
       {mods.map(m => <button type="button" role="menuitem" key={m.slot} className="control-menu-remove"
         style={{ ['--src' as string]: SOURCE_COLORS[m.src] }} onClick={() => {
           api.getState().clearSlot(m.slot);
           close();
-        }}>Remove {routeLabel(m.src, m.amt, routeBipolar(m.src, m.pol))}</button>)}
+        }}>{t('i18n-next44-fablesynth-controls.controlMenu.remove', { route: routeLabel(m.src, m.amt, routeBipolar(m.src, m.pol)) })}</button>)}
     </div>,
     // Inside the device's root so its scoped styles apply.
     owner.current?.closest('.fablesynth') ?? document.body);

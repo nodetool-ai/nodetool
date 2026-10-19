@@ -3,6 +3,7 @@
 // the track; the audition plays a short bass line through the live device.
 
 import { useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PresetBrowserShell, type PresetBrowserAdapter, type BrowserSnapshot } from '../../components/presetBrowser/PresetBrowserShell';
 import { PresetGlyph } from '../../components/presetBrowser/PresetGlyph';
 import { fmtHz, fmtPct, fmtSec } from '../../params';
@@ -39,6 +40,7 @@ function usePhrase(store: BassStoreApi) {
 }
 
 export function BassPatchBrowser({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const store = useBassStoreApi();
   const userPatches = useBassStore((s) => s.userPatches);
   const patchValue = useBassStore((s) => s.patchValue);
@@ -53,8 +55,8 @@ export function BassPatchBrowser({ onClose }: { onClose: () => void }) {
   const phrase = usePhrase(store);
 
   const adapter: PresetBrowserAdapter<BassBrowserEntry, BassSnapshot> = {
-    title: 'BL-1 patches',
-    glyphLegend: 'wave · filter · env · lfo',
+    title: t('i18n-next20.bassPatchBrowser.title'),
+    glyphLegend: t('i18n-next20.bassPatchBrowser.glyphLegend'),
     favoritesKey: 'fablesynth.bassPatchFavorites',
     roles: PATCH_ROLES,
     characters: PATCH_CHARACTERS,
@@ -69,20 +71,20 @@ export function BassPatchBrowser({ onClose }: { onClose: () => void }) {
     vary: (e) => applyVariant(bassVaryParams(e.params)),
     audition: () => phrase.play(!store.getState().playing),
     stopAudition: phrase.stop,
-    auditionHint: (on) => playing ? 'The timeline plays the patch.'
-      : on ? 'A short bass line plays on select.' : 'Play the keys to hear patches.',
+    auditionHint: (on) => playing ? t('i18n-next20.bassPatchBrowser.timelineAuditionHint')
+      : on ? t('i18n-next20.bassPatchBrowser.shortAuditionHint') : t('i18n-next20.bassPatchBrowser.keysAuditionHint'),
     renderGlyph: (e, color) => <PresetGlyph className="pbr-glyph" data={glyphs.get(e.value)!} tables={tables} color={color} />,
     renderDetail: (color) => (
       <>
         <PresetGlyph className="pbr-big" data={live} tables={tables} color={color} fill />
-        <div className="pbr-legend"><span>WAVE</span><span>FILTER</span><span>ENV</span><span>LFO</span></div>
+        <div className="pbr-legend"><span>{t("i18n-next20.bassPatchBrowser.wave")}</span><span>{t("i18n-next20.bassPatchBrowser.filter")}</span><span>{t("i18n-next20.bassPatchBrowser.env")}</span><span>{t("i18n-next20.bassPatchBrowser.lfo")}</span></div>
         <dl className="pbr-kv">
-          <dt>Wave</dt><dd>{TABLE_NAMES[live.table] ?? 'USER'} · {fmtPct(live.pos)}</dd>
-          <dt>Filter</dt><dd>{BASS_FILTER_TYPES[live.filterType]} · {fmtHz(live.cutoff)}</dd>
-          <dt>Reso</dt><dd>{fmtPct(live.res)}</dd>
-          <dt>A / D / R</dt><dd>{fmtSec(live.env[0])} / {fmtSec(live.env[1])} / {fmtSec(live.env[3])}</dd>
-          <dt>Sustain</dt><dd>{fmtPct(live.env[2])}</dd>
-          <dt>LFO depth</dt><dd>{live.lfoDepth ? fmtPct(live.lfoDepth) : 'off'}</dd>
+          <dt>{t("i18n-next20.bassPatchBrowser.wave")}</dt><dd>{TABLE_NAMES[live.table] ?? 'USER'} · {fmtPct(live.pos)}</dd>
+          <dt>{t("i18n-next20.bassPatchBrowser.filter")}</dt><dd>{BASS_FILTER_TYPES[live.filterType]} · {fmtHz(live.cutoff)}</dd>
+          <dt>{t("i18n-next20.bassPatchBrowser.reso")}</dt><dd>{fmtPct(live.res)}</dd>
+          <dt>{t("i18n-next20.bassPatchBrowser.envelope")}</dt><dd>{fmtSec(live.env[0])} / {fmtSec(live.env[1])} / {fmtSec(live.env[3])}</dd>
+          <dt>{t("i18n-next20.bassPatchBrowser.sustain")}</dt><dd>{fmtPct(live.env[2])}</dd>
+          <dt>{t("i18n-next20.bassPatchBrowser.lfoDepth")}</dt><dd>{live.lfoDepth ? fmtPct(live.lfoDepth) : t('i18n-next20.bassPatchBrowser.off')}</dd>
         </dl>
       </>
     ),

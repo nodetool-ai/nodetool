@@ -1,4 +1,5 @@
 import React, { memo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -40,6 +41,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
   onFlipHorizontal,
   onFlipVertical
 }) => {
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!open) {
@@ -80,10 +82,10 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         }
       }}
     >
-      <ListSubheader>Free transform</ListSubheader>
+      <ListSubheader>{t("i18n-next13.sketch.transform.freeTransform")}</ListSubheader>
 
       <MenuItemPrimitive
-        label="Commit"
+        label={t("i18n-next13.sketch.actions.commit")}
         icon={<CheckIcon />}
         shortcut="Enter"
         onClick={() => {
@@ -92,7 +94,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         }}
       />
       <MenuItemPrimitive
-        label="Cancel"
+        label={t("i18n-next13.sketch.actions.cancel")}
         icon={<CloseIcon />}
         shortcut="Esc"
         onClick={() => {
@@ -101,7 +103,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         }}
       />
       <MenuItemPrimitive
-        label="Reset"
+        label={t("i18n-next13.sketch.actions.reset")}
         icon={<RestartAltIcon />}
         onClick={() => {
           onTransformReset?.();
@@ -112,7 +114,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       <Divider />
 
       <MenuItemPrimitive
-        label="Rotate 180°"
+        label={t("i18n-next13.sketch.transform.rotate180")}
         icon={<Rotate90DegreesCwIcon />}
         onClick={() => {
           onRotate180?.();
@@ -120,7 +122,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         }}
       />
       <MenuItemPrimitive
-        label="Rotate 90° CW"
+        label={t("i18n-next13.sketch.transform.rotate90CW")}
         icon={<RotateRightIcon />}
         onClick={() => {
           onRotate90CW?.();
@@ -128,7 +130,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         }}
       />
       <MenuItemPrimitive
-        label="Rotate 90° CCW"
+        label={t("i18n-next13.sketch.transform.rotate90CCW")}
         icon={<RotateLeftIcon />}
         onClick={() => {
           onRotate90CCW?.();
@@ -139,7 +141,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       <Divider />
 
       <MenuItemPrimitive
-        label="Flip horizontal"
+        label={t("i18n-next13.sketch.transform.flipHorizontal")}
         icon={<FlipIcon />}
         onClick={() => {
           onFlipHorizontal?.();
@@ -147,7 +149,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         }}
       />
       <MenuItemPrimitive
-        label="Flip vertical"
+        label={t("i18n-next13.sketch.transform.flipVertical")}
         icon={<FlipIcon sx={{ transform: "rotate(90deg)" }} />}
         onClick={() => {
           onFlipVertical?.();

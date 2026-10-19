@@ -26,6 +26,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -102,6 +103,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
   roleLoading = () => false,
   error = null
 }) => {
+  const { t } = useTranslation();
   const metadata = useMetadataStore((state) => state.metadata);
 
   // Every type the registry has: the field is the fix for a step the planner
@@ -164,11 +166,11 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     const next =
       target >= 0
         ? rootRef.current?.querySelector<HTMLElement>(
-            `button[aria-label="Delete step ${target + 1}"]`
+            `button[aria-label="${t("pass3_14.workflowSetup.review.deleteStepAriaLabel", { step: target + 1 })}"]`
           )
         : null;
     (next ?? addStepRef.current)?.focus();
-  }, [plan.steps.length]);
+  }, [plan.steps.length, t]);
 
   const removeStep = useCallback(
     (id: string) => {
@@ -223,13 +225,13 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         ...plan.steps,
         {
           id: `step-${plan.steps.length + 1}-${Date.now()}`,
-          title: "New step",
+          title: t("pass3_14.workflowSetup.review.newStepTitle"),
           summary: "",
           node_type: null
         }
       ]
     });
-  }, [onPlanChange, plan]);
+  }, [onPlanChange, plan, t]);
 
   // Inputs first, then the steps, then what comes out — the order the workflow
   // itself runs in (F32). The sample values are shown here and edited on the
@@ -239,14 +241,13 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     () => [
       {
         id: "inputs",
-        header: "Inputs",
-        subheader:
-          "What the workflow is given when it runs. You set the sample values on the next step.",
+        header: t("pass3_14.workflowSetup.review.inputsHeader"),
+        subheader: t("pass3_14.workflowSetup.review.inputsDescription"),
         rows: plan.inputs.map((input, index) => ({
           id: `input-${index}`,
           label: `${input.name} (${input.type})`,
           value: String(input.sample ?? ""),
-          placeholder: "No sample yet",
+          placeholder: t("pass3_14.workflowSetup.review.noSamplePlaceholder"),
           // A CSV or a list sample keeps its lines. On one line its rows ran
           // together: "product,settingceramic mug,…".
           multiline: String(input.sample ?? "").includes("\n"),
@@ -255,18 +256,20 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         }))
       }
     ],
-    [plan.inputs]
+    [plan.inputs, t]
   );
 
   const outputSections = useMemo<PlanReviewSection[]>(
     () => [
       {
         id: "outputs",
-        header: "Outputs",
-        subheader: "What it hands back.",
+        header: t("pass3_14.workflowSetup.review.outputsHeader"),
+        subheader: t("pass3_14.workflowSetup.review.outputsDescription"),
         rows: plan.outputs.map((output, index) => ({
           id: `output-${index}`,
-          label: `Output ${index + 1}`,
+          label: t("pass3_14.workflowSetup.review.outputLabel", {
+            output: index + 1
+          }),
           // One output needs no number. The section heading names it.
           hideLabel: plan.outputs.length === 1,
           value: output.name,
@@ -281,7 +284,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         }))
       }
     ],
-    [onPlanChange, plan, replanPending]
+    [onPlanChange, plan, replanPending, t]
   );
 
   return (
@@ -299,10 +302,10 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         <FlexRow gap={GAP.normal} align="flex-start" justify="space-between">
           <FlexColumn gap={GAP.tight} sx={{ minWidth: 0 }}>
             <Text size="big" component="h2">
-              Your plan
+              {t("pass3_14.workflowSetup.review.title")}
             </Text>
             <Text size="normal" color="secondary">
-              Review this plan, then choose models before building.
+              {t("pass3_14.workflowSetup.review.description")}
             </Text>
           </FlexColumn>
           <EditorButton
@@ -311,16 +314,19 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
             disabled={replanPending}
             sx={{ flexShrink: 0 }}
           >
-            Re-plan
+            {t("pass3_14.workflowSetup.review.replan")}
           </EditorButton>
         </FlexRow>
 
         {replanPending ? (
           <FlexRow gap={GAP.normal} align="center" wrap>
-            <ThinkingIndicator label="Re-planning the steps" announce />
+            <ThinkingIndicator
+              label={t("pass3_14.workflowSetup.review.replanning")}
+              announce
+            />
             {onCancelReplan ? (
               <EditorButton variant="text" onClick={onCancelReplan}>
-                Stop re-planning
+                {t("pass3_14.workflowSetup.review.stopReplanning")}
               </EditorButton>
             ) : null}
           </FlexRow>
@@ -334,7 +340,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
               <ReportBugButton
                 context={{
                   source: "provider-call",
-                  summary: "Workflow re-plan failed",
+                  summary: t("pass3_14.workflowSetup.review.replanFailed"),
                   errorText: error
                 }}
               />
@@ -347,14 +353,14 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         {planProblems.length > 0 ? (
           <AlertBanner
             severity="warning"
-            title="This plan would fail when it runs"
+            title={t("pass3_14.workflowSetup.review.planWouldFail")}
             action={
               <EditorButton
                 variant="text"
                 onClick={onReplan}
                 disabled={replanPending}
               >
-                Re-plan
+                {t("pass3_14.workflowSetup.review.replan")}
               </EditorButton>
             }
           >
@@ -370,15 +376,17 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
 
         {blocked.unknownNodeTypes > 0 ? (
           <Caption color="secondary" component="p">
-            {blocked.unknownNodeTypes === 1
-              ? "1 step names no node this install has. Pick one below to continue."
-              : `${blocked.unknownNodeTypes} steps name no node this install has. Pick one for each below to continue.`}
+            {t("pass3_14.workflowSetup.review.unknownNodeTypes", {
+              count: blocked.unknownNodeTypes
+            })}
           </Caption>
         ) : null}
 
         {blocked.missingProviders.length > 0 ? (
           <Caption color="secondary" component="p">
-            {`No connected provider offers a ${blocked.missingProviders.join(" or a ")} model. Connect one below to continue.`}
+            {t("pass3_14.workflowSetup.review.missingProviders", {
+              roles: blocked.missingProviders.join(" or a ")
+            })}
           </Caption>
         ) : null}
 
@@ -386,7 +394,9 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
           <FlexRow gap={GAP.normal} align="center">
             <LoadingSpinner size="small" />
             <Caption color="secondary" component="span">
-              {`Reading the ${blocked.loadingRoles.join(" and ")} models your providers offer…`}
+              {t("pass3_14.workflowSetup.review.loadingRoles", {
+                roles: blocked.loadingRoles.join(" and ")
+              })}
             </Caption>
           </FlexRow>
         ) : null}
@@ -397,8 +407,8 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
 
         <FlexColumn gap={GAP.compact} component="section">
           <PlanReviewHeading
-            header="Steps"
-            subheader="What runs, in order. Edit, reorder or remove any step."
+            header={t("pass3_14.workflowSetup.review.stepsHeader")}
+            subheader={t("pass3_14.workflowSetup.review.stepsDescription")}
           />
           {/* The blocks need air between them: the left rule says where a step
           ends only if the next one does not start against it. */}
@@ -450,7 +460,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
               "&:hover": { borderStyle: "dashed", borderColor: "text.disabled" }
             }}
           >
-            Add a step
+            {t("pass3_14.workflowSetup.review.addStep")}
           </EditorButton>
         </FlexColumn>
 
@@ -493,6 +503,7 @@ const StepRow: React.FC<StepRowProps> = ({
   readOnly,
   roleLoading
 }) => {
+  const { t } = useTranslation();
   const { step } = entry;
   // A role whose models are still being read has its own line above.
   const missingRole =
@@ -543,7 +554,9 @@ const StepRow: React.FC<StepRowProps> = ({
           >
             <TextInput
               compact
-              label={`Step ${index + 1} title`}
+              label={t("pass3_14.workflowSetup.review.stepTitleLabel", {
+                step: index + 1
+              })}
               hideLabel
               value={step.title}
               disabled={readOnly}
@@ -556,55 +569,89 @@ const StepRow: React.FC<StepRowProps> = ({
             <ToolbarIconButton
               size="small"
               icon={<ArrowUpwardIcon fontSize="inherit" />}
-              tooltip={readOnly || index === 0 ? "" : "Move up"}
+              tooltip={
+                readOnly || index === 0
+                  ? ""
+                  : t("pass3_14.workflowSetup.review.moveUp")
+              }
               onClick={() => onMove(index, -1)}
               disabled={readOnly || index === 0}
-              aria-label={`Move step ${index + 1} up`}
+              aria-label={t(
+                "pass3_14.workflowSetup.review.moveStepUpAriaLabel",
+                {
+                  step: index + 1
+                }
+              )}
             />
             <ToolbarIconButton
               size="small"
               icon={<ArrowDownwardIcon fontSize="inherit" />}
-              tooltip={readOnly || index === stepCount - 1 ? "" : "Move down"}
+              tooltip={
+                readOnly || index === stepCount - 1
+                  ? ""
+                  : t("pass3_14.workflowSetup.review.moveDown")
+              }
               onClick={() => onMove(index, 1)}
               disabled={readOnly || index === stepCount - 1}
-              aria-label={`Move step ${index + 1} down`}
+              aria-label={t(
+                "pass3_14.workflowSetup.review.moveStepDownAriaLabel",
+                {
+                  step: index + 1
+                }
+              )}
             />
             <ToolbarIconButton
               size="small"
               icon={<DeleteOutlineIcon fontSize="inherit" />}
-              tooltip={readOnly ? "" : "Delete step"}
+              tooltip={
+                readOnly ? "" : t("pass3_14.workflowSetup.review.deleteStep")
+              }
               onClick={() => onRemove(step.id)}
               disabled={readOnly}
-              aria-label={`Delete step ${index + 1}`}
+              aria-label={t(
+                "pass3_14.workflowSetup.review.deleteStepAriaLabel",
+                {
+                  step: index + 1
+                }
+              )}
             />
           </FlexRow>
         </FlexRow>
 
         <TextArea
           compact
-          label={`Step ${index + 1} description`}
+          label={t("pass3_14.workflowSetup.review.stepDescriptionLabel", {
+            step: index + 1
+          })}
           hideLabel
-          placeholder="What this step does"
+          placeholder={t(
+            "pass3_14.workflowSetup.review.stepDescriptionPlaceholder"
+          )}
           value={step.summary}
           disabled={readOnly}
           minRows={1}
-          onChange={(value) =>
-            onChange(step.id, { summary: value })
-          }
+          onChange={(value) => onChange(step.id, { summary: value })}
         />
 
         {entry.unknownNodeType ? (
-          <AlertBanner severity="error" title="No node for this step">
+          <AlertBanner
+            severity="error"
+            title={t("pass3_14.workflowSetup.review.noNodeTitle")}
+          >
             <FlexColumn gap={GAP.normal}>
               <Caption component="span">
                 {step.node_type === null
-                  ? "The plan could not name a node for this step. Pick one."
-                  : `"${step.node_type}" is not a node type this install has. Pick one.`}
+                  ? t("pass3_14.workflowSetup.review.unnamedNodeError")
+                  : t("pass3_14.workflowSetup.review.unknownNodeError", {
+                      nodeType: step.node_type
+                    })}
               </Caption>
               <Autocomplete
                 options={nodeTypeOptions}
-                label={`Node type for step ${index + 1}`}
-                placeholder="Search node types"
+                label={t("pass3_14.workflowSetup.review.nodeTypeLabel", {
+                  step: index + 1
+                })}
+                placeholder={t("pass3_14.workflowSetup.review.searchNodeTypes")}
                 disabled={readOnly}
                 onChange={(_event, value) => pickNodeType(value)}
               />
@@ -619,7 +666,12 @@ const StepRow: React.FC<StepRowProps> = ({
               <TextLink
                 asButton
                 aria-expanded={picking}
-                aria-label={`Change node: ${step.node_type ?? ""}`}
+                aria-label={t(
+                  "pass3_14.workflowSetup.review.changeNodeAriaLabel",
+                  {
+                    nodeType: step.node_type ?? ""
+                  }
+                )}
                 aria-disabled={readOnly || undefined}
                 onClick={() => {
                   if (!readOnly) {
@@ -663,8 +715,10 @@ const StepRow: React.FC<StepRowProps> = ({
                     (option) => option.value === step.node_type
                   ) ?? null
                 }
-                label={`Node type for step ${index + 1}`}
-                placeholder="Search node types"
+                label={t("pass3_14.workflowSetup.review.nodeTypeLabel", {
+                  step: index + 1
+                })}
+                placeholder={t("pass3_14.workflowSetup.review.searchNodeTypes")}
                 disabled={readOnly}
                 onChange={(_event, value) => pickNodeType(value)}
               />
@@ -675,23 +729,33 @@ const StepRow: React.FC<StepRowProps> = ({
         {missingRole !== null ? (
           <AlertBanner
             severity="warning"
-            title={`No ${missingRole} provider connected`}
+            title={t("pass3_14.workflowSetup.review.noRoleProviderTitle", {
+              role: missingRole
+            })}
             action={
               <EditorButton
                 variant="text"
                 onClick={() =>
                   openProviderOnboarding({
                     capability: MODEL_ROLE_ONBOARDING[missingRole],
-                    reason: `Step ${index + 1} needs a ${missingRole} model.`
+                    reason: t(
+                      "pass3_14.workflowSetup.review.missingRoleReason",
+                      {
+                        step: index + 1,
+                        role: missingRole
+                      }
+                    )
                   })
                 }
               >
-                Connect
+                {t("pass3_14.workflowSetup.review.connect")}
               </EditorButton>
             }
           >
             <Caption component="span">
-              {`This step runs on a ${missingRole} model. Connect a provider that offers one.`}
+              {t("pass3_14.workflowSetup.review.missingRoleDescription", {
+                role: missingRole
+              })}
             </Caption>
           </AlertBanner>
         ) : null}

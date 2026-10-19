@@ -2,6 +2,7 @@ import AddIcon from "@mui/icons-material/AddOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { ChangeEvent, DragEvent } from "react";
@@ -83,7 +84,7 @@ function createTimelineDragImage(name: string, theme: Theme): HTMLElement {
   container.appendChild(icon);
 
   const label = document.createElement("div");
-  label.textContent = name || "Untitled video";
+  label.textContent = name;
   label.style.cssText = `
     min-width: 0;
     overflow: hidden;
@@ -120,6 +121,7 @@ const TimelineListItem = memo(function TimelineListItem({
   onCommitRename,
   onCancelRename
 }: TimelineListItemProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
@@ -130,22 +132,31 @@ const TimelineListItem = memo(function TimelineListItem({
         {
           type: "timeline",
           payload,
-          metadata: { sourceId: id, sourceName: name || "Untitled video" }
+          metadata: {
+            sourceId: id,
+            sourceName: name || t("i18n-next65.timeline.listPanel.untitled")
+          }
         },
         event.dataTransfer
       );
       event.dataTransfer.effectAllowed = "copyMove";
-      const dragImage = createTimelineDragImage(name, theme);
+      const dragImage = createTimelineDragImage(
+        name || t("i18n-next65.timeline.listPanel.untitled"),
+        theme
+      );
       document.body.appendChild(dragImage);
       event.dataTransfer.setDragImage(dragImage, 10, 10);
       window.setTimeout(() => document.body.removeChild(dragImage), 0);
       setActiveDrag({
         type: "timeline",
         payload,
-        metadata: { sourceId: id, sourceName: name || "Untitled video" }
+        metadata: {
+          sourceId: id,
+          sourceName: name || t("i18n-next65.timeline.listPanel.untitled")
+        }
       });
     },
-    [id, name, updatedAt, setActiveDrag, theme]
+    [id, name, updatedAt, setActiveDrag, t, theme]
   );
   const handleDragEnd = useCallback(() => {
     clearDrag();
@@ -155,8 +166,8 @@ const TimelineListItem = memo(function TimelineListItem({
     <ListPanelItem
       id={id}
       name={name}
-      fallbackName="Untitled video"
-      renameLabel="Timeline name"
+      fallbackName={t("i18n-next65.timeline.listPanel.untitled")}
+      renameLabel={t("i18n-next65.timeline.listPanel.nameLabel")}
       icon={MovieOutlinedIcon}
       active={active}
       editing={editing}
@@ -172,6 +183,7 @@ const TimelineListItem = memo(function TimelineListItem({
 });
 
 export const CreateTimelineButton = memo(function CreateTimelineButton() {
+  const { t } = useTranslation();
   const createTimeline = useCreateTimeline();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -182,7 +194,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
     try {
       const timeline = await createTimeline.mutateAsync({
         id: newDocumentId(),
-        name: "Untitled video",
+        name: t("i18n-next65.timeline.listPanel.untitled"),
         projectId: creationProjectId()
       });
       if (location.pathname.startsWith("/workspace")) {
@@ -190,7 +202,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
           type: "timeline",
           ref: timeline.id,
           mode: "edit",
-          title: timeline.name || "Untitled video",
+          title: timeline.name || t("i18n-next65.timeline.listPanel.untitled"),
           projectId: timeline.projectId
         });
       } else {
@@ -198,9 +210,9 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
       }
       setVisibility(false);
     } catch (error) {
-      notifyMutationError("create the timeline", error);
+      notifyMutationError(t("i18n-next65.timeline.listPanel.createError"), error);
     }
-  }, [createTimeline, location.pathname, navigate, openTab, setVisibility]);
+  }, [createTimeline, location.pathname, navigate, openTab, setVisibility, t]);
 
   const utils = trpc.useUtils();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -228,7 +240,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
             type: "timeline",
             ref: timeline.id,
             mode: "edit",
-            title: timeline.name || "Untitled video",
+            title: timeline.name || t("i18n-next65.timeline.listPanel.untitled"),
             projectId: timeline.projectId
           });
         } else {
@@ -240,20 +252,26 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
         addNotification({
           type: "success",
           alert: true,
-          content: `Imported ${timeline.name || "Untitled video"}`
+          content: t("i18n-next65.timeline.listPanel.imported", {
+            name: timeline.name || t("i18n-next65.timeline.listPanel.untitled")
+          })
         });
         if (result.missing.length > 0) {
           addNotification({
             type: "warning",
             alert: true,
-            content: `${result.missing.length} asset(s) were not in the archive`
+            content: t("i18n-next65.timeline.listPanel.missingAssets", {
+              count: result.missing.length
+            })
           });
         }
         if (result.missing_clips) {
           addNotification({
             type: "warning",
             alert: true,
-            content: `${result.missing_clips} clip(s) were left out because their media was not in the zip`
+            content: t("i18n-next65.timeline.listPanel.missingClips", {
+              count: result.missing_clips
+            })
           });
         }
         const notCarried = (result.warnings ?? []).filter(
@@ -263,23 +281,28 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
           addNotification({
             type: "info",
             dismissable: true,
-            content: `Not carried over from Premiere: ${notCarried.join(" ")}`
+            content: t("i18n-next65.timeline.listPanel.notCarriedOver", {
+              warnings: notCarried.join(" ")
+            })
           });
         }
       } catch (error) {
-        notifyMutationError("import the timeline", error);
+        notifyMutationError(t("i18n-next65.timeline.listPanel.importError"), error);
       } finally {
         setIsImporting(false);
       }
     },
-    [location.pathname, navigate, openTab, setVisibility, utils]
+    [location.pathname, navigate, openTab, setVisibility, t, utils]
   );
 
   return (
     <FlexRow align="center" gap={SPACING.xs}>
-      <Tooltip title="New timeline" placement="right-start">
+      <Tooltip
+        title={t("i18n-next65.timeline.listPanel.newTimeline")}
+        placement="right-start"
+      >
         <ToolbarIconButton
-          ariaLabel="New timeline"
+          ariaLabel={t("i18n-next65.timeline.listPanel.newTimeline")}
           onClick={() => void handleCreate()}
           disabled={createTimeline.isPending}
           tabIndex={-1}
@@ -287,11 +310,11 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
         />
       </Tooltip>
       <Tooltip
-        title="Import timeline (.zip, or a Premiere XML zipped with its media)"
+        title={t("i18n-next65.timeline.listPanel.importTimelineTooltip")}
         placement="right-start"
       >
         <ToolbarIconButton
-          ariaLabel="Import timeline (.zip)"
+          ariaLabel={t("i18n-next65.timeline.listPanel.importTimeline")}
           onClick={handleImportClick}
           disabled={isImporting}
           tabIndex={-1}
@@ -302,7 +325,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
         ref={fileInputRef}
         type="file"
         accept=".zip,application/zip"
-        aria-label="Import timeline archive"
+        aria-label={t("i18n-next65.timeline.listPanel.importTimelineArchive")}
         style={{ display: "none" }}
         onChange={(event) => void handleImportFile(event)}
       />
@@ -315,6 +338,7 @@ interface TimelineListPanelProps {
 }
 
 const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
+  const { t } = useTranslation();
   const { data, isLoading, isError, error } = useTimelines(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
@@ -335,7 +359,7 @@ const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
           type: "timeline",
           ref: id,
           mode: "view",
-          title: name || "Untitled video",
+          title: name || t("i18n-next65.timeline.listPanel.untitled"),
           projectId
         });
       } else {
@@ -343,7 +367,7 @@ const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, projectId, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility, t]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -381,7 +405,9 @@ const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
         const source = await utils.timeline.get.fetch({ id: item.id });
         const copy = await createTimeline.mutateAsync({
           id: newDocumentId(),
-          name: `${source.name} (copy)`.substring(0, 200),
+          name: t("i18n-next65.timeline.listPanel.copyName", {
+            name: source.name
+          }).substring(0, 200),
           projectId: source.projectId,
           fps: source.fps,
           width: source.width,
@@ -400,10 +426,10 @@ const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
           })
         });
       } catch (error) {
-        notifyMutationError("duplicate the timeline", error);
+        notifyMutationError(t("i18n-next65.timeline.listPanel.duplicateError"), error);
       }
     },
-    [utils, createTimeline, updateTimeline]
+    [t, utils, createTimeline, updateTimeline]
   );
 
   const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
@@ -430,13 +456,13 @@ const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
 
   return (
     <DocumentListPanel
-      singular="timeline"
-      plural="timelines"
+      singular={t("i18n-next65.timeline.listPanel.singular")}
+      plural={t("i18n-next65.timeline.listPanel.plural")}
       documents={data}
       isLoading={isLoading}
       isError={isError}
       errorMessage={error?.message}
-      emptyDescription="Create a new video timeline with the + button above."
+      emptyDescription={t("i18n-next65.timeline.listPanel.emptyDescription")}
       deleteTarget={itemToDelete}
       onCancelDelete={() => setItemToDelete(null)}
       onConfirmDelete={handleConfirmDelete}

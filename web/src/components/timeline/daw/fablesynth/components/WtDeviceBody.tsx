@@ -4,6 +4,7 @@
 // timeline the clips sequence the device.
 
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DeviceTabs, type DeviceTab } from './DeviceTabs';
 import { OscPanel } from './panels/OscPanel';
 import { UtilPanel } from './panels/UtilPanel';
@@ -52,20 +53,29 @@ function useWtFxAdapter(): FxPanelAdapter {
 }
 
 export function WtDeviceBody() {
+  const { t } = useTranslation();
   const fx = useWtFxAdapter();
   const [page, setPage] = useState<Page>('edit');
 
   return (
     <div className="device-body wt-body">
-      <DeviceTabs tabs={TABS} page={page} onSelect={setPage} label="WT-1 pages" />
+      <DeviceTabs
+        tabs={TABS.map((tab) => ({
+          ...tab,
+          label: t(`i18n-next77.wt1Body.tabs.${tab.id}`, { defaultValue: tab.label })
+        }))}
+        page={page}
+        onSelect={setPage}
+        label={t('i18n-next77.wt1Body.pagesLabel')}
+      />
       {page === 'edit' && (
         <div className="panels device-page" data-page="edit">
-          <OscPanel prefix="oscA" accentKey="a" title="OSC A" gridArea="oscA" />
-          <OscPanel prefix="oscB" accentKey="b" title="OSC B" gridArea="oscB" />
+          <OscPanel prefix="oscA" accentKey="a" title={t('i18n-next77.wt1Body.panels.oscA')} gridArea="oscA" />
+          <OscPanel prefix="oscB" accentKey="b" title={t('i18n-next77.wt1Body.panels.oscB')} gridArea="oscB" />
           <UtilPanel />
           <FilterPanel />
-          <EnvPanel id="env1" title="AMP ENV" gridArea="env1" viewAccent="#e8edf7" knobAccent="n" />
-          <EnvPanel id="env2" title="MOD ENV" gridArea="env2" viewAccent="#b18cff" knobAccent="f"
+          <EnvPanel id="env1" title={t('i18n-next77.wt1Body.panels.ampEnv')} gridArea="env1" viewAccent="#e8edf7" knobAccent="n" />
+          <EnvPanel id="env2" title={t('i18n-next77.wt1Body.panels.modEnv')} gridArea="env2" viewAccent="#b18cff" knobAccent="f"
             pages={[{ id: 'env2', label: '1', modSource: 3 }, { id: 'env3', label: '2', modSource: 8 }]} />
           <LfoPanel />
           <MatrixPanel />

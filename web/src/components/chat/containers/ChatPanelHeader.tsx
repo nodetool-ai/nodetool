@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -51,9 +52,11 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   title,
   description,
   docsTopic = "agents",
-  docsLabel = "Chat & agents",
+  docsLabel,
   projectId
 }) => {
+  const { t } = useTranslation();
+  const resolvedDocsLabel = docsLabel ?? t("i18n-next11.chat.chatAndAgents");
   const navigate = useNavigate();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const threadsAnchorRef = useRef<HTMLButtonElement>(null);
@@ -78,8 +81,8 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
     (threadId: string) =>
       threads?.[threadId]
         ? threadPreview(threads[threadId].title, messageCache[threadId])
-        : "Empty conversation",
-    [threads, messageCache]
+        : t("i18n-next11.chat.emptyConversation"),
+    [threads, messageCache, t]
   );
 
   const threadsWithMessages: Record<string, ThreadInfo> = useMemo(() => {
@@ -117,11 +120,11 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
         console.error("Failed to delete thread:", error);
         addNotification({
           type: "error",
-          content: "Could not delete the conversation. Please try again."
+          content: t("i18n-next11.chat.deleteConversationError")
         });
       });
     },
-    [deleteThread, addNotification]
+    [deleteThread, addNotification, t]
   );
 
   const handleOpenAsTab = useCallback(() => {
@@ -148,21 +151,21 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
         <>
           <ToolbarIconButton
             onClick={onNewChat}
-            tooltip="New chat"
+            tooltip={t("i18n-next11.chat.newChat")}
             icon={<AddIcon fontSize="small" />}
           />
           <ToolbarIconButton
             ref={threadsAnchorRef}
             onClick={() => setThreadsOpen(true)}
-            tooltip="Conversations"
+            tooltip={t("i18n-next11.chat.conversations")}
             icon={<ForumOutlinedIcon fontSize="small" />}
           />
           <ToolbarIconButton
             onClick={handleOpenAsTab}
-            tooltip="Open in a workspace tab"
+            tooltip={t("i18n-next11.chat.openInWorkspaceTab")}
             icon={<OpenInNewIcon fontSize="small" />}
           />
-          <DocsHelpLink topic={docsTopic} label={docsLabel} />
+          <DocsHelpLink topic={docsTopic} label={resolvedDocsLabel} />
         </>
       }
     >

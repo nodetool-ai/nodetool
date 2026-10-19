@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -72,14 +73,16 @@ export interface DynamicInputButtonProps {
 
 const DynamicInputButtonInner: React.FC<DynamicInputButtonProps> = ({
   label,
-  itemLabel = "input",
+  itemLabel,
   onAdd,
   disabled = false,
   className
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
-  const text = label ?? `Add another ${itemLabel}`;
+  const resolvedItemLabel = itemLabel ?? t("i18n-next103.dynamicInputButton.defaultItem");
+  const text = label ?? t("i18n-next103.dynamicInputButton.addAnother", { itemLabel: resolvedItemLabel });
 
   return (
     <Button

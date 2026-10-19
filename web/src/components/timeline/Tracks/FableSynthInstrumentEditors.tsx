@@ -5,6 +5,7 @@
  */
 
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type {
   BassMidiInstrument,
@@ -115,6 +116,7 @@ const Knob: React.FC<KnobProps> = ({
   size = "md",
   accent = "n"
 }) => {
+  const { t } = useTranslation();
   const drag = useRef<{ y: number; norm: number } | null>(null);
   // A drag is one undo entry, however many pointermoves it takes.
   const gesture = useBatchedGesture(onChange);
@@ -138,12 +140,12 @@ const Knob: React.FC<KnobProps> = ({
           />
         </svg>
         <Tooltip
-          title="Drag up or down. Shift for fine adjustment. Double-click to reset."
+          title={t("i18n-cont-music-09.fableSynth.knobHelp")}
           describeChild
         >
           <input
             type="range"
-            aria-label={def.label}
+            aria-label={t(`i18n-cont-music-09.fableSynth.parameters.${def.id}`)}
             aria-valuetext={def.fmt?.(value) ?? String(value)}
             min="0"
             max="1"
@@ -193,7 +195,7 @@ const Knob: React.FC<KnobProps> = ({
           />
         </Tooltip>
       </span>
-      <span className="fs-k-label">{def.label}</span>
+      <span className="fs-k-label">{t(`i18n-cont-music-09.fableSynth.parameters.${def.id}`)}</span>
       <span className="fs-k-value">{def.fmt?.(value) ?? value.toFixed(2)}</span>
     </label>
   );
@@ -214,15 +216,16 @@ const Stepper: React.FC<StepperProps> = ({
   onChange,
   accent = "n"
 }) => {
+  const { t } = useTranslation();
   const index = Math.min(options.length - 1, Math.max(0, Math.round(value)));
   const step = (amount: number) =>
     onChange((index + amount + options.length) % options.length);
   return (
     <span className="fs-stepper" data-accent={accent}>
-      {label ? <span className="fs-st-label">{label}</span> : null}
+      {label ? <span className="fs-st-label">{t(`i18n-cont-music-09.fableSynth.controls.${label.toLowerCase().replaceAll(" ", "_")}`)}</span> : null}
       <button
         type="button"
-        aria-label={`previous ${label ?? "option"}`}
+        aria-label={t("i18n-cont-music-09.fableSynth.previousOption", { label: label ? t(`i18n-cont-music-09.fableSynth.controls.${label.toLowerCase().replaceAll(" ", "_")}`) : t("i18n-cont-music-09.fableSynth.option") })}
         onClick={() => step(-1)}
       >
         ◂
@@ -232,7 +235,7 @@ const Stepper: React.FC<StepperProps> = ({
       </span>
       <button
         type="button"
-        aria-label={`next ${label ?? "option"}`}
+        aria-label={t("i18n-cont-music-09.fableSynth.nextOption", { label: label ? t(`i18n-cont-music-09.fableSynth.controls.${label.toLowerCase().replaceAll(" ", "_")}`) : t("i18n-cont-music-09.fableSynth.option") })}
         onClick={() => step(1)}
       >
         ▸
@@ -246,16 +249,19 @@ const Power: React.FC<{
   label: string;
   onChange: () => void;
   accent?: Accent;
-}> = ({ on, label, onChange, accent = "n" }) => (
+}> = ({ on, label, onChange, accent = "n" }) => {
+  const { t } = useTranslation();
+  return (
   <button
     type="button"
     className={`fs-power${on ? " on" : ""}`}
     data-accent={accent}
-    aria-label={`${label} power`}
+    aria-label={t("i18n-cont-music-09.fableSynth.power", { label: t(`i18n-cont-music-09.fableSynth.controls.${label.toLowerCase()}`) })}
     aria-pressed={on}
     onClick={onChange}
   />
-);
+  );
+};
 
 const Panel: React.FC<{
   title: string;
@@ -263,19 +269,29 @@ const Panel: React.FC<{
   className?: string;
   head?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ title, accent, className = "", head, children }) => (
+}> = ({ title, accent, className = "", head, children }) => {
+  const { t } = useTranslation();
+  const sectionKeys: Record<string, string> = {
+    KEYS: "keys", FILTER: "filter", OSC: "oscillator", SUB: "sub",
+    ENV: "envelope", "AMP ENV": "ampEnvelope", "MOD ENV": "modEnvelope", "ACCENT · SLIDE": "accentSlide",
+    "OSC A": "oscillatorA", "OSC B": "oscillatorB", "SUB · NOISE": "subNoise",
+    PADS: "pads", "NOISE + RING": "noiseRing", "PITCH ENV": "pitchEnvelope", OUTPUT: "output"
+  };
+  const translatedTitle = t(`i18n-cont-music-09.fableSynth.sections.${sectionKeys[title] ?? title}`);
+  return (
   <section
     className={`fs-panel ${className}`}
     data-accent={accent}
-    aria-label={title}
+    aria-label={translatedTitle}
   >
     <div className="fs-panel-head">
-      <h3>{title}</h3>
+      <h3>{translatedTitle}</h3>
       {head}
     </div>
     {children}
   </section>
-);
+  );
+};
 
 const NOTE_NAMES = [
   "C",
@@ -302,11 +318,13 @@ export const InstrumentKeyboard = ({
 }: {
   start: number;
   onPlay: (pitch: number) => void;
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <Panel
     title="KEYS"
     className="fs-keys-panel"
-    head={<Caption>Click or focus a key and press Enter</Caption>}
+    head={<Caption>{t("i18n-cont-music-09.fableSynth.keyboardHelp")}</Caption>}
   >
     <div className="fs-keys">
       <div className="fs-white-keys">
@@ -314,7 +332,7 @@ export const InstrumentKeyboard = ({
           <button
             type="button"
             key={semi}
-            aria-label={`Play ${noteName(start + semi)}`}
+            aria-label={t("i18n-cont-music-09.fableSynth.playNote", { note: noteName(start + semi) })}
             onClick={() => onPlay(start + semi)}
           >
             <span>{noteName(start + semi)}</span>
@@ -326,7 +344,7 @@ export const InstrumentKeyboard = ({
           type="button"
           className="fs-black-key"
           key={semi}
-          aria-label={`Play ${noteName(start + semi)}`}
+          aria-label={t("i18n-cont-music-09.fableSynth.playNote", { note: noteName(start + semi) })}
           style={{
             left: `calc(var(--fs-key-scale, 1) * ${(WHITE_KEYS.filter((white) => white < semi).length / 15) * 100}%)`
           }}
@@ -335,7 +353,8 @@ export const InstrumentKeyboard = ({
       ))}
     </div>
   </Panel>
-);
+  );
+};
 
 interface EditorProps<T extends FableInstrument> {
   instrument: T;
@@ -360,14 +379,16 @@ const filterTypes: readonly MidiFilterType[] = [
 const Filter = <T extends BassMidiInstrument | WavetableMidiInstrument>({
   instrument,
   onChange
-}: EditorProps<T>) => (
+}: EditorProps<T>) => {
+  const { t } = useTranslation();
+  return (
   <Panel
     title="FILTER"
     accent="f"
     head={
       <Stepper
         label="TYPE"
-        options={FILTERS}
+        options={FILTERS.map((_, index) => t(`i18n-cont-music-09.fableSynth.filterTypes.${index}`))}
         value={filterTypes.indexOf(instrument.filterType)}
         onChange={(index) =>
           onChange({ ...instrument, filterType: filterTypes[index] })
@@ -411,7 +432,8 @@ const Filter = <T extends BassMidiInstrument | WavetableMidiInstrument>({
       />
     </div>
   </Panel>
-);
+  );
+};
 
 const Envelope = ({
   title,
@@ -516,7 +538,9 @@ const Oscillator = ({
 const BassEditor = ({
   instrument,
   onChange
-}: EditorProps<BassMidiInstrument>) => (
+}: EditorProps<BassMidiInstrument>) => {
+  const { t } = useTranslation();
+  return (
   <>
     <div className="fs-voice-grid">
       <Panel
@@ -554,7 +578,7 @@ const BassEditor = ({
         <FlexRow className="fs-sub-controls" gap={SPACING.md} wrap>
           <Stepper
             label="SHAPE"
-            options={["SINE", "SQUARE"]}
+            options={[t("i18n-cont-music-09.fableSynth.waveforms.sine"), t("i18n-cont-music-09.fableSynth.waveforms.square")]}
             value={instrument.subShape === "square" ? 1 : 0}
             onChange={(index) =>
               onChange({ ...instrument, subShape: index ? "square" : "sine" })
@@ -577,7 +601,7 @@ const BassEditor = ({
         </FlexRow>
       </Panel>
       <Filter instrument={instrument} onChange={onChange} />
-      <Panel title="ENV" className="fs-panel-inline" head={<Caption>Filter envelope</Caption>}>
+      <Panel title="ENV" className="fs-panel-inline" head={<Caption>{t("i18n-cont-music-09.fableSynth.filterEnvelope")}</Caption>}>
         <div className="fs-knob-row">
           <Knob
             def={P("fattack", "F·ATT", 0, 500, 1, (v) => sec(v / 1000), "time")}
@@ -634,12 +658,13 @@ const BassEditor = ({
           />
         </div>
         <Caption>
-          Accent follows note velocity. Slide joins overlapping notes.
+          {t("i18n-cont-music-09.fableSynth.accentSlideHelp")}
         </Caption>
       </Panel>
     </div>
   </>
-);
+  );
+};
 
 const WavetableEditor = ({
   instrument,
@@ -703,6 +728,7 @@ const DrumEditor = ({
   instrument,
   onChange
 }: EditorProps<DrumMidiInstrument>) => {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(0);
   const pad = instrument.pads[selected];
   if (!pad) return null;
@@ -714,6 +740,12 @@ const DrumEditor = ({
     "tine",
     "grit"
   ];
+  const drumTableLabels: Partial<Record<DrumPad["table"], string>> = {
+    thud: t("i18n-cont-music-09.fableSynth.drumTables.thud"),
+    crack: t("i18n-cont-music-09.fableSynth.drumTables.crack"),
+    tine: t("i18n-cont-music-09.fableSynth.drumTables.tine"),
+    grit: t("i18n-cont-music-09.fableSynth.drumTables.grit")
+  };
   const commit = (next: DrumPad) =>
     onChange(
       {
@@ -730,7 +762,7 @@ const DrumEditor = ({
         title="PADS"
         accent="b"
         className="fs-pad-panel"
-        head={<Caption>Select to edit and audition</Caption>}
+        head={<Caption>{t("i18n-cont-music-09.fableSynth.padHelp")}</Caption>}
       >
         <div className="fs-pad-grid">
           {DRUM_PAD_ORDER.filter((index) => index < instrument.pads.length).map(
@@ -739,7 +771,7 @@ const DrumEditor = ({
                 type="button"
                 key={index}
                 className={selected === index ? "selected" : ""}
-                aria-label={`Edit pad ${index + 1}: ${instrument.pads[index].name}`}
+                aria-label={t("i18n-cont-music-09.fableSynth.editPad", { number: index + 1, name: instrument.pads[index].name })}
                 aria-pressed={selected === index}
                 onClick={() => {
                   setSelected(index);
@@ -764,7 +796,7 @@ const DrumEditor = ({
             head={
               <Stepper
                 label="TABLE"
-                options={drumTables.map((table) => table.toUpperCase())}
+                options={drumTables.map((table) => drumTableLabels[table] ?? table.toUpperCase())}
                 value={drumTables.indexOf(pad.table)}
                 onChange={(index) =>
                   commit({ ...pad, table: drumTables[index] })
@@ -890,7 +922,7 @@ const DrumEditor = ({
               <>
                 <Stepper
                   label="TYPE"
-                  options={FILTERS}
+                  options={FILTERS.map((_, index) => t(`i18n-cont-music-09.fableSynth.filterTypes.${index}`))}
                   value={filterTypes.indexOf(filter.type)}
                   onChange={(index) =>
                     commit({
@@ -920,7 +952,7 @@ const DrumEditor = ({
                 </div>
               </>
             ) : (
-              <Caption>Filter bypassed. Enable to shape this pad.</Caption>
+              <Caption>{t("i18n-cont-music-09.fableSynth.filterBypassed")}</Caption>
             )}
           </Panel>
           <Panel title="OUTPUT" accent="b">
@@ -955,6 +987,7 @@ const FableSynthInstrumentEditor = ({
   instrument,
   onChange
 }: FableSynthInstrumentEditorProps) => {
+  const { t } = useTranslation();
   const model =
     instrument.type === "bass"
       ? "BL-1"
@@ -971,10 +1004,10 @@ const FableSynthInstrumentEditor = ({
         <Label>{model}</Label>
         <Caption className="fs-description">
           {instrument.type === "bass"
-            ? "Bass synthesizer"
+            ? t("i18n-cont-music-09.fableSynth.instrumentTypes.bass")
             : instrument.type === "wavetable"
-              ? "Wavetable synthesizer"
-              : "Drum synthesizer"}
+              ? t("i18n-cont-music-09.fableSynth.instrumentTypes.wavetable")
+              : t("i18n-cont-music-09.fableSynth.instrumentTypes.drum")}
         </Caption>
         <EditorButton
           size="small"
@@ -985,7 +1018,7 @@ const FableSynthInstrumentEditor = ({
             )
           }
         >
-          Audition
+          {t("i18n-cont-music-09.fableSynth.audition")}
         </EditorButton>
         <Knob
           def={P(

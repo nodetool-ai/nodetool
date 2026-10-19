@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot } from "@nodetool-ai/protocol";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -55,10 +56,10 @@ interface ShotScriptPanelProps {
   readOnly?: boolean;
 }
 
-const STATUS_META: Record<LineStatus, { status: StatusType; label: string }> = {
-  draft: { status: "default", label: "Not voiced" },
-  stale: { status: "warning", label: "Stale" },
-  voiced: { status: "success", label: "Voiced" }
+const STATUS_META: Record<LineStatus, { status: StatusType; key: string }> = {
+  draft: { status: "default", key: "notVoiced" },
+  stale: { status: "warning", key: "stale" },
+  voiced: { status: "success", key: "voiced" }
 };
 
 const ScriptLineEntry = ({
@@ -74,6 +75,7 @@ const ScriptLineEntry = ({
   canVoice: boolean;
   onError: (message: string | null) => void;
 }) => {
+  const { t } = useTranslation();
   const voicing = useLineVoicing(line.id);
   const voice = effectiveVoice(line, cast);
   const status = lineStatus(line, voice);
@@ -86,15 +88,15 @@ const ScriptLineEntry = ({
     try {
       await voiceLine(scriptId, line.id);
     } catch (error) {
-      onError(getErrorMessage(error, "Voicing failed"));
+      onError(getErrorMessage(error, t("screens4_19.storyboard.shotScript.voicingFailed")));
     }
-  }, [scriptId, line.id, onError]);
+  }, [scriptId, line.id, onError, t]);
 
   return (
     <FlexRow align="flex-start" gap={SPACING.xs} fullWidth>
       <Chip
         compact
-        label={speaker?.name ?? "Narrator"}
+        label={speaker?.name ?? t("screens4_19.storyboard.shotScript.narrator")}
         variant="outlined"
         sx={{ flexShrink: 0 }}
       />
@@ -102,25 +104,28 @@ const ScriptLineEntry = ({
         {line.text}
       </Text>
       <FlexRow align="center" gap={SPACING.micro} sx={{ flexShrink: 0 }}>
-        <StatusIndicator status={meta.status} label={meta.label} />
+        <StatusIndicator
+          status={meta.status}
+          label={t(`screens4_19.storyboard.shotScript.${meta.key}`)}
+        />
         {voicing ? (
           <LoadingSpinner size="small" />
         ) : (
           <Tooltip
             title={
               !canVoice
-                ? "Open the script to voice this line"
+                ? t("screens4_19.storyboard.shotScript.openScriptToVoice")
                 : voice
                   ? status === "stale"
-                    ? "Re-voice line"
-                    : "Voice line"
-                  : "Assign a voice to this speaker first"
+                    ? t("screens4_19.storyboard.shotScript.revoiceLine")
+                    : t("screens4_19.storyboard.shotScript.voiceLine")
+                  : t("screens4_19.storyboard.shotScript.assignVoiceFirst")
             }
           >
             <span>
               <ToolbarIconButton
                 tooltip=""
-                ariaLabel={`Voice line: ${line.text}`}
+                ariaLabel={t("screens4_19.storyboard.shotScript.voiceLineAria", { text: line.text })}
                 disabled={!canVoice || !voice}
                 onClick={() => void onVoice()}
                 icon={<GraphicEqIcon fontSize="small" />}
@@ -129,8 +134,8 @@ const ScriptLineEntry = ({
           </Tooltip>
         )}
         <ToolbarIconButton
-          tooltip="Play current take"
-          ariaLabel={`Play take: ${line.text}`}
+          tooltip={t("screens4_19.storyboard.shotScript.playCurrentTake")}
+          ariaLabel={t("screens4_19.storyboard.shotScript.playTakeAria", { text: line.text })}
           disabled={!take}
           onClick={() => void (take && playTake(take.assetId))}
           icon={<PlayArrowIcon fontSize="small" />}
@@ -149,6 +154,7 @@ const LinkedScriptSection: React.FC<ShotScriptPanelProps> = ({
   shot,
   readOnly
 }) => {
+  const { t } = useTranslation();
   const { scriptId, source, draftLoaded } = useLinkedScript(boardId);
   const { reproject, reprojecting } = useReprojectShots();
   const [error, setError] = useState<string | null>(null);
@@ -160,9 +166,9 @@ const LinkedScriptSection: React.FC<ShotScriptPanelProps> = ({
     try {
       await reproject(boardId, { shotIds: [shot.id] });
     } catch (err) {
-      setError(getErrorMessage(err, "Re-projection failed"));
+      setError(getErrorMessage(err, t("screens4_19.storyboard.shotScript.reprojectFailed")));
     }
-  }, [reproject, boardId, shot.id]);
+  }, [reproject, boardId, shot.id, t]);
 
   if (!scriptId || lineIds.length === 0 || !source) {
     return null;
@@ -177,17 +183,17 @@ const LinkedScriptSection: React.FC<ShotScriptPanelProps> = ({
     <Card variant="outlined" padding="normal">
       <FlexColumn gap={SPACING.xs} fullWidth>
         <FlexRow align="center" justify="space-between" gap={SPACING.xs} wrap>
-          <Caption color="secondary">Script</Caption>
+          <Caption color="secondary">{t("screens4_19.storyboard.shotScript.title")}</Caption>
           {drifted && (
             <FlexRow align="center" gap={SPACING.xs}>
               <StatusIndicator
                 status="warning"
-                label="Script changed"
-                tooltip="The linked lines read differently from this shot's text"
+                label={t("screens4_19.storyboard.shotScript.scriptChanged")}
+                tooltip={t("screens4_19.storyboard.shotScript.scriptChangedTooltip")}
               />
               {!readOnly && (
                 <EditorButton onClick={() => void onReproject()} disabled={reprojecting}>
-                  Re-project
+                  {t("screens4_19.storyboard.shotScript.reproject")}
                 </EditorButton>
               )}
             </FlexRow>
@@ -207,9 +213,9 @@ const LinkedScriptSection: React.FC<ShotScriptPanelProps> = ({
 
         {lineIds.length > lines.length && (
           <Caption color="warning">
-            {lineIds.length - lines.length === 1
-              ? "1 linked line is no longer in the script."
-              : `${lineIds.length - lines.length} linked lines are no longer in the script.`}
+            {t("screens4_19.storyboard.shotScript.missingLinkedLines", {
+              count: lineIds.length - lines.length
+            })}
           </Caption>
         )}
 
@@ -217,7 +223,7 @@ const LinkedScriptSection: React.FC<ShotScriptPanelProps> = ({
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: "Shot script action failed",
+              summary: t("screens4_19.storyboard.shotScript.actionFailed"),
               errorText: error
             }}
           >

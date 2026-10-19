@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
-import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, MenuItemPrimitive, MOTION, BORDER_RADIUS, SPACING, Toolbar, getSpacingPx } from "../ui_primitives";
+import { useTranslation } from "react-i18next";
+import { ToolbarIconButton, DeleteButton, Chip, Box, FlexColumn, FlexRow, EditorMenu, MenuItemPrimitive, MOTION, BORDER_RADIUS, SPACING, Toolbar, getSpacingPx } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -30,8 +31,6 @@ const styles = (theme: Theme) =>
     width: "100%",
 
     ".tools": {
-      display: "flex",
-      flexDirection: "column",
       gap: getSpacingPx(SPACING.md),
       padding: `0 ${getSpacingPx(SPACING.lg)}` // was 0 10px
     },
@@ -99,8 +98,6 @@ const styles = (theme: Theme) =>
     },
 
     ".tools .active-tags-row": {
-      display: "flex",
-      flexDirection: "row",
       flexWrap: "wrap",
       gap: getSpacingPx(SPACING.xs),
       alignItems: "center"
@@ -127,6 +124,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   onToggleFavorites,
   availableTags = []
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const showGraphPreview = useShowGraphPreview();
   const setShowGraphPreview = useWorkflowListViewStore((state) => state.actions.setShowGraphPreview);
@@ -186,7 +184,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
   return (
     <Box css={styles(theme)}>
-      <div className="tools">
+      <FlexColumn className="tools">
         <Toolbar
           density="compact"
           bordered={false}
@@ -197,7 +195,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             <>
               <ToolbarIconButton
                 icon={<LocalOfferIcon />}
-                tooltip="Filter by tags"
+                tooltip={t("pass3_39.workflowToolbar.filterByTags")}
                 onClick={handleTagsMenuOpen}
                 active={selectedTags.length > 0}
                 className={`tool-button ${selectedTags.length > 0 ? "active" : ""}`}
@@ -240,7 +238,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           )}
           {selectedWorkflowsCount > 0 && (
             <DeleteButton
-              tooltip={`Delete ${selectedWorkflowsCount} selected workflow${selectedWorkflowsCount > 1 ? "s" : ""}`}
+              tooltip={t("pass3_39.workflowToolbar.deleteSelected", { count: selectedWorkflowsCount })}
               onClick={onBulkDelete}
               className="delete-selected-button"
             />
@@ -248,7 +246,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
           <ToolbarIconButton
             icon={<CheckBoxIcon />}
-            tooltip={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
+            tooltip={t(showCheckboxes ? "pass3_39.workflowToolbar.hideSelectionCheckboxes" : "pass3_39.workflowToolbar.showSelectionCheckboxes")}
             onClick={toggleCheckboxes}
             tooltipPlacement="top"
             active={showCheckboxes}
@@ -259,7 +257,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
           {onToggleFavorites && (
             <ToolbarIconButton
               icon={showFavoritesOnly ? <StarIcon /> : <StarBorderIcon />}
-              tooltip={`${showFavoritesOnly ? "Show all workflows" : "Show favorites only"}`}
+              tooltip={t(showFavoritesOnly ? "pass3_39.workflowToolbar.showAllWorkflows" : "pass3_39.workflowToolbar.showFavoritesOnly")}
               onClick={onToggleFavorites}
               tooltipPlacement="top"
               active={showFavoritesOnly}
@@ -270,7 +268,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
           <ToolbarIconButton
             icon={showGraphPreview ? <ViewModuleIcon /> : <ViewListIcon />}
-            tooltip={`${showGraphPreview ? "Hide" : "Show"} graph preview`}
+            tooltip={t(showGraphPreview ? "pass3_39.workflowToolbar.hideGraphPreview" : "pass3_39.workflowToolbar.showGraphPreview")}
             onClick={handleToggleGraphPreview}
             tooltipPlacement="top"
             active={showGraphPreview}
@@ -280,7 +278,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
           <ToolbarIconButton
             icon={<SortIcon />}
-            tooltip={`Sort by ${sortBy === "date" ? "date" : "name"}`}
+            tooltip={t("pass3_39.workflowToolbar.sortBy", { field: t(sortBy === "date" ? "pass3_39.workflowToolbar.date" : "pass3_39.workflowToolbar.name") })}
             onClick={handleSortMenuOpen}
             tooltipPlacement="top"
             className="tool-button"
@@ -300,12 +298,12 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             }}
           >
             <MenuItemPrimitive
-              label="Sort by date"
+              label={t("pass3_39.workflowToolbar.sortByDate")}
               onClick={handleSortByDate}
               selected={sortBy === "date"}
             />
             <MenuItemPrimitive
-              label="Sort by name"
+              label={t("pass3_39.workflowToolbar.sortByName")}
               onClick={handleSortByName}
               selected={sortBy === "name"}
             />
@@ -314,7 +312,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
         </Toolbar>
 
         {selectedTags.length > 0 && (
-          <div className="active-tags-row">
+          <FlexRow className="active-tags-row">
             {selectedTags.map((tag) => (
               <Chip
                 key={tag}
@@ -327,16 +325,16 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             {selectedTags.length > 1 && (
               <ToolbarIconButton
                 icon={<ClearIcon fontSize="small" />}
-                tooltip="Clear all tag filters"
+                tooltip={t("pass3_39.workflowToolbar.clearTagFilters")}
                 onClick={clearSelectedTags}
                 size="small"
                 className="clear-tags-button"
                 nodrag={false}
               />
             )}
-          </div>
+          </FlexRow>
         )}
-      </div>
+      </FlexColumn>
     </Box>
   );
 };

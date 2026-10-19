@@ -17,6 +17,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot } from "@nodetool-ai/protocol";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
@@ -111,6 +112,7 @@ export interface LookStepControls {
  * to reassemble the batch path to fill it in.
  */
 export function useLookStep(boardId: string): LookStepControls {
+  const { t } = useTranslation();
   const setSetup = useStoryboardStore((state) => state.setSetup);
   const style = useStoryboardStore(
     useCallback((state) => state.getBoard(boardId)?.style ?? "", [boardId])
@@ -143,7 +145,10 @@ export function useLookStep(boardId: string): LookStepControls {
 
   const primaryDetail =
     estimate.pricedCount > 0 && estimate.cost > 0
-      ? `${estimate.shotCount} still${estimate.shotCount === 1 ? "" : "s"} · about ${formatUsd(estimate.cost)}`
+      ? t("pass3_11.storyboard.look.primaryDetail", {
+          count: estimate.shotCount,
+          cost: formatUsd(estimate.cost)
+        })
       : undefined;
 
   // The one spending click on the whole flow. It does not fire until the
@@ -153,12 +158,12 @@ export function useLookStep(boardId: string): LookStepControls {
   // A style still being saved replaces the board's style when it lands, so
   // generating now would render in the look it is about to replace (F8).
   const blockedReason = savingStyle
-    ? "Saving your style"
+    ? t("pass3_11.storyboard.look.blocked.savingStyle")
     : style.trim().length === 0
-      ? "Pick an art style"
+      ? t("pass3_11.storyboard.look.blocked.pickArtStyle")
       : hasStillModel
         ? undefined
-        : "Pick a still model";
+        : t("pass3_11.storyboard.look.blocked.pickStillModel");
 
   return {
     canAdvance: blockedReason === undefined,
@@ -177,6 +182,7 @@ export const LookFooterControls: React.FC<{
   boardId: string;
   readOnly?: boolean;
 }> = ({ boardId, readOnly }) => {
+  const { t } = useTranslation();
   useDefaultStillModel(boardId, !readOnly);
   // Studio's curated control carries its own label, so a caption beside it
   // would name the field twice.
@@ -208,7 +214,9 @@ export const LookFooterControls: React.FC<{
   return inStudio ? (
     <Box sx={{ width: SETUP_FOOTER_CONTROL_WIDTH }}>{select}</Box>
   ) : (
-    <SetupFooterField label="Stills">{select}</SetupFooterField>
+    <SetupFooterField label={t("pass3_11.storyboard.look.stills")}>
+      {select}
+    </SetupFooterField>
   );
 };
 
@@ -217,6 +225,7 @@ export const LookStep: React.FC<LookStepProps> = ({
   readOnly = false,
   blockedReason
 }) => {
+  const { t } = useTranslation();
   const [addingStyle, setAddingStyle] = useState(false);
   // `Add your own style` reads the references with the screenplay model. A
   // shotlist import comes here straight from step 1, past the genre step that
@@ -331,13 +340,17 @@ export const LookStep: React.FC<LookStepProps> = ({
   // board is on one, and the Director's style bible when it is not.
   const appliedStyle =
     selectedEntity !== null
-      ? `Applied: ${selectedEntity.name}${
-          selectedEntity.descriptor.trim().length > 0
-            ? ` — ${selectedEntity.descriptor.trim()}`
-            : ""
-        }`
+      ? t("pass3_11.storyboard.look.appliedStyle", {
+          name: selectedEntity.name,
+          descriptor:
+            selectedEntity.descriptor.trim().length > 0
+              ? ` — ${selectedEntity.descriptor.trim()}`
+              : ""
+        })
       : style.trim().length > 0
-        ? `Your Director wrote the look: ${style.trim()}`
+        ? t("pass3_11.storyboard.look.directorWroteLook", {
+            description: style.trim()
+          })
         : null;
 
   const shotlistImport = useShotlistImportSummary(boardId);
@@ -365,34 +378,39 @@ export const LookStep: React.FC<LookStepProps> = ({
           do (PRD § 7.3, F32). */}
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Choose your aspect ratio and art style
+          {t("pass3_11.storyboard.look.title")}
         </Text>
         <Text size="normal" color="secondary">
-          Set the look with a preset or your own references. You can change it
-          later.
+          {t("pass3_11.storyboard.look.description")}
         </Text>
       </FlexColumn>
       {blockedReason && !readOnly ? (
-        <AlertBanner severity="info" title="Before you generate">
+        <AlertBanner
+          severity="info"
+          title={t("pass3_11.storyboard.look.beforeGenerate")}
+        >
           {blockedReason}
         </AlertBanner>
       ) : null}
       {/* A shotlist import lands here rather than on the story steps, so what
           it wrote is said here — inline, and only expanded on request (F29). */}
       {shotlistImport ? (
-        <AlertBanner severity="info" title="Shotlist imported">
+        <AlertBanner
+          severity="info"
+          title={t("pass3_11.storyboard.look.shotlist.title")}
+        >
           <FlexColumn gap={GAP.tight}>
             <Caption component="span">
-              {`${shotlistImport.shotCount} shot${
-                shotlistImport.shotCount === 1 ? "" : "s"
-              } are on your board.`}
+              {t("pass3_11.storyboard.look.shotlist.shotsOnBoard", {
+                count: shotlistImport.shotCount
+              })}
             </Caption>
             {shotlistImport.entries.length > 0 ? (
               <Box component="details">
                 <Caption component="summary">
-                  {`${shotlistImport.entries.length} value${
-                    shotlistImport.entries.length === 1 ? "" : "s"
-                  } did not come with them`}
+                  {t("pass3_11.storyboard.look.shotlist.valuesMissing", {
+                    count: shotlistImport.entries.length
+                  })}
                 </Caption>
                 <FlexColumn
                   gap={GAP.tight}
@@ -410,9 +428,40 @@ export const LookStep: React.FC<LookStepProps> = ({
                       component="li"
                       color="secondary"
                     >
-                      Row {entry.row}, {entry.column}
-                      {entry.value === "" ? "" : ` — “${entry.value}”`}:{" "}
-                      {entry.reason}
+                      {t(
+                        entry.value === ""
+                          ? "pass3_11.storyboard.look.shotlist.rowWithoutValue"
+                          : "pass3_11.storyboard.look.shotlist.rowWithValue",
+                        {
+                          row: entry.row,
+                          column: entry.column,
+                          value: entry.value,
+                          reason:
+                            entry.reason ===
+                            "Row skipped: a shot needs a description."
+                              ? t(
+                                  "pass3_11.storyboard.shotlistReport.reasons.missingDescription"
+                                )
+                              : entry.reason ===
+                                  "Not a positive number. The shot imported without a duration."
+                                ? t(
+                                    "pass3_11.storyboard.shotlistReport.reasons.invalidDuration"
+                                  )
+                                : entry.reason.startsWith("Not one of: ")
+                                  ? t(
+                                      "pass3_11.storyboard.shotlistReport.reasons.invalidChoice",
+                                      {
+                                        options: entry.reason
+                                          .slice("Not one of: ".length)
+                                          .replace(
+                                            ". The shot imported without it.",
+                                            ""
+                                          )
+                                      }
+                                    )
+                                  : entry.reason
+                        }
+                      )}
                     </Caption>
                   ))}
                 </FlexColumn>
@@ -425,7 +474,7 @@ export const LookStep: React.FC<LookStepProps> = ({
                 onClick={dismissImportSummary}
                 disabled={readOnly}
               >
-                Dismiss
+                {t("pass3_11.storyboard.look.shotlist.dismiss")}
               </EditorButton>
             </FlexRow>
           </FlexColumn>
@@ -433,7 +482,7 @@ export const LookStep: React.FC<LookStepProps> = ({
       ) : null}
       <Box sx={{ maxWidth: SETUP_FIELD_WIDTH }}>
         <SelectField
-          label="Aspect ratio"
+          label={t("pass3_11.storyboard.look.aspectRatio")}
           value={aspectRatio}
           onChange={handleAspect}
           options={ASPECT_OPTIONS}
@@ -443,9 +492,12 @@ export const LookStep: React.FC<LookStepProps> = ({
       {/* What the board will actually draw in, always — a style the creator
           made themselves and a style bible the Director wrote are both real
           looks, and neither of them used to say anything here (F19). */}
-      <FormField label="Art style" helperText={appliedStyle ?? undefined}>
+      <FormField
+        label={t("pass3_11.storyboard.look.artStyle")}
+        helperText={appliedStyle ?? undefined}
+      >
         <PresetTileGrid
-          label="Art style"
+          label={t("pass3_11.storyboard.look.artStyle")}
           presets={tiles.map((tile) => ({
             ...tile,
             disabled: readOnly || tile.disabled
@@ -453,7 +505,7 @@ export const LookStep: React.FC<LookStepProps> = ({
           selectedId={selectedId}
           onSelect={handleSelect}
           onAddOwn={openAddStyle}
-          addOwnLabel="Add your own style"
+          addOwnLabel={t("pass3_11.storyboard.look.addOwnStyle")}
           addOwnDisabled={readOnly || customStyle.saving}
         />
       </FormField>

@@ -7,6 +7,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
 import ImageRefPreview from "../node/ImageRefPreview";
@@ -32,6 +33,7 @@ const awaitingStyles = css({
 });
 
 const ConnectedImagePreview = (props: PropertyProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next47" });
   const upstreamValue = useUpstreamValue(
     props.workflowId ?? "",
     props.nodeId,
@@ -42,7 +44,7 @@ const ConnectedImagePreview = (props: PropertyProps) => {
     <div css={connectedPreviewStyles}>
       <ImageRefPreview
         value={upstreamValue}
-        placeholder={<div css={awaitingStyles}>Awaiting upstream</div>}
+        placeholder={<div css={awaitingStyles}>{t("image.awaitingUpstream")}</div>}
       />
     </div>
   );

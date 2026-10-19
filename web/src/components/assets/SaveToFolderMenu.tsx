@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -82,6 +83,7 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
   onSelectFolder
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const { data: folderTree = {} } = useFolderTree("name");
   const createFolder = useAssetStore((state) => state.createFolder);
@@ -116,13 +118,13 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
       useNotificationStore.getState().addNotification({
         type: "error",
         alert: true,
-        content: `Could not create folder: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        content: t("i18n-next43-assets-navigation.saveToFolder.createError", {
+          error: error instanceof Error ? error.message : String(error)
+        })
       });
       setBusy(false);
     }
-  }, [newName, busy, createFolder, resetCreate, select]);
+  }, [newName, busy, createFolder, resetCreate, select, t]);
 
   const roots = useMemo(
     () => Object.values(folderTree).filter((node) => node?.id),
@@ -185,11 +187,13 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
       paperSx={[menuPaperStyles(theme), { minWidth: 240 }]}
     >
       <div css={cssStyles} role="menu">
-        <span className="folder-menu-header">Save to folder</span>
+        <span className="folder-menu-header">
+          {t("i18n-next43-assets-navigation.saveToFolder.saveToFolder")}
+        </span>
         <div className="folder-menu-scroll">
           {renderRow(
             null,
-            "Assets",
+            t("i18n-next43-assets-navigation.saveToFolder.assets"),
             <PhotoLibraryOutlinedIcon fontSize="small" />,
             0
           )}
@@ -208,9 +212,15 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
                 fullWidth
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Folder name…"
+                placeholder={t(
+                  "i18n-next43-assets-navigation.saveToFolder.folderNamePlaceholder"
+                )}
                 disabled={busy}
-                inputProps={{ "aria-label": "New folder name" }}
+                inputProps={{
+                  "aria-label": t(
+                    "i18n-next43-assets-navigation.saveToFolder.newFolderName"
+                  )
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -239,7 +249,9 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
               <span className="folder-menu-icon">
                 <CreateNewFolderOutlinedIcon fontSize="small" />
               </span>
-              <span>New folder…</span>
+              <span>
+                {t("i18n-next43-assets-navigation.saveToFolder.newFolder")}
+              </span>
             </div>
           )}
         </div>

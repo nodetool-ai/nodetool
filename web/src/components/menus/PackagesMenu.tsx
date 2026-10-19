@@ -8,6 +8,8 @@
  */
 
 import { memo, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 import {
   AlertBanner,
@@ -42,20 +44,20 @@ function statusColor(
   return "error";
 }
 
-function statusLabel(pack: PackInfo): string {
+function statusLabel(pack: PackInfo, t: TFunction): string {
   if (pack.status === "loaded") {
     const n = pack.registered.length;
-    return `loaded (${n} node${n === 1 ? "" : "s"})`;
+    return t("screens4_5.packages.loadedNodes", { count: n });
   }
-  return pack.status;
+  return t(`screens4_5.packages.status.${pack.status}`);
 }
 
-const SKIP_REASON_LABEL = {
-  "not-allowed": "not on allowlist",
-  "api-version": "incompatible pack API version",
-  "reserved-namespace": "reserved namespace",
-  collision: "node type already registered",
-  "no-node-type": "no nodeType defined"
+const SKIP_REASON_KEYS = {
+  "not-allowed": "notAllowed",
+  "api-version": "apiVersion",
+  "reserved-namespace": "reservedNamespace",
+  collision: "collision",
+  "no-node-type": "noNodeType"
 } satisfies Record<SkipReason, string>;
 
 interface PackRowProps {
@@ -69,6 +71,7 @@ const PackRow = memo(function PackRow({
   trusted,
   onTrustChange
 }: PackRowProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const hasDetails =
     pack.registered.length > 0 ||
@@ -99,7 +102,7 @@ const PackRow = memo(function PackRow({
                 v{pack.version}
               </Text>
             )}
-            <Chip label={statusLabel(pack)} color={statusColor(pack)} compact />
+            <Chip label={statusLabel(pack, t)} color={statusColor(pack)} compact />
           </FlexRow>
           {pack.reason && (
             <Text size="small" color="secondary">
@@ -109,7 +112,7 @@ const PackRow = memo(function PackRow({
         </FlexColumn>
         <FlexRow gap={1.5} align="center" sx={{ flexShrink: 0 }}>
           <LabeledSwitch
-            label="Trusted"
+            label={t("screens4_5.packages.trusted")}
             checked={trusted}
             onChange={onTrustChange}
           />
@@ -120,7 +123,7 @@ const PackRow = memo(function PackRow({
               onClick={() => setExpanded((v) => !v)}
               aria-expanded={expanded}
             >
-              {expanded ? "Hide" : "Details"}
+              {expanded ? t("screens4_5.packages.hide") : t("screens4_5.packages.details")}
             </EditorButton>
           )}
         </FlexRow>
@@ -136,7 +139,7 @@ const PackRow = memo(function PackRow({
           {pack.registered.length > 0 && (
             <FlexColumn gap={0.5}>
               <Text size="small" weight={600}>
-                Registered ({pack.registered.length})
+                {t("screens4_5.packages.registeredNodes", { count: pack.registered.length })}
               </Text>
               {pack.registered.map((t) => (
                 <Text key={t} size="small" family="secondary">
@@ -148,11 +151,11 @@ const PackRow = memo(function PackRow({
           {pack.skippedNodes.length > 0 && (
             <FlexColumn gap={0.5}>
               <Text size="small" weight={600}>
-                Skipped ({pack.skippedNodes.length})
+                {t("screens4_5.packages.skippedNodes", { count: pack.skippedNodes.length })}
               </Text>
               {pack.skippedNodes.map((s) => (
                 <Text key={s.nodeType} size="small" family="secondary">
-                  {s.nodeType} - {SKIP_REASON_LABEL[s.reason]}
+                  {s.nodeType} - {t(`screens4_5.packages.skipReasons.${SKIP_REASON_KEYS[s.reason]}`)}
                 </Text>
               ))}
             </FlexColumn>
@@ -197,30 +200,33 @@ function nodePacksApi(): NodePacksApi | undefined {
   return packs as NodePacksApi;
 }
 
-const MODE_LABEL = {
-  "sandbox-only": "sandbox modules only",
-  register: "registers host nodes",
-  hybrid: "host nodes + sandbox modules",
-  unknown: "unrecognized manifest"
+const MODE_LABEL_KEYS = {
+  "sandbox-only": "sandboxOnly",
+  register: "register",
+  hybrid: "hybrid",
+  unknown: "unknown"
 } satisfies Record<NodePackInstallMode, string>;
 
 /**
  * What the install mode means for the user. Install is never authorization:
  * anything that runs host code stays inactive until trust is approved.
  */
-function installStateText(status: NodePackInstallStatus): string {
+function installStateText(
+  status: NodePackInstallStatus,
+  t: TFunction
+): string {
   if (status.mode === "unknown") {
-    return `Inactive. The installed manifest is not a supported NodeTool pack, so trust cannot be granted.${
-      status.reason ? ` ${status.reason}` : ""
-    }`;
+    return t("screens4_5.packages.installState.unknown", {
+      reason: status.reason ? ` ${status.reason}` : ""
+    });
   }
   if (status.mode === "sandbox-only") {
-    return "Active. Its modules run inside the sandbox with the importing node's capabilities. No host code and no lifecycle scripts ran.";
+    return t("screens4_5.packages.installState.sandboxOnly");
   }
   if (status.active) {
-    return "Trusted. Lifecycle scripts ran against the artifact that was installed.";
+    return t("screens4_5.packages.installState.trusted");
   }
-  return "Inactive. It installed with lifecycle scripts disabled and runs no host code until you approve trust.";
+  return t("screens4_5.packages.installState.inactive");
 }
 
 const InstalledPacksPanel = memo(function InstalledPacksPanel({
@@ -230,6 +236,7 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
   packs: InstalledNodePack[];
   onChanged: () => void;
 }) {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState<string | null>(null);
   const [result, setResult] = useState<
     { name: string; ok: boolean; message: string } | null
@@ -264,7 +271,7 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
     <FlexColumn gap={SPACING.md}>
       <SectionHeader
         size="small"
-        title={`Installed by NodeTool (${packs.length})`}
+        title={t("screens4_5.packages.installedByNodeTool", { count: packs.length })}
       />
       <FlexColumn gap={SPACING.sm}>
         {packs.map((pack) => {
@@ -298,9 +305,9 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
                     )}
                     {status && (
                       <>
-                        <Chip label={MODE_LABEL[status.mode]} compact />
+                        <Chip label={t(`screens4_5.packages.mode.${MODE_LABEL_KEYS[status.mode]}`)} compact />
                         <Chip
-                          label={status.active ? "active" : "inactive"}
+                          label={status.active ? t("screens4_5.packages.active") : t("screens4_5.packages.inactive")}
                           color={
                             status.active
                               ? "success"
@@ -315,8 +322,8 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
                   </FlexRow>
                   <Text size="small" color="secondary">
                     {status
-                      ? installStateText(status)
-                      : "Installed outside the current install ledger, so its mode is unknown here."}
+                      ? installStateText(status, t)
+                      : t("screens4_5.packages.outsideInstallLedger")}
                   </Text>
                 </FlexColumn>
                 {needsTrust && (
@@ -327,7 +334,7 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
                     disabled={busy !== null}
                     sx={{ flexShrink: 0 }}
                   >
-                    {busy === pack.name ? "Verifying…" : "Trust and rebuild"}
+                    {busy === pack.name ? t("screens4_5.packages.verifying") : t("screens4_5.packages.trustAndRebuild")}
                   </EditorButton>
                 )}
               </FlexRow>
@@ -353,6 +360,7 @@ const InstallPanel = memo(function InstallPanel({
 }: {
   onInstalled: () => void;
 }) {
+  const { t } = useTranslation();
   const [spec, setSpec] = useState("");
   const [status, setStatus] = useState<
     { kind: "idle" }
@@ -371,7 +379,7 @@ const InstallPanel = memo(function InstallPanel({
       if (!api) {
         setStatus({
           kind: "err",
-          message: "Node pack install is not available in this build."
+          message: t("screens4_5.packages.installUnavailable")
         });
         return;
       }
@@ -396,24 +404,19 @@ const InstallPanel = memo(function InstallPanel({
         message: err instanceof Error ? err.message : String(err)
       });
     }
-  }, [spec, onInstalled]);
+  }, [spec, onInstalled, t]);
 
   return (
     <FlexColumn gap={SPACING.lg}>
-      <SectionHeader size="small" title="Install a pack" />
+      <SectionHeader size="small" title={t("screens4_5.packages.installTitle")} />
       <Text size="small" color="secondary">
-        Installing runs no pack code. A pack that ships sandbox modules is
-        active right away, and those modules run inside your workflows with the
-        node&apos;s capabilities once a node imports one. A pack that registers
-        host nodes stays inactive until you approve trust.
+        {t("screens4_5.packages.installDescription")}
       </Text>
       <TextInput
-        label="Package to install"
+        label={t("screens4_5.packages.packageLabel")}
         helperText={
           <>
-            Paste an npm package name, e.g. <Code>@acme/cool-nodes</Code> or{" "}
-            <Code>cool-nodes@1.2.3</Code>. The server must be restarted to
-            load the new pack.
+            {t("screens4_5.packages.packageHelpBefore")} <Code>@acme/cool-nodes</Code> {t("screens4_5.packages.packageHelpOr")} <Code>cool-nodes@1.2.3</Code>. {t("screens4_5.packages.packageHelpAfter")}
           </>
         }
         value={spec}
@@ -423,7 +426,7 @@ const InstallPanel = memo(function InstallPanel({
             handleInstall();
           }
         }}
-        placeholder="@scope/package or package@version"
+        placeholder={t("screens4_5.packages.packagePlaceholder")}
         fullWidth
         disabled={status.kind === "installing"}
       />
@@ -433,7 +436,7 @@ const InstallPanel = memo(function InstallPanel({
           onClick={handleInstall}
           disabled={!spec.trim() || status.kind === "installing"}
         >
-          {status.kind === "installing" ? "Installing…" : "Install"}
+          {status.kind === "installing" ? t("screens4_5.packages.installing") : t("screens4_5.packages.install")}
         </EditorButton>
       </FlexRow>
       {status.kind === "ok" && (
@@ -456,6 +459,7 @@ const InstallPanel = memo(function InstallPanel({
 });
 
 function PackagesMenu() {
+  const { t } = useTranslation();
   const {
     packs,
     trust,
@@ -505,10 +509,10 @@ function PackagesMenu() {
   return (
     <FlexColumn gap={SPACING.xl} sx={{ maxWidth: 880 }}>
       <FlexColumn gap={SPACING.md}>
-        <SectionHeader size="small" title="Trust defaults" />
+        <SectionHeader size="small" title={t("screens4_5.packages.trustDefaults")} />
         <LabeledSwitch
-          label="Load packs that are not on the allowlist"
-          description="Off in production by default. When off, only packs you've explicitly trusted will load."
+          label={t("screens4_5.packages.loadUnlistedLabel")}
+          description={t("screens4_5.packages.loadUnlistedDescription")}
           checked={trust.allowUnlisted}
           onChange={(v) => void setAllowUnlisted(v)}
         />
@@ -536,7 +540,7 @@ function PackagesMenu() {
       <FlexColumn gap={SPACING.md}>
         <SectionHeader
           size="small"
-          title={`Discovered packs (${packs.length})`}
+          title={t("screens4_5.packages.discoveredPacks", { count: packs.length })}
           action={
             <EditorButton
               variant="outlined"
@@ -544,7 +548,7 @@ function PackagesMenu() {
               onClick={() => void reload()}
               disabled={isLoading}
             >
-              {isLoading ? "Reloading…" : "Reload"}
+              {isLoading ? t("screens4_5.packages.reloading") : t("screens4_5.packages.reload")}
             </EditorButton>
           }
         />
@@ -566,9 +570,8 @@ function PackagesMenu() {
             })}
           >
             <Text size="small" color="secondary">
-              No node packs discovered. Install one with{" "}
-              <Code>npm install &lt;pack&gt;</Code>
-              {isElectron ? " or via the field above." : "."}
+              {t("screens4_5.packages.noPacksBefore")} <Code>npm install &lt;pack&gt;</Code>{" "}
+              {isElectron ? t("screens4_5.packages.noPacksElectronAfter") : t("screens4_5.packages.noPacksAfter")}
             </Text>
           </FlexRow>
         ) : (

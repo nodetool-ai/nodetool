@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { normToValue, valueToNorm } from '../../params';
 import { DRUM_PARAMS } from '../params';
 import { useDrumStore } from '../dr1Store';
@@ -34,6 +35,7 @@ interface DrumKnobProps {
 }
 
 export function DrumKnob({ paramId, size = 'md', accent, label }: DrumKnobProps) {
+  const { t } = useTranslation();
   const def = DRUM_PARAMS[paramId];
   const value = useDrumStore((s) => s.params[paramId]);
   const setParam = useDrumStore((s) => s.setParam);
@@ -105,7 +107,7 @@ export function DrumKnob({ paramId, size = 'md', accent, label }: DrumKnobProps)
       data-accent={accent}
       tabIndex={0}
       role="slider"
-      aria-label={label || def.label || def.id}
+      aria-label={t('i18n-next48.knob.control', { label: label || def.label || def.id })}
       aria-valuemin={def.min}
       aria-valuemax={def.max}
       aria-valuenow={value}

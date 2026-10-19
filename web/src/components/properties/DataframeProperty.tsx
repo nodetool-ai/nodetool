@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useState, DragEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
@@ -125,6 +126,7 @@ const DataframeProperty = ({
   nodeType: _nodeType,
   property
 }: PropertyProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -214,7 +216,7 @@ const DataframeProperty = ({
           type: "error",
           alert: true,
           content:
-            "Invalid file type. Please drop a CSV, XLSX, or XLS file."
+            t("dataframe.invalidFileType")
         });
         return;
       }
@@ -227,13 +229,15 @@ const DataframeProperty = ({
         addNotification({
           type: "error",
           alert: true,
-          content: `Failed to parse file: ${error instanceof Error ? error.message : "Unknown error"}`
+          content: t("dataframe.parseFailed", {
+            error: error instanceof Error ? error.message : t("dataframe.unknownError")
+          })
         });
       } finally {
         setIsLoading(false);
       }
     },
-    [onChange, addNotification]
+    [onChange, addNotification, t]
   );
 
   const hasData =
@@ -250,12 +254,12 @@ const DataframeProperty = ({
       <div className="property-header">
         <ButtonGroup className="button-group">
           <EditorButton className="add-column" onClick={addColumn}>
-            <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
+            <TableRowsIcon style={{ rotate: "90deg" }} /> {t("dataframe.addColumn")}
           </EditorButton>
         </ButtonGroup>
         {isHovered && (
           <div className="dataframe-action-buttons">
-            <ToolbarIconButton tooltip="Open editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
+            <ToolbarIconButton tooltip={t("dataframe.openEditor")} icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
           </div>
         )}
       </div>
@@ -269,9 +273,9 @@ const DataframeProperty = ({
         <div className="dropzone-content">
           <UploadFileIcon />
           <span className="dropzone-text">
-            {isLoading ? "Loading…" : "Drop CSV or Excel file"}
+            {isLoading ? t("dataframe.loading") : t("dataframe.dropFile")}
           </span>
-          <span className="dropzone-subtext">Supported: CSV, XLSX, XLS</span>
+          <span className="dropzone-subtext">{t("dataframe.supportedFiles")}</span>
         </div>
       </div>
 

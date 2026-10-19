@@ -9,6 +9,7 @@
  */
 
 import React, { Suspense, memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -206,11 +207,14 @@ function useChainOps(target: DeviceTarget | null): ChainOps {
   ]);
 }
 
-const DeviceFallback: React.FC<{ label: string }> = ({ label }) => (
+const DeviceFallback: React.FC<{ label: string }> = ({ label }) => {
+  const { t } = useTranslation();
+  return (
   <FlexColumn align="center" justify="center" sx={{ minHeight: 0, flex: 1, p: SPACING.md }}>
-    <LoadingSpinner size="small" text={`Loading ${label}`} />
+    <LoadingSpinner size="small" text={t("batch2_26.daw.devices.loading", { label })} />
   </FlexColumn>
-);
+  );
+};
 
 const EffectDevice: React.FC<{
   target: DeviceTarget;
@@ -221,6 +225,7 @@ const EffectDevice: React.FC<{
   onToggleCollapsed: (id: string) => void;
   layout: DeviceCardLayout;
 }> = memo(({ target, effect, index, ops, collapsed, onToggleCollapsed, layout }) => {
+  const { t } = useTranslation();
   const View = fxView(effectViewKey(effect));
   const title = effectTitle(effect);
   const trackId = target.kind === "track" ? target.trackId : null;
@@ -255,7 +260,7 @@ const EffectDevice: React.FC<{
           </Suspense>
         </PanelErrorBoundary>
       ) : effect.type === "fable" ? (
-        <Caption color="secondary">This effect has no editor yet.</Caption>
+        <Caption color="secondary">{t("batch2_26.daw.effects.noEditor")}</Caption>
       ) : (
         <TrackEffectParams effect={effect} onPatch={patch} disabled={!effect.enabled} />
       )}
@@ -299,14 +304,15 @@ InstrumentDevice.displayName = "InstrumentDevice";
 
 const AddEffectCard: React.FC<{ onAdd: (effect: TrackEffect["type"] | TrackEffect) => void }> = memo(
   ({ onAdd }) => {
+    const { t } = useTranslation();
     const [anchor, setAnchor] = useState<HTMLElement | null>(null);
     const close = useCallback(() => setAnchor(null), []);
     return (
       <div className="device-chain__add">
         <ToolbarIconButton
           icon={<AddIcon />}
-          tooltip="Add an effect"
-          aria-label="Add an effect"
+          tooltip={t("batch2_26.daw.effects.add")}
+          aria-label={t("batch2_26.daw.effects.add")}
           aria-haspopup="menu"
           aria-expanded={!!anchor}
           onClick={(event) => setAnchor(event.currentTarget)}
@@ -345,6 +351,7 @@ export interface DeviceChainViewProps {
 }
 
 export const DeviceChainView: React.FC<DeviceChainViewProps> = memo(({ target, onTargetChange }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useTimelineIsMobile();
   const tracks = useTimelineStore((s) => s.tracks);
@@ -379,30 +386,30 @@ export const DeviceChainView: React.FC<DeviceChainViewProps> = memo(({ target, o
 
   const picker = isMobile ? (
     <SelectField
-      label="Channel"
+      label={t("batch2_26.daw.devices.channel")}
       hideLabel
       size="small"
       value={pickerValue || MASTER_TARGET_VALUE}
       options={[
-        ...deviceTracks.map((t) => ({ value: t.id, label: t.name })),
-        { value: MASTER_TARGET_VALUE, label: "Master" }
+      ...deviceTracks.map((trackItem) => ({ value: trackItem.id, label: trackItem.name })),
+        { value: MASTER_TARGET_VALUE, label: t("batch2_26.daw.transport.master") }
       ]}
       onChange={pick}
     />
   ) : (
-    <FlexColumn gap={SPACING.micro} role="listbox" aria-label="Channel">
-      {deviceTracks.map((t) => (
+    <FlexColumn gap={SPACING.micro} role="listbox" aria-label={t("batch2_26.daw.devices.channel")}>
+      {deviceTracks.map((trackItem) => (
         <SelectableListItem
-          key={t.id}
-          selected={pickerValue === t.id}
-          onClick={() => pick(t.id)}
+          key={trackItem.id}
+          selected={pickerValue === trackItem.id}
+          onClick={() => pick(trackItem.id)}
           role="option"
-          aria-selected={pickerValue === t.id}
+          aria-selected={pickerValue === trackItem.id}
         >
           <FlexColumn sx={{ minWidth: 0 }}>
-            <TruncatedText>{t.name}</TruncatedText>
+            <TruncatedText>{trackItem.name}</TruncatedText>
             <Caption color="secondary">
-              {t.type === "midi" ? INSTRUMENT_NAMES[t.instrument?.type ?? "subtractive"] : "Audio"}
+              {trackItem.type === "midi" ? INSTRUMENT_NAMES[trackItem.instrument?.type ?? "subtractive"] : t("batch2_26.daw.devices.audio")}
             </Caption>
           </FlexColumn>
         </SelectableListItem>
@@ -413,7 +420,7 @@ export const DeviceChainView: React.FC<DeviceChainViewProps> = memo(({ target, o
         role="option"
         aria-selected={pickerValue === MASTER_TARGET_VALUE}
       >
-        <Text size="small">Master</Text>
+        <Text size="small">{t("batch2_26.daw.transport.master")}</Text>
       </SelectableListItem>
     </FlexColumn>
   );
@@ -423,11 +430,11 @@ export const DeviceChainView: React.FC<DeviceChainViewProps> = memo(({ target, o
       <div className="device-chain__picker">{picker}</div>
       {resolved === null ? (
         <EmptyState
-          title="No channel selected"
-          description="Select an audio or MIDI track, or the master, to see its devices."
+          title={t("batch2_26.daw.devices.noChannelSelected")}
+          description={t("batch2_26.daw.devices.noChannelSelectedDescription")}
         />
       ) : (
-        <div className="device-chain__rack" aria-label="Device chain">
+        <div className="device-chain__rack" aria-label={t("batch2_26.daw.devices.deviceChain")}>
           {track?.type === "midi" && (
             <InstrumentDevice
               track={track}

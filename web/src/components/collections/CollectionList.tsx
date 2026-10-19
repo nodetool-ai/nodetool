@@ -21,8 +21,10 @@ import {
   SPACING
 } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
+import { useTranslation } from "react-i18next";
 
 const CollectionList = () => {
+  const { t } = useTranslation();
   const {
     collections,
     isLoading,
@@ -132,20 +134,23 @@ const CollectionList = () => {
             }}
           >
             <Text size="small" color="secondary">
-              {totalCount} {totalCount === 1 ? "collection" : "collections"}
+              {t("i18n-next30.collections.count", { count: totalCount })}
             </Text>
             <CreateFab
               onClick={handleShowForm}
-              label="Create collection"
+              label={t("i18n-next30.collections.create")}
               icon={<AddIcon />}
-              aria-label="Create collection"
+              aria-label={t("i18n-next30.collections.create")}
             />
           </FlexRow>
 
           {collections?.collections.length ? <CollectionHeader /> : null}
           {isLoading ? (
             <FlexColumn gap={2} justify="center" align="center" sx={{ mt: 4 }}>
-              <LoadingSpinner size="large" text="Loading collections" />
+              <LoadingSpinner
+                size="large"
+                text={t("i18n-next30.collections.loading")}
+              />
             </FlexColumn>
           ) : error ? (
             <FlexColumn
@@ -156,9 +161,9 @@ const CollectionList = () => {
             >
               <EmptyState
                 variant="error"
-                title="Couldn't load collections"
-                description="Try again later."
-                actionText="Retry"
+                title={t("i18n-next30.collections.loadErrorTitle")}
+                description={t("i18n-next30.collections.tryAgain")}
+                actionText={t("i18n-next30.collections.retry")}
                 onAction={() => fetchCollections()}
               />
             </FlexColumn>
@@ -201,23 +206,24 @@ const CollectionList = () => {
       <Dialog
         open={Boolean(deleteTarget)}
         onClose={cancelDelete}
-        title="Delete this collection?"
+        title={t("i18n-next30.collections.deleteConfirmTitle")}
         onConfirm={confirmDelete}
-        confirmText="Delete"
+        confirmText={t("i18n-next30.collections.delete")}
         destructive
       >
-        This will permanently delete the collection &quot;{deleteTarget}
-        &quot;.
+        {t("i18n-next30.collections.deleteConfirmBody", {
+          name: deleteTarget
+        })}
       </Dialog>
 
       {indexErrors.length > 0 && (
         <Dialog
           open={true}
           onClose={handleClearIndexErrors}
-          title="Indexing report"
+          title={t("i18n-next30.collections.indexingReport")}
         >
           <FlexColumn gap={SPACING.md}>
-            <Text>The following files encountered errors during indexing:</Text>
+            <Text>{t("i18n-next30.collections.indexingErrorsIntro")}</Text>
             <ListGroup compact flush sx={{ pl: SPACING.md }}>
               {indexErrors.map((error) => (
                 <ListItemRow

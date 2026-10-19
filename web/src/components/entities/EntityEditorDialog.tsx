@@ -6,10 +6,13 @@
  */
 
 import React, { memo, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 import {
   BORDER_RADIUS,
+  AlertBanner,
+  CloseButton,
   Dialog,
   EditorButton,
   FlexRow,
@@ -55,6 +58,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
   projectId,
   onSaved
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const saveEntity = useSaveEntity();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -95,21 +99,25 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
     // A new entity simply IS the picked image, so changing it there changes
     // which asset gets the marker. An existing one keeps its id and points at
     // the new picture instead.
-    const saved = await saveEntity.mutateAsync({
-      assetId: entity ? assetId : referenceAssetId,
-      projectId,
-      kind,
-      name: name.trim(),
-      descriptor: descriptor.trim(),
-      voice_id: kind === "character" ? voiceId.trim() || null : null,
-      tags: tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
-      reference_asset_id: referenceAssetId
-    });
-    onSaved?.(saved);
-    onClose();
+    try {
+      const saved = await saveEntity.mutateAsync({
+        assetId: entity ? assetId : referenceAssetId,
+        projectId,
+        kind,
+        name: name.trim(),
+        descriptor: descriptor.trim(),
+        voice_id: kind === "character" ? voiceId.trim() || null : null,
+        tags: tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        reference_asset_id: referenceAssetId
+      });
+      onSaved?.(saved);
+      onClose();
+    } catch {
+      // The mutation error is shown in the dialog below.
+    }
   }, [
     saveEntity,
     entity,
@@ -131,16 +139,38 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      title={entity ? "Edit entity" : "New entity"}
+      showCloseButton={false}
+      titleActions={
+        <CloseButton
+          onClick={onClose}
+          tooltip={t("screens4_22.entities.closeDialog")}
+        />
+      }
+      title={
+        entity
+          ? t("screens4_22.entities.editEntity")
+          : t("screens4_22.entities.newEntity")
+      }
       maxWidth="xs"
       fullWidth
       onConfirm={handleConfirm}
-      confirmText={entity ? "Save" : "Create"}
+      confirmText={
+        entity
+          ? t("screens4_22.entities.save")
+          : t("screens4_22.entities.create")
+      }
+      cancelText={t("screens4_22.entities.cancel")}
       confirmDisabled={!canSave}
       isLoading={saveEntity.isPending}
     >
       <FlexColumn gap={SPACING.lg}>
-        <FormField label="Image">
+        {saveEntity.isError && (
+          <AlertBanner severity="error" role="alert">
+            {t("screens4_22.entities.saveFailed")}
+          </AlertBanner>
+        )}
+
+        <FormField label={t("screens4_22.entities.image")}>
           <FlexRow gap={SPACING.md} align="center">
             <div
               style={{
@@ -159,13 +189,14 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
             <EditorButton
               variant="outlined"
               onClick={() => setPickerOpen(true)}
+              aria-label={t("screens4_22.entities.changeImage")}
             >
-              Change image
+              {t("screens4_22.entities.changeImage")}
             </EditorButton>
           </FlexRow>
         </FormField>
 
-        <FormField label="Kind">
+        <FormField label={t("screens4_22.entities.kind")}>
           <ToggleGroup
             value={kind}
             exclusive
@@ -175,14 +206,14 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
           >
             {KINDS.map((k) => (
               <ToggleOption key={k} value={k}>
-                {k}
+                {t(`screens4_22.entities.kinds.${k}`)}
               </ToggleOption>
             ))}
           </ToggleGroup>
         </FormField>
 
         <TextInput
-          label="Name"
+          label={t("screens4_22.entities.name")}
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -191,9 +222,9 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
         />
 
         <TextArea
-          label="Descriptor"
+          label={t("screens4_22.entities.descriptor")}
           required
-          helperText="How it looks, in a sentence. Every prompt that uses this entity gets it word for word."
+          helperText={t("screens4_22.entities.descriptorHelp")}
           value={descriptor}
           onChange={setDescriptor}
           minRows={3}
@@ -204,7 +235,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
 
         {kind === "character" && (
           <TextInput
-            label="Voice id (optional)"
+            label={t("screens4_22.entities.voiceId")}
             value={voiceId}
             onChange={(e) => setVoiceId(e.target.value)}
             size="small"
@@ -213,7 +244,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
         )}
 
         <TextInput
-          label="Tags (comma-separated)"
+          label={t("screens4_22.entities.tags")}
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           size="small"

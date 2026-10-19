@@ -1,5 +1,6 @@
 import { useModelProviderSetup } from "../../hooks/useModelProviderSetup";
 import React, { useState, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { BASE_URL } from "../../stores/BASE_URL";
@@ -65,6 +66,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
   provider,
   task
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
@@ -94,14 +96,14 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
   const modelsByProvider = useMemo(() => {
     const grouped: Record<string, Model3DModel[]> = {};
     for (const model of filteredModels) {
-      const provider = model.provider || "Unknown";
+      const provider = model.provider || t("modelSelect.unknownProvider");
       if (!grouped[provider]) {
         grouped[provider] = [];
       }
       grouped[provider].push(model);
     }
     return grouped;
-  }, [filteredModels]);
+  }, [filteredModels, t]);
 
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !value) {
@@ -150,8 +152,8 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select 3D model"}
-        subLabel="Select 3D model"
+        label={currentSelectedModelDetails?.name || value || t("model3d.selectModel")}
+        subLabel={t("model3d.selectModel")}
         onClick={handleClick}
       />
       <EditorMenu
@@ -171,9 +173,9 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
           minWidth: 250
         }}
       >
-        {isLoading && <MenuItemPrimitive label="Loading models…" disabled />}
+        {isLoading && <MenuItemPrimitive label={t("modelSelect.loadingModels")} disabled />}
         {!isLoading && filteredModels.length === 0 && (
-          <MenuItemPrimitive label="No 3D models available" disabled />
+          <MenuItemPrimitive label={t("model3d.noModels")} disabled />
         )}
         {Object.entries(modelsByProvider).flatMap(
           ([groupProvider, providerModels], index) => [
@@ -193,7 +195,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
             ))
           ]
         )}
-        <MenuItemPrimitive label="Add providers" dividerBefore onClick={openSetup} />
+        <MenuItemPrimitive label={t("modelSelect.addProviders")} dividerBefore onClick={openSetup} />
       </EditorMenu>
     </>
   );

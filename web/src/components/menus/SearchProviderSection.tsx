@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import type React from "react";
 import { useMemo, useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   FlexRow,
@@ -36,10 +37,63 @@ const SearchProviderSection = memo(function SearchProviderSection({
   onChange,
   search = ""
 }: SearchProviderSectionProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const selectedProvider = (settingValues["SERP_PROVIDER"] ||
     DEFAULT_SERP_PROVIDER) as SerpProviderId;
   const config = PROVIDER_CONFIGS[selectedProvider];
+  const credentialFieldLabel = (field: string): string => {
+    switch (field) {
+      case "BRAVE_API_KEY":
+        return t("screens4_6.searchProvider.credentialFields.braveApiKey");
+      case "SERPAPI_API_KEY":
+        return t("screens4_6.searchProvider.credentialFields.serpApiKey");
+      case "DATA_FOR_SEO_LOGIN":
+        return t("screens4_6.searchProvider.credentialFields.dataForSeoLogin");
+      case "DATA_FOR_SEO_PASSWORD":
+        return t("screens4_6.searchProvider.credentialFields.dataForSeoPassword");
+      case "APIFY_API_TOKEN":
+        return t("screens4_6.searchProvider.credentialFields.apifyApiToken");
+      case "OPENAI_API_KEY":
+        return t("screens4_6.searchProvider.credentialFields.openAiApiKey");
+      case "GEMINI_API_KEY":
+        return t("screens4_6.searchProvider.credentialFields.geminiApiKey");
+      default:
+        return formatSettingLabel(field);
+    }
+  };
+  const providerDescription = (() => {
+    switch (selectedProvider) {
+      case "brave":
+        return t("screens4_6.searchProvider.providers.brave.description");
+      case "serpapi":
+        return t("screens4_6.searchProvider.providers.serpapi.description");
+      case "dataforseo":
+        return t("screens4_6.searchProvider.providers.dataforseo.description");
+      case "apify":
+        return t("screens4_6.searchProvider.providers.apify.description");
+      case "openai":
+        return t("screens4_6.searchProvider.providers.openai.description");
+      case "gemini":
+        return t("screens4_6.searchProvider.providers.gemini.description");
+    }
+  })();
+  const providerKeyLinkLabel = (() => {
+    switch (selectedProvider) {
+      case "brave":
+        return t("screens4_6.searchProvider.providers.brave.keyLink");
+      case "serpapi":
+        return t("screens4_6.searchProvider.providers.serpapi.keyLink");
+      case "dataforseo":
+        return t("screens4_6.searchProvider.providers.dataforseo.keyLink");
+      case "apify":
+        return t("screens4_6.searchProvider.providers.apify.keyLink");
+      case "openai":
+        return t("screens4_6.searchProvider.providers.openai.keyLink");
+      case "gemini":
+        return t("screens4_6.searchProvider.providers.gemini.keyLink");
+    }
+  })();
 
   const hasAllCredentials = useMemo(() => {
     if (!config) return false;
@@ -84,17 +138,17 @@ const SearchProviderSection = memo(function SearchProviderSection({
   return (
     <div className="settings-section">
       <Text size="big" id="search-provider" className="settings-heading">
-        Search provider
+        {t("screens4_6.searchProvider.title")}
       </Text>
 
       <div className="settings-item large">
         <SelectField
           id="provider-select"
-          label="Provider"
+          label={t("screens4_6.searchProvider.providerLabel")}
           value={selectedProvider}
           onChange={handleProviderChange}
           options={providerOptions}
-          description={config?.description}
+          description={providerDescription}
         />
 
         <FlexRow
@@ -125,8 +179,8 @@ const SearchProviderSection = memo(function SearchProviderSection({
             }}
           >
             {hasAllCredentials
-              ? "✓ Credentials configured"
-              : "✗ Missing credentials"}
+              ? t("screens4_6.searchProvider.credentialsConfigured")
+              : t("screens4_6.searchProvider.credentialsMissing")}
           </Text>
         </FlexRow>
       </div>
@@ -143,7 +197,9 @@ const SearchProviderSection = memo(function SearchProviderSection({
                 type="password"
                 autoComplete="off"
                 id={`${field.toLowerCase()}-input`}
-                label={formatSettingLabel(field)}
+                label={t("screens4_6.searchProvider.credentialLabel", {
+                  field: credentialFieldLabel(field)
+                })}
                 value={value}
                 onChange={(
                   e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -156,7 +212,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
               {isFilled && (
                 <Chip
                   icon={<CheckCircleIcon />}
-                  label="Configured"
+                  label={t("screens4_6.searchProvider.configured")}
                   size="small"
                   color="success"
                   sx={{
@@ -172,9 +228,11 @@ const SearchProviderSection = memo(function SearchProviderSection({
         <Box>
           <ExternalLink
             href={config.getApiKeyUrl}
-            tooltipText={`Visit ${config.label} to get your credentials`}
+            tooltipText={t("screens4_6.searchProvider.getCredentialsTooltip", {
+              provider: config.label
+            })}
           >
-            {config.getApiKeyLabel}
+            {providerKeyLinkLabel}
           </ExternalLink>
         </Box>
         </FlexColumn>

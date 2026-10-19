@@ -2,6 +2,7 @@
 // output, the fit compares it with the chosen reference, and APPLY writes the
 // four bands. UNDO restores the EQ as it was before APPLY.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { EQ_REFERENCES, SpectrumCapture, fitEq, referenceById, removeEq, type EqFit } from '../../engine/autoEq';
 import { EQ_BANDS, readEqBands } from '../../engine/eqResponse';
 
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function AutoEqStrip({ analysis, params, setParam, sampleRate, onFit }: Props) {
+  const { t } = useTranslation();
   const [reference, setReference] = useState(analysis.reference ?? 'mix');
   const [amount, setAmount] = useState(0.8);
   const [progress, setProgress] = useState<number | null>(null);
@@ -88,24 +90,24 @@ export function AutoEqStrip({ analysis, params, setParam, sampleRate, onFit }: P
     setUndo(null);
   };
 
-  const status = !analysis.source ? analysis.note ?? 'NO SIGNAL TAP'
-    : progress !== null ? `LISTENING ${Math.round(progress * 100)}%`
-    : fit ? `${fit.change.toFixed(1)} dB OF MOVES` : 'PLAY, THEN LEARN';
+  const status = !analysis.source ? analysis.note ?? t('i18n-next44-fablesynth-controls.autoEq.noSignalTap')
+    : progress !== null ? t('i18n-next44-fablesynth-controls.autoEq.listening', { percent: Math.round(progress * 100) })
+    : fit ? t('i18n-next44-fablesynth-controls.autoEq.moves', { change: fit.change.toFixed(1) }) : t('i18n-next44-fablesynth-controls.autoEq.playThenLearn');
   return <div className="eq-auto">
     <div className="eq-auto-row">
-      <select aria-label="Auto-EQ reference" value={reference} title={ref.hint} onChange={e => setReference(e.target.value)}>
-        {EQ_REFERENCES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+      <select aria-label={t('i18n-next44-fablesynth-controls.autoEq.reference')} value={reference} title={t(`i18n-next44-fablesynth-controls.autoEq.references.${reference}Hint`, { defaultValue: ref.hint })} onChange={e => setReference(e.target.value)}>
+        {EQ_REFERENCES.map(r => <option key={r.id} value={r.id}>{t(`i18n-next44-fablesynth-controls.autoEq.references.${r.id}`, { defaultValue: r.label })}</option>)}
       </select>
-      <label className="eq-auto-amount" title="How much of the measured difference to correct">
-        <input type="range" min={0} max={1} step={0.05} value={amount} aria-label="Auto-EQ amount" onChange={e => setAmount(+e.target.value)} />
+      <label className="eq-auto-amount" title={t('i18n-next44-fablesynth-controls.autoEq.amountHelp')}>
+        <input type="range" min={0} max={1} step={0.05} value={amount} aria-label={t('i18n-next44-fablesynth-controls.autoEq.amount')} onChange={e => setAmount(+e.target.value)} />
         <output>{Math.round(amount * 100)}%</output>
       </label>
     </div>
     <div className="eq-auto-row">
       <button type="button" className={`eq-auto-learn${progress !== null ? ' on' : ''}`} disabled={!analysis.source}
-        style={{ '--p': progress ?? 0 } as React.CSSProperties} onClick={learn}>{progress !== null ? 'STOP' : levels ? 'RELEARN' : 'LEARN'}</button>
-      <button type="button" disabled={!fit || progress !== null} onClick={apply}>APPLY</button>
-      <button type="button" disabled={!undo} onClick={revert}>UNDO</button>
+        style={{ '--p': progress ?? 0 } as React.CSSProperties} onClick={learn}>{progress !== null ? t('i18n-next44-fablesynth-controls.autoEq.stop') : levels ? t('i18n-next44-fablesynth-controls.autoEq.relearn') : t('i18n-next44-fablesynth-controls.autoEq.learn')}</button>
+      <button type="button" disabled={!fit || progress !== null} onClick={apply}>{t('i18n-next44-fablesynth-controls.autoEq.apply')}</button>
+      <button type="button" disabled={!undo} onClick={revert}>{t('i18n-next44-fablesynth-controls.autoEq.undo')}</button>
     </div>
     <p className="eq-auto-status">{status}</p>
   </div>;

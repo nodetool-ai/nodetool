@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
+import { useTranslation } from "react-i18next";
 
 import type React from "react";
 import { useMemo, useState, useCallback, useEffect, memo, Fragment } from "react";
@@ -223,48 +224,26 @@ const SETTING_LINKS: Record<string, string> = {
   AKI_API_KEY: "https://aki.io"
 };
 
-const SETTING_BUTTON_TITLES: Record<string, string> = {
-  OPENAI_API_KEY: "Get OpenAI API key",
-  ANTHROPIC_API_KEY: "Get Anthropic API key",
-  GEMINI_API_KEY: "Get Gemini API key",
-  OPENROUTER_API_KEY: "Get OpenRouter API key",
-  REQUESTY_API_KEY: "Get Requesty API key",
-  OPPER_API_KEY: "Get Opper API key",
-  API_ROUTE_API_KEY: "Get API Route key",
-  HF_TOKEN: "Get Hugging Face token",
-  REPLICATE_API_TOKEN: "Get Replicate API token",
-  GOOGLE_APP_PASSWORD: "Get Google app password",
-  ELEVENLABS_API_KEY: "Get ElevenLabs API key",
-  FAL_API_KEY: "Get Fal API key",
-  SERPAPI_API_KEY: "Get SerpAPI API key",
-  DATA_FOR_SEO_LOGIN: "Get DataForSEO credentials",
-  BRAVE_API_KEY: "Get Brave API key",
-  APIFY_API_TOKEN: "Get Apify API token",
-  KIMI_API_KEY: "Get Moonshot API key",
-  DASHSCOPE_API_KEY: "Get Alibaba Cloud API Key",
-  AKI_API_KEY: "Get AKI.IO API key"
-};
-
-const SETTING_TOOLTIPS: Record<string, string> = {
-  OPENAI_API_KEY: "Go to OpenAI API key page",
-  ANTHROPIC_API_KEY: "Go to Anthropic console",
-  GEMINI_API_KEY: "Go to Google AI Studio to get your API key",
-  OPENROUTER_API_KEY: "Go to OpenRouter keys page",
-  REQUESTY_API_KEY: "Go to Requesty API keys page",
-  OPPER_API_KEY: "Go to Opper platform to get your API key",
-  API_ROUTE_API_KEY: "Go to API Route API keys page",
-  HF_TOKEN: "Go to Hugging Face tokens page",
-  REPLICATE_API_TOKEN: "Go to Replicate API tokens page",
-  GOOGLE_APP_PASSWORD: "Go to Google account app passwords page",
-  ELEVENLABS_API_KEY: "Go to ElevenLabs subscription page",
-  FAL_API_KEY: "Go to Fal.ai dashboard",
-  SERPAPI_API_KEY: "Go to SerpAPI key management page",
-  DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard",
-  BRAVE_API_KEY: "Go to Brave Search API dashboard",
-  APIFY_API_TOKEN: "Go to Apify console integrations page",
-  KIMI_API_KEY: "Go to Moonshot (Kimi) platform API keys page",
-  DASHSCOPE_API_KEY: "Go to Alibaba Cloud Model Studio API keys page",
-  AKI_API_KEY: "Go to AKI.IO to sign up and get your API key"
+const SETTING_CREDENTIAL_KEYS: Record<string, string> = {
+  OPENAI_API_KEY: "OPENAI_API_KEY",
+  ANTHROPIC_API_KEY: "ANTHROPIC_API_KEY",
+  GEMINI_API_KEY: "GEMINI_API_KEY",
+  OPENROUTER_API_KEY: "OPENROUTER_API_KEY",
+  REQUESTY_API_KEY: "REQUESTY_API_KEY",
+  OPPER_API_KEY: "OPPER_API_KEY",
+  API_ROUTE_API_KEY: "API_ROUTE_API_KEY",
+  HF_TOKEN: "HF_TOKEN",
+  REPLICATE_API_TOKEN: "REPLICATE_API_TOKEN",
+  GOOGLE_APP_PASSWORD: "GOOGLE_APP_PASSWORD",
+  ELEVENLABS_API_KEY: "ELEVENLABS_API_KEY",
+  FAL_API_KEY: "FAL_API_KEY",
+  SERPAPI_API_KEY: "SERPAPI_API_KEY",
+  DATA_FOR_SEO_LOGIN: "DATA_FOR_SEO_LOGIN",
+  BRAVE_API_KEY: "BRAVE_API_KEY",
+  APIFY_API_TOKEN: "APIFY_API_TOKEN",
+  KIMI_API_KEY: "KIMI_API_KEY",
+  DASHSCOPE_API_KEY: "DASHSCOPE_API_KEY",
+  AKI_API_KEY: "AKI_API_KEY"
 };
 
 interface SettingItemProps {
@@ -278,6 +257,7 @@ const SettingItem = memo(function SettingItem({
   value,
   onChange
 }: SettingItemProps) {
+  const { t } = useTranslation();
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       onChange(setting.env_var, e.target.value);
@@ -335,12 +315,13 @@ const SettingItem = memo(function SettingItem({
         <div style={{ marginTop: getSpacingPx(SPACING.md) }}>
           <ExternalLink
             href={SETTING_LINKS[setting.env_var]}
-            tooltipText={
-              SETTING_TOOLTIPS[setting.env_var] || ""
-            }
+            tooltipText={SETTING_CREDENTIAL_KEYS[setting.env_var]
+              ? t(`screens4_5.remoteSettings.credentials.${SETTING_CREDENTIAL_KEYS[setting.env_var]}.tooltip`)
+              : ""}
           >
-            {SETTING_BUTTON_TITLES[setting.env_var] ||
-              "Get your API key"}
+            {SETTING_CREDENTIAL_KEYS[setting.env_var]
+              ? t(`screens4_5.remoteSettings.credentials.${SETTING_CREDENTIAL_KEYS[setting.env_var]}.button`)
+              : t("screens4_5.remoteSettings.credentials.genericButton")}
           </ExternalLink>
         </div>
       )}
@@ -361,6 +342,7 @@ const settingMatches = (setting: SettingWithValue, search: string): boolean =>
   );
 
 const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const updateSettings = useRemoteSettingsStore((state) => state.updateSettings);
   const fetchSettings = useRemoteSettingsStore((state) => state.fetchSettings);
@@ -485,7 +467,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
     },
     onError: (error: Error) => {
       addNotification({
-        content: `Could not save settings: ${error.message}`,
+        content: t("screens4_5.remoteSettings.saveError", { error: error.message }),
         type: "error",
         alert: true
       });
@@ -533,21 +515,21 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
       {
         onSuccess: () => {
           addNotification({
-            content: "Settings saved",
+            content: t("screens4_5.remoteSettings.saved"),
             type: "success",
             alert: true
           });
         }
       }
     );
-  }, [addNotification, settingValues, updateSettingsMutation, data]);
+  }, [addNotification, settingValues, updateSettingsMutation, data, t]);
 
   const theme = useTheme();
 
   return (
     <>
       {isLoading && (
-        <LoadingSpinner text="Loading settings" />
+        <LoadingSpinner text={t("screens4_5.remoteSettings.loading")} />
       )}
       {isSuccess && hasVisibleSettings && (
         <div
@@ -559,8 +541,11 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                 (SearchProviderSection) sits right after Local Model Servers. */}
             {META_SECTION_GROUPS.map((section) => {
               const sec = sectionsMap.get(section.key);
+              const heading = t(
+                `screens4_5.remoteSettings.sections.${section.key}`
+              );
               const headingMatches = sec
-                ? matchesSearch(sec.label, search)
+                ? matchesSearch(heading, search)
                 : false;
               const visibleSettings = sec
                 ? sec.entries.flatMap(({ settings }) =>
@@ -580,7 +565,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                         id={sec.key}
                         className="settings-heading"
                       >
-                        {sec.label}
+                        {heading}
                       </Text>
                       {visibleSettings.map((setting) => (
                         <SettingItem
@@ -605,13 +590,13 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
 
             {isDirty && (
               <div className="save-button-container">
-                <Text className="save-bar-message">Unsaved changes</Text>
+                <Text className="save-bar-message">{t("screens4_5.remoteSettings.unsavedChanges")}</Text>
                 <EditorButton
                   variant="text"
                   onClick={handleDiscard}
                   disabled={updateSettingsMutation.isPending}
                 >
-                  Discard
+                  {t("screens4_5.remoteSettings.discard")}
                 </EditorButton>
                 <EditorButton
                   variant="contained"
@@ -621,7 +606,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                   startIcon={<SaveIcon />}
                   disabled={updateSettingsMutation.isPending}
                 >
-                  {updateSettingsMutation.isPending ? "Saving…" : "Save changes"}
+                  {updateSettingsMutation.isPending ? t("screens4_5.remoteSettings.saving") : t("screens4_5.remoteSettings.saveChanges")}
                 </EditorButton>
               </div>
             )}
@@ -629,7 +614,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
         </div>
       )}
       {isSuccess && !hasVisibleSettings && (
-        <EmptyState variant="no-data" size="small" title="No settings available" />
+        <EmptyState variant="no-data" size="small" title={t("screens4_5.remoteSettings.empty")} />
       )}
     </>
   );

@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Message,
   MessageContent,
@@ -223,6 +224,7 @@ const ToolCallRow: React.FC<{
   tight = false,
   threadId
 }) => {
+  const { t } = useTranslation();
   const isSubtask = SUB_AGENT_TOOL_NAMES.has(tc.name);
   const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
   const isPlan = tc.name === CREATE_PLAN_TOOL_NAME;
@@ -410,7 +412,7 @@ const ToolCallRow: React.FC<{
           <FlexColumn className="tool-row-details" gap={SPACING.xs}>
             {isSubtask && subtaskInstructions && (
               <FlexColumn gap={SPACING.xs}>
-                <Caption className="tool-section-title">Objective</Caption>
+                <Caption className="tool-section-title">{t("i18n-next54.message.objective")}</Caption>
                 <Text size="small" className="subtask-instructions">
                   {subtaskInstructions}
                 </Text>
@@ -421,7 +423,7 @@ const ToolCallRow: React.FC<{
             )}
             {formattedActionCode && (
               <FlexColumn gap={SPACING.xs}>
-                <Caption className="tool-section-title">Code</Caption>
+                <Caption className="tool-section-title">{t("i18n-next54.message.code")}</Caption>
                 <CodeBlock inline={false} className="language-javascript">
                   {formattedActionCode}
                 </CodeBlock>
@@ -430,7 +432,7 @@ const ToolCallRow: React.FC<{
             {hasArgs && (
               <FlexColumn gap={SPACING.xs}>
                 <Caption className="tool-section-title">
-                  {isSubtask ? "Other arguments" : "Arguments"}
+                  {isSubtask ? t("i18n-next54.message.otherArguments") : t("i18n-next54.message.arguments")}
                 </Caption>
                 <PrettyJson value={displayArgs} />
               </FlexColumn>
@@ -443,10 +445,10 @@ const ToolCallRow: React.FC<{
                   justify="space-between"
                   fullWidth
                 >
-                  <Caption className="tool-section-title">Result</Caption>
+                  <Caption className="tool-section-title">{t("i18n-next54.message.result")}</Caption>
                   <CopyButton
                     value={resultContent}
-                    tooltip="Copy result"
+                    tooltip={t("i18n-next54.message.copyResult")}
                     buttonSize="small"
                   />
                 </FlexRow>
@@ -844,6 +846,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
     hideActions = false,
     replyCopyText
   }) => {
+    const { t } = useTranslation();
     const insertIntoEditor = useEditorInsertion();
     const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
 
@@ -1082,23 +1085,23 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
               onChange={handleEditChange}
               onFocus={handleEditFocus}
               onKeyDown={handleEditKeyDown}
-              inputProps={{ "aria-label": "Edit message" }}
+              inputProps={{ "aria-label": t("i18n-next54.message.editMessage") }}
             />
             <FlexRow align="center" justify="flex-end" gap={SPACING.sm}>
               {editRemovesLaterTurns && (
                 <Caption color="muted" sx={{ mr: "auto" }}>
-                  Sending replaces everything after this message.
+                  {t("i18n-next54.message.editWarning")}
                 </Caption>
               )}
               <EditorButton variant="text" onClick={handleEditCancel}>
-                Cancel
+                {t("common.cancel")}
               </EditorButton>
               <EditorButton
                 variant="contained"
                 onClick={handleEditSubmit}
                 disabled={editText.trim().length === 0}
               >
-                Send
+                {t("i18n-next54.composer.send")}
               </EditorButton>
             </FlexRow>
           </FlexColumn>
@@ -1164,23 +1167,23 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
               {canEditAndResend && (
                 <ToolbarIconButton
                   icon={<EditOutlinedIcon fontSize="small" />}
-                  tooltip="Edit and resend"
-                  ariaLabel="Edit and resend"
+                  tooltip={t("i18n-next54.message.editAndResend")}
+                  ariaLabel={t("i18n-next54.message.editAndResend")}
                   onClick={handleEditAndResend}
                 />
               )}
               {message.role === "assistant" && onRegenerate && (
                 <ToolbarIconButton
                   icon={<RefreshIcon fontSize="small" />}
-                  tooltip="Regenerate"
-                  ariaLabel="Regenerate"
+                  tooltip={t("i18n-next54.message.regenerate")}
+                  ariaLabel={t("i18n-next54.message.regenerate")}
                   onClick={onRegenerate}
                 />
               )}
               <CopyButton
                 value={replyCopyText ?? copyText}
                 buttonSize="small"
-                tooltip="Copy message"
+                tooltip={t("i18n-next54.message.copyMessage")}
               />
             </div>
           )}

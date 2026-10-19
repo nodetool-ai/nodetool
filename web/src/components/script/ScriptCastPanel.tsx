@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import PersonAddIcon from "@mui/icons-material/PersonAddAlt";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -101,6 +102,7 @@ const SpeakerCard = ({
   speaker: ScriptSpeaker;
   readOnly: boolean;
 }) => {
+  const { t } = useTranslation();
   const updateSpeaker = useScriptStore((s) => s.updateSpeaker);
   const removeSpeaker = useScriptStore((s) => s.removeSpeaker);
   const { data: entities } = useEntities();
@@ -128,7 +130,7 @@ const SpeakerCard = ({
     : null;
   const isDangling = !!speaker.entityId && !!entities && !linkedEntity;
   const entityOptions = [
-    { value: "", label: "No entity" },
+    { value: "", label: t("i18n-next62.scriptCastPanel.noEntity") },
     ...(entities ?? []).map((e) => ({
       value: e.id,
       label: `${e.name} · ${e.kind}`
@@ -136,7 +138,7 @@ const SpeakerCard = ({
   ];
   const voiceSummary = speaker.voice
     ? speaker.voice.voice || speaker.voice.model
-    : "No voice";
+    : t("i18n-next62.scriptCastPanel.noVoice");
 
   return (
     <FlexColumn
@@ -161,7 +163,7 @@ const SpeakerCard = ({
                 updateSpeaker(scriptId, speaker.id, { name: e.target.value })
               }
               hideLabel
-              label="Speaker name"
+              label={t("i18n-next62.scriptCastPanel.speakerName")}
               compact
               fullWidth
               disabled={readOnly}
@@ -198,8 +200,16 @@ const SpeakerCard = ({
         </FlexColumn>
         {!readOnly && (
           <ToolbarIconButton
-            tooltip={expanded ? "Hide voice settings" : "Voice settings"}
-            ariaLabel={expanded ? "Hide voice settings" : "Voice settings"}
+            tooltip={t(
+              expanded
+                ? "i18n-next62.scriptCastPanel.hideVoiceSettings"
+                : "i18n-next62.scriptCastPanel.voiceSettings"
+            )}
+            ariaLabel={t(
+              expanded
+                ? "i18n-next62.scriptCastPanel.hideVoiceSettings"
+                : "i18n-next62.scriptCastPanel.voiceSettings"
+            )}
             onClick={() => setExpanded((open) => !open)}
             icon={<TuneIcon fontSize="small" />}
             sx={expanded ? { color: "primary.main" } : undefined}
@@ -212,7 +222,9 @@ const SpeakerCard = ({
         </Caption>
       )}
       {readOnly && !linkedEntity && speaker.entityId && (
-        <Caption color="warning">Linked entity missing</Caption>
+        <Caption color="warning">
+          {t("i18n-next62.scriptCastPanel.linkedEntityMissing")}
+        </Caption>
       )}
       {!readOnly && expanded && (
         <FlexColumn gap={SPACING.sm} fullWidth>
@@ -221,7 +233,7 @@ const SpeakerCard = ({
             onChange={onVoiceChange}
           />
           <SelectField
-            label="Linked entity"
+            label={t("i18n-next62.scriptCastPanel.linkedEntity")}
             value={speaker.entityId ?? ""}
             onChange={onEntityChange}
             options={entityOptions}
@@ -230,7 +242,7 @@ const SpeakerCard = ({
           />
           {isDangling && (
             <Caption color="warning">
-              Linked entity not found — it was removed. Pick another or clear it.
+              {t("i18n-next62.scriptCastPanel.linkedEntityNotFound")}
             </Caption>
           )}
           <FlexRow justify="flex-end">
@@ -241,7 +253,7 @@ const SpeakerCard = ({
               startIcon={<DeleteOutlineIcon />}
               onClick={() => removeSpeaker(scriptId, speaker.id)}
             >
-              Remove speaker
+              {t("i18n-next62.scriptCastPanel.removeSpeaker")}
             </EditorButton>
           </FlexRow>
         </FlexColumn>
@@ -255,6 +267,7 @@ const ScriptCastPanel = ({
   cast,
   readOnly
 }: ScriptCastPanelProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const addSpeaker = useScriptStore((s) => s.addSpeaker);
   // Studio hands a new speaker a curated voice, so the beginner shell never
@@ -264,7 +277,9 @@ const ScriptCastPanel = ({
   const onAdd = useCallback(() => {
     addSpeaker(scriptId, {
       id: newSpeakerId(),
-      name: `Speaker ${cast.length + 1}`,
+      name: t("i18n-next62.scriptCastPanel.speakerDefaultName", {
+        count: cast.length + 1
+      }),
       color: [
         theme.vars.palette.primary.main,
         theme.vars.palette.secondary.main,
@@ -278,7 +293,7 @@ const ScriptCastPanel = ({
           ? modelValueToVoice(STUDIO_VOICE)
           : null
     });
-  }, [addSpeaker, scriptId, cast.length, theme, inStudio]);
+  }, [addSpeaker, scriptId, cast.length, theme, inStudio, t]);
 
   return (
     <FlexColumn
@@ -296,7 +311,7 @@ const ScriptCastPanel = ({
           component="h3"
           sx={{ ...EYEBROW, margin: SPACING.none, color: "text.secondary" }}
         >
-          Cast
+          {t("i18n-next62.scriptCastPanel.cast")}
         </Box>
         {!readOnly && (
           <EditorButton
@@ -305,15 +320,17 @@ const ScriptCastPanel = ({
             startIcon={<PersonAddIcon />}
             onClick={onAdd}
           >
-            Add
+            {t("i18n-next62.scriptCastPanel.add")}
           </EditorButton>
         )}
       </FlexRow>
       {cast.length === 0 ? (
         <EmptyState
-          title="No speakers"
-          description="Add a speaker, pick a voice, then click a line's name to assign it."
-          actionText={readOnly ? undefined : "Add speaker"}
+          title={t("i18n-next62.scriptCastPanel.noSpeakers")}
+          description={t("i18n-next62.scriptCastPanel.noSpeakersDescription")}
+          actionText={
+            readOnly ? undefined : t("i18n-next62.scriptCastPanel.addSpeaker")
+          }
           onAction={readOnly ? undefined : onAdd}
         />
       ) : (

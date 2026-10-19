@@ -2,6 +2,7 @@ import AddIcon from "@mui/icons-material/AddOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import { memo, useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { useCreateScript, useScripts } from "../../hooks/script/useScripts";
 import { usePanelStore } from "../../stores/PanelStore";
@@ -22,6 +23,7 @@ import {
 } from "../ui_primitives";
 
 export const CreateScriptButton = memo(function CreateScriptButton() {
+  const { t } = useTranslation();
   const createScript = useCreateScript();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -31,14 +33,15 @@ export const CreateScriptButton = memo(function CreateScriptButton() {
   const handleCreate = useCallback(async () => {
     try {
       const created = await createScript.mutateAsync({
-        name: "Untitled script",
+        name: t("i18n-next62.scriptListPanel.untitledScript"),
         projectId: creationProjectId()
       });
       openTab({
         type: "script",
         ref: created.id,
         mode: "edit",
-        title: created.name || "Untitled script",
+        title:
+          created.name || t("i18n-next62.scriptListPanel.untitledScript"),
         projectId: created.projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
@@ -46,14 +49,20 @@ export const CreateScriptButton = memo(function CreateScriptButton() {
       }
       setVisibility(false);
     } catch (error) {
-      notifyMutationError("create the script", error);
+      notifyMutationError(
+        t("i18n-next62.scriptListPanel.createScriptAction"),
+        error
+      );
     }
-  }, [createScript, location.pathname, navigate, openTab, setVisibility]);
+  }, [createScript, location.pathname, navigate, openTab, setVisibility, t]);
 
   return (
-    <Tooltip title="New script" placement="right-start">
+    <Tooltip
+      title={t("i18n-next62.scriptListPanel.newScript")}
+      placement="right-start"
+    >
       <ToolbarIconButton
-        ariaLabel="New script"
+        ariaLabel={t("i18n-next62.scriptListPanel.newScript")}
         onClick={() => void handleCreate()}
         disabled={createScript.isPending}
         tabIndex={-1}
@@ -68,6 +77,7 @@ interface ScriptListPanelProps {
 }
 
 const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
+  const { t } = useTranslation();
   const { data, isLoading, isError, error } = useScripts(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
@@ -85,7 +95,7 @@ const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
         type: "script",
         ref: id,
         mode: "edit",
-        title: name || "Untitled script",
+        title: name || t("i18n-next62.scriptListPanel.untitledScript"),
         projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
@@ -93,7 +103,7 @@ const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, projectId, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility, t]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -130,7 +140,9 @@ const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
       try {
         const source = await utils.scripts.get.fetch({ id: item.id });
         const copy = await createScript.mutateAsync({
-          name: `${source.name} (copy)`.substring(0, 200),
+          name: t("i18n-next62.scriptListPanel.copyName", {
+            name: source.name
+          }).substring(0, 200),
           projectId: source.projectId
         });
         await updateScript.mutateAsync({
@@ -138,10 +150,13 @@ const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
           document: source.document
         });
       } catch (error) {
-        notifyMutationError("duplicate the script", error);
+        notifyMutationError(
+          t("i18n-next62.scriptListPanel.duplicateScriptAction"),
+          error
+        );
       }
     },
-    [utils, createScript, updateScript]
+    [utils, createScript, updateScript, t]
   );
 
   const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
@@ -175,13 +190,13 @@ const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
 
   return (
     <DocumentListPanel
-      singular="script"
-      plural="scripts"
+      singular={t("i18n-next62.scriptListPanel.singular")}
+      plural={t("i18n-next62.scriptListPanel.plural")}
       documents={data}
       isLoading={isLoading}
       isError={isError}
       errorMessage={error?.message}
-      emptyDescription="Create a new script with the + button above."
+      emptyDescription={t("i18n-next62.scriptListPanel.emptyDescription")}
       deleteTarget={itemToDelete}
       onCancelDelete={() => setItemToDelete(null)}
       onConfirmDelete={handleConfirmDelete}
@@ -189,8 +204,8 @@ const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
         <ListPanelItem
           id={script.id}
           name={script.name}
-          fallbackName="Untitled script"
-          renameLabel="Script name"
+          fallbackName={t("i18n-next62.scriptListPanel.untitledScript")}
+          renameLabel={t("i18n-next62.scriptListPanel.scriptName")}
           icon={RecordVoiceOverOutlinedIcon}
           active={script.id === activeScriptId}
           editing={script.id === editingId}

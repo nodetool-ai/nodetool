@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -115,6 +116,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -211,7 +213,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
               id={`resize-width-${id}`}
               nodeId={id}
               name="width"
-              description={widthProperty.description ?? "Target width"}
+              description={widthProperty.description ?? t("i18n-next80.resize.targetWidth")}
               value={widthValue}
               min={widthProperty.min ?? 1}
               max={widthProperty.max ?? 8192}
@@ -229,8 +231,8 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
           isActive={chainLocked}
           icon={<LinkOffIcon fontSize="small" />}
           activeIcon={<LinkIcon fontSize="small" />}
-          tooltip={chainLocked ? "Unlock aspect ratio" : "Lock aspect ratio"}
-          ariaLabel={chainLocked ? "Unlock aspect ratio" : "Lock aspect ratio"}
+          tooltip={chainLocked ? t("i18n-next80.resize.unlockAspectRatio") : t("i18n-next80.resize.lockAspectRatio")}
+          ariaLabel={chainLocked ? t("i18n-next80.resize.unlockAspectRatio") : t("i18n-next80.resize.lockAspectRatio")}
           onClick={() => setChainLocked((v) => !v)}
         />
         <div className="dim-field">
@@ -239,7 +241,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
               id={`resize-height-${id}`}
               nodeId={id}
               name="height"
-              description={heightProperty.description ?? "Target height"}
+              description={heightProperty.description ?? t("i18n-next80.resize.targetHeight")}
               value={heightValue}
               min={heightProperty.min ?? 1}
               max={heightProperty.max ?? 8192}

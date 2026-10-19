@@ -14,6 +14,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -117,6 +118,7 @@ interface TimelineScrollbarProps {
 export const TimelineScrollbar: React.FC<TimelineScrollbarProps> = memo(
   ({ contentWidthPx, viewportWidthPx, leftInsetPx, onScrollTo }) => {
     const theme = useTheme();
+    const { t: tt } = useTranslation();
     // Subscribed here (rather than passed as a prop) so a pan frame only
     // re-renders this scrollbar, not the whole TracksRegion.
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
@@ -200,7 +202,7 @@ export const TimelineScrollbar: React.FC<TimelineScrollbarProps> = memo(
             onPointerCancel={handleThumbPointerUp}
             role="scrollbar"
             aria-orientation="horizontal"
-            aria-label="Scroll timeline horizontally"
+            aria-label={tt("i18n-next73.scrollbar.horizontal")}
             aria-valuemin={0}
             aria-valuemax={Math.round(maxScroll)}
             aria-valuenow={Math.round(Math.min(maxScroll, Math.max(0, scrollLeftPx)))}

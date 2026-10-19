@@ -15,6 +15,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
 
@@ -35,10 +36,6 @@ import { getSelectionBounds } from "../selection";
 import { displayCombo } from "../shortcuts";
 import { colorToHex6 } from "../types";
 
-/** OS-aware combo for the fit-to-screen action ("⌘0" on Mac, "Ctrl+0" elsewhere). */
-const FIT_LABEL = `Fit to screen (${displayCombo("zoom-fit")})`;
-const ZOOM_IN_LABEL = `Zoom in (${displayCombo("zoom-in")})`;
-const ZOOM_OUT_LABEL = `Zoom out (${displayCombo("zoom-out")})`;
 /** Same step as the keyboard shortcuts and the wheel. */
 const ZOOM_STEP = 1.3;
 
@@ -56,18 +53,20 @@ const zoomButtonSx = {
  * it shows changes.
  */
 const StatusCursorReadout = memo(function StatusCursorReadout() {
+  const { t } = useTranslation();
   const cursorDocPos = useSketchStore((s) => s.cursorDocPos);
   if (!cursorDocPos) {
     return null;
   }
   return (
     <span style={{ minWidth: 96 }}>
-      x {cursorDocPos.x}, y {cursorDocPos.y}
+      {t("i18n-next52.sketch.status.cursor", { x: cursorDocPos.x, y: cursorDocPos.y })}
     </span>
   );
 });
 
 const ConnectedStatusBarInner: React.FC = () => {
+  const { t } = useTranslation();
   const documentId = useSketchSessionStore((s) => s.documentId);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const docW = useSketchStore((s) => s.document.canvas.width);
@@ -80,6 +79,9 @@ const ConnectedStatusBarInner: React.FC = () => {
   const fitViewToScreen = useSketchCanvasRefStore((s) => s.fitViewToScreen);
   const setZoom = useSketchStore((s) => s.setZoom);
   const costEstimate = useSketchCostEstimate();
+  const fitLabel = t("i18n-next52.sketch.status.fit", { shortcut: displayCombo("zoom-fit") });
+  const zoomInLabel = t("i18n-next52.sketch.status.zoomIn", { shortcut: displayCombo("zoom-in") });
+  const zoomOutLabel = t("i18n-next52.sketch.status.zoomOut", { shortcut: displayCombo("zoom-out") });
 
   const zoomIn = useCallback(() => setZoom(zoom * ZOOM_STEP), [setZoom, zoom]);
   const zoomOut = useCallback(() => setZoom(zoom / ZOOM_STEP), [setZoom, zoom]);
@@ -107,19 +109,19 @@ const ConnectedStatusBarInner: React.FC = () => {
           {docW} × {docH} · sRGB · 8-bit ·
         </span>
         <ToolbarIconButton
-          aria-label={ZOOM_OUT_LABEL}
-          tooltip={ZOOM_OUT_LABEL}
+          aria-label={zoomOutLabel}
+          tooltip={zoomOutLabel}
           onClick={zoomOut}
           sx={zoomButtonSx}
           data-testid="sketch-status-zoom-out"
         >
           <RemoveIcon />
         </ToolbarIconButton>
-        <Tooltip title={FIT_LABEL} disabled={!fitViewToScreen}>
+        <Tooltip title={fitLabel} disabled={!fitViewToScreen}>
           <button
             type="button"
             className="sketch-status-bar__zoom"
-            aria-label={FIT_LABEL}
+            aria-label={fitLabel}
             onClick={fitViewToScreen ?? undefined}
             disabled={!fitViewToScreen}
             style={{
@@ -135,8 +137,8 @@ const ConnectedStatusBarInner: React.FC = () => {
           </button>
         </Tooltip>
         <ToolbarIconButton
-          aria-label={ZOOM_IN_LABEL}
-          tooltip={ZOOM_IN_LABEL}
+          aria-label={zoomInLabel}
+          tooltip={zoomInLabel}
           onClick={zoomIn}
           sx={zoomButtonSx}
           data-testid="sketch-status-zoom-in"
@@ -154,18 +156,18 @@ const ConnectedStatusBarInner: React.FC = () => {
 
       {selBounds && (
         <span>
-          selection {selBounds.width} × {selBounds.height}
+          {t("i18n-next52.sketch.status.selection")} {selBounds.width} × {selBounds.height}
         </span>
       )}
 
       <FlexRow align="center" gap={1.5} sx={{ marginLeft: "auto" }}>
         <CostEstimateLine
           estimate={costEstimate}
-          title="Estimated cost of regenerating every generated layer"
-          ariaPrefix="Estimated document cost"
+          title={t("i18n-next52.sketch.status.cost")}
+          ariaPrefix={t("i18n-next52.sketch.status.documentCost")}
         />
         <span>
-          {layerCount} {layerCount === 1 ? "layer" : "layers"}
+          {t("i18n-next52.sketch.status.layer", { count: layerCount })}
         </span>
       </FlexRow>
     </StatusBar>

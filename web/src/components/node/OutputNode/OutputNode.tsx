@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NodeProps } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
 import { Container, CheckerDropzone, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../../ui_primitives";
@@ -32,7 +33,6 @@ import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection"
 import useMetadataStore from "../../../stores/MetadataStore";
 import { NODE_COLLAPSED_LAYOUT } from "../../../styles/collapsedNodeTokens";
 import { isObjectLike } from "../../../utils/typePredicates";
-import { emptyOutputMessage } from "./emptyOutputMessage";
 
 const styles = (theme: Theme) =>
   css([
@@ -232,6 +232,7 @@ const CONTENT_DIV_STYLE = {
  * This displays streaming outputs accumulated via output_update messages.
  */
 const OutputNode: React.FC<OutputNodeProps> = (props) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const addNotification = useNotificationStore(
@@ -304,18 +305,18 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
       addNotification({
         type: "success",
-        content: `${assetFiles.length} file${
-          assetFiles.length === 1 ? "" : "s"
-        } added to assets`
+        content: t("i18n-next37.outputNode.filesAddedToAssets", {
+          count: assetFiles.length
+        })
       });
     } catch (error) {
       console.error("Error in handleAddToAssets:", error);
       addNotification({
         type: "error",
-        content: "Failed to add output to assets"
+        content: t("i18n-next37.outputNode.addToAssetsFailed")
       });
     }
-  }, [outputValue, props.id, createAsset, addNotification]);
+  }, [outputValue, props.id, createAsset, addNotification, t]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -326,16 +327,16 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
       });
       addNotification({
         type: "success",
-        content: "Download started successfully"
+        content: t("i18n-next37.outputNode.downloadStarted")
       });
     } catch (error) {
       console.error("Error in handleDownload:", error);
       addNotification({
         type: "error",
-        content: "Failed to start download"
+        content: t("i18n-next37.outputNode.downloadFailed")
       });
     }
-  }, [outputValue, result, props.id, addNotification]);
+  }, [outputValue, result, props.id, addNotification, t]);
 
   const handleContentFocus = useCallback(() => {
     setIsContentFocused(true);
@@ -405,7 +406,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             id={props.id}
             data={props.data}
             hasParent={hasParent}
-            metadataTitle="Output"
+            metadataTitle={t("i18n-next37.outputNode.metadataTitle")}
             selected={props.selected}
             backgroundColor={theme.vars.palette.info.main}
             iconType={nodeMetadata?.properties?.[0]?.type?.type ?? "any"}
@@ -445,7 +446,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
           className={`content ${isScrollable ? "scrollable nowheel" : "noscroll"
             }`}
           role="region"
-          aria-label="Node output"
+          aria-label={t("i18n-next37.outputNode.ariaLabel")}
           style={CONTENT_DIV_STYLE}
           tabIndex={0}
           onFocus={handleContentFocus}
@@ -454,7 +455,11 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         >
           {result === null || result === undefined ? (
             <CheckerDropzone
-              message={emptyOutputMessage(focusedRunState)}
+              message={
+                focusedRunState === "completed"
+                  ? t("i18n-next37.outputNode.emptyAfterCompletedRun")
+                  : t("i18n-next37.outputNode.emptyRunPrompt")
+              }
               icon={<OutputIcon />}
             />
           ) : (

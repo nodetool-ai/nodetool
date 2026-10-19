@@ -24,6 +24,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 
 import { useSketchStore } from "../state/useSketchStore";
@@ -160,6 +161,7 @@ function drawRuler(
 }
 
 export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const rulersVisible = useSketchStore((s) => s.rulersVisible);
   const guidesVisible = useSketchStore((s) => s.guidesVisible);
@@ -563,7 +565,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
             component="canvas"
             ref={topRef}
             data-testid="sketch-ruler-top"
-            aria-label="Horizontal ruler. Drag down to place a guide."
+            aria-label={t("i18n-next52.sketch.guides.horizontal")}
             onPointerDown={(e: React.PointerEvent<HTMLElement>) =>
               beginDrag(e, {
                 kind: "new",
@@ -587,7 +589,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
             component="canvas"
             ref={leftRef}
             data-testid="sketch-ruler-left"
-            aria-label="Vertical ruler. Drag right to place a guide."
+            aria-label={t("i18n-next52.sketch.guides.vertical")}
             onPointerDown={(e: React.PointerEvent<HTMLElement>) =>
               beginDrag(e, {
                 kind: "new",

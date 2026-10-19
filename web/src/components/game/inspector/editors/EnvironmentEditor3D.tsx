@@ -1,4 +1,5 @@
 import { gameEnvironment3D, gameHeightFog3D } from "@nodetool-ai/protocol";
+import { useTranslation } from "react-i18next";
 import { FlexColumn, InspectorFieldRow, InspectorSelect, SPACING } from "../../../ui_primitives";
 import SchemaFields from "../SchemaFields";
 import type { GameComponentEditorProps } from "../componentEditors";
@@ -7,9 +8,9 @@ import { gameSchemaFields } from "../schemaForm";
 const BASE_FIELDS = gameSchemaFields(gameEnvironment3D.omit({ fog: true }));
 const HEIGHT_FIELDS = gameSchemaFields(gameHeightFog3D.omit({ kind: true }));
 const LINEAR_FIELDS = gameSchemaFields(gameEnvironment3D.shape.fog.unwrap().options[0]);
-const FOG_MODES = [{ value: "none", label: "None" }, { value: "linear", label: "Linear" }, { value: "height", label: "Height" }];
 
 export default function EnvironmentEditor3D({ value, onChange, path, issuePath, issues, assets }: GameComponentEditorProps) {
+  const { t } = useTranslation();
   const environment = gameEnvironment3D.parse(value);
   const { fog, ...base } = environment;
   const mode = !fog ? "none" : "kind" in fog ? "height" : "linear";
@@ -21,7 +22,7 @@ export default function EnvironmentEditor3D({ value, onChange, path, issuePath, 
         if (fog) { next.fog = fog; }
         onChange(next);
       }} />
-    <InspectorFieldRow label="Fog mode"><InspectorSelect grow label="Fog mode" value={mode} options={FOG_MODES}
+    <InspectorFieldRow label={t("game.environment.fields.fogMode")}><InspectorSelect grow label={t("game.environment.fields.fogMode")} value={mode} options={[{ value: "none", label: t("game.environment.fog.none") }, { value: "linear", label: t("game.environment.fog.linear") }, { value: "height", label: t("game.environment.fog.height") }]}
       onChange={(mode) => {
         if (mode === "none") { onChange(base); return; }
         const color = fog?.color ?? "#ffffff";

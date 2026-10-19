@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useRouteError } from "react-router-dom";
 import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -173,6 +174,7 @@ const errorBoundaryStyles = (theme: Theme) =>
   });
 
 const ErrorBoundary: React.FC = () => {
+  const { t } = useTranslation();
   const error = useRouteError();
   const theme = useTheme();
   const [showDetails, setShowDetails] = useState(false);
@@ -181,9 +183,9 @@ const ErrorBoundary: React.FC = () => {
   const errorMessage =
     error instanceof Error
       ? error.message
-      : "An unknown error occurred" + JSON.stringify(error);
+      : t("screen_remaining.errorBoundary.unknownError") + JSON.stringify(error);
   const stackTrace =
-    error instanceof Error ? error.stack : "No stack trace available";
+    error instanceof Error ? error.stack : t("screen_remaining.errorBoundary.noStack");
 
   const fullErrorText = `${errorMessage}\n\n${stackTrace}`;
 
@@ -210,11 +212,10 @@ const ErrorBoundary: React.FC = () => {
   return (
     <Box css={errorBoundaryStyles(theme)}>
       <Box className="hero">
-        <img src="/logo192.png" alt="NodeTool logo" className="logo" />
-        <Text className="heading">Something went wrong</Text>
+        <img src="/logo192.png" alt={t("screen_remaining.errorBoundary.logoAlt")} className="logo" />
+        <Text className="heading">{t("screen_remaining.errorBoundary.heading")}</Text>
         <Text className="subtext">
-          An unexpected error occurred. You can try reloading the page. If
-          this keeps happening, please reach out so we can fix it.
+          {t("screen_remaining.errorBoundary.description")}
         </Text>
       </Box>
 
@@ -226,7 +227,7 @@ const ErrorBoundary: React.FC = () => {
             onClick={() => window.location.reload()}
             className="reload-button"
           >
-            Reload page
+            {t("screen_remaining.errorBoundary.reload")}
           </EditorButton>
           <EditorButton
             variant="outlined"
@@ -234,7 +235,7 @@ const ErrorBoundary: React.FC = () => {
             onClick={handleReport}
             className="copy-error-button"
           >
-            Report a bug
+            {t("screen_remaining.errorBoundary.reportBug")}
           </EditorButton>
           <EditorButton
             variant="outlined"
@@ -242,7 +243,7 @@ const ErrorBoundary: React.FC = () => {
             onClick={handleCopy}
             className="copy-error-button"
           >
-            {copied ? "Copied!" : "Copy error"}
+            {copied ? t("screen_remaining.errorBoundary.copied") : t("screen_remaining.errorBoundary.copyError")}
           </EditorButton>
         </Box>
         <Box className="contact-row">
@@ -252,10 +253,10 @@ const ErrorBoundary: React.FC = () => {
             target="_blank"
             rel="noreferrer"
           >
-            Join our Discord
+            {t("screen_remaining.errorBoundary.discord")}
           </a>
           <a href="mailto:hello@nodetool.ai" className="contact-link">
-            Email hello@nodetool.ai
+            {t("screen_remaining.errorBoundary.email")}
           </a>
         </Box>
       </Box>
@@ -266,7 +267,7 @@ const ErrorBoundary: React.FC = () => {
           disableRipple
           onClick={() => setShowDetails((prev) => !prev)}
         >
-          {showDetails ? "Hide details ▲" : "Show details ▼"}
+          {showDetails ? t("screen_remaining.errorBoundary.hideDetails") : t("screen_remaining.errorBoundary.showDetails")}
         </EditorButton>
 
         {showDetails && (

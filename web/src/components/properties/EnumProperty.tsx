@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
@@ -33,6 +34,7 @@ const EnumProperty: React.FC<PropertyProps<string | number>> = ({
   tabIndex,
   changed
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const id = useMemo(
     () => `enum-${property.name}-${propertyIndex}`,
     [property.name, propertyIndex]
@@ -77,7 +79,7 @@ const EnumProperty: React.FC<PropertyProps<string | number>> = ({
         onChange={handleChange}
         options={options}
         label={property.name}
-        placeholder="Select…"
+        placeholder={t("property.select")}
         tabIndex={tabIndex}
         changed={changed}
       />

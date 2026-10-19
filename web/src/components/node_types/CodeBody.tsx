@@ -18,6 +18,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
@@ -188,6 +189,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
   isOutputNode
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
   const language = getCodeNodeLanguage(nodeType);
@@ -440,8 +442,8 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           <div className="code-actions">
             {supportsCodeGen && (
               <ToolbarIconButton
-                tooltip="Ask AI"
-                aria-label="Ask AI"
+                tooltip={t("i18n-next64.code.askAi")}
+                aria-label={t("i18n-next64.code.askAi")}
                 icon={
                   <AutoAwesomeIcon
                     sx={{ fontSize: ICON_SIZE.sm }}
@@ -453,7 +455,8 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
             )}
             {!supportsCodeGen && (
               <ToolbarIconButton
-                tooltip="Open editor"
+                tooltip={t("i18n-next64.code.openEditor")}
+                aria-label={t("i18n-next64.code.openEditor")}
                 icon={<OpenInFullIcon sx={{ fontSize: ICON_SIZE.sm }} />}
                 onClick={toggleExpand}
                 size="small"

@@ -13,6 +13,7 @@
  */
 
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import TelegramIcon from "@mui/icons-material/Telegram";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
@@ -46,13 +47,14 @@ interface PendingCode {
   deepLink: string | null;
 }
 
-function formatLinkedAt(value: string): string {
+function formatLinkedAt(value: string, locale: string): string {
   const parsed = Date.parse(value);
   if (Number.isNaN(parsed)) return value;
-  return new Date(parsed).toLocaleDateString();
+  return new Intl.DateTimeFormat(locale).format(new Date(parsed));
 }
 
 const ConnectedAccountsSettings = () => {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<PendingCode | null>(null);
   const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
@@ -114,19 +116,31 @@ const ConnectedAccountsSettings = () => {
         </FlexRow>
 
         {isLoading && (
-          <LoadingSpinner text="Loading connected accounts" />
+          <LoadingSpinner
+            text={t("screens4_0.settings.connectedAccounts.loadingAccounts")}
+          />
         )}
 
         {!isLoading && linked && (
           <FlexColumn gap={SPACING.md}>
             <Text size="small">
-              Connected as Telegram account {linked.external_id}
+              {t("screens4_0.settings.connectedAccounts.connectedAs", {
+                provider: PROVIDER_LABEL,
+                id: linked.external_id
+              })}
             </Text>
-            <Caption>Linked {formatLinkedAt(linked.linked_at)}</Caption>
+            <Caption>
+              {t("screens4_0.settings.connectedAccounts.linkedAt", {
+                date: formatLinkedAt(
+                  linked.linked_at,
+                  i18n.resolvedLanguage ?? i18n.language
+                )
+              })}
+            </Caption>
             {confirmingDisconnect ? (
               <FlexRow align="center" gap={SPACING.md}>
                 <Caption>
-                  Disconnect this account? The bot will stop answering it.
+                  {t("screens4_0.settings.connectedAccounts.disconnectConfirm")}
                 </Caption>
                 <EditorButton
                   color="error"
@@ -134,13 +148,13 @@ const ConnectedAccountsSettings = () => {
                   disabled={unlink.isPending}
                   onClick={handleDisconnect}
                 >
-                  Disconnect
+                  {t("screens4_0.settings.connectedAccounts.disconnect")}
                 </EditorButton>
                 <EditorButton
                   variant="text"
                   onClick={() => setConfirmingDisconnect(false)}
                 >
-                  Keep
+                  {t("screens4_0.settings.connectedAccounts.keep")}
                 </EditorButton>
               </FlexRow>
             ) : (
@@ -150,13 +164,13 @@ const ConnectedAccountsSettings = () => {
                   startIcon={<LinkOffIcon />}
                   onClick={() => setConfirmingDisconnect(true)}
                 >
-                  Disconnect
+                  {t("screens4_0.settings.connectedAccounts.disconnect")}
                 </EditorButton>
               </FlexRow>
             )}
             {unlink.isError && (
               <AlertBanner severity="error">
-                Could not disconnect this account. Try again.
+                {t("screens4_0.settings.connectedAccounts.disconnectFailed")}
               </AlertBanner>
             )}
           </FlexColumn>
@@ -165,8 +179,9 @@ const ConnectedAccountsSettings = () => {
         {!isLoading && !linked && showPending === null && (
           <FlexColumn gap={SPACING.md}>
             <Caption>
-              Link your Telegram account to chat with your NodeTool agent from
-              Telegram. Your threads, assets, and budget stay yours.
+              {t("screens4_0.settings.connectedAccounts.connectDescription", {
+                provider: PROVIDER_LABEL
+              })}
             </Caption>
             <FlexRow>
               <EditorButton
@@ -175,12 +190,14 @@ const ConnectedAccountsSettings = () => {
                 disabled={createCode.isPending}
                 onClick={handleConnect}
               >
-                Connect Telegram
+                {t("screens4_0.settings.connectedAccounts.connectProvider", {
+                  provider: PROVIDER_LABEL
+                })}
               </EditorButton>
             </FlexRow>
             {createCode.isError && (
               <AlertBanner severity="error">
-                Could not start linking. Try again.
+                {t("screens4_0.settings.connectedAccounts.startLinkFailed")}
               </AlertBanner>
             )}
           </FlexColumn>
@@ -190,28 +207,35 @@ const ConnectedAccountsSettings = () => {
           <FlexColumn gap={SPACING.md}>
             {showPending.deepLink ? (
               <ExternalLink href={showPending.deepLink}>
-                Open Telegram and press Start
+                {t("screens4_0.settings.connectedAccounts.openTelegram")}
               </ExternalLink>
             ) : (
               <Caption>
-                This server does not know its bot&apos;s username, so there is
-                no link to open. Send the bot <Code>/start {showPending.code}</Code>{" "}
-                yourself.
+                {t("screens4_0.settings.connectedAccounts.noBotUsername")}{" "}
+                <Code>/start {showPending.code}</Code>{" "}
+                {t("screens4_0.settings.connectedAccounts.sendStartCommand")}
               </Caption>
             )}
             <FlexRow align="center" gap={SPACING.md}>
               <Text size="small" family="secondary">
                 {showPending.code}
               </Text>
-              <CopyButton value={showPending.code} tooltip="Copy link code" />
+              <CopyButton
+                value={showPending.code}
+                tooltip={t("screens4_0.settings.connectedAccounts.copyLinkCode")}
+              />
             </FlexRow>
             <FlexRow align="center" gap={SPACING.md}>
               <LoadingSpinner />
-              <Caption>Waiting for Telegram to confirm the link…</Caption>
+              <Caption>
+                {t("screens4_0.settings.connectedAccounts.waitingForConfirmation", {
+                  provider: PROVIDER_LABEL
+                })}
+              </Caption>
             </FlexRow>
             <FlexRow>
               <EditorButton variant="text" onClick={handleCancel}>
-                Cancel
+                {t("screens4_0.settings.connectedAccounts.cancel")}
               </EditorButton>
             </FlexRow>
           </FlexColumn>

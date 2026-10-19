@@ -15,6 +15,7 @@
  * never been enabled before.
  */
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ErrorBanner from "../support/ErrorBanner";
 import {
   Popover,
@@ -72,41 +73,38 @@ type ActivationState =
   | "mixed"
   | "active";
 
-const KIND_LABELS: Readonly<Record<string, string>> = {
-  webhook: "Webhook",
-  schedule: "Schedule",
-  file_watch: "File watch",
-  manual: "Manual"
-};
-
-const kindLabel = (kind: string): string => KIND_LABELS[kind] ?? kind;
-
-const formatLastFired = (iso: string | null): string => {
-  if (!iso) return "Never";
+const formatLastFired = (iso: string | null, never: string): string => {
+  if (!iso) return never;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   return date.toLocaleString();
 };
 
 /** Text on the workflow-level switch — honest about what we actually know. */
-const SWITCH_DESCRIPTIONS = {
-  loading: "Checking trigger status…",
-  error: "Could not load trigger status. Check your connection and retry.",
-  unregistered:
-    "Save the workflow first — activation needs a saved trigger registration.",
-  inactive: "Listens for events and starts a run per event.",
-  mixed: "Some triggers are armed. Turn this on to arm the rest.",
-  active: "Listens for events and starts a run per event."
-} satisfies Readonly<Record<ActivationState, string>>;
+const stateDescriptionKey: Record<ActivationState, string> = {
+  loading: "i18n-next5.triggers.descriptions.loading",
+  error: "i18n-next5.triggers.descriptions.error",
+  unregistered: "i18n-next5.triggers.descriptions.unregistered",
+  inactive: "i18n-next5.triggers.descriptions.inactive",
+  mixed: "i18n-next5.triggers.descriptions.mixed",
+  active: "i18n-next5.triggers.descriptions.active"
+};
 
-const STATUS_LABELS = {
-  loading: "Loading",
-  error: "Unavailable",
-  unregistered: "Not registered",
-  inactive: "Inactive",
-  mixed: "Partly active",
-  active: "Active"
-} satisfies Readonly<Record<ActivationState, string>>;
+const stateLabelKey: Record<ActivationState, string> = {
+  loading: "i18n-next5.triggers.states.loading",
+  error: "i18n-next5.triggers.states.error",
+  unregistered: "i18n-next5.triggers.states.unregistered",
+  inactive: "i18n-next5.triggers.states.inactive",
+  mixed: "i18n-next5.triggers.states.mixed",
+  active: "i18n-next5.triggers.states.active"
+};
+
+const kindLabelKey: Record<string, string> = {
+  webhook: "i18n-next5.triggers.kinds.webhook",
+  schedule: "i18n-next5.triggers.kinds.schedule",
+  file_watch: "i18n-next5.triggers.kinds.fileWatch",
+  manual: "i18n-next5.triggers.kinds.manual"
+};
 
 const STATUS_KINDS = {
   loading: "running",
@@ -128,6 +126,7 @@ const WebhookDeliveryDetails: React.FC<WebhookDeliveryDetailsProps> = ({
   webhookToken,
   webhookSecret
 }) => {
+  const { t } = useTranslation();
   const [revealed, setRevealed] = useState(false);
   const url = webhookDeliveryUrl(webhookToken);
 
@@ -135,18 +134,18 @@ const WebhookDeliveryDetails: React.FC<WebhookDeliveryDetailsProps> = ({
     <FlexColumn gap={SPACING.xs}>
       <FlexRow gap={SPACING.xs} align="center">
         <TextInput
-          label="Webhook URL"
+          label={t("i18n-next5.triggers.webhookUrl")}
           hideLabel
           value={url}
           size="small"
           fullWidth
           slotProps={{ input: { readOnly: true } }}
         />
-        <CopyButton value={url} tooltip="Copy webhook URL" />
+        <CopyButton value={url} tooltip={t("i18n-next5.triggers.copyWebhookUrl")} />
       </FlexRow>
       <FlexRow gap={SPACING.xs} align="center">
         <TextInput
-          label="Webhook secret"
+          label={t("i18n-next5.triggers.webhookSecret")}
           hideLabel
           type={revealed ? "text" : "password"}
           value={webhookSecret}
@@ -162,18 +161,19 @@ const WebhookDeliveryDetails: React.FC<WebhookDeliveryDetailsProps> = ({
               <VisibilityIcon fontSize="small" />
             )
           }
-          tooltip={revealed ? "Hide secret" : "Show secret"}
-          ariaLabel={revealed ? "Hide webhook secret" : "Show webhook secret"}
+          tooltip={revealed ? t("i18n-next5.triggers.hideSecret") : t("i18n-next5.triggers.showSecret")}
+          ariaLabel={revealed ? t("i18n-next5.triggers.hideWebhookSecret") : t("i18n-next5.triggers.showWebhookSecret")}
           onClick={() => setRevealed((r) => !r)}
         />
-        <CopyButton value={webhookSecret} tooltip="Copy webhook secret" />
+        <CopyButton value={webhookSecret} tooltip={t("i18n-next5.triggers.copyWebhookSecret")} />
       </FlexRow>
-      <Caption>Send this value as the x-webhook-secret header.</Caption>
+      <Caption>{t("i18n-next5.triggers.webhookSecretHint")}</Caption>
     </FlexColumn>
   );
 };
 
 const TriggerActivationButton: React.FC = () => {
+  const { t } = useTranslation();
   const workflowId = useNodes((state) => state.workflow?.id || null);
   // This button sits in the always-mounted floating toolbar, and a node drag
   // pushes a fresh `nodes` array ~60x/s. Collect in one pass rather than
@@ -278,11 +278,11 @@ const TriggerActivationButton: React.FC = () => {
   }
 
   const buttonState = rows.some((r) => r.disabled_reason)
-    ? `${STATUS_LABELS[state].toLowerCase()}, disabled automatically`
+    ? t("i18n-next5.triggers.buttonStateDisabled", { state: t(stateLabelKey[state]).toLowerCase() })
     : hasError && (state === "active" || state === "mixed")
-      ? `${STATUS_LABELS[state].toLowerCase()}, last run failed`
-      : STATUS_LABELS[state].toLowerCase();
-  const buttonLabel = `Triggers: ${buttonState}`;
+      ? t("i18n-next5.triggers.buttonStateFailed", { state: t(stateLabelKey[state]).toLowerCase() })
+      : t(stateLabelKey[state]).toLowerCase();
+  const buttonLabel = t("i18n-next5.triggers.buttonLabel", { state: buttonState });
 
   return (
     <>
@@ -310,20 +310,20 @@ const TriggerActivationButton: React.FC = () => {
             width: `min(360px, calc(100vw - ${getSpacingPx(SPACING.xxxl)}))`
           }}
           role="region"
-          aria-label="Trigger status"
+          aria-label={t("i18n-next5.triggers.regionLabel")}
         >
           <FlexRow justify="space-between" align="center">
-            <Text size="big">Triggers</Text>
+            <Text size="big">{t("i18n-next5.triggers.title")}</Text>
             <StatusIndicator
               status={STATUS_KINDS[state]}
-              label={STATUS_LABELS[state]}
+              label={t(stateLabelKey[state])}
               size="small"
             />
           </FlexRow>
 
           <LabeledSwitch
-            label="Workflow active"
-            description={SWITCH_DESCRIPTIONS[state]}
+            label={t("i18n-next5.triggers.workflowActive")}
+            description={t(stateDescriptionKey[state])}
             checked={state === "active"}
             onChange={(next) => {
               void handleToggle(next);
@@ -352,14 +352,14 @@ const TriggerActivationButton: React.FC = () => {
                   key={nodeId}
                   gap={SPACING.xs}
                   role="group"
-                  aria-label={`${kindLabel(kind)} trigger ${nodeId}`}
+                  aria-label={t("i18n-next5.triggers.groupLabel", { kind: kindLabelKey[kind] ? t(kindLabelKey[kind]) : kind, id: nodeId })}
                   sx={{
                     borderRadius: BORDER_RADIUS.md,
                     padding: SPACING.md
                   }}
                 >
                   <FlexRow justify="space-between" align="center">
-                    <Label>{kindLabel(kind)}</Label>
+                    <Label>{kindLabelKey[kind] ? t(kindLabelKey[kind]) : kind}</Label>
                     <StatusIndicator
                       status={
                         reg?.enabled
@@ -370,53 +370,53 @@ const TriggerActivationButton: React.FC = () => {
                       }
                       label={
                         reg?.enabled
-                          ? "Active"
+                          ? t("i18n-next5.triggers.states.active")
                           : stoppedBecause
-                            ? "Stopped"
-                            : "Inactive"
+                            ? t("i18n-next5.triggers.stopped")
+                            : t("i18n-next5.triggers.states.inactive")
                       }
                       size="small"
                     />
                   </FlexRow>
                   <LabeledSwitch
                     size="small"
-                    label="Enabled"
+                    label={t("i18n-next5.triggers.enabled")}
                     checked={Boolean(reg?.enabled)}
                     disabled={!reg}
                     onChange={(next) => reg && handleRowToggle(reg.id, next)}
                     id={`trigger-enabled-${nodeId}`}
                   />
-                  {isLoading && <Caption>Checking status…</Caption>}
+                  {isLoading && <Caption>{t("i18n-next5.triggers.checkingStatus")}</Caption>}
                   {isError && (
                     <ErrorBanner
                       report={{
                         source: "operation-failure",
-                        summary: "Trigger status failed to load"
+                        summary: t("i18n-next5.triggers.loadFailed")
                       }}
                     >
-                      Could not load trigger status.
+                      {t("i18n-next5.triggers.loadFailed")}
                     </ErrorBanner>
                   )}
                   {schedule && <Caption>{schedule}</Caption>}
                   {!isLoading && !isError && (
                     <Caption>
-                      Last fired: {formatLastFired(reg?.last_fired_at ?? null)}
+                      {t("i18n-next5.triggers.lastFired", { date: formatLastFired(reg?.last_fired_at ?? null, t("i18n-next5.triggers.never")) })}
                     </Caption>
                   )}
                   {stoppedBecause && (
                     <Caption color="error">
-                      {stoppedBecause} Turn it back on to retry.
+                      {t("i18n-next5.triggers.stoppedRetry", { reason: stoppedBecause })}
                     </Caption>
                   )}
                   {reg?.last_error && (
                     <ErrorBanner
                       report={{
                         source: "operation-failure",
-                        summary: "Trigger run failed",
+                        summary: t("i18n-next5.triggers.runFailed"),
                         errorText: reg.last_error
                       }}
                     >
-                      Last error: {reg.last_error}
+                      {t("i18n-next5.triggers.lastError", { error: reg.last_error })}
                     </ErrorBanner>
                   )}
                   {kind === "webhook" &&
@@ -433,7 +433,7 @@ const TriggerActivationButton: React.FC = () => {
                       disabled={!reg?.enabled || fireTrigger.isPending}
                       onClick={() => reg && handleFire(reg.id)}
                     >
-                      Fire now
+                      {t("i18n-next5.triggers.fireNow")}
                     </EditorButton>
                   </FlexRow>
                 </FlexColumn>

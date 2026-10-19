@@ -488,7 +488,7 @@ it("switches gizmo space, orthographic projection and axis views from shortcuts 
   try {
     await user.click(screen.getByLabelText("3D game viewport"));
     await user.keyboard("x");
-    expect(screen.getByRole("button", { name: "Local space" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Coordinate space" })).toHaveAttribute("aria-pressed", "true");
     expect((fixture.controls as unknown as { space: string }).space).toBe("local");
     // user-event has no numpad key map, so numpad presses are dispatched by code.
     fireEvent.keyDown(screen.getByLabelText("3D game viewport"), { code: "Numpad5", key: "5" });

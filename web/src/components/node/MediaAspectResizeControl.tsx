@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useReactFlow } from "@xyflow/react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import type { Node } from "@xyflow/react";
 import { Box, MOTION, Z_INDEX } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
@@ -152,6 +153,7 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
   maxWidth,
   corner = "bottom-right"
 }: MediaAspectResizeControlProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme, corner), [theme, corner]);
   const reactFlow = useReactFlow();
@@ -347,7 +349,7 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
       <button
         type="button"
         className="resize-grip nodrag nopan"
-        aria-label="Resize node, keeping image aspect ratio. Double-click to fit the media."
+        aria-label={t("i18n-next66.node.mediaAspectResizeControl.resizeHandle")}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}

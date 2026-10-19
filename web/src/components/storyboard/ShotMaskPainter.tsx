@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -88,7 +89,8 @@ export const hasPaint = (canvas: HTMLCanvasElement): boolean => {
  */
 export const maskFileFromStrokes = (
   strokes: HTMLCanvasElement,
-  name: string
+  name: string,
+  errors: { noCanvas: string; encodeFailed: string }
 ): Promise<File> =>
   new Promise((resolve, reject) => {
     const mask = document.createElement("canvas");
@@ -96,7 +98,7 @@ export const maskFileFromStrokes = (
     mask.height = strokes.height;
     const context = mask.getContext("2d");
     if (!context) {
-      reject(new Error("This browser has no 2D canvas."));
+      reject(new Error(errors.noCanvas));
       return;
     }
     context.fillStyle = "black";
@@ -106,7 +108,7 @@ export const maskFileFromStrokes = (
       if (blob) {
         resolve(new File([blob], name, { type: "image/png" }));
       } else {
-        reject(new Error("The mask could not be encoded."));
+        reject(new Error(errors.encodeFailed));
       }
     }, "image/png");
   });
@@ -117,6 +119,7 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
   onCancel,
   onDone
 }) => {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const last = useRef<{ x: number; y: number } | null>(null);
@@ -229,10 +232,10 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
     <Dialog
       open
       onClose={onCancel}
-      title="Paint the area to change"
+      title={t("screens4_18.storyboard.shotMaskPainter.title")}
       maxWidth="lg"
       onConfirm={handleDone}
-      confirmText="Use this area"
+      confirmText={t("screens4_18.storyboard.shotMaskPainter.useArea")}
       confirmDisabled={!ready}
     >
       <FlexColumn gap={SPACING.md} align="center">
@@ -247,14 +250,20 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
                 setTool(next);
               }
             }}
-            aria-label="Painting tool"
+            aria-label={t(
+              "screens4_18.storyboard.shotMaskPainter.toolLabel"
+            )}
           >
-            <ToggleOption value="brush">Brush</ToggleOption>
-            <ToggleOption value="eraser">Eraser</ToggleOption>
+            <ToggleOption value="brush">
+              {t("screens4_18.storyboard.shotMaskPainter.brush")}
+            </ToggleOption>
+            <ToggleOption value="eraser">
+              {t("screens4_18.storyboard.shotMaskPainter.eraser")}
+            </ToggleOption>
           </ToggleGroup>
           <FlexRow align="center" gap={SPACING.sm}>
             <Caption color="secondary" id="shot-mask-brush-label">
-              Brush size
+              {t("screens4_18.storyboard.shotMaskPainter.brushSize")}
             </Caption>
             <Slider
               density="compact"
@@ -269,7 +278,7 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
             />
           </FlexRow>
           <EditorButton size="small" onClick={handleClear}>
-            Clear
+            {t("screens4_18.storyboard.shotMaskPainter.clear")}
           </EditorButton>
         </FlexRow>
         <Box sx={frameSx}>
@@ -278,7 +287,7 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
             component="img"
             ref={imageRef}
             src={stillUrl}
-            alt="Still to paint on"
+            alt={t("screens4_18.storyboard.shotMaskPainter.stillAlt")}
             crossOrigin="anonymous"
             onLoad={handleImageLoad}
             sx={{ maxWidth: "100%", maxHeight: "65vh", display: "block" }}
@@ -286,7 +295,9 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
           <Box
             component="canvas"
             ref={canvasRef}
-            aria-label="Mask painting area"
+            aria-label={t(
+              "screens4_18.storyboard.shotMaskPainter.canvasLabel"
+            )}
             data-testid="shot-mask-canvas"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -296,7 +307,7 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
           />
         </Box>
         <Caption color="secondary">
-          Paint over what should change. The rest of the still is kept.
+          {t("screens4_18.storyboard.shotMaskPainter.instructions")}
         </Caption>
       </FlexColumn>
     </Dialog>

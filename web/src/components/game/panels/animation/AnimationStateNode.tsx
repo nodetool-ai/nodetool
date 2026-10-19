@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 
@@ -12,6 +13,7 @@ const BACK_TARGET_STYLE = { left: "30%" } as const;
 
 /** One state on the animation graph canvas, drawn like a workflow node: a header with the state name over its motion. */
 function AnimationStateNode({ data, selected }: NodeProps<AnimationStateFlowNode>) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const palette = theme.vars.palette;
   const live = data.live === "current" ? palette.success.main : data.live === "previous" ? palette.warning.main : null;
@@ -30,12 +32,12 @@ function AnimationStateNode({ data, selected }: NodeProps<AnimationStateFlowNode
     <FlexRow align="center" gap={SPACING.xs} sx={{ px: SPACING.md, py: SPACING.xs, backgroundColor: data.any ? "transparent" : palette.c_node_header_bg,
       borderBottom: data.any ? "none" : `1px solid ${palette.divider}` }}>
       <TruncatedText component="span" sx={{ ...TYPOGRAPHY.mono.label, flex: 1, minWidth: 0,
-        color: data.any ? "text.secondary" : "text.primary" }}>{data.any ? "Any state" : data.stateId}</TruncatedText>
-      {data.initial && <Caption color="secondary">Initial</Caption>}
+        color: data.any ? "text.secondary" : "text.primary" }}>{data.any ? t("i18n-next101.game.animation.anyState") : data.stateId}</TruncatedText>
+      {data.initial && <Caption color="secondary">{t("i18n-next101.game.animation.initial")}</Caption>}
     </FlexRow>
     {!data.any && <FlexColumn sx={{ px: SPACING.md, py: SPACING.xs }}>
       <TruncatedText sx={{ ...TYPOGRAPHY.sans.caption, color: "text.secondary" }}>{data.motion}</TruncatedText>
-      {status && <Caption sx={{ color: live ?? undefined }}>{status === "playing" ? "Playing" : "Blending out"}</Caption>}
+      {status && <Caption sx={{ color: live ?? undefined }}>{status === "playing" ? t("i18n-next101.game.animation.playing") : t("i18n-next101.game.animation.blendingOut")}</Caption>}
     </FlexColumn>}
     <Handle type="source" id={ANIMATION_HANDLE.out} position={Position.Right} />
     {!data.any && <Handle type="source" id={ANIMATION_HANDLE.backOut} position={Position.Bottom} style={BACK_SOURCE_STYLE} />}

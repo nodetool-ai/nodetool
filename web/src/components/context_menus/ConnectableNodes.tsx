@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { useTranslation } from "react-i18next";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
 
@@ -151,6 +152,7 @@ export const getCompatibleConnectableOutputs = (
 };
 
 const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const reactFlowInstance = useReactFlow();
@@ -441,7 +443,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
               onChange={setSearchTerm}
               onKeyDown={handleSearchKeyDown}
               escapeClears={false}
-              placeholder="Search nodes"
+              placeholder={t("screen_editor.searchNodes")}
               autoFocus={isVisible}
               fullWidth
             />
@@ -456,7 +458,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
         >
           <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
             <Text size="small">
-              No nodes match &quot;{searchTerm}&quot;.
+              {t("screen_editor.noNodesMatch", { query: searchTerm })}
             </Text>
           </Box>
         </div>
@@ -469,7 +471,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
           overscan={theme.virtualScroll.overscan.normal}
           getItemKey={(node, index) => node?.node_type ?? index}
           getItemProps={itemProps}
-          ariaLabel="Connectable nodes"
+          ariaLabel={t("screen_editor.connectableNodes")}
           renderItem={renderNode}
         />
       )}

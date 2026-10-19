@@ -1,6 +1,7 @@
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { isProduction } from "../../../lib/env";
 import type { PopoverOrigin } from "@mui/material";
 import { useMediaQuery } from "@mui/material";
@@ -140,8 +141,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   anchorEl,
   modelData,
   onModelChange,
-  title = "Select model",
-  searchPlaceholder = "Search models",
+  title,
+  searchPlaceholder,
   storeHook,
   recommendedModels = [],
   modelPacks = [],
@@ -152,6 +153,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   promptForApiKey = false,
   localCapabilities
 }: ModelMenuBaseProps<TModel>) {
+  const { t } = useTranslation();
+  const dialogTitle = title ?? t("screen_modelMenu.selectModel");
+  const dialogSearchPlaceholder = searchPlaceholder ?? t("screen_modelMenu.searchModels");
   const {
     models,
     isLoading,
@@ -647,7 +651,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       <ModelMenuNavItem
         className="model-menu__quick-view model-menu__quick-view--favorites"
         orientation={railOrientation}
-        label="Favorites"
+        label={t("screen_modelMenu.favorites")}
         icon={<StarIcon />}
         selected={customView === "favorites"}
         onClick={handleSetFavoritesView}
@@ -656,7 +660,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       <ModelMenuNavItem
         className="model-menu__quick-view model-menu__quick-view--recent"
         orientation={railOrientation}
-        label="Recent"
+        label={t("screen_modelMenu.recent")}
         icon={<HistoryIcon />}
         selected={customView === "recent"}
         onClick={handleSetRecentView}
@@ -736,16 +740,16 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               variant="empty"
               size="small"
               icon={<LoadingSpinner size="small" />}
-              title={`Installing ${selectedInstall.spec.installLabel}`}
-              description="The models appear here when the install finishes."
+              title={t("screen_modelMenu.installingProvider", { installLabel: selectedInstall.spec.installLabel })}
+              description={t("screen_modelMenu.modelsAppearAfterInstall")}
             />
           ) : (
             <EmptyState
               variant="empty"
               size="small"
-              title={`Install ${selectedInstall.spec.installLabel}`}
-              description={`${providerLabel} runs models on this computer. Install it once, then download a model here.`}
-              actionText={`Install ${selectedInstall.spec.installLabel}`}
+              title={t("screen_modelMenu.installProvider", { installLabel: selectedInstall.spec.installLabel })}
+              description={t("screen_modelMenu.localProviderInstallDescription", { provider: providerLabel })}
+              actionText={t("screen_modelMenu.installProvider", { installLabel: selectedInstall.spec.installLabel })}
               onAction={() => void selectedInstall.install()}
             />
           )
@@ -753,9 +757,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           <EmptyState
             variant="empty"
             size="small"
-            title={`${providerLabel} has no models yet`}
-            description={`Connect ${providerLabel} to see its models here.`}
-            actionText={`Connect ${providerLabel}`}
+            title={t("screen_modelMenu.providerNoModels", { provider: providerLabel })}
+            description={t("screen_modelMenu.connectProviderDescription", { provider: providerLabel })}
+            actionText={t("screen_modelMenu.connectProvider", { provider: providerLabel })}
             onAction={() => handleConnectProvider(selectedProvider)}
           />
         ) : (
@@ -862,11 +866,11 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           }}
         >
           <Text weight={500} truncate>
-            {title}
+            {dialogTitle}
           </Text>
           <ToolbarIconButton
             icon={<CloseIcon fontSize="small" />}
-            tooltip="Close"
+            tooltip={t("common.close")}
             onClick={onClose}
             size="small"
             nodrag={false}
@@ -887,7 +891,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         <Box sx={{ flex: 1, minWidth: 0, mr: SPACING.sm }}>
           <SearchInput
             onSearchChange={handleSearchChange}
-            placeholder={searchPlaceholder}
+            placeholder={dialogSearchPlaceholder}
             debounceTime={150}
             // Autofocusing on mobile raises the keyboard over the list.
             focusSearchInput={!isMobile}
@@ -900,7 +904,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         </Box>
         <ToolbarIconButton
           icon={<RefreshIcon fontSize="small" />}
-          tooltip="Refresh models"
+          tooltip={t("screen_modelMenu.refreshModels")}
           onClick={handleRefresh}
           disabled={!refetch || !!isFetching}
           size="small"
@@ -924,8 +928,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               size="small"
               text={
                 loadingProgress
-                  ? `Loading models from ${loadingProgress.loaded} of ${loadingProgress.total} providers`
-                  : "Loading models"
+                  ? t("screen_modelMenu.loadingModelsFromProviders", { loaded: loadingProgress.loaded, total: loadingProgress.total })
+                  : t("screen_modelMenu.loadingModels")
               }
             />
           )}
@@ -933,13 +937,13 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             <Tooltip
               title={
                 <FlexColumn gap={SPACING.xs}>
-                  <Caption>Failed to load models from:</Caption>
+                  <Caption>{t("screen_modelMenu.failedToLoadModelsFrom")}</Caption>
                   {providerErrors.map((pe) => (
                     <Caption key={pe.provider} component="div">
                       {pe.provider}:{" "}
                       {pe.error instanceof Error
                         ? pe.error.message
-                        : "Unknown error"}
+                        : t("screen_modelMenu.unknownError")}
                     </Caption>
                   ))}
                 </FlexColumn>
@@ -956,9 +960,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                   sx={{ color: "warning.main" }}
                 />
                 <Caption sx={{ color: "warning.main" }}>
-                  {providerErrors.length === 1
-                    ? "1 provider failed to load"
-                    : `${providerErrors.length} providers failed to load`}
+                  {t("screen_modelMenu.providerFailedToLoad", { count: providerErrors.length })}
                 </Caption>
               </FlexRow>
             </Tooltip>
@@ -980,9 +982,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         >
           <KeyIcon fontSize="small" sx={{ color: "primary.main" }} />
           <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-            <Text weight={500}>Add an API key</Text>
+            <Text weight={500}>{t("screen_modelMenu.addApiKey")}</Text>
             <Caption sx={{ color: "text.secondary" }}>
-              Use cloud models from OpenAI, Anthropic, Google and others.
+              {t("screen_modelMenu.addApiKeyDescription")}
             </Caption>
           </FlexColumn>
         </ListItemButton>
@@ -999,14 +1001,14 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           borderTop: `1px solid ${theme.vars.palette.divider}`
         }}
       >
-        <Caption sx={{ color: "text.secondary" }}>Missing a provider?</Caption>
+        <Caption sx={{ color: "text.secondary" }}>{t("screen_modelMenu.missingProvider")}</Caption>
         <EditorButton
           variant="text"
           size="small"
           startIcon={<AddIcon />}
           onClick={openSetup}
         >
-          Add providers
+          {t("screen_modelMenu.addProviders")}
         </EditorButton>
       </FlexRow>
     </Popover>

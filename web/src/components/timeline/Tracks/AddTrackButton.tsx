@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -114,6 +115,7 @@ interface AddTrackButtonProps {
 }
 
 export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = false }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const addTrack = useTimelineStore((s) => s.addTrack);
   const addTrackFolder = useTimelineStore((s) => s.addTrackFolder);
@@ -137,17 +139,17 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
 
   return (
     <>
-      <Tooltip title="Add track" describeChild>
+      <Tooltip title={t("i18n-next59.tracks.addTrack")} describeChild>
         <button
           type="button"
           css={buttonStyles(theme, compact)}
           onClick={handleOpen}
-          aria-label="Add track"
+          aria-label={t("i18n-next59.tracks.addTrack")}
           aria-haspopup="menu"
           data-testid="add-track-button"
         >
           <AddIcon />
-          {!compact && <span>Track</span>}
+          {!compact && <span>{t("i18n-next59.tracks.track")}</span>}
         </button>
       </Tooltip>
       <ContextMenu
@@ -160,14 +162,14 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
         {TRACK_TYPES.map((opt) => (
           <MenuItemPrimitive
             key={opt.type}
-            label={opt.label}
+            label={t(`i18n-next59.tracks.types.${opt.type}`)}
             icon={opt.icon}
             onClick={() => handleSelect(opt.type)}
           />
         ))}
         <MenuItemPrimitive
           dividerBefore
-          label="New track folder"
+          label={t("i18n-next59.tracks.newTrackFolder")}
           icon={<CreateNewFolderOutlinedIcon fontSize="small" />}
           onClick={() => {
             addTrackFolder();

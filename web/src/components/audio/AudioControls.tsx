@@ -1,4 +1,5 @@
 import React, { useCallback, ReactElement, memo } from "react";
+import { useTranslation } from "react-i18next";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import RepeatIcon from "@mui/icons-material/Repeat";
@@ -112,6 +113,7 @@ const AudioControls: React.FC<AudioControlsProps> = memo(
     onPlayPause,
     onZoomChange
   }): ReactElement | null => {
+    const { t } = useTranslation();
     const large = fontSize === "normal";
     const buttonSize = large ? "medium" : "small";
     const iconSize = large ? "medium" : "small";
@@ -149,7 +151,7 @@ const AudioControls: React.FC<AudioControlsProps> = memo(
       <FlexRow
         className="audio-controls nodrag"
         role="group"
-        aria-label="Playback controls"
+        aria-label={t("batch2_15.audio.playbackControls")}
         align="center"
         wrap
         gap={large ? SPACING.md : SPACING.xs}
@@ -164,7 +166,7 @@ const AudioControls: React.FC<AudioControlsProps> = memo(
               <PlayArrowIcon fontSize={iconSize} />
             )
           }
-          tooltip={isPlaying ? "Pause" : "Play"}
+          tooltip={isPlaying ? t("batch2_15.audio.pause") : t("batch2_15.audio.play")}
           tooltipPlacement="top"
           size={buttonSize}
           onClick={onPlayPause}
@@ -202,7 +204,7 @@ const AudioControls: React.FC<AudioControlsProps> = memo(
         >
           {large && <ZoomInIcon fontSize="small" aria-hidden />}
           <Slider
-            aria-label="Zoom"
+            aria-label={t("batch2_15.audio.zoom")}
             density="compact"
             value={zoom}
             min={1}
@@ -216,7 +218,7 @@ const AudioControls: React.FC<AudioControlsProps> = memo(
           <ToolbarIconButton
             className="loop-button"
             icon={<RepeatIcon fontSize={iconSize} />}
-            tooltip="Loop"
+            tooltip={t("batch2_15.audio.loop")}
             tooltipPlacement="top"
             size={buttonSize}
             active={loop}
@@ -232,7 +234,7 @@ const AudioControls: React.FC<AudioControlsProps> = memo(
                 <VolumeUpOutlinedIcon fontSize={iconSize} />
               )
             }
-            tooltip="Mute"
+            tooltip={t("batch2_15.audio.mute")}
             tooltipPlacement="top"
             size={buttonSize}
             active={mute}
@@ -242,7 +244,7 @@ const AudioControls: React.FC<AudioControlsProps> = memo(
           <ToolbarIconButton
             className="download-audio-button"
             icon={<FileDownloadOutlinedIcon fontSize={iconSize} />}
-            tooltip="Download"
+            tooltip={t("batch2_15.audio.download")}
             tooltipPlacement="top"
             size={buttonSize}
             onClick={handleDownload}

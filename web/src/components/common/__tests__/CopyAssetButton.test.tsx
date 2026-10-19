@@ -15,7 +15,9 @@ import mockTheme from "../../../__mocks__/themeMock";
 jest.mock("../../../utils/clipboardUtils", () => ({
   copyAssetToClipboard: jest.fn().mockResolvedValue(undefined),
   isClipboardSupported: jest.fn(() => true),
-  getClipboardSupportMessage: jest.fn(() => "Test support message")
+  getClipboardType: jest.fn((contentType: string) =>
+    contentType.startsWith("image/") ? "image" : "text"
+  )
 }));
 
 // Mock browser detection
@@ -23,8 +25,6 @@ jest.mock("../../../utils/browser", () => ({
   isElectron: false
 }));
 
-
-import { getClipboardSupportMessage } from "../../../utils/clipboardUtils";
 
 const renderWithTheme = (component: React.ReactNode) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
@@ -178,8 +178,6 @@ describe("CopyAssetButton", () => {
     });
 
     it("should show compatibility info when enabled", () => {
-      jest.mocked(getClipboardSupportMessage).mockReturnValue("Image can be pasted into any image editor");
-
       renderWithTheme(
         <CopyAssetButton
           contentType="image/png"
@@ -188,7 +186,10 @@ describe("CopyAssetButton", () => {
         />
       );
 
-      expect(getClipboardSupportMessage).toHaveBeenCalledWith("image/png");
+      expect(screen.getByRole("button")).toHaveAttribute(
+        "aria-label",
+        "Copy image (paste into any image editor)"
+      );
     });
 
     it("should use custom tooltip over default", () => {

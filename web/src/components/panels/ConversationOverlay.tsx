@@ -12,6 +12,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
@@ -216,6 +217,7 @@ const sideEdgeSx = {
 const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   onCollapse
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -333,11 +335,11 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         console.error("Failed to delete conversation:", err);
         addNotification({
           type: "error",
-          content: "Could not delete the conversation. Please try again."
+          content: t("i18n-next5.conversation.deleteFailed")
         });
       });
     },
-    [deleteThread, addNotification]
+    [deleteThread, addNotification, t]
   );
 
   const handleExpand = useCallback(() => {
@@ -356,8 +358,8 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
     (threadId: string) =>
       threads[threadId]
         ? threadPreview(threads[threadId].title, messageCache[threadId])
-        : "Empty conversation",
-    [threads, messageCache]
+        : t("i18n-next5.conversation.emptyPreview"),
+    [threads, messageCache, t]
   );
 
   // Scope the editor's thread list to the open workflow: a thread belongs to
@@ -410,7 +412,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         invert
         invisible
         thickness={SPACING.md}
-        ariaLabel="Resize conversation height"
+        ariaLabel={t("i18n-next5.conversation.resizeHeight")}
         sx={{
           left: getSpacingPx(SPACING.lg),
           right: getSpacingPx(SPACING.lg),
@@ -424,7 +426,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         invert
         invisible
         thickness={SPACING.md}
-        ariaLabel="Resize conversation width from the left"
+        ariaLabel={t("i18n-next5.conversation.resizeWidthLeft")}
         sx={sideEdgeSx}
         {...edgeResize.side}
       />
@@ -433,7 +435,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         edge="end"
         invisible
         thickness={SPACING.md}
-        ariaLabel="Resize conversation width from the right"
+        ariaLabel={t("i18n-next5.conversation.resizeWidthRight")}
         sx={sideEdgeSx}
         {...edgeResize.side}
       />
@@ -462,46 +464,46 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
             whiteSpace: "nowrap"
           }}
         >
-          {title || "Conversation"}
+          {title || t("i18n-next5.conversation.title")}
         </Text>
         <FlexRow gap={0.5} align="center" sx={{ ml: "auto" }}>
-          <Tooltip title="Show threads">
+          <Tooltip title={t("i18n-next5.conversation.showThreads")}>
             <button
               type="button"
               className={`convo-icon-btn${threadsOpen ? " active" : ""}`}
               onClick={() => setThreadsOpen(!threadsOpen)}
-              aria-label="Show threads"
+              aria-label={t("i18n-next5.conversation.showThreads")}
               aria-pressed={threadsOpen}
             >
               <FormatListBulletedIcon />
             </button>
           </Tooltip>
-          <Tooltip title="Open in a workspace tab">
+          <Tooltip title={t("i18n-next5.conversation.openWorkspaceTab")}>
             <button
               type="button"
               className="convo-icon-btn"
               onClick={handleExpand}
-              aria-label="Open in a workspace tab"
+              aria-label={t("i18n-next5.conversation.openWorkspaceTab")}
             >
               <OpenInNewIcon />
             </button>
           </Tooltip>
-          <Tooltip title="New conversation">
+          <Tooltip title={t("i18n-next5.conversation.newConversation")}>
             <button
               type="button"
               className="convo-icon-btn"
               onClick={() => void handleNewConversation()}
-              aria-label="New conversation"
+              aria-label={t("i18n-next5.conversation.newConversation")}
             >
               <AddCommentOutlinedIcon />
             </button>
           </Tooltip>
-          <Tooltip title="Hide conversation">
+          <Tooltip title={t("i18n-next5.conversation.hideConversation")}>
             <button
               type="button"
               className="convo-icon-btn"
               onClick={onCollapse}
-              aria-label="Hide conversation"
+              aria-label={t("i18n-next5.conversation.hideConversation")}
             >
               <KeyboardArrowDownIcon />
             </button>
@@ -518,10 +520,10 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
               size="small"
               sx={{ color: theme.vars.palette.grey[200], fontWeight: 500 }}
             >
-              Start a conversation
+              {t("i18n-next5.conversation.startPrompt")}
             </Text>
             <Text size="small" sx={{ color: "inherit" }}>
-              Ask about this workflow, or type @ to reference an asset.
+              {t("i18n-next5.conversation.startDescription")}
             </Text>
           </div>
         ) : (
@@ -541,18 +543,18 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
           <div className="convo-threads-panel">
             <div className="convo-threads-head">
               <SearchInput
-                placeholder="Search threads"
+                placeholder={t("i18n-next5.conversation.searchThreads")}
                 value={searchQuery}
                 onChange={setSearchQuery}
                 fullWidth
                 showClear={false}
               />
-              <Tooltip title="Close threads">
+              <Tooltip title={t("i18n-next5.conversation.closeThreads")}>
                 <button
                   type="button"
                   className="convo-icon-btn"
                   onClick={() => setThreadsOpen(false)}
-                  aria-label="Close threads"
+                  aria-label={t("i18n-next5.conversation.closeThreads")}
                 >
                   <CloseIcon />
                 </button>

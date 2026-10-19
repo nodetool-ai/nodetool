@@ -94,7 +94,7 @@ describe("ClipVersionHistory", () => {
     renderHistory(clipId);
 
     const deleteActive = screen.getByLabelText(
-      /select a different take before deleting it/i
+      "Delete Hero take"
     );
     expect(deleteActive).toBeDisabled();
   });

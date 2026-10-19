@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NumberField } from "../ui_primitives";
 
 interface NumberSettingProps {
@@ -15,13 +16,6 @@ interface NumberSettingProps {
   disabled?: boolean;
   id?: string;
 }
-
-/** "Range 1–100, default 25." — out-of-range input is clamped on commit. */
-export const formatRangeHint = (
-  min: number,
-  max: number,
-  defaultValue: number
-): string => `Range ${min}–${max}, default ${defaultValue}.`;
 
 /**
  * A numeric setting field that commits on blur or Enter.
@@ -44,6 +38,7 @@ export const NumberSetting = React.memo(function NumberSetting({
   disabled,
   id
 }: NumberSettingProps) {
+  const { t, i18n } = useTranslation();
   const [local, setLocal] = useState<string>(String(value));
   useEffect(() => {
     setLocal(String(value));
@@ -81,7 +76,11 @@ export const NumberSetting = React.memo(function NumberSetting({
       label={label}
       helperText={
         <>
-          {description} {formatRangeHint(min, max, fallback)}
+          {description} {t("i18n-cont-settings-01.numberSetting.rangeHint", {
+            min: new Intl.NumberFormat(i18n.language).format(min),
+            max: new Intl.NumberFormat(i18n.language).format(max),
+            defaultValue: new Intl.NumberFormat(i18n.language).format(fallback)
+          })}
         </>
       }
       value={local}

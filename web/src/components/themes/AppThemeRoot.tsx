@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import TranslationProvider from "../../contexts/TranslationProvider";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { ThemeRoot } from "../ui_primitives";
 import ThemeNodetool, { createNodetoolTheme } from "./ThemeNodetool";
@@ -35,7 +36,11 @@ const AppThemeRoot = ({ children }: AppThemeRootProps) => {
     () => nodetoolThemeFor(textSize, contrast),
     [textSize, contrast]
   );
-  return <ThemeRoot theme={theme}>{children}</ThemeRoot>;
+  return (
+    <TranslationProvider>
+      <ThemeRoot theme={theme}>{children}</ThemeRoot>
+    </TranslationProvider>
+  );
 };
 
 export default AppThemeRoot;

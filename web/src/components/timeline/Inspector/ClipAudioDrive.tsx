@@ -16,6 +16,7 @@
  */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
+import { useTranslation } from "react-i18next";
 
 import {
   AUDIO_BAKED_ANIMATION_KIND,
@@ -57,7 +58,6 @@ const DEFAULT_ATTACK_MS = 20;
 const DEFAULT_RELEASE_MS = 150;
 
 interface PropertyPreset {
-  label: string;
   /** Where the curve rests and where it peaks, in the property's own units. */
   low: number;
   high: number;
@@ -72,17 +72,15 @@ interface PropertyPreset {
  * 15% of scale reads like the same gesture as 20px of position.
  */
 const PROPERTY_PRESETS: Record<AudioDriveProperty, PropertyPreset> = {
-  scale: { label: "Scale", low: 1, high: 1.15, unit: "×", scrub: { step: 0.01 } },
-  opacity: { label: "Opacity", low: 0.6, high: 1, scrub: { step: 0.01 } },
+  scale: { low: 1, high: 1.15, unit: "×", scrub: { step: 0.01 } },
+  opacity: { low: 0.6, high: 1, scrub: { step: 0.01 } },
   offsetX: {
-    label: "Position X",
     low: -20,
     high: 20,
     unit: "px",
     scrub: { step: 1 }
   },
   offsetY: {
-    label: "Position Y",
     low: -20,
     high: 20,
     unit: "px",
@@ -90,10 +88,12 @@ const PROPERTY_PRESETS: Record<AudioDriveProperty, PropertyPreset> = {
   }
 };
 
-const PROPERTY_OPTIONS = AUDIO_DRIVE_PROPERTIES.map((property) => ({
-  value: property,
-  label: PROPERTY_PRESETS[property].label
-}));
+const PROPERTY_LABEL_KEYS: Record<AudioDriveProperty, string> = {
+  scale: "audioDrive.properties.scale",
+  opacity: "audioDrive.properties.opacity",
+  offsetX: "audioDrive.properties.positionX",
+  offsetY: "audioDrive.properties.positionY"
+};
 
 const SCRUB_SENSITIVITY = { step: 0.05, min: 0.25, max: 4 };
 const SCRUB_MS = { step: 5, min: 0 };
@@ -177,338 +177,360 @@ interface ClipAudioDriveProps {
   clip: TimelineClip;
 }
 
-export const ClipAudioDrive: React.FC<ClipAudioDriveProps> = memo(({ clip }) => {
-  const [open, setOpen] = usePersistedFold("audioDrive");
-  const clips = useTimelineStore((s) => s.clips);
-  const bakeAudioAnimation = useTimelineStore((s) => s.bakeAudioAnimation);
+export const ClipAudioDrive: React.FC<ClipAudioDriveProps> = memo(
+  ({ clip }) => {
+    const { t } = useTranslation();
+    const [open, setOpen] = usePersistedFold("audioDrive");
+    const clips = useTimelineStore((s) => s.clips);
+    const bakeAudioAnimation = useTimelineStore((s) => s.bakeAudioAnimation);
 
-  const [property, setProperty] = useState<AudioDriveProperty>("scale");
-  const [form, setForm] = useState<DriveForm>({});
-  const [pending, setPending] = useState(false);
-  const [status, setStatus] = useState<StatusLine | null>(null);
+    const [property, setProperty] = useState<AudioDriveProperty>("scale");
+    const [form, setForm] = useState<DriveForm>({});
+    const [pending, setPending] = useState(false);
+    const [status, setStatus] = useState<StatusLine | null>(null);
 
-  const audioClips = useMemo(
-    () => clips.filter((candidate) => candidate.mediaType === "audio"),
-    [clips]
-  );
-
-  const audioOptions = useMemo(
-    () =>
-      audioClips.map((audio) => ({
-        value: audio.id,
-        label: audio.name || audio.id
-      })),
-    [audioClips]
-  );
-
-  // Default to the audio the target actually plays over: with a music bed and
-  // a voiceover on the timeline, the one under this clip is the one meant.
-  const overlappingAudioId = useMemo(() => {
-    let bestId = "";
-    let bestOverlap = -1;
-    for (const audio of audioClips) {
-      const overlap = overlapMs(audio, clip);
-      if (overlap > bestOverlap) {
-        bestOverlap = overlap;
-        bestId = audio.id;
-      }
-    }
-    return bestId;
-  }, [audioClips, clip]);
-
-  const animations = clip.animations;
-  const existingIndex = findBakedAnimationIndex(
-    animations,
-    AUDIO_BAKED_ANIMATION_KIND,
-    property
-  );
-  const existing = existingIndex >= 0 ? animations?.[existingIndex] : undefined;
-  const bakedFrom = existing?.custom?.bakedFrom;
-  const settings = bakedFrom?.settings;
-
-  const settingNumber = (key: string, fallback: number): number => {
-    const value = settings?.[key];
-    return typeof value === "number" && Number.isFinite(value)
-      ? value
-      : fallback;
-  };
-
-  const preset = PROPERTY_PRESETS[property];
-  // The bake's own audio clip only counts while it is still on the timeline.
-  const bakedAudioId =
-    bakedFrom?.clipId !== undefined &&
-    audioClips.some((audio) => audio.id === bakedFrom.clipId)
-      ? bakedFrom.clipId
-      : "";
-  const audioClipId =
-    form.audioClipId ??
-    (bakedAudioId !== "" ? bakedAudioId : overlappingAudioId);
-  const mode: AudioDriveMode =
-    form.mode ?? (settings?.mode === "beats" ? "beats" : "envelope");
-  const low = form.low ?? settingNumber("outputLow", preset.low);
-  const high = form.high ?? settingNumber("outputHigh", preset.high);
-  const sensitivity = form.sensitivity ?? settingNumber("sensitivity", 1);
-  const attackMs = form.attackMs ?? settingNumber("attackMs", DEFAULT_ATTACK_MS);
-  const releaseMs =
-    form.releaseMs ?? settingNumber("releaseMs", DEFAULT_RELEASE_MS);
-  const offsetMs = form.offsetMs ?? settingNumber("offsetMs", 0);
-
-  const previewPoints = useMemo<BakedCurvePoint[]>(() => {
-    const curve = existing?.custom?.curves.find(
-      (candidate) => candidate.property === property
+    const audioClips = useMemo(
+      () => clips.filter((candidate) => candidate.mediaType === "audio"),
+      [clips]
     );
-    if (!curve) return [];
-    return curve.keyframes.map((keyframe) => ({
-      timeMs: keyframe.sourceMs ?? keyframe.t,
-      value: keyframe.value
-    }));
-  }, [existing, property]);
 
-  const handleProperty = useCallback((next: string) => {
-    setProperty(next as AudioDriveProperty);
-    // Every field the form carries is in the property's units or scaled to
-    // them, so a property change starts from that property's own settings
-    // rather than from numbers chosen for the previous one.
-    setForm({});
-    setStatus(null);
-  }, []);
+    const audioOptions = useMemo(
+      () =>
+        audioClips.map((audio) => ({
+          value: audio.id,
+          label: audio.name || audio.id
+        })),
+      [audioClips]
+    );
 
-  const handleAudioClip = useCallback((next: string) => {
-    setForm((prev) => ({ ...prev, audioClipId: next }));
-  }, []);
-
-  const handleMode = useCallback(
-    (_event: React.MouseEvent<HTMLElement>, next: AudioDriveMode | null) => {
-      if (next === null) return;
-      setForm((prev) => ({ ...prev, mode: next }));
-    },
-    []
-  );
-
-  // One stable committer per field. `InspectorPillInput` is memoized, so a
-  // handler rebuilt during render would re-render every field on every
-  // keystroke in any of them.
-  const handleLow = useCallback(
-    (raw: string) => commitNumber(setForm, "low", raw),
-    []
-  );
-  const handleHigh = useCallback(
-    (raw: string) => commitNumber(setForm, "high", raw),
-    []
-  );
-  const handleAttack = useCallback(
-    (raw: string) => commitNumber(setForm, "attackMs", raw),
-    []
-  );
-  const handleRelease = useCallback(
-    (raw: string) => commitNumber(setForm, "releaseMs", raw),
-    []
-  );
-  const handleOffset = useCallback(
-    (raw: string) => commitNumber(setForm, "offsetMs", raw),
-    []
-  );
-
-  const handleSensitivity = useCallback((next: number) => {
-    setForm((prev) => ({ ...prev, sensitivity: next }));
-  }, []);
-
-  const handleBake = useCallback(async () => {
-    if (!audioClipId) return;
-    setPending(true);
-    setStatus(null);
-    try {
-      const result = await bakeAudioAnimation({
-        audio_clip_id: audioClipId,
-        target_clip_id: clip.id,
-        property,
-        output_range: [low, high],
-        mode,
-        sensitivity,
-        attack_ms: attackMs,
-        release_ms: releaseMs,
-        offset_ms: offsetMs,
-        ...carriedBudget(settings)
-      });
-      setStatus({
-        tone: "ok",
-        text: result.truncated
-          ? `${result.keyframeCount} keyframes. The audio ran past the analysis budget, so only its first stretch was measured.`
-          : `${result.keyframeCount} keyframes.`
-      });
-    } catch (error) {
-      setStatus({
-        tone: "error",
-        text: error instanceof Error ? error.message : String(error)
-      });
-    } finally {
-      setPending(false);
-    }
-  }, [
-    attackMs,
-    bakeAudioAnimation,
-    clip.id,
-    high,
-    low,
-    mode,
-    offsetMs,
-    property,
-    releaseMs,
-    audioClipId,
-    sensitivity,
-    settings
-  ]);
-
-  if (!canDriveFromAudio(clip)) return null;
-
-  return (
-    <>
-      <InspectorDivider />
-      <CollapsibleSection
-        title={
-          <InspectorSectionTitle
-            title="Audio drive"
-            icon={<GraphicEqOutlinedIcon />}
-          />
+    // Default to the audio the target actually plays over: with a music bed and
+    // a voiceover on the timeline, the one under this clip is the one meant.
+    const overlappingAudioId = useMemo(() => {
+      let bestId = "";
+      let bestOverlap = -1;
+      for (const audio of audioClips) {
+        const overlap = overlapMs(audio, clip);
+        if (overlap > bestOverlap) {
+          bestOverlap = overlap;
+          bestId = audio.id;
         }
-        open={open}
-        onToggle={setOpen}
-        unmountOnExit
-      >
-        <FlexColumn gap={SPACING.sm} sx={{ py: SPACING.xs }}>
-          {audioClips.length === 0 ? (
-            <Caption color="muted">
-              Add an audio clip to the timeline to drive this one from it.
-            </Caption>
-          ) : (
-            <>
-              <InspectorRow label="Audio">
-                <InspectorSelect
-                  label="Audio clip to measure"
-                  value={audioClipId}
-                  options={audioOptions}
-                  onChange={handleAudioClip}
+      }
+      return bestId;
+    }, [audioClips, clip]);
+
+    const animations = clip.animations;
+    const existingIndex = findBakedAnimationIndex(
+      animations,
+      AUDIO_BAKED_ANIMATION_KIND,
+      property
+    );
+    const existing =
+      existingIndex >= 0 ? animations?.[existingIndex] : undefined;
+    const bakedFrom = existing?.custom?.bakedFrom;
+    const settings = bakedFrom?.settings;
+
+    const settingNumber = (key: string, fallback: number): number => {
+      const value = settings?.[key];
+      return typeof value === "number" && Number.isFinite(value)
+        ? value
+        : fallback;
+    };
+
+    const preset = PROPERTY_PRESETS[property];
+    const propertyOptions = AUDIO_DRIVE_PROPERTIES.map((item) => ({
+      value: item,
+      label: t(`pass3_23.${PROPERTY_LABEL_KEYS[item]}`)
+    }));
+    // The bake's own audio clip only counts while it is still on the timeline.
+    const bakedAudioId =
+      bakedFrom?.clipId !== undefined &&
+      audioClips.some((audio) => audio.id === bakedFrom.clipId)
+        ? bakedFrom.clipId
+        : "";
+    const audioClipId =
+      form.audioClipId ??
+      (bakedAudioId !== "" ? bakedAudioId : overlappingAudioId);
+    const mode: AudioDriveMode =
+      form.mode ?? (settings?.mode === "beats" ? "beats" : "envelope");
+    const low = form.low ?? settingNumber("outputLow", preset.low);
+    const high = form.high ?? settingNumber("outputHigh", preset.high);
+    const sensitivity = form.sensitivity ?? settingNumber("sensitivity", 1);
+    const attackMs =
+      form.attackMs ?? settingNumber("attackMs", DEFAULT_ATTACK_MS);
+    const releaseMs =
+      form.releaseMs ?? settingNumber("releaseMs", DEFAULT_RELEASE_MS);
+    const offsetMs = form.offsetMs ?? settingNumber("offsetMs", 0);
+
+    const previewPoints = useMemo<BakedCurvePoint[]>(() => {
+      const curve = existing?.custom?.curves.find(
+        (candidate) => candidate.property === property
+      );
+      if (!curve) return [];
+      return curve.keyframes.map((keyframe) => ({
+        timeMs: keyframe.sourceMs ?? keyframe.t,
+        value: keyframe.value
+      }));
+    }, [existing, property]);
+
+    const handleProperty = useCallback((next: string) => {
+      setProperty(next as AudioDriveProperty);
+      // Every field the form carries is in the property's units or scaled to
+      // them, so a property change starts from that property's own settings
+      // rather than from numbers chosen for the previous one.
+      setForm({});
+      setStatus(null);
+    }, []);
+
+    const handleAudioClip = useCallback((next: string) => {
+      setForm((prev) => ({ ...prev, audioClipId: next }));
+    }, []);
+
+    const handleMode = useCallback(
+      (_event: React.MouseEvent<HTMLElement>, next: AudioDriveMode | null) => {
+        if (next === null) return;
+        setForm((prev) => ({ ...prev, mode: next }));
+      },
+      []
+    );
+
+    // One stable committer per field. `InspectorPillInput` is memoized, so a
+    // handler rebuilt during render would re-render every field on every
+    // keystroke in any of them.
+    const handleLow = useCallback(
+      (raw: string) => commitNumber(setForm, "low", raw),
+      []
+    );
+    const handleHigh = useCallback(
+      (raw: string) => commitNumber(setForm, "high", raw),
+      []
+    );
+    const handleAttack = useCallback(
+      (raw: string) => commitNumber(setForm, "attackMs", raw),
+      []
+    );
+    const handleRelease = useCallback(
+      (raw: string) => commitNumber(setForm, "releaseMs", raw),
+      []
+    );
+    const handleOffset = useCallback(
+      (raw: string) => commitNumber(setForm, "offsetMs", raw),
+      []
+    );
+
+    const handleSensitivity = useCallback((next: number) => {
+      setForm((prev) => ({ ...prev, sensitivity: next }));
+    }, []);
+
+    const handleBake = useCallback(async () => {
+      if (!audioClipId) return;
+      setPending(true);
+      setStatus(null);
+      try {
+        const result = await bakeAudioAnimation({
+          audio_clip_id: audioClipId,
+          target_clip_id: clip.id,
+          property,
+          output_range: [low, high],
+          mode,
+          sensitivity,
+          attack_ms: attackMs,
+          release_ms: releaseMs,
+          offset_ms: offsetMs,
+          ...carriedBudget(settings)
+        });
+        setStatus({
+          tone: "ok",
+          text: result.truncated
+            ? t("pass3_23.audioDrive.bake.truncated", {
+                count: result.keyframeCount
+              })
+            : t("pass3_23.audioDrive.bake.complete", {
+                count: result.keyframeCount
+              })
+        });
+      } catch (error) {
+        setStatus({
+          tone: "error",
+          text: t("pass3_23.audioDrive.bake.failed", {
+            error: error instanceof Error ? error.message : String(error)
+          })
+        });
+      } finally {
+        setPending(false);
+      }
+    }, [
+      attackMs,
+      bakeAudioAnimation,
+      clip.id,
+      high,
+      low,
+      mode,
+      offsetMs,
+      property,
+      releaseMs,
+      audioClipId,
+      sensitivity,
+      settings,
+      t
+    ]);
+
+    if (!canDriveFromAudio(clip)) return null;
+
+    return (
+      <>
+        <InspectorDivider />
+        <CollapsibleSection
+          title={
+            <InspectorSectionTitle
+              title={t("pass3_23.audioDrive.title")}
+              icon={<GraphicEqOutlinedIcon />}
+            />
+          }
+          open={open}
+          onToggle={setOpen}
+          unmountOnExit
+        >
+          <FlexColumn gap={SPACING.sm} sx={{ py: SPACING.xs }}>
+            {audioClips.length === 0 ? (
+              <Caption color="muted">{t("pass3_23.audioDrive.empty")}</Caption>
+            ) : (
+              <>
+                <InspectorRow label={t("pass3_23.audioDrive.audio")}>
+                  <InspectorSelect
+                    label={t("pass3_23.audioDrive.audioToMeasure")}
+                    value={audioClipId}
+                    options={audioOptions}
+                    onChange={handleAudioClip}
+                    disabled={pending}
+                    grow
+                  />
+                </InspectorRow>
+                <InspectorRow label={t("pass3_23.audioDrive.property")}>
+                  <InspectorSelect
+                    label={t("pass3_23.audioDrive.propertyToDrive")}
+                    value={property}
+                    options={propertyOptions}
+                    onChange={handleProperty}
+                    disabled={pending}
+                    grow
+                  />
+                </InspectorRow>
+                <InspectorRow label={t("pass3_23.audioDrive.shape")}>
+                  <ToggleGroup
+                    size="small"
+                    segmented
+                    exclusive
+                    value={mode}
+                    onChange={handleMode}
+                    disabled={pending}
+                    aria-label={t("pass3_23.audioDrive.curveShape")}
+                  >
+                    <ToggleOption value="envelope">
+                      {t("pass3_23.audioDrive.envelope")}
+                    </ToggleOption>
+                    <ToggleOption value="beats">
+                      {t("pass3_23.audioDrive.beats")}
+                    </ToggleOption>
+                  </ToggleGroup>
+                </InspectorRow>
+                <InspectorRow label={t("pass3_23.audioDrive.range")}>
+                  <InspectorPillInput
+                    value={String(low)}
+                    onCommit={handleLow}
+                    unit={preset.unit}
+                    disabled={pending}
+                    minWidth={52}
+                    scrub={preset.scrub}
+                    ariaLabel={t("pass3_23.audioDrive.quietValue")}
+                  />
+                  <InspectorPillInput
+                    value={String(high)}
+                    onCommit={handleHigh}
+                    unit={preset.unit}
+                    disabled={pending}
+                    minWidth={52}
+                    scrub={preset.scrub}
+                    ariaLabel={t("pass3_23.audioDrive.loudValue")}
+                  />
+                </InspectorRow>
+                <InspectorSliderRow
+                  label={t("pass3_23.audioDrive.sensitivity")}
+                  value={sensitivity}
+                  display={sensitivity.toFixed(2)}
+                  min={SCRUB_SENSITIVITY.min}
+                  max={SCRUB_SENSITIVITY.max}
+                  step={SCRUB_SENSITIVITY.step}
                   disabled={pending}
-                  grow
+                  onChange={handleSensitivity}
+                  origin={1}
                 />
-              </InspectorRow>
-              <InspectorRow label="Property">
-                <InspectorSelect
-                  label="Property to drive"
-                  value={property}
-                  options={PROPERTY_OPTIONS}
-                  onChange={handleProperty}
-                  disabled={pending}
-                  grow
-                />
-              </InspectorRow>
-              <InspectorRow label="Shape">
-                <ToggleGroup
-                  size="small"
-                  segmented
-                  exclusive
-                  value={mode}
-                  onChange={handleMode}
-                  disabled={pending}
-                  aria-label="Curve shape"
-                >
-                  <ToggleOption value="envelope">Envelope</ToggleOption>
-                  <ToggleOption value="beats">Beats</ToggleOption>
-                </ToggleGroup>
-              </InspectorRow>
-              <InspectorRow label="Range">
-                <InspectorPillInput
-                  value={String(low)}
-                  onCommit={handleLow}
-                  unit={preset.unit}
-                  disabled={pending}
-                  minWidth={52}
-                  scrub={preset.scrub}
-                  ariaLabel="Range quiet value"
-                />
-                <InspectorPillInput
-                  value={String(high)}
-                  onCommit={handleHigh}
-                  unit={preset.unit}
-                  disabled={pending}
-                  minWidth={52}
-                  scrub={preset.scrub}
-                  ariaLabel="Range loud value"
-                />
-              </InspectorRow>
-              <InspectorSliderRow
-                label="Sensitivity"
-                value={sensitivity}
-                display={sensitivity.toFixed(2)}
-                min={SCRUB_SENSITIVITY.min}
-                max={SCRUB_SENSITIVITY.max}
-                step={SCRUB_SENSITIVITY.step}
-                disabled={pending}
-                onChange={handleSensitivity}
-                origin={1}
-              />
-              <InspectorRow label="Attack">
-                <InspectorPillInput
-                  value={String(attackMs)}
-                  onCommit={handleAttack}
-                  unit="ms"
-                  disabled={pending}
-                  scrub={SCRUB_MS}
-                  ariaLabel="Attack"
-                />
-              </InspectorRow>
-              <InspectorRow label="Release">
-                <InspectorPillInput
-                  value={String(releaseMs)}
-                  onCommit={handleRelease}
-                  unit="ms"
-                  disabled={pending}
-                  scrub={SCRUB_MS}
-                  ariaLabel="Release"
-                />
-              </InspectorRow>
-              <InspectorRow label="Offset">
-                <InspectorPillInput
-                  value={String(offsetMs)}
-                  onCommit={handleOffset}
-                  unit="ms"
-                  disabled={pending}
-                  scrub={SCRUB_OFFSET_MS}
-                  ariaLabel="Offset"
-                />
-              </InspectorRow>
-              <FlexRow align="center" gap={SPACING.sm}>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={handleBake}
-                  disabled={pending || audioClipId === ""}
-                  startIcon={
-                    pending ? (
-                      <LoadingSpinner inline size={16} color="inherit" />
-                    ) : undefined
-                  }
-                >
-                  {existing ? "Re-bake" : "Animate from audio"}
-                </Button>
-              </FlexRow>
-              {status && (
-                <Caption color={status.tone === "error" ? "error" : "muted"}>
-                  {status.text}
-                </Caption>
-              )}
-              {previewPoints.length > 0 && (
-                <BakedCurvePreview
-                  points={previewPoints}
-                  label={`${preset.label} from audio`}
-                />
-              )}
-            </>
-          )}
-        </FlexColumn>
-      </CollapsibleSection>
-    </>
-  );
-});
+                <InspectorRow label={t("pass3_23.audioDrive.attack")}>
+                  <InspectorPillInput
+                    value={String(attackMs)}
+                    onCommit={handleAttack}
+                    unit="ms"
+                    disabled={pending}
+                    scrub={SCRUB_MS}
+                    ariaLabel={t("pass3_23.audioDrive.attack")}
+                  />
+                </InspectorRow>
+                <InspectorRow label={t("pass3_23.audioDrive.release")}>
+                  <InspectorPillInput
+                    value={String(releaseMs)}
+                    onCommit={handleRelease}
+                    unit="ms"
+                    disabled={pending}
+                    scrub={SCRUB_MS}
+                    ariaLabel={t("pass3_23.audioDrive.release")}
+                  />
+                </InspectorRow>
+                <InspectorRow label={t("pass3_23.audioDrive.offset")}>
+                  <InspectorPillInput
+                    value={String(offsetMs)}
+                    onCommit={handleOffset}
+                    unit="ms"
+                    disabled={pending}
+                    scrub={SCRUB_OFFSET_MS}
+                    ariaLabel={t("pass3_23.audioDrive.offset")}
+                  />
+                </InspectorRow>
+                <FlexRow align="center" gap={SPACING.sm}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleBake}
+                    disabled={pending || audioClipId === ""}
+                    startIcon={
+                      pending ? (
+                        <LoadingSpinner inline size={16} color="inherit" />
+                      ) : undefined
+                    }
+                  >
+                    {existing
+                      ? t("pass3_23.audioDrive.rebake")
+                      : t("pass3_23.audioDrive.animate")}
+                  </Button>
+                </FlexRow>
+                {status && (
+                  <Caption color={status.tone === "error" ? "error" : "muted"}>
+                    {status.text}
+                  </Caption>
+                )}
+                {previewPoints.length > 0 && (
+                  <BakedCurvePreview
+                    points={previewPoints}
+                    label={t("pass3_23.audioDrive.previewLabel", {
+                      property: t(`pass3_23.${PROPERTY_LABEL_KEYS[property]}`)
+                    })}
+                  />
+                )}
+              </>
+            )}
+          </FlexColumn>
+        </CollapsibleSection>
+      </>
+    );
+  }
+);
 
 ClipAudioDrive.displayName = "ClipAudioDrive";

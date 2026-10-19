@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import WrapTextIcon from "@mui/icons-material/WrapText";
@@ -11,7 +12,14 @@ import CodeIcon from "@mui/icons-material/Code";
 import TitleIcon from "@mui/icons-material/Title";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
-import { Toolbar, ToolbarDivider, ToolbarGroup, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Toolbar,
+  ToolbarDivider,
+  ToolbarGroup,
+  ToolbarIconButton,
+  MOTION,
+  BORDER_RADIUS
+} from "../ui_primitives";
 
 interface EditorToolbarProps {
   onUndo?: () => void;
@@ -77,6 +85,7 @@ const EditorToolbar = ({
   readOnly = false
 }: EditorToolbarProps) => {
   const theme = useTheme();
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_text" });
 
   return (
     <Toolbar className="editor-toolbar" density="compact" css={styles(theme)}>
@@ -84,7 +93,7 @@ const EditorToolbar = ({
         <ToolbarGroup>
           <ToolbarIconButton
             icon={<UndoIcon fontSize="small" />}
-            tooltip="Undo"
+            tooltip={t("textEditor.undo")}
             className={`toolbar-button ${!canUndo ? "disabled" : ""}`}
             onClick={onUndo}
             disabled={!canUndo}
@@ -92,7 +101,7 @@ const EditorToolbar = ({
           />
           <ToolbarIconButton
             icon={<RedoIcon fontSize="small" />}
-            tooltip="Redo"
+            tooltip={t("textEditor.redo")}
             className={`toolbar-button ${!canRedo ? "disabled" : ""}`}
             onClick={onRedo}
             disabled={!canRedo}
@@ -107,21 +116,21 @@ const EditorToolbar = ({
           <ToolbarGroup>
             <ToolbarIconButton
               icon={<TitleIcon fontSize="small" />}
-              tooltip="Heading"
+              tooltip={t("textEditor.heading")}
               className="toolbar-button"
               onClick={onHeading}
               size="small"
             />
             <ToolbarIconButton
               icon={<FormatBoldIcon fontSize="small" />}
-              tooltip="Bold"
+              tooltip={t("textEditor.bold")}
               className="toolbar-button"
               onClick={onBold}
               size="small"
             />
             <ToolbarIconButton
               icon={<FormatListBulletedIcon fontSize="small" />}
-              tooltip="Bulleted list"
+              tooltip={t("textEditor.bulletedList")}
               className="toolbar-button"
               onClick={onBulletList}
               size="small"
@@ -134,7 +143,7 @@ const EditorToolbar = ({
       <ToolbarGroup>
         <ToolbarIconButton
           icon={<SearchIcon fontSize="small" />}
-          tooltip="Find & replace"
+          tooltip={t("textEditor.findReplace")}
           className="toolbar-button"
           onClick={onToggleFind}
           size="small"
@@ -145,14 +154,14 @@ const EditorToolbar = ({
       <ToolbarGroup>
         <ToolbarIconButton
           icon={<WrapTextIcon fontSize="small" />}
-          tooltip="Toggle word wrap"
+          tooltip={t("textEditor.toggleWordWrap")}
           className={`toolbar-button ${wordWrapEnabled ? "active" : ""}`}
           onClick={onToggleWordWrap}
           size="small"
         />
         <ToolbarIconButton
           icon={<CodeIcon fontSize="small" />}
-          tooltip="Format as code block"
+          tooltip={t("textEditor.formatCodeBlock")}
           className={`toolbar-button ${isCodeBlock ? "active" : ""}`}
           onClick={onFormatCodeBlock}
           size="small"

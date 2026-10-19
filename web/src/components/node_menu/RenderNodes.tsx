@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useTheme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -81,6 +82,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   onToggleSelection,
   showFavoriteButton = true
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore(
@@ -283,21 +285,25 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         <div className="no-selection">
           <div className="explanation">
             <Text size="normal" weight={600} style={{ marginTop: 0 }}>
-              Browse nodes
+              {t("i18n-next74.nodeMenu.renderNodes.browseNodes")}
             </Text>
             <ul>
-              <li>Click on the namespaces to the left</li>
+              <li>{t("i18n-next74.nodeMenu.renderNodes.clickNamespaces")}</li>
             </ul>
 
-            <Text size="normal" weight={600}>Search nodes</Text>
+            <Text size="normal" weight={600}>
+              {t("i18n-next74.nodeMenu.renderNodes.searchNodes")}
+            </Text>
             <ul>
-              <li>Type in the search bar to search for nodes.</li>
+              <li>{t("i18n-next74.nodeMenu.renderNodes.typeToSearch")}</li>
             </ul>
 
-            <Text size="normal" weight={600}>Create nodes</Text>
+            <Text size="normal" weight={600}>
+              {t("i18n-next74.nodeMenu.renderNodes.createNodes")}
+            </Text>
             <ul>
-              <li>Click on a node</li>
-              <li>Drag a node onto the canvas</li>
+              <li>{t("i18n-next74.nodeMenu.renderNodes.clickNode")}</li>
+              <li>{t("i18n-next74.nodeMenu.renderNodes.dragNode")}</li>
             </ul>
           </div>
         </div>

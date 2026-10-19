@@ -69,4 +69,3 @@ export function cloneDrumRhythm(value: DrumRhythm | undefined, sourceBars = 16):
     }),
   };
 }
-

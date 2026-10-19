@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   FlexRow,
@@ -75,6 +76,7 @@ const ScriptTakeWaveform = ({
   stale,
   onPlay
 }: ScriptTakeWaveformProps) => {
+  const { t } = useTranslation();
   const url = useAssetUrl(take?.assetId);
   const { peaks, durationMs } = useAudioPeaks(take?.assetId, url);
 
@@ -103,7 +105,9 @@ const ScriptTakeWaveform = ({
           borderColor: "divider"
         }}
       >
-        <Caption color="secondary">Not voiced yet</Caption>
+        <Caption color="secondary">
+          {t("i18n-next62.scriptTakeWaveform.notVoicedYet")}
+        </Caption>
       </FlexRow>
     );
   }
@@ -115,7 +119,9 @@ const ScriptTakeWaveform = ({
       component={interactive ? "button" : "div"}
       type={interactive ? "button" : undefined}
       onClick={onPlay}
-      aria-label={interactive ? "Play take" : undefined}
+      aria-label={
+        interactive ? t("i18n-next62.scriptTakeWaveform.playTake") : undefined
+      }
       data-testid="script-take-waveform"
       sx={{
         display: "flex",

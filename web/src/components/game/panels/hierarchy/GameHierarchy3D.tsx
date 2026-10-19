@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
@@ -38,10 +39,10 @@ interface TreeRowData {
 }
 
 const ICON_SX = { fontSize: FONT_SIZE_SANS.body, flexShrink: 0, color: "text.secondary" } as const;
-const ADD_ITEMS: readonly { kind: AddKind; label: string; icon: ReactNode }[] = [
-  { kind: "box", label: "Box", icon: <CropSquareIcon sx={ICON_SX} /> },
-  { kind: "sphere", label: "Sphere", icon: <CircleOutlinedIcon sx={ICON_SX} /> },
-  { kind: "light", label: "Light", icon: <LightModeOutlinedIcon sx={ICON_SX} /> }
+const ADD_ITEMS: readonly { kind: AddKind; labelKey: string; icon: ReactNode }[] = [
+  { kind: "box", labelKey: "box", icon: <CropSquareIcon sx={ICON_SX} /> },
+  { kind: "sphere", labelKey: "sphere", icon: <CircleOutlinedIcon sx={ICON_SX} /> },
+  { kind: "light", labelKey: "light", icon: <LightModeOutlinedIcon sx={ICON_SX} /> }
 ];
 
 function entityIcon(entity: GameEntity3D): ReactNode {
@@ -100,6 +101,7 @@ function treeRows(entities: readonly GameEntity3D[], collapsed: ReadonlySet<stri
 
 /** Scene hierarchy panel for the 3D game editor. */
 export default function GameHierarchy3D({ document, scene, selectedIds, onSelect, onSelectScene, onAdd, footer }: GameHierarchy3DProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
@@ -114,29 +116,29 @@ export default function GameHierarchy3D({ document, scene, selectedIds, onSelect
   });
 
   return <FlexColumn sx={{ height: "100%", minHeight: 0 }}>
-    <FlexRow role="toolbar" aria-label="Hierarchy toolbar" align="center" gap={SPACING.xs} sx={{
+    <FlexRow role="toolbar" aria-label={t("screen_game.hierarchy.toolbar")} align="center" gap={SPACING.xs} sx={{
       flexShrink: 0, minHeight: CONTROL.height.md, boxSizing: "border-box", paddingInline: getSpacingPx(SPACING.sm),
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     }}>
-      <ToolbarIconButton icon={<AddIcon fontSize="small" />} tooltip="Add entity" aria-haspopup="menu"
+      <ToolbarIconButton icon={<AddIcon fontSize="small" />} tooltip={t("screen_game.hierarchy.addEntity")} aria-haspopup="menu"
         aria-expanded={Boolean(addAnchor)} onClick={(event) => setAddAnchor(event.currentTarget)} />
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <SearchInput value={search} onChange={setSearch} placeholder="Search" ariaLabel="Search entities" size="small" fullWidth
+        <SearchInput value={search} onChange={setSearch} placeholder={t("screen_game.hierarchy.searchPlaceholder")} ariaLabel={t("screen_game.hierarchy.searchEntities")} size="small" fullWidth
           sx={{ "&& .MuiInputBase-input": TYPOGRAPHY.sans.label, "& .search-icon, & .clear-button svg": { fontSize: FONT_SIZE_SANS.body } }} />
       </Box>
     </FlexRow>
     <EditorMenu anchorEl={addAnchor} open={Boolean(addAnchor)} onClose={() => setAddAnchor(null)}
-      slotProps={{ list: { "aria-label": "Add entity" } }}>
-      {ADD_ITEMS.map(({ kind, label, icon }) => <MenuItemPrimitive key={kind} label={label} icon={icon}
+      slotProps={{ list: { "aria-label": t("screen_game.hierarchy.addEntity") } }}>
+      {ADD_ITEMS.map(({ kind, labelKey, icon }) => <MenuItemPrimitive key={kind} label={t(`screen_game.hierarchy.primitives.${labelKey}`)} icon={icon}
         onClick={() => { setAddAnchor(null); onAdd(kind); }} />)}
     </EditorMenu>
     <Box sx={{ flexShrink: 0, px: SPACING.sm, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-      <InspectorSelect label="Scene" grow value={scene?.id ?? document.entrySceneId}
+      <InspectorSelect label={t("screen_game.hierarchy.scene")} grow value={scene?.id ?? document.entrySceneId}
         options={document.scenes.map((item) => ({ value: item.id, label: item.name }))} onChange={onSelectScene} />
     </Box>
-    <FlexColumn role="list" aria-label="Scene entities" sx={{ flex: 1, minHeight: 0, overflowY: "auto", py: SPACING.xs, px: SPACING.xs }}>
+    <FlexColumn role="list" aria-label={t("screen_game.hierarchy.sceneEntities")} sx={{ flex: 1, minHeight: 0, overflowY: "auto", py: SPACING.xs, px: SPACING.xs }}>
       {rows.length === 0 && <Caption sx={{ px: SPACING.sm, py: SPACING.xs }}>
-        {needle ? "No entities match." : "This scene has no entities."}
+        {needle ? t("screen_game.hierarchy.noEntitiesMatch") : t("screen_game.hierarchy.noEntities")}
       </Caption>}
       {rows.map(({ entity, depth, hasChildren }) => {
         const selected = selectedIds.includes(entity.id);
@@ -148,7 +150,7 @@ export default function GameHierarchy3D({ document, scene, selectedIds, onSelect
           sx={{ pr: SPACING.sm, minHeight: CONTROL.height.xs, gap: SPACING.micro,
             "&:focus-within": { bgcolor: selected ? "action.selected" : "action.hover" } }}>
           {hasChildren
-            ? <FlexRow component="button" aria-label={`${expanded ? "Collapse" : "Expand"} ${name}`}
+            ? <FlexRow component="button" aria-label={t(expanded ? "screen_game.hierarchy.collapse" : "screen_game.hierarchy.expand", { name })}
               aria-expanded={expanded} aria-disabled={needle !== ""} align="center" justify="center"
               onClick={(event) => { event.stopPropagation(); if (needle === "") { toggle(entity.id); } }}
               sx={{ flexShrink: 0,
@@ -168,7 +170,7 @@ export default function GameHierarchy3D({ document, scene, selectedIds, onSelect
             <Text size="small" weight={400} truncate sx={{ flex: 1, minWidth: 0, color: "inherit", opacity: entity.templateOnly ? 0.6 : 1 }}>
               {name}
             </Text>
-            {kind && <Caption sx={{ flexShrink: 0, color: "text.secondary" }}>{kind}</Caption>}
+            {kind && <Caption sx={{ flexShrink: 0, color: "text.secondary" }}>{t(`screen_game.hierarchy.entityKinds.${kind.toLowerCase()}`)}</Caption>}
           </FlexRow>
         </TreeRow>;
       })}

@@ -14,6 +14,8 @@
  */
 
 import React, { memo, Suspense, useCallback, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { compileOneTake } from "@nodetool-ai/protocol";
 import type { OneTakeDirection } from "@nodetool-ai/protocol";
 
@@ -81,7 +83,13 @@ const thumbSx = {
 
 const settingSx = { flex: "1 1 8rem", minWidth: 0 } as const;
 
-const seconds = (value: number): string => `${Math.round(value * 10) / 10}s`;
+const seconds = (value: number, locale: string, t: TFunction): string =>
+  t("screens4_13.storyboard.oneTake.seconds", {
+    count: value,
+    value: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(
+      value
+    )
+  });
 
 /** The stored value when the options offer it, else the fallback option. */
 const pickedValue = (
@@ -106,6 +114,8 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
   id,
   onClose
 }) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const { shots } = useBoard(boardId);
   const board = useStoryboardStore((state) => state.boards[boardId]);
   const oneTake = board?.oneTake;
@@ -163,11 +173,22 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
     return [
       {
         value: "",
-        label: `Shot total (${seconds(settings.shot_total_seconds)})`
+        label: t("screens4_13.storyboard.oneTake.shotTotal", {
+          duration: seconds(settings.shot_total_seconds, locale, t)
+        })
       },
-      ...values.map((value) => ({ value: String(value), label: seconds(value) }))
+      ...values.map((value) => ({
+        value: String(value),
+        label: seconds(value, locale, t)
+      }))
     ];
-  }, [catalogModel?.durations, oneTake?.duration_seconds, settings.shot_total_seconds]);
+  }, [
+    catalogModel?.durations,
+    oneTake?.duration_seconds,
+    settings.shot_total_seconds,
+    locale,
+    t
+  ]);
 
   const aspectOptions = useMemo(() => {
     const declared = catalogModel?.aspect_ratios;
@@ -181,20 +202,32 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
           }))
         : ASPECT_OPTIONS.map((option) => ({ ...option }));
     return [
-      { value: "", label: `Board (${defaults.aspect_ratio})` },
+      {
+        value: "",
+        label: t("screens4_13.storyboard.oneTake.boardAspectRatio", {
+          ratio: defaults.aspect_ratio
+        })
+      },
       ...values
     ];
-  }, [catalogModel?.aspect_ratios, defaults.aspect_ratio]);
+  }, [catalogModel?.aspect_ratios, defaults.aspect_ratio, t]);
 
   const resolutionOptions = useMemo(() => {
     const declared = catalogModel?.resolutions;
     const values: readonly string[] =
-      declared && declared.length > 0 ? declared : ONE_TAKE_FALLBACK_RESOLUTIONS;
+      declared && declared.length > 0
+        ? declared
+        : ONE_TAKE_FALLBACK_RESOLUTIONS;
     return [
-      { value: "", label: `Default (${defaults.resolution})` },
+      {
+        value: "",
+        label: t("screens4_13.storyboard.oneTake.defaultResolution", {
+          resolution: defaults.resolution
+        })
+      },
       ...values.map((value) => ({ value, label: value }))
     ];
-  }, [catalogModel?.resolutions, defaults.resolution]);
+  }, [catalogModel?.resolutions, defaults.resolution, t]);
 
   // `setOneTake` replaces the direction, so every write spreads the rest.
   const update = useCallback(
@@ -204,8 +237,7 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
   );
 
   const handlePromptChange = useCallback(
-    (value: string) =>
-      update({ prompt: value }),
+    (value: string) => update({ prompt: value }),
     [update]
   );
   const handleModelChange = useCallback(
@@ -235,32 +267,42 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
   const overImageLimit = imageCount > ONE_TAKE_MAX_IMAGES;
   const maxSeconds = oneTakeMaxSeconds(catalogModel);
   const tooLong = compiled.duration_seconds > maxSeconds;
-  const durationText = seconds(compiled.duration_seconds);
+  const durationText = seconds(compiled.duration_seconds, locale, t);
   const scaled = compiled.duration_seconds !== compiled.shot_total_seconds;
 
   return (
     <Panel id={id} padding={SPACING.xl} sx={{ width: "100%" }}>
       <FlexColumn gap={SPACING.xl} data-testid="one-take-panel">
         <SectionHeader
-          title="One take"
-          subtitle="Render the whole board as one continuous clip."
+          title={t("screens4_13.storyboard.oneTake.title")}
+          subtitle={t("screens4_13.storyboard.oneTake.subtitle")}
           size="small"
-          action={<CloseButton tooltip="Close one take" onClick={onClose} />}
+          action={
+            <CloseButton
+              tooltip={t("screens4_13.storyboard.oneTake.closeTooltip")}
+              onClick={onClose}
+            />
+          }
         />
 
         <TextArea
           minRows={1}
           size="small"
-          label="Your prompt"
-          placeholder="One continuous take, no cuts."
-          helperText="Brand, rules, light and anything else. Refer to images as [Image N]."
+          label={t("screens4_13.storyboard.oneTake.promptLabel")}
+          placeholder={t("screens4_13.storyboard.oneTake.promptPlaceholder")}
+          helperText={t("screens4_13.storyboard.oneTake.promptHelp")}
           value={oneTake?.prompt ?? ""}
           onChange={handlePromptChange}
         />
 
         <Box data-testid="one-take-settings">
-          <FormSection label="Render settings">
-            <FormField label="Video model" sx={modelFieldSx}>
+          <FormSection
+            label={t("screens4_13.storyboard.oneTake.renderSettings")}
+          >
+            <FormField
+              label={t("screens4_13.storyboard.oneTake.videoModel")}
+              sx={modelFieldSx}
+            >
               <VideoModelSelect
                 value={model?.id ?? ""}
                 provider={model?.provider}
@@ -271,7 +313,7 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
             <FlexRow gap={SPACING.lg} wrap>
               <Box sx={settingSx}>
                 <SelectField
-                  label="Duration"
+                  label={t("screens4_13.storyboard.oneTake.duration")}
                   size="small"
                   value={pickedValue(
                     oneTake?.duration_seconds,
@@ -280,13 +322,15 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
                   onChange={handleDurationChange}
                   options={durationOptions}
                   description={
-                    scaled ? "Shot windows scale to fit." : undefined
+                    scaled
+                      ? t("screens4_13.storyboard.oneTake.scaledWindows")
+                      : undefined
                   }
                 />
               </Box>
               <Box sx={settingSx}>
                 <SelectField
-                  label="Aspect ratio"
+                  label={t("screens4_13.storyboard.oneTake.aspectRatio")}
                   size="small"
                   value={pickedValue(oneTake?.aspect_ratio, aspectOptions)}
                   onChange={handleAspectChange}
@@ -295,7 +339,7 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
               </Box>
               <Box sx={settingSx}>
                 <SelectField
-                  label="Resolution"
+                  label={t("screens4_13.storyboard.oneTake.resolution")}
                   size="small"
                   value={pickedValue(oneTake?.resolution, resolutionOptions)}
                   onChange={handleResolutionChange}
@@ -308,39 +352,51 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
 
         <FlexColumn gap={SPACING.sm}>
           <SectionHeader
-            title="Compiled from the storyboard"
+            title={t("screens4_13.storyboard.oneTake.compiledTitle")}
             size="small"
             action={
               <CopyButton
                 value={compiled.compiled}
-                tooltip="Copy compiled prompt"
+                tooltip={t("screens4_13.storyboard.oneTake.copyCompiledPrompt")}
                 buttonSize="small"
               />
             }
           />
           <Box sx={compiledSx} data-testid="one-take-compiled">
-            {compiled.compiled || "Add shots to compile the take."}
+            {compiled.compiled ||
+              t("screens4_13.storyboard.oneTake.emptyCompiled")}
           </Box>
           <FlexRow align="center" gap={SPACING.lg} wrap>
             <Text size="small" data-testid="one-take-duration">
-              {`Duration ${durationText}`}
+              {t("screens4_13.storyboard.oneTake.durationValue", {
+                duration: durationText
+              })}
             </Text>
             <Text
               size="small"
               color={overImageLimit ? "warning" : "secondary"}
               data-testid="one-take-image-count"
             >
-              {`Images ${imageCount} / ${ONE_TAKE_MAX_IMAGES}`}
+              {t("screens4_13.storyboard.oneTake.imageCount", {
+                count: imageCount,
+                limit: ONE_TAKE_MAX_IMAGES
+              })}
             </Text>
           </FlexRow>
           {overImageLimit && (
             <AlertBanner severity="warning" compact>
-              {`This board has ${imageCount} stills. The render sends at most ${ONE_TAKE_MAX_IMAGES}.`}
+              {t("screens4_13.storyboard.oneTake.imageLimitWarning", {
+                count: imageCount,
+                limit: ONE_TAKE_MAX_IMAGES
+              })}
             </AlertBanner>
           )}
           {tooLong && (
             <AlertBanner severity="warning" compact>
-              {`The take runs ${durationText}. This model renders at most ${maxSeconds}s, so pick a shorter duration.`}
+              {t("screens4_13.storyboard.oneTake.durationLimitWarning", {
+                duration: durationText,
+                limit: seconds(maxSeconds, locale, t)
+              })}
             </AlertBanner>
           )}
           {compiled.references.length > 0 && (
@@ -352,7 +408,11 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
                   gap={SPACING.sm}
                   data-testid="one-take-image"
                 >
-                  <Label sx={{ flex: "0 0 auto" }}>{`[Image ${index + 1}]`}</Label>
+                  <Label sx={{ flex: "0 0 auto" }}>
+                    {t("screens4_13.storyboard.oneTake.imageLabel", {
+                      number: index + 1
+                    })}
+                  </Label>
                   <Box sx={thumbSx}>
                     <ResponsiveImage
                       locator={{ asset_id: reference.asset_id }}
@@ -378,7 +438,7 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
             onClick={openRender}
             disabled={shots.length === 0}
           >
-            Render one take…
+            {t("screens4_13.storyboard.oneTake.renderButton")}
           </EditorButton>
         </FlexRow>
       </FlexColumn>

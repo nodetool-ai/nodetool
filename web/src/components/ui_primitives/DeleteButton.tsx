@@ -8,6 +8,7 @@
  */
 
 import React, { memo, forwardRef, useCallback, useMemo, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import TrashIcon from "../../icons/trash.svg?react";
@@ -92,7 +93,7 @@ export const DeleteButton = memo(
     (
       {
         onClick,
-        tooltip = "Delete",
+        tooltip,
         tooltipPlacement = "bottom",
         buttonSize = "small",
         iconVariant = "delete",
@@ -106,6 +107,7 @@ export const DeleteButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
 
       const handleClick = useCallback(
         (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -139,11 +141,15 @@ export const DeleteButton = memo(
         return <TrashIcon width={iconSize} height={iconSize} />;
       };
 
-      const label = ariaLabel || (isString(tooltip) ? tooltip : "Delete");
+      const label =
+        ariaLabel ||
+        (isString(tooltip) ? tooltip : t("i18n-next85.uiPrimitives.delete"));
+
+      const tooltipContent = tooltip ?? t("i18n-next85.uiPrimitives.delete");
 
       return (
         <Tooltip
-          title={tooltip}
+          title={tooltipContent}
           enterDelay={TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}

@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -134,6 +135,7 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
   onAddLayer,
   onTransformChange
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -266,15 +268,15 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
 
       <div className="side-panel">
         <FlexColumn gap={0.5}>
-          <Caption>Canvas size</Caption>
+          <Caption>{t("screen_sketch.compositor.canvasSize")}</Caption>
           <FlexRow className="size-row" gap={0.5}>
             <div className="field">
-              <div className="field-label">Width</div>
+              <div className="field-label">{t("screen_sketch.compositor.width")}</div>
               <NumberInput
                 id="compositor-canvas-width"
                 nodeId=""
                 name="canvas_width"
-                description="Canvas width (px)"
+                description={t("screen_sketch.compositor.canvasWidth")}
                 value={canvasWidth}
                 min={1}
                 max={16384}
@@ -292,12 +294,12 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
               />
             </div>
             <div className="field">
-              <div className="field-label">Height</div>
+              <div className="field-label">{t("screen_sketch.compositor.height")}</div>
               <NumberInput
                 id="compositor-canvas-height"
                 nodeId=""
                 name="canvas_height"
-                description="Canvas height (px)"
+                description={t("screen_sketch.compositor.canvasHeight")}
                 value={canvasHeight}
                 min={1}
                 max={16384}
@@ -322,12 +324,12 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
         {selectedTransform ? (
           <FlexColumn gap={0.5}>
             <FlexRow justify="space-between" align="center">
-              <Text sx={{ fontWeight: 500 }}>Selected layer</Text>
+              <Text sx={{ fontWeight: 500 }}>{t("screen_sketch.compositor.selectedLayer")}</Text>
               <StateIconButton
                 icon={<RestartAltIcon fontSize="small" />}
                 onClick={handleResetTransform}
-                ariaLabel="Reset transform"
-                tooltip="Reset transform"
+                ariaLabel={t("screen_sketch.compositor.resetTransform")}
+                tooltip={t("screen_sketch.compositor.resetTransform")}
               />
             </FlexRow>
             <LayerTransformFields
@@ -337,16 +339,16 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
             <Divider />
           </FlexColumn>
         ) : (
-          <Caption>Select a layer to transform it.</Caption>
+          <Caption>{t("screen_sketch.compositor.selectLayerToTransform")}</Caption>
         )}
 
         <FlexColumn gap={0.5}>
-          <Caption>Layers</Caption>
+          <Caption>{t("screen_sketch.compositor.layers")}</Caption>
           {layers.length === 0 ? (
             <EmptyState
               size="small"
-              title="No layers yet"
-              description="Add one below."
+              title={t("screen_sketch.compositor.noLayers")}
+              description={t("screen_sketch.compositor.addLayerBelow")}
             />
           ) : (
             <div className="layer-stack">

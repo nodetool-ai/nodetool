@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { useMediaQuery } from "@mui/material";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -57,6 +58,7 @@ type DockTab = "cast" | "assistant";
  * mobile the cast and assistant share a bottom sheet.
  */
 const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const ensureScript = useScriptStore((state) => state.ensureScript);
@@ -97,12 +99,12 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
     enabled: !readOnly && setupStage === "done",
     onUndo: useCallback(() => undo(refId), [undo, refId]),
     onRedo: useCallback(() => redo(refId), [redo, refId]),
-    menuHeading: "Script"
+    menuHeading: t("i18n-next51.script.menuHeading")
   });
 
   useEffect(() => {
-    setTabTitle(refId, "script", title || "Untitled script");
-  }, [setTabTitle, refId, title]);
+    setTabTitle(refId, "script", title || t("i18n-next51.script.untitled"));
+  }, [setTabTitle, refId, title, t]);
 
   // External writes the dirty draft refused — offered per merge unit.
   const conflicts = useDocumentConflicts("script", refId);
@@ -127,10 +129,10 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
 
   const dockTabs = useMemo(
     () => [
-      { value: "cast", label: "Cast", icon: <GroupsIcon /> },
-      { value: "assistant", label: "Assistant", icon: <AutoAwesomeIcon /> }
+      { value: "cast", label: t("i18n-next51.script.cast"), icon: <GroupsIcon /> },
+      { value: "assistant", label: t("i18n-next51.script.assistant"), icon: <AutoAwesomeIcon /> }
     ],
-    []
+    [t]
   );
 
   const dockTabGroup = (
@@ -157,7 +159,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   // The store seeds an empty script on mount, so rendering before the server
   // copy lands looks like a script with no lines.
   if (loadState !== "ready") {
-    return <DocumentLoadStatus state={loadState} label="script" />;
+    return <DocumentLoadStatus state={loadState} label={t("i18n-next51.script.label")} />;
   }
 
   if (setupStage !== "done") {
@@ -193,7 +195,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
                 startIcon={<GroupsIcon />}
                 onClick={() => openSheet("cast")}
               >
-                Cast
+                {t("i18n-next51.script.cast")}
               </EditorButton>
               <EditorButton
                 size="small"
@@ -201,16 +203,16 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
                 startIcon={<AutoAwesomeIcon />}
                 onClick={() => openSheet("assistant")}
               >
-                Assistant
+                {t("i18n-next51.script.assistant")}
               </EditorButton>
             </FlexRow>
             <MobileBottomSheet
               open={sheetOpen}
               onClose={() => setSheetOpen(false)}
               maxHeight="85dvh"
-              title={dockTab === "cast" ? "Cast" : "Assistant"}
+              title={dockTab === "cast" ? t("i18n-next51.script.cast") : t("i18n-next51.script.assistant")}
               headerExtras={dockTabGroup}
-              ariaLabel="Script cast and assistant"
+              ariaLabel={t("i18n-next51.script.castAndAssistant")}
             >
               <FlexColumn
                 fullWidth
@@ -236,7 +238,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
         defaultWidth={300}
         minWidth={260}
         maxWidth={440}
-        ariaLabel="Resize script cast"
+        ariaLabel={t("i18n-next51.script.resizeCast")}
       >
         <FlexColumn
           fullWidth
@@ -258,7 +260,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
       {!readOnly && (
         <ResizableSideDock
           storageKey="script_assistant"
-          ariaLabel="Resize script assistant"
+          ariaLabel={t("i18n-next51.script.resizeAssistant")}
         >
           <FlexColumn
             fullWidth

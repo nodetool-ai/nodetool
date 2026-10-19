@@ -7,6 +7,7 @@
  * round-trip to the library.
  */
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -94,6 +95,7 @@ export const MentionEntityTile: React.FC<MentionEntityTileProps> = React.memo(({
   onSelect,
   onMouseEnter
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const tileStyles = useMemo(() => styles(theme), [theme]);
   // An `asset://` reference, not a URL: ResponsiveImage resolves it.
@@ -134,7 +136,7 @@ export const MentionEntityTile: React.FC<MentionEntityTileProps> = React.memo(({
           className="entity-kind"
           style={{ color: theme.vars.palette[kindPaletteKey].main }}
         >
-          {entity.kind}
+          {t(`i18n-next34.assetMention.entityKind.${entity.kind}`)}
         </span>
       </button>
     </Tooltip>

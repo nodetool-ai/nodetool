@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, memo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { shallow } from "zustand/shallow";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -51,6 +52,7 @@ import {
 const NODE_ROW_HEIGHT = 28;
 
 const OutputContextMenu: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const {
     nodeId,
@@ -140,7 +142,7 @@ const OutputContextMenu: React.FC = () => {
   const saveNodeMetadata = useMemo(() => {
     if (!sourceType || sourceType.type === "") return undefined;
     const datatypeLabel = labelForType(sourceType.type).replaceAll(" ", "");
-    const adjustedLabel = datatypeLabel === "String" ? "Text" : datatypeLabel;
+    const adjustedLabel = datatypeLabel === "String" ? "String" : datatypeLabel;
     const saveNodePath = `nodetool.${adjustedLabel.toLowerCase()}.Save${adjustedLabel}`;
     return getMetadata(saveNodePath);
   }, [sourceType, getMetadata]);
@@ -194,7 +196,7 @@ const OutputContextMenu: React.FC = () => {
       targetHandle: string | null = null
     ) => {
       if (!metadata) {
-        console.info("Metadata is undefined, cannot create node.");
+        console.info(t("screen_editor.missingNodeMetadata"));
         return;
       }
       const anchor = anchorPosition();
@@ -254,7 +256,8 @@ const OutputContextMenu: React.FC = () => {
       generateEdgeId,
       nodeId,
       sourceHandle,
-      sourceType
+      sourceType,
+      t
     ]
   );
 
@@ -476,14 +479,16 @@ const OutputContextMenu: React.FC = () => {
     return () => window.clearTimeout(timeout);
   }, [menuPosition, autoFocusEnabled]);
 
-  const saveLabel = `Save${
+  const saveLabel =
     sourceType?.type === "string"
-      ? "Text"
+      ? t("i18n-next104-node.output.saveText")
       : sourceType?.type_name
-      ? sourceType.type_name?.charAt(0).toUpperCase() +
-        sourceType.type_name?.slice(1)
-      : ""
-  }`;
+        ? t("i18n-next104-node.output.saveType", {
+            type:
+              sourceType.type_name.charAt(0).toUpperCase() +
+              sourceType.type_name.slice(1)
+          })
+        : t("i18n-next104-node.output.save");
   const showStaticActions = searchTerm.trim().length === 0;
 
   if (!menuPosition) {return null;}
@@ -509,12 +514,12 @@ const OutputContextMenu: React.FC = () => {
             inputRef={searchInputRef}
             size="small"
             fullWidth
-            placeholder="Search nodes"
+            placeholder={t("screen_editor.searchNodes")}
             value={searchTerm}
             onChange={handleSearchChange}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={handleSearchKeyDown}
-            aria-label="Search connectable nodes"
+            aria-label={t("screen_editor.searchConnectableNodes")}
             sx={{
               "& .MuiOutlinedInput-root": {
                 backgroundColor: "action.disabledBackground",
@@ -548,7 +553,7 @@ const OutputContextMenu: React.FC = () => {
                 endAdornment: searchTerm ? (
                   <InputAdornment position="end">
                     <ToolbarIconButton
-                      aria-label="clear search"
+                      aria-label={t("screen_editor.clearSearch")}
                       onClick={handleClearSearch}
                       size="small"
                       icon={<ClearIcon sx={{ fontSize: ICON_SIZE.sm }} />}
@@ -564,7 +569,7 @@ const OutputContextMenu: React.FC = () => {
           <ContextMenuItem
             className="create-preview-node"
             onClick={handleCreatePreviewNode}
-            label="Preview"
+            label={t("screen_editor.preview")}
             IconComponent={<VisibilityIcon />}
           />
         )}
@@ -572,7 +577,7 @@ const OutputContextMenu: React.FC = () => {
           <ContextMenuItem
             className="create-output-node"
             onClick={handleCreateOutputNode}
-            label="Output"
+            label={t("screen_editor.output")}
             IconComponent={<DataObjectIcon />}
           />
         )}
@@ -580,7 +585,7 @@ const OutputContextMenu: React.FC = () => {
           <ContextMenuItem
             className="create-reroute-node"
             onClick={handleCreateRerouteNode}
-            label="Reroute"
+            label={t("screen_editor.reroute")}
             IconComponent={<AltRouteIcon />}
           />
         )}
@@ -596,7 +601,7 @@ const OutputContextMenu: React.FC = () => {
           <ContextMenuItem
             className="transform-output-with-ai"
             onClick={handleTransformWithAI}
-            label="Transform this output…"
+            label={t("screen_editor.transformOutput")}
             IconComponent={<AutoAwesomeIcon />}
           />
         )}
@@ -610,7 +615,7 @@ const OutputContextMenu: React.FC = () => {
               key={action.key}
               className={`output-quick-action output-quick-action-${action.key}`}
               onClick={(event) => handleQuickAction(action, event)}
-              label={action.label}
+              label={t(`i18n-next28.outputQuickActions.${action.key}`)}
               IconComponent={<action.Icon />}
             />
           ))}
@@ -619,7 +624,7 @@ const OutputContextMenu: React.FC = () => {
           <ContextMenuItem
             className="delete-output"
             onClick={handleDeleteDynamicOutput}
-            label="Delete output"
+            label={t("screen_editor.deleteOutput")}
             IconComponent={<DeleteOutlineIcon />}
             destructive
           />
@@ -649,7 +654,7 @@ const OutputContextMenu: React.FC = () => {
           {rankedConnectableNodes.length === 0 ? (
             <Box sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
               <Text size="small">
-                No nodes match &quot;{searchTerm}&quot;.
+                {t("screen_editor.noNodesMatch", { query: searchTerm })}
               </Text>
             </Box>
           ) : (

@@ -12,6 +12,7 @@
 
 import { css } from "@emotion/react";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -142,24 +143,26 @@ export interface CostEstimateSummaryProps {
 
 const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
   estimate,
-  unavailableMessage = "Open a workflow to see its cost estimate.",
-  emptyMessage = "Add a node that uses an AI model to estimate a run's cost.",
+  unavailableMessage,
+  emptyMessage,
   showPriceCredit = true
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const summary = useCostEstimateSummary(estimate);
 
   if (!summary) {
     return (
       <Caption size="smaller" color="muted">
-        {unavailableMessage}
+        {unavailableMessage ??
+          t("i18n-next71.costEstimateSummary.unavailable")}
       </Caption>
     );
   }
   if (!summary.hasItems) {
     return (
       <Caption size="smaller" color="muted">
-        {emptyMessage}
+        {emptyMessage ?? t("i18n-next71.costEstimateSummary.empty")}
       </Caption>
     );
   }
@@ -168,13 +171,17 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
     <Box css={styles(theme)} className="cost-estimate-summary">
       <div className="cost-table">
         <div className="cost-row is-head">
-          <span className="cost-col-head">Node</span>
-          <span className="cost-col-head">Provider / model</span>
-          <span className="cost-col-head" style={{ textAlign: "right" }}>
-            Units
+          <span className="cost-col-head">
+            {t("i18n-next71.costEstimateSummary.node")}
+          </span>
+          <span className="cost-col-head">
+            {t("i18n-next71.costEstimateSummary.providerModel")}
           </span>
           <span className="cost-col-head" style={{ textAlign: "right" }}>
-            Cost
+            {t("i18n-next71.costEstimateSummary.units")}
+          </span>
+          <span className="cost-col-head" style={{ textAlign: "right" }}>
+            {t("i18n-next71.costEstimateSummary.cost")}
           </span>
         </div>
         {summary.rows.map((row) => {
@@ -185,7 +192,12 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
               </span>
               {row.unknown ? (
                 <Tooltip title={row.unknownReason}>
-                  <span className="cost-unknown" aria-label="Price unknown">
+                  <span
+                    className="cost-unknown"
+                    aria-label={t(
+                      "i18n-next71.costEstimateSummary.priceUnknown"
+                    )}
+                  >
                     <HelpOutlineIcon fontSize="inherit" />
                   </span>
                 </Tooltip>
@@ -220,7 +232,11 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
       </div>
 
       <div className="cost-total">
-        <span className="cost-total-key">Total ({summary.currency})</span>
+        <span className="cost-total-key">
+          {t("i18n-next71.costEstimateSummary.total", {
+            currency: summary.currency
+          })}
+        </span>
         <span className="cost-total-value">
           {summary.isTotalLowerBound
             ? "≥ "
@@ -232,26 +248,29 @@ const CostEstimateSummaryInternal: React.FC<CostEstimateSummaryProps> = ({
       </div>
       {summary.unknownCount > 0 && (
         <span className="cost-note">
-          {summary.unknownCount} node
-          {summary.unknownCount === 1 ? "" : "s"} without a known price
-          {summary.unknownCount === 1 ? " is" : " are"} excluded from the
-          total.
+          {t("i18n-next71.costEstimateSummary.unknownExcluded", {
+            count: summary.unknownCount
+          })}
         </span>
       )}
       {showPriceCredit && (
         <Tooltip
           title={
             genspendSnapshotOn
-              ? `Prices read from the genspend.io catalog snapshot of ${genspendSnapshotOn}`
-              : "Prices ship with the app; a nightly sync moves them"
+              ? t("i18n-next71.costEstimateSummary.snapshotTooltip", {
+                  date: genspendSnapshotOn
+                })
+              : t("i18n-next71.costEstimateSummary.catalogTooltip")
           }
         >
           <span className="cost-credit">
-            List prices from provider catalogs and{" "}
+            {t("i18n-next71.costEstimateSummary.priceCreditPrefix")} {" "}
             <ExternalLink href="https://genspend.io" size="small">
               genspend.io
             </ExternalLink>
-            , last updated {genspendUpdatedOn}.
+            {t("i18n-next71.costEstimateSummary.priceCreditSuffix", {
+              date: genspendUpdatedOn
+            })}
           </span>
         </Tooltip>
       )}

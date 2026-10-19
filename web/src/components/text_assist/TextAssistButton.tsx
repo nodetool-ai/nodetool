@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -56,13 +57,14 @@ export interface TextAssistButtonProps {
 }
 
 const ModelPicker: React.FC = () => {
+  const { t } = useTranslation();
   const model = useGlobalChatStore((s) => s.selectedModel);
   const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
   return (
     <LanguageModelSelect
       value={model?.id ?? ""}
       provider={model?.provider}
-      placeholder="Model for writing"
+      placeholder={t("screen_chat.textAssist.modelForWriting")}
       onChange={(value) => setSelectedModel(value as LanguageModel)}
     />
   );
@@ -75,6 +77,7 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
   disabled = false,
   onOpenChange
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const anchorRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -125,8 +128,8 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
         ref={anchorRef}
         className="text-assist-trigger"
         icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
-        tooltip="Writing assistant"
-        aria-label="Open the writing assistant"
+        tooltip={t("screen_chat.textAssist.title")}
+        aria-label={t("screen_chat.textAssist.open")}
         aria-haspopup="dialog"
         aria-expanded={open}
         disabled={disabled}
@@ -142,19 +145,19 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
         slotProps={{
           paper: {
             role: "dialog",
-            "aria-label": "Writing assistant"
+            "aria-label": t("screen_chat.textAssist.title")
           }
         }}
       >
         <FlexColumn gap={GAP.comfortable} sx={{ p: PADDING.comfortable }}>
           <FlexRow gap={GAP.tight} align="center">
             <AutoAwesomeOutlinedIcon fontSize="small" color="primary" />
-            <Text weight={500}>Writing assistant</Text>
+            <Text weight={500}>{t("screen_chat.textAssist.title")}</Text>
           </FlexRow>
 
           {proposal !== null && (
             <FlexColumn gap={GAP.tight}>
-              <Caption>Suggestion</Caption>
+              <Caption>{t("screen_chat.textAssist.suggestion")}</Caption>
               <Box
                 aria-live="polite"
                 sx={{
@@ -179,7 +182,7 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
                   onClick={reset}
                   disabled={running}
                 >
-                  Discard
+                  {t("screen_chat.common.discard")}
                 </EditorButton>
                 <EditorButton
                   variant="contained"
@@ -187,7 +190,7 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
                   onClick={apply}
                   disabled={running}
                 >
-                  {value.trim() ? "Replace text" : "Insert"}
+                  {value.trim() ? t("screen_chat.textAssist.replace") : t("screen_chat.textAssist.insert")}
                 </EditorButton>
               </FlexRow>
             </FlexColumn>
@@ -195,9 +198,9 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
 
           {running ? (
             <FlexRow gap={GAP.normal} align="center" justify="space-between">
-              <ThinkingIndicator label="Writing" announce />
+              <ThinkingIndicator label={t("screen_chat.textAssist.writing")} announce />
               <EditorButton variant="text" size="small" onClick={cancel}>
-                Stop
+                {t("screen_chat.common.stop")}
               </EditorButton>
             </FlexRow>
           ) : (
@@ -227,17 +230,17 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
               }}
               placeholder={
                 proposal !== null
-                  ? "Refine the suggestion…"
-                  : "Tell the assistant what to write…"
+                  ? t("screen_chat.textAssist.refinePlaceholder")
+                  : t("screen_chat.textAssist.instructionPlaceholder")
               }
-              label="Instruction"
+              label={t("screen_chat.textAssist.instruction")}
               hideLabel
               disabled={running}
             />
             <ToolbarIconButton
               icon={<ArrowUpwardIcon fontSize="small" />}
-              tooltip="Send"
-              aria-label="Send the instruction"
+              tooltip={t("screen_chat.common.send")}
+              aria-label={t("screen_chat.textAssist.sendInstruction")}
               variant="primary"
               size="small"
               disabled={running || !instruction.trim()}
@@ -253,7 +256,7 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
               <ReportBugButton
                 context={{
                   source: "provider-call",
-                  summary: "Writing assistant request failed",
+                  summary: t("screen_chat.textAssist.requestFailed"),
                   errorText: error
                 }}
               />
@@ -261,7 +264,7 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
           )}
 
           <FlexRow gap={GAP.normal} align="center" justify="space-between">
-            <Caption>Model</Caption>
+            <Caption>{t("screen_chat.common.model")}</Caption>
             <ModelPicker />
           </FlexRow>
         </FlexColumn>

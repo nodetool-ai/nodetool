@@ -6,6 +6,7 @@ import {
   useState,
   type MouseEvent
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
@@ -103,6 +104,7 @@ const ApplicationSurface = ({
   selectedRunId,
   mode = "view"
 }: ApplicationSurfaceProps) => {
+  const { t } = useTranslation();
   const {
     data: application,
     isLoading,
@@ -134,7 +136,7 @@ const ApplicationSurface = ({
   const beforePublish = useCallback(async () => {
     if (opened.includes("design")) {
       if (!saveDraftRef.current) {
-        throw new Error("The app editor is still loading.");
+        throw new Error(t("i18n-next51.application.editorStillLoading"));
       }
       return await saveDraftRef.current();
     }
@@ -180,7 +182,7 @@ const ApplicationSurface = ({
   const openWorkingInstance = useMutation({
     mutationFn: async () => {
       if (!application) {
-        throw new Error("The app is still loading.");
+        throw new Error(t("i18n-next51.application.stillLoading"));
       }
       const release = await trpcClient.applications.releasedDocument.query({
         id: application.id
@@ -189,7 +191,7 @@ const ApplicationSurface = ({
         release?.document ?? application.document
       );
       if (!document) {
-        throw new Error("The app definition could not be loaded.");
+        throw new Error(t("i18n-next51.application.definitionLoadError"));
       }
       const instance = await defaultAppInstance({
         application_id: application.id,
@@ -287,19 +289,19 @@ const ApplicationSurface = ({
 
   useEffect(() => {
     if (!application || instanceId) return;
-    setTabTitle(refId, "application", application.name || "Untitled app");
-  }, [application, refId, instanceId, setTabTitle]);
+    setTabTitle(refId, "application", application.name || t("i18n-next51.application.untitledApp"));
+  }, [application, refId, instanceId, setTabTitle, t]);
 
   if (isLoading) {
-    return <LoadingSpinner size="large" text="Loading app" />;
+    return <LoadingSpinner size="large" text={t("i18n-next51.application.loading")} />;
   }
 
   if (isError || !application) {
     return (
       <EmptyState
         variant="error"
-        title="Could not load app"
-        description={error?.message ?? "The app may have been deleted."}
+        title={t("i18n-next51.application.loadErrorTitle")}
+        description={error?.message ?? t("i18n-next51.application.mayHaveBeenDeleted")}
       />
     );
   }
@@ -337,7 +339,7 @@ const ApplicationSurface = ({
           >
             <Box sx={{ minWidth: 0 }}>
               <Text size="small" weight={600} truncate>
-                {application.name || "Untitled app"}
+                {application.name || t("i18n-next51.application.untitledApp")}
               </Text>
               {application.description && (
                 <Caption color="secondary" sx={{ display: "block" }}>
@@ -355,12 +357,12 @@ const ApplicationSurface = ({
                 exclusive
                 value={view}
                 onChange={handleViewChange}
-                aria-label="App view"
+                aria-label={t("i18n-next51.application.appView")}
               >
-                <ToggleOption value="design">Design</ToggleOption>
-                <ToggleOption value="run">Run</ToggleOption>
-                <ToggleOption value="preview">Preview draft</ToggleOption>
-                <ToggleOption value="settings">Settings</ToggleOption>
+                <ToggleOption value="design">{t("i18n-next51.application.design")}</ToggleOption>
+                <ToggleOption value="run">{t("i18n-next51.application.run")}</ToggleOption>
+                <ToggleOption value="preview">{t("i18n-next51.application.previewDraft")}</ToggleOption>
+                <ToggleOption value="settings">{t("i18n-next51.application.settings")}</ToggleOption>
               </ToggleGroup>
             </FlexRow>
           </FlexRow>
@@ -434,7 +436,7 @@ const ApplicationSurface = ({
             <Box
               ref={narrowAgentPanelRef}
               role="dialog"
-              aria-label="App builder assistant"
+              aria-label={t("i18n-next51.application.builderAssistant")}
               tabIndex={-1}
               sx={{
                 ...overlayPanelSx,
@@ -450,7 +452,7 @@ const ApplicationSurface = ({
         <ResizableSideDock
           storageKey="app_builder"
           defaultWidth={420}
-          ariaLabel="Resize app builder assistant"
+          ariaLabel={t("i18n-next119.workspace.resizeAppBuilderAssistant")}
         >
           {assistant}
         </ResizableSideDock>
@@ -460,8 +462,8 @@ const ApplicationSurface = ({
           ref={narrowAgentButtonRef}
           icon={narrowAgentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
           onClick={toggleNarrowAgent}
-          ariaLabel={narrowAgentOpen ? "Close agent" : "Ask agent"}
-          tooltip={narrowAgentOpen ? "Close agent" : "Ask agent"}
+          ariaLabel={narrowAgentOpen ? t("i18n-next51.application.closeAgent") : t("i18n-next51.application.askAgent")}
+          tooltip={narrowAgentOpen ? t("i18n-next51.application.closeAgent") : t("i18n-next51.application.askAgent")}
           tooltipPlacement="top"
           size={48}
           position="absolute"

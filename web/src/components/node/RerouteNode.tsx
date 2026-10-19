@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NodeProps, Handle, Position } from "@xyflow/react";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import { NodeData } from "../../stores/NodeData";
@@ -90,6 +91,7 @@ interface RerouteNodeProps extends NodeProps {
 }
 
 const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const { selected, id, data } = props;
@@ -229,7 +231,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
 
   return (
     <Tooltip
-      title="Double-click to add a label"
+      title={t("i18n-next66.node.rerouteNode.addLabelTooltip")}
       delay={TOOLTIP_DESCRIPTION_DELAY}
       placement="top"
     >
@@ -263,8 +265,8 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
                 ref={inputRef}
                 defaultValue={title}
                 autoFocus
-                aria-label="Reroute label"
-                placeholder="label"
+                aria-label={t("i18n-next66.node.rerouteNode.label")}
+                placeholder={t("i18n-next66.node.rerouteNode.label")}
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}
               />

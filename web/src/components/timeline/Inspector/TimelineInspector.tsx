@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -108,6 +109,7 @@ const clamp = (value: number, min: number, max: number) =>
 // ── Component ──────────────────────────────────────────────────────────────
 
 const TimelineInspectorContent: React.FC = memo(() => {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
@@ -166,9 +168,9 @@ const TimelineInspectorContent: React.FC = memo(() => {
   const sourceDurationMs = useClipSourceDuration(clip ?? undefined);
   const timingLocked = !!clip?.locked || !!track?.locked;
   const timingLockHint = clip?.locked
-    ? "Unlock the clip to edit timing"
+    ? t("pass3_30.timelineInspector.unlockClipToEditTiming")
     : track?.locked
-      ? "Unlock the track to edit timing"
+      ? t("pass3_30.timelineInspector.unlockTrackToEditTiming")
       : undefined;
 
   /** Wrap the editable part of the selection in a group clip (D4). */
@@ -246,7 +248,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
       return false;
     };
     return [
-      { value: NO_PARENT, label: "None (ungrouped)" },
+      { value: NO_PARENT, label: t("pass3_30.timelineInspector.noneUngrouped") },
       ...groupSummaries
         .filter((group) => group.id !== clipId && !isUnder(group.id))
         .map((group) => ({
@@ -254,7 +256,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
           label: group.name || group.id
         }))
     ];
-  }, [groupSummaries, clipId]);
+  }, [groupSummaries, clipId, t]);
 
   // Moving a locked clip into a group would leave a group that can be neither
   // moved nor ungrouped, so the picker follows the timing lock.
@@ -328,12 +330,12 @@ const TimelineInspectorContent: React.FC = memo(() => {
         css={containerStyles}
         sx={inspectorPanelSx}
       >
-        <InspectorHeader eyebrow="Inspector" />
+        <InspectorHeader eyebrow={t("pass3_30.timelineInspector.title")} />
         <EmptyState
           variant="empty"
           size="small"
-          title="No selection"
-          description="Select a clip on the timeline to edit its properties."
+          title={t("pass3_30.timelineInspector.noSelection.title")}
+          description={t("pass3_30.timelineInspector.noSelection.description")}
         />
       </Panel>
     );
@@ -348,11 +350,13 @@ const TimelineInspectorContent: React.FC = memo(() => {
         sx={inspectorPanelSx}
       >
         <InspectorHeader
-          eyebrow={`${selectedCount} clips`}
+          eyebrow={t("pass3_30.timelineInspector.selectedClips", {
+            count: selectedCount
+          })}
           actions={[
             {
               icon: <DeleteOutlineOutlinedIcon />,
-              label: "Delete selection",
+              label: t("pass3_30.timelineInspector.deleteSelection"),
               onClick: () => deleteSelected(selectedClipIds),
               variant: "danger"
             }
@@ -365,12 +369,10 @@ const TimelineInspectorContent: React.FC = memo(() => {
             startIcon={<FolderOutlinedIcon />}
             onClick={groupSelection}
           >
-            Group selected clips
+            {t("pass3_30.timelineInspector.groupSelectedClips")}
           </Button>
           <Text size="small" sx={{ color: "text.secondary" }}>
-            Grouping parents these clips to one group clip: it moves, trims and
-            fades them together. Per-field editing of several clips at once is
-            not yet supported.
+            {t("pass3_30.timelineInspector.groupSelectionHelp")}
           </Text>
         </FlexColumn>
       </Panel>
@@ -439,7 +441,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Timing"
+              title={t("pass3_30.timelineInspector.sections.timing")}
               icon={<ScheduleOutlinedIcon />}
             />
           }
@@ -448,30 +450,30 @@ const TimelineInspectorContent: React.FC = memo(() => {
           unmountOnExit
         >
           <FlexColumn css={sectionContentStyles(theme)}>
-            <InspectorRow label="Start">
+            <InspectorRow label={t("pass3_30.timelineInspector.fields.start")}>
               <InspectorPillInput
                 value={formatTimecode(clip.startMs, fps)}
                 onCommit={handleStartCommit}
                 disabled={timingLocked}
                 minWidth={112}
-                ariaLabel="Start timecode"
+                ariaLabel={t("pass3_30.timelineInspector.fields.startTimecode")}
               />
             </InspectorRow>
-            <InspectorRow label="Duration">
+            <InspectorRow label={t("pass3_30.timelineInspector.fields.duration")}>
               <InspectorPillInput
                 value={(clip.durationMs / 1000).toFixed(2)}
                 unit="s"
                 scrub={SCRUB_DURATION}
                 onCommit={handleDurationCommit}
                 disabled={timingLocked}
-                ariaLabel="Duration in seconds"
+                ariaLabel={t("pass3_30.timelineInspector.fields.durationSeconds")}
               />
             </InspectorRow>
             {timingLockHint && (
               <Caption color="muted">{timingLockHint}</Caption>
             )}
             <InspectorToggleRow
-              label="Hidden"
+              label={t("pass3_30.timelineInspector.fields.hidden")}
               checked={!!clip.hidden}
               onChange={handleHiddenChange}
             />
@@ -483,7 +485,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Render"
+              title={t("pass3_30.timelineInspector.sections.render")}
               icon={<LayersOutlinedIcon />}
             />
           }
@@ -585,7 +587,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Media"
+              title={t("pass3_30.timelineInspector.sections.media")}
               icon={<PermMediaOutlinedIcon />}
             />
           }
@@ -594,15 +596,15 @@ const TimelineInspectorContent: React.FC = memo(() => {
           unmountOnExit
         >
           <FlexColumn css={sectionContentStyles(theme)}>
-            <InspectorRow label="Type">
+            <InspectorRow label={t("pass3_30.timelineInspector.fields.type")}>
               <InspectorStaticValue value={clip.mediaType} />
             </InspectorRow>
-            <InspectorRow label="Asset">
+            <InspectorRow label={t("pass3_30.timelineInspector.fields.asset")}>
               <InspectorStaticValue value={clip.currentAssetId ?? "—"} />
             </InspectorRow>
-            <InspectorRow label="Parent">
+            <InspectorRow label={t("pass3_30.timelineInspector.fields.parent")}>
               <InspectorSelect
-                label="Parent group"
+                label={t("pass3_30.timelineInspector.fields.parentGroup")}
                 value={clip.parentId ?? NO_PARENT}
                 options={parentOptions}
                 onChange={handleParentChange}
@@ -617,7 +619,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
                 onClick={handleUngroup}
                 disabled={timingLocked}
               >
-                Ungroup
+                {t("pass3_30.timelineInspector.ungroup")}
               </Button>
             )}
           </FlexColumn>
@@ -628,7 +630,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Group"
+              title={t("pass3_30.timelineInspector.sections.group")}
               icon={<FolderOutlinedIcon />}
             />
           }
@@ -637,9 +639,9 @@ const TimelineInspectorContent: React.FC = memo(() => {
           unmountOnExit
         >
           <FlexColumn css={sectionContentStyles(theme)}>
-            <InspectorRow label="Parent">
+            <InspectorRow label={t("pass3_30.timelineInspector.fields.parent")}>
               <InspectorSelect
-                label="Parent group"
+                label={t("pass3_30.timelineInspector.fields.parentGroup")}
                 value={clip.parentId ?? NO_PARENT}
                 options={parentOptions}
                 onChange={handleParentChange}
@@ -654,7 +656,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
                 onClick={handleUngroup}
                 disabled={timingLocked}
               >
-                Ungroup
+                {t("pass3_30.timelineInspector.ungroup")}
               </Button>
             )}
           </FlexColumn>
@@ -668,7 +670,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
       <CollapsibleSection
         title={
           <InspectorSectionTitle
-            title="Timing"
+            title={t("pass3_30.timelineInspector.sections.timing")}
             icon={<ScheduleOutlinedIcon />}
           />
         }
@@ -677,23 +679,23 @@ const TimelineInspectorContent: React.FC = memo(() => {
         unmountOnExit
       >
         <FlexColumn css={sectionContentStyles(theme)}>
-          <InspectorRow label="Start">
+          <InspectorRow label={t("pass3_30.timelineInspector.fields.start")}>
             <InspectorPillInput
               value={formatTimecode(clip.startMs, fps)}
               onCommit={handleStartCommit}
               disabled={timingLocked}
               minWidth={112}
-              ariaLabel="Start timecode"
+              ariaLabel={t("pass3_30.timelineInspector.fields.startTimecode")}
             />
           </InspectorRow>
-          <InspectorRow label="Duration">
+          <InspectorRow label={t("pass3_30.timelineInspector.fields.duration")}>
             <InspectorPillInput
               value={(clip.durationMs / 1000).toFixed(2)}
               unit="s"
               scrub={SCRUB_DURATION}
               onCommit={handleDurationCommit}
               disabled={timingLocked}
-              ariaLabel="Duration in seconds"
+              ariaLabel={t("pass3_30.timelineInspector.fields.durationSeconds")}
             />
           </InspectorRow>
           {timingLockHint && (
@@ -701,23 +703,23 @@ const TimelineInspectorContent: React.FC = memo(() => {
           )}
           {!isMidi && (
             <>
-              <InspectorRow label="Speed">
+              <InspectorRow label={t("pass3_30.timelineInspector.fields.speed")}>
                 <InspectorPillInput
                   value={(clip.speedMultiplier ?? 1).toFixed(2)}
                   unit="×"
                   scrub={SCRUB_SPEED}
                   onCommit={handleSpeedCommit}
                   disabled={timingLocked || hasTimeRemap(clip)}
-                  ariaLabel="Playback speed"
+                  ariaLabel={t("pass3_30.timelineInspector.fields.playbackSpeed")}
                 />
               </InspectorRow>
               {hasTimeRemap(clip) && (
                 <Caption color="muted">
-                  Time Remap sets this clip&apos;s speed.
+                  {t("pass3_30.timelineInspector.timeRemapSpeedHint")}
                 </Caption>
               )}
               <InspectorToggleRow
-                label="Hidden"
+                label={t("pass3_30.timelineInspector.fields.hidden")}
                 checked={!!clip.hidden}
                 onChange={handleHiddenChange}
               />

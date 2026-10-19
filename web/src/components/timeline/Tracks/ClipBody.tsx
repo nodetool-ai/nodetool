@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -643,6 +644,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     interactionLocked
   }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const clipId = clip.id;
 
     // Only video clips need a URL for thumbnail extraction; image clips use a
@@ -868,7 +870,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         aria-selected={isSelected}
         role="option"
         tabIndex={0}
-        aria-label={`${clip.name || `Clip ${clip.id}`}${disabled ? " (disabled)" : ""}`}
+        aria-label={t("i18n-next73.clip.label", { name: clip.name || t("i18n-next73.clip.fallbackName", { id: clip.id }), disabled: disabled ? ` ${t("i18n-next73.clip.disabled")}` : "" })}
         title={displayName || undefined}
       >
         {filmstripCells && (
@@ -950,9 +952,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
               style={{ left: handleLeftPx }}
               data-clip-fade-handle
               data-testid={`clip-fade-handle-${edge}-${clipId}`}
-              aria-label={`${edge === "in" ? "Fade in" : "Fade out"} ${(
-                lengthMs / 1000
-              ).toFixed(2)} seconds`}
+              aria-label={t(edge === "in" ? "i18n-next73.clip.fadeIn" : "i18n-next73.clip.fadeOut", { seconds: (lengthMs / 1000).toFixed(2) })}
               onPointerDown={(e) => fade?.onFadePointerDown(edge, e)}
               onPointerMove={fade?.onFadePointerMove}
               onPointerUp={fade?.onFadePointerEnd}
@@ -979,7 +979,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
               onPointerMove={handleTransitionPointerMove}
               onPointerUp={handleTransitionPointerEnd}
               onPointerCancel={handleTransitionPointerEnd}
-              aria-label="Transition length"
+              aria-label={t("i18n-next73.clip.transitionLength")}
               data-testid={`clip-transition-handle-${clipId}`}
             />
           </div>
@@ -1037,7 +1037,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
             }}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={handleAnimationMarkerClick}
-            aria-label="Open entrance animation controls"
+            aria-label={t("i18n-next73.clip.openEntranceAnimation")}
           />
         )}
 
@@ -1051,7 +1051,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
             }}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={handleAnimationMarkerClick}
-            aria-label="Open exit animation controls"
+            aria-label={t("i18n-next73.clip.openExitAnimation")}
           />
         )}
 
@@ -1061,7 +1061,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
             css={loopIconCss}
             onPointerDown={(event) => event.stopPropagation()}
             onClick={handleAnimationMarkerClick}
-            aria-label="Open loop and emphasis animation controls"
+            aria-label={t("i18n-next73.clip.openLoopAnimation")}
           >
             <LoopOutlinedIcon />
           </button>
@@ -1090,7 +1090,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           onPointerMove={handleTrimStartPointerMove}
           onPointerUp={handleTrimPointerEnd}
           onPointerCancel={handleTrimPointerEnd}
-          aria-label="Trim clip start"
+          aria-label={t("i18n-next73.clip.trimStart")}
           data-testid={`clip-trim-start-${clipId}`}
         />
 
@@ -1102,7 +1102,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           onPointerMove={handleTrimEndPointerMove}
           onPointerUp={handleTrimPointerEnd}
           onPointerCancel={handleTrimPointerEnd}
-          aria-label="Trim clip end"
+          aria-label={t("i18n-next73.clip.trimEnd")}
           data-testid={`clip-trim-end-${clipId}`}
           data-focus-id={`timeline-trim-end-${clipId}`}
         />
@@ -1116,7 +1116,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
 
         {clip.locked && (
           <div css={lockIconStyles}>
-            <LockOutlinedIcon sx={{ fontSize: ICON_SIZE.xs }} aria-label="Clip locked" />
+            <LockOutlinedIcon sx={{ fontSize: ICON_SIZE.xs }} aria-label={t("i18n-next73.clip.locked")} />
           </div>
         )}
 

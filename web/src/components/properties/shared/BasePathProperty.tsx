@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../../utils/isEqual";
 import PropertyLabel from "../../node/PropertyLabel";
 import { PropertyProps } from "../../node/PropertyInput";
@@ -17,6 +18,7 @@ interface PathPreviewProps {
   onBrowseClick: () => void;
   onClear: () => void;
   ariaLabel: string;
+  browseLabel: string;
 }
 
 interface BasePathPropertyProps extends PropertyProps {
@@ -61,12 +63,13 @@ const PathPreview = ({
   value,
   onBrowseClick,
   onClear,
-  ariaLabel
+  ariaLabel,
+  browseLabel
 }: PathPreviewProps) => {
   return (
     <div className="path-picker__inputs">
       <EditorButton variant="outlined" onClick={onBrowseClick}>
-        Browse
+        {browseLabel}
       </EditorButton>
       <div className="path-picker__preview">
         <Text>{value?.toString()}</Text>
@@ -79,6 +82,7 @@ const PathPreview = ({
 };
 
 const BasePathProperty = (props: BasePathPropertyProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const id = `${props.pathType}-${props.property.name}-${props.propertyIndex}`;
   const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false);
@@ -144,7 +148,10 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
         value={props.value}
         onBrowseClick={handleBrowseClick}
         onClear={handleClear}
-        ariaLabel={`Clear ${props.pathType.split("_")[0]} selection`}
+        ariaLabel={t("i18n-next63.properties.path.clearSelection", {
+          kind: props.pathType.split("_")[0]
+        })}
+        browseLabel={t("i18n-next63.properties.path.browse")}
       />
 
       <FileBrowserDialog

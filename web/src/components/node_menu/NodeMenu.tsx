@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useEffect, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
@@ -124,6 +125,7 @@ type NodeMenuProps = {
 };
 
 const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
+  const { t } = useTranslation();
   const [bounds, setBounds] = useState({
     left: 0,
     right: 0,
@@ -334,7 +336,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
               <SearchInput
                 focusSearchInput={focusSearchInput}
                 focusOnTyping={false}
-                placeholder="Search for nodes"
+                placeholder={t("i18n-next50-node-menu.search.placeholder")}
                 debounceTime={80}
                 width={260}
                 maxWidth={"260px"}
@@ -366,7 +368,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         orientation="vertical"
         edge="end"
         invisible
-        ariaLabel="Resize node menu width"
+        ariaLabel={t("i18n-next50-node-menu.menu.resizeWidth")}
         sx={{ top: "40px", bottom: "12px", zIndex: Z_INDEX.sticky }}
         {...edgeResize.right}
       />
@@ -374,7 +376,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         orientation="horizontal"
         edge="end"
         invisible
-        ariaLabel="Resize node menu height"
+        ariaLabel={t("i18n-next50-node-menu.menu.resizeHeight")}
         sx={{ left: 0, right: "12px", zIndex: Z_INDEX.sticky }}
         {...edgeResize.bottom}
       />

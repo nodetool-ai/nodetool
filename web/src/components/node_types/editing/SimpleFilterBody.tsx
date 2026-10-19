@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -153,6 +154,7 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -192,13 +194,13 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
           <TabPreview
             tab="before"
             value={beforeValue}
-            placeholder="Connect an image"
+            placeholder={t("i18n-next46.simpleFilter.connectImage")}
           />
         ) : (
           <TabPreview
             tab="after"
             value={afterValue}
-            placeholder="Run the node to see the result"
+            placeholder={t("i18n-next46.simpleFilter.runToSeeResult")}
           />
         )}
       </div>
@@ -212,21 +214,21 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
             value={tab}
             exclusive
             onChange={handleTabChange}
-            aria-label="Preview tab"
+            aria-label={t("i18n-next46.simpleFilter.previewTab")}
           >
             <ToggleOption
               className="tab-option tab-option-before"
               value="before"
-              aria-label="Before"
+              aria-label={t("i18n-next46.simpleFilter.before")}
             >
-              Before
+              {t("i18n-next46.simpleFilter.before")}
             </ToggleOption>
             <ToggleOption
               className="tab-option tab-option-after"
               value="after"
-              aria-label="After"
+              aria-label={t("i18n-next46.simpleFilter.after")}
             >
-              After
+              {t("i18n-next46.simpleFilter.after")}
             </ToggleOption>
           </ToggleGroup>
         </FlexRow>

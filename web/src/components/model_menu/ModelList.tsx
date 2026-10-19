@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   FlexRow,
@@ -236,6 +237,7 @@ function ModelList<TModel extends ModelSelectorModel>({
   selectedModel,
   pendingInstalls
 }: ModelListProps<TModel>) {
+  const { t } = useTranslation();
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
   const theme = useTheme();
@@ -322,17 +324,17 @@ function ModelList<TModel extends ModelSelectorModel>({
         m.id === selectedModel.id &&
         (!selectedModel.provider || m.provider === selectedModel.provider);
       const tooltipTitle = pendingInstall
-        ? `Install ${pendingInstall.spec.installLabel} to use this model.`
+        ? t("screen_modelMenu.installProviderToUseModel", { installLabel: pendingInstall.spec.installLabel })
         : needsDownload
         ? ""
         : execution.state !== "ready"
-          ? (execution.reason ?? "This model is not ready to use.")
+          ? (execution.reason ?? t("screen_modelMenu.modelNotReady"))
           : !providerEnabled && !hasKey
-            ? "Enable provider and add API key in Settings to use this model"
+            ? t("screen_modelMenu.enableProviderAndAddKey")
             : !providerEnabled
-              ? "Enable provider in the left sidebar to use this model"
+              ? t("screen_modelMenu.enableProviderInSidebar")
               : !hasKey
-                ? "Add API key in settings to use this model"
+                ? t("screen_modelMenu.addKeyInSettings")
                 : "";
       // A file inside a repository shows the file, then the model it belongs
       // to. Any other model shows its name, then its provider.
@@ -362,7 +364,7 @@ function ModelList<TModel extends ModelSelectorModel>({
               {isCurrent && (
                 <CheckIcon
                   className="model-current-check"
-                  titleAccess="Current model"
+                  titleAccess={t("screen_modelMenu.currentModel")}
                   fontSize="small"
                   sx={{
                     color: "primary.main",
@@ -419,7 +421,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                   compact
                   color={executionColor(execution)}
                   tabIndex={0}
-                  aria-label={`${execution.label}: ${execution.reason ?? execution.label}`}
+                  aria-label={t("screen_modelMenu.executionStatusLabel", { label: execution.label, reason: execution.reason ?? execution.label })}
                   sx={{ flexShrink: 0 }}
                 />
               </Tooltip>
@@ -451,15 +453,15 @@ function ModelList<TModel extends ModelSelectorModel>({
       if (row.kind === "downloadHeader") {
         return (
           <SectionHeader
-            title="Available to download"
+            title={t("screen_modelMenu.availableToDownload")}
             size="small"
             action={
               downloadTargetLabel && (
                 <Tooltip
-                  title={`Downloads land on ${downloadTargetLabel}, where models run in this session`}
+                  title={t("screen_modelMenu.downloadsLandOn", { target: downloadTargetLabel })}
                 >
                   <Caption sx={{ color: "text.secondary", whiteSpace: "nowrap" }}>
-                    To {downloadTargetLabel}
+                    {t("screen_modelMenu.toTarget", { target: downloadTargetLabel })}
                   </Caption>
                 </Tooltip>
               )
@@ -490,26 +492,26 @@ function ModelList<TModel extends ModelSelectorModel>({
           <EmptyState
             variant="no-results"
             size="small"
-            title="No models found"
-            description={`No models match "${searchTerm}". Try another term or enable more providers.`}
+            title={t("screen_modelMenu.noModelsFound")}
+            description={t("screen_modelMenu.noModelsMatchSearch", { searchTerm })}
           />
         ) : hasDownloads ? (
           <EmptyState
             variant="empty"
             size="small"
             icon={<DownloadIcon className="empty-icon" />}
-            title="No models yet"
-            description="Download a local model or add an API key for a cloud provider."
-            actionText="Open settings"
+            title={t("screen_modelMenu.noModelsYet")}
+            description={t("screen_modelMenu.noModelsYetDescription")}
+            actionText={t("screen_modelMenu.openSettings")}
             onAction={handleOpenSettings}
           />
         ) : (
           <EmptyState
             variant="empty"
             size="small"
-            title="No models available"
-            description="Enable a provider in the sidebar or add an API key in settings."
-            actionText="Open settings"
+            title={t("screen_modelMenu.noModelsAvailable")}
+            description={t("screen_modelMenu.noModelsAvailableDescription")}
+            actionText={t("screen_modelMenu.openSettings")}
             onAction={handleOpenSettings}
           />
         )
@@ -531,7 +533,7 @@ function ModelList<TModel extends ModelSelectorModel>({
           getItemKey={getItemKey}
           getItemProps={getItemProps}
           scrollToIndex={scrollToIndex}
-          ariaLabel="Models"
+          ariaLabel={t("screen_modelMenu.models")}
           renderItem={renderFlatRow}
         />
       )}

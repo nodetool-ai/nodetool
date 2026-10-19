@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -63,6 +64,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onStartBlank,
   upload
 }) => {
+  const { t } = useTranslation();
   const brief = useSketchStore((state) => state.document.setup?.brief ?? "");
   const setup = useSketchStore((state) => state.document.setup);
   const setSetup = useSketchStore((state) => state.setSetup);
@@ -105,21 +107,22 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     () => [
       {
         id: "upload",
-        title: "Upload an image to edit",
-        description:
-          "Opens the editor immediately with your image as the first layer. Skips the guided brief. PNG, JPEG, WebP or GIF.",
+        title: t("pass3_7.imageSetup.idea.uploadTitle"),
+        description: t("pass3_7.imageSetup.idea.uploadDescription"),
         onSelect: () => fileInput.current?.click(),
         disabled: upload.uploading,
-        disabledReason: upload.uploading ? "Reading your file…" : undefined
+        disabledReason: upload.uploading
+          ? t("pass3_7.imageSetup.idea.readingFile")
+          : undefined
       },
       {
         id: "blank",
-        title: "Start with a blank canvas",
-        description: "Skip the brief and paint it yourself",
+        title: t("pass3_7.imageSetup.idea.blankTitle"),
+        description: t("pass3_7.imageSetup.idea.blankDescription"),
         onSelect: onStartBlank
       }
     ],
-    [onStartBlank, upload.uploading]
+    [onStartBlank, t, upload.uploading]
   );
 
   return (
@@ -137,11 +140,10 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       <FlexColumn gap={GAP.comfortable}>
         <FlexColumn gap={GAP.tight}>
           <Text size="big" component="h2">
-            What image do you want?
+            {t("pass3_7.imageSetup.idea.heading")}
           </Text>
           <Text size="normal" color="secondary">
-            Describe it once. We&apos;ll refine the brief and render variations
-            to pick from.
+            {t("pass3_7.imageSetup.idea.intro")}
           </Text>
         </FlexColumn>
 
@@ -149,9 +151,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           value={brief}
           autoFocus
           rows={4}
-          label="Your image"
+          label={t("pass3_7.imageSetup.idea.imageLabel")}
           hideLabel
-          placeholder="One sentence is enough."
+          placeholder={t("pass3_7.imageSetup.idea.placeholder")}
           onChange={handleChange}
           inputRef={briefField}
         />
@@ -164,7 +166,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
               <ReportBugButton
                 context={{
                   source: "operation-failure",
-                  summary: "Image upload failed",
+                  summary: t("pass3_7.imageSetup.idea.uploadFailed"),
                   errorText: upload.error
                 }}
               />
@@ -177,12 +179,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         {references.length > 0 || entityNames.length > 0 ? (
           <FlexColumn gap={GAP.normal}>
             <Text size="small" component="h3">
-              Came with your prompt
+              {t("pass3_7.imageSetup.idea.promptContext")}
             </Text>
             {references.length > 0 ? (
               <FlexRow
                 role="group"
-                aria-label="Reference images"
+                aria-label={t("pass3_7.imageSetup.idea.referenceImages")}
                 gap={GAP.normal}
                 wrap
               >
@@ -213,7 +215,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
               </FlexRow>
             ) : null}
             {entityNames.length > 0 ? (
-              <FlexRow role="group" aria-label="Entities" gap={GAP.normal} wrap>
+              <FlexRow
+                role="group"
+                aria-label={t("pass3_7.imageSetup.idea.entities")}
+                gap={GAP.normal}
+                wrap
+              >
                 {entityNames.map((name) => (
                   <Chip key={name} label={name} />
                 ))}
@@ -221,8 +228,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
             ) : null}
             <Caption color="secondary">
               {references.length > 0
-                ? "The refinement reads these when it writes your brief."
-                : "These stay with the document as you set it up."}
+                ? t("pass3_7.imageSetup.idea.referencesHelp")
+                : t("pass3_7.imageSetup.idea.entitiesHelp")}
             </Caption>
           </FlexColumn>
         ) : null}
@@ -236,7 +243,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       </FlexColumn>
 
       <AlternativesColumn
-        label="Other ways to start"
+        label={t("pass3_7.imageSetup.idea.alternativesLabel")}
         alternatives={alternatives}
       />
 
@@ -246,7 +253,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         hidden
         ref={fileInput}
         accept={IMAGE_ACCEPT}
-        aria-label="Upload an image to edit"
+        aria-label={t("pass3_7.imageSetup.idea.uploadTitle")}
         onChange={handlePicked}
       />
     </Box>

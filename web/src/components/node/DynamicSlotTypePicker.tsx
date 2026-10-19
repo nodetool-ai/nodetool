@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Chip,
@@ -35,6 +36,7 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
   nodeMetadata,
   onChange
 }) => {
+  const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const options = useMemo(
     () => allowedSlotTypes(nodeMetadata),
@@ -66,13 +68,19 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
 
   return (
     <>
-      <Tooltip title={`Slot type for "${propertyName}"`}>
+      <Tooltip
+        title={t("i18n-next36.nodeEditor.dynamicSlotType.slotTypeFor", {
+          propertyName
+        })}
+      >
         <Chip
           className="dynamic-slot-type-chip"
           compact
           clickable
           label={slotTypeLabel(value)}
-          aria-label={`Slot type for ${propertyName}`}
+          aria-label={t("i18n-next36.nodeEditor.dynamicSlotType.slotTypeForLabel", {
+            propertyName
+          })}
           aria-haspopup="menu"
           onClick={handleOpen}
           accent={color}
@@ -87,7 +95,12 @@ const DynamicSlotTypePickerImpl: React.FC<DynamicSlotTypePickerProps> = ({
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         maxHeight={320}
         slotProps={{
-          list: { "aria-label": `Slot type options for ${propertyName}` }
+          list: {
+            "aria-label": t(
+              "i18n-next36.nodeEditor.dynamicSlotType.slotTypeOptionsFor",
+              { propertyName }
+            )
+          }
         }}
       >
         {options.map((option) => (

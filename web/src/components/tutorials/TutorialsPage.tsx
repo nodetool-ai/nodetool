@@ -4,6 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
@@ -219,6 +220,7 @@ const styles = (theme: Theme) =>
   });
 
 const TutorialsPage: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -254,7 +256,11 @@ const TutorialsPage: React.FC = () => {
       if (launch.kind === "guided-flow") {
         const starter = starters.find((entry) => entry.id === launch.flow);
         if (!starter) {
-          throw new Error(`No starter is registered for ${launch.flow}`);
+          throw new Error(
+            t("pass3_41.tutorialsPage.errors.missingStarter", {
+              flow: launch.flow
+            })
+          );
         }
         // A failed start has shown its toast; stay on the tutorial.
         if (await starter.start(projectId)) {
@@ -268,7 +274,7 @@ const TutorialsPage: React.FC = () => {
           type: "chat",
           ref: threadId,
           mode: "view",
-          title: "New chat",
+          title: t("pass3_41.tutorialsPage.newChatTitle"),
           projectId
         });
         navigate("/workspace");
@@ -281,9 +287,9 @@ const TutorialsPage: React.FC = () => {
       addNotification({
         type: "error",
         alert: true,
-        content: `Could not open the task: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        content: t("pass3_41.tutorialsPage.errors.openTask", {
+          error: error instanceof Error ? error.message : String(error)
+        })
       });
     } finally {
       setOpeningTask(false);
@@ -294,7 +300,8 @@ const TutorialsPage: React.FC = () => {
     createNewThread,
     navigate,
     openTab,
-    starters
+    starters,
+    t
   ]);
 
   const select = useCallback(
@@ -315,8 +322,8 @@ const TutorialsPage: React.FC = () => {
         icon={
           <Logo small width="26px" height="26px" fontSize="1em" borderRadius={BORDER_RADIUS.sm} />
         }
-        title="Tutorials"
-        subtitle="Short, beginner-friendly walkthroughs of NodeTool"
+        title={t("pass3_41.tutorialsPage.title")}
+        subtitle={t("pass3_41.tutorialsPage.subtitle")}
         hideSubtitleOnMobile
         actions={
           <EditorButton
@@ -325,14 +332,18 @@ const TutorialsPage: React.FC = () => {
             startIcon={<ArrowBackRoundedIcon />}
             onClick={() => navigate("/workspace")}
           >
-            Workspace
+            {t("pass3_41.tutorialsPage.workspace")}
           </EditorButton>
         }
       />
 
       <div className="tut-body" ref={bodyRef}>
         <aside className="tut-sidebar">
-          <span className="sidebar-label">{TUTORIALS.length} tutorials</span>
+          <span className="sidebar-label">
+            {t("pass3_41.tutorialsPage.tutorialCount", {
+              count: TUTORIALS.length
+            })}
+          </span>
           {TUTORIALS.map((tutorial) => (
             <TutorialCard
               key={tutorial.id}
@@ -364,7 +375,9 @@ const TutorialsPage: React.FC = () => {
                   type="button"
                   className="tut-play"
                   onClick={start}
-                  aria-label={`Play video: ${active.title}`}
+                  aria-label={t("pass3_41.tutorialsPage.playVideo", {
+                    title: active.title
+                  })}
                 >
                   <PlayArrowRoundedIcon />
                 </button>
@@ -385,7 +398,7 @@ const TutorialsPage: React.FC = () => {
 
             <section className="tut-learn">
               <Text component="h2" size="normal" weight={600}>
-                What you'll learn
+                {t("pass3_41.tutorialsPage.whatYoullLearn")}
               </Text>
               <ul>
                 {active.learn.map((point) => (
@@ -400,24 +413,24 @@ const TutorialsPage: React.FC = () => {
             {active.startingState && active.task && active.result && (
               <section className="tut-task" aria-labelledby="tut-task-heading">
                 <Text component="h2" id="tut-task-heading" size="normal" weight={600}>
-                  Try it yourself
+                  {t("pass3_41.tutorialsPage.tryItYourself")}
                 </Text>
                 <div className="tut-task-grid">
                   <div>
                     <Text component="h3" size="small" weight={600}>
-                      Start here
+                      {t("pass3_41.tutorialsPage.startHere")}
                     </Text>
                     <p>{active.startingState}</p>
                   </div>
                   <div>
                     <Text component="h3" size="small" weight={600}>
-                      Your task
+                      {t("pass3_41.tutorialsPage.yourTask")}
                     </Text>
                     <p>{active.task}</p>
                   </div>
                   <div>
                     <Text component="h3" size="small" weight={600}>
-                      Check the result
+                      {t("pass3_41.tutorialsPage.checkTheResult")}
                     </Text>
                     <p>{active.result}</p>
                   </div>
@@ -433,15 +446,17 @@ const TutorialsPage: React.FC = () => {
                   disabled={openingTask}
                   aria-busy={openingTask}
                 >
-                  {openingTask ? "Opening task…" : "Open task"}
+                  {openingTask
+                    ? t("pass3_41.tutorialsPage.openingTask")
+                    : t("pass3_41.tutorialsPage.openTask")}
                 </EditorButton>
               ) : (
                 <EditorButton variant="contained" onClick={() => navigate("/workspace")}>
-                  Start building
+                  {t("pass3_41.tutorialsPage.startBuilding")}
                 </EditorButton>
               )}
               <EditorButton variant="outlined" onClick={() => openPageTab("examples")}>
-                Browse examples
+                {t("pass3_41.tutorialsPage.browseExamples")}
               </EditorButton>
             </div>
           </div>

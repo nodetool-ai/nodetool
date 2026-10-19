@@ -10,6 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import NotesIcon from "@mui/icons-material/Notes";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useTranslation } from "react-i18next";
 import { MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 
 interface QuickStart {
@@ -23,27 +24,30 @@ interface AssistantQuickStartsProps {
   onQuickStart: (prompt: string) => void;
 }
 
-const buildQuickStarts = (propertyName: string): QuickStart[] => {
+const buildQuickStarts = (
+  propertyName: string,
+  t: (key: string) => string
+): QuickStart[] => {
   const target = `the "${propertyName}" value`;
   return [
     {
       icon: <AutoFixHighIcon />,
-      label: "Draft a prompt from scratch",
+      label: t("i18n-next113.textEditor.draftPrompt"),
       prompt: `Draft ${target} from scratch. Ask me about the goal and audience if you need to, then write a clear, well-structured prompt.`
     },
     {
       icon: <DataObjectIcon />,
-      label: "Add input variables",
+      label: t("i18n-next113.textEditor.addInputVariables"),
       prompt: `Rewrite ${target} to use {{ variable }} placeholders for the key inputs so it works as a reusable template.`
     },
     {
       icon: <NotesIcon />,
-      label: "Make it more concise",
+      label: t("i18n-next113.textEditor.makeConcise"),
       prompt: `Make ${target} more concise without losing any important instructions or constraints.`
     },
     {
       icon: <ArticleOutlinedIcon />,
-      label: "Add a system role & sections",
+      label: t("i18n-next113.textEditor.addSystemRoleSections"),
       prompt: `Restructure ${target} with a clear system role and labeled sections (context, task, constraints, output format).`
     }
   ];
@@ -141,7 +145,8 @@ const AssistantQuickStarts = ({
   onQuickStart
 }: AssistantQuickStartsProps) => {
   const theme = useTheme();
-  const quickStarts = buildQuickStarts(propertyName);
+  const { t } = useTranslation();
+  const quickStarts = buildQuickStarts(propertyName, t);
 
   return (
     <div className="assistant-quick-starts" css={styles(theme)}>
@@ -149,13 +154,12 @@ const AssistantQuickStarts = ({
         <div className="hero-badge">
           <AutoAwesomeIcon />
         </div>
-        <h3 className="hero-title">Write this prompt with AI</h3>
+        <h3 className="hero-title">{t("i18n-next113.textEditor.writeWithAI")}</h3>
         <p className="hero-text">
-          Describe what you want, or start from one of these. Drafts drop
-          straight into the editor.
+          {t("i18n-next113.textEditor.describePrompt")}
         </p>
       </div>
-      <span className="quick-label">Quick starts</span>
+      <span className="quick-label">{t("i18n-next113.textEditor.quickStarts")}</span>
       <div className="quick-list">
         {quickStarts.map((item) => (
           <button

@@ -8,6 +8,7 @@
  */
 
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { generateCSS } from "../themes/GenerateCSS";
 // Editor node styles — same set NodeEditor.tsx imports, so the preview
@@ -128,6 +129,7 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
   width = "100%",
   height = 320
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "batch2_9" });
   const data = useMemo(() => {
     const graphNodes = graph?.nodes || [];
     const graphEdges = graph?.edges || [];
@@ -155,7 +157,7 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
           fontSize: "var(--fontSizeSmaller)"
         }}
       >
-        Empty workflow
+          {t("versionHistory.emptyWorkflow")}
       </FlexRow>
     );
   }

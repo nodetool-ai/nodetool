@@ -1,17 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { SPACING, StatusBar, StatusBarItem, ToolbarDivider } from "../ui_primitives";
 import type { SceneStats } from "./sceneOps";
 
-const compact = (value: number): string => {
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
-  }
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}k`;
-  }
-  return String(value);
+const compact = (value: number, locale: string): string => {
+  const maximumFractionDigits = value >= 1_000_000
+    ? value >= 10_000_000 ? 0 : 1
+    : value >= 1_000 ? value >= 10_000 ? 0 : 1 : 0;
+  return new Intl.NumberFormat(locale, {
+    notation: "compact",
+    maximumFractionDigits
+  }).format(value);
 };
 
 interface EditorStatusBarProps {
@@ -22,15 +23,25 @@ interface EditorStatusBarProps {
 
 /** Bottom bar: what is selected, what the mouse does now, and scene totals. */
 const EditorStatusBar = ({ selection, hint, stats }: EditorStatusBarProps) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   return (
     <StatusBar className="editor-status-bar" sx={{ gap: SPACING.md }}>
       <StatusBarItem sx={{ color: "text.primary", overflow: "hidden", textOverflow: "ellipsis" }}>
-        {selection ? `${selection.name} · ${selection.type}` : "No selection"}
+        {selection
+          ? `${selection.name} · ${selection.type}`
+          : t("i18n-next38.statusBar.noSelection")}
       </StatusBarItem>
       <ToolbarDivider />
       <StatusBarItem grow>{hint}</StatusBarItem>
-      <StatusBarItem aria-label="Scene statistics">
-        {`Objects ${stats.objects}  ·  Meshes ${stats.meshes}  ·  Lights ${stats.lights}  ·  Verts ${compact(stats.vertices)}  ·  Tris ${compact(stats.triangles)}`}
+      <StatusBarItem aria-label={t("i18n-next38.statusBar.sceneStatistics")}>
+        {t("i18n-next38.statusBar.stats", {
+          objects: stats.objects,
+          meshes: stats.meshes,
+          lights: stats.lights,
+          vertices: compact(stats.vertices, locale),
+          triangles: compact(stats.triangles, locale)
+        })}
       </StatusBarItem>
     </StatusBar>
   );

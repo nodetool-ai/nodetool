@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -30,13 +31,6 @@ import { PianoRollPanel } from "../../pianoRoll/PianoRollPanel";
 import { MixerView } from "../mixer/MixerView";
 import { HarmonyPanel } from "../harmony/HarmonyPanel";
 import { DeviceChainView, isDeviceTrack, type DeviceTarget } from "./DeviceChainView";
-
-const DOCK_TABS: TabItem[] = [
-  { value: "mixer", label: "Mixer", icon: <TuneOutlinedIcon fontSize="small" /> },
-  { value: "devices", label: "Devices", icon: <ExtensionOutlinedIcon fontSize="small" /> },
-  { value: "pianoRoll", label: "Piano roll", icon: <PianoOutlinedIcon fontSize="small" /> },
-  { value: "harmony", label: "Harmony", icon: <QueueMusicOutlinedIcon fontSize="small" /> }
-];
 
 const dockStyles = (theme: Theme) =>
   css({
@@ -91,6 +85,7 @@ function useDeviceTarget(): [DeviceTarget | null, (target: DeviceTarget) => void
 
 /** Piano roll tab: the clip the roll is open on, or a way to open one. */
 const PianoRollTab: React.FC = memo(() => {
+  const { t } = useTranslation();
   const clipId = useTimelineUIStore((s) => s.pianoRollClipId);
   const openPianoRoll = useTimelineUIStore((s) => s.openPianoRoll);
   const selectedIds = useTimelineUIStore((s) => s.selectedClipIds);
@@ -101,12 +96,12 @@ const PianoRollTab: React.FC = memo(() => {
   return (
     <FlexColumn align="center" justify="center" fullHeight fullWidth>
       <EmptyState
-        title="No clip open"
-        description="Double-click a MIDI clip to edit its notes here."
+        title={t("batch2_26.daw.dock.noClipOpen")}
+        description={t("batch2_26.daw.dock.noClipOpenDescription")}
       />
       {selectedMidiClipId && (
         <EditorButton variant="outlined" size="small" onClick={() => openPianoRoll(selectedMidiClipId)}>
-          Edit the selected clip
+          {t("batch2_26.daw.dock.editSelectedClip")}
         </EditorButton>
       )}
     </FlexColumn>
@@ -119,6 +114,7 @@ export interface DawDockProps {
 }
 
 export const DawDock: React.FC<DawDockProps> = memo(({ heightPx }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const tab = useTimelineLayoutStore((s) => s.dawDockTab);
   const setTab = useTimelineLayoutStore((s) => s.setDawDockTab);
@@ -138,6 +134,12 @@ export const DawDock: React.FC<DawDockProps> = memo(({ heightPx }) => {
 
   const dockCss = useMemo(() => dockStyles(theme), [theme]);
   const handleTab = useCallback((value: string) => setTab(value as DawDockTab), [setTab]);
+  const dockTabs: TabItem[] = [
+    { value: "mixer", label: t("batch2_26.daw.dock.mixer"), icon: <TuneOutlinedIcon fontSize="small" /> },
+    { value: "devices", label: t("batch2_26.daw.dock.devices"), icon: <ExtensionOutlinedIcon fontSize="small" /> },
+    { value: "pianoRoll", label: t("batch2_26.daw.dock.pianoRoll"), icon: <PianoOutlinedIcon fontSize="small" /> },
+    { value: "harmony", label: t("batch2_26.daw.dock.harmony"), icon: <QueueMusicOutlinedIcon fontSize="small" /> }
+  ];
 
   return (
     <FlexColumn
@@ -146,17 +148,17 @@ export const DawDock: React.FC<DawDockProps> = memo(({ heightPx }) => {
       sx={{ height: heightPx }}
       data-testid="daw-dock"
       role="region"
-      aria-label="DAW dock"
+      aria-label={t("batch2_26.daw.dock.ariaLabel")}
     >
       <TabGroup
-        tabs={DOCK_TABS}
+        tabs={dockTabs}
         value={tab}
         onChange={handleTab}
         size="small"
         sx={{ flexShrink: 0, borderBottom: `1px solid ${theme.vars.palette.divider}` }}
       />
       <FlexColumn fullWidth sx={{ flex: "1 1 0", minHeight: 0, overflow: "hidden" }}>
-        <PanelErrorBoundary panelName={DOCK_TABS.find((t) => t.value === tab)?.label ?? "Dock"}>
+        <PanelErrorBoundary panelName={dockTabs.find((item) => item.value === tab)?.label ?? t("batch2_26.daw.dock.dock")}>
           {tab === "mixer" ? (
             <MixerView />
           ) : tab === "devices" ? (

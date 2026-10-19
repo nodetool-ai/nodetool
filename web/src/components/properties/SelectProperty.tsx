@@ -1,4 +1,5 @@
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
@@ -19,6 +20,7 @@ const SelectProperty: React.FC<PropertyProps<string>> = ({
   tabIndex,
   changed
 }) => {
+  const { t } = useTranslation();
   const id = useMemo(
     () => `select-${property.name}-${propertyIndex}`,
     [property.name, propertyIndex]
@@ -56,7 +58,7 @@ const SelectProperty: React.FC<PropertyProps<string>> = ({
         onChange={onChange}
         options={selectOptions}
         label={property.name}
-        placeholder="Select…"
+        placeholder={t("i18n-next75.properties.selectPlaceholder")}
         tabIndex={tabIndex}
         changed={changed}
       />

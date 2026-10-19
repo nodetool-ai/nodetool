@@ -16,6 +16,7 @@ const activePop = keyframes({
 const EASE_OUT_QUINT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 //mui
 import {
   EditorButton,
@@ -359,6 +360,7 @@ type AssetViewerProps = {
 const FILMSTRIP_NEIGHBOURS = 5;
 
 const AssetViewer: React.FC<AssetViewerProps> = (props) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next27" });
   const theme = useTheme();
   const {
     asset,
@@ -651,7 +653,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         fullWidth
         open={open}
         onClose={handleClose}
-        aria-label="Asset viewer"
+        aria-label={t("assetViewer.label")}
         variant="fullscreen"
         slotProps={{
           // Media sits on a dark surface rather than the paper color.
@@ -669,10 +671,10 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         {compareMode && !compareAssetB && (
           <FlexRow className="compare-mode-bar" gap={SPACING.xs} align="center">
             <Text size="small">
-              Select another image from the thumbnails below to compare
+              {t("assetViewer.selectImageToCompare")}
             </Text>
             <EditorButton density="compact" onClick={cancelCompareMode}>
-              Cancel
+              {t("assetViewer.cancel")}
             </EditorButton>
           </FlexRow>
         )}
@@ -743,7 +745,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           {currentAsset?.workflow_id && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<AccountTreeIcon />}
-              tooltip="Open the workflow that made this"
+              tooltip={t("assetViewer.openWorkflow")}
               onClick={handleOpenWorkflow}
               className="button open-workflow"
               nodrag={false}
@@ -765,7 +767,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           {canCompare && !compareMode && !compareAssetB && (
             <ToolbarIconButton
               icon={<CompareIcon />}
-              tooltip="Compare with another image"
+              tooltip={t("assetViewer.compareImage")}
               onClick={startCompareMode}
               className="button compare"
               nodrag={false}
@@ -775,7 +777,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           {currentAsset && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<InfoOutlinedIcon />}
-              tooltip={showInfo ? "Hide info" : "Show info"}
+              tooltip={showInfo ? t("assetViewer.hideInfo") : t("assetViewer.showInfo")}
               onClick={toggleInfo}
               className="button info"
               nodrag={false}
@@ -784,7 +786,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           )}
           <CloseButton
             onClick={compareAssetB ? exitCompareView : handleClose}
-            tooltip="Close"
+            tooltip={t("assetViewer.close")}
             className="button close"
             nodrag={false}
             sx={viewerActionButtonSx}

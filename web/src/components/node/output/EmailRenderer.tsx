@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
@@ -13,23 +14,24 @@ export type Email = {
 };
 
 export const EmailRenderer: React.FC<{ value: Email }> = ({ value }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next106" });
   const theme = useTheme();
   return (
     <div css={outputStyles(theme)}>
       <div className="email-header">
         <p>
-          <strong>From:</strong> {value.sender}
+          <strong>{t("email.from")}:</strong> {value.sender}
         </p>
         <p>
-          <strong>To:</strong> {value.to}
+          <strong>{t("email.to")}:</strong> {value.to}
         </p>
         {value.cc && (
           <p>
-            <strong>CC:</strong> {value.cc}
+            <strong>{t("email.cc")}:</strong> {value.cc}
           </p>
         )}
         <p>
-          <strong>Subject:</strong> {value.subject}
+          <strong>{t("email.subject")}:</strong> {value.subject}
         </p>
       </div>
       <div className="email-body">

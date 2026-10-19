@@ -3,13 +3,9 @@
  * the desktop app during package install/uninstall.
  */
 import { memo, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-import {
-  EditorButton,
-  FlexColumn,
-  FlexRow,
-  LogView
-} from "../ui_primitives";
+import { EditorButton, FlexColumn, FlexRow, LogView } from "../ui_primitives";
 
 interface ConsolePanelProps {
   lines: string[];
@@ -19,6 +15,7 @@ interface ConsolePanelProps {
 }
 
 const ConsolePanel = ({ lines, onClear, busy = false }: ConsolePanelProps) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -47,16 +44,20 @@ const ConsolePanel = ({ lines, onClear, busy = false }: ConsolePanelProps) => {
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
         >
-          {open ? "Hide console" : "Show console"}
+          {open
+            ? t("screen_models.packages.hideConsole")
+            : t("screen_models.packages.showConsole")}
           {lines.length > 0 ? ` (${lines.length})` : ""}
         </EditorButton>
         {open && lines.length > 0 && (
           <FlexRow gap={0.5} align="center">
             <EditorButton variant="text" density="compact" onClick={handleCopy}>
-              {copied ? "Copied" : "Copy"}
+              {copied
+                ? t("screen_models.packages.copied")
+                : t("screen_models.packages.copy")}
             </EditorButton>
             <EditorButton variant="text" density="compact" onClick={onClear}>
-              Clear
+              {t("screen_models.packages.clear")}
             </EditorButton>
           </FlexRow>
         )}
@@ -65,7 +66,7 @@ const ConsolePanel = ({ lines, onClear, busy = false }: ConsolePanelProps) => {
         <LogView
           lines={lines}
           autoScroll
-          emptyText="No output yet. Logs appear here during install."
+          emptyText={t("screen_models.packages.noOutput")}
         />
       )}
     </FlexColumn>

@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SearchInput as SearchField } from "../ui_primitives";
 import {
   registerComboCallback,
@@ -40,12 +41,14 @@ const SearchInput: React.FC<SearchInputProps> = ({
   onPressSpaceWhenEmpty,
   focusSearchInput = true,
   focusOnTyping = false,
-  placeholder = "Search",
+  placeholder,
   maxWidth = "unset",
   debounceTime = 50,
   searchTerm: externalSearchTerm = "",
   width = 150
 }) => {
+  const { t } = useTranslation();
+  const searchPlaceholder = placeholder ?? t("batch2_13.search.input.placeholder");
   const inputRef = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
@@ -252,7 +255,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         onClear={clearSearch}
         onKeyDown={handleInputKeyDown}
         escapeClears={false}
-        placeholder={placeholder}
+        placeholder={searchPlaceholder}
         size="medium"
         fullWidth
         clearTooltip={clearHint}

@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 interface GamePlayStatusInput {
   won: boolean;
   playing: boolean;
@@ -6,6 +8,7 @@ interface GamePlayStatusInput {
   /** The scene the run is on, by its document name. */
   sceneName: string | undefined;
   sceneCount: number;
+  t: TFunction;
 }
 
 /**
@@ -18,13 +21,14 @@ export const gamePlayStatus = ({
   playing,
   paused,
   sceneName,
-  sceneCount
+  sceneCount,
+  t
 }: GamePlayStatusInput): string => {
   if (won) {
-    return "Won";
+    return t("screen_game.player.won");
   }
   if (playing) {
-    return sceneCount > 1 && sceneName ? `Scene: ${sceneName}` : "Playing";
+    return sceneCount > 1 && sceneName ? t("screen_game.player.sceneStatus", { scene: sceneName }) : t("screen_game.player.playing");
   }
-  return paused ? "Paused" : "Ready";
+  return paused ? t("screen_game.player.paused") : t("screen_game.player.ready");
 };

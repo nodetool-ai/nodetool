@@ -19,6 +19,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -93,8 +94,6 @@ const stepperEntries = <Stage extends string>(
  * the half the creator is on without gaining a dot of its own: the flow's own
  * label stays, and the review it is now showing is said out loud.
  */
-const SUBSTEP_LABEL = "Review";
-
 export interface SetupFlowProps<Stage extends string> {
   config: SetupFlowConfig<Stage>;
   /** Show the current setup state without offering document mutations. */
@@ -118,6 +117,7 @@ export function SetupFlow<Stage extends string>({
   onChangeFlow,
   readOnly = false
 }: SetupFlowProps<Stage>): React.ReactElement | null {
+  const { t } = useTranslation();
   const { labels, steps, stage, onStageChange } = config;
   const [busy, setBusy] = useState(false);
   // True only while the shell awaits the step's own `onAdvance`, the one run
@@ -517,12 +517,12 @@ export function SetupFlow<Stage extends string>({
   );
   const primaryText = backToStep
     ? currentIndex > entries[currentEntry].firstIndex
-      ? `Back to ${SUBSTEP_LABEL.toLowerCase()}`
-      : "Back to this step"
+      ? t("pass3_4.setupFlow.actions.backToReview")
+      : t("pass3_4.setupFlow.actions.backToStep")
     : canceled
-      ? "Retry"
+      ? t("pass3_4.setupFlow.actions.retry")
       : error
-        ? "Try again"
+        ? t("pass3_4.setupFlow.actions.tryAgain")
         : step.primaryLabel;
   const bodyLocked = readOnly || locked;
 
@@ -533,20 +533,23 @@ export function SetupFlow<Stage extends string>({
   const status = pending ? (
     <FlexRow gap={GAP.normal} align="center" wrap>
       <Text size="small" component="div">
-        <ThinkingIndicator label={step.pendingLabel ?? "Working"} announce />
+        <ThinkingIndicator
+          label={step.pendingLabel ?? t("pass3_4.setupFlow.status.working")}
+          announce
+        />
       </Text>
       {/* The body locks while the run reads it, so the step says why. */}
       <Caption size="small" color="secondary">
-        Changes are paused
+        {t("pass3_4.setupFlow.status.changesPaused")}
       </Caption>
     </FlexRow>
   ) : changingFlow ? (
     <Caption size="small" color="secondary">
-      Discarding this draft
+      {t("pass3_4.setupFlow.status.discardingDraft")}
     </Caption>
   ) : canceled ? (
     <Caption size="small" color="secondary">
-      Canceled
+      {t("pass3_4.setupFlow.status.canceled")}
     </Caption>
   ) : blocked && step.blockedReason ? (
     <Caption size="small" color="secondary" id={blockedReasonId}>
@@ -568,7 +571,7 @@ export function SetupFlow<Stage extends string>({
   const footerControls = step.footerControls ? (
     <FlexRow
       role="group"
-      aria-label="Generation settings"
+      aria-label={t("pass3_4.setupFlow.accessibility.generationSettings")}
       gap={GAP.normal}
       align="center"
       wrap
@@ -594,7 +597,10 @@ export function SetupFlow<Stage extends string>({
         <Text size="small" color="secondary" component="h2">
           {labels.title}
         </Text>
-        <Box component="nav" aria-label="Setup steps">
+        <Box
+          component="nav"
+          aria-label={t("pass3_4.setupFlow.accessibility.setupSteps")}
+        >
           <FlexRow
             component="ol"
             gap={GAP.normal}
@@ -613,7 +619,10 @@ export function SetupFlow<Stage extends string>({
               const onSubstep =
                 index === currentEntry && currentIndex > entry.firstIndex;
               const text = onSubstep
-                ? `${index + 1}. ${entry.label} · ${SUBSTEP_LABEL}`
+                ? t("pass3_4.setupFlow.stepper.review", {
+                    number: index + 1,
+                    label: entry.label
+                  })
                 : `${index + 1}. ${entry.label}`;
               return (
                 <FlexRow
@@ -669,9 +678,11 @@ export function SetupFlow<Stage extends string>({
       ) : null}
 
       {readOnly ? (
-        <AlertBanner severity="info" title="View only">
-          This setup can be reviewed here, but it cannot be changed in view
-          mode.
+        <AlertBanner
+          severity="info"
+          title={t("pass3_4.setupFlow.readOnly.title")}
+        >
+          {t("pass3_4.setupFlow.readOnly.description")}
         </AlertBanner>
       ) : null}
 
@@ -689,38 +700,45 @@ export function SetupFlow<Stage extends string>({
           <AlertBanner
             ref={changeFlowErrorRef}
             severity="error"
-            title="We couldn't discard this draft"
+            title={t("pass3_4.setupFlow.errors.discardTitle")}
             sx={{ marginBottom: SPACING.xl }}
             action={
               <ReportBugButton
-                label="Report this failure"
+                label={t("pass3_4.setupFlow.errors.reportFailure")}
                 variant="outlined"
                 size="small"
                 context={{
                   source: "manual",
-                  summary: `${labels.title} setup failed to change flow`,
+                  summary: t("pass3_4.setupFlow.errors.discardSummary", {
+                    flow: labels.title
+                  }),
                   errorText: changeFlowError
                 }}
               />
             }
           >
-            {`${changeFlowError} Press Change flow to try again.`}
+            {t("pass3_4.setupFlow.errors.discardDescription", {
+              error: changeFlowError
+            })}
           </AlertBanner>
         ) : null}
         {error && !canceled ? (
           <AlertBanner
             ref={errorRef}
             severity="error"
-            title="We couldn't complete this step"
+            title={t("pass3_4.setupFlow.errors.stepTitle")}
             sx={{ marginBottom: SPACING.xl }}
             action={
               <ReportBugButton
-                label="Report this failure"
+                label={t("pass3_4.setupFlow.errors.reportFailure")}
                 variant="outlined"
                 size="small"
                 context={{
                   source: "manual",
-                  summary: `${labels.title} setup failed at ${step.label}`,
+                  summary: t("pass3_4.setupFlow.errors.stepSummary", {
+                    flow: labels.title,
+                    step: step.label
+                  }),
                   errorText: error
                 }}
               />
@@ -743,17 +761,20 @@ export function SetupFlow<Stage extends string>({
           {canceled ? (
             <FlexColumn gap={GAP.spacious} fullWidth>
               <Text size="big" component="h1">
-                This step was canceled
+                {t("pass3_4.setupFlow.canceled.title")}
               </Text>
-              <AlertBanner severity="info" title="Canceled">
-                The pending operation was canceled. Your draft is unchanged.
+              <AlertBanner
+                severity="info"
+                title={t("pass3_4.setupFlow.canceled.status")}
+              >
+                {t("pass3_4.setupFlow.canceled.description")}
               </AlertBanner>
               <Text size="normal" color="secondary">
                 {canceling
-                  ? "Stopping the canceled request."
+                  ? t("pass3_4.setupFlow.canceled.stopping")
                   : backToStep
-                    ? "Go back to the step when you are ready. The canceled request cannot replace this draft."
-                    : "Retry when you are ready. A new request will be started deliberately and the canceled request cannot replace this draft."}
+                    ? t("pass3_4.setupFlow.canceled.backDescription")
+                    : t("pass3_4.setupFlow.canceled.retryDescription")}
               </Text>
             </FlexColumn>
           ) : (
@@ -809,7 +830,7 @@ export function SetupFlow<Stage extends string>({
                 disabled={currentIndex === 0 || locked || step.holdNavigation}
                 sx={{ fontSize: FONT_SIZE_SANS.body }}
               >
-                Back
+                {t("pass3_4.setupFlow.actions.back")}
               </EditorButton>
               {/* The way out of the wrong card. It stands where `Back` is dead, on
                 the first step, and only when a host can actually perform the
@@ -823,7 +844,7 @@ export function SetupFlow<Stage extends string>({
                   disabled={locked || step.holdNavigation}
                   sx={{ fontSize: FONT_SIZE_SANS.body }}
                 >
-                  Change flow
+                  {t("pass3_4.setupFlow.actions.changeFlow")}
                 </EditorButton>
               ) : null}
               {step.onSkip ? (
@@ -834,7 +855,7 @@ export function SetupFlow<Stage extends string>({
                   disabled={locked}
                   sx={{ fontSize: FONT_SIZE_SANS.body }}
                 >
-                  {step.skipLabel ?? "Skip"}
+                  {step.skipLabel ?? t("pass3_4.setupFlow.actions.skip")}
                 </EditorButton>
               ) : null}
             </FlexRow>
@@ -855,7 +876,7 @@ export function SetupFlow<Stage extends string>({
                     onClick={handleCancel}
                     sx={{ fontSize: FONT_SIZE_SANS.body }}
                   >
-                    Cancel
+                    {t("pass3_4.setupFlow.actions.cancel")}
                   </EditorButton>
                 ) : null}
                 <EditorButton
@@ -870,7 +891,12 @@ export function SetupFlow<Stage extends string>({
                     blocked && step.blockedReason ? blockedReasonId : undefined
                   }
                   aria-keyshortcuts="Meta+Enter Control+Enter"
-                  tooltip={`${primaryText} (\u2318\u21A9 or Ctrl+\u21A9)`}
+                  tooltip={t(
+                    "pass3_4.setupFlow.accessibility.primaryShortcut",
+                    {
+                      action: primaryText
+                    }
+                  )}
                   sx={{
                     fontSize: FONT_SIZE_SANS.body,
                     paddingX: narrow ? SPACING.xl : SPACING.xxl,
@@ -888,17 +914,19 @@ export function SetupFlow<Stage extends string>({
       <Dialog
         open={confirmingChange && changeFlowAvailable}
         onClose={() => setConfirmingChange(false)}
-        title="Change flow?"
+        title={t("pass3_4.setupFlow.changeFlow.title")}
         showActions
         destructive
-        confirmText="Discard and choose"
-        cancelText="Keep this draft"
+        confirmText={t("pass3_4.setupFlow.changeFlow.confirm")}
+        cancelText={t("pass3_4.setupFlow.changeFlow.cancel")}
         onConfirm={() => void handleChangeFlow()}
         onCancel={() => setConfirmingChange(false)}
         maxWidth="xs"
       >
         <Text size="normal">
-          {`Your brief, and the references and entities you started with, come with you to the flow you pick next. This ${labels.title.toLowerCase()} draft is discarded with anything else added on this step, such as creative context, imported files and placed media. Nothing has been generated for it yet.`}
+          {t("pass3_4.setupFlow.changeFlow.description", {
+            flow: labels.title.toLowerCase()
+          })}
         </Text>
       </Dialog>
     </FlexColumn>

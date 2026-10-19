@@ -1,4 +1,5 @@
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import AnnouncementIcon from "@mui/icons-material/Announcement";
 import {
@@ -28,6 +29,7 @@ import { isLocalhost, isProduction } from "../../lib/env";
 import { isElectron } from "../../utils/browser";
 
 const DownloadManagerDialog: React.FC = () => {
+  const { t } = useTranslation();
   const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore(
     useShallow((state) => ({
       isDialogOpen: state.isDialogOpen,
@@ -42,16 +44,18 @@ const DownloadManagerDialog: React.FC = () => {
   const theme = useTheme();
 
   const infoMessage = hasActiveDownloads ? (
-    "Downloads continue in the background. Access them anytime from the toolbar download icon."
+    t("i18n-next55.downloadManager.backgroundDownloads")
   ) : (
     <FlexColumn gap={SPACING.xs}>
       <span>
-        Download models using the <strong>Recommended models</strong> button
-        inside nodes.
+        {t("i18n-next55.downloadManager.downloadFromNodes", {
+          recommendedModels: t("i18n-next55.downloadManager.recommendedModels")
+        })}
       </span>
       <span>
-        The <strong>Model manager</strong> in the top right panel shows all
-        available models.
+        {t("i18n-next55.downloadManager.modelManagerInfo", {
+          modelManager: t("i18n-next55.downloadManager.modelManager")
+        })}
       </span>
     </FlexColumn>
   );
@@ -61,7 +65,7 @@ const DownloadManagerDialog: React.FC = () => {
       className="download-dialog"
       open={isDialogOpen}
       onClose={closeDialog}
-      title="Downloads"
+      title={t("i18n-next55.downloadManager.title")}
       maxWidth="md"
       fullWidth
     >
@@ -75,8 +79,8 @@ const DownloadManagerDialog: React.FC = () => {
         ) : (
           <EmptyState
             icon={<DownloadingIcon />}
-            title="No active downloads"
-            description="Start a model download from the Recommended Models dialog or Model Manager."
+            title={t("i18n-next55.downloadManager.noActiveDownloads")}
+            description={t("i18n-next55.downloadManager.startDownload")}
           />
         )}
         {isLocalhost &&
@@ -91,14 +95,14 @@ const DownloadManagerDialog: React.FC = () => {
                   startIcon={<FolderOutlined />}
                   onClick={openHuggingfacePath}
                 >
-                  Open HuggingFace folder
+                  {t("i18n-next55.downloadManager.openHuggingFaceFolder")}
                 </EditorButton>
                 <EditorButton
                   variant="outlined"
                   startIcon={<FolderOutlined />}
                   onClick={openOllamaPath}
                 >
-                  Open Ollama folder
+                  {t("i18n-next55.downloadManager.openOllamaFolder")}
                 </EditorButton>
               </FlexRow>
             </>

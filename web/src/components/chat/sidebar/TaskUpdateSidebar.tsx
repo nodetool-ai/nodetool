@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { TaskUpdate } from "../../../stores/ApiTypes";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
@@ -15,11 +16,12 @@ interface TaskUpdateSidebarProps {
 export const TaskUpdateSidebar = memo<TaskUpdateSidebarProps>(
   ({ taskUpdate }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
 
     return (
       <FlexColumn
         component="aside"
-        aria-label="Active agent task"
+        aria-label={t("i18n-next54.sidebar.activeTask")}
         className="task-update-sidebar"
         fullHeight
         sx={{

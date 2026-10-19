@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useState, type ChangeEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -86,6 +87,7 @@ const ProviderRow = memo(function ProviderRow({
   testing: boolean;
   testResult: TestResult | null;
 }) {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const handleEdit = useCallback(() => onEdit(provider), [onEdit, provider]);
   const handleDelete = useCallback(() => onDelete(provider), [onDelete, provider]);
@@ -131,31 +133,34 @@ const ProviderRow = memo(function ProviderRow({
             </Text>
             <Chip label={provider.provider_id} compact variant="outlined" />
             {provider.has_api_key && (
-              <Chip label="Key set" compact variant="outlined" color="success" />
+              <Chip label={t("i18n-cont-settings-01.customProviders.keySet")} compact variant="outlined" color="success" />
             )}
           </FlexRow>
           <Caption sx={{ opacity: 0.55, wordBreak: "break-all" }}>
-            {provider.base_url || "No endpoint set"}
+            {provider.base_url || t("i18n-cont-settings-01.customProviders.noEndpoint")}
           </Caption>
           {handListed > 0 && (
             <Caption size="smaller" sx={{ opacity: 0.45 }}>
-              {handListed} model{handListed === 1 ? "" : "s"} listed by hand
+              {t("i18n-cont-settings-01.customProviders.modelsListed", {
+                count: handListed,
+                formattedCount: new Intl.NumberFormat(i18n.language).format(handListed)
+              })}
             </Caption>
           )}
           {testResult?.counts && testResult.ok && (
             <FlexRow align="center" gap={0.5} sx={{ flexWrap: "wrap" }}>
               <Chip
-                label={`Chat ${testResult.counts.language}`}
+                label={t("i18n-cont-settings-01.customProviders.chatCount", { count: testResult.counts.language, formattedCount: new Intl.NumberFormat(i18n.language).format(testResult.counts.language) })}
                 compact
                 variant="outlined"
               />
               <Chip
-                label={`Image ${testResult.counts.image}`}
+                label={t("i18n-cont-settings-01.customProviders.imageCount", { count: testResult.counts.image, formattedCount: new Intl.NumberFormat(i18n.language).format(testResult.counts.image) })}
                 compact
                 variant="outlined"
               />
               <Chip
-                label={`Video ${testResult.counts.video}`}
+                label={t("i18n-cont-settings-01.customProviders.videoCount", { count: testResult.counts.video, formattedCount: new Intl.NumberFormat(i18n.language).format(testResult.counts.video) })}
                 compact
                 variant="outlined"
               />
@@ -181,7 +186,7 @@ const ProviderRow = memo(function ProviderRow({
           onClick={handleTest}
           disabled={testing}
         >
-          {testing ? "Testing…" : "Test"}
+          {testing ? t("i18n-cont-settings-01.customProviders.testing") : t("i18n-cont-settings-01.customProviders.test")}
         </EditorButton>
         <EditorButton
           density="compact"
@@ -189,7 +194,7 @@ const ProviderRow = memo(function ProviderRow({
           size="small"
           onClick={handleEdit}
         >
-          Edit
+          {t("i18n-cont-settings-01.common.edit")}
         </EditorButton>
         <EditorButton
           density="compact"
@@ -199,7 +204,7 @@ const ProviderRow = memo(function ProviderRow({
           startIcon={<DeleteIcon />}
           onClick={handleDelete}
         >
-          Remove
+          {t("i18n-cont-settings-01.common.remove")}
         </EditorButton>
       </FlexRow>
     </Card>
@@ -212,6 +217,7 @@ const ProviderRow = memo(function ProviderRow({
  * built-in provider cards above it.
  */
 export const CustomProvidersSection = memo(function CustomProvidersSection() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore((s) => s.addNotification);
@@ -259,7 +265,7 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
       addNotification({
         type: "success",
         alert: true,
-        content: `${saved.name} saved as ${saved.provider_id}`
+        content: t("i18n-cont-settings-01.customProviders.saved", { name: saved.name, providerId: saved.provider_id })
       });
       // Show right away which chat, image and video models the endpoint
       // serves, so a missed image or video model is visible before the user
@@ -283,7 +289,7 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
       addNotification({
         type: "success",
         alert: true,
-        content: "Provider removed"
+        content: t("i18n-cont-settings-01.customProviders.removed")
       });
     }
   });
@@ -370,6 +376,18 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
 
   const slugError = customProviderSlugError(draft.slug);
   const urlError = customProviderBaseUrlError(draft.baseUrl);
+  const translatedSlugError = slugError
+    ? t(slugError === "A slug is required."
+        ? "i18n-cont-settings-01.customProviders.slugRequired"
+        : "i18n-cont-settings-01.customProviders.slugFormat")
+    : undefined;
+  const translatedBaseUrlError = urlError
+    ? t(urlError === "A base URL is required."
+        ? "i18n-cont-settings-01.customProviders.baseUrlRequired"
+        : urlError.startsWith("Enter a full URL")
+          ? "i18n-cont-settings-01.customProviders.baseUrlInvalid"
+          : "i18n-cont-settings-01.customProviders.baseUrlProtocol")
+    : undefined;
   const duplicateSlug =
     !editingSlug && (providers ?? []).some((p) => p.slug === draft.slug);
 
@@ -410,11 +428,10 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
       >
         <FlexColumn gap={0.5}>
           <Text size="normal" weight={600}>
-            OpenAI-compatible endpoints
+            {t("i18n-cont-settings-01.customProviders.heading")}
           </Text>
           <Caption sx={{ opacity: 0.55 }}>
-            Point NodeTool at any proxy or gateway that speaks the OpenAI API.
-            Its chat, image and video models appear in the matching nodes.
+            {t("i18n-cont-settings-01.customProviders.description")}
           </Caption>
         </FlexColumn>
         <EditorButton
@@ -424,15 +441,15 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
           startIcon={<AddIcon />}
           onClick={handleAdd}
         >
-          Add endpoint
+          {t("i18n-cont-settings-01.customProviders.addEndpoint")}
         </EditorButton>
       </FlexRow>
 
       {rows.length === 0 ? (
         <EmptyState
           variant="no-results"
-          title="No endpoints yet"
-          description="Add a base URL and an API key to use any OpenAI-compatible provider."
+          title={t("i18n-cont-settings-01.customProviders.emptyTitle")}
+          description={t("i18n-cont-settings-01.customProviders.emptyDescription")}
         />
       ) : (
         <FlexColumn sx={{ gap: theme.spacing(2) }}>
@@ -454,26 +471,26 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
         open={dialogOpen}
         onClose={handleClose}
         fullWidth
-        title={editingSlug ? "Edit endpoint" : "Add OpenAI-compatible endpoint"}
+        title={editingSlug ? t("i18n-cont-settings-01.customProviders.editTitle") : t("i18n-cont-settings-01.customProviders.addTitle")}
         onConfirm={handleSave}
-        confirmText={editingSlug ? "Save" : "Add"}
+        confirmText={editingSlug ? t("i18n-cont-settings-01.common.save") : t("i18n-cont-settings-01.common.add")}
         confirmDisabled={
           Boolean(slugError) || Boolean(urlError) || duplicateSlug
         }
       >
         <FlexColumn gap={SPACING.lg}>
           <TextInput
-            label="Name"
+            label={t("i18n-cont-settings-01.common.name")}
             value={draft.name}
             onChange={handleNameChange}
             fullWidth
-            placeholder="My Proxy"
+            placeholder={t("i18n-cont-settings-01.common.providerNamePlaceholder")}
             autoFocus
             variant="outlined"
             size="small"
           />
           <TextInput
-            label="Slug"
+            label={t("i18n-cont-settings-01.customProviders.slug")}
             value={draft.slug}
             onChange={handleSlugChange}
             fullWidth
@@ -483,74 +500,74 @@ export const CustomProvidersSection = memo(function CustomProvidersSection() {
             size="small"
             errorMessage={
               duplicateSlug
-                ? "That slug is already in use."
-                : (slugError ?? undefined)
+                ? t("i18n-cont-settings-01.customProviders.duplicateSlug")
+                : translatedSlugError
             }
-            helperText={`Provider id: custom_${draft.slug || "…"}`}
+            helperText={t("i18n-cont-settings-01.customProviders.providerId", { slug: draft.slug || "…" })}
           />
           <TextInput
-            label="Base URL"
+            label={t("i18n-cont-settings-01.customProviders.baseUrl")}
             value={draft.baseUrl}
             onChange={handleBaseUrlChange}
             fullWidth
             placeholder="https://proxy.example.com/v1"
             variant="outlined"
             size="small"
-            errorMessage={urlError ?? undefined}
-            helperText="Include the version path the endpoint serves, usually /v1."
+            errorMessage={translatedBaseUrlError}
+            helperText={t("i18n-cont-settings-01.customProviders.baseUrlHelp")}
           />
           <TextInput
-            label="API key"
+            label={t("i18n-cont-settings-01.customProviders.apiKey")}
             type="password"
             value={draft.apiKey}
             onChange={handleApiKeyChange}
             fullWidth
             placeholder={
-              editingSlug ? "Leave blank to keep the stored key" : "Optional"
+              editingSlug ? t("i18n-cont-settings-01.customProviders.keepStoredKey") : t("i18n-cont-settings-01.common.optional")
             }
             variant="outlined"
             size="small"
-            helperText={`The URL and key are encrypted and stored per account. The same values can come from the environment instead, as CUSTOM_${envSlug}_BASE_URL and CUSTOM_${envSlug}_API_KEY.`}
+            helperText={t("i18n-cont-settings-01.customProviders.credentialsHelp", { baseUrlEnv: `CUSTOM_${envSlug}_BASE_URL`, apiKeyEnv: `CUSTOM_${envSlug}_API_KEY` })}
           />
           <TextInput
-            label="Models"
+            label={t("i18n-cont-settings-01.customProviders.models")}
             value={draft.models}
             onChange={handleModelsChange}
             fullWidth
-            placeholder="Leave blank to read GET /models"
+            placeholder={t("i18n-cont-settings-01.customProviders.modelsPlaceholder")}
             variant="outlined"
             size="small"
-            helperText="Comma-separated model ids, for endpoints with no /models route."
+            helperText={t("i18n-cont-settings-01.customProviders.modelsHelp")}
           />
           <TextInput
-            label="Image models"
+            label={t("i18n-cont-settings-01.customProviders.imageModels")}
             value={draft.imageModels}
             onChange={handleImageModelsChange}
             fullWidth
-            placeholder="Optional, e.g. flux-dev, seedream-4"
+            placeholder={t("i18n-cont-settings-01.customProviders.imageModelsPlaceholder")}
             variant="outlined"
             size="small"
-            helperText="Detected from the model list. Add ids that Test misses. Calls go to /images/generations."
+            helperText={t("i18n-cont-settings-01.customProviders.imageModelsHelp")}
           />
           <TextInput
-            label="Video models"
+            label={t("i18n-cont-settings-01.customProviders.videoModels")}
             value={draft.videoModels}
             onChange={handleVideoModelsChange}
             fullWidth
-            placeholder="Optional, e.g. kling-v2, veo-3"
+            placeholder={t("i18n-cont-settings-01.customProviders.videoModelsPlaceholder")}
             variant="outlined"
             size="small"
-            helperText="Detected from the model list. Add ids that Test misses. Calls go to /videos."
+            helperText={t("i18n-cont-settings-01.customProviders.videoModelsHelp")}
           />
         </FlexColumn>
       </Dialog>
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
-        title="Remove endpoint?"
-        content={`Remove ${pendingDelete?.name ?? ""}? Workflows that reference its models stop resolving.`}
-        confirmText="Remove"
-        cancelText="Cancel"
+        title={t("i18n-cont-settings-01.customProviders.removeTitle")}
+        content={t("i18n-cont-settings-01.customProviders.removeConfirm", { name: pendingDelete?.name ?? "" })}
+        confirmText={t("i18n-cont-settings-01.common.remove")}
+        cancelText={t("i18n-cont-settings-01.common.cancel")}
         destructive
         onConfirm={confirmDelete}
         onClose={handleCancelDelete}

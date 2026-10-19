@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type KeyboardEvent, type PointerEvent, type ReactNode, type RefObject, type SetStateAction } from "react";
+import { useTranslation } from "react-i18next";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { GameDocument, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 import { projectedCamera } from "@nodetool-ai/game-renderer";
@@ -22,13 +23,13 @@ import { selectionDescendants, localTransform, selectionRoots, worldTransforms, 
 
 type OverlayKey = "selection" | "grid" | "colliders" | "lights" | "backgrounds" | "camera";
 
-const OVERLAY_TOGGLES: readonly { key: OverlayKey; label: string; icon: ReactNode }[] = [
-  { key: "selection", label: "Selection", icon: <HighlightAltIcon fontSize="small" /> },
-  { key: "grid", label: "Grid", icon: <Grid4x4Icon fontSize="small" /> },
-  { key: "colliders", label: "Colliders", icon: <CropFreeIcon fontSize="small" /> },
-  { key: "lights", label: "Lights", icon: <LightModeOutlinedIcon fontSize="small" /> },
-  { key: "backgrounds", label: "Backgrounds", icon: <WallpaperIcon fontSize="small" /> },
-  { key: "camera", label: "Camera", icon: <CameraOutlinedIcon fontSize="small" /> }
+const OVERLAY_TOGGLES: readonly { key: OverlayKey; labelKey: string; icon: ReactNode }[] = [
+  { key: "selection", labelKey: "selection", icon: <HighlightAltIcon fontSize="small" /> },
+  { key: "grid", labelKey: "grid", icon: <Grid4x4Icon fontSize="small" /> },
+  { key: "colliders", labelKey: "colliders", icon: <CropFreeIcon fontSize="small" /> },
+  { key: "lights", labelKey: "lights", icon: <LightModeOutlinedIcon fontSize="small" /> },
+  { key: "backgrounds", labelKey: "backgrounds", icon: <WallpaperIcon fontSize="small" /> },
+  { key: "camera", labelKey: "camera", icon: <CameraOutlinedIcon fontSize="small" /> }
 ];
 const HEADER_ICON_SX = { fontSize: FONT_SIZE_SANS.body, color: "text.secondary" } as const;
 
@@ -85,6 +86,7 @@ function point(event: { clientX: number; clientY: number }, canvas: HTMLCanvasEl
 }
 
 export default function GameViewport({ canvasRef, frame, document, sceneId, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onMoves, onTransform, onLight, onGestureStart, onGestureEnd, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
+  const { t } = useTranslation();
   const gestureRef = useRef<number | null>(null);
   const gestureEndRef = useRef<typeof onGestureEnd>(undefined);
   const pointerHandlersRef = useRef<{ move: (event: PointerEvent<HTMLCanvasElement>) => void; up: () => void } | null>(null);
@@ -489,26 +491,25 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
 
   return (
     <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-      <DockPanelHeader title="Viewport" label={playing ? "Game" : "Scene"}
+      <DockPanelHeader title={t("screen_game.viewport.viewport")} label={playing ? t("screen_game.viewport.game") : t("screen_game.viewport.scene")}
         icon={playing ? <SportsEsportsOutlinedIcon sx={HEADER_ICON_SX} /> : <GridViewOutlinedIcon sx={HEADER_ICON_SX} />}>
         {!playing && <>
-          <ToolbarIconButton icon={<PanToolOutlinedIcon fontSize="small" />} ariaLabel="Pan"
-            tooltip={mac ? "Pan. Two-finger scroll or right/middle drag also pans. Pinch or Ctrl+scroll zooms."
-              : "Pan. Right/middle drag also pans. Mouse wheel zooms."}
+          <ToolbarIconButton icon={<PanToolOutlinedIcon fontSize="small" />} ariaLabel={t("screen_game.viewport.pan")}
+            tooltip={mac ? t("screen_game.viewport.panMacHelp") : t("screen_game.viewport.panHelp")}
             aria-pressed={panTool} active={panTool} onClick={() => setPanTool((value) => !value)} />
           <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
-          <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip="Snap" shortcut={snapShortcut}
+          <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip={t("screen_game.viewport.snap")} shortcut={snapShortcut}
             aria-pressed={snapToGrid} active={snapToGrid} onClick={() => setSnapToGrid((value) => !value)} />
           <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
-          <FlexRow gap={SPACING.micro} align="center" role="group" aria-label="Overlays">
-            {OVERLAY_TOGGLES.map((toggle) => <ToolbarIconButton key={toggle.label} icon={toggle.icon} tooltip={toggle.label}
+          <FlexRow gap={SPACING.micro} align="center" role="group" aria-label={t("screen_game.viewport.overlays")}>
+            {OVERLAY_TOGGLES.map((toggle) => <ToolbarIconButton key={toggle.key} icon={toggle.icon} tooltip={t(`screen_game.viewport.overlaysList.${toggle.labelKey}`)}
               aria-pressed={overlayState[toggle.key][0]} active={overlayState[toggle.key][0]}
               onClick={() => overlayState[toggle.key][1]((value) => !value)} />)}
           </FlexRow>
         </>}
       </DockPanelHeader>
       <Box ref={stageRef} sx={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", bgcolor: "background.default" }}>
-        <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label="Game viewport" role="group" tabIndex={0}
+        <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label={t("screen_game.viewport.gameViewport")} role="group" tabIndex={0}
           onKeyDown={(event) => {
             if (!playing && event.code === "Space") { event.preventDefault(); spaceHeldRef.current = true; }
             onKeyDown(event);
@@ -517,7 +518,7 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
           onBlur={() => { spaceHeldRef.current = false; onPointerCancel(); onBlur(); }}
           sx={{ width: "100%", height: "100%", objectFit: "contain" }} />
         {(!playing || paused) && frame && <Box component="canvas" ref={overlayRef} width={Math.round(frame.width * frame.pixelsPerUnit)} height={Math.round(frame.height * frame.pixelsPerUnit)}
-          aria-label="Game edit overlay" role="group"
+          aria-label={t("screen_game.viewport.gameEditOverlay")} role="group"
           onContextMenu={(event) => event.preventDefault()}
           onPointerDown={(event) => {
             pointerHandlersRef.current = { move: onPointerMove, up: onPointerUp };

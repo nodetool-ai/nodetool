@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { EmbeddingModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
@@ -26,6 +27,7 @@ function EmbeddingModelMenuDialog({
   recommendedModels,
   modelPacks
 }: EmbeddingModelMenuDialogProps) {
+  const { t } = useTranslation();
   const modelData = useEmbeddingModelsByProvider({ allowedProviders });
   return (
     <ModelMenuDialogBase<EmbeddingModel>
@@ -34,8 +36,8 @@ function EmbeddingModelMenuDialog({
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
-      title="Select embedding model"
-      searchPlaceholder="Search embedding models"
+      title={t("screen_modelMenu.selectEmbeddingModel")}
+      searchPlaceholder={t("screen_modelMenu.searchEmbeddingModels")}
       storeHook={useEmbeddingModelMenuStore}
       modelType="embedding_model"
       localCapabilities={LOCAL_CAPABILITIES}

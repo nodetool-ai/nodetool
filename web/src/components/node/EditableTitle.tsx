@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
@@ -49,7 +50,7 @@ const STEP_BADGE_SX = {
 // Split the title into runs: keycap markers become crisp step badges, other
 // emoji are desaturated so their native colors don't clash, and plain text is
 // left untouched. Keeps notes legible and on-theme.
-function renderTitleText(title: string) {
+function renderTitleText(title: string, stepLabel: (step: number) => string) {
   return title
     .split(EMOJI_SPLIT)
     .filter((part) => part !== "")
@@ -63,7 +64,7 @@ function renderTitleText(title: string) {
             count={step}
             showZero
             size="small"
-            ariaLabel={`Step ${step}`}
+            ariaLabel={stepLabel(step)}
             sx={STEP_BADGE_SX}
           />
         );
@@ -84,6 +85,7 @@ const EditableTitle = memo(function EditableTitle({
   title
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const { t } = useTranslation();
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const theme = useTheme();
 
@@ -260,8 +262,8 @@ const EditableTitle = memo(function EditableTitle({
         <textarea
           defaultValue={title}
           autoFocus
-          aria-label="Note text"
-          placeholder="Add your note…"
+          aria-label={t("i18n-next36.nodeEditor.editableTitle.noteText")}
+          placeholder={t("i18n-next36.nodeEditor.editableTitle.addNotePlaceholder")}
           onKeyDown={handleKeyDown}
           onInput={handleInput}
           onBlur={handleBlur}
@@ -269,13 +271,20 @@ const EditableTitle = memo(function EditableTitle({
         />
       ) : (
         <>
-          <div className="title">{renderTitleText(title)}</div>
-          <Tooltip title="Delete note" describeChild>
+          <div className="title">
+            {renderTitleText(title, (step) =>
+              t("i18n-next36.nodeEditor.editableTitle.step", { step })
+            )}
+          </div>
+          <Tooltip
+            title={t("i18n-next36.nodeEditor.editableTitle.deleteNote")}
+            describeChild
+          >
             <button
               type="button"
               className="remove-title"
               onClick={handleRemoveTitle}
-              aria-label="Delete note"
+              aria-label={t("i18n-next36.nodeEditor.editableTitle.deleteNote")}
             >
               <CloseIcon className="icon" />
             </button>

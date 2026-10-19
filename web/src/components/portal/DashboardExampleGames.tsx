@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { lazy, memo, Suspense, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { ExampleGameSummary } from "@nodetool-ai/protocol/game.js";
 import {
   useExampleGames,
@@ -64,13 +65,14 @@ const GameCard = memo(function GameCard({
   onInstall,
   onPlay
 }: GameCardProps) {
+  const { t } = useTranslation();
   const handleClick = useCallback(() => onInstall(game), [game, onInstall]);
   return (
     <article className="game-card">
       <ResponsiveImage
         className="game-poster"
         locator={game.posterUri}
-        alt={`${game.name} gameplay`}
+        alt={t("pass3_16.portal.games.gameplayImageAlt", { name: game.name })}
         aspectRatio="16/9"
         loading="lazy"
         showSkeleton
@@ -91,7 +93,7 @@ const GameCard = memo(function GameCard({
             variant="contained"
             onClick={() => onPlay(game)}
           >
-            Play
+            {t("pass3_16.portal.games.play")}
           </EditorButton>
           <EditorButton
             variant="outlined"
@@ -100,7 +102,9 @@ const GameCard = memo(function GameCard({
             onClick={handleClick}
             sx={{ alignSelf: "flex-start" }}
           >
-            {installing ? "Adding game…" : "Install game"}
+            {installing
+              ? t("pass3_16.portal.games.adding")
+              : t("pass3_16.portal.games.install")}
           </EditorButton>
         </FlexRow>
       </FlexColumn>
@@ -115,16 +119,14 @@ interface DashboardExampleGamesProps {
 }
 
 const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
+  const { t } = useTranslation();
   const [playingGame, setPlayingGame] = useState<ExampleGameSummary | null>(
     null
   );
-  const handlePlay = useCallback(
-    (game: ExampleGameSummary) => {
-      setPlayingGame(game);
-      useOnboardingStore.getState().markStep("keep-creating");
-    },
-    []
-  );
+  const handlePlay = useCallback((game: ExampleGameSummary) => {
+    setPlayingGame(game);
+    useOnboardingStore.getState().markStep("keep-creating");
+  }, []);
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const navigate = useNavigate();
@@ -156,22 +158,28 @@ const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
             addNotification({
               type: "error",
               alert: true,
-              content: `Couldn't add ${game.name}: ${error.message}`
+              content: t("pass3_16.portal.games.installError", {
+                name: game.name,
+                message: error.message
+              })
             });
           }
         }
       );
     },
-    [addNotification, install, navigate, openTab]
+    [addNotification, install, navigate, openTab, t]
   );
 
   const games = data ?? [];
   return (
-    <section css={styles(theme)} aria-label="Example games">
+    <section
+      css={styles(theme)}
+      aria-label={t("pass3_16.portal.games.ariaLabel")}
+    >
       <div css={sectionWrap}>
         <DashboardSectionHeader
-          title="Start from a game"
-          count={`${games.length} games`}
+          title={t("pass3_16.portal.games.title")}
+          count={t("pass3_16.portal.games.count", { count: games.length })}
         >
           {onMakeGame && (
             <EditorButton
@@ -179,7 +187,7 @@ const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
               density="compact"
               onClick={onMakeGame}
             >
-              Make a game
+              {t("pass3_16.portal.games.makeGame")}
             </EditorButton>
           )}
         </DashboardSectionHeader>
@@ -187,8 +195,7 @@ const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
           color="secondary"
           sx={{ marginBottom: getSpacingPx(SPACING.sm) }}
         >
-          Play a game directly, or install a copy to change its art, levels and
-          rules.
+          {t("pass3_16.portal.games.description")}
         </Caption>
         {playingGame && (
           <FlexColumn gap={SPACING.md} sx={{ mb: SPACING.xl }}>
@@ -196,11 +203,17 @@ const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
               onClick={() => setPlayingGame(null)}
               sx={{ alignSelf: "flex-end" }}
             >
-              Close game
+              {t("pass3_16.portal.games.closeGame")}
             </EditorButton>
             <Box sx={{ aspectRatio: "16 / 9", position: "relative" }}>
               <Box sx={{ position: "absolute", inset: 0 }}>
-                <Suspense fallback={<LoadingSpinner text="Loading game" />}>
+                <Suspense
+                  fallback={
+                    <LoadingSpinner
+                      text={t("pass3_16.portal.games.loadingGame")}
+                    />
+                  }
+                >
                   <ExampleGamePlayView
                     key={playingGame.slug}
                     slug={playingGame.slug}
@@ -212,22 +225,27 @@ const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
         )}
         {playingGame ? null : isLoading ? (
           <FlexColumn align="center" padding={PADDING.spacious}>
-            <LoadingSpinner size="medium" text="Loading games" />
+            <LoadingSpinner
+              size="medium"
+              text={t("pass3_16.portal.games.loading")}
+            />
           </FlexColumn>
         ) : isError ? (
           <EmptyState
             variant="error"
-            title="Couldn't load games"
-            description="Try again in a moment."
-            actionText="Retry"
+            title={t("pass3_16.portal.games.loadErrorTitle")}
+            description={t("pass3_16.portal.games.loadErrorDescription")}
+            actionText={t("pass3_16.portal.games.retry")}
             onAction={() => refetch()}
           />
         ) : games.length === 0 ? (
           <EmptyState
             variant="no-data"
-            title="No games available"
-            description="Example games will appear here when this install ships them."
-            actionText={onMakeGame ? "Make a game" : undefined}
+            title={t("pass3_16.portal.games.emptyTitle")}
+            description={t("pass3_16.portal.games.emptyDescription")}
+            actionText={
+              onMakeGame ? t("pass3_16.portal.games.makeGame") : undefined
+            }
             onAction={onMakeGame}
           />
         ) : (

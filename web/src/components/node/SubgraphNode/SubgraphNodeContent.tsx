@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { Box, Caption, FlexColumn, FlexRow, MOTION, ICON_SIZE, Tooltip } from "../../ui_primitives";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -23,6 +24,7 @@ interface SubgraphNodeContentProps {
 
 export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
   ({ id, nodeType, nodeMetadata, data, status, workflowId }) => {
+    const { t } = useTranslation();
     const { handleAddProperty } = useDynamicProperty(
       id,
       data.dynamic_properties
@@ -95,7 +97,7 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />
         )}
-        <Tooltip title="Open the subgraph in its own tab" describeChild>
+        <Tooltip title={t("i18n-next82.node.subgraph.openTooltip")} describeChild>
           <Box
             component="button"
             type="button"
@@ -129,12 +131,14 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
           >
             <FlexRow gap={0.5} align="center">
               <AccountTreeIcon sx={{ fontSize: ICON_SIZE.xs }} />
-              <Caption>Open subgraph</Caption>
+              <Caption>{t("i18n-next82.node.subgraph.openLabel")}</Caption>
             </FlexRow>
             <Caption>
               {innerNodeCount === 0
-                ? "empty"
-                : `${innerNodeCount} inner node${innerNodeCount === 1 ? "" : "s"}`}
+                ? t("i18n-next82.node.subgraph.empty")
+                : t("i18n-next82.node.subgraph.innerNodes", {
+                    count: innerNodeCount
+                  })}
             </Caption>
           </Box>
         </Tooltip>

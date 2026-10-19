@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
@@ -43,6 +44,7 @@ import { useExtractScript } from "../../hooks/script/useExtractScript";
 import { TranscriptEditor } from "./transcript/TranscriptEditor";
 
 export const TranscriptPanel: React.FC = memo(() => {
+  const { t } = useTranslation();
   // Only the transcript/caption-bearing subset — untouched clips (B-roll,
   // music) keep their identity across store publishes, so `useShallow`
   // returns the SAME array reference for those publishes and the memo below
@@ -77,9 +79,9 @@ export const TranscriptPanel: React.FC = memo(() => {
         await importMedia(asset);
       } catch (err) {
         addNotification({
-          content: `Import failed: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
+          content: t("i18n-next65.timeline.transcript.importFailed", {
+            error: err instanceof Error ? err.message : String(err)
+          }),
           type: "error",
           alert: true
         });
@@ -87,7 +89,7 @@ export const TranscriptPanel: React.FC = memo(() => {
         setImporting(false);
       }
     },
-    [createAsset, importMedia, addNotification]
+    [createAsset, importMedia, addNotification, t]
   );
 
   const onExtractScript = useCallback(async () => {
@@ -97,14 +99,14 @@ export const TranscriptPanel: React.FC = memo(() => {
       await extract(sequenceId, docApi.getState().clips);
     } catch (err) {
       addNotification({
-        content: `Extract as script failed: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        content: t("i18n-next65.timeline.transcript.extractFailed", {
+          error: err instanceof Error ? err.message : String(err)
+        }),
         type: "error",
         alert: true
       });
     }
-  }, [extract, sequenceId, docApi, addNotification]);
+  }, [extract, sequenceId, docApi, addNotification, t]);
 
   return (
     <Panel
@@ -133,18 +135,19 @@ export const TranscriptPanel: React.FC = memo(() => {
         <FlexRow gap={SPACING.xs} align="center">
           <GraphicEqIcon sx={{ fontSize: ICON_SIZE.sm, color: "primary.main" }} />
           <Text size="smaller" sx={{ letterSpacing: "0.1em" }}>
-            TRANSCRIPT
+            {t("i18n-next65.timeline.transcript.transcriptLabel")}
           </Text>
         </FlexRow>
 
         <FlexRow align="center" justify="space-between">
           <FlexRow gap={SPACING.xs} align="baseline">
             <Text size="smaller" sx={{ letterSpacing: "0.08em" }}>
-              SCRIPT
+              {t("i18n-next65.timeline.transcript.scriptLabel")}
             </Text>
             <Caption sx={{ color: "text.disabled" }}>
-              {segments.length}{" "}
-              {segments.length === 1 ? "paragraph" : "paragraphs"}
+              {t("i18n-next65.timeline.transcript.paragraphs", {
+                count: segments.length
+              })}
             </Caption>
           </FlexRow>
           <FlexRow gap={SPACING.xs} align="center">
@@ -154,7 +157,9 @@ export const TranscriptPanel: React.FC = memo(() => {
                 startIcon={<CleaningServicesIcon />}
                 onClick={removeFillers}
               >
-                {`Remove fillers (${fillerCount})`}
+                {t("i18n-next65.timeline.transcript.removeFillers", {
+                  count: fillerCount
+                })}
               </EditorButton>
             ) : null}
             <ToolbarIconButton
@@ -165,8 +170,8 @@ export const TranscriptPanel: React.FC = memo(() => {
                   <UploadFileIcon fontSize="small" />
                 )
               }
-              tooltip="Import audio or video to transcribe"
-              aria-label="Import audio or video"
+              tooltip={t("i18n-next65.timeline.transcript.importTooltip")}
+              aria-label={t("i18n-next65.timeline.transcript.importLabel")}
               disabled={importing}
               onClick={() => fileInputRef.current?.click()}
             />
@@ -179,8 +184,8 @@ export const TranscriptPanel: React.FC = memo(() => {
                     <EditNoteIcon fontSize="small" />
                   )
                 }
-                tooltip="Extract this transcript as an editable script"
-                aria-label="Extract as script"
+                tooltip={t("i18n-next65.timeline.transcript.extractTooltip")}
+                aria-label={t("i18n-next65.timeline.transcript.extractLabel")}
                 disabled={extracting}
                 onClick={() => void onExtractScript()}
               />

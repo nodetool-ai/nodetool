@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import TheatersIcon from "@mui/icons-material/Theaters";
@@ -48,11 +49,6 @@ interface StoryboardSurfaceProps {
 
 type MobilePane = "board" | "assistant";
 
-const MOBILE_TABS = [
-  { value: "board", label: "Board", icon: <TheatersIcon /> },
-  { value: "assistant", label: "Assistant", icon: <AutoAwesomeIcon /> }
-];
-
 const MOBILE_PANES: readonly MobilePane[] = ["board", "assistant"];
 
 const isMobilePane = (value: string): value is MobilePane =>
@@ -70,9 +66,14 @@ const isMobilePane = (value: string): value is MobilePane =>
  * board, chat, and scroll state survive switches and breakpoint crossings.
  */
 const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [mobilePane, setMobilePane] = useState<MobilePane>("board");
+  const mobileTabs = [
+    { value: "board", label: t("i18n-next51.storyboard.board"), icon: <TheatersIcon /> },
+    { value: "assistant", label: t("i18n-next51.storyboard.assistant"), icon: <AutoAwesomeIcon /> }
+  ];
   const [reviewRequest, setReviewRequest] =
     useState<StoryboardReviewRequest | null>(null);
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
@@ -96,13 +97,13 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     enabled: mode !== "view" && loadState === "ready",
     onUndo: useCallback(() => undo(refId), [undo, refId]),
     onRedo: useCallback(() => redo(refId), [redo, refId]),
-    menuHeading: "Storyboard"
+    menuHeading: t("i18n-next51.storyboard.menuHeading")
   });
 
   // Keep the tab label in sync with the board's title field.
   useEffect(() => {
-    setTabTitle(refId, "storyboard", boardTitle || "Untitled storyboard");
-  }, [setTabTitle, refId, boardTitle]);
+    setTabTitle(refId, "storyboard", boardTitle || t("i18n-next51.storyboard.untitled"));
+  }, [setTabTitle, refId, boardTitle, t]);
 
   useStoryboardAgentBridge(refId);
   useStoryboardGenerationSubscriptions(refId);
@@ -167,12 +168,12 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       return [];
     }
     const commands: ContextCommand[] = [
-      { id: "assemble", label: "Assemble timeline", run: handleAssemble }
+      { id: "assemble", label: t("i18n-next51.storyboard.assembleTimeline"), run: handleAssemble }
     ];
     if (desktopAssistant) {
       commands.push({
         id: "assistant",
-        label: assistantOpen ? "Hide assistant" : "Show assistant",
+        label: assistantOpen ? t("i18n-next51.storyboard.hideAssistant") : t("i18n-next51.storyboard.showAssistant"),
         run: toggleAssistant
       });
     }
@@ -184,9 +185,10 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     handleAssemble,
     desktopAssistant,
     assistantOpen,
+    t,
     toggleAssistant
   ]);
-  useContextCommands("Storyboard", menuCommands, active);
+  useContextCommands(t("i18n-next51.storyboard.menuHeading"), menuCommands, active);
 
   const board = useMemo(
     () => (
@@ -226,7 +228,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     return (
       <DocumentLoadStatus
         state={loadState}
-        label="storyboard"
+        label={t("i18n-next51.storyboard.label")}
         onRetry={() => setRetryToken((value) => value + 1)}
       />
     );
@@ -264,7 +266,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       {conflictBanner}
       {mobileEdit && (
         <TabGroup
-          tabs={MOBILE_TABS}
+          tabs={mobileTabs}
           value={mobilePane}
           onChange={(value) => {
             if (isMobilePane(value)) {
@@ -309,7 +311,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
           >
             <ResizableSideDock
               storageKey="storyboard_assistant"
-              ariaLabel="Resize storyboard assistant"
+              ariaLabel={t("i18n-next51.storyboard.resizeAssistant")}
               enabled={!isMobile}
             >
               <StoryboardAgentPanel boardId={refId} />

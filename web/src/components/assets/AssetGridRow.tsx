@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AssetOrDivider,
   DIVIDER_HEIGHT
@@ -51,6 +52,9 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   } = data;
 
   const theme = useTheme();
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
 
@@ -118,9 +122,12 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
-        aria-label={`${assetTypeLabel(divider.type)}, ${divider.count} ${
-          divider.count === 1 ? "file" : "files"
-        }`}
+        aria-label={t("groups.ariaLabel", {
+          label: t(`types.${divider.type}`, {
+            defaultValue: assetTypeLabel(divider.type)
+          }),
+          count: divider.count
+        })}
         align="center"
         gap={SPACING.sm}
         className="content-type-header"
@@ -155,7 +162,9 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           component="span"
           sx={{ ...EYEBROW, color: theme.vars.palette.text.secondary, whiteSpace: "nowrap" }}
         >
-          {assetTypeLabel(divider.type)}
+          {t(`types.${divider.type}`, {
+            defaultValue: assetTypeLabel(divider.type)
+          })}
         </Text>
         <Caption component="span" color="muted">
           {divider.count}

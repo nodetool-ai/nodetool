@@ -6,6 +6,7 @@
  */
 
 import React, { useMemo, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ARP_RATES,
   chordAtTick,
@@ -44,7 +45,7 @@ import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore"
 import { EmptyState, FlexColumn } from "../../../ui_primitives";
 import { ChordEditor } from "./ChordEditor";
 import { barTicks, chordHue } from "./chordGrid";
-import { CompBrowser, loadCompEntry, VOICING_NAMES } from "./CompBrowser";
+import { CompBrowser, loadCompEntry } from "./CompBrowser";
 import { useHarmonyUIStore } from "./harmonyUIStore";
 import { ProgressionBrowser } from "./ProgressionBrowser";
 import { fillProgression } from "./progressionFill";
@@ -100,18 +101,9 @@ function Slider({ label, value, text, min, max, reset, onChange }: { label: stri
   );
 }
 
-const VOICE_TITLES: Record<string, string> = {
-  TOP: "Highest chord note",
-  MID: "Chord notes between the lowest and highest",
-  LOW: "Lowest chord note",
-  BASS: "Chord root, one octave below"
+const VOICE_TITLE_KEYS: Record<string, string> = {
+  TOP: "top", MID: "middle", LOW: "low", BASS: "bass"
 };
-
-const STYLE_OPTIONS: ReadonlyArray<readonly [HarmonyStyle, string, string]> = [
-  ["off", "OFF", "Play the written notes"],
-  ["arp", "ARP", "Arpeggiate the chords or the held notes"],
-  ["comp", "COMP", "Strike chord voicings in a rhythm"]
-];
 
 /** One lane cycle (16 steps) of the clip's expansion, for the grids. */
 interface StepPage {
@@ -155,6 +147,7 @@ interface ClipHarmonyEditorProps {
 }
 
 function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): React.JSX.Element {
+  const { t } = useTranslation();
   const setClipHarmony = useTimelineStore((s) => s.setClipHarmony);
   const setTrackChords = useTimelineStore((s) => s.setTrackChords);
   const insertTrack = useTimelineStore((s) => s.insertTrack);
@@ -174,6 +167,8 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
   const comp = h.style === "comp";
   const active = isHarmonyActive(clip.harmony) && h.style !== "off";
   const preset = comp ? compLibraryIndex(h) : -1;
+  const presetLabel = (kind: "families" | "grooves" | "variations", value: string): string =>
+    t(`i18n-cont-music-09.harmony.presets.${kind}.${value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")}`);
   const stepPreset = (d: number): void =>
     update(loadCompEntry(COMP_LIBRARY[(Math.max(preset, d > 0 ? -1 : 0) + d + COMP_LIBRARY.length) % COMP_LIBRARY.length]));
   const underClip = chords.filter((c) => {
@@ -182,11 +177,11 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
     return endMs > clip.startMs && startMs < clip.startMs + clip.durationMs;
   });
   const status = h.style === "off"
-    ? h.scale !== "off" ? "WRITTEN NOTES · SCALE SNAP" : "OFF · WRITTEN NOTES PLAY"
-    : chordMode && !chordTrack ? "ADD A CHORD TRACK"
-      : chordMode && !underClip.length ? "DRAW CHORDS UNDER THE CLIP"
-        : !chordMode && !(clip.notes?.length) ? "WRITE NOTES TO ARPEGGIATE"
-          : `${expanded.length} NOTES`;
+    ? h.scale !== "off" ? t("i18n-cont-music-09.harmony.status.writtenScaleSnap") : t("i18n-cont-music-09.harmony.status.offWrittenNotes")
+    : chordMode && !chordTrack ? t("i18n-cont-music-09.harmony.status.addChordTrack")
+      : chordMode && !underClip.length ? t("i18n-cont-music-09.harmony.status.drawChords")
+        : !chordMode && !(clip.notes?.length) ? t("i18n-cont-music-09.harmony.status.writeNotes")
+          : t("i18n-cont-music-09.harmony.status.noteCount", { count: expanded.length });
 
   const loadProgression = (index: number): void => {
     if (!chordTrack) return;
@@ -197,7 +192,7 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
   };
   const addChordTrack = (): void => {
     const index = tracks.findIndex((t) => t.id === clip.trackId);
-    const id = insertTrack("chord", Math.max(0, index), "Chords");
+    const id = insertTrack("chord", Math.max(0, index), t("i18n-cont-music-09.harmony.newChordTrackName"));
     update({ chordTrackId: id, input: "chords" });
   };
 
@@ -229,7 +224,7 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
   );
   const chordRow = chordMode && (
     <div className="arp-row arp-chords" aria-hidden="true">
-      <span>CHORD</span>
+      <span>{t("i18n-cont-music-09.harmony.chord")}</span>
       {page.chords.map((c, i) => {
         const starts = !!c && c !== page.chords[i - 1];
         return (
@@ -244,41 +239,46 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
   let held = 0;
   const heldMasks = h.comp.map((m, i) => (held = h.ties[i] ? held : m));
   const compGrid = (
-    <div className="arp-grid" aria-label="Comp pattern">
+    <div className="arp-grid" aria-label={t("i18n-cont-music-09.harmony.compPattern")}>
       {chordRow}
       {stepNumbers}
-      {COMP_ROWS.map(([label, bit]) => (
-        <div className="arp-row arp-voice" key={label}>
-          <span title={VOICE_TITLES[label]}>{label}</span>
-          {h.comp.map((m, i) => {
-            const tied = h.ties[i];
-            const strike = !tied && !!(m & bit);
-            const hold = tied && !!(heldMasks[i] & bit);
-            const next = (i + 1) % 16;
-            const continues = (strike || hold) && h.ties[next] && !!(heldMasks[next] & bit) && next !== 0;
-            return (
-              <button
-                key={i}
-                type="button"
-                title={VOICE_TITLES[label]}
-                aria-label={`${label} voice step ${i + 1}`}
-                aria-pressed={strike}
-                className={`${strike ? "on" : hold ? "held" : ""}${continues ? " continues" : ""}${h.accents[i] && strike ? " accent" : ""}${i % 4 === 0 ? " beat" : ""}`}
-                onClick={() =>
-                  update(
-                    tied
-                      ? { ties: h.ties.map((v, j) => (j === i ? false : v)), comp: h.comp.map((v, j) => (j === i ? heldMasks[i] ^ bit : v)) }
-                      : { comp: h.comp.map((v, j) => (j === i ? v ^ bit : v)) }
-                  )
-                }
-              />
-            );
-          })}
-        </div>
-      ))}
+      {COMP_ROWS.map(([label, bit]) => {
+        const name = VOICE_TITLE_KEYS[label];
+        const localizedLabel = t(`i18n-cont-music-09.harmony.voiceNames.${name}`);
+        const title = t(`i18n-cont-music-09.harmony.voices.${name}`);
+        return (
+          <div className="arp-row arp-voice" key={label}>
+            <span title={title}>{localizedLabel}</span>
+            {h.comp.map((m, i) => {
+              const tied = h.ties[i];
+              const strike = !tied && !!(m & bit);
+              const hold = tied && !!(heldMasks[i] & bit);
+              const next = (i + 1) % 16;
+              const continues = (strike || hold) && h.ties[next] && !!(heldMasks[next] & bit) && next !== 0;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  title={title}
+                  aria-label={t("i18n-cont-music-09.harmony.voiceStep", { label: localizedLabel, step: i + 1 })}
+                  aria-pressed={strike}
+                  className={`${strike ? "on" : hold ? "held" : ""}${continues ? " continues" : ""}${h.accents[i] && strike ? " accent" : ""}${i % 4 === 0 ? " beat" : ""}`}
+                  onClick={() =>
+                    update(
+                      tied
+                        ? { ties: h.ties.map((v, j) => (j === i ? false : v)), comp: h.comp.map((v, j) => (j === i ? heldMasks[i] ^ bit : v)) }
+                        : { comp: h.comp.map((v, j) => (j === i ? v ^ bit : v)) }
+                    )
+                  }
+                />
+              );
+            })}
+          </div>
+        );
+      })}
       <div className="arp-divider" />
-      {lane("HOLD", h.ties, "ties", "⁀", "Hold the previous chord through this step; a chord change strikes the new chord", "hold")}
-      {lane("ACCENT", h.accents, "accents", "●", "Play this step louder", "accent")}
+      {lane(t("i18n-cont-music-09.harmony.hold"), h.ties, "ties", "⁀", t("i18n-cont-music-09.harmony.holdHelp"), "hold")}
+      {lane(t("i18n-cont-music-09.harmony.accent"), h.accents, "accents", "●", t("i18n-cont-music-09.harmony.accentHelp"), "accent")}
     </div>
   );
 
@@ -288,7 +288,7 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
   const high = Math.max(...used, low + 12);
   const arpGrid = (
     <>
-      <div className="arp-display" aria-label="Generated phrase preview">
+      <div className="arp-display" aria-label={t("i18n-cont-music-09.harmony.generatedPhrasePreview")}>
         <div className="arp-register">
           <span>{noteName(high)}</span>
           <span>{noteName(low)}</span>
@@ -311,8 +311,8 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
       <div className="arp-grid">
         {chordRow}
         {stepNumbers}
-        {lane("PLAY", h.hits, "hits", "●", "Play or rest on this step")}
-        {lane("ACCENT", h.accents, "accents", "●", "Play this step louder", "accent")}
+        {lane(t("i18n-cont-music-09.harmony.play"), h.hits, "hits", "●", t("i18n-cont-music-09.harmony.playRestHelp"))}
+        {lane(t("i18n-cont-music-09.harmony.accent"), h.accents, "accents", "●", t("i18n-cont-music-09.harmony.accentHelp"), "accent")}
       </div>
     </>
   );
@@ -320,8 +320,8 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
   return (
     <section className="panel ns-section arp-panel" data-testid="harmony-panel-clip">
       <div className="arp-top">
-        <h2>{comp ? "CHORD COMPING" : h.style === "arp" ? "ARPEGGIATOR" : "HARMONY"}</h2>
-        <Segmented<HarmonyStyle> label="Harmony style" value={h.style} options={STYLE_OPTIONS} onChange={(style) => update({ style })} />
+        <h2>{comp ? t("i18n-cont-music-09.harmony.chordComping") : h.style === "arp" ? t("i18n-cont-music-09.harmony.arpeggiator") : t("i18n-cont-music-09.harmony.harmony")}</h2>
+        <Segmented<HarmonyStyle> label={t("i18n-cont-music-09.harmony.style")} value={h.style} options={[["off", t("i18n-cont-music-09.harmony.styles.off"), t("i18n-cont-music-09.harmony.styles.offHelp")], ["arp", t("i18n-cont-music-09.harmony.styles.arp"), t("i18n-cont-music-09.harmony.styles.arpHelp")], ["comp", t("i18n-cont-music-09.harmony.styles.comp"), t("i18n-cont-music-09.harmony.styles.compHelp")]]} onChange={(style) => update({ style })} />
         <span className="arp-status">
           {clip.name} · {status}
           <span className={active ? "arp-led on" : "arp-led"} />
@@ -330,22 +330,22 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
 
       <Card
         n={1}
-        title="NOTES"
+        title={t("i18n-cont-music-09.harmony.notes")}
         tools={
           <>
             <Segmented<ClipHarmony["input"]>
-              label="Harmony input"
+              label={t("i18n-cont-music-09.harmony.input")}
               value={h.input}
               onChange={(input) => update({ input })}
               options={[
-                ["chords", "CHORD TRACK", "Play the chords of a chord track"],
-                ["notes", "CLIP NOTES", "Play the notes the clip holds at each step"]
+                ["chords", t("i18n-cont-music-09.harmony.chordTrack"), t("i18n-cont-music-09.harmony.playChordTrackHelp")],
+                ["notes", t("i18n-cont-music-09.harmony.clipNotes"), t("i18n-cont-music-09.harmony.playClipNotesHelp")]
               ]}
             />
             {chordMode && chordTracks.length > 0 && (
               <label className="arp-field">
-                TRACK
-                <select aria-label="Chord track" value={chordTrack?.id ?? ""} onChange={(e) => update({ chordTrackId: e.target.value })}>
+                {t("i18n-cont-music-09.harmony.track")}
+                <select aria-label={t("i18n-cont-music-09.harmony.chordTrack")} value={chordTrack?.id ?? ""} onChange={(e) => update({ chordTrackId: e.target.value })}>
                   {chordTracks.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
@@ -354,21 +354,21 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
             )}
             {chordMode && (
               <div className="arp-octave">
-                <button type="button" aria-label="Lower chord octave" disabled={h.octave <= 0} onClick={() => update({ octave: h.octave - 1 })}>−</button>
-                <span>OCT {h.octave}</span>
-                <button type="button" aria-label="Raise chord octave" disabled={h.octave >= 7} onClick={() => update({ octave: h.octave + 1 })}>+</button>
+                <button type="button" aria-label={t("i18n-cont-music-09.harmony.lowerOctave")} disabled={h.octave <= 0} onClick={() => update({ octave: h.octave - 1 })}>−</button>
+                <span>{t("i18n-cont-music-09.harmony.octaveShort")} {h.octave}</span>
+                <button type="button" aria-label={t("i18n-cont-music-09.harmony.raiseOctave")} disabled={h.octave >= 7} onClick={() => update({ octave: h.octave + 1 })}>+</button>
               </div>
             )}
             {chordMode && chordTrack && (
-              <button type="button" className="ns-btn" onClick={() => setBrowsing("progression")}>PROGRESSIONS</button>
+              <button type="button" className="ns-btn" onClick={() => setBrowsing("progression")}>{t("i18n-cont-music-09.harmony.progressions")}</button>
             )}
             {chordMode && !chordTrack && (
-              <button type="button" className="ns-btn" onClick={addChordTrack}>ADD CHORD TRACK</button>
+              <button type="button" className="ns-btn" onClick={addChordTrack}>{t("i18n-cont-music-09.harmony.addChordTrack")}</button>
             )}
           </>
         }
       >
-        <div className="arp-note-pool" aria-label="Chords under the clip">
+        <div className="arp-note-pool" aria-label={t("i18n-cont-music-09.harmony.chordsUnderClip")}>
           {chordMode
             ? underClip.map((c) => (
                 <span key={c.id} className="arp-note" style={{ "--hue": chordHue(c.root) } as React.CSSProperties}>{chordName(c)}</span>
@@ -376,50 +376,50 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
             : [...new Set((clip.notes ?? []).map((n) => n.pitch))].sort((a, b) => a - b).map((p) => (
                 <span key={p} className="arp-note">{noteName(p)}</span>
               ))}
-          {chordMode && !underClip.length && <span className="arp-empty">No chords under the clip. Click the chord lane to add one, or load a progression.</span>}
+          {chordMode && !underClip.length && <span className="arp-empty">{t("i18n-cont-music-09.harmony.noChordsUnderClip")}</span>}
         </div>
       </Card>
 
       {h.style !== "off" && (
         <Card
           n={2}
-          title="PATTERN"
+          title={t("i18n-cont-music-09.harmony.pattern")}
           className="arp-pattern"
           tools={
             comp ? (
               <div className="arp-pattern-pick">
-                <button type="button" aria-label="Previous comp pattern" onClick={() => stepPreset(-1)}>‹</button>
-                <button type="button" className="pattern-name" aria-label="Browse comp patterns" onClick={() => setBrowsing("comp")}>
-                  <strong>{preset < 0 ? "CUSTOM PATTERN" : COMP_LIBRARY[preset].groove}</strong>
-                  {preset >= 0 && <em>{COMP_LIBRARY[preset].variation !== "ORIGINAL" ? COMP_LIBRARY[preset].variation : COMP_LIBRARY[preset].family}</em>}
-                  <span className="browse">BROWSE</span>
+                <button type="button" aria-label={t("i18n-cont-music-09.harmony.previousCompPattern")} onClick={() => stepPreset(-1)}>‹</button>
+                <button type="button" className="pattern-name" aria-label={t("i18n-cont-music-09.harmony.browseCompPatterns")} onClick={() => setBrowsing("comp")}>
+                  <strong>{preset < 0 ? t("i18n-cont-music-09.harmony.customPattern") : presetLabel("grooves", COMP_LIBRARY[preset].groove)}</strong>
+                  {preset >= 0 && <em>{presetLabel(COMP_LIBRARY[preset].variation !== "ORIGINAL" ? "variations" : "families", COMP_LIBRARY[preset].variation !== "ORIGINAL" ? COMP_LIBRARY[preset].variation : COMP_LIBRARY[preset].family)}</em>}
+                  <span className="browse">{t("i18n-cont-music-09.harmony.browse")}</span>
                 </button>
-                <button type="button" aria-label="Next comp pattern" onClick={() => stepPreset(1)}>›</button>
+                <button type="button" aria-label={t("i18n-cont-music-09.harmony.nextCompPattern")} onClick={() => stepPreset(1)}>›</button>
               </div>
             ) : (
               <>
                 <label className="arp-field">
-                  ORDER
-                  <select aria-label="Arpeggiator order" value={h.order} onChange={(e) => update({ order: e.target.value as ArpOrder })}>
-                    <option value="up">↑ UP</option>
-                    <option value="down">↓ DOWN</option>
-                    <option value="updown">↕ UP / DOWN</option>
-                    <option value="played">AS PLAYED</option>
-                    <option value="random">RANDOM</option>
+                  {t("i18n-cont-music-09.harmony.order")}
+                  <select aria-label={t("i18n-cont-music-09.harmony.arpeggiatorOrder")} value={h.order} onChange={(e) => update({ order: e.target.value as ArpOrder })}>
+                    <option value="up">↑ {t("i18n-cont-music-09.harmony.orders.up")}</option>
+                    <option value="down">↓ {t("i18n-cont-music-09.harmony.orders.down")}</option>
+                    <option value="updown">↕ {t("i18n-cont-music-09.harmony.orders.upDown")}</option>
+                    <option value="played">{t("i18n-cont-music-09.harmony.orders.asPlayed")}</option>
+                    <option value="random">{t("i18n-cont-music-09.harmony.orders.random")}</option>
                   </select>
                 </label>
                 <label className="arp-field">
-                  RANGE
-                  <select aria-label="Arpeggiator octaves" value={h.octaves} onChange={(e) => update({ octaves: Number(e.target.value) })}>
-                    <option value={1}>1 OCTAVE</option>
-                    <option value={2}>2 OCTAVES</option>
-                    <option value={3}>3 OCTAVES</option>
+                  {t("i18n-cont-music-09.harmony.range")}
+                  <select aria-label={t("i18n-cont-music-09.harmony.arpeggiatorOctaves")} value={h.octaves} onChange={(e) => update({ octaves: Number(e.target.value) })}>
+                    <option value={1}>{t("i18n-cont-music-09.harmony.octaveCount", { count: 1 })}</option>
+                    <option value={2}>{t("i18n-cont-music-09.harmony.octaveCount", { count: 2 })}</option>
+                    <option value={3}>{t("i18n-cont-music-09.harmony.octaveCount", { count: 3 })}</option>
                   </select>
                 </label>
                 {h.order === "random" && (
-                  <button type="button" className="ns-btn" onClick={() => update({ seed: h.seed + 1 })}>NEW SEED · {h.seed}</button>
+                  <button type="button" className="ns-btn" onClick={() => update({ seed: h.seed + 1 })}>{t("i18n-cont-music-09.harmony.newSeed", { seed: h.seed })}</button>
                 )}
-                <span className="arp-hint">{chordMode ? "RESTARTS ON EACH CHORD" : "FOLLOWS THE HELD NOTES"}</span>
+                <span className="arp-hint">{chordMode ? t("i18n-cont-music-09.harmony.restartsEachChord") : t("i18n-cont-music-09.harmony.followsHeldNotes")}</span>
               </>
             )
           }
@@ -431,35 +431,41 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
       {h.style !== "off" && (
         <Card
           n={3}
-          title="FEEL"
+          title={t("i18n-cont-music-09.harmony.feel")}
           className="arp-feel"
           tools={
             <div className="arp-feel-controls">
               <label className="arp-field">
-                RATE
-                <select aria-label="Arpeggiator rate" value={h.rate} onChange={(e) => update({ rate: Number(e.target.value) })}>
-                  {ARP_RATES.map(([v, t]) => (
-                    <option key={t} value={v}>{t}</option>
-                  ))}
+                {t("i18n-cont-music-09.harmony.rate")}
+                <select aria-label={t("i18n-cont-music-09.harmony.arpeggiatorRate")} value={h.rate} onChange={(e) => update({ rate: Number(e.target.value) })}>
+                  {ARP_RATES.map(([v, rateName]) => {
+                    const [note, articulation] = rateName.split(" ");
+                    const label = articulation === "DOTTED"
+                      ? t("i18n-cont-music-09.harmony.dottedRate", { note })
+                      : articulation === "TRIPLET"
+                        ? t("i18n-cont-music-09.harmony.tripletRate", { note })
+                        : rateName;
+                    return <option key={rateName} value={v}>{label}</option>;
+                  })}
                 </select>
               </label>
-              <Slider label="GATE" value={Math.round(h.gate * 100)} text={`${Math.round(h.gate * 100)}%`} min={5} max={95} reset={65} onChange={(v) => update({ gate: v / 100 })} />
+              <Slider label={t("i18n-cont-music-09.harmony.gate")} value={Math.round(h.gate * 100)} text={`${Math.round(h.gate * 100)}%`} min={5} max={95} reset={65} onChange={(v) => update({ gate: v / 100 })} />
               {comp && (
                 <>
-                  <Slider label="STRUM" value={h.strumMs} text={h.strumMs ? `${h.strumMs} MS` : "OFF"} min={0} max={STRUM_MAX_MS} reset={0} onChange={(strumMs) => update({ strumMs })} />
-                  <span className="arp-field">STROKE</span>
+                  <Slider label={t("i18n-cont-music-09.harmony.strum")} value={h.strumMs} text={h.strumMs ? t("i18n-cont-music-09.harmony.milliseconds", { count: h.strumMs }) : t("i18n-cont-music-09.harmony.off")} min={0} max={STRUM_MAX_MS} reset={0} onChange={(strumMs) => update({ strumMs })} />
+                  <span className="arp-field">{t("i18n-cont-music-09.harmony.stroke")}</span>
                   <Segmented
-                    label="Strum direction"
+                    label={t("i18n-cont-music-09.harmony.strumDirection")}
                     value={h.strumDirection}
                     onChange={(strumDirection) => update({ strumDirection })}
-                    options={STRUM_DIRECTIONS.map((d) => [d, d === "up" ? "↑" : d === "down" ? "↓" : "↕", d === "up" ? "Strum low to high" : d === "down" ? "Strum high to low" : "Alternate like a guitarist"] as const)}
+                    options={STRUM_DIRECTIONS.map((d) => [d, d === "up" ? "↑" : d === "down" ? "↓" : "↕", d === "up" ? t("i18n-cont-music-09.harmony.strumLowToHigh") : d === "down" ? t("i18n-cont-music-09.harmony.strumHighToLow") : t("i18n-cont-music-09.harmony.strumAlternate")] as const)}
                   />
-                  <span className="arp-field">VOICING</span>
+                  <span className="arp-field">{t("i18n-cont-music-09.harmony.voicing")}</span>
                   <Segmented
-                    label="Comp voicing"
+                    label={t("i18n-cont-music-09.harmony.compVoicing")}
                     value={h.voicing}
                     onChange={(voicing) => update({ voicing })}
-                    options={COMP_VOICINGS.map((v) => [v, VOICING_NAMES[v]] as const)}
+                    options={COMP_VOICINGS.map((v) => [v, t(`i18n-cont-music-09.harmony.voicings.${v}`)] as const)}
                   />
                 </>
               )}
@@ -481,7 +487,7 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
               current={progression}
               load={loadProgression}
               onClose={() => setBrowsing(null)}
-              target="THE CHORDS UNDER THE CLIP"
+              target={t("i18n-cont-music-09.harmony.chordsUnderClipTarget")}
             />
           )}
         </div>
@@ -491,6 +497,7 @@ function ClipHarmonyEditor({ clip, tracks, tempo }: ClipHarmonyEditorProps): Rea
 }
 
 function SelectedChordEditor({ tracks }: { tracks: ReadonlyArray<TimelineTrack> }): React.JSX.Element | null {
+  const { t } = useTranslation();
   const selected = useHarmonyUIStore((s) => s.selectedChord);
   const selectChord = useHarmonyUIStore((s) => s.selectChord);
   const setTrackChords = useTimelineStore((s) => s.setTrackChords);
@@ -500,7 +507,7 @@ function SelectedChordEditor({ tracks }: { tracks: ReadonlyArray<TimelineTrack> 
   return (
     <section className="panel ns-section arp-panel" data-testid="harmony-panel-chord">
       <div className="arp-top">
-        <h2>CHORD · {track.name.toUpperCase()}</h2>
+        <h2>{t("i18n-cont-music-09.harmony.chordTitle", { name: track.name.toUpperCase() })}</h2>
       </div>
       <ChordEditor
         chord={chord}
@@ -516,6 +523,7 @@ function SelectedChordEditor({ tracks }: { tracks: ReadonlyArray<TimelineTrack> 
 
 /** Chord track and clip arp/comp editor for the selected midi clip. */
 export function HarmonyPanel(): React.JSX.Element {
+  const { t } = useTranslation();
   const selectedIds = useTimelineUIStore((s) => s.selectedClipIds);
   const clips = useTimelineStore((s) => s.clips);
   const tracks = useTimelineStore((s) => s.tracks);
@@ -544,13 +552,13 @@ export function HarmonyPanel(): React.JSX.Element {
       </div>
       <FlexColumn align="center" justify="center" fullWidth sx={{ flex: 1, minHeight: 0 }}>
         <EmptyState
-          title="No MIDI clip selected"
+          title={t("i18n-cont-music-09.harmony.noMidiClipSelected")}
           description={
             firstMidiClip
-              ? "Select a MIDI clip to arpeggiate it or comp it over the chord track."
-              : "Add a MIDI clip to arpeggiate it or comp it over the chord track."
+              ? t("i18n-cont-music-09.harmony.selectMidiClip")
+              : t("i18n-cont-music-09.harmony.addMidiClip")
           }
-          actionText={firstMidiClip ? `Edit “${firstMidiClip.name || "MIDI clip"}”` : undefined}
+          actionText={firstMidiClip ? t("i18n-cont-music-09.harmony.editClip", { name: firstMidiClip.name || t("i18n-cont-music-09.harmony.midiClip") }) : undefined}
           onAction={firstMidiClip ? () => selectClip(firstMidiClip.id) : undefined}
         />
       </FlexColumn>

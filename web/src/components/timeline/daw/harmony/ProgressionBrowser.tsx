@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   chordName,
   MIDI_PPQ,
@@ -58,6 +59,7 @@ export interface ProgressionBrowserProps {
 }
 
 export function ProgressionBrowser({ chordKey, setKey, current, load, onClose, target }: ProgressionBrowserProps): React.JSX.Element {
+  const { t } = useTranslation();
   const [family, setFamily] = useState("ALL");
   const [query, setQuery] = useState("");
   const list = useRef<HTMLDivElement>(null);
@@ -93,7 +95,7 @@ export function ProgressionBrowser({ chordKey, setKey, current, load, onClose, t
     <div
       className="comp-browser"
       role="dialog"
-      aria-label="Chord progression browser"
+      aria-label={t("i18n-next15.progressionBrowser.label")}
       onKeyDown={(e) => {
         if (e.key === "Escape" || e.key === "Enter") {
           e.preventDefault();
@@ -106,11 +108,11 @@ export function ProgressionBrowser({ chordKey, setKey, current, load, onClose, t
     >
       <div className="comp-browser-head">
         <h3>
-          CHORD PROGRESSIONS <span>{shown.length} / {PROGRESSIONS.length} · IN {PITCH_NAMES[chordKey]}</span>
+          {t("i18n-next15.progressionBrowser.title")} <span>{shown.length} / {PROGRESSIONS.length} · {t("i18n-next15.progressionBrowser.inKey", { key: PITCH_NAMES[chordKey] })}</span>
         </h3>
         <label className="arp-field">
-          KEY
-          <select aria-label="Progression key" value={chordKey} onChange={(e) => setKey(Number(e.target.value))}>
+          {t("i18n-next15.progressionBrowser.keyLabel")}
+          <select aria-label={t("i18n-next15.progressionBrowser.keyLabel")} value={chordKey} onChange={(e) => setKey(Number(e.target.value))}>
             {PITCH_NAMES.map((n, i) => (
               <option key={n} value={i}>{n}</option>
             ))}
@@ -119,8 +121,8 @@ export function ProgressionBrowser({ chordKey, setKey, current, load, onClose, t
         <input
           autoFocus
           type="search"
-          aria-label="Search chord progressions"
-          placeholder="SEARCH MOOD, NUMERALS OR CHORD"
+          aria-label={t("i18n-next15.progressionBrowser.searchLabel")}
+          placeholder={t("i18n-next15.progressionBrowser.searchPlaceholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -128,36 +130,35 @@ export function ProgressionBrowser({ chordKey, setKey, current, load, onClose, t
           type="button"
           className="ns-btn"
           onClick={() => shown.length && load(shown[Math.floor(Math.random() * shown.length)].i)}
-        >
-          RANDOM
+        >{t("i18n-next15.progressionBrowser.random")}
         </button>
-        <button type="button" className="ns-btn nav-btn" onClick={onClose}>DONE</button>
+        <button type="button" className="ns-btn nav-btn" onClick={onClose}>{t("i18n-next15.progressionBrowser.done")}</button>
       </div>
       <div className="comp-browser-body">
-        <div className="comp-browser-families" aria-label="Progression family">
+        <div className="comp-browser-families" aria-label={t("i18n-next15.progressionBrowser.familyLabel")}>
           {["ALL", ...PROGRESSION_FAMILIES.map((f) => f.name)].map((f) => (
             <button key={f} type="button" aria-pressed={family === f} onClick={() => setFamily(f)}>
-              {f}
+              {f === "ALL" ? t("i18n-next15.progressionBrowser.all") : f}
               <span>{f === "ALL" ? PROGRESSIONS.length : counts[f]}</span>
             </button>
           ))}
         </div>
-        <div className="comp-browser-list" ref={list} role="listbox" aria-label="Chord progressions">
+        <div className="comp-browser-list" ref={list} role="listbox" aria-label={t("i18n-next15.progressionBrowser.listLabel")}>
           {shown.map(({ p, i, chords, bars }) => (
             <button key={i} type="button" role="option" aria-selected={i === current} onClick={() => load(i)} onDoubleClick={onClose}>
               <span className="comp-name">{p.mood}</span>
               <span className="comp-family">{p.name}</span>
               <ProgressionGrid chords={chords} />
               <span className="comp-meta">
-                {bars} BAR{bars > 1 ? "S" : ""} · {chords.length} CHORDS
+                {t("i18n-next15.progressionBrowser.barCount", { count: bars })} · {t("i18n-next15.progressionBrowser.chordCount", { count: chords.length })}
               </span>
             </button>
           ))}
-          {!shown.length && <span className="arp-empty">No progression matches.</span>}
+          {!shown.length && <span className="arp-empty">{t("i18n-next15.progressionBrowser.noMatches")}</span>}
         </div>
       </div>
       <div className="comp-browser-foot">
-        CLICK TO LOAD · ↑ ↓ STEP THROUGH THE LIST · LOADING REPLACES {target} · ENTER / ESC CLOSES
+        {t("i18n-next15.progressionBrowser.footer", { target })}
       </div>
     </div>
   );

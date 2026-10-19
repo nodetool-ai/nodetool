@@ -6,6 +6,7 @@
  * Selecting a category drives the right pane.
  */
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -28,7 +29,9 @@ const PackageRail = ({
   categories,
   activeCat,
   onCat
-}: PackageRailProps) => (
+}: PackageRailProps) => {
+  const { t } = useTranslation();
+  return (
   <FlexColumn
     gap={SPACING.xs}
     sx={(theme) => ({
@@ -113,13 +116,13 @@ const PackageRail = ({
                 size="small"
                 sx={{ color: active ? "text.primary" : "text.secondary" }}
               >
-                {c.label}
+                {t(`i18n-next31.packages.category.${c.id}`)}
               </Text>
               <Caption
                 color="secondary"
                 sx={{ display: { xs: "none", sm: "block" } }}
               >
-                {c.hint}
+                {t(`i18n-next31.packages.categoryHint.${c.id}`)}
               </Caption>
             </FlexColumn>
             <Box
@@ -143,7 +146,7 @@ const PackageRail = ({
               })}
             >
               {c.updates > 0
-                ? `${c.updates} ${c.updates === 1 ? "update" : "updates"}`
+                ? t("i18n-next31.packages.updates", { count: c.updates })
                 : c.count}
             </Box>
           </Box>
@@ -151,6 +154,7 @@ const PackageRail = ({
       })}
     </Box>
   </FlexColumn>
-);
+  );
+}
 
 export default memo(PackageRail);

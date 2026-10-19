@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ReactFlowProvider } from "@xyflow/react";
 
 import NodeEditor from "../node_editor/NodeEditor";
@@ -100,6 +101,7 @@ const WorkflowEditorSurface = ({
   mode = "edit",
   active
 }: WorkflowEditorSurfaceProps) => {
+  const { t } = useTranslation();
   const nodeStore = useWorkflowManager((state) =>
     state.getNodeStore(workflowId)
   );
@@ -464,10 +466,10 @@ const WorkflowEditorSurface = ({
       return (
         <EmptyState
           variant="error"
-          title="Could not load workflow"
+          title={t("i18n-next51.workflow.loadErrorTitle")}
           description={
             <FlexColumn align="center" gap={SPACING.sm}>
-              Check your connection and try again. Your tab is still open.
+              {t("i18n-next51.workflow.checkConnection")}
               <ReportBugButton
                 context={{
                   source: "operation-failure",
@@ -478,7 +480,7 @@ const WorkflowEditorSurface = ({
               />
             </FlexColumn>
           }
-          actionText="Retry"
+          actionText={t("i18n-next51.common.retry")}
           onAction={() => setLoadAttempt((attempt) => attempt + 1)}
         />
       );
@@ -579,7 +581,7 @@ const WorkflowEditorSurface = ({
                     }}
                   >
                     <CloseButton
-                      tooltip="Dismiss"
+                      tooltip={t("i18n-next119.workspace.dismiss")}
                       onClick={() => setLandingDismissed(true)}
                     />
                   </Box>

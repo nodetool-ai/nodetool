@@ -1,10 +1,20 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import {
+  EditorButton,
+  Text,
+  LoadingSpinner,
+  Box,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  Z_INDEX
+} from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   VideoRecorderProps,
@@ -25,6 +35,7 @@ const VideoRecorder = ({
   hideWhenUnavailable = false,
   ...props
 }: VideoRecorderViewProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const {
     error,
@@ -51,7 +62,10 @@ const VideoRecorder = ({
       label: device.label
     }));
     if (!options.some((option) => option.value === "")) {
-      return [{ value: "", label: "System default camera" }, ...options];
+      return [
+        { value: "", label: t("screen_timeline.video.systemDefaultCamera") },
+        ...options
+      ];
     }
     return options;
   }, [videoInputDevices]);
@@ -62,7 +76,10 @@ const VideoRecorder = ({
       label: device.label
     }));
     if (!options.some((option) => option.value === "")) {
-      return [{ value: "", label: "System default input" }, ...options];
+      return [
+        { value: "", label: t("screen_timeline.video.systemDefaultInput") },
+        ...options
+      ];
     }
     return options;
   }, [audioInputDevices]);
@@ -155,7 +172,7 @@ const VideoRecorder = ({
           density="compact"
           disabled={isLoading}
         >
-          START CAMERA
+          {t("screen_timeline.video.startCamera")}
           {isLoading && <LoadingSpinner size="small" />}
         </EditorButton>
       ) : (
@@ -167,7 +184,9 @@ const VideoRecorder = ({
             density="compact"
             disabled={isLoading}
           >
-            {isRecording ? "STOP" : "RECORD"}
+            {isRecording
+              ? t("screen_timeline.video.stop")
+              : t("screen_timeline.video.record")}
             {isLoading && <LoadingSpinner size="small" />}
           </EditorButton>
           {!isRecording && (
@@ -177,7 +196,7 @@ const VideoRecorder = ({
               variant="text"
               density="compact"
             >
-              CLOSE
+              {t("screen_timeline.video.close")}
             </EditorButton>
           )}
         </>
@@ -188,7 +207,7 @@ const VideoRecorder = ({
         onClick={toggleDeviceListVisibility}
         variant="text"
         density="compact"
-        aria-label="Toggle device list"
+        aria-label={t("screen_timeline.video.toggleDeviceList")}
       >
         {isDeviceListVisible ? (
           <SettingsInputComponentIcon className="toggle-on" />
@@ -202,7 +221,7 @@ const VideoRecorder = ({
         <video
           ref={videoRef}
           className="video-preview"
-          aria-label="Camera preview"
+          aria-label={t("screen_timeline.video.cameraPreview")}
           autoPlay
           playsInline
           muted
@@ -213,11 +232,15 @@ const VideoRecorder = ({
         <div className="device-list" style={{ margin: theme.spacing(1.5) }}>
           {videoInputDevices.length > 0 ? (
             <>
-              <Text size="smaller" weight={600} sx={{
-                margin: `0 0 ${getSpacingPx(SPACING.md)} 0`,
-                color: "var(--palette-grey-100)"
-              }}>
-                Camera
+              <Text
+                size="smaller"
+                weight={600}
+                sx={{
+                  margin: `0 0 ${getSpacingPx(SPACING.md)} 0`,
+                  color: "var(--palette-grey-100)"
+                }}
+              >
+                {t("screen_timeline.video.camera")}
               </Text>
               <div
                 className={`device-select${
@@ -228,8 +251,8 @@ const VideoRecorder = ({
                   options={videoDeviceOptions}
                   value={selectedVideoDeviceId}
                   onChange={handleVideoDeviceChange}
-                  placeholder="System default camera"
-                  label="Camera"
+                  placeholder={t("screen_timeline.video.systemDefaultCamera")}
+                  label={t("screen_timeline.video.camera")}
                   tabIndex={isRecording || isLoading ? -1 : 0}
                 />
               </div>
@@ -249,17 +272,21 @@ const VideoRecorder = ({
                 left: "0.5em"
               }}
             >
-              No video input devices found.
+              {t("screen_timeline.video.noVideoDevices")}
             </Text>
           )}
 
           {audioInputDevices.length > 0 && (
             <>
-              <Text size="smaller" weight={600} sx={{
-                margin: `${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)} 0`,
-                color: "var(--palette-grey-100)"
-              }}>
-                Microphone
+              <Text
+                size="smaller"
+                weight={600}
+                sx={{
+                  margin: `${getSpacingPx(SPACING.xl)} 0 ${getSpacingPx(SPACING.md)} 0`,
+                  color: "var(--palette-grey-100)"
+                }}
+              >
+                {t("screen_timeline.video.microphone")}
               </Text>
               <div
                 className={`device-select${
@@ -270,8 +297,8 @@ const VideoRecorder = ({
                   options={audioDeviceOptions}
                   value={selectedAudioDeviceId}
                   onChange={handleAudioDeviceChange}
-                  placeholder="System default input"
-                  label="Microphone"
+                  placeholder={t("screen_timeline.video.systemDefaultInput")}
+                  label={t("screen_timeline.video.microphone")}
                   tabIndex={isRecording || isLoading ? -1 : 0}
                 />
               </div>

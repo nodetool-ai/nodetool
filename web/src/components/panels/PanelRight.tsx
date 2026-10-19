@@ -12,6 +12,7 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useShallow } from "zustand/react/shallow";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -82,6 +83,7 @@ const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
 
 const PanelRight: React.FC = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     ref: panelRef,
@@ -163,8 +165,8 @@ const PanelRight: React.FC = () => {
         <MobileBottomSheet
           open={isVisible}
           onClose={handleMobileSheetClose}
-          title="Inspector"
-          ariaLabel="Inspector panel"
+          title={t("i18n-next58.panels.inspector")}
+          ariaLabel={t("i18n-next58.panels.inspectorPanel")}
         >
           <FlexColumn
             sx={{
@@ -200,7 +202,7 @@ const PanelRight: React.FC = () => {
             min={130}
             max={600}
             invert
-            ariaLabel="Resize inspector panel"
+            ariaLabel={t("i18n-next58.panels.resizeInspectorPanel")}
             onResize={handlePanelResize}
             onResizeStart={() => setPanelDragging(true)}
             onResizeEnd={() => {

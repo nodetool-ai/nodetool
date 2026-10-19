@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -52,6 +53,7 @@ const RealtimeAudioOutput: React.FC<Props> = ({
   nodeId,
   live = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const workflowState = useWebsocketRunner((s) => s.state);
@@ -85,12 +87,20 @@ const RealtimeAudioOutput: React.FC<Props> = ({
       <div className="controls">
         <ButtonGroup size="small">
           <EditorButton onClick={isPlaying ? stop : start}>
-            {isPlaying ? "Stop" : "Start"}
+            {isPlaying
+              ? t("i18n-next37.realtimeAudioOutput.stop")
+              : t("i18n-next37.realtimeAudioOutput.start")}
           </EditorButton>
-          <EditorButton onClick={restart}>Restart</EditorButton>
+          <EditorButton onClick={restart}>
+            {t("i18n-next37.realtimeAudioOutput.restart")}
+          </EditorButton>
         </ButtonGroup>
         {isQueued && queuePosition !== null && (
-          <div className="time">Queue position: {queuePosition}</div>
+          <div className="time">
+            {t("i18n-next37.realtimeAudioOutput.queuePosition", {
+              position: queuePosition
+            })}
+          </div>
         )}
       </div>
       <AudioVisualizer

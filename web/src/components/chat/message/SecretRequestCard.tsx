@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -76,6 +77,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
   onResolve
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const updateSecret = useSecretsStore((s) => s.updateSecret);
   const [value, setValue] = useState("");
@@ -102,10 +104,14 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
     } catch (err) {
       // The request stays open: the run is still waiting, and the user can
       // correct a paste and try again rather than losing the turn.
-      setError(err instanceof Error ? err.message : "Could not save the key.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : t("i18n-next108.secretRequestCard.couldNotSaveKey")
+      );
       setSaving(false);
     }
-  }, [approvalId, onResolve, request.key, updateSecret, value]);
+  }, [approvalId, onResolve, request.key, t, updateSecret, value]);
 
   const handleDecline = useCallback(() => {
     setValue("");
@@ -122,8 +128,8 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
       <CardHeader
         divided
         icon={<KeyRoundedIcon fontSize="small" />}
-        title="Enter a credential"
-        subtitle="Saved to your secret store. The agent never sees the value."
+        title={t("i18n-next108.secretRequestCard.enterCredential")}
+        subtitle={t("i18n-next108.secretRequestCard.credentialSubtitle")}
         trailing={<span className="secret-request-key">{request.key}</span>}
       />
       <CardBody className="secret-request-body">
@@ -144,7 +150,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
             target="_blank"
             rel="noreferrer noopener"
           >
-            Where to get this key
+            {t("i18n-next108.secretRequestCard.whereToGetKey")}
           </a>
         )}
       </CardBody>
@@ -155,7 +161,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
           type="password"
           autoComplete="off"
           label={request.key}
-          placeholder="Paste the key"
+          placeholder={t("i18n-next108.secretRequestCard.pasteKey")}
           value={value}
           onChange={handleChange}
           disabled={saving}
@@ -164,7 +170,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: "Saving a requested secret failed",
+              summary: t("i18n-next108.secretRequestCard.saveFailed"),
               errorText: error
             }}
           >
@@ -178,7 +184,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
             onClick={handleDecline}
             startIcon={<CloseOutlinedIcon />}
           >
-            Not now
+            {t("i18n-next108.secretRequestCard.notNow")}
           </EditorButton>
           <EditorButton
             variant="contained"
@@ -188,7 +194,9 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
             onClick={handleSave}
             startIcon={<KeyRoundedIcon />}
           >
-            {saving ? "Saving…" : "Save key"}
+            {saving
+              ? t("i18n-next108.secretRequestCard.saving")
+              : t("i18n-next108.secretRequestCard.saveKey")}
           </EditorButton>
         </FlexRow>
       </div>

@@ -3,6 +3,7 @@ import type { CSSObject } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import {
   Caption,
@@ -87,11 +88,6 @@ function resourceLabel(resource: Resource): string {
   return `${resource.type}: ${resource.label || resource.uri || resource.id}`;
 }
 
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
-}
-
 interface MemoryCardProps {
   memory: Memory;
   onDelete: (id: string) => void;
@@ -107,6 +103,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
   deleteDisabled,
   onOpenThread
 }) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const imageAssets = memory.resources.filter(isImageAsset);
@@ -129,7 +126,7 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
               </Text>
             )}
           </FlexRow>
-          <Caption>{formatDate(memory.created_at)}</Caption>
+          <Caption>{Number.isNaN(new Date(memory.created_at).getTime()) ? "" : new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(memory.created_at))}</Caption>
         </FlexColumn>
         <HoverActionGroup
           className="memory-actions"
@@ -137,12 +134,12 @@ const MemoryCard: React.FC<MemoryCardProps> = ({
           gap={SPACING.xs}
         >
           <ToolbarIconButton
-            tooltip="Open the conversation this came from"
+            tooltip={t("screen_chat.memory.openConversation")}
             onClick={() => onOpenThread(memory.thread_id)}
             icon={<ForumOutlinedIcon fontSize="small" />}
           />
           <DeleteButton
-            tooltip="Delete memory"
+            tooltip={t("screen_chat.memory.deleteTitle")}
             onClick={() => onDelete(memory.id)}
             disabled={deleteDisabled}
           />

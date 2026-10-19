@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { NATIVE_GAME_INSPIRATION_CHIPS } from "@nodetool-ai/protocol";
 
 import {
@@ -51,6 +52,7 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
   onDismissAlternativeError,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const briefField = useRef<HTMLElement | null>(null);
 
   const handleChange = useCallback(
@@ -68,36 +70,50 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
     },
     [onBriefChange, readOnly]
   );
+  const examples = NATIVE_GAME_INSPIRATION_CHIPS.map((chip) => {
+    switch (chip.id) {
+      case "acorn-clearing":
+        return t("pass3_6.game.idea.inspiration.acornClearing");
+      case "sunken-pearl":
+        return t("pass3_6.game.idea.inspiration.sunkenPearl");
+      case "server-cell":
+        return t("pass3_6.game.idea.inspiration.serverCell");
+      default:
+        return chip.brief;
+    }
+  });
 
   const alternatives: AlternativeEntry[] = useMemo(() => {
     const busy = startingAlternative !== null || readOnly;
     const busyReason =
-      startingAlternative !== null ? "Creating your game" : "Not editable";
+      startingAlternative !== null
+        ? t("pass3_6.game.idea.creatingGame")
+        : t("pass3_6.game.idea.notEditable");
     return [
       {
         id: "blank-2d",
-        title: "Start with a blank room",
+        title: t("pass3_6.game.idea.blankRoom.title"),
         description:
           startingAlternative === "blank-2d"
-            ? "Creating your game"
-            : "Skip the design and edit the top-down room yourself",
+            ? t("pass3_6.game.idea.creatingGame")
+            : t("pass3_6.game.idea.blankRoom.description"),
         onSelect: () => onStartAlternative("blank-2d"),
         disabled: busy,
         disabledReason: busyReason
       },
       {
         id: "blank-3d",
-        title: "Start a blank 3D game",
+        title: t("pass3_6.game.idea.blank3d.title"),
         description:
           startingAlternative === "blank-3d"
-            ? "Creating your game"
-            : "An empty 3D scene in the built-in engine",
+            ? t("pass3_6.game.idea.creatingGame")
+            : t("pass3_6.game.idea.blank3d.description"),
         onSelect: () => onStartAlternative("blank-3d"),
         disabled: busy,
         disabledReason: busyReason
       }
     ];
-  }, [onStartAlternative, readOnly, startingAlternative]);
+  }, [onStartAlternative, readOnly, startingAlternative, t]);
 
   return (
     <Box
@@ -114,11 +130,10 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
       <FlexColumn gap={GAP.comfortable}>
         <FlexColumn gap={GAP.tight}>
           <Text size="big" component="h2">
-            What&apos;s your game?
+            {t("pass3_6.game.idea.title")}
           </Text>
           <Text size="normal" color="secondary">
-            Describe it in a sentence. We&apos;ll write a design you can edit,
-            then draw its art.
+            {t("pass3_6.game.idea.description")}
           </Text>
         </FlexColumn>
 
@@ -126,9 +141,9 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
           value={brief}
           autoFocus
           rows={3}
-          label="Your game"
+          label={t("pass3_6.game.idea.briefLabel")}
           hideLabel
-          placeholder="A cat collecting fish in a moonlit garden"
+          placeholder={t("pass3_6.game.idea.briefPlaceholder")}
           onChange={handleChange}
           inputRef={briefField}
           disabled={readOnly}
@@ -142,7 +157,7 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
               <ReportBugButton
                 context={{
                   source: "operation-failure",
-                  summary: "Creating a game failed",
+                  summary: t("pass3_6.game.idea.createFailed"),
                   errorText: alternativeError,
                   workflowId
                 }}
@@ -154,7 +169,7 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
         ) : null}
 
         <ExampleBriefs
-          examples={NATIVE_GAME_INSPIRATION_CHIPS.map((chip) => chip.brief)}
+          examples={examples}
           brief={brief}
           onSelect={handleChip}
           briefRef={briefField}
@@ -162,7 +177,7 @@ const IdeaStepInternal: React.FC<GameIdeaStepProps> = ({
       </FlexColumn>
 
       <AlternativesColumn
-        label="Other ways to start"
+        label={t("pass3_6.game.idea.alternativesLabel")}
         alternatives={alternatives}
       />
     </Box>

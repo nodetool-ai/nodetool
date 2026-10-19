@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import MoreTimeOutlinedIcon from "@mui/icons-material/MoreTimeOutlined";
 import { captureExtensionSource } from "@nodetool-ai/timeline";
 import type { ExtensionRequest, ExtensionTiming } from "@nodetool-ai/timeline";
@@ -27,17 +28,32 @@ import {
   ThinkingIndicator,
   VideoPlayer
 } from "../../ui_primitives";
-import { INSPECTOR_FORM_SX, InspectorSectionTitle } from "./InspectorPrimitives";
+import {
+  INSPECTOR_FORM_SX,
+  InspectorSectionTitle
+} from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
 
-const TIMING_OPTIONS: ReadonlyArray<{ value: ExtensionTiming; label: string }> =
-  [
-    { value: "keep-cut", label: "Keep cut and retain handles" },
-    { value: "available-space", label: "Extend into available space" },
-    { value: "ripple", label: "Extend and ripple later clips" }
-  ];
+const TIMING_OPTIONS: ReadonlyArray<{
+  value: ExtensionTiming;
+  labelKey: string;
+}> = [
+  { value: "keep-cut", labelKey: "keepCut" },
+  { value: "available-space", labelKey: "availableSpace" },
+  { value: "ripple", labelKey: "ripple" }
+];
 
 const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
+  const { t, i18n } = useTranslation();
+  const formatSeconds = useMemo(
+    () => {
+      const formatter = new Intl.NumberFormat(i18n.language, {
+        maximumFractionDigits: 2
+      });
+      return (seconds: number): string => formatter.format(seconds);
+    },
+    [i18n.language]
+  );
   const [open, setOpen] = usePersistedFold("extend", true);
   const clip = useTimelineStore((state) =>
     state.clips.find((item) => item.id === clipId)
@@ -83,17 +99,28 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
   const directionOptions = [
     ...(!hasDirectionTasks ||
     model?.supported_tasks?.includes("extend_video_start")
-      ? [{ value: "start" as const, label: "Start" }]
+      ? [
+          {
+            value: "start" as const,
+            label: t("i18n-cont-inspector-02.extendClip.start")
+          }
+        ]
       : []),
-    ...(!hasDirectionTasks || model?.supported_tasks?.includes("extend_video_end")
-      ? [{ value: "end" as const, label: "End" }]
+    ...(!hasDirectionTasks ||
+    model?.supported_tasks?.includes("extend_video_end")
+      ? [
+          {
+            value: "end" as const,
+            label: t("i18n-cont-inspector-02.extendClip.end")
+          }
+        ]
       : [])
   ];
   const selectedDirection = directionOptions.some(
     (option) => option.value === direction
   )
     ? direction
-    : directionOptions[0]?.value ?? "end";
+    : (directionOptions[0]?.value ?? "end");
   // A model that lists durations accepts nothing else, so offer only those.
   const durationChoices = model?.durations?.length ? model.durations : null;
   const selectedDuration =
@@ -144,14 +171,22 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
   return (
     <CollapsibleSection
       title={
-        <InspectorSectionTitle title="Extend" icon={<MoreTimeOutlinedIcon />} />
+        <InspectorSectionTitle
+          title={t("i18n-cont-inspector-02.extendClip.title")}
+          icon={<MoreTimeOutlinedIcon />}
+        />
       }
       open={open}
       onToggle={setOpen}
     >
       <FlexColumn sx={INSPECTOR_FORM_SX}>
         {!eligibility?.ok ? (
-          <Caption color="secondary">{eligibility?.error}</Caption>
+          <Caption color="secondary">
+            {eligibility &&
+              t(
+                `i18n-cont-inspector-02.extendClip.eligibility.${eligibility.code}`
+              )}
+          </Caption>
         ) : (
           <>
             {isLoading ? (
@@ -160,17 +195,21 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
               <EmptyState
                 variant="empty"
                 size="small"
-                title="No extension model available"
+                title={t("i18n-cont-inspector-02.extendClip.noModelTitle")}
                 description={
                   modelError
-                    ? "Could not load extension models. Try again when connected."
-                    : "Connect a provider with a video extension model to use Extend."
+                    ? t(
+                        "i18n-cont-inspector-02.extendClip.modelsLoadFailed"
+                      )
+                    : t(
+                        "i18n-cont-inspector-02.extendClip.connectProvider"
+                      )
                 }
               />
             ) : (
               <>
                 <SelectField
-                  label="Extension model"
+                  label={t("i18n-cont-inspector-02.extendClip.modelLabel")}
                   size="small"
                   value={`${model.provider}:${model.id}`}
                   options={modelsForTask.map((item) => ({
@@ -183,7 +222,9 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                 <FlexRow gap={SPACING.sm} align="flex-end" fullWidth>
                   <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
                     <SelectField
-                      label="Extend from"
+                      label={t(
+                        "i18n-cont-inspector-02.extendClip.directionLabel"
+                      )}
                       size="small"
                       value={selectedDirection}
                       options={directionOptions}
@@ -196,19 +237,26 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                   <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
                     {durationChoices ? (
                       <SelectField
-                        label="Source seconds to add"
+                        label={t(
+                          "i18n-cont-inspector-02.extendClip.secondsToAddLabel"
+                        )}
                         size="small"
                         value={selectedDuration}
                         options={durationChoices.map((seconds) => ({
                           value: String(seconds),
-                          label: `${seconds} s`
+                          label: t(
+                            "i18n-cont-inspector-02.extendClip.durationOption",
+                            { seconds: formatSeconds(seconds), count: seconds }
+                          )
                         }))}
                         onChange={setDuration}
                         disabled={pending}
                       />
                     ) : (
                       <TextInput
-                        label="Source seconds to add"
+                        label={t(
+                          "i18n-cont-inspector-02.extendClip.secondsToAddLabel"
+                        )}
                         type="number"
                         value={duration}
                         onChange={(event) => setDuration(event.target.value)}
@@ -221,10 +269,14 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                   </FlexColumn>
                 </FlexRow>
                 <TextArea
-                  label="Extension intent"
+                  label={t(
+                    "i18n-cont-inspector-02.extendClip.intentLabel"
+                  )}
                   value={intent}
                   onChange={(value) => setIntent(value)}
-                  placeholder="e.g. The camera keeps rising"
+                  placeholder={t(
+                    "i18n-cont-inspector-02.extendClip.intentPlaceholder"
+                  )}
                   disabled={pending}
                   minRows={3}
                   maxRows={8}
@@ -243,7 +295,9 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                     !(Number(selectedDuration) > 0)
                   }
                 >
-                  {pending ? "Extending…" : "Generate extension"}
+                  {pending
+                    ? t("i18n-cont-inspector-02.extendClip.extending")
+                    : t("i18n-cont-inspector-02.extendClip.generate")}
                 </EditorButton>
               </>
             )}
@@ -261,11 +315,22 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                 <>
                   <FlexRow justify="space-between" align="center" fullWidth>
                     <Label>
-                      {job.request.direction === "start" ? "Start" : "End"}{" "}
-                      extension, {job.request.addedSourceDurationMs / 1000}s
+                      {t(
+                        job.request.direction === "start"
+                          ? "i18n-cont-inspector-02.extendClip.startExtension"
+                          : "i18n-cont-inspector-02.extendClip.endExtension",
+                        {
+                          seconds: formatSeconds(
+                            job.request.addedSourceDurationMs / 1000
+                          ),
+                          count: job.request.addedSourceDurationMs / 1000
+                        }
+                      )}
                     </Label>
                     <Caption color={accepted ? "primary" : "secondary"}>
-                      {accepted ? "In use" : "Candidate"}
+                      {accepted
+                        ? t("i18n-cont-inspector-02.extendClip.inUse")
+                        : t("i18n-cont-inspector-02.extendClip.candidate")}
                     </Caption>
                   </FlexRow>
                   <EditorButton
@@ -276,16 +341,20 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                     }
                   >
                     {preview === take.assetId
-                      ? "Close preview"
-                      : "Preview extension"}
+                      ? t("i18n-cont-inspector-02.extendClip.closePreview")
+                      : t("i18n-cont-inspector-02.extendClip.preview")}
                   </EditorButton>
                   {preview === take.assetId && (
                     <VideoPlayer
                       locator={`asset://${take.assetId}`}
-                      label="Extension candidate"
+                      label={t(
+                        "i18n-cont-inspector-02.extendClip.candidateLabel"
+                      )}
                     />
                   )}
-                  <Caption color="secondary">Apply to the cut</Caption>
+                  <Caption color="secondary">
+                    {t("i18n-cont-inspector-02.extendClip.applyToCut")}
+                  </Caption>
                   {TIMING_OPTIONS.map((option) => (
                     <EditorButton
                       key={option.value}
@@ -296,7 +365,9 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                         handleApplyCandidate(job.request, option.value)
                       }
                     >
-                      {option.label}
+                      {t(
+                        `i18n-cont-inspector-02.extendClip.timing.${option.labelKey}`
+                      )}
                     </EditorButton>
                   ))}
                 </>
@@ -306,7 +377,9 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                     <ErrorBanner
                       report={{
                         source: "job-failure",
-                        summary: "Clip extension failed",
+                        summary: t(
+                          "i18n-cont-inspector-02.extendClip.jobFailed"
+                        ),
                         errorText: job.error
                       }}
                     >
@@ -318,11 +391,14 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                     variant="outlined"
                     onClick={() => recover(job.request)}
                   >
-                    Recover extension
+                    {t("i18n-cont-inspector-02.extendClip.recover")}
                   </EditorButton>
                 </>
               ) : (
-                <ThinkingIndicator label="Generating extension" announce />
+                <ThinkingIndicator
+                  label={t("i18n-cont-inspector-02.extendClip.generating")}
+                  announce
+                />
               )}
             </FlexColumn>
           );
@@ -331,7 +407,7 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: "Clip extension could not start",
+              summary: t("i18n-cont-inspector-02.extendClip.startFailed"),
               errorText: error
             }}
           >

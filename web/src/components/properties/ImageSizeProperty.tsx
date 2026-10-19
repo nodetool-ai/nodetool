@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
@@ -21,6 +22,7 @@ type ImageSizeValue = {
 };
 
 const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
+  const { t } = useTranslation();
   const { property, nodeId, value, onChange, tabIndex } = props;
 
   const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
@@ -164,7 +166,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
         <Box className="spacer" sx={{ flex: 1 }} />
         <FlexRow className="icon-container" align="center" gap={0} sx={{ mt: -2 }}>
           <ToolbarIconButton
-            tooltip="Swap width and height"
+            tooltip={t("i18n-next119.imageSize.swapWidthAndHeight")}
             icon={<SwapHoriz sx={{ fontSize: ICON_SIZE.md }} />}
             className="aspect-swap-button"
             onClick={handleSwap}
@@ -177,7 +179,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
           />
 
           <ToolbarIconButton
-            tooltip={locked ? "Unlock aspect ratio" : "Lock aspect ratio"}
+            tooltip={locked ? t("i18n-next119.imageSize.unlockAspectRatio") : t("i18n-next119.imageSize.lockAspectRatio")}
             icon={locked ? <Lock sx={{ fontSize: ICON_SIZE.sm }} /> : <LockOpen sx={{ fontSize: ICON_SIZE.sm }} />}
             className="aspect-lock-button"
             onClick={toggleLock}
@@ -190,7 +192,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
           />
 
           <ToolbarIconButton
-            tooltip="Presets"
+            tooltip={t("i18n-next119.imageSize.presets")}
             icon={<MoreVert sx={{ fontSize: ICON_SIZE.md }} />}
             className="presets-menu-button"
             onClick={handlePresetClick}

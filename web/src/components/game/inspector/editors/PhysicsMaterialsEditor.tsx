@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { GAME_MAX_PHYSICS_MATERIALS_3D, gamePhysicsMaterial3D, type GameDocument3D, type GameEntity3D, type GamePhysicsMaterial3D } from "@nodetool-ai/protocol";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
@@ -41,35 +42,36 @@ interface PhysicsMaterialsEditorProps {
 }
 
 function PhysicsMaterialsEditor({ document, onDocument }: PhysicsMaterialsEditorProps) {
+  const { t } = useTranslation();
   const materials = document.physicsMaterials ?? {};
   const names = Object.keys(materials);
   const [renameError, setRenameError] = useState<string | null>(null);
   const rename = (material: string, raw: string): void => {
     const name = raw.trim();
     if (!name || name === material) { setRenameError(null); return; }
-    if (names.includes(name)) { setRenameError(`Material ${name} already exists. Choose another name.`); return; }
+    if (names.includes(name)) { setRenameError(t("game.physics.errors.materialExists", { name })); return; }
     setRenameError(null);
-    onDocument(renamePhysicsMaterial3D(document, material, name), "Rename Physics Material");
+    onDocument(renamePhysicsMaterial3D(document, material, name), t("game.physics.actions.renameMaterial"));
   };
   const addMaterial = (): void => {
     let index = names.length + 1;
     while (names.includes(`material${index}`)) { index += 1; }
-    onDocument({ ...document, physicsMaterials: { ...materials, [`material${index}`]: gamePhysicsMaterial3D.parse({}) } }, "Add Physics Material");
+    onDocument({ ...document, physicsMaterials: { ...materials, [`material${index}`]: gamePhysicsMaterial3D.parse({}) } }, t("game.physics.actions.addMaterial"));
   };
   const change = (name: string, value: unknown): void => {
     const parsed = gamePhysicsMaterial3D.safeParse(value);
-    if (parsed.success) { onDocument({ ...document, physicsMaterials: { ...materials, [name]: parsed.data } }, "Change Physics Material"); }
+    if (parsed.success) { onDocument({ ...document, physicsMaterials: { ...materials, [name]: parsed.data } }, t("game.physics.actions.changeMaterial")); }
   };
   return <FlexColumn gap={SPACING.xs} sx={{ width: "100%", minWidth: 0 }}>
-    <Caption>Colliders pick a material by name and take its friction, restitution and combine rules. When two colliders use different rules, the later of average, min, multiply and max wins.</Caption>
+    <Caption>{t("game.physics.description")}</Caption>
     {Object.entries(materials).map(([name, material]: [string, GamePhysicsMaterial3D], index) => <FieldGroup key={`${index}:${name}`} title={name}
-      actions={<RowAction icon={<DeleteOutlineIcon />} label={`Remove material ${name}`}
-        onClick={() => onDocument(removePhysicsMaterial3D(document, name), "Remove Physics Material")} />}>
-      <InspectorFieldRow label="Name"><InspectorValueInput grow ariaLabel={`Material ${name} name`} value={name} onCommit={(raw) => rename(name, raw)} /></InspectorFieldRow>
+      actions={<RowAction icon={<DeleteOutlineIcon />} label={t("game.physics.actions.removeMaterial", { name })}
+        onClick={() => onDocument(removePhysicsMaterial3D(document, name), t("game.physics.actions.removeMaterialLabel"))} />}>
+      <InspectorFieldRow label={t("game.physics.fields.name")}><InspectorValueInput grow ariaLabel={t("game.physics.accessibility.materialName", { name })} value={name} onCommit={(raw) => rename(name, raw)} /></InspectorFieldRow>
       <SchemaFields schema={MATERIAL_FIELDS} value={material} path={`physicsMaterials.${name}`} onChange={(value) => change(name, value)} />
     </FieldGroup>)}
     {renameError && <Caption color="error" role="alert">{renameError}</Caption>}
-    <AddButton disabled={names.length >= GAME_MAX_PHYSICS_MATERIALS_3D} onClick={addMaterial}>Add material</AddButton>
+    <AddButton disabled={names.length >= GAME_MAX_PHYSICS_MATERIALS_3D} onClick={addMaterial}>{t("game.physics.actions.addMaterialButton")}</AddButton>
   </FlexColumn>;
 }
 

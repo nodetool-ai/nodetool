@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -39,6 +40,7 @@ const InfoRow: React.FC<{
   onCopy?: (value: string) => void;
 }> = memo(({ label, value, copyable = false, onCopy }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const handleCopy = () => {
     if (value && onCopy) {
@@ -82,10 +84,12 @@ const InfoRow: React.FC<{
             fontFamily: "var(--fontFamily2)"
           }}
         >
-          {value || "N/A"}
+          {value || t("screens4_1.about.notAvailable")}
         </Text>
         {copyable && value && (
           <ContentCopyIcon
+            aria-label={t("screens4_1.about.copyValue", { label })}
+            titleAccess={t("screens4_1.about.copyValue", { label })}
             sx={{
               fontSize: "inherit",
               cursor: "pointer",
@@ -109,6 +113,7 @@ const FeatureStatus: React.FC<{
   version?: string | null;
 }> = memo(({ label, available, version }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <FlexRow
@@ -130,7 +135,7 @@ const FeatureStatus: React.FC<{
           <>
             <Chip
               icon={<CheckCircleIcon />}
-              label={version || "Available"}
+              label={version || t("screens4_1.about.available")}
               size="small"
               color="success"
               variant="outlined"
@@ -140,7 +145,7 @@ const FeatureStatus: React.FC<{
         ) : (
           <Chip
             icon={<CancelIcon />}
-            label="Not available"
+            label={t("screens4_1.about.notAvailable")}
             size="small"
             color="default"
             variant="outlined"
@@ -153,6 +158,7 @@ const FeatureStatus: React.FC<{
 FeatureStatus.displayName = "FeatureStatus";
 
 const AboutMenu: React.FC = memo(() => {
+  const { t } = useTranslation();
   const [systemInfo, setSystemInfo] = useState<SystemInfoData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,7 +178,7 @@ const AboutMenu: React.FC = memo(() => {
         const info = await window.api?.settings?.getSystemInfo();
         setSystemInfo(info ?? null);
       } catch (err) {
-        setError("Failed to load system information");
+        setError(t("screens4_1.about.loadError"));
         console.error("Failed to fetch system info:", err);
       } finally {
         setLoading(false);
@@ -180,7 +186,7 @@ const AboutMenu: React.FC = memo(() => {
     };
 
     fetchSystemInfo();
-  }, []);
+  }, [t]);
 
   const handleCopy = useCallback(async (value: string) => {
     try {
@@ -188,17 +194,17 @@ const AboutMenu: React.FC = memo(() => {
       addNotification({
         type: "info",
         alert: true,
-        content: "Copied to clipboard!"
+        content: t("screens4_1.about.copied")
       });
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
       addNotification({
         type: "error",
         alert: true,
-        content: "Failed to copy to clipboard"
+        content: t("screens4_1.about.copyError")
       });
     }
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   const handleCopyAll = useCallback(async () => {
     if (!systemInfo) {
@@ -240,17 +246,17 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       addNotification({
         type: "info",
         alert: true,
-        content: "System information copied to clipboard!"
+        content: t("screens4_1.about.systemInfoCopied")
       });
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
       addNotification({
         type: "error",
         alert: true,
-        content: "Failed to copy system information to clipboard"
+        content: t("screens4_1.about.systemInfoCopyError")
       });
     }
-  }, [systemInfo, addNotification]);
+  }, [systemInfo, addNotification, t]);
 
   if (loading) {
     return (
@@ -272,7 +278,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
         <ErrorBanner
           report={{
             source: "operation-failure",
-            summary: "System information failed to load",
+            summary: t("screens4_1.about.loadError"),
             errorText: error
           }}
         >
@@ -285,17 +291,17 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
   return (
     <Box>
       <Text size="big" id="application">
-        Application
+        {t("screens4_1.about.application")}
       </Text>
       <div className="settings-section">
-        <InfoRow label="Version" value={VERSION} />
+        <InfoRow label={t("screens4_1.about.version")} value={VERSION} />
         <InfoRow
-          label="Git commit"
+          label={t("screens4_1.about.gitCommit")}
           value={GIT_COMMIT_HASH}
           copyable
           onCopy={handleCopy}
         />
-        <InfoRow label="Build" value={BUILD_NUMBER} />
+        <InfoRow label={t("screens4_1.about.build")} value={BUILD_NUMBER} />
         {systemInfo && (
           <>
             <InfoRow label="Electron" value={systemInfo.electronVersion} />
@@ -306,19 +312,19 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       </div>
 
       <Text size="big" id="operating-system">
-        Operating system
+        {t("screens4_1.about.operatingSystem")}
       </Text>
       <div className="settings-section">
         {systemInfo ? (
           <>
             <InfoRow label="OS" value={systemInfo.os} />
-            <InfoRow label="Version" value={systemInfo.osVersion} />
-            <InfoRow label="Architecture" value={systemInfo.arch} />
+            <InfoRow label={t("screens4_1.about.version")} value={systemInfo.osVersion} />
+            <InfoRow label={t("screens4_1.about.architecture")} value={systemInfo.arch} />
           </>
         ) : (
           <>
-            <InfoRow label="Platform" value={navigator.platform} />
-            <InfoRow label="User agent" value={navigator.userAgent} />
+            <InfoRow label={t("screens4_1.about.platform")} value={navigator.platform} />
+            <InfoRow label={t("screens4_1.about.userAgent")} value={navigator.userAgent} />
           </>
         )}
       </div>
@@ -326,35 +332,35 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       {systemInfo && !isProduction && (
         <>
           <Text size="big" id="installation-paths">
-            Installation paths
+            {t("screens4_1.about.installationPaths")}
           </Text>
           <div className="settings-section">
             <InfoRow
-              label="Application"
+              label={t("screens4_1.about.application")}
               value={systemInfo.installPath}
               copyable
               onCopy={handleCopy}
             />
             <InfoRow
-              label="Conda environment"
+              label={t("screens4_1.about.condaEnvironment")}
               value={systemInfo.condaEnvPath}
               copyable
               onCopy={handleCopy}
             />
             <InfoRow
-              label="Data"
+              label={t("screens4_1.about.data")}
               value={systemInfo.dataPath}
               copyable
               onCopy={handleCopy}
             />
             <InfoRow
-              label="Logs"
+              label={t("screens4_1.about.logs")}
               value={systemInfo.logsPath}
               copyable
               onCopy={handleCopy}
             />
             <InfoRow
-              label="NPM packages"
+              label={t("screens4_1.about.npmPackages")}
               value={systemInfo.optionalNodePath}
               copyable
               onCopy={handleCopy}
@@ -366,7 +372,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
       {systemInfo && (
         <>
           <Text size="big" id="features">
-            Features & versions
+            {t("screens4_1.about.featuresAndVersions")}
           </Text>
           <div className="settings-section">
             <InfoRow label="Python" value={systemInfo.pythonVersion} />
@@ -406,13 +412,13 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
             }}
           >
             <ContentCopyIcon sx={{ fontSize: "1.2em" }} />
-            Copy all system information
+            {t("screens4_1.about.copyAllSystemInfo")}
           </Text>
         </Box>
       )}
 
       <Text size="big" id="links">
-        Links
+        {t("screens4_1.about.links")}
       </Text>
       <div className="settings-section">
         <FlexColumn
@@ -430,7 +436,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            GitHub repository
+            {t("screens4_1.about.githubRepository")}
           </a>
           <a
             href="https://forum.nodetool.ai"
@@ -441,7 +447,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            NodeTool forum
+            {t("screens4_1.about.forum")}
           </a>
           <a
             href="https://nodetool.ai"
@@ -452,7 +458,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            Website
+            {t("screens4_1.about.website")}
           </a>
           <a
             href="https://nodetool.ai/privacy"
@@ -463,7 +469,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            Privacy policy
+            {t("screens4_1.about.privacyPolicy")}
           </a>
           <a
             href="https://nodetool.ai/terms"
@@ -474,7 +480,7 @@ Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" :
               textDecoration: "none"
             }}
           >
-            Terms of use
+            {t("screens4_1.about.termsOfUse")}
           </a>
         </FlexColumn>
       </div>

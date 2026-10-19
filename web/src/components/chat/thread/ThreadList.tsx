@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./ThreadList.styles";
@@ -30,6 +31,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
   isFiltered = false
 }) => {
   const theme = useTheme<Theme>();
+  const { t } = useTranslation();
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
   // The row whose deletion is awaiting confirmation, and the row currently
   // animating out. One dialog for the whole list, not one per row.
@@ -154,10 +156,10 @@ const ThreadList: React.FC<ThreadListProps> = ({
           open
           onClose={handleCancelDelete}
           onConfirm={handleConfirmDelete}
-          title="Delete conversation"
-          content={`Delete "${pendingLabel}"? This cannot be undone.`}
-          confirmText="Delete"
-          cancelText="Cancel"
+          title={t("i18n-next54.thread.deleteTitle")}
+          content={t("i18n-next54.thread.deleteContent", { name: pendingLabel })}
+          confirmText={t("i18n-next54.thread.delete")}
+          cancelText={t("common.cancel")}
         />
       )}
     </div>

@@ -166,7 +166,7 @@ describe("OneTakePanel", () => {
     expect(screen.getByLabelText("Your prompt")).toHaveValue("");
     expect(
       screen.getByText(
-        "Brand, rules, light and anything else. Refer to images as [Image N]."
+        "Brand, rules, light, and anything else. Refer to images as [Image N]."
       )
     ).toBeInTheDocument();
     expect(stored()).toBeUndefined();
@@ -200,7 +200,7 @@ describe("OneTakePanel", () => {
     expect(text).toContain("AUDIO: <footsteps> at 5-11s");
     // The creator's prompt is not part of the compiled block.
     expect(text).not.toContain("Warm light.");
-    expect(screen.getByTestId("one-take-duration")).toHaveTextContent("15s");
+    expect(screen.getByTestId("one-take-duration")).toHaveTextContent("15 seconds");
   });
 
   it("lists the image numbering with each label", () => {
@@ -233,10 +233,10 @@ describe("OneTakePanel", () => {
     renderPanel();
 
     expect(screen.getByTestId("one-take-image-count")).toHaveTextContent(
-      "Images 10 / 9"
+      "10 / 9 images"
     );
     expect(screen.getByText("This board has 10 stills. The render sends at most 9.")).toBeInTheDocument();
-    expect(screen.getByText(/runs 50s/)).toBeInTheDocument();
+    expect(screen.getByText(/runs 50 seconds/)).toBeInTheDocument();
   });
 
   it("does not warn within the limits", () => {
@@ -244,7 +244,7 @@ describe("OneTakePanel", () => {
     renderPanel();
 
     expect(screen.getByTestId("one-take-image-count")).toHaveTextContent(
-      "Images 2 / 9"
+      "2 / 9 images"
     );
     expect(screen.queryByText(/sends at most/)).not.toBeInTheDocument();
     expect(screen.queryByText(/One take renders at most/)).not.toBeInTheDocument();
@@ -292,18 +292,18 @@ describe("OneTakePanel", () => {
     renderPanel();
 
     expect(screen.getByRole("combobox", { name: "Duration" })).toHaveTextContent(
-      "Shot total (15s)"
+      "Shot total (15 seconds)"
     );
     expect(screen.queryByText("Shot windows scale to fit.")).not.toBeInTheDocument();
 
-    await pick("Duration", "30s");
+    await pick("Duration", "30 seconds");
 
     expect(stored()).toEqual({ prompt: "Warm light.", duration_seconds: 30 });
     expect(screen.getByText("Shot windows scale to fit.")).toBeInTheDocument();
     expect(compiled()).toContain("STEP_03: 22-30s. Lamp turns.");
-    expect(screen.getByTestId("one-take-duration")).toHaveTextContent("30s");
+    expect(screen.getByTestId("one-take-duration")).toHaveTextContent("30 seconds");
 
-    await pick("Duration", "Shot total (15s)");
+    await pick("Duration", "Shot total (15 seconds)");
     expect(stored()).toEqual({ prompt: "Warm light.", duration_seconds: null });
     expect(screen.queryByText("Shot windows scale to fit.")).not.toBeInTheDocument();
   });
@@ -320,7 +320,7 @@ describe("OneTakePanel", () => {
     const options = (await screen.findAllByRole("option")).map(
       (option) => option.textContent
     );
-    expect(options).toEqual(["Shot total (15s)", "5s", "10s", "15s"]);
+    expect(options).toEqual(["Shot total (15 seconds)", "5 seconds", "10 seconds", "15 seconds"]);
   });
 
   it("saves an aspect ratio and keeps the prompt", async () => {

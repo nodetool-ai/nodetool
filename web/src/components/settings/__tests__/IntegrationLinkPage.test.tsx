@@ -53,11 +53,11 @@ describe("IntegrationLinkPage", () => {
     renderPage("?code=abc123");
 
     expect(
-      await screen.findByText(/link telegram account 12345\?/i)
+      await screen.findByText(/link telegram account 12345 to your NodeTool account\?/i)
     ).toBeInTheDocument();
     expect(describeLinkCode).toHaveBeenCalledWith({ code: "abc123" });
 
-    await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
+    await userEvent.click(screen.getByRole("button", { name: /link account/i }));
 
     await waitFor(() =>
       expect(confirmLink).toHaveBeenCalledWith({
@@ -65,7 +65,7 @@ describe("IntegrationLinkPage", () => {
         code: "abc123"
       })
     );
-    expect(await screen.findByText(/is linked/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Successfully linked Telegram account 12345/i)).toBeInTheDocument();
   });
 
   it("says so plainly when the code is expired or used", async () => {
@@ -74,10 +74,10 @@ describe("IntegrationLinkPage", () => {
     renderPage("?code=stale");
 
     expect(
-      await screen.findByText(/expired or was already used/i)
+      await screen.findByText(/expired or has already been used/i)
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /confirm/i })
+      screen.queryByRole("button", { name: /link account/i })
     ).not.toBeInTheDocument();
   });
 
@@ -85,7 +85,7 @@ describe("IntegrationLinkPage", () => {
     renderPage("");
 
     expect(
-      await screen.findByText(/expired or was already used/i)
+      await screen.findByText(/expired or has already been used/i)
     ).toBeInTheDocument();
     expect(describeLinkCode).not.toHaveBeenCalled();
   });

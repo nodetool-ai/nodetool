@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Text,
   FlexRow,
@@ -41,12 +42,12 @@ interface ModelListHeaderProps {
   workerSupported: boolean;
 }
 
-const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
-  { value: "fit", label: "Best fit" },
-  { value: "name", label: "Name" },
-  { value: "size", label: "Size" },
-  { value: "downloads", label: "Downloads" },
-  { value: "likes", label: "Likes" }
+const SORT_OPTION_KEYS: { value: ModelSortField; key: string }[] = [
+  { value: "fit", key: "sortOptions.fit" },
+  { value: "name", key: "sortOptions.name" },
+  { value: "size", key: "sortOptions.size" },
+  { value: "downloads", key: "sortOptions.downloads" },
+  { value: "likes", key: "sortOptions.likes" }
 ];
 
 /**
@@ -85,21 +86,6 @@ const toolbarSelectSx = (theme: Theme) => ({
   }
 });
 
-const resultLabel = (
-  source: ModelSource,
-  filteredCount: number,
-  totalCount: number
-): string => {
-  if (source === "hub") {
-    return filteredCount >= HUB_RESULT_LIMIT
-      ? `Top ${HUB_RESULT_LIMIT} results`
-      : `${filteredCount} result${filteredCount === 1 ? "" : "s"}`;
-  }
-  return filteredCount !== totalCount
-    ? `${filteredCount} of ${totalCount} models`
-    : `${totalCount} models`;
-};
-
 const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   totalCount,
   filteredCount,
@@ -110,6 +96,18 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   workerName,
   workerSupported
 }) => {
+  const { t } = useTranslation();
+  const sortOptions = SORT_OPTION_KEYS.map(({ value, key }) => ({
+    value,
+    label: t(`i18n-next29.${key}`)
+  }));
+  const resultLabel = source === "hub"
+    ? filteredCount >= HUB_RESULT_LIMIT
+      ? t("i18n-next29.results.top", { count: HUB_RESULT_LIMIT })
+      : t("i18n-next29.results.result", { count: filteredCount })
+    : filteredCount !== totalCount
+      ? t("i18n-next29.results.filtered", { filteredCount, totalCount })
+      : t("i18n-next29.results.model", { count: totalCount });
   const {
     modelSearchTerm,
     setModelSearchTerm,
@@ -155,6 +153,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
       <SearchInput
         focusOnTyping={true}
         focusSearchInput={false}
+        placeholder={t("i18n-next29.search.placeholder")}
         width={250}
         maxWidth={"300px"}
         onSearchChange={setModelSearchTerm}
@@ -166,7 +165,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
         color="secondary"
         sx={{ whiteSpace: "nowrap", mr: "auto", ml: SPACING.md }}
       >
-        {resultLabel(source, filteredCount, totalCount)}
+        {resultLabel}
       </Text>
 
       <FlexRow align="center" gap={SPACING.md} sx={{ flexShrink: 0 }}>
@@ -181,7 +180,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
 
         {downloadScope === "worker" && (
           <Tooltip
-            title={`Every model you download lands on ${downloadTargetLabel} while this worker is attached.`}
+            title={t("i18n-next29.downloadTarget.tooltip", { target: downloadTargetLabel })}
           >
             <Caption
               sx={{
@@ -190,23 +189,23 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
                 flexShrink: 0
               }}
             >
-              Downloads → {downloadTargetLabel}
+              {t("i18n-next29.downloadTarget.label", { target: downloadTargetLabel })}
             </Caption>
           </Tooltip>
         )}
 
         <FlexRow align="center" gap={SPACING.xs}>
           <Text size="small" color="secondary" sx={{ whiteSpace: "nowrap" }}>
-            Sort
+            {t("i18n-next29.sort.label")}
           </Text>
           <Box sx={toolbarSelectSx(theme)}>
             <SelectField
-              label="Sort models by"
+              label={t("i18n-next29.sort.ariaLabel")}
               hideLabel
               variant="outlined"
               value={sortField}
               onChange={handleSortFieldChange}
-              options={SORT_OPTIONS}
+              options={sortOptions}
             />
           </Box>
           <ToolbarIconButton
@@ -217,10 +216,10 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
                 <ArrowDownwardIcon fontSize="small" />
               )
             }
-            tooltip={`Sort ${sortDirection === "asc" ? "ascending" : "descending"}`}
+            tooltip={t("i18n-next29.sort.tooltip", { direction: t(`i18n-next29.sort.${sortDirection}`) })}
             onClick={toggleSortDirection}
             size="small"
-            aria-label="Toggle sort direction"
+            aria-label={t("i18n-next29.sort.toggleDirection")}
             sx={{
               color: theme.vars.palette.text.secondary,
               "&:hover": { color: theme.vars.palette.text.primary }

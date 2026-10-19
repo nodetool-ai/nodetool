@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { ToggleGroup, ToggleOption, Tooltip } from "../../ui_primitives";
 import type { ModelScope } from "../../../stores/ModelManagerStore";
 
@@ -11,9 +12,6 @@ interface ScopeToggleProps {
   supported: boolean;
 }
 
-const OLD_IMAGE_TOOLTIP =
-  "This worker's image is too old for model management. Upgrade the worker image.";
-
 /**
  * Local <-> Worker scope toggle for the ModelManager. Rendered only when a
  * worker is attached; the Worker option is disabled (with an explanatory
@@ -25,6 +23,7 @@ const ScopeToggleInternal: React.FC<ScopeToggleProps> = ({
   workerName,
   supported
 }) => {
+  const { t } = useTranslation();
   const handleChange = useCallback(
     (_e: React.MouseEvent<HTMLElement>, value: ModelScope | null) => {
       if (value) {
@@ -44,12 +43,12 @@ const ScopeToggleInternal: React.FC<ScopeToggleProps> = ({
       exclusive
       segmented
       onChange={handleChange}
-      aria-label="model scope"
+      aria-label={t("i18n-next29.scope.ariaLabel")}
     >
-      <ToggleOption value="local" aria-label="local models">
-        Local
+      <ToggleOption value="local" aria-label={t("i18n-next29.scope.localAriaLabel")}>
+        {t("i18n-next29.scope.local")}
       </ToggleOption>
-      <Tooltip title={OLD_IMAGE_TOOLTIP} disabled={supported}>
+      <Tooltip title={t("i18n-next29.scope.oldWorkerTooltip")} disabled={supported}>
         <span>
           <ToggleOption
             value="worker"

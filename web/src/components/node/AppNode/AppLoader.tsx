@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import {
   parseApplicationDocument,
@@ -63,6 +64,7 @@ const storedOperationId = (data: NodeData): string | undefined => {
  * value typed into an input on the node survives a re-derive.
  */
 export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
+  const { t } = useTranslation();
   const appId = isString(data.properties?.app_id)
     ? data.properties.app_id
     : "";
@@ -180,11 +182,11 @@ export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
       return;
     }
     if (!appDocument) {
-      setError("This app's document could not be read.");
+      setError(t("i18n-next37.appLoader.documentReadFailed"));
       return;
     }
     if (!workflowId) {
-      setError("This app has no workflow operation to run.");
+      setError(t("i18n-next37.appLoader.noWorkflowOperation"));
       return;
     }
     setError(null);
@@ -200,14 +202,16 @@ export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
           return;
         }
         if (!workflow) {
-          setError("The workflow behind this app could not be loaded.");
+          setError(t("i18n-next37.appLoader.workflowLoadFailed"));
           return;
         }
         applyWorkflow(workflow);
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : "Failed to load the app"
+            err instanceof Error
+              ? err.message
+              : t("i18n-next37.appLoader.loadFailed")
           );
         }
       }
@@ -237,7 +241,8 @@ export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
     workflowStore,
     getWorkflow,
     fetchWorkflow,
-    applyWorkflow
+    applyWorkflow,
+    t
   ]);
 
   const handleSelectApp = useCallback(
@@ -279,7 +284,7 @@ export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
 
   const loading = isLoadingList || isLoadingApp;
   const message =
-    error ?? (appError ? "This app could not be loaded." : null);
+    error ?? (appError ? t("i18n-next37.appLoader.appLoadFailed") : null);
 
   return (
     <FlexColumn gap={GAP.tight} sx={{ px: SPACING.sm, py: SPACING.xs }}>
@@ -294,7 +299,7 @@ export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
         renderInput={(params) => (
           <TextField
             {...params}
-            label="Select app"
+            label={t("i18n-next37.appLoader.selectApp")}
             variant="outlined"
             size="small"
             slotProps={{
@@ -323,7 +328,7 @@ export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
           renderInput={(params) => (
             <TextField
               {...params}
-              label="Operation"
+              label={t("i18n-next37.appLoader.operation")}
               variant="outlined"
               size="small"
             />

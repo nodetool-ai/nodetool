@@ -17,6 +17,7 @@ import React, {
   useEffect,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { FlexColumn, FlexRow, Box, SPACING, getSpacingPx } from "../ui_primitives";
 import {
   parseColorToRgba,
@@ -277,6 +278,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   color,
   onColorChange
 }) => {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ringCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const triangleCacheRef = useRef<{ hueKey: number; canvas: HTMLCanvasElement } | null>(null);
@@ -615,6 +617,8 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
           ref={canvasRef}
           width={WIDGET_SIZE}
           height={WIDGET_SIZE}
+          aria-label={t("screens4_25.sketch.huePicker.label")}
+          role="img"
           style={{
             width: `${WIDGET_SIZE}px`,
             height: `${WIDGET_SIZE}px`,

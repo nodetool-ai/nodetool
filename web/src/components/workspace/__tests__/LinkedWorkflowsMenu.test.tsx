@@ -47,7 +47,7 @@ const renderMenu = (active = true) =>
 const openMenu = async () => {
   const user = userEvent.setup();
   renderMenu();
-  await user.click(screen.getByRole("button", { name: /Linked workflows/ }));
+  await user.click(screen.getByRole("button", { name: /Linked workflow/ }));
   await waitFor(() =>
     expect(screen.getByRole("menu", { name: "Linked workflows" })).toBeInTheDocument()
   );

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, getSpacingPx, SPACING, EmptyState, LoadingSpinner } from "../ui_primitives";
 import FolderIcon from "@mui/icons-material/FolderOutlined";
 import NavigateIcon from "@mui/icons-material/NavigateNext";
@@ -195,6 +196,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   containerWidth = 1200
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const rootStyles = useMemo(() => styles(theme), [theme]);
   const { selectedAssetIds, handleSelectAsset } = useAssetSelection(results);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -371,12 +373,16 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         <div className="global-search-results-container search-results-container">
           <div className="global-search-results-header search-results-header">
             <Text className="global-search-results-title search-results-title">
-              Search results
+              {t("i18n-next43-assets-navigation.globalSearch.searchResults")}
             </Text>
             <Text className="global-search-results-count search-results-count">
               {isSearching
-                ? `Searching for "${globalSearchQuery}"…`
-                : `No results for "${globalSearchQuery}"`}
+                ? t("i18n-next43-assets-navigation.globalSearch.searchingFor", {
+                    query: globalSearchQuery
+                  })
+                : t("i18n-next43-assets-navigation.globalSearch.noResultsFor", {
+                    query: globalSearchQuery
+                  })}
             </Text>
           </div>
           <div
@@ -384,12 +390,17 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
             data-testid="global-search-no-results"
           >
             {isSearching ? (
-              <LoadingSpinner size="small" text="Searching" />
+              <LoadingSpinner
+                size="small"
+                text={t("i18n-next43-assets-navigation.globalSearch.searching")}
+              />
             ) : (
               <EmptyState
                 size="small"
                 variant="no-results"
-                title="No assets found matching your search"
+                title={t(
+                  "i18n-next43-assets-navigation.globalSearch.noMatchingAssets"
+                )}
               />
             )}
           </div>
@@ -407,11 +418,13 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       <div className="global-search-results-container search-results-container">
         <div className="global-search-results-header search-results-header">
           <Text className="global-search-results-title search-results-title">
-            Search results
+            {t("i18n-next43-assets-navigation.globalSearch.searchResults")}
           </Text>
           <Text className="global-search-results-count search-results-count">
-            {results.length} result{results.length !== 1 ? "s" : ""} for &quot;
-            {globalSearchQuery}&quot;
+            {t("i18n-next43-assets-navigation.globalSearch.resultCount", {
+              count: results.length,
+              query: globalSearchQuery
+            })}
           </Text>
         </div>
 
@@ -456,7 +469,10 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                       backgroundImage: `url(${asset.thumb_url || asset.get_url
                         })`
                     }}
-                    title={`${asset.content_type} thumbnail`}
+                    title={t(
+                      "i18n-next43-assets-navigation.globalSearch.thumbnail",
+                      { contentType: asset.content_type }
+                    )}
                     data-testid="global-search-result-thumbnail"
                   />
                 ) : (
@@ -517,7 +533,11 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                       </span>
                     </div>
                     {onNavigateToFolder && (
-                      <Tooltip title="Go to folder">
+                      <Tooltip
+                        title={t(
+                          "i18n-next43-assets-navigation.globalSearch.goToFolder"
+                        )}
+                      >
                         <EditorButton
                           className="global-search-navigate-btn folder-navigate-btn"
                           density="compact"

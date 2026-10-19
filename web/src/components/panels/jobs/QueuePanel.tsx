@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useMemo, useState, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import { Job } from "../../../stores/ApiTypes";
 import JobItem from "./JobItem";
@@ -29,13 +30,13 @@ export type HistoryFilter = "all" | "failed" | "completed" | "cancelled";
 
 const FILTERS: {
   id: HistoryFilter;
-  label: string;
+  key: string;
   color?: "error";
 }[] = [
-  { id: "all", label: "All" },
-  { id: "failed", label: "Failed", color: "error" },
-  { id: "completed", label: "Completed" },
-  { id: "cancelled", label: "Cancelled" }
+  { id: "all", key: "all" },
+  { id: "failed", key: "failed", color: "error" },
+  { id: "completed", key: "completed" },
+  { id: "cancelled", key: "cancelled" }
 ];
 
 const isFailed = (job: Job): boolean =>
@@ -56,12 +57,12 @@ const jobTime = (job: Job): number => {
 };
 
 /** Finished jobs, newest first, split into day groups ("Today", "Yesterday"). */
-const groupByDay = (jobs: Job[]): { label: string; jobs: Job[] }[] => {
+const groupByDay = (jobs: Job[], earlier: string): { label: string; jobs: Job[] }[] => {
   const sorted = [...jobs].sort((a, b) => jobTime(b) - jobTime(a));
   const groups: { label: string; jobs: Job[] }[] = [];
   for (const job of sorted) {
     const time = jobTime(job);
-    const label = time ? groupByDate(new Date(time)) : "Earlier";
+    const label = time ? groupByDate(new Date(time)) : earlier;
     const last = groups[groups.length - 1];
     if (last && last.label === label) {
       last.jobs.push(job);
@@ -101,6 +102,7 @@ const JobGrid = memo(function JobGrid({
  * grouped by day, with filter chips that pull failed runs out of the list.
  */
 const QueuePanel = memo(function QueuePanel() {
+  const { t } = useTranslation();
   const { data: jobs, isLoading, error } = useRunningJobs();
   const [filter, setFilter] = useState<HistoryFilter>("all");
 
@@ -139,9 +141,10 @@ const QueuePanel = memo(function QueuePanel() {
       groupByDay(
         activeFilter === "all"
           ? history
-          : history.filter((job) => historyBucket(job) === activeFilter)
+          : history.filter((job) => historyBucket(job) === activeFilter),
+        t("i18n-next25.jobs.earlier")
       ),
-    [history, activeFilter]
+    [history, activeFilter, t]
   );
 
   if (isLoading) {
@@ -157,15 +160,15 @@ const QueuePanel = memo(function QueuePanel() {
       <EmptyState
         size="small"
         variant="error"
-        title="Could not load jobs"
+        title={t("i18n-next25.jobs.couldNotLoad")}
       />
     );
   }
 
   const active = [...running, ...queued];
   const activeSummary = [
-    running.length > 0 ? `${running.length} running` : null,
-    queued.length > 0 ? `${queued.length} queued` : null
+    running.length > 0 ? t("i18n-next25.jobs.runningCount", { count: running.length }) : null,
+    queued.length > 0 ? t("i18n-next25.jobs.queuedCount", { count: queued.length }) : null
   ]
     .filter(Boolean)
     .join(" · ");
@@ -174,7 +177,7 @@ const QueuePanel = memo(function QueuePanel() {
     <FlexColumn sx={{ flex: 1, minHeight: 0, height: "100%" }}>
       <FlexColumn
         component="section"
-        aria-label="Active"
+        aria-label={t("i18n-next25.jobs.active")}
         sx={{
           flex: "0 0 auto",
           maxHeight: "45%",
@@ -186,7 +189,7 @@ const QueuePanel = memo(function QueuePanel() {
       >
         <SectionHeader
           size="small"
-          title="Active"
+          title={t("i18n-next25.jobs.active")}
           action={
             activeSummary ? (
               <Text size="smaller" color="secondary">
@@ -198,30 +201,30 @@ const QueuePanel = memo(function QueuePanel() {
         {active.length === 0 ? (
           <EmptyState
             size="small"
-            title="Nothing running or queued"
-            description="Runs show up here while they work."
+            title={t("i18n-next25.jobs.nothingActive")}
+            description={t("i18n-next25.jobs.activeDescription")}
           />
         ) : (
           <ScrollArea sx={{ minHeight: 0 }}>
-            <JobGrid jobs={active} label="Active jobs" />
+            <JobGrid jobs={active} label={t("i18n-next25.jobs.activeJobs")} />
           </ScrollArea>
         )}
       </FlexColumn>
 
       <FlexColumn
         component="section"
-        aria-label="History"
+        aria-label={t("i18n-next25.jobs.history")}
         sx={{ flex: 1, minHeight: 0 }}
       >
         <SectionHeader
           size="small"
-          title="History"
+          title={t("i18n-next25.jobs.history")}
           action={
             counts.all > 0 ? (
               <FlexRow
                 gap={SPACING.xs}
                 role="group"
-                aria-label="Filter history"
+                aria-label={t("i18n-next25.jobs.filterHistory")}
               >
                 {FILTERS.filter(
                   (f) => f.id === "all" || counts[f.id] > 0
@@ -231,7 +234,7 @@ const QueuePanel = memo(function QueuePanel() {
                     compact
                     color={f.color}
                     active={activeFilter === f.id}
-                    label={`${f.label} ${counts[f.id]}`}
+                    label={`${t(`i18n-next25.jobs.filter.${f.key}`)} ${counts[f.id]}`}
                     onClick={() => setFilter(f.id)}
                   />
                 ))}
@@ -243,8 +246,8 @@ const QueuePanel = memo(function QueuePanel() {
           {groups.length === 0 ? (
             <EmptyState
               size="small"
-              title="No finished runs yet"
-              description="Completed, failed and cancelled runs are listed here."
+              title={t("i18n-next25.jobs.noFinishedRuns")}
+              description={t("i18n-next25.jobs.historyDescription")}
             />
           ) : (
             <FlexColumn gap={SPACING.md}>

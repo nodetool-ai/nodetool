@@ -9,6 +9,7 @@
  * paths produce identical documents.
  */
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import {
@@ -63,63 +64,39 @@ interface AppDataPanelProps {
   projectId?: string;
 }
 
-const TARGET_KIND_OPTIONS = [
-  { label: "Workflow", value: "workflow" },
-  { label: "JS script", value: "script" }
-];
+const TARGET_KIND_OPTIONS = [{ value: "workflow" }, { value: "script" }];
 
 const POLICY_OPTIONS = [
-  { label: "Replace running", value: "replace" },
-  { label: "Queue behind", value: "queue" },
-  { label: "Run in parallel", value: "parallel" }
+  { value: "replace" },
+  { value: "queue" },
+  { value: "parallel" }
 ];
 
-const SCOPE_OPTIONS = [
-  { label: "This session", value: "instance" },
-  { label: "Per user", value: "user" }
-];
+const SCOPE_OPTIONS = [{ value: "instance" }, { value: "user" }];
 
 /**
  * The node-SDK type names a variable may declare. A variable is a typed slot,
  * not a free-form bag, so the list is closed — anything richer is a node.
  */
 const TYPE_OPTIONS = [
-  { label: "Any", value: "" },
-  { label: "Text", value: "str" },
-  { label: "Number", value: "float" },
-  { label: "Integer", value: "int" },
-  { label: "True/false", value: "bool" },
-  { label: "List", value: "list" },
-  { label: "Record", value: "dict" }
+  { value: "" },
+  { value: "str" },
+  { value: "float" },
+  { value: "int" },
+  { value: "bool" },
+  { value: "list" },
+  { value: "dict" }
 ];
 
-const RESOURCE_KIND_OPTIONS: { label: string; value: ResourceKind }[] = [
-  { label: "Asset", value: "asset" },
-  { label: "Timeline", value: "timeline" },
-  { label: "Storyboard", value: "storyboard" },
-  { label: "Sketch", value: "sketch" }
+const RESOURCE_KIND_OPTIONS: { value: ResourceKind }[] = [
+  { value: "asset" },
+  { value: "timeline" },
+  { value: "storyboard" },
+  { value: "sketch" }
 ];
 
-const RESOURCE_KIND_LABEL: Record<ResourceKind, string> = {
-  asset: "Asset",
-  timeline: "Timeline",
-  storyboard: "Storyboard",
-  sketch: "Sketch"
-};
-
-const RESOURCE_KIND_PLURAL: Record<ResourceKind, string> = {
-  asset: "assets",
-  timeline: "timelines",
-  storyboard: "storyboards",
-  sketch: "sketches"
-};
-
-const RESOURCE_COLLECTION_NAME: Record<ResourceKind, string> = {
-  asset: "Assets",
-  timeline: "Timelines",
-  storyboard: "Storyboards",
-  sketch: "Sketches"
-};
+const resourceKindKey = (kind: ResourceKind): string =>
+  `i18n-cont-appbuilder-10.data.resourceKinds.${kind}`;
 
 /** Sentinel: bind every document of this kind in the app's project. */
 const ALL_OF_KIND = "__all__";
@@ -138,7 +115,12 @@ const EntryCard: React.FC<{
     sx={{ p: SPACING.md, borderRadius: BORDER_RADIUS.md }}
   >
     <FlexColumn gap={SPACING.sm} fullWidth>
-      <FlexRow align="center" justify="space-between" gap={SPACING.sm} fullWidth>
+      <FlexRow
+        align="center"
+        justify="space-between"
+        gap={SPACING.sm}
+        fullWidth
+      >
         <Box sx={{ minWidth: 0 }}>
           <Text size="small" weight={500} truncate>
             {title}
@@ -180,6 +162,7 @@ const OperationRow: React.FC<{
   onPatch,
   onRemove
 }) => {
+  const { t } = useTranslation();
   const target = operationTarget(operation);
   // Switching kind clears the mappings: they key on the old target's node ids
   // or port names, and none of them mean anything against the new one.
@@ -206,24 +189,29 @@ const OperationRow: React.FC<{
       title={operation.name || operation.id}
       subtitle={`id: ${operation.id}`}
       onDelete={onRemove}
-      deleteLabel={`Delete operation ${operation.name || operation.id}`}
+      deleteLabel={t("i18n-cont-appbuilder-10.data.deleteOperation", {
+        name: operation.name || operation.id
+      })}
     >
       <TextInput
-        label="Name"
+        label={t("i18n-cont-appbuilder-10.data.name")}
         value={operation.name}
         size="small"
         fullWidth
         onChange={(e) => onPatch({ name: e.target.value })}
       />
       <SelectField
-        label="Runs"
+        label={t("i18n-cont-appbuilder-10.data.runs")}
         value={target.kind}
-        options={TARGET_KIND_OPTIONS}
+        options={TARGET_KIND_OPTIONS.map((option) => ({
+          ...option,
+          label: t(`i18n-cont-appbuilder-10.data.targetKinds.${option.value}`)
+        }))}
         onChange={setKind}
       />
       {target.kind === "script" ? (
         <SelectField
-          label="Script"
+          label={t("i18n-cont-appbuilder-10.data.script")}
           value={target.scriptId}
           options={withPinned(scriptOptions, target.scriptId)}
           onChange={(value) =>
@@ -237,20 +225,23 @@ const OperationRow: React.FC<{
         />
       ) : (
         <SelectField
-          label="Workflow"
+          label={t("i18n-cont-appbuilder-10.data.workflow")}
           value={operation.workflowId}
           options={withPinned(workflowOptions, operation.workflowId)}
           onChange={(value) => onPatch({ workflowId: value })}
         />
       )}
       <SelectField
-        label="While one is running"
+        label={t("i18n-cont-appbuilder-10.data.whileRunning")}
         value={operation.policy}
-        options={POLICY_OPTIONS}
+        options={POLICY_OPTIONS.map((option) => ({
+          ...option,
+          label: t(`i18n-cont-appbuilder-10.data.policies.${option.value}`)
+        }))}
         onChange={(value) => onPatch({ policy: value as OperationPolicy })}
       />
       <NumberField
-        label="Timeout"
+        label={t("i18n-cont-appbuilder-10.data.timeout")}
         unit="ms"
         min={0}
         value={operation.timeoutMs == null ? "" : String(operation.timeoutMs)}
@@ -258,7 +249,8 @@ const OperationRow: React.FC<{
         fullWidth
         onChange={(e) =>
           onPatch({
-            timeoutMs: e.target.value === "" ? undefined : Number(e.target.value)
+            timeoutMs:
+              e.target.value === "" ? undefined : Number(e.target.value)
           })
         }
       />
@@ -268,42 +260,67 @@ const OperationRow: React.FC<{
 
 export const parseVariableDefault = (
   raw: string,
-  type: string | undefined
+  type: string | undefined,
+  translate?: (key: string, type?: string) => string
 ): { value?: unknown; error?: string } => {
+  const message = (key: string, fallback: string): string =>
+    translate
+      ? translate(
+          `i18n-cont-appbuilder-10.data.validation.${key}`,
+          key === "validJson" ? type : undefined
+        )
+      : fallback;
   if (raw === "") return {};
   if (!type || type === "str") return { value: raw };
   try {
     const parsed: unknown = JSON.parse(raw);
     if (type === "bool" && typeof parsed !== "boolean") {
-      return { error: "Enter true or false." };
+      return { error: message("boolean", "Enter true or false.") };
     }
     if ((type === "int" || type === "float") && typeof parsed !== "number") {
-      return { error: "Enter a JSON number." };
+      return { error: message("number", "Enter a JSON number.") };
     }
     if (type === "int" && !Number.isInteger(parsed)) {
-      return { error: "Enter a whole number." };
+      return { error: message("integer", "Enter a whole number.") };
     }
     if (type === "list" && !Array.isArray(parsed)) {
-      return { error: "Enter a JSON array, for example [1, 2]." };
+      return {
+        error: message("array", "Enter a JSON array, for example [1, 2].")
+      };
     }
-    if (type === "dict" && (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))) {
-      return { error: "Enter a JSON object, for example {\"key\": \"value\"}." };
+    if (
+      type === "dict" &&
+      (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
+    ) {
+      return {
+        error: message(
+          "object",
+          'Enter a JSON object, for example {"key": "value"}.'
+        )
+      };
     }
     return { value: parsed };
   } catch {
-    return { error: `Enter valid JSON for ${type}.` };
+    return { error: message("validJson", `Enter valid JSON for ${type}.`) };
   }
 };
 
-const formatVariableDefault = (value: unknown, type: string | undefined): string => {
+const formatVariableDefault = (
+  value: unknown,
+  type: string | undefined
+): string => {
   if (value == null) return "";
   if (type && type !== "str") return JSON.stringify(value);
   return String(value);
 };
 
-const variableDefaultError = (value: unknown, type: string | undefined): string | undefined => {
+const variableDefaultError = (
+  value: unknown,
+  type: string | undefined,
+  translate?: (key: string, type?: string) => string
+): string | undefined => {
   if (value == null || !type || type === "str") return undefined;
-  return parseVariableDefault(JSON.stringify(value), type).error;
+  return parseVariableDefault(JSON.stringify(value), type, translate).error;
 };
 
 const VariableRow: React.FC<{
@@ -311,82 +328,120 @@ const VariableRow: React.FC<{
   onPatch: (patch: Partial<VariableDeclaration>) => void;
   onRemove: () => void;
 }> = ({ variable, onPatch, onRemove }) => {
+  const { t } = useTranslation();
   const type = variable.type?.type;
-  const error = variableDefaultError(variable.default, type);
+  const translateValidation = (key: string, validationType?: string): string =>
+    t(key, validationType ? { type: validationType } : undefined);
+  const error = variableDefaultError(
+    variable.default,
+    type,
+    translateValidation
+  );
   return (
-  <EntryCard
-    title={variable.name || variable.id}
-    subtitle={`var:${variable.id}`}
-    onDelete={onRemove}
-    deleteLabel={`Delete variable ${variable.name || variable.id}`}
-  >
-    <TextInput
-      label="Name"
-      value={variable.name}
-      size="small"
-      fullWidth
-      onChange={(e) => onPatch({ name: e.target.value })}
-    />
-    <SelectField
-      label="Type"
-      value={variable.type?.type ?? ""}
-      options={TYPE_OPTIONS}
-      onChange={(value) => onPatch({ type: value ? { type: value } : null })}
-    />
-    <TextInput
-      label="Default"
-      value={formatVariableDefault(variable.default, type)}
-      errorMessage={error}
-      helperText={type && type !== "str" ? "Use JSON for typed values." : undefined}
-      size="small"
-      fullWidth
-      onChange={(e) => {
-        const parsed = parseVariableDefault(e.target.value, type);
-        if (!parsed.error) onPatch({ default: parsed.value });
-      }}
-    />
-    <SelectField
-      label="Scope"
-      value={variable.scope}
-      options={SCOPE_OPTIONS}
-      onChange={(value) => onPatch({ scope: value as "instance" | "user" })}
-    />
-    <LabeledSwitch
-      // The label associates through `htmlFor`, so the control needs an id.
-      id={`persist-${variable.id}`}
-      label="Remember between visits"
-      checked={variable.persist}
-      // doc-ops downgrades persist on an instance-scoped variable, so the
-      // control says why it will not stick rather than letting it flip back.
-      disabled={variable.scope !== "user"}
-      onChange={(checked) => onPatch({ persist: checked })}
-    />
-    {variable.scope !== "user" ? (
-      <Caption color="secondary">Only per-user variables can be remembered.</Caption>
-    ) : null}
-  </EntryCard>
+    <EntryCard
+      title={variable.name || variable.id}
+      subtitle={`var:${variable.id}`}
+      onDelete={onRemove}
+      deleteLabel={t("i18n-cont-appbuilder-10.data.deleteVariable", {
+        name: variable.name || variable.id
+      })}
+    >
+      <TextInput
+        label={t("i18n-cont-appbuilder-10.data.name")}
+        value={variable.name}
+        size="small"
+        fullWidth
+        onChange={(e) => onPatch({ name: e.target.value })}
+      />
+      <SelectField
+        label={t("i18n-cont-appbuilder-10.data.type")}
+        value={variable.type?.type ?? ""}
+        options={TYPE_OPTIONS.map((option) => ({
+          ...option,
+          label: t(
+            `i18n-cont-appbuilder-10.data.variableTypes.${option.value || "any"}`
+          )
+        }))}
+        onChange={(value) => onPatch({ type: value ? { type: value } : null })}
+      />
+      <TextInput
+        label={t("i18n-cont-appbuilder-10.data.default")}
+        value={formatVariableDefault(variable.default, type)}
+        errorMessage={error}
+        helperText={
+          type && type !== "str"
+            ? t("i18n-cont-appbuilder-10.data.useJsonForTypedValues")
+            : undefined
+        }
+        size="small"
+        fullWidth
+        onChange={(e) => {
+          const parsed = parseVariableDefault(
+            e.target.value,
+            type,
+            translateValidation
+          );
+          if (!parsed.error) onPatch({ default: parsed.value });
+        }}
+      />
+      <SelectField
+        label={t("i18n-cont-appbuilder-10.data.scope")}
+        value={variable.scope}
+        options={SCOPE_OPTIONS.map((option) => ({
+          ...option,
+          label: t(`i18n-cont-appbuilder-10.data.scopes.${option.value}`)
+        }))}
+        onChange={(value) => onPatch({ scope: value as "instance" | "user" })}
+      />
+      <LabeledSwitch
+        // The label associates through `htmlFor`, so the control needs an id.
+        id={`persist-${variable.id}`}
+        label={t("i18n-cont-appbuilder-10.data.rememberBetweenVisits")}
+        checked={variable.persist}
+        // doc-ops downgrades persist on an instance-scoped variable, so the
+        // control says why it will not stick rather than letting it flip back.
+        disabled={variable.scope !== "user"}
+        onChange={(checked) => onPatch({ persist: checked })}
+      />
+      {variable.scope !== "user" ? (
+        <Caption color="secondary">
+          {t("i18n-cont-appbuilder-10.data.perUserRememberOnly")}
+        </Caption>
+      ) : null}
+    </EntryCard>
   );
 };
 
 const ResourceRow: React.FC<{
   resource: ResourceBinding;
   onRemove: () => void;
-}> = ({ resource, onRemove }) => (
-  <EntryCard
-    title={resource.name || resource.id}
-    subtitle={
-      resource.scope.fixedId
-        ? RESOURCE_KIND_LABEL[resource.kind]
-        : `All ${RESOURCE_KIND_PLURAL[resource.kind]}`
-    }
-    onDelete={onRemove}
-    deleteLabel={`Delete resource ${resource.name || resource.id}`}
-  >
-    <Caption color="secondary">
-      Allows: {resource.operations.join(", ")}
-    </Caption>
-  </EntryCard>
-);
+}> = ({ resource, onRemove }) => {
+  const { t } = useTranslation();
+  return (
+    <EntryCard
+      title={resource.name || resource.id}
+      subtitle={
+        resource.scope.fixedId
+          ? t(resourceKindKey(resource.kind))
+          : t("i18n-cont-appbuilder-10.data.allResourceKinds", {
+              kind: t(
+                `i18n-cont-appbuilder-10.data.resourceKindsPlural.${resource.kind}`
+              )
+            })
+      }
+      onDelete={onRemove}
+      deleteLabel={t("i18n-cont-appbuilder-10.data.deleteResource", {
+        name: resource.name || resource.id
+      })}
+    >
+      <Caption color="secondary">
+        {t("i18n-cont-appbuilder-10.data.allowsOperations", {
+          operations: resource.operations.join(", ")
+        })}
+      </Caption>
+    </EntryCard>
+  );
+};
 
 interface ResourceListItem {
   ref: { kind: ResourceKind; id: string };
@@ -401,6 +456,7 @@ const AddResourceForm: React.FC<{
     fixedId?: string;
   }) => void;
 }> = ({ onAdd }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [kind, setKind] = useState<ResourceKind>("asset");
   const [selectedId, setSelectedId] = useState(ALL_OF_KIND);
@@ -428,11 +484,13 @@ const AddResourceForm: React.FC<{
     return [
       {
         value: ALL_OF_KIND,
-        label: `All ${RESOURCE_KIND_PLURAL[kind]}`
+        label: t("i18n-cont-appbuilder-10.data.allResourceKinds", {
+          kind: t(`i18n-cont-appbuilder-10.data.resourceKindsPlural.${kind}`)
+        })
       },
       ...listed
     ];
-  }, [items, kind]);
+  }, [items, kind, t]);
 
   const setKindAndReset = useCallback((value: string) => {
     const next = RESOURCE_KIND_OPTIONS.find((option) => option.value === value);
@@ -449,39 +507,44 @@ const AddResourceForm: React.FC<{
       name:
         name.trim() ||
         (collection
-          ? RESOURCE_COLLECTION_NAME[kind]
-          : picked?.name || RESOURCE_KIND_LABEL[kind]),
+          ? t("i18n-cont-appbuilder-10.data.resourceCollectionNames." + kind)
+          : picked?.name || t(resourceKindKey(kind))),
       kind,
       fixedId: collection ? undefined : picked?.ref.id
     });
     setName("");
     setSelectedId(ALL_OF_KIND);
-  }, [items, kind, name, onAdd, selectedId]);
+  }, [items, kind, name, onAdd, selectedId, t]);
 
   return (
     <FlexColumn gap={SPACING.sm} fullWidth>
       <TextInput
-        label="Name"
+        label={t("i18n-cont-appbuilder-10.data.name")}
         value={name}
         size="small"
         fullWidth
         onChange={(e) => setName(e.target.value)}
       />
       <SelectField
-        label="Kind"
+        label={t("i18n-cont-appbuilder-10.data.kind")}
         value={kind}
-        options={RESOURCE_KIND_OPTIONS}
+        options={RESOURCE_KIND_OPTIONS.map((option) => ({
+          ...option,
+          label: t(resourceKindKey(option.value))
+        }))}
         onChange={setKindAndReset}
       />
       <SelectField
-        label={RESOURCE_KIND_LABEL[kind]}
+        label={t(resourceKindKey(kind))}
         value={selectedId}
         options={documentOptions}
         onChange={setSelectedId}
       />
       {isFetched && (items ?? []).length === 0 ? (
         <Caption color="secondary">
-          No {RESOURCE_KIND_PLURAL[kind]} yet. You can still bind all of them.
+          {t("i18n-cont-appbuilder-10.data.noResourcesYet", {
+            kind: t(`i18n-cont-appbuilder-10.data.resourceKindsPlural.${kind}`)
+          })}
         </Caption>
       ) : null}
       <EditorButton
@@ -490,7 +553,7 @@ const AddResourceForm: React.FC<{
         startIcon={<AddIcon />}
         onClick={submit}
       >
-        Add resource
+        {t("i18n-cont-appbuilder-10.data.addResource")}
       </EditorButton>
     </FlexColumn>
   );
@@ -503,6 +566,7 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
   workflowName,
   projectId = "default"
 }) => {
+  const { t } = useTranslation();
   const { data: workflows } = useQuery({
     queryKey: workflowListQueryKey(200),
     queryFn: () => trpcClient.workflows.list.query({ limit: 200 }),
@@ -514,8 +578,12 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
       label: workflow.name || workflow.id,
       value: workflow.id
     }));
-    if (!workflowId || listed.some((o) => o.value === workflowId)) return listed;
-    return [{ label: workflowName || workflowId, value: workflowId }, ...listed];
+    if (!workflowId || listed.some((o) => o.value === workflowId))
+      return listed;
+    return [
+      { label: workflowName || workflowId, value: workflowId },
+      ...listed
+    ];
   }, [workflowId, workflowName, workflows]);
 
   const { data: scripts } = useQuery({
@@ -537,11 +605,13 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
     if (!workflowId) return;
     onChange(
       addOperation(meta, {
-        name: `Operation ${meta.operations.length + 1}`,
+        name: t("i18n-cont-appbuilder-10.data.operationName", {
+          count: meta.operations.length + 1
+        }),
         workflowId
       }).meta
     );
-  }, [meta, onChange, workflowId]);
+  }, [meta, onChange, workflowId, t]);
 
   const addVar = useCallback(() => {
     onChange(
@@ -558,9 +628,7 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
         addResource(meta, {
           name: input.name,
           kind: input.kind,
-          scope: input.fixedId
-            ? { fixedId: input.fixedId }
-            : { projectId }
+          scope: input.fixedId ? { fixedId: input.fixedId } : { projectId }
         }).meta
       );
     },
@@ -570,11 +638,14 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
   return (
     <ScrollArea fullHeight>
       <FlexColumn gap={SPACING.lg} padding={SPACING.lg} fullWidth>
-        <CollapsibleSection title="Operations" defaultOpen compact>
+        <CollapsibleSection
+          title={t("i18n-cont-appbuilder-10.data.operations")}
+          defaultOpen
+          compact
+        >
           <FlexColumn gap={SPACING.md} fullWidth>
             <Caption color="secondary">
-              The workflows and scripts this app runs. A Run action names one of
-              these.
+              {t("i18n-cont-appbuilder-10.data.operationsDescription")}
             </Caption>
             {meta.operations.map((operation) => (
               <OperationRow
@@ -598,15 +669,19 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
               disabled={!workflowId}
               onClick={addOp}
             >
-              Add operation
+              {t("i18n-cont-appbuilder-10.data.addOperation")}
             </EditorButton>
           </FlexColumn>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Variables" defaultOpen compact>
+        <CollapsibleSection
+          title={t("i18n-cont-appbuilder-10.data.variables")}
+          defaultOpen
+          compact
+        >
           <FlexColumn gap={SPACING.md} fullWidth>
             <Caption color="secondary">
-              App state widgets read and write, and operation outputs can land in.
+              {t("i18n-cont-appbuilder-10.data.variablesDescription")}
             </Caption>
             {meta.variables.map((variable) => (
               <VariableRow
@@ -615,7 +690,9 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
                 onPatch={(patch) =>
                   onChange(updateVariable(meta, variable.id, patch).meta)
                 }
-                onRemove={() => onChange(removeVariable(meta, variable.id).meta)}
+                onRemove={() =>
+                  onChange(removeVariable(meta, variable.id).meta)
+                }
               />
             ))}
             <EditorButton
@@ -624,7 +701,7 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
               startIcon={<AddIcon />}
               onClick={addVar}
             >
-              Add variable
+              {t("i18n-cont-appbuilder-10.data.addVariable")}
             </EditorButton>
           </FlexColumn>
         </CollapsibleSection>
@@ -633,17 +710,22 @@ const AppDataPanel: React.FC<AppDataPanelProps> = ({
           CollapsibleSection defaults to open, so a section that starts closed
           has to say so — omitting the prop made the header click collapse it.
         */}
-        <CollapsibleSection title="Resources" defaultOpen={false} compact>
+        <CollapsibleSection
+          title={t("i18n-cont-appbuilder-10.data.resources")}
+          defaultOpen={false}
+          compact
+        >
           <FlexColumn gap={SPACING.md} fullWidth>
             <Caption color="secondary">
-              An asset, timeline, storyboard, or sketch a picker or gallery can
-              browse — or all of that kind in this project.
+              {t("i18n-cont-appbuilder-10.data.resourcesDescription")}
             </Caption>
             {meta.resources.map((resource) => (
               <ResourceRow
                 key={resource.id}
                 resource={resource}
-                onRemove={() => onChange(removeResource(meta, resource.id).meta)}
+                onRemove={() =>
+                  onChange(removeResource(meta, resource.id).meta)
+                }
               />
             ))}
             <AddResourceForm onAdd={addRes} />

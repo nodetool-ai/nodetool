@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   FlexRow,
@@ -23,6 +24,31 @@ interface ImageSizePresetsMenuProps {
   currentHeight: number;
 }
 
+const presetCategoryKeys: Record<string, string> = {
+  SD: "sd",
+  HD: "hd",
+  "2K": "twoK",
+  "UHD/4K": "uhd4k",
+  "5K": "fiveK",
+  "6K": "sixK",
+  "8K": "eightK",
+  "Vertical video": "verticalVideo",
+  "Specialty ratios": "specialtyRatios",
+  Phone: "phone",
+  Tablet: "tablet",
+  Desktop: "desktop",
+  "Social media": "socialMedia",
+  Paper: "paper",
+  Other: "other"
+};
+
+const presetDescriptionKeys: Record<string, string> = {
+  "North America": "northAmerica",
+  "Europe Asia": "europeAsia",
+  "HD Ready": "hdReady",
+  "1440p": "1440p"
+};
+
 export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
   anchorEl,
   open,
@@ -31,6 +57,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
   currentWidth,
   currentHeight
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next47" });
   const [searchQuery, setSearchQuery] = useState("");
   // Skipped on touch, where the virtual keyboard would cover the preset list.
   const autoFocusEnabled = useAutoFocusEnabled();
@@ -112,7 +139,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         <NodeTextField
           className="presets-search-field"
           fullWidth
-          placeholder="Search presets"
+          placeholder={t("presets.search")}
           value={searchQuery}
           onChange={handleSearchChange}
           onKeyDown={handleSearchKeyDown}
@@ -135,10 +162,12 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
       </FlexRow>
 
       {Object.entries(filteredGroupedPresets).length === 0 ? (
-        <MenuItemPrimitive label="No presets found" disabled />
+        <MenuItemPrimitive label={t("presets.noneFound")} disabled />
       ) : (
         Object.entries(filteredGroupedPresets).map(([category, items]) => [
-          <ListSubheader key={category} className="presets-category-header">{category}</ListSubheader>,
+          <ListSubheader key={category} className="presets-category-header">
+            {t(`presets.categories.${presetCategoryKeys[category] ?? "other"}`)}
+          </ListSubheader>,
           ...items.map((preset) => (
             <MenuItemPrimitive
               className="preset-menu-item"
@@ -146,7 +175,10 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
               onClick={presetHandlers[`${preset.width}x${preset.height}-${preset.label}`]}
               selected={currentWidth === preset.width && currentHeight === preset.height}
               label={`${preset.width} × ${preset.height}`}
-              secondary={[preset.aspectRatio, preset.label, preset.description]
+              secondary={[preset.aspectRatio, preset.label, preset.description && t(
+                `presets.descriptions.${presetDescriptionKeys[preset.description] ?? "other"}`,
+                { defaultValue: preset.description }
+              )]
                 .filter(Boolean)
                 .join(" · ")}
             />

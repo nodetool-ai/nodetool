@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Theme } from "@mui/material/styles";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
@@ -70,16 +71,16 @@ const SECTION_OWNED_IDS = new Set(["inspector:color"]);
 
 /** Catalog effects this panel can add, in the order D7 lists them. */
 const ADDABLE_EFFECTS = [
-  { value: "blur", label: "Blur" },
-  { value: "glow", label: "Glow" },
-  { value: "dropShadow", label: "Drop shadow" },
-  { value: "vignette", label: "Vignette" },
-  { value: "sharpen", label: "Sharpen" },
-  { value: "chromaKey", label: "Chroma key" },
-  { value: "curves", label: "Curves" },
-  { value: "levels", label: "Levels" },
-  { value: "liftGammaGain", label: "Lift / gamma / gain" },
-  { value: "grain", label: "Film grain" }
+  { value: "blur", labelKey: "blur" },
+  { value: "glow", labelKey: "glow" },
+  { value: "dropShadow", labelKey: "dropShadow" },
+  { value: "vignette", labelKey: "vignette" },
+  { value: "sharpen", labelKey: "sharpen" },
+  { value: "chromaKey", labelKey: "chromaKey" },
+  { value: "curves", labelKey: "curves" },
+  { value: "levels", labelKey: "levels" },
+  { value: "liftGammaGain", labelKey: "liftGammaGain" },
+  { value: "grain", labelKey: "grain" }
 ] as const;
 
 type AddableEffectType = (typeof ADDABLE_EFFECTS)[number]["value"];
@@ -92,10 +93,10 @@ type AddableEffectType = (typeof ADDABLE_EFFECTS)[number]["value"];
  */
 const DEFAULT_SPILL = 0.5;
 
-const EFFECT_LABELS: Record<string, string> = {
-  ...Object.fromEntries(ADDABLE_EFFECTS.map((e) => [e.value, e.label])),
-  color: "Color",
-  blur: "Blur"
+const EFFECT_LABEL_KEYS: Record<string, string> = {
+  ...Object.fromEntries(ADDABLE_EFFECTS.map((e) => [e.value, e.labelKey])),
+  color: "color",
+  blur: "blur"
 };
 
 function makeEffect(type: AddableEffectType): ClipEffect {
@@ -195,12 +196,16 @@ interface EffectFieldsProps {
 /** The parameters one effect type carries, drawn from its narrowed shape. */
 const EffectFields: React.FC<EffectFieldsProps> = memo(
   ({ effect, onPatch }) => {
-    const name = EFFECT_LABELS[effect.type] ?? effect.type;
+    const { t } = useTranslation();
+    const labelKey = EFFECT_LABEL_KEYS[effect.type];
+    const name = labelKey
+      ? t(`pass3_24.timeline.effects.names.${labelKey}`)
+      : effect.type;
 
     if (isClipBlurEffect(effect)) {
       return (
         <InspectorSliderRow
-          label="Radius"
+          label={t("pass3_24.timeline.effects.fields.radius")}
           min={0}
           max={20}
           step={0.5}
@@ -214,7 +219,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
     if (isClipGlowEffect(effect)) {
       return (
         <>
-          <InspectorRow label="Radius">
+          <InspectorRow label={t("pass3_24.timeline.effects.fields.radius")}>
             <InspectorPillInput
               value={String(effect.radius)}
               unit="px"
@@ -222,11 +227,11 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               onCommit={(raw) =>
                 commitNumber(raw, (radius) => onPatch({ radius }), 0)
               }
-              ariaLabel={`${name} radius`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.radius") })}
             />
           </InspectorRow>
           <InspectorSliderRow
-            label="Intensity"
+            label={t("pass3_24.timeline.effects.fields.intensity")}
             min={0}
             max={2}
             step={0.01}
@@ -234,11 +239,11 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             display={effect.intensity.toFixed(2)}
             onChange={(intensity) => onPatch({ intensity })}
           />
-          <InspectorRow label="Color">
+          <InspectorRow label={t("pass3_24.timeline.effects.fields.color")}>
             <BatchedColorInput
               value={effect.color ?? "#ffffff"}
               onChange={(color) => onPatch({ color })}
-              ariaLabel={`${name} color`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.color") })}
             />
           </InspectorRow>
         </>
@@ -248,7 +253,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
     if (isClipDropShadowEffect(effect)) {
       return (
         <>
-          <InspectorRow label="Offset">
+          <InspectorRow label={t("pass3_24.timeline.effects.fields.offset")}>
             <InspectorPillInput
               value={String(effect.offsetX)}
               unit="px"
@@ -257,7 +262,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               onCommit={(raw) =>
                 commitNumber(raw, (offsetX) => onPatch({ offsetX }))
               }
-              ariaLabel={`${name} offset X`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.offsetX") })}
             />
             <InspectorPillInput
               value={String(effect.offsetY)}
@@ -267,27 +272,27 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               onCommit={(raw) =>
                 commitNumber(raw, (offsetY) => onPatch({ offsetY }))
               }
-              ariaLabel={`${name} offset Y`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.offsetY") })}
             />
           </InspectorRow>
-          <InspectorRow label="Blur">
+          <InspectorRow label={t("pass3_24.timeline.effects.fields.blur")}>
             <InspectorPillInput
               value={String(effect.blur)}
               unit="px"
               scrub={SCRUB_PX}
               onCommit={(raw) => commitNumber(raw, (blur) => onPatch({ blur }), 0)}
-              ariaLabel={`${name} blur`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.blur") })}
             />
           </InspectorRow>
-          <InspectorRow label="Color">
+          <InspectorRow label={t("pass3_24.timeline.effects.fields.color")}>
             <BatchedColorInput
               value={effect.color}
               onChange={(color) => onPatch({ color })}
-              ariaLabel={`${name} color`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.color") })}
             />
           </InspectorRow>
           <InspectorSliderRow
-            label="Opacity"
+            label={t("pass3_24.timeline.effects.fields.opacity")}
             min={0}
             max={1}
             step={0.01}
@@ -304,7 +309,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
       return (
         <>
           <InspectorSliderRow
-            label="Amount"
+            label={t("pass3_24.timeline.effects.fields.amount")}
             min={0}
             max={1}
             step={0.01}
@@ -313,7 +318,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(amount) => onPatch({ amount })}
           />
           <InspectorSliderRow
-            label="Softness"
+            label={t("pass3_24.timeline.effects.fields.softness")}
             min={0}
             max={1}
             step={0.01}
@@ -329,7 +334,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
       return (
         <>
           <InspectorSliderRow
-            label="Amount"
+            label={t("pass3_24.timeline.effects.fields.amount")}
             min={0}
             max={1}
             step={0.01}
@@ -338,7 +343,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(amount) => onPatch({ amount })}
           />
           <InspectorSliderRow
-            label="Size"
+            label={t("pass3_24.timeline.effects.fields.size")}
             min={1}
             max={16}
             step={0.5}
@@ -347,7 +352,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(size) => onPatch({ size })}
           />
           <InspectorSliderRow
-            label="Color"
+            label={t("pass3_24.timeline.effects.fields.color")}
             min={0}
             max={1}
             step={0.01}
@@ -357,7 +362,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             origin={0}
           />
           <InspectorToggleRow
-            label="Animate"
+            label={t("pass3_24.timeline.effects.fields.animate")}
             checked={effect.animate ?? false}
             onChange={(animate) => onPatch({ animate })}
           />
@@ -369,7 +374,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
       return (
         <>
           <InspectorSliderRow
-            label="Amount"
+            label={t("pass3_24.timeline.effects.fields.amount")}
             min={0}
             max={2}
             step={0.01}
@@ -377,7 +382,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             display={effect.amount.toFixed(2)}
             onChange={(amount) => onPatch({ amount })}
           />
-          <InspectorRow label="Radius">
+          <InspectorRow label={t("pass3_24.timeline.effects.fields.radius")}>
             <InspectorPillInput
               value={String(effect.radius ?? 1)}
               unit="px"
@@ -385,7 +390,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               onCommit={(raw) =>
                 commitNumber(raw, (radius) => onPatch({ radius }), 0)
               }
-              ariaLabel={`${name} radius`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.radius") })}
             />
           </InspectorRow>
         </>
@@ -395,15 +400,15 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
     if (isClipChromaKeyEffect(effect)) {
       return (
         <>
-          <InspectorRow label="Key color">
+          <InspectorRow label={t("pass3_24.timeline.effects.fields.keyColor")}>
             <BatchedColorInput
               value={effect.color}
               onChange={(color) => onPatch({ color })}
-              ariaLabel={`${name} color`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.color") })}
             />
           </InspectorRow>
           <InspectorSliderRow
-            label="Tolerance"
+            label={t("pass3_24.timeline.effects.fields.tolerance")}
             min={0}
             max={1}
             step={0.01}
@@ -412,7 +417,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(tolerance) => onPatch({ tolerance })}
           />
           <InspectorSliderRow
-            label="Softness"
+            label={t("pass3_24.timeline.effects.fields.softness")}
             min={0}
             max={1}
             step={0.01}
@@ -421,7 +426,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(softness) => onPatch({ softness })}
           />
           <InspectorSliderRow
-            label="Spill"
+            label={t("pass3_24.timeline.effects.fields.spill")}
             min={0}
             max={1}
             step={0.01}
@@ -449,7 +454,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
       return (
         <>
           <InspectorSliderRow
-            label="In black"
+            label={t("pass3_24.timeline.effects.fields.inBlack")}
             min={0}
             max={1}
             step={0.01}
@@ -458,7 +463,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(inBlack) => onPatch({ inBlack })}
           />
           <InspectorSliderRow
-            label="In white"
+            label={t("pass3_24.timeline.effects.fields.inWhite")}
             min={0}
             max={1}
             step={0.01}
@@ -466,18 +471,18 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             display={effect.inWhite.toFixed(2)}
             onChange={(inWhite) => onPatch({ inWhite })}
           />
-          <InspectorRow label="Gamma">
+          <InspectorRow label={t("pass3_24.timeline.effects.fields.gamma")}>
             <InspectorPillInput
               value={effect.gamma.toFixed(2)}
               scrub={SCRUB_GAMMA}
               onCommit={(raw) =>
                 commitNumber(raw, (gamma) => onPatch({ gamma }), 0, true)
               }
-              ariaLabel={`${name} gamma`}
+              ariaLabel={t("pass3_24.timeline.effects.parameterAriaLabel", { name, parameter: t("pass3_24.timeline.effects.fields.gamma") })}
             />
           </InspectorRow>
           <InspectorSliderRow
-            label="Out black"
+            label={t("pass3_24.timeline.effects.fields.outBlack")}
             min={0}
             max={1}
             step={0.01}
@@ -486,7 +491,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(outBlack) => onPatch({ outBlack })}
           />
           <InspectorSliderRow
-            label="Out white"
+            label={t("pass3_24.timeline.effects.fields.outWhite")}
             min={0}
             max={1}
             step={0.01}
@@ -501,9 +506,9 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
     if (isClipLiftGammaGainEffect(effect)) {
       // Lift is an offset and may go negative.
       const triples = [
-        { key: "lift", label: "Lift", value: effect.lift, scrub: SCRUB_UNIT, min: undefined, exclusiveMin: false },
-        { key: "gamma", label: "Gamma", value: effect.gamma, scrub: SCRUB_GAMMA, min: 0, exclusiveMin: true },
-        { key: "gain", label: "Gain", value: effect.gain, scrub: SCRUB_GAIN, min: 0, exclusiveMin: false }
+        { key: "lift", label: t("pass3_24.timeline.effects.fields.lift"), value: effect.lift, scrub: SCRUB_UNIT, min: undefined, exclusiveMin: false },
+        { key: "gamma", label: t("pass3_24.timeline.effects.fields.gamma"), value: effect.gamma, scrub: SCRUB_GAMMA, min: 0, exclusiveMin: true },
+        { key: "gain", label: t("pass3_24.timeline.effects.fields.gain"), value: effect.gain, scrub: SCRUB_GAIN, min: 0, exclusiveMin: false }
       ] as const;
       const channelNames = ["R", "G", "B"] as const;
       return (
@@ -530,7 +535,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
                       triple.exclusiveMin
                     )
                   }
-                  ariaLabel={`${name} ${triple.label.toLowerCase()} ${channel}`}
+                  ariaLabel={t("pass3_24.timeline.effects.channelAriaLabel", { name, parameter: triple.label, channel })}
                 />
               ))}
             </InspectorRow>
@@ -544,14 +549,13 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
     if (parseClipEffectType(effect.type)) {
       return (
         <Caption color="muted">
-          This effect still applies. Use the Color section to adjust color.
+          {t("pass3_24.timeline.effects.unknownColorEffectHint")}
         </Caption>
       );
     }
     return (
       <Caption color="muted">
-        This build does not draw &quot;{effect.type}&quot;. Its settings are
-        kept as written.
+        {t("pass3_24.timeline.effects.unsupportedEffectHint", { effectType: effect.type })}
       </Caption>
     );
   }
@@ -593,8 +597,12 @@ const EffectRow: React.FC<EffectRowProps> = memo(
     onMove,
     onDrop
   }) => {
+    const { t } = useTranslation();
     const { id } = effect;
-    const name = EFFECT_LABELS[effect.type] ?? effect.type;
+    const labelKey = EFFECT_LABEL_KEYS[effect.type];
+    const name = labelKey
+      ? t(`pass3_24.timeline.effects.names.${labelKey}`)
+      : effect.type;
 
     const patch = useCallback(
       (next: Record<string, unknown>) => onPatch(id, next),
@@ -623,8 +631,8 @@ const EffectRow: React.FC<EffectRowProps> = memo(
         <FlexRow align="center" gap={SPACING.micro}>
           <ToolbarIconButton
             icon={<DragIndicatorOutlinedIcon />}
-            tooltip="Drag to reorder, or use Alt + arrow keys"
-            aria-label={`Reorder ${name}`}
+            tooltip={t("pass3_24.timeline.effects.reorderTooltip")}
+            aria-label={t("pass3_24.timeline.effects.reorderAriaLabel", { name })}
             aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
             size="small"
             draggable
@@ -649,7 +657,7 @@ const EffectRow: React.FC<EffectRowProps> = memo(
             size="small"
             checked={effect.enabled}
             onChange={(_, enabled) => onPatch(id, { enabled })}
-            slotProps={{ input: { "aria-label": `${name} enabled` } }}
+            slotProps={{ input: { "aria-label": t("pass3_24.timeline.effects.enabledAriaLabel", { name }) } }}
           />
           <Button
             variant="text"
@@ -677,8 +685,8 @@ const EffectRow: React.FC<EffectRowProps> = memo(
           </Button>
           <DeleteButton
             onClick={remove}
-            tooltip={`Remove ${name} effect`}
-            ariaLabel={`Remove ${name} effect`}
+            tooltip={t("pass3_24.timeline.effects.removeEffect", { name })}
+            ariaLabel={t("pass3_24.timeline.effects.removeEffect", { name })}
             iconVariant="clear"
             sx={INSPECTOR_ROW_BUTTON_SX}
           />
@@ -696,6 +704,7 @@ interface ClipEffectsListProps {
 
 export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
   ({ clip }) => {
+    const { t } = useTranslation();
     const patchClip = useTimelineStore((s) => s.patchClip);
     const [open, setOpen] = usePersistedFold("effects");
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -792,7 +801,9 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
       [clip.effects]
     );
     const matchingEffects = ADDABLE_EFFECTS.filter((effect) =>
-      effect.label.toLowerCase().includes(query.trim().toLowerCase())
+      t(`pass3_24.timeline.effects.names.${effect.labelKey}`)
+        .toLowerCase()
+        .includes(query.trim().toLowerCase())
     );
 
     return (
@@ -802,13 +813,15 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
           title={
             <FlexRow align="center" gap={SPACING.md}>
               <InspectorSectionTitle
-                title="Effects"
+                title={t("pass3_24.timeline.effects.title")}
                 icon={<AutoAwesomeOutlinedIcon />}
               />
               {listed.length > 0 && (
                 <Caption color="muted">
-                  {listed.filter((effect) => effect.enabled).length}/
-                  {listed.length} active
+                  {t("pass3_24.timeline.effects.activeCount", {
+                    active: listed.filter((effect) => effect.enabled).length,
+                    total: listed.length
+                  })}
                 </Caption>
               )}
             </FlexRow>
@@ -830,7 +843,7 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
               aria-expanded={Boolean(menuAnchor)}
               sx={{ alignSelf: "flex-start" }}
             >
-              Add effect
+              {t("pass3_24.timeline.effects.addEffect")}
             </Button>
             <Popover
               open={Boolean(menuAnchor)}
@@ -839,14 +852,14 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
             >
               <FlexColumn
                 role="dialog"
-                aria-label="Add effect"
+                aria-label={t("pass3_24.timeline.effects.addEffect")}
                 gap={SPACING.md}
                 sx={{ p: SPACING.md }}
               >
                 <SearchInput
                   value={query}
                   onChange={setQuery}
-                  placeholder="Search effects"
+                  placeholder={t("pass3_24.timeline.effects.searchPlaceholder")}
                   autoFocus
                   fullWidth
                 />
@@ -859,18 +872,18 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
                       onClick={() => handleAdd(effect.value)}
                       sx={{ justifyContent: "flex-start" }}
                     >
-                      {effect.label}
+                      {t(`pass3_24.timeline.effects.names.${effect.labelKey}`)}
                     </Button>
                   ))}
                   {matchingEffects.length === 0 && (
-                    <EmptyState size="small" title="No matching effects" />
+                    <EmptyState size="small" title={t("pass3_24.timeline.effects.noMatchingEffects")} />
                   )}
                 </FlexColumn>
               </FlexColumn>
             </Popover>
             {listed.length === 0 && (
               <Caption color="muted">
-                Add a blur, glow, shadow, vignette, chroma key or grade.
+                {t("pass3_24.timeline.effects.emptyHint")}
               </Caption>
             )}
             {listed.map((effect, index) => (

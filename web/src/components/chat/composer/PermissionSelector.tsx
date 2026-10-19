@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -14,8 +15,8 @@ import type { PermissionMode } from "../../../stores/ApiTypes";
 
 interface ModeItem {
   id: PermissionMode;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   /** Theme palette key driving the status dot color. */
   tone: "info" | "warning" | "success";
 }
@@ -23,21 +24,20 @@ interface ModeItem {
 const MODES: ModeItem[] = [
   {
     id: "plan",
-    label: "Plan",
-    description: "Investigate and propose a plan. Nothing runs.",
+    labelKey: "plan",
+    descriptionKey: "planDescription",
     tone: "info"
   },
   {
     id: "default",
-    label: "Default",
-    description: "Reads run. Actions ask first.",
+    labelKey: "default",
+    descriptionKey: "defaultDescription",
     tone: "warning"
   },
   {
     id: "auto",
-    label: "Auto",
-    description:
-      "Routine work runs unattended. A step that deletes, publishes, or spends asks once.",
+    labelKey: "auto",
+    descriptionKey: "autoDescription",
     tone: "success"
   }
 ];
@@ -72,6 +72,7 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
   threadId,
   compact = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
@@ -97,8 +98,11 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
         ref={buttonRef}
         className="permission-selector-trigger"
         icon={<ModeDot color={dotColor(theme, activeMode.tone)} />}
-        label={compact ? undefined : activeMode.label}
-        title={`Permission: ${activeMode.label} — ${activeMode.description}`}
+        label={compact ? undefined : t(`i18n-next22.chat.composer.permission.modes.${activeMode.labelKey}`)}
+        title={t("i18n-next22.chat.composer.permission.activeModeTitle", {
+          mode: t(`i18n-next22.chat.composer.permission.modes.${activeMode.labelKey}`),
+          description: t(`i18n-next22.chat.composer.permission.modes.${activeMode.descriptionKey}`)
+        })}
         active={open}
         showChevron
         onClick={() => setOpen(true)}
@@ -111,16 +115,16 @@ const PermissionSelector: React.FC<PermissionSelectorProps> = ({
         transformOrigin={{ vertical: "bottom", horizontal: "left" }}
         minWidth={260}
         paperSx={{ maxWidth: 320 }}
-        slotProps={{ list: { "aria-label": "Permission mode" } }}
+        slotProps={{ list: { "aria-label": t("i18n-next22.chat.composer.permission.permissionMode") } }}
       >
-        <ListSubheader>Permission mode</ListSubheader>
+        <ListSubheader>{t("i18n-next22.chat.composer.permission.permissionMode")}</ListSubheader>
         {MODES.map((m) => {
           const selected = m.id === mode;
           return (
             <MenuItemPrimitive
               key={m.id}
-              label={m.label}
-              secondary={m.description}
+              label={t(`i18n-next22.chat.composer.permission.modes.${m.labelKey}`)}
+              secondary={t(`i18n-next22.chat.composer.permission.modes.${m.descriptionKey}`)}
               icon={<ModeDot color={dotColor(theme, m.tone)} />}
               checkable="radio"
               checked={selected}

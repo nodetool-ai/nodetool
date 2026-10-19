@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { pad } from '../params';
 import { useDrumStore } from '../dr1Store';
 import { DrumEnvView } from './DrumEnvView';
 import { DrumKnob } from './DrumKnob';
 
 export function PitchEnvPanel() {
+  const { t } = useTranslation();
   const sel = useDrumStore((s) => s.sel);
   const amountId = pad(sel, 'penv.amt');
   const decayId = pad(sel, 'penv.dec');
@@ -13,7 +15,7 @@ export function PitchEnvPanel() {
   return (
     <section className="panel dr-edit-panel dr-pitch-env" data-accent="a">
       <div className="panel-head">
-        <h2>PITCH ENV</h2>
+        <h2>{t('i18n-next107.drum.pitchEnv.title')}</h2>
       </div>
       <DrumEnvView
         className="dr-env-view"

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Puck, useGetPuck, type Data, type Overrides } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import "./puckTheme.css";
@@ -17,7 +18,7 @@ import { extractWorkflowState, type WorkflowState } from "../workflowState";
 import { useAppRuntime } from "../runtime/useAppRuntime";
 import { AppRuntimeContext } from "../runtime/AppRuntimeContext";
 import { BuilderWorkflowProvider } from "./BuilderWorkflowContext";
-import { appConfig } from "./config";
+import { useAppConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
 import {
   APP_SCHEMA_VERSION,
@@ -136,6 +137,8 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   onToggleData,
   operationWorkflows
 }) => {
+  const { t } = useTranslation();
+  const appConfig = useAppConfig();
   const workflowState = useMemo(
     () => extractWorkflowState(workflow, meta.resources),
     [workflow, meta.resources]
@@ -216,7 +219,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               onClick={onToggleData}
               aria-pressed={dataOpen}
             >
-              App data
+              {t("i18n-next115.appBuilder.appData")}
             </EditorButton>
           )}
           {onClose && (
@@ -226,7 +229,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               startIcon={<CloseIcon />}
               onClick={onClose}
             >
-              Back
+              {t("i18n-next115.appBuilder.back")}
             </EditorButton>
           )}
           <SaveButton onSave={onPublish} saving={saving} />
@@ -235,6 +238,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
     }),
     [
       applicationId,
+      t,
       onClose,
       onPublish,
       saving,

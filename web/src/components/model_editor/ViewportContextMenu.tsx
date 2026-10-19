@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -28,6 +29,7 @@ const ViewportContextMenu = ({
   onHide,
   onDelete
 }: ViewportContextMenuProps) => {
+  const { t } = useTranslation();
   const run = (action: () => void) => () => {
     action();
     onClose();
@@ -35,25 +37,25 @@ const ViewportContextMenu = ({
   return (
     <ContextMenu open={position !== null} position={position} onClose={onClose} minWidth={200}>
       <MenuItemPrimitive
-        label="Duplicate"
+        label={t("i18n-next38.contextMenu.duplicate")}
         icon={<ContentCopyIcon fontSize="small" />}
         shortcut={keys("duplicate")}
         onClick={run(onDuplicate)}
       />
       <MenuItemPrimitive
-        label="Frame selection"
+        label={t("i18n-next38.contextMenu.frameSelection")}
         icon={<CenterFocusStrongIcon fontSize="small" />}
         shortcut={keys("focusSelection")}
         onClick={run(onFrame)}
       />
       <MenuItemPrimitive
-        label="Hide"
+        label={t("i18n-next38.contextMenu.hide")}
         icon={<VisibilityOffIcon fontSize="small" />}
         shortcut={keys("hide")}
         onClick={run(onHide)}
       />
       <MenuItemPrimitive
-        label="Delete"
+        label={t("i18n-next38.contextMenu.delete")}
         color="error"
         dividerBefore
         icon={<DeleteOutlineIcon fontSize="small" />}

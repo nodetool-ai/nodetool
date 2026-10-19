@@ -1,4 +1,5 @@
 import { useCallback, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { SelectChangeEvent } from "../ui_primitives";
 
@@ -58,6 +59,7 @@ const DocumentPickerProperty = ({
   extraRefFields,
   ...props
 }: DocumentPickerPropertyProps) => {
+  const { t } = useTranslation();
   const { property, value, onChange } = props;
   const id = `${documentType}-${property.name}-${props.propertyIndex}`;
   const { data, error, isLoading } = useDocuments();
@@ -124,8 +126,8 @@ const DocumentPickerProperty = ({
           value={selectedId}
           onChange={handleChange}
         >
-          {isLoading && <NodeMenuItem disabled>Loading…</NodeMenuItem>}
-          {error && <NodeMenuItem disabled>Error: {error.message}</NodeMenuItem>}
+          {isLoading && <NodeMenuItem disabled>{t("i18n-next104.properties.loading")}</NodeMenuItem>}
+          {error && <NodeMenuItem disabled>{t("i18n-next104.properties.error", { message: error.message })}</NodeMenuItem>}
           {data?.map((document) => (
             <NodeMenuItem key={document.id} value={document.id}>
               {document.name || untitledLabel}

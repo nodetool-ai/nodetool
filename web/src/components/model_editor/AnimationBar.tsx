@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import StopIcon from "@mui/icons-material/Stop";
@@ -21,13 +22,18 @@ interface AnimationBarProps {
   className?: string;
 }
 
-const formatSeconds = (seconds: number): string => seconds.toFixed(2);
+const formatSeconds = (seconds: number, locale: string): string =>
+  new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(seconds);
 
 /**
  * Play, pause and scrub the model's glTF animation clips. Stop returns every
  * object to the pose it had before playback, which is the pose that is saved.
  */
 const AnimationBar = ({ preview, onActiveChange, className }: AnimationBarProps) => {
+  const { t, i18n } = useTranslation();
   const [clipIndex, setClipIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -111,26 +117,26 @@ const AnimationBar = ({ preview, onActiveChange, className }: AnimationBarProps)
   return (
     <FloatingToolbar
       className={className}
-      aria-label="Animation preview"
+      aria-label={t("i18n-next38.animation.preview")}
       sx={{ gap: SPACING.sm, px: SPACING.md }}
     >
       <MovieOutlinedIcon fontSize="small" color="action" />
       <ToolbarIconButton
         icon={playing ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
-        tooltip={playing ? "Pause animation" : "Play animation"}
+        tooltip={t(playing ? "i18n-next38.animation.pause" : "i18n-next38.animation.play")}
         onClick={togglePlay}
         size="small"
       />
       <ToolbarIconButton
         icon={<StopIcon fontSize="small" />}
-        tooltip="Stop and return to the rest pose"
+        tooltip={t("i18n-next38.animation.stop")}
         onClick={stop}
         disabled={!active}
         size="small"
       />
       {preview.clips.length > 1 ? (
         <SelectField
-          label="Clip"
+          label={t("i18n-next38.animation.clip")}
           hideLabel
           size="small"
           appearance="inspector"
@@ -138,15 +144,15 @@ const AnimationBar = ({ preview, onActiveChange, className }: AnimationBarProps)
           onChange={changeClip}
           options={preview.clips.map((c, i) => ({
             value: String(i),
-            label: c.name || `Clip ${i + 1}`
+            label: c.name || t("i18n-next38.animation.clipNumber", { count: i + 1 })
           }))}
         />
       ) : (
-        <Caption>{clip?.name || "Animation"}</Caption>
+        <Caption>{clip?.name || t("i18n-next38.animation.defaultName")}</Caption>
       )}
       <Slider
         density="compact"
-        aria-label="Animation time"
+        aria-label={t("i18n-next38.animation.time")}
         min={0}
         max={duration || 1}
         step={0.01}
@@ -155,7 +161,10 @@ const AnimationBar = ({ preview, onActiveChange, className }: AnimationBarProps)
         sx={{ flex: 1, minWidth: 120 }}
       />
       <Caption sx={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-        {formatSeconds(time)} / {formatSeconds(duration)} s
+        {t("i18n-next38.animation.duration", {
+          current: formatSeconds(time, i18n.resolvedLanguage ?? i18n.language),
+          duration: formatSeconds(duration, i18n.resolvedLanguage ?? i18n.language)
+        })}
       </Caption>
     </FloatingToolbar>
   );

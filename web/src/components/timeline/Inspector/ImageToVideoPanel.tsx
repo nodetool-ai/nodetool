@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import MovieFilterOutlinedIcon from "@mui/icons-material/MovieFilterOutlined";
 
 import type { VideoModelValue } from "../../../stores/ApiTypes";
@@ -85,6 +86,7 @@ const formatSeconds = (ms: number): string =>
   `${Number((ms / 1000).toFixed(2))} s`;
 
 const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = usePersistedFold("image-to-video", true);
   const timeline = useTimelineStoreApi();
   const clip = useTimelineStore((state) => findClipById(state.clips, clipId));
@@ -224,7 +226,11 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
         const trackId =
           placement.kind === "existing"
             ? placement.trackId
-            : state.insertTrack("video", placement.atIndex, "Image to video");
+            : state.insertTrack(
+                "video",
+                placement.atIndex,
+                t("pass3_29.imageToVideo.trackName")
+              );
         history.mark();
         videoClipId = timeline.getState().addDirectGenClip({
           trackId,
@@ -238,7 +244,7 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
           sourceClipId: image.id,
           aspectRatio: settings.aspectRatio,
           resolution: settings.resolution,
-          name: `${image.name} (video)`
+          name: t("pass3_29.imageToVideo.clipName", { name: image.name })
         });
         history.mark();
       } finally {
@@ -264,6 +270,7 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
     selectedModel,
     settings,
     start,
+    t,
     timeline
   ]);
 
@@ -290,7 +297,7 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
     <CollapsibleSection
       title={
         <InspectorSectionTitle
-          title="Image to video"
+          title={t("pass3_29.imageToVideo.title")}
           icon={<MovieFilterOutlinedIcon />}
         />
       }
@@ -302,21 +309,21 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
           <EmptyState
             variant="empty"
             size="small"
-            title="No image yet"
-            description="Generate or import the image before turning it into a video."
+            title={t("pass3_29.imageToVideo.noImageTitle")}
+            description={t("pass3_29.imageToVideo.noImageDescription")}
           />
         ) : (
           <>
             <TextArea
               value={prompt}
               onChange={(value) => setPrompt(value)}
-              placeholder="Describe the motion…"
+              placeholder={t("pass3_29.imageToVideo.motionPlaceholder")}
               minRows={2}
               maxRows={6}
               compact
               fullWidth
               inputProps={{
-                "aria-label": "Motion prompt",
+                "aria-label": t("pass3_29.imageToVideo.motionPromptLabel"),
                 "data-testid": "image-to-video-prompt"
               }}
               disabled={submitting}
@@ -328,18 +335,20 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
               <EmptyState
                 variant={error ? "error" : "empty"}
                 size="small"
-                title="No image-to-video model"
+                title={t("pass3_29.imageToVideo.noModelTitle")}
                 description={
                   error
-                    ? "The video model catalog could not be loaded."
-                    : "Add a provider or install a local model that supports image_to_video."
+                    ? t("pass3_29.imageToVideo.catalogError")
+                    : t("pass3_29.imageToVideo.noCompatibleModel")
                 }
-                actionText={error ? "Retry model catalog" : undefined}
+                actionText={
+                  error ? t("pass3_29.imageToVideo.retryCatalog") : undefined
+                }
                 onAction={error ? () => void refetch() : undefined}
               />
             ) : IS_MANAGED_BUILD ? (
               <CuratedModelSelect
-                label="Image-to-video model"
+                label={t("pass3_29.imageToVideo.modelLabel")}
                 options={managedModelOptions}
                 value={selectedModel?.id ?? ""}
                 onChange={handleModelChange}
@@ -360,18 +369,17 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
             )}
             {durationChanged && (
               <Caption color="secondary">
-                {`This model cannot render ${formatSeconds(
-                  clip.durationMs
-                )}, so the video clip is ${formatSeconds(
-                  settings.clipDurationMs
-                )} long.`}
+                {t("pass3_29.imageToVideo.durationAdjusted", {
+                  requested: formatSeconds(clip.durationMs),
+                  actual: formatSeconds(settings.clipDurationMs)
+                })}
               </Caption>
             )}
 
             <FlexRow justify="flex-end" fullWidth>
               <CostEstimateLine
                 estimate={generationCostLine(costEstimate)}
-                title="Estimated cost of this video"
+                title={t("pass3_29.imageToVideo.estimatedCost")}
               />
             </FlexRow>
 
@@ -385,24 +393,26 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
               onClick={() => void handleGenerate()}
               data-testid="image-to-video-submit"
             >
-              {submitting ? "Starting…" : "Generate video"}
+              {submitting
+                ? t("pass3_29.imageToVideo.starting")
+                : t("pass3_29.imageToVideo.generate")}
             </EditorButton>
 
             {!imageSize && measured.failed && (
               <ErrorBanner
                 report={{
                   source: "operation-failure",
-                  summary: "Image-to-video source image failed to load"
+                  summary: t("pass3_29.imageToVideo.sourceImageFailedSummary")
                 }}
               >
-                The image could not be loaded, so its size is unknown.
+                {t("pass3_29.imageToVideo.sourceImageFailed")}
               </ErrorBanner>
             )}
             {errorMessage && (
               <ErrorBanner
                 report={{
                   source: "operation-failure",
-                  summary: "Image-to-video generation could not start",
+                  summary: t("pass3_29.imageToVideo.generationFailedSummary"),
                   errorText: errorMessage
                 }}
               >

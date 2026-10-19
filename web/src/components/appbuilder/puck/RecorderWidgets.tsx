@@ -10,6 +10,7 @@
  * must never raise a permission prompt while an author is laying widgets out.
  */
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Asset } from "../../../stores/ApiTypes";
 import WaveRecorder from "../../audio/WaveRecorder";
@@ -110,6 +111,7 @@ const useRecorderWidget = (
 };
 
 export const AudioRecorderWidget: React.FC<RecorderWidgetProps> = (props) => {
+  const { t } = useTranslation();
   const { designMode, workflowId, onChange, locator } = useRecorderWidget(
     props,
     "audio"
@@ -117,14 +119,14 @@ export const AudioRecorderWidget: React.FC<RecorderWidgetProps> = (props) => {
 
   return (
     <FlexColumn gap={SPACING.micro} fullWidth>
-      <Label>{props.label || "Record audio"}</Label>
+      <Label>{props.label || t("i18n-next53.appBuilder.recorder.recordAudio")}</Label>
       {designMode ? (
-        <DesignPlaceholder text="Microphone capture — records when the app runs" />
+        <DesignPlaceholder text={t("i18n-next53.appBuilder.recorder.microphonePlaceholder")} />
       ) : (
         <WaveRecorder onChange={onChange} workflowId={workflowId} />
       )}
       {locator && !designMode ? (
-        <AudioPlayback locator={locator} label="Recorded audio" />
+        <AudioPlayback locator={locator} label={t("i18n-next53.appBuilder.recorder.recordedAudio")} />
       ) : null}
     </FlexColumn>
   );
@@ -134,6 +136,7 @@ export const AudioRecorderWidget: React.FC<RecorderWidgetProps> = (props) => {
 const PLAYBACK_HEIGHT = 200;
 
 export const CameraCaptureWidget: React.FC<RecorderWidgetProps> = (props) => {
+  const { t } = useTranslation();
   const { designMode, workflowId, onChange, locator } = useRecorderWidget(
     props,
     "video"
@@ -141,9 +144,9 @@ export const CameraCaptureWidget: React.FC<RecorderWidgetProps> = (props) => {
 
   return (
     <FlexColumn gap={SPACING.micro} fullWidth>
-      <Label>{props.label || "Record video"}</Label>
+      <Label>{props.label || t("i18n-next53.appBuilder.recorder.recordVideo")}</Label>
       {designMode ? (
-        <DesignPlaceholder text="Camera capture — records when the app runs" />
+        <DesignPlaceholder text={t("i18n-next53.appBuilder.recorder.cameraPlaceholder")} />
       ) : (
         <VideoRecorder onChange={onChange} workflowId={workflowId} />
       )}
@@ -156,7 +159,7 @@ export const CameraCaptureWidget: React.FC<RecorderWidgetProps> = (props) => {
             overflow: "hidden"
           }}
         >
-          <VideoPlayer locator={locator} label="Recorded video" />
+          <VideoPlayer locator={locator} label={t("i18n-next53.appBuilder.recorder.recordedVideo")} />
         </Box>
       ) : null}
     </FlexColumn>

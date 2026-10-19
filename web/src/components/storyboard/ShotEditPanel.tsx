@@ -28,13 +28,13 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { shotRenderMode } from "@nodetool-ai/protocol";
 import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   Box,
@@ -204,34 +204,13 @@ const toolsSx = {
   [STACKED]: { overflow: "visible" }
 } as const;
 
-const DRAFT_LABELS: Record<ShotDraftKey, string> = {
-  slug: "Shot title",
-  sceneId: "Slugline",
-  lighting: "Scene lighting",
-  action: "Description",
-  dialogue: "Dialogue",
-  durationSeconds: "Duration",
-  durationSource: "Duration source",
-  framing: "Size",
-  angle: "Perspective",
-  movement: "Movement",
-  equipment: "Equipment",
-  lens: "Focal length",
-  notes: "Notes",
-  renderMode: "Render mode",
-  graphics: "Graphics",
-  motion: "Shot motion",
-  endState: "End",
-  sound: "Sound"
-};
-
 /** A render that could not start: the hook records the ones it knows about. */
-const reportRenderFailure = (error: unknown): void => {
+const reportRenderFailure = (error: unknown, message: string, retryMessage: string): void => {
   useNotificationStore.getState().addNotification({
     type: "error",
     alert: true,
     dismissable: true,
-    content: `Render did not start. ${getErrorMessage(error, "Try again.")}`
+    content: `${message} ${getErrorMessage(error, retryMessage)}`
   });
 };
 
@@ -239,26 +218,23 @@ const reportRenderFailure = (error: unknown): void => {
 const formatDraftValue = (
   key: ShotDraftKey,
   value: ShotDraft[ShotDraftKey],
-  sceneOptions: { value: string; label: string }[]
+  sceneOptions: { value: string; label: string }[],
+  notSet: string,
+  editedGraphics: string
 ): string => {
   if (value === undefined || value === null || value === "") {
-    return "Not set";
+    return notSet;
   }
   if (key === "sceneId") {
-    return sceneOptions.find((option) => option.value === value)?.label ?? "Not set";
+    return sceneOptions.find((option) => option.value === value)?.label ?? notSet;
   }
   if (typeof value === "object") {
-    return "Edited graphics";
+    return editedGraphics;
   }
   return String(value);
 };
 
 type SideTab = "takes" | "change";
-
-const SIDE_TABS: { value: SideTab; label: string }[] = [
-  { value: "takes", label: "Takes" },
-  { value: "change", label: "Change still" }
-];
 
 const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   boardId,
@@ -270,6 +246,19 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   leaveRequest,
   onLeaveRequestComplete
 }) => {
+  const { t, i18n } = useTranslation();
+  const numberFormat = useMemo(
+    () => new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  );
+  const moneyFormat = useMemo(
+    () => new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 12
+    }),
+    [i18n.language, i18n.resolvedLanguage]
+  );
   // What the panel is waiting on an answer for: a close, or a step to another
   // shot. Null while there is nothing pending.
   const [pending, setPending] = useState<{
@@ -358,8 +347,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     () =>
       boardEntities
         .filter((entity) => appliedIds.includes(entity.id))
-        .map((entity) => entity.name || "Untitled"),
-    [boardEntities, appliedIds]
+        .map((entity) => entity.name || t("screens4_16.shotEditPanel.untitledEntity")),
+    [boardEntities, appliedIds, t]
   );
   // The prompt preview reads the scene the draft points at, lit the way the
   // draft says: both are saved with the shot.
@@ -381,9 +370,9 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     () =>
       sceneOrder(shots, scenes).map((group, i) => ({
         value: group.sceneId ?? "",
-        label: group.scene?.slugline || `SCENE ${i + 1}`
+        label: group.scene?.slugline || t("screens4_16.shotEditPanel.sceneOption", { scene: numberFormat.format(i + 1) })
       })),
-    [shots, scenes]
+    [shots, scenes, t, numberFormat]
   );
 
   /**
@@ -452,9 +441,15 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         setStillRenderShot(saved);
         return;
       }
-      void generateClip(boardId, saved).catch(reportRenderFailure);
+      void generateClip(boardId, saved).catch((error: unknown) =>
+        reportRenderFailure(
+          error,
+          t("screens4_16.shotEditPanel.errors.renderDidNotStart"),
+          t("screens4_16.shotEditPanel.errors.tryAgain")
+        )
+      );
     },
-    [generateClip, boardId]
+    [generateClip, boardId, t]
   );
 
   const handleRegenerate = useCallback(() => {
@@ -660,7 +655,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         type: "script",
         ref: scriptId,
         mode: "edit",
-        title: "Script"
+        title: t("screens4_16.shotEditPanel.scriptTabTitle")
       });
       onClose();
     });
@@ -670,7 +665,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     requestImageEditorLeave,
     scriptLines,
     openTab,
-    onClose
+    onClose,
+    t
   ]);
 
   if (!shot || !draft) {
@@ -682,13 +678,41 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   // sums both steps, and a click only pays for one.
   const stepCost = (label: string): string => {
     const cost = costEstimate.steps.find((step) => step.label === label)?.cost;
-    return cost ? ` · ~${formatUsd(cost)}` : "";
+    return cost ? ` · ~${moneyFormat.format(cost)}` : "";
   };
   const clipNeedsStill =
     shotRenderMode(previewShot) === "keyframe" && !shot.keyframe;
   const shotsInScene = shots.filter(
     (s) => (s.scene_id ?? null) === (shot.scene_id ?? null)
   ).length;
+  const draftLabels: Record<ShotDraftKey, string> = {
+    slug: t("screens4_16.shotEditPanel.fields.shotTitle"),
+    sceneId: t("screens4_16.shotEditPanel.fields.slugline"),
+    lighting: t("screens4_16.shotEditPanel.fields.sceneLighting"),
+    action: t("screens4_16.shotEditPanel.fields.description"),
+    dialogue: t("screens4_16.shotEditPanel.fields.dialogue"),
+    durationSeconds: t("screens4_16.shotEditPanel.fields.duration"),
+    durationSource: t("screens4_16.shotEditPanel.fields.durationSource"),
+    framing: t("screens4_16.shotEditPanel.fields.size"),
+    angle: t("screens4_16.shotEditPanel.fields.perspective"),
+    movement: t("screens4_16.shotEditPanel.fields.movement"),
+    equipment: t("screens4_16.shotEditPanel.fields.equipment"),
+    lens: t("screens4_16.shotEditPanel.fields.focalLength"),
+    notes: t("screens4_16.shotEditPanel.fields.notes"),
+    renderMode: t("screens4_16.shotEditPanel.fields.renderMode"),
+    graphics: t("screens4_16.shotEditPanel.fields.graphics"),
+    motion: t("screens4_16.shotEditPanel.fields.shotMotion"),
+    endState: t("screens4_16.shotEditPanel.fields.end"),
+    sound: t("screens4_16.shotEditPanel.fields.sound")
+  };
+  const sideTabs: { value: SideTab; label: string }[] = [
+    { value: "takes", label: t("screens4_16.shotEditPanel.tabs.takes") },
+    { value: "change", label: t("screens4_16.shotEditPanel.tabs.changeStill") }
+  ];
+  const sceneNumber = numbering.scene ? numberFormat.format(numbering.scene) : "—";
+  const shotNumber = numbering.shot ? numberFormat.format(numbering.shot) : "—";
+  const notSetLabel = t("screens4_16.shotEditPanel.notSet");
+  const editedGraphicsLabel = t("screens4_16.shotEditPanel.editedGraphics");
 
   const canStep = !!onShotChange;
   const canStepBack = canStep && position > 0;
@@ -725,29 +749,29 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           startIcon={<ArrowBackIcon />}
           sx={{ justifySelf: "start" }}
         >
-          Back to storyboard
+          {t("screens4_16.shotEditPanel.backToStoryboard")}
         </EditorButton>
 
         <FlexRow align="center" gap={SPACING.md}>
           {canStep && (
             <ToolbarIconButton
               icon={<ChevronLeftIcon />}
-              tooltip="Previous shot"
-              ariaLabel="Previous shot"
+              tooltip={t("screens4_16.shotEditPanel.previousShot")}
+              ariaLabel={t("screens4_16.shotEditPanel.previousShot")}
               onClick={() => stepShot(-1)}
               disabled={!canStepBack}
             />
           )}
           <FlexColumn align="center" sx={{ minWidth: 0 }}>
             <Text size="big" data-testid="shot-edit-title">
-              {`Scene ${numbering.scene || "—"}, Shot ${numbering.shot || "—"}`}
+              {t("screens4_16.shotEditPanel.title", { scene: sceneNumber, shot: shotNumber })}
             </Text>
           </FlexColumn>
           {canStep && (
             <ToolbarIconButton
               icon={<ChevronRightIcon />}
-              tooltip="Next shot"
-              ariaLabel="Next shot"
+              tooltip={t("screens4_16.shotEditPanel.nextShot")}
+              ariaLabel={t("screens4_16.shotEditPanel.nextShot")}
               onClick={() => stepShot(1)}
               disabled={!canStepForward}
             />
@@ -766,18 +790,18 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
             <>
               <ToolbarIconButton
                 icon={<MoreHorizIcon fontSize="inherit" />}
-                tooltip="More actions"
-                ariaLabel="More shot actions"
+                tooltip={t("screens4_16.shotEditPanel.moreActions")}
+                ariaLabel={t("screens4_16.shotEditPanel.moreShotActions")}
                 onClick={(event) => setMenuAnchor(event.currentTarget)}
               />
               <EditorButton
                 onClick={handleRegenerate}
                 disabled={generating || durationInvalid}
                 tooltip={
-                  generating ? "This shot is already rendering" : undefined
+                  generating ? t("screens4_16.shotEditPanel.renderingAlready") : undefined
                 }
               >
-                {`Regenerate${stepCost("Still")}`}
+                {`${t("screens4_16.shotEditPanel.regenerate")}${stepCost("Still")}`}
               </EditorButton>
               <EditorButton
                 variant="contained"
@@ -785,7 +809,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                 onClick={handleSave}
                 disabled={!dirty || durationInvalid}
               >
-                Save
+                {t("screens4_16.shotEditPanel.save")}
               </EditorButton>
             </>
           )}
@@ -808,7 +832,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
               />
               <Card variant="outlined" padding="normal">
                 <CollapsibleSection
-                  title={<Caption sx={sectionTitleSx}>Advanced</Caption>}
+                  title={<Caption sx={sectionTitleSx}>{t("screens4_16.shotEditPanel.advanced")}</Caption>}
                   compact
                   defaultOpen={false}
                 >
@@ -822,8 +846,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                       compact
                       size="small"
                       minRows={2}
-                      label="Notes"
-                      placeholder="Anything the render should not read as direction"
+                      label={t("screens4_16.shotEditPanel.notes.label")}
+                      placeholder={t("screens4_16.shotEditPanel.notes.placeholder")}
                       disabled={readOnly}
                       value={draft.notes}
                       onChange={(value) =>
@@ -866,11 +890,11 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
             {!readOnly && (
               <Box sx={{ flexShrink: 0 }}>
                 <TabGroup
-                  tabs={SIDE_TABS}
+                  tabs={sideTabs}
                   value={sideTab}
                   onChange={(value) => setSideTab(value as SideTab)}
                   size="small"
-                  aria-label="Takes or change the still"
+                  aria-label={t("screens4_16.shotEditPanel.tabs.ariaLabel")}
                 />
               </Box>
             )}
@@ -895,24 +919,24 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         onClose={() => setMenuAnchor(null)}
       >
         <MenuItemPrimitive
-          label={`${shot.clip ? "Re-render clip" : "Render clip"}${stepCost("Clip")}`}
+          label={`${shot.clip ? t("screens4_16.shotEditPanel.rerenderClip") : t("screens4_16.shotEditPanel.renderClip")}${stepCost("Clip")}`}
           secondary={
             generating
-              ? "This shot is already rendering"
+              ? t("screens4_16.shotEditPanel.renderingAlready")
               : clipNeedsStill
-                ? "Render a still first, or set render mode to Direct"
+                ? t("screens4_16.shotEditPanel.clipNeedsStill")
                 : undefined
           }
           disabled={generating || clipNeedsStill}
           onClick={handleRenderClip}
         />
         <MenuItemPrimitive
-          label="Move earlier in scene"
+          label={t("screens4_16.shotEditPanel.moveEarlier")}
           onClick={() => handleNudge("up")}
           disabled={numbering.shot <= 1}
         />
         <MenuItemPrimitive
-          label="Move later in scene"
+          label={t("screens4_16.shotEditPanel.moveLater")}
           onClick={() => handleNudge("down")}
           disabled={numbering.shot >= shotsInScene}
         />
@@ -930,35 +954,35 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
       <Dialog
         open={pending !== null}
         onClose={keepEditing}
-        title="Discard changes?"
+        title={t("screens4_16.shotEditPanel.discardChanges.title")}
         actions={
           <>
             <Button variant="text" color="inherit" onClick={keepEditing}>
-              Keep editing
+              {t("screens4_16.shotEditPanel.keepEditing")}
             </Button>
             <Button
               variant="text"
               color="error"
               onClick={() => runPending(false)}
             >
-              Discard
+              {t("screens4_16.shotEditPanel.discard")}
             </Button>
             <Button variant="contained" onClick={() => runPending(true)}>
-              Save
+              {t("screens4_16.shotEditPanel.save")}
             </Button>
           </>
         }
       >
-        <Text>This shot has edits that have not been saved.</Text>
+        <Text>{t("screens4_16.shotEditPanel.discardChanges.description")}</Text>
         <Caption color="secondary">
-          Version choices, deletions, flips and uploads are already saved.
+          {t("screens4_16.shotEditPanel.discardChanges.committedActions")}
         </Caption>
       </Dialog>
 
       <Dialog
         open={saveConflicts.length > 0}
         onClose={() => setSaveConflicts([])}
-        title="This shot changed elsewhere"
+        title={t("screens4_16.shotEditPanel.conflicts.title")}
         actions={
           <>
             <Button
@@ -966,37 +990,36 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
               color="inherit"
               onClick={() => setSaveConflicts([])}
             >
-              Keep editing
+              {t("screens4_16.shotEditPanel.keepEditing")}
             </Button>
             <Button
               variant="text"
               color="inherit"
               onClick={() => resolveSaveConflicts("current")}
             >
-              Use current values
+              {t("screens4_16.shotEditPanel.conflicts.useCurrent")}
             </Button>
             <Button
               variant="contained"
               onClick={() => resolveSaveConflicts("mine")}
             >
-              Keep my changes
+              {t("screens4_16.shotEditPanel.conflicts.keepMine")}
             </Button>
           </>
         }
       >
         <FlexColumn gap={SPACING.md}>
           <Text>
-            The same fields changed after you opened this editor. Compare them
-            before saving.
+            {t("screens4_16.shotEditPanel.conflicts.description")}
           </Text>
           {draft && original && shot &&
             saveConflicts.map((key) => {
               const current = draftFromShot(shot, scene);
               return (
                 <FlexColumn key={key} gap={SPACING.xs}>
-                  <Label>{DRAFT_LABELS[key]}</Label>
-                  <Caption color="secondary">{`Your edit: ${formatDraftValue(key, draft[key], sceneOptions)}`}</Caption>
-                  <Caption color="secondary">{`Current: ${formatDraftValue(key, current[key], sceneOptions)}`}</Caption>
+                  <Label>{draftLabels[key]}</Label>
+                  <Caption color="secondary">{t("screens4_16.shotEditPanel.conflicts.yourEdit", { value: formatDraftValue(key, draft[key], sceneOptions, notSetLabel, editedGraphicsLabel) })}</Caption>
+                  <Caption color="secondary">{t("screens4_16.shotEditPanel.conflicts.current", { value: formatDraftValue(key, current[key], sceneOptions, notSetLabel, editedGraphicsLabel) })}</Caption>
                 </FlexColumn>
               );
             })}

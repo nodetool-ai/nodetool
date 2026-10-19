@@ -24,6 +24,7 @@
  */
 
 import React, { memo, useCallback, useRef, useState, useEffect, KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -143,7 +144,7 @@ export const TagInput: React.FC<TagInputProps> = memo(
   function TagInput({
     tags,
     onTagsChange,
-    placeholder = "Type and press Enter to add a tag…",
+    placeholder,
     label,
     allowDuplicates = false,
     maxTags,
@@ -155,6 +156,7 @@ export const TagInput: React.FC<TagInputProps> = memo(
     className,
   }) {
     const theme = useTheme();
+    const { t } = useTranslation();
     const [inputValue, setInputValue] = useState("");
     const [validationError, setValidationError] = useState<string>("");
     const inputRef = useRef<HTMLInputElement>(null);
@@ -179,31 +181,31 @@ export const TagInput: React.FC<TagInputProps> = memo(
         const trimmedTag = tag.trim();
 
         if (trimmedTag === "") {
-          setValidationError("Tag cannot be empty");
+          setValidationError(t("i18n-next86.tagInput.errors.empty"));
           return false;
         }
 
         if (!allowDuplicates && tags.includes(trimmedTag)) {
-          setValidationError("This tag already exists");
+          setValidationError(t("i18n-next86.tagInput.errors.duplicate"));
           return false;
         }
 
         if (maxTags !== undefined && tags.length >= maxTags) {
-          setValidationError(`Maximum ${maxTags} tags allowed`);
+          setValidationError(t("i18n-next86.tagInput.errors.maxTags", { count: maxTags }));
           return false;
         }
 
         if (validateTag) {
           const result = validateTag(trimmedTag);
           if (!result.valid) {
-            setValidationError(result.errorMessage || "Invalid tag");
+            setValidationError(result.errorMessage || t("i18n-next86.tagInput.errors.invalid"));
             return false;
           }
         }
 
         return true;
       },
-      [tags, allowDuplicates, maxTags, validateTag]
+      [tags, allowDuplicates, maxTags, validateTag, t]
     );
 
     const addTag = useCallback(
@@ -275,6 +277,7 @@ export const TagInput: React.FC<TagInputProps> = memo(
     const isMaxReached = maxTags !== undefined && tags.length >= maxTags;
     const hasError = error || Boolean(validationError);
     const displayHelperText = validationError || helperText;
+    const inputPlaceholder = placeholder ?? t("i18n-next86.tagInput.placeholder");
 
     return (
       <Box css={styles(theme)} className={`tag-input-root ${className || ""}`}>
@@ -299,7 +302,7 @@ export const TagInput: React.FC<TagInputProps> = memo(
           role="combobox"
           aria-expanded={false}
           aria-haspopup="listbox"
-          aria-label={label || "Tag input"}
+          aria-label={label || t("i18n-next86.tagInput.label")}
           aria-disabled={disabled}
           aria-describedby={displayHelperText ? `${label || "tag"}-helper-text` : undefined}
         >
@@ -312,7 +315,7 @@ export const TagInput: React.FC<TagInputProps> = memo(
               deleteIcon={<CloseIcon fontSize="small" />}
               disabled={disabled}
               className="tag-chip"
-              aria-label={`Remove tag: ${tag}`}
+              aria-label={t("i18n-next86.tagInput.removeTag", { tag })}
               tabIndex={-1}
             />
           ))}
@@ -323,19 +326,19 @@ export const TagInput: React.FC<TagInputProps> = memo(
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleInputKeyDown}
-            placeholder={tags.length === 0 ? placeholder : ""}
+            placeholder={tags.length === 0 ? inputPlaceholder : ""}
             disabled={disabled || isMaxReached}
-            aria-label="Add new tag"
+            aria-label={t("i18n-next86.tagInput.addNewTag")}
             aria-invalid={hasError}
             aria-describedby={displayHelperText ? `${label || "tag"}-helper-text` : undefined}
           />
           {!disabled && !isMaxReached && inputValue.trim() && (
-            <Tooltip title="Add tag">
+            <Tooltip title={t("i18n-next86.tagInput.addTag")}>
               <IconButton
                 className="add-button"
                 size="small"
                 onClick={handleAddButtonClick}
-                aria-label="Add tag"
+                aria-label={t("i18n-next86.tagInput.addTag")}
               >
                 <AddIcon fontSize="small" />
               </IconButton>
@@ -355,7 +358,7 @@ export const TagInput: React.FC<TagInputProps> = memo(
         )}
         {maxTags && (
           <Typography variant="caption" className="helper-text">
-            {tags.length} / {maxTags} tags
+            {t("i18n-next86.tagInput.tagCount", { current: tags.length, max: maxTags })}
           </Typography>
         )}
       </Box>

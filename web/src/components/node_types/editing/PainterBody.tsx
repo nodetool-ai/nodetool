@@ -28,6 +28,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -339,6 +340,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -1047,12 +1049,12 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             exclusive
             onChange={onToolChange}
             size="small"
-            aria-label="Paint tool"
+            aria-label={t("i18n-next46.painter.paintTool")}
           >
-            <ToggleOption value="brush" aria-label="Brush">
+            <ToggleOption value="brush" aria-label={t("i18n-next46.painter.brush")}>
               <BrushIcon />
             </ToggleOption>
-            <ToggleOption value="eraser" aria-label="Eraser">
+            <ToggleOption value="eraser" aria-label={t("i18n-next46.painter.eraser")}>
               <EraserIcon />
             </ToggleOption>
           </ToggleGroup>
@@ -1062,7 +1064,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             type="color"
             value={color}
             onChange={onColorChange}
-            aria-label="Brush color"
+            aria-label={t("i18n-next46.painter.brushColor")}
           />
           <div className="row-spacer" />
           <ToolbarIconButton
@@ -1070,7 +1072,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             size="small"
             onClick={onUndo}
             disabled={undoDisabled}
-            tooltip="Undo"
+            tooltip={t("i18n-next46.painter.undo")}
             icon={<UndoIcon fontSize="small" />}
           />
           <ToolbarIconButton
@@ -1078,14 +1080,14 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
             size="small"
             onClick={onRedo}
             disabled={redoDisabled}
-            tooltip="Redo"
+            tooltip={t("i18n-next46.painter.redo")}
             icon={<RedoIcon fontSize="small" />}
           />
           <ToolbarIconButton
             className="nodrag"
             size="small"
             onClick={onClear}
-            tooltip="Clear painted mask"
+            tooltip={t("i18n-next46.painter.clearMask")}
             icon={<RestartAltIcon fontSize="small" />}
           />
         </FlexRow>
@@ -1099,7 +1101,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               id={`painter-size-${id}`}
               nodeId={id}
               name="size"
-              description="Brush size in pixels"
+              description={t("i18n-next46.painter.brushSize")}
               value={brushSize}
               min={1}
               max={256}
@@ -1115,7 +1117,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               id={`painter-opacity-${id}`}
               nodeId={id}
               name="opacity"
-              description="Brush opacity (0–1)"
+              description={t("i18n-next46.painter.brushOpacity")}
               value={brushOpacity}
               min={0}
               max={1}
@@ -1135,7 +1137,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               id={`painter-canvas-w-${id}`}
               nodeId={id}
               name="canvas width"
-              description="Canvas width in pixels"
+              description={t("i18n-next46.painter.canvasWidth")}
               value={configuredW}
               min={1}
               max={4096}
@@ -1151,7 +1153,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               id={`painter-canvas-h-${id}`}
               nodeId={id}
               name="canvas height"
-              description="Canvas height in pixels"
+              description={t("i18n-next46.painter.canvasHeight")}
               value={configuredH}
               min={1}
               max={4096}
@@ -1171,7 +1173,7 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
               id={`painter-fade-${id}`}
               nodeId={id}
               name="background_opacity"
-              description="Background image opacity (0 = hide, 1 = full)"
+              description={t("i18n-next46.painter.backgroundOpacity")}
               value={bgFade}
               min={0}
               max={1}

@@ -29,6 +29,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -168,6 +169,7 @@ interface PlayheadProps {
 export const Playhead: React.FC<PlayheadProps> = memo(
   ({ trackAreaOffsetPx = 0, heightPx, endMs, grabTopPx = 0 }) => {
     const theme = useTheme();
+    const { t: tt } = useTranslation();
 
     // Geometry inputs that DO change reactively (zoom/scroll). We keep them in
     // refs so the imperative subscription always reads the latest values
@@ -377,7 +379,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         data-testid="playhead"
         role="slider"
         tabIndex={0}
-        aria-label="Playhead"
+        aria-label={tt("i18n-next73.playhead.label")}
         aria-valuemin={0}
         aria-valuemax={Math.round(durationMs)}
         onPointerEnter={() => setHovered(true)}

@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -31,6 +32,7 @@ const MODEL_QUERY_KEYS = [
  * Package Manager.
  */
 const InstallRuntimePackageDialog: React.FC = () => {
+  const { t } = useTranslation();
   const packageId = useRuntimePackagePromptStore((s) => s.packageId);
   const dismiss = useRuntimePackagePromptStore((s) => s.dismiss);
   const available = useRuntimePackagesStore((s) => s.available);
@@ -84,19 +86,18 @@ const InstallRuntimePackageDialog: React.FC = () => {
       <Dialog
         open
         onClose={dismiss}
-        title={`${name} is not installed`}
+        title={t("i18n-next31.runtimePackage.notInstalledTitle", { name })}
         onConfirm={() => {
           openPackageManager();
           dismiss();
         }}
-        confirmText="Open package manager"
-        cancelText="Close"
+        confirmText={t("i18n-next31.runtimePackage.openPackageManager")}
+        cancelText={t("i18n-next31.runtimePackage.close")}
         maxWidth="xs"
         fullWidth
       >
         <Text size="small">
-          This needs {name}. Only the desktop app can install it. Install it
-          in the Package Manager of the machine that runs NodeTool.
+          {t("i18n-next31.runtimePackage.desktopOnlyDescription", { name })}
         </Text>
       </Dialog>
     );
@@ -107,16 +108,16 @@ const InstallRuntimePackageDialog: React.FC = () => {
       <Dialog
         open
         onClose={dismiss}
-        title={`${name} is installed`}
+        title={t("i18n-next31.runtimePackage.installedTitle", { name })}
         maxWidth="xs"
         fullWidth
         actions={
           <Button variant="contained" onClick={dismiss} autoFocus>
-            Done
+            {t("i18n-next31.runtimePackage.done")}
           </Button>
         }
       >
-        <Text size="small">Try again to use it.</Text>
+        <Text size="small">{t("i18n-next31.runtimePackage.tryAgain")}</Text>
       </Dialog>
     );
   }
@@ -125,10 +126,10 @@ const InstallRuntimePackageDialog: React.FC = () => {
     <Dialog
       open
       onClose={phase === "installing" ? undefined : dismiss}
-      title={`Install ${name}?`}
+      title={t("i18n-next31.runtimePackage.installTitle", { name })}
       onConfirm={handleInstall}
-      confirmText={phase === "installing" ? "Installing…" : "Install"}
-      cancelText="Not now"
+      confirmText={phase === "installing" ? t("i18n-next31.runtimePackage.installing") : t("i18n-next31.runtimePackage.install")}
+      cancelText={t("i18n-next31.runtimePackage.notNow")}
       confirmDisabled={phase === "installing"}
       cancelDisabled={phase === "installing"}
       isLoading={phase === "installing"}
@@ -137,14 +138,14 @@ const InstallRuntimePackageDialog: React.FC = () => {
     >
       <FlexColumn gap={SPACING.md}>
         <Text size="small">
-          {name} is not installed. Install it now, then try again.
+          {t("i18n-next31.runtimePackage.installPrompt", { name })}
         </Text>
         {status?.description && (
           <Caption color="secondary">{status.description}</Caption>
         )}
         {phase === "failed" && (
           <AlertBanner severity="error" compact>
-            {error ?? "The install failed. Try again from the Package Manager."}
+            {error ?? t("i18n-next31.runtimePackage.installFailed")}
           </AlertBanner>
         )}
       </FlexColumn>

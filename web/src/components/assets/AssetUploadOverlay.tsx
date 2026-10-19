@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import ReactDOM from "react-dom";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -37,6 +38,7 @@ const styles = (theme: Theme) =>
   });
 
 const AssetUploadOverlay = () => {
+  const { t } = useTranslation(undefined, { keyPrefix: "i18n-next57" });
   const theme = useTheme();
   const { files, isUploading, overallProgress, completed } = useAssetUpload();
 
@@ -48,11 +50,11 @@ const AssetUploadOverlay = () => {
     <div css={styles(theme)} className="uploading-overlay">
       <FlexColumn className="uploading-message" gap={SPACING.lg}>
         <Text size="big" weight={600}>
-          Uploading assets
+          {t("upload.uploadingAssets")}
         </Text>
         <ProgressBar
           value={overallProgress}
-          label={`${completed} of ${files.length} files uploaded`}
+          label={t("upload.progress", { completed, count: files.length })}
         />
         <FlexColumn gap={SPACING.md} sx={{ px: SPACING.xl }}>
           {files.map((file) => (

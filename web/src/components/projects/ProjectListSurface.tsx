@@ -6,6 +6,7 @@ import {
   type ChangeEvent,
   type DragEvent
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import AddIcon from "@mui/icons-material/AddOutlined";
 
@@ -51,7 +52,6 @@ import ProjectCard from "./ProjectCard";
 import ProjectLifecycleActions from "./ProjectLifecycleActions";
 import NewProjectDialog from "./NewProjectDialog";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
-import { relativeTime } from "../../utils/formatDateAndTime";
 import type { ProjectDetail } from "./projectStatus";
 import { PROJECT_FILE_EXTENSION } from "../../utils/projectArchive";
 
@@ -73,6 +73,41 @@ const LOOSE_TILE_MAX_WIDTH = 280;
 
 /** The search box's width beside the title on a tablet or wider. */
 const SEARCH_WIDTH = 280;
+
+const formatRelativeTime = (
+  date: Date | string,
+  locale: string,
+  now: number
+): string => {
+  const elapsedSeconds = Math.floor(
+    (now - new Date(date).getTime()) / 1000
+  );
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  if (elapsedSeconds < 60) {
+    return formatter.format(-Math.max(elapsedSeconds, 0), "second");
+  }
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+  if (elapsedMinutes < 60) {
+    return formatter.format(-elapsedMinutes, "minute");
+  }
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) {
+    return formatter.format(-elapsedHours, "hour");
+  }
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  if (elapsedDays < 7) {
+    return formatter.format(-elapsedDays, "day");
+  }
+  const elapsedWeeks = Math.floor(elapsedDays / 7);
+  if (elapsedWeeks < 5) {
+    return formatter.format(-elapsedWeeks, "week");
+  }
+  const elapsedMonths = Math.floor(elapsedDays / 30);
+  if (elapsedMonths < 12) {
+    return formatter.format(-elapsedMonths, "month");
+  }
+  return formatter.format(-Math.floor(elapsedDays / 365), "year");
+};
 
 /** Page gutter: the desktop margin wastes a phone's width. */
 const PAGE_PX = { xs: SPACING.lg, sm: SPACING.xxl };
@@ -118,6 +153,7 @@ const parseDragPayload = (payload: string): LooseDocument | null => {
  * that belong to none. Dragging one of those onto a card moves it in.
  */
 const ProjectListSurface = () => {
+  const { t, i18n } = useTranslation();
   const [search, setSearch] = useState("");
 
   const summaries = useProjectSummaries();
@@ -155,8 +191,13 @@ const ProjectListSurface = () => {
             alert: true,
             content:
               problems > 0
-                ? `Imported ${result.project.name}, but ${problems} file(s) were missing or damaged`
-                : `Imported ${result.project.name}`
+                ? t("pass3_34.projects.list.importedWithProblems", {
+                    name: result.project.name,
+                    count: problems
+                  })
+                : t("pass3_34.projects.list.imported", {
+                    name: result.project.name
+                  })
           });
           void openProject(result.project);
         },
@@ -164,11 +205,14 @@ const ProjectListSurface = () => {
           addNotification({
             type: "error",
             alert: true,
-            content: `Could not import ${file.name}: ${error.message}`
+            content: t("pass3_34.projects.list.importFailed", {
+              fileName: file.name,
+              error: error.message
+            })
           })
       });
     },
-    [addNotification, importProject, openProject]
+    [addNotification, importProject, openProject, t]
   );
 
   const matches = useMemo(() => {
@@ -182,6 +226,7 @@ const ProjectListSurface = () => {
   }, [search, summaries.data]);
 
   const looseTotal = unassigned.data?.length ?? 0;
+  const now = useMemo(() => Date.now(), []);
   const loose = useMemo(
     () => (unassigned.data ?? []).slice(0, LOOSE_STRIP_LIMIT),
     [unassigned.data]
@@ -207,12 +252,15 @@ const ProjectListSurface = () => {
             addNotification({
               type: "error",
               alert: true,
-              content: `Could not move ${document.name}: ${error.message}`
+              content: t("pass3_34.projects.list.moveFailed", {
+                name: document.name,
+                error: error.message
+              })
             })
         }
       );
     },
-    [addNotification, assignDocument]
+    [addNotification, assignDocument, t]
   );
 
   const handleOpenLoose = useCallback(
@@ -251,8 +299,8 @@ const ProjectListSurface = () => {
       >
         <PageHeader
           variant="plain"
-          title="Projects"
-          subtitle="One piece of work: the documents an agent built for it, what it cost, where it stands."
+          title={t("pass3_34.projects.list.title")}
+          subtitle={t("pass3_34.projects.list.subtitle")}
           hideSubtitleOnMobile
         />
         <Box sx={{ flex: 1 }} />
@@ -265,7 +313,7 @@ const ProjectListSurface = () => {
           <SearchInput
             value={search}
             onChange={setSearch}
-            placeholder="Search projects"
+            placeholder={t("pass3_34.projects.list.searchPlaceholder")}
             fullWidth
           />
         </Box>
@@ -275,13 +323,15 @@ const ProjectListSurface = () => {
           disabled={importProject.isPending}
           sx={{ whiteSpace: "nowrap" }}
         >
-          {importProject.isPending ? "Importing…" : "Import project"}
+          {importProject.isPending
+            ? t("pass3_34.projects.list.importing")
+            : t("pass3_34.projects.list.importProject")}
         </EditorButton>
         <input
           ref={importInputRef}
           type="file"
           accept={`${PROJECT_FILE_EXTENSION},application/zip`}
-          aria-label="Project file"
+          aria-label={t("pass3_34.projects.list.projectFile")}
           onChange={handleImportFile}
           style={{ display: "none" }}
         />
@@ -292,7 +342,7 @@ const ProjectListSurface = () => {
           startIcon={<AddIcon />}
           sx={{ whiteSpace: "nowrap" }}
         >
-          New project
+          {t("pass3_34.projects.list.newProject")}
         </EditorButton>
       </FlexRow>
 
@@ -302,14 +352,14 @@ const ProjectListSurface = () => {
         ) : summaries.error ? (
           <EmptyState
             variant="error"
-            title="Could not load projects"
+            title={t("pass3_34.projects.list.loadFailed")}
             description={summaries.error.message}
           />
         ) : search.trim() && matches.length === 0 ? (
           <EmptyState
             variant="no-results"
-            title="No matching projects"
-            description="Try a different search term."
+            title={t("pass3_34.projects.list.noMatchingProjects")}
+            description={t("pass3_34.projects.list.tryDifferentSearch")}
           />
         ) : (
           <AutoGrid
@@ -341,9 +391,9 @@ const ProjectListSurface = () => {
               })}
             >
               <AddIcon sx={{ color: PROJECT_COLOR, mb: SPACING.xs }} />
-              <Label>Start a project</Label>
+              <Label>{t("pass3_34.projects.list.startProject")}</Label>
               <Caption color="muted">
-                Say what you want made, and an agent builds its documents
+                {t("pass3_34.projects.list.startProjectDescription")}
               </Caption>
             </FlexColumn>
           </AutoGrid>
@@ -355,15 +405,18 @@ const ProjectListSurface = () => {
               size="small"
               title={
                 looseTotal > loose.length
-                  ? `Not in a project · ${loose.length} most recent of ${looseTotal}`
-                  : "Not in a project"
+                  ? t("pass3_34.projects.list.loose.mostRecent", {
+                      count: loose.length,
+                      total: looseTotal
+                    })
+                  : t("pass3_34.projects.list.loose.title")
               }
               action={
                 <Caption
                   color="muted"
                   sx={{ display: { xs: "none", sm: "block" } }}
                 >
-                  Drag onto a project card to move it in
+                  {t("pass3_34.projects.list.loose.dragHint")}
                 </Caption>
               }
             />
@@ -373,7 +426,9 @@ const ProjectListSurface = () => {
                   key={`${document.type}:${document.ref}`}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Open ${document.name}`}
+                  aria-label={t("pass3_34.projects.list.loose.open", {
+                    name: document.name
+                  })}
                   align="center"
                   gap={SPACING.md}
                   draggable
@@ -417,7 +472,9 @@ const ProjectListSurface = () => {
           <FlexColumn gap={SPACING.sm} sx={{ mt: SPACING.xxl }}>
             <SectionHeader
               size="small"
-              title={`Archived · ${archived.data?.length ?? 0}`}
+              title={t("pass3_34.projects.list.archived", {
+                count: archived.data?.length ?? 0
+              })}
             />
             {archived.data?.map((project) => (
               <FlexRow
@@ -445,7 +502,13 @@ const ProjectListSurface = () => {
                 </TruncatedText>
                 {project.archivedAt && (
                   <Caption color="muted" sx={{ whiteSpace: "nowrap" }}>
-                    {`Archived ${relativeTime(project.archivedAt)}`}
+                    {t("pass3_34.projects.list.archivedAt", {
+                      relativeTime: formatRelativeTime(
+                        project.archivedAt,
+                        i18n.language,
+                        now
+                      )
+                    })}
                   </Caption>
                 )}
                 <ProjectLifecycleActions project={project} />

@@ -10,6 +10,7 @@
  * out of the app editor's bundle.
  */
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -75,12 +76,13 @@ const Empty: React.FC<{ height: number; text: string }> = ({ height, text }) => 
 export const Model3DWidget: React.FC<
   ReadWidgetProps & { height?: number }
 > = (props) => {
+  const { t } = useTranslation();
   const { value } = useReadBinding(props);
   const src = lastSrc(value);
   const height = props.height ?? 320;
   if (!src) {
     return (
-      <Empty height={height} text={props.placeholder ?? "No 3D model yet"} />
+      <Empty height={height} text={props.placeholder ?? t("i18n-next53.appBuilder.media.noModel3D")} />
     );
   }
   return (
@@ -100,11 +102,12 @@ export const Model3DWidget: React.FC<
 export const PDFWidget: React.FC<ReadWidgetProps & { height?: number }> = (
   props
 ) => {
+  const { t } = useTranslation();
   const { value } = useReadBinding(props);
   const src = lastSrc(value);
   const height = props.height ?? 480;
   if (!src) {
-    return <Empty height={height} text={props.placeholder ?? "No document yet"} />;
+    return <Empty height={height} text={props.placeholder ?? t("i18n-next53.appBuilder.media.noDocument")} />;
   }
   return (
     <Box
@@ -243,6 +246,7 @@ export const GalleryWidget: React.FC<
     selectionBinding?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, emit, designMode } = useReadBinding(props);
   const { write } = useAppRuntimeContext();
   const selectionRef = useBindingRef(props.selectionBinding, "write");
@@ -275,7 +279,7 @@ export const GalleryWidget: React.FC<
   if (entries.length === 0) {
     return (
       <Caption color="secondary">
-        {props.placeholder ?? "Nothing to show yet"}
+        {props.placeholder ?? t("i18n-next53.appBuilder.media.nothingToShow")}
       </Caption>
     );
   }

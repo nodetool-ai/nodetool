@@ -13,6 +13,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import LaunchIcon from "@mui/icons-material/Launch";
 import {
@@ -94,6 +95,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
   variant = "nodeFooter",
   popoverResetDep,
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const lastRunCost = useNodeProviderCost(workflowId ?? "", nodeId ?? "");
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -192,7 +194,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
 
   const chipLabel = pricing
     ? formatKieUnitPricingShort(pricing)
-    : "KIE credits";
+    : t("screen_editor.kieCredits.label");
 
   return (
     <>
@@ -207,7 +209,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
         {pricing?.source === "live" && (
           <span
             style={{ marginRight: 4, fontSize: "var(--fontSizeSmaller)", opacity: 0.85 }}
-            aria-label="live price"
+            aria-label={t("screen_editor.kieCredits.livePrice")}
           >
             ●
           </span>
@@ -233,7 +235,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                   letterSpacing: "0.05em",
                 }}
               >
-                KIE pricing
+                {t("screen_editor.kieCredits.pricing")}
               </Caption>
               <Text
                 size="small"
@@ -268,8 +270,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                   color: theme.vars.palette.text.secondary,
                 }}
               >
-                No bundled list price for this node. Check kie.ai pricing or run
-                with your API key to see account credits.
+                {t("screen_editor.kieCredits.noBundledPrice")}
               </Text>
             </FlexColumn>
             <Divider />
@@ -285,7 +286,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
               letterSpacing: "0.05em",
             }}
           >
-            Account credits
+            {t("screen_editor.kieCredits.accountCredits")}
           </Caption>
           {creditsLoading ? (
             <FlexRow gap={1} align="center" sx={{ mt: 0.5 }}>
@@ -296,7 +297,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                   color: theme.vars.palette.text.secondary,
                 }}
               >
-                Loading…
+                {t("screen_editor.kieCredits.loading")}
               </Text>
             </FlexRow>
           ) : creditsData === "error" || creditsData === null ? (
@@ -307,7 +308,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                 mt: 0.5,
               }}
             >
-              {creditsData === "error" ? "Could not load credits" : "—"}
+              {creditsData === "error" ? t("screen_editor.kieCredits.loadError") : "—"}
             </Text>
           ) : creditsData.unavailable ? (
             <FlexColumn gap={0.5} sx={{ mt: 0.5 }}>
@@ -319,7 +320,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                   wordBreak: "break-word",
                 }}
               >
-                {creditsData.detail ?? "Credits unavailable"}
+                {creditsData.detail ?? t("screen_editor.kieCredits.unavailable")}
               </Text>
               {kieCreditsDetailSuggestsKeysLink(creditsData.detail) && (
                 <ExternalLink
@@ -327,7 +328,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                   iconVariant="launch"
                   size="small"
                 >
-                  kie.ai API keys
+                  {t("screen_editor.kieCredits.apiKeys")}
                 </ExternalLink>
               )}
             </FlexColumn>
@@ -340,7 +341,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                 mt: 0.5,
               }}
             >
-              {formatKieCredits(creditsData)} remaining
+              {t("screen_editor.kieCredits.remaining", { credits: formatKieCredits(creditsData) })}
             </Text>
           )}
         </FlexColumn>
@@ -357,7 +358,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                   letterSpacing: "0.05em",
                 }}
               >
-                Last run
+                {t("screen_editor.kieCredits.lastRun")}
               </Caption>
               <Text
                 size="small"
@@ -376,7 +377,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
         <Divider />
 
         <MenuItemPrimitive
-          label="View pricing on kie.ai"
+          label={t("screen_editor.kieCredits.viewPricing")}
           icon={<LaunchIcon />}
           onClick={() => {
             window.open(
@@ -389,7 +390,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
         />
 
         <MenuItemPrimitive
-          label="Top up credits"
+          label={t("screen_editor.kieCredits.topUp")}
           icon={<LaunchIcon />}
           onClick={() => {
             window.open(KIE_BILLING_URL, "_blank", "noopener,noreferrer");

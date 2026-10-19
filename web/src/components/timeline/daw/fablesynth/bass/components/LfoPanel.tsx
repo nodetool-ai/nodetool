@@ -3,6 +3,7 @@
 import { LfoClock } from '../../engine/lfoClock';
 
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { setupCanvas, startCanvasLoop } from '../../components/displays/canvas';
 import { LFO_DIV_F } from '../../params';
 import { useBassStore } from '../bassStoreContext';
@@ -73,11 +74,12 @@ function LfoView() {
 }
 
 export function LfoPanel() {
+  const { t } = useTranslation();
   return (
     <section className="panel bl-lfo-section">
       <div className="panel-head">
-        <h2>LFO</h2>
-        <span className="bl-head-note">→ CUTOFF · BAR-LOCKED</span>
+        <h2>{t('i18n-next116.fableSynth.bass.lfo')}</h2>
+        <span className="bl-head-note">{t('i18n-next116.fableSynth.bass.lfoNote')}</span>
       </div>
       <div className="bl-lfo-body">
         <div className="bl-lfo-left">
@@ -94,17 +96,18 @@ export function LfoPanel() {
 }
 
 export function AccentPanel() {
+  const { t } = useTranslation();
   return (
     <section className="panel bl-acc-section" data-accent="a">
       <div className="panel-head">
-        <h2>ACCENT · SLIDE</h2>
+        <h2>{t('i18n-next116.fableSynth.bass.accentSlide')}</h2>
       </div>
       <div className="knob-row bl-acc-knobs">
         <BassKnob paramId="acc.amt" size="lg" accent="a" />
         <BassKnob paramId="slide.time" size="md" accent="n" />
         <BassKnob paramId="acc.vel" size="sm" accent="a" />
       </div>
-      <div className="bl-acc-hint">VELOCITY ≥ ACC VEL = ACCENT · OVERLAP = SLIDE</div>
+      <div className="bl-acc-hint">{t('i18n-next116.fableSynth.bass.accentHint')}</div>
     </section>
   );
 }

@@ -1,17 +1,12 @@
-import React, { useMemo } from "react";
+import React from "react";
+import { useTranslation } from "react-i18next";
 import { TabGroup, type TabItem } from "./ui_primitives";
 
 /** The tabs shown at the top of the Inspector panel. */
 export type InspectorTab = "params" | "io" | "help";
 
-const TAB_DEFS: { value: InspectorTab; label: string; hasCount: boolean }[] = [
-  { value: "params", label: "Params", hasCount: true },
-  { value: "io", label: "I/O", hasCount: true },
-  { value: "help", label: "Help", hasCount: false }
-];
-
 const isInspectorTab = (value: string): value is InspectorTab =>
-  TAB_DEFS.some((tab) => tab.value === value);
+  value === "params" || value === "io" || value === "help";
 
 interface InspectorTabsProps {
   active: InspectorTab;
@@ -25,20 +20,22 @@ export const InspectorTabs: React.FC<InspectorTabsProps> = ({
   onChange,
   counts
 }) => {
-  const tabs = useMemo<TabItem[]>(
-    () =>
-      TAB_DEFS.map((tab) => ({
+  const { t } = useTranslation();
+  const tabDefs: { value: InspectorTab; label: string; hasCount: boolean }[] = [
+    { value: "params", label: t("screen_remaining.inspector.params"), hasCount: true },
+    { value: "io", label: t("screen_remaining.inspector.io"), hasCount: true },
+    { value: "help", label: t("screen_remaining.inspector.help"), hasCount: false }
+  ];
+  const tabs: TabItem[] = tabDefs.map((tab) => ({
         value: tab.value,
         label: tab.label,
         count: tab.hasCount ? counts[tab.value] : undefined
-      })),
-    [counts]
-  );
+      }));
   return (
     <TabGroup
       className="inspector-tabs"
       size="small"
-      aria-label="Inspector sections"
+      aria-label={t("screen_remaining.inspector.sections")}
       tabs={tabs}
       value={active}
       onChange={(next) => {

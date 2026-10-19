@@ -12,6 +12,7 @@
  */
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Box } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import {
@@ -44,24 +45,29 @@ export interface AudioPlaybackProps {
 /** The rendering half: `src` is already resolved. */
 const ResolvedAudio: React.FC<Omit<AudioPlaybackProps, "locator">> = ({
   src,
-  label = "Audio player",
+  label,
   autoPlay = false,
   loop = false,
   className,
   sx
-}) => (
-  <Box
-    component="audio"
-    className={className}
-    src={src || undefined}
-    controls
-    preload="metadata"
-    autoPlay={autoPlay}
-    loop={loop}
-    aria-label={label}
-    sx={{ width: "100%", ...sx }}
-  />
-);
+}) => {
+  const { t } = useTranslation();
+  const playerLabel = label ?? t("i18n-next94.audioPlayback.label");
+
+  return (
+    <Box
+      component="audio"
+      className={className}
+      src={src || undefined}
+      controls
+      preload="metadata"
+      autoPlay={autoPlay}
+      loop={loop}
+      aria-label={playerLabel}
+      sx={{ width: "100%", ...sx }}
+    />
+  );
+};
 
 ResolvedAudio.displayName = "ResolvedAudio";
 

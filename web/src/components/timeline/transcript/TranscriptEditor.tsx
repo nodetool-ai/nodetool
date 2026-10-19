@@ -25,6 +25,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useGlobalCombo } from "../../../stores/KeyPressedStore";
 import { styled } from "@mui/material/styles";
 
@@ -329,6 +330,7 @@ const RESEED_DEBOUNCE_MS = 150;
 const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
   wordIndex
 }) => {
+  const { t } = useTranslation();
   const [editor] = useLexicalComposerContext();
   // Only the transcript/caption-bearing subset — untouched clips (B-roll,
   // music) keep their identity across store publishes, so `useShallow` returns
@@ -450,7 +452,7 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
         docApi.getState().tracks.find((t) => t.type === "audio")?.id ??
         "";
       if (!audioTrackId && edits.newDraftTexts.some((t) => t.trim())) {
-        docApi.getState().addTrack("audio", "Voiceover");
+        docApi.getState().addTrack("audio", t("batch2_24.transcript.voiceoverTrack"));
         audioTrackId =
           docApi.getState().tracks.find((t) => t.type === "audio")
             ?.id ?? "";
@@ -489,7 +491,7 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
       root.removeEventListener("focus", onFocus);
       root.removeEventListener("blur", onBlur);
     };
-  }, [editor, docApi, setTranscriptAndClips, reseed]);
+  }, [editor, docApi, setTranscriptAndClips, reseed, t]);
 
   return null;
 };
@@ -744,6 +746,7 @@ const EditorBody: React.FC<{
   mode: EditorMode;
   setMode: (mode: EditorMode) => void;
 }> = ({ mode, setMode }) => {
+  const { t } = useTranslation();
   const [editor] = useLexicalComposerContext();
   const writing = mode === "write";
 
@@ -946,14 +949,14 @@ const EditorBody: React.FC<{
           contentEditable={
             <ContentEditable
               className="transcript-content"
-              aria-label="Transcript"
+              aria-label={t("batch2_24.transcript.label")}
               spellCheck={false}
               data-testid="transcript-editor"
             />
           }
           placeholder={
             <div className="transcript-placeholder">
-              Click Write to start, or import audio to edit it as text…
+              {t("batch2_24.transcript.placeholder")}
             </div>
           }
           ErrorBoundary={LexicalErrorBoundary}

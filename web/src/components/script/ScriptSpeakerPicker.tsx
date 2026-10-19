@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState } from "react";
 import type { MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import PersonAddIcon from "@mui/icons-material/PersonAddAlt";
 import {
@@ -79,6 +80,7 @@ export const ScriptSpeakerPicker = ({
   onAssign,
   quiet = false
 }: ScriptSpeakerPickerProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const inStudio = useInStudio();
   const patchLine = useScriptStore((s) => s.patchLine);
@@ -111,7 +113,9 @@ export const ScriptSpeakerPicker = ({
     ];
     addSpeaker(scriptId, {
       id,
-      name: `Speaker ${cast.length + 1}`,
+      name: t("i18n-next62.scriptSpeakerPicker.speakerDefaultName", {
+        count: cast.length + 1
+      }),
       color: palette[cast.length % palette.length],
       voice: inStudio && STUDIO_VOICE ? voiceFromStudio(STUDIO_VOICE) : null
     });
@@ -130,10 +134,11 @@ export const ScriptSpeakerPicker = ({
     cast.length,
     theme,
     inStudio,
+    t,
     close
   ]);
 
-  const label = speaker?.name ?? "no speaker";
+  const label = speaker?.name ?? t("i18n-next62.scriptSpeakerPicker.noSpeaker");
   const canOpen = !readOnly;
 
   return (
@@ -143,8 +148,8 @@ export const ScriptSpeakerPicker = ({
           readOnly
             ? label
             : cast.length
-              ? "Change speaker"
-              : "Add a speaker"
+            ? t("i18n-next62.scriptSpeakerPicker.changeSpeaker")
+            : t("i18n-next62.scriptSpeakerPicker.addSpeaker")
         }
       >
         <Box
@@ -154,7 +159,11 @@ export const ScriptSpeakerPicker = ({
           aria-haspopup="menu"
           aria-expanded={!!anchor}
           aria-label={
-            speaker ? `${speaker.name}, change speaker` : "Assign speaker"
+            speaker
+              ? t("i18n-next62.scriptSpeakerPicker.changeSpeakerAria", {
+                  name: speaker.name
+                })
+              : t("i18n-next62.scriptSpeakerPicker.assignSpeaker")
           }
           onClick={
             canOpen
@@ -230,7 +239,7 @@ export const ScriptSpeakerPicker = ({
         transformOrigin={{ vertical: "top", horizontal: mobile ? "left" : "right" }}
       >
         <MenuItemPrimitive
-          label="No speaker"
+          label={t("i18n-next62.scriptSpeakerPicker.noSpeaker")}
           selected={!speaker}
           onClick={() => assign(null)}
         />
@@ -246,7 +255,7 @@ export const ScriptSpeakerPicker = ({
         {!readOnly && (
           <MenuItemPrimitive
             dividerBefore
-            label="Add speaker"
+            label={t("i18n-next62.scriptSpeakerPicker.addSpeaker")}
             icon={<PersonAddIcon fontSize="small" />}
             onClick={addAndAssign}
           />

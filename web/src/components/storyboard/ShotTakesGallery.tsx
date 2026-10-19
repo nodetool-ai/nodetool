@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Theme } from "@mui/material/styles";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -135,8 +136,12 @@ const ClipTakeThumb: React.FC<{ clip: VideoRef; index: number }> = ({
   clip,
   index
 }) => {
+  const { i18n } = useTranslation();
   const { url, thumbUrl } = useResolvedMedia(clip);
   const poster = asResolvedMediaUrl(useVideoThumbnail(thumbUrl, url));
+  const number = new Intl.NumberFormat(
+    i18n.resolvedLanguage ?? i18n.language
+  ).format(index + 1);
   return poster ? (
     <ResponsiveImage
       src={poster}
@@ -145,7 +150,7 @@ const ClipTakeThumb: React.FC<{ clip: VideoRef; index: number }> = ({
       sx={{ width: "100%", height: "100%" }}
     />
   ) : (
-    <span>{index + 1}</span>
+    <span>{number}</span>
   );
 };
 
@@ -154,6 +159,14 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   shot,
   readOnly
 }) => {
+  const { t, i18n } = useTranslation();
+  const formatNumber = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language).format(
+        value
+      ),
+    [i18n.language, i18n.resolvedLanguage]
+  );
   const [expanded, setExpanded] = useState(false);
   // The take the fullscreen viewer shows; null when it is closed.
   const [viewerMedia, setViewerMedia] = useState<ImageRef | VideoRef | null>(
@@ -265,7 +278,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
           className="still-thumbs"
         >
           <Caption color="secondary" sx={takeRowLabelSx}>
-            Stills
+            {t("i18n-cont-storyboard-04.storyboard.takesGallery.stills")}
           </Caption>
           {stills.map((still, i) => {
             const isCurrent = i === selectedStill;
@@ -282,10 +295,19 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                     type="button"
                     aria-label={
                       isCurrent
-                        ? `Still ${i + 1}, current still`
+                        ? t(
+                            "i18n-cont-storyboard-04.storyboard.takesGallery.currentStill",
+                            { number: formatNumber(i + 1) }
+                          )
                         : readOnly
-                          ? `Preview still ${i + 1}`
-                          : `Use still ${i + 1} as current still`
+                          ? t(
+                              "i18n-cont-storyboard-04.storyboard.takesGallery.previewStill",
+                              { number: formatNumber(i + 1) }
+                            )
+                          : t(
+                              "i18n-cont-storyboard-04.storyboard.takesGallery.useStill",
+                              { number: formatNumber(i + 1) }
+                            )
                     }
                     aria-current={isCurrent ? "true" : undefined}
                     onClick={() =>
@@ -304,14 +326,17 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                         sx={{ width: "100%", height: "100%" }}
                       />
                     ) : (
-                      <span>{i + 1}</span>
+                      <span>{formatNumber(i + 1)}</span>
                     )}
                   </Box>
                   {!readOnly && (
                     <ToolbarIconButton
                       icon={<DeleteOutlineIcon fontSize="inherit" />}
-                      tooltip="Remove still"
-                      ariaLabel={`Remove still ${i + 1}`}
+                      tooltip={t("i18n-cont-storyboard-04.storyboard.takesGallery.removeStill")}
+                      ariaLabel={t(
+                        "i18n-cont-storyboard-04.storyboard.takesGallery.removeStillNumbered",
+                        { number: formatNumber(i + 1) }
+                      )}
                       onClick={() => handleRemoveStill(i)}
                       disabled={isGenerating}
                       sx={removeButtonSx}
@@ -320,8 +345,11 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   )}
                   <ToolbarIconButton
                     icon={<FullscreenIcon fontSize="inherit" />}
-                    tooltip="View fullscreen"
-                    ariaLabel={`View still ${i + 1} fullscreen`}
+                    tooltip={t("i18n-cont-storyboard-04.storyboard.takesGallery.viewFullscreen")}
+                    ariaLabel={t(
+                      "i18n-cont-storyboard-04.storyboard.takesGallery.viewStillFullscreen",
+                      { number: formatNumber(i + 1) }
+                    )}
                     onClick={() => setViewerMedia(still)}
                     sx={viewButtonSx}
                   />
@@ -340,7 +368,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
           className="clip-thumbs"
         >
           <Caption color="secondary" sx={takeRowLabelSx}>
-            Clips
+            {t("i18n-cont-storyboard-04.storyboard.takesGallery.clips")}
           </Caption>
           {clips.map((clip, i) => {
             const isCurrent = i === selectedClip;
@@ -357,10 +385,19 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                     type="button"
                     aria-label={
                       isCurrent
-                        ? `Clip ${i + 1}, current clip`
+                        ? t(
+                            "i18n-cont-storyboard-04.storyboard.takesGallery.currentClip",
+                            { number: formatNumber(i + 1) }
+                          )
                         : readOnly
-                          ? `Preview clip ${i + 1}`
-                          : `Use clip ${i + 1} as current clip`
+                          ? t(
+                              "i18n-cont-storyboard-04.storyboard.takesGallery.previewClip",
+                              { number: formatNumber(i + 1) }
+                            )
+                          : t(
+                              "i18n-cont-storyboard-04.storyboard.takesGallery.useClip",
+                              { number: formatNumber(i + 1) }
+                            )
                     }
                     aria-current={isCurrent ? "true" : undefined}
                     onClick={() =>
@@ -375,8 +412,11 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   {!readOnly && (
                     <ToolbarIconButton
                       icon={<DeleteOutlineIcon fontSize="inherit" />}
-                      tooltip="Remove clip"
-                      ariaLabel={`Remove clip ${i + 1}`}
+                      tooltip={t("i18n-cont-storyboard-04.storyboard.takesGallery.removeClip")}
+                      ariaLabel={t(
+                        "i18n-cont-storyboard-04.storyboard.takesGallery.removeClipNumbered",
+                        { number: formatNumber(i + 1) }
+                      )}
                       onClick={() => handleRemoveClip(i)}
                       disabled={isGenerating}
                       sx={removeButtonSx}
@@ -385,8 +425,11 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                   )}
                   <ToolbarIconButton
                     icon={<FullscreenIcon fontSize="inherit" />}
-                    tooltip="View fullscreen"
-                    ariaLabel={`View clip ${i + 1} fullscreen`}
+                    tooltip={t("i18n-cont-storyboard-04.storyboard.takesGallery.viewFullscreen")}
+                    ariaLabel={t(
+                      "i18n-cont-storyboard-04.storyboard.takesGallery.viewClipFullscreen",
+                      { number: formatNumber(i + 1) }
+                    )}
                     onClick={() => setViewerMedia(clip)}
                     sx={viewButtonSx}
                   />
@@ -405,7 +448,9 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
             "&:hover": { color: "text.primary", bgcolor: "c_overlay_subtle" }
           }}
         >
-          {expanded ? "Hide takes" : "View takes"}
+          {expanded
+            ? t("i18n-cont-storyboard-04.storyboard.takesGallery.hideTakes")
+            : t("i18n-cont-storyboard-04.storyboard.takesGallery.viewTakes")}
         </EditorButton>
       </FlexRow>
 
@@ -416,13 +461,17 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
         >
           {stills.length > 0 && (
             <>
-              <Caption color="secondary">Stills</Caption>
+              <Caption color="secondary">
+                {t("i18n-cont-storyboard-04.storyboard.takesGallery.stills")}
+              </Caption>
               <OutputRenderer value={stills} showTextActions={false} />
             </>
           )}
           {clips.length > 0 && (
             <>
-              <Caption color="secondary">Clips</Caption>
+              <Caption color="secondary">
+                {t("i18n-cont-storyboard-04.storyboard.takesGallery.clips")}
+              </Caption>
               <OutputRenderer value={clips} showTextActions={false} />
             </>
           )}

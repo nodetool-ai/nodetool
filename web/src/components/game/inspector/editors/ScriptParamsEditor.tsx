@@ -1,4 +1,5 @@
 import { memo, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { gameScriptParamValueOf, type AnyGameDocument, type GameScriptParam, type GameScriptParamValue } from "@nodetool-ai/protocol";
 import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 
@@ -56,6 +57,7 @@ interface ScriptParamsEditorProps {
 }
 
 function ScriptParamsEditor({ params, values, assets, entities, issuePath = [], issues = [], onValues }: ScriptParamsEditorProps) {
+  const { t } = useTranslation();
   return <FlexColumn gap={SPACING.xs} sx={{ width: "100%", minWidth: 0 }}>
     {Object.entries(params).map(([name, param]) => {
       const stored = values !== undefined && Object.hasOwn(values, name) ? values[name] : undefined;
@@ -71,7 +73,7 @@ function ScriptParamsEditor({ params, values, assets, entities, issuePath = [], 
         const error = issueAt(issues, valuePath) ?? issueAt(issues, [...issuePath, "params", name, "default"]);
         field = <FlexColumn gap={SPACING.xs} sx={{ width: "100%", minWidth: 0 }}>
           <InspectorFieldRow label={paramLabel(name)}><InspectorSelect grow label={paramLabel(name)} value={current}
-            options={[{ value: "", label: "None" }, ...options]} onChange={(next) => onValues(scriptParamEdit(param, name, next))} /></InspectorFieldRow>
+            options={[{ value: "", label: t("game.inspector.none") }, ...options]} onChange={(next) => onValues(scriptParamEdit(param, name, next))} /></InspectorFieldRow>
           {error && <Caption color="error">{error}</Caption>}
         </FlexColumn>;
       } else {

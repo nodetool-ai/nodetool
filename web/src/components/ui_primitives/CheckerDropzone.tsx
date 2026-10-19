@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -92,6 +93,7 @@ const CheckerDropzoneInner: React.FC<CheckerDropzoneProps> = ({
   className
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [isOver, setIsOver] = useState(false);
 
   const handleDragOver = useCallback(
@@ -134,7 +136,11 @@ const CheckerDropzoneInner: React.FC<CheckerDropzoneProps> = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       role={onDrop ? "button" : undefined}
-      aria-label={onDrop ? message ?? "Drop files here" : undefined}
+      aria-label={
+        onDrop
+          ? message ?? t("i18n-next87.checkerDropzone.dropFilesHere")
+          : undefined
+      }
     >
       {children ?? (
         <>

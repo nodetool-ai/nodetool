@@ -12,6 +12,7 @@
  * preview compositor.
  */
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -84,6 +85,7 @@ const timelineFrame = (height?: number): React.CSSProperties => ({
 export const SketchWidget: React.FC<
   DocumentWidgetProps & { showDimensions?: boolean }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, designMode } = useReadBinding(props);
   const bound = firstItem(value);
 
@@ -108,20 +110,20 @@ export const SketchWidget: React.FC<
       <Box sx={frame(props.height)}>
         <SketchRenderer
           document={document}
-          ariaLabel="Sketch"
+          ariaLabel={t("i18n-next53.appBuilder.documents.sketch")}
           showDimensions={props.showDimensions ?? false}
         />
       </Box>
     );
   }
   if (shouldLoad && query.isLoading) {
-    return <LoadingSpinner size="small" text="Loading sketch" />;
+    return <LoadingSpinner size="small" text={t("i18n-next53.appBuilder.documents.loadingSketch")} />;
   }
   if (query.isError) {
     return (
       <EmptyState
         variant="error"
-        title="Could not load sketch"
+        title={t("i18n-next53.appBuilder.documents.loadSketchFailed")}
         description={query.error.message}
       />
     );
@@ -129,18 +131,19 @@ export const SketchWidget: React.FC<
   if (designMode) {
     return (
       <Caption color="secondary">
-        Bind this to a sketch output to preview it.
+        {t("i18n-next53.appBuilder.documents.bindSketch")}
       </Caption>
     );
   }
   return (
-    <Caption color="secondary">{props.placeholder ?? "No sketch yet"}</Caption>
+    <Caption color="secondary">{props.placeholder ?? t("i18n-next53.appBuilder.documents.noSketchYet")}</Caption>
   );
 };
 
 export const TimelineWidget: React.FC<
   DocumentWidgetProps & { showMetadata?: boolean }
 > = (props) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const openForegroundTab = useWorkspaceTabsStore(
@@ -173,11 +176,11 @@ export const TimelineWidget: React.FC<
       <FlexColumn gap={SPACING.sm}>
         <Box sx={timelineFrame(props.height)}>
           <React.Suspense
-            fallback={<LoadingSpinner size="small" text="Loading preview" />}
+            fallback={<LoadingSpinner size="small" text={t("i18n-next53.appBuilder.documents.loadingPreview")} />}
           >
             <LazyTimelineRenderer
               sequence={sequence}
-              ariaLabel="Timeline"
+              ariaLabel={t("i18n-next53.appBuilder.documents.timeline")}
               showMetadata={props.showMetadata ?? true}
             />
           </React.Suspense>
@@ -202,20 +205,20 @@ export const TimelineWidget: React.FC<
               navigate("/workspace");
             }}
           >
-            Open editable timeline
+            {t("i18n-next53.appBuilder.documents.openTimeline")}
           </EditorButton>
         ) : null}
       </FlexColumn>
     );
   }
   if (shouldLoad && query.isLoading) {
-    return <LoadingSpinner size="small" text="Loading timeline" />;
+    return <LoadingSpinner size="small" text={t("i18n-next53.appBuilder.documents.loadingTimeline")} />;
   }
   if (query.isError) {
     return (
       <EmptyState
         variant="error"
-        title="Could not load timeline"
+        title={t("i18n-next53.appBuilder.documents.loadTimelineFailed")}
         description={query.error.message}
       />
     );
@@ -223,13 +226,13 @@ export const TimelineWidget: React.FC<
   if (designMode) {
     return (
       <Caption color="secondary">
-        Bind this to a timeline output to preview it.
+      {t("i18n-next53.appBuilder.documents.bindTimeline")}
       </Caption>
     );
   }
   return (
     <Caption color="secondary">
-      {props.placeholder ?? "No timeline yet"}
+      {props.placeholder ?? t("i18n-next53.appBuilder.documents.noTimelineYet")}
     </Caption>
   );
 };

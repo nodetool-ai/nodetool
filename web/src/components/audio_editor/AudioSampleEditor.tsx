@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -96,6 +97,7 @@ const AudioSampleEditor = ({
   onSaveSample,
   initialSelection
 }: AudioSampleEditorProps) => {
+  const { t } = useTranslation();
   const history = useEditHistory<AudioSample>();
   const resetHistory = history.reset;
   const sample = history.present;
@@ -153,11 +155,11 @@ const AudioSampleEditor = ({
   const getCtx = useCallback((): AudioContext => {
     if (!audioCtxRef.current) {
       const Ctor = getAudioContextCtor();
-      if (!Ctor) throw new Error("Web Audio API is not available");
+      if (!Ctor) throw new Error(t("batch2_16.audio.webAudioUnavailable"));
       audioCtxRef.current = new Ctor();
     }
     return audioCtxRef.current;
-  }, []);
+  }, [t]);
 
   const teardownSource = useCallback(() => {
     if (rafRef.current != null) {
@@ -287,7 +289,7 @@ const AudioSampleEditor = ({
     setError(null);
     const url = resolveMediaUrl(getUrlRef.current);
     if (!url) {
-      setError("This audio asset has no URL to load.");
+      setError(t("batch2_16.audio.noUrl"));
       setLoading(false);
       return;
     }
@@ -295,7 +297,7 @@ const AudioSampleEditor = ({
       try {
         const response = await fetch(url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch audio (HTTP ${response.status})`);
+          throw new Error(t("batch2_16.audio.fetchFailed", { status: response.status }));
         }
         const arrayBuffer = await response.arrayBuffer();
         const decoded = await getCtx().decodeAudioData(arrayBuffer);
@@ -321,7 +323,7 @@ const AudioSampleEditor = ({
     return () => {
       cancelled = true;
     };
-  }, [asset.id, getCtx, resetHistory]);
+  }, [asset.id, getCtx, resetHistory, t]);
 
   // Stop playback and re-clamp selection/playhead whenever the sample changes
   // (edit, undo, or redo).
@@ -515,9 +517,9 @@ const AudioSampleEditor = ({
       <FlexColumn fullWidth fullHeight align="center" justify="center">
         <EmptyState
           variant="error"
-          title="Could not open audio editor"
-          description={error ?? "Audio could not be decoded."}
-          actionText="Done"
+          title={t("batch2_16.audio.couldNotOpen")}
+          description={error ?? t("batch2_16.audio.decodeFailed")}
+          actionText={t("batch2_16.audio.done")}
           onAction={onClose}
         />
       </FlexColumn>
@@ -525,10 +527,12 @@ const AudioSampleEditor = ({
   }
 
   const statusText = hasSelection && selection
-    ? `Selection ${formatEditorTime(selection.start)} – ${formatEditorTime(
-        selection.end
-      )} · ${formatEditorTime(selection.end - selection.start)}`
-    : "Drag to select, click to seek";
+    ? t("batch2_16.audio.selection", {
+        start: formatEditorTime(selection.start),
+        end: formatEditorTime(selection.end),
+        duration: formatEditorTime(selection.end - selection.start)
+      })
+    : t("batch2_16.audio.dragHint");
   const status = effectError ? (
     <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
       <TruncatedText
@@ -541,7 +545,7 @@ const AudioSampleEditor = ({
       <ReportBugButton
         context={{
           source: "operation-failure",
-          summary: "Audio editor effect failed",
+          summary: t("batch2_16.audio.effectFailed"),
           errorText: effectError
         }}
       />

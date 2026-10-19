@@ -17,6 +17,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -50,6 +51,27 @@ import {
 } from "../../ui_primitives";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
+
+function translateTakeError(error: string, t: ReturnType<typeof useTranslation>["t"]): string {
+  if (error.startsWith('Clip "') && error.includes('" is locked.')) {
+    return t("pass3_27.clipVersionHistory.clipLocked", { name: error.split('"')[1] });
+  }
+  if (error.startsWith('The track containing "')) {
+    return t("pass3_27.clipVersionHistory.trackLocked", { name: error.split('"')[1] });
+  }
+  if (error.startsWith("Clip ") && error.endsWith(" not found")) {
+    return t("pass3_27.clipVersionHistory.clipNotFound", { id: error.slice(5, -10) });
+  }
+  if (error.includes("is a 3D clip")) return t("pass3_27.clipVersionHistory.unsupported3d");
+  if (error.startsWith("No take ")) return t("pass3_27.clipVersionHistory.takeNotFound");
+  if (error.includes("did not finish successfully")) return t("pass3_27.clipVersionHistory.takeFailed");
+  if (error.includes("shorter than the current")) return t("pass3_27.clipVersionHistory.takeTooShort");
+  if (error.startsWith("Choose Keep cut")) return t("pass3_27.clipVersionHistory.extendTakeChoice");
+  if (error.includes("cannot be applied")) return t("pass3_27.clipVersionHistory.takeCannotApply");
+  if (error.startsWith("Cannot delete the only take")) return t("pass3_27.clipVersionHistory.onlyTakeDelete");
+  if (error.startsWith("Cannot delete the active take")) return t("pass3_27.clipVersionHistory.activeTakeDelete");
+  return error;
+}
 
 const TILE_PX = 56;
 
@@ -192,6 +214,7 @@ const VersionTile: React.FC<VersionTileProps> = memo(
     onRename,
     onDelete
   }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const getAsset = useAssetStore((s) => s.get);
     const [url, setUrl] = useState<string | undefined>(undefined);
@@ -212,10 +235,13 @@ const VersionTile: React.FC<VersionTileProps> = memo(
 
     // Newest first → label by recency ("Latest", then "2 ago", "3 ago"…),
     // unless the take has been given a display label.
-    const ordinal = index === 0 ? "Latest" : `#${total - index}`;
+    const ordinal = index === 0 ? t("pass3_27.clipVersionHistory.latest") : `#${total - index}`;
     const displayName = version.label?.trim() ? version.label : ordinal;
     const when = relativeTime(version.createdAt);
-    const tooltip = active ? `Current · ${displayName} · ${when}` : `${displayName} · ${when}`;
+    const tooltip = active
+      ? t("pass3_27.clipVersionHistory.currentTooltip", { name: displayName, when })
+      : t("pass3_27.clipVersionHistory.versionTooltip", { name: displayName, when });
+    const previewLabel = t(active ? "pass3_27.clipVersionHistory.previewOriginal" : "pass3_27.clipVersionHistory.previewCandidate");
 
     const isImage = mediaType === "image" || mediaType === "overlay";
     const isVideo = mediaType === "video";
@@ -251,7 +277,7 @@ const VersionTile: React.FC<VersionTileProps> = memo(
               isImage && url ? { backgroundImage: `url(${url})` } : undefined
             }
             onClick={handleClick}
-            aria-label={`${tooltip} — Preview ${active ? "Original" : "Candidate"}`}
+            aria-label={t("pass3_27.clipVersionHistory.previewAria", { tooltip, target: previewLabel })}
             aria-current={active}
             aria-pressed={auditioned}
           >
@@ -282,29 +308,30 @@ const VersionTile: React.FC<VersionTileProps> = memo(
           <div className="take-actions" css={takeActionsStyles}>
             <ToolbarIconButton
               icon={<PlayArrowIcon />}
-              tooltip={active ? "Preview original" : "Preview candidate"}
+              tooltip={previewLabel}
               onClick={(e) => {
                 e.stopPropagation();
                 onPreview(active ? null : version.id);
               }}
-              aria-label={active ? "Preview original" : "Preview candidate"}
+              aria-label={previewLabel}
               sx={actionIconSx}
             />
             {!active && (
               <ToolbarIconButton
                 icon={<CheckIcon />}
-                tooltip={`Use take ${displayName}`}
+                tooltip={t("pass3_27.clipVersionHistory.useTake", { name: displayName })}
                 onClick={(e) => {
                   e.stopPropagation();
                   onUseTake(version.id);
                 }}
-                aria-label={`Use take ${displayName}`}
+                aria-label={t("pass3_27.clipVersionHistory.useTake", { name: displayName })}
                 sx={actionIconSx}
               />
             )}
             <ToolbarIconButton
               icon={<EditOutlinedIcon />}
-              tooltip={`Rename ${displayName}`}
+              tooltip={t("pass3_27.clipVersionHistory.rename", { name: displayName })}
+              aria-label={t("pass3_27.clipVersionHistory.rename", { name: displayName })}
               onClick={handleRenameClick}
               sx={actionIconSx}
             />
@@ -312,9 +339,10 @@ const VersionTile: React.FC<VersionTileProps> = memo(
               icon={<DeleteOutlineIcon />}
               tooltip={
                 active
-                  ? "This is the active take — select a different take before deleting it."
-                  : `Delete ${displayName}`
+                  ? t("pass3_27.clipVersionHistory.activeDeleteHelp")
+                  : t("pass3_27.clipVersionHistory.delete", { name: displayName })
               }
+              aria-label={t("pass3_27.clipVersionHistory.delete", { name: displayName })}
               disabled={active}
               onClick={handleDeleteClick}
               sx={actionIconSx}
@@ -333,6 +361,7 @@ interface ClipVersionHistoryProps {
 
 export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
   ({ clipId }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
     const trackLocked = useTimelineStore(
@@ -355,12 +384,12 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
       (versionId: string) => {
         const error = applyTake(clipId, versionId);
         if (error) {
-          addNotification({ type: "error", alert: true, content: error });
+          addNotification({ type: "error", alert: true, content: translateTakeError(error, t) });
           return;
         }
         setAudition(null);
       },
-      [applyTake, clipId, setAudition, addNotification]
+      [applyTake, clipId, setAudition, addNotification, t]
     );
 
     const handlePreview = useCallback(
@@ -394,10 +423,10 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
       (versionId: string) => {
         const error = deleteTake(clipId, versionId);
         if (error) {
-          addNotification({ type: "error", alert: true, content: error });
+          addNotification({ type: "error", alert: true, content: translateTakeError(error, t) });
         }
       },
-      [deleteTake, clipId, addNotification]
+      [deleteTake, clipId, addNotification, t]
     );
 
     if (!clip) return null;
@@ -419,7 +448,7 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
       <CollapsibleSection
         title={
           <InspectorSectionTitle
-            title={`History (${successVersions.length})`}
+            title={t("pass3_27.clipVersionHistory.title", { count: successVersions.length })}
             icon={<HistoryOutlinedIcon />}
           />
         }
@@ -428,7 +457,7 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
       >
         {clip.locked && (
           <Caption color="secondary" sx={{ px: SPACING.xs, pt: SPACING.micro }}>
-            Unlock the clip to swap generations.
+            {t("pass3_27.clipVersionHistory.unlockClip")}
           </Caption>
         )}
         <div css={stripStyles(theme)}>
@@ -454,7 +483,8 @@ export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
         {editingVersion && (
           <div css={renameRowStyles(theme)}>
             <TextInput
-              label="Take label"
+              label={t("pass3_27.clipVersionHistory.takeLabel")}
+              placeholder={t("pass3_27.clipVersionHistory.takeLabelPlaceholder")}
               hideLabel
               compact
               autoFocus

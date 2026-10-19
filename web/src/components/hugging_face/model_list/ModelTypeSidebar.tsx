@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   ToolbarIconButton,
@@ -24,6 +25,7 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { useTheme } from "@mui/material/styles";
 
 const ModelTypeSidebar: React.FC = () => {
+  const { t } = useTranslation();
   const scope = useModelManagerStore((state) => state.scope);
   const { modelTypes, availableModelTypes, modelCountsByType } =
     useModels(scope);
@@ -39,14 +41,14 @@ const ModelTypeSidebar: React.FC = () => {
   // leading icon, which can't be used as a title attribute).
   const plainLabel = useCallback((type: string) => {
     if (type === "All") {
-      return "All";
+      return t("i18n-next29.categories.all");
     }
     return type
       .replace(/^(hf|tjs)\./, "")
       .split(/[._]/)
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
-  }, []);
+  }, [t]);
 
   const getHuggingFaceLink = useCallback((type: string) => {
     if (!type.startsWith("hf.")) {
@@ -71,7 +73,7 @@ const ModelTypeSidebar: React.FC = () => {
           pb: 1
         }}
       >
-        Model categories
+      {t("i18n-next29.categories.title")}
       </Box>
     <List className="model-type-list" sx={{ padding: 0 }}>
       {modelTypes
@@ -93,14 +95,14 @@ const ModelTypeSidebar: React.FC = () => {
                 href ? (
                   <ToolbarIconButton
                     icon={<OpenInNewIcon fontSize="small" />}
-                    tooltip="View on Hugging Face"
+                    tooltip={t("i18n-next29.categories.viewOnHuggingFace")}
                     edge="end"
                     component="a"
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={handleLinkClick}
-                    ariaLabel={`View ${prettifyModelType(type)} models on Hugging Face`}
+                    ariaLabel={t("i18n-next29.categories.viewTypeOnHuggingFace", { type: plainLabel(type) })}
                     sx={{
                       color: isSelected ? theme.vars.palette.text.primary : "inherit",
                       opacity: 0.7,

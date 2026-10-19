@@ -15,6 +15,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import type { Data } from "@puckeditor/core";
 import { APP_DEPLOYMENT_SESSION_TTL_SECONDS } from "@nodetool-ai/protocol";
 import type { PublicApplication } from "@nodetool-ai/protocol/api-schemas/applications.js";
@@ -70,7 +71,9 @@ const pinnedWorkflow = (
   updated_at: ""
 });
 
-const Unavailable: React.FC = () => (
+const Unavailable: React.FC = () => {
+  const { t } = useTranslation();
+  return (
   <FlexColumn
     align="center"
     justify="center"
@@ -79,14 +82,17 @@ const Unavailable: React.FC = () => (
   >
     <EmptyState
       variant="error"
-      title="This app is not available"
-      description="The link may have been withdrawn, or the app may not be published."
+      title={t("screen_apps.public.unavailableTitle")}
+      description={t("screen_apps.public.unavailableDescription")}
     />
   </FlexColumn>
-);
+  );
+};
 
 /** The owner published while this page was open; a reload picks it up. */
-const Updated: React.FC = () => (
+const Updated: React.FC = () => {
+  const { t } = useTranslation();
+  return (
   <FlexColumn
     align="center"
     justify="center"
@@ -95,13 +101,15 @@ const Updated: React.FC = () => (
   >
     <EmptyState
       variant="empty"
-      title="This app has been updated"
-      description="Reload the page to run the version the owner just published."
+      title={t("screen_apps.public.updatedTitle")}
+      description={t("screen_apps.public.updatedDescription")}
     />
   </FlexColumn>
-);
+  );
+};
 
 const PublicAppPage: React.FC = () => {
+  const { t } = useTranslation();
   const { token = "" } = useParams<{ token?: string }>();
   const [sessionReady, setSessionReady] = useState(false);
 
@@ -200,7 +208,7 @@ const PublicAppPage: React.FC = () => {
   if (isLoading) {
     return (
       <FlexColumn align="center" justify="center" sx={{ height: "100vh" }}>
-        <LoadingSpinner size="large" text="Loading app" />
+        <LoadingSpinner size="large" text={t("screen_apps.common.loadingApp")} />
       </FlexColumn>
     );
   }
@@ -221,8 +229,8 @@ const PublicAppPage: React.FC = () => {
       >
         <EmptyState
           variant="empty"
-          title="Nothing to show"
-          description="This app was published without any widgets."
+          title={t("screen_apps.public.nothingToShowTitle")}
+          description={t("screen_apps.public.nothingToShowDescription")}
         />
       </FlexColumn>
     );
@@ -247,7 +255,7 @@ const PublicAppPage: React.FC = () => {
           workflowOverrides={workflowOverrides}
         />
       ) : (
-        <LoadingSpinner size="large" text="Connecting" />
+        <LoadingSpinner size="large" text={t("screen_apps.public.connecting")} />
       )}
     </FlexColumn>
   );

@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { UiDocumentRef } from "@nodetool-ai/protocol";
 
 import AssistantChatPanel from "../chat/assistant/AssistantChatPanel";
@@ -10,6 +11,7 @@ interface JsScriptAgentPanelProps {
 }
 
 const JsScriptAgentPanel = ({ scriptId }: JsScriptAgentPanelProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const name = useJsScriptName(scriptId);
 
   const focused = useMemo<UiDocumentRef>(
@@ -28,8 +30,8 @@ const JsScriptAgentPanel = ({ scriptId }: JsScriptAgentPanelProps) => {
       focused={focused}
       workflowId={scriptId}
       systemPrompt={systemPrompt}
-      welcomeTitle="JS script assistant"
-      welcomeBody='Ask me to write or change this script — e.g. "parse the CSV and emit one row per line", "add an error output", or "write a test for the empty case".'
+      welcomeTitle={t("assistant.welcomeTitle")}
+      welcomeBody={t("assistant.welcomeBody")}
     />
   );
 };

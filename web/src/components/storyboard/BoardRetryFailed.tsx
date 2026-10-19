@@ -12,6 +12,7 @@
  */
 
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -61,6 +62,7 @@ const BoardRetryFailedImpl = ({
   boardId,
   disabled = false
 }: BoardRetryFailedProps) => {
+  const { t } = useTranslation();
   const { retryFailedRequest } = useGenerateShot();
 
   const shotIds = useStoryboardStore(
@@ -96,7 +98,9 @@ const BoardRetryFailedImpl = ({
       onClick={handleRetry}
       disabled={disabled}
     >
-      {`Retry ${failedRequestIds.length} failed`}
+      {t("screens4_12.boardRetryFailed.button", {
+        count: failedRequestIds.length
+      })}
     </EditorButton>
   );
 };
