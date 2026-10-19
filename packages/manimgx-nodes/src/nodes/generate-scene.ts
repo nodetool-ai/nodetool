@@ -12,7 +12,7 @@
  * throws its last traceback.
  */
 
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, isRecord, prop, type NodeValue } from "@nodetool-ai/node-sdk";
 import { meterProviderSpend } from "@nodetool-ai/llm-nodes/nodes/provider-spend";
 import type { LanguageModel } from "@nodetool-ai/protocol";
 import {
@@ -32,6 +32,7 @@ import {
   imageOutput,
   runNodeStep,
   videoOutput,
+  wiredInputs,
   type ImageOutput,
   type VideoOutput
 } from "./scene-base.js";
@@ -81,14 +82,14 @@ export function extractSceneCode(reply: string): string {
   return /\bimport manimgx\b/.test(reply) ? reply.trim() : "";
 }
 
-function describeInputs(inputs: Record<string, unknown>): string {
+function describeInputs(inputs: Record<string, NodeValue>): string {
   const names = Object.keys(inputs);
   if (names.length === 0) return "";
   const lines = names.map((name) => {
     const value = inputs[name];
     const kind =
-      value && typeof value === "object" && "type" in value
-        ? `${String((value as { type: unknown }).type)} file path`
+      isRecord(value) && "type" in value
+        ? `${String(value["type"])} file path`
         : JSON.stringify(value)?.slice(0, 200) ?? "null";
     return `- inputs[${JSON.stringify(name)}]: ${kind}`;
   });
@@ -187,9 +188,7 @@ export class GenerateSceneNode extends BaseNode {
     if (!providerId || providerId === "empty" || !modelId) {
       throw new Error(`${NODE_NAME}: pick a model — the scene needs a writer`);
     }
-    const inputs = Object.fromEntries(
-      [...this.dynamicProps.entries()].filter(([name]) => !name.startsWith("_"))
-    );
+    const inputs = wiredInputs(this.dynamicProps);
     const timeoutMs = Math.max(1, Math.round(Number(this.timeout ?? 300))) * 1000;
     const maxAttempts = Math.min(8, Math.max(1, Math.round(Number(this.max_attempts ?? 3))));
     const signal = context.signal;

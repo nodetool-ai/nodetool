@@ -19,7 +19,7 @@
 import { lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { isRecord } from "@nodetool-ai/node-sdk";
+import { isRecord, type NodeValue } from "@nodetool-ai/node-sdk";
 import {
   CLOUD_PROFILE_ENV,
   NODE_ENV_VAR,
@@ -62,7 +62,7 @@ export interface ManimgxScene {
   /** The scene class to run; empty runs the file's only scene. */
   sceneName?: string;
   /** Values exposed to the scene as `from nodetool_inputs import inputs`. */
-  inputs?: Record<string, unknown>;
+  inputs?: Record<string, NodeValue>;
 }
 
 export type ManimgxRun =
@@ -132,20 +132,22 @@ const ALLOWED_ENV_KEYS = [
 ] as const;
 const ALLOWED_ENV_PREFIXES = ["VK_", "WGPU_", "MESA_", "LIBGL_", "LP_"] as const;
 
-export function childEnv(source: NodeJS.ProcessEnv = process.env): Record<string, string> {
-  const env: Record<string, string> = {};
-  for (const [key, value] of Object.entries(source)) {
-    if (value === undefined) continue;
-    if (
-      (ALLOWED_ENV_KEYS as readonly string[]).includes(key) ||
-      ALLOWED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))
-    ) {
-      env[key] = value;
-    }
-  }
-  env["PYTHONDONTWRITEBYTECODE"] = "1";
-  env["PYTHONIOENCODING"] = "utf-8";
-  return env;
+/** The environment variables the ManimGX child process receives. */
+export type ChildEnv = Record<string, string>;
+
+export function childEnv(source: NodeJS.ProcessEnv = process.env): ChildEnv {
+  const inherited = Object.entries(source).flatMap(([key, value]) =>
+    value !== undefined &&
+    (ALLOWED_ENV_KEYS.some((allowed) => allowed === key) ||
+      ALLOWED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix)))
+      ? [[key, value] as const]
+      : []
+  );
+  return Object.fromEntries([
+    ...inherited,
+    ["PYTHONDONTWRITEBYTECODE", "1"],
+    ["PYTHONIOENCODING", "utf-8"]
+  ]);
 }
 
 const SCENE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -163,7 +165,7 @@ export function manimgxArgs(scene: ManimgxScene, run: ManimgxRun): string[] {
   if (name !== "") args.push(name);
   if (run.command === "render") {
     const { width, height, fps, preset, crf } = run.settings;
-    if (!(MANIMGX_PRESETS as readonly string[]).includes(preset)) {
+    if (!MANIMGX_PRESETS.some((known) => known === preset)) {
       throw new ManimgxError(`unknown x264 preset ${JSON.stringify(preset)}`);
     }
     args.push(
@@ -219,15 +221,15 @@ from pathlib import Path
 inputs = json.loads(Path(__file__).with_name("${INPUTS_FILE}").read_text(encoding="utf-8"))
 `;
 
-const MEDIA_TYPES: Record<string, string> = {
+const MEDIA_TYPES = {
   image: ".png",
   audio: ".wav",
   video: ".mp4",
   model3d: ".glb",
   document: ".bin"
-};
+} as const;
 
-const EXTENSION_BY_MIME: Record<string, string> = {
+const EXTENSION_BY_MIME = {
   "image/png": ".png",
   "image/jpeg": ".jpg",
   "image/webp": ".webp",
@@ -241,28 +243,45 @@ const EXTENSION_BY_MIME: Record<string, string> = {
   "audio/flac": ".flac",
   "video/mp4": ".mp4",
   "video/webm": ".webm"
+} as const;
+
+function isMediaType(type: string): type is keyof typeof MEDIA_TYPES {
+  return Object.hasOwn(MEDIA_TYPES, type);
+}
+
+function isKnownMime(mime: string): mime is keyof typeof EXTENSION_BY_MIME {
+  return Object.hasOwn(EXTENSION_BY_MIME, mime);
+}
+
+function isString(value: NodeValue): value is string {
+  return typeof value === "string";
+}
+
+type MediaRefInput = { [key: string]: NodeValue } & MediaRefValue & {
+  type: keyof typeof MEDIA_TYPES;
 };
 
-function isMediaRef(value: unknown): value is MediaRefValue & { type: string } {
+function isMediaRef(value: NodeValue): value is MediaRefInput {
+  if (!isRecord(value)) return false;
+  const type = value["type"];
   return (
-    isRecord(value) &&
-    typeof value["type"] === "string" &&
-    value["type"] in MEDIA_TYPES &&
+    isString(type) &&
+    isMediaType(type) &&
     ("data" in value || "uri" in value || "asset_id" in value)
   );
 }
 
-function extensionOf(ref: Record<string, unknown>): string {
+function extensionOf(ref: MediaRefInput): string {
   const mime = ref["content_type"] ?? ref["mime_type"] ?? ref["mimeType"];
-  if (typeof mime === "string" && mime in EXTENSION_BY_MIME) {
+  if (isString(mime) && isKnownMime(mime)) {
     return EXTENSION_BY_MIME[mime];
   }
   const uri = ref["uri"];
-  if (typeof uri === "string") {
+  if (isString(uri)) {
     const ext = path.extname(uri.split(/[?#]/, 1)[0] ?? "").toLowerCase();
     if (/^\.[a-z0-9]{1,5}$/.test(ext)) return ext;
   }
-  return MEDIA_TYPES[String(ref["type"])] ?? ".bin";
+  return MEDIA_TYPES[ref.type];
 }
 
 /**
@@ -271,11 +290,11 @@ function extensionOf(ref: Record<string, unknown>): string {
  */
 async function stageInputs(
   dir: string,
-  inputs: Record<string, unknown>,
+  inputs: Record<string, NodeValue>,
   context: ProcessingContext
-): Promise<Record<string, unknown>> {
+): Promise<Record<string, NodeValue>> {
   let count = 0;
-  const stage = async (value: unknown, label: string): Promise<unknown> => {
+  const stage = async (value: NodeValue, label: string): Promise<NodeValue> => {
     if (isMediaRef(value)) {
       const bytes = await loadMediaRefBytes(value, context);
       if (!bytes || bytes.length === 0) {
@@ -288,12 +307,12 @@ async function stageInputs(
       return file;
     }
     if (Array.isArray(value)) {
-      const out: unknown[] = [];
+      const out: NodeValue[] = [];
       for (const [i, item] of value.entries()) out.push(await stage(item, `${label}_${i}`));
       return out;
     }
     if (isRecord(value)) {
-      const out: Record<string, unknown> = {};
+      const out: Record<string, NodeValue> = {};
       for (const [key, item] of Object.entries(value)) {
         out[key] = await stage(item, `${label}_${key}`);
       }
@@ -303,7 +322,7 @@ async function stageInputs(
     return value;
   };
   await mkdir(path.join(dir, INPUTS_DIR), { recursive: true });
-  const staged: Record<string, unknown> = {};
+  const staged: Record<string, NodeValue> = {};
   for (const [name, value] of Object.entries(inputs)) {
     staged[name] = await stage(value, name);
   }
