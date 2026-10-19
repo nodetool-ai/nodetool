@@ -491,7 +491,7 @@ describe("StoryboardBoard direct guard", () => {
     expect(onDirect).not.toHaveBeenCalled();
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByText("Re-direct this storyboard?")
+      within(dialog).getByText("Replace this storyboard?")
     ).toBeInTheDocument();
 
     await user.click(within(dialog).getByRole("button", { name: "Direct again" }));

@@ -10133,7 +10133,11 @@
       "madeFor": "Made for {{slot}}",
       "moveFrames": "Move frames onto this image",
       "noAssets": "No assets.",
-      "noItems": "No {{tab}}",
+      "empty": {
+        "assets": "No assets",
+        "prefabs": "No prefabs",
+        "scenes": "No scenes"
+      },
       "noStagedFiles": "No staged {{kind}} files. Generated and staged files appear here.",
       "notUsed": "Not used by any entity, scene or prefab.",
       "nothingMatches": "Nothing matches",

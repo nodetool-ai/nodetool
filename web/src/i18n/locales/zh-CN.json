@@ -10133,7 +10133,11 @@
       "madeFor": "用于 {{slot}}",
       "moveFrames": "将帧移到此图像",
       "noAssets": "没有资源。",
-      "noItems": "没有{{tab}}",
+      "empty": {
+        "assets": "没有素材",
+        "prefabs": "没有预制体",
+        "scenes": "没有场景"
+      },
       "noStagedFiles": "没有暂存的{{kind}}文件。生成和暂存的文件会显示在此处。",
       "notUsed": "未被任何实体、场景或预制体使用。",
       "nothingMatches": "没有匹配项",

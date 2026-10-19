@@ -447,7 +447,10 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
         onClose={() => setDurationAnchor(null)}
         header={t("timeline.generate.duration")}
         value={duration}
-        options={durationOptions}
+        options={durationOptions.map((option) => ({
+          ...option,
+          label: t("timeline.generate.seconds", { count: option.id })
+        }))}
         onChange={(d) => setDuration(d)}
       />
 

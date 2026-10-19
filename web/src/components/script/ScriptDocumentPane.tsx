@@ -605,7 +605,7 @@ const lineLabel = (text: string): string => {
   if (trimmed === "") {
     return "";
   }
-  return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : `“${trimmed}”`;
+  return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : trimmed;
 };
 
 /**

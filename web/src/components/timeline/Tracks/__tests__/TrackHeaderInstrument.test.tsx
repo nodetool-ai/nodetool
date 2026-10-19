@@ -153,9 +153,9 @@ describe("TrackHeader — midi instrument", () => {
     expect(screen.getByRole("slider", { name: "Drive" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "OSC" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "ENV" })).toBeInTheDocument();
-    expect(screen.getByRole("slider", { name: "ACC AMT" })).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Accent amount" })).toBeInTheDocument();
     expect(
-      screen.getByRole("slider", { name: "SLD TIME" })
+      screen.getByRole("slider", { name: "Slide time" })
     ).toBeInTheDocument();
   });
 

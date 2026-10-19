@@ -353,7 +353,7 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
         <ScrollArea thin aria-label={t("i18n-cont-game-06.assets.listAria", { tab: tabLabels[tab] })} sx={{ flex: 1, minWidth: 0, minHeight: 0, p: SPACING.xs }}>
           {items.length === 0
             ? <FlexColumn gap={SPACING.micro} align="center" sx={{ py: SPACING.lg, px: SPACING.md, textAlign: "center" }}>
-              <Text size="small" weight={500}>{filtering ? t("i18n-cont-game-06.assets.nothingMatches") : t("i18n-cont-game-06.assets.noItems", { tab: tabLabels[tab] })}</Text>
+              <Text size="small" weight={500}>{filtering ? t("i18n-cont-game-06.assets.nothingMatches") : t(`i18n-cont-game-06.assets.empty.${tab}`)}</Text>
               {filtering && <Caption>{t("i18n-cont-game-06.assets.clearFilters")}</Caption>}
             </FlexColumn>
             : grid ? <AutoGrid minItemWidth={TILE_MIN_WIDTH} gap={SPACING.xs}>{items}</AutoGrid>
