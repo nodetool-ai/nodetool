@@ -52,11 +52,9 @@ const styles = (theme: Theme, compact: boolean) =>
       color: theme.vars.palette.text.primary,
       cursor: "pointer",
       overflow: "hidden",
-      minWidth: 0,
-      ...(compact && { position: "relative", aspectRatio: "16 / 9" })
+      minWidth: 0
     },
     ".app-thumb": {
-      position: "relative",
       display: "grid",
       placeItems: "center",
       width: "100%",
@@ -64,7 +62,6 @@ const styles = (theme: Theme, compact: boolean) =>
       background: theme.vars.palette.c_node_bg_group,
       color: theme.vars.palette.primary.main,
       overflow: "hidden",
-      ...(compact && { position: "absolute", inset: 0, height: "100%" }),
       img: {
         width: "100%",
         height: "100%",
@@ -74,36 +71,26 @@ const styles = (theme: Theme, compact: boolean) =>
     ".app-body": {
       display: "flex",
       flexDirection: "column",
-      gap: getSpacingPx(compact ? SPACING.xs : SPACING.sm),
-      padding: getSpacingPx(compact ? SPACING.md : SPACING.lg),
-      ...(compact && {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        color: theme.vars.palette.common.white,
-        background: `linear-gradient(to top, ${theme.vars.palette.c_scrim_strong}, transparent)`
-      })
+      gap: getSpacingPx(SPACING.xs),
+      padding: getSpacingPx(SPACING.md)
     },
     ".app-name": {
       ...TYPOGRAPHY.sans.label,
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-      ...(compact && { color: "inherit" })
+      whiteSpace: "nowrap"
     },
     ".app-desc": {
       ...TYPOGRAPHY.sans.caption,
-      color: compact ? "inherit" : theme.vars.palette.text.secondary,
+      color: theme.vars.palette.text.secondary,
       display: "-webkit-box",
-      WebkitLineClamp: compact ? 1 : 2,
+      WebkitLineClamp: 2,
       WebkitBoxOrient: "vertical",
       overflow: "hidden"
     },
     ".app-meta": {
-      ...TYPOGRAPHY.mono.caption,
-      color: theme.vars.palette.text.disabled,
-      ...(compact && { display: "none" })
+      ...TYPOGRAPHY.sans.caption,
+      color: theme.vars.palette.text.disabled
     },
     ".apps-loading, .apps-empty": {
       display: "flex",
