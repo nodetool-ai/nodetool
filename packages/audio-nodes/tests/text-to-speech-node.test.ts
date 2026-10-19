@@ -21,6 +21,11 @@ const audioData = (out: Record<string, unknown>): Buffer => {
 };
 
 describe("TextToSpeechNode", () => {
+  it("shows text as a port, not an inline field", () => {
+    expect(TextToSpeechNode.inlineFields).toEqual([]);
+    expect(TextToSpeechNode.inputFields).toContain("text");
+  });
+
   it.each([0, -1, NaN, Infinity, 24000.5])(
     "rejects supplied invalid PCM sample rate %s",
     async (sampleRate) => {

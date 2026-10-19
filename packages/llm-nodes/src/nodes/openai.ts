@@ -623,8 +623,8 @@ export class TextToSpeechNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
-  static readonly inlineFields = ["input"];
-  static readonly inputFields: string[] = [];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["input"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly autoSaveAsset = true;
 

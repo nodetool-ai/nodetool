@@ -1556,7 +1556,7 @@ export class TextToSpeechNode extends BaseNode {
     audio: "audio",
     chunk: "chunk"
   };
-  static readonly inlineFields: string[] = ["text"];
+  static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["text", "reference_audio"];
   static readonly autoSaveAsset = true;
 

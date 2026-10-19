@@ -1,6 +1,4 @@
 export const DRUM_RHYTHM_VERSION = 1 as const;
-export const DRUM_RHYTHM_LANE_COUNT = 16;
-export const DRUM_RHYTHM_MAX_STEPS = 16;
 
 export type DrumLaneTiming = { mode: 'grid' } | { mode: 'fit'; cycleBeats: 4 | 8 };
 
@@ -70,14 +68,4 @@ export function cloneDrumRhythm(value: DrumRhythm | undefined, sourceBars = 16):
       return copy;
     }),
   };
-}
-
-export interface DrumSequence {
-  patterns: Uint8Array;
-  chain: number[];
-  drumRhythm?: DrumRhythm;
-}
-
-export function defaultDrumLane(sourceBar = 0): DrumLaneRhythm {
-  return { enabled: false, sourceBar, steps: 16, rotation: 0, timing: { mode: 'grid' } };
 }

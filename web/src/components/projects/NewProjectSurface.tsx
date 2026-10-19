@@ -1542,7 +1542,7 @@ const NewProjectSurface = ({
     [handleEntryCard]
   );
 
-  const handleNewModel = async () => {
+  const handleNewModel = async (): Promise<void> => {
     if (
       starting ||
       pendingFlow !== null ||
@@ -2628,12 +2628,10 @@ const NewProjectSurface = ({
                 }}
                 sx={{
                   justifyContent: "flex-start",
+                  width: "100%",
                   gap: (theme) => theme.spacing(SPACING.md),
                   height: CONTROL.height.md,
                   px: SPACING.md,
-                  cursor: "pointer",
-                  border: "none",
-                  bgcolor: "transparent",
                   borderRadius: BORDER_RADIUS.md,
                   color: "text.primary",
                   "&:hover": { bgcolor: "action.hover" }
