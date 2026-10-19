@@ -176,7 +176,7 @@ describe("TimelineGeneratePanel", () => {
         screen.getByRole("button", { name: "Pick music model" })
       );
       await userEvent.click(
-        screen.getByRole("button", { name: "30 Sec" })
+        screen.getByRole("button", { name: "30 sec" })
       );
       await userEvent.click(screen.getByText("60 Sec"));
       await userEvent.click(

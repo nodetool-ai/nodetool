@@ -166,7 +166,7 @@ beforeEach(() => {
 describe("ShotInspector selection footer (PRD § 7.5)", () => {
   it("names the selected shot", () => {
     renderInspector(makeShot({ index: 4 }));
-    expect(screen.getByText("SH 05 selected")).toBeInTheDocument();
+    expect(screen.getByText("Shot 5 selected")).toBeInTheDocument();
   });
 
   it("shows the selected shot description", () => {
@@ -287,7 +287,7 @@ describe("ShotInspector selection footer (PRD § 7.5)", () => {
 describe("ShotInspector cross-document links", () => {
   it("says nothing appears elsewhere for an unlinked shot", () => {
     renderInspector(makeShot());
-    expect(screen.getByText("nothing yet")).toBeInTheDocument();
+    expect(screen.getByText("Nothing yet")).toBeInTheDocument();
   });
 
   it("links to the script line the shot covers, and opens it there", async () => {

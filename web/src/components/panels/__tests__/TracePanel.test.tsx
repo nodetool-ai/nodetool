@@ -68,7 +68,7 @@ it("uses a durable shared picker for app, workflow and chat runs with keyboard s
   const picker = screen.getByRole("combobox", { name: "Run" });
   act(() => picker.focus());
   await user.keyboard("{ArrowDown}");
-  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("app"), expect.stringContaining("Workflow run"), expect.stringContaining("Chat turn")]));
+  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("App run"), expect.stringContaining("Workflow run"), expect.stringContaining("Chat turn")]));
   await user.keyboard("{ArrowDown}{Enter}");
   await waitFor(() => expect(useTraceStore.getState().selectedRunId).toBe(b));
   await waitFor(() => expect(jest.mocked(trpcClient.runs.get.query).mock.calls.some(([input]) => input.id === b)).toBe(true));

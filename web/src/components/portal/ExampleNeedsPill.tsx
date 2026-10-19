@@ -10,7 +10,7 @@ interface ExampleNeedsPillProps {
 
 /** "Runs as is", or the model or key an example card needs before it runs. */
 const ExampleNeedsPill = ({ needs }: ExampleNeedsPillProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (!needs) {
     return null;
   }
@@ -37,10 +37,12 @@ const ExampleNeedsPill = ({ needs }: ExampleNeedsPillProps) => {
         : labels[0]
           ? t("pass3_18.examples.needs.oneModel", {
               article:
-                labels[0].startsWith("image") ||
-                labels[0].startsWith("embedding")
-                  ? "an"
-                  : "a",
+                i18n.language === "zh-CN"
+                  ? ""
+                  : labels[0].startsWith("image") ||
+                      labels[0].startsWith("embedding")
+                    ? "an"
+                    : "a",
               kind: labels[0]
             })
           : t("pass3_18.examples.needs.model")

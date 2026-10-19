@@ -37,7 +37,7 @@ describe("ToolToggle", () => {
       "aria-checked",
       "false"
     );
-    expect(screen.getByRole("button", { name: "Ripple" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Ripple edit" })).toHaveAttribute(
       "aria-pressed"
     );
   });

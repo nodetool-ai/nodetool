@@ -4606,7 +4606,7 @@
         "runsAsIs": "可直接运行",
         "models": "需要模型",
         "model": "需要模型",
-        "oneModel": "需要{{kind}}模型",
+        "oneModel": "需要{{article}}{{kind}}模型",
         "apiKey": "需要 API 密钥",
         "modelKinds": {
           "language": "语言",
@@ -10176,7 +10176,7 @@
         "connectDescription": "将你的 {{provider}} 账户连接到 NodeTool。",
         "connectProvider": "连接 {{provider}}",
         "startLinkFailed": "无法开始账户连接流程。",
-        "openTelegram": "打开 Telegram",
+        "openTelegram": "打开 Telegram 并点击 Start",
         "noBotUsername": "Telegram 机器人链接不可用。请向机器人发送此命令：",
         "sendStartCommand": "以开始连接。",
         "copyLinkCode": "复制连接代码",

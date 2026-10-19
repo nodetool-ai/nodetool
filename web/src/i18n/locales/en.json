@@ -10176,7 +10176,7 @@
         "connectDescription": "Connect your {{provider}} account to NodeTool.",
         "connectProvider": "Connect {{provider}}",
         "startLinkFailed": "Could not start account linking.",
-        "openTelegram": "Open Telegram",
+        "openTelegram": "Open Telegram and press Start",
         "noBotUsername": "The Telegram bot link is unavailable. Send this command to the bot:",
         "sendStartCommand": "to start linking.",
         "copyLinkCode": "Copy link code",

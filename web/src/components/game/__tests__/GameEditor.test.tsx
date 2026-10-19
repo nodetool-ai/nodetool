@@ -401,7 +401,7 @@ it("records selected-root viewport moves as one labelled command with exact undo
   expect(after.scenes[0].entities.find((entity) => entity.id === second.id)?.transform2d).toMatchObject({ x: second.transform2d.x + 2, y: second.transform2d.y });
   expect(after).not.toEqual(before);
   expect(store.getState().commandHistory.past).toHaveLength(1);
-  expect(store.getState().commandHistory.past[0].label).toBe("Move Selection");
+  expect(store.getState().commandHistory.past[0].label).toBe("Move selection");
   act(() => store.getState().undo());
   expect(document2D(store)).toEqual(before);
   expect(store.getState().commandHistory.future).toHaveLength(1);
@@ -444,7 +444,7 @@ it("batch release: records selected-root viewport moves as one labelled command 
   expect(after.scenes[0].entities.find((entity) => entity.id === second.id)?.transform2d).toMatchObject({ x: second.transform2d.x + 2, y: second.transform2d.y });
   expect(after).not.toEqual(before);
   expect(store.getState().commandHistory.past).toHaveLength(1);
-  expect(store.getState().commandHistory.past[0].label).toBe("Move Selection");
+  expect(store.getState().commandHistory.past[0].label).toBe("Move selection");
   act(() => store.getState().undo());
   expect(document2D(store)).toEqual(before);
   expect(store.getState().commandHistory.future).toHaveLength(1);
