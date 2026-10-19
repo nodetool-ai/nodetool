@@ -2210,30 +2210,39 @@ function normalizeFalBox(
   height: number | null
 ): ImageBox | null {
   if (Array.isArray(value) && value.length >= 4) {
-    const [cx, cy, w, h] = value.map(finiteNumberOrNull);
-    if (cx == null || cy == null || w == null || h == null) {
-      return null;
-    }
-    if (width == null || height == null) {
-      return null;
-    }
-    return {
-      x: Math.round((cx - w / 2) * width),
-      y: Math.round((cy - h / 2) * height),
-      width: Math.round(w * width),
-      height: Math.round(h * height)
-    };
+    return centerBoxToPixels(value.map(finiteNumberOrNull), width, height);
   }
-  if (isRecord(value)) {
-    const x = finiteNumberOrNull(value.x);
-    const y = finiteNumberOrNull(value.y);
-    const w = finiteNumberOrNull(value.width);
-    const h = finiteNumberOrNull(value.height);
-    if (x != null && y != null && w != null && h != null) {
-      return { x, y, width: w, height: h };
-    }
+  return isRecord(value) ? pixelBoxFromRecord(value) : null;
+}
+
+function centerBoxToPixels(
+  [cx, cy, w, h]: (number | null)[],
+  width: number | null,
+  height: number | null
+): ImageBox | null {
+  if (cx == null || cy == null || w == null || h == null) {
+    return null;
   }
-  return null;
+  if (width == null || height == null) {
+    return null;
+  }
+  return {
+    x: Math.round((cx - w / 2) * width),
+    y: Math.round((cy - h / 2) * height),
+    width: Math.round(w * width),
+    height: Math.round(h * height)
+  };
+}
+
+function pixelBoxFromRecord(value: Record<string, unknown>): ImageBox | null {
+  const x = finiteNumberOrNull(value.x);
+  const y = finiteNumberOrNull(value.y);
+  const width = finiteNumberOrNull(value.width);
+  const height = finiteNumberOrNull(value.height);
+  if (x == null || y == null || width == null || height == null) {
+    return null;
+  }
+  return { x, y, width, height };
 }
 
 /** The label and score fal reports per mask under `metadata`. */
@@ -2246,13 +2255,8 @@ function falMaskMetadata(
   if (!isRecord(entry)) {
     return { label: null, score: null, box: null };
   }
-  const label = isNonEmptyString(entry.label)
-    ? entry.label
-    : isNonEmptyString(entry.name)
-      ? entry.name
-      : null;
   return {
-    label,
+    label: [entry.label, entry.name].find(isNonEmptyString) ?? null,
     score: finiteNumberOrNull(entry.score),
     box: entry.box ?? entry.bbox ?? entry.bounds ?? null
   };
