@@ -422,3 +422,87 @@ describe("FalProvider.segmentImage", () => {
     expect(masks[0].width).toBe(4);
   });
 });
+
+describe("FalProvider.segmentImage mask metadata and boxes", () => {
+  const mask = { url: "https://fal.ai/mask-a.png", width: 800, height: 600 };
+
+  async function segment(data: Record<string, unknown>) {
+    stubMaskDownloads();
+    const { p } = providerWithResult(data);
+    return p.segmentImage(new Uint8Array([1]), baseParams);
+  }
+
+  it("reads a pixel box given as an object, and the bbox and bounds aliases", async () => {
+    const box = { x: 1, y: 2, width: 3, height: 4 };
+    const [a] = await segment({
+      masks: [mask],
+      metadata: [{ box }]
+    });
+    const [b] = await segment({ masks: [mask], metadata: [{ bbox: box }] });
+    const [c] = await segment({ masks: [mask], metadata: [{ bounds: box }] });
+    expect(a.box).toEqual(box);
+    expect(b.box).toEqual(box);
+    expect(c.box).toEqual(box);
+  });
+
+  it("falls back to the boxes field when metadata carries no box", async () => {
+    const [m] = await segment({
+      masks: [mask],
+      metadata: [{ label: "dog" }],
+      boxes: [[0.5, 0.5, 0.5, 0.5]]
+    });
+    expect(m.box).toEqual({ x: 200, y: 150, width: 400, height: 300 });
+  });
+
+  it("drops a normalized box when the mask has no size or a coordinate is not a number", async () => {
+    const [sizeless] = await segment({
+      masks: ["https://fal.ai/mask-a.png"],
+      boxes: [[0.5, 0.5, 0.5, 0.5]]
+    });
+    const [bad] = await segment({
+      masks: [mask],
+      boxes: [[0.5, "x", 0.5, 0.5]]
+    });
+    const [short] = await segment({ masks: [mask], boxes: [[0.5, 0.5, 0.5]] });
+    const [partial] = await segment({
+      masks: [mask],
+      metadata: [{ box: { x: 1, y: 2, width: 3 } }]
+    });
+    expect(sizeless.box).toBeNull();
+    expect(bad.box).toBeNull();
+    expect(short.box).toBeNull();
+    expect(partial.box).toBeNull();
+  });
+
+  it("labels from name when label is absent or empty, and prefers label", async () => {
+    const [named] = await segment({ masks: [mask], metadata: [{ name: "cat" }] });
+    const [empty] = await segment({
+      masks: [mask],
+      metadata: [{ label: "", name: "cat" }]
+    });
+    const [both] = await segment({
+      masks: [mask],
+      metadata: [{ label: "dog", name: "cat" }]
+    });
+    expect(named.label).toBe("cat");
+    expect(empty.label).toBe("cat");
+    expect(both.label).toBe("dog");
+  });
+
+  it("treats a single metadata object as the entry for the first mask only", async () => {
+    const masks = await segment({
+      masks: [mask, { ...mask, url: "https://fal.ai/mask-b.png" }],
+      metadata: JSON.stringify({ label: "dog", score: 0.8 })
+    });
+    expect(masks[0].label).toBe("dog");
+    expect(masks[0].confidence).toBe(0.8);
+    expect(masks[1].label).toBeNull();
+    expect(masks[1].confidence).toBeNull();
+  });
+
+  it("ignores unparseable metadata", async () => {
+    const [m] = await segment({ masks: [mask], metadata: "not json" });
+    expect(m.label).toBeNull();
+    expect(m.confidence).toBeNull();
+  });
+});
