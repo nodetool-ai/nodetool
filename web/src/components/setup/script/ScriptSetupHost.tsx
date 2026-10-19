@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   useScriptStore,
@@ -72,7 +73,9 @@ const ScriptSetupHost = ({
   // The store seeds an empty script on mount, and an empty script's stage
   // reads `done` — rendering before the server copy lands would show no flow.
   if (loadState !== "ready") {
-    return <DocumentLoadStatus state={loadState} label="script" />;
+    return (
+      <DocumentLoadStatus state={loadState} label={t("pass3_9.host.script")} />
+    );
   }
 
   return (

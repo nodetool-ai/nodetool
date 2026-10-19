@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, memo, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   FlexColumn,
   FlexRow,
@@ -32,41 +34,50 @@ import { notifyMutationError } from "../../../utils/notifyMutationError";
 import { formatClockTime } from "../../../utils/formatUtils";
 import ReportBugButton from "../../support/ReportBugButton";
 
-const formatDuration = (ms: number): string => {
+const formatDuration = (ms: number, t: TFunction): string => {
   if (ms < 0) {
-    return "0ms";
+    return t("i18n-next58.jobs.duration.milliseconds", { value: 0 });
   }
   if (ms < 1000) {
-    return `${ms}ms`;
+    return t("i18n-next58.jobs.duration.milliseconds", { value: ms });
   }
   const seconds = Math.floor(ms / 1000);
   const milliseconds = ms % 1000;
   if (seconds < 60) {
-    return `${seconds}.${String(milliseconds).padStart(3, "0").slice(0, 2)}s`;
+    return t("i18n-next58.jobs.duration.secondsDecimal", {
+      value: `${seconds}.${String(milliseconds).padStart(3, "0").slice(0, 2)}`
+    });
   }
   if (seconds < 3600) {
-    return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    return t("i18n-next58.jobs.duration.minutesSeconds", {
+      minutes: Math.floor(seconds / 60),
+      seconds: seconds % 60
+    });
   }
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${minutes}m`;
+  return t("i18n-next58.jobs.duration.hoursMinutes", { hours, minutes });
 };
 
-const formatElapsedTime = (startedAt: string | null | undefined): string => {
+const formatElapsedTime = (
+  startedAt: string | null | undefined,
+  t: TFunction
+): string => {
   if (!startedAt) {
-    return "Not started";
+    return t("i18n-next58.jobs.notStarted");
   }
   const start = new Date(startedAt).getTime();
   if (isNaN(start)) {
-    return "Invalid date";
+    return t("i18n-next58.jobs.invalidDate");
   }
   const elapsed = Date.now() - start;
-  return formatDuration(elapsed);
+  return formatDuration(elapsed, t);
 };
 
 const getJobDuration = (
   startedAt: string | null | undefined,
-  finishedAt: string | null | undefined
+  finishedAt: string | null | undefined,
+  t: TFunction
 ): string | null => {
   if (!startedAt || !finishedAt) {
     return null;
@@ -76,7 +87,7 @@ const getJobDuration = (
   if (isNaN(start) || isNaN(end)) {
     return null;
   }
-  return formatDuration(end - start);
+  return formatDuration(end - start, t);
 };
 
 /** Short clock label (e.g. "11:21 AM"), empty when no timestamp. */
@@ -166,6 +177,7 @@ const StatusTile = memo(function StatusTile({
  * everything else as a small type tile. Clicking opens the asset.
  */
 const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
+  const { t } = useTranslation();
   const handleOpen = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -195,7 +207,7 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
       <FlexRow
         role="button"
         tabIndex={0}
-        aria-label="Open job output"
+        aria-label={t("i18n-next58.jobs.openJobOutput")}
         onClick={handleOpen}
         onKeyDown={handleKeyDown}
         align="center"
@@ -214,11 +226,11 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
       >
         <MediaThumbnail
           asset={asset}
-          alt={asset.name || "Output"}
+          alt={asset.name || t("i18n-next58.jobs.output")}
           borderRadius={0}
           icon={
             <Text size="smaller" color="secondary" truncate sx={{ px: 0.5 }}>
-              {asset.content_type?.split("/")[1] || "file"}
+              {asset.content_type?.split("/")[1] || t("i18n-next58.jobs.file")}
             </Text>
           }
         />
@@ -228,11 +240,12 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
 });
 
 const JobItem = ({ job }: { job: Job }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: workflow } = useWorkflow(job.workflow_id);
   const [elapsedTime, setElapsedTime] = useState(
-    formatElapsedTime(job.started_at)
+    formatElapsedTime(job.started_at, t)
   );
   const [cancelling, setCancelling] = useState(false);
 
@@ -246,10 +259,10 @@ const JobItem = ({ job }: { job: Job }) => {
       return;
     }
     const interval = setInterval(() => {
-      setElapsedTime(formatElapsedTime(job.started_at));
+      setElapsedTime(formatElapsedTime(job.started_at, t));
     }, 1000);
     return () => clearInterval(interval);
-  }, [job.started_at, job.status]);
+  }, [job.started_at, job.status, t]);
 
   const handleClick = useCallback(
     () => navigate(`/editor/${job.workflow_id}`),
@@ -285,16 +298,17 @@ const JobItem = ({ job }: { job: Job }) => {
           runnerState.cancel();
         }
       } catch (err) {
-        notifyMutationError("cancel the job", err);
+        notifyMutationError(t("i18n-next58.jobs.cancelTheJob"), err);
       } finally {
         queryClient.invalidateQueries({ queryKey: ["jobs"] });
         setCancelling(false);
       }
     },
-    [cancelling, job.id, job.workflow_id, queryClient]
+    [cancelling, job.id, job.workflow_id, queryClient, t]
   );
 
-  const workflowName = job.name || workflow?.name || "Loading…";
+  const workflowName =
+    job.name || workflow?.name || t("i18n-next58.jobs.loading");
   const shortId = `#${job.id.slice(0, 4)}`;
   const isActive =
     job.status === "running" ||
@@ -305,42 +319,47 @@ const JobItem = ({ job }: { job: Job }) => {
     job.status === "failed" || job.status === "timed_out" || !!job.error;
 
   const elapsed = job.started_at ? elapsedTime : null;
-  const duration = getJobDuration(job.started_at, job.finished_at);
+  const duration = getJobDuration(job.started_at, job.finished_at, t);
   const assetCount = assets?.length ?? 0;
   const assetNoun = assets?.[0]?.content_type?.startsWith("video/")
-    ? "video"
+    ? t("i18n-next58.jobs.video")
     : assets?.[0]?.content_type?.startsWith("image/")
-      ? "image"
-      : "asset";
+      ? t("i18n-next58.jobs.image")
+      : t("i18n-next58.jobs.asset");
   const countText =
     assetCount > 0
-      ? `${assetCount} ${assetNoun}${assetCount > 1 ? "s" : ""}`
+      ? t("i18n-next58.jobs.outputCount", {
+          count: assetCount,
+          type: assetNoun
+        })
       : null;
 
   let metaText: string;
   if (cancelling) {
-    metaText = "Cancelling…";
+    metaText = t("i18n-next58.jobs.cancelling");
   } else if (isError) {
-    metaText = job.error || "Failed";
+    metaText = job.error || t("i18n-next58.jobs.failed");
   } else if (job.status === "running") {
-    metaText = ["Running", elapsed].filter(Boolean).join(" · ");
+    metaText = [t("i18n-next58.jobs.running"), elapsed]
+      .filter(Boolean)
+      .join(" · ");
   } else if (
     job.status === "queued" ||
     job.status === "scheduled" ||
     job.status === "starting"
   ) {
-    metaText = ["In queue", clockLabel(job.started_at)].filter(Boolean).join(
-      " · "
-    );
+    metaText = [t("i18n-next58.jobs.inQueue"), clockLabel(job.started_at)]
+      .filter(Boolean)
+      .join(" · ");
   } else if (job.status === "cancelled") {
-    metaText = ["Cancelled", clockLabel(job.finished_at)]
+    metaText = [t("i18n-next58.jobs.cancelled"), clockLabel(job.finished_at)]
       .filter(Boolean)
       .join(" · ");
   } else {
     metaText =
       [duration, countText, clockLabel(job.finished_at)]
         .filter(Boolean)
-        .join(" · ") || "Completed";
+        .join(" · ") || t("i18n-next58.jobs.completed");
   }
 
   return (
@@ -404,8 +423,8 @@ const JobItem = ({ job }: { job: Job }) => {
         <ReportBugButton
           context={{
             source: "job-failure",
-            summary: `Job failed: ${workflowName}`,
-            errorText: job.error || "Job failed",
+            summary: t("i18n-next58.jobs.jobFailedSummary", { workflowName }),
+            errorText: job.error || t("i18n-next58.jobs.jobFailed"),
             workflowId: job.workflow_id,
             jobId: job.id
           }}
@@ -416,8 +435,8 @@ const JobItem = ({ job }: { job: Job }) => {
           size="small"
           onClick={handleStop}
           disabled={cancelling}
-          ariaLabel="Stop job"
-          tooltip="Stop job"
+          ariaLabel={t("i18n-next58.jobs.stopJob")}
+          tooltip={t("i18n-next58.jobs.stopJob")}
           icon={
             cancelling ? (
               <LoadingSpinner size="small" />
@@ -439,7 +458,9 @@ const JobItem = ({ job }: { job: Job }) => {
             progressVariant="indeterminate"
             showValue={false}
             size="small"
-            aria-label={`Running ${workflowName}`}
+            aria-label={t("i18n-next58.jobs.runningWorkflow", {
+              workflowName
+            })}
           />
         </Box>
       )}

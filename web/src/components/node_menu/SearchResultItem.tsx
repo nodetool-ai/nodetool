@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useState, useMemo, type Ref } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -235,6 +236,7 @@ const SearchResultItem = memo(function SearchResultItem({
   compact = false,
   ref
 }: SearchResultItemProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const outputType = node.outputs.length > 0 ? node.outputs[0].type.type : "";
   const providerKind = getProviderKindForNamespace(node.namespace);
@@ -253,8 +255,8 @@ const SearchResultItem = memo(function SearchResultItem({
       addNotification({
         type: "info",
         content: next
-          ? "Node added to favorites"
-          : "Node removed from favorites",
+          ? t("i18n-next50-node-menu.favorites.addedNotification")
+          : t("i18n-next50-node-menu.favorites.removedNotification"),
         timeout: NOTIFICATION_TIMEOUT_SHORT
       });
     },
@@ -390,7 +392,7 @@ const SearchResultItem = memo(function SearchResultItem({
           />
         </Text>
         <span className="provider-tag" style={providerTagStyle}>
-          {providerKind === "api" ? "API" : "Local"}
+          {providerKind === "api" ? "API" : t("i18n-next50-node-menu.search.local")}
         </span>
         <FavoriteButton
           isFavorite={isFavorite}
@@ -443,7 +445,7 @@ const SearchResultItem = memo(function SearchResultItem({
               </div>
             )}
             <span className="provider-tag" style={providerTagStyle}>
-              {providerKind === "api" ? "API" : "Local"}
+              {providerKind === "api" ? "API" : t("i18n-next50-node-menu.search.local")}
             </span>
           </div>
         </div>
@@ -460,7 +462,7 @@ const SearchResultItem = memo(function SearchResultItem({
             onToggle={handleFavoriteToggle}
             buttonSize="small"
           />
-          <Tooltip title={isExpanded ? "Collapse details" : "Show details"}>
+          <Tooltip title={isExpanded ? t("i18n-next50-node-menu.search.collapseDetails") : t("i18n-next50-node-menu.search.showDetails")}>
             <div
               className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
               role="button"
@@ -468,7 +470,7 @@ const SearchResultItem = memo(function SearchResultItem({
               onClick={handleToggleExpand}
               onKeyDown={handleExpandKeyDown}
               aria-expanded={isExpanded}
-              aria-label={isExpanded ? "Collapse details" : "Show details"}
+              aria-label={isExpanded ? t("i18n-next50-node-menu.search.collapseDetails") : t("i18n-next50-node-menu.search.showDetails")}
             >
               <ExpandMoreIcon />
             </div>
@@ -491,7 +493,7 @@ const SearchResultItem = memo(function SearchResultItem({
         <Box className="io-info">
           {node.properties.length > 0 && (
             <Box className="io-row">
-              <span className="io-label">Input:</span>
+              <span className="io-label">{t("i18n-next50-node-menu.search.input")}:</span>
               <Box className="io-items">
                 {node.properties.slice(0, 6).map((prop) => (
                   <span
@@ -517,7 +519,7 @@ const SearchResultItem = memo(function SearchResultItem({
           )}
           {node.outputs.length > 0 && (
             <Box className="io-row">
-              <span className="io-label">Output:</span>
+              <span className="io-label">{t("i18n-next50-node-menu.search.output")}:</span>
               <Box className="io-items">
                 {node.outputs.map((output) => (
                   <span

@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 
 import type { ClipCrop, ClipTransform } from "@nodetool-ai/timeline";
@@ -108,6 +109,7 @@ export function ReframeFocusOverlay({
   onDragStart,
   onDragEnd
 }: ReframeFocusOverlayProps): React.ReactElement | null {
+  const { t } = useTranslation();
   const theme = useTheme();
   const dragging = useRef(false);
   if (
@@ -192,7 +194,7 @@ export function ReframeFocusOverlay({
       height={frameHeight}
       viewBox={`0 0 ${frameWidth} ${frameHeight}`}
       role="slider"
-      aria-label="Reframe focus point"
+      aria-label={t("i18n-next79.reframeFocus.focusPoint")}
       aria-valuetext={`${Math.round(x * 100)}%, ${Math.round(y * 100)}%`}
       tabIndex={0}
       onPointerDown={begin}

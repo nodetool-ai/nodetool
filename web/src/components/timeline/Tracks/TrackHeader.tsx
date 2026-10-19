@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -398,14 +399,6 @@ const instrumentRowSelectStyles = css({
 /** Shown when the track's voice matches no shipped preset. */
 const CUSTOM_PRESET = "custom";
 
-const PRESET_OPTIONS: readonly SelectOption[] = [
-  ...TIMELINE_INSTRUMENT_PRESETS.map((preset) => ({
-    value: preset.id,
-    label: preset.name
-  })),
-  { value: CUSTOM_PRESET, label: "Custom" }
-];
-
 interface TrackHeaderProps {
   track: TimelineTrack;
   /** Pre-computed 1-based index within the track's type group. */
@@ -422,6 +415,14 @@ interface TrackHeaderProps {
 export const TrackHeader: React.FC<TrackHeaderProps> = memo(
   ({ track, typedIndex, compact = false }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
+    const presetOptions: readonly SelectOption[] = [
+      ...TIMELINE_INSTRUMENT_PRESETS.map((preset) => ({
+        value: preset.id,
+        label: preset.name
+      })),
+      { value: CUSTOM_PRESET, label: t("i18n-next6.trackHeader.custom") }
+    ];
 
     const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
     const setTrackLocked = useTimelineStore((s) => s.setTrackLocked);
@@ -800,22 +801,22 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     const instrumentControls = isMidi ? (
       <>
         <SelectField
-          label={`Instrument for ${track.name}`}
+          label={t("i18n-next6.trackHeader.instrumentFor", { name: track.name })}
           hideLabel
           size="small"
           appearance="inspector"
           variant="outlined"
           value={presetId}
-          options={PRESET_OPTIONS}
+          options={presetOptions}
           onChange={handlePresetChange}
           css={instrumentOnOwnRow ? instrumentRowSelectStyles : presetSelectStyles}
         />
-        <Tooltip title="Edit instrument">
+        <Tooltip title={t("i18n-next6.trackHeader.editInstrument")}>
           <button
             type="button"
             css={instrumentExpanded ? iconButtonOnCss : iconButtonOffCss}
             onClick={handleInstrumentToggle}
-            aria-label="Edit instrument"
+            aria-label={t("i18n-next6.trackHeader.editInstrument")}
             aria-expanded={instrumentExpanded}
             aria-pressed={instrumentExpanded}
             data-testid={`track-instrument-${track.id}`}
@@ -852,7 +853,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           <div css={topRowStyles}>
             {!compact && (
               <>
-                <Tooltip title="Drag to reorder track">
+                <Tooltip title={t("i18n-next6.trackHeader.dragToReorder")}>
                   <div
                     css={dragHandleCss}
                     draggable
@@ -860,7 +861,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                     onDragEnd={handleDragEnd}
                     onPointerDown={stopPointerPropagation}
                     onContextMenu={stopPointerPropagation}
-                    aria-label={`Reorder ${track.name}`}
+                    aria-label={t("i18n-next6.trackHeader.reorderTrack", { name: track.name })}
                     role="button"
                     tabIndex={-1}
                     data-testid={`track-drag-handle-${track.id}`}
@@ -882,14 +883,14 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 editing={editingName}
                 onEditingChange={setEditingName}
                 onCommit={commitName}
-                ariaLabel={`Track name: ${track.name}`}
-                title="Double-click to rename"
+                ariaLabel={t("i18n-next6.trackHeader.trackName", { name: track.name })}
+                title={t("i18n-next6.trackHeader.doubleClickToRename")}
               />
               {track.type === "chord" ? (
                 <span
                   css={indexChipCss}
-                  aria-label={`${meta.label} track ${typedIndex}`}
-                  title={`${meta.label} ${typedIndex}`}
+                  aria-label={t("i18n-next6.trackHeader.trackTypeIndex", { type: meta.label, index: typedIndex })}
+                  title={t("i18n-next6.trackHeader.typeIndex", { type: meta.label, index: typedIndex })}
                 >
                   {meta.prefix}
                   {typedIndex}
@@ -898,8 +899,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 <Tooltip
                   title={
                     targeted
-                      ? "Targeted: edits at the playhead, source edits and paste use this track. Click to untarget."
-                      : "Not targeted: edits at the playhead and paste skip this track. Click to target."
+                      ? t("i18n-next6.trackHeader.targetedDescription")
+                      : t("i18n-next6.trackHeader.notTargetedDescription")
                   }
                 >
                   <button
@@ -907,7 +908,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                     css={targetChipCss}
                     onClick={() => setTrackTargeted(track.id, !targeted)}
                     onPointerDown={stopPointerPropagation}
-                    aria-label={`Target ${meta.label.toLowerCase()} track ${typedIndex}`}
+                    aria-label={t("i18n-next6.trackHeader.targetTrack", { type: meta.label.toLowerCase(), index: typedIndex })}
                     aria-pressed={targeted}
                     data-testid={`track-target-${track.id}`}
                   >
@@ -929,12 +930,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             className={compact ? "timeline-track-controls" : undefined}
           >
             {track.type !== "midi" && (
-              <Tooltip title={track.visible ? "Hide track" : "Show track"}>
+              <Tooltip title={track.visible ? t("i18n-next6.trackHeader.hideTrack") : t("i18n-next6.trackHeader.showTrack")}>
                 <button
                   type="button"
                   css={track.visible ? iconButtonOnCss : iconButtonWarningCss}
                   onClick={() => setTrackVisible(track.id, !track.visible)}
-                  aria-label={track.visible ? "Hide track" : "Show track"}
+                  aria-label={track.visible ? t("i18n-next6.trackHeader.hideTrack") : t("i18n-next6.trackHeader.showTrack")}
                   aria-pressed={!track.visible}
                 >
                   {track.visible ? (
@@ -946,12 +947,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               </Tooltip>
             )}
 
-            <Tooltip title={track.locked ? "Unlock track" : "Lock track"}>
+            <Tooltip title={track.locked ? t("i18n-next6.trackHeader.unlockTrack") : t("i18n-next6.trackHeader.lockTrack")}>
               <button
                 type="button"
                 css={track.locked ? iconButtonWarningCss : iconButtonOnCss}
                 onClick={() => setTrackLocked(track.id, !track.locked)}
-                aria-label={track.locked ? "Unlock track" : "Lock track"}
+                aria-label={track.locked ? t("i18n-next6.trackHeader.unlockTrack") : t("i18n-next6.trackHeader.lockTrack")}
                 aria-pressed={track.locked}
               >
                 {track.locked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
@@ -962,15 +963,15 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               <Tooltip
                 title={
                   syncLocked
-                    ? "Sync lock on: ripples on other tracks move this one. Click to turn off."
-                    : "Sync lock off: ripples on other tracks leave this one in place. Click to turn on."
+                    ? t("i18n-next6.trackHeader.syncLockOnDescription")
+                    : t("i18n-next6.trackHeader.syncLockOffDescription")
                 }
               >
                 <button
                   type="button"
                   css={syncLocked ? iconButtonOnCss : iconButtonWarningCss}
                   onClick={() => setTrackSyncLocked(track.id, !syncLocked)}
-                  aria-label={syncLocked ? "Turn sync lock off" : "Turn sync lock on"}
+                  aria-label={syncLocked ? t("i18n-next6.trackHeader.turnSyncLockOff") : t("i18n-next6.trackHeader.turnSyncLockOn")}
                   aria-pressed={!syncLocked}
                   data-testid={`track-sync-lock-${track.id}`}
                 >
@@ -981,12 +982,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
 
             {isSoundTrack && (
               <>
-                <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
+                <Tooltip title={track.muted ? t("i18n-next6.trackHeader.unmute") : t("i18n-next6.trackHeader.mute")} key="mute">
                   <button
                     type="button"
                     css={track.muted ? iconButtonWarningCss : iconButtonOnCss}
                     onClick={() => setTrackMuted(track.id, !track.muted)}
-                    aria-label={track.muted ? "Unmute" : "Mute"}
+                    aria-label={track.muted ? t("i18n-next6.trackHeader.unmute") : t("i18n-next6.trackHeader.mute")}
                     aria-pressed={!!track.muted}
                   >
                     {track.muted ? (
@@ -997,12 +998,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                   </button>
                 </Tooltip>
 
-                <Tooltip title={track.solo ? "Unsolo" : "Solo"}>
+                <Tooltip title={track.solo ? t("i18n-next6.trackHeader.unsolo") : t("i18n-next6.trackHeader.solo")}>
                   <button
                     type="button"
                     css={track.solo ? iconButtonSuccessCss : iconButtonOnCss}
                     onClick={() => setTrackSolo(track.id, !track.solo)}
-                    aria-label={track.solo ? "Unsolo" : "Solo"}
+                    aria-label={track.solo ? t("i18n-next6.trackHeader.unsolo") : t("i18n-next6.trackHeader.solo")}
                     aria-pressed={!!track.solo}
                   >
                     <span css={soloGlyphStyles}>S</span>
@@ -1017,8 +1018,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               <Tooltip
                 title={
                   effectsCount === 0
-                    ? "Effects chain (empty)"
-                    : `Effects chain (${effectsCount})`
+                    ? t("i18n-next6.trackHeader.effectsChainEmpty")
+                    : t("i18n-next6.trackHeader.effectsChain", { count: effectsCount })
                 }
               >
                 <button
@@ -1030,7 +1031,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                   }
                   onClick={handleFxToggle}
                   aria-label={
-                    fxExpanded ? "Hide effects chain" : "Show effects chain"
+                    fxExpanded ? t("i18n-next6.trackHeader.hideEffectsChain") : t("i18n-next6.trackHeader.showEffectsChain")
                   }
                   aria-pressed={fxExpanded}
                   data-testid={`track-fx-${track.id}`}
@@ -1040,12 +1041,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               </Tooltip>
             )}
 
-            <Tooltip title="Delete track">
+            <Tooltip title={t("i18n-next6.trackHeader.deleteTrack")}>
               <button
                 type="button"
                 css={iconButtonOnCss}
                 onClick={() => setConfirmRemoveOpen(true)}
-                aria-label="Delete track"
+                aria-label={t("i18n-next6.trackHeader.deleteTrack")}
               >
                 <DeleteOutlineOutlinedIcon />
               </button>
@@ -1061,7 +1062,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             onPointerCancel={handleResizePointerEnd}
             onKeyDown={handleResizeKeyDown}
             onContextMenu={stopPointerPropagation}
-            aria-label="Resize track height"
+            aria-label={t("i18n-next6.trackHeader.resizeTrackHeight")}
             role="separator"
             aria-orientation="horizontal"
             aria-valuenow={Math.round(authoredHeightPx)}
@@ -1079,17 +1080,17 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           data-testid={`track-context-menu-${track.id}`}
         >
           <MenuItemPrimitive
-            label="Rename"
+            label={t("i18n-next6.trackHeader.rename")}
             icon={<DriveFileRenameOutlineIcon fontSize="small" />}
             onClick={handleMenuRename}
           />
           <MenuItemPrimitive
-            label="Duplicate track"
+            label={t("i18n-next6.trackHeader.duplicateTrack")}
             icon={<ContentCopyIcon fontSize="small" />}
             onClick={handleMenuDuplicate}
           />
           <MenuItemPrimitive
-            label="New folder with this track"
+            label={t("i18n-next6.trackHeader.newFolderWithTrack")}
             icon={<CreateNewFolderOutlinedIcon fontSize="small" />}
             onClick={() => {
               createTrackFolderForTrack(track.id);
@@ -1098,7 +1099,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           />
           {track.folderId && (
             <MenuItemPrimitive
-              label="Remove from folder"
+              label={t("i18n-next6.trackHeader.removeFromFolder")}
               icon={<FolderOutlinedIcon fontSize="small" />}
               onClick={() => {
                 setTrackFolder(track.id, null);
@@ -1109,7 +1110,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           {trackFolders.filter((folder) => folder.id !== track.folderId).map((folder) => (
             <MenuItemPrimitive
               key={folder.id}
-              label={`Move to ${folder.name}`}
+              label={t("i18n-next6.trackHeader.moveToFolder", { name: folder.name })}
               icon={<FolderOutlinedIcon fontSize="small" />}
               onClick={() => {
                 setTrackFolder(track.id, folder.id);
@@ -1118,17 +1119,17 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             />
           ))}
           <MenuItemPrimitive
-            label={`Insert ${menuTypeLabel} track above`}
+            label={t("i18n-next6.trackHeader.insertTrackAbove", { type: menuTypeLabel })}
             icon={<VerticalAlignTopIcon fontSize="small" />}
             onClick={handleMenuInsertAbove}
           />
           <MenuItemPrimitive
-            label={`Insert ${menuTypeLabel} track below`}
+            label={t("i18n-next6.trackHeader.insertTrackBelow", { type: menuTypeLabel })}
             icon={<VerticalAlignBottomIcon fontSize="small" />}
             onClick={handleMenuInsertBelow}
           />
           <MenuItemPrimitive
-            label="Delete track"
+            label={t("i18n-next6.trackHeader.deleteTrack")}
             icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
             onClick={handleMenuRemove}
             color="error"
@@ -1143,14 +1144,14 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               useNotificationStore.getState().addNotification({
                 type: "warning",
                 alert: true,
-                content: `Unlock track "${track.name}" and its clips to delete it`
+                content: t("i18n-next6.trackHeader.unlockToDelete", { name: track.name })
               });
             }
           }}
-          title="Delete track?"
-          content={`Track "${track.name}" and all its clips are deleted.`}
-          confirmText="Delete"
-          cancelText="Cancel"
+          title={t("i18n-next6.trackHeader.deleteTrackQuestion")}
+          content={t("i18n-next6.trackHeader.trackAndClipsDeleted", { name: track.name })}
+          confirmText={t("i18n-next6.common.delete")}
+          cancelText={t("i18n-next6.common.cancel")}
           destructive
         />
       </>

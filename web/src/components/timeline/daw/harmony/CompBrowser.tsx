@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import {
   COMP_FAMILIES,
   COMP_LIBRARY,
@@ -66,6 +67,7 @@ export interface CompBrowserProps {
 }
 
 export function CompBrowser({ harmony, update, onClose }: CompBrowserProps): React.JSX.Element {
+  const { t } = useTranslation();
   const [family, setFamily] = useState("ALL");
   const [variation, setVariation] = useState("ALL");
   const [query, setQuery] = useState("");
@@ -97,7 +99,7 @@ export function CompBrowser({ harmony, update, onClose }: CompBrowserProps): Rea
     <div
       className="comp-browser"
       role="dialog"
-      aria-label="Comp pattern browser"
+      aria-label={t("i18n-next20.compBrowser.label")}
       onKeyDown={(e) => {
         if (e.key === "Escape" || e.key === "Enter") {
           e.preventDefault();
@@ -110,29 +112,29 @@ export function CompBrowser({ harmony, update, onClose }: CompBrowserProps): Rea
     >
       <div className="comp-browser-head">
         <h3>
-          COMP PATTERNS <span>{shown.length} / {COMP_LIBRARY.length}</span>
+          {t("i18n-next20.compBrowser.title")} <span>{shown.length} / {COMP_LIBRARY.length}</span>
         </h3>
-        <input autoFocus type="search" aria-label="Search comp patterns" placeholder="SEARCH STYLE OR NAME" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input autoFocus type="search" aria-label={t("i18n-next20.compBrowser.searchLabel")} placeholder={t("i18n-next20.compBrowser.searchPlaceholder")} value={query} onChange={(e) => setQuery(e.target.value)} />
         <button type="button" className="ns-btn" onClick={() => shown.length && load(shown[Math.floor(Math.random() * shown.length)].i)}>
-          RANDOM
+          {t("i18n-next20.compBrowser.random")}
         </button>
-        <button type="button" className="ns-btn nav-btn" onClick={onClose}>DONE</button>
+        <button type="button" className="ns-btn nav-btn" onClick={onClose}>{t("i18n-next20.compBrowser.done")}</button>
       </div>
-      <div className="comp-browser-variations" aria-label="Variation filter">
+      <div className="comp-browser-variations" aria-label={t("i18n-next20.compBrowser.variationFilter")}>
         {["ALL", ...COMP_VARIATIONS.map((v) => v.name)].map((v) => (
-          <button key={v} type="button" aria-pressed={variation === v} onClick={() => setVariation(v)}>{v}</button>
+          <button key={v} type="button" aria-pressed={variation === v} onClick={() => setVariation(v)}>{v === "ALL" ? t("i18n-next20.compBrowser.all") : v}</button>
         ))}
       </div>
       <div className="comp-browser-body">
-        <div className="comp-browser-families" aria-label="Style family">
+        <div className="comp-browser-families" aria-label={t("i18n-next20.compBrowser.styleFamily")}>
           {["ALL", ...COMP_FAMILIES.map((f) => f.name)].map((f) => (
             <button key={f} type="button" aria-pressed={family === f} onClick={() => setFamily(f)}>
-              {f}
+              {f === "ALL" ? t("i18n-next20.compBrowser.all") : f}
               <span>{f === "ALL" ? COMP_LIBRARY.length : counts[f]}</span>
             </button>
           ))}
         </div>
-        <div className="comp-browser-list" ref={list} role="listbox" aria-label="Comp patterns">
+        <div className="comp-browser-list" ref={list} role="listbox" aria-label={t("i18n-next20.compBrowser.listLabel")}>
           {shown.map(({ e, i }) => (
             <button key={i} type="button" role="option" aria-selected={i === current} onClick={() => load(i)} onDoubleClick={onClose}>
               <span className="comp-name">
@@ -147,10 +149,10 @@ export function CompBrowser({ harmony, update, onClose }: CompBrowserProps): Rea
               </span>
             </button>
           ))}
-          {!shown.length && <span className="arp-empty">No pattern matches.</span>}
+          {!shown.length && <span className="arp-empty">{t("i18n-next20.compBrowser.noMatches")}</span>}
         </div>
       </div>
-      <div className="comp-browser-foot">CLICK TO LOAD · ↑ ↓ STEP THROUGH THE LIST · ENTER / ESC CLOSES</div>
+      <div className="comp-browser-foot">{t("i18n-next20.compBrowser.footer")}</div>
     </div>
   );
 }

@@ -12,6 +12,7 @@
  * the saved graph and resolve on reload via their durable `asset_id`.
  */
 import React, { memo, useCallback, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { shallow } from "zustand/shallow";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -199,6 +200,7 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const bodyStyles = useMemo(() => styles(theme), [theme]);
   const isRunning = status === "running";
@@ -317,15 +319,15 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
         />
         <span>
           {items.length === 0
-            ? "Collection"
-            : `${items.length} item${items.length === 1 ? "" : "s"}`}
+            ? t("i18n-next46.collection.collection")
+            : t("i18n-next46.collection.items", { count: items.length })}
         </span>
         {lockedType ? <span className="col-type">{lockedType}</span> : null}
         <span className="spacer" />
         {items.length > 0 ? (
           <ToolbarIconButton
-            ariaLabel="Clear collection"
-            tooltip="Clear collection"
+            ariaLabel={t("i18n-next46.collection.clear")}
+            tooltip={t("i18n-next46.collection.clear")}
             onClick={clear}
           >
             <ClearAllRoundedIcon fontSize="inherit" />
@@ -343,8 +345,8 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
       >
         {items.length === 0 ? (
           <div className="col-empty">
-            <span>Drop assets here</span>
-            <span>from the asset panel, files, or generation history</span>
+            <span>{t("i18n-next46.collection.dropAssets")}</span>
+            <span>{t("i18n-next46.collection.dropAssetsHint")}</span>
           </div>
         ) : (
           items.map((item, i) => (
@@ -356,8 +358,8 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
               <span className="col-index">{i + 1}</span>
               <span className="col-remove">
                 <ToolbarIconButton
-                  ariaLabel={`Remove item ${i + 1}`}
-                  tooltip="Remove"
+                  ariaLabel={t("i18n-next46.collection.removeItem", { index: i + 1 })}
+                  tooltip={t("i18n-next46.collection.remove")}
                   onClick={() => removeAt(i)}
                 >
                   <CloseOutlinedIcon fontSize="inherit" />

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore, type StoreApi } from "zustand";
 
 import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutStore";
@@ -47,6 +48,7 @@ interface GameEditorShellProps {
 
 export default function GameEditorShell({ dimension, toolbar, status, panels, layoutStore, registry = gamePanelRegistry,
   notices, mobile, dialogs, commands, active = true, exportGame }: GameEditorShellProps): ReactNode {
+  const { t } = useTranslation();
   const root = useRef<HTMLDivElement | null>(null);
   const registrations = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
   const layout = useStore(layoutStore, (state) => state.layout);
@@ -97,7 +99,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
           if (handler && handler.enabled !== false) { handler.run(); }
         } };
     }), [bindings, commandRegistry, dimension, playSession]);
-  useContextCommands("Game", menuCommands, active);
+  useContextCommands(t("screen_game.shell.contextMenuLabel"), menuCommands, active);
   return <EditorUiProvider scope="inspector"><GameCommandContext.Provider value={commandRegistry}><FlexColumn ref={root} sx={GAME_EDITOR_ROOT_SX}
     onKeyDown={(event) => {
       // Dialogs render in portals, so their key presses bubble here through React without being inside the editor element.
@@ -109,26 +111,26 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       onBuildExecutable={canBuildExecutable && !executable.building ? executable.run : undefined}
       layoutMenu={<DockLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />} />
     {exporter.exporting && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>
-      {exporter.exporting === "tauri" ? "Building the desktop app project from the published revision" : "Building the web player from the published revision"}
+      {exporter.exporting === "tauri" ? t("screen_game.shell.buildingDesktop") : t("screen_game.shell.buildingWeb")}
     </Caption>}
     {exporter.error && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-      <Caption color="error" role="alert">Export failed: {exporter.error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: "Game export failed", errorText: exporter.error }} />
-      <EditorButton onClick={exporter.dismiss}>Dismiss</EditorButton>
+      <Caption color="error" role="alert">{t("screen_game.shell.exportFailed", { error: exporter.error })}</Caption>
+      <ReportBugButton context={{ source: "panel-crash", summary: t("screen_game.shell.exportFailedSummary"), errorText: exporter.error }} />
+      <EditorButton onClick={exporter.dismiss}>{t("screen_game.common.dismiss")}</EditorButton>
     </FlexRow>}
     {executable.building && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs }}>
-      <Caption role="status">Compiling the desktop executable. Cargo's output is in the Console.</Caption>
-      <EditorButton onClick={executable.cancel}>Cancel</EditorButton>
+      <Caption role="status">{t("screen_game.shell.compilingExecutable")}</Caption>
+      <EditorButton onClick={executable.cancel}>{t("screen_game.common.cancel")}</EditorButton>
     </FlexRow>}
     {executable.binaryPath && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-      <Caption role="status" sx={{ minWidth: 0, overflowWrap: "anywhere" }}>Built {executable.binaryPath}</Caption>
-      {showBinary && <EditorButton onClick={() => { void showBinary(executable.binaryPath ?? ""); }}>Show in folder</EditorButton>}
-      <EditorButton onClick={executable.dismiss}>Dismiss</EditorButton>
+      <Caption role="status" sx={{ minWidth: 0, overflowWrap: "anywhere" }}>{t("screen_game.shell.built", { path: executable.binaryPath })}</Caption>
+      {showBinary && <EditorButton onClick={() => { void showBinary(executable.binaryPath ?? ""); }}>{t("screen_game.shell.showInFolder")}</EditorButton>}
+      <EditorButton onClick={executable.dismiss}>{t("screen_game.common.dismiss")}</EditorButton>
     </FlexRow>}
     {executable.error && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-      <Caption color="error" role="alert">Build failed: {executable.error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: "Game executable build failed", errorText: executable.error }} />
-      <EditorButton onClick={executable.dismiss}>Dismiss</EditorButton>
+      <Caption color="error" role="alert">{t("screen_game.shell.buildFailed", { error: executable.error })}</Caption>
+      <ReportBugButton context={{ source: "panel-crash", summary: t("screen_game.shell.buildFailedSummary"), errorText: executable.error }} />
+      <EditorButton onClick={executable.dismiss}>{t("screen_game.common.dismiss")}</EditorButton>
     </FlexRow>}
     {notices}
     <DockCanvas presentation={presentation} store={layoutStore} />

@@ -4,8 +4,10 @@ import LightMode from "@mui/icons-material/LightMode";
 import DarkMode from "@mui/icons-material/DarkMode";
 import { memo, useCallback, type MouseEvent } from "react";
 import { openSettingsTab } from "../workspace/openPageTab";
+import { useTranslation } from "react-i18next";
 
 export const ThemeToggle = memo(function ThemeToggle() {
+  const { t } = useTranslation();
   const { mode, setMode } = useColorScheme();
 
   const toggleTheme = useCallback(() => {
@@ -24,13 +26,14 @@ export const ThemeToggle = memo(function ThemeToggle() {
     return null;
   }
 
-  const label = `Switch to ${mode === "dark" ? "light" : "dark"} mode`;
+  const targetMode = mode === "dark" ? "light" : "dark";
+  const label = t("batch2_17.themeToggle.switchToMode", { mode: targetMode });
 
   return (
     <ToolbarIconButton
       className="theme-toggle"
       icon={mode === "dark" ? <LightMode /> : <DarkMode />}
-      tooltip={`${label}. Right-click for contrast and other appearance settings.`}
+      tooltip={t("batch2_17.themeToggle.tooltip", { mode: targetMode })}
       ariaLabel={label}
       tooltipPlacement="right-start"
       onClick={toggleTheme}

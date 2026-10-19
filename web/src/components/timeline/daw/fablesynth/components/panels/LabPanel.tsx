@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import './lab.css';
 import type { FxPanelAdapter } from './fxAdapter';
 
@@ -135,6 +136,7 @@ function draw(g: CanvasRenderingContext2D, kind: Kind, ink: string, v: (k: strin
 }
 
 function LabCard({ card, adapter }: { card: (typeof CARDS)[number]; adapter: FxPanelAdapter }) {
+  const { t } = useTranslation();
   const id = (k: string) => `${adapter.prefix ?? ''}fx.${card.kind}.${k}`;
   const params = adapter.params;
   const latest = useRef(params); latest.current = params;
@@ -164,9 +166,9 @@ function LabCard({ card, adapter }: { card: (typeof CARDS)[number]; adapter: FxP
 
   return (
     <section className={`lab-card${on ? '' : ' lab-bypassed'}`} data-accent={card.accent} aria-label={card.title}>
-      <div className="panel-head">{adapter.renderPower(id('on'))}<h2>{card.title}</h2><span className="lab-state">{on ? label : 'BYPASS'}</span></div>
-      <p className="lab-tagline">{card.tagline}</p>
-      <canvas ref={canvas} className="lab-view" role="img" aria-label={`${card.title} parameter picture, not a live meter`} />
+      <div className="panel-head">{adapter.renderPower(id('on'))}<h2>{card.title}</h2><span className="lab-state">{on ? label : t('i18n-next45-fablesynth-effects.common.bypass')}</span></div>
+      <p className="lab-tagline">{t(`i18n-next45-fablesynth-effects.lab.tagline.${card.kind}`)}</p>
+      <canvas ref={canvas} className="lab-view" role="img" aria-label={t('i18n-next45-fablesynth-effects.lab.chartAriaLabel', { name: card.title })} />
       {card.stepper ? adapter.renderStepper?.(id(card.stepper)) ?? null : null}
       <div className="lab-knobs">{card.knobs.map(k => <span key={k}>{adapter.renderKnob(id(k), k, card.accent)}</span>)}</div>
     </section>
@@ -174,8 +176,9 @@ function LabCard({ card, adapter }: { card: (typeof CARDS)[number]; adapter: FxP
 }
 
 export function LabPanel({ adapter }: { adapter: FxPanelAdapter }) {
+  const { t } = useTranslation();
   return (
-    <section className="panel panel-lab" style={{ gridArea: 'lab' }} aria-label="Lab effects">
+    <section className="panel panel-lab" style={{ gridArea: 'lab' }} aria-label={t('i18n-next45-fablesynth-effects.lab.ariaLabel')}>
       {CARDS.map(card => <LabCard key={card.kind} card={card} adapter={adapter} />)}
     </section>
   );

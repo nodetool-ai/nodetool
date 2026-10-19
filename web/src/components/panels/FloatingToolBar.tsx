@@ -33,6 +33,7 @@ import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomi
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 import { useNodes } from "../../contexts/NodeContext";
@@ -42,7 +43,6 @@ import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import { runControlTooltip } from "./runControlTooltip";
 import { cn } from "../editor_ui/editorUtils";
 import { MenuItemPrimitive } from "../ui_primitives";
 import { useDraggable } from "../../hooks/useDraggable";
@@ -121,6 +121,10 @@ const FOLDABLE =
 const DOCK_RESIZE_MS = 500;
 const DOCK_RESIZE_EASING = "ease-in-out";
 const DOCK_RESIZE = `${DOCK_RESIZE_MS}ms ${DOCK_RESIZE_EASING}`;
+
+const shortcutTooltip = (label: string, shortcut: string): React.ReactElement => (
+  <span>{label} · {getShortcutTooltip(shortcut, undefined, "combo")}</span>
+);
 
 const dockStyles = (theme: Theme) =>
   css({
@@ -378,6 +382,7 @@ const actionStyles = (theme: Theme) =>
   });
 
 const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const location = useLocation();
   const path = location.pathname;
@@ -416,10 +421,23 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   } = useWorkflowApp();
   const { convertToJsScript, downloadNodeScript, isExporting } =
     useWorkflowScriptExport();
-  const appActionLabel = hasApp ? "Open app" : "Make app";
+  const appActionLabel = hasApp ? t("i18n-cont-panels-12.toolbar.openApp") : t("i18n-cont-panels-12.toolbar.makeApp");
   const appActionTooltip = hasApp
-    ? "Open the app that runs this workflow"
-    : "Make an app from this workflow, with a field for each input";
+    ? t("i18n-cont-panels-12.toolbar.openWorkflowApp")
+    : t("i18n-cont-panels-12.toolbar.makeWorkflowApp");
+  const translatedRunControlLabel = runControlLabel.startsWith("Error")
+    ? t("i18n-cont-panels-12.toolbar.errorRetry")
+    : runControlLabel.startsWith("Queued #")
+      ? t("i18n-cont-panels-12.toolbar.queuedPosition", { position: queuePosition ?? 0 })
+      : runControlLabel.startsWith("Running · ")
+        ? t("i18n-cont-panels-12.toolbar.runningCountQueued", { count: pendingRunCount })
+        : runControlLabel === "Running"
+          ? t("i18n-cont-panels-12.toolbar.running")
+          : runControlLabel === "Starting"
+            ? t("i18n-cont-panels-12.toolbar.starting")
+            : runControlLabel === "Stopping"
+              ? t("i18n-cont-panels-12.toolbar.stopping")
+              : t("i18n-cont-panels-12.toolbar.runEntireWorkflow");
 
   const { bottomPanelVisible, bottomPanelSize } = useBottomPanelStore(
     useShallow((state) => ({
@@ -670,13 +688,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const dragHandle = (
     <Tooltip
-      title="Drag to move • double-click to reset"
+      title={t("i18n-cont-panels-12.toolbar.dragToMoveReset")}
       placement="top"
     >
       <span
         role="button"
         tabIndex={-1}
-        aria-label="Move chat dock"
+        aria-label={t("i18n-cont-panels-12.toolbar.moveChatDock")}
         className="dock-drag-handle composer-drag-handle"
         onDoubleClick={resetPosition}
       >
@@ -715,22 +733,25 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     return null;
   }
 
-  const runTooltip = runControlTooltip({
-    isStopping,
-    isWorkflowActive,
-    runControlLabel,
-    runControlDetail,
-    queuePosition,
-    pendingRunCount
-  });
+  const runTooltip = isStopping
+    ? t("i18n-cont-panels-12.toolbar.stoppingWorkflow")
+    : runControlLabel.startsWith("Error")
+      ? t("i18n-cont-panels-12.toolbar.retryWorkflow", { detail: runControlDetail ?? t("i18n-cont-panels-12.toolbar.workflowFailedToStart") })
+      : queuePosition != null
+        ? t("i18n-cont-panels-12.toolbar.queuedPosition", { position: queuePosition })
+        : pendingRunCount > 0
+          ? t("i18n-cont-panels-12.toolbar.runningQueued", { count: pendingRunCount })
+          : isWorkflowActive
+            ? t("i18n-cont-panels-12.toolbar.queueAnotherRun", { label: translatedRunControlLabel })
+            : shortcutTooltip(t("i18n-cont-panels-12.toolbar.runWorkflow"), "runWorkflow");
 
   const runAriaLabel = isStopping
-    ? "Stopping workflow"
+    ? t("i18n-cont-panels-12.toolbar.stoppingWorkflow")
     : runControlLabel.startsWith("Error")
-      ? `${runControlLabel}. Retry the entire workflow`
+      ? t("i18n-cont-panels-12.toolbar.retryEntireWorkflow", { label: translatedRunControlLabel })
       : isWorkflowActive
-        ? `${runControlLabel}. Queue another entire workflow run`
-        : runControlLabel;
+        ? t("i18n-cont-panels-12.toolbar.queueAnotherEntireRun", { label: translatedRunControlLabel })
+        : translatedRunControlLabel;
 
   // The workflow toolbar: the composer's second row. Canvas tools sit on the
   // left after the drag handle, and the run controls on the right.
@@ -740,14 +761,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         {!isMobile && dragHandle}
         {editorViewMode === "graph" && (
           <Tooltip
-            title={getShortcutTooltip("openNodeMenu")}
+            title={shortcutTooltip(t("i18n-cont-panels-12.toolbar.addNode"), "openNodeMenu")}
             placement="top"
           >
             <button
               type="button"
               className="composer-action"
               onClick={handleToggleNodeMenu}
-              aria-label="Add node"
+              aria-label={t("i18n-cont-panels-12.toolbar.addNode")}
             >
               <AddCircleIcon />
             </button>
@@ -755,14 +776,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         <Tooltip
-          title={conversationOpen ? "Hide conversation" : "Show conversation"}
+          title={conversationOpen ? t("i18n-cont-panels-12.toolbar.hideConversation") : t("i18n-cont-panels-12.toolbar.showConversation")}
           placement="top"
         >
           <button
             type="button"
             className={cn("composer-convo", conversationOpen && "active")}
             onClick={toggleConversation}
-            aria-label="Toggle conversation"
+            aria-label={t("i18n-cont-panels-12.toolbar.toggleConversation")}
             aria-pressed={conversationOpen}
           >
             <ForumOutlinedIcon />
@@ -778,14 +799,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             toolbar within a phone-width row. */}
         {editorViewMode === "graph" && !isMobile && (
           <Tooltip
-            title="Auto layout"
+            title={t("i18n-cont-panels-12.toolbar.autoLayout")}
             placement="top"
           >
             <button
               type="button"
               className="composer-action"
               onClick={handleAutoLayout}
-              aria-label="Auto layout"
+              aria-label={t("i18n-cont-panels-12.toolbar.autoLayout")}
             >
               <LayoutIcon />
             </button>
@@ -793,12 +814,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         {!isMobile && (
-          <Tooltip title="Save" placement="top">
+          <Tooltip title={t("i18n-cont-panels-12.toolbar.save")} placement="top">
             <button
               type="button"
               className="composer-action"
               onClick={handleSave}
-              aria-label="Save workflow"
+              aria-label={t("i18n-cont-panels-12.toolbar.saveWorkflow")}
             >
               <SaveIcon />
             </button>
@@ -830,14 +851,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       <span className="composer-run-group">
         {isRunningish && (
           <Tooltip
-            title={getShortcutTooltip("stopWorkflow")}
+            title={shortcutTooltip(t("i18n-cont-panels-12.toolbar.stopWorkflow"), "stopWorkflow")}
             placement="top"
           >
             <button
               type="button"
               className="composer-stop"
               onClick={handleStop}
-              aria-label={isStopping ? "Stopping workflow" : "Stop workflow"}
+              aria-label={isStopping ? t("i18n-cont-panels-12.toolbar.stoppingWorkflow") : t("i18n-cont-panels-12.toolbar.stopWorkflow")}
               disabled={isStopping}
             >
               <StopIcon />
@@ -861,7 +882,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             ) : !isWorkflowActive || runControlLabel.startsWith("Error") ? (
               <PlayArrow />
             ) : null}
-            <span className="composer-run-label">{runControlLabel}</span>
+            <span className="composer-run-label">{translatedRunControlLabel}</span>
             {pendingRunCount > 0 && (
               <CountBadge
                 count={pendingRunCount}
@@ -881,14 +902,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </Tooltip>
 
         <Tooltip
-          title={composerCollapsed ? "Show prompt" : "Hide prompt"}
+          title={composerCollapsed ? t("i18n-cont-panels-12.toolbar.showPrompt") : t("i18n-cont-panels-12.toolbar.hidePrompt")}
           placement="top"
         >
           <button
             type="button"
             className="composer-action composer-collapse"
             onClick={handleToggleComposer}
-            aria-label={composerCollapsed ? "Show prompt" : "Hide prompt"}
+            aria-label={composerCollapsed ? t("i18n-cont-panels-12.toolbar.showPrompt") : t("i18n-cont-panels-12.toolbar.hidePrompt")}
             aria-expanded={!composerCollapsed}
           >
             {composerCollapsed ? <ExpandLessIcon /> : <ExpandMoreIcon />}
@@ -896,14 +917,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </Tooltip>
 
         <Tooltip
-          title="Workflow actions"
+          title={t("i18n-cont-panels-12.toolbar.workflowActions")}
           placement="top"
         >
           <button
             type="button"
             className={cn("composer-menu", actionsMenuAnchor && "active")}
             onClick={handleOpenActionsMenu}
-            aria-label="Workflow actions"
+            aria-label={t("i18n-cont-panels-12.toolbar.workflowActions")}
             aria-haspopup="menu"
             aria-expanded={Boolean(actionsMenuAnchor)}
           >
@@ -965,7 +986,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         paperSx={{ minWidth: 220, maxWidth: 280 }}
       >
         <MenuItemPrimitive
-          label={editorViewMode === "graph" ? "Chain view" : "Graph view"}
+          label={editorViewMode === "graph" ? t("i18n-cont-panels-12.toolbar.chainView") : t("i18n-cont-panels-12.toolbar.graphView")}
           icon={
             editorViewMode === "graph" ? (
               <LinearScaleIcon fontSize="small" />
@@ -976,28 +997,28 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={runWithClose(handleToggleViewMode)}
         />
         <MenuItemPrimitive
-          label="Instant update"
+          label={t("i18n-cont-panels-12.toolbar.instantUpdate")}
           icon={<BoltIcon fontSize="small" />}
-          secondary={instantUpdate ? "On" : "Off"}
+          secondary={instantUpdate ? t("i18n-cont-panels-12.toolbar.on") : t("i18n-cont-panels-12.toolbar.off")}
           onClick={runWithClose(handleToggleInstantUpdate)}
         />
         {isRunningish && (
           <MenuItemPrimitive
-            label="Stop"
+            label={t("i18n-cont-panels-12.toolbar.stop")}
             icon={<StopIcon fontSize="small" />}
             onClick={runWithClose(handleStop)}
           />
         )}
         {isMobile && editorViewMode === "graph" && (
           <MenuItemPrimitive
-            label="Auto layout"
+            label={t("i18n-cont-panels-12.toolbar.autoLayout")}
             icon={<LayoutIcon fontSize="small" />}
             onClick={runWithClose(handleAutoLayout)}
           />
         )}
         {isMobile && (
           <MenuItemPrimitive
-            label="Save"
+            label={t("i18n-cont-panels-12.toolbar.save")}
             icon={<SaveIcon fontSize="small" />}
             onClick={runWithClose(handleSave)}
           />
@@ -1009,31 +1030,31 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={runWithClose(() => void openWorkflowApp())}
         />
         <MenuItemPrimitive
-          label="Mini map"
+          label={t("i18n-cont-panels-12.toolbar.miniMap")}
           icon={<MapIcon fontSize="small" />}
-          secondary={isMiniMapVisible ? "Visible" : "Hidden"}
+          secondary={isMiniMapVisible ? t("i18n-cont-panels-12.toolbar.visible") : t("i18n-cont-panels-12.toolbar.hidden")}
           onClick={runWithClose(handleToggleMiniMap)}
         />
         <MenuItemPrimitive
-          label="Download JSON"
+          label={t("i18n-cont-panels-12.toolbar.downloadJson")}
           icon={<DownloadIcon fontSize="small" />}
           onClick={runWithClose(handleDownload)}
         />
         <MenuItemPrimitive
-          label="Convert to JS script"
+          label={t("i18n-cont-panels-12.toolbar.convertToJsScript")}
           icon={<DataObjectOutlinedIcon fontSize="small" />}
           disabled={isExporting}
           onClick={runWithClose(() => void convertToJsScript())}
         />
         <MenuItemPrimitive
-          label="Download Node.js script"
+          label={t("i18n-cont-panels-12.toolbar.downloadNodeScript")}
           icon={<TerminalIcon fontSize="small" />}
           disabled={isExporting}
           onClick={runWithClose(() => void downloadNodeScript())}
         />
         {isMobile && (
           <MenuItemPrimitive
-            label="Panels…"
+            label={t("i18n-cont-panels-12.toolbar.panels")}
             icon={<MoreHorizIcon fontSize="small" />}
             onClick={runWithClose(handleOpenPaneMenu)}
           />

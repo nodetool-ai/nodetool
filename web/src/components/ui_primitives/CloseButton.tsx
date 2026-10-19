@@ -8,6 +8,7 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -85,7 +86,7 @@ export const CloseButton = memo(
     (
       {
         onClick,
-        tooltip = "Close",
+        tooltip,
         shortcut,
         tooltipPlacement = "bottom",
         buttonSize = "small",
@@ -99,6 +100,8 @@ export const CloseButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const tooltipText = tooltip ?? t("i18n-next85.uiPrimitives.close");
 
       const handleClick = useCallback(
         (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -112,14 +115,14 @@ export const CloseButton = memo(
 
       return (
         <Tooltip
-          title={tooltipWithShortcut(tooltip, shortcut)}
+          title={tooltipWithShortcut(tooltipText, shortcut)}
           placement={tooltipPlacement}
         >
           <span style={{ display: "inline-flex" }}>
           <IconButton
             ref={ref}
             tabIndex={tabIndex}
-            aria-label={tooltip}
+            aria-label={tooltipText}
             className={cn(
               "close-button",
               nodrag && editorClassNames.nodrag,

@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Asset } from "../../stores/ApiTypes";
 import { LoadingSpinner, ScrollArea } from "../ui_primitives";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
@@ -41,6 +42,7 @@ const styles = (theme: Theme) =>
   });
 
 const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const kind = previewKind(asset ?? {});
 
@@ -49,7 +51,11 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
     queryFn: async () => {
       const response = await fetch(asset!.get_url!);
       if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
+        throw new Error(
+          t("i18n-next68.assetViewer.textViewer.fetchFailed", {
+            status: response.status
+          })
+        );
       }
       return response.text();
     },

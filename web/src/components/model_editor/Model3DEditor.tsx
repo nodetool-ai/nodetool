@@ -13,6 +13,7 @@ import { registerComboCallback, useKeyPressedStore } from "../../stores/KeyPress
 import type { ContextCommand } from "../../stores/CommandMenuStore";
 import { useContextCommands } from "../../hooks/useContextCommands";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import type { Theme } from "@mui/material/styles";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -102,7 +103,6 @@ import {
 } from "./sceneTree";
 import {
   createPrimitive,
-  PRIMITIVE_LABELS,
   type PrimitiveKind
 } from "./objectFactory";
 import { exportSceneToGlb } from "./exportGltf";
@@ -407,6 +407,7 @@ const Model3DEditor = ({
   onReloadExternal,
   onDismissExternal
 }: Model3DEditorProps) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -581,7 +582,7 @@ const Model3DEditor = ({
     (pass: CapturePass = "shaded"): string => {
       const capture = captureRef.current;
       if (!capture) {
-        throw new Error("3D viewport is not ready to capture yet.");
+        throw new Error(t("i18n-cont-model-editor-11.modelEditor.errors.captureNotReady"));
       }
       return captureModelOnly(
         capture,
@@ -590,7 +591,7 @@ const Model3DEditor = ({
         pass
       );
     },
-    [root, theme]
+    [root, theme, t]
   );
   const captureForAi = useCallback(
     (pass: CapturePass): ViewportCapture => {
@@ -642,7 +643,7 @@ const Model3DEditor = ({
         setLoadError(
           error instanceof Error
             ? error.message
-            : "Failed to load 3D model. Only .glb/.gltf are supported."
+            : t("i18n-cont-model-editor-11.modelEditor.errors.loadUnsupported")
         );
       }
     );
@@ -654,7 +655,7 @@ const Model3DEditor = ({
       clearScene(root);
       setAnimationClips([]);
     };
-  }, [url, root, bump, history, requestCamera]);
+  }, [url, root, bump, history, requestCamera, t]);
 
   const treeNodes = useMemo(() => {
     void tick;
@@ -685,7 +686,7 @@ const Model3DEditor = ({
   const addPrimitiveObject = useCallback(
     (kind: PrimitiveKind, name?: string): THREE.Object3D => {
       const obj = createPrimitive(kind);
-      obj.name = nextAvailableName(name?.trim() || PRIMITIVE_LABELS[kind], takenNames());
+      obj.name = nextAvailableName(name?.trim() || t(`i18n-cont-model-editor-11.modelEditor.primitives.${kind}`), takenNames());
       // New objects appear where the user is looking, resting on the ground.
       const target = orbitTargetRef.current;
       if (target) {
@@ -698,11 +699,11 @@ const Model3DEditor = ({
         obj.position.y += -box.min.y;
       }
       root.add(obj);
-      pushCommand(addObjectCommand(`Add ${PRIMITIVE_LABELS[kind]}`, obj, root));
+      pushCommand(addObjectCommand(t("i18n-cont-model-editor-11.modelEditor.history.add", { name: t(`i18n-cont-model-editor-11.modelEditor.primitives.${kind}`) }), obj, root));
       setSelectedUuid(obj.uuid);
       return obj;
     },
-    [root, takenNames, pushCommand]
+    [root, takenNames, pushCommand, t]
   );
 
   const deleteObject = useCallback(
@@ -710,7 +711,7 @@ const Model3DEditor = ({
       if (obj === root) {
         return;
       }
-      const command = removeObject(`Delete ${obj.name || obj.type}`, obj);
+      const command = removeObject(t("i18n-cont-model-editor-11.modelEditor.history.delete", { name: obj.name || obj.type }), obj);
       if (command) {
         pushCommand(command);
       }
@@ -718,7 +719,7 @@ const Model3DEditor = ({
         setSelectedUuid(null);
       }
     },
-    [root, pushCommand]
+    [root, pushCommand, t]
   );
 
   const duplicateObject = useCallback(
@@ -736,11 +737,11 @@ const Model3DEditor = ({
       const children = parent.children;
       children.splice(children.indexOf(copy), 1);
       children.splice(children.indexOf(obj) + 1, 0, copy);
-      pushCommand(addObjectCommand(`Duplicate ${obj.name || obj.type}`, copy, parent));
+      pushCommand(addObjectCommand(t("i18n-cont-model-editor-11.modelEditor.history.duplicate", { name: obj.name || obj.type }), copy, parent));
       setSelectedUuid(copy.uuid);
       return copy;
     },
-    [root, takenNames, pushCommand, stopPreview]
+    [root, takenNames, pushCommand, stopPreview, t]
   );
 
   // --- Import ----------------------------------------------------------------
@@ -764,11 +765,11 @@ const Model3DEditor = ({
         group.position.z += target.z - center.z;
         group.position.y -= box.min.y;
       }
-      pushCommand(addObjectCommand(`Import ${group.name}`, group, root));
+      pushCommand(addObjectCommand(t("i18n-cont-model-editor-11.modelEditor.history.import", { name: group.name }), group, root));
       setSelectedUuid(group.uuid);
       requestCamera({ kind: "focus", uuid: group.uuid });
     },
-    [root, takenNames, pushCommand, requestCamera]
+    [root, takenNames, pushCommand, requestCamera, t]
   );
 
   // Several files import one after another under one overlay, which stays
@@ -782,13 +783,13 @@ const Model3DEditor = ({
         try {
           placeImport(await load());
         } catch (error) {
-          errors.push(error instanceof Error ? error.message : "The model could not be read.");
+          errors.push(error instanceof Error ? error.message : t("i18n-cont-model-editor-11.modelEditor.errors.readModel"));
         }
       }
       setImportError(errors.length > 0 ? errors.join(" ") : null);
       setIsImporting(false);
     },
-    [placeImport]
+    [placeImport, t]
   );
 
   // Files picked with a model that are not models themselves (an .mtl, a
@@ -799,12 +800,12 @@ const Model3DEditor = ({
       const models = all.filter((file) => isModelFileName(file.name));
       const companions = all.filter((file) => !isModelFileName(file.name));
       if (models.length === 0) {
-        setImportError(`Choose a ${MODEL_FORMATS_LABEL} file to add to the scene.`);
+        setImportError(t("i18n-cont-model-editor-11.modelEditor.errors.chooseModelFile", { formats: MODEL_FORMATS_LABEL }));
         return;
       }
       void runImport(models.map((file) => () => importModelFile(file, companions)));
     },
-    [runImport]
+    [runImport, t]
   );
 
   const acceptsDrop = (e: React.DragEvent): boolean =>
@@ -833,7 +834,7 @@ const Model3DEditor = ({
         const asset = dragData.payload;
         const assetUrl = resolveStaticMediaUri(asset.get_url);
         if (!assetUrl || !isModelFileName(asset.name)) {
-          setImportError(`${asset.name} is not a ${MODEL_FORMATS_LABEL} model.`);
+          setImportError(t("i18n-cont-model-editor-11.modelEditor.errors.notModelFile", { name: asset.name, formats: MODEL_FORMATS_LABEL }));
           return;
         }
         void runImport([() => importModelUrl(assetUrl, asset.name)]);
@@ -857,27 +858,27 @@ const Model3DEditor = ({
   const setVisible = useCallback(
     (obj: THREE.Object3D, visible: boolean) =>
       record({
-        label: visible ? "Show" : "Hide",
+        label: t(visible ? "i18n-cont-model-editor-11.modelEditor.actions.show" : "i18n-cont-model-editor-11.modelEditor.actions.hide"),
         get: () => obj.visible,
         set: (v) => {
           obj.visible = v;
         },
         value: visible
       }),
-    [record]
+    [record, t]
   );
 
   const renameObject = useCallback(
     (obj: THREE.Object3D, next: string) =>
       record({
-        label: "Rename",
+        label: t("i18n-cont-model-editor-11.modelEditor.actions.rename"),
         get: () => obj.name,
         set: (v) => {
           obj.name = v;
         },
         value: next
       }),
-    [record]
+    [record, t]
   );
 
   const reparent = useCallback(
@@ -889,7 +890,7 @@ const Model3DEditor = ({
       }
       stopPreview();
       const command = reparentObject(
-        `Parent ${obj.name || obj.type}`,
+        t("i18n-cont-model-editor-11.modelEditor.history.parent", { name: obj.name || obj.type }),
         obj,
         parent,
         parent.children.length
@@ -898,7 +899,7 @@ const Model3DEditor = ({
         pushCommand(command);
       }
     },
-    [root, pushCommand, stopPreview]
+    [root, pushCommand, stopPreview, t]
   );
 
   // --- Selection actions -------------------------------------------------------
@@ -935,11 +936,11 @@ const Model3DEditor = ({
       node.visible = true;
     });
     pushCommand({
-      label: "Show all",
+      label: t("i18n-cont-model-editor-11.modelEditor.actions.showAll"),
       undo: () => hidden.forEach((node) => (node.visible = false)),
       redo: () => hidden.forEach((node) => (node.visible = true))
     });
-  }, [root, pushCommand]);
+  }, [root, pushCommand, t]);
 
   const handleToggleVisible = useCallback(
     (uuid: string) => {
@@ -1031,12 +1032,12 @@ const Model3DEditor = ({
     }
     const after = captureTransform(start.object);
     if (!transformsEqual(start.before, after)) {
-      const verb = gizmoMode === "translate" ? "Move" : gizmoMode === "rotate" ? "Rotate" : "Scale";
+      const verb = t(`i18n-cont-model-editor-11.modelEditor.tools.${gizmoMode}`);
       pushCommand(
-        transformCommand(`${verb} ${start.object.name || start.object.type}`, start.object, start.before, after)
+        transformCommand(t("i18n-cont-model-editor-11.modelEditor.history.transform", { verb, name: start.object.name || start.object.type }), start.object, start.before, after)
       );
     }
-  }, [gizmoMode, pushCommand]);
+  }, [gizmoMode, pushCommand, t]);
 
   const handleSceneClick = useCallback((e: ThreeEvent<MouseEvent>) => {
     // The raycaster hits hidden meshes too. Leave the event to the next hit,
@@ -1113,13 +1114,13 @@ const Model3DEditor = ({
     } catch (error) {
       console.error("[Model3DEditor] Failed to export GLB:", error);
       setSaveError(
-        error instanceof Error ? error.message : "Failed to export model"
+        error instanceof Error ? error.message : t("i18n-cont-model-editor-11.modelEditor.errors.exportModel")
       );
     } finally {
       savingRef.current = false;
       setIsSaving(false);
     }
-  }, [root, onSave, history, stopPreview, animationClips, canSave]);
+  }, [root, onSave, history, stopPreview, animationClips, canSave, t]);
 
   // --- Export ------------------------------------------------------------------
 
@@ -1143,20 +1144,20 @@ const Model3DEditor = ({
         );
       } catch (error) {
         console.error("[Model3DEditor] Export failed:", error);
-        setExportError(error instanceof Error ? error.message : "The model could not be exported.");
+        setExportError(error instanceof Error ? error.message : t("i18n-cont-model-editor-11.modelEditor.errors.exportModel"));
       } finally {
         setIsExporting(false);
       }
     },
-    [root, name, animationClips, stopPreview, canSave, selectedObject]
+    [root, name, animationClips, stopPreview, canSave, selectedObject, t]
   );
   const exportErrorContext = useMemo(
     () => ({
       source: "operation-failure" as const,
-      summary: "3D model failed to export from the 3D editor",
+      summary: t("i18n-cont-model-editor-11.modelEditor.errors.exportContext"),
       errorText: exportError ?? undefined
     }),
-    [exportError]
+    [exportError, t]
   );
 
   const requestClose = useCallback(() => {
@@ -1270,32 +1271,32 @@ const Model3DEditor = ({
       ),
       ...EXPORT_FORMATS.map((info) => ({
         id: `export-${info.format}`,
-        label: `Export scene as ${info.label}`,
+        label: t("i18n-cont-model-editor-11.modelEditor.actions.exportSceneAs", { format: info.label }),
         keywords: ["download", info.format],
         run: () => void exportRef.current(info.format, false)
       }))
     ],
-    []
+    [t]
   );
-  useContextCommands("3D Model", menuCommands, active && !cameraPose);
+  useContextCommands(t("i18n-cont-model-editor-11.modelEditor.title"), menuCommands, active && !cameraPose);
 
   // --- Render ------------------------------------------------------------------------
 
   const statusHint = useMemo(() => {
     if (previewActive) {
-      return "Animation preview · the gizmo is hidden · press stop to return to the rest pose and edit";
+      return t("i18n-cont-model-editor-11.modelEditor.hints.animationPreview");
     }
     if (isDragging) {
       return snapActive
-        ? `Snapping to ${gizmoMode === "rotate" ? `${SNAP.rotateDeg}°` : gizmoMode === "scale" ? SNAP.scale : `${SNAP.translate} units`} · release Ctrl to move freely`
-        : "Hold Ctrl to snap";
+        ? t("i18n-cont-model-editor-11.modelEditor.hints.snapping", { amount: gizmoMode === "rotate" ? `${SNAP.rotateDeg}°` : gizmoMode === "scale" ? SNAP.scale : `${SNAP.translate} units` })
+        : t("i18n-cont-model-editor-11.modelEditor.hints.holdCtrlToSnap");
     }
     if (selectedObject) {
-      const tool = gizmoMode === "translate" ? "Move" : gizmoMode === "rotate" ? "Rotate" : "Scale";
-      return `${tool} (${gizmoSpace}) · drag the gizmo, hold Ctrl to snap · F frame · Ctrl+D duplicate · Del delete`;
+      const tool = t(`i18n-cont-model-editor-11.modelEditor.tools.${gizmoMode}`);
+      return t("i18n-cont-model-editor-11.modelEditor.hints.selected", { tool, space: t(`i18n-cont-model-editor-11.modelEditor.space.${gizmoSpace}`) });
     }
-    return "Click to select · drag to orbit · right-drag to pan · scroll to zoom · press ? for shortcuts";
-  }, [previewActive, isDragging, snapActive, gizmoMode, gizmoSpace, selectedObject]);
+    return t("i18n-cont-model-editor-11.modelEditor.hints.navigation");
+  }, [previewActive, isDragging, snapActive, gizmoMode, gizmoSpace, selectedObject, t]);
 
   const palette = useMemo(
     () => ({
@@ -1330,18 +1331,18 @@ const Model3DEditor = ({
   const loadErrorContext = useMemo(
     () => ({
       source: "operation-failure" as const,
-      summary: "3D model failed to load in the 3D editor",
+      summary: t("i18n-cont-model-editor-11.modelEditor.errors.loadContext"),
       errorText: loadError ?? undefined
     }),
-    [loadError]
+    [loadError, t]
   );
   const saveErrorContext = useMemo(
     () => ({
       source: "operation-failure" as const,
-      summary: "3D model failed to save from the 3D editor",
+      summary: t("i18n-cont-model-editor-11.modelEditor.errors.saveContext"),
       errorText: saveError ?? undefined
     }),
-    [saveError]
+    [saveError, t]
   );
 
   return (
@@ -1355,11 +1356,11 @@ const Model3DEditor = ({
       <FlexRow className="editor-toolbar" fullWidth>
         <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
           <Text size="small" weight={600} className="editor-title" title={name}>
-            {name || "3D Model"}
+            {name || t("i18n-cont-model-editor-11.modelEditor.title")}
           </Text>
           {isDirty && (
-            <Tooltip title="Unsaved changes">
-              <StatusDot tone="warning" label="Unsaved changes" />
+            <Tooltip title={t("i18n-cont-model-editor-11.modelEditor.unsavedChanges")}>
+              <StatusDot tone="warning" label={t("i18n-cont-model-editor-11.modelEditor.unsavedChanges")} />
             </Tooltip>
           )}
         </FlexRow>
@@ -1370,8 +1371,8 @@ const Model3DEditor = ({
           onUndo={undo}
           onRedo={redo}
           size="small"
-          undoTooltip={withShortcut(undoLabel ? `Undo ${undoLabel}` : "Undo", "undo")}
-          redoTooltip={withShortcut(redoLabel ? `Redo ${redoLabel}` : "Redo", "redo")}
+          undoTooltip={withShortcut(undoLabel ? t("i18n-cont-model-editor-11.modelEditor.actions.undoNamed", { label: undoLabel }) : t("i18n-cont-model-editor-11.modelEditor.actions.undo"), "undo")}
+          redoTooltip={withShortcut(redoLabel ? t("i18n-cont-model-editor-11.modelEditor.actions.redoNamed", { label: redoLabel }) : t("i18n-cont-model-editor-11.modelEditor.actions.redo"), "redo")}
         />
         <Divider orientation="vertical" flexItem />
         <ToggleGroup
@@ -1380,18 +1381,18 @@ const Model3DEditor = ({
           value={gizmoMode}
           onChange={(_e, value) => value && setGizmoMode(value as GizmoMode)}
         >
-          <ToggleOption value="translate" size="small" aria-label="Move tool">
-            <Tooltip title={withShortcut("Move", "translate")}>
+          <ToggleOption value="translate" size="small" aria-label={t("i18n-cont-model-editor-11.modelEditor.tools.move")}>
+            <Tooltip title={withShortcut(t("i18n-cont-model-editor-11.modelEditor.tools.move"), "translate")}>
               <OpenWithIcon fontSize="small" />
             </Tooltip>
           </ToggleOption>
-          <ToggleOption value="rotate" size="small" aria-label="Rotate tool">
-            <Tooltip title={withShortcut("Rotate", "rotate")}>
+          <ToggleOption value="rotate" size="small" aria-label={t("i18n-cont-model-editor-11.modelEditor.tools.rotate")}>
+            <Tooltip title={withShortcut(t("i18n-cont-model-editor-11.modelEditor.tools.rotate"), "rotate")}>
               <ThreeDRotationIcon fontSize="small" />
             </Tooltip>
           </ToggleOption>
-          <ToggleOption value="scale" size="small" aria-label="Scale tool">
-            <Tooltip title={withShortcut("Scale", "scale")}>
+          <ToggleOption value="scale" size="small" aria-label={t("i18n-cont-model-editor-11.modelEditor.tools.scale")}>
+            <Tooltip title={withShortcut(t("i18n-cont-model-editor-11.modelEditor.tools.scale"), "scale")}>
               <AspectRatioIcon fontSize="small" />
             </Tooltip>
           </ToggleOption>
@@ -1399,32 +1400,32 @@ const Model3DEditor = ({
         <ToolbarIconButton
           icon={gizmoSpace === "world" ? <PublicIcon fontSize="small" /> : <ControlCameraIcon fontSize="small" />}
           tooltip={withShortcut(
-            gizmoSpace === "world" ? "World space: gizmo follows the scene axes" : "Local space: gizmo follows the object",
+            t(gizmoSpace === "world" ? "i18n-cont-model-editor-11.modelEditor.space.worldTooltip" : "i18n-cont-model-editor-11.modelEditor.space.localTooltip"),
             "toggleSpace"
           )}
           onClick={actions.toggleSpace}
           size="small"
-          ariaLabel={`Transform space: ${gizmoSpace}`}
+          ariaLabel={t("i18n-cont-model-editor-11.modelEditor.space.ariaLabel", { space: t(`i18n-cont-model-editor-11.modelEditor.space.${gizmoSpace}`) })}
         />
         <ToolbarIconButton
           icon={<StraightenIcon fontSize="small" />}
           tooltip={withShortcut(
-            `Snapping ${viewPrefs.snap ? "on" : "off"}: ${SNAP.translate} units, ${SNAP.rotateDeg}°, ${SNAP.scale} scale. Hold Ctrl to invert`,
+            t("i18n-cont-model-editor-11.modelEditor.snap.tooltip", { state: t(viewPrefs.snap ? "i18n-cont-model-editor-11.modelEditor.snap.on" : "i18n-cont-model-editor-11.modelEditor.snap.off"), translate: SNAP.translate, rotate: SNAP.rotateDeg, scale: SNAP.scale }),
             "toggleSnap"
           )}
           onClick={actions.toggleSnap}
           active={viewPrefs.snap}
           size="small"
-          ariaLabel="Toggle snapping"
+          ariaLabel={t("i18n-cont-model-editor-11.modelEditor.snap.toggle")}
         />
         <Divider orientation="vertical" flexItem />
-        <MenuButton label="Add" icon={<AddIcon />} tooltip="Add an object at the view center">
+        <MenuButton label={t("i18n-cont-model-editor-11.modelEditor.actions.add")} icon={<AddIcon />} tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.addTooltip")}>
           {(close) =>
             ADD_MENU_GROUPS.flatMap((group, groupIndex) =>
               group.kinds.map((kind, index) => (
                 <MenuItemPrimitive
                   key={kind}
-                  label={PRIMITIVE_LABELS[kind]}
+                  label={t(`i18n-cont-model-editor-11.modelEditor.primitives.${kind}`)}
                   dividerBefore={groupIndex > 0 && index === 0}
                   icon={
                     group.title === "Light" ? (
@@ -1442,7 +1443,7 @@ const Model3DEditor = ({
             ).concat(
               <MenuItemPrimitive
                 key="import"
-                label="Import model…"
+                label={t("i18n-cont-model-editor-11.modelEditor.actions.importModel")}
                 dividerBefore
                 icon={<FileUploadOutlinedIcon fontSize="small" />}
                 onClick={() => {
@@ -1459,7 +1460,7 @@ const Model3DEditor = ({
           accept={IMPORT_ACCEPT}
           multiple
           hidden
-          aria-label="Import model file"
+          aria-label={t("i18n-cont-model-editor-11.modelEditor.actions.importModelFile")}
           onChange={(e) => {
             if (e.target.files) {
               handleImportFiles(e.target.files);
@@ -1469,7 +1470,7 @@ const Model3DEditor = ({
         />
         <ToolbarIconButton
           icon={<ContentCopyIcon fontSize="small" />}
-          tooltip="Duplicate"
+          tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.duplicate")}
           shortcut={shortcutKeys("duplicate")}
           onClick={handleDuplicate}
           disabled={!selectedObject}
@@ -1477,7 +1478,7 @@ const Model3DEditor = ({
         />
         <ToolbarIconButton
           icon={<DeleteOutlineIcon fontSize="small" />}
-          tooltip="Delete"
+          tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.delete")}
           shortcut={shortcutKeys("delete")}
           onClick={handleDelete}
           disabled={!selectedObject}
@@ -1486,37 +1487,37 @@ const Model3DEditor = ({
         <FlexRow sx={{ marginLeft: "auto" }} gap={SPACING.xs} align="center">
           <ToolbarIconButton
             icon={<KeyboardIcon fontSize="small" />}
-            tooltip="Keyboard shortcuts"
+            tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.shortcuts")}
           shortcut={shortcutKeys("showShortcuts")}
             onClick={actions.showShortcuts}
             size="small"
           />
           <ToolbarIconButton
             icon={<PhotoCameraOutlinedIcon fontSize="small" />}
-            tooltip={showAiRender ? "Hide AI render" : "Render this view with AI"}
+            tooltip={t(showAiRender ? "i18n-cont-model-editor-11.modelEditor.actions.hideAiRender" : "i18n-cont-model-editor-11.modelEditor.actions.renderAi")}
             onClick={toggleAiRender}
             active={showAiRender}
             size="small"
-            ariaLabel="Render with AI"
+            ariaLabel={t("i18n-cont-model-editor-11.modelEditor.actions.renderAi")}
           />
           <ToolbarIconButton
             icon={<AutoAwesomeIcon fontSize="small" />}
-            tooltip={showAssistant ? "Hide assistant" : "Show assistant"}
+            tooltip={t(showAssistant ? "i18n-cont-model-editor-11.modelEditor.actions.hideAssistant" : "i18n-cont-model-editor-11.modelEditor.actions.showAssistant")}
             onClick={toggleAssistant}
             active={showAssistant}
             size="small"
           />
           <MenuButton
-            label="Export"
+            label={t("i18n-cont-model-editor-11.modelEditor.actions.export")}
             icon={<FileDownloadOutlinedIcon />}
-            tooltip="Download the scene or the selected object as a file"
+            tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.exportTooltip")}
           >
             {(close) =>
               [false, true].flatMap((onlySelection) =>
                 EXPORT_FORMATS.map((info, index) => (
                   <MenuItemPrimitive
                     key={`${onlySelection ? "selection" : "scene"}-${info.format}`}
-                    label={`${onlySelection ? "Selection" : "Scene"} as ${info.label}`}
+                    label={t(onlySelection ? "i18n-cont-model-editor-11.modelEditor.actions.exportSelectionAs" : "i18n-cont-model-editor-11.modelEditor.actions.exportSceneAs", { format: info.label })}
                     secondary={info.detail}
                     dividerBefore={onlySelection && index === 0}
                     disabled={isExporting || !canSave || (onlySelection && !selectedObject)}
@@ -1529,7 +1530,7 @@ const Model3DEditor = ({
               )
             }
           </MenuButton>
-          <Tooltip title={withShortcut(isDirty ? "Save changes" : "No unsaved changes", "save")}>
+          <Tooltip title={withShortcut(t(isDirty ? "i18n-cont-model-editor-11.modelEditor.actions.saveChanges" : "i18n-cont-model-editor-11.modelEditor.actions.noUnsavedChanges"), "save")}>
             <span>
               <EditorButton
                 density="compact"
@@ -1538,19 +1539,19 @@ const Model3DEditor = ({
                 onClick={() => void handleSave()}
                 disabled={isSaving || !canSave}
               >
-                {isSaving ? "Saving…" : "Save"}
+                {isSaving ? t("i18n-cont-model-editor-11.modelEditor.loading.saving") : t("i18n-cont-model-editor-11.modelEditor.actions.save")}
               </EditorButton>
             </span>
           </Tooltip>
-          <CloseButton onClick={requestClose} tooltip="Close editor" />
+          <CloseButton onClick={requestClose} tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.close")} />
         </FlexRow>
       </FlexRow>
 
       <FlexRow className="editor-body" fullWidth>
         <FlexColumn className="side-panel left" fullHeight>
           <PanelHeader
-            title="Scene"
-            count={`${stats.objects} ${stats.objects === 1 ? "object" : "objects"}`}
+            title={t("i18n-cont-model-editor-11.modelEditor.scene.title")}
+            count={t("i18n-cont-model-editor-11.modelEditor.scene.objectCount", { count: stats.objects, formattedCount: new Intl.NumberFormat(i18n.language).format(stats.objects) })}
           />
           <div className="panel-body">
             <SceneOutliner
@@ -1585,13 +1586,13 @@ const Model3DEditor = ({
           {importError && (
             <Box className="viewport-banner">
               <AlertBanner severity="warning" compact onClose={() => setImportError(null)}>
-                Import failed: {importError}
+                {t("i18n-cont-model-editor-11.modelEditor.errors.importFailed", { error: importError })}
               </AlertBanner>
             </Box>
           )}
           {dropActive && (
             <FlexColumn className="drop-hint" align="center" justify="center">
-              <Text>Drop a model to add it to the scene</Text>
+              <Text>{t("i18n-cont-model-editor-11.modelEditor.dropModel")}</Text>
             </FlexColumn>
           )}
           {exportError && (
@@ -1602,7 +1603,7 @@ const Model3DEditor = ({
                 onClose={() => setExportError(null)}
                 action={<ReportBugButton context={exportErrorContext} size="small" />}
               >
-                Export failed: {exportError}
+                {t("i18n-cont-model-editor-11.modelEditor.errors.exportFailed", { error: exportError })}
               </AlertBanner>
             </Box>
           )}
@@ -1614,15 +1615,15 @@ const Model3DEditor = ({
                 action={
                   <FlexRow gap={SPACING.xs}>
                     <EditorButton density="compact" variant="text" onClick={onDismissExternal}>
-                      Keep editing
+                      {t("i18n-cont-model-editor-11.modelEditor.actions.keepEditing")}
                     </EditorButton>
                     <EditorButton density="compact" variant="outlined" onClick={onReloadExternal}>
-                      Reload
+                      {t("i18n-cont-model-editor-11.modelEditor.actions.reload")}
                     </EditorButton>
                   </FlexRow>
                 }
               >
-                This model was changed outside the editor. Reload to see that change and lose your unsaved edits, or save to replace it.
+                {t("i18n-cont-model-editor-11.modelEditor.externalChange")}
               </AlertBanner>
             </Box>
           )}
@@ -1634,7 +1635,7 @@ const Model3DEditor = ({
                 onClose={() => setSaveError(null)}
                 action={<ReportBugButton context={saveErrorContext} size="small" />}
               >
-                Save failed: {saveError}
+                {t("i18n-cont-model-editor-11.modelEditor.errors.saveFailed", { error: saveError })}
               </AlertBanner>
             </Box>
           )}
@@ -1642,7 +1643,7 @@ const Model3DEditor = ({
             <FlexColumn fullWidth fullHeight align="center" justify="center" gap={SPACING.md}>
               <EmptyState
                 variant="error"
-                title="This model could not be opened"
+                title={t("i18n-cont-model-editor-11.modelEditor.errors.openTitle")}
                 description={loadError}
               />
               <ReportBugButton context={loadErrorContext} variant="outlined" />
@@ -1756,12 +1757,12 @@ const Model3DEditor = ({
               <LoadingSpinner />
               <Text color="primary">
                 {isSaving
-                  ? "Saving…"
+                  ? t("i18n-cont-model-editor-11.modelEditor.loading.saving")
                   : isImporting
-                    ? "Importing model…"
+                    ? t("i18n-cont-model-editor-11.modelEditor.loading.importing")
                     : isExporting
-                      ? "Exporting…"
-                      : "Loading model…"}
+                      ? t("i18n-cont-model-editor-11.modelEditor.loading.exporting")
+                      : t("i18n-cont-model-editor-11.modelEditor.loading.loading")}
               </Text>
             </FlexColumn>
           )}
@@ -1769,21 +1770,21 @@ const Model3DEditor = ({
 
         <FlexColumn className="side-panel right" fullHeight>
           <PanelHeader
-            title="Inspector"
+            title={t("i18n-cont-model-editor-11.modelEditor.inspector")}
             actions={
               selectedObject && interactive ? (
                 <FlexRow gap={SPACING.xs} align="center">
-                  <Tooltip title={withShortcut("Duplicate the selected object", "duplicate")}>
+                  <Tooltip title={withShortcut(t("i18n-cont-model-editor-11.modelEditor.actions.duplicateSelected"), "duplicate")}>
                     <EditorButton
                       density="compact"
                       variant="text"
                       startIcon={<ContentCopyIcon />}
                       onClick={handleDuplicate}
                     >
-                      Duplicate
+                      {t("i18n-cont-model-editor-11.modelEditor.actions.duplicate")}
                     </EditorButton>
                   </Tooltip>
-                  <Tooltip title={withShortcut("Delete the selected object", "delete")}>
+                  <Tooltip title={withShortcut(t("i18n-cont-model-editor-11.modelEditor.actions.deleteSelected"), "delete")}>
                     <EditorButton
                       density="compact"
                       variant="text"
@@ -1791,7 +1792,7 @@ const Model3DEditor = ({
                       startIcon={<DeleteOutlineIcon />}
                       onClick={handleDelete}
                     >
-                      Delete
+                      {t("i18n-cont-model-editor-11.modelEditor.actions.delete")}
                     </EditorButton>
                   </Tooltip>
                 </FlexRow>
@@ -1806,14 +1807,14 @@ const Model3DEditor = ({
           <ResizableSideDock
             storageKey="model3d_ai_render"
             defaultWidth={ASSISTANT_PANEL_WIDTH}
-            ariaLabel="Resize AI render panel"
+            ariaLabel={t("i18n-cont-model-editor-11.modelEditor.resizeAiPanel")}
           >
             <PanelHeader
-              title="Render with AI"
+              title={t("i18n-cont-model-editor-11.modelEditor.actions.renderAi")}
               icon={<PhotoCameraOutlinedIcon />}
-              description="Turn the current view into a finished image with an image-edit model"
+              description={t("i18n-cont-model-editor-11.modelEditor.aiDescription")}
               onClose={toggleAiRender}
-              closeLabel="Hide AI render"
+              closeLabel={t("i18n-cont-model-editor-11.modelEditor.actions.hideAiRender")}
             />
             <div className="panel-body">
               <AiRenderPanel capture={captureForAi} />
@@ -1827,13 +1828,13 @@ const Model3DEditor = ({
           <ResizableSideDock
             storageKey="model3d_assistant"
             defaultWidth={ASSISTANT_PANEL_WIDTH}
-            ariaLabel="Resize 3D assistant"
+            ariaLabel={t("i18n-cont-model-editor-11.modelEditor.resizeAssistant")}
           >
             <PanelHeader
-              title="Assistant"
+              title={t("i18n-cont-model-editor-11.modelEditor.assistant")}
               icon={<AutoAwesomeIcon />}
               onClose={() => toggleAssistant()}
-              closeLabel="Hide assistant"
+              closeLabel={t("i18n-cont-model-editor-11.modelEditor.actions.hideAssistant")}
             />
             <div className="panel-body">
               <Model3DChatPanel />
@@ -1868,10 +1869,10 @@ const Model3DEditor = ({
           setConfirmCloseOpen(false);
           onClose();
         }}
-        title="Discard unsaved changes?"
-        content="Closing the editor now loses the edits made since the last save."
-        confirmText="Discard and close"
-        cancelText="Keep editing"
+        title={t("i18n-cont-model-editor-11.modelEditor.closeConfirm.title")}
+        content={t("i18n-cont-model-editor-11.modelEditor.closeConfirm.content")}
+        confirmText={t("i18n-cont-model-editor-11.modelEditor.closeConfirm.discard")}
+        cancelText={t("i18n-cont-model-editor-11.modelEditor.actions.keepEditing")}
       />
     </FlexColumn>
   );

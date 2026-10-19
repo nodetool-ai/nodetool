@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import type { Workflow } from "../../stores/ApiTypes";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import { formatGenericProviderName, isLocalProvider } from "../../utils/providerDisplay";
@@ -17,6 +18,16 @@ interface ModelRequirement {
   selected: boolean;
 }
 
+type CompatibilityUnknown =
+  | "noInputsDeclared"
+  | "inputRequirementsUnknown"
+  | "requiredInputsUnknown"
+  | "providerModelRequirementsUnknown"
+  | "noModelSelected"
+  | "providerUndeclared"
+  | "credentialRequirementsUndeclared"
+  | "runtimeRequirementsUnknown";
+
 export interface EntryCompatibility {
   inputs: Array<{ name: string; required: boolean | null }>;
   providers: string[];
@@ -24,8 +35,8 @@ export interface EntryCompatibility {
   compatibleModels: ModelRequirement[];
   requiredSettings: string[];
   requiredRuntimes: string[];
-  executionLocation: string;
-  unknowns: string[];
+  executionLocation: "localAndProviderHosted" | "local" | "providerHosted" | "unknown";
+  unknowns: CompatibilityUnknown[];
 }
 
 const unique = (values: string[]): string[] => [...new Set(values)];
@@ -142,20 +153,15 @@ const inputNamesFromGraph = (
   return names;
 };
 
-const formatRequiredModel = (model: ModelRequirement): string => {
-  const provider = model.provider
-    ? formatGenericProviderName(model.provider)
-    : "Unknown provider";
-  return `${provider} / ${model.id}`;
-};
-
-const executionLocation = (providers: string[]): string => {
+const executionLocation = (
+  providers: string[]
+): EntryCompatibility["executionLocation"] => {
   const local = providers.some((provider) => isLocalProvider(provider));
   const remote = providers.some((provider) => !isLocalProvider(provider));
-  if (local && remote) return "Local and provider-hosted";
-  if (local) return "Local";
-  if (remote) return "Provider-hosted";
-  return "Unknown — execution location is not declared";
+  if (local && remote) return "localAndProviderHosted";
+  if (local) return "local";
+  if (remote) return "providerHosted";
+  return "unknown";
 };
 
 export const getWorkflowCompatibility = (
@@ -236,29 +242,29 @@ const getCompatibility = (
     ...selectedModels.flatMap((model) => (model.provider ? [model.provider] : [])),
     ...compatibleModels.flatMap((model) => (model.provider ? [model.provider] : []))
   ]);
-  const unknowns: string[] = [];
+  const unknowns: CompatibilityUnknown[] = [];
   if (!inputs.length) {
     unknowns.push(
       workflows.some((workflow) => workflow.graph)
-        ? "No inputs are declared"
-        : "Input requirements are unknown"
+        ? "noInputsDeclared"
+        : "inputRequirementsUnknown"
     );
   } else if (inputs.some((input) => input.required === null)) {
-    unknowns.push("Which inputs are required is unknown");
+    unknowns.push("requiredInputsUnknown");
   }
   if (!selectedModels.length && !compatibleModels.length) {
-    unknowns.push("Provider/model requirements are unknown");
+    unknowns.push("providerModelRequirementsUnknown");
   } else if (!selectedModels.length) {
-    unknowns.push("No model is selected; compatible options are shown only as guidance");
+    unknowns.push("noModelSelected");
   }
   if (uniqueProviders.some((provider) => !provider.trim())) {
-    unknowns.push("A provider is not declared for one or more models");
+    unknowns.push("providerUndeclared");
   }
   if (uniqueProviders.some((provider) => !isLocalProvider(provider)) && !requiredSettings.length) {
-    unknowns.push("Credential requirements are not declared");
+    unknowns.push("credentialRequirementsUndeclared");
   }
   if (missingMetadata && !requiredRuntimes.length) {
-    unknowns.push("Runtime requirements are unknown for some nodes");
+    unknowns.push("runtimeRequirementsUnknown");
   }
 
   return {
@@ -280,41 +286,71 @@ interface CompatibilityDetailsProps {
 export const CompatibilityDetails = ({
   compatibility
 }: CompatibilityDetailsProps): ReactNode => {
+  const { t } = useTranslation();
+  const translateModel = (model: ModelRequirement): string => {
+    const provider = model.provider
+      ? formatGenericProviderName(model.provider)
+      : t("pass3_19.portal.compatibility.unknownProvider");
+    return `${provider} / ${model.id}`;
+  };
+  const locationLabels: Record<EntryCompatibility["executionLocation"], string> = {
+    localAndProviderHosted: t("pass3_19.portal.compatibility.execution.localAndProviderHosted"),
+    local: t("pass3_19.portal.compatibility.execution.local"),
+    providerHosted: t("pass3_19.portal.compatibility.execution.providerHosted"),
+    unknown: t("pass3_19.portal.compatibility.execution.unknown")
+  };
   const inputLabel = compatibility.inputs.length
     ? compatibility.inputs
         .map((input) =>
           input.required === true
-            ? `${input.name} (required)`
+            ? t("pass3_19.portal.compatibility.inputs.required", { name: input.name })
             : input.required === false
-              ? `${input.name} (optional)`
-              : `${input.name} (requirement unknown)`
+              ? t("pass3_19.portal.compatibility.inputs.optional", { name: input.name })
+              : t("pass3_19.portal.compatibility.inputs.requirementUnknown", {
+                  name: input.name
+                })
         )
         .join(", ")
-    : "None declared";
+    : t("pass3_19.portal.compatibility.inputs.noneDeclared");
   const providerModelLabel = compatibility.selectedModels.length
-    ? compatibility.selectedModels.map(formatRequiredModel).join(", ")
+    ? compatibility.selectedModels.map(translateModel).join(", ")
     : compatibility.compatibleModels.length
-      ? `${compatibility.compatibleModels.map(formatRequiredModel).join(", ")} (not selected)`
+      ? t("pass3_19.portal.compatibility.models.notSelected", {
+          models: compatibility.compatibleModels.map(translateModel).join(", ")
+        })
       : compatibility.providers.length
         ? compatibility.providers.map(formatGenericProviderName).join(", ")
         : null;
 
   const details = [
-    `Inputs: ${inputLabel}`,
-    providerModelLabel ? `Provider/model: ${providerModelLabel}` : null,
-    compatibility.executionLocation.startsWith("Unknown")
+    t("pass3_19.portal.compatibility.details.inputs", { value: inputLabel }),
+    providerModelLabel
+      ? t("pass3_19.portal.compatibility.details.providerModel", {
+          value: providerModelLabel
+        })
+      : null,
+    compatibility.executionLocation === "unknown"
       ? null
-      : `Execution: ${compatibility.executionLocation}`,
+      : t("pass3_19.portal.compatibility.details.execution", {
+          value: locationLabels[compatibility.executionLocation]
+        }),
     compatibility.requiredSettings.length > 0
-      ? `Required setup: ${compatibility.requiredSettings.join(", ")}`
+      ? t("pass3_19.portal.compatibility.details.requiredSetup", {
+          value: compatibility.requiredSettings.join(", ")
+        })
       : null,
     compatibility.requiredRuntimes.length > 0
-      ? `Runtime: ${compatibility.requiredRuntimes.join(", ")}`
+      ? t("pass3_19.portal.compatibility.details.runtime", {
+          value: compatibility.requiredRuntimes.join(", ")
+        })
       : null
   ].filter((detail): detail is string => detail !== null);
 
   return (
-    <span className="entry-compat" aria-label="Compatibility details">
+    <span
+      className="entry-compat"
+      aria-label={t("pass3_19.portal.compatibility.ariaLabel")}
+    >
       {details.map((detail) => (
         <span key={detail}>{detail}</span>
       ))}

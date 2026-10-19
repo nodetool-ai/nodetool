@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useMemo, useState, useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useNavigate } from "react-router-dom";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
@@ -52,13 +53,8 @@ const containerStyles = (theme: Theme) =>
 
 const SEVERITIES: Severity[] = ["info", "warning", "error"];
 
-const SEVERITY_LABELS = {
-  info: "Info",
-  warning: "Warn",
-  error: "Error"
-} satisfies Record<Severity, string>;
-
 const LogPanel: React.FC = memo(function LogPanel() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const navigate = useNavigate();
   const rootStyles = useMemo(() => containerStyles(theme), [theme]);
@@ -195,7 +191,7 @@ const LogPanel: React.FC = memo(function LogPanel() {
       className={isFullscreen ? "fullscreen" : undefined}
     >
       <PanelHeader
-        title="Logs"
+        title={t("i18n-next31.logs.title")}
         count={filteredRows.length}
         actions={
           <ToolbarIconButton
@@ -206,9 +202,9 @@ const LogPanel: React.FC = memo(function LogPanel() {
                 <FullscreenIcon fontSize="small" />
               )
             }
-            tooltip={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            tooltip={isFullscreen ? t("i18n-next31.logs.exitFullscreen") : t("i18n-next31.logs.fullscreen")}
             onClick={handleFullscreenToggle}
-            ariaLabel="Toggle fullscreen"
+            ariaLabel={t("i18n-next31.logs.toggleFullscreen")}
           />
         }
       >
@@ -216,24 +212,24 @@ const LogPanel: React.FC = memo(function LogPanel() {
           value={selectedSeverities}
           onChange={handleSeverityChange}
           compact
-          aria-label="Filter by severity"
+          aria-label={t("i18n-next31.logs.filterSeverity")}
         >
           {SEVERITIES.map((s) => (
             <ToggleOption key={s} value={s} aria-label={s}>
-              {SEVERITY_LABELS[s]}
+              {t(`i18n-next31.logs.severity.${s}`)}
             </ToggleOption>
           ))}
         </ToggleGroup>
         {filter?.nodeId && filteredNodeName ? (
           <Tooltip
-            title={filter.jobId ? `Run ${filter.jobId}` : ""}
+            title={filter.jobId ? t("i18n-next31.logs.runId", { id: filter.jobId }) : ""}
             disabled={!filter.jobId}
             describeChild
           >
             <Chip
               compact
               color="info"
-              label={`Node: ${filteredNodeName}`}
+              label={t("i18n-next31.logs.nodeLabel", { name: filteredNodeName })}
               onDelete={clearFilter}
             />
           </Tooltip>

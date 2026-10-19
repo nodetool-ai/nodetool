@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -67,6 +68,7 @@ const WaveformSelectorInner: React.FC<WaveformSelectorProps> = ({
   accentColor,
   onChange
 }) => {
+  const { t } = useTranslation();
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       onChange(e.currentTarget.value);
@@ -75,17 +77,24 @@ const WaveformSelectorInner: React.FC<WaveformSelectorProps> = ({
   );
 
   return (
-    <div className="waveform-row nodrag" role="group" aria-label="Waveform">
+    <div
+      className="waveform-row nodrag"
+      role="group"
+      aria-label={t("i18n-next64.synth.waveformSelector.waveform")}
+    >
       {options.map((w) => {
         const active = w === value;
+        const label = t(`i18n-next64.synth.waveformSelector.options.${w}`, {
+          defaultValue: w
+        });
         return (
-          <Tooltip title={w} key={w} describeChild>
+          <Tooltip title={label} key={w} describeChild>
             <button
               type="button"
               value={w}
               className={`waveform-btn${active ? " active" : ""}`}
               aria-pressed={active}
-              aria-label={w}
+              aria-label={label}
               onClick={handleClick}
             >
               <svg

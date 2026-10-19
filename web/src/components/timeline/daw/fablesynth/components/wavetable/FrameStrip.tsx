@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { setupCanvas } from '../displays/canvas';
 import { framePoints } from './frames';
 import { MAX_FRAMES } from '../../engine/usertables';
@@ -32,6 +33,7 @@ export function FrameStrip({ frames, current, accent, readOnly, onSelect, onAdd,
   onSelect: (i: number) => void; onAdd: () => void; onDelete: (i: number) => void;
   onReorder: (from: number, to: number) => void;
 }) {
+  const { t } = useTranslation();
   const rowRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<number | null>(null);
 
@@ -47,7 +49,7 @@ export function FrameStrip({ frames, current, accent, readOnly, onSelect, onAdd,
 
   return (
     <div className="wte-frames">
-      <span className="wte-frames-label">FRAMES</span>
+      <span className="wte-frames-label">{t('i18n-next45-fablesynth-effects.wavetable.frames')}</span>
       <div className="wte-frames-row" ref={rowRef}>
         {frames.map((fr, i) => (
           <div
@@ -59,12 +61,12 @@ export function FrameStrip({ frames, current, accent, readOnly, onSelect, onAdd,
           >
             <FrameThumb frame={fr} accent={accent} on={i === current} />
             {i === current && !readOnly && frames.length > 1 ? (
-              <button className="wte-frame-x" aria-label="delete frame" onPointerDown={(e) => e.stopPropagation()} onClick={() => onDelete(i)}>✕</button>
+              <button className="wte-frame-x" aria-label={t('i18n-next45-fablesynth-effects.wavetable.deleteFrame')} onPointerDown={(e) => e.stopPropagation()} onClick={() => onDelete(i)}>✕</button>
             ) : null}
           </div>
         ))}
         {!readOnly && frames.length < MAX_FRAMES
-          ? <button className="wte-frame-add" aria-label="add frame" onClick={onAdd}>＋</button> : null}
+          ? <button className="wte-frame-add" aria-label={t('i18n-next45-fablesynth-effects.wavetable.addFrame')} onClick={onAdd}>＋</button> : null}
       </div>
       <span className="wte-frames-count">{frames.length}f</span>
     </div>

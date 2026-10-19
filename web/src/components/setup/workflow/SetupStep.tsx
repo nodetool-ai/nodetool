@@ -15,6 +15,7 @@
  */
 
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { WorkflowSetupPlan } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import type { WorkflowSetupRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
@@ -59,18 +60,18 @@ import { MODEL_ROLE_LABEL, MODEL_ROLE_ONBOARDING } from "./modelRoles";
 export const RUN_MODE_CARDS = [
   {
     id: "manual",
-    title: "Run by hand",
-    description: "After the test run, you open it and press run."
+    titleKey: "runModes.manual.title",
+    descriptionKey: "runModes.manual.description"
   },
   {
     id: "app",
-    title: "App with a form",
-    description: "After the test run, put a shareable form over the inputs."
+    titleKey: "runModes.app.title",
+    descriptionKey: "runModes.app.description"
   },
   {
     id: "trigger",
-    title: "On a trigger",
-    description: "After the test run, a schedule or a webhook starts it."
+    titleKey: "runModes.trigger.title",
+    descriptionKey: "runModes.trigger.description"
   }
 ] as const;
 
@@ -129,11 +130,19 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
   onRunModeChange,
   onSampleChange
 }) => {
-  const runModeOptions = useMemo(() => [...RUN_MODE_CARDS], []);
+  const { t } = useTranslation();
+  const runModeOptions = useMemo(
+    () =>
+      RUN_MODE_CARDS.map((mode) => ({
+        id: mode.id,
+        title: t(`pass3_15.setupStep.${mode.titleKey}`),
+        description: t(`pass3_15.setupStep.${mode.descriptionKey}`)
+      })),
+    [t]
+  );
   // A media input takes an upload, so only typed values get a sample field.
   const sampleInputs = useMemo(
-    () =>
-      plan.inputs.filter((input) => SAMPLE_INPUT_TYPES.has(input.type)),
+    () => plan.inputs.filter((input) => SAMPLE_INPUT_TYPES.has(input.type)),
     [plan.inputs]
   );
 
@@ -141,10 +150,10 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
     <FlexColumn gap={GAP.spacious}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Models and how it runs
+          {t("pass3_15.setupStep.title")}
         </Text>
         <Text size="normal" color="secondary">
-          Pick what each step runs on, and how you want to start it.
+          {t("pass3_15.setupStep.description")}
         </Text>
       </FlexColumn>
 
@@ -153,11 +162,11 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
       ))}
 
       <FormField
-        label="How it runs"
-        helperText="Building runs it once with the sample inputs. This is how you start it after that."
+        label={t("pass3_15.setupStep.runMode.label")}
+        helperText={t("pass3_15.setupStep.runMode.helper")}
       >
         <OptionCardGrid
-          label="Run mode"
+          label={t("pass3_15.setupStep.runMode.accessibleLabel")}
           options={runModeOptions}
           selectedId={runMode}
           onSelect={(id) => onRunModeChange(id as WorkflowSetupRunMode)}
@@ -165,9 +174,9 @@ const SetupStepInternal: React.FC<WorkflowSetupStepProps> = ({
       </FormField>
 
       {sampleInputs.length > 0 ? (
-        <FormSection label="Sample inputs">
+        <FormSection label={t("pass3_15.setupStep.sampleInputs.title")}>
           <Caption color="secondary" component="p">
-            The values the test run uses. Change them to something of yours.
+            {t("pass3_15.setupStep.sampleInputs.description")}
           </Caption>
           {sampleInputs.map((input) => (
             <TextInput
@@ -201,10 +210,13 @@ const BuildDisclosure: React.FC<{
   hasSamples: boolean;
   roles: readonly ModelRoleChoices[];
 }> = ({ hasSamples, roles }) => {
+  const { t } = useTranslation();
   const chosen = roles
     .map((role) => {
       const tile = role.tiles.find((option) => option.id === role.selectedId);
-      return tile ? `${MODEL_ROLE_LABEL[role.role] ?? role.role}: ${tile.title}` : null;
+      return tile
+        ? `${t(`pass3_15.setupStep.modelRoles.${role.role}`, { defaultValue: MODEL_ROLE_LABEL[role.role] ?? role.role })}: ${tile.title}`
+        : null;
     })
     .filter((entry): entry is string => entry !== null);
 
@@ -212,7 +224,7 @@ const BuildDisclosure: React.FC<{
     <FlexColumn
       gap={GAP.tight}
       role="region"
-      aria-label="Before you build"
+      aria-label={t("pass3_15.setupStep.buildDisclosure.regionLabel")}
       sx={{
         borderTop: "1px solid",
         borderColor: "divider",
@@ -220,21 +232,22 @@ const BuildDisclosure: React.FC<{
       }}
     >
       <Text size="normal" weight={500}>
-        Build places the nodes and then runs it once
+        {t("pass3_15.setupStep.buildDisclosure.title")}
       </Text>
       <Text size="small" color="secondary">
         {hasSamples
-          ? "The graph is checked, and if it passes it runs once with the sample inputs above. That run calls the models below and can cost provider rates."
-          : "The graph is checked, and if it passes it runs once. That run calls the models below and can cost provider rates."}
+          ? t("pass3_15.setupStep.buildDisclosure.withSamples")
+          : t("pass3_15.setupStep.buildDisclosure.withoutSamples")}
       </Text>
       <Text size="small">
         {chosen.length > 0
-          ? `Runs on ${chosen.join(" · ")}`
-          : "This plan needs no model of its own."}
+          ? t("pass3_15.setupStep.buildDisclosure.runsOn", {
+              models: chosen.join(" · ")
+            })
+          : t("pass3_15.setupStep.buildDisclosure.noModel")}
       </Text>
       <Caption color="secondary">
-        Cost is unknown until the run returns — it depends on what each step
-        sends. Nothing runs a second time on its own.
+        {t("pass3_15.setupStep.buildDisclosure.costNote")}
       </Caption>
     </FlexColumn>
   );
@@ -242,10 +255,14 @@ const BuildDisclosure: React.FC<{
 
 /** One role's tile row, with the four states a model query can be in (F14). */
 const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
-  const label = MODEL_ROLE_LABEL[role.role] ?? role.role;
+  const { t } = useTranslation();
+  const label = t(`pass3_15.setupStep.modelRoles.${role.role}`, {
+    defaultValue: MODEL_ROLE_LABEL[role.role] ?? role.role
+  });
   const selection = role.selectedId?.split(":") ?? [];
   const selectedProvider = selection.length > 1 ? selection[0] : undefined;
-  const selectedModel = selection.length > 1 ? selection.slice(1).join(":") : "";
+  const selectedModel =
+    selection.length > 1 ? selection.slice(1).join(":") : "";
   const handleLanguageChange = (model: LanguageModelValue) =>
     role.onSelect(`${model.provider}:${model.id}`);
   const handleImageChange = (model: ImageModelValue) =>
@@ -276,7 +293,7 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
         <FlexRow gap={GAP.normal} align="center">
           <LoadingSpinner size="small" />
           <Caption color="secondary" component="span">
-            {`Reading the ${role.role} models your providers offer…`}
+            {t("pass3_15.setupStep.modelStatus.loading", { role: label })}
           </Caption>
         </FlexRow>
       ) : role.status === "error" ? (
@@ -285,14 +302,19 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
           action={
             <FlexRow gap={GAP.tight} align="center">
               <EditorButton variant="text" onClick={role.onRetry}>
-                Try again
+                {t("pass3_15.setupStep.actions.retry")}
               </EditorButton>
               <ReportBugButton
                 context={{
                   source: "operation-failure",
-                  summary: `Reading the ${role.role} models failed`,
+                  summary: t("pass3_15.setupStep.modelStatus.reportSummary", {
+                    role: label
+                  }),
                   errorText:
-                    role.errorMessage ?? `Could not read the ${role.role} models.`
+                    role.errorMessage ??
+                    t("pass3_15.setupStep.modelStatus.readError", {
+                      role: label
+                    })
                 }}
               />
             </FlexRow>
@@ -300,8 +322,11 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
         >
           <Caption component="span">
             {role.errorMessage
-              ? `Could not read the ${role.role} models: ${role.errorMessage}`
-              : `Could not read the ${role.role} models.`}
+              ? t("pass3_15.setupStep.modelStatus.readErrorWithDetail", {
+                  role: label,
+                  detail: role.errorMessage
+                })
+              : t("pass3_15.setupStep.modelStatus.readError", { role: label })}
           </Caption>
         </AlertBanner>
       ) : role.status === "empty" ? (
@@ -313,16 +338,18 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
               onClick={() =>
                 openProviderOnboarding({
                   capability: MODEL_ROLE_ONBOARDING[role.role],
-                  reason: `This workflow needs a ${role.role} model.`
+                  reason: t("pass3_15.setupStep.modelStatus.providerReason", {
+                    role: label
+                  })
                 })
               }
             >
-              Connect
+              {t("pass3_15.setupStep.actions.connect")}
             </EditorButton>
           }
         >
           <Caption component="span">
-            {`No connected provider offers a ${role.role} model.`}
+            {t("pass3_15.setupStep.modelStatus.noProvider", { role: label })}
           </Caption>
         </AlertBanner>
       ) : (
@@ -330,7 +357,10 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
           {role.unavailableSelection ? (
             <AlertBanner severity="warning">
               <Caption component="span">
-                {`"${role.unavailableSelection}" is not offered any more. Pick another ${role.role} model.`}
+                {t("pass3_15.setupStep.modelStatus.unavailable", {
+                  model: role.unavailableSelection,
+                  role: label
+                })}
               </Caption>
             </AlertBanner>
           ) : null}
@@ -338,7 +368,10 @@ const ModelRoleRow: React.FC<{ role: ModelRoleChoices }> = ({ role }) => {
             <LanguageModelSelect
               value={selectedModel}
               provider={selectedProvider}
-              placeholder={`Select ${label.toLowerCase()}`}
+              placeholder={t(
+                "pass3_15.setupStep.modelStatus.selectPlaceholder",
+                { role: label.toLowerCase() }
+              )}
               onChange={handleLanguageChange}
             />
           ) : role.role === "image" ? (

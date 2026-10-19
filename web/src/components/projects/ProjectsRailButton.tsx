@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Box, ToolbarIconButton, Tooltip } from "../ui_primitives";
 import type { TooltipProps } from "../ui_primitives";
@@ -41,6 +42,7 @@ const ProjectsRailButton = ({
   onSelect?: () => void;
   tooltipPlacement?: TooltipProps["placement"];
 }) => {
+  const { t } = useTranslation();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const onProjectSurface = useWorkspaceTabsStore((state) => {
     const active = state.tabs.find((tab) => tab.id === state.activeTabId);
@@ -52,16 +54,16 @@ const ProjectsRailButton = ({
       type: "project-list",
       ref: PROJECT_LIST_REF,
       mode: "view",
-      title: "Projects"
+      title: t("pass3_34.projects.rail.projects")
     });
     onSelect?.();
-  }, [openTab, onSelect]);
+  }, [openTab, onSelect, t]);
 
   return (
-    <Tooltip title="Projects" placement={tooltipPlacement}>
+    <Tooltip title={t("pass3_34.projects.rail.projects")} placement={tooltipPlacement}>
       <ToolbarIconButton
         tabIndex={-1}
-        ariaLabel="Projects"
+        ariaLabel={t("pass3_34.projects.rail.projects")}
         className={onProjectSurface ? "active" : ""}
         onClick={handleClick}
         icon={<ProjectsIcon active={onProjectSurface} />}

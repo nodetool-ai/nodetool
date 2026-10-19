@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -91,6 +92,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
   onChange,
   currentColor
 }) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const builderStyles = useMemo(() => styles(theme), [theme]);
   const [selectedStopIndex, setSelectedStopIndex] = useState<number | null>(0);
@@ -302,14 +304,16 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           }
         }}
       >
-        <ToggleOption value="linear">Linear</ToggleOption>
-        <ToggleOption value="radial">Radial</ToggleOption>
+        <ToggleOption value="linear">{t("i18n-cont-color-07.gradient.linear")}</ToggleOption>
+        <ToggleOption value="radial">{t("i18n-cont-color-07.gradient.radial")}</ToggleOption>
       </ToggleGroup>
 
       {gradient.type === "linear" && (
         <FlexRow align="center" gap={1}>
           <Caption sx={{ minWidth: "50px" }}>
-            Angle: {gradient.angle}°
+            {t("i18n-cont-color-07.gradient.angle", {
+              angle: new Intl.NumberFormat(i18n.language).format(gradient.angle)
+            })}
           </Caption>
           <NodeSlider
             value={gradient.angle ?? 90}
@@ -324,7 +328,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
 
       <div>
         <Caption color="secondary">
-          Color stops
+          {t("i18n-cont-color-07.gradient.colorStops")}
         </Caption>
         <div className="stops-container" style={{ background: cssOutput }}>
           {gradient.stops.map((stop, index) => (
@@ -350,14 +354,14 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         <FlexRow align="center" gap={1} wrap>
           <TextInput
             size="small"
-            label="Color"
+            label={t("i18n-cont-color-07.gradient.color")}
             value={selectedStop.color}
             onChange={handleStopColorInputChange}
             sx={{ width: "100px" }}
           />
           <NumberField
             size="small"
-            label="Position"
+            label={t("i18n-cont-color-07.gradient.position")}
             value={selectedStop.position}
             onChange={handleStopPositionInputChange}
             min={0}
@@ -365,19 +369,19 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
             unit="%"
             sx={{ width: "80px" }}
           />
-          <Tooltip title="Use current color">
+          <Tooltip title={t("i18n-cont-color-07.gradient.useCurrentColor")}>
             <EditorButton
               variant="outlined"
               data-stop-index={selectedStopIndex}
               onClick={handleApplyColorButtonClick}
               sx={{ minWidth: "auto", px: 1 }}
             >
-              Apply
+              {t("i18n-cont-color-07.gradient.apply")}
             </EditorButton>
           </Tooltip>
           <DeleteButton
             onClick={handleRemoveStopButtonClick}
-            tooltip="Delete stop"
+            tooltip={t("i18n-cont-color-07.gradient.deleteStop")}
             disabled={gradient.stops.length <= 2}
             nodrag={false}
           />
@@ -390,14 +394,14 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           onClick={addStop}
           variant="outlined"
         >
-          Add stop
+          {t("i18n-cont-color-07.gradient.addStop")}
         </EditorButton>
         <EditorButton
           startIcon={copied ? <CheckIcon /> : <ContentCopyIcon />}
           onClick={copyToClipboard}
           variant="outlined"
         >
-          {copied ? "Copied!" : "Copy CSS"}
+          {copied ? t("i18n-cont-color-07.gradient.copied") : t("i18n-cont-color-07.gradient.copyCss")}
         </EditorButton>
       </FlexRow>
 

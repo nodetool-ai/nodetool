@@ -25,6 +25,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -219,6 +220,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -469,7 +471,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
             crossOrigin="anonymous"
             muted={muted}
             playsInline
-            aria-label="Video frame preview"
+            aria-label={t("i18n-next46.extractVideoFrame.videoPreview")}
             onLoadedMetadata={handleLoadedMetadata}
             onTimeUpdate={handleTimeUpdate}
             onPlay={handlePlay}
@@ -478,7 +480,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
           />
         ) : (
           <CheckerDropzone
-            message="Connect a video"
+            message={t("i18n-next46.extractVideoFrame.connectVideo")}
             icon={<MovieIcon />}
           />
         )}
@@ -493,7 +495,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
         onChange={handleScrub}
         onChangeCommitted={commitCurrent}
         disabled={!videoSrc}
-        aria-label="Seek video"
+        aria-label={t("i18n-next46.extractVideoFrame.seekVideo")}
       />
 
       <div className="transport">
@@ -503,22 +505,22 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
         <div className="transport-buttons">
           <ToolbarIconButton
             icon={<SkipPreviousIcon />}
-            tooltip="Previous frame"
-            ariaLabel="Previous frame"
+            tooltip={t("i18n-next46.extractVideoFrame.previousFrame")}
+            ariaLabel={t("i18n-next46.extractVideoFrame.previousFrame")}
             disabled={!videoSrc}
             onClick={() => stepFrame(-1)}
           />
           <ToolbarIconButton
             icon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-            tooltip={isPlaying ? "Pause" : "Play"}
-            ariaLabel={isPlaying ? "Pause" : "Play"}
+            tooltip={isPlaying ? t("i18n-next46.extractVideoFrame.pause") : t("i18n-next46.extractVideoFrame.play")}
+            ariaLabel={isPlaying ? t("i18n-next46.extractVideoFrame.pause") : t("i18n-next46.extractVideoFrame.play")}
             disabled={!videoSrc}
             onClick={handleTogglePlay}
           />
           <ToolbarIconButton
             icon={<SkipNextIcon />}
-            tooltip="Next frame"
-            ariaLabel="Next frame"
+            tooltip={t("i18n-next46.extractVideoFrame.nextFrame")}
+            ariaLabel={t("i18n-next46.extractVideoFrame.nextFrame")}
             disabled={!videoSrc}
             onClick={() => stepFrame(1)}
           />
@@ -526,15 +528,15 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
         <div className="transport-actions">
           <ToolbarIconButton
             icon={muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-            tooltip={muted ? "Unmute" : "Mute"}
-            ariaLabel={muted ? "Unmute" : "Mute"}
+            tooltip={muted ? t("i18n-next46.extractVideoFrame.unmute") : t("i18n-next46.extractVideoFrame.mute")}
+            ariaLabel={muted ? t("i18n-next46.extractVideoFrame.unmute") : t("i18n-next46.extractVideoFrame.mute")}
             disabled={!videoSrc}
             onClick={handleToggleMute}
           />
           <ToolbarIconButton
             icon={<DownloadIcon />}
-            tooltip="Download frame"
-            ariaLabel="Download frame"
+            tooltip={t("i18n-next46.extractVideoFrame.downloadFrame")}
+            ariaLabel={t("i18n-next46.extractVideoFrame.downloadFrame")}
             disabled={!videoSrc}
             onClick={handleDownloadFrame}
           />
@@ -543,13 +545,13 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
 
       <div className="footer">
         <div className="field">
-          <span className="field-label">Frame</span>
+          <span className="field-label">{t("i18n-next46.extractVideoFrame.frame")}</span>
           <div className="frame-field">
             <NumberInput
               id={`extract-frame-${id}`}
               nodeId={id}
               name="frame"
-              description="Frame to extract"
+              description={t("i18n-next46.extractVideoFrame.frameDescription")}
               value={frame}
               onChange={(_, v) => handleFrameChange(Math.round(v))}
               onChangeComplete={commitCurrent}
@@ -562,7 +564,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
           </div>
         </div>
         <div className="field">
-          <span className="field-label">Timecode</span>
+          <span className="field-label">{t("i18n-next46.extractVideoFrame.timecode")}</span>
           <span className="timecode-readout">
             {formatTimecode(currentTime, fps)}
           </span>

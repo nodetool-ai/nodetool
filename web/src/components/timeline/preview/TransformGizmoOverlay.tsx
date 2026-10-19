@@ -20,6 +20,7 @@
  */
 
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import type { ClipCrop, ClipTransform } from "@nodetool-ai/timeline";
 
@@ -307,6 +308,7 @@ export function TransformGizmoOverlay({
   onDragStart,
   onDragEnd
 }: TransformGizmoOverlayProps): React.ReactElement | null {
+  const { t } = useTranslation();
   const dragRef = useRef<DragSession | null>(null);
   // Frame rect at gesture start. The frame cannot move while a drag holds
   // pointer capture, so caching it here avoids a `getBoundingClientRect`
@@ -747,7 +749,7 @@ export function TransformGizmoOverlay({
       data-testid="timeline-transform-gizmo"
       tabIndex={0}
       role="group"
-      aria-label="Transform handles: arrow keys move the clip (Shift for 10 px), period resets"
+      aria-label={t("i18n-next79.transformGizmo.handlesLabel")}
       onKeyDown={onKeyDown}
       onContextMenu={onContextMenu}
       style={{

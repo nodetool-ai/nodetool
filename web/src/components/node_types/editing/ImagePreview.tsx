@@ -6,6 +6,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import ImageIcon from "@mui/icons-material/Image";
 
 import { CheckerDropzone } from "../../ui_primitives";
@@ -24,20 +25,23 @@ export interface ImagePreviewProps {
 
 const ImagePreview: React.FC<ImagePreviewProps> = ({
   value,
-  message = "Connect an image, then run",
+  message,
   icon = <ImageIcon />,
   placeholderClassName
-}) => (
-  <ImageRefPreview
-    value={value}
-    placeholder={
-      <CheckerDropzone
-        className={placeholderClassName}
-        message={message}
-        icon={icon ?? undefined}
-      />
-    }
-  />
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <ImageRefPreview
+      value={value}
+      placeholder={
+        <CheckerDropzone
+          className={placeholderClassName}
+          message={message ?? t("i18n-next46.imagePreview.defaultMessage")}
+          icon={icon ?? undefined}
+        />
+      }
+    />
+  );
+};
 
 export default memo(ImagePreview);

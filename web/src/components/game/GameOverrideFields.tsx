@@ -2,6 +2,7 @@ import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import { useTranslation } from "react-i18next";
 
 import { Caption, EditorButton, FlexColumn, FlexRow, InspectorSection, SPACING } from "../ui_primitives";
 import { RowAction } from "./inspector/InspectorParts";
@@ -14,6 +15,7 @@ interface GameOverrideFieldsProps {
 }
 
 export default function GameOverrideFields({ document, sceneId, entityId, onOps }: GameOverrideFieldsProps) {
+  const { t } = useTranslation();
   const authoring = document.authoring;
   if (!authoring) { return null; }
   const detached = authoring.detached.some((target) => target.sceneId === sceneId && target.entityId === entityId);
@@ -25,25 +27,25 @@ export default function GameOverrideFields({ document, sceneId, entityId, onOps 
   const generated = Boolean(generatedEntity);
   const instance = authoring.instances.find((target) => target.sceneId === sceneId && target.entityId === entityId);
   const prefab = instance ? authoring.prefabs[instance.prefabId] : null;
-  if (!generated && !detached) { return <Caption sx={{ py: SPACING.xs }}>Hand authored entity</Caption>; }
-  return <InspectorSection title="Construction values" defaultOpen={false}>
-    <Caption>{detached ? "Detached from construction" : "Generated entity. Fields without overrides follow construction."}</Caption>
-    {instance && <Caption>Prefab: {instance.prefabId}</Caption>}
+  if (!generated && !detached) { return <Caption sx={{ py: SPACING.xs }}>{t("screen_game.overrides.handAuthored")}</Caption>; }
+  return <InspectorSection title={t("screen_game.overrides.title")} defaultOpen={false}>
+    <Caption>{detached ? t("screen_game.overrides.detached") : t("screen_game.overrides.description")}</Caption>
+    {instance && <Caption>{t("screen_game.overrides.prefab", { id: instance.prefabId })}</Caption>}
     {generatedEntity && typeof generatedEntity === "object" && !Array.isArray(generatedEntity) && <FlexColumn gap={SPACING.micro}>
       {Object.entries(generatedEntity).filter(([key]) => key !== "id").map(([key, value]) => {
         const overridden = overrides.some((override) => override.path[0] === key);
         const inherited = prefab && typeof prefab === "object" && !Array.isArray(prefab) && key in prefab && JSON.stringify(prefab[key]) === JSON.stringify(value);
-        return <Caption key={key} color={overridden ? "primary" : undefined}>{key}: {overridden ? "Overridden" : inherited ? "Inherited" : "Generated"}</Caption>;
+        return <Caption key={key} color={overridden ? "primary" : undefined}>{key}: {overridden ? t("screen_game.overrides.overridden") : inherited ? t("screen_game.overrides.inherited") : t("screen_game.overrides.generated")}</Caption>;
       })}
     </FlexColumn>}
     {overrides.map((override) => <FlexRow key={JSON.stringify(override.path)} gap={SPACING.xs} align="center" sx={{ width: "100%", minWidth: 0 }}>
-      <Caption sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{override.path.join(".")}: Overridden {override.remove ? "(removed)" : JSON.stringify(override.value)}</Caption>
-      <RowAction icon={<RestartAltIcon />} label={`Reset ${override.path.join(".")}`}
+      <Caption sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{t("screen_game.overrides.pathOverridden", { path: override.path.join(".") })} {override.remove ? t("screen_game.overrides.removed") : JSON.stringify(override.value)}</Caption>
+      <RowAction icon={<RestartAltIcon />} label={t("screen_game.overrides.resetPath", { path: override.path.join(".") })}
         onClick={() => onOps([{ op: "reset_override", scene_id: sceneId, entity_id: entityId, path: override.path }])} />
     </FlexRow>)}
     {!detached && <FlexRow gap={SPACING.xs}>
-      <EditorButton variant="text" disabled={overrides.length === 0} onClick={() => onOps([{ op: "reset_override", scene_id: sceneId, entity_id: entityId }])}>Reset all overrides</EditorButton>
-      <EditorButton variant="text" onClick={() => onOps([{ op: "detach_entity", scene_id: sceneId, entity_id: entityId }])}>Detach entity</EditorButton>
+      <EditorButton variant="text" disabled={overrides.length === 0} onClick={() => onOps([{ op: "reset_override", scene_id: sceneId, entity_id: entityId }])}>{t("screen_game.overrides.resetAll")}</EditorButton>
+      <EditorButton variant="text" onClick={() => onOps([{ op: "detach_entity", scene_id: sceneId, entity_id: entityId }])}>{t("screen_game.overrides.detachEntity")}</EditorButton>
     </FlexRow>}
   </InspectorSection>;
 }

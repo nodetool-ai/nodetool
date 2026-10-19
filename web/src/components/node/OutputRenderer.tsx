@@ -7,6 +7,7 @@ import React, {
   useRef,
   useEffect
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Asset,
@@ -228,6 +229,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   value,
   showTextActions = true
 }) => {
+  const { t } = useTranslation();
   const shouldRender = !(
     value === undefined ||
     value === null ||
@@ -422,7 +424,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <div className="audio" style={AUDIO_WRAPPER_STYLE}>
-            <React.Suspense fallback={<LoadingSpinner size="small" text="Loading audio player" />}>
+            <React.Suspense fallback={<LoadingSpinner size="small" text={t("i18n-next12.output.loadingAudioPlayer")} />}>
               <LazyAudioPlayer
                 source={audioSource}
                 mimeType={mimeType}
@@ -441,7 +443,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               src={uri}
               sandbox=""
               style={IFRAME_STYLE}
-              title="HTML output"
+              title={t("i18n-next12.output.htmlOutput")}
             />
           );
         }
@@ -457,7 +459,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             srcDoc={html}
             sandbox=""
             style={IFRAME_STYLE}
-            title="HTML output"
+            title={t("i18n-next12.output.htmlOutput")}
           />
         );
       }
@@ -478,7 +480,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <iframe
               src={uri}
               style={IFRAME_PDF_STYLE}
-              title="PDF output"
+              title={t("i18n-next12.output.pdfOutput")}
             />
           );
         }
@@ -487,7 +489,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (
             <div className="output value" style={DOCUMENT_LINK_STYLE}>
               <a href={uri} target="_blank" rel="noreferrer">
-                Open document
+                {t("i18n-next12.output.openDocument")}
               </a>
             </div>
           );
@@ -508,7 +510,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
             // the native controls (scrub, volume) get the mouse events.
             className="nodrag nopan"
-            aria-label="Video output"
+            aria-label={t("i18n-next12.output.videoOutput")}
             style={FULL_SIZE_STYLE}
           />
         );
@@ -541,58 +543,58 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (
             <SketchRenderer
               document={sketchDocument}
-              ariaLabel="Sketch output preview"
+              ariaLabel={t("i18n-next12.output.sketchPreview")}
               showDimensions
             />
           );
         }
         if (shouldLoadSketch && sketchQuery.isLoading) {
-          return <LoadingSpinner size="small" text="Loading sketch" />;
+          return <LoadingSpinner size="small" text={t("i18n-next12.output.loadingSketch")} />;
         }
         if (sketchQuery.isError) {
           return (
             <EmptyState
               variant="error"
-              title="Could not load sketch"
+              title={t("i18n-next12.output.sketchLoadError")}
               description={sketchQuery.error.message}
             />
           );
         }
         return (
           <EmptyState
-            title="No sketch selected"
-            description="Choose a sketch document to preview it here."
+            title={t("i18n-next12.output.noSketchSelected")}
+            description={t("i18n-next12.output.chooseSketch")}
           />
         );
       }
       case "timeline": {
         if (timelineSequence) {
           return (
-            <React.Suspense fallback={<LoadingSpinner size="small" text="Loading timeline preview" />}>
+            <React.Suspense fallback={<LoadingSpinner size="small" text={t("i18n-next12.output.loadingTimelinePreview")} />}>
               <LazyTimelineRenderer
                 sequence={timelineSequence}
-                ariaLabel="Timeline output preview"
+                ariaLabel={t("i18n-next12.output.timelinePreview")}
                 showMetadata
               />
             </React.Suspense>
           );
         }
         if (shouldLoadTimeline && timelineQuery.isLoading) {
-          return <LoadingSpinner size="small" text="Loading timeline" />;
+          return <LoadingSpinner size="small" text={t("i18n-next12.output.loadingTimeline")} />;
         }
         if (timelineQuery.isError) {
           return (
             <EmptyState
               variant="error"
-              title="Could not load timeline"
+              title={t("i18n-next12.output.timelineLoadError")}
               description={timelineQuery.error.message}
             />
           );
         }
         return (
           <EmptyState
-            title="No timeline selected"
-            description="Choose a timeline sequence to preview it here."
+            title={t("i18n-next12.output.noTimelineSelected")}
+            description={t("i18n-next12.output.chooseTimeline")}
           />
         );
       }

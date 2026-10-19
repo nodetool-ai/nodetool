@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -155,12 +156,12 @@ interface ViewSpec {
 }
 
 const VIEW_SPECS = {
-  logs: { id: "logs", label: "Logs", icon: <ArticleIcon /> },
-  queue: { id: "queue", label: "Queue", icon: <PlaylistPlayIcon /> },
-  workers: { id: "workers", label: "Workers", icon: <MemoryIcon /> },
-  versions: { id: "versions", label: "Versions", icon: <HistoryIcon /> },
-  trace: { id: "trace", label: "Trace", icon: <TimelineIcon /> }
-} satisfies Record<BottomPanelView, ViewSpec>;
+  logs: { id: "logs", icon: <ArticleIcon /> },
+  queue: { id: "queue", icon: <PlaylistPlayIcon /> },
+  workers: { id: "workers", icon: <MemoryIcon /> },
+  versions: { id: "versions", icon: <HistoryIcon /> },
+  trace: { id: "trace", icon: <TimelineIcon /> }
+} satisfies Record<BottomPanelView, Omit<ViewSpec, "label">>;
 
 const PANEL_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) => g.views);
 
@@ -289,6 +290,7 @@ export const PanelBodyContent = memo(function PanelBodyContent({
 }: {
   activeView: BottomPanelView;
 }) {
+  const { t } = useTranslation();
   const currentWorkflowId = useWorkspaceTabsStore((state) => {
     const tab = state.tabs.find((item) => item.id === state.activeTabId);
     return tab?.type === "workflow" ? tab.ref : null;
@@ -333,7 +335,7 @@ export const PanelBodyContent = memo(function PanelBodyContent({
 
   switch (activeView) {
     case "logs":
-      return <PanelErrorBoundary panelName="Run logs"><TracePanel view="logs" workflowId={currentWorkflowId} /></PanelErrorBoundary>;
+      return <PanelErrorBoundary panelName={t("i18n-next31.panels.runLogs")}><TracePanel view="logs" workflowId={currentWorkflowId} /></PanelErrorBoundary>;
     case "queue":
       return (
         <FlexColumn
@@ -342,7 +344,7 @@ export const PanelBodyContent = memo(function PanelBodyContent({
           fullHeight
           sx={{ overflow: "hidden" }}
         >
-          <PanelHeader title="Queue" docsTopic="debugging" />
+          <PanelHeader title={t("i18n-next31.panels.queue")} docsTopic="debugging" />
           <FlexColumn
             fullWidth
             sx={{
@@ -367,18 +369,19 @@ export const PanelBodyContent = memo(function PanelBodyContent({
         />
       ) : (
         <EmptyState
-          title="Select a workflow to view its versions"
-          description="Versions follows the selected workflow tab. Open a workflow or select one of your workflow tabs."
+          title={t("i18n-next31.panels.selectWorkflowVersions")}
+          description={t("i18n-next31.panels.selectWorkflowVersionsDescription")}
         />
       );
     case "trace":
-      return <PanelErrorBoundary panelName="Run trace"><TracePanel workflowId={currentWorkflowId} /></PanelErrorBoundary>;
+      return <PanelErrorBoundary panelName={t("i18n-next31.panels.runTrace")}><TracePanel workflowId={currentWorkflowId} /></PanelErrorBoundary>;
     default:
       return null;
   }
 });
 
 const PanelBottom: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const path = useLocation().pathname;
@@ -433,12 +436,12 @@ const PanelBottom: React.FC = () => {
         const spec = VIEW_SPECS[view];
         return {
           value: view,
-          label: spec.label,
+          label: t(`i18n-next31.panels.view.${view}`),
           icon: spec.icon,
           count: view === "queue" && queuedCount > 0 ? queuedCount : undefined
         };
       }),
-    [queuedCount]
+    [queuedCount, t]
   );
 
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
@@ -504,7 +507,7 @@ const PanelBottom: React.FC = () => {
             value={panelSize}
             min={BOTTOM_PANEL_MIN_DRAG_SIZE}
             max={BOTTOM_PANEL_MAX_SIZE}
-            ariaLabel="Resize panel"
+            ariaLabel={t("i18n-next31.panels.resize")}
             onResize={handleResize}
             onResizeStart={handleResizeStart}
             onResizeEnd={handleResizeEnd}
@@ -516,7 +519,7 @@ const PanelBottom: React.FC = () => {
             <div
               className="status-cluster"
               role="status"
-              aria-label={`Worker ${wsStatus}`}
+              aria-label={t("i18n-next31.panels.workerStatus", { status: t(`i18n-next31.panels.connection.${wsStatus}`) })}
             >
               <StatusDot
                 size="medium"
@@ -526,7 +529,7 @@ const PanelBottom: React.FC = () => {
                     isConnected ? SHADOW(theme).sm : "none"
                 }}
               />
-              <span>{wsStatus}</span>
+              <span>{t(`i18n-next31.panels.connection.${wsStatus}`)}</span>
               <span className="sep" aria-hidden>·</span>
               <span>{workerLabel}</span>
               <WorkerStatusIndicator />
@@ -534,32 +537,32 @@ const PanelBottom: React.FC = () => {
             <TabGroup
               className="tab-rail"
               size="small"
-              aria-label="Bottom panel views"
+              aria-label={t("i18n-next31.panels.views")}
               tabs={visibleTabs}
               value={isVisible ? activeView : false}
               onChange={handleTabToggle}
               onReselect={handleTabToggle}
             />
-            <div className="meta-cluster" aria-label="Workflow stats">
+            <div className="meta-cluster" aria-label={t("i18n-next31.panels.workflowStats")}>
               {currentWorkflowId && (
                 <span className="meta-pair">
                   <span className="meta-value">{nodeCount}</span>
-                  <span className="meta-key">nodes</span>
+                  <span className="meta-key">{t("i18n-next31.panels.nodes", { count: nodeCount })}</span>
                   <span className="sep" aria-hidden>·</span>
                   <span className="meta-value">{edgeCount}</span>
-                  <span className="meta-key">edges</span>
+                  <span className="meta-key">{t("i18n-next31.panels.edges", { count: edgeCount })}</span>
                 </span>
               )}
               {systemStats && (
                 <>
                   <span className="meta-pair">
-                    <span className="meta-key">cpu</span>
+                    <span className="meta-key">{t("i18n-next31.panels.cpu")}</span>
                     <span className="meta-value">
                       {Math.round(systemStats.cpu_percent)}%
                     </span>
                   </span>
                   <span className="meta-pair">
-                    <span className="meta-key">mem</span>
+                    <span className="meta-key">{t("i18n-next31.panels.memory")}</span>
                     <span className="meta-value">
                       {systemStats.memory_used_gb !== undefined
                         ? `${systemStats.memory_used_gb.toFixed(1)}G`

@@ -2,6 +2,7 @@
 // accent-shortened ghost (dashed orange), amp ADSR (pale) — plus 6 knobs.
 
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { setupCanvas } from '../../components/displays/canvas';
 import { useBassStore } from '../bassStoreContext';
 import { BassKnob } from './BassKnob';
@@ -11,6 +12,7 @@ import { BassKnob } from './BassKnob';
 const WINDOW_S = 2.5;
 
 function EnvView() {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fatt = useBassStore((s) => s.params['fenv.att']);
   const fdec = useBassStore((s) => s.params['fenv.dec']);
@@ -83,11 +85,11 @@ function EnvView() {
 
       ctx.font = '600 8px "IBM Plex Mono", monospace';
       ctx.fillStyle = '#4dff9e';
-      ctx.fillText('FILTER', pad + 2, 10);
+      ctx.fillText(t('i18n-next98.envelope.filter'), pad + 2, 10);
       ctx.fillStyle = 'rgba(255,161,77,0.95)';
-      ctx.fillText('ACCENT', pad + 42, 10);
+      ctx.fillText(t('i18n-next98.envelope.accent'), pad + 42, 10);
       ctx.fillStyle = '#e8edf7';
-      ctx.fillText('AMP', pad + 88, 10);
+      ctx.fillText(t('i18n-next98.envelope.amp'), pad + 88, 10);
     };
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
@@ -117,17 +119,18 @@ function EnvView() {
     };
     // Re-run on param changes too, so reduced-motion mode (which stops the
     // rAF loop) still repaints when a knob moves.
-  }, [fatt, fdec, att, dec, sus, rel, accAmt]);
+  }, [fatt, fdec, att, dec, sus, rel, accAmt, t]);
 
   return <canvas ref={canvasRef} className="bl-display" />;
 }
 
 export function EnvPanel() {
+  const { t } = useTranslation();
   return (
     <section className="panel bl-env-section">
       <div className="panel-head">
-        <h2>ENV</h2>
-        <span className="bl-head-note">FILTER AD · AMP ADSR</span>
+        <h2>{t('i18n-next98.envelope.title')}</h2>
+        <span className="bl-head-note">{t('i18n-next98.envelope.note')}</span>
       </div>
       <EnvView />
       <div className="knob-row bl-env-knobs">

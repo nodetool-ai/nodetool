@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ContextMenu, Divider, ListSubheader } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
@@ -16,6 +17,7 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 const WorkflowContextMenu: React.FC = () => {
+  const { t } = useTranslation();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore((state) => state.closeContextMenu);
   const nodeId = useContextMenuStore((state) => state.nodeId);
@@ -79,26 +81,26 @@ const WorkflowContextMenu: React.FC = () => {
       <ListSubheader>{payload.name}</ListSubheader>
       <ContextMenuItem
         onClick={handleToggleFavorite}
-        label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        label={isFavorite ? t("screen_editor.removeFromFavorites") : t("screen_editor.addToFavorites")}
         IconComponent={isFavorite ? <StarIcon /> : <StarBorderIcon />}
       />
-      <ContextMenuItem onClick={handleEdit} label="Edit" IconComponent={<EditIcon />} />
+      <ContextMenuItem onClick={handleEdit} label={t("screen_editor.edit")} IconComponent={<EditIcon />} />
       <ContextMenuItem
         onClick={handleDuplicate}
-        label="Duplicate"
+        label={t("screen_editor.duplicate")}
         IconComponent={<ContentCopyIcon />}
       />
       {onOpenAsApp && (
         <ContextMenuItem
           onClick={handleOpenAsApp}
-          label="Open as app"
+          label={t("screen_editor.openAsApp")}
           IconComponent={<StarIcon />}
         />
       )}
       <Divider />
       <ContextMenuItem
         onClick={handleDelete}
-        label="Delete"
+        label={t("screen_editor.delete")}
         destructive
         IconComponent={<DeleteIcon />}
       />

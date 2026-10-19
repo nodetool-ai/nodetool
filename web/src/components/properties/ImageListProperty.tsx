@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useState, useRef, useMemo, ChangeEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
@@ -141,6 +142,7 @@ const flattenImageItems = (items: unknown): ImageItem[] => {
 };
 
 const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next47" });
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const id = `image-list-${props.property.name}-${props.propertyIndex}`;
@@ -350,9 +352,9 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
 
     try {
       const result = await window.api.dialog.openFile({
-        title: "Select images",
+        title: t("image.selectFiles"),
         filters: [
-          { name: "Images", extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"] }
+          { name: t("image.fileType"), extensions: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"] }
         ],
         multiSelections: true
       });
@@ -392,7 +394,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
     } catch (error) {
       console.error("Error opening file picker:", error);
     }
-  }, [uploadAsset, addNotification, handleAddImages]);
+  }, [uploadAsset, addNotification, handleAddImages, t]);
 
   // Handle files from browser file input
   const handleBrowserFilePicker = useCallback(() => {
@@ -464,7 +466,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
                 <div className="image-content">
                   <ListImageThumb
                     item={image}
-                    alt={`Item ${index + 1}`}
+                    alt={t("image.item", { count: index + 1 })}
                   />
                 </div>
               </div>
@@ -482,7 +484,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
               margin: `${theme.spacing(SPACING.sm)} 0`
             })}
           >
-            Awaiting upstream
+            {t("image.awaitingUpstream")}
           </div>
         )}
       </div>
@@ -513,13 +515,13 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
           {leadingUpstreamImages.map((image, index) => (
             <Tooltip
               key={`upstream-${index}-${image.uri}`}
-              title="From the connected input"
+              title={t("image.fromConnectedInput")}
             >
               <div className="image-item is-upstream">
                 <div className="image-content">
                   <ListImageThumb
                     item={image}
-                    alt={`Connected item ${index + 1}`}
+                    alt={t("image.connectedItem", { count: index + 1 })}
                   />
                 </div>
               </div>
@@ -530,7 +532,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
               <div className="image-content">
                 <ListImageThumb
                   item={image}
-                  alt={`Item ${index + 1}`}
+                  alt={t("image.item", { count: index + 1 })}
                   imgRef={(el) => {
                     if (el) {
                       imageRefs.current[image.uri] = el;
@@ -549,7 +551,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
                 className="remove-button"
                 onClick={removeHandlers[index]}
                 buttonSize="small"
-                tooltip="Remove image"
+                tooltip={t("image.remove")}
               />
             </div>
           ))}
@@ -557,7 +559,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
       )}
 
       {/* Dropzone */}
-      <Tooltip title="Click to select images or drag and drop">
+      <Tooltip title={t("image.dropzoneTooltip")}>
         <div
           role="button"
           tabIndex={0}
@@ -568,7 +570,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
           onDragLeave={handleDragLeave}
           onDrop={onDrop}
         >
-          <p>Click or drop images here</p>
+          <p>{t("image.dropzonePrompt")}</p>
         </div>
       </Tooltip>
     </div>

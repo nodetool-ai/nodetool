@@ -17,6 +17,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -80,6 +81,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
   importError = null,
   onDismissImportError
 }) => {
+  const { t } = useTranslation();
   const setup = useWorkflowSetupDocument(workflowId);
   const brief = setup?.brief ?? "";
   const importInput = useRef<HTMLInputElement>(null);
@@ -109,32 +111,38 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
     () => [
       {
         id: "example",
-        title: "Start from an example",
-        description: "Browse the shipped workflows and copy one",
+        title: t("pass3_14.workflowSetup.idea.alternatives.exampleTitle"),
+        description: t(
+          "pass3_14.workflowSetup.idea.alternatives.exampleDescription"
+        ),
         onSelect: () => onBrowseExamples(true),
         // A file being read lands on this workflow and opens it, so a second
         // way in started meanwhile would be overwritten by it, or overwrite it.
         disabled: importing,
-        disabledReason: "Reading your file"
+        disabledReason: t("pass3_14.workflowSetup.idea.importing")
       },
       {
         id: "import",
-        title: "Import a workflow",
-        description: importing ? "Reading your file" : "A workflow JSON file",
+        title: t("pass3_14.workflowSetup.idea.alternatives.importTitle"),
+        description: importing
+          ? t("pass3_14.workflowSetup.idea.importing")
+          : t("pass3_14.workflowSetup.idea.alternatives.importDescription"),
         onSelect: () => importInput.current?.click(),
         disabled: importing,
-        disabledReason: "Reading your file"
+        disabledReason: t("pass3_14.workflowSetup.idea.importing")
       },
       {
         id: "blank",
-        title: "Start with a blank canvas",
-        description: "Skip the plan and place nodes yourself",
+        title: t("pass3_14.workflowSetup.idea.alternatives.blankTitle"),
+        description: t(
+          "pass3_14.workflowSetup.idea.alternatives.blankDescription"
+        ),
         onSelect: onStartBlank,
         disabled: importing,
-        disabledReason: "Reading your file"
+        disabledReason: t("pass3_14.workflowSetup.idea.importing")
       }
     ],
-    [importing, onBrowseExamples, onStartBlank]
+    [importing, onBrowseExamples, onStartBlank, t]
   );
 
   if (browsingExamples) {
@@ -163,11 +171,10 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
       <FlexColumn gap={GAP.comfortable}>
         <FlexColumn gap={GAP.tight}>
           <Text size="big" component="h2">
-            What should this workflow do?
+            {t("pass3_14.workflowSetup.idea.title")}
           </Text>
           <Text size="normal" color="secondary">
-            Describe the task. We&apos;ll plan the steps and check what it needs
-            before building.
+            {t("pass3_14.workflowSetup.idea.description")}
           </Text>
         </FlexColumn>
 
@@ -175,10 +182,10 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
           value={brief}
           autoFocus
           rows={4}
-          label="The task"
+          label={t("pass3_14.workflowSetup.idea.taskLabel")}
           hideLabel
-          placeholder="Make a cover image for each title in a list"
-          helperText="Only describe the task here. Add files, connect services and set destinations during setup or in the built workflow before running it."
+          placeholder={t("pass3_14.workflowSetup.idea.taskPlaceholder")}
+          helperText={t("pass3_14.workflowSetup.idea.taskHelper")}
           onChange={handleChange}
           inputRef={briefField}
         />
@@ -191,7 +198,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
               <ReportBugButton
                 context={{
                   source: "operation-failure",
-                  summary: "Workflow import failed",
+                  summary: t("pass3_14.workflowSetup.idea.importFailed"),
                   errorText: importError,
                   workflowId
                 }}
@@ -211,7 +218,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
       </FlexColumn>
 
       <AlternativesColumn
-        label="Other ways to start"
+        label={t("pass3_14.workflowSetup.idea.alternativesLabel")}
         alternatives={alternatives}
       />
 
@@ -221,7 +228,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
         hidden
         ref={importInput}
         accept={WORKFLOW_IMPORT_ACCEPT}
-        aria-label="Import a workflow"
+        aria-label={t("pass3_14.workflowSetup.idea.importAriaLabel")}
         onChange={handlePicked}
       />
     </Box>

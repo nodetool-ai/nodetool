@@ -13,6 +13,7 @@ import {
   useState
 } from "react";
 import { shallow } from "zustand/shallow";
+import { useTranslation } from "react-i18next";
 import {
   Node,
   NodeProps,
@@ -226,6 +227,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
   });
 
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme, MIN_WIDTH, MIN_HEIGHT), [theme]);
   const controlKeyPressed = useKeyPressed((state) =>
@@ -375,7 +377,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const nodeHovered = useNodes(nodeHoveredSelector);
 
   const [headline, setHeadline] = useState(
-    (props.data.properties.headline as string | undefined) || "Group"
+    (props.data.properties.headline as string | undefined) || t("i18n-next7.groupNode.defaultTitle")
   );
 
   const [color, setColor] = useState<string | null>(
@@ -418,7 +420,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Follow outside changes (undo, agent edits) while the title isn't being
   // edited.
   const storedHeadline =
-    (props.data.properties.headline as string | undefined) || "Group";
+    (props.data.properties.headline as string | undefined) || t("i18n-next7.groupNode.defaultTitle");
   useEffect(() => {
     if (document.activeElement !== headerInputRef.current) {
       setHeadline(storedHeadline);
@@ -586,11 +588,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         nextDelay={TOOLTIP_ENTER_DELAY * 5}
         title={
           <span>
-            <b>SELECT GROUP NODE:</b> <br />
-            Hold CTRL or ⌘ key + click <br />
+            <b>{t("i18n-next7.groupNode.selectGroup")}</b> <br />
+            {t("i18n-next7.groupNode.selectInstructions")} <br />
             <br />
-            <b>EDIT GROUP TITLE:</b> <br />
-            Double click the label
+            <b>{t("i18n-next7.groupNode.editTitle")}</b> <br />
+            {t("i18n-next7.groupNode.editInstructions")}
           </span>
         }
       >
@@ -604,11 +606,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             spellCheck={false}
             className="nodrag"
             type="text"
-            aria-label="Group headline"
+            aria-label={t("i18n-next7.groupNode.headlineLabel")}
             value={headline}
             onChange={handleHeadlineChange}
             onBlur={debouncedHeadlineSave.flush}
-            placeholder="Group"
+            placeholder={t("i18n-next7.groupNode.defaultTitle")}
             style={inputStyle}
           />
           <span
@@ -616,7 +618,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             aria-hidden
             className="title-sizer"
           >
-            {headline || "Group"}
+            {headline || t("i18n-next7.groupNode.defaultTitle")}
           </span>
         </div>
       </Tooltip>
@@ -625,7 +627,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         className="group-actions nodrag"
         style={actionsStyle}
       >
-        <Tooltip title="Group options">
+        <Tooltip title={t("i18n-next7.groupNode.options")}>
           <ToolbarIconButton
             ref={menuButtonRef}
             title=""
@@ -654,7 +656,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           {hasChildren && (
             <div style={POPOVER_ROW_STYLE}>
               <span style={menuTextStyle}>
-                {someChildrenBypassed ? "Enable all nodes" : "Disable all nodes"}
+                {someChildrenBypassed ? t("i18n-next7.groupNode.enableAll") : t("i18n-next7.groupNode.disableAll")}
               </span>
               <BypassGroupButton
                 isBypassed={someChildrenBypassed}
@@ -664,7 +666,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           )}
           <div style={POPOVER_ROW_STYLE}>
             <span style={menuTextStyle}>
-              Group color
+              {t("i18n-next7.groupNode.color")}
             </span>
             <ColorPicker
               buttonSize={24}
@@ -680,11 +682,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodes hovering over it, not every group on the canvas. */}
       <div className={`help-text ${nodeHovered ? "visible" : "none"}`}>
         <div>
-          <b>REMOVE NODES FROM GROUP</b>
+          <b>{t("i18n-next7.groupNode.removeNodesHeading")}</b>
         </div>
         <ul>
-          <li>Drag out while holding CTRL | ⌘ key</li>
-          <li>Shake rapidly, then drag out</li>
+          <li>{t("i18n-next7.groupNode.dragOutModifier")}</li>
+          <li>{t("i18n-next7.groupNode.shakeToRemove")}</li>
         </ul>
       </div>
 

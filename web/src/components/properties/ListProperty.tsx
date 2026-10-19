@@ -1,6 +1,7 @@
 import { PropertyProps } from "../node/PropertyInput";
 import ListTable, { ListDataType } from "../node/DataTable/ListTable";
 import { memo, useCallback, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import { SPACING, getSpacingPx } from "../ui_primitives";
@@ -26,6 +27,7 @@ const detectTypeFromList = (list: unknown[]) => {
 };
 
 const ListProperty = (props: PropertyProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const id = `list-${props.property.name}-${props.propertyIndex}`;
   const dataTypes = useMemo(() => ["int", "string", "datetime", "float"], []);
 
@@ -56,13 +58,13 @@ const ListProperty = (props: PropertyProps) => {
     return (
       <>
         <div style={containerStyle}>
-          <PropertyLabel name="Data type" id={id} />
+          <PropertyLabel name={t("property.dataType")} id={id} />
           <Select
             value={dataType}
             onChange={handleDataTypeChange}
             options={options}
-            label="Data type"
-            placeholder="Select type…"
+            label={t("property.dataType")}
+            placeholder={t("property.selectType")}
           />
         </div>
         <ListTable

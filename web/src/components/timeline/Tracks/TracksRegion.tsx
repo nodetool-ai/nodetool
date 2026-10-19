@@ -54,6 +54,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -323,6 +324,7 @@ interface TracksRegionProps {
 export const TracksRegion: React.FC<TracksRegionProps> = memo(
   ({ heightPx, onGenerate }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const isMobile = useTimelineIsMobile();
     const isActive = useTimelineIsActive();
     // The desktop dock, for the workspace keys. Null on phones and outside the editor.
@@ -1930,7 +1932,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         }
         ref={regionRef}
         data-testid="tracks-region"
-        aria-label="Tracks region"
+        aria-label={t("i18n-next73.tracks.region")}
       >
         {/* ── Tool toolbar (above the ruler) ──────────────────────────── */}
         <Toolbar
@@ -1942,22 +1944,22 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <ToolToggle compact={toolbarCompact} />
           {/* The tooltip sits on a span so it still shows over a disabled
               button, which fires no pointer events of its own. */}
-          <Tooltip title={`Undo (${modKeyLabel}+Z)`}>
+          <Tooltip title={t("i18n-next73.tracks.undo", { shortcut: `${modKeyLabel}+Z` })}>
             <span>
               <ToolbarIconButton
                 icon={<UndoIcon />}
-                ariaLabel="Undo"
+                ariaLabel={t("i18n-next73.tracks.undoLabel")}
                 onClick={handleUndo}
                 disabled={!canUndo}
                 data-testid="timeline-undo"
               />
             </span>
           </Tooltip>
-          <Tooltip title={`Redo (${modKeyLabel}+Shift+Z)`}>
+          <Tooltip title={t("i18n-next73.tracks.redo", { shortcut: `${modKeyLabel}+Shift+Z` })}>
             <span>
               <ToolbarIconButton
                 icon={<RedoIcon />}
-                ariaLabel="Redo"
+                ariaLabel={t("i18n-next73.tracks.redoLabel")}
                 onClick={handleRedo}
                 disabled={!canRedo}
                 data-testid="timeline-redo"
@@ -1970,7 +1972,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               size="small"
               startIcon={<AutoAwesomeIcon />}
               onClick={onGenerate}
-              aria-label="Generate"
+              aria-label={t("i18n-next73.tracks.generate")}
               data-testid="timeline-generate"
               sx={{
                 ml: SPACING.xs,
@@ -1981,7 +1983,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 })
               }}
             >
-              {toolbarCompact ? null : "Generate"}
+              {toolbarCompact ? null : t("i18n-next73.tracks.generate")}
             </EditorButton>
           )}
           <div style={{ flex: "1 1 auto" }} />
@@ -1993,7 +1995,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             <HelpButton
               onClick={() => setShortcutsOpen(true)}
               iconVariant="helpOutline"
-              tooltip="Keyboard shortcuts (?)"
+              tooltip={t("i18n-next73.tracks.keyboardShortcuts")}
             />
           )}
           <TimelineViewControls
@@ -2005,10 +2007,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
         <FlexRow align="stretch" fullWidth>
           <div css={tracksSectionHeaderStyles(theme, isMobile)}>
-            <span>Tracks</span>
+            <span>{t("i18n-next73.tracks.title")}</span>
             <span
               css={trackCountChipStyles(theme)}
-              aria-label={`${tracks.length} tracks`}
+              aria-label={t("i18n-next73.tracks.count", { count: tracks.length })}
             >
               {tracks.length}
             </span>
@@ -2025,7 +2027,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             min={MIN_TRACK_HEADER_WIDTH_PX}
             max={headerResizeMaxPx}
             onResize={handleHeaderResize}
-            ariaLabel="Resize track headers"
+            ariaLabel={t("i18n-next73.tracks.resizeHeaders")}
             sx={{
               position: "absolute",
               top: TOOLBAR_HEIGHT_PX,
@@ -2181,7 +2183,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 data-testid="tracks-empty-hint"
               >
                 <Caption size="small" color="secondary">
-                  Drag media here from the Library, or add a track to start.
+                  {t("i18n-next112-timeline.tracks.emptyHint")}
                 </Caption>
               </FlexRow>
             )}

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { CloseButton, Dialog, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -41,6 +42,7 @@ const styles = (theme: Theme) =>
   });
 
 const ImageCompareDialog: React.FC = () => {
+  const { t } = useTranslation(undefined, { keyPrefix: "i18n-next57" });
   const theme = useTheme();
   const compareAssets = useAssetGridStore((state) => state.compareAssets);
   const closeCompareView = useAssetGridStore((state) => state.closeCompareView);
@@ -67,14 +69,14 @@ const ImageCompareDialog: React.FC = () => {
       }}
       open={compareAssets !== null}
       onClose={closeCompareView}
-      aria-label="Compare images"
+      aria-label={t("compare.compareImages")}
     >
       <div className="compare-container">
         <div className="actions">
           <CloseButton
             className="button close"
             onClick={closeCompareView}
-            tooltip="Close"
+            tooltip={t("compare.close")}
             nodrag={false}
           />
         </div>

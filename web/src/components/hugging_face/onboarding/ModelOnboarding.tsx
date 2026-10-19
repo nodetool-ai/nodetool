@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import RocketLaunchOutlinedIcon from "@mui/icons-material/RocketLaunchOutlined";
 import {
@@ -28,7 +29,6 @@ import OnboardingModelRow from "./OnboardingModelRow";
 import useNodePacksStore from "../../../stores/NodePacksStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import {
-  CAPABILITY_LABELS,
   HUGGINGFACE_PACK_REPO_ID,
   ONBOARDING_MODELS,
   sortModelsByFit,
@@ -54,6 +54,7 @@ const CAPABILITY_ORDER: OnboardingCapability[] = [
 ];
 
 const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const profile = useHardwareProfile();
   const [filter, setFilter] = useState<Filter>("all");
@@ -124,8 +125,7 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
       if (needsHfPack) {
         addNotification({
           type: "info",
-          content:
-            "Installing the Hugging Face node pack so this model has nodes to run on.",
+          content: t("i18n-next33.models.installingHfPack"),
           dedupeKey: "onboarding-hf-pack",
           replaceExisting: true
         });
@@ -139,7 +139,8 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
       hfPackInstalled,
       installPack,
       onDownload,
-      packsAvailable
+      packsAvailable,
+      t
     ]
   );
 
@@ -170,11 +171,10 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
         </FlexRow>
         <FlexColumn gap={SPACING.micro}>
           <Text size="big" weight={600}>
-            Get started with local models
+            {t("i18n-next33.models.getStarted")}
           </Text>
           <Caption sx={{ opacity: 0.7 }}>
-            Run AI on your own machine — private, offline, and free. We match
-            recommendations to your hardware.
+            {t("i18n-next33.models.intro")}
           </Caption>
         </FlexColumn>
       </FlexRow>
@@ -186,11 +186,10 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
       <FlexColumn gap={SPACING.sm}>
         <FlexColumn gap={SPACING.micro}>
           <Text size="big" weight={600}>
-            Recommended models
+            {t("i18n-next33.models.recommended")}
           </Text>
           <Caption sx={{ opacity: 0.7 }}>
-            Current models sized for a single consumer GPU, sorted to show what
-            fits your machine first. Sizes and memory are approximate.
+            {t("i18n-next33.models.recommendedDescription")}
           </Caption>
         </FlexColumn>
 
@@ -199,18 +198,18 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
           exclusive
           segmented
           onChange={(_e, value) => value && setFilter(value as Filter)}
-          aria-label="filter recommended models by capability"
+          aria-label={t("i18n-next33.models.filterByCapability")}
         >
-          <ToggleOption value="all" aria-label="all capabilities">
-            All
+          <ToggleOption value="all" aria-label={t("i18n-next33.models.allCapabilities")}>
+            {t("i18n-next33.models.all")}
           </ToggleOption>
           {availableCapabilities.map((capability) => (
             <ToggleOption
               key={capability}
               value={capability}
-              aria-label={CAPABILITY_LABELS[capability]}
+              aria-label={t(`i18n-next33.models.capabilities.${capability}`)}
             >
-              {CAPABILITY_LABELS[capability]}
+              {t(`i18n-next33.models.capabilities.${capability}`)}
             </ToggleOption>
           ))}
         </ToggleGroup>
@@ -222,7 +221,7 @@ const ModelOnboarding: React.FC<ModelOnboardingProps> = ({ onDownload }) => {
             sx={{ mt: SPACING.xs }}
           >
             <Text size="small" weight={600} color="secondary">
-              {CAPABILITY_LABELS[group.capability]}
+              {t(`i18n-next33.models.capabilities.${group.capability}`)}
             </Text>
             {group.entries.map((entry) => (
               <OnboardingModelRow

@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PsychologyIcon from "@mui/icons-material/PsychologyOutlined";
 import {
   supportsReasoningEffort,
@@ -18,26 +19,26 @@ interface LevelItem {
   description: string;
 }
 
-const LEVELS: LevelItem[] = [
+const LEVEL_IDS: Array<{ id: ReasoningEffort | null; key: string; descriptionKey: string }> = [
   {
     id: null,
-    label: "Default",
-    description: "The model's own setting."
+    key: "default",
+    descriptionKey: "defaultDescription"
   },
   {
     id: "low",
-    label: "Low",
-    description: "Answers fast with little reasoning."
+    key: "low",
+    descriptionKey: "lowDescription"
   },
   {
     id: "medium",
-    label: "Medium",
-    description: "Balances speed and depth."
+    key: "medium",
+    descriptionKey: "mediumDescription"
   },
   {
     id: "high",
-    label: "High",
-    description: "Reasons longest. Slower and costs more."
+    key: "high",
+    descriptionKey: "highDescription"
   }
 ];
 
@@ -63,6 +64,12 @@ const ReasoningSelector: React.FC<ReasoningSelectorProps> = ({
   const [open, setOpen] = useState(false);
   const effort = useGlobalChatStore((s) => s.reasoningEffort);
   const setReasoningEffort = useGlobalChatStore((s) => s.setReasoningEffort);
+  const { t } = useTranslation();
+  const levels: LevelItem[] = LEVEL_IDS.map((level) => ({
+    id: level.id,
+    label: t(`i18n-next54.composer.reasoning.${level.key}`),
+    description: t(`i18n-next54.composer.reasoning.${level.descriptionKey}`)
+  }));
 
   const handleSelect = useCallback(
     (next: ReasoningEffort | null) => {
@@ -76,7 +83,7 @@ const ReasoningSelector: React.FC<ReasoningSelectorProps> = ({
     return null;
   }
 
-  const active = LEVELS.find((level) => level.id === effort) ?? LEVELS[0];
+  const active = levels.find((level) => level.id === effort) ?? levels[0];
 
   return (
     <>
@@ -85,7 +92,7 @@ const ReasoningSelector: React.FC<ReasoningSelectorProps> = ({
         className="reasoning-selector-trigger"
         icon={<PsychologyIcon fontSize="small" />}
         label={compact ? undefined : active.label}
-        title={`Reasoning: ${active.label}`}
+        title={t("i18n-next54.composer.reasoning.titleWithLevel", { level: active.label })}
         active={open}
         showChevron
         onClick={() => setOpen(true)}
@@ -98,10 +105,10 @@ const ReasoningSelector: React.FC<ReasoningSelectorProps> = ({
         transformOrigin={{ vertical: "bottom", horizontal: "left" }}
         minWidth={240}
         paperSx={{ maxWidth: 320 }}
-        slotProps={{ list: { "aria-label": "Reasoning level" } }}
+        slotProps={{ list: { "aria-label": t("i18n-next54.composer.reasoning.level") } }}
       >
-        <ListSubheader>Reasoning</ListSubheader>
-        {LEVELS.map((level) => (
+        <ListSubheader>{t("i18n-next54.composer.reasoning.title")}</ListSubheader>
+        {levels.map((level) => (
           <MenuItemPrimitive
             key={level.label}
             label={level.label}

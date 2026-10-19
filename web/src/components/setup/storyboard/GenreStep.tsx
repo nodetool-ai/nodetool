@@ -15,6 +15,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { FlexColumn, GAP, SelectField, Text } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
@@ -61,22 +62,25 @@ const SHOT_COUNTS = [3, 4, 6, 8, 10, 12];
  * rewrite keeps the length the screenplay has, and a select that cannot show
  * its value shows nothing (F15).
  */
-const shotOptions = (current: number) =>
+const shotOptions = (current: number, t: ReturnType<typeof useTranslation>["t"]) =>
   (SHOT_COUNTS.includes(current)
     ? SHOT_COUNTS
     : [...SHOT_COUNTS, current].sort((a, b) => a - b)
   ).map((count) => ({
     value: String(count),
-    label: `${count} shot${count === 1 ? "" : "s"}`
+    label: t("pass3_10.storyboard.genre.shotCount", { count })
   }));
 
 // The card carries its line before it is picked, the way every other option
 // grid in the flow does: fourteen one-word titles say far less about the
 // direction than the line under each one (F32).
-const toOption = (item: StoryboardGenre): OptionCardItem => ({
+const toOption = (
+  item: StoryboardGenre,
+  t: ReturnType<typeof useTranslation>["t"]
+): OptionCardItem => ({
   id: item.id,
-  title: item.label,
-  description: item.description,
+  title: t(`pass3_10.storyboard.genre.options.${item.id}.title`),
+  description: t(`pass3_10.storyboard.genre.options.${item.id}.description`),
   image: genreStill(item)
 });
 
@@ -89,6 +93,7 @@ const ScreenplayModelField: React.FC<{
   boardId: string;
   readOnly?: boolean;
 }> = ({ boardId, readOnly }) => {
+  const { t } = useTranslation();
   // Pre-fills the picker, so the step directs without a required choice.
   useDefaultDirectorModel(boardId, !readOnly);
   const directorModel = useStoryboardStore(
@@ -106,11 +111,11 @@ const ScreenplayModelField: React.FC<{
     [boardId, readOnly, setDirectorModel]
   );
   return (
-    <SetupFooterField label="Model">
+    <SetupFooterField label={t("pass3_10.storyboard.genre.modelLabel")}>
       <LanguageModelSelect
         value={directorModel?.id ?? ""}
         provider={directorModel?.provider}
-        placeholder="Screenplay model"
+        placeholder={t("pass3_10.storyboard.genre.modelPlaceholder")}
         onChange={handleChange}
         disabled={readOnly}
       />
@@ -139,8 +144,9 @@ export const GenreFooterControls: React.FC<GenreFooterControlsProps> = ({
   onShotCountChange,
   hideShotCount = false
 }) => {
+  const { t } = useTranslation();
   const inStudio = useInStudio();
-  const options = useMemo(() => shotOptions(shotCount), [shotCount]);
+  const options = useMemo(() => shotOptions(shotCount, t), [shotCount, t]);
   const handleShotCount = useCallback(
     (value: string) => {
       if (!readOnly) {
@@ -153,7 +159,7 @@ export const GenreFooterControls: React.FC<GenreFooterControlsProps> = ({
     <>
       {!hideShotCount && (
         <SelectField
-          label="Shots"
+          label={t("pass3_10.storyboard.genre.shotsLabel")}
           hideLabel
           size="small"
           value={String(shotCount)}
@@ -176,6 +182,7 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
   upToDate = false,
   cameraPass = false
 }) => {
+  const { t } = useTranslation();
   const genre = useStoryboardStore(
     (state) => state.boards[boardId]?.genre ?? ""
   );
@@ -184,10 +191,10 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
   const options = useMemo(
     () =>
       STORYBOARD_GENRES.map((item) => ({
-        ...toOption(item),
+        ...toOption(item, t),
         disabled: readOnly
       })),
-    [readOnly]
+    [readOnly, t]
   );
   const selectedId = genreByLabel(genre)?.id ?? null;
 
@@ -205,14 +212,14 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Choose your genre
+          {t("pass3_10.storyboard.genre.title")}
         </Text>
         <Text size="normal" color="secondary">
-          Tone, pacing and framing follow your choice. You can change it later.
+          {t("pass3_10.storyboard.genre.description")}
         </Text>
       </FlexColumn>
       <OptionCardGrid
-        label="Genre"
+        label={t("pass3_10.storyboard.genre.genreLabel")}
         variant="media"
         minColumnWidth={320}
         options={options}
@@ -225,7 +232,7 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
           two announcements of one wait is worse than none. */}
       {directing ? (
         <Text size="small" color="secondary">
-          This usually takes about half a minute.
+          {t("pass3_10.storyboard.genre.directingWait")}
         </Text>
       ) : null}
       {/* Why the button says `Continue` rather than writing a screenplay: the
@@ -233,8 +240,8 @@ const GenreStepInternal: React.FC<GenreStepProps> = ({
       {!directing && upToDate ? (
         <Text size="small" color="secondary">
           {cameraPass
-            ? "Your script is already directed for these choices. Change the genre to direct it again."
-            : "Your screenplay already follows these choices. Change the genre, the brief or the shot count to write a new one."}
+            ? t("pass3_10.storyboard.genre.cameraPassUpToDate")
+            : t("pass3_10.storyboard.genre.upToDate")}
         </Text>
       ) : null}
     </FlexColumn>

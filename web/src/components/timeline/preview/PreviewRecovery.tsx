@@ -7,6 +7,7 @@ import {
   type ErrorInfo,
   type ReactNode
 } from "react";
+import { useTranslation } from "react-i18next";
 import { openBugReport } from "../../../stores/BugReportStore";
 import type { BugReportContext } from "../../../utils/bugReportBundle";
 import ReportBugButton from "../../support/ReportBugButton";
@@ -65,6 +66,7 @@ export function PreviewRecovery({
   onPause,
   timelineId
 }: PreviewRecoveryProps): ReactNode {
+  const { t } = useTranslation();
   const [generation, setGeneration] = useState(0);
   const [issue, setIssue] = useState<{
     message: string;
@@ -94,7 +96,7 @@ export function PreviewRecovery({
       const terminal = attempts.current >= MAX_AUTOMATIC_RETRIES;
       const context: BugReportContext = {
         source: "panel-crash",
-        summary: "Timeline preview failed",
+        summary: t("i18n-next112-timeline.preview.failureSummary"),
         errorText: history.current.join("\n\n"),
         nodeDetail: JSON.stringify({
           timelineId,
@@ -102,14 +104,14 @@ export function PreviewRecovery({
         })
       };
       setIssue({
-        message: previewFailureMessage(failure.stage),
+        message: previewFailureMessage(failure.stage, t),
         context,
         terminal
       });
       setWaiting(!terminal);
       if (terminal) openBugReport(context);
     },
-    [onPause, timelineId]
+    [onPause, t, timelineId]
   );
 
   useEffect(() => {
@@ -168,7 +170,9 @@ export function PreviewRecovery({
             action={
               <FlexRow gap={SPACING.xs}>
                 {issue.terminal && (
-                  <EditorButton onClick={retry}>Retry preview</EditorButton>
+                  <EditorButton onClick={retry}>
+                    {t("i18n-next112-timeline.preview.retry")}
+                  </EditorButton>
                 )}
                 <ReportBugButton context={issue.context} />
               </FlexRow>
@@ -176,8 +180,8 @@ export function PreviewRecovery({
           >
             {issue.message}{" "}
             {issue.terminal
-              ? "Automatic recovery failed. Your timeline is unchanged."
-              : "Restarting preview…"}
+              ? t("i18n-next112-timeline.preview.automaticRecoveryFailed")
+              : t("i18n-next112-timeline.preview.restarting")}
           </AlertBanner>
         </Box>
       )}

@@ -3,6 +3,7 @@
 // It lights the note the device is sounding, so it mirrors the clips too.
 
 import type * as React from 'react';
+import { useTranslation } from 'react-i18next';
 import { KEY_COUNT, ROOT_MIDI } from '../params';
 import { useBassStore } from '../bassStoreContext';
 
@@ -11,6 +12,7 @@ const BLACK_OFF: Record<number, number> = { 1: 0.68, 3: 1.72, 6: 3.68, 8: 4.7, 1
 const WHITE_COUNT = 15;
 
 export function KeysPanel() {
+  const { t } = useTranslation();
   const heldPitches = useBassStore((s) => s.heldPitches);
   const vizPitch = useBassStore((s) => s.vizPitch);
   const vizGate = useBassStore((s) => s.vizGate);
@@ -58,7 +60,7 @@ export function KeysPanel() {
           type="button"
           className={`bl-key-black${isHot ? ' hot' : ''}`}
           style={{ left: `${((oct * 7 + BLACK_OFF[pc]) * (100 / WHITE_COUNT)).toFixed(2)}%` }}
-          aria-label={`key ${semi}`}
+          aria-label={t('i18n-next48.keys.key', { number: semi })}
           onPointerDown={press(semi)}
         />,
       );
@@ -68,7 +70,7 @@ export function KeysPanel() {
           key={semi}
           type="button"
           className={`bl-key-white${isHot ? ' hot' : ''}`}
-          aria-label={`key ${semi}`}
+          aria-label={t('i18n-next48.keys.key', { number: semi })}
           onPointerDown={press(semi)}
         />,
       );
@@ -78,8 +80,8 @@ export function KeysPanel() {
   return (
     <section className="panel bl-keys-section">
       <div className="panel-head">
-        <h2>KEYS</h2>
-        <span className="bl-head-note">{powered ? 'LEGATO = SLIDE · SHIFT = ACCENT' : 'PLAY A KEY TO START THE DEVICE'}</span>
+        <h2>{t('i18n-next48.keys.title')}</h2>
+        <span className="bl-head-note">{powered ? t('i18n-next48.keys.playingHint') : t('i18n-next48.keys.startHint')}</span>
       </div>
       <div className="bl-keys">
         <div className="bl-keys-white">{whites}</div>

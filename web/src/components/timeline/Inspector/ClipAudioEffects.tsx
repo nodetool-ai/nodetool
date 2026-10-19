@@ -8,7 +8,14 @@
  * `patchClip` call, so each is one undo step.
  */
 
-import React, { lazy, memo, Suspense, useCallback, useRef, useState } from "react";
+import React, {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useRef,
+  useState
+} from "react";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardOutlinedIcon from "@mui/icons-material/ArrowDownwardOutlined";
 import ArrowUpwardOutlinedIcon from "@mui/icons-material/ArrowUpwardOutlined";
@@ -17,6 +24,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import type { Theme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import {
   makeClipAudioEffect,
   type ClipAudioEffect,
@@ -50,7 +58,6 @@ import {
   InspectorSliderRow
 } from "./InspectorPrimitives";
 import {
-  CLIP_AUDIO_EFFECT_LABELS,
   CLIP_AUDIO_EFFECT_TYPES,
   CLIP_AUDIO_KNOBS,
   formatKnob,
@@ -59,11 +66,21 @@ import {
 
 const ClipAudioEditorDialog = lazy(() => import("./ClipAudioEditorDialog"));
 
-const FILTER_MODE_OPTIONS = [
-  { value: "lowpass", label: "Low-pass" },
-  { value: "highpass", label: "High-pass" },
-  { value: "bandpass", label: "Band-pass" }
-] as const;
+const FILTER_MODE_KEYS = {
+  lowpass: "audioEffects.filterModes.lowpass",
+  highpass: "audioEffects.filterModes.highpass",
+  bandpass: "audioEffects.filterModes.bandpass"
+} as const;
+
+const EFFECT_LABEL_KEYS: Record<ClipAudioEffect["type"], string> = {
+  gain: "audioEffects.types.gain",
+  eq3: "audioEffects.types.eq3",
+  filter: "audioEffects.types.filter",
+  compressor: "audioEffects.types.compressor",
+  echo: "audioEffects.types.echo",
+  reverb: "audioEffects.types.reverb",
+  distortion: "audioEffects.types.distortion"
+};
 
 const ROW_SX = {
   borderTop: (theme: Theme) => `1px solid ${theme.vars.palette.divider}`,
@@ -77,42 +94,54 @@ interface EffectFieldsProps {
   onPatch: (patch: EffectPatch) => void;
 }
 
-const EffectFields: React.FC<EffectFieldsProps> = memo(({ effect, onPatch }) => {
-  // The table is keyed by type, so the knobs read fields `effect` carries.
-  const knobs = CLIP_AUDIO_KNOBS[effect.type] as ClipAudioKnob<ClipAudioEffect>[];
-  const values = effect as unknown as Record<string, number>;
-  return (
-    <FlexColumn gap={SPACING.xs}>
-      {effect.type === "filter" && (
-        <InspectorRow label="Mode">
-          <InspectorSelect
-            label="Filter mode"
-            value={effect.mode}
-            options={FILTER_MODE_OPTIONS}
-            onChange={(mode) => onPatch({ mode: mode as TrackFilterEffect["mode"] })}
-          />
-        </InspectorRow>
-      )}
-      {knobs.map((knob) => {
-        const key = String(knob.key);
-        const value = values[key];
-        return (
-          <InspectorSliderRow
-            key={key}
-            label={knob.label}
-            min={knob.min}
-            max={knob.max}
-            step={knob.step}
-            value={value}
-            origin={knob.origin}
-            display={formatKnob(knob, value)}
-            onChange={(next) => onPatch({ [key]: next })}
-          />
-        );
-      })}
-    </FlexColumn>
-  );
-});
+const EffectFields: React.FC<EffectFieldsProps> = memo(
+  ({ effect, onPatch }) => {
+    const { t } = useTranslation();
+    // The table is keyed by type, so the knobs read fields `effect` carries.
+    const knobs = CLIP_AUDIO_KNOBS[
+      effect.type
+    ] as ClipAudioKnob<ClipAudioEffect>[];
+    const values = effect as unknown as Record<string, number>;
+    return (
+      <FlexColumn gap={SPACING.xs}>
+        {effect.type === "filter" && (
+          <InspectorRow label={t("pass3_23.audioEffects.mode")}>
+            <InspectorSelect
+              label={t("pass3_23.audioEffects.filterMode")}
+              value={effect.mode}
+              options={Object.entries(FILTER_MODE_KEYS).map(([value, key]) => ({
+                value,
+                label: t(`pass3_23.${key}`)
+              }))}
+              onChange={(mode) =>
+                onPatch({ mode: mode as TrackFilterEffect["mode"] })
+              }
+            />
+          </InspectorRow>
+        )}
+        {knobs.map((knob) => {
+          const key = String(knob.key);
+          const value = values[key];
+          return (
+            <InspectorSliderRow
+              key={key}
+              label={t(`pass3_23.audioEffects.knobs.${knob.key}`, {
+                defaultValue: knob.label
+              })}
+              min={knob.min}
+              max={knob.max}
+              step={knob.step}
+              value={value}
+              origin={knob.origin}
+              display={formatKnob(knob, value)}
+              onChange={(next) => onPatch({ [key]: next })}
+            />
+          );
+        })}
+      </FlexColumn>
+    );
+  }
+);
 EffectFields.displayName = "EffectFields";
 
 interface EffectRowProps {
@@ -128,9 +157,19 @@ interface EffectRowProps {
 
 /** One effect's header and, when expanded, its sliders. */
 const EffectRow: React.FC<EffectRowProps> = memo(
-  ({ effect, isFirst, isLast, expanded, onExpand, onPatch, onRemove, onMove }) => {
+  ({
+    effect,
+    isFirst,
+    isLast,
+    expanded,
+    onExpand,
+    onPatch,
+    onRemove,
+    onMove
+  }) => {
+    const { t } = useTranslation();
     const { id } = effect;
-    const name = CLIP_AUDIO_EFFECT_LABELS[effect.type];
+    const name = t(`pass3_23.${EFFECT_LABEL_KEYS[effect.type]}`);
     const patch = useCallback(
       (next: EffectPatch) => onPatch(id, next),
       [id, onPatch]
@@ -144,7 +183,11 @@ const EffectRow: React.FC<EffectRowProps> = memo(
             size="small"
             checked={effect.enabled}
             onChange={(_, enabled) => onPatch(id, { enabled })}
-            slotProps={{ input: { "aria-label": `${name} enabled` } }}
+            slotProps={{
+              input: {
+                "aria-label": t("pass3_23.audioEffects.enabledLabel", { name })
+              }
+            }}
           />
           <Button
             variant="text"
@@ -152,7 +195,11 @@ const EffectRow: React.FC<EffectRowProps> = memo(
             aria-expanded={expanded}
             onClick={() => onExpand(id)}
             startIcon={
-              expanded ? <ExpandMoreOutlinedIcon /> : <ChevronRightOutlinedIcon />
+              expanded ? (
+                <ExpandMoreOutlinedIcon />
+              ) : (
+                <ChevronRightOutlinedIcon />
+              )
             }
             sx={{
               flex: 1,
@@ -168,24 +215,24 @@ const EffectRow: React.FC<EffectRowProps> = memo(
           </Button>
           <ToolbarIconButton
             icon={<ArrowUpwardOutlinedIcon />}
-            tooltip="Move earlier in the chain"
-            aria-label={`Move ${name} up`}
+            tooltip={t("pass3_23.audioEffects.moveEarlier")}
+            aria-label={t("pass3_23.audioEffects.moveUp", { name })}
             size="small"
             disabled={isFirst}
             onClick={() => onMove(id, -1)}
           />
           <ToolbarIconButton
             icon={<ArrowDownwardOutlinedIcon />}
-            tooltip="Move later in the chain"
-            aria-label={`Move ${name} down`}
+            tooltip={t("pass3_23.audioEffects.moveLater")}
+            aria-label={t("pass3_23.audioEffects.moveDown", { name })}
             size="small"
             disabled={isLast}
             onClick={() => onMove(id, 1)}
           />
           <DeleteButton
             onClick={() => onRemove(id)}
-            tooltip={`Remove ${name}`}
-            ariaLabel={`Remove ${name}`}
+            tooltip={t("pass3_23.audioEffects.remove", { name })}
+            ariaLabel={t("pass3_23.audioEffects.remove", { name })}
             iconVariant="clear"
             sx={INSPECTOR_ROW_BUTTON_SX}
           />
@@ -201,171 +248,179 @@ interface ClipAudioEffectsProps {
   clip: TimelineClip;
 }
 
-export const ClipAudioEffects: React.FC<ClipAudioEffectsProps> = memo(({ clip }) => {
-  const patchClip = useTimelineStore((s) => s.patchClip);
-  const [open, setOpen] = usePersistedFold("audioEffects");
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
+export const ClipAudioEffects: React.FC<ClipAudioEffectsProps> = memo(
+  ({ clip }) => {
+    const { t } = useTranslation();
+    const patchClip = useTimelineStore((s) => s.patchClip);
+    const [open, setOpen] = usePersistedFold("audioEffects");
+    const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [editorOpen, setEditorOpen] = useState(false);
 
-  // Handlers merge onto the latest clip without changing identity per edit.
-  const clipRef = useRef(clip);
-  clipRef.current = clip;
+    // Handlers merge onto the latest clip without changing identity per edit.
+    const clipRef = useRef(clip);
+    clipRef.current = clip;
 
-  const setEffects = useCallback(
-    (audioEffects: ClipAudioEffect[]) => {
-      patchClip(clipRef.current.id, { audioEffects });
-    },
-    [patchClip]
-  );
+    const setEffects = useCallback(
+      (audioEffects: ClipAudioEffect[]) => {
+        patchClip(clipRef.current.id, { audioEffects });
+      },
+      [patchClip]
+    );
 
-  const handleAdd = (type: ClipAudioEffect["type"]) => {
-    const effect = makeClipAudioEffect(type);
-    setEffects([...(clipRef.current.audioEffects ?? []), effect]);
-    setExpandedId(effect.id);
-    setMenuAnchor(null);
-  };
+    const handleAdd = (type: ClipAudioEffect["type"]) => {
+      const effect = makeClipAudioEffect(type);
+      setEffects([...(clipRef.current.audioEffects ?? []), effect]);
+      setExpandedId(effect.id);
+      setMenuAnchor(null);
+    };
 
-  const expandEffect = useCallback((id: string) => {
-    setExpandedId((current) => (current === id ? null : id));
-  }, []);
+    const expandEffect = useCallback((id: string) => {
+      setExpandedId((current) => (current === id ? null : id));
+    }, []);
 
-  const patchEffect = useCallback(
-    (id: string, patch: EffectPatch) => {
-      setEffects(
-        (clipRef.current.audioEffects ?? []).map((effect) =>
-          // The patch comes from this effect type's own controls.
-          effect.id === id ? ({ ...effect, ...patch } as ClipAudioEffect) : effect
-        )
-      );
-    },
-    [setEffects]
-  );
+    const patchEffect = useCallback(
+      (id: string, patch: EffectPatch) => {
+        setEffects(
+          (clipRef.current.audioEffects ?? []).map((effect) =>
+            // The patch comes from this effect type's own controls.
+            effect.id === id
+              ? ({ ...effect, ...patch } as ClipAudioEffect)
+              : effect
+          )
+        );
+      },
+      [setEffects]
+    );
 
-  const removeEffect = useCallback(
-    (id: string) => {
-      setEffects(
-        (clipRef.current.audioEffects ?? []).filter((effect) => effect.id !== id)
-      );
-    },
-    [setEffects]
-  );
+    const removeEffect = useCallback(
+      (id: string) => {
+        setEffects(
+          (clipRef.current.audioEffects ?? []).filter(
+            (effect) => effect.id !== id
+          )
+        );
+      },
+      [setEffects]
+    );
 
-  const moveEffect = useCallback(
-    (id: string, delta: -1 | 1) => {
-      const effects = [...(clipRef.current.audioEffects ?? [])];
-      const from = effects.findIndex((effect) => effect.id === id);
-      const to = from + delta;
-      if (from < 0 || to < 0 || to >= effects.length) return;
-      [effects[from], effects[to]] = [effects[to], effects[from]];
-      setEffects(effects);
-    },
-    [setEffects]
-  );
+    const moveEffect = useCallback(
+      (id: string, delta: -1 | 1) => {
+        const effects = [...(clipRef.current.audioEffects ?? [])];
+        const from = effects.findIndex((effect) => effect.id === id);
+        const to = from + delta;
+        if (from < 0 || to < 0 || to >= effects.length) return;
+        [effects[from], effects[to]] = [effects[to], effects[from]];
+        setEffects(effects);
+      },
+      [setEffects]
+    );
 
-  const closeEditor = useCallback(() => setEditorOpen(false), []);
+    const closeEditor = useCallback(() => setEditorOpen(false), []);
 
-  const effects = clip.audioEffects ?? [];
-  const canEditAudio = clip.mediaType === "audio" && !!clip.currentAssetId;
-  const inPointMs = clip.inPointMs ?? 0;
-  const sourceWindow = {
-    start: inPointMs / 1000,
-    end: (clip.outPointMs ?? inPointMs + clip.durationMs) / 1000
-  };
+    const effects = clip.audioEffects ?? [];
+    const canEditAudio = clip.mediaType === "audio" && !!clip.currentAssetId;
+    const inPointMs = clip.inPointMs ?? 0;
+    const sourceWindow = {
+      start: inPointMs / 1000,
+      end: (clip.outPointMs ?? inPointMs + clip.durationMs) / 1000
+    };
 
-  return (
-    <>
-      <InspectorDivider />
-      <CollapsibleSection
-        title={
-          <FlexRow align="center" gap={SPACING.md}>
-            <InspectorSectionTitle
-              title="Audio effects"
-              icon={<GraphicEqOutlinedIcon />}
-            />
-            {effects.length > 0 && (
-              <Caption color="muted">
-                {effects.filter((effect) => effect.enabled).length}/
-                {effects.length} active
-              </Caption>
-            )}
-          </FlexRow>
-        }
-        open={open}
-        onToggle={setOpen}
-        unmountOnExit
-      >
-        <FlexColumn gap={SPACING.md} sx={{ py: SPACING.xs }}>
-          <FlexRow align="center" gap={SPACING.xs}>
-            <Button
-              size="small"
-              variant="text"
-              startIcon={<AddOutlinedIcon />}
-              onClick={(event) => setMenuAnchor(event.currentTarget)}
-              aria-haspopup="menu"
-              aria-expanded={Boolean(menuAnchor)}
-            >
-              Add effect
-            </Button>
-            {canEditAudio && (
+    return (
+      <>
+        <InspectorDivider />
+        <CollapsibleSection
+          title={
+            <FlexRow align="center" gap={SPACING.md}>
+              <InspectorSectionTitle
+                title={t("pass3_23.audioEffects.title")}
+                icon={<GraphicEqOutlinedIcon />}
+              />
+              {effects.length > 0 && (
+                <Caption color="muted">
+                  {t("pass3_23.audioEffects.activeCount", {
+                    active: effects.filter((effect) => effect.enabled).length,
+                    total: effects.length
+                  })}
+                </Caption>
+              )}
+            </FlexRow>
+          }
+          open={open}
+          onToggle={setOpen}
+          unmountOnExit
+        >
+          <FlexColumn gap={SPACING.md} sx={{ py: SPACING.xs }}>
+            <FlexRow align="center" gap={SPACING.xs}>
               <Button
                 size="small"
                 variant="text"
-                startIcon={<EditOutlinedIcon />}
-                onClick={() => setEditorOpen(true)}
+                startIcon={<AddOutlinedIcon />}
+                onClick={(event) => setMenuAnchor(event.currentTarget)}
+                aria-haspopup="menu"
+                aria-expanded={Boolean(menuAnchor)}
               >
-                Edit audio…
+                {t("pass3_23.audioEffects.add")}
               </Button>
+              {canEditAudio && (
+                <Button
+                  size="small"
+                  variant="text"
+                  startIcon={<EditOutlinedIcon />}
+                  onClick={() => setEditorOpen(true)}
+                >
+                  {t("pass3_23.audioEffects.editAudio")}
+                </Button>
+              )}
+            </FlexRow>
+            <EditorMenu
+              anchorEl={menuAnchor}
+              open={Boolean(menuAnchor)}
+              onClose={() => setMenuAnchor(null)}
+            >
+              {CLIP_AUDIO_EFFECT_TYPES.map((type) => (
+                <MenuItemPrimitive
+                  key={type}
+                  label={t(`pass3_23.${EFFECT_LABEL_KEYS[type]}`)}
+                  onClick={() => handleAdd(type)}
+                />
+              ))}
+            </EditorMenu>
+            {effects.length === 0 && (
+              <Caption color="muted">
+                {t("pass3_23.audioEffects.empty")}
+                {canEditAudio && ` ${t("pass3_23.audioEffects.emptyEditHint")}`}
+              </Caption>
             )}
-          </FlexRow>
-          <EditorMenu
-            anchorEl={menuAnchor}
-            open={Boolean(menuAnchor)}
-            onClose={() => setMenuAnchor(null)}
-          >
-            {CLIP_AUDIO_EFFECT_TYPES.map((type) => (
-              <MenuItemPrimitive
-                key={type}
-                label={CLIP_AUDIO_EFFECT_LABELS[type]}
-                onClick={() => handleAdd(type)}
+            {effects.map((effect, index) => (
+              <EffectRow
+                key={effect.id}
+                effect={effect}
+                isFirst={index === 0}
+                isLast={index === effects.length - 1}
+                expanded={effect.id === expandedId}
+                onExpand={expandEffect}
+                onPatch={patchEffect}
+                onRemove={removeEffect}
+                onMove={moveEffect}
               />
             ))}
-          </EditorMenu>
-          {effects.length === 0 && (
-            <Caption color="muted">
-              Effects play live and render in the export.
-              {canEditAudio &&
-                " Edit audio opens the clip in the audio editor for offline effects."}
-            </Caption>
-          )}
-          {effects.map((effect, index) => (
-            <EffectRow
-              key={effect.id}
-              effect={effect}
-              isFirst={index === 0}
-              isLast={index === effects.length - 1}
-              expanded={effect.id === expandedId}
-              onExpand={expandEffect}
-              onPatch={patchEffect}
-              onRemove={removeEffect}
-              onMove={moveEffect}
+          </FlexColumn>
+        </CollapsibleSection>
+        {editorOpen && clip.currentAssetId && (
+          <Suspense fallback={null}>
+            <ClipAudioEditorDialog
+              clipId={clip.id}
+              clipName={clip.name}
+              assetId={clip.currentAssetId}
+              sourceWindow={sourceWindow}
+              onClose={closeEditor}
             />
-          ))}
-        </FlexColumn>
-      </CollapsibleSection>
-      {editorOpen && clip.currentAssetId && (
-        <Suspense fallback={null}>
-          <ClipAudioEditorDialog
-            clipId={clip.id}
-            clipName={clip.name}
-            assetId={clip.currentAssetId}
-            sourceWindow={sourceWindow}
-            onClose={closeEditor}
-          />
-        </Suspense>
-      )}
-    </>
-  );
-});
+          </Suspense>
+        )}
+      </>
+    );
+  }
+);
 
 ClipAudioEffects.displayName = "ClipAudioEffects";

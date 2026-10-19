@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { normToValue, valueToNorm } from '../../params';
 import { DRUM_PARAMS } from '../params';
 import { useDrumStore } from '../dr1Store';
@@ -13,6 +14,7 @@ interface PosSliderProps {
 }
 
 export function PosSlider({ paramId, accent }: PosSliderProps) {
+  const { t } = useTranslation();
   const def = DRUM_PARAMS[paramId];
   const value = useDrumStore((s) => s.params[paramId]);
   const setParam = useDrumStore((s) => s.setParam);
@@ -77,7 +79,7 @@ export function PosSlider({ paramId, accent }: PosSliderProps) {
       data-accent={accent}
       role="slider"
       tabIndex={0}
-      aria-label="wavetable position"
+      aria-label={t('i18n-next48.slider.wavetablePosition')}
       aria-valuemin={def.min}
       aria-valuemax={def.max}
       aria-valuenow={Number(value.toFixed(3))}
@@ -92,7 +94,7 @@ export function PosSlider({ paramId, accent }: PosSliderProps) {
         <div className="dr-pos-fill" style={{ height: `${pct}%` }} />
         <div className="dr-pos-handle" style={{ bottom: `${pct}%` }} />
       </div>
-      <span className="dr-pos-label">POS</span>
+      <span className="dr-pos-label">{t('i18n-next107.drum.position')}</span>
     </div>
   );
 }

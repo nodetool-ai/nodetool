@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ToolbarIconButton, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import isEqual from "../../../utils/isEqual";
@@ -103,6 +104,7 @@ const styles = (theme: Theme) =>
   });
 
 const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const normalized = useMemo(
@@ -129,7 +131,11 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
   return (
     <div css={memoizedStyles} className="dataframe-renderer">
       <div className="dataframe-action-buttons">
-        <ToolbarIconButton title="Open in full view" size="small" onClick={toggleExpand}>
+        <ToolbarIconButton
+          title={t("i18n-next37.dataframeRenderer.openInFullView")}
+          size="small"
+          onClick={toggleExpand}
+        >
           <OpenInFullIcon />
         </ToolbarIconButton>
       </div>
@@ -139,8 +145,10 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
           value={normalized}
           onChange={handleChange}
           onClose={toggleExpand}
-          propertyName="DataFrame"
-          propertyDescription="Read-only view of the DataFrame output"
+          propertyName={t("i18n-next37.dataframeRenderer.dataFrame")}
+          propertyDescription={t(
+            "i18n-next37.dataframeRenderer.readOnlyOutputDescription"
+          )}
           readOnly={true}
         />
       )}

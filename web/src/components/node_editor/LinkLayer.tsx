@@ -5,6 +5,7 @@
  * The layer sits in the viewport beneath edges and nodes.
  */
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Position,
   ViewportPortal,
@@ -98,6 +99,7 @@ interface LinkPathProps {
 
 const LinkPath: React.FC<LinkPathProps> = memo(
   ({ link, selected, onSelect, onDelete }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const openContextMenu = useContextMenuStore(
       (state) => state.openContextMenu
@@ -157,8 +159,8 @@ const LinkPath: React.FC<LinkPathProps> = memo(
       ? theme.vars.palette.primary.main
       : theme.vars.palette.text.secondary;
     const name = link.label
-      ? `Link "${link.label}"`
-      : "Lineage link";
+      ? t("linkLayer.namedLink", { label: link.label })
+      : t("linkLayer.lineageLink");
 
     return (
       <g className="lineage-link" data-link-id={link.id}>
@@ -256,7 +258,7 @@ const LinkLayer: React.FC = () => {
 
   return (
     <ViewportPortal>
-      <svg style={LAYER_STYLE} aria-label="Lineage links">
+      <svg style={LAYER_STYLE} aria-label={t("linkLayer.ariaLabel")}>
         {links.map((link) => (
           <LinkPath
             key={link.id}

@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, type Ref } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import {
   Tooltip,
@@ -54,6 +55,7 @@ const NodeItem = memo(function NodeItem({
   showDescriptionTooltip = false,
   ref
 }: NodeItemProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   // Rows re-render on every keystroke in the node search; a fresh slotProps
   // object per row would defeat the memo on Tooltip and re-serialize its sx.
@@ -149,7 +151,7 @@ const NodeItem = memo(function NodeItem({
               weight={FONT_WEIGHT.semibold}
               sx={{ color: "grey.400", textTransform: "uppercase", mb: 0.5 }}
             >
-              Use cases
+              {t("i18n-next50-node-menu.nodeItem.useCases")}
             </Text>
             <Box
               component="ul"
@@ -196,8 +198,8 @@ const NodeItem = memo(function NodeItem({
       addNotification({
         type: "info",
         content: wasAdded
-          ? "Node added to favorites"
-          : "Node removed from favorites",
+          ? t("i18n-next50-node-menu.favorites.addedNotification")
+          : t("i18n-next50-node-menu.favorites.removedNotification"),
         timeout: NOTIFICATION_TIMEOUT_SHORT
       });
     },
@@ -371,7 +373,9 @@ const NodeItem = memo(function NodeItem({
         )}
         {hasRuntimeDeps && (
           <Tooltip
-            title={`Requires: ${node.required_runtimes!.join(", ")}`}
+            title={t("i18n-next50-node-menu.nodeItem.requires", {
+              runtimes: node.required_runtimes!.join(", ")
+            })}
             placement="top"
             slotProps={runtimeTooltipSlotProps}
           >
@@ -423,15 +427,15 @@ const NodeItem = memo(function NodeItem({
                 <StarBorderIcon fontSize="small" />
               )
             }
-            tooltip={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            tooltip={isFavorite ? t("i18n-next50-node-menu.favorites.removeShort") : t("i18n-next50-node-menu.favorites.addShort")}
             tooltipPlacement="top"
             size="small"
             onClick={handleFavoriteClick}
             sx={favoriteButtonSx}
             aria-label={
               isFavorite
-                ? `Remove ${node.title} from favorites`
-                : `Add ${node.title} to favorites`
+                ? t("i18n-next50-node-menu.favorites.remove", { name: node.title })
+                : t("i18n-next50-node-menu.favorites.add", { name: node.title })
             }
           />
         )}

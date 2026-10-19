@@ -2,6 +2,7 @@
 // FACTORY / USER patches onto the selected pad; the audition hits that pad.
 
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PresetBrowserShell, type BrowserSnapshot, type PresetBrowserAdapter } from '../../../components/presetBrowser/PresetBrowserShell';
 import { fmtHz, fmtPct, fmtSec } from '../../../params';
 import { DRUM_FILTER_TYPES } from '../../params';
@@ -14,6 +15,7 @@ import { useDrumAudition } from './useDrumAudition';
 type DrumPadSnapshot = PadSnapshot & BrowserSnapshot;
 
 export function PadPatchBrowser({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const userPatches = useDrumStore((s) => s.userPatches);
   const patchValue = useDrumStore((s) => s.patchValue);
   const params = useDrumStore((s) => s.params);
@@ -28,8 +30,8 @@ export function PadPatchBrowser({ onClose }: { onClose: () => void }) {
   const audition = useDrumAudition();
 
   const adapter: PresetBrowserAdapter<PatchEntry, DrumPadSnapshot> = {
-    title: 'DR-1 pad patches',
-    glyphLegend: 'pitch · amp · filter · source',
+    title: t('i18n-next107.drum.padPatchBrowser.title'),
+    glyphLegend: t('i18n-next107.drum.padPatchBrowser.glyphLegend'),
     favoritesKey: 'fablesynth.drumPatchFavorites',
     roles: PATCH_ROLES,
     characters: PATCH_CHARACTERS,
@@ -44,20 +46,25 @@ export function PadPatchBrowser({ onClose }: { onClose: () => void }) {
       audition.play((bpm) => PAD_HITS.map(([beat, v]) => [beat * 60 / bpm * 1000, padI, v]), !store.getState().playing);
     },
     stopAudition: audition.stop,
-    auditionHint: (on) => !powered ? 'Start the timeline audio to hear patches.'
-      : playing ? 'The timeline plays the pad.'
-      : on ? 'Three hits of the selected pad play on select.' : 'Play the pad to hear patches.',
+    auditionHint: (on) => !powered ? t('i18n-next107.drum.padPatchBrowser.audioOff')
+      : playing ? t('i18n-next107.drum.padPatchBrowser.timelinePlaying')
+      : on ? t('i18n-next107.drum.padPatchBrowser.auditionPlaying') : t('i18n-next107.drum.padPatchBrowser.playPad'),
     renderGlyph: (e, color) => <PadGlyph className="pbr-glyph" data={e.glyph} color={color} />,
     renderDetail: (color) => (
       <>
         <PadGlyph className="pbr-big" data={live} color={color} fill />
-        <div className="pbr-legend"><span>PITCH</span><span>AMP</span><span>FILTER</span><span>SOURCE</span></div>
+        <div className="pbr-legend">
+          <span>{t('i18n-next107.drum.padPatchBrowser.pitch')}</span>
+          <span>{t('i18n-next107.drum.padPatchBrowser.amp')}</span>
+          <span>{t('i18n-next107.drum.padPatchBrowser.filter')}</span>
+          <span>{t('i18n-next107.drum.padPatchBrowser.source')}</span>
+        </div>
         <dl className="pbr-kv">
-          <dt>Pitch env</dt><dd>{live.penvAmt ? `${live.penvAmt > 0 ? '+' : ''}${live.penvAmt} st · ${fmtSec(live.penvDec)}` : 'off'}</dd>
-          <dt>Amp decay</dt><dd>{fmtSec(live.amp.dec)}</dd>
-          <dt>Filter</dt><dd>{live.filterOn ? `${DRUM_FILTER_TYPES[live.filterType]} · ${fmtHz(live.cutoff)}` : 'off'}</dd>
-          <dt>Osc / sample</dt><dd>{fmtPct(live.mix[0])} / {fmtPct(live.mix[1])}</dd>
-          <dt>Noise / ring</dt><dd>{fmtPct(live.mix[2])} / {fmtPct(live.mix[3])}</dd>
+          <dt>{t('i18n-next107.drum.padPatchBrowser.pitchEnv')}</dt><dd>{live.penvAmt ? `${live.penvAmt > 0 ? '+' : ''}${live.penvAmt} st · ${fmtSec(live.penvDec)}` : t('i18n-next107.drum.padPatchBrowser.off')}</dd>
+          <dt>{t('i18n-next107.drum.padPatchBrowser.ampDecay')}</dt><dd>{fmtSec(live.amp.dec)}</dd>
+          <dt>{t('i18n-next107.drum.padPatchBrowser.filter')}</dt><dd>{live.filterOn ? `${DRUM_FILTER_TYPES[live.filterType]} · ${fmtHz(live.cutoff)}` : t('i18n-next107.drum.padPatchBrowser.off')}</dd>
+          <dt>{t('i18n-next107.drum.padPatchBrowser.oscSample')}</dt><dd>{fmtPct(live.mix[0])} / {fmtPct(live.mix[1])}</dd>
+          <dt>{t('i18n-next107.drum.padPatchBrowser.noiseRing')}</dt><dd>{fmtPct(live.mix[2])} / {fmtPct(live.mix[3])}</dd>
         </dl>
       </>
     ),

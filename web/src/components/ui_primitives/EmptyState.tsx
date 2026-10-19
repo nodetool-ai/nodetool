@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -75,32 +76,32 @@ export interface EmptyStateProps {
 const defaultContent = {
   empty: {
     icon: <InboxIcon className="empty-icon" />,
-    title: "Nothing here yet",
-    description: "Get started by creating your first item."
+    titleKey: "empty.title",
+    descriptionKey: "empty.description"
   },
   "no-results": {
     icon: <SearchOffIcon className="empty-icon" />,
-    title: "No results found",
-    description: "Try adjusting your search or filters."
+    titleKey: "noResults.title",
+    descriptionKey: "noResults.description"
   },
   "no-data": {
     icon: <FolderOffIcon className="empty-icon" />,
-    title: "No data available",
-    description: "Data will appear here when available."
+    titleKey: "noData.title",
+    descriptionKey: "noData.description"
   },
   offline: {
     icon: <CloudOffIcon className="empty-icon" />,
-    title: "You're offline",
-    description: "Check your internet connection and try again."
+    titleKey: "offline.title",
+    descriptionKey: "offline.description"
   },
   error: {
     icon: <ErrorOutlineIcon className="empty-icon" />,
-    title: "Something went wrong",
-    description: "An error occurred. Please try again."
+    titleKey: "error.title",
+    descriptionKey: "error.description"
   }
 } satisfies Record<
   EmptyStateVariant,
-  { icon: React.ReactNode; title: string; description: string }
+  { icon: React.ReactNode; titleKey: string; descriptionKey: string }
 >;
 
 export const EmptyState: React.FC<EmptyStateProps> = memo(({
@@ -114,13 +115,18 @@ export const EmptyState: React.FC<EmptyStateProps> = memo(({
   className
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const defaults = defaultContent[variant];
 
   const displayIcon = icon || defaults.icon;
-  const displayTitle = title || defaults.title;
+  const displayTitle = title || t(`i18n-next85.uiPrimitives.emptyState.${defaults.titleKey}`);
   // The variant's description belongs to the variant's title. A caller with
   // its own title gets only the description it passes.
-  const displayDescription = description || (title ? undefined : defaults.description);
+  const displayDescription =
+    description ||
+    (title
+      ? undefined
+      : t(`i18n-next85.uiPrimitives.emptyState.${defaults.descriptionKey}`));
 
   const titleVariant = size === "small" ? "body1" : size === "large" ? "h5" : "h6";
   const descriptionVariant = size === "small" ? "caption" : "body2";

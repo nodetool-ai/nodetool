@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DynamicInputButton } from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
@@ -23,6 +24,7 @@ const AddDynamicOutputButton: React.FC<AddDynamicOutputButtonProps> = ({
   nodeType,
   dynamicOutputs
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
   const staticOutputs = useMetadataStore(
@@ -41,7 +43,7 @@ const AddDynamicOutputButton: React.FC<AddDynamicOutputButtonProps> = ({
 
   return (
     <>
-      <DynamicInputButton label="Add output" onAdd={handleOpen} />
+      <DynamicInputButton label={t("screen_nodes.addOutput")} onAdd={handleOpen} />
       <AddDynamicOutputDialog
         open={open}
         onClose={handleClose}

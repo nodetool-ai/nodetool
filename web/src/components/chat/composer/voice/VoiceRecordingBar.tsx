@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import {
@@ -69,6 +70,7 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
 }: VoiceRecordingBarProps) {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+  const { t } = useTranslation();
 
   if (isTranscribing) {
     // The take is already accepted and the run cannot be called back, so the
@@ -78,12 +80,12 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
         css={cssStyles}
         className="voice-recording-bar"
         role="status"
-        aria-label="Transcribing recording"
+        aria-label={t("i18n-next54.composer.voice.transcribing")}
       >
         <FlexRow className="wave-slot" gap={1} align="center">
           <LoadingSpinner inline size={16} />
           <Text size="small" color="secondary">
-            Transcribing…
+            {t("i18n-next54.composer.voice.transcribing")}
           </Text>
         </FlexRow>
       </div>
@@ -95,12 +97,12 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
       css={cssStyles}
       className="voice-recording-bar"
       role="group"
-      aria-label="Voice recording"
+      aria-label={t("i18n-next54.composer.voice.recording")}
     >
       <ToolbarIconButton
         className="voice-cancel"
-        aria-label="Discard recording"
-        tooltip="Discard recording"
+        aria-label={t("i18n-next54.composer.voice.discard")}
+        tooltip={t("i18n-next54.composer.voice.discard")}
         icon={<CloseOutlinedIcon fontSize="small" />}
         onClick={onCancel}
         variant="error"
@@ -114,8 +116,8 @@ export const VoiceRecordingBar = memo(function VoiceRecordingBar({
       </Text>
       <ToolbarIconButton
         className="voice-confirm"
-        aria-label="Accept recording"
-        tooltip="Accept recording"
+        aria-label={t("i18n-next54.composer.voice.accept")}
+        tooltip={t("i18n-next54.composer.voice.accept")}
         icon={<CheckRoundedIcon fontSize="small" />}
         onClick={onConfirm}
         variant="primary"

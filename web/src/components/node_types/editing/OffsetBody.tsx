@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -132,6 +133,7 @@ const OffsetBodyInner: React.FC<OffsetBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(
     () => [styles(theme), adjustmentSliderStyles(theme)],
@@ -187,7 +189,7 @@ const OffsetBodyInner: React.FC<OffsetBodyProps> = ({
           return (
             <AdjustmentSlider
               key={spec.name}
-              spec={spec}
+              spec={{ ...spec, label: t(`i18n-next46.offset.sliders.${spec.name}`) }}
               value={value}
               onChange={handleSliderChange}
               onCommit={setPropertyComplete}
@@ -196,18 +198,18 @@ const OffsetBodyInner: React.FC<OffsetBodyProps> = ({
         })}
 
         <div className="wrap-row">
-          <span className="wrap-label">Wrap</span>
+          <span className="wrap-label">{t("i18n-next46.offset.wrap")}</span>
           <ToggleGroup
             quiet
             value={String(Math.round(wrapValue))}
             exclusive
             onChange={handleWrapChange}
             size="small"
-            aria-label="Wrap mode"
+            aria-label={t("i18n-next46.offset.wrapMode")}
           >
             {WRAP_LABELS.map((label, i) => (
-              <ToggleOption key={i} value={String(i)} aria-label={label}>
-                {label}
+              <ToggleOption key={i} value={String(i)} aria-label={t(`i18n-next46.offset.wrapOptions.${label.toLowerCase()}`)}>
+                {t(`i18n-next46.offset.wrapOptions.${label.toLowerCase()}`)}
               </ToggleOption>
             ))}
           </ToggleGroup>

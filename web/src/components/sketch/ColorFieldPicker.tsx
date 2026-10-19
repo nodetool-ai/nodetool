@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Box, FlexColumn, BORDER_RADIUS } from "../ui_primitives";
 import { parseColorToRgba, rgbaToCss, rgbToHsv, hsvToRgb } from "./types";
@@ -29,6 +30,7 @@ const ColorFieldPickerInner: React.FC<ColorFieldPickerProps> = ({
   color,
   onColorChange
 }) => {
+  const { t } = useTranslation();
   const { r, g, b, a } = parseColorToRgba(color);
   const hsv = rgbToHsv(r, g, b);
 
@@ -109,6 +111,28 @@ const ColorFieldPickerInner: React.FC<ColorFieldPickerProps> = ({
       <Box
         ref={svRef}
         className="color-field__sv"
+        role="group"
+        aria-label={t("screens4_24.sketch.colorPicker.saturationBrightness")}
+        tabIndex={0}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          const step = e.shiftKey ? 0.1 : 0.01;
+          let saturation = hsv.s;
+          let value = hsv.v;
+          if (e.key === "ArrowLeft") {
+            saturation = Math.max(0, saturation - step);
+          } else if (e.key === "ArrowRight") {
+            saturation = Math.min(1, saturation + step);
+          } else if (e.key === "ArrowDown") {
+            value = Math.max(0, value - step);
+          } else if (e.key === "ArrowUp") {
+            value = Math.min(1, value + step);
+          } else {
+            return;
+          }
+          e.preventDefault();
+          const { r: nr, g: ng, b: nb } = hsvToRgb(localHue, saturation, value);
+          onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
+        }}
         onMouseDown={(e: React.MouseEvent) => {
           e.preventDefault();
           draggingSv.current = true;
@@ -161,6 +185,30 @@ const ColorFieldPickerInner: React.FC<ColorFieldPickerProps> = ({
       <Box
         ref={hueRef}
         className="color-field__hue"
+        role="slider"
+        aria-label={t("screens4_24.sketch.colorPicker.hue")}
+        aria-valuemin={0}
+        aria-valuemax={360}
+        aria-valuenow={Math.round(localHue)}
+        tabIndex={0}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          let hue = localHue;
+          if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+            hue = Math.max(0, hue - 1);
+          } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+            hue = Math.min(360, hue + 1);
+          } else if (e.key === "Home") {
+            hue = 0;
+          } else if (e.key === "End") {
+            hue = 360;
+          } else {
+            return;
+          }
+          e.preventDefault();
+          setLocalHue(hue);
+          const { r: nr, g: ng, b: nb } = hsvToRgb(hue, hsv.s, hsv.v);
+          onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
+        }}
         onMouseDown={(e: React.MouseEvent) => {
           e.preventDefault();
           draggingHue.current = true;

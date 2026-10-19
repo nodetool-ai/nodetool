@@ -20,12 +20,6 @@ const SAVE_STATE: Record<string, SaveStateValue> = {
   error: "error"
 };
 
-const TOOLTIPS: Record<string, string> = {
-  unsaved: "Unsaved changes — saving shortly",
-  error: "Couldn't sync with the server. Your changes are kept locally.",
-  saved: "All changes saved"
-};
-
 /**
  * Toolbar readout of the autosave lifecycle. The server sync is otherwise
  * invisible: edits save silently and a CAS conflict silently replaces local
@@ -36,26 +30,31 @@ const TOOLTIPS: Record<string, string> = {
  * counterpart there, so it stays a warning readout of its own.
  */
 const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_text" });
   const status = useScriptSaveStatus(scriptId);
 
   if (status === "reloaded") {
     return (
-      <Tooltip title="This script was edited elsewhere, so the newer server version was loaded.">
+      <Tooltip title={t("script.save.reloadedTooltip")}>
         <FlexRow align="center" gap={SPACING.xs} aria-live="polite">
           <HistoryIcon color="warning" fontSize="small" />
           <Text size="smaller" color="warning">
-            Reloaded newer version
+            {t("script.save.reloaded")}
           </Text>
         </FlexRow>
       </Tooltip>
     );
   }
 
-  const tooltip = TOOLTIPS[status];
+  const tooltipKey =
+    status === "unsaved" ? "unsaved" : status === "error" ? "error" : "saved";
+  const tooltip = t(`script.save.${tooltipKey}`);
   const readout = <SaveState state={SAVE_STATE[status] ?? "saved"} />;
   return tooltip ? (
     <Tooltip title={tooltip}>
-      <Box component="span" sx={{ display: "inline-flex" }}>{readout}</Box>
+      <Box component="span" sx={{ display: "inline-flex" }}>
+        {readout}
+      </Box>
     </Tooltip>
   ) : (
     readout
@@ -63,3 +62,4 @@ const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
 };
 
 export default ScriptSaveIndicator;
+import { useTranslation } from "react-i18next";

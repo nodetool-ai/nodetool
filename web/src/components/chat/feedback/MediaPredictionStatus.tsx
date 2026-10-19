@@ -1,9 +1,9 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Caption, FlexRow, ShimmerText, Text } from "../../ui_primitives";
 import { useElapsedSince } from "../../../hooks/useElapsedTime";
 import {
   formatPredictionElapsed,
-  mediaPredictionLabel,
   type ActiveMediaPrediction
 } from "../../../core/chat/mediaPrediction";
 
@@ -11,11 +11,35 @@ interface MediaPredictionRowProps {
   prediction: ActiveMediaPrediction;
 }
 
+function predictionLabelKey(capability: string):
+  | "i18n-next67.chat.mediaPrediction.generatingImage"
+  | "i18n-next67.chat.mediaPrediction.generatingVideo"
+  | "i18n-next67.chat.mediaPrediction.generatingAudio"
+  | "i18n-next67.chat.mediaPrediction.generating" {
+  switch (capability) {
+    case "text_to_image":
+    case "image_to_image":
+      return "i18n-next67.chat.mediaPrediction.generatingImage";
+    case "text_to_video":
+    case "image_to_video":
+    case "reference_to_video":
+    case "video_to_video":
+    case "lip_sync":
+      return "i18n-next67.chat.mediaPrediction.generatingVideo";
+    case "text_to_speech":
+    case "text_to_music":
+      return "i18n-next67.chat.mediaPrediction.generatingAudio";
+    default:
+      return "i18n-next67.chat.mediaPrediction.generating";
+  }
+}
+
 const MediaPredictionRow: React.FC<MediaPredictionRowProps> = memo(
   ({ prediction }) => {
+    const { t } = useTranslation();
     const elapsed = useElapsedSince(prediction.startedAt);
     const parts = [
-      mediaPredictionLabel(prediction.capability),
+      t(predictionLabelKey(prediction.capability)),
       prediction.provider,
       prediction.model
     ].filter((part) => part.length > 0);
@@ -59,6 +83,7 @@ MediaPredictionStatus.displayName = "MediaPredictionStatus";
 
 export const MediaPredictionInline: React.FC<MediaPredictionRowProps> = memo(
   ({ prediction }) => {
+    const { t } = useTranslation();
     const elapsed = useElapsedSince(prediction.startedAt);
     const parts = [prediction.provider, prediction.model].filter(
       (part) => part.length > 0
@@ -78,7 +103,7 @@ export const MediaPredictionInline: React.FC<MediaPredictionRowProps> = memo(
           truncate
         >
           <ShimmerText>
-            {mediaPredictionLabel(prediction.capability)}
+            {t(predictionLabelKey(prediction.capability))}
             {parts.length > 0 ? ` · ${parts.join(" · ")}` : ""}
           </ShimmerText>
         </Text>

@@ -11,6 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   useImageModelsByProvider,
@@ -21,9 +22,7 @@ import {
 import { useRecommendedModelKeys } from "../../../hooks/useRecommendedModelKeys";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useWorkflowManagerStore } from "../../../contexts/WorkflowManagerContext";
-import {
-  useWorkflowSetupDocument
-} from "../../../hooks/workflow/useWorkflowSetup";
+import { useWorkflowSetupDocument } from "../../../hooks/workflow/useWorkflowSetup";
 import {
   importWorkflowGraph,
   readWorkflowFile
@@ -115,6 +114,7 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
   onFinish,
   onChangeFlow
 }) => {
+  const { t } = useTranslation();
   const store = useWorkflowManagerStore();
   const language = useLanguageModelsByProvider();
   const image = useImageModelsByProvider();
@@ -197,9 +197,7 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
   const chosenModel = useCallback(
     (role: string, tileId: string | null): unknown => {
       const models = byRole[role] ?? [];
-      return (
-        models.find((model) => model.id === tileId)?.ref ?? models[0]?.ref
-      );
+      return models.find((model) => model.id === tileId)?.ref ?? models[0]?.ref;
     },
     [byRole]
   );
@@ -307,16 +305,13 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
         gap={GAP.comfortable}
         sx={{ padding: PADDING.section }}
       >
-        <ThinkingIndicator
-          label="Checking and test-running your workflow"
-          announce
-        />
+        <ThinkingIndicator label={t("pass3_15.setupHost.checking")} announce />
         <EditorButton
           ref={cancelRef}
           variant="text"
           onClick={() => void config.cancelBuild()}
         >
-          Cancel
+          {t("pass3_15.setupHost.cancel")}
         </EditorButton>
       </FlexColumn>
     );
@@ -329,7 +324,7 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
         justify="center"
         sx={{ padding: PADDING.section }}
       >
-        <ThinkingIndicator label="Opening your workflow" announce />
+        <ThinkingIndicator label={t("pass3_15.setupHost.opening")} announce />
       </FlexColumn>
     );
   }

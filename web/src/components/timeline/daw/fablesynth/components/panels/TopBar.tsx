@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Knob } from '../Knob';
 import { ScopeView } from '../displays/ScopeView';
 import { SpectrumView } from '../displays/SpectrumView';
@@ -8,6 +9,7 @@ import { PresetBrowser } from '../presetBrowser/PresetBrowser';
 import { useStore } from '../../store';
 
 export function TopBar() {
+  const { t } = useTranslation();
   const powered = useStore((s) => s.powered);
   const midiActive = useStore((s) => s.midiActive);
   const voiceCount = useStore((s) => s.voiceCount);
@@ -40,14 +42,14 @@ export function TopBar() {
     <header className="top-bar wt-top-bar">
       <div className="brand">FABLE<em>SYNTH</em><small>WT‑1</small></div>
       <div className="preset-bar">
-        <button className="pb-btn fs-preset-prev" aria-label="previous preset" onClick={() => stepPreset(-1)} disabled={naming}>◂</button>
+        <button className="pb-btn fs-preset-prev" aria-label={t("i18n-next15.wavetable.previousPreset")} onClick={() => stepPreset(-1)} disabled={naming}>◂</button>
         {naming ? (
           <input
             ref={nameRef}
             className="pb-name-input"
-            aria-label="preset name"
+            aria-label={t("i18n-next15.wavetable.presetName")}
             defaultValue=""
-            placeholder="PRESET NAME"
+            placeholder={t("i18n-next15.wavetable.presetName")}
             maxLength={24}
             onKeyDown={(e) => {
               // Stop the global computer-keyboard handler from treating
@@ -61,7 +63,7 @@ export function TopBar() {
         ) : (
           <select
             className="fs-preset-select"
-            aria-label="preset"
+            aria-label={t("i18n-next15.wavetable.preset")}
             value={presetValue}
             onChange={(e) => {
               loadPresetByValue(e.target.value);
@@ -70,14 +72,14 @@ export function TopBar() {
               e.currentTarget.blur();
             }}
           >
-            {presetValue === '' && <option value="" disabled>CUSTOM</option>}
-            <optgroup label="FACTORY">
+            {presetValue === '' && <option value="" disabled>{t("i18n-next15.wavetable.custom")}</option>}
+            <optgroup label={t("i18n-next15.wavetable.factory")}>
               {FACTORY_PRESETS.map((p, i) => (
                 <option key={'f' + i} value={'f' + i}>{p.name}</option>
               ))}
             </optgroup>
             {userPresets.length ? (
-              <optgroup label="USER">
+              <optgroup label={t("i18n-next15.wavetable.user")}>
                 {userPresets.map((p, i) => (
                   <option key={'u' + i} value={'u' + i}>{p.name}</option>
                 ))}
@@ -85,11 +87,11 @@ export function TopBar() {
             ) : null}
           </select>
         )}
-        {!naming && dirty && <span className="pb-dirty" aria-label="unsaved changes" title="unsaved changes" />}
-        <button className="pb-btn fs-preset-next" aria-label="next preset" onClick={() => stepPreset(1)} disabled={naming}>▸</button>
+        {!naming && dirty && <span className="pb-dirty" aria-label={t("i18n-next15.wavetable.unsavedChanges")} title={t("i18n-next15.wavetable.unsavedChanges")} />}
+        <button className="pb-btn fs-preset-next" aria-label={t("i18n-next15.wavetable.nextPreset")} onClick={() => stepPreset(1)} disabled={naming}>▸</button>
         {naming ? (
           <>
-            <button className="pb-btn pb-save" onClick={commitName}>OK</button>
+            <button className="pb-btn pb-save" onClick={commitName}>{t('i18n-next116.fableSynth.actions.ok')}</button>
             <button className="pb-btn" onClick={() => setNaming(false)}>✕</button>
           </>
         ) : (
@@ -98,8 +100,8 @@ export function TopBar() {
               className="pb-btn pb-save pb-browse fs-preset-browse"
               aria-expanded={browsing}
               onClick={() => setBrowsing(!browsing)}
-            >BROWSE</button>
-            <button className="pb-btn pb-save fs-preset-save" onClick={() => setNaming(true)}>SAVE</button>
+            >{t("i18n-next15.wavetable.browse")}</button>
+            <button className="pb-btn pb-save fs-preset-save" onClick={() => setNaming(true)}>{t("i18n-next15.wavetable.save")}</button>
           </>
         )}
       </div>
@@ -107,16 +109,16 @@ export function TopBar() {
       <div className="hud">
         <div className="hud-cell">
           <ScopeView analyser={powered ? engine.scopeAnalyser : null} accent={ACCENTS.a} />
-          <span>SCOPE</span>
+          <span>{t("i18n-next15.wavetable.scope")}</span>
         </div>
         <div className="hud-cell">
           <SpectrumView analyser={powered ? engine.specAnalyser : null} accent={ACCENTS.b} />
-          <span>SPECTRUM</span>
+          <span>{t("i18n-next15.wavetable.spectrum")}</span>
         </div>
       </div>
       <div className={`status${midiDim ? ' dim' : ''}`}>
-        <div className="status-row"><span className={`led fs-midi-led${midiActive ? ' on' : ''}`} />MIDI</div>
-        <div className="status-row"><span className="fs-voice-count">{voiceCount}</span>VOICES</div>
+        <div className="status-row"><span className={`led fs-midi-led${midiActive ? ' on' : ''}`} />{t("i18n-next15.wavetable.midi")}</div>
+        <div className="status-row"><span className="fs-voice-count">{voiceCount}</span>{t("i18n-next15.wavetable.voices", { count: voiceCount })}</div>
       </div>
       <div className="fs-master-knob"><Knob paramId="master.volume" size="md" accent="n" /></div>
     </header>

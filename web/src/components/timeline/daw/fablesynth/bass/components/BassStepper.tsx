@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { BASS_PARAMS } from '../params';
 import { useBassStore } from '../bassStoreContext';
 
@@ -8,6 +9,7 @@ interface BassStepperProps {
 }
 
 export function BassStepper({ paramId, label, accent }: BassStepperProps) {
+  const { t } = useTranslation();
   const def = BASS_PARAMS[paramId];
   const value = useBassStore((s) => s.params[paramId]);
   const setParam = useBassStore((s) => s.setParam);
@@ -20,9 +22,9 @@ export function BassStepper({ paramId, label, accent }: BassStepperProps) {
     return (
       <div className="stepper" data-accent={accent}>
         {label ? <span className="st-label">{label}</span> : null}
-        <button className="st-btn st-prev" aria-label="previous" onClick={() => stepN(-1)}>◂</button>
+        <button className="st-btn st-prev" aria-label={t('i18n-next48.stepper.previous')} onClick={() => stepN(-1)}>◂</button>
         <span className="st-value">{def.fmt ? def.fmt(v) : String(v)}</span>
-        <button className="st-btn st-next" aria-label="next" onClick={() => stepN(1)}>▸</button>
+        <button className="st-btn st-next" aria-label={t('i18n-next48.stepper.next')} onClick={() => stepN(1)}>▸</button>
       </div>
     );
   }
@@ -37,9 +39,9 @@ export function BassStepper({ paramId, label, accent }: BassStepperProps) {
   return (
     <div className="stepper" data-accent={accent}>
       {label ? <span className="st-label">{label}</span> : null}
-      <button className="st-btn st-prev" aria-label="previous" onClick={() => step(-1)}>◂</button>
+      <button className="st-btn st-prev" aria-label={t('i18n-next48.stepper.previous')} onClick={() => step(-1)}>◂</button>
       <span className="st-value">{options[index]}</span>
-      <button className="st-btn st-next" aria-label="next" onClick={() => step(1)}>▸</button>
+      <button className="st-btn st-next" aria-label={t('i18n-next48.stepper.next')} onClick={() => step(1)}>▸</button>
     </div>
   );
 }

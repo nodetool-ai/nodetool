@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useMemo, useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Text, Tooltip, Box, focusRing, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, SHADOW } from "../ui_primitives";
@@ -89,15 +90,18 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
   selectedHarmony,
   onHarmonyChange
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const harmonyInfo = useMemo(() => getHarmonyInfo(), []);
 
   const harmonies = useMemo(() => {
     return harmonyInfo.map((info) => ({
       ...info,
-      ...generateHarmony(color, info.type)
+      ...generateHarmony(color, info.type),
+      name: t(`i18n-next49-color-inputs.harmonyPicker.${info.type}.name`),
+      description: t(`i18n-next49-color-inputs.harmonyPicker.${info.type}.description`)
     }));
-  }, [color, harmonyInfo]);
+  }, [color, harmonyInfo, t]);
 
   const handleColorSelectWithHarmony = useCallback(
     (harmonyColor: string, harmonyType: HarmonyType) => {
@@ -134,7 +138,7 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
               </Text>
             </div>
             <CopyButton
-              tooltip="Copy all colors"
+              tooltip={t("i18n-next49-color-inputs.harmonyPicker.copyAllColors")}
               value={harmony.colors.join(", ")}
               buttonSize="small"
             />
@@ -146,11 +150,14 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
               const textHex = rgbToHex(textColor);
 
               return (
-                <Tooltip key={harmonyColor} title={`Click to use ${harmonyColor}`}>
+                <Tooltip
+                  key={harmonyColor}
+                  title={t("i18n-next49-color-inputs.harmonyPicker.clickToUse", { color: harmonyColor })}
+                >
                   <div
                     role="button"
                     tabIndex={0}
-                    aria-label={`Use ${harmonyColor}`}
+                    aria-label={t("i18n-next49-color-inputs.harmonyPicker.useColor", { color: harmonyColor })}
                     className="harmony-color"
                     style={{ backgroundColor: harmonyColor }}
                     onClick={handleSelectColorWithHarmony(harmonyColor, harmony.type)}

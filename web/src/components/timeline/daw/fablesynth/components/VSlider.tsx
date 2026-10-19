@@ -6,6 +6,7 @@ import { useControlMenu } from './ControlMenu';
 
 import type * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PARAMS, DEST_OF_PARAM, SOURCE_COLORS, normToValue, valueToNorm, routeBipolar, routeLabel } from '../params';
 import { useStore } from '../store';
 import { useModsByDest } from '../hooks/useModsByDest';
@@ -66,6 +67,7 @@ function PosModBand({ slotNum, amt, src, bi, baseNorm, lane, focus, onActive }: 
 }
 
 export function VSlider({ paramId, accent, ghost }: VSliderProps) {
+  const { t } = useTranslation();
   const controlMenu = useControlMenu('WT1', paramId);
   const def = PARAMS[paramId];
   const value = useStore((s) => s.params[paramId]);
@@ -132,7 +134,7 @@ export function VSlider({ paramId, accent, ghost }: VSliderProps) {
       data-accent={accent}
       tabIndex={0}
       role="slider"
-      aria-label="wavetable position"
+      aria-label={t('i18n-next44-fablesynth-controls.vSlider.wavetablePosition')}
       aria-valuemin={def.min}
       aria-valuemax={def.max}
       aria-valuenow={Number(value.toFixed(3))}
@@ -162,7 +164,7 @@ export function VSlider({ paramId, accent, ghost }: VSliderProps) {
         <div className="vs-handle" style={{ bottom: `${pct}%` }} />
       </div>
       <div className="vs-label" style={band ? { color: SOURCE_COLORS[band.src] } : undefined}>
-        {band ? routeLabel(band.src, band.amt, routeBipolar(band.src, band.pol)) : 'POS'}
+        {band ? routeLabel(band.src, band.amt, routeBipolar(band.src, band.pol)) : t('i18n-next44-fablesynth-controls.vSlider.position')}
       </div>
       {controlMenu.menu}
     </div>

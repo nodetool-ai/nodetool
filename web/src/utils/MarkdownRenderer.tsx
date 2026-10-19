@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useRef, useState, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown, { type Options } from "react-markdown";
 import { createPortal } from "react-dom";
 import DraggableNodeDocumentation from "../components/content/Help/DraggableNodeDocumentation";
@@ -96,6 +97,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   isReadme,
   fillContainer = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedNodeType, setSelectedNodeType] = useState<string | null>(null);
@@ -211,7 +213,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         css={mainStyles}
         ref={containerRef}
         role="region"
-        aria-label="Markdown content"
+        aria-label={t("i18n-next119.markdown.contentLabel")}
         tabIndex={0}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -226,7 +228,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             <CopyButton value={content ?? ""} buttonSize="small" />
             <ToolbarIconButton
               className="fullscreen-button"
-              tooltip="Enter fullscreen"
+              tooltip={t("i18n-next119.markdown.enterFullscreen")}
               onClick={handleEnterFullscreen}
               size="small"
               icon={<FullscreenIcon fontSize="small" />}
@@ -251,7 +253,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         variant="fullscreen"
         open={isFullscreen}
         onClose={handleExitFullscreen}
-        title="Markdown"
+        title={t("i18n-next119.markdown.title")}
         titleActions={
           <CopyButton
             value={content ?? ""}

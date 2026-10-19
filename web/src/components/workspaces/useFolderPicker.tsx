@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 
 const hasNativeDialog = (): boolean => {
@@ -11,6 +12,7 @@ const hasNativeDialog = (): boolean => {
  * and resolves with the selected absolute path or `null` when cancelled.
  */
 export function useFolderPicker() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [resolver, setResolver] = useState<
     ((path: string | null) => void) | null
@@ -20,7 +22,7 @@ export function useFolderPicker() {
     if (hasNativeDialog() && window.api?.dialog) {
       try {
         const result = await window.api.dialog.openFolder({
-          title: "Select workspace folder"
+          title: t("batch2_1.folderPicker.title")
         });
         if (!result.canceled && result.filePaths.length > 0) {
           return result.filePaths[0];
@@ -34,7 +36,7 @@ export function useFolderPicker() {
       setResolver(() => resolve);
       setIsOpen(true);
     });
-  }, []);
+  }, [t]);
 
   const handleConfirm = useCallback(
     (path: string) => {
@@ -56,7 +58,7 @@ export function useFolderPicker() {
       open={isOpen}
       onClose={handleCancel}
       onConfirm={handleConfirm}
-      title="Select workspace folder"
+      title={t("batch2_1.folderPicker.title")}
       initialPath="~"
       selectionMode="directory"
     />

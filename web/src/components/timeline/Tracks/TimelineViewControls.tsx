@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -150,6 +151,7 @@ interface TimelineViewControlsProps {
 export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
   ({ compact, onZoomToFit }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
     const msPerPx = useTimelineUIStore((state) => state.msPerPx);
     const verticalZoom = useTimelineUIStore((state) => state.verticalZoom);
@@ -159,18 +161,18 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
 
     return (
       <>
-        <Tooltip title="Timeline view" describeChild>
+        <Tooltip title={t("i18n-next59.controls.timelineView")} describeChild>
           <button
             type="button"
             css={triggerStyles(theme, compact, open)}
             onClick={(event) => setAnchorEl(open ? null : event.currentTarget)}
-            aria-label="Timeline view"
+            aria-label={t("i18n-next59.controls.timelineView")}
             aria-haspopup="dialog"
             aria-expanded={open}
             aria-controls={open ? "timeline-view-controls" : undefined}
           >
             <ViewTimelineOutlinedIcon fontSize="small" />
-            {!compact && <span>View</span>}
+            {!compact && <span>{t("i18n-next59.controls.timelineView")}</span>}
           </button>
         </Tooltip>
         <Popover
@@ -187,12 +189,12 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
           <div
             id="timeline-view-controls"
             role="dialog"
-            aria-label="Timeline view"
+            aria-label={t("i18n-next59.controls.timelineView")}
             css={panelStyles(theme)}
           >
             <div css={rowStyles}>
               <div css={labelStyles(theme)}>
-                <span>Timeline zoom</span>
+                <span>{t("i18n-next59.controls.timelineZoom")}</span>
                 <span css={valueStyles(theme)}>
                   {Math.round((DEFAULT_MS_PER_PX / msPerPx) * 100)}%
                 </span>
@@ -202,7 +204,7 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
                   type="button"
                   css={stepButtonStyles(theme)}
                   onClick={() => setZoom(msPerPx * 1.25)}
-                  aria-label="Zoom out timeline"
+                  aria-label={t("i18n-next59.controls.zoomOut")}
                   disabled={msPerPx >= MAX_MS_PER_PX}
                 >
                   <RemoveIcon />
@@ -223,24 +225,24 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
                         Math.exp((-Number(value) / 100) * TIME_ZOOM_RANGE)
                     )
                   }
-                  aria-label="Horizontal zoom"
+                  aria-label={t("i18n-next59.controls.horizontalZoom")}
                 />
                 <button
                   type="button"
                   css={stepButtonStyles(theme)}
                   onClick={() => setZoom(msPerPx * 0.8)}
-                  aria-label="Zoom in timeline"
+                  aria-label={t("i18n-next59.controls.zoomIn")}
                   disabled={msPerPx <= MIN_MS_PER_PX}
                 >
                   <AddIcon />
                 </button>
                 {onZoomToFit && (
-                  <Tooltip title="Zoom to fit" shortcut={["Shift", "Z"]}>
+                  <Tooltip title={t("i18n-next59.controls.zoomToFit")} shortcut={["Shift", "Z"]}>
                     <button
                       type="button"
                       css={stepButtonStyles(theme)}
                       onClick={onZoomToFit}
-                      aria-label="Zoom to fit"
+                      aria-label={t("i18n-next59.controls.zoomToFit")}
                     >
                       <FitScreenIcon />
                     </button>
@@ -250,7 +252,7 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
             </div>
             <div css={rowStyles}>
               <div css={labelStyles(theme)}>
-                <span>Track height</span>
+                <span>{t("i18n-next59.controls.trackHeight")}</span>
                 <span css={valueStyles(theme)}>
                   {Math.round(verticalZoom * 100)}%
                 </span>
@@ -260,7 +262,7 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
                   type="button"
                   css={stepButtonStyles(theme)}
                   onClick={() => setVerticalZoom(verticalZoom - 0.1)}
-                  aria-label="Decrease track height"
+                  aria-label={t("i18n-next59.controls.decreaseTrackHeight")}
                   disabled={verticalZoom <= MIN_VERTICAL_ZOOM}
                 >
                   <RemoveIcon />
@@ -273,13 +275,13 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
                   step={0.05}
                   value={verticalZoom}
                   onChange={(_, value) => setVerticalZoom(Number(value))}
-                  aria-label="Vertical zoom"
+                  aria-label={t("i18n-next59.controls.verticalZoom")}
                 />
                 <button
                   type="button"
                   css={stepButtonStyles(theme)}
                   onClick={() => setVerticalZoom(verticalZoom + 0.1)}
-                  aria-label="Increase track height"
+                  aria-label={t("i18n-next59.controls.increaseTrackHeight")}
                   disabled={verticalZoom >= MAX_VERTICAL_ZOOM}
                 >
                   <AddIcon />

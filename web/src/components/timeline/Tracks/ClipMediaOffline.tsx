@@ -24,12 +24,14 @@ import {
   getLocalFilePath
 } from "../../../utils/localFile";
 import { useAssetOffline } from "./useAssetOffline";
+import { useTracksTranslation } from "./useTracksTranslation";
 
 const stopPropagation = (e: React.SyntheticEvent): void => {
   e.stopPropagation();
 };
 
 const OfflineBadge: React.FC<{ assetId: string }> = ({ assetId }) => {
+  const tt = useTracksTranslation();
   const relink = useRelinkAsset();
   const addNotification = useNotificationStore((s) => s.addNotification);
 
@@ -40,7 +42,7 @@ const OfflineBadge: React.FC<{ assetId: string }> = ({ assetId }) => {
       if (!path) {
         addNotification({
           type: "error",
-          content: "Could not read that file's location. Pick a file on this computer."
+          content: tt("Could not read that file's location. Pick a file on this computer.")
         });
         return;
       }
@@ -50,7 +52,7 @@ const OfflineBadge: React.FC<{ assetId: string }> = ({ assetId }) => {
           onError: (error) => {
             addNotification({
               type: "error",
-              content: `Relink failed: ${error.message}`
+              content: tt("Relink failed: {{error}}", { error: error.message })
             });
           }
         }
@@ -74,11 +76,11 @@ const OfflineBadge: React.FC<{ assetId: string }> = ({ assetId }) => {
         zIndex: Z_INDEX.base + 4
       }}
     >
-      <StatusPill tone="failed">Media offline</StatusPill>
+      <StatusPill tone="failed">{tt("Media offline")}</StatusPill>
       {canResolveLocalFilePaths() && (
         <UploadButton
-          label="Relink"
-          tooltip="Relink to the file's new location"
+          label={tt("Relink")}
+          tooltip={tt("Relink to the file's new location")}
           iconVariant="file"
           multiple={false}
           disabled={relink.isPending}

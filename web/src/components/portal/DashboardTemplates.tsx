@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import type { WorkflowCostEstimateDetail } from "@nodetool-ai/node-sdk/cost-estimate";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
@@ -181,17 +182,15 @@ interface TemplateRowProps {
   onClick: (workflow: Workflow) => void;
 }
 
-const formatTemplateCost = (estimate: WorkflowCostEstimateDetail): string => {
+const formatTemplateCost = (estimate: WorkflowCostEstimateDetail, t: (key: string, options?: Record<string, unknown>) => string): string => {
   if (estimate.unknown_count === 0) {
-    return `Estimated cost: ${formatUsd(estimate.total)}`;
+    return t("pass3_17.templates.estimatedCost", { cost: formatUsd(estimate.total) });
   }
 
-  const unknownNodes = `${estimate.unknown_count} node${
-    estimate.unknown_count === 1 ? " has" : "s have"
-  } no published price`;
+  const unknownNodes = t("pass3_17.templates.unknownPrices", { count: estimate.unknown_count });
   return estimate.total > 0
-    ? `Estimated cost: at least ${formatUsd(estimate.total)}; ${unknownNodes}`
-    : `Estimated cost: unknown — ${unknownNodes}`;
+    ? t("pass3_17.templates.estimatedCostAtLeast", { cost: formatUsd(estimate.total), unknownNodes })
+    : t("pass3_17.templates.estimatedCostUnknown", { unknownNodes });
 };
 
 const TemplateRow = memo(function TemplateRow({
@@ -200,6 +199,7 @@ const TemplateRow = memo(function TemplateRow({
   isLoading,
   onClick
 }: TemplateRowProps) {
+  const { t } = useTranslation();
   const [thumbFailed, setThumbFailed] = useState(false);
   const category = getCategoryForWorkflow(workflow);
 
@@ -260,7 +260,7 @@ const TemplateRow = memo(function TemplateRow({
           <span className="tpl-compat">
             <CompatibilityDetails compatibility={compatibility} />
             {workflow.graph.nodes.length > 0 && (
-              <span>{formatTemplateCost(costEstimate)}</span>
+              <span>{formatTemplateCost(costEstimate, t)}</span>
             )}
           </span>
           {category && (
@@ -286,6 +286,7 @@ interface DashboardTemplatesProps {
 const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
   fullPage = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const metadata = useMetadataStore((state) => state.metadata);
@@ -344,10 +345,10 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
 
   const visible = fullPage ? filtered : filtered.slice(0, MAX_VISIBLE);
   const countLabel = fullPage
-    ? `${filtered.length} example${filtered.length === 1 ? "" : "s"}`
+    ? t("pass3_17.templates.exampleCount", { count: filtered.length })
     : visible.length === filtered.length
       ? `${filtered.length}`
-      : `${visible.length} of ${filtered.length}`;
+      : t("pass3_17.templates.visibleCount", { visible: visible.length, total: filtered.length });
 
   return (
     <section
@@ -355,26 +356,26 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
       css={fullPage ? [styles(theme), fullPageStyles] : styles(theme)}
     >
       <div css={sectionWrap}>
-        <DashboardSectionHeader title="Start from a template" count={countLabel}>
+        <DashboardSectionHeader title={t("pass3_17.templates.sectionTitle")} count={countLabel}>
           <DashboardSearchBox
             ref={searchRef}
             value={query}
             onChange={setQuery}
-            placeholder="Search templates by name, tag"
+            placeholder={t("pass3_17.templates.searchPlaceholder")}
             kbd="/"
-            aria-label="Search templates"
+            aria-label={t("pass3_17.templates.searchLabel")}
           />
           {!fullPage && (
             <SectionLink onClick={handleViewAllTemplates}>
-              Browse all
+              {t("pass3_17.templates.browseAll")}
             </SectionLink>
           )}
         </DashboardSectionHeader>
 
-        <div className="cats" role="group" aria-label="Filter by category">
+        <div className="cats" role="group" aria-label={t("pass3_17.templates.filterLabel")}>
           <Chip
             compact
-            label="All"
+            label={t("pass3_17.templates.allCategories")}
             active={category === "all"}
             onClick={() => setCategory("all")}
           />
@@ -384,7 +385,7 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
               <Chip
                 key={cat.id}
                 compact
-                label={cat.label}
+                label={t(`pass3_17.templates.categories.${cat.id}`, { defaultValue: cat.label })}
                 icon={
                   <span className="cat-dot" style={{ background: cat.color }} />
                 }
@@ -398,15 +399,15 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
 
         {isLoading ? (
           <div className="tpl-loading">
-            <LoadingSpinner size="medium" text="Loading templates" />
+            <LoadingSpinner size="medium" text={t("pass3_17.templates.loading")} />
           </div>
         ) : isError ? (
           <div className="tpl-empty">
             <EmptyState
               variant="error"
-              title="Couldn't load templates"
-              description="Try again in a moment."
-              actionText="Retry"
+              title={t("pass3_17.templates.loadErrorTitle")}
+              description={t("pass3_17.common.tryAgain")}
+              actionText={t("pass3_17.common.retry")}
               onAction={() => refetch()}
             />
           </div>
@@ -415,23 +416,23 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
             {query.trim() ? (
               <EmptyState
                 variant="no-results"
-                title="No templates match your search"
-                description="Try a different search term."
-                actionText="Clear search"
+                title={t("pass3_17.templates.noSearchResultsTitle")}
+                description={t("pass3_17.templates.noSearchResultsDescription")}
+                actionText={t("pass3_17.templates.clearSearch")}
                 onAction={() => setQuery("")}
               />
             ) : category !== "all" ? (
               <EmptyState
                 variant="no-results"
-                title="No templates in this category"
-                actionText="Show all templates"
+                title={t("pass3_17.templates.noCategoryResultsTitle")}
+                actionText={t("pass3_17.templates.showAll")}
                 onAction={() => setCategory("all")}
               />
             ) : (
               <EmptyState
                 variant="no-data"
-                title="No templates available"
-                description="Templates will appear here when available."
+                title={t("pass3_17.templates.emptyTitle")}
+                description={t("pass3_17.templates.emptyDescription")}
               />
             )}
           </div>

@@ -5,6 +5,7 @@
  * never widen what the script reaches.
  */
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/AddOutlined";
 
 import {
@@ -29,6 +30,7 @@ const JsScriptSecretsEditor = ({
   readOnly = false,
   onChange
 }: JsScriptSecretsEditorProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const patch = useCallback(
     (index: number, value: string) => {
       onChange(secrets.map((name, i) => (i === index ? value : name)));
@@ -47,7 +49,7 @@ const JsScriptSecretsEditor = ({
     <FlexColumn gap={SPACING.sm}>
       <SectionHeader
         size="small"
-        title="Secrets"
+        title={t("secrets.title")}
         action={
           readOnly ? undefined : (
             <EditorButton
@@ -55,20 +57,20 @@ const JsScriptSecretsEditor = ({
               startIcon={<AddIcon />}
               onClick={() => onChange([...secrets, ""])}
             >
-              Add
+              {t("actions.add")}
             </EditorButton>
           )
         }
       />
       {secrets.length === 0 ? (
         <Text size="small" color="secondary">
-          The body reads no secrets.
+          {t("secrets.empty")}
         </Text>
       ) : (
         secrets.map((name, index) => (
           <FlexRow key={index} gap={SPACING.sm} align="center">
             <TextInput
-              label={`Secret ${index + 1}`}
+              label={t("secrets.label", { number: index + 1 })}
               hideLabel
               size="small"
               value={name}
@@ -79,7 +81,7 @@ const JsScriptSecretsEditor = ({
             />
             {!readOnly && (
               <DeleteButton
-                ariaLabel={`Remove secret ${index + 1}`}
+                ariaLabel={t("secrets.remove", { number: index + 1 })}
                 onClick={() => remove(index)}
               />
             )}

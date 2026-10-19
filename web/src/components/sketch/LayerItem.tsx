@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -146,6 +147,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   onToggleGroupCollapsed,
   bindingStatus
 }) => {
+  const { t } = useTranslation();
   // The panel still owns the draft name, so mirror each keystroke up before
   // the commit reads it.
   const handleFinishRename = useCallback(() => {
@@ -251,7 +253,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
         {isGroup ? (
           <IconButton
             size="small"
-            aria-label={layer.collapsed ? "Expand group" : "Collapse group"}
+            aria-label={layer.collapsed ? t("i18n-next52.sketch.layer.expandGroup") : t("i18n-next52.sketch.layer.collapseGroup")}
             onClick={(e) => {
               e.stopPropagation();
               onToggleGroupCollapsed?.(layer.id);
@@ -323,12 +325,12 @@ const LayerItem: React.FC<LayerItemProps> = ({
 
         {!isGroup && (
           <Tooltip
-            title={isIsolated ? "Show all layers" : "Solo this layer"}
+            title={isIsolated ? t("i18n-next52.sketch.layer.showAll") : t("i18n-next52.sketch.layer.solo")}
             placement="top"
           >
             <IconButton
               size="small"
-              aria-label={isIsolated ? "Show all layers" : "Solo this layer"}
+              aria-label={isIsolated ? t("i18n-next52.sketch.layer.showAll") : t("i18n-next52.sketch.layer.solo")}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleIsolateLayer(layer.id);
@@ -351,7 +353,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
 
         {isEditing ? (
           <InlineEditableText
-            ariaLabel="Layer name"
+            ariaLabel={t("i18n-next52.sketch.layer.name")}
             value={layer.name}
             editing
             onDraftChange={onEditNameChange}
@@ -386,7 +388,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               ) : null}
               {layer.alphaLock ? (
                 <Tooltip
-                  title="Lock transparency"
+                  title={t("i18n-next52.sketch.layer.lockTransparency")}
                   placement="top"
                 >
                   <LockIcon
@@ -411,7 +413,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                   className="layer-status-badge"
                   status={LAYER_STATUS_MAP[bindingStatus].status}
                   pulse={LAYER_STATUS_MAP[bindingStatus].pulse}
-                  tooltip={LAYER_STATUS_MAP[bindingStatus].label}
+                  tooltip={t(`i18n-next52.sketch.statuses.${bindingStatus}`)}
                   size="small"
                 />
               )}
@@ -448,7 +450,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
             }}
           >
             <Tooltip
-              title={layer.exposedAsInput === false ? "Input hidden" : ""}
+              title={layer.exposedAsInput === false ? t("i18n-next52.sketch.layer.inputHidden") : ""}
               placement="left"
               disableHoverListener={layer.exposedAsInput !== false}
             >
@@ -466,7 +468,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               />
             </Tooltip>
             <Tooltip
-              title={layer.exposedAsOutput === false ? "Output hidden" : ""}
+              title={layer.exposedAsOutput === false ? t("i18n-next52.sketch.layer.outputHidden") : ""}
               placement="left"
               disableHoverListener={layer.exposedAsOutput !== false}
             >
@@ -491,7 +493,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           <IconButton
             size="small"
             disableRipple
-            aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
+            aria-label={`${layer.visible ? t("i18n-next52.sketch.layer.hide") : t("i18n-next52.sketch.layer.show")} ${layer.name}`}
             onPointerDown={(e) =>
               onVisibilityButtonMouseDown(e, layer.id)
             }

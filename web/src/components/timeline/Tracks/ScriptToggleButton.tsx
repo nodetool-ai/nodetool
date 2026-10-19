@@ -14,6 +14,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -81,7 +82,8 @@ export const ScriptToggleButton: React.FC<ScriptToggleButtonProps> = memo(({ com
     setScriptEnabled(!hasScript);
   }, [setScriptEnabled, hasScript]);
 
-  const label = hasScript ? "Remove script" : "Add script";
+  const { t } = useTranslation();
+  const label = t(hasScript ? "i18n-next59.script.remove" : "i18n-next59.script.add");
 
   return (
     <Tooltip title={label} describeChild>

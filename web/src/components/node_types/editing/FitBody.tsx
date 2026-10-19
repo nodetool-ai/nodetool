@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -131,6 +132,7 @@ const FitBodyInner: React.FC<FitBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -203,7 +205,7 @@ const FitBodyInner: React.FC<FitBodyProps> = ({
               id={`fit-width-${id}`}
               nodeId={id}
               name="width"
-              description={widthProperty.description ?? "Target width"}
+              description={widthProperty.description ?? t("i18n-next46.fit.targetWidth")}
               value={widthValue}
               min={widthProperty.min ?? 1}
               max={widthProperty.max ?? 8192}
@@ -222,7 +224,7 @@ const FitBodyInner: React.FC<FitBodyProps> = ({
               id={`fit-height-${id}`}
               nodeId={id}
               name="height"
-              description={heightProperty.description ?? "Target height"}
+              description={heightProperty.description ?? t("i18n-next46.fit.targetHeight")}
               value={heightValue}
               min={heightProperty.min ?? 1}
               max={heightProperty.max ?? 8192}
@@ -238,7 +240,7 @@ const FitBodyInner: React.FC<FitBodyProps> = ({
       </FlexRow>
 
       <div className="presets-row">
-        <span className="presets-label">Presets</span>
+        <span className="presets-label">{t("i18n-next46.fit.presets")}</span>
         {PRESETS.map((size) => {
           const active = widthValue === size && heightValue === size;
           return (
@@ -247,7 +249,7 @@ const FitBodyInner: React.FC<FitBodyProps> = ({
               type="button"
               className={`preset-chip nodrag${active ? " active" : ""}`}
               onClick={() => applyPreset(size)}
-              aria-label={`Set ${size} by ${size}`}
+              aria-label={t("i18n-next46.fit.setSize", { size })}
             >
               {size}
             </button>

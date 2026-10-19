@@ -2,6 +2,7 @@
 
 import { PARAMS } from '../params';
 import { useStore } from '../store';
+import { useTranslation } from 'react-i18next';
 
 interface StepperProps {
   paramId: string;
@@ -10,6 +11,7 @@ interface StepperProps {
 }
 
 export function Stepper({ paramId, label, accent }: StepperProps) {
+  const { t } = useTranslation();
   const def = PARAMS[paramId];
   const value = useStore((s) => s.params[paramId]);
   const setParam = useStore((s) => s.setParam);
@@ -27,9 +29,9 @@ export function Stepper({ paramId, label, accent }: StepperProps) {
     return (
       <div className="stepper" data-accent={accent}>
         {label ? <span className="st-label">{label}</span> : null}
-        <button className="st-btn st-prev" aria-label="previous" onClick={() => stepN(-1)}>◂</button>
+        <button className="st-btn st-prev" aria-label={t('i18n-next44-fablesynth-controls.stepper.previous')} onClick={() => stepN(-1)}>◂</button>
         <span className="st-value">{def.fmt ? def.fmt(v) : String(v)}</span>
-        <button className="st-btn st-next" aria-label="next" onClick={() => stepN(1)}>▸</button>
+        <button className="st-btn st-next" aria-label={t('i18n-next44-fablesynth-controls.stepper.next')} onClick={() => stepN(1)}>▸</button>
       </div>
     );
   }
@@ -47,9 +49,9 @@ export function Stepper({ paramId, label, accent }: StepperProps) {
   return (
     <div className="stepper" data-accent={accent}>
       {label ? <span className="st-label">{label}</span> : null}
-      <button className="st-btn st-prev" aria-label="previous" onClick={() => step(-1)}>◂</button>
+      <button className="st-btn st-prev" aria-label={t('i18n-next44-fablesynth-controls.stepper.previous')} onClick={() => step(-1)}>◂</button>
       <span className="st-value">{options[index]}</span>
-      <button className="st-btn st-next" aria-label="next" onClick={() => step(1)}>▸</button>
+      <button className="st-btn st-next" aria-label={t('i18n-next44-fablesynth-controls.stepper.next')} onClick={() => step(1)}>▸</button>
     </div>
   );
 }

@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import { Knob } from '../Knob';
 import { Stepper } from '../Stepper';
 import { PowerButton } from '../PowerButton';
 
 export function UtilPanel() {
+  const { t } = useTranslation();
   return (
     <section className="panel panel-util" style={{ gridArea: 'util' }}>
       <div className="util-block">
@@ -19,7 +21,7 @@ export function UtilPanel() {
       <div className="util-block">
         <div className="panel-head">
           <span className="ph-power"><PowerButton paramId="noise.on" /></span>
-          <h2>NOISE</h2>
+          <h2>{t('i18n-next116.fableSynth.controls.noise')}</h2>
           <span className="ph-stepper"><Stepper paramId="noise.type" /></span>
         </div>
         <div className="util-knobs">

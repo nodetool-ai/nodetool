@@ -18,6 +18,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -196,6 +197,7 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
   onRemove
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   // Was serialized once per visible marker, on every scroll frame.
   const flagCss = useMemo(() => markerFlagStyles(theme), [theme]);
   return (
@@ -223,25 +225,25 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
             style={{ left: contentPx, backgroundColor: m.color || undefined }}
             onPointerDown={(e) => e.stopPropagation()}
           >
-            <Tooltip title={`${m.label || "Marker"} — click to seek`} describeChild>
+            <Tooltip title={t("i18n-next73.ruler.markerSeekHint", { label: m.label || t("i18n-next73.ruler.marker") })} describeChild>
               <button
                 type="button"
                 className="marker-seek"
                 data-testid="timeline-marker"
-                aria-label={`${m.label || "Marker"} at ${formatTimecode(m.timeMs, 500)}`}
+                aria-label={t("i18n-next73.ruler.markerAt", { label: m.label || t("i18n-next73.ruler.marker"), time: formatTimecode(m.timeMs, 500) })}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSeek(m.timeMs);
                 }}
               >
-                {m.label || "Marker"}
+                {m.label || t("i18n-next73.ruler.marker")}
               </button>
             </Tooltip>
             <button
               type="button"
               className="marker-delete"
               data-testid="marker-delete"
-              aria-label={`Delete marker ${m.label || ""}`.trim()}
+              aria-label={t("i18n-next73.ruler.deleteMarker", { label: m.label || "" }).trim()}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -328,6 +330,7 @@ interface TimeRulerProps {
 export const TimeRuler: React.FC<TimeRulerProps> = memo(
   ({ totalWidthPx, headerWidthPx = 0 }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     // `scrollLeftPx` re-renders this on every scroll frame.
     const rootCss = useMemo(() => rulerStyles(theme), [theme]);
     const { mode, systemMode } = useColorScheme();
@@ -635,8 +638,8 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           onLostPointerCapture={handlePointerEnd}
           aria-label={
             rulerMode === "bars"
-              ? "Bars ruler — click or drag to set playhead"
-              : "Time ruler — click or drag to set playhead"
+              ? t("i18n-next73.ruler.barsHint")
+              : t("i18n-next73.ruler.timeHint")
           }
         />
         <MarkerOverlay

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -96,6 +97,7 @@ const NodeErrorsImpl: React.FC<{
   nodeType?: string;
 }> = ({ id, workflow_id, nodeType = "unknown" }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const memoizedErrorStyles = useMemo(() => errorStyles(theme), [theme]);
   const error = useNodeError(workflow_id, id);
   const nodeStore = useNodeStoreRef();
@@ -190,10 +192,10 @@ const NodeErrorsImpl: React.FC<{
           startIcon={<ListAltIcon />}
           className="nodrag"
           onClick={handleViewLogs}
-          tooltip="Show logs for this node and run"
-          aria-label="View logs for this node and run"
+          tooltip={t("i18n-next36.nodeEditor.nodeErrors.viewLogsTooltip")}
+          aria-label={t("i18n-next36.nodeEditor.nodeErrors.viewLogs")}
         >
-          View logs
+          {t("i18n-next36.nodeEditor.nodeErrors.viewLogs")}
         </EditorButton>
         <EditorButton
           variant="outlined"
@@ -201,14 +203,14 @@ const NodeErrorsImpl: React.FC<{
           startIcon={<BugReportIcon />}
           className="nodrag"
           onClick={handleReport}
-          tooltip="Report this as a bug"
-          aria-label="Report this as a bug"
+          tooltip={t("i18n-next36.nodeEditor.nodeErrors.reportBugTooltip")}
+          aria-label={t("i18n-next36.nodeEditor.nodeErrors.reportBug")}
         >
-          Report
+          {t("i18n-next36.nodeEditor.nodeErrors.reportBug")}
         </EditorButton>
         <CopyButton
           value={errorDisplay}
-          tooltip="Copy error"
+          tooltip={t("i18n-next36.nodeEditor.nodeErrors.copyError")}
         />
       </div>
       <div className="error-text">{errorDisplay}</div>
@@ -218,7 +220,9 @@ const NodeErrorsImpl: React.FC<{
             href={KIE_LOGS_URL}
             size="small"
             iconVariant="open"
-            tooltip={`Open KIE logs and search for task ${kieTaskId}`}
+            tooltip={t("i18n-next36.nodeEditor.nodeErrors.openKieLogs", {
+              taskId: kieTaskId
+            })}
           >
             {kieTaskId}
           </ExternalLink>

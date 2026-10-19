@@ -12,6 +12,7 @@
  */
 
 import { useMemo, memo, type Ref } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectProps,
@@ -70,6 +71,7 @@ export function NodeSelect({
   ref,
   ...props
 }: NodeSelectProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const scope = useEditorScope();
   const scopeClass =
@@ -135,6 +137,9 @@ export function NodeSelect({
         }}
         sx={selectSx}
         {...props}
+        aria-label={
+          props["aria-label"] ?? t("i18n-next60.editorUi.select.selectOption")
+        }
       >
         {children}
       </Select>

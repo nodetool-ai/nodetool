@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -149,6 +150,7 @@ const SynthModuleBodyInner: React.FC<SynthModuleBodyProps> = ({
   isOutputNode
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(
     () => [styles(theme), synthKnobStyles(theme), waveformSelectorStyles(theme)],
     [theme]
@@ -289,31 +291,41 @@ const SynthModuleBodyInner: React.FC<SynthModuleBodyProps> = ({
             props[config.modeToggle.name] ?? config.modeToggle.default
           )}
           onChange={handleModeChange}
-          aria-label={config.modeToggle.name}
+          aria-label={t("i18n-next64.synth.module.mode")}
         >
           {config.modeToggle.options.map((o) => (
             <ToggleOption key={o.value} value={o.value}>
-              {o.label}
+              {t(`i18n-next64.synth.modeOptions.${o.value}`, {
+                defaultValue: o.label
+              })}
             </ToggleOption>
           ))}
         </ToggleGroup>
       )}
 
-      {config.toggles?.map((t) => {
+      {config.toggles?.map((toggle) => {
         const on =
-          props[t.name] === undefined ? t.default : Boolean(props[t.name]);
+          props[toggle.name] === undefined
+            ? toggle.default
+            : Boolean(props[toggle.name]);
         return (
           <ToggleGroup
           quiet
-            key={t.name}
+            key={toggle.name}
             className="mode-toggle nodrag"
             size="small"
             exclusive
-            value={on ? t.name : null}
-            onChange={() => handleToggleChange(t.name, !on)}
-            aria-label={t.label}
+            value={on ? toggle.name : null}
+            onChange={() => handleToggleChange(toggle.name, !on)}
+            aria-label={t(`i18n-next64.synth.toggleLabels.${toggle.name}`, {
+              defaultValue: toggle.label
+            })}
           >
-            <ToggleOption value={t.name}>{t.label}</ToggleOption>
+            <ToggleOption value={toggle.name}>
+              {t(`i18n-next64.synth.toggleLabels.${toggle.name}`, {
+                defaultValue: toggle.label
+              })}
+            </ToggleOption>
           </ToggleGroup>
         );
       })}

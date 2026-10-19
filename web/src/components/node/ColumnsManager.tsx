@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Label, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
 import { ColumnDef } from "../../stores/ApiTypes";
 import isEqual from "../../utils/isEqual";
@@ -155,6 +156,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   onChange,
   onDeleteColumn
 }: ColumnsManagerProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const [localColumns, setLocalColumns] = useState(columns);
@@ -227,8 +229,8 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   return (
     <div css={cssStyles}>
       <div className="labels">
-        <Label className="label-name">Name</Label>
-        <Label className="label-datatype">Data type</Label>
+        <Label className="label-name">{t("i18n-next112.columns.name")}</Label>
+        <Label className="label-datatype">{t("i18n-next112.columns.dataType")}</Label>
       </div>
       {localColumns.map((field, index) => (
         <Column

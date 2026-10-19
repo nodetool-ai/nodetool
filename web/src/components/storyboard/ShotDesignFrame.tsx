@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   resolveEffectiveProductionRequirement,
   type Shot
@@ -48,6 +49,7 @@ export default function ShotDesignFrame({
   shot,
   hoverControls = false
 }: ShotDesignFrameProps): React.ReactElement {
+  const { t } = useTranslation();
   const board = useStoryboardStore((state) => state.boards[boardId]);
   const sourceShots = useMemo(
     () => board?.shots.map((value) => value.id === shot.id ? shot : value) ?? [],
@@ -85,7 +87,7 @@ export default function ShotDesignFrame({
         const assetId = entity?.reference_images?.[0]?.asset_id;
         if (!assetId) {
           return {
-            error: `Entity ${entityId} needs a reference image before its design frame can be reviewed.`
+            error: t("screens4_16.shotDesignFrame.errors.missingEntityReference", { entityId })
           };
         }
         if (
@@ -93,13 +95,13 @@ export default function ShotDesignFrame({
           sources.data.entitiesByReference[protection.entity_id]?.id !== entity.id
         ) {
           return {
-            error: `Element ${element.id} references a different entity from its protected source. Update the production inputs before reviewing.`
+            error: t("screens4_16.shotDesignFrame.errors.entitySourceMismatch", { elementId: element.id })
           };
         }
         for (const declaredId of [element.asset_id, protection?.asset_id]) {
           if (declaredId && sources.data.assetsByReference[declaredId]?.id !== assetId) {
             return {
-              error: `Entity ${entityId} no longer points to the exact declared source asset. Update the production inputs before reviewing.`
+              error: t("screens4_16.shotDesignFrame.errors.entityAssetMismatch", { entityId })
             };
           }
         }
@@ -144,7 +146,13 @@ export default function ShotDesignFrame({
     );
     if (frame.validation.length) {
       return {
-        error: frame.validation.map((issue) => issue.message).join(" ")
+        error: frame.validation
+          .map((issue) =>
+            t(`screens4_16.shotDesignFrame.validation.${issue.code}`, {
+              elementId: issue.elementId
+            })
+          )
+          .join(" ")
       };
     }
     const instance = createTimelineInstance();
@@ -168,11 +176,11 @@ export default function ShotDesignFrame({
       startMs: frame.timeMs - durationMs / 2,
       endMs: frame.timeMs + durationMs / 2
     };
-  }, [board, shot, sourceShots, sources.data, sources.error, boardId]);
+  }, [board, shot, sourceShots, sources.data, sources.error, boardId, t]);
   return (
     <Box
       role="region"
-      aria-label={`Composited design frame for shot ${shot.index + 1}`}
+      aria-label={t("screens4_16.shotDesignFrame.ariaLabel", { shot: shot.index + 1 })}
       sx={{
         position: "relative",
         width: "100%",
@@ -206,7 +214,7 @@ export default function ShotDesignFrame({
           <ReportBugButton
             context={{
               source: "panel-crash",
-              summary: "Design frame unavailable",
+              summary: t("screens4_16.shotDesignFrame.errors.unavailable"),
               errorText: preview.error
             }}
           />
@@ -280,8 +288,8 @@ function ComposedShotPlayback({
     >
       <ToolbarIconButton
         icon={playing ? <PauseIcon /> : <PlayArrowIcon />}
-        tooltip={playing ? "Pause composed shot" : "Play composed shot"}
-        ariaLabel={playing ? "Pause composed shot" : "Play composed shot"}
+        tooltip={playing ? t("screens4_16.shotDesignFrame.pause") : t("screens4_16.shotDesignFrame.play")}
+        ariaLabel={playing ? t("screens4_16.shotDesignFrame.pause") : t("screens4_16.shotDesignFrame.play")}
         onClick={toggle}
       />
     </Box>

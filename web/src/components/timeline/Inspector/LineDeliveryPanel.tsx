@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ErrorBanner from "../../support/ErrorBanner";
 import {
@@ -24,6 +25,7 @@ interface LineDeliveryPanelProps {
 
 /** Revise a Script-linked voiceover without replacing its accepted take. */
 const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
+  const { t } = useTranslation();
   const clip = useTimelineStore((state) => findClipById(state.clips, clipId));
   const sequenceId = useTimelineStore((state) => state.sequenceId);
   const script = useScriptStore((state) =>
@@ -54,15 +56,20 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
   if (!script || !line) {
     return (
       <CollapsibleSection
-        title={<InspectorSectionTitle title="Change line delivery" icon={<AutoAwesomeOutlinedIcon />} />}
+        title={
+          <InspectorSectionTitle
+            title={t("pass3_30.lineDelivery.title")}
+            icon={<AutoAwesomeOutlinedIcon />}
+          />
+        }
         open={open}
         onToggle={setOpen}
       >
         <EmptyState
           variant="empty"
           size="small"
-          title="Line context unavailable"
-          description="Reopen the linked Script before revising this voiceover."
+          title={t("pass3_30.lineDelivery.contextUnavailable.title")}
+          description={t("pass3_30.lineDelivery.contextUnavailable.description")}
         />
       </CollapsibleSection>
     );
@@ -76,7 +83,7 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
       instructions: instructions.trim() || undefined
     });
     if (!requestId) {
-      setError("The line delivery could not be submitted. Check the Script voice and connection.");
+      setError(t("pass3_30.lineDelivery.submitError"));
     } else {
       setInstructions("");
     }
@@ -84,28 +91,38 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
 
   return (
     <CollapsibleSection
-      title={<InspectorSectionTitle title="Change line delivery" icon={<AutoAwesomeOutlinedIcon />} />}
+      title={
+        <InspectorSectionTitle
+          title={t("pass3_30.lineDelivery.title")}
+          icon={<AutoAwesomeOutlinedIcon />}
+        />
+      }
       open={open}
       onToggle={setOpen}
     >
       <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md }}>
         <Caption color="secondary">
           {voice
-            ? `Using ${voice.voice} for “${line.text}”`
-            : "Assign a voice to this Script line first."}
+            ? t("pass3_30.lineDelivery.usingVoice", {
+                voice: voice.voice,
+                line: line.text
+              })
+            : t("pass3_30.lineDelivery.assignVoice")}
         </Caption>
         {line.direction && (
-          <Caption color="secondary">Direction: {line.direction}</Caption>
+          <Caption color="secondary">
+            {t("pass3_30.lineDelivery.direction", { direction: line.direction })}
+          </Caption>
         )}
         <TextArea
           value={instructions}
           onChange={(value) => setInstructions(value)}
-          placeholder="Optional delivery direction…"
+          placeholder={t("pass3_30.lineDelivery.directionPlaceholder")}
           minRows={2}
           maxRows={5}
           compact
           fullWidth
-          inputProps={{ "aria-label": "Line delivery direction" }}
+          inputProps={{ "aria-label": t("pass3_30.lineDelivery.directionLabel") }}
           disabled={pending || !voice}
         />
         <EditorButton
@@ -115,13 +132,15 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
           onClick={() => void handleSubmit()}
           startIcon={<AutoAwesomeOutlinedIcon />}
         >
-          {pending ? "Generating delivery…" : "Change line delivery"}
+          {pending
+            ? t("pass3_30.lineDelivery.generating")
+            : t("pass3_30.lineDelivery.title")}
         </EditorButton>
         {error && (
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: "Changing line delivery failed",
+              summary: t("pass3_30.lineDelivery.errorSummary"),
               errorText: error
             }}
           >

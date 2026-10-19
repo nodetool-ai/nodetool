@@ -8,6 +8,7 @@
 
 import type * as React from "react";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import { normToValue, valueToNorm, type ParamDef } from "../fablesynth/params";
 
@@ -185,11 +186,12 @@ export function FxPower({
   label: string;
   onToggle: () => void;
 }): React.ReactElement {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
       className={`power-btn fx-power${on ? " on" : ""}`}
-      aria-label={`${label} power`}
+      aria-label={t("i18n-next77.fxControls.power", { label })}
       aria-pressed={on}
       onClick={onToggle}
     />
@@ -207,17 +209,18 @@ export function FxStepper({
   accent?: string;
   onSet: (value: number) => void;
 }): React.ReactElement {
+  const { t } = useTranslation();
   const options = def.options ?? [];
   const count = Math.max(1, options.length);
   const index = Math.min(count - 1, Math.max(0, Math.round(value)));
   const step = (d: number): void => onSet((index + d + count) % count);
   return (
     <div className="stepper" data-accent={accent}>
-      <button type="button" className="st-btn st-prev" aria-label="previous" onClick={() => step(-1)}>
+      <button type="button" className="st-btn st-prev" aria-label={t("i18n-next77.fxControls.previous")} onClick={() => step(-1)}>
         ◂
       </button>
       <span className="st-value">{options[index] ?? String(index)}</span>
-      <button type="button" className="st-btn st-next" aria-label="next" onClick={() => step(1)}>
+      <button type="button" className="st-btn st-next" aria-label={t("i18n-next77.fxControls.next")} onClick={() => step(1)}>
         ▸
       </button>
     </div>

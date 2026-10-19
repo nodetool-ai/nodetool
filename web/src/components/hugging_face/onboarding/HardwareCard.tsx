@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import MemoryIcon from "@mui/icons-material/Memory";
 import DeveloperBoardIcon from "@mui/icons-material/DeveloperBoard";
@@ -18,7 +19,7 @@ import {
 } from "../../ui_primitives";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { ModelStat } from "../ModelStat";
-import { TIER_LABELS, type HardwareProfile } from "./useHardwareProfile";
+import type { HardwareProfile } from "./useHardwareProfile";
 
 interface HardwareCardProps {
   profile: HardwareProfile;
@@ -30,33 +31,23 @@ interface HardwareCardProps {
 }
 
 const AUTO_VALUE = "auto";
-const OVERRIDE_OPTIONS = [
-  { value: AUTO_VALUE, label: "Auto-detect" },
-  { value: "4", label: "4 GB" },
-  { value: "6", label: "6 GB" },
-  { value: "8", label: "8 GB" },
-  { value: "12", label: "12 GB" },
-  { value: "16", label: "16 GB" },
-  { value: "24", label: "24 GB" },
-  { value: "32", label: "32 GB" },
-  { value: "48", label: "48 GB" }
-];
+const OVERRIDE_VALUES = ["4", "6", "8", "12", "16", "24", "32", "48"];
 
-const budgetNote = (profile: HardwareProfile): string => {
+const budgetNoteKey = (profile: HardwareProfile): string => {
   switch (profile.budgetSource) {
     case "gpu":
-      return "Detected from your GPU.";
+      return "gpu";
     case "unified-memory":
-      return "Estimated from system memory — set your GPU's VRAM for a sharper match.";
+      return "unifiedMemory";
     case "manual":
-      return "Using the value you set.";
+      return "manual";
     default:
-      return "We couldn't detect your hardware. Pick your GPU memory to get recommendations.";
+      return "unknown";
   }
 };
 
-const gb = (value: number | null | undefined): string =>
-  value != null ? `${Math.round(value)} GB` : "—";
+const gb = (value: number | null | undefined, unavailable: string): string =>
+  value != null ? `${Math.round(value)} GB` : unavailable;
 
 /** Tier labels read "Name — what it runs"; the chip shows the name only. */
 const tierName = (label: string): string => label.split("—")[0].trim();
@@ -66,6 +57,7 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
   dense = false
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const setVramOverrideGb = useModelManagerStore(
     (state) => state.setVramOverrideGb
   );
@@ -82,6 +74,14 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
     () => (override != null && override > 0 ? String(override) : AUTO_VALUE),
     [override]
   );
+  const overrideOptions = useMemo(
+    () => [
+      { value: AUTO_VALUE, label: t("i18n-next33.hardware.autoDetect") },
+      ...OVERRIDE_VALUES.map((value) => ({ value, label: `${value} GB` }))
+    ],
+    [t]
+  );
+  const hardwareTier = profile.tier ? t(`i18n-next33.hardware.tiers.${profile.tier}`) : null;
 
   const header = (
     <FlexRow gap={SPACING.md} align="center" sx={{ minWidth: 0 }}>
@@ -102,12 +102,12 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
       <FlexColumn sx={{ minWidth: 0 }}>
         <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
           <Text size="normal" weight={600}>
-            Your machine
+            {t("i18n-next33.hardware.yourMachine")}
           </Text>
-          {profile.tier && (
-            <Tooltip title={TIER_LABELS[profile.tier]}>
+          {profile.tier && hardwareTier && (
+            <Tooltip title={hardwareTier}>
               <Chip
-                label={tierName(TIER_LABELS[profile.tier])}
+                label={tierName(hardwareTier)}
                 compact
                 variant="outlined"
                 sx={{ cursor: "help" }}
@@ -117,7 +117,7 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
         </FlexRow>
         {!dense && (
           <Caption sx={{ opacity: 0.65, lineHeight: 1.45 }}>
-            {budgetNote(profile)}
+            {t(`i18n-next33.hardware.budgetNotes.${budgetNoteKey(profile)}`)}
           </Caption>
         )}
       </FlexColumn>
@@ -128,17 +128,17 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
     <>
       <ModelStat
         icon={<DeveloperBoardIcon sx={{ fontSize: ICON_SIZE.xs }} />}
-        label="GPU memory"
-        value={gb(profile.vramGb)}
+        label={t("i18n-next33.hardware.gpuMemory")}
+        value={gb(profile.vramGb, t("i18n-next33.hardware.unavailable"))}
       />
       <ModelStat
         icon={<MemoryIcon sx={{ fontSize: ICON_SIZE.xs }} />}
-        label="System RAM"
-        value={gb(profile.ramGb)}
+        label={t("i18n-next33.hardware.systemRam")}
+        value={gb(profile.ramGb, t("i18n-next33.hardware.unavailable"))}
       />
       <ModelStat
-        label="Model budget"
-        value={profile.budgetGb != null ? `${profile.budgetGb} GB` : "Not set"}
+        label={t("i18n-next33.hardware.modelBudget")}
+        value={profile.budgetGb != null ? `${profile.budgetGb} GB` : t("i18n-next33.hardware.notSet")}
         highlight
       />
     </>
@@ -147,15 +147,15 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
   const budgetSelect = (
     <FlexColumn gap={SPACING.micro} sx={{ minWidth: 128 }}>
       <Caption sx={{ opacity: 0.6, whiteSpace: "nowrap" }}>
-        Set GPU memory
+        {t("i18n-next33.hardware.setGpuMemory")}
       </Caption>
       <SelectField
-        label="GPU memory budget"
+        label={t("i18n-next33.hardware.gpuMemoryBudget")}
         hideLabel
         variant="outlined"
         value={selectValue}
         onChange={handleOverrideChange}
-        options={OVERRIDE_OPTIONS}
+        options={overrideOptions}
       />
     </FlexColumn>
   );
@@ -174,7 +174,7 @@ const HardwareCard: React.FC<HardwareCardProps> = ({
         <FlexColumn gap={SPACING.md}>
           {header}
           <Caption sx={{ opacity: 0.65, lineHeight: 1.5 }}>
-            {budgetNote(profile)}
+            {t(`i18n-next33.hardware.budgetNotes.${budgetNoteKey(profile)}`)}
           </Caption>
           <Box
             sx={{

@@ -8,6 +8,7 @@ import {
   type ChangeEvent
 } from "react";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import type { Theme } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
 
@@ -68,6 +69,7 @@ const styles = (theme: Theme) =>
   });
 
 const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const editorStyles = styles(theme);
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
@@ -148,7 +150,7 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
     setSavedContent(skill.content ?? "");
     setBaseUpdatedAt(skill.updatedAt);
     initializedSkillIdRef.current = skill.id;
-    setTabTitle(skillId, "skill", skill.name || "Untitled skill");
+    setTabTitle(skillId, "skill", skill.name || t("screen_remaining.skills.untitled"));
   }, [
     skill,
     skillId,
@@ -159,7 +161,8 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
     savedDescription,
     content,
     savedContent,
-    baseUpdatedAt
+    baseUpdatedAt,
+    t
   ]);
 
   // Keep tab title in sync with local name edits (optimistic)
@@ -211,8 +214,8 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
 
   const handleSaveError = useCallback((err: unknown) => {
     if (mountedRef.current) setAutosavePaused(true);
-    notifyMutationError("save the skill", err);
-  }, []);
+    notifyMutationError(t("screen_remaining.skills.saveAction"), err);
+  }, [t]);
 
   const handleSave = useCallback(() => {
     if (!isDirty || updateMutation.isPending || !baseUpdatedAt) return;
@@ -327,12 +330,12 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
           currentUtils.skills.get.setData({ id: currentSkillId }, updated);
           void currentUtils.skills.list.invalidate();
         } catch (saveError) {
-          notifyMutationError("save the skill", saveError);
+          notifyMutationError(t("screen_remaining.skills.saveAction"), saveError);
         }
       };
       void flush();
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!isDirty || readOnly || !baseUpdatedAt || autosavePaused) return;
@@ -406,12 +409,12 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
         <ErrorBanner
           report={{
             source: "panel-crash",
-            summary: "Skill editor failed to load",
+            summary: t("screen_remaining.skills.editorLoadError"),
             errorText: error.message,
             stackTrace: error instanceof Error ? error.stack : undefined
           }}
         >
-          Could not load this skill.
+          {t("screen_remaining.skills.couldNotLoad")}
         </ErrorBanner>
       </FlexColumn>
     );
@@ -441,13 +444,13 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
         />
         <FlexRow align="center" gap={SPACING.micro} sx={{ px: SPACING.xs }}>
           {isDirty && (
-            <StatusDot tone="warning" size="medium" label="Unsaved changes" />
+            <StatusDot tone="warning" size="medium" label={t("screen_remaining.skills.unsavedChanges")} />
           )}
           {updateMutation.error && (
             <ReportBugButton
               context={{
                 source: "panel-crash",
-                summary: "Saving a skill failed",
+            summary: t("screen_remaining.skills.saveError"),
                 errorText: updateMutation.error.message
               }}
             />
@@ -459,13 +462,13 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
             disabled={!isDirty || updateMutation.isPending || readOnly}
             onClick={handleManualSave}
           >
-            {updateMutation.isPending ? "Saving…" : "Save"}
+            {updateMutation.isPending ? t("screen_remaining.skills.saving") : t("common.save")}
           </EditorButton>
         </FlexRow>
       </FlexRow>
 
       <FlexColumn className="meta-row">
-        <FormField label="Name" required>
+        <FormField label={t("screen_remaining.skills.name")} required>
           <TextInput
             value={name}
             onChange={handleNameChange}
@@ -475,13 +478,13 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
           />
         </FormField>
         <FormField
-          label="Description"
-          helperText="Matched against the agent objective (words >=4 chars)"
+          label={t("screen_remaining.skills.description")}
+          helperText={t("screen_remaining.skills.descriptionHelp")}
         >
           <TextInput
             value={description}
             onChange={handleDescriptionChange}
-            placeholder="When to use this skill"
+            placeholder={t("screen_remaining.skills.descriptionPlaceholder")}
             disabled={readOnly}
             fullWidth
           />
@@ -504,7 +507,7 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
             <ErrorBanner
               report={{
                 source: "panel-crash",
-                summary: "Skill editor could not start",
+                summary: t("screen_remaining.skills.editorStartError"),
                 errorText: monacoLoadError
               }}
             >

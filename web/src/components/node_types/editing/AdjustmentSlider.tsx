@@ -16,6 +16,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -93,6 +94,7 @@ export const AdjustmentSlider: React.FC<AdjustmentSliderProps> = memo(({
   onCommit,
   labelClassName
 }) => {
+  const { t } = useTranslation();
   const handleChange = useCallback(
     (_: Event, v: number | number[]) => {
       const next = Array.isArray(v) ? v[0] : v;
@@ -118,7 +120,9 @@ export const AdjustmentSlider: React.FC<AdjustmentSliderProps> = memo(({
           origin={spec.bipolar ? 0 : undefined}
           onChange={handleChange}
           onChangeCommitted={onCommit}
-          aria-label={`${spec.label} adjustment`}
+          aria-label={t("i18n-next34.adjustmentSlider.ariaLabel", {
+            label: spec.label
+          })}
         />
       </span>
       <span className="ctrl-value">{formatSliderValue(spec, value)}</span>

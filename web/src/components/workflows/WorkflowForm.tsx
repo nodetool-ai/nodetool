@@ -1,7 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { TextArea, TextInput, SelectField, AutocompleteTagInput, EditorButton, FormSection, SPACING } from "../ui_primitives";
+import {
+  TextArea,
+  TextInput,
+  SelectField,
+  AutocompleteTagInput,
+  EditorButton,
+  FormSection,
+  FlexRow,
+  SPACING
+} from "../ui_primitives";
 import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
@@ -9,13 +19,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
-
-const RUN_MODE_OPTIONS = [
-  { value: "workflow", label: "Workflow" },
-  { value: "chat", label: "Chat" },
-  { value: "app", label: "App" },
-  { value: "tool", label: "Tool" }
-];
 
 const DEFAULT_TAG_SUGGESTIONS = [
   "image",
@@ -44,8 +47,6 @@ const styles = (theme: Theme) =>
 
     // Close footer, shown only outside a dialog (the side panel).
     ".button-container": {
-      display: "flex",
-      gap: theme.spacing(SPACING.md),
       marginTop: theme.spacing(SPACING.xl),
       paddingTop: theme.spacing(SPACING.lg),
       borderTop: `1px solid ${theme.vars.palette.divider}`,
@@ -62,7 +63,14 @@ interface WorkflowFormProps {
 }
 
 const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
+  const { t } = useTranslation();
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
+  const runModeOptions = [
+    { value: "workflow", label: t("pass3_37.workflowForm.runModeWorkflow") },
+    { value: "chat", label: t("pass3_37.workflowForm.runModeChat") },
+    { value: "app", label: t("pass3_37.workflowForm.runModeApp") },
+    { value: "tool", label: t("pass3_37.workflowForm.runModeTool") }
+  ];
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
   const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
@@ -115,14 +123,14 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
         addNotification({
           type: "error",
           alert: true,
-          content: `Failed to save workflow: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
+          content: t("pass3_37.workflowForm.saveFailed", {
+            error: err instanceof Error ? err.message : String(err)
+          }),
           dismissable: true
         });
       });
     },
-    [getNodeStore, saveWorkflow, updateWorkflow, addNotification]
+    [getNodeStore, saveWorkflow, updateWorkflow, addNotification, t]
   );
 
   const debouncedPersist = useDebouncedCallback(persist, 600);
@@ -194,7 +202,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     <div css={styles(theme)} className="workflow-form">
       <FormSection className="settings-section">
         <TextInput
-          label="Name"
+          label={t("pass3_37.workflowForm.name")}
           name="name"
           spellCheck={false}
           autoComplete="off"
@@ -204,7 +212,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
         />
 
         <TextArea
-          label="Description"
+          label={t("pass3_37.workflowForm.description")}
           name="description"
           value={localWorkflow.description}
           onChange={(description) => applyChange({ description })}
@@ -215,55 +223,55 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
         />
 
         <AutocompleteTagInput
-          label="Tags"
+          label={t("pass3_37.workflowForm.tags")}
           value={localWorkflow.tags || []}
           onChange={(tags) => {
             const uniqueTags = Array.from(new Set(tags.map(t => t.trim().toLowerCase()).filter(t => t.length > 0)));
             applyChange({ tags: uniqueTags }, true);
           }}
           suggestions={tagOptions}
-          placeholder="Type or select tags…"
-          description="Select from suggestions or type custom tags (press Enter to add)"
+          placeholder={t("pass3_37.workflowForm.tagsPlaceholder")}
+          description={t("pass3_37.workflowForm.tagsDescription")}
         />
       </FormSection>
 
-      <FormSection label="Execution" className="settings-section">
+      <FormSection label={t("pass3_37.workflowForm.execution")} className="settings-section">
         <SelectField
-          label="Run mode"
+          label={t("pass3_37.workflowForm.runMode")}
           value={localWorkflow.run_mode || "workflow"}
           onChange={(value) => applyChange({ run_mode: value }, true)}
-          options={RUN_MODE_OPTIONS}
-          description="How this workflow runs and can be triggered"
+          options={runModeOptions}
+          description={t("pass3_37.workflowForm.runModeDescription")}
         />
       </FormSection>
 
-      <FormSection label="Advanced" className="settings-section">
+      <FormSection label={t("pass3_37.workflowForm.advanced")} className="settings-section">
         <WorkspaceSelect
-          label="Workspace"
+          label={t("pass3_37.workflowForm.workspace")}
           value={localWorkflow.workspace_id ?? undefined}
           onChange={handleWorkspaceChange}
-          helperText="Associate a workspace folder with this workflow for agent access"
+          helperText={t("pass3_37.workflowForm.workspaceDescription")}
         />
 
         <TextInput
-          label="Tool name"
-          helperText="Identifier for API/tool usage. Letters, numbers, underscores only."
+          label={t("pass3_37.workflowForm.toolName")}
+          helperText={t("pass3_37.workflowForm.toolNameDescription")}
           name="tool_name"
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
           value={localWorkflow.tool_name || ""}
           onChange={handleToolNameChange}
-          placeholder="my_workflow_tool"
+          placeholder={t("pass3_37.workflowForm.toolNamePlaceholder")}
         />
       </FormSection>
 
       {onClose && (
-        <div className="button-container">
+        <FlexRow className="button-container" gap={SPACING.md}>
           <EditorButton variant="text" color="inherit" onClick={onClose}>
-            Close
+            {t("pass3_37.workflowForm.close")}
           </EditorButton>
-        </div>
+        </FlexRow>
       )}
     </div>
   );

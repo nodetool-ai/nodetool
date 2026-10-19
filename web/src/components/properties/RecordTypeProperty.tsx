@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef } from "../../stores/ApiTypes";
 import ColumnsManager from "../node/ColumnsManager";
@@ -47,6 +48,7 @@ const styles = (theme: Theme) =>
   });
 
 const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next47" });
   const theme = useTheme();
   if (value === undefined) {
     value = {
@@ -90,7 +92,7 @@ const RecordTypeProperty = ({ value, onChange }: PropertyProps) => {
     <div css={styles(theme)}>
       <ButtonGroup className="button-group">
         <EditorButton onClick={addColumn}>
-          <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
+          <TableRowsIcon style={{ rotate: "90deg" }} /> {t("record.addColumn")}
         </EditorButton>
       </ButtonGroup>
       <ColumnsManager

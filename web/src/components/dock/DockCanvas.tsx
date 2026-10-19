@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useStore, type StoreApi } from "zustand";
+import { useTranslation } from "react-i18next";
 
 import type { DockLayoutState } from "../../stores/dock/DockLayoutStore";
 import { DOCK_REGIONS, capitalizeLabel, type DockLayoutGroup, type DockRegion } from "../../stores/dock/DockLayout";
@@ -7,7 +8,7 @@ import { Box, dockZoneAt, FlexColumn, FlexRow, ResizeHandle, SPACING, TYPOGRAPHY
 import { StablePanelHost } from "./StablePanelHost";
 import { DockGroup } from "./DockGroup";
 import type { DockPresentation } from "./useDockPresentation";
-import { DOCK_REGION_AXIS, DOCK_REGION_LABELS, DOCK_REGION_ZONES, dockDropAction, type DockDropTarget } from "./dockTargets";
+import { DOCK_REGION_AXIS, DOCK_REGION_ZONES, dockDropAction, type DockDropTarget } from "./dockTargets";
 
 /** What a command outside the canvas can ask of the group filling this canvas. */
 export interface DockMaximizeController {
@@ -58,6 +59,7 @@ function useElementSize(): [(node: HTMLElement | null) => void, { width: number;
 }
 
 export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extraBottom = 0 }: DockCanvasProps): ReactNode {
+  const { t } = useTranslation();
   const root = useRef<HTMLDivElement | null>(null);
   const [slots, setSlots] = useState<ReadonlyMap<string, HTMLElement>>(new Map());
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
@@ -223,16 +225,16 @@ export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extr
         {regionShown("left") && <><FlexColumn sx={{ width: left, minWidth: 0, flexShrink: 0 }}>
           <DockRegionView region="left" label={label} groups={metadata.layout.regions.left.filter(groupShown)} store={store} renderGroup={renderGroup} />
         </FlexColumn>
-        <ResizeHandle orientation="vertical" ariaLabel={`Resize ${label} left panels`} value={left} min={100} max={widthMaximum} onResize={(delta) => resize("left", left, delta)} /></>}
+        <ResizeHandle orientation="vertical" ariaLabel={t("batch2_2.dock.resizePanels", { editor: capitalizeLabel(label), region: t("batch2_2.dock.regions.left") })} value={left} min={100} max={widthMaximum} onResize={(delta) => resize("left", left, delta)} /></>}
         <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
           <DockRegionView region="viewport" label={label} groups={metadata.layout.regions.viewport.filter(groupShown)} store={store} renderGroup={renderGroup} />
-          {regionShown("bottom") && <><ResizeHandle orientation="horizontal" invert ariaLabel={`Resize ${label} bottom panels`} value={bottom} min={80} max={bottomMaximum} onResize={(delta) => resize("bottom", bottom - extraBottom, delta)} />
+          {regionShown("bottom") && <><ResizeHandle orientation="horizontal" invert ariaLabel={t("batch2_2.dock.resizePanels", { editor: capitalizeLabel(label), region: t("batch2_2.dock.regions.bottom") })} value={bottom} min={80} max={bottomMaximum} onResize={(delta) => resize("bottom", bottom - extraBottom, delta)} />
             <FlexColumn sx={{ height: bottom, minHeight: 0, flexShrink: 0 }}>
               <DockRegionView region="bottom" label={label} groups={metadata.layout.regions.bottom.filter(groupShown)} store={store} renderGroup={renderGroup} />
             </FlexColumn></>}
           {edgeTarget("bottom")}
         </FlexColumn>
-        {regionShown("right") && <><ResizeHandle orientation="vertical" invert ariaLabel={`Resize ${label} right panels`} value={right} min={100} max={widthMaximum} onResize={(delta) => resize("right", right, delta)} />
+        {regionShown("right") && <><ResizeHandle orientation="vertical" invert ariaLabel={t("batch2_2.dock.resizePanels", { editor: capitalizeLabel(label), region: t("batch2_2.dock.regions.right") })} value={right} min={100} max={widthMaximum} onResize={(delta) => resize("right", right, delta)} />
           <FlexColumn sx={{ width: right, minWidth: 0, flexShrink: 0 }}>
             <DockRegionView region="right" label={label} groups={metadata.layout.regions.right.filter(groupShown)} store={store} renderGroup={renderGroup} />
           </FlexColumn></>}
@@ -242,7 +244,7 @@ export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extr
       position: "fixed", left: drag.x + SPACING.xl * 4, top: drag.y + SPACING.xl * 4, pointerEvents: "none", zIndex: Z_INDEX.tooltip,
       px: SPACING.md, py: SPACING.xs, borderRadius: BORDER_RADIUS.sm, bgcolor: "background.paper", border: 1, borderColor: "primary.main",
       boxShadow: SHADOW(theme).md, ...TYPOGRAPHY.sans.label, color: "text.primary", whiteSpace: "nowrap"
-    })}>{dragTitle}{drag.target ? ` to ${describeTarget(drag.target)}` : ""}</Box>}
+    })}>{dragTitle}{drag.target ? t("batch2_2.dock.dragDestination", { target: describeTarget(drag.target, t) }) : ""}</Box>}
     {presentation.views.map((view) => {
       const group = DOCK_REGIONS.flatMap((region) => metadata.layout.regions[region]).find((entry) => entry.panels.includes(view.id));
       const eligible = group?.panels.filter(visible) ?? [];
@@ -257,10 +259,10 @@ export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extr
   </FlexColumn>;
 }
 
-function describeTarget(target: DockDropTarget): string {
-  if (target.kind === "region") { return `the ${DOCK_REGION_LABELS[target.region]}`; }
-  if (target.kind === "tab" || target.zone === "center") { return "this group"; }
-  return `a new group ${target.zone === "top" ? "above" : target.zone === "bottom" ? "below" : `on the ${target.zone}`}`;
+function describeTarget(target: DockDropTarget, t: (key: string) => string): string {
+  if (target.kind === "region") { return t(`batch2_2.dock.regions.${target.region}`); }
+  if (target.kind === "tab" || target.zone === "center") { return t("batch2_2.dock.thisGroup"); }
+  return t("batch2_2.dock.newGroupPosition", { position: t(`batch2_2.dock.positions.${target.zone}`) });
 }
 
 interface DockRegionViewProps {
@@ -273,6 +275,7 @@ interface DockRegionViewProps {
 
 /** One dock region: its groups side by side or stacked, with a separator between each pair. */
 function DockRegionView({ region, label, groups, store, renderGroup }: DockRegionViewProps): ReactNode {
+  const { t } = useTranslation();
   const [measure, size] = useElementSize();
   const axis = DOCK_REGION_AXIS[region];
   const Layout = axis === "row" ? FlexRow : FlexColumn;
@@ -280,7 +283,7 @@ function DockRegionView({ region, label, groups, store, renderGroup }: DockRegio
   const length = Math.max(0, (axis === "row" ? size.width : size.height) - handleLength * Math.max(0, groups.length - 1));
   const weights = groups.map((group) => group.weight ?? 1);
   const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
-  return <Layout ref={measure} component="section" role="region" aria-label={`${capitalizeLabel(label)} ${region} panels`} data-dock-region={region}
+  return <Layout ref={measure} component="section" role="region" aria-label={t("batch2_2.dock.regionPanels", { editor: capitalizeLabel(label), region: t(`batch2_2.dock.regions.${region}`) })} data-dock-region={region}
     sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}>
     {groups.map((group, index) => {
       const next = groups[index + 1];
@@ -290,7 +293,7 @@ function DockRegionView({ region, label, groups, store, renderGroup }: DockRegio
       const value = length * weight / total;
       return <Fragment key={group.id}>
         <FlexColumn sx={{ flex: `${weight} 1 0`, minHeight: 0, minWidth: 0 }}>{renderGroup(group, region)}</FlexColumn>
-        {next && <ResizeHandle orientation={axis === "row" ? "vertical" : "horizontal"} ariaLabel={`Resize ${group.activePanelId} group`}
+        {next && <ResizeHandle orientation={axis === "row" ? "vertical" : "horizontal"} ariaLabel={t("batch2_2.dock.resizeGroup", { group: group.activePanelId })}
           value={value} min={Math.min(MIN_GROUP_LENGTH, pairLength / 2)} max={Math.max(pairLength - MIN_GROUP_LENGTH, pairLength / 2)}
           onResize={(delta) => {
             if (pairLength <= 0) { return; }

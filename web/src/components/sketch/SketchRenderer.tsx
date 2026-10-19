@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -91,11 +92,13 @@ const getViewportScale = (
 const SketchRenderer: React.FC<SketchRendererProps> = ({
   document,
   className,
-  ariaLabel = "Sketch preview",
+  ariaLabel,
   isolatedLayerId = null,
   showDimensions = false,
   preferCanvas2d = false
 }) => {
+  const { t } = useTranslation();
+  const resolvedAriaLabel = ariaLabel ?? t("i18n-next52.sketch.renderer.preview");
   const theme = useTheme();
   const styles = useMemo(() => rendererStyles(theme), [theme]);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -177,7 +180,7 @@ const SketchRenderer: React.FC<SketchRendererProps> = ({
       css={styles}
       className={rootClassName}
       role="img"
-      aria-label={ariaLabel}
+      aria-label={resolvedAriaLabel}
       data-testid="sketch-renderer"
     >
       <canvas

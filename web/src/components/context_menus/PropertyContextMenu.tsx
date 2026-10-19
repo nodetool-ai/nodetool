@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 //mui
 
 import {
@@ -59,6 +60,7 @@ function resolvePropertyMenuTargetNodeIds(
 }
 
 const PropertyContextMenuComponent: React.FC = () => {
+  const { t } = useTranslation();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -238,18 +240,18 @@ const PropertyContextMenuComponent: React.FC = () => {
           await writeClipboard(serialized, true);
           addNotification({
             type: "success",
-            content: "Value copied to clipboard"
+            content: t("screen_editor.valueCopied")
           });
         } catch {
           addNotification({
             type: "error",
-            content: "Failed to copy to clipboard"
+            content: t("screen_editor.copyFailed")
           });
         }
       } else {
         addNotification({
           type: "warning",
-          content: "No value to copy"
+          content: t("screen_editor.noValueToCopy")
         });
       }
     }
@@ -321,7 +323,7 @@ const PropertyContextMenuComponent: React.FC = () => {
       onContextMenu={(event) => event.preventDefault()}
       position={menuPosition}
     >
-      <ListSubheader>Property</ListSubheader>
+      <ListSubheader>{t("screen_editor.property")}</ListSubheader>
 
       {description && description.length > 0 && (
         <Caption
@@ -340,13 +342,13 @@ const PropertyContextMenuComponent: React.FC = () => {
       <Divider />
       <ContextMenuItem
         onClick={handleCopyValue}
-        label="Copy value"
+        label={t("screen_editor.copyValue")}
         IconComponent={<ContentCopyIcon />}
-        tooltip="Copy property value"
+        tooltip={t("screen_editor.copyPropertyValueTooltip")}
       />
       <ContextMenuItem
         onClick={handleReset}
-        label="Reset to default value"
+        label={t("screen_editor.resetDefaultValue")}
         IconComponent={<SettingsBackupRestoreIcon />}
         tooltip={getShortcutTooltip("resetDefault")}
       />
@@ -356,16 +358,16 @@ const PropertyContextMenuComponent: React.FC = () => {
           onClick={handleToggleExposedInput}
           label={
             isExposedHandle
-              ? "Hide input handle (top)"
-              : "Show as input handle (top)"
+              ? t("screen_editor.hideTopInput")
+              : t("screen_editor.showTopInput")
           }
           IconComponent={<ArrowForwardIcon />}
           tooltip={
             isExposedHandle
               ? isConnected
-                ? "Hide top input handle (disconnects edge)"
-                : "Hide top input handle"
-              : "Show as handle on the left/top of the node (no label)"
+                ? t("screen_editor.hideTopInputDisconnect")
+                : t("screen_editor.hideTopInput")
+              : t("screen_editor.showInputHandle")
           }
         />
       )}
@@ -374,39 +376,39 @@ const PropertyContextMenuComponent: React.FC = () => {
           onClick={handleToggleExposedInputLabeled}
           label={
             isExposedLabeled
-              ? "Hide labeled input (bottom)"
-              : "Show labeled input (bottom)"
+              ? t("screen_editor.hideBottomInput")
+              : t("screen_editor.showBottomInput")
           }
           IconComponent={<ArrowForwardIcon />}
           tooltip={
             isExposedLabeled
               ? isConnected
-                ? "Hide labeled input at bottom (disconnects edge)"
-                : "Hide labeled input at bottom"
-              : "Show input at bottom with parameter title and editor"
+                ? t("screen_editor.hideBottomInputDisconnect")
+                : t("screen_editor.hideBottomInput")
+              : t("screen_editor.showInputAtBottom")
           }
         />
       )}
 
       {isDynamicProperty && <Divider />}
-      {slotTypeOptions !== null && <ListSubheader>Slot type</ListSubheader>}
+      {slotTypeOptions !== null && <ListSubheader>{t("screen_editor.slotType")}</ListSubheader>}
       {slotTypeOptions?.map((option) => (
         <ContextMenuItem
           key={slotTypeKey(option)}
           onClick={() => handleSetSlotType(option)}
           label={slotTypeLabel(option)}
           IconComponent={<CategoryIcon />}
-          tooltip={`Declare "${propertyName}" as ${slotTypeLabel(option)}`}
+          tooltip={t("screen_editor.declarePropertyAs", { property: propertyName, type: slotTypeLabel(option) })}
         />
       ))}
       {isDynamicProperty && slotTypeOptions !== null && <Divider />}
       {isDynamicProperty && (
         <ContextMenuItem
           onClick={handleRemoveDynamicProperty}
-          label="Delete dynamic property"
+          label={t("screen_editor.deleteDynamicProperty")}
           destructive
           IconComponent={<DeleteIcon />}
-          tooltip="Delete this property from the node"
+          tooltip={t("screen_editor.deleteDynamicPropertyTooltip")}
         />
       )}
     </ContextMenu>

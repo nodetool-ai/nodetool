@@ -1,4 +1,5 @@
 import type { FxPanelAdapter } from './fxAdapter';
+import { useTranslation } from 'react-i18next';
 import { fxId } from './fxAdapter';
 import './chorus.css';
 
@@ -10,6 +11,7 @@ export function chorusDelayMs(time: number, rate: number, depth: number): [numbe
 }
 
 export function ChorusPanel({ adapter, compact = false }: { adapter: FxPanelAdapter; compact?: boolean }) {
+  const { t } = useTranslation();
   const params = adapter.params;
   const id = (key: string) => fxId(adapter.prefix, `fx.chorus.${key}`);
   const on = params[id('on')] > 0.5;
@@ -22,10 +24,10 @@ export function ChorusPanel({ adapter, compact = false }: { adapter: FxPanelAdap
     return `${i ? 'L' : 'M'}${(28 + i / 512 * 198).toFixed(2)},${y(delay).toFixed(2)}`;
   }).join(' '));
 
-  return <section className={`${compact ? 'fx-module' : 'panel'} panel-chorus${on ? '' : ' chorus-bypassed'}`} style={compact ? undefined : { gridArea: 'chorus' }} aria-label="Chorus">
-    <div className="panel-head">{power(id('on'))}<h2>CHORUS</h2><span className="chorus-state">{on ? (mix > 0 ? 'STEREO' : 'DRY') : 'BYPASS'}</span></div>
-    <svg className="chorus-view" viewBox="0 0 240 144" role="img" aria-label={`Chorus ${on ? 'active' : 'bypassed'}. Modulation preview over two seconds, not a live meter. Rate ${rate.toFixed(2)} Hz. Left delay 12 plus or minus ${excursion.toFixed(2)} milliseconds; right delay 17 plus or minus ${(excursion * 0.8).toFixed(2)} milliseconds. Mix ${Math.round(mix * 100)} percent.`}>
-      <g className="chorus-label"><text x="12" y="15">MODULATION</text><text x="226" y="15" textAnchor="end">2 s</text></g>
+  return <section className={`${compact ? 'fx-module' : 'panel'} panel-chorus${on ? '' : ' chorus-bypassed'}`} style={compact ? undefined : { gridArea: 'chorus' }} aria-label={t('i18n-next44-fablesynth-controls.chorus.title')}>
+    <div className="panel-head">{power(id('on'))}<h2>{t('i18n-next116.fableSynth.effects.chorus')}</h2><span className="chorus-state">{on ? (mix > 0 ? t('i18n-next44-fablesynth-controls.chorus.stereo') : t('i18n-next44-fablesynth-controls.chorus.dry')) : t('i18n-next44-fablesynth-controls.chorus.bypass')}</span></div>
+    <svg className="chorus-view" viewBox="0 0 240 144" role="img" aria-label={t('i18n-next44-fablesynth-controls.chorus.aria', { state: on ? t('i18n-next44-fablesynth-controls.chorus.active') : t('i18n-next44-fablesynth-controls.chorus.bypassed'), rate: rate.toFixed(2), left: excursion.toFixed(2), right: (excursion * 0.8).toFixed(2), mix: Math.round(mix * 100) })}>
+      <g className="chorus-label"><text x="12" y="15">{t('i18n-next44-fablesynth-controls.chorus.modulation')}</text><text x="226" y="15" textAnchor="end">2 s</text></g>
       <g className="chorus-grid">
         {[5, 15, 25].map(delay => <path key={delay} d={`M28 ${y(delay)}H226`} />)}
         {[28, 77.5, 127, 176.5, 226].map(x => <path key={x} d={`M${x} 32V112`} />)}
@@ -36,7 +38,7 @@ export function ChorusPanel({ adapter, compact = false }: { adapter: FxPanelAdap
         <path className="chorus-left" d={paths[0]} />
         <path className="chorus-right" d={paths[1]} />
       </g>
-      <g className="chorus-label"><text x="12" y="135">ms</text><path className="chorus-left" d="M51 132H66" /><text x="72" y="135">L</text><path className="chorus-right" d="M100 132H115" /><text x="121" y="135">R</text><text x="226" y="135" textAnchor="end">DELAY</text></g>
+      <g className="chorus-label"><text x="12" y="135">ms</text><path className="chorus-left" d="M51 132H66" /><text x="72" y="135">L</text><path className="chorus-right" d="M100 132H115" /><text x="121" y="135">R</text><text x="226" y="135" textAnchor="end">{t('i18n-next44-fablesynth-controls.chorus.delay')}</text></g>
     </svg>
     <div className="chorus-readouts" aria-hidden="true">
       <span>L <output>12 ± {excursion.toFixed(1)}</output></span><span>R <output>17 ± {(excursion * 0.8).toFixed(1)}</output></span><span>ms</span>

@@ -11,6 +11,7 @@
  */
 
 import { forwardRef, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
+import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import { useTheme, type SxProps, type Theme } from "@mui/material/styles";
 
@@ -78,6 +79,7 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
   sx
 }, ref) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const hintId = useId();
   const [selected, setSelected] = useState(0);
   const [draft, setDraft] = useState<CurveKey[] | null>(null);
@@ -276,12 +278,12 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
                 ref={(element: HTMLDivElement | null) => { handleRefs.current[index] = element; }}
                 role="slider"
                 tabIndex={disabled ? -1 : 0}
-                aria-label={`${label} key ${index + 1}`}
+                aria-label={t("i18n-next86.curveEditor.keyLabel", { label, index: index + 1 })}
                 aria-describedby={hintId}
                 aria-valuemin={0}
                 aria-valuemax={1}
                 aria-valuenow={key.t}
-                aria-valuetext={`Time ${formatNumber(key.t)}, value ${formatNumber(key.value)}`}
+                aria-valuetext={t("i18n-next86.curveEditor.valueText", { time: formatNumber(key.t), value: formatNumber(key.value) })}
                 aria-disabled={disabled || undefined}
                 onFocus={() => setSelected(index)}
                 onKeyDown={handleKeyDown(index)}
@@ -316,7 +318,7 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
       </Box>
       <FlexRow gap={SPACING.xs} align="center" wrap>
         <InspectorValueInput
-          ariaLabel={`Key ${selectedIndex + 1} time`}
+          ariaLabel={t("i18n-next86.curveEditor.keyTime", { index: selectedIndex + 1 })}
           value={formatNumber(selectedKey.t)}
           disabled={disabled}
           onCommit={(raw) => {
@@ -327,7 +329,7 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
           }}
         />
         <InspectorValueInput
-          ariaLabel={`Key ${selectedIndex + 1} value`}
+          ariaLabel={t("i18n-next86.curveEditor.keyValue", { index: selectedIndex + 1 })}
           value={formatNumber(selectedKey.value)}
           disabled={disabled}
           onCommit={(raw) => {
@@ -337,10 +339,10 @@ export const CurveEditor = forwardRef<HTMLDivElement, CurveEditorProps>(function
             }
           }}
         />
-        <EditorButton density="compact" disabled={disabled || value.length >= maxKeys} onClick={() => addKeyAfter(selectedIndex)}>Add key</EditorButton>
-        <EditorButton density="compact" disabled={disabled || value.length <= minKeys} onClick={() => removeKeyAt(selectedIndex)}>Delete key</EditorButton>
+        <EditorButton density="compact" disabled={disabled || value.length >= maxKeys} onClick={() => addKeyAfter(selectedIndex)}>{t("i18n-next86.curveEditor.addKey")}</EditorButton>
+        <EditorButton density="compact" disabled={disabled || value.length <= minKeys} onClick={() => removeKeyAt(selectedIndex)}>{t("i18n-next86.curveEditor.deleteKey")}</EditorButton>
       </FlexRow>
-      <Caption id={hintId}>Arrow keys move a key, Shift moves further. Insert adds a key, Delete removes it. Double-click the plot to add a key there.</Caption>
+      <Caption id={hintId}>{t("i18n-next86.curveEditor.keyboardHint")}</Caption>
     </FlexColumn>
   );
 });

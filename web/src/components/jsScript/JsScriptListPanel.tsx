@@ -1,6 +1,7 @@
 import AddIcon from "@mui/icons-material/AddOutlined";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateJsScript, useJsScripts } from "../../hooks/jsScript/useJsScripts";
@@ -17,9 +18,8 @@ import {
   Tooltip
 } from "../ui_primitives";
 
-const DEFAULT_NAME = "Untitled JS script";
-
 export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const createJsScript = useCreateJsScript();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -29,14 +29,14 @@ export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
   const handleCreate = useCallback(async () => {
     try {
       const created = await createJsScript.mutateAsync({
-        name: DEFAULT_NAME,
+        name: t("list.defaultName"),
         projectId: creationProjectId()
       });
       openTab({
         type: "jsscript",
         ref: created.id,
         mode: "edit",
-        title: created.name || DEFAULT_NAME,
+        title: created.name || t("list.defaultName"),
         projectId: created.projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
@@ -44,14 +44,14 @@ export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
       }
       setVisibility(false);
     } catch (error) {
-      notifyMutationError("create the JS script", error);
+      notifyMutationError(t("list.createError"), error);
     }
-  }, [createJsScript, location.pathname, navigate, openTab, setVisibility]);
+  }, [createJsScript, location.pathname, navigate, openTab, setVisibility, t]);
 
   return (
-    <Tooltip title="New JS script" placement="right-start">
+    <Tooltip title={t("list.newScript")} placement="right-start">
       <ToolbarIconButton
-        ariaLabel="New JS script"
+        ariaLabel={t("list.newScript")}
         onClick={() => void handleCreate()}
         disabled={createJsScript.isPending}
         tabIndex={-1}
@@ -80,6 +80,7 @@ const matchesDescription = (script: JsScriptSummary, needle: string) =>
  * and delete arrive with the versions UI in a later pass.
  */
 const JsScriptListPanel = ({ projectId }: JsScriptListPanelProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const { data, isLoading, isError, error } = useJsScripts(projectId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
@@ -97,7 +98,7 @@ const JsScriptListPanel = ({ projectId }: JsScriptListPanelProps) => {
         type: "jsscript",
         ref: id,
         mode: "edit",
-        title: name || DEFAULT_NAME,
+        title: name || t("list.defaultName"),
         projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
@@ -105,18 +106,18 @@ const JsScriptListPanel = ({ projectId }: JsScriptListPanelProps) => {
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, projectId, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility, t]
   );
 
   return (
     <DocumentListPanel
-      singular="JS script"
-      plural="JS scripts"
+      singular={t("list.singular")}
+      plural={t("list.plural")}
       documents={data}
       isLoading={isLoading}
       isError={isError}
       errorMessage={error?.message}
-      emptyDescription="Create a new JS script with the + button above."
+      emptyDescription={t("list.empty")}
       deleteTarget={null}
       onCancelDelete={noop}
       onConfirmDelete={noop}
@@ -125,7 +126,7 @@ const JsScriptListPanel = ({ projectId }: JsScriptListPanelProps) => {
         <ListPanelItem
           id={script.id}
           name={script.name}
-          fallbackName={DEFAULT_NAME}
+          fallbackName={t("list.defaultName")}
           icon={DataObjectOutlinedIcon}
           active={script.id === activeScriptId}
           secondary={script.description || undefined}

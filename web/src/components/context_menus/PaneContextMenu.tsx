@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { useTranslation } from "react-i18next";
 import React, { useCallback, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
@@ -43,6 +44,30 @@ import {
 } from "./paneNodeOptions";
 
 const PaneContextMenu: React.FC = () => {
+  const { t } = useTranslation();
+  const localizeNodeTypeLabel = (label: string): string => {
+    const keys: Record<string, string> = {
+      Audio: "audio",
+      Bool: "boolean",
+      Boolean: "boolean",
+      "Data Frame": "dataFrame",
+      Date: "date",
+      "Date Time": "dateTime",
+      Dict: "dictionary",
+      Document: "document",
+      Float: "float",
+      Image: "image",
+      Integer: "integer",
+      JSON: "json",
+      List: "list",
+      "Model 3D": "model3d",
+      Select: "select",
+      String: "string",
+      Video: "video"
+    };
+    const key = keys[label];
+    return key ? t(`screen_editor.nodeType.${key}`) : label;
+  };
   const { handlePaste } = useCopyPaste();
   const reactFlowInstance = useReactFlow();
   const { isClipboardValid } = useClipboard();
@@ -259,7 +284,7 @@ const PaneContextMenu: React.FC = () => {
       >
         <ContextMenuItem
           onClick={handlePasteAndClose}
-          label="Paste"
+          label={t("screen_editor.paste")}
           disabled={!isClipboardValid}
           IconComponent={<SouthEastIcon />}
           tooltip={
@@ -268,8 +293,8 @@ const PaneContextMenu: React.FC = () => {
                 {getShortcutTooltip("paste")}
                 <br />
                 <span className="attention">
-                  no valid node data <br />
-                  in clipboard
+                  {t("screen_editor.noValidNodeData")} <br />
+                  {t("screen_editor.inClipboard")}
                 </span>
               </span>
             ) : (
@@ -279,13 +304,13 @@ const PaneContextMenu: React.FC = () => {
         />
         <ContextMenuItem
           onClick={handleFitViewAndClose}
-          label="Fit screen"
+          label={t("screen_editor.fitScreen")}
           IconComponent={<FitScreenIcon />}
           tooltip={getShortcutTooltip("fitView")}
         />
         {favorites.length > 0 && [
           <Divider key="favorites-divider" />,
-          <ListSubheader key="favorites-header">Favorites</ListSubheader>,
+          <ListSubheader key="favorites-header">{t("screen_editor.favorites")}</ListSubheader>,
           ...favorites.map((favorite) => {
             const displayName = getNodeDisplayName(favorite.nodeType);
             return (
@@ -294,7 +319,7 @@ const PaneContextMenu: React.FC = () => {
                 onClick={addFavoriteNode(favorite.nodeType)}
                 label={displayName}
                 IconComponent={<StarIcon />}
-                tooltip={`Add ${displayName} node`}
+                tooltip={t("screen_editor.addNamedNode", { name: displayName })}
               />
             );
           })
@@ -302,46 +327,46 @@ const PaneContextMenu: React.FC = () => {
         <Divider />
         <ContextMenuItem
           onClick={handleOpenConstantMenu}
-          label="Add constant node"
+          label={t("screen_editor.addConstantNode")}
           IconComponent={<DataObjectIcon />}
           hasSubmenu
         />
         <ContextMenuItem
           onClick={handleOpenInputMenu}
-          label="Add input node"
+          label={t("screen_editor.addInputNode")}
           IconComponent={<InputIcon />}
           hasSubmenu
         />
         <Divider />
         <ContextMenuItem
           onClick={handleAddCommentAndClose}
-          label="Add comment"
+          label={t("screen_editor.addComment")}
           IconComponent={<AddCommentIcon />}
-          tooltip={"Hold C key and drag"}
+          tooltip={t("screen_editor.holdCAndDrag")}
         />
         <ContextMenuItem
           onClick={handleAddGroupAndClose}
-          label="Add group"
+          label={t("screen_editor.addGroup")}
           IconComponent={<GroupWorkIcon />}
-          tooltip={"Add a group node"}
+          tooltip={t("screen_editor.addGroupTooltip")}
         />
         <ContextMenuItem
           onClick={handleCreateNode(WORKFLOW_NODE_TYPE)}
-          label="Add workflow"
+          label={t("screen_editor.addWorkflow")}
           IconComponent={<AccountTreeIcon />}
-          tooltip={"Add a workflow node"}
+          tooltip={t("screen_editor.addWorkflowTooltip")}
         />
         <ContextMenuItem
           onClick={handleCreateNode(SUBGRAPH_NODE_TYPE)}
-          label="Add subgraph"
+          label={t("screen_editor.addSubgraph")}
           IconComponent={<SchemaIcon />}
-          tooltip={"Add an inline subgraph node"}
+          tooltip={t("screen_editor.addSubgraphTooltip")}
         />
         <ContextMenuItem
           onClick={handleCreateNode(APP_NODE_TYPE)}
-          label="Add app"
+          label={t("screen_editor.addApp")}
           IconComponent={<AppsIcon />}
-          tooltip={"Run a mini app as a node"}
+          tooltip={t("screen_editor.addAppTooltip")}
         />
       </ContextMenu>
       <ContextMenu
@@ -368,7 +393,7 @@ const PaneContextMenu: React.FC = () => {
             <ContextMenuItem
               key={option.nodeType}
               onClick={handleCreateNode(option.nodeType)}
-              label={option.label}
+              label={localizeNodeTypeLabel(option.label)}
             />
           ) : null
         )}
@@ -397,7 +422,7 @@ const PaneContextMenu: React.FC = () => {
             <ContextMenuItem
               key={option.nodeType}
               onClick={handleCreateNode(option.nodeType)}
-              label={option.label}
+              label={localizeNodeTypeLabel(option.label)}
             />
           ) : null
         )}

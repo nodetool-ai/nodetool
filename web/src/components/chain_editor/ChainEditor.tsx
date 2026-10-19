@@ -6,6 +6,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
@@ -16,7 +17,8 @@ import {
   ToolbarIconButton,
   Box,
   TextInput,
-  ICON_SIZE
+  ICON_SIZE,
+  SPACING
 } from "../ui_primitives";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
@@ -32,6 +34,7 @@ interface ChainEditorProps {
 
 export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
 
   const chain = useChainEditorStore((s) => s.chain);
@@ -95,9 +98,9 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
   return (
     <FlexColumn fullHeight fullWidth sx={{ backgroundColor: theme.vars.palette.background.default }}>
       <FlexRow
-        gap={1.5}
+        gap={SPACING.sm}
         align="center"
-        padding={1.5}
+        padding={SPACING.sm}
         sx={{
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
           backgroundColor: theme.vars.palette.background.paper,
@@ -109,14 +112,14 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
           variant="standard"
           value={workflowName}
           onChange={(e) => setWorkflowName(e.target.value)}
-          placeholder="Workflow name"
+          placeholder={t("pass3_0.chainEditor.workflowNamePlaceholder")}
           slotProps={{ input: { disableUnderline: true, sx: { fontWeight: 600, fontSize: theme.fontSizeNormal } } }}
           sx={{ flex: 1 }}
         />
         <ToolbarIconButton
           size="small"
-          ariaLabel="Save workflow"
-          tooltip="Save workflow"
+          ariaLabel={t("pass3_0.chainEditor.saveWorkflow")}
+          tooltip={t("pass3_0.chainEditor.saveWorkflow")}
           onClick={handleSave}
           disabled={saving}
           icon={<SaveOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
@@ -128,21 +131,19 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
         sx={{
           flex: 1,
           overflow: "auto",
-          px: { xs: 1.5, sm: 2 },
-          py: 1,
+          px: { xs: SPACING.sm, sm: SPACING.md },
+          py: SPACING.xs,
           maxWidth: 600,
           width: "100%",
           mx: "auto",
         }}
       >
         {chain.length === 0 ? (
-          <FlexColumn align="center" justify="center" sx={{ pt: 8 }}>
+          <FlexColumn align="center" justify="center" sx={{ pt: SPACING.xxxl }}>
             <EmptyState
               icon={<AccountTreeOutlinedIcon sx={{ fontSize: 48 }} />}
-              title="Build your workflow"
-              description={
-                "Add nodes to create a processing chain.\nEach node's output flows into the next."
-              }
+              title={t("pass3_0.chainEditor.emptyState.title")}
+              description={t("pass3_0.chainEditor.emptyState.description")}
             />
             <AddNodeButton isHero onClick={() => showNodePicker(0)} />
           </FlexColumn>

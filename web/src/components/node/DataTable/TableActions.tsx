@@ -1,4 +1,5 @@
 import React, { useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { TabulatorFull as Tabulator, RowComponent } from "tabulator-tables";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -75,6 +76,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   children
 }) => {
   TableActions.displayName = 'TableActions';
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next9" });
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -95,7 +97,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     }
     writeClipboard(JSON.stringify(dataToStringify), true);
     addNotification({
-      content: "Copied to clipboard",
+      content: t("dataTable.copiedToClipboard"),
       type: "success",
       alert: true
     });
@@ -214,11 +216,11 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     onChangeRows(reindexedData as TableData);
 
     addNotification({
-      content: `Duplicated ${duplicatedRows.length} row(s)`,
+      content: t("dataTable.duplicatedRows", { count: duplicatedRows.length }),
       type: "success",
       alert: true
     });
-  }, [data, selectedRows, onChangeRows, addNotification, isListTable]);
+  }, [data, selectedRows, onChangeRows, addNotification, isListTable, t]);
 
   const handleUndo = useCallback(() => {
     if (tabulator) {
@@ -266,7 +268,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       const text = await navigator.clipboard.readText();
       if (!text.trim()) {
         addNotification({
-          content: "Clipboard is empty",
+          content: t("dataTable.clipboardEmpty"),
           type: "warning",
           alert: true
         });
@@ -345,7 +347,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         
         if (newRows.length === 0) {
           addNotification({
-            content: "No data rows to paste",
+            content: t("dataTable.noRowsToPaste"),
             type: "warning",
             alert: true
           });
@@ -364,19 +366,19 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         onChangeRows(reindexedData);
         
         addNotification({
-          content: `Pasted ${newRows.length} row(s)`,
+          content: t("dataTable.pastedRows", { count: newRows.length }),
           type: "success",
           alert: true
         });
       }
     } catch (_error) {
       addNotification({
-        content: "Failed to paste from clipboard",
+        content: t("dataTable.pasteFailed"),
         type: "error",
         alert: true
       });
     }
-  }, [data, dataframeColumns, selectedRows, onChangeRows, addNotification]);
+  }, [data, dataframeColumns, selectedRows, onChangeRows, addNotification, t]);
 
   // Export CSV - exclude select and rownum columns
   const handleExportCSV = useCallback(() => {
@@ -405,23 +407,23 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     addNotification({
-      content: "Exported as CSV",
+      content: t("dataTable.exportedCsv"),
       type: "success",
       alert: true
     });
-  }, [data, dataframeColumns, addNotification]);
+  }, [data, dataframeColumns, addNotification, t]);
 
   return (
     <div className="table-actions">
       {editable && (
         <>
-          <ToolbarIconButton title="Add new row" onClick={handleAddRow}>
+          <ToolbarIconButton title={t("dataTable.addRow")} onClick={handleAddRow}>
             <AddIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
 
           <DeleteButton
             onClick={handleDeleteRowsClick}
-            tooltip="Delete selected rows"
+            tooltip={t("dataTable.deleteSelectedRows")}
             disabled={selectedRows.length === 0}
             iconVariant="clear"
             nodrag={false}
@@ -429,7 +431,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
           {isModalMode && (
             <ToolbarIconButton
-              title="Duplicate selected rows"
+              title={t("dataTable.duplicateSelectedRows")}
               className={selectedRows.length === 0 ? "disabled" : ""}
               onClick={handleDuplicateRows}
             >
@@ -442,7 +444,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       {showSortingButton && (
         <RefreshButton
           onClick={handleResetSorting}
-          tooltip="Reset table sorting"
+          tooltip={t("dataTable.resetSorting")}
           iconVariant="reset"
           nodrag={false}
         />
@@ -452,7 +454,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         <>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <ToolbarIconButton
-            title="Undo"
+            title={t("dataTable.undo")}
             shortcut={["Ctrl", "Z"]}
             onClick={handleUndo}
             disabled={!canUndo}
@@ -461,7 +463,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             <UndoIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
           <ToolbarIconButton
-            title="Redo"
+            title={t("dataTable.redo")}
             shortcut={["Ctrl", "Y"]}
             onClick={handleRedo}
             disabled={!canRedo}
@@ -470,7 +472,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             <RedoIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-          <ToolbarIconButton title="Paste from clipboard" onClick={handlePaste}>
+          <ToolbarIconButton title={t("dataTable.pasteFromClipboard")} onClick={handlePaste}>
             <ContentPasteIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
         </>
@@ -481,14 +483,14 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <DownloadButton
             onClick={handleExportCSV}
-            tooltip="Export as CSV"
+            tooltip={t("dataTable.exportCsv")}
             nodrag={false}
           />
         </>
       )}
 
       <ToolbarIconButton
-        title="Show select column"
+        title={t("dataTable.showSelectColumn")}
         onClick={handleToggleSelect}
         color={showSelect ? "primary" : "default"}
       >
@@ -497,7 +499,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
       {showRowNumbersButton && Array.isArray(data) && setShowRowNumbers && (
         <ToolbarIconButton
-          title="Show row numbers"
+          title={t("dataTable.showRowNumbers")}
           onClick={handleToggleRowNumbers}
           color={showRowNumbers ? "primary" : "default"}
         >
@@ -505,7 +507,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         </ToolbarIconButton>
       )}
 
-      <ToolbarIconButton title="Copy table data" onClick={handleCopyData}>
+      <ToolbarIconButton title={t("dataTable.copyTableData")} onClick={handleCopyData}>
         <ContentCopyIcon sx={{ fontSize: ICON_SIZE.xs }} />
       </ToolbarIconButton>
 

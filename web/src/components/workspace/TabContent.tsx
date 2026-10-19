@@ -1,4 +1,5 @@
 import React, { memo, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
@@ -126,8 +127,18 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
  * render re-renders every surface at once. `WorkspaceTabsStore` replaces a tab
  * object only when that tab changes, so the shallow compare holds.
  */
-const TabContent = ({ tab, active }: TabContentProps) => (
-  <Suspense fallback={<LoadingSpinner />}>{surfaceFor(tab, active)}</Suspense>
-);
+const TabContent = ({ tab, active }: TabContentProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <Suspense
+      fallback={
+        <LoadingSpinner text={t("i18n-next84.tabContent.loading")} />
+      }
+    >
+      {surfaceFor(tab, active)}
+    </Suspense>
+  );
+};
 
 export default memo(TabContent);

@@ -6,6 +6,7 @@
  * on the timeline.
  */
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -63,6 +64,7 @@ interface ClipKeyframeDiamondsProps {
 
 export const ClipKeyframeDiamonds: React.FC<ClipKeyframeDiamondsProps> = memo(
   ({ clipId, durationMs, msPerPx, timesMs, locked, formatTime, onSeek, onMove }) => {
+    const { t: tt } = useTranslation();
     const theme = useTheme();
     const [drag, setDrag] = useState<DragState | null>(null);
 
@@ -113,8 +115,8 @@ export const ClipKeyframeDiamonds: React.FC<ClipKeyframeDiamondsProps> = memo(
               type="button"
               css={diamondStyles(theme)}
               style={{ left: shown / msPerPx }}
-              aria-label={`Keyframe at ${formatTime(t)}`}
-              title={locked ? undefined : "Drag to move this keyframe"}
+              aria-label={tt("i18n-next73.keyframe.at", { time: formatTime(t) })}
+              title={locked ? undefined : tt("i18n-next73.keyframe.dragToMove")}
               data-testid={`clip-keyframe-${clipId}`}
               data-playhead-passthrough
               onPointerDown={(e) => handlePointerDown(e, t)}

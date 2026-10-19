@@ -6,6 +6,7 @@
  * and the Final Cut browser range in one panel.
  */
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -62,6 +63,7 @@ const mediaBoxStyles = (theme: Theme) =>
 const formatSeconds = (ms: number): string => (ms / 1000).toFixed(2);
 
 export const SourceViewerPanel: React.FC = memo(() => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const activeExplorer = usePanelStore((s) =>
     s.panel.activeView === "library" || s.panel.activeView === "assets"
@@ -128,8 +130,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
     return (
       <div css={panelStyles(theme)}>
         <Text size="small">
-          Select an asset in the explorer to preview it here and mark the part
-          to use.
+          {t("timeline.source.selectAsset")}
         </Text>
       </div>
     );
@@ -172,7 +173,7 @@ export const SourceViewerPanel: React.FC = memo(() => {
       css={panelStyles(theme)}
       data-testid="source-viewer"
       role="region"
-      aria-label="Source monitor"
+      aria-label={t("timeline.source.monitor")}
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
@@ -194,15 +195,15 @@ export const SourceViewerPanel: React.FC = memo(() => {
           {mediaType === "image" && (
             <ResponsiveImage locator={locator} alt={asset.name} fit="contain" />
           )}
-          {!mediaType && <Caption>This asset type cannot go on the timeline.</Caption>}
+          {!mediaType && <Caption>{t("timeline.source.unsupportedAsset")}</Caption>}
         </div>
 
-        <InspectorRow label="In">
+        <InspectorRow label={t("timeline.source.in") }>
           <FlexRow gap={SPACING.xs} align="center">
             <InspectorPillInput
               value={formatSeconds(range.inMs)}
               unit="s"
-              ariaLabel="Source in point"
+              ariaLabel={t("timeline.source.inPoint")}
               onCommit={(raw) => {
                 const inMs = parseSeconds(raw);
                 if (inMs !== null) {
@@ -214,18 +215,18 @@ export const SourceViewerPanel: React.FC = memo(() => {
             {mediaType === "video" && (
               <Tooltip title={<ShortcutHint shortcut={["I"]} />}>
                 <Button size="small" variant="text" onClick={() => markSource("in")} aria-keyshortcuts="I">
-                  Mark in
+                  {t("timeline.source.markIn")}
                 </Button>
               </Tooltip>
             )}
           </FlexRow>
         </InspectorRow>
-        <InspectorRow label="Out">
+        <InspectorRow label={t("timeline.source.out") }>
           <FlexRow gap={SPACING.xs} align="center">
             <InspectorPillInput
               value={formatSeconds(range.outMs)}
               unit="s"
-              ariaLabel="Source out point"
+              ariaLabel={t("timeline.source.outPoint")}
               onCommit={(raw) => {
                 const outMs = parseSeconds(raw);
                 if (outMs !== null) {
@@ -237,31 +238,30 @@ export const SourceViewerPanel: React.FC = memo(() => {
             {mediaType === "video" && (
               <Tooltip title={<ShortcutHint shortcut={["O"]} />}>
                 <Button size="small" variant="text" onClick={() => markSource("out")} aria-keyshortcuts="O">
-                  Mark out
+                  {t("timeline.source.markOut")}
                 </Button>
               </Tooltip>
             )}
           </FlexRow>
         </InspectorRow>
         <Caption sx={{ opacity: 0.7 }}>
-          Range {formatSeconds(range.outMs - range.inMs)} s. Insert and Overwrite
-          land at the playhead on the first unlocked track that fits the media.
+          {t("timeline.source.rangeSummary", { duration: formatSeconds(range.outMs - range.inMs) })}
         </Caption>
 
         <FlexRow gap={SPACING.sm} sx={{ flexWrap: "wrap" }}>
           <Tooltip title={<ShortcutHint shortcut={keys("sourceAppend")} />}>
             <Button size="small" variant="outlined" startIcon={<PlaylistAddOutlinedIcon />} onClick={() => run("append")} disabled={!mediaType}>
-              Append
+              {t("timeline.source.append")}
             </Button>
           </Tooltip>
           <Tooltip title={<ShortcutHint shortcut={keys("sourceInsert")} />}>
             <Button size="small" variant="outlined" startIcon={<KeyboardTabOutlinedIcon />} onClick={() => run("insert")} disabled={!mediaType}>
-              Insert
+              {t("timeline.source.insert")}
             </Button>
           </Tooltip>
           <Tooltip title={<ShortcutHint shortcut={keys("sourceOverwrite")} />}>
             <Button size="small" variant="outlined" startIcon={<FlipToFrontOutlinedIcon />} onClick={() => run("overwrite")} disabled={!mediaType}>
-              Overwrite
+              {t("timeline.source.overwrite")}
             </Button>
           </Tooltip>
         </FlexRow>

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAsset } from "../../serverState/useAsset";
@@ -122,6 +123,7 @@ const styles = (theme: Theme) =>
   });
 
 const Model3DProperty = (props: PropertyProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const id = `model3d-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ model3d: props.value });
   const theme = useTheme();
@@ -158,10 +160,10 @@ const Model3DProperty = (props: PropertyProps) => {
       addExampleModelAsset(dragData.payload)
         .then((asset) => onChange(mediaRefFromAsset(asset, "model_3d")))
         .catch((error: unknown) =>
-          notifyMutationError("add the example model", error)
+          notifyMutationError(t("model3d.addExampleModel"), error)
         );
     },
-    [onDrop, onChange, addExampleModelAsset]
+    [onDrop, onChange, addExampleModelAsset, t]
   );
 
   const handleUrlChange = useCallback(
@@ -211,12 +213,12 @@ const Model3DProperty = (props: PropertyProps) => {
               autoCapitalize="off"
               spellCheck="false"
               onChange={handleUrlChange}
-              placeholder="Enter 3D model URL"
+              placeholder={t("model3d.urlPlaceholder")}
             />
           )}
 
           <Tooltip
-            title={showUrlInput ? "Hide URL input" : "Show input to enter a URL"}
+            title={showUrlInput ? t("model3d.hideUrlInput") : t("model3d.showUrlInput")}
           >
             <EditorButton
               className="toggle-url-button"
@@ -245,7 +247,7 @@ const Model3DProperty = (props: PropertyProps) => {
                 />
               </div>
             ) : (
-              <p className="prop-drop">Drop 3D model (GLB, GLTF)</p>
+              <p className="prop-drop">{t("model3d.dropModel")}</p>
             )}
           </DropZone>
 

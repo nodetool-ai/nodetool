@@ -15,10 +15,6 @@ export const DOCK_REGION_ZONES: Readonly<Record<DockRegion, readonly DockZone[]>
   viewport: ["center", "left", "right"]
 };
 
-export const DOCK_REGION_LABELS: Readonly<Record<DockRegion, string>> = {
-  left: "left dock", right: "right dock", bottom: "bottom dock", viewport: "center dock"
-};
-
 export type DockDropTarget =
   /** Insert as a tab before the `index`-th other tab of the group (or after the last). */
   | { readonly kind: "tab"; readonly region: DockRegion; readonly groupId: string; readonly index: number }

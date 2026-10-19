@@ -19,6 +19,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ScriptPace } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import { formatUsd } from "@nodetool-ai/model-pricing";
@@ -61,22 +62,22 @@ import type { SetupVoice } from "./useSetupVoices";
 
 /** The languages the flow offers to write and read in. */
 const LANGUAGES = [
-  "English",
-  "Spanish",
-  "French",
-  "German",
-  "Portuguese",
-  "Italian",
-  "Japanese",
-  "Korean",
-  "Mandarin",
-  "Hindi"
+  { value: "English", key: "pass3_9.voices.english" },
+  { value: "Spanish", key: "pass3_9.voices.spanish" },
+  { value: "French", key: "pass3_9.voices.french" },
+  { value: "German", key: "pass3_9.voices.german" },
+  { value: "Portuguese", key: "pass3_9.voices.portuguese" },
+  { value: "Italian", key: "pass3_9.voices.italian" },
+  { value: "Japanese", key: "pass3_9.voices.japanese" },
+  { value: "Korean", key: "pass3_9.voices.korean" },
+  { value: "Mandarin", key: "pass3_9.voices.mandarin" },
+  { value: "Hindi", key: "pass3_9.voices.hindi" }
 ];
 
-const PACES: ReadonlyArray<{ value: ScriptPace; label: string }> = [
-  { value: "slow", label: "Slow" },
-  { value: "normal", label: "Normal" },
-  { value: "fast", label: "Fast" }
+const PACES: ReadonlyArray<{ value: ScriptPace; key: string }> = [
+  { value: "slow", key: "pass3_9.voices.slow" },
+  { value: "normal", key: "pass3_9.voices.normal" },
+  { value: "fast", key: "pass3_9.voices.fast" }
 ];
 
 /** The line a speaker's samples read: the first thing they say. */
@@ -103,7 +104,8 @@ const firstLineOf = (
  */
 const auditionCost = (
   voices: readonly SetupVoice[],
-  characters: number
+  characters: number,
+  formatCost: (low: number, high: number) => string
 ): string | null => {
   const models = new Map<string, { id: string; provider: string }>();
   for (const voice of voices) {
@@ -124,9 +126,7 @@ const auditionCost = (
   }
   const low = Math.min(...prices);
   const high = Math.max(...prices);
-  return low === high
-    ? `about ${formatUsd(low)} each`
-    : `about ${formatUsd(low)}–${formatUsd(high)} each`;
+  return formatCost(low, high);
 };
 
 interface SpeakerVoiceRowProps {
@@ -148,6 +148,7 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
   speed,
   readOnly
 }) => {
+  const { t } = useTranslation();
   const { sampleFor, play, spokenText } = useVoiceSamples(speed);
   // Each press of `Hear` remounts the player with autoplay, so a sample that
   // is already cached plays again instead of the press doing nothing.
@@ -164,8 +165,7 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
     }
     const first = voices.find(
       (voice) =>
-        voice.provider === ttsDefault.provider &&
-        voice.model === ttsDefault.id
+        voice.provider === ttsDefault.provider && voice.model === ttsDefault.id
     );
     if (first) {
       getScriptAgentHandler(scriptId).setSpeakerVoice(speaker.id, {
@@ -239,26 +239,41 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
   const sample = selectedVoice ? sampleFor(selectedVoice, line) : null;
   const cost =
     hasLine && selectedVoice
-      ? auditionCost([selectedVoice], spoken.length)
+      ? auditionCost([selectedVoice], spoken.length, (low, high) =>
+          low === high
+            ? t("i18n-next118.scriptVoices.sampleCostSingle", {
+                cost: formatUsd(low)
+              })
+            : t("i18n-next118.scriptVoices.sampleCostRange", {
+                low: formatUsd(low),
+                high: formatUsd(high)
+              })
+        )
       : null;
   const paceNote =
     selectedVoice &&
     speed !== undefined &&
     !providerAppliesPace(selectedVoice.provider)
-      ? `This provider reads at its own pace, not ${pace}.`
+      ? t("pass3_9.voices.providerPace", { pace })
       : null;
   const sampleErrorContext = useMemo<BugReportContext | null>(
     () =>
       sample?.error
         ? {
             source: "manual",
-            summary: `Voice sample failed for ${speaker.name}`,
+            summary: t("pass3_9.voices.sampleFailed", { name: speaker.name }),
             errorText: sample.error,
             provider: selectedVoice?.provider,
             model: selectedVoice?.model
           }
         : null,
-    [sample?.error, selectedVoice?.model, selectedVoice?.provider, speaker.name]
+    [
+      sample?.error,
+      selectedVoice?.model,
+      selectedVoice?.provider,
+      speaker.name,
+      t
+    ]
   );
 
   return (
@@ -278,14 +293,17 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
           </Text>
           <Caption color="secondary" component="p">
             {hasLine
-              ? `Samples read: “${spoken}”`
-              : "This speaker has no lines yet, so there is nothing to sample."}
+              ? t("pass3_9.voices.samplesRead", { text: spoken })
+              : t("pass3_9.voices.noLinesToSample")}
           </Caption>
           {/* Every audition is a speech call, so the step says so before one
               is pressed rather than after it is billed (F23). */}
           {hasLine ? (
             <Caption color="muted" component="p">
-              {`Each sample is one speech call of ${spoken.length} characters${cost === null ? "" : ` · ${cost}`}.`}
+              {t("pass3_9.voices.sampleCost", {
+                count: spoken.length,
+                cost: cost ?? ""
+              })}
             </Caption>
           ) : null}
         </FlexColumn>
@@ -294,23 +312,21 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
         {readOnly ? (
           <Text size="normal">
             {selectedVoice
-              ? `Voice: ${selectedVoice.label}`
-              : "No voice chosen"}
+              ? t("pass3_9.voices.voiceLabel", { voice: selectedVoice.label })
+              : t("pass3_9.voices.noVoiceChosen")}
           </Text>
         ) : (
           <FormField
-            label={`TTS model for ${speaker.name}`}
+            label={t("pass3_9.voices.ttsModelFor", { name: speaker.name })}
             helperText={paceNote ?? undefined}
             error={
-              noPresetVoice
-                ? "This model has no preset voices. Pick another model."
-                : undefined
+              noPresetVoice ? t("pass3_9.voices.noPresetVoices") : undefined
             }
           >
             <TTSModelSelect
               value={modelValue}
               onChange={selectModel}
-              voiceLabel={`Voice for ${speaker.name}`}
+              voiceLabel={t("pass3_9.voices.voiceFor", { name: speaker.name })}
             />
           </FormField>
         )}
@@ -326,8 +342,11 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
             }
             aria-label={
               selectedVoice
-                ? `Hear ${selectedVoice.label} for ${speaker.name}`
-                : `Hear voice for ${speaker.name}`
+                ? t("pass3_9.voices.hearVoiceFor", {
+                    voice: selectedVoice.label,
+                    name: speaker.name
+                  })
+                : t("pass3_9.voices.hearVoiceForName", { name: speaker.name })
             }
             onClick={() => {
               if (selectedVoice) {
@@ -337,10 +356,12 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
             }}
           >
             {sample?.pending
-              ? "Generating sample"
+              ? t("pass3_9.voices.generatingSample")
               : selectedVoice
-                ? `Hear ${selectedVoice.label}`
-                : "Hear voice"}
+                ? t("pass3_9.voices.hearVoiceNamed", {
+                    voice: selectedVoice.label
+                  })
+                : t("pass3_9.voices.hearVoice")}
           </EditorButton>
         ) : null}
       </FlexRow>
@@ -361,7 +382,9 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
         <AudioPlayback
           key={playRequest}
           locator={`asset://${sample.assetId}`}
-          label={`${selectedVoice?.label ?? "Voice"} sample`}
+          label={t("pass3_9.voices.voiceSample", {
+            voice: selectedVoice?.label ?? t("pass3_9.voices.voice")
+          })}
           autoPlay={playRequest > 0}
         />
       ) : null}
@@ -379,6 +402,7 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
   scriptId,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const script = useScriptStore((state) => state.scripts[scriptId]);
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
@@ -405,51 +429,53 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
     >
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Choose the voices
+          {t("i18n-next115.scriptVoices.heading")}
         </Text>
         <Text size="normal" color="secondary">
-          Hear each one read your own words before you pick it.
+          {t("i18n-next115.scriptVoices.description")}
         </Text>
       </FlexColumn>
 
       <FlexColumn
         gap={GAP.tight}
         component="section"
-        aria-label="Read settings"
+        aria-label={t("pass3_9.voices.readSettings")}
       >
         {/* Each control says what it reaches. Pace was reaching nothing at
             all, and language belongs to the writer, not to the speech call
             this step's button makes (F12). */}
         <FlexRow gap={GAP.comfortable} wrap align="flex-start">
           <SelectField
-            label="Language"
+            label={t("pass3_9.voices.language")}
             value={language}
-            options={LANGUAGES.map((name) => ({ value: name, label: name }))}
+            options={LANGUAGES.map(({ value, key }) => ({
+              value,
+              label: t(key)
+            }))}
             disabled={readOnly}
             onChange={setLanguage}
-            description="What the script is written in. Change it, then rewrite on the Format step to apply it."
+            description={t("pass3_9.voices.languageDescription")}
           />
           <SelectField
-            label="Pace"
+            label={t("pass3_9.voices.pace")}
             value={pace}
-            options={PACES}
+            options={PACES.map(({ value, key }) => ({ value, label: t(key) }))}
             disabled={readOnly}
             onChange={setPace}
-            description="Sent with every sample and every take."
+            description={t("pass3_9.voices.paceDescription")}
           />
         </FlexRow>
       </FlexColumn>
 
       {cast.length === 0 ? (
         <Caption color="secondary" component="p">
-          The script has no cast yet. Write it first and every speaker will show
-          up here.
+          {t("i18n-next118.scriptVoices.noCast")}
         </Caption>
       ) : null}
 
       {loading && voices.length === 0 ? (
         <Caption color="secondary" component="p">
-          Looking up the voices your providers offer…
+          {t("i18n-next115.scriptVoices.loading")}
         </Caption>
       ) : null}
 
@@ -458,11 +484,11 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
           severity="error"
           action={
             <EditorButton variant="text" size="small" onClick={retry}>
-              Try again
+              {t("i18n-next118.scriptVoices.tryAgain")}
             </EditorButton>
           }
         >
-          {`The voice list could not be loaded. ${error}`}
+          {t("pass3_9.voices.loadError", { error })}
         </AlertBanner>
       ) : null}
 
@@ -475,11 +501,11 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
               size="small"
               onClick={() => openProviderOnboarding()}
             >
-              Connect a provider
+              {t("i18n-next118.scriptVoices.connectProvider")}
             </EditorButton>
           }
         >
-          No connected provider offers a voice yet.
+          {t("pass3_9.voices.noProviderVoice")}
         </AlertBanner>
       ) : null}
 
@@ -503,14 +529,14 @@ const VoicesStepInternal: React.FC<VoicesStepProps> = ({
       {readOnly || noProvider ? null : (
         <FlexRow gap={GAP.normal} align="center" wrap>
           <Caption color="secondary">
-            Missing a voice you want?
+            {t("pass3_9.voices.missingVoice")}
           </Caption>
           <EditorButton
             variant="text"
             size="small"
             onClick={() => openProviderOnboarding()}
           >
-            Add a voice provider
+            {t("pass3_9.voices.addProvider")}
           </EditorButton>
         </FlexRow>
       )}

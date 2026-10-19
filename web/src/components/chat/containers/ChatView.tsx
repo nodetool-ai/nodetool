@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChatSource } from "@nodetool-ai/protocol";
 import {
   Node,
@@ -245,6 +246,7 @@ const ChatView = ({
   focusMessage
 }: ChatViewProps) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -303,14 +305,14 @@ const ChatView = ({
         console.error("Error sending message:", error);
         addNotification({
           type: "error",
-          content: `Could not send the message: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+          content: t("i18n-next23.chat.errors.sendMessage", {
+            error: error instanceof Error ? error.message : String(error)
+          })
         });
         return false;
       }
     },
-    [sendMessage, buildOutgoing, addNotification, effectiveThreadId]
+    [sendMessage, buildOutgoing, addNotification, effectiveThreadId, t]
   );
 
   const todos = useGlobalChatStore((state) => {
@@ -370,16 +372,18 @@ const ChatView = ({
       await writeClipboard(conversationToMarkdown(messages), true);
       addNotification({
         type: "info",
-        content: `Copied ${messages.length} messages as Markdown.`
+        content: t("i18n-next23.chat.notifications.copiedMessages", {
+          count: messages.length
+        })
       });
     } catch (error) {
       console.error("Failed to copy the conversation:", error);
       addNotification({
         type: "error",
-        content: "Could not copy the conversation."
+        content: t("i18n-next23.chat.errors.copyConversation")
       });
     }
-  }, [messages, writeClipboard, addNotification]);
+  }, [messages, writeClipboard, addNotification, t]);
 
   const lastUserMessage = useMemo(() => {
     for (let index = messages.length - 1; index >= 0; index--) {
@@ -418,9 +422,9 @@ const ChatView = ({
         } catch (error) {
           addNotification({
             type: "error",
-            content: `Could not rewind the conversation: ${
-              error instanceof Error ? error.message : String(error)
-            }`
+            content: t("i18n-next23.chat.errors.rewindConversation", {
+              error: error instanceof Error ? error.message : String(error)
+            })
           });
           return;
         }
@@ -431,7 +435,7 @@ const ChatView = ({
         (message as ChatOutgoingMessage).media_generation ?? undefined
       );
     },
-    [effectiveThreadId, rewindThread, addNotification, handleSendMessage]
+    [effectiveThreadId, rewindThread, addNotification, handleSendMessage, t]
   );
 
   const handleRetry = useCallback(() => {
@@ -489,14 +493,14 @@ const ChatView = ({
             {!isMobile && messages.length > 0 && (
               <ToolbarIconButton
                 onClick={handleCopyConversation}
-                tooltip="Copy conversation as Markdown"
+                tooltip={t("i18n-next23.chat.actions.copyMarkdown")}
                 icon={<ContentCopyIcon fontSize="small" />}
               />
             )}
             {showNewChatButton && onNewChat && (
               <ToolbarIconButton
                 onClick={onNewChat}
-                tooltip="New chat"
+                tooltip={t("i18n-next23.chat.actions.newChat")}
                 icon={<AddIcon fontSize="small" />}
               />
             )}

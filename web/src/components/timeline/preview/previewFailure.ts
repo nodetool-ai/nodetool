@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import { redactSecretsInText } from "../../../utils/bugReportBundle";
 
 export interface PreviewFailure {
@@ -39,12 +40,12 @@ export function logPreviewFailure(failure: PreviewFailure): void {
   );
 }
 
-export function previewFailureMessage(stage: string): string {
+export function previewFailureMessage(stage: string, t: TFunction): string {
   if (stage.startsWith("video")) {
-    return "The video preview stopped decoding. Check that the source video is available and playable.";
+    return t("i18n-next112-timeline.preview.videoFailure");
   }
   if (stage === "asset" || stage === "image") {
-    return "Preview media could not be loaded. Check your connection and the source asset.";
+    return t("i18n-next112-timeline.preview.mediaFailure");
   }
-  return "The preview renderer stopped working. Retry the preview or reload this tab.";
+  return t("i18n-next112-timeline.preview.rendererFailure");
 }

@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 
@@ -63,6 +64,7 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
     onGestureEnd
   }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const { mode, systemMode } = useColorScheme();
     const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -168,7 +170,7 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        aria-label="Note velocities"
+        aria-label={t("pass3_21.timeline.pianoRoll.velocityLane.noteVelocities")}
         role="img"
       />
     );

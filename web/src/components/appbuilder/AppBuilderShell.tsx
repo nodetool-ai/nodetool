@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Data } from "@puckeditor/core";
 import {
   type AppDocMeta,
@@ -119,6 +120,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   onClose,
   projectId
 }) => {
+  const { t } = useTranslation();
   const setCurrentWorkflowId = useWorkflowManager((s) => s.setCurrentWorkflowId);
   // Puck owns the layout after mount, so this is the seed only. The document's
   // theme is seeded onto the root so the author edits it as a root field, and
@@ -241,9 +243,9 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
         </Box>
       </FlexColumn>
       {dataOpen && (
-        <FlexColumn role="complementary" aria-label="App data" sx={panelSx}>
+        <FlexColumn role="complementary" aria-label={t("i18n-next8.appBuilder.shell.appDataLabel")} sx={panelSx}>
           {narrow && (
-            <EditorButton onClick={toggleData}>Back to canvas</EditorButton>
+            <EditorButton onClick={toggleData}>{t("i18n-next8.appBuilder.shell.backToCanvas")}</EditorButton>
           )}
           <AppDataPanel
             meta={meta}

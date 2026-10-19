@@ -14,6 +14,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -141,6 +142,7 @@ interface WorkflowListProps {
 const WorkflowList: React.FC<WorkflowListProps> = memo(
   ({ workflows, isLoading, searchQuery, onSelect, emptyLabel }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
 
     const filtered = useMemo(
       () =>
@@ -163,7 +165,7 @@ const WorkflowList: React.FC<WorkflowListProps> = memo(
     if (filtered.length === 0) {
       return (
         <EmptyState
-          title={searchQuery ? "No matches" : emptyLabel}
+          title={searchQuery ? t("i18n-next6.addClip.noMatches") : emptyLabel}
           size="small"
         />
       );
@@ -178,7 +180,7 @@ const WorkflowList: React.FC<WorkflowListProps> = memo(
             css={workflowItemStyles(theme)}
             role="button"
             tabIndex={0}
-            aria-label={`Add clip from "${wf.name}"`}
+            aria-label={t("i18n-next6.addClip.addClipFromWorkflow", { name: wf.name })}
             onClick={() => onSelect(wf.id)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
@@ -231,22 +233,23 @@ interface OutputSelectPanelProps {
 const OutputSelectPanel: React.FC<OutputSelectPanelProps> = memo(
   ({ outputs, workflowName, onSelect, onBack }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
 
     return (
       <FlexColumn gap={1}>
         <FlexRow align="center" gap={0.5}>
           <ToolbarIconButton
             icon={<ArrowBackIcon fontSize="small" />}
-            tooltip="Back"
+            tooltip={t("i18n-next6.common.back")}
             onClick={onBack}
-            aria-label="Back to workflow list"
+            aria-label={t("i18n-next6.addClip.backToWorkflowList")}
           />
           <Text size="small" weight={500} sx={{ flex: 1 }}>
-            Select output - {workflowName}
+            {t("i18n-next6.addClip.selectOutput", { name: workflowName })}
           </Text>
         </FlexRow>
         <Caption sx={{ color: "text.secondary" }}>
-          This workflow has multiple output nodes. Pick one:
+          {t("i18n-next6.addClip.multipleOutputs")}
         </Caption>
         <FlexColumn gap={0}>
           {outputs.map((out) => (
@@ -256,7 +259,7 @@ const OutputSelectPanel: React.FC<OutputSelectPanelProps> = memo(
               css={workflowItemStyles(theme)}
               role="button"
               tabIndex={0}
-              aria-label={`Use ${out.name || out.type} output`}
+              aria-label={t("i18n-next6.addClip.useOutput", { name: out.name || out.type })}
               onClick={() => onSelect(out.id)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -296,6 +299,7 @@ interface Model3DPickerPanelProps {
 const Model3DPickerPanel: React.FC<Model3DPickerPanelProps> = memo(
   ({ onSelect, onBack }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const modelsQuery = trpc.assets.list.useQuery(
       { content_type: "model", page_size: 200 },
       { staleTime: 60_000 }
@@ -307,12 +311,12 @@ const Model3DPickerPanel: React.FC<Model3DPickerPanelProps> = memo(
         <FlexRow align="center" gap={0.5}>
           <ToolbarIconButton
             icon={<ArrowBackIcon fontSize="small" />}
-            tooltip="Back"
+            tooltip={t("i18n-next6.common.back")}
             onClick={onBack}
-            aria-label="Back to clip sources"
+            aria-label={t("i18n-next6.addClip.backToClipSources")}
           />
           <Text size="small" weight={500} sx={{ flex: 1 }}>
-            Pick a 3D model
+            {t("i18n-next6.addClip.pick3dModel")}
           </Text>
         </FlexRow>
         {modelsQuery.isLoading ? (
@@ -321,8 +325,8 @@ const Model3DPickerPanel: React.FC<Model3DPickerPanelProps> = memo(
           </FlexRow>
         ) : assets.length === 0 ? (
           <EmptyState
-            title="No 3D models"
-            description="Upload a .glb or .gltf asset first."
+            title={t("i18n-next6.addClip.no3dModels")}
+            description={t("i18n-next6.addClip.upload3dAsset", { formats: ".glb, .gltf" })}
             size="small"
           />
         ) : (
@@ -334,7 +338,7 @@ const Model3DPickerPanel: React.FC<Model3DPickerPanelProps> = memo(
                 css={workflowItemStyles(theme)}
                 role="button"
                 tabIndex={0}
-                aria-label={`Add a 3D clip from "${asset.name}"`}
+                aria-label={t("i18n-next6.addClip.add3dClipFromAsset", { name: asset.name })}
                 onClick={() => onSelect(asset)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -392,6 +396,7 @@ interface AddClipMenuProps {
 export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
   ({ trackId, startMs, trackType, anchorEl, onClose }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const directGenKind = trackDirectGenKind(trackType);
     const mediaTypeForClip = trackMediaType(trackType);
     const [activeTab, setActiveTab] = useState<"templates" | "all">(
@@ -478,7 +483,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
           onClose();
         } catch (err) {
           const msg =
-            err instanceof Error ? err.message : "Failed to add clip";
+            err instanceof Error ? err.message : t("i18n-next6.addClip.failedToAddClip");
           setError(msg);
         } finally {
           setIsAdding(false);
@@ -509,7 +514,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
           if (result.outputs.length === 0) {
             // Server will throw TIMELINE_NO_MEDIA_OUTPUT; surface gracefully
             throw new Error(
-              "This workflow has no media output node (image, video, or audio)."
+              t("i18n-next6.addClip.noMediaOutput")
             );
           }
 
@@ -524,7 +529,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
           }
         } catch (err) {
           const msg =
-            err instanceof Error ? err.message : "Failed to add clip";
+            err instanceof Error ? err.message : t("i18n-next6.addClip.failedToAddClip");
           setError(msg);
           setIsAdding(false);
         }
@@ -578,7 +583,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
           selectClip(clipId);
           onClose();
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Failed to add clip");
+          setError(err instanceof Error ? err.message : t("i18n-next6.addClip.failedToAddClip"));
           setPickingModel3D(false);
         }
       },
@@ -643,7 +648,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
         await directGen.start(clipId);
         onClose();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to add clip");
+        setError(err instanceof Error ? err.message : t("i18n-next6.addClip.failedToAddClip"));
       } finally {
         setIsAdding(false);
       }
@@ -693,7 +698,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
             <>
               <FlexRow align="center" justify="space-between">
                 <Text size="small" weight={600}>
-                  Add generated clip
+                  {t("i18n-next6.addClip.addGeneratedClip")}
                 </Text>
                 {isAdding && <LoadingSpinner size="small" />}
               </FlexRow>
@@ -710,10 +715,10 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       onKeyDown={handlePromptKeyDown}
                       placeholder={
                         directGenKind === "video"
-                          ? "Describe a video and press Enter…"
+                          ? t("i18n-next6.addClip.describeVideoPrompt")
                           : directGenKind === "audio"
-                            ? "Type text to speak and press Enter…"
-                            : "Describe an image and press Enter…"
+                            ? t("i18n-next6.addClip.speechTextPrompt")
+                            : t("i18n-next6.addClip.describeImagePrompt")
                       }
                       minRows={2}
                       maxRows={5}
@@ -721,7 +726,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       autoFocus={autoFocusEnabled}
                       fullWidth
                       inputProps={{
-                        "aria-label": "Prompt",
+                        "aria-label": t("i18n-next6.addClip.prompt"),
                         "data-testid": "add-clip-prompt-input"
                       }}
                     />
@@ -732,7 +737,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                         fontSize: theme.fontSizeSmaller
                       })}
                     >
-                      ↵ generate · ⇧↵ new line
+                      {t("i18n-next6.addClip.promptKeyboardHint")}
                     </Caption>
                     {directGenKind === "video" ? (
                       <VideoModelSelect
@@ -775,7 +780,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       css={workflowItemStyles(theme)}
                       role="button"
                       tabIndex={0}
-                      aria-label="Add a 3D model clip"
+                      aria-label={t("i18n-next6.addClip.add3dModelClip")}
                       data-testid="add-clip-model3d"
                       onClick={() => setPickingModel3D(true)}
                       onKeyDown={(e) => {
@@ -788,10 +793,10 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       <ViewInArIcon fontSize="small" />
                       <FlexColumn gap={0}>
                         <Text size="small" weight={500}>
-                          3D model
+                          {t("i18n-next6.addClip.3dModel")}
                         </Text>
                         <Caption sx={{ color: "text.secondary" }}>
-                          Place a glTF asset on this track
+                          {t("i18n-next6.addClip.place3dAsset")}
                         </Caption>
                       </FlexColumn>
                     </FlexRow>
@@ -806,7 +811,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       css={workflowItemStyles(theme)}
                       role="button"
                       tabIndex={0}
-                      aria-label="Add an adjustment layer"
+                      aria-label={t("i18n-next6.addClip.addAdjustmentLayer")}
                       data-testid="add-clip-adjustment"
                       onClick={handleAddAdjustmentLayer}
                       onKeyDown={(e) => {
@@ -819,10 +824,10 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       <TuneOutlinedIcon fontSize="small" />
                       <FlexColumn gap={0}>
                         <Text size="small" weight={500}>
-                          Adjustment layer
+                          {t("i18n-next6.addClip.adjustmentLayer")}
                         </Text>
                         <Caption sx={{ color: "text.secondary" }}>
-                          Grade or blur every layer beneath it
+                          {t("i18n-next6.addClip.adjustmentLayerDescription")}
                         </Caption>
                       </FlexColumn>
                     </FlexRow>
@@ -835,7 +840,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       fontSize: theme.fontSizeSmaller
                     })}
                   >
-                    - or use a workflow -
+                    {t("i18n-next6.addClip.orUseWorkflow")}
                   </Caption>
                 </>
               )}
@@ -844,8 +849,8 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
               <TabGroup
                 size="small"
                 tabs={[
-                  { value: "templates", label: "Templates" },
-                  { value: "all", label: "All workflows" }
+                  { value: "templates", label: t("i18n-next6.addClip.templates") },
+                  { value: "all", label: t("i18n-next6.addClip.allWorkflows") }
                 ]}
                 value={activeTab}
                 onChange={handleTabChange}
@@ -855,7 +860,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder="Search"
+                placeholder={t("i18n-next6.common.search")}
                 autoFocus
                 fullWidth
                 debounceMs={150}
@@ -866,7 +871,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                 <ErrorBanner
                   report={{
                     source: "operation-failure",
-                    summary: "Add clip menu action failed",
+                    summary: t("i18n-next6.addClip.menuActionFailed"),
                     errorText: error
                   }}
                 >
@@ -881,7 +886,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                   isLoading={templatesQuery.isLoading}
                   searchQuery={searchQuery}
                   onSelect={handleSelect}
-                  emptyLabel="No templates found"
+                  emptyLabel={t("i18n-next6.addClip.noTemplatesFound")}
                 />
               </TabPanel>
 
@@ -892,7 +897,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                   isLoading={allWorkflowsQuery.isLoading}
                   searchQuery={searchQuery}
                   onSelect={handleSelect}
-                  emptyLabel="No workflows found"
+                  emptyLabel={t("i18n-next6.addClip.noWorkflowsFound")}
                 />
               </TabPanel>
             </>

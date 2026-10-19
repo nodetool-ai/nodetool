@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Dialog,
@@ -19,40 +20,43 @@ interface ShortcutsDialogProps {
 }
 
 /** Every editor shortcut, grouped, read from the same table the editor binds. */
-const ShortcutsDialog = ({ open, onClose }: ShortcutsDialogProps) => (
-  <Dialog
+const ShortcutsDialog = ({ open, onClose }: ShortcutsDialogProps) => {
+  const { t } = useTranslation();
+  return (
+    <Dialog
     open={open}
     onClose={onClose}
-    title="3D editor shortcuts"
+    title={t("i18n-next38.shortcuts.title")}
     maxWidth="sm"
     fullWidth
   >
     <FlexRow gap={SPACING.xl} wrap align="flex-start">
       {GROUPS.map((group) => (
         <FlexColumn key={group} gap={SPACING.xs} sx={{ flex: "1 1 220px", minWidth: 0 }}>
-          <SectionHeader title={group} size="small" />
+          <SectionHeader title={t(`i18n-next38.shortcuts.groups.${group}`)} size="small" />
           {EDITOR_SHORTCUTS.filter((s) => s.group === group).map((s) => (
             <FlexRow key={s.action} justify="space-between" align="center" gap={SPACING.md}>
-              <Text size="small">{s.label}</Text>
+              <Text size="small">{t(`i18n-next38.shortcuts.actions.${s.action}`)}</Text>
               <ShortcutHint shortcut={s.keys} size="small" />
             </FlexRow>
           ))}
           {group === "View" && (
             <FlexRow justify="space-between" align="center" gap={SPACING.md}>
-              <Text size="small">Orbit / pan / zoom</Text>
-              <Text size="smaller" color="secondary">Left / right drag, wheel</Text>
+              <Text size="small">{t("i18n-next38.shortcuts.orbitPanZoom")}</Text>
+              <Text size="smaller" color="secondary">{t("i18n-next38.shortcuts.orbitPanZoomHint")}</Text>
             </FlexRow>
           )}
           {group === "Transform" && (
             <FlexRow justify="space-between" align="center" gap={SPACING.md}>
-              <Text size="small">Scrub a value</Text>
-              <Text size="smaller" color="secondary">Drag the X / Y / Z label</Text>
+              <Text size="small">{t("i18n-next38.shortcuts.scrubValue")}</Text>
+              <Text size="smaller" color="secondary">{t("i18n-next38.shortcuts.scrubValueHint")}</Text>
             </FlexRow>
           )}
         </FlexColumn>
       ))}
     </FlexRow>
-  </Dialog>
-);
+    </Dialog>
+  );
+};
 
 export default memo(ShortcutsDialog);

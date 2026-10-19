@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { recipes as recipeSchemas } from "@nodetool-ai/protocol/api-schemas";
 import { trpc } from "../../trpc/client";
 import { useRecipeActions } from "../../hooks/useRecipeActions";
@@ -212,9 +213,10 @@ const RecipeStepRow = memo(function RecipeStepRow({
   copyingStep,
   onOpen
 }: RecipeStepRowProps) {
+  const { t } = useTranslation();
   const loading = copyingStep === `${slug}:${step.example}`;
   return (
-    <Tooltip title={`Open ${step.example}`} describeChild>
+    <Tooltip title={t("pass3_17.recipes.openStep", { name: step.example })} describeChild>
       <button
         type="button"
         className={loading ? "rcp-step loading" : "rcp-step"}
@@ -243,7 +245,7 @@ const RecipeStepRow = memo(function RecipeStepRow({
                 </span>
               ))
             ) : (
-              <span className="rcp-model">Runs locally — no key needed</span>
+              <span className="rcp-model">{t("pass3_17.recipes.localNoKey")}</span>
             )}
           </span>
         </span>
@@ -263,12 +265,13 @@ const RecipeAppRow = memo(function RecipeAppRow({
   installingApp,
   onInstall
 }: RecipeAppRowProps) {
+  const { t } = useTranslation();
   const installing = installingApp === app.slug;
   return (
     <div className="rcp-app">
       <span className="rcp-text">
         <span className="rcp-app-name">
-          {app.name} — {app.operationCount} steps on one page
+          {t("pass3_17.recipes.appSummary", { name: app.name, count: app.operationCount })}
         </span>
         <span className="rcp-app-role">{app.role}</span>
         <span className="rcp-models">
@@ -285,7 +288,7 @@ const RecipeAppRow = memo(function RecipeAppRow({
         disabled={installing}
         onClick={() => onInstall(app.slug)}
       >
-        {installing ? "Installing…" : "Install app"}
+        {installing ? t("pass3_17.recipes.installing") : t("pass3_17.recipes.installApp")}
       </EditorButton>
     </div>
   );
@@ -302,6 +305,7 @@ const RecipeCard = memo(function RecipeCard({
   expanded,
   onToggle
 }: RecipeCardProps) {
+  const { t } = useTranslation();
   const { copyingStep, addingSlug, installingApp, openStep, installApp, addRecipe } =
     useRecipeActions();
   const thumb = thumbSrc(recipe.thumbnailUrl);
@@ -328,8 +332,11 @@ const RecipeCard = memo(function RecipeCard({
             <span className="rcp-outcome">{recipe.outcome}</span>
           </span>
           <span className="rcp-meta">
-            {recipe.apps.length} {recipe.apps.length === 1 ? "app" : "apps"} ·{" "}
-            {recipe.steps.length} workflows · {recipe.nodeCount} nodes
+            {t("pass3_17.recipes.meta", {
+              apps: t("pass3_17.recipes.appCount", { count: recipe.apps.length }),
+              workflows: t("pass3_17.recipes.workflowCount", { count: recipe.steps.length }),
+              nodes: t("pass3_17.recipes.nodeCount", { count: recipe.nodeCount })
+            })}
           </span>
         </button>
         {primaryApp && (
@@ -339,7 +346,7 @@ const RecipeCard = memo(function RecipeCard({
             disabled={installingPrimary}
             onClick={() => void installApp(primaryApp.slug)}
           >
-            {installingPrimary ? "Installing…" : `Install ${primaryApp.name}`}
+            {installingPrimary ? t("pass3_17.recipes.installing") : t("pass3_17.recipes.installNamedApp", { name: primaryApp.name })}
           </EditorButton>
         )}
       </div>
@@ -360,8 +367,7 @@ const RecipeCard = memo(function RecipeCard({
             />
           ))}
           <p className="rcp-steps-lede">
-            The workflows behind those apps. Open one to change how a step
-            works, or add the whole chain as graphs.
+            {t("pass3_17.recipes.stepsLede")}
           </p>
           {recipe.steps.map((step, index) => (
             <RecipeStepRow
@@ -380,8 +386,8 @@ const RecipeCard = memo(function RecipeCard({
             onClick={() => void addRecipe(recipe)}
           >
             {adding
-              ? "Adding…"
-              : `Add all ${recipe.steps.length} as workflows`}
+              ? t("pass3_17.recipes.adding")
+              : t("pass3_17.recipes.addAllWorkflows", { count: recipe.steps.length })}
           </EditorButton>
           {recipe.caveats.map((caveat) => (
             <p key={caveat} className="rcp-caveat">
@@ -401,6 +407,7 @@ const RecipeCard = memo(function RecipeCard({
  * the workflows behind them, each openable as a graph.
  */
 const DashboardRecipes: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -417,22 +424,21 @@ const DashboardRecipes: React.FC = () => {
   return (
     <section css={styles(theme)}>
       <div css={sectionWrap}>
-        <DashboardSectionHeader title="Recipes" count={`${recipes.length}`} />
+        <DashboardSectionHeader title={t("pass3_17.recipes.sectionTitle")} count={`${recipes.length}`} />
         <p className="rcp-lede">
-          Each one installs as an app that runs the whole chain, with the
-          example workflows behind it in your library to edit.
+          {t("pass3_17.recipes.lede")}
         </p>
         {isLoading ? (
           <div className="rcp-loading">
-            <LoadingSpinner size="medium" text="Loading recipes" />
+            <LoadingSpinner size="medium" text={t("pass3_17.recipes.loading")} />
           </div>
         ) : isError ? (
           <div className="rcp-empty">
             <EmptyState
               variant="error"
-              title="Couldn't load recipes"
-              description="Try again in a moment."
-              actionText="Retry"
+              title={t("pass3_17.recipes.loadErrorTitle")}
+              description={t("pass3_17.common.tryAgain")}
+              actionText={t("pass3_17.common.retry")}
               onAction={() => refetch()}
             />
           </div>

@@ -1,4 +1,5 @@
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   FlexColumn,
@@ -31,6 +32,10 @@ const QuickAccessButton = ({
   active,
   onCategoryClick
 }: QuickAccessButtonProps) => {
+  const { t } = useTranslation();
+  const label = t(`i18n-next50-node-menu.quickAccess.${category.id}`, {
+    defaultValue: category.label
+  });
   const handleClick = useCallback(
     () => onCategoryClick(category.id),
     [category.id, onCategoryClick]
@@ -38,12 +43,12 @@ const QuickAccessButton = ({
 
   return (
     <Tooltip
-      title={category.label}
+      title={label}
       placement="right-start"
     >
       <ToolbarIconButton
         tabIndex={-1}
-        ariaLabel={category.label}
+        ariaLabel={label}
         aria-pressed={active}
         active={active}
         onClick={handleClick}

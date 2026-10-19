@@ -6,6 +6,7 @@
 // and assigned to the osc that opened the editor.
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore, factoryTables } from '../store';
 import { setupCanvas } from './displays/canvas';
 import {
@@ -31,6 +32,7 @@ function decodeFile(file: File, deviceCtx: BaseAudioContext | null): Promise<Aud
 }
 
 export function WavetableEditor() {
+  const { t } = useTranslation();
   const editorOsc = useStore((s) => s.editorOsc);
   const userTables = useStore((s) => s.userTables);
   const addUserTable = useStore((s) => s.addUserTable);
@@ -108,15 +110,15 @@ export function WavetableEditor() {
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    setStatus('decoding…');
+    setStatus(t('i18n-next15.wavetable.decoding'));
     try {
       const buf = await decodeFile(file, engine.ctx);
       const samples = mixToMono(buf);
       setAudio({ samples, sr: buf.sampleRate, label: file.name });
       if (!name) setName(file.name.replace(/\.[^.]+$/, '').slice(0, 14).toUpperCase());
-      setStatus(`${(buf.duration).toFixed(2)} s · ${buf.sampleRate | 0} Hz · ${samples.length} samples`);
+      setStatus(t("i18n-next15.wavetable.audioMetadata", { duration: buf.duration.toFixed(2), sampleRate: buf.sampleRate | 0, samples: samples.length }));
     } catch (err) {
-      setStatus('decode failed: ' + (err as Error).message);
+      setStatus(t('i18n-next15.wavetable.decodeFailed', { error: (err as Error).message }));
     }
   };
 
@@ -244,7 +246,7 @@ export function WavetableEditor() {
   const addFrame = () => {
     if (readOnly) return;
     const next = duplicateAt(framesRef.current, current);
-    if (next === framesRef.current) { setStatus(`max ${MAX_FRAMES} frames`); return; }
+    if (next === framesRef.current) { setStatus(t('i18n-next15.wavetable.maxFrames', { count: MAX_FRAMES })); return; }
     framesRef.current = next;
     gotoFrame(current + 1);
     setFrameVersion((v) => v + 1);
@@ -287,8 +289,8 @@ export function WavetableEditor() {
       <div className="wte" data-accent={editorOsc === 'oscA' ? 'a' : 'b'}>
         <div className="wte-scan" />
         <div className="wte-head">
-          <h2>WAVETABLE → {editorOsc === 'oscA' ? 'OSC A' : 'OSC B'}</h2>
-          <button className="wte-x" aria-label="close" onClick={closeEditor}>✕</button>
+          <h2>{t('i18n-next116.fableSynth.wavetableEditor.title', { oscillator: editorOsc === 'oscA' ? 'OSC A' : 'OSC B' })}</h2>
+          <button className="wte-x" aria-label={t("i18n-next15.wavetable.close")} onClick={closeEditor}>✕</button>
         </div>
         <div className="wte-cols">
           <TableLibrary
@@ -305,11 +307,11 @@ export function WavetableEditor() {
           />
           <section className="wte-editor">
             <div className="wte-tabs">
-              <button className={tab === 'draw' ? 'on' : ''} onClick={() => setTab('draw')}>DRAW</button>
-              <button className={tab === 'audio' ? 'on' : ''} onClick={() => setTab('audio')}>IMPORT AUDIO</button>
+              <button className={tab === 'draw' ? 'on' : ''} onClick={() => setTab('draw')}>{t("i18n-next15.wavetable.drawTab")}</button>
+              <button className={tab === 'audio' ? 'on' : ''} onClick={() => setTab('audio')}>{t("i18n-next15.wavetable.importAudio")}</button>
             </div>
             <label className="wte-row">
-              <span>NAME</span>
+              <span>{t("i18n-next15.wavetable.name")}</span>
               <input value={name} maxLength={14} placeholder={finalName} onChange={(e) => setName(e.target.value)} />
             </label>
 
@@ -326,49 +328,48 @@ export function WavetableEditor() {
                 />
                 <p className="wte-hint">
                   {readOnly
-                    ? 'Read-only (factory). Duplicate to edit.'
-                    : 'Drag to draw the selected frame. POS morphs through frames on play.'}
+                    ? t('i18n-next15.wavetable.readOnlyHint')
+                    : t('i18n-next15.wavetable.drawHint')}
                 </p>
                 <div className="wte-tools">
-                  <span className="wte-tools-label">SEED</span>
-                  <button onClick={() => applySeed('sine')}>SINE</button>
-                  <button onClick={() => applySeed('saw')}>SAW</button>
-                  <button onClick={() => applySeed('square')}>SQUARE</button>
-                  <button onClick={() => applySeed('tri')}>TRI</button>
+                  <span className="wte-tools-label">{t("i18n-next15.wavetable.seed")}</span>
+                  <button onClick={() => applySeed('sine')}>{t("i18n-next15.wavetable.sine")}</button>
+                  <button onClick={() => applySeed('saw')}>{t("i18n-next15.wavetable.saw")}</button>
+                  <button onClick={() => applySeed('square')}>{t("i18n-next15.wavetable.square")}</button>
+                  <button onClick={() => applySeed('tri')}>{t("i18n-next15.wavetable.triangle")}</button>
                   <span className="wte-sep" />
-                  <button className={brush === 'pen' ? 'on' : ''} onClick={() => setBrush('pen')}>PEN</button>
-                  <button className={brush === 'smooth' ? 'on' : ''} onClick={() => setBrush('smooth')}>SMOOTH</button>
-                  <button className={snap ? 'on' : ''} onClick={() => setSnap((s) => !s)}>SNAP</button>
-                  <button className="wte-clear" onClick={() => { pointsRef.current = new Array(DRAW_N).fill(0); syncCurrentFrame(); setDrawVersion((v) => v + 1); }}>CLEAR</button>
+                  <button className={brush === 'pen' ? 'on' : ''} onClick={() => setBrush('pen')}>{t("i18n-next15.wavetable.pen")}</button>
+                  <button className={brush === 'smooth' ? 'on' : ''} onClick={() => setBrush('smooth')}>{t("i18n-next15.wavetable.smooth")}</button>
+                  <button className={snap ? 'on' : ''} onClick={() => setSnap((s) => !s)}>{t("i18n-next15.wavetable.snap")}</button>
+                  <button className="wte-clear" onClick={() => { pointsRef.current = new Array(DRAW_N).fill(0); syncCurrentFrame(); setDrawVersion((v) => v + 1); }}>{t("i18n-next15.wavetable.clear")}</button>
                   <button className="wte-create" disabled={readOnly} onClick={createFromDraw}>
-                    {selectedId && selectedId[0] === 'u' ? 'UPDATE TABLE' : 'CREATE TABLE'}
+                    {selectedId && selectedId[0] === 'u' ? t('i18n-next15.wavetable.updateTable') : t('i18n-next15.wavetable.createTable')}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="wte-body">
                 <label className="wte-row">
-                  <span>FILE</span>
+                  <span>{t("i18n-next15.wavetable.file")}</span>
                   <input type="file" accept="audio/*" onChange={onFile} />
                 </label>
                 <div className="wte-modes">
-                  <button className={mode === 'single' ? 'on' : ''} onClick={() => setMode('single')}>SINGLE CYCLE</button>
-                  <button className={mode === 'auto' ? 'on' : ''} onClick={() => setMode('auto')}>AUTO-DETECT</button>
-                  <button className={mode === 'fixed' ? 'on' : ''} onClick={() => setMode('fixed')}>FIXED LEN</button>
+                  <button className={mode === 'single' ? 'on' : ''} onClick={() => setMode('single')}>{t("i18n-next15.wavetable.singleCycle")}</button>
+                  <button className={mode === 'auto' ? 'on' : ''} onClick={() => setMode('auto')}>{t("i18n-next15.wavetable.autoDetect")}</button>
+                  <button className={mode === 'fixed' ? 'on' : ''} onClick={() => setMode('fixed')}>{t("i18n-next15.wavetable.fixedLength")}</button>
                 </div>
                 {mode === 'fixed' ? (
                   <label className="wte-row">
-                    <span>CYCLE</span>
+                    <span>{t("i18n-next15.wavetable.cycle")}</span>
                     <input type="number" min={2} step={1} value={fixedLen} onChange={(e) => setFixedLen(+e.target.value)} />
-                    <small>samples / frame</small>
+                    <small>{t("i18n-next15.wavetable.samplesPerFrame")}</small>
                   </label>
                 ) : null}
-                <div className="wte-status">{status || 'load an audio file to begin'}</div>
+                <div className="wte-status">{status || t('i18n-next15.wavetable.loadAudioToBegin')}</div>
                 <p className="wte-hint">
-                  SINGLE CYCLE: whole clip = 1 frame. AUTO-DETECT: estimate pitch, slice per cycle.
-                  FIXED LEN: slice every N samples. Up to {MAX_FRAMES} frames.
+                  {t("i18n-next15.wavetable.audioModeHelp", { count: MAX_FRAMES })}
                 </p>
-                <button className="wte-create" disabled={!audio} onClick={createFromAudio}>LOAD FRAMES →</button>
+                <button className="wte-create" disabled={!audio} onClick={createFromAudio}>{t("i18n-next15.wavetable.loadFrames")}</button>
               </div>
             )}
           </section>

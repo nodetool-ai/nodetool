@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Caption, FlexRow, Slider, SPACING } from "../ui_primitives";
 import {
@@ -20,6 +21,7 @@ import {
 const sliderSx = { width: "8rem" } as const;
 
 const BoardCardSizeSliderInner: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const cardSize = useStoryboardViewStore((state) => state.cardSize);
   const setCardSize = useStoryboardViewStore((state) => state.setCardSize);
 
@@ -33,7 +35,7 @@ const BoardCardSizeSliderInner: React.FC = () => {
   return (
     <FlexRow align="center" gap={SPACING.sm}>
       <Caption color="secondary" id="storyboard-card-size-label">
-        Size
+        {t("screens4_11.storyboard.cardSize.label")}
       </Caption>
       <Slider
         density="compact"
@@ -45,7 +47,14 @@ const BoardCardSizeSliderInner: React.FC = () => {
         marks
         onChange={handleChange}
         aria-labelledby="storyboard-card-size-label"
-        getAriaValueText={(value) => `Cards at least ${value} characters wide`}
+        getAriaValueText={(value) =>
+          t("screens4_11.storyboard.cardSize.valueDescription", {
+            count: value,
+            formattedCount: new Intl.NumberFormat(
+              i18n.resolvedLanguage ?? i18n.language
+            ).format(value)
+          })
+        }
       />
     </FlexRow>
   );

@@ -14,6 +14,7 @@
 
 import { css } from "@emotion/react";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, Caption, CollapsibleSection, FlexRow, Label, SPACING } from "../ui_primitives";
@@ -55,6 +56,7 @@ interface WorkflowCostEstimatePanelProps {
 const WorkflowCostEstimatePanelInternal: React.FC<
   WorkflowCostEstimatePanelProps
 > = ({ workflowId, compact = false }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const estimate = useWorkflowCostEstimate(workflowId);
   const summary = useCostEstimateSummary(estimate);
@@ -71,11 +73,18 @@ const WorkflowCostEstimatePanelInternal: React.FC<
         }}
         title={
           <FlexRow gap={SPACING.md} justify="space-between" wrap>
-            <Label>Cost estimate</Label>
+            <Label>{t("i18n-next71.workflowCostEstimatePanel.title")}</Label>
             <Caption>
               {summary?.hasItems
-                ? `${summary.isTotalLowerBound ? "≥ " : summary.isTotalApproximate ? "~" : ""}${summary.totalLabel}${summary.unknownCount > 0 ? " · incomplete" : " / run"}`
-                : "Per run"}
+                ? t(
+                    summary.unknownCount > 0
+                      ? "i18n-next71.workflowCostEstimatePanel.compact.incomplete"
+                      : "i18n-next71.workflowCostEstimatePanel.compact.perRun",
+                    {
+                      total: `${summary.isTotalLowerBound ? "≥ " : summary.isTotalApproximate ? "~" : ""}${summary.totalLabel}`
+                    }
+                  )
+                : t("i18n-next71.workflowCostEstimatePanel.compact.perRunLabel")}
             </Caption>
           </FlexRow>
         }
@@ -101,8 +110,12 @@ const WorkflowCostEstimatePanelInternal: React.FC<
   return (
     <Box css={styles(theme)} className="cost-estimate">
       <div className="cost-head">
-        <div className="cost-title">Cost estimate</div>
-        <span className="cost-subtitle">Estimated cost of a single run</span>
+        <div className="cost-title">
+          {t("i18n-next71.workflowCostEstimatePanel.title")}
+        </div>
+        <span className="cost-subtitle">
+          {t("i18n-next71.workflowCostEstimatePanel.subtitle")}
+        </span>
       </div>
       <CostEstimateSummary estimate={estimate} />
     </Box>

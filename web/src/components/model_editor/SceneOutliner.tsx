@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -146,6 +147,7 @@ const OutlinerRow = memo(
     onDropOn,
     onKeyNavigate
   }: OutlinerRowProps) => {
+    const { t } = useTranslation();
     const { node, inheritedHidden } = row;
     const hasChildren = node.children.length > 0;
     const dimmed = !node.visible || inheritedHidden;
@@ -157,7 +159,7 @@ const OutlinerRow = memo(
         aria-selected={selected}
         aria-expanded={hasChildren ? expanded : undefined}
         aria-level={node.depth + 1}
-        aria-label={`${node.name} (${node.type})`}
+        aria-label={t("i18n-cont-model-editor-11.outliner.objectLabel", { name: node.name, type: node.type })}
         data-uuid={node.uuid}
         selected={selected}
         interactive
@@ -257,10 +259,10 @@ const OutlinerRow = memo(
             editing={editing}
             onEditingChange={(next) => onEditingChange(next ? node.uuid : null)}
             onCommit={(name) => onRename(node.uuid, name)}
-            ariaLabel={`Rename ${node.name}`}
+            ariaLabel={t("i18n-cont-model-editor-11.outliner.renameObject", { name: node.name })}
             selectOnFocus
             stopPropagation
-            title={`${node.name} (${node.type})`}
+            title={t("i18n-cont-model-editor-11.outliner.objectLabel", { name: node.name, type: node.type })}
             displaySx={{
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -275,7 +277,7 @@ const OutlinerRow = memo(
           size="small"
           // One tab stop per tree, not one per row: H toggles the selection.
           tabIndex={-1}
-          aria-label={node.visible ? "Hide object" : "Show object"}
+          aria-label={t(node.visible ? "i18n-cont-model-editor-11.outliner.hideObject" : "i18n-cont-model-editor-11.outliner.showObject")}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
             onToggleVisible(node.uuid);
@@ -326,6 +328,7 @@ const SceneOutliner = ({
   onReparent,
   onAction
 }: SceneOutlinerProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
@@ -446,8 +449,8 @@ const SceneOutliner = ({
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Filter objects"
-            ariaLabel="Filter scene objects"
+            placeholder={t("i18n-cont-model-editor-11.outliner.filterPlaceholder")}
+            ariaLabel={t("i18n-cont-model-editor-11.outliner.filterLabel")}
             size="small"
             fullWidth
           />
@@ -456,7 +459,7 @@ const SceneOutliner = ({
       <ScrollArea>
         <Box
           role="tree"
-          aria-label="Scene objects"
+          aria-label={t("i18n-cont-model-editor-11.outliner.treeLabel")}
           onDragOver={(e: React.DragEvent) => {
             if (e.dataTransfer.types.includes(DRAG_TYPE)) {
               e.preventDefault();
@@ -490,14 +493,14 @@ const SceneOutliner = ({
           {!hasNodes ? (
             <EmptyState
               size="small"
-              title="Scene is empty"
-              description="Use Add to create an object."
+              title={t("i18n-cont-model-editor-11.outliner.emptyTitle")}
+              description={t("i18n-cont-model-editor-11.outliner.emptyDescription")}
             />
           ) : rows.length === 0 ? (
             <EmptyState
               variant="no-results"
               size="small"
-              title={`No objects match “${query}”`}
+              title={t("i18n-cont-model-editor-11.outliner.noMatches", { query })}
             />
           ) : (
             rows.map((row) => (
@@ -530,25 +533,25 @@ const SceneOutliner = ({
         minWidth={200}
       >
         <MenuItemPrimitive
-          label="Rename"
+          label={t("i18n-cont-model-editor-11.outliner.actions.rename")}
           icon={<DriveFileRenameOutlineIcon fontSize="small" />}
           shortcut="F2"
           onClick={() => runAction("rename")}
         />
         <MenuItemPrimitive
-          label="Duplicate"
+          label={t("i18n-cont-model-editor-11.outliner.actions.duplicate")}
           icon={<ContentCopyIcon fontSize="small" />}
           shortcut={shortcutKeys("duplicate").join("+")}
           onClick={() => runAction("duplicate")}
         />
         <MenuItemPrimitive
-          label="Focus in viewport"
+          label={t("i18n-cont-model-editor-11.outliner.actions.focus")}
           icon={<CenterFocusStrongIcon fontSize="small" />}
           shortcut={shortcutKeys("focusSelection").join("+")}
           onClick={() => runAction("focus")}
         />
         <MenuItemPrimitive
-          label={menuNode?.visible === false ? "Show" : "Hide"}
+          label={t(menuNode?.visible === false ? "i18n-cont-model-editor-11.outliner.actions.show" : "i18n-cont-model-editor-11.outliner.actions.hide")}
           icon={
             menuNode?.visible === false ? (
               <VisibilityIcon fontSize="small" />
@@ -561,13 +564,13 @@ const SceneOutliner = ({
         />
         {menuNode && menuNode.depth > 0 && (
           <MenuItemPrimitive
-            label="Move to scene root"
+            label={t("i18n-cont-model-editor-11.outliner.actions.moveToRoot")}
             icon={<VerticalAlignTopIcon fontSize="small" />}
             onClick={() => runAction("unparent")}
           />
         )}
         <MenuItemPrimitive
-          label="Delete"
+          label={t("i18n-cont-model-editor-11.outliner.actions.delete")}
           color="error"
           dividerBefore
           icon={<DeleteOutlineIcon fontSize="small" />}

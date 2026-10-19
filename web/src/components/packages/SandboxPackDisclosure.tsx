@@ -8,6 +8,7 @@
  */
 import { memo, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -24,7 +25,7 @@ import { trpc } from "../../lib/trpc";
 
 /** What installing and importing a sandbox pack means, in the design's words. */
 export const SANDBOX_PACK_CONSENT_TEXT =
-  "Its modules run inside your workflows with the node's capabilities. Import one only if you trust it with that.";
+  "i18n-next72.packages.sandboxPackDisclosure.consent";
 
 interface SandboxModuleEntry {
   specifier: string;
@@ -34,6 +35,7 @@ interface SandboxModuleEntry {
 }
 
 const SandboxPackDisclosure = ({ packName }: { packName: string }) => {
+  const { t } = useTranslation();
   const [showDocs, setShowDocs] = useState(false);
 
   const modulesQuery = useQuery({
@@ -69,13 +71,17 @@ const SandboxPackDisclosure = ({ packName }: { packName: string }) => {
   return (
     <FlexColumn gap={SPACING.xs}>
       <Text size="small" color="secondary">
-        {SANDBOX_PACK_CONSENT_TEXT}
+        {t(SANDBOX_PACK_CONSENT_TEXT)}
       </Text>
       <FlexColumn gap={SPACING.micro}>
         {modules.map((module) => (
           <Text key={module.specifier} size="small" family="secondary">
-            {module.specifier}
-            {module.description ? ` — ${module.description}` : ""}
+            {module.description
+              ? t("i18n-next72.packages.sandboxPackDisclosure.moduleDescription", {
+                  specifier: module.specifier,
+                  description: module.description
+                })
+              : module.specifier}
           </Text>
         ))}
       </FlexColumn>
@@ -84,20 +90,21 @@ const SandboxPackDisclosure = ({ packName }: { packName: string }) => {
           density="compact"
           onClick={() => setShowDocs((current) => !current)}
         >
-          {showDocs ? "Hide documentation" : "View documentation"}
+          {showDocs
+            ? t("i18n-next72.packages.sandboxPackDisclosure.hideDocumentation")
+            : t("i18n-next72.packages.sandboxPackDisclosure.viewDocumentation")}
         </EditorButton>
       </FlexRow>
       {showDocs && docsQuery.data === null && (
         <Text size="small" color="secondary">
-          This package publishes no documentation.
+          {t("i18n-next72.packages.sandboxPackDisclosure.noDocumentation")}
         </Text>
       )}
       {showDocs && docsQuery.data && (
         <>
           {!docsQuery.data.trusted && (
             <AlertBanner severity="warning" compact>
-              Written by the package author, who is not on your trusted list.
-              Read it as reference, not instructions.
+              {t("i18n-next72.packages.sandboxPackDisclosure.untrustedDocumentation")}
             </AlertBanner>
           )}
           <Box

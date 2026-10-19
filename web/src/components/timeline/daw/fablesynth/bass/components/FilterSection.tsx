@@ -2,6 +2,7 @@
 // the voice is sounding) + type stepper + CUT/RES/DRIVE/ENV/TRACK knobs.
 
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { setupCanvas, startCanvasLoop } from '../../components/displays/canvas';
 import { useBassStore } from '../bassStoreContext';
 import { BassKnob } from './BassKnob';
@@ -10,6 +11,7 @@ import { BassStepper } from './BassStepper';
 const FMIN = 20, FMAX = 20000;
 
 function FilterView() {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cut = useBassStore((s) => s.params['flt.cut']);
   const res = useBassStore((s) => s.params['flt.res']);
@@ -68,20 +70,21 @@ function FilterView() {
       plot('#b18cff', 1.8, 7);
       ctx.fillStyle = '#6b768c';
       ctx.font = '7px "IBM Plex Mono", monospace';
-      ctx.fillText('LFO + ENV → CUT', pad + 2, 10);
+      ctx.fillText(t('i18n-next98.filter.responseLabel'), pad + 2, 10);
     };
     return startCanvasLoop(canvasRef, draw);
     // Re-run on param changes so reduced-motion mode still repaints on knob moves.
-  }, [cut, res, type, vizCut]);
+  }, [cut, res, type, vizCut, t]);
 
   return <canvas ref={canvasRef} className="bl-display" />;
 }
 
 export function FilterSection() {
+  const { t } = useTranslation();
   return (
     <section className="panel bl-filter-section" data-accent="f">
       <div className="panel-head">
-        <h2>FILTER</h2>
+        <h2>{t('i18n-next98.filter.title')}</h2>
         <div className="bl-filter-stepper">
           <BassStepper paramId="flt.type" accent="f" />
         </div>

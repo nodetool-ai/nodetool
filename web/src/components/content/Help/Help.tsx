@@ -18,18 +18,12 @@ import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DATA_TYPES } from "../../../config/data_types";
 import KeyboardShortcutsView from "./KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
 import { Dialog } from "../../ui_primitives";
-
-// The header store keeps the help tab as an index into this list.
-const HELP_TABS: TabItem[] = [
-  { value: "shortcuts", label: "Shortcuts" },
-  { value: "keyboard", label: "Keyboard" },
-  { value: "datatypes", label: "Data types" }
-];
 
 const helpStyles = (theme: Theme) =>
   css({
@@ -147,11 +141,17 @@ const Help = ({
   open: boolean;
   handleClose: () => void;
 }) => {
+  const { t } = useTranslation();
   const helpIndex = useAppHeaderStore((state) => state.helpIndex);
   const setHelpIndex = useAppHeaderStore((state) => state.setHelpIndex);
-  const activeTab = HELP_TABS[helpIndex]?.value ?? HELP_TABS[0].value;
+  const helpTabs: TabItem[] = [
+    { value: "shortcuts", label: t("i18n-next35.help.tabs.shortcuts") },
+    { value: "keyboard", label: t("i18n-next35.help.tabs.keyboard") },
+    { value: "datatypes", label: t("i18n-next35.help.tabs.dataTypes") }
+  ];
+  const activeTab = helpTabs[helpIndex]?.value ?? helpTabs[0].value;
   const handleChange = (newValue: string) => {
-    setHelpIndex(HELP_TABS.findIndex((tab) => tab.value === newValue));
+    setHelpIndex(helpTabs.findIndex((tab) => tab.value === newValue));
   };
   const [expandedNodetool, setExpandedNodetool] = useState(true);
 
@@ -172,9 +172,9 @@ const Help = ({
       onClose={handleClose}
       fullWidth
       maxWidth="lg"
-      title="Help"
+      title={t("i18n-next35.help.title")}
       titleActions={
-        <Tooltip title="Open NodeTool docs" placement="bottom">
+        <Tooltip title={t("i18n-next35.help.openDocs")} placement="bottom">
           <a
             href="https://docs.nodetool.ai"
             target="_blank"
@@ -184,7 +184,7 @@ const Help = ({
           >
             <div className="docs-button-text">
               <span>Nodetool</span>
-              <span>Docs</span>
+              <span>{t("i18n-next35.help.docsLabel")}</span>
             </div>
             <OpenInNewIcon />
           </a>
@@ -195,10 +195,10 @@ const Help = ({
         <div className="help">
           <div className="tabs-row">
             <TabGroup
-              tabs={HELP_TABS}
+              tabs={helpTabs}
               value={activeTab}
               onChange={handleChange}
-              aria-label="help tabs"
+              aria-label={t("i18n-next35.help.tabsAriaLabel")}
               sx={{ flex: 1 }}
             />
           </div>
@@ -216,7 +216,7 @@ const Help = ({
             <TabPanel value="datatypes" activeValue={activeTab} className="tabpanel">
               <Box className="tabpanel-content">
                 <DataTypesList
-                  title="NodeTool data types"
+                  title={t("i18n-next35.help.dataTypesTitle")}
                   dataTypes={nodetoolTypes}
                   expanded={expandedNodetool}
                   onChange={handleAccordionChange("nodetool")}

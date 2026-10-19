@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import type {
   ClipShapeKind,
@@ -41,27 +42,6 @@ import {
   parseNumberList
 } from "./InspectorPrimitives.helpers";
 
-const SHAPE_KINDS = [
-  { value: "rect", label: "Rectangle" },
-  { value: "ellipse", label: "Ellipse" },
-  { value: "line", label: "Line" },
-  { value: "path", label: "Path" },
-  { value: "polygon", label: "Polygon" },
-  { value: "star", label: "Star" }
-] as const;
-
-const LINE_CAPS = [
-  { value: "butt", label: "Butt" },
-  { value: "round", label: "Round" },
-  { value: "square", label: "Square" }
-] as const;
-
-const LINE_JOINS = [
-  { value: "miter", label: "Miter" },
-  { value: "round", label: "Round" },
-  { value: "bevel", label: "Bevel" }
-] as const;
-
 const SCRUB_UNIT = { step: 0.01 };
 const SCRUB_PX = { step: 1, min: 0 };
 const SCRUB_COUNT = { step: 1, min: 3 };
@@ -74,6 +54,7 @@ interface ClipShapeSectionProps {
 
 export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
   ({ clip, shapeStyle }) => {
+    const { t } = useTranslation();
     const patchClip = useTimelineStore((s) => s.patchClip);
     const [open, setOpen] = usePersistedFold("shape");
 
@@ -197,13 +178,31 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
     const isPath = kind === "path";
     const hasSides = kind === "polygon" || kind === "star";
     const hasBounds = !isLine && !isPath;
+    const shapeKinds = [
+      { value: "rect", label: t("pass3_26.timelineInspector.shape.kinds.rectangle") },
+      { value: "ellipse", label: t("pass3_26.timelineInspector.shape.kinds.ellipse") },
+      { value: "line", label: t("pass3_26.timelineInspector.shape.kinds.line") },
+      { value: "path", label: t("pass3_26.timelineInspector.shape.kinds.path") },
+      { value: "polygon", label: t("pass3_26.timelineInspector.shape.kinds.polygon") },
+      { value: "star", label: t("pass3_26.timelineInspector.shape.kinds.star") }
+    ];
+    const lineCaps = [
+      { value: "butt", label: t("pass3_26.timelineInspector.shape.lineCaps.butt") },
+      { value: "round", label: t("pass3_26.timelineInspector.shape.lineCaps.round") },
+      { value: "square", label: t("pass3_26.timelineInspector.shape.lineCaps.square") }
+    ];
+    const lineJoins = [
+      { value: "miter", label: t("pass3_26.timelineInspector.shape.lineJoins.miter") },
+      { value: "round", label: t("pass3_26.timelineInspector.shape.lineJoins.round") },
+      { value: "bevel", label: t("pass3_26.timelineInspector.shape.lineJoins.bevel") }
+    ];
 
     return (
       <>
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Shape"
+              title={t("pass3_26.timelineInspector.shape.title")}
               icon={<CategoryOutlinedIcon />}
             />
           }
@@ -212,47 +211,47 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
           unmountOnExit
         >
           <FlexColumn sx={INSPECTOR_SECTION_CONTENT_SX}>
-            <InspectorRow label="Kind">
+            <InspectorRow label={t("pass3_26.timelineInspector.shape.kind")}>
               <InspectorSelect
-                label="Shape kind"
+                label={t("pass3_26.timelineInspector.shape.kindLabel")}
                 value={kind}
-                options={SHAPE_KINDS}
+                options={shapeKinds}
                 onChange={handleKindChange}
               />
             </InspectorRow>
 
             {hasBounds && (
               <>
-                <InspectorRow label="Position">
+                <InspectorRow label={t("pass3_26.timelineInspector.shape.position")}>
                   <InspectorPillInput
                     value={(shapeStyle.x ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
                     onCommit={handleXCommit}
-                    ariaLabel="Shape X"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.x")}
                   />
                   <InspectorPillInput
                     value={(shapeStyle.y ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
                     onCommit={handleYCommit}
-                    ariaLabel="Shape Y"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.y")}
                   />
                 </InspectorRow>
-                <InspectorRow label="Size">
+                <InspectorRow label={t("pass3_26.timelineInspector.shape.size")}>
                   <InspectorPillInput
                     value={(shapeStyle.width ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
                     onCommit={handleWidthCommit}
-                    ariaLabel="Shape width"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.width")}
                   />
                   <InspectorPillInput
                     value={(shapeStyle.height ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
                     onCommit={handleHeightCommit}
-                    ariaLabel="Shape height"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.height")}
                   />
                 </InspectorRow>
               </>
@@ -260,36 +259,36 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
 
             {isLine && (
               <>
-                <InspectorRow label="Start">
+                <InspectorRow label={t("pass3_26.timelineInspector.shape.start")}>
                   <InspectorPillInput
                     value={(shapeStyle.x ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
                     onCommit={handleXCommit}
-                    ariaLabel="Line start X"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.lineStartX")}
                   />
                   <InspectorPillInput
                     value={(shapeStyle.y ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
                     onCommit={handleYCommit}
-                    ariaLabel="Line start Y"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.lineStartY")}
                   />
                 </InspectorRow>
-                <InspectorRow label="End">
+                <InspectorRow label={t("pass3_26.timelineInspector.shape.end")}>
                   <InspectorPillInput
                     value={(shapeStyle.x2 ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
                     onCommit={handleX2Commit}
-                    ariaLabel="Line end X"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.lineEndX")}
                   />
                   <InspectorPillInput
                     value={(shapeStyle.y2 ?? 0).toFixed(2)}
                     minWidth={64}
                     scrub={SCRUB_UNIT}
                     onCommit={handleY2Commit}
-                    ariaLabel="Line end Y"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.lineEndY")}
                   />
                 </InspectorRow>
               </>
@@ -297,34 +296,34 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
 
             {isPath && (
               <>
-                <InspectorRow label="Path">
+                <InspectorRow label={t("pass3_26.timelineInspector.shape.path")}>
                   <TextCommitField
                     value={shapeStyle.d ?? ""}
-                    ariaLabel="Shape path data"
-                    placeholder="M 0 0 L 1 0 L 1 1 Z"
+                    ariaLabel={t("pass3_26.timelineInspector.shape.pathData")}
+                    placeholder={t("pass3_26.timelineInspector.shape.pathPlaceholder")}
                     onCommit={handlePathCommit}
                   />
                 </InspectorRow>
                 <Caption color="muted">
-                  SVG path data in normalized 0..1 space. M, L, C, Q and Z.
+                  {t("pass3_26.timelineInspector.shape.pathHelp")}
                 </Caption>
               </>
             )}
 
             {hasSides && (
-              <InspectorRow label="Points">
+              <InspectorRow label={t("pass3_26.timelineInspector.shape.points")}>
                 <InspectorPillInput
                   value={String(shapeStyle.sides ?? 5)}
                   scrub={SCRUB_COUNT}
                   onCommit={handleSidesCommit}
-                  ariaLabel="Shape point count"
+                  ariaLabel={t("pass3_26.timelineInspector.shape.pointCount")}
                 />
               </InspectorRow>
             )}
 
             {kind === "star" && (
               <InspectorSliderRow
-                label="Inner radius"
+                label={t("pass3_26.timelineInspector.shape.innerRadius")}
                 min={0}
                 max={1}
                 step={0.01}
@@ -336,71 +335,71 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
             )}
 
             {kind === "rect" && (
-              <InspectorRow label="Corner radius">
+              <InspectorRow label={t("pass3_26.timelineInspector.shape.cornerRadius")}>
                 <InspectorPillInput
                   value={(shapeStyle.cornerRadius ?? 0).toFixed(3)}
                   scrub={SCRUB_UNIT}
                   onCommit={handleCornerRadiusCommit}
-                  ariaLabel="Shape corner radius"
+                  ariaLabel={t("pass3_26.timelineInspector.shape.cornerRadius")}
                 />
               </InspectorRow>
             )}
 
-            <InspectorRow label="Fill color">
+            <InspectorRow label={t("pass3_26.timelineInspector.shape.fillColor")}>
               <BatchedColorInput
                 value={typeof shapeStyle.fill === "string" ? shapeStyle.fill : "#ffffff"}
                 onChange={handleFillColorChange}
-                ariaLabel="Shape fill color"
+                ariaLabel={t("pass3_26.timelineInspector.shape.fillColor")}
               />
             </InspectorRow>
             <FillFields
               fill={shapeStyle.fillStyle}
-              labelPrefix="Shape fill"
+              labelPrefix={t("pass3_26.timelineInspector.shape.fill")}
               onChange={handleFillStyleChange}
             />
 
-            <InspectorRow label="Stroke color">
+            <InspectorRow label={t("pass3_26.timelineInspector.shape.strokeColor")}>
               <BatchedColorInput
                 value={shapeStyle.stroke ?? "#000000"}
                 onChange={handleStrokeColorChange}
-                ariaLabel="Shape stroke color"
+                ariaLabel={t("pass3_26.timelineInspector.shape.strokeColor")}
               />
             </InspectorRow>
-            <InspectorRow label="Stroke width">
+            <InspectorRow label={t("pass3_26.timelineInspector.shape.strokeWidth")}>
               <InspectorPillInput
                 value={String(shapeStyle.strokeWidthPx ?? 0)}
                 unit="px"
                 scrub={SCRUB_PX}
                 onCommit={handleStrokeWidthCommit}
-                ariaLabel="Shape stroke width"
+                ariaLabel={t("pass3_26.timelineInspector.shape.strokeWidth")}
               />
             </InspectorRow>
-            <InspectorRow label="Dash">
+            <InspectorRow label={t("pass3_26.timelineInspector.shape.dash")}>
               <TextCommitField
                 value={formatNumberList(shapeStyle.dash)}
-                ariaLabel="Shape dash pattern"
-                placeholder="0.02, 0.01"
+                ariaLabel={t("pass3_26.timelineInspector.shape.dashPattern")}
+                placeholder={t("pass3_26.timelineInspector.shape.dashPlaceholder")}
                 onCommit={handleDashCommit}
               />
             </InspectorRow>
-            <InspectorRow label="Cap">
+            <InspectorRow label={t("pass3_26.timelineInspector.shape.cap")}>
               <InspectorSelect
-                label="Shape line cap"
+                label={t("pass3_26.timelineInspector.shape.lineCapLabel")}
                 value={shapeStyle.lineCap ?? "butt"}
-                options={LINE_CAPS}
+                options={lineCaps}
                 onChange={handleLineCapChange}
               />
             </InspectorRow>
-            <InspectorRow label="Join">
+            <InspectorRow label={t("pass3_26.timelineInspector.shape.join")}>
               <InspectorSelect
-                label="Shape line join"
+                label={t("pass3_26.timelineInspector.shape.lineJoinLabel")}
                 value={shapeStyle.lineJoin ?? "miter"}
-                options={LINE_JOINS}
+                options={lineJoins}
                 onChange={handleLineJoinChange}
               />
             </InspectorRow>
             <InspectorSliderRow
-              label="Trim start"
+              label={t("pass3_26.timelineInspector.shape.trimStart")}
               min={0}
               max={1}
               step={0.01}
@@ -410,7 +409,7 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
               origin={0}
             />
             <InspectorSliderRow
-              label="Trim end"
+              label={t("pass3_26.timelineInspector.shape.trimEnd")}
               min={0}
               max={1}
               step={0.01}

@@ -3,6 +3,7 @@
 // role through the track's device.
 
 import { useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PresetBrowserShell, type PresetBrowserAdapter } from './PresetBrowserShell';
 import { PresetGlyph } from './PresetGlyph';
 import { useStore, useStoreApi, type SoundSnapshot, type Wt1StoreApi } from '../../store';
@@ -37,6 +38,7 @@ function usePhrase(api: Wt1StoreApi) {
 }
 
 export function PresetBrowser({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const api = useStoreApi();
   const userPresets = useStore((s) => s.userPresets);
   const presetValue = useStore((s) => s.presetValue);
@@ -51,7 +53,7 @@ export function PresetBrowser({ onClose }: { onClose: () => void }) {
   const phrase = usePhrase(api);
 
   const adapter: PresetBrowserAdapter<BrowserEntry, WtSnapshot> = {
-    title: 'WT-1 presets',
+    title: t('i18n-next116.fableSynth.presetBrowser.title'),
     glyphLegend: 'wave · filter · env · lfo',
     favoritesKey: 'fablesynth.presetFavorites',
     roles: PRESET_ROLES,
@@ -67,20 +69,20 @@ export function PresetBrowser({ onClose }: { onClose: () => void }) {
     vary: (e) => applyVariant(varyParams(e.params)),
     audition: (e) => phrase.play(e),
     stopAudition: phrase.stop,
-    auditionHint: (on) => !powered ? 'The track device is starting.'
-      : on ? 'A short phrase plays on select.' : 'Play the keys to hear presets.',
+    auditionHint: (on) => !powered ? t('i18n-next24.presetBrowser.trackDeviceStarting')
+      : on ? t('i18n-next24.presetBrowser.auditionPhraseOnSelect') : t('i18n-next24.presetBrowser.playKeysToHear'),
     renderGlyph: (e, color) => <PresetGlyph className="pbr-glyph" data={glyphs.get(e.value)!} tables={tables} color={color} />,
     renderDetail: (color) => (
       <>
         <PresetGlyph className="pbr-big" data={live} tables={tables} color={color} fill />
-        <div className="pbr-legend"><span>WAVE</span><span>FILTER</span><span>ENV</span><span>LFO</span></div>
+        <div className="pbr-legend"><span>{t('i18n-next24.presetBrowser.wave')}</span><span>{t('i18n-next24.presetBrowser.filter')}</span><span>ENV</span><span>LFO</span></div>
         <dl className="pbr-kv">
-          <dt>Wave</dt><dd>{TABLE_NAMES[live.table] ?? 'USER'} · {fmtPct(live.pos)}</dd>
-          <dt>Filter</dt><dd>{live.filterType < 0 ? 'off' : `${FILTER_TYPES[live.filterType]} · ${fmtHz(live.cutoff)}`}</dd>
-          <dt>Reso</dt><dd>{fmtPct(live.res)}</dd>
+          <dt>{t('i18n-next24.presetBrowser.wave')}</dt><dd>{TABLE_NAMES[live.table] ?? 'USER'} · {fmtPct(live.pos)}</dd>
+          <dt>{t('i18n-next24.presetBrowser.filter')}</dt><dd>{live.filterType < 0 ? t('i18n-next24.presetBrowser.off') : `${FILTER_TYPES[live.filterType]} · ${fmtHz(live.cutoff)}`}</dd>
+          <dt>{t('i18n-next24.presetBrowser.resonance')}</dt><dd>{fmtPct(live.res)}</dd>
           <dt>A / D / R</dt><dd>{fmtSec(live.env[0])} / {fmtSec(live.env[1])} / {fmtSec(live.env[3])}</dd>
-          <dt>Sustain</dt><dd>{fmtPct(live.env[2])}</dd>
-          <dt>LFO depth</dt><dd>{live.lfoDepth ? fmtPct(live.lfoDepth) : 'off'}</dd>
+          <dt>{t('i18n-next24.presetBrowser.sustain')}</dt><dd>{fmtPct(live.env[2])}</dd>
+          <dt>{t('i18n-next24.presetBrowser.lfoDepth')}</dt><dd>{live.lfoDepth ? fmtPct(live.lfoDepth) : t('i18n-next24.presetBrowser.off')}</dd>
         </dl>
       </>
     ),

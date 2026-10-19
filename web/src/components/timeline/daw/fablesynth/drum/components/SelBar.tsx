@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { patchOptions } from '../patches';
 import { useDrumStore, useDrumStoreApi } from '../dr1Store';
 import { PadPatchBrowser } from './browser/PadPatchBrowser';
 
 export function SelBar() {
+  const { t } = useTranslation();
   const sel = useDrumStore((s) => s.sel);
   const padName = useDrumStore((s) => s.padNames[sel]);
   const patchValue = useDrumStore((s) => s.patchValue);
@@ -49,11 +51,11 @@ export function SelBar() {
       <span className="dr-led dr-led-a" aria-hidden="true" />
       <span className="dr-mini-head">PAD {String(sel + 1).padStart(2, '0')}</span>
       <span className="dr-sel-name">{padName}</span>
-      <div className="dr-patchbar" aria-label="patch selection">
-        <span className="dr-mini-head">PAD PATCH</span>
-        <button className="pb-btn" aria-label="previous patch" onClick={() => stepPatch(-1)}>◂</button>
+      <div className="dr-patchbar" aria-label={t('i18n-next48.patch.selection')}>
+        <span className="dr-mini-head">{t('i18n-next48.patch.padPatch')}</span>
+        <button className="pb-btn" aria-label={t('i18n-next48.patch.previous')} onClick={() => stepPatch(-1)}>◂</button>
         <span className="dr-patchname">{currentPatch}</span>
-        <button className="pb-btn" aria-label="next patch" onClick={() => stepPatch(1)}>▸</button>
+        <button className="pb-btn" aria-label={t('i18n-next48.patch.next')} onClick={() => stepPatch(1)}>▸</button>
         {naming ? (
           <input
             className="dr-name-input"
@@ -64,7 +66,7 @@ export function SelBar() {
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitSave}
             onKeyDown={onNameKeyDown}
-            aria-label="Patch name"
+            aria-label={t('i18n-next48.patch.name')}
           />
         ) : (
           <>
@@ -72,8 +74,8 @@ export function SelBar() {
               className="pb-btn pb-save pb-browse"
               aria-expanded={browsing}
               onClick={() => setBrowser(browsing ? null : 'patch')}
-            >BROWSE</button>
-            <button className="pb-btn pb-save" onClick={beginSave}>SAVE</button>
+            >{t('i18n-next48.common.browse')}</button>
+            <button className="pb-btn pb-save" onClick={beginSave}>{t('i18n-next48.common.save')}</button>
           </>
         )}
       </div>

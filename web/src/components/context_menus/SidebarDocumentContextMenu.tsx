@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ContextMenu, Divider, ListSubheader } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
@@ -18,6 +19,7 @@ import EditIcon from "@mui/icons-material/EditOutlined";
  * row, which is the only one of the three a shipped document accepts.
  */
 const SidebarDocumentContextMenu: React.FC = () => {
+  const { t } = useTranslation();
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
     (state) => state.closeContextMenu
@@ -66,20 +68,20 @@ const SidebarDocumentContextMenu: React.FC = () => {
       {!payload.readOnly && (
         <ContextMenuItem
           onClick={handleRename}
-          label="Rename"
+          label={t("screen_editor.rename")}
           IconComponent={<EditIcon />}
         />
       )}
       <ContextMenuItem
         onClick={handleDuplicate}
-        label="Duplicate"
+        label={t("screen_editor.duplicate")}
         IconComponent={<ContentCopyIcon />}
       />
       {!payload.readOnly && <Divider />}
       {!payload.readOnly && (
         <ContextMenuItem
           onClick={handleDelete}
-          label="Delete"
+          label={t("screen_editor.delete")}
           destructive
           IconComponent={<DeleteIcon />}
         />

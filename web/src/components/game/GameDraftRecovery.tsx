@@ -1,4 +1,5 @@
 import { useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { trpc, trpcClient } from "../../trpc/client";
 import { getGameDraftStore } from "../../stores/game/GameDraftStore";
 import { saveBlobAsFile } from "../../utils/downloadResponse";
@@ -17,6 +18,7 @@ export function isMissingDraft(error: unknown): boolean {
 }
 
 export default function GameDraftRecovery({ refId }: GameDraftRecoveryProps): ReactElement {
+  const { t } = useTranslation();
   const published = trpc.games.get.useQuery({ id: refId }, { staleTime: 15_000 });
   const revisions = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
   const queries = trpc.useUtils();
@@ -39,7 +41,7 @@ export default function GameDraftRecovery({ refId }: GameDraftRecoveryProps): Re
         `game-${refId}-local-draft.json`);
       setExported(true);
     } catch {
-      setRestoreError("Could not export the local draft. Your edits are still in this tab.");
+      setRestoreError(t("screen_game.recovery.exportFailed"));
     }
   }
 
@@ -58,9 +60,9 @@ export default function GameDraftRecovery({ refId }: GameDraftRecoveryProps): Re
       await queries.games.draftChanges.invalidate({ id: refId }, undefined, { throwOnError: true });
     } catch (failure) {
       if (committed) {
-        setRestoreError("Draft restored, but the editor could not refresh. Reload the game to continue.");
+        setRestoreError(t("screen_game.recovery.restoredRefreshFailed"));
       } else {
-        setRestoreError(failure instanceof Error ? failure.message : "Could not restore the selected revision.");
+        setRestoreError(failure instanceof Error ? failure.message : t("screen_game.recovery.restoreFailed"));
         try {
           const currentPublished = await trpcClient.games.get.query({ id: refId });
           try {
@@ -74,7 +76,7 @@ export default function GameDraftRecovery({ refId }: GameDraftRecoveryProps): Re
           }
         } catch {
           setRecoveryState("refresh-failed");
-          setRestoreError("Could not refresh the draft after the failed restore. Reload the game before trying again.");
+          setRestoreError(t("screen_game.recovery.refreshAfterFailure"));
         }
       }
     } finally {
@@ -83,16 +85,16 @@ export default function GameDraftRecovery({ refId }: GameDraftRecoveryProps): Re
   }
 
   return <FlexColumn gap={SPACING.sm}>
-    <EmptyState variant="error" title="Draft source unavailable"
-      description="Choose a published revision to replace the unavailable draft. This cannot recover unpublished edits from the missing source." />
+    <EmptyState variant="error" title={t("screen_game.recovery.sourceUnavailable")}
+      description={t("screen_game.recovery.sourceUnavailableDescription")} />
     {localCopy && <>
-      <Text>Export the local draft before restoring. The export includes your edits and undo history. Keep this tab open until the download finishes.</Text>
-      <EditorButton onClick={exportLocalCopy}>Export local draft</EditorButton>
+      <Text>{t("screen_game.recovery.exportBeforeRestore")}</Text>
+      <EditorButton onClick={exportLocalCopy}>{t("screen_game.recovery.exportLocalDraft")}</EditorButton>
     </>}
-    {published.isPending || revisions.isPending ? <LoadingSpinner text="Loading published revisions" /> :
+    {published.isPending || revisions.isPending ? <LoadingSpinner text={t("screen_game.recovery.loadingRevisions")} /> :
       <GameRevisions revisions={revisions.data ?? []} busy={restoring || recoveryState !== "ready" || !published.data || needsExport} onRestore={restore} />}
-    {error && <EmptyState variant="error" title={recoveryState === "restored" ? "Draft restored" : "Could not restore draft"} description={error} />}
-    <ReportBugButton context={{ source: "panel-crash", summary: "Game draft source is unavailable",
-      errorText: error ?? "Game draft source is unavailable", nodeDetail: `Game: ${refId}` }} />
+    {error && <EmptyState variant="error" title={recoveryState === "restored" ? t("screen_game.recovery.draftRestored") : t("screen_game.recovery.restoreFailed")} description={error} />}
+    <ReportBugButton context={{ source: "panel-crash", summary: t("screen_game.recovery.sourceUnavailable"),
+      errorText: error ?? t("screen_game.recovery.sourceUnavailable"), nodeDetail: t("screen_game.player.gameDetail", { id: refId }) }} />
   </FlexColumn>;
 }

@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Caption,
@@ -57,6 +58,7 @@ const ParamSlider = memo(function ParamSlider({
   onChange,
   onCommit
 }: ParamSliderProps) {
+  const { t } = useTranslation();
   const handleChange = useCallback(
     (_event: Event, next: number | number[]) => {
       if (isNumber(next)) {
@@ -68,11 +70,11 @@ const ParamSlider = memo(function ParamSlider({
   return (
     <FlexColumn gap={SPACING.xs}>
       <FlexRow align="center" justify="space-between">
-        <Label size="small">{spec.label}</Label>
+        <Label size="small">{t(`batch2_16.effects.params.${spec.key}`)}</Label>
         <Caption>{formatParam(spec, value)}</Caption>
       </FlexRow>
       <NodeSlider
-        aria-label={spec.label}
+        aria-label={t(`batch2_16.effects.params.${spec.key}`)}
         value={value}
         min={spec.min}
         max={spec.max}
@@ -99,6 +101,7 @@ const AudioEffectDialog = ({
   onApply,
   onClose
 }: AudioEffectDialogProps) => {
+  const { t } = useTranslation();
   const [params, setParams] = useState<EffectParams>(initialParams);
   // Slider release reads the latest values without waiting for a re-render.
   const paramsRef = useRef(params);
@@ -187,21 +190,21 @@ const AudioEffectDialog = ({
   const reportContext = useMemo(
     () => ({
       source: "operation-failure" as const,
-      summary: `Audio editor effect "${effect.label}" failed`,
+      summary: t("batch2_16.effectDialog.failureSummary", { effect: t(`batch2_16.effects.${effect.id}.label`) }),
       errorText: error ?? undefined
     }),
-    [effect.label, error]
+    [effect.id, error, t]
   );
 
   const scope = selection
-    ? "Applies to the selection."
-    : "Applies to the whole clip.";
+    ? t("batch2_16.effectDialog.selectionScope")
+    : t("batch2_16.effectDialog.clipScope");
 
   return (
     <Dialog
       open
       onClose={applying ? undefined : handleClose}
-      title={effect.label}
+      title={t(`batch2_16.effects.${effect.id}.label`)}
       maxWidth="xs"
       fullWidth
       actions={
@@ -211,7 +214,7 @@ const AudioEffectDialog = ({
             onClick={handleTogglePreview}
             disabled={applying}
           >
-            {previewing ? "Stop preview" : "Preview"}
+            {previewing ? t("batch2_16.effectDialog.stopPreview") : t("batch2_16.effectDialog.preview")}
           </EditorButton>
           <EditorButton
             size="small"
@@ -219,7 +222,7 @@ const AudioEffectDialog = ({
             onClick={handleReset}
             disabled={applying}
           >
-            Reset
+            {t("batch2_16.effectDialog.reset")}
           </EditorButton>
           <FlexRow sx={{ flexGrow: 1 }} />
           <EditorButton
@@ -228,7 +231,7 @@ const AudioEffectDialog = ({
             onClick={handleClose}
             disabled={applying}
           >
-            Cancel
+            {t("batch2_16.effectDialog.cancel")}
           </EditorButton>
           <EditorButton
             size="small"
@@ -236,15 +239,15 @@ const AudioEffectDialog = ({
             onClick={handleApply}
             disabled={applying}
           >
-            {applying ? "Applying…" : "Apply"}
+            {applying ? t("batch2_16.effectDialog.applying") : t("batch2_16.effectDialog.apply")}
           </EditorButton>
         </FlexRow>
       }
     >
       <FlexColumn gap={SPACING.md}>
         <Text size="small" color="secondary">
-          {effect.description} {scope} Preview plays up to the first{" "}
-          {PREVIEW_MAX_SECONDS} seconds.
+          {t(`batch2_16.effects.${effect.id}.description`)} {scope}{" "}
+          {t("batch2_16.effectDialog.previewLimit", { count: PREVIEW_MAX_SECONDS })}
         </Text>
         {effect.params.map((spec) => (
           <ParamSlider

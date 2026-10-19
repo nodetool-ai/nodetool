@@ -1,4 +1,5 @@
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Divider, ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
@@ -26,6 +27,7 @@ import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
 import { useNodes } from "../../contexts/NodeContext";
 
 const NodeContextMenu: React.FC = () => {
+  const { t } = useTranslation();
   const {
     menuPosition,
     closeContextMenu,
@@ -57,19 +59,19 @@ const NodeContextMenu: React.FC = () => {
       <ContextMenuItem
         key="remove-from-group"
         onClick={handleRemoveFromGroup}
-        label="Remove from group"
+        label={t("screen_editor.removeFromGroup")}
         IconComponent={<GroupRemoveIcon />}
-        tooltip="Remove this node from the group"
+        tooltip={t("screen_editor.removeNodeFromGroupTooltip")}
       />
     ),
     <ContextMenuItem
       key="copy"
       onClick={handlers.handleCopy}
-      label="Copy"
+      label={t("screen_editor.copy")}
       IconComponent={<ContentCopyIcon />}
       tooltip={
         <div className="tooltip-span">
-          <div className="tooltip-title">Copy</div>
+          <div className="tooltip-title">{t("screen_editor.copy")}</div>
           <div className="tooltip-key">
             <kbd>CTRL</kbd>+<kbd>C</kbd> / <kbd>⌘</kbd>+<kbd>C</kbd>
           </div>
@@ -79,11 +81,11 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="cut"
       onClick={handlers.handleCut}
-      label="Cut"
+      label={t("screen_editor.cut")}
       IconComponent={<ContentCutIcon />}
       tooltip={
         <div className="tooltip-span">
-          <div className="tooltip-title">Cut</div>
+          <div className="tooltip-title">{t("screen_editor.cut")}</div>
           <div className="tooltip-key">
             <kbd>CTRL</kbd>+<kbd>X</kbd> / <kbd>⌘</kbd>+<kbd>X</kbd>
           </div>
@@ -93,18 +95,18 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="copy-nodedata"
       onClick={handlers.handleCopyMetadataToClipboard}
-      label="Copy node as JSON"
+      label={t("screen_editor.copyNodeAsJson")}
       IconComponent={<DataArrayIcon />}
-      tooltip="Copy node data as JSON"
+      tooltip={t("screen_editor.copyNodeDataAsJsonTooltip")}
     />,
     <ContextMenuItem
       key="duplicate"
       onClick={handlers.handleDuplicate}
-      label="Duplicate"
+      label={t("screen_editor.duplicate")}
       IconComponent={<QueueIcon />}
       tooltip={
         <div className="tooltip-span">
-          <div className="tooltip-title">Duplicate</div>
+          <div className="tooltip-title">{t("screen_editor.duplicate")}</div>
           <div className="tooltip-key">
             <kbd>CTRL</kbd>+<kbd>D</kbd> / <kbd>⌘</kbd>+<kbd>D</kbd>
           </div>
@@ -114,11 +116,11 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="duplicate-vertical"
       onClick={handlers.handleDuplicateVertical}
-      label="Duplicate vertically"
+      label={t("screen_editor.duplicateVertically")}
       IconComponent={<SouthIcon />}
       tooltip={
         <div className="tooltip-span">
-          <div className="tooltip-title">Duplicate vertically</div>
+          <div className="tooltip-title">{t("screen_editor.duplicateVertically")}</div>
           <div className="tooltip-key">
             <kbd>CTRL</kbd>+<kbd>SHIFT</kbd>+<kbd>D</kbd> / <kbd>⌘</kbd>+<kbd>SHIFT</kbd>+<kbd>D</kbd>
           </div>
@@ -128,20 +130,20 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="run-from-here"
       onClick={handlers.handleRunFromHere}
-      label={conditions.isWorkflowRunning ? "Running…" : "Run node"}
+      label={conditions.isWorkflowRunning ? t("screen_editor.running") : t("screen_editor.runNode")}
       IconComponent={<PlayArrowIcon />}
-      tooltip="Run this node as its own job, using previous results as inputs"
+      tooltip={t("screen_editor.runNodeTooltip")}
       disabled={conditions.isWorkflowRunning}
     />,
     <ContextMenuItem
       key="toggle-bypass"
       onClick={handlers.handleToggleBypass}
-      label={conditions.isBypassed ? "Enable node" : "Disable node"}
+      label={conditions.isBypassed ? t("screen_editor.enableNode") : t("screen_editor.disableNode")}
       IconComponent={conditions.isBypassed ? <PowerSettingsNewIcon /> : <BlockIcon />}
       tooltip={
         <div className="tooltip-span">
           <div className="tooltip-title">
-            {conditions.isBypassed ? "Enable node" : "Disable node"}
+            {conditions.isBypassed ? t("screen_editor.enableNode") : t("screen_editor.disableNode")}
           </div>
           <div className="tooltip-key">
             <kbd>B</kbd>
@@ -152,14 +154,14 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="toggle-collapsed"
       onClick={handlers.handleToggleCollapsed}
-      label={conditions.isCollapsed ? "Expand node" : "Collapse node"}
+      label={conditions.isCollapsed ? t("screen_editor.expandNode") : t("screen_editor.collapseNode")}
       IconComponent={
         conditions.isCollapsed ? <UnfoldMoreIcon /> : <UnfoldLessIcon />
       }
       tooltip={
         <div className="tooltip-span">
           <div className="tooltip-title">
-            {conditions.isCollapsed ? "Expand node" : "Collapse node"}
+            {conditions.isCollapsed ? t("screen_editor.expandNode") : t("screen_editor.collapseNode")}
           </div>
           <div className="tooltip-key">
             <kbd>C</kbd>
@@ -170,65 +172,67 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="toggle-comment"
       onClick={handlers.handleToggleComment}
-      label={conditions.hasCommentTitle ? "Delete comment" : "Add comment"}
+      label={conditions.hasCommentTitle ? t("screen_editor.deleteComment") : t("screen_editor.addComment")}
       IconComponent={<EditIcon />}
       tooltip={
         conditions.hasCommentTitle
-          ? "Delete the comment on this node"
-          : "Add a comment to this node"
+          ? t("screen_editor.deleteCommentTooltip")
+          : t("screen_editor.addCommentTooltip")
       }
     />,
     <ContextMenuItem
       key="group-into-subgraph"
       onClick={handleGroupIntoSubgraph}
-      label="Group into subgraph"
+      label={t("screen_editor.groupIntoSubgraph")}
       IconComponent={<AccountTreeIcon />}
-      tooltip="Move the selected nodes into a new subgraph node"
+      tooltip={t("screen_editor.groupIntoSubgraphTooltip")}
     />,
     conditions.canConvertToInput && (
       <ContextMenuItem
         key="convert-to-input"
         onClick={handlers.handleConvertToInput}
-        label="Convert to input node"
+        label={t("screen_editor.convertToInput")}
         IconComponent={<SwapHorizIcon />}
-        tooltip="Convert this constant node to an input node"
+        tooltip={t("screen_editor.convertToInputTooltip")}
       />
     ),
     conditions.canConvertToConstant && (
       <ContextMenuItem
         key="convert-to-constant"
         onClick={handlers.handleConvertToConstant}
-        label="Convert to constant node"
+        label={t("screen_editor.convertToConstant")}
         IconComponent={<SwapHorizIcon />}
-        tooltip="Convert this input node to a constant node"
+        tooltip={t("screen_editor.convertToConstantTooltip")}
       />
     ),
     <ContextMenuItem
       key="show-templates"
       onClick={handlers.handleFindTemplates}
-      label="Show templates"
+      label={t("screen_editor.showTemplates")}
       IconComponent={<SearchIcon />}
-      tooltip="Find templates using this node"
+      tooltip={t("screen_editor.showTemplatesTooltip")}
     />,
     <ContextMenuItem
       key="select-all"
       onClick={handlers.handleSelectAllSameType}
       label={
         node?.type
-          ? `Select all ${node.type.split(".").pop()} nodes`
-          : "Select all nodes of this type"
+          ? t("screen_editor.selectAllTypeNodes", {
+              type: node.type.split(".").pop()
+            })
+          : t("screen_editor.selectAllNodeType")
       }
       IconComponent={<FilterListIcon />}
-      tooltip="Select all nodes of the same type"
+      tooltip={t("screen_editor.selectSameTypeNodes")}
     />,
     <Divider key="divider-before-delete" />,
     <ContextMenuItem
       key="delete-node"
       onClick={handlers.handleDeleteNode}
-      label="Delete node"
+      label={t("screen_editor.deleteNode")}
       destructive
       IconComponent={<DeleteIcon />}
-      tooltip="Delete this node"
+      tooltip={t("screen_editor.deleteNodeTooltip")}
     />
   ];
 

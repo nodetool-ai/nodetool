@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { shallow } from "zustand/shallow";
 import PropertyField from "./node/PropertyField";
 import useMetadataStore from "../stores/MetadataStore";
@@ -473,6 +474,7 @@ const TypeLabel: React.FC<{ type?: TypeMetadata | null }> = ({ type }) => {
 };
 
 const Inspector: React.FC = () => {
+  const { t } = useTranslation();
   const selectedNodes = useNodes(
     (state) => state.getSelectedNodes(),
     areNodesEqualIgnoringPosition
@@ -689,12 +691,12 @@ const Inspector: React.FC = () => {
       <Box className="inspector" css={inspectorStyles}>
         <div className="inspector-head">
           <div className="inspector-head-text">
-            <div className="inspector-title">Inspector</div>
+            <div className="inspector-title">{t("screen_remaining.inspector.title")}</div>
           </div>
           <div className="inspector-head-close">
             <CloseButton
               onClick={handleInspectorClose}
-              tooltip="Close inspector"
+              tooltip={t("screen_remaining.inspector.close")}
               buttonSize="small"
               nodrag={false}
             />
@@ -702,8 +704,8 @@ const Inspector: React.FC = () => {
         </div>
         <EmptyState
           size="small"
-          title="No node selected"
-          description="Select a node to edit its settings here."
+          title={t("screen_remaining.inspector.noneSelected")}
+          description={t("screen_remaining.inspector.selectNode")}
         />
       </Box>
     );
@@ -716,7 +718,7 @@ const Inspector: React.FC = () => {
           <div className="inspector-head">
             <div className="inspector-head-text">
               <div className="inspector-title">
-                {selectedNodes.length} nodes selected
+                {t("screen_remaining.inspector.nodesSelected", { count: selectedNodes.length })}
               </div>
               <div className="inspector-namespace">
                 <span className="inspector-namespace-text">
@@ -729,7 +731,7 @@ const Inspector: React.FC = () => {
             <div className="inspector-head-close">
               <CloseButton
                 onClick={handleInspectorClose}
-                tooltip="Close inspector"
+                tooltip={t("screen_remaining.inspector.close")}
                 buttonSize="small"
                 nodrag={false}
               />
@@ -759,12 +761,12 @@ const Inspector: React.FC = () => {
                     />
                     {isMixed && (
                       <Tooltip
-                        title="Mixed values across the selected nodes"
+                        title={t("screen_remaining.inspector.mixedTooltip")}
                         placement="top-start"
                       >
                         <span className="mixed-indicator">
                           <WarningAmberOutlinedIcon fontSize="small" />
-                          <span>Mixed</span>
+                          <span>{t("screen_remaining.inspector.mixed")}</span>
                         </span>
                       </Tooltip>
                     )}
@@ -772,7 +774,7 @@ const Inspector: React.FC = () => {
                 ))
               ) : (
                 <Caption size="smaller" color="muted" sx={{ padding: `${getSpacingPx(SPACING.xs)} 0` }}>
-                  No shared editable properties across the selected nodes.
+                  {t("screen_remaining.inspector.noSharedProperties")}
                 </Caption>
               )}
             </ScrollArea>
@@ -799,14 +801,14 @@ const Inspector: React.FC = () => {
             </div>
             <div className="inspector-namespace">
               <span className="inspector-namespace-text">
-                No editable properties for this node
+                {t("screen_remaining.inspector.noEditableProperties")}
               </span>
             </div>
           </div>
           <div className="inspector-head-close">
             <CloseButton
               onClick={handleInspectorClose}
-              tooltip="Close inspector"
+              tooltip={t("screen_remaining.inspector.close")}
               buttonSize="small"
               nodrag={false}
             />
@@ -835,7 +837,7 @@ const Inspector: React.FC = () => {
             {metadata.namespace ? (
               <div className="inspector-namespace">
                 <Tooltip
-                  title="Browse this namespace in the node menu"
+                  title={t("screen_remaining.inspector.browseNamespace")}
                   placement="bottom-start"
                 >
                   <button
@@ -850,7 +852,7 @@ const Inspector: React.FC = () => {
                 </Tooltip>
                 <CopyButton
                   value={metadata.namespace}
-                  tooltip="Copy namespace"
+                  tooltip={t("screen_remaining.inspector.copyNamespace")}
                   buttonSize="small"
                 />
               </div>
@@ -859,7 +861,7 @@ const Inspector: React.FC = () => {
           <div className="inspector-head-close">
             <CloseButton
               onClick={handleInspectorClose}
-              tooltip="Close inspector"
+              tooltip={t("screen_remaining.inspector.close")}
               buttonSize="small"
               nodrag={false}
             />
@@ -923,7 +925,7 @@ const Inspector: React.FC = () => {
                   const headerActions = property.required ? (
                     <>
                       <span className="property-required-badge is-required">
-                        Required
+                        {t("i18n-next112.nodeInspector.required")}
                       </span>
                       {visibilityToggle}
                     </>
@@ -1026,11 +1028,11 @@ const Inspector: React.FC = () => {
               <>
                 <div className="io-section">
                   <div className="io-section-title">
-                    Inputs ({metadata.properties.length})
+                    {t("i18n-next112.nodeInspector.inputCount", { count: metadata.properties.length })}
                   </div>
                   {metadata.properties.length === 0 ? (
                     <Caption size="smaller" color="muted">
-                      No inputs.
+                      {t("i18n-next112.nodeInspector.noInputs")}
                     </Caption>
                   ) : (
                     metadata.properties.map((property) => (
@@ -1043,11 +1045,11 @@ const Inspector: React.FC = () => {
                 </div>
                 <div className="io-section">
                   <div className="io-section-title">
-                    Outputs ({metadata.outputs.length})
+                    {t("i18n-next112.nodeInspector.outputCount", { count: metadata.outputs.length })}
                   </div>
                   {metadata.outputs.length === 0 ? (
                     <Caption size="smaller" color="muted">
-                      No outputs.
+                      {t("i18n-next112.nodeInspector.noOutputs")}
                     </Caption>
                   ) : (
                     metadata.outputs.map((output) => (
@@ -1068,7 +1070,7 @@ const Inspector: React.FC = () => {
                   if (!raw) {
                     return (
                       <Caption size="smaller" color="muted">
-                        No description provided for this node.
+                        {t("i18n-next115.inspector.noDescription")}
                       </Caption>
                     );
                   }
@@ -1103,7 +1105,7 @@ const Inspector: React.FC = () => {
                 })()}
                 <div className="help-meta">
                   <div className="help-meta-row">
-                    <span className="help-meta-key">Type</span>
+                    <span className="help-meta-key">{t("screen_remaining.inspector.type")}</span>
                     <span
                       className="help-meta-value"
                       title={metadata.node_type}
@@ -1112,15 +1114,15 @@ const Inspector: React.FC = () => {
                     </span>
                   </div>
                   <div className="help-meta-row">
-                    <span className="help-meta-key">Namespace</span>
+                    <span className="help-meta-key">{t("screen_remaining.inspector.namespace")}</span>
                     <span className="help-meta-value" title={metadata.namespace}>
                       {metadata.namespace}
                     </span>
                   </div>
                   {metadata.supports_dynamic_inputs ? (
                     <div className="help-meta-row">
-                      <span className="help-meta-key">Dynamic</span>
-                      <span className="help-meta-value">yes</span>
+                      <span className="help-meta-key">{t("screen_remaining.inspector.dynamic")}</span>
+                      <span className="help-meta-value">{t("screen_remaining.inspector.yes")}</span>
                     </div>
                   ) : null}
                 </div>

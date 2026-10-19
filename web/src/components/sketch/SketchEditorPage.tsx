@@ -7,12 +7,14 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
 import { EmptyState, FlexColumn } from "../ui_primitives";
 import StandaloneSketchEditor from "./StandaloneSketchEditor";
 
 const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
+  const { t } = useTranslation();
   const { documentId } = useParams<{ documentId: string }>();
 
   if (!documentId) {
@@ -24,8 +26,8 @@ const SketchEditorPage: React.FC = memo(function SketchEditorPage() {
       >
         <EmptyState
           variant="error"
-          title="No document id"
-          description="The sketch route requires a documentId path parameter."
+          title={t("screen_sketch.page.noDocumentId")}
+          description={t("screen_sketch.page.documentIdRequired")}
         />
       </FlexColumn>
     );

@@ -6,6 +6,7 @@
  * an error state instead of a redirect.
  */
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertBanner,
@@ -18,6 +19,7 @@ import {
 import { useAcceptShare } from "../../serverState/useWorkflowSharing";
 
 const AcceptSharePage = () => {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const accept = useAcceptShare();
@@ -41,23 +43,19 @@ const AcceptSharePage = () => {
       align="center"
       justify="center"
       gap={SPACING.lg}
-      sx={{ width: "100%", height: "100%", p: 4 }}
+      sx={{ width: "100%", height: "100%", p: SPACING.xxxl }}
     >
       {accept.isError ? (
         <>
           <AlertBanner severity="error">
-            This share link is invalid or has been revoked. Ask the workflow
-            owner for a new one.
+            {t("pass3_36.workflows.acceptShare.invalidLink")}
           </AlertBanner>
           <EditorButton variant="outlined" onClick={() => navigate("/editor")}>
-            Go to editor
+            {t("pass3_36.workflows.acceptShare.goToEditor")}
           </EditorButton>
         </>
       ) : (
-        <>
-          <LoadingSpinner />
-          <Text size="small">Opening shared workflow…</Text>
-        </>
+        <LoadingSpinner text={t("pass3_36.workflows.acceptShare.openingWorkflow")} />
       )}
     </FlexColumn>
   );

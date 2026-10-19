@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -31,13 +32,6 @@ import {
 import { MASK_NODE_TYPE } from "../../../constants/nodeTypes";
 
 type MaskTab = "image1" | "image2" | "mask" | "result";
-
-const TAB_PLACEHOLDERS = {
-  image1: "Connect image 1",
-  image2: "Connect image 2",
-  mask: "Connect a mask",
-  result: "Run the node to composite"
-} satisfies Record<MaskTab, string>;
 
 const styles = (theme: Theme) =>
   css({
@@ -111,6 +105,7 @@ const MaskBodyInner: React.FC<MaskBodyProps> = ({
   isOutputNode
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
   const [tab, setTab] = useState<MaskTab>("result");
@@ -162,7 +157,7 @@ const MaskBodyInner: React.FC<MaskBodyProps> = ({
     <div css={cssStyles} className="mask-body" data-bespoke-body="Mask">
       <HandleColumn id={id} properties={imageHandles} />
       <div className="preview-area">
-        <ImagePreview value={tabValue} message={TAB_PLACEHOLDERS[tab]} />
+        <ImagePreview value={tabValue} message={t(`screen_editor.nodeEditing.mask.placeholders.${tab}`)} />
       </div>
 
       <FlexColumn className="controls" gap={0.5}>
@@ -174,19 +169,19 @@ const MaskBodyInner: React.FC<MaskBodyProps> = ({
             value={tab}
             exclusive
             onChange={handleTabChange}
-            aria-label="Preview tab"
+            aria-label={t("screen_editor.nodeEditing.mask.previewTab")}
           >
-            <ToggleOption value="image1" aria-label="Image 1">
-              Img 1
+            <ToggleOption value="image1" aria-label={t("screen_editor.nodeEditing.mask.image1")}>
+              {t("screen_editor.nodeEditing.mask.image1Short")}
             </ToggleOption>
-            <ToggleOption value="image2" aria-label="Image 2">
-              Img 2
+            <ToggleOption value="image2" aria-label={t("screen_editor.nodeEditing.mask.image2")}>
+              {t("screen_editor.nodeEditing.mask.image2Short")}
             </ToggleOption>
-            <ToggleOption value="mask" aria-label="Mask">
-              Mask
+            <ToggleOption value="mask" aria-label={t("screen_editor.nodeEditing.mask.mask")}>
+              {t("screen_editor.nodeEditing.mask.mask")}
             </ToggleOption>
-            <ToggleOption value="result" aria-label="Result">
-              Result
+            <ToggleOption value="result" aria-label={t("screen_editor.nodeEditing.mask.result")}>
+              {t("screen_editor.nodeEditing.mask.result")}
             </ToggleOption>
           </ToggleGroup>
         </FlexRow>

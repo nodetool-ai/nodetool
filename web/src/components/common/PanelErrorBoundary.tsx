@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Text, EditorButton, FlexColumn, SPACING } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import { reportClientError, type ClientErrorRunContext } from "../../utils/errorTraceReporting";
@@ -28,13 +29,15 @@ interface PanelFailureProps {
 }
 
 function PanelFailure({ panel, error, run }: PanelFailureProps): React.ReactElement {
+  const { t } = useTranslation();
   const { openRunInspection } = useRunInspection();
+  const panelLabel = panel || t("batch2_10.panelError.panel");
   return <FlexColumn align="center" justify="center" gap={SPACING.sm}
     sx={{ padding: SPACING.lg, minHeight: 200, bgcolor: "error.dark", color: "error.contrastText" }}>
-    <Text size="small" component="div">{panel} failed to render.</Text>
-    {run ? <EditorButton onClick={() => openRunInspection({ runId: run.app_run_id, spanId: run.span_id })}>View trace</EditorButton> : null}
-    <ReportBugButton variant="outlined" label="Report a bug" context={{ source: "panel-crash",
-      summary: `${panel} failed to render`, errorText: error?.message, stackTrace: error?.stack }} />
+    <Text size="small" component="div">{t("batch2_10.panelError.failedToRender", { panel: panelLabel })}</Text>
+    {run ? <EditorButton onClick={() => openRunInspection({ runId: run.app_run_id, spanId: run.span_id })}>{t("batch2_10.panelError.viewTrace")}</EditorButton> : null}
+    <ReportBugButton variant="outlined" label={t("batch2_10.panelError.reportBug")} context={{ source: "panel-crash",
+      summary: t("batch2_10.panelError.failedToRender", { panel: panelLabel }), errorText: error?.message, stackTrace: error?.stack }} />
   </FlexColumn>;
 }
 
@@ -69,7 +72,7 @@ export default class PanelErrorBoundary extends React.Component<
 
   render() {
     if (this.state.hasError) {
-      const panel = this.props.panelName ?? "Panel";
+      const panel = this.props.panelName ?? "";
       return (
         this.props.fallback ?? (
           <PanelFailure panel={panel} error={this.state.error} run={this.state.run} />

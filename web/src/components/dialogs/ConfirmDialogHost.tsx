@@ -4,10 +4,12 @@
  * `window.confirm`.
  */
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useConfirmStore } from "../../stores/ConfirmStore";
 import { ConfirmDialog } from "../ui_primitives";
 
 const ConfirmDialogHost: React.FC = () => {
+  const { t } = useTranslation();
   const request = useConfirmStore((state) => state.pending?.request ?? null);
   const settle = useConfirmStore((state) => state.settle);
 
@@ -23,7 +25,7 @@ const ConfirmDialogHost: React.FC = () => {
       title={request.title}
       content={request.content}
       confirmText={request.confirmText}
-      cancelText={request.cancelText ?? "Cancel"}
+      cancelText={request.cancelText ?? t("batch2_12.common.cancel")}
       destructive={request.destructive}
     />
   );

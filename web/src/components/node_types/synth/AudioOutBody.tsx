@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -116,6 +117,7 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
   isOutputNode
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
   const chunkProperty = useMemo(
@@ -152,7 +154,7 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
   return (
     <div css={cssStyles} className="audio-out-body" data-bespoke-body="AudioOut">
       <HandleColumn id={id} properties={chunkProperty} />
-      <span className="module-label">Out</span>
+      <span className="module-label">{t("i18n-next111.synth.audioOutput.label")}</span>
 
       {chunks.length > 0 ? (
         <div className="player nodrag">
@@ -166,7 +168,7 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
           />
         </div>
       ) : (
-        <div className="idle-hint">Run the patch to hear it</div>
+        <div className="idle-hint">{t("i18n-next111.synth.audioOutput.idleHint")}</div>
       )}
 
       {!isOutputNode && (

@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Chip,
@@ -22,17 +23,17 @@ import type { UseModelsResult } from "./useModels";
 
 const AVAILABILITY_FILTERS: {
   value: ModelAvailabilityFilter;
-  label: string;
+  key: string;
   color: "default" | "success" | "warning";
 }[] = [
-  { value: "all", label: "All", color: "default" },
-  { value: "ready", label: "Ready", color: "success" },
+  { value: "all", key: "availability.all", color: "default" },
+  { value: "ready", key: "availability.ready", color: "success" },
   {
     value: "download_required",
-    label: "Download required",
+    key: "availability.downloadRequired",
     color: "warning"
   },
-  { value: "unavailable", label: "Unavailable", color: "default" }
+  { value: "unavailable", key: "availability.unavailable", color: "default" }
 ];
 
 interface FilterRowProps {
@@ -66,6 +67,7 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
   source,
   availabilityCounts
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const {
     selectedGoal,
@@ -123,11 +125,14 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
         borderBottom: `1px solid ${theme.vars.palette.divider}`
       }}
     >
-      <FilterRow label="I want to">
+      <FilterRow label={t("i18n-next29.filters.goal")}>
         {MODEL_GOALS.map((goal) => (
-          <Tooltip key={goal.id} title={goal.description}>
+          <Tooltip
+            key={goal.id}
+            title={t(`i18n-next29.filters.goals.${goal.id}.description`)}
+          >
             <Chip
-              label={goal.label}
+              label={t(`i18n-next29.filters.goals.${goal.id}.label`)}
               compact
               active={selectedGoal === goal.id}
               color={selectedGoal === goal.id ? "primary" : "default"}
@@ -137,11 +142,11 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
         ))}
       </FilterRow>
 
-      <FilterRow label="Format">
+      <FilterRow label={t("i18n-next29.filters.format")}>
         {MODEL_FORMATS.map((format) => (
           <Chip
             key={format.id}
-            label={format.label}
+            label={t(`i18n-next29.filters.formats.${format.id}`)}
             compact
             active={selectedFormat === format.id}
             color={selectedFormat === format.id ? "primary" : "default"}
@@ -151,11 +156,11 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
       </FilterRow>
 
       {source === "installed" && (
-        <FilterRow label="Status">
-          {AVAILABILITY_FILTERS.map(({ value, label, color }) => (
+        <FilterRow label={t("i18n-next29.filters.status")}>
+          {AVAILABILITY_FILTERS.map(({ value, key, color }) => (
             <Chip
               key={value}
-              label={`${label} ${availabilityCounts[value]}`}
+              label={t("i18n-next29.filters.availabilityCount", { status: t(`i18n-next29.${key}`), count: availabilityCounts[value] })}
               compact
               color={color}
               active={selectedAvailability === value}
@@ -165,7 +170,7 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
         </FilterRow>
       )}
 
-      <FilterRow label="Max size">
+      <FilterRow label={t("i18n-next29.filters.maxSize")}>
         <FlexRow
           align="center"
           sx={{
@@ -174,11 +179,11 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
           }}
         >
           <NodeSlider
-            aria-label="Max model size in GB"
+            aria-label={t("i18n-next29.filters.maxSizeAriaLabel")}
             value={maxModelSizeGB}
             onChange={handleSizeChange}
             valueLabelDisplay="auto"
-            valueLabelFormat={(value) => (value === 0 ? "All" : `${value} GB`)}
+            valueLabelFormat={(value) => (value === 0 ? t("i18n-next29.filters.all") : t("i18n-next29.filters.sizeGb", { count: value }))}
             step={1}
             min={0}
             max={50}
@@ -193,7 +198,7 @@ const ModelFilterBar: React.FC<ModelFilterBarProps> = ({
             borderRadius: BORDER_RADIUS.sm
           }}
         >
-          {maxModelSizeGB === 0 ? "All sizes" : `${maxModelSizeGB} GB`}
+          {maxModelSizeGB === 0 ? t("i18n-next29.filters.allSizes") : t("i18n-next29.filters.sizeGb", { count: maxModelSizeGB })}
         </Text>
       </FilterRow>
     </Box>

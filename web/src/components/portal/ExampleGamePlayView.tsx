@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import { trpc } from "../../trpc/client";
 import { GamePlayer } from "../game/GamePlayerPage";
 import { EmptyState, LoadingSpinner } from "../ui_primitives";
@@ -14,25 +15,26 @@ interface ExampleGamePlayViewProps {
 export default function ExampleGamePlayView({
   slug
 }: ExampleGamePlayViewProps) {
+  const { t } = useTranslation();
   const query = trpc.games.example.useQuery(
     { slug },
     { staleTime: Infinity, retry: false }
   );
   if (query.isPending) {
-    return <LoadingSpinner text="Loading game" />;
+    return <LoadingSpinner text={t("pass3_18.examples.game.loading")} />;
   }
   if (query.isError) {
     return (
       <EmptyState
         variant="error"
-        title="Could not load game"
-        actionText="Retry"
+        title={t("pass3_18.examples.game.errors.loadTitle")}
+        actionText={t("pass3_18.examples.actions.retry")}
         onAction={() => void query.refetch()}
         description={
           <ReportBugButton
             context={{
               source: "panel-crash",
-              summary: "Example game failed",
+              summary: t("pass3_18.examples.game.errors.reportSummary"),
               errorText: query.error.message
             }}
           />
@@ -42,7 +44,11 @@ export default function ExampleGamePlayView({
   }
   const { name, document } = query.data;
   return document.schemaVersion === 3 ? (
-    <Suspense fallback={<LoadingSpinner text="Loading 3D player" />}>
+    <Suspense
+      fallback={
+        <LoadingSpinner text={t("pass3_18.examples.game.loading3dPlayer")} />
+      }
+    >
       <Player3D
         gameId={`example:${slug}`}
         name={name}

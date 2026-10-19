@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { isModelSelected } from "@nodetool-ai/protocol";
 import {
   decodeSketchLayerData,
@@ -35,6 +36,7 @@ const errorMessage = (cause: unknown, fallback: string): string =>
 
 /** The chat model, which `useGenerateSvg` sends with each request. */
 function SvgModelSelect({ disabled }: { disabled: boolean }): React.JSX.Element {
+  const { t } = useTranslation();
   const model = useGlobalChatStore((state) => state.selectedModel);
   const setSelectedModel = useGlobalChatStore((state) => state.setSelectedModel);
   return (
@@ -42,7 +44,7 @@ function SvgModelSelect({ disabled }: { disabled: boolean }): React.JSX.Element 
       value={isModelSelected(model) ? model.id : ""}
       provider={model?.provider}
       onChange={setSelectedModel}
-      placeholder="Model"
+      placeholder={t("i18n-next4.sketch.vector.model")}
       disabled={disabled}
     />
   );
@@ -65,6 +67,7 @@ function SvgPromptForm({
   target,
   onSvg
 }: SvgPromptFormProps): React.JSX.Element {
+  const { t } = useTranslation();
   const [request, setRequest] = useState("");
   const [applyError, setApplyError] = useState("");
   const { generate, cancel, generating, error, clearError } = useGenerateSvg();
@@ -81,7 +84,7 @@ function SvgPromptForm({
       onSvg(svg, request.trim());
     } catch (cause) {
       setApplyError(
-        `${errorMessage(cause, "The SVG could not be used.")} Try again or rephrase the request.`
+        t("i18n-next4.sketch.vector.applyGeneratedError", { error: errorMessage(cause, t("i18n-next4.sketch.vector.svgCouldNotBeUsed")) })
       );
     }
   };
@@ -111,7 +114,7 @@ function SvgPromptForm({
         <SvgModelSelect disabled={generating} />
         {generating ? (
           <EditorButton variant="outlined" onClick={cancel}>
-            Cancel
+            {t("i18n-next4.sketch.cancel")}
           </EditorButton>
         ) : (
           <EditorButton
@@ -125,7 +128,7 @@ function SvgPromptForm({
           </EditorButton>
         )}
       </FlexRow>
-      {generating && <Caption role="status">Generating SVG…</Caption>}
+      {generating && <Caption role="status">{t("i18n-next4.sketch.vector.generatingSvg")}</Caption>}
       {shownError && <AlertBanner severity="error">{shownError}</AlertBanner>}
     </FlexColumn>
   );
@@ -145,6 +148,7 @@ interface SvgLayerImportProps {
 export function SvgLayerImport({
   inputRef
 }: SvgLayerImportProps): React.JSX.Element {
+  const { t } = useTranslation();
   const addVectorLayer = useSketchStore((state) => state.addVectorLayer);
   const [error, setError] = useState("");
   const importFile = async (file: File): Promise<void> => {
@@ -152,7 +156,7 @@ export function SvgLayerImport({
       addVectorLayer(file.name.replace(/\.svg$/i, ""), await file.text());
       setError("");
     } catch (cause) {
-      setError(errorMessage(cause, "Could not import SVG."));
+      setError(errorMessage(cause, t("i18n-next4.sketch.vector.couldNotImportSvg")));
     }
   };
   return (
@@ -161,7 +165,7 @@ export function SvgLayerImport({
         ref={inputRef}
         type="file"
         accept=".svg,image/svg+xml"
-        aria-label="Import SVG file"
+        aria-label={t("i18n-next4.sketch.vector.importSvgFile")}
         hidden
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -190,6 +194,7 @@ export function GenerateSvgLayerDialog({
   open,
   onClose
 }: GenerateSvgLayerDialogProps): React.JSX.Element {
+  const { t } = useTranslation();
   const addVectorLayer = useSketchStore((state) => state.addVectorLayer);
   const canvasWidth = useSketchStore((state) => state.document.canvas.width);
   const canvasHeight = useSketchStore((state) => state.document.canvas.height);
@@ -198,11 +203,11 @@ export function GenerateSvgLayerDialog({
     [canvasWidth, canvasHeight]
   );
   return (
-    <Dialog open={open} onClose={onClose} title="Generate SVG layer">
+    <Dialog open={open} onClose={onClose} title={t("i18n-next4.sketch.vector.generateSvgLayer")}>
       <SvgPromptForm
-        label="Describe the new SVG layer"
-        placeholder="A flat line icon of a paper plane"
-        submitLabel="Generate"
+        label={t("i18n-next4.sketch.vector.describeNewLayer")}
+        placeholder={t("i18n-next4.sketch.vector.paperPlanePrompt")}
+        submitLabel={t("i18n-next4.sketch.vector.generate")}
         target={target}
         onSvg={(svg, request) => {
           addVectorLayer(layerNameFromRequest(request), svg);
@@ -220,6 +225,7 @@ interface VectorLayerPanelProps {
 export function VectorLayerPanel({
   layer
 }: VectorLayerPanelProps): React.JSX.Element {
+  const { t } = useTranslation();
   const savedSource = getVectorSource(layer);
   // The stored markup is minified; show it one element per line.
   const savedText = useMemo(() => formatSvgSource(savedSource), [savedSource]);
@@ -251,7 +257,7 @@ export function VectorLayerPanel({
       setVectorLayerSource(layer.id, source);
       setError("");
     } catch (cause) {
-      setError(errorMessage(cause, "Could not update SVG."));
+      setError(errorMessage(cause, t("i18n-next4.sketch.vector.couldNotUpdateSvg")));
     }
   };
   const rasterize = async (): Promise<void> => {
@@ -263,7 +269,7 @@ export function VectorLayerPanel({
         layer.contentBounds.height
       );
       if (!decoded.image) {
-        throw new Error("This layer has no SVG source.");
+        throw new Error(t("i18n-next4.sketch.vector.layerHasNoSvgSource"));
       }
       const canvas = await dataUrlToCanvas(
         decoded.image,
@@ -276,7 +282,7 @@ export function VectorLayerPanel({
         layer.data
       );
     } catch (cause) {
-      setError(errorMessage(cause, "Could not rasterize SVG."));
+      setError(errorMessage(cause, t("i18n-next4.sketch.vector.couldNotRasterizeSvg")));
     } finally {
       setBusy(false);
     }
@@ -284,24 +290,23 @@ export function VectorLayerPanel({
   return (
     <FlexColumn gap={SPACING.lg} sx={{ p: SPACING.md }}>
       <Caption>
-        {width} × {height} px. Move and transform this layer, or edit its SVG.
-        Rasterize to paint on it.
+        {t("i18n-next4.sketch.vector.layerDescription", { width, height })}
       </Caption>
 
       <FlexColumn gap={SPACING.sm}>
         <SvgPromptForm
-          label="Generate with AI"
-          placeholder="Make the leaves autumn orange"
-          submitLabel="Generate"
+          label={t("i18n-next4.sketch.vector.generateWithAi")}
+          placeholder={t("i18n-next4.sketch.vector.autumnLeavesPrompt")}
+          submitLabel={t("i18n-next4.sketch.vector.generate")}
           target={target}
           onSvg={(svg) => setVectorLayerSource(layer.id, svg)}
         />
-        <Caption>Replaces this layer&apos;s SVG. Undo restores it.</Caption>
+        <Caption>{t("i18n-next4.sketch.vector.replaceSvgUndoRestores")}</Caption>
       </FlexColumn>
 
       <FlexColumn gap={SPACING.sm}>
         <TextInput
-          label="SVG source"
+          label={t("i18n-next4.sketch.vector.svgSource")}
           multiline
           monospace
           minRows={8}
@@ -325,16 +330,16 @@ export function VectorLayerPanel({
               setError("");
             }}
           >
-            Revert
+            {t("i18n-next4.sketch.vector.revert")}
           </EditorButton>
           <EditorButton
             variant="contained"
-            tooltip="Apply SVG"
+            tooltip={t("i18n-next4.sketch.vector.applySvg")}
             shortcut={["Ctrl", "Enter"]}
             onClick={apply}
             disabled={busy || !dirty}
           >
-            Apply SVG
+            {t("i18n-next4.sketch.vector.applySvg")}
           </EditorButton>
         </FlexRow>
       </FlexColumn>
@@ -347,7 +352,7 @@ export function VectorLayerPanel({
             void rasterize();
           }}
         >
-          Rasterize layer
+          {t("i18n-next4.sketch.vector.rasterizeLayer")}
         </EditorButton>
         <EditorButton
           onClick={() => {
@@ -357,7 +362,7 @@ export function VectorLayerPanel({
             link.click();
           }}
         >
-          Download SVG
+          {t("i18n-next4.sketch.vector.downloadSvg")}
         </EditorButton>
       </FlexRow>
     </FlexColumn>

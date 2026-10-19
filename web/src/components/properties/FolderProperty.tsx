@@ -18,6 +18,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import dialogStyles from "../../styles/DialogStyles";
 import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
@@ -33,6 +34,7 @@ interface FolderValue {
 }
 
 const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const load = useAssetStore((state) => state.load);
   const createFolder = useAssetStore((state) => state.createFolder);
@@ -63,7 +65,7 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
   }, [props.value?.asset_id, availableFolderIds]);
 
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const [folderName, setFolderName] = useState<string>("New Folder");
+  const [folderName, setFolderName] = useState<string>(t("folder.newFolder"));
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -80,11 +82,11 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
     createFolder(selectValue || "", folderName).then(() => {
       addNotification({
         type: "success",
-        content: `CREATE FOLDER: ${folderName}`
+        content: t("folder.created", { name: folderName })
       });
       refetch();
     });
-  }, [createFolder, selectValue, folderName, addNotification, refetch]);
+  }, [createFolder, selectValue, folderName, addNotification, refetch, t]);
 
   const handleOpenMenu = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -141,13 +143,13 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
         id={id}
       />
       {isLoading && <LoadingSpinner size="small" />}
-      {error && <p>Error: {error.message}</p>}
+      {error && <p>{t("property.error", { error: error.message })}</p>}
       <FlexRow align="center" gap={0.5}>
         <Select
           options={folderOptions}
           value={selectValue}
           onChange={handleFolderSelect}
-          placeholder="Select a folder"
+          placeholder={t("folder.select")}
         />
         <EditorButton
           onClick={handleOpenMenu}
@@ -170,13 +172,13 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle className="dialog-title" id="alert-dialog-title">
-          {"Create folder"}
+          {t("folder.create")}
         </DialogTitle>
         <DialogContent className="dialog-content">
           <TextInput
             className="input-field"
             inputRef={inputRef}
-            placeholder="Folder name"
+            placeholder={t("folder.namePlaceholder")}
             autoFocus
             spellCheck={false}
             autoComplete="off"
@@ -187,7 +189,7 @@ const FolderProperty = (props: PropertyProps<FolderValue | null>) => {
         <DialogActionButtons
           onCancel={handleCloseMenu}
           onConfirm={handleCreateFolder}
-          confirmText="Create folder"
+          confirmText={t("folder.create")}
         />
       </Popover>
     </>

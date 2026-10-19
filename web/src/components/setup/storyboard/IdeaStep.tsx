@@ -22,6 +22,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -82,6 +83,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onImportingChange,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const brief = useStoryboardStore(
     (state) => state.boards[boardId]?.brief ?? ""
   );
@@ -160,35 +162,39 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     () => [
       {
         id: "upload",
-        title: "Upload your file",
-        description: "PDF, DOCX, FDX",
+        title: t("pass3_10.storyboard.idea.uploadFile"),
+        description: t("pass3_10.storyboard.idea.supportedScriptFormats"),
         onSelect: () => scriptInput.current?.click(),
         disabled: readOnly || importing,
-        disabledReason: importing ? "Reading your file…" : undefined
+        disabledReason: importing
+          ? t("pass3_10.storyboard.idea.readingFile")
+          : undefined
       },
       {
         id: "shotlist",
-        title: "Import your shotlist",
-        description: "CSV, one row per shot",
+        title: t("pass3_10.storyboard.idea.importShotlist"),
+        description: t("pass3_10.storyboard.idea.shotlistFormat"),
         onSelect: () => shotlistInput.current?.click(),
         disabled: readOnly || importing,
-        disabledReason: importing ? "Reading your file…" : undefined
+        disabledReason: importing
+          ? t("pass3_10.storyboard.idea.readingFile")
+          : undefined
       },
       {
         id: "blank",
-        title: "Start with a blank storyboard",
-        description: "Skip the story and go straight to the board",
+        title: t("pass3_10.storyboard.idea.startBlank"),
+        description: t("pass3_10.storyboard.idea.startBlankDescription"),
         onSelect: onStartBlank,
         disabled: readOnly
       },
       {
         id: "tutorial",
-        title: "Take the tutorial",
-        description: "Walk one board end to end, with the steps explained",
+        title: t("pass3_10.storyboard.idea.takeTutorial"),
+        description: t("pass3_10.storyboard.idea.tutorialDescription"),
         onSelect: onOpenTutorial
       }
     ],
-    [importing, onOpenTutorial, onStartBlank, readOnly]
+    [importing, onOpenTutorial, onStartBlank, readOnly, t]
   );
 
   return (
@@ -206,10 +212,10 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       <FlexColumn gap={GAP.comfortable}>
         <FlexColumn gap={GAP.tight}>
           <Text size="big" component="h2">
-            What&apos;s your story?
+            {t("pass3_10.storyboard.idea.title")}
           </Text>
           <Text size="normal" color="secondary">
-            We&apos;ll turn it into a screenplay and storyboard.
+            {t("pass3_10.storyboard.idea.description")}
           </Text>
         </FlexColumn>
 
@@ -227,13 +233,15 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         {source ? (
           <AlertBanner
             severity="info"
-            title={`Imported from ${source.fileName}`}
+            title={t("pass3_10.storyboard.idea.importedFrom", {
+              fileName: source.fileName
+            })}
           >
             <FlexColumn gap={GAP.tight}>
               <Caption component="span">
                 {locked
-                  ? "Your scenes and dialogue are used as written. The Director only adds camera, motion and timing."
-                  : "The Director structures this text into scenes and shots."}
+                  ? t("pass3_10.storyboard.idea.preservedScriptDescription")
+                  : t("pass3_10.storyboard.idea.importedTextDescription")}
               </Caption>
               <FlexRow gap={GAP.normal} wrap>
                 <EditorButton
@@ -242,7 +250,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   onClick={replaceSource}
                   disabled={readOnly || importing}
                 >
-                  Replace file
+                  {t("pass3_10.storyboard.idea.replaceFile")}
                 </EditorButton>
                 {locked ? (
                   <EditorButton
@@ -251,7 +259,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                     onClick={editAsText}
                     disabled={readOnly || importing}
                   >
-                    Edit as text
+                    {t("pass3_10.storyboard.idea.editAsText")}
                   </EditorButton>
                 ) : (
                   <EditorButton
@@ -260,7 +268,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                     onClick={removeSource}
                     disabled={readOnly || importing}
                   >
-                    Remove the file
+                    {t("pass3_10.storyboard.idea.removeFile")}
                   </EditorButton>
                 )}
               </FlexRow>
@@ -272,15 +280,15 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           value={brief}
           autoFocus={!locked && !readOnly}
           rows={5}
-          label="Your story"
+          label={t("pass3_10.storyboard.idea.storyLabel")}
           hideLabel
-          placeholder="One sentence is enough, or paste a full script."
+          placeholder={t("pass3_10.storyboard.idea.storyPlaceholder")}
           onChange={handleChange}
           inputRef={briefField}
           slotProps={{ input: { readOnly: locked || readOnly } }}
           helperText={
             locked
-              ? "Held while your file is the script. Edit as text to change the words here."
+              ? t("pass3_10.storyboard.idea.lockedScriptHelper")
               : undefined
           }
         />
@@ -294,7 +302,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
               <ReportBugButton
                 context={{
                   source: "operation-failure",
-                  summary: "Storyboard script import failed",
+                  summary: t("pass3_10.storyboard.idea.scriptImportFailureSummary"),
                   errorText: script.error
                 }}
               />
@@ -308,7 +316,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
               <ReportBugButton
                 context={{
                   source: "operation-failure",
-                  summary: "Storyboard shotlist import failed",
+                  summary: t("pass3_10.storyboard.idea.shotlistImportFailureSummary"),
                   errorText: shotlist.error
                 }}
               />
@@ -333,12 +341,12 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           under the rail, next to the card that needs it. */}
       <FlexColumn gap={GAP.normal}>
         <AlternativesColumn
-          label="Other ways to start"
+          label={t("pass3_10.storyboard.idea.alternativesLabel")}
           alternatives={alternatives}
         />
         <Caption color="secondary" component="p">
           <a href={SHOTLIST_TEMPLATE_URL} download>
-            Download the CSV template
+            {t("pass3_10.storyboard.idea.downloadCsvTemplate")}
           </a>
         </Caption>
       </FlexColumn>
@@ -349,7 +357,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         hidden
         ref={scriptInput}
         accept={SCRIPT_ACCEPT}
-        aria-label="Upload your file"
+        aria-label={t("pass3_10.storyboard.idea.uploadFile")}
         onChange={handlePicked(script.importFile)}
       />
       <input
@@ -357,7 +365,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         hidden
         ref={shotlistInput}
         accept={SHOTLIST_ACCEPT}
-        aria-label="Import your shotlist"
+        aria-label={t("pass3_10.storyboard.idea.importShotlist")}
         onChange={handlePicked(shotlist.importFile)}
       />
 

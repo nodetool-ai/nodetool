@@ -8,6 +8,7 @@
  * read a stale result as a fresh one.
  */
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { usesStreamInputContract } from "@nodetool-ai/node-sdk/code-body";
@@ -64,13 +65,14 @@ const Mono = ({ children }: { children: string }) => (
   </CodeBlock>
 );
 
-const CaseReport = ({ report }: { report: JsScriptTestCaseReport }) => (
-  <FlexColumn gap={SPACING.xs}>
+const CaseReport = ({ report }: { report: JsScriptTestCaseReport }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
+  return <FlexColumn gap={SPACING.xs}>
     <FlexRow gap={SPACING.sm} align="center">
       <Chip
         compact
         color={report.ok ? "success" : "error"}
-        label={report.ok ? "pass" : "fail"}
+        label={report.ok ? t("status.pass") : t("status.fail")}
       />
       <Text size="small" weight={600}>
         {report.name}
@@ -88,8 +90,8 @@ const CaseReport = ({ report }: { report: JsScriptTestCaseReport }) => (
         )}\n  actual:   ${json(mismatch.actual)}`}
       </Mono>
     ))}
-  </FlexColumn>
-);
+  </FlexColumn>;
+};
 
 const JsScriptRunConsole = ({
   scriptId,
@@ -98,6 +100,7 @@ const JsScriptRunConsole = ({
   onRun,
   onTest
 }: JsScriptRunConsoleProps) => {
+  const { t, i18n } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const { inputs } = useJsScriptPorts(scriptId);
   const code = useJsScriptCode(scriptId);
@@ -120,14 +123,14 @@ const JsScriptRunConsole = ({
       return [];
     }
     const commands: ContextCommand[] = [
-      { id: "run", label: "Run Script…", run: () => setDialogOpen(true) }
+      { id: "run", label: t("actions.runScript"), run: () => setDialogOpen(true) }
     ];
     if (tests.length > 0) {
-      commands.push({ id: "test", label: "Run tests", run: onTest });
+      commands.push({ id: "test", label: t("actions.runTests"), run: onTest });
     }
     return commands;
-  }, [running, readOnly, tests.length, onTest]);
-  useContextCommands("JS script", menuCommands, active);
+  }, [running, readOnly, tests.length, onTest, t]);
+  useContextCommands(t("context.script"), menuCommands, active);
 
   return (
     <FlexColumn fullWidth gap={SPACING.sm} sx={{ minHeight: 0, flex: 1 }}>
@@ -139,7 +142,7 @@ const JsScriptRunConsole = ({
           disabled={running || readOnly}
           onClick={() => setDialogOpen(true)}
         >
-          Run
+          {t("actions.run")}
         </EditorButton>
         <EditorButton
           density="compact"
@@ -147,16 +150,16 @@ const JsScriptRunConsole = ({
           disabled={running || readOnly || tests.length === 0}
           onClick={onTest}
         >
-          {tests.length === 0 ? "No tests" : `Test (${tests.length})`}
+          {tests.length === 0 ? t("tests.none") : t("tests.count", { count: tests.length })}
         </EditorButton>
         {running && (
           <Text size="small" color="secondary">
-            Running…
+            {t("status.running")}
           </Text>
         )}
         {saveStatus !== "saved" && (
           <Text size="small" color="secondary">
-            Runs use the saved script — this one is {saveStatus}.
+            {t("status.savedScript", { status: t(`saveStatus.${saveStatus}`) })}
           </Text>
         )}
       </FlexRow>
@@ -167,7 +170,7 @@ const JsScriptRunConsole = ({
             <FlexRow gap={SPACING.lg} align="flex-start">
               {readOnly && tests.length > 0 && (
                 <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0 }}>
-                  <Label>Saved cases</Label>
+                  <Label>{t("tests.savedCases")}</Label>
                   {tests.map((test) => (
                     <FlexColumn key={test.name} gap={SPACING.xs}>
                       <Text size="small" weight={600}>
@@ -181,11 +184,11 @@ const JsScriptRunConsole = ({
               {lastTest && (
                 <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0 }}>
                   <FlexRow gap={SPACING.sm} align="center">
-                    <Label>Tests</Label>
+                    <Label>{t("tests.title")}</Label>
                     <Chip
                       compact
                       color={lastTest.failed === 0 ? "success" : "error"}
-                      label={`${lastTest.passed} passed, ${lastTest.failed} failed`}
+                      label={t("tests.result", { passed: new Intl.NumberFormat(i18n.language).format(lastTest.passed), failed: new Intl.NumberFormat(i18n.language).format(lastTest.failed) })}
                     />
                   </FlexRow>
                   {lastTest.cases.map((report) => (
@@ -199,14 +202,14 @@ const JsScriptRunConsole = ({
           {lastRun && (
             <FlexColumn gap={SPACING.sm}>
               <FlexRow gap={SPACING.sm} align="center">
-                <Label>Last run</Label>
+                <Label>{t("run.lastRun")}</Label>
                 <Chip
                   compact
                   color={lastRun.ok ? "success" : "error"}
-                  label={lastRun.ok ? "ok" : "failed"}
+                  label={lastRun.ok ? t("status.ok") : t("status.failed")}
                 />
                 <Text size="small" color="secondary">
-                  {lastRun.duration_ms} ms
+                  {new Intl.NumberFormat(i18n.language).format(lastRun.duration_ms)} {t("units.milliseconds")}
                 </Text>
               </FlexRow>
               {lastRun.error && (
@@ -216,19 +219,19 @@ const JsScriptRunConsole = ({
               )}
               {lastRun.logs.length > 0 && (
                 <>
-                  <Label>Logs</Label>
+                  <Label>{t("run.logs")}</Label>
                   <LogView lines={lastRun.logs} />
                 </>
               )}
               {lastRun.streamed && lastRun.streamed.length > 0 && (
                 <>
-                  <Label>Streamed</Label>
+                  <Label>{t("run.streamed")}</Label>
                   <Mono>{json(lastRun.streamed)}</Mono>
                 </>
               )}
               {lastRun.outputs && (
                 <>
-                  <Label>Outputs</Label>
+                  <Label>{t("run.outputs")}</Label>
                   <Mono>{json(lastRun.outputs)}</Mono>
                 </>
               )}
@@ -237,7 +240,7 @@ const JsScriptRunConsole = ({
 
           {!lastRun && !lastTest && (
             <Text size="small" color="secondary">
-              Run the script to see its logs, emitted values, and outputs here.
+              {t("run.empty")}
             </Text>
           )}
         </FlexColumn>

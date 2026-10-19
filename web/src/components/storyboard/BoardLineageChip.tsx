@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Chip, Tooltip } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
@@ -18,6 +19,7 @@ export interface BoardLineageChipProps {
 }
 
 const BoardLineageChipInner: React.FC<BoardLineageChipProps> = ({ boardId }) => {
+  const { t } = useTranslation();
   const { data: board } = trpc.storyboards.get.useQuery(
     { id: boardId },
     { staleTime: 30_000, retry: false }
@@ -46,10 +48,12 @@ const BoardLineageChipInner: React.FC<BoardLineageChipProps> = ({ boardId }) => 
   }
 
   return (
-    <Tooltip title="Open the board this one was recast from">
+    <Tooltip title={t("screens4_11.storyboard.lineage.openSourceBoard")}>
       <Chip
         compact
-        label={`Recast from ${templateName ?? "template"}`}
+        label={t("screens4_11.storyboard.lineage.recastFrom", {
+          name: templateName ?? t("screens4_11.storyboard.lineage.template")
+        })}
         onClick={open}
       />
     </Tooltip>

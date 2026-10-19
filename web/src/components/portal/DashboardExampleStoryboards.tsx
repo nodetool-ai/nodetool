@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { ExampleStoryboardSummary } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import { useExampleStoryboards, useInstallExampleStoryboard } from "../../hooks/storyboard/useStoryboards";
@@ -109,9 +110,10 @@ const StoryboardCard = memo(function StoryboardCard({
   installing,
   onInstall
 }: StoryboardCardProps) {
+  const { t } = useTranslation();
   const stills = storyboard.stillUrls;
   return (
-    <Tooltip title={`Add ${storyboard.name} to your storyboards`} describeChild>
+    <Tooltip title={t("pass3_17.storyboards.addTooltip", { name: storyboard.name })} describeChild>
       <button
         type="button"
         className={installing ? "board-card installing" : "board-card"}
@@ -152,6 +154,7 @@ const StoryboardCard = memo(function StoryboardCard({
 });
 
 const DashboardExampleStoryboards = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const navigate = useNavigate();
@@ -181,13 +184,13 @@ const DashboardExampleStoryboards = () => {
             addNotification({
               type: "error",
               alert: true,
-              content: `Couldn't add ${storyboard.name}: ${error.message}`
+              content: t("pass3_17.storyboards.addError", { name: storyboard.name, error: error.message })
             });
           }
         }
       );
     },
-    [addNotification, install, navigate, openTab]
+    [addNotification, install, navigate, openTab, t]
   );
 
   const storyboards = useMemo(
@@ -195,21 +198,21 @@ const DashboardExampleStoryboards = () => {
     [data]
   );
   return (
-    <section css={styles(theme)} aria-label="Example storyboards">
+    <section css={styles(theme)} aria-label={t("pass3_17.storyboards.ariaLabel")}>
       <div css={sectionWrap}>
-        <DashboardSectionHeader title="Start from a storyboard" count={`${storyboards.length} boards`} />
+        <DashboardSectionHeader title={t("pass3_17.storyboards.sectionTitle")} count={t("pass3_17.storyboards.count", { count: storyboards.length })} />
         <p className="boards-lede">
-          Explore a shot sequence with rendered stills. Open a board to make your own copy.
+          {t("pass3_17.storyboards.lede")}
         </p>
         {isLoading ? (
-          <div className="boards-state"><LoadingSpinner size="medium" text="Loading storyboards" /></div>
+          <div className="boards-state"><LoadingSpinner size="medium" text={t("pass3_17.storyboards.loading")} /></div>
         ) : isError ? (
           <div className="boards-state">
-            <EmptyState variant="error" title="Couldn't load storyboards" description="Try again in a moment." actionText="Retry" onAction={() => refetch()} />
+            <EmptyState variant="error" title={t("pass3_17.storyboards.loadErrorTitle")} description={t("pass3_17.common.tryAgain")} actionText={t("pass3_17.common.retry")} onAction={() => refetch()} />
           </div>
         ) : storyboards.length === 0 ? (
           <div className="boards-state">
-            <EmptyState variant="no-data" title="No storyboards available" description="Example storyboards will appear here when this install ships them." />
+            <EmptyState variant="no-data" title={t("pass3_17.storyboards.emptyTitle")} description={t("pass3_17.storyboards.emptyDescription")} />
           </div>
         ) : (
           <AutoGrid minItemWidth={280} fill="fit">

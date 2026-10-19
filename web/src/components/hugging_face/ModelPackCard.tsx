@@ -1,4 +1,5 @@
 import React, { memo, useState, useMemo, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Text,
@@ -44,6 +45,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
   pack,
   onDownloadAll
 }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const packModelIds = useMemo(
     () => pack.models.map((m) => m.id),
@@ -184,7 +186,9 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                 />
               ))}
               <Chip
-                label={`${pack.models.length} model${pack.models.length > 1 ? "s" : ""}`}
+                label={t("i18n-next55.modelPack.modelCount", {
+                  count: pack.models.length
+                })}
                 compact
               />
               {pack.total_size && (
@@ -204,7 +208,11 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
               showValue={false}
             />
             <Caption color="secondary">
-              Downloading {activeDownloads.length} of {pack.models.length} models…
+              {t("i18n-next55.modelPack.downloadingProgress", {
+                active: activeDownloads.length,
+                total: pack.models.length,
+                count: pack.models.length
+              })}
             </Caption>
           </Box>
         )}
@@ -214,8 +222,13 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
         <Tooltip
           title={
             pack.total_size
-              ? `Download ${formatBytes(pack.total_size)} to ${downloadTarget.label}`
-              : `Downloads to ${downloadTarget.label}`
+              ? t("i18n-next55.modelPack.downloadToTarget", {
+                  size: formatBytes(pack.total_size),
+                  target: downloadTarget.label
+                })
+              : t("i18n-next55.modelPack.downloadsToTarget", {
+                  target: downloadTarget.label
+                })
           }
         >
           <EditorButton
@@ -230,16 +243,22 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             }}
           >
             {allDownloaded
-              ? "All downloaded"
+              ? t("i18n-next55.modelPack.allDownloaded")
               : someDownloaded
-                ? `Download ${pack.models.length - downloadedModels.size} Remaining`
-                : "Download all"}
+                ? t("i18n-next55.modelPack.downloadRemaining", {
+                    count: pack.models.length - downloadedModels.size
+                  })
+                : t("i18n-next55.modelPack.downloadAll")}
           </EditorButton>
         </Tooltip>
 
         <ToolbarIconButton
           icon={<ExpandMoreIcon />}
-          tooltip={expanded ? "Collapse model pack details" : "Expand model pack details"}
+          tooltip={
+            expanded
+              ? t("i18n-next55.modelPack.collapseDetails")
+              : t("i18n-next55.modelPack.expandDetails")
+          }
           onClick={handleToggleExpanded}
           sx={{
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
@@ -256,7 +275,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             color="secondary"
             sx={{ mb: 1 }}
           >
-            Included Models:
+            {t("i18n-next55.modelPack.includedModels")}
           </Text>
           <List dense disablePadding>
             {pack.models.map((model) => (

@@ -8,6 +8,7 @@
  * field's helper text.
  */
 import { memo, type MouseEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import type { SxProps, Theme } from "@mui/material/styles";
 import ReportBugButton from "./ReportBugButton";
 import { AlertBanner, EditorButton, FlexRow, GAP } from "../ui_primitives";
@@ -34,32 +35,35 @@ const ErrorBanner = ({
   report,
   title,
   onRetry,
-  retryLabel = "Try again",
+  retryLabel,
   compact = true,
   sx,
   className,
   "data-testid": testId
-}: ErrorBannerProps) => (
-  <AlertBanner
-    severity="error"
-    title={title}
-    compact={compact}
-    sx={sx}
-    className={className}
-    data-testid={testId}
-    action={
-      <FlexRow gap={GAP.tight} align="center">
-        {onRetry && (
-          <EditorButton size="small" variant="text" onClick={onRetry}>
-            {retryLabel}
-          </EditorButton>
-        )}
-        <ReportBugButton context={report} />
-      </FlexRow>
-    }
-  >
-    {children}
-  </AlertBanner>
-);
+}: ErrorBannerProps) => {
+  const { t } = useTranslation();
+  return (
+    <AlertBanner
+      severity="error"
+      title={title}
+      compact={compact}
+      sx={sx}
+      className={className}
+      data-testid={testId}
+      action={
+        <FlexRow gap={GAP.tight} align="center">
+          {onRetry && (
+            <EditorButton size="small" variant="text" onClick={onRetry}>
+              {retryLabel ?? t("screens4_9.support.tryAgain")}
+            </EditorButton>
+          )}
+          <ReportBugButton context={report} />
+        </FlexRow>
+      }
+    >
+      {children}
+    </AlertBanner>
+  );
+};
 
 export default memo(ErrorBanner);

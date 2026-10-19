@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import { ALL_PROJECTS, useAssetGridStore } from "../../stores/AssetGridStore";
@@ -34,6 +35,7 @@ const projectGlyph = (
  */
 const AssetProjectFilter: React.FC = () => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const { t } = useTranslation();
   const setProjectFilter = useAssetGridStore(
     (state) => state.setProjectFilter
   );
@@ -56,11 +58,11 @@ const AssetProjectFilter: React.FC = () => {
     scopeKey === personalProjectId || scopeKey === LOOSE_PROJECT_ID;
   const label =
     scopeKey === ALL_PROJECTS
-      ? "All projects"
+      ? t("i18n-next43-assets-navigation.projectFilter.allProjects")
       : isPersonalScope
-        ? "Personal"
+        ? t("i18n-next43-assets-navigation.projectFilter.personal")
         : (namedProjects.find((project) => project.id === scopeKey)?.name ??
-          "Project");
+          t("i18n-next43-assets-navigation.projectFilter.project"));
 
   const choose = useCallback(
     (projectId: string) => {
@@ -79,9 +81,11 @@ const AssetProjectFilter: React.FC = () => {
         density="compact"
         startIcon={scopeKey === ALL_PROJECTS ? undefined : projectGlyph}
         endIcon={<ArrowDropDownIcon />}
-        tooltip="Show assets from one project or all of them"
+        tooltip={t("i18n-next43-assets-navigation.projectFilter.tooltip")}
         aria-haspopup="menu"
-        aria-label={`Project: ${label}`}
+        aria-label={t("i18n-next43-assets-navigation.projectFilter.ariaLabel", {
+          label
+        })}
         onClick={(e) => setAnchor(e.currentTarget)}
         sx={{ maxWidth: 200 }}
       >
@@ -97,7 +101,7 @@ const AssetProjectFilter: React.FC = () => {
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
         <MenuItemPrimitive
-          label="All projects"
+          label={t("i18n-next43-assets-navigation.projectFilter.allProjects")}
           icon={<FilterAltOffIcon />}
           checkable="radio"
           checked={scopeKey === ALL_PROJECTS}
@@ -105,7 +109,7 @@ const AssetProjectFilter: React.FC = () => {
           dividerAfter
         />
         <MenuItemPrimitive
-          label="Personal"
+          label={t("i18n-next43-assets-navigation.projectFilter.personal")}
           icon={projectGlyph}
           checkable="radio"
           checked={isPersonalScope}
@@ -122,18 +126,23 @@ const AssetProjectFilter: React.FC = () => {
           />
         ))}
         {isPending && (
-          <LoadingSpinner size="small" text="Loading projects" />
+          <LoadingSpinner
+            size="small"
+            text={t("i18n-next43-assets-navigation.projectFilter.loading")}
+          />
         )}
         {error && (
           <ErrorBanner
             sx={{ mx: SPACING.sm, my: SPACING.xs }}
             report={{
               source: "operation-failure",
-              summary: "Project filter failed to load projects",
+              summary: t(
+                "i18n-next43-assets-navigation.projectFilter.loadErrorSummary"
+              ),
               errorText: error.message
             }}
           >
-            Could not load projects
+            {t("i18n-next43-assets-navigation.projectFilter.loadError")}
           </ErrorBanner>
         )}
       </ContextMenu>

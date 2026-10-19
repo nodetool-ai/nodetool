@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import InstallIcon from "@mui/icons-material/InstallDesktop";
 
 import { EditorButton, LoadingSpinner, Tooltip } from "../../ui_primitives";
@@ -14,6 +15,7 @@ interface ModelRowInstallProps {
  * becomes usable once the model list reloads.
  */
 const ModelRowInstall: React.FC<ModelRowInstallProps> = ({ info }) => {
+  const { t } = useTranslation();
   const handleClick = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
@@ -23,18 +25,18 @@ const ModelRowInstall: React.FC<ModelRowInstallProps> = ({ info }) => {
   );
 
   if (info.status === "installing") {
-    return <LoadingSpinner size="small" text="Installing" />;
+    return <LoadingSpinner size="small" text={t("screen_modelMenu.installing")} />;
   }
 
   return (
-    <Tooltip title={`Install ${info.spec.installLabel} on this computer`}>
+    <Tooltip title={t("screen_modelMenu.installOnThisComputer", { installLabel: info.spec.installLabel })}>
       <EditorButton
         variant="outlined"
         onClick={handleClick}
         startIcon={<InstallIcon />}
         sx={{ flexShrink: 0 }}
       >
-        Install
+        {t("screen_modelMenu.install")}
       </EditorButton>
     </Tooltip>
   );

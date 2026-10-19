@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo } from "react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
@@ -19,9 +20,7 @@ import type { Theme } from "@mui/material/styles";
 import { readAssetGenerationMetadata } from "@nodetool-ai/protocol";
 import type { Asset } from "../../stores/ApiTypes";
 import {
-  formatContentType,
-  formatDateTime,
-  formatFileSize
+  formatContentType
 } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import {
@@ -35,6 +34,16 @@ import { useJobSnapshot } from "../../serverState/useJobSnapshot";
 
 /** Metadata keys rendered by their own section, not by the raw dump. */
 const RENDERED_METADATA_KEYS = new Set(["prompt", "generation", "openverse"]);
+
+const formatLocalizedFileSize = (bytes: number, locale: string): string => {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 B";
+  }
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** index;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)} ${units[index]}`;
+};
 
 
 const styles = (theme: Theme) =>
@@ -122,6 +131,7 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
   asset,
   onOpenWorkflow
 }) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
@@ -188,23 +198,32 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
         <img className="info-thumb" src={thumbSrc} alt="" loading="eager" />
       )}
 
-      <InfoRow label="Name" value={asset.name} />
+      <InfoRow label={t("screen_editor.name")} value={asset.name} />
       <InfoRow
-        label="Type"
+        label={t("screen_editor.type")}
         value={asset.content_type ? formatContentType(asset.content_type) : null}
       />
       {asset.size != null && asset.size > 0 && (
-        <InfoRow label="Size" value={formatFileSize(asset.size)} />
+        <InfoRow label={t("screen_editor.size")} value={formatLocalizedFileSize(asset.size, i18n.language)} />
       )}
       {asset.duration != null && asset.duration > 0 && (
-        <InfoRow label="Duration" value={secondsToHMS(asset.duration)} />
+        <InfoRow label={t("screen_editor.duration")} value={secondsToHMS(asset.duration)} />
       )}
-      <InfoRow label="Created" value={formatDateTime(asset.created_at)} />
+      <InfoRow
+        label={t("screen_editor.created")}
+        value={Number.isNaN(new Date(asset.created_at).getTime()) ? "—" : new Intl.DateTimeFormat(i18n.language, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        }).format(new Date(asset.created_at))}
+      />
 
       {(folderName || workflowName || runGraphSnapshot) && (
         <div className="info-section">
-          {folderName && <InfoRow label="Folder" value={folderName} />}
-          {workflowName && <InfoRow label="Workflow" value={workflowName} />}
+          {folderName && <InfoRow label={t("screen_editor.folder")} value={folderName} />}
+          {workflowName && <InfoRow label={t("screen_editor.workflow")} value={workflowName} />}
           {(asset.workflow_id || runGraphSnapshot) && (
             <FlexRow gap={SPACING.xs} wrap sx={{ pt: SPACING.xs }}>
               {asset.workflow_id && (
@@ -212,9 +231,9 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
                   variant="outlined"
                   startIcon={<AccountTreeIcon />}
                   onClick={handleOpenWorkflow}
-                  tooltip="Open the saved workflow and show the node that made this asset"
+                  tooltip={t("screen_editor.openSourceWorkflowTooltip")}
                 >
-                  Open workflow
+                  {t("screen_editor.openWorkflow")}
                 </EditorButton>
               )}
               {runGraphSnapshot && (
@@ -222,9 +241,9 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
                   variant="outlined"
                   startIcon={<HistoryIcon />}
                   onClick={handleOpenSnapshot}
-                  tooltip="Open the graph and inputs this asset was made with as a new unsaved workflow"
+                  tooltip={t("screen_editor.openSnapshotTooltip")}
                 >
-                  Open as it was when made
+                  {t("screen_editor.openAsMade")}
                 </EditorButton>
               )}
             </FlexRow>
@@ -236,9 +255,9 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
         <div className="info-section">
           <FlexRow align="center" justify="space-between">
             <Text className="info-section-title" component="span">
-              Prompt
+              {t("screen_editor.prompt")}
             </Text>
-            <CopyButton value={prompt} tooltip="Copy prompt" buttonSize="small" />
+            <CopyButton value={prompt} tooltip={t("screen_editor.copyPrompt")} buttonSize="small" />
           </FlexRow>
           <Text className="info-prompt" component="p">
             {prompt}
@@ -250,19 +269,19 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
         <div className="info-section">
           <FlexRow align="center" justify="space-between">
             <Text className="info-section-title" component="span">
-              License
+              {t("screen_editor.license")}
             </Text>
             {credit.attribution && (
               <CopyButton
                 value={credit.attribution}
-                tooltip="Copy attribution"
+                tooltip={t("screen_editor.copyAttribution")}
                 buttonSize="small"
               />
             )}
           </FlexRow>
           <div className="info-row">
             <Text className="info-label" component="span">
-              License
+              {t("screen_editor.license")}
             </Text>
             <Text className="info-value" component="span">
               {credit.license_url ? (
@@ -274,15 +293,15 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
               )}
             </Text>
           </div>
-          <InfoRow label="Creator" value={credit.creator} />
+          <InfoRow label={t("screen_editor.creator")} value={credit.creator} />
           {credit.landing_url && (
             <div className="info-row">
               <Text className="info-label" component="span">
-                Source
+                {t("screen_editor.source")}
               </Text>
               <Text className="info-value" component="span">
                 <TextLink href={credit.landing_url} external>
-                  {credit.source || "Original page"}
+                  {credit.source || t("screen_editor.originalPage")}
                 </TextLink>
               </Text>
             </div>
@@ -297,10 +316,10 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
 
       {generation && (
         <div className="info-section">
-          <InfoRow label="Model" value={generation.model_name ?? generation.model} />
-          <InfoRow label="Provider" value={generation.provider} />
-          <InfoRow label="Node" value={generation.node_type} />
-          <InfoRow label="Task" value={generation.capability} />
+          <InfoRow label={t("screen_editor.model")} value={generation.model_name ?? generation.model} />
+          <InfoRow label={t("screen_editor.provider")} value={generation.provider} />
+          <InfoRow label={t("screen_editor.node")} value={generation.node_type} />
+          <InfoRow label={t("screen_editor.task")} value={generation.capability} />
           {settings &&
             Object.entries(settings).map(([key, value]) => (
               <InfoRow
@@ -313,7 +332,7 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({
       )}
 
       <div className="info-section">
-        <InfoRow label="ID" value={asset.id} />
+        <InfoRow label={t("screen_editor.id")} value={asset.id} />
       </div>
 
       {otherMetadata.length > 0 && (

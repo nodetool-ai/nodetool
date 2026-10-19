@@ -8,14 +8,11 @@
 
 import React, { memo, useCallback } from "react";
 import type { SceneClipDirection, Shot } from "@nodetool-ai/protocol";
+import { useTranslation } from "react-i18next";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 
 import { EditorButton } from "../ui_primitives";
-import {
-  SCENE_CLIP_STATUS_LABELS,
-  sceneClipRangeLabel,
-  sceneClipStatus
-} from "./sceneClips";
+import { sceneClipStatus } from "./sceneClips";
 
 export interface SceneClipControlsProps {
   /** The scene's id, or null for the implicit legacy group. */
@@ -35,6 +32,7 @@ interface ClipButtonProps {
   clip: SceneClipDirection;
   label: string;
   status: string;
+  ariaLabel: string;
   onOpen: SceneClipControlsProps["onOpen"];
 }
 
@@ -43,6 +41,7 @@ const ClipButton: React.FC<ClipButtonProps> = ({
   clip,
   label,
   status,
+  ariaLabel,
   onOpen
 }) => {
   const handleClick = useCallback(
@@ -54,6 +53,7 @@ const ClipButton: React.FC<ClipButtonProps> = ({
       size="small"
       variant="outlined"
       onClick={handleClick}
+      aria-label={ariaLabel}
       data-testid="scene-clip-button"
     >
       {`${label} · ${status}`}
@@ -68,6 +68,9 @@ const SceneClipControlsInner: React.FC<SceneClipControlsProps> = ({
   clips,
   onOpen
 }) => {
+  const { t, i18n } = useTranslation();
+  const number = (value: number): string =>
+    new Intl.NumberFormat(i18n.language).format(value);
   const handleNew = useCallback(
     () => onOpen(sceneId, null),
     [onOpen, sceneId]
@@ -75,25 +78,54 @@ const SceneClipControlsInner: React.FC<SceneClipControlsProps> = ({
   if (sceneShots.length < 2) {
     return null;
   }
+  const clipButtons = clips.map((clip) => {
+    const positions = clip.shot_ids
+      .map((id) => sceneShots.findIndex((shot) => shot.id === id))
+      .filter((index) => index >= 0)
+      .map((index) => index + 1)
+      .sort((a, b) => a - b);
+    const first = positions[0];
+    const last = positions[positions.length - 1];
+    const label =
+      first === undefined
+        ? t("screens4_14.storyboard.sceneClip.sceneClip")
+        : first === last
+          ? t("screens4_14.storyboard.sceneClip.shot", {
+              count: first,
+              number: number(first)
+            })
+          : t("screens4_14.storyboard.sceneClip.shotRange", {
+              first: number(first),
+              last: number(last)
+            });
+    const status = t(
+      `screens4_14.storyboard.sceneClip.status.${sceneClipStatus(boardShots, clip)}`
+    );
+    return (
+      <ClipButton
+        key={clip.id}
+        sceneId={sceneId}
+        clip={clip}
+        label={label}
+        status={status}
+        ariaLabel={t("screens4_14.storyboard.sceneClip.openClip", {
+          label,
+          status
+        })}
+        onOpen={onOpen}
+      />
+    );
+  });
   return (
     <>
-      {clips.map((clip) => (
-        <ClipButton
-          key={clip.id}
-          sceneId={sceneId}
-          clip={clip}
-          label={sceneClipRangeLabel(sceneShots, clip)}
-          status={SCENE_CLIP_STATUS_LABELS[sceneClipStatus(boardShots, clip)]}
-          onOpen={onOpen}
-        />
-      ))}
+      {clipButtons}
       <EditorButton
         size="small"
         variant="text"
         startIcon={<MovieOutlinedIcon />}
         onClick={handleNew}
       >
-        Scene clip…
+        {t("screens4_14.storyboard.sceneClip.new")}
       </EditorButton>
     </>
   );

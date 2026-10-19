@@ -6,6 +6,7 @@
  * writes straight into the document, which autosaves.
  */
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Divider,
@@ -38,6 +39,7 @@ const JsScriptSettingsPanel = ({
   scriptId,
   readOnly = false
 }: JsScriptSettingsPanelProps) => {
+  const { t, i18n } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const document = useJsScriptDocument(scriptId);
   const setDescription = useJsScriptStore((state) => state.setDescription);
   const setPorts = useJsScriptStore((state) => state.setPorts);
@@ -69,12 +71,12 @@ const JsScriptSettingsPanel = ({
     <ScrollArea>
       <FlexColumn gap={SPACING.lg} padding={2}>
         <TextArea
-          label="Description"
+          label={t("settings.description")}
           size="small"
           minRows={1}
           value={document.description}
-          placeholder="What this script does"
-          helperText="Agents read this to decide whether to call the script."
+          placeholder={t("settings.descriptionPlaceholder")}
+          helperText={t("settings.descriptionHelp")}
           disabled={readOnly}
           onChange={(value) =>
             setDescription(scriptId, value)
@@ -84,13 +86,13 @@ const JsScriptSettingsPanel = ({
         <Divider />
         <FlexColumn data-focus-id="jsscript-ports" gap={SPACING.lg}>
           <JsScriptPortsEditor
-            label="Inputs"
+            label={t("ports.inputs")}
             ports={document.inputs}
             readOnly={readOnly}
             onChange={handleInputs}
           />
           <JsScriptPortsEditor
-            label="Outputs"
+            label={t("ports.outputs")}
             ports={document.outputs}
             readOnly={readOnly}
             onChange={handleOutputs}
@@ -107,16 +109,16 @@ const JsScriptSettingsPanel = ({
         <Divider />
         <FlexColumn gap={SPACING.lg}>
           <LabeledSwitch
-            label="Show in node menu"
+          label={t("settings.showInNodeMenu")}
             size="small"
             checked={document.palette !== undefined}
             disabled={readOnly}
             onChange={handleShowInMenu}
-            description="Adds this script to My Nodes, so it drops onto a graph like any node."
+            description={t("settings.showInNodeMenuHelp")}
           />
           {document.palette !== undefined ? (
             <TextInput
-              label="Category"
+              label={t("settings.category")}
               size="small"
               value={document.palette.category}
               placeholder={DEFAULT_CATEGORY}
@@ -130,7 +132,7 @@ const JsScriptSettingsPanel = ({
 
         <Divider />
         <NumberField
-          label={`Timeout (seconds, max ${JS_SCRIPT_MAX_TIMEOUT_SECONDS})`}
+          label={t("settings.timeout", { max: new Intl.NumberFormat(i18n.language).format(JS_SCRIPT_MAX_TIMEOUT_SECONDS) })}
           size="small"
           min={0}
           max={JS_SCRIPT_MAX_TIMEOUT_SECONDS}

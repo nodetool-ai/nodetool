@@ -3,11 +3,14 @@
 // expect(element).toHaveTextContent(/react/i)
 // learn more: https://github.com/testing-library/jest-dom
 import "@testing-library/jest-dom";
+import { initializeDefaultAppI18n } from "./i18n/i18n";
 import { installGlobal } from "./test-utils/doubles";
 import {
   noModelSamples,
   setModelSampleProbe
 } from "./components/setup/modelSamples";
+
+initializeDefaultAppI18n();
 
 // Mock import.meta for Vite environment variables
 Object.defineProperty(globalThis, "import", {

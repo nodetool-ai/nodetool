@@ -21,6 +21,7 @@ import React, {
   useState,
   type RefObject
 } from "react";
+import { useTranslation } from "react-i18next";
 import { keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -117,6 +118,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   containerRef
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const selection = useSketchStore((s) => s.selection);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
@@ -226,16 +228,16 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         setJobLayerId(null);
         switch (result.reason) {
           case "no-selection":
-            reportError("Make a selection first.");
+            reportError(t("i18n-next52.sketch.selection.makeSelection"));
             break;
           case "no-document":
-            reportError("No image document is open.");
+            reportError(t("i18n-next52.sketch.selection.noDocument"));
             break;
           case "no-canvas":
-            reportError("Canvas is not ready yet.");
+            reportError(t("i18n-next52.sketch.selection.canvasNotReady"));
             break;
           case "error":
-            reportError(result.message ?? "Generation failed.");
+            reportError(result.message ?? t("i18n-next52.sketch.selection.generationFailed"));
             break;
         }
         return;
@@ -244,11 +246,11 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
       await start(result.layerId);
       setPrompt("");
     } catch (e) {
-      reportError(e instanceof Error ? e.message : "Generation failed.");
+      reportError(e instanceof Error ? e.message : t("i18n-next52.sketch.selection.generationFailed"));
     } finally {
       setGenerating(false);
     }
-  }, [inpaintHere, start, prompt, provider, model, mode, reportError]);
+  }, [inpaintHere, start, prompt, provider, model, mode, reportError, t]);
 
   const handleRemove = useCallback(() => {
     if (clearActiveLayer) {
@@ -407,7 +409,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
             as a mask). The picked mode drives the model filter and the run. */}
         <FlexRow gap={0} sx={{ flexShrink: 0, mr: 0.5 }}>
           <Tooltip
-            title="Edit — transform the whole frame from your prompt (image-to-image, no mask)."
+            title={t("i18n-next52.sketch.selection.editTip")}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
@@ -416,11 +418,11 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               onClick={() => handleModeChange("edit")}
               data-testid="sketch-selection-mode-edit"
             >
-              Edit
+              {t("i18n-next52.sketch.selection.edit")}
             </EditorButton>
           </Tooltip>
           <Tooltip
-            title="Inpaint — regenerate only the selected region, using the selection as a mask."
+            title={t("i18n-next52.sketch.selection.inpaintTip")}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
@@ -429,7 +431,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               onClick={() => handleModeChange("inpaint")}
               data-testid="sketch-selection-mode-inpaint"
             >
-              Inpaint
+              {t("i18n-next52.sketch.selection.inpaint")}
             </EditorButton>
           </Tooltip>
         </FlexRow>
@@ -440,11 +442,11 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={
             mode === "inpaint"
-              ? "Replace selection with…"
-              : "Describe the edit…"
+              ? t("i18n-next52.sketch.selection.replaceSelection")
+              : t("i18n-next52.sketch.selection.describeEdit")
           }
           compact
-          aria-label={mode === "inpaint" ? "Inpaint prompt" : "Edit prompt"}
+          aria-label={mode === "inpaint" ? t("i18n-next52.sketch.selection.inpaintPrompt") : t("i18n-next52.sketch.selection.editPrompt")}
           data-testid="sketch-selection-inpaint-prompt"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !generateDisabled) {
@@ -477,8 +479,8 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         <Tooltip
           title={
             mode === "inpaint"
-              ? "Inpaint — regenerate the selected region using your prompt and the selection as a mask."
-              : "Edit — transform the whole frame from your prompt."
+              ? t("i18n-next52.sketch.selection.runInpaintTip")
+              : t("i18n-next52.sketch.selection.runEditTip")
           }
           placement={placeAbove ? "top" : "bottom"}
         >
@@ -497,13 +499,13 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               }
               data-testid="sketch-selection-generate"
             >
-              {mode === "inpaint" ? "Inpaint" : "Edit"}
+              {mode === "inpaint" ? t("i18n-next52.sketch.selection.inpaint") : t("i18n-next52.sketch.selection.edit")}
             </EditorButton>
           </span>
         </Tooltip>
 
         <Tooltip
-          title="Remove — clear the selected pixels from the active layer."
+          title={t("i18n-next52.sketch.selection.removeTip")}
           placement={placeAbove ? "top" : "bottom"}
         >
           <span>
@@ -515,7 +517,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               startIcon={<DeleteOutlineIcon />}
               data-testid="sketch-selection-remove"
             >
-              Remove
+              {t("i18n-next52.sketch.selection.remove")}
             </EditorButton>
           </span>
         </Tooltip>
@@ -525,7 +527,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
             them there. */}
         {mode === "inpaint" && (
           <Tooltip
-            title="Refine mask — feather, smooth, grow / shrink, or border the selection used for inpainting."
+            title={t("i18n-next52.sketch.selection.refineTip")}
             placement={placeAbove ? "top" : "bottom"}
           >
             <EditorButton
@@ -536,13 +538,13 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               startIcon={<TuneIcon />}
               data-testid="sketch-selection-refine-edge"
             >
-              Refine mask
+              {t("i18n-next52.sketch.selection.refineMask")}
             </EditorButton>
           </Tooltip>
         )}
 
         <CloseButton
-          tooltip="Dismiss selection"
+          tooltip={t("i18n-next52.sketch.selection.dismiss")}
           tooltipPlacement={placeAbove ? "top" : "bottom"}
           onClick={handleClose}
           buttonSize="small"

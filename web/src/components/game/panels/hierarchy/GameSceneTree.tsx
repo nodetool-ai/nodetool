@@ -1,4 +1,5 @@
 import { useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
@@ -40,13 +41,13 @@ type Preset = "sprite" | "wall" | "collectible" | "trigger" | "camera" | "empty"
 type DropPosition = "before" | "inside" | "after";
 const TREE_ICON_SX = { fontSize: FONT_SIZE_SANS.body } as const;
 const MENU_ICON_SX = { ...TREE_ICON_SX, color: "text.secondary" } as const;
-const PRESETS: readonly { kind: Preset; label: string; icon: ReactNode }[] = [
-  { kind: "sprite", label: "Sprite", icon: <ImageOutlinedIcon sx={MENU_ICON_SX} /> },
-  { kind: "wall", label: "Static wall", icon: <CropSquareIcon sx={MENU_ICON_SX} /> },
-  { kind: "collectible", label: "Collectible", icon: <StarOutlineIcon sx={MENU_ICON_SX} /> },
-  { kind: "trigger", label: "Trigger", icon: <SensorsOutlinedIcon sx={MENU_ICON_SX} /> },
-  { kind: "camera", label: "Camera", icon: <CameraAltOutlinedIcon sx={MENU_ICON_SX} /> },
-  { kind: "empty", label: "Empty", icon: <ViewInArOutlinedIcon sx={MENU_ICON_SX} /> }
+const PRESETS: readonly { kind: Preset; labelKey: string; icon: ReactNode }[] = [
+  { kind: "sprite", labelKey: "sprite", icon: <ImageOutlinedIcon sx={MENU_ICON_SX} /> },
+  { kind: "wall", labelKey: "staticWall", icon: <CropSquareIcon sx={MENU_ICON_SX} /> },
+  { kind: "collectible", labelKey: "collectible", icon: <StarOutlineIcon sx={MENU_ICON_SX} /> },
+  { kind: "trigger", labelKey: "trigger", icon: <SensorsOutlinedIcon sx={MENU_ICON_SX} /> },
+  { kind: "camera", labelKey: "camera", icon: <CameraAltOutlinedIcon sx={MENU_ICON_SX} /> },
+  { kind: "empty", labelKey: "empty", icon: <ViewInArOutlinedIcon sx={MENU_ICON_SX} /> }
 ];
 /** Width of the expand chevron column; one indent step, so children line up under their parent's icon. */
 const CHEVRON_SLOT = getSpacingPx(SPACING.xl);
@@ -57,9 +58,9 @@ const ROW_BUTTON_SX = {
 } as const;
 const TRUNCATE_SX = { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } as const;
 
-function presetEntity(kind: Preset, id: string, imageSlot?: string): Extract<GameDocumentOp, { op: "add_entity" }>["entity"] {
+function presetEntity(kind: Preset, id: string, imageSlot: string | undefined, label: string): Extract<GameDocumentOp, { op: "add_entity" }>["entity"] {
   const entity: Extract<GameDocumentOp, { op: "add_entity" }>["entity"] = {
-    id, name: PRESETS.find((preset) => preset.kind === kind)?.label ?? kind
+    id, name: label
   };
   if (imageSlot && (kind === "sprite" || kind === "wall" || kind === "collectible")) {
     entity.sprite = { assetId: imageSlot, width: 1, height: 1, layer: 0 };
@@ -174,6 +175,7 @@ function entityIcon(entity: GameEntity) {
 }
 
 export default function GameSceneTree({ document, activeSceneId, selectedIds, issues = [], scriptErrorEntityId, onSelect, onSelectScene, onOps }: GameSceneTreeProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [addSceneId, setAddSceneId] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -201,7 +203,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
   const add = (kind: Preset) => {
     if (!addSceneId) return;
     const id = crypto.randomUUID().replaceAll("-", "");
-    onOps([{ op: "add_entity", scene_id: addSceneId, entity: presetEntity(kind, id, imageSlot) }]);
+    onOps([{ op: "add_entity", scene_id: addSceneId, entity: presetEntity(kind, id, imageSlot, t(`screen_game.hierarchy.presets.${kind === "wall" ? "staticWall" : kind}`)) }]);
     onSelect({ sceneId: addSceneId, entityId: id }, false);
     setAddSceneId(null);
   };
@@ -233,7 +235,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
     ? <ExpandMoreIcon sx={TREE_ICON_SX} aria-hidden="true" />
     : <ChevronRightIcon sx={TREE_ICON_SX} aria-hidden="true" />;
   const toggleButton = (label: string, expanded: boolean, onToggle: () => void, disabled = false) => (
-    <FlexRow component="button" align="center" justify="center" aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
+    <FlexRow component="button" align="center" justify="center" aria-label={t(expanded ? "screen_game.hierarchy.collapse" : "screen_game.hierarchy.expand", { name: label })}
       aria-expanded={expanded} aria-disabled={disabled} onClick={(event) => { event.stopPropagation(); if (!disabled) onToggle(); }}
       sx={{ ...ROW_BUTTON_SX, width: CHEVRON_SLOT, height: CHEVRON_SLOT, flex: "0 0 auto", justifyContent: "center",
         color: "text.secondary", borderRadius: BORDER_RADIUS.sm, "&:hover": { color: "text.primary" },
@@ -244,21 +246,21 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
 
   return (
     <FlexColumn sx={{ flex: 1, minHeight: 0, height: "100%" }}>
-      <FlexRow role="toolbar" aria-label="Hierarchy toolbar" align="center" gap={SPACING.xs} sx={{
+      <FlexRow role="toolbar" aria-label={t("screen_game.hierarchy.toolbar")} align="center" gap={SPACING.xs} sx={{
         flexShrink: 0, minHeight: CONTROL.height.md, boxSizing: "border-box", paddingInline: getSpacingPx(SPACING.sm),
         borderBottom: `1px solid ${theme.vars.palette.divider}`
       }}>
-        <ToolbarIconButton icon={<AddIcon fontSize="small" />} tooltip={`Add entity to ${activeScene?.name ?? "scene"}`}
+        <ToolbarIconButton icon={<AddIcon fontSize="small" />} tooltip={t("screen_game.hierarchy.addEntityToScene", { scene: activeScene?.name ?? t("screen_game.hierarchy.scene") })}
           aria-haspopup="menu" aria-expanded={Boolean(addSceneId)} disabled={!activeScene}
           onClick={(event) => { if (!activeScene) return; setAnchor(event.currentTarget); setAddSceneId(activeScene.id); }} />
         <Box sx={{ flex: 1, minWidth: 0 }}><SearchInput value={search} onChange={(value) => {
           setSearch(value);
           setSearchCollapsedScenes(new Set());
           setSearchCollapsedGroups(new Set());
-        }} placeholder="Search" ariaLabel="Search entities" size="small" fullWidth
+        }} placeholder={t("screen_game.hierarchy.searchPlaceholder")} ariaLabel={t("screen_game.hierarchy.searchEntities")} size="small" fullWidth
           sx={{ "&& .MuiInputBase-input": TYPOGRAPHY.sans.label, "& .search-icon, & .clear-button svg": TREE_ICON_SX }} /></Box>
-        <Tooltip title="Drag to reorder or nest. Alt+arrow keys move or nest the focused entity.">
-          <HelpOutlineIcon tabIndex={0} aria-label="Hierarchy keyboard help" sx={{ ...TREE_ICON_SX, flexShrink: 0, color: "text.secondary",
+        <Tooltip title={t("screen_game.hierarchy.keyboardHelp")}>
+          <HelpOutlineIcon tabIndex={0} aria-label={t("screen_game.hierarchy.keyboardHelpLabel")} sx={{ ...TREE_ICON_SX, flexShrink: 0, color: "text.secondary",
             "&:focus-visible": focusRing(theme, 2), borderRadius: BORDER_RADIUS.circle }} />
         </Tooltip>
       </FlexRow>
@@ -270,7 +272,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
         <FlexColumn key={scene.id}>
           <TreeRow depth={0} baseIndent={SPACING.none} sx={ROW_SX}>
             {toggleButton(scene.name, sceneExpanded, () => toggleCollapsed(scene.id, needle ? setSearchCollapsedScenes : setCollapsedScenes))}
-            <FlexRow component="button" align="center" gap={SPACING.xs} aria-label={`Scene ${scene.name}`} aria-pressed={isActive}
+            <FlexRow component="button" align="center" gap={SPACING.xs} aria-label={t("screen_game.hierarchy.sceneLabel", { name: scene.name })} aria-pressed={isActive}
               onClick={() => onSelectScene(scene.id)}
               sx={{ ...ROW_BUTTON_SX, color: isActive ? "text.primary" : "text.secondary", fontWeight: isActive ? 600 : 500,
                 "&:hover": { color: "text.primary" } }}>
@@ -283,14 +285,14 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
             if (prefabs && rows.length === 0 && !dragged) return null;
             const groupKey = `${scene.id}:${prefabs ? "prefabs" : "entities"}`;
             const groupExpanded = !((needle ? searchCollapsedGroups : collapsedGroups).has(groupKey));
-            const groupName = prefabs ? "Prefabs" : "Entities";
+            const groupName = t(prefabs ? "screen_game.hierarchy.prefabs" : "screen_game.hierarchy.entities");
             return (
               <FlexColumn key={String(prefabs)}>
                 <TreeRow depth={1} baseIndent={SPACING.none} indentStep={SPACING.xl}
                   onDragOver={(event) => { if (dragged?.sceneId === scene.id) event.preventDefault(); }}
                   onDrop={(event) => { event.preventDefault(); drop(scene, null, "inside", prefabs); }}
                   sx={{ ...ROW_SX, mt: prefabs ? SPACING.xs : SPACING.none }}>
-                  <FlexRow component="button" align="center" gap={SPACING.xs} aria-label={`${groupName} in ${scene.name}`}
+                  <FlexRow component="button" align="center" gap={SPACING.xs} aria-label={t("screen_game.hierarchy.groupInScene", { group: groupName, scene: scene.name })}
                     aria-expanded={groupExpanded}
                     onClick={() => toggleCollapsed(groupKey, needle ? setSearchCollapsedGroups : setCollapsedGroups)}
                     sx={{ ...ROW_BUTTON_SX, color: "text.secondary", "&:hover": { color: "text.primary" } }}>
@@ -314,7 +316,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
                         ? toggleButton(name, expanded, () => toggleCollapsed(entity.id, setCollapsedEntities), needle !== "")
                         : <Box aria-hidden="true" sx={{ width: CHEVRON_SLOT, flexShrink: 0 }} />}
                       <FlexRow component="button" draggable align="center" gap={SPACING.xs}
-                        aria-label={`${name}${hasIssue ? ", has errors" : ""}`}
+                        aria-label={hasIssue ? t("screen_game.hierarchy.entityHasErrors", { name }) : name}
                         aria-pressed={selected}
                         aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
                         onClick={(event) => onSelect({ sceneId: scene.id, entityId: entity.id }, event.shiftKey || event.metaKey || event.ctrlKey)}
@@ -343,11 +345,11 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
       ); })}
       </FlexColumn>
       <EditorMenu anchorEl={anchor} open={Boolean(addSceneId)} onClose={() => setAddSceneId(null)}
-        slotProps={{ list: { "aria-label": "Add game entity" } }}>
-        {PRESETS.map(({ kind, label, icon }) => (
-          <MenuItemPrimitive key={kind} label={label} icon={icon} onClick={() => add(kind)}
+        slotProps={{ list: { "aria-label": t("screen_game.hierarchy.addGameEntity") } }}>
+        {PRESETS.map(({ kind, labelKey, icon }) => (
+          <MenuItemPrimitive key={kind} label={t(`screen_game.hierarchy.presets.${labelKey}`)} icon={icon} onClick={() => add(kind)}
             disabled={kind === "sprite" && !imageSlot}
-            secondary={kind === "sprite" && !imageSlot ? "Install an image first" : undefined} />
+            secondary={kind === "sprite" && !imageSlot ? t("screen_game.hierarchy.installImageFirst") : undefined} />
         ))}
       </EditorMenu>
     </FlexColumn>

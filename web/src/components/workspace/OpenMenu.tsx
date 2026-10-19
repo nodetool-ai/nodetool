@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
@@ -82,6 +83,7 @@ const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
  * Starting a project lives on the project selector to the left of New.
  */
 const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
+  const { t } = useTranslation();
   const [view, setView] = useState<MenuView>("root");
 
   const close = useCallback(() => {
@@ -118,7 +120,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const backRow = (
     <MenuItemPrimitive
       key="back"
-      label="Back"
+      label={t("batch2_0.back")}
       icon={<ArrowBackRoundedIcon fontSize="small" />}
       onClick={() => setView("root")}
       dividerAfter
@@ -146,7 +148,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       }}
     >
       {view === "root" && [
-        <ListSubheader key="guided-label">Guided flows</ListSubheader>,
+        <ListSubheader key="guided-label">{t("batch2_0.guidedFlows")}</ListSubheader>,
         // The item being started says so, as the New Project cards do, so
         // the disabled menu does not read as a dead click.
         ...starters.map((starter) => (
@@ -163,8 +165,8 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 starter.icon
               )
             }
-            secondary={
-              starting === starter.id ? "Creating…" : starter.description
+              secondary={
+              starting === starter.id ? t("batch2_0.creating") : starter.description
             }
             onClick={() => void starter.start()}
             disabled={busy}
@@ -172,7 +174,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         )),
         <Divider key="blank-divider" className="open-menu-section-divider" />,
         <ListSubheader key="blank-label" className="open-menu-blank-section">
-          Blank documents
+          {t("batch2_0.blankDocuments")}
         </ListSubheader>,
         ...entries.map((entry) => (
           <MenuItemPrimitive
@@ -204,7 +206,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         backRow,
         <MenuItemPrimitive
           key="blank-storyboard"
-          label="Blank storyboard"
+          label={t("batch2_0.blankStoryboard")}
           icon={<AddOutlinedIcon fontSize="small" />}
           onClick={() => void createBlankStoryboard()}
           disabled={busy}
@@ -221,16 +223,14 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             color="secondary"
             sx={{ px: SPACING.lg, py: SPACING.sm }}
           >
-            No example storyboards are available.
+            {t("batch2_0.noExampleStoryboards")}
           </Caption>
         ),
         ...exampleStoryboards.map((example) => (
           <MenuItemPrimitive
             key={example.slug}
             label={example.name}
-            secondary={`${example.shotCount} shot${
-              example.shotCount === 1 ? "" : "s"
-            }, stills included`}
+            secondary={t("batch2_0.storyboardExampleShots", { count: example.shotCount })}
             onClick={() =>
               void installStoryboardExample(example.slug, example.name)
             }

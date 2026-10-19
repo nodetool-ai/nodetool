@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -248,7 +249,7 @@ const styles = (theme: Theme) =>
   });
 
 function titleFromPrompt(prompt: string | null | undefined): string {
-  if (!prompt) return "Generated";
+  if (!prompt) return "";
   const words = prompt.trim().split(/\s+/).slice(0, 4).join(" ");
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
@@ -264,6 +265,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
   isPending = false
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const gen = message.media_generation ?? null;
   const { isCanvasAvailable, addBlocksToCanvas } = useAddMediaToCanvas();
@@ -312,7 +314,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     return null;
   }, [message.content]);
 
-  const title = titleFromPrompt(prompt);
+  const title = titleFromPrompt(prompt) || t("i18n-next54.message.generated");
 
   const pending = useMemo(() => pendingTiles(gen), [gen]);
 
@@ -405,7 +407,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
           {!isPending && isCanvasAvailable && mediaContents.length > 1 && (
             <ToolbarIconButton
               className="add-all-button"
-              tooltip="Add all to canvas"
+              tooltip={t("i18n-next54.message.addAllToCanvas")}
               size="small"
               onClick={addAll}
             >
@@ -450,7 +452,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                 {isCanvasAvailable && (
                   <ToolbarIconButton
                     className="add-to-canvas-button"
-                    tooltip="Add to canvas"
+                    tooltip={t("i18n-next54.message.addToCanvas")}
                     size="small"
                     onClick={() => addOne(c)}
                   >
@@ -470,11 +472,11 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                 draggable
                 onDragStart={(e) => handleDragStart(e, c)}
               >
-                <VideoPlayer locator={c.video} label="Generated video" />
+                <VideoPlayer locator={c.video} label={t("i18n-next54.message.generatedVideo")} />
                 {isCanvasAvailable && (
                   <ToolbarIconButton
                     className="add-to-canvas-button"
-                    tooltip="Add to canvas"
+                    tooltip={t("i18n-next54.message.addToCanvas")}
                     size="small"
                     onClick={() => addOne(c)}
                   >
@@ -495,13 +497,13 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               >
                 <AudioPlayback
                   locator={c.audio}
-                  label="Generated audio"
+                  label={t("i18n-next54.message.generatedAudio")}
                   sx={AUDIO_SX}
                 />
                 {isCanvasAvailable && (
                   <ToolbarIconButton
                     className="add-to-canvas-button"
-                    tooltip="Add to canvas"
+                    tooltip={t("i18n-next54.message.addToCanvas")}
                     size="small"
                     onClick={() => addOne(c)}
                   >

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "../../utils/isEqual";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
@@ -7,7 +8,6 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useWorkflowActionsStore } from "../../stores/WorkflowActionsStore";
 import { useShowGraphPreview } from "../../stores/WorkflowListViewStore";
 import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/FavoriteWorkflowsStore";
-import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, FONT_WEIGHT, InlineEditableText, SPACING, getSpacingPx, Chip, ICON_SIZE } from "../ui_primitives";
 import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
@@ -16,6 +16,32 @@ import { WorkflowTriggerIndicator } from "./WorkflowTriggerIndicator";
 // it inline instead, so the open is deferred briefly to let a following
 // double-click cancel it.
 const OPEN_CLICK_DELAY_MS = 200;
+
+function formatWorkflowUpdatedAt(
+  value: string,
+  locale: string
+): string {
+  const elapsedSeconds = (Date.now() - new Date(value).getTime()) / 1000;
+  const relativeTimeFormat = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  if (elapsedSeconds < 5) {
+    return relativeTimeFormat.format(0, "second");
+  }
+  const units = [
+    { unit: "year" as const, seconds: 31_557_600 },
+    { unit: "month" as const, seconds: 2_629_800 },
+    { unit: "week" as const, seconds: 604_800 },
+    { unit: "day" as const, seconds: 86_400 },
+    { unit: "hour" as const, seconds: 3_600 },
+    { unit: "minute" as const, seconds: 60 },
+    { unit: "second" as const, seconds: 1 }
+  ];
+  const selectedUnit = units.find((item) => elapsedSeconds >= item.seconds);
+  if (!selectedUnit) {
+    return relativeTimeFormat.format(0, "second");
+  }
+  const count = Math.floor(elapsedSeconds / selectedUnit.seconds);
+  return relativeTimeFormat.format(-count, selectedUnit.unit);
+}
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -46,6 +72,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   onRename,
   onOpenAsApp
 }: WorkflowListItemProps) => {
+  const { t, i18n } = useTranslation();
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const setActions = useWorkflowActionsStore((state) => state.setActions);
   const clearActions = useWorkflowActionsStore((state) => state.clearActions);
@@ -222,7 +249,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       }
       role="button"
       tabIndex={0}
-      aria-label={`${showCheckboxes ? "Select" : "Open"} workflow ${workflow.name}`}
+      aria-label={t(showCheckboxes ? "pass3_38.workflowListItem.selectWorkflow" : "pass3_38.workflowListItem.openWorkflow", { name: workflow.name })}
       aria-pressed={showCheckboxes ? isSelected : undefined}
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
@@ -233,7 +260,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           className="checkbox"
           size="small"
           checked={isSelected}
-          slotProps={{ input: { "aria-label": `Select workflow ${workflow.name}` } }}
+          slotProps={{ input: { "aria-label": t("pass3_38.workflowListItem.selectWorkflow", { name: workflow.name }) } }}
           onClick={handleCheckboxClick}
         />
       )}
@@ -251,10 +278,10 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           editing={isEditing}
           onEditingChange={setIsEditing}
           onCommit={handleRename}
-          ariaLabel="Workflow name"
+          ariaLabel={t("pass3_38.workflowListItem.workflowName")}
           sx={inputSx}
         >
-          <Tooltip title="Double-click to rename" describeChild>
+          <Tooltip title={t("pass3_38.workflowListItem.renameTooltip")} describeChild>
             <Text
               className="name"
               size="small"
@@ -270,8 +297,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           <FavoriteButton
             isFavorite={isFavorite}
             onToggle={handleToggleFavorite}
-            addTooltip="Add to favorites"
-            removeTooltip="Remove from favorites"
+            addTooltip={t("pass3_38.workflowListItem.addFavorite")}
+            removeTooltip={t("pass3_38.workflowListItem.removeFavorite")}
             buttonSize="small"
             className="favorite-button"
             stopPropagation
@@ -288,7 +315,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             color="secondary"
             sx={{ lineHeight: 2.4, textTransform: "uppercase" }}
           >
-            {relativeTime(workflow.updated_at)}
+            {formatWorkflowUpdatedAt(workflow.updated_at, i18n.language)}
           </Text>
         )}
       </Box>

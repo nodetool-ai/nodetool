@@ -6,7 +6,8 @@
  * remove collaborators, or revoke links. A public link shows the workflow to
  * anyone, without an account, and lets them copy it into their own workflows.
  */
-import { memo, useCallback } from "react";
+import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   FlexColumn,
@@ -22,7 +23,8 @@ import {
   SelectField,
   LoadingSpinner,
   EmptyState,
-  SPACING
+  SPACING,
+  TruncatedText
 } from "../ui_primitives";
 import {
   useWorkflowSharing,
@@ -31,17 +33,6 @@ import {
   type ShareRole
 } from "../../serverState/useWorkflowSharing";
 import { useNotificationStore } from "../../stores/NotificationStore";
-
-const ROLE_LABELS: Record<ShareRole, string> = {
-  viewer: "Can view",
-  editor: "Can edit",
-  public: "Public view"
-};
-
-const ROLE_OPTIONS = [
-  { value: "viewer", label: ROLE_LABELS.viewer },
-  { value: "editor", label: ROLE_LABELS.editor }
-] as const;
 
 interface ShareWorkflowDialogProps {
   open: boolean;
@@ -56,6 +47,16 @@ const ShareWorkflowDialog = ({
   workflowId,
   workflowName
 }: ShareWorkflowDialogProps) => {
+  const { t } = useTranslation();
+  const roleLabels: Record<ShareRole, string> = {
+    viewer: t("pass3_37.shareWorkflow.roleViewer"),
+    editor: t("pass3_37.shareWorkflow.roleEditor"),
+    public: t("pass3_37.shareWorkflow.rolePublic")
+  };
+  const roleOptions = [
+    { value: "viewer", label: roleLabels.viewer },
+    { value: "editor", label: roleLabels.editor }
+  ] as const;
   const { query, createLink, revokeLink, setRole, removeCollaborator } =
     useWorkflowSharing(open ? workflowId : null);
   const addNotification = useNotificationStore(
@@ -67,58 +68,52 @@ const ShareWorkflowDialog = ({
   );
   const collaborators = query.data?.collaborators ?? [];
 
-  const handleCreateLink = useCallback(
-    async (role: ShareRole) => {
-      let share;
-      try {
-        share = await createLink.mutateAsync(role);
-      } catch {
-        addNotification({
-          type: "error",
-          content: "Failed to create share link",
-          alert: true
-        });
-        return;
-      }
-      // Clipboard access can be denied (permissions, insecure context); the
-      // link exists either way and stays copyable from the list below.
-      try {
-        await navigator.clipboard.writeText(
-          shareUrlForToken(share.token, share.role)
-        );
-        addNotification({
-          type: "success",
-          content: `${ROLE_LABELS[role]} link copied to clipboard`,
-          alert: true
-        });
-      } catch {
-        addNotification({
-          type: "info",
-          content:
-            "Share link created — copy it from the Active links list below",
-          alert: true
-        });
-      }
-    },
-    [createLink, addNotification]
-  );
+  const handleCreateLink = async (role: ShareRole) => {
+    let share;
+    try {
+      share = await createLink.mutateAsync(role);
+    } catch {
+      addNotification({
+        type: "error",
+        content: t("pass3_37.shareWorkflow.createLinkFailed"),
+        alert: true
+      });
+      return;
+    }
+    // Clipboard access can be denied (permissions, insecure context); the
+    // link exists either way and stays copyable from the list below.
+    try {
+      await navigator.clipboard.writeText(
+        shareUrlForToken(share.token, share.role)
+      );
+      addNotification({
+        type: "success",
+        content: t("pass3_37.shareWorkflow.linkCopied", {
+          role: roleLabels[role]
+        }),
+        alert: true
+      });
+    } catch {
+      addNotification({
+        type: "info",
+        content: t("pass3_37.shareWorkflow.linkCreatedCopyFromList"),
+        alert: true
+      });
+    }
+  };
 
   return (
     <Dialog
       className="share-workflow-dialog"
       open={open}
       onClose={onClose}
-      title={`Share "${workflowName}"`}
+      title={t("pass3_37.shareWorkflow.title", { name: workflowName })}
       maxWidth="sm"
       fullWidth
     >
       <FlexColumn gap={SPACING.md}>
         <Caption>
-          Anyone signed in to this server who opens a view or edit link gets
-          the link&apos;s role. Revoking a link stops new joins; people who
-          already joined stay listed below. A public link shows the workflow
-          and its settings to anyone, without an account, and lets them copy
-          it into their own workflows. Revoking it stops both.
+          {t("pass3_37.shareWorkflow.description")}
         </Caption>
 
         <FlexRow gap={SPACING.sm}>
@@ -127,29 +122,31 @@ const ShareWorkflowDialog = ({
             disabled={createLink.isPending}
             onClick={() => void handleCreateLink("viewer")}
           >
-            Copy view link
+            {t("pass3_37.shareWorkflow.copyViewLink")}
           </EditorButton>
           <EditorButton
             variant="outlined"
             disabled={createLink.isPending}
             onClick={() => void handleCreateLink("editor")}
           >
-            Copy edit link
+            {t("pass3_37.shareWorkflow.copyEditLink")}
           </EditorButton>
           <EditorButton
             variant="outlined"
             disabled={createLink.isPending}
             onClick={() => void handleCreateLink("public")}
           >
-            Copy public link
+            {t("pass3_37.shareWorkflow.copyPublicLink")}
           </EditorButton>
         </FlexRow>
 
-        {query.isLoading && <LoadingSpinner />}
+        {query.isLoading && (
+          <LoadingSpinner text={t("pass3_37.shareWorkflow.loading")} />
+        )}
 
         {activeShares.length > 0 && (
           <FlexColumn gap={SPACING.xs}>
-            <SectionHeader size="small" title="Active links" />
+            <SectionHeader size="small" title={t("pass3_37.shareWorkflow.activeLinks")} />
             {activeShares.map((share) => (
               <FlexRow
                 key={share.id}
@@ -158,10 +155,10 @@ const ShareWorkflowDialog = ({
                 justify="space-between"
               >
                 <FlexRow gap={SPACING.sm} align="center">
-                  <Chip label={ROLE_LABELS[share.role]} size="small" />
+                  <Chip label={roleLabels[share.role]} size="small" />
                   <CopyButton
                     value={shareUrlForToken(share.token, share.role)}
-                    tooltip="Copy share link"
+                    tooltip={t("pass3_37.shareWorkflow.copyShareLink")}
                   />
                 </FlexRow>
                 <EditorButton
@@ -169,7 +166,7 @@ const ShareWorkflowDialog = ({
                   disabled={revokeLink.isPending}
                   onClick={() => revokeLink.mutate(share.id)}
                 >
-                  Revoke
+                  {t("pass3_37.shareWorkflow.revoke")}
                 </EditorButton>
               </FlexRow>
             ))}
@@ -178,12 +175,12 @@ const ShareWorkflowDialog = ({
 
         <Divider />
 
-        <SectionHeader size="small" title="People with access" />
+        <SectionHeader size="small" title={t("pass3_37.shareWorkflow.peopleWithAccess")} />
         {collaborators.length === 0 && !query.isLoading && (
           <EmptyState
             variant="empty"
-            title="No collaborators yet"
-            description="Copy a link above and send it to someone."
+            title={t("pass3_37.shareWorkflow.noCollaborators")}
+            description={t("pass3_37.shareWorkflow.noCollaboratorsDescription")}
           />
         )}
         {collaborators.map((collaborator) => (
@@ -193,19 +190,18 @@ const ShareWorkflowDialog = ({
             align="center"
             justify="space-between"
           >
-            <Text
-              size="small"
-              sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
-            >
+            <TruncatedText size="small">
               {collaborator.user_id}
-            </Text>
+            </TruncatedText>
             <FlexRow gap={SPACING.sm} align="center">
               <SelectField
-                label={`Role for ${collaborator.user_id}`}
+                label={t("pass3_37.shareWorkflow.roleFor", {
+                  userId: collaborator.user_id
+                })}
                 hideLabel
                 size="small"
                 value={collaborator.role}
-                options={ROLE_OPTIONS}
+                options={roleOptions}
                 disabled={setRole.isPending}
                 onChange={(value) =>
                   setRole.mutate({
@@ -215,7 +211,7 @@ const ShareWorkflowDialog = ({
                 }
               />
               <DeleteButton
-                tooltip="Remove access"
+                tooltip={t("pass3_37.shareWorkflow.removeAccess")}
                 disabled={removeCollaborator.isPending}
                 onClick={() => removeCollaborator.mutate(collaborator.user_id)}
               />

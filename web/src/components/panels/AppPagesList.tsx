@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 
 import { useAppMenuActions } from "./useAppMenuActions";
 import {
@@ -78,6 +79,7 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
   scope = "sidebar"
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const listStyles = useMemo(() => styles(theme), [theme]);
   const actions = useAppMenuActions(onAction);
   const normalizedQuery = query.trim().toLowerCase();
@@ -92,7 +94,10 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
   return (
     <div css={listStyles}>
       {showSectionTitle && filteredActions.length > 0 && (
-        <SectionHeader title="Application" size="small" />
+        <SectionHeader
+          title={t("i18n-next58.panels.application")}
+          size="small"
+        />
       )}
       <List dense disablePadding>
         {filteredActions.map((action) => (
@@ -115,8 +120,8 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
       {filteredActions.length === 0 && showEmptyState && (
         <EmptyState
           variant="no-results"
-          title="No panels found"
-          description="No panels match your search."
+          title={t("i18n-next58.panels.noPanelsFound")}
+          description={t("i18n-next58.panels.noPanelsMatchSearch")}
           size="small"
         />
       )}

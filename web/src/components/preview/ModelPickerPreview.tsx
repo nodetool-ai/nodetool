@@ -5,7 +5,8 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { Box, Surface } from "../ui_primitives";
+import { useTranslation } from "react-i18next";
+import { Box, Surface, SPACING } from "../ui_primitives";
 import { getProviderDisplayName } from "../../utils/providerDisplay";
 import ModelMenuDialogBase from "../model_menu/shared/ModelMenuDialogBase";
 import ModelSelectButton from "../properties/shared/ModelSelectButton";
@@ -20,13 +21,13 @@ const API: ModelExecutionAvailability = {
   kind: "api",
   state: "ready",
   label: "API",
-  reason: "Input is sent to the provider. Provider billing applies."
+  reason: ""
 };
 const LOCAL: ModelExecutionAvailability = {
   kind: "local",
   state: "ready",
   label: "Local",
-  reason: "Runs on this device."
+  reason: ""
 };
 
 const model = (
@@ -56,7 +57,7 @@ const SAMPLE_MODELS: ModelSelectorModel[] = [
   model("ollama", "gemma3:12b", "Gemma 3 12B", {
     ...LOCAL,
     state: "download_required",
-    reason: "Download the model files before using it locally."
+    reason: ""
   }),
   model("mistral", "mistral-large-latest", "Mistral Large"),
   model("groq", "llama-3.3-70b-versatile", "Llama 3.3 70B Versatile")
@@ -85,7 +86,29 @@ const MODEL_DATA = {
 const noop = (): void => undefined;
 
 const PreviewModelPicker: React.FC = () => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "batch2_14.modelPicker"
+  });
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const models = SAMPLE_MODELS.map((sample) => {
+    if (sample.execution.kind === "api") {
+      return {
+        ...sample,
+        execution: { ...sample.execution, reason: t("apiReason") }
+      };
+    }
+    if (sample.execution.state === "download_required") {
+      return {
+        ...sample,
+        execution: { ...sample.execution, reason: t("downloadReason") }
+      };
+    }
+    return {
+      ...sample,
+      execution: { ...sample.execution, reason: t("localReason") }
+    };
+  });
+  const modelData = { ...MODEL_DATA, models };
 
   useEffect(() => {
     const prefs = useModelPreferencesStore.getState();
@@ -100,13 +123,15 @@ const PreviewModelPicker: React.FC = () => {
   }, []);
 
   return (
-    <Box sx={{ p: 4, minHeight: "100vh", bgcolor: "background.default" }}>
-      <Surface data-preview="model-picker" sx={{ p: 2, width: 280 }}>
+    <Box
+      sx={{ p: SPACING.xl, minHeight: "100vh", bgcolor: "background.default" }}
+    >
+      <Surface data-preview="model-picker" sx={{ p: SPACING.md, width: 280 }}>
         <ModelSelectButton
           ref={setAnchorEl}
           label="Claude Sonnet 4.5"
           secondaryLabel={getProviderDisplayName("anthropic")}
-          subLabel="Select language model"
+          subLabel={t("selectLanguageModel")}
           active
           onClick={noop}
         />
@@ -116,9 +141,9 @@ const PreviewModelPicker: React.FC = () => {
           open
           anchorEl={anchorEl}
           onClose={noop}
-          modelData={MODEL_DATA}
-          title="Select language model"
-          searchPlaceholder="Search language models"
+          modelData={modelData}
+          title={t("selectLanguageModel")}
+          searchPlaceholder={t("searchLanguageModels")}
           storeHook={useSampleMenuStore}
           modelType="language_model"
         />

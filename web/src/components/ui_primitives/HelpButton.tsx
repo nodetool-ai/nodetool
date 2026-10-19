@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -77,7 +78,7 @@ export const HelpButton: React.FC<HelpButtonProps> = memo(({
   onClick,
   iconVariant = "helpOutline",
   size = "small",
-  tooltip = "Help",
+  tooltip,
   active = false,
   disabled = false,
   tooltipPlacement = "top",
@@ -85,6 +86,8 @@ export const HelpButton: React.FC<HelpButtonProps> = memo(({
   tabIndex = 0
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const tooltipText = tooltip ?? t("i18n-next85.uiPrimitives.help");
   const iconSize = size === "large" ? "medium" : "small";
 
   const handleClick = useCallback(
@@ -101,17 +104,17 @@ export const HelpButton: React.FC<HelpButtonProps> = memo(({
       size={size}
       onClick={handleClick}
       disabled={disabled}
-      aria-label={tooltip}
+      aria-label={tooltipText}
       tabIndex={tabIndex}
     >
       {getIcon(iconVariant, iconSize)}
     </IconButton>
   );
   
-  if (tooltip) {
+  if (tooltipText) {
     return (
       <span css={styles(theme)}>
-        <Tooltip title={tooltip} enterDelay={TOOLTIP_ENTER_DELAY} placement={tooltipPlacement}>
+        <Tooltip title={tooltipText} enterDelay={TOOLTIP_ENTER_DELAY} placement={tooltipPlacement}>
           <span>{button}</span>
         </Tooltip>
       </span>

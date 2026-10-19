@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown, { defaultUrlTransform, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -326,6 +327,7 @@ const ChatMarkdownMedia: React.FC<{
   label: string;
   imgProps?: React.ComponentPropsWithoutRef<"img">;
 }> = ({ href, resolvedSrc, thumbSrc, kind, label, imgProps }) => {
+  const { t } = useTranslation();
   if (kind === "document") {
     // The server renders a PDF's first page as the asset thumbnail. Clicking
     // it opens the file; the chip beneath opens the asset.
@@ -375,7 +377,7 @@ const ChatMarkdownMedia: React.FC<{
         playsInline
         preload="metadata"
         css={videoCss}
-        aria-label={label || "Video content"}
+        aria-label={label || t("i18n-next54.message.videoContent")}
       />
     );
   }
@@ -386,7 +388,7 @@ const ChatMarkdownMedia: React.FC<{
         controls
         preload="metadata"
         css={audioCss}
-        aria-label={label || "Audio content"}
+        aria-label={label || t("i18n-next54.message.audioContent")}
       />
     );
   }
@@ -412,7 +414,9 @@ const ChatMarkdownMedia: React.FC<{
 const UnresolvedMedia: React.FC<{ href: string; label: string }> = ({
   href,
   label
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <FlexColumn
     gap={SPACING.xs}
     align="flex-start"
@@ -421,15 +425,17 @@ const UnresolvedMedia: React.FC<{ href: string; label: string }> = ({
     {isResourceUri(href) ? (
       <ResourceChip uri={href} label={label || href} />
     ) : null}
-    <Caption color="secondary">This media could not be loaded.</Caption>
+    <Caption color="secondary">{t("i18n-next54.message.mediaCouldNotLoad")}</Caption>
   </FlexColumn>
-);
+  );
+};
 
 const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
   src,
   alt,
   ...props
 }) => {
+  const { t } = useTranslation();
   const href = src != null ? src : "";
   const { resolvedSrc, thumbSrc, contentType, pending } = useChatAsset(
     href || undefined
@@ -570,7 +576,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
         if (href && isAudioHref(href)) {
           return (
             <span css={audioSpanCss}>
-              <audio controls src={href} css={audioCss} aria-label="Audio content" />
+              <audio controls src={href} css={audioCss} aria-label={t("i18n-next54.message.audioContent")} />
               <a {...props} target="_blank" rel="noopener noreferrer">
                 {children}
               </a>

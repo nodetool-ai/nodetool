@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import { FlexRow, EditorButton, Dialog, TextInput } from "../ui_primitives";
 import Add from "@mui/icons-material/AddOutlined";
 import { useState, useCallback, memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
@@ -28,6 +29,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   onAddProperty,
   nodeType
 }) => {
+  const { t } = useTranslation();
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
   const staticOutputs = useMetadataStore((state) =>
     nodeType ? state.metadata[nodeType]?.outputs : undefined
@@ -65,7 +67,11 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     const validation = validateIdentifierName(name);
 
     if (!validation.isValid) {
-      setInputNameError(validation.error);
+      setInputNameError(
+        validation.error === "Name cannot be empty"
+          ? t("i18n-next39.nodeEditor.propertyForm.nameCannotBeEmpty")
+          : t("i18n-next39.nodeEditor.propertyForm.nameCannotStartWithNumber")
+      );
       return;
     }
 
@@ -73,7 +79,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     setNewInputName("");
     setInputNameError(undefined);
     setShowInputDialog(false);
-  }, [newInputName, onAddProperty]);
+  }, [newInputName, onAddProperty, t]);
 
   return (
     <div
@@ -98,7 +104,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             startIcon={<Add />}
             onClick={handleShowInputDialog}
           >
-            Add input
+            {t("i18n-next39.nodeEditor.propertyForm.addInput")}
           </EditorButton>
         </FlexRow>
       )}
@@ -121,7 +127,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
               startIcon={<Add />}
               onClick={handleShowOutputDialog}
             >
-              Add output
+              {t("i18n-next39.nodeEditor.propertyForm.addOutput")}
             </EditorButton>
           </FlexRow>
 
@@ -139,13 +145,13 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         onClose={handleHideInputDialog}
         maxWidth="xs"
         fullWidth
-        title="Add input"
+        title={t("i18n-next39.nodeEditor.propertyForm.addInput")}
         onConfirm={handleAddInputProperty}
-        confirmText="Add input"
+        confirmText={t("i18n-next39.nodeEditor.propertyForm.addInput")}
       >
         <TextInput
           autoFocus
-          label="Name"
+          label={t("i18n-next39.nodeEditor.propertyForm.name")}
           size="small"
           value={newInputName}
           onChange={(e) => {
@@ -161,7 +167,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             }
           }}
           errorMessage={inputNameError}
-          helperText="Cannot start with a number"
+          helperText={t("i18n-next39.nodeEditor.propertyForm.nameCannotStartWithNumberShort")}
         />
       </Dialog>
     </div>

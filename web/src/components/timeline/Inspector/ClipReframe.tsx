@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import CenterFocusStrongOutlinedIcon from "@mui/icons-material/CenterFocusStrongOutlined";
 import { useShallow } from "zustand/react/shallow";
 
@@ -36,6 +37,7 @@ interface ClipReframeProps {
 }
 
 const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = usePersistedFold("smartReframe");
   const currentTimeMs = useTimelinePlaybackStore(
     (state) => state.currentTimeMs
@@ -59,8 +61,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
   const stale = isReframeStale(activeClip, reframeTrack);
   const mediaTracks = clipMediaTracks.filter(
     (track) =>
-      mediaTrackCanDriveReframe(track) &&
-      !isMediaTrackStale(track, activeClip)
+      mediaTrackCanDriveReframe(track) && !isMediaTrackStale(track, activeClip)
   );
   const [focusX, setFocusX] = useState(0.5);
   const [focusY, setFocusY] = useState(0.5);
@@ -76,8 +77,14 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
         ? SUBJECT_CENTER
         : SUBJECT_AUTO;
   const subjectOptions = [
-    { value: SUBJECT_AUTO, label: "Auto" },
-    { value: SUBJECT_CENTER, label: "Center" },
+    {
+      value: SUBJECT_AUTO,
+      label: t("pass3_25.timeline.inspector.reframe.auto")
+    },
+    {
+      value: SUBJECT_CENTER,
+      label: t("pass3_25.timeline.inspector.reframe.center")
+    },
     ...mediaTracks.map((track) => ({ value: track.id, label: track.name }))
   ];
 
@@ -123,7 +130,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
       <CollapsibleSection
         title={
           <InspectorSectionTitle
-            title="Smart reframe"
+            title={t("pass3_25.timeline.inspector.reframe.title")}
             icon={<CenterFocusStrongOutlinedIcon />}
           />
         }
@@ -132,9 +139,11 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
         unmountOnExit
       >
         <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-          <InspectorRow label="Subject">
+          <InspectorRow
+            label={t("pass3_25.timeline.inspector.reframe.subject")}
+          >
             <InspectorSelect
-              label="Reframe subject"
+              label={t("pass3_25.timeline.inspector.reframe.reframeSubject")}
               value={subjectValue}
               options={subjectOptions}
               onChange={handleSubject}
@@ -142,24 +151,23 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
             />
           </InspectorRow>
           <Caption color="muted">
-            Manual framing is recorded in source time, so it stays attached when
-            the clip moves or is trimmed.
+            {t("pass3_25.timeline.inspector.reframe.manualFramingHelp")}
           </Caption>
           {reframe && (
             <Caption color="muted">
-              {reframe.samples?.length ?? 0} automatic samples ·{" "}
-              {reframe.keyframes?.length ?? 0} manual corrections
+              {t("pass3_25.timeline.inspector.reframe.sampleSummary", {
+                samples: reframe.samples?.length ?? 0,
+                corrections: reframe.keyframes?.length ?? 0
+              })}
             </Caption>
           )}
           {stale && (
             <Caption color="warning">
-              Automatic framing is stale for the current source. The preview
-              uses centered framing until you select or generate a matching
-              subject track. Manual corrections remain active.
+              {t("pass3_25.timeline.inspector.reframe.staleHelp")}
             </Caption>
           )}
           <InspectorSliderRow
-            label="Focus X"
+            label={t("pass3_25.timeline.inspector.reframe.focusX")}
             value={focusX}
             display={`${Math.round(focusX * 100)}%`}
             min={0}
@@ -169,7 +177,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
             origin={0.5}
           />
           <InspectorSliderRow
-            label="Focus Y"
+            label={t("pass3_25.timeline.inspector.reframe.focusY")}
             value={focusY}
             display={`${Math.round(focusY * 100)}%`}
             min={0}
@@ -179,7 +187,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
             origin={0.5}
           />
           <InspectorSliderRow
-            label="Zoom"
+            label={t("pass3_25.timeline.inspector.reframe.zoom")}
             value={zoom}
             display={`${zoom.toFixed(2)}×`}
             min={1}
@@ -194,11 +202,11 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
             onClick={handleAddKeyframe}
             disabled={!playheadInClip}
           >
-            Add framing keyframe
+            {t("pass3_25.timeline.inspector.reframe.addKeyframe")}
           </EditorButton>
           {!playheadInClip && (
             <Caption color="muted">
-              Move the playhead over this clip to add a framing keyframe.
+              {t("pass3_25.timeline.inspector.reframe.movePlayheadHelp")}
             </Caption>
           )}
           {reframe && (
@@ -208,7 +216,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
               color="error"
               onClick={handleClear}
             >
-              Clear reframe
+              {t("pass3_25.timeline.inspector.reframe.clear")}
             </EditorButton>
           )}
         </FlexColumn>

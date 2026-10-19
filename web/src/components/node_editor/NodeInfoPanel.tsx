@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { shallow } from "zustand/shallow";
 import { Tooltip, Text, EditorButton, PanelHeader, Box, MOTION, BORDER_RADIUS, SHADOW, SPACING, getSpacingPx } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -218,6 +219,7 @@ const canvasPosition = (
 
 const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
   ({ inspectedNodeId }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { setCenter, flowToScreenPosition } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
@@ -397,7 +399,7 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
                 {nodeInfo.namespace}
               </Text>
               <Text component="span" sx={{ display: "block" }}>
-                Click to show in NodeMenu
+                {t("nodeInfoPanel.clickToShowInNodeMenu")}
               </Text>
             </span>
           }
@@ -444,7 +446,7 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
             )}
             {parsedDescription.useCases.raw && (
               <div className="node-use-cases">
-                <h5>Use cases</h5>
+                <h5>{t("nodeInfoPanel.useCases")}</h5>
                 <ul>
                   {parsedDescription.useCases.raw.split("\n").map((useCase) => (
                     <li key={useCase}>{useCase}</li>
@@ -467,7 +469,7 @@ const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
           startIcon={<OpenInNewIcon />}
           onClick={handleFocusClick}
         >
-          Focus
+          {t("nodeInfoPanel.focus")}
         </EditorButton>
       </Box>
     </Box >

@@ -1,4 +1,5 @@
 import { useSyncExternalStore, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Quaternion, Vector3 } from "three";
 import ThreeDRotationOutlinedIcon from "@mui/icons-material/ThreeDRotationOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
@@ -35,8 +36,7 @@ const AXES: readonly { readonly view: GameAxisView3D; readonly opposite: GameAxi
   { view: "front", opposite: "back", label: "Z", direction: [0, 0, 1], className: "axis-z" }
 ];
 const VIEW_NAMES: Readonly<Record<GameAxisView3D, string>> = {
-  right: "Right view (+X)", left: "Left view (-X)", top: "Top view (+Y)", bottom: "Bottom view (-Y)",
-  front: "Front view (+Z)", back: "Back view (-Z)"
+  right: "right", left: "left", top: "top", bottom: "bottom", front: "front", back: "back"
 };
 
 interface GameOrientationGizmo3DProps {
@@ -49,6 +49,7 @@ interface GameOrientationGizmo3DProps {
 
 /** Scene orientation gizmo: shows the world axes as the camera sees them. Each axis end selects the view along it. */
 export default function GameOrientationGizmo3D({ orientation, orthographic, onView, onToggleProjection, projectionShortcut }: GameOrientationGizmo3DProps) {
+  const { t } = useTranslation();
   const [x, y, z, w] = useSyncExternalStore(orientation.subscribe, orientation.get);
   const inverse = new Quaternion(x, y, z, w).invert();
   const ends = AXES.flatMap((axis) => {
@@ -64,7 +65,7 @@ export default function GameOrientationGizmo3D({ orientation, orthographic, onVi
   const size = CONTROL.height.xl * 2;
   return <FlexColumn align="center" gap={SPACING.micro} sx={{ position: "absolute", top: SPACING.md, right: SPACING.md,
     p: SPACING.micro, borderRadius: BORDER_RADIUS.md, bgcolor: "background.paper" }}>
-    <Box component="svg" role="group" aria-label="Scene orientation" viewBox="-40 -40 80 80" width={size} height={size}
+    <Box component="svg" role="group" aria-label={t("screen_game.viewport.sceneOrientation")} viewBox="-40 -40 80 80" width={size} height={size}
       sx={(theme) => ({ display: "block", overflow: "visible",
         "& text": { ...TYPOGRAPHY.sans.caption, pointerEvents: "none", userSelect: "none" },
         // Each label uses its palette colour's contrast text, so it stays readable on the axis colour in both themes.
@@ -73,7 +74,7 @@ export default function GameOrientationGizmo3D({ orientation, orthographic, onVi
         "& .axis-z": { color: theme.vars.palette.info.main, "& text": { fill: theme.vars.palette.info.contrastText } },
         "& [role=button]": { cursor: "pointer", outline: "none" },
         "& [role=button]:focus-visible circle": { stroke: theme.vars.palette.text.primary, strokeWidth: 2 } })}>
-      {ends.map((end) => <g key={end.view} className={end.className} role="button" tabIndex={0} aria-label={VIEW_NAMES[end.view]}
+      {ends.map((end) => <g key={end.view} className={end.className} role="button" tabIndex={0} aria-label={t(`screen_game.viewport.views.${VIEW_NAMES[end.view]}`)}
         onClick={() => onView(end.view)} onKeyDown={activate(end.view)}>
         {end.positive && <line x1={0} y1={0} x2={end.x} y2={end.y} stroke="currentColor" strokeWidth={2} />}
         <circle cx={end.x} cy={end.y} r={end.positive ? 8 : 6} fill="currentColor" fillOpacity={end.positive ? 1 : 0.45}
@@ -82,7 +83,7 @@ export default function GameOrientationGizmo3D({ orientation, orthographic, onVi
       </g>)}
     </Box>
     <ToolbarIconButton icon={orthographic ? <ViewInArOutlinedIcon fontSize="small" /> : <ThreeDRotationOutlinedIcon fontSize="small" />}
-      tooltip={orthographic ? "Orthographic view" : "Perspective view"} ariaLabel="Orthographic view" shortcut={projectionShortcut}
+      tooltip={orthographic ? t("screen_game.viewport.orthographic") : t("screen_game.viewport.perspective")} ariaLabel={t("screen_game.viewport.orthographic")} shortcut={projectionShortcut}
       aria-pressed={orthographic} active={orthographic} onClick={onToggleProjection} />
   </FlexColumn>;
 }

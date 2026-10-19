@@ -8,6 +8,7 @@
  * `[Name](<kind>://<id>)` link the agent reads as a resource).
  */
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Entity } from "@nodetool-ai/protocol";
 import type { documents as documentSchemas } from "@nodetool-ai/protocol/api-schemas";
 
@@ -58,13 +59,6 @@ interface ComposerAttachDialogProps {
   onUploadFiles: (files: File[]) => void;
 }
 
-const TABS: { value: AttachTab; label: string }[] = [
-  { value: "assets", label: "Assets" },
-  { value: "entities", label: "Entities" },
-  { value: "documents", label: "Documents" },
-  { value: "upload", label: "Upload" }
-];
-
 /** Fixed so switching tabs never resizes the dialog. */
 const PANEL_HEIGHT = 360;
 
@@ -89,6 +83,7 @@ const AssetsTab: React.FC<{
   query: string;
   onSelect: (asset: Asset) => void;
 }> = ({ query, onSelect }) => {
+  const { t } = useTranslation();
   const { displayedAssets, hasMoreSaved, loadMoreSaved, handleRename } =
     useAssetMentionSearch(query, "saved");
 
@@ -106,9 +101,9 @@ const AssetsTab: React.FC<{
     return (
       <EmptyState
         variant={query ? "no-results" : "empty"}
-        title={query ? "No assets match" : "No assets yet"}
+        title={query ? t("i18n-next18.chat.composer.attach.noAssetsMatch") : t("i18n-next18.chat.composer.attach.noAssetsYet")}
         description={
-          query ? "Try another name." : "Upload a file or generate one first."
+          query ? t("i18n-next18.chat.composer.attach.tryAnotherName") : t("i18n-next18.chat.composer.attach.noAssetsDescription")
         }
         size="small"
       />
@@ -116,7 +111,7 @@ const AssetsTab: React.FC<{
   }
   return (
     <ScrollArea sx={{ height: PANEL_HEIGHT }} onScroll={handleScroll}>
-      <FlexRow wrap gap={SPACING.xs} role="listbox" aria-label="Assets">
+      <FlexRow wrap gap={SPACING.xs} role="listbox" aria-label={t("i18n-next18.chat.composer.attach.assetsTab")}>
         {displayedAssets.map((asset) => (
           <MentionAssetTile
             key={asset.id}
@@ -135,6 +130,7 @@ const DocumentsTab: React.FC<{
   query: string;
   onSelect: (document: AttachedDocument) => void;
 }> = ({ query, onSelect }) => {
+  const { t } = useTranslation();
   const activeProjectId = useWorkspaceTabsStore((s) => s.activeProjectId);
   const personalProjectId = useWorkspaceTabsStore((s) => s.personalProjectId);
   const projectId =
@@ -157,10 +153,10 @@ const DocumentsTab: React.FC<{
   }, [data, query]);
 
   if (!projectId) {
-    return <Caption color="muted">No project selected.</Caption>;
+    return <Caption color="muted">{t("i18n-next18.chat.composer.attach.noProjectSelected")}</Caption>;
   }
   if (isLoading) {
-    return <LoadingSpinner size="small" text="Loading documents" />;
+    return <LoadingSpinner size="small" text={t("i18n-next18.chat.composer.attach.loadingDocuments")} />;
   }
   if (error) {
     return <AlertBanner severity="error">{error.message}</AlertBanner>;
@@ -169,11 +165,11 @@ const DocumentsTab: React.FC<{
     return (
       <EmptyState
         variant={query ? "no-results" : "empty"}
-        title={query ? "No documents match" : "No documents yet"}
+        title={query ? t("i18n-next18.chat.composer.attach.noDocumentsMatch") : t("i18n-next18.chat.composer.attach.noDocumentsYet")}
         description={
           query
-            ? "Try another name."
-            : "Workflows, sketches, timelines, and other documents in this project show up here."
+            ? t("i18n-next18.chat.composer.attach.tryAnotherName")
+            : t("i18n-next18.chat.composer.attach.noDocumentsDescription")
         }
         size="small"
       />
@@ -181,9 +177,9 @@ const DocumentsTab: React.FC<{
   }
   return (
     <ScrollArea sx={{ height: PANEL_HEIGHT }}>
-      <FlexColumn gap={SPACING.xs} aria-label="Documents">
+          <FlexColumn gap={SPACING.xs} aria-label={t("i18n-next18.chat.composer.attach.documentsTab")}>
         {documents.map((entry) => {
-          const name = entry.name || "Untitled";
+          const name = entry.name || t("i18n-next18.chat.composer.attach.untitled");
           return (
             <Card
               key={`${entry.type}:${entry.id}`}
@@ -228,23 +224,26 @@ const DocumentsTab: React.FC<{
 
 const UploadTab: React.FC<{ onUpload: (files: File[]) => void }> = ({
   onUpload
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <Box sx={{ height: PANEL_HEIGHT }}>
-    <CheckerDropzone message="Drop files here" onDrop={onUpload}>
+    <CheckerDropzone message={t("i18n-next18.chat.composer.attach.dropFilesHere")} onDrop={onUpload}>
       <FlexColumn align="center" gap={SPACING.sm}>
         <Caption color="secondary">
-          Drop files here, or choose them. Uploads go to the asset library.
+          {t("i18n-next18.chat.composer.attach.uploadDescription")}
         </Caption>
         <UploadButton
           onFileSelect={onUpload}
-          label="Choose files"
-          tooltip="Choose files to upload"
+          label={t("i18n-next18.chat.composer.attach.chooseFiles")}
+          tooltip={t("i18n-next18.chat.composer.attach.chooseFilesTooltip")}
           multiple
         />
       </FlexColumn>
     </CheckerDropzone>
   </Box>
-);
+  );
+};
 
 export const ComposerAttachDialog: React.FC<ComposerAttachDialogProps> = ({
   open,
@@ -254,6 +253,7 @@ export const ComposerAttachDialog: React.FC<ComposerAttachDialogProps> = ({
   onSelectDocument,
   onUploadFiles
 }) => {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<AttachTab>("assets");
   const [query, setQuery] = useState("");
 
@@ -293,29 +293,36 @@ export const ComposerAttachDialog: React.FC<ComposerAttachDialogProps> = ({
     [onUploadFiles, onClose]
   );
 
+  const tabs: { value: AttachTab; label: string }[] = [
+    { value: "assets", label: t("i18n-next18.chat.composer.attach.assetsTab") },
+    { value: "entities", label: t("i18n-next18.chat.composer.attach.entitiesTab") },
+    { value: "documents", label: t("i18n-next18.chat.composer.attach.documentsTab") },
+    { value: "upload", label: t("i18n-next18.chat.composer.attach.uploadTab") }
+  ];
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="Add to message"
+      title={t("i18n-next18.chat.composer.attach.dialogTitle")}
       maxWidth="sm"
       fullWidth
       disableRestoreFocus
     >
       <FlexColumn gap={SPACING.md}>
         <TabGroup
-          tabs={TABS}
+          tabs={tabs}
           value={tab}
           onChange={handleTabChange}
-          aria-label="What to add"
+          aria-label={t("i18n-next18.chat.composer.attach.tabsLabel")}
           size="small"
         />
         {(tab === "assets" || tab === "documents") && (
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder={`Search ${tab}`}
-            ariaLabel={`Search ${tab}`}
+            placeholder={t("i18n-next18.chat.composer.attach.searchPlaceholder", { item: t(`i18n-next18.chat.composer.attach.${tab}Tab`) })}
+            ariaLabel={t("i18n-next18.chat.composer.attach.searchLabel", { item: t(`i18n-next18.chat.composer.attach.${tab}Tab`) })}
             size="small"
             autoFocus
             fullWidth

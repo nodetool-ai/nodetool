@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { useTranslation } from "react-i18next";
 /**
  * Standalone workflow graph viewer for screenshots.
  *
@@ -62,7 +63,7 @@ type WorkflowView = Pick<Workflow, "id" | "name" | "graph">;
  * Accepts either a full Workflow (with graph.nodes/graph.edges) or
  * the simplified format from team-workflow.json (with top-level nodes/edges).
  */
-function parseWorkflowJSON(raw: unknown) {
+function parseWorkflowJSON(raw: unknown, fallbackName: string) {
   const obj = raw as Record<string, unknown>;
 
   // Simplified format: { nodes: [...], edges: [...] }
@@ -91,7 +92,7 @@ function parseWorkflowJSON(raw: unknown) {
     return {
       workflow: {
         id: "inline",
-        name: (obj.name as string) || "Workflow",
+        name: (obj.name as string) || fallbackName,
         graph: { nodes, edges }
       }
     };
@@ -111,6 +112,7 @@ function parseWorkflowJSON(raw: unknown) {
 }
 
 function GraphInner() {
+  const { t } = useTranslation();
   const { workflowId } = useParams<{ workflowId: string }>();
   const [searchParams] = useSearchParams();
   const bgColor = searchParams.get("bg") || "#1a1a2e";
@@ -148,11 +150,11 @@ function GraphInner() {
         const dataParam = searchParams.get("data");
         if (dataParam) {
           const json: unknown = JSON.parse(atob(dataParam));
-          ({ workflow } = parseWorkflowJSON(json));
+          ({ workflow } = parseWorkflowJSON(json, t("screen_editor.workflowFallback")));
         } else if (workflowId && workflowId !== "json") {
           workflow = await fetchWorkflowById(workflowId);
         } else {
-          setError("No workflow ID or data provided");
+          setError(t("screen_editor.missingWorkflowData"));
           return;
         }
 
@@ -172,7 +174,7 @@ function GraphInner() {
         setError(String(err));
       }
     })();
-  }, [workflowId, searchParams]);
+  }, [workflowId, searchParams, t]);
 
   // Fit view once nodes are initialized
   useEffect(() => {
@@ -208,7 +210,7 @@ function GraphInner() {
           fontSize: 18
         }}
       >
-        Error: {error}
+        {t("screen_editor.errorPrefix")}{error}
       </div>
     );
   }

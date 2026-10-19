@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { shallow } from "zustand/shallow";
 import { Property, TypeMetadata } from "../../stores/ApiTypes";
 import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
@@ -230,6 +231,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   isConnected,
   onValueChange
 }: PropertyInputProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const containerCss = useMemo(
     () => propertyInputContainerStyles(theme),
@@ -475,7 +477,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       inputField = (
         <form onSubmit={handleNameSubmit} className="property-input-form">
           <input
-            aria-label="Property name"
+            aria-label={t("i18n-next39.nodeEditor.propertyInput.propertyName")}
             value={editedName}
             onChange={handleNameChange}
             onBlur={handleNameSubmit}
@@ -487,7 +489,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       inputField = createElement(componentType, propertyProps);
     }
   } else {
-    inputField = <div>Unsupported property type</div>;
+    inputField = (
+      <div>{t("i18n-next39.nodeEditor.propertyInput.unsupportedPropertyType")}</div>
+    );
   }
   const handleDoubleClick = React.useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -554,7 +558,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const canvasResetButton =
     !isInspector && hasResetDefault ? (
       <Tooltip
-        title="Reset to default"
+        title={t("i18n-next39.nodeEditor.propertyInput.resetToDefault")}
         placement="top"
         disableInteractive
         disabled={!isChanged}
@@ -562,8 +566,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         <span className="property-reset-anchor">
           <ToolbarIconButton
             className={`reset-button${isChanged ? " is-active" : ""}`}
-            tooltip="Reset to default"
-            ariaLabel="Reset to default"
+            tooltip={t("i18n-next39.nodeEditor.propertyInput.resetToDefault")}
+            ariaLabel={t("i18n-next39.nodeEditor.propertyInput.resetToDefault")}
             tabIndex={isChanged ? 0 : -1}
             disabled={!isChanged}
             onClick={handleResetToDefault}
@@ -589,11 +593,15 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const inspectorResetButton =
     isInspector && hasResetDefault ? (
-      <Tooltip title="Reset to default" placement="top" disableInteractive>
+      <Tooltip
+        title={t("i18n-next39.nodeEditor.propertyInput.resetToDefault")}
+        placement="top"
+        disableInteractive
+      >
         <span className="inspector-reset-tooltip" style={INLINE_FLEX_STYLE}>
           <ToolbarIconButton
             className={`inspector-reset-button${isChanged ? " is-changed" : ""}`}
-            ariaLabel="Reset to default"
+            ariaLabel={t("i18n-next39.nodeEditor.propertyInput.resetToDefault")}
             onClick={handleResetToDefault}
             disabled={!isChanged}
             size="small"
@@ -618,7 +626,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         {isConnected && !appendsStaticInput && !isImageInputType(property) ? (
           <div
             className="property-connected-disabled"
-            title="Driven by a connected input — disconnect the edge to edit"
+            title={t("i18n-next39.nodeEditor.propertyInput.connectedInput")}
           >
             <div inert>{inputField}</div>
           </div>
@@ -639,15 +647,23 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
           )}
           <ToolbarIconButton
             className="action-icon"
-            tooltip={`Rename ${property.name}`}
-            ariaLabel={`Rename ${property.name}`}
+            tooltip={t("i18n-next39.nodeEditor.propertyInput.rename", {
+              name: property.name
+            })}
+            ariaLabel={t("i18n-next39.nodeEditor.propertyInput.rename", {
+              name: property.name
+            })}
             onClick={handleEditNameClick}
             icon={<Edit />}
           />
           <ToolbarIconButton
             className="action-icon close"
-            tooltip={`Delete ${property.name}`}
-            ariaLabel={`Delete ${property.name}`}
+            tooltip={t("i18n-next39.nodeEditor.propertyInput.delete", {
+              name: property.name
+            })}
+            ariaLabel={t("i18n-next39.nodeEditor.propertyInput.delete", {
+              name: property.name
+            })}
             onClick={handleDeleteClick}
             icon={<Close />}
           />

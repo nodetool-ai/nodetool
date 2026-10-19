@@ -13,13 +13,14 @@
  * with its model and the estimate line every secondary paid action in the
  * flows carries (F23).
  *
- * A script can also end here. `Open the editor without voicing` writes stage
+ * A script can also end here. “Open the editor without voicing” writes stage
  * `done` and hands the text over, because a script is a finished thing whether
  * or not anyone reads it out; the only way to leave with text used to be to go
  * back to step 1 and start blank (F16).
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ChangeEvent } from "react";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -97,9 +98,6 @@ const STACK_BELOW = 560;
 const wordsIn = (lines: readonly ScriptLine[]): number =>
   lines.reduce((sum, line) => sum + countScriptWords(line.text), 0);
 
-const plural = (count: number, noun: string): string =>
-  `${count} ${count === 1 ? noun : `${noun}s`}`;
-
 /**
  * A field that reads as part of the page until its line is pointed at: the
  * box shows when the pointer is on the line and when the field has focus. A
@@ -146,6 +144,7 @@ interface ReviewLineProps {
 /** One line of the script: speaker, direction, words, and its two actions. */
 const ReviewLine: React.FC<ReviewLineProps> = memo(
   ({ scriptId, line, cast, locked }) => {
+    const { t } = useTranslation();
     const [directionOpen, setDirectionOpen] = useState(false);
     const speaker = cast.find((entry) => entry.id === line.speakerId) ?? null;
     const hasDirection = line.direction !== undefined && line.direction !== "";
@@ -153,10 +152,7 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
 
     const setText = useCallback(
       (value: string) =>
-        getScriptAgentHandler(scriptId).setLineText(
-          line.id,
-          value
-        ),
+        getScriptAgentHandler(scriptId).setLineText(line.id, value),
       [line.id, scriptId]
     );
     const setSpeaker = useCallback(
@@ -192,8 +188,11 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
     const words = line.text.trim().split(/\s+/).filter(Boolean);
     const excerpt =
       words.length === 0
-        ? "empty line"
-        : `“${words.slice(0, 4).join(" ")}${words.length > 4 ? "…" : ""}”`;
+        ? t("pass3_9.review.emptyLine")
+        : t("pass3_9.review.lineExcerpt", {
+            text: words.slice(0, 4).join(" "),
+            ellipsis: words.length > 4 ? "…" : ""
+          });
 
     return (
       <Box
@@ -217,8 +216,9 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
             opacity: 0,
             transition: MOTION.opacity
           },
-          "&:hover .review-line-actions, &:focus-within .review-line-actions":
-            { opacity: 1 },
+          "&:hover .review-line-actions, &:focus-within .review-line-actions": {
+            opacity: 1
+          },
           [`@container script-review (max-width: ${STACK_BELOW}px)`]: {
             gridTemplateColumns: "minmax(0, 1fr) auto",
             "& > .review-line-speaker": { gridColumn: "1 / 2" },
@@ -247,7 +247,9 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
               sitting unseen on the document (PRD § 9.1). */}
           {line.targetDurationMs === undefined ? null : (
             <Caption color="muted">
-              {`Target ${(line.targetDurationMs / 1000).toFixed(1)}s`}
+              {t("pass3_9.review.targetDuration", {
+                seconds: (line.targetDurationMs / 1000).toFixed(1)
+              })}
             </Caption>
           )}
         </FlexColumn>
@@ -262,9 +264,9 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
               autoFocus={!hasDirection}
               value={line.direction ?? ""}
               onChange={setDirection}
-              placeholder="Direction, e.g. whispering, tired"
+              placeholder={t("pass3_9.review.directionPlaceholder")}
               hideLabel
-              label="Direction"
+              label={t("pass3_9.review.direction")}
               compact
               fullWidth
               slotProps={{ input: { readOnly: locked } }}
@@ -274,10 +276,10 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
           <TextArea
             value={line.text}
             onChange={setText}
-            placeholder="Write a line"
+            placeholder={t("pass3_9.review.linePlaceholder")}
             minRows={1}
             hideLabel
-            label="Line"
+            label={t("pass3_9.review.line")}
             compact
             fullWidth
             slotProps={{ input: { readOnly: locked } }}
@@ -296,14 +298,23 @@ const ReviewLine: React.FC<ReviewLineProps> = memo(
           >
             <ToolbarIconButton
               icon={<TheaterComedyIcon fontSize="small" />}
-              tooltip={showDirection ? "Delete direction" : "Add direction"}
-              ariaLabel={`${showDirection ? "Delete direction from" : "Add direction to"} ${excerpt}`}
+              tooltip={
+                showDirection
+                  ? t("pass3_9.review.deleteDirection")
+                  : t("pass3_9.review.addDirection")
+              }
+              ariaLabel={t(
+                showDirection
+                  ? "pass3_9.review.deleteDirectionFrom"
+                  : "pass3_9.review.addDirectionTo",
+                { excerpt }
+              )}
               onClick={toggleDirection}
             />
             <ToolbarIconButton
               icon={<DeleteOutlineIcon fontSize="small" />}
-              tooltip="Delete line"
-              ariaLabel={`Delete ${excerpt}`}
+              tooltip={t("pass3_9.review.deleteLine")}
+              ariaLabel={t("pass3_9.review.deleteLineExcerpt", { excerpt })}
               variant="error"
               onClick={remove}
             />
@@ -328,7 +339,8 @@ interface ReviewSectionProps {
 /** A section of the script: its name and size, then its lines. */
 const ReviewSection: React.FC<ReviewSectionProps> = memo(
   ({ scriptId, section, cast, pace, locked, showHeader }) => {
-    const title = section.title ?? "Script";
+    const { t } = useTranslation();
+    const title = section.title ?? t("pass3_9.review.script");
     const words = wordsIn(section.lines);
 
     // The step asks for at least one line with words in it, so each section
@@ -362,7 +374,10 @@ const ReviewSection: React.FC<ReviewSectionProps> = memo(
               {title}
             </Text>
             <Caption color="muted">
-              {`${plural(section.lines.length, "line")} · about ${spokenLength(estimateSpokenSeconds(words, pace))}`}
+              {t("pass3_9.review.sectionSummary", {
+                count: section.lines.length,
+                duration: spokenLength(estimateSpokenSeconds(words, pace))
+              })}
             </Caption>
           </FlexRow>
         ) : null}
@@ -382,9 +397,9 @@ const ReviewSection: React.FC<ReviewSectionProps> = memo(
             startIcon={<AddIcon fontSize="small" />}
             disabled={locked}
             onClick={addLine}
-            aria-label={`Add a line to ${title}`}
+            aria-label={t("pass3_9.review.addLineTo", { title })}
           >
-            Add a line
+            {t("i18n-next115.scriptReview.addLine")}
           </EditorButton>
         </Box>
       </Box>
@@ -418,6 +433,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onOpenEditor,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   // Nothing on the step may change the script: not while a rewrite replaces
   // the lines, and not in a view-mode tab.
   const locked = rewriting || readOnly;
@@ -489,13 +505,22 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     >
       {/* The heading on the left, the step's one paid action on the right:
           the layout the storyboard's Find entities uses. */}
-      <FlexRow gap={GAP.spacious} align="flex-start" justify="space-between" wrap>
+      <FlexRow
+        gap={GAP.spacious}
+        align="flex-start"
+        justify="space-between"
+        wrap
+      >
         <FlexColumn gap={GAP.tight}>
           <Text size="big" component="h2">
-            Read it through
+            {t("pass3_9.review.heading")}
           </Text>
           <Caption color="secondary" component="p">
-            {`${words} words · about ${spokenLength(estimateSpokenSeconds(words, pace))} spoken at a ${pace} read`}
+            {t("pass3_9.review.wordSummary", {
+              count: words,
+              duration: spokenLength(estimateSpokenSeconds(words, pace)),
+              pace
+            })}
           </Caption>
         </FlexColumn>
         <FlexColumn gap={GAP.tight} align="flex-end">
@@ -504,7 +529,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               <LanguageModelSelect
                 value={writerModel?.id ?? ""}
                 provider={writerModel?.provider}
-                placeholder="Writer model"
+                placeholder={t("pass3_9.review.writerModel")}
                 disabled={readOnly}
                 onChange={setWriterModel}
               />
@@ -514,14 +539,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               disabled={locked}
               onClick={onRewrite}
             >
-              {rewriting ? "Rewriting…" : "Rewrite"}
+              {rewriting
+                ? t("pass3_9.review.rewriting")
+                : t("pass3_9.review.rewrite")}
             </EditorButton>
           </FlexRow>
           {/* A rewrite is a model call like any other, so it says what it
               will cost before it is pressed rather than after (F23). */}
           <GenerationEstimateLine
-            result={`Rewrite ${words} words, keeping the lines it keeps`}
-            next="Edits you have made are given to the writer as context."
+            result={t("pass3_9.review.rewriteEstimate", { count: words })}
+            next={t("pass3_9.review.rewriteContext")}
             model={writerModel}
             brief={estimatedInput}
             maxOutputTokens={REWRITE_MAX_TOKENS}
@@ -529,7 +556,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           />
           {source ? (
             <Caption color="warning" component="p">
-              A rewrite replaces your imported words with the model's.
+              {t("pass3_9.review.rewriteReplacesImported")}
             </Caption>
           ) : null}
         </FlexColumn>
@@ -545,11 +572,13 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               disabled={locked}
               onClick={removeEmptyLines}
             >
-              {`Delete ${plural(emptyLineIds.length, "empty line")}`}
+              {t("pass3_9.review.deleteEmptyLines", {
+                count: emptyLineIds.length
+              })}
             </EditorButton>
           }
         >
-          {`${plural(emptyLineIds.length, "line")} ${emptyLineIds.length === 1 ? "has" : "have"} no words yet. Write ${emptyLineIds.length === 1 ? "it" : "them"} or remove ${emptyLineIds.length === 1 ? "it" : "them"} before voicing.`}
+          {t("pass3_9.review.emptyLinesNotice", { count: emptyLineIds.length })}
         </AlertBanner>
       ) : null}
 
@@ -560,7 +589,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             <ReportBugButton
               context={{
                 source: "provider-call",
-                summary: "Script rewrite failed",
+                summary: t("pass3_9.review.rewriteFailed"),
                 errorText: error
               }}
             />
@@ -590,7 +619,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               disabled={locked}
               onClick={addFirstLine}
             >
-              Add a line
+              {t("pass3_9.review.addLine")}
             </EditorButton>
           </Box>
         ) : null}
@@ -603,10 +632,10 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           disabled={readOnly}
           onClick={onOpenEditor}
         >
-          Open the editor without voicing
+          {t("pass3_9.review.openEditor")}
         </EditorButton>
         <Caption color="secondary">
-          Finish here with the text. You can voice it in the editor later.
+          {t("pass3_9.review.finishWithText")}
         </Caption>
       </FlexRow>
     </FlexColumn>

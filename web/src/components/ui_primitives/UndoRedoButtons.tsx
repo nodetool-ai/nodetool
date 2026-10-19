@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
 import { css } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { IconButton, Box, Divider } from "@mui/material";
@@ -85,12 +86,15 @@ const UndoRedoButtonsInternal: React.FC<UndoRedoButtonsProps> = ({
   onRedo,
   size = "small",
   showDivider = false,
-  undoTooltip = "Undo",
-  redoTooltip = "Redo",
+  undoTooltip,
+  redoTooltip,
   direction = "horizontal",
   className
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const resolvedUndoTooltip = undoTooltip ?? t("i18n-next95.undoRedoButtons.undoTooltip");
+  const resolvedRedoTooltip = redoTooltip ?? t("i18n-next95.undoRedoButtons.redoTooltip");
   
   const iconSize = size === "large" ? "medium" : "small";
   
@@ -99,14 +103,14 @@ const UndoRedoButtonsInternal: React.FC<UndoRedoButtonsProps> = ({
       className={`undo-redo-buttons nodrag ${direction} ${className || ""}`}
       css={styles(theme)}
     >
-      <Tooltip title={undoTooltip} enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title={resolvedUndoTooltip} enterDelay={TOOLTIP_ENTER_DELAY}>
         <span>
           <IconButton
             className="undo-redo-button"
             size={size}
             onClick={onUndo}
             disabled={!canUndo}
-            aria-label={undoTooltip}
+            aria-label={resolvedUndoTooltip}
           >
             <UndoIcon fontSize={iconSize} />
           </IconButton>
@@ -121,14 +125,14 @@ const UndoRedoButtonsInternal: React.FC<UndoRedoButtonsProps> = ({
         />
       )}
       
-      <Tooltip title={redoTooltip} enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title={resolvedRedoTooltip} enterDelay={TOOLTIP_ENTER_DELAY}>
         <span>
           <IconButton
             className="undo-redo-button"
             size={size}
             onClick={onRedo}
             disabled={!canRedo}
-            aria-label={redoTooltip}
+            aria-label={resolvedRedoTooltip}
           >
             <RedoIcon fontSize={iconSize} />
           </IconButton>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { AnyGameDocument, GameParticles } from "@nodetool-ai/protocol";
 import { createGameParticlePreview, FixedTickClock, PARTICLE_PREVIEW_HEIGHT, PARTICLE_PREVIEW_TICK_RATE, PARTICLE_PREVIEW_WIDTH } from "@nodetool-ai/game-renderer";
 
@@ -13,6 +14,7 @@ interface ParticlePreviewProps {
 }
 
 export default function ParticlePreview({ particles, dimension, assets }: ParticlePreviewProps) {
+  const { t } = useTranslation();
   const host = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(true);
   const playingRef = useRef(playing);
@@ -30,7 +32,7 @@ export default function ParticlePreview({ particles, dimension, assets }: Partic
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.setAttribute("role", "img");
-    canvas.setAttribute("aria-label", `${dimension.toUpperCase()} live particle preview`);
+    canvas.setAttribute("aria-label", t("i18n-next101.game.particlePreview.canvasAria", { dimension: dimension.toUpperCase() }));
     container.replaceChildren(canvas);
     const controller = new AbortController();
     const images = new Set<ImageBitmap>();
@@ -106,20 +108,20 @@ export default function ParticlePreview({ particles, dimension, assets }: Partic
       for (const image of images) { image.close(); }
       canvas.remove();
     };
-  }, [particles, dimension, assets, generation]);
+  }, [particles, dimension, assets, generation, t]);
 
   return <FlexColumn gap={SPACING.xs}>
     <Box ref={host} sx={{ width: "100%", aspectRatio: "16 / 9", backgroundColor: "background.default", borderRadius: BORDER_RADIUS.sm, overflow: "hidden" }} />
     <FlexRow gap={SPACING.sm} align="center">
-      <EditorButton onClick={() => setPlaying((value) => !value)}>{playing ? "Pause preview" : "Play preview"}</EditorButton>
-      <EditorButton onClick={() => setGeneration((value) => value + 1)}>Restart preview</EditorButton>
+      <EditorButton onClick={() => setPlaying((value) => !value)}>{playing ? t("i18n-next101.game.particlePreview.pause") : t("i18n-next101.game.particlePreview.play")}</EditorButton>
+      <EditorButton onClick={() => setGeneration((value) => value + 1)}>{t("i18n-next101.game.particlePreview.restart")}</EditorButton>
     </FlexRow>
-    <Caption>{dimension === "2d" ? "Canvas2D" : "WebGL2"} · {status.count} particles · tick {status.tick}</Caption>
-    <Caption>Isolated preview. Restart uses the same seed. Editing restarts the effect.</Caption>
-    {dimension === "3d" && <Caption>3D uses round billboards or meshes. Sprite textures and sheets are 2D only.</Caption>}
+    <Caption>{dimension === "2d" ? "Canvas2D" : "WebGL2"} · {t("i18n-next101.game.particlePreview.status", { count: status.count, tick: status.tick })}</Caption>
+    <Caption>{t("i18n-next101.game.particlePreview.isolatedDescription")}</Caption>
+    {dimension === "3d" && <Caption>{t("i18n-next101.game.particlePreview.threeDDescription")}</Caption>}
     {error && <>
       <Caption color="error" role="alert">{error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: "Particle preview failed", errorText: error }} />
+      <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-next101.game.particlePreview.failed"), errorText: error }} />
     </>}
   </FlexColumn>;
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ECHO_DIVISIONS, idleEcho, type EchoMessage } from '../../engine/echo';
 import { PARAMS } from '../../params';
 import { setupCanvas } from '../displays/canvas';
@@ -10,6 +11,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const db = (v: number) => v <= -89 ? '−∞' : v.toFixed(1);
 
 export function TapeEchoPanel({ adapter }: { adapter: FxPanelAdapter }) {
+  const { t } = useTranslation();
   const { params, setParam } = adapter;
   const tape = adapter.tape === true;
   const activeEngine = adapter.engine, prefix = adapter.prefix ?? '';
@@ -40,7 +42,7 @@ export function TapeEchoPanel({ adapter }: { adapter: FxPanelAdapter }) {
       const text = (s: string, x: number, y: number, align: CanvasTextAlign = 'left') => {
         c.fillStyle = slate; c.textAlign = align; c.fillText(s, x, y);
       };
-      text('LIVE RETURN', left, 13); text(motion.matches ? 'LEVEL / DRIFT' : '~3 s HISTORY', right, 13, 'right');
+      text(t('i18n-next45-fablesynth-effects.echo.liveReturn'), left, 13); text(motion.matches ? t('i18n-next45-fablesynth-effects.echo.levelDrift') : t('i18n-next45-fablesynth-effects.echo.history'), right, 13, 'right');
       // Repeat-spacing ruler, not predicted audio: the ribbons below are
       // measured L/R wet-return RMS, already including MIX and WIDTH.
       for (let repeat = 1; repeat * time < 3 && repeat < 16; repeat++) {
@@ -82,10 +84,10 @@ export function TapeEchoPanel({ adapter }: { adapter: FxPanelAdapter }) {
           if (i) c.lineTo(X(i), y - offset); else c.moveTo(X(i), y - offset);
         }); c.stroke(); c.globalAlpha = 1;
       });
-      } else text('PING-PONG RETURN', left, y + 3);
+      } else text(t('i18n-next45-fablesynth-effects.echo.pingPongReturn'), left, y + 3);
       const values = [`${Math.round(time * 1000)} ms`, `${db(data.left)} dB`, `${db(data.right)} dB`, `${(Math.max(Math.abs(data.driftL), Math.abs(data.driftR)) * 1000).toFixed(2)} ms`];
       readings.current?.querySelectorAll('output').forEach((o, i) => { o.textContent = values[i]; });
-      el.setAttribute('aria-label', `${tape ? 'Tape echo' : 'Delay'} ${active ? 'active' : 'bypassed'}. Time ${values[0]}. Left return ${values[1]}, right return ${values[2]}.${tape ? ` Tape drift ${values[3]}.` : ''}`);
+      el.setAttribute('aria-label', t(tape ? 'i18n-next45-fablesynth-effects.echo.chartAriaTapeLabel' : 'i18n-next45-fablesynth-effects.echo.chartAriaDelayLabel', { effect: tape ? t('i18n-next45-fablesynth-effects.echo.tapeEcho') : t('i18n-next45-fablesynth-effects.echo.delay'), state: active ? t('i18n-next45-fablesynth-effects.common.active') : t('i18n-next45-fablesynth-effects.common.bypassed'), time: values[0], left: values[1], right: values[2], drift: values[3] }));
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(draw); };
     redraw.current = schedule;
@@ -99,29 +101,29 @@ export function TapeEchoPanel({ adapter }: { adapter: FxPanelAdapter }) {
     }, 200);
     motion.addEventListener('change', schedule); schedule();
     return () => { unsubscribe(); resize.disconnect(); clearInterval(stale); cancelAnimationFrame(frame); motion.removeEventListener('change', schedule); redraw.current = () => {}; };
-  }, [activeEngine, prefix, tape]);
+  }, [activeEngine, prefix, tape, t]);
   useEffect(() => { redraw.current(); }, [params]);
 
   const controls = !tape ? ['time', 'fb', 'mix'] : ['time', 'fb', 'mix', 'tone', 'sat', 'wow', 'flutter', 'width'];
-  return <section className={`panel panel-echo${tape ? '' : ' panel-delay'}${on ? '' : ' echo-bypassed'}`} style={{ gridArea: 'echo' }} aria-label={`${adapter.title ?? 'Stereo tape echo'} visualizer`}>
+  return <section className={`panel panel-echo${tape ? '' : ' panel-delay'}${on ? '' : ' echo-bypassed'}`} style={{ gridArea: 'echo' }} aria-label={t('i18n-next45-fablesynth-effects.echo.visualizerAriaLabel', { name: adapter.title ?? t('i18n-next45-fablesynth-effects.echo.stereoTapeEcho') })}>
     <div className="panel-head">
       {power(id('on'))}<h2>{adapter.title ?? 'TAPE ECHO'}</h2>
-      {tape && <select aria-label="Echo routing" value={params[id('mode')]} onChange={e => setParam(id('mode'), Number(e.target.value))}>
-        <option value={0}>PING PONG</option><option value={1}>STEREO</option>
+      {tape && <select aria-label={t('i18n-next45-fablesynth-effects.echo.routing')} value={params[id('mode')]} onChange={e => setParam(id('mode'), Number(e.target.value))}>
+        <option value={0}>{t('i18n-next45-fablesynth-effects.echo.pingPong')}</option><option value={1}>{t('i18n-next45-fablesynth-effects.echo.stereo')}</option>
       </select>}
-      {tape && <button className="echo-sync" aria-pressed={sync} onClick={() => setParam(id('sync'), sync ? 0 : 1)}>SYNC</button>}
-      {tape && sync && <select aria-label="Echo beat division" value={params[id('div')]} onChange={e => setParam(id('div'), Number(e.target.value))}>
+      {tape && <button className="echo-sync" aria-pressed={sync} onClick={() => setParam(id('sync'), sync ? 0 : 1)}>{t('i18n-next45-fablesynth-effects.echo.sync')}</button>}
+      {tape && sync && <select aria-label={t('i18n-next45-fablesynth-effects.echo.beatDivision')} value={params[id('div')]} onChange={e => setParam(id('div'), Number(e.target.value))}>
         {PARAMS['fx.delay.div'].options!.map((label, i) => <option key={label} value={i}>{label}</option>)}
       </select>}
     </div>
-    <canvas ref={canvas} className="echo-curve" role="img" aria-label="Stereo tape echo return and drift" />
+    <canvas ref={canvas} className="echo-curve" role="img" aria-label={t('i18n-next45-fablesynth-effects.echo.returnAndDrift')} />
     <div className="echo-readouts" ref={readings}>
-      <div><span>TIME</span><output>{Math.round(fallbackTime * 1000)} ms</output></div>
+      <div><span>{t('i18n-next45-fablesynth-effects.echo.time')}</span><output>{Math.round(fallbackTime * 1000)} ms</output></div>
       <div><span>L</span><output>−∞ dB</output></div><div><span>R</span><output>−∞ dB</output></div>
-      {tape && <div title="Actual delay-head modulation from wow and flutter"><span>DRIFT</span><output>0.00 ms</output></div>}
+      {tape && <div title={t('i18n-next45-fablesynth-effects.echo.driftTitle')}><span>{t('i18n-next45-fablesynth-effects.echo.drift')}</span><output>0.00 ms</output></div>}
     </div>
     <div className="echo-controls">
-      {controls.map(key => <div key={key} className={key === 'time' && sync ? 'echo-time-synced' : ''} ref={el => { if (el) el.inert = key === 'time' && sync; }} title={key === 'time' && sync ? 'Time follows the selected beat division' : undefined}>
+      {controls.map(key => <div key={key} className={key === 'time' && sync ? 'echo-time-synced' : ''} ref={el => { if (el) el.inert = key === 'time' && sync; }} title={key === 'time' && sync ? t('i18n-next45-fablesynth-effects.echo.syncedTimeTitle') : undefined}>
         {knob(id(key), key)}
       </div>)}
     </div>

@@ -9,6 +9,7 @@
  * stage — the run pulls them one at a time, as it would from an upstream node.
  */
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Dialog,
@@ -112,14 +113,15 @@ const JsonPortField = ({
   streaming: boolean;
   value: string;
   onChange: (raw: string) => void;
-}) => (
-  <TextInput
-    label={`${port.name} (${streaming ? `stream of ${port.type}` : port.type})`}
+}) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
+  return <TextInput
+    label={t("runDialog.portLabel", { name: port.name, type: port.type, stream: streaming ? t("runDialog.streamOf") : "" })}
     size="small"
     value={value}
     onChange={(event) => onChange(event.target.value)}
-  />
-);
+  />;
+};
 
 const JsScriptRunDialog = ({
   open,
@@ -128,6 +130,7 @@ const JsScriptRunDialog = ({
   onClose,
   onRun
 }: JsScriptRunDialogProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
 
@@ -163,25 +166,25 @@ const JsScriptRunDialog = ({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Run script"
+      title={t("runDialog.title")}
       fullWidth
       maxWidth="sm"
       onConfirm={handleRun}
-      confirmText="Run"
+      confirmText={t("actions.run")}
     >
       <NodeContext.Provider value={store}>
         <EditorUiProvider scope="inspector">
           <FlexColumn gap={SPACING.md}>
             {inputs.length === 0 ? (
               <Text size="small" color="secondary">
-                This script declares no inputs. Run it as it is.
+                {t("runDialog.noInputs")}
               </Text>
             ) : (
               <>
                 <Text size="small" color="secondary">
                   {streaming
-                    ? "This script reads its inputs with stream(). Give each handle a JSON array of the items to stage, e.g. [1, 2, 3]."
-                    : "Each input uses the control for its declared type."}
+                    ? t("runDialog.streamHelp")
+                    : t("runDialog.inputHelp")}
                 </Text>
                 {inputs.map((port) =>
                   usesJsonField(port, streaming) ? (

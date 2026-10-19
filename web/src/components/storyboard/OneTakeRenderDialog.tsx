@@ -8,7 +8,8 @@
  */
 
 import React, { useCallback, useMemo } from "react";
-import { formatUsd } from "@nodetool-ai/model-pricing";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -31,13 +32,38 @@ interface OneTakeRenderDialogProps {
   onClose: () => void;
 }
 
-const seconds = (value: number): string => `${Math.round(value * 10) / 10}s`;
+const seconds = (value: number, locale: string, t: TFunction): string =>
+  t("screens4_13.storyboard.oneTake.seconds", {
+    count: value,
+    value: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(
+      value
+    )
+  });
+
+const formatLocalizedUsd = (usd: number, locale: string): string => {
+  if (!Number.isFinite(usd) || usd <= 0) {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0
+    }).format(0);
+  }
+  const maximumFractionDigits =
+    usd >= 0.01 ? 3 : Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits
+  }).format(usd);
+};
 
 const OneTakeRenderDialog: React.FC<OneTakeRenderDialogProps> = ({
   boardId,
   open,
   onClose
 }) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
   const { plan, settings, blockers, renderOneTake } = useRenderOneTake(boardId);
   const { model, duration_seconds, aspect_ratio, resolution } = settings;
 
@@ -67,28 +93,89 @@ const OneTakeRenderDialog: React.FC<OneTakeRenderDialogProps> = ({
   }, [blockers.length, renderOneTake, onClose]);
 
   const priced = cost !== null && cost > 0;
+  const localizeSecondsText = (value: string): string => {
+    const parsed = /^(\d+(?:\.\d+)?)s$/.exec(value);
+    return parsed ? seconds(Number(parsed[1]), locale, t) : value;
+  };
+  const localizedBlocker = (blocker: string): string => {
+    if (blocker === "Add a shot to the board first.") {
+      return t("screens4_13.storyboard.oneTake.blockers.addShot");
+    }
+    if (blocker === "Render a still for at least one shot.") {
+      return t("screens4_13.storyboard.oneTake.blockers.renderStill");
+    }
+    if (blocker === "No video model chosen.") {
+      return t("screens4_13.storyboard.oneTake.blockers.noModel");
+    }
+    const imageLimit =
+      /^(\d+) images is over the limit of (\d+)\. Remove (\d+)\.$/.exec(
+        blocker
+      );
+    if (imageLimit) {
+      return t("screens4_13.storyboard.oneTake.blockers.imageLimit", {
+        count: Number(imageLimit[1]),
+        limit: Number(imageLimit[2]),
+        removeCount: Number(imageLimit[3])
+      });
+    }
+    const durationOption =
+      /^(.*?) does not offer a (.+?) clip\. Pick one of (.+)\.$/.exec(blocker);
+    if (durationOption) {
+      return t("screens4_13.storyboard.oneTake.blockers.durationUnavailable", {
+        model: durationOption[1],
+        duration: localizeSecondsText(durationOption[2]),
+        options: durationOption[3]
+          .split(", ")
+          .map(localizeSecondsText)
+          .join(", ")
+      });
+    }
+    const durationLimit =
+      /^The take runs (.+?)\. One take renders at most (.+?)\.$/.exec(blocker);
+    if (durationLimit) {
+      return t("screens4_13.storyboard.oneTake.blockers.durationLimit", {
+        duration: localizeSecondsText(durationLimit[1]),
+        limit: localizeSecondsText(durationLimit[2])
+      });
+    }
+    return blocker;
+  };
   const rows: Array<[string, string]> = [
-    ["Model", model ? (model.name ?? model.id) : "None"],
-    ["Duration", seconds(duration_seconds)],
-    ["Aspect ratio", aspect_ratio],
-    ["Resolution", resolution],
-    ["Images", `${imageCount} of ${ONE_TAKE_MAX_IMAGES}`]
+    [
+      t("screens4_13.storyboard.oneTake.model"),
+      model
+        ? (model.name ?? model.id)
+        : t("screens4_13.storyboard.oneTake.none")
+    ],
+    [
+      t("screens4_13.storyboard.oneTake.duration"),
+      seconds(duration_seconds, locale, t)
+    ],
+    [t("screens4_13.storyboard.oneTake.aspectRatio"), aspect_ratio],
+    [t("screens4_13.storyboard.oneTake.resolution"), resolution],
+    [
+      t("screens4_13.storyboard.oneTake.images"),
+      t("screens4_13.storyboard.oneTake.imageCount", {
+        count: imageCount,
+        limit: ONE_TAKE_MAX_IMAGES
+      })
+    ]
   ];
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="Render one take"
+      title={t("screens4_13.storyboard.oneTake.renderTitle")}
       onConfirm={handleConfirm}
-      confirmText={`Render one take${priced ? ` · ~${formatUsd(cost)}` : ""}`}
+      confirmText={t("screens4_13.storyboard.oneTake.renderConfirm", {
+        estimate: priced ? ` · ~${formatLocalizedUsd(cost, locale)}` : ""
+      })}
       confirmDisabled={blockers.length > 0}
     >
       <FlexColumn gap={SPACING.md}>
         <Caption color="secondary">
-          Renders the whole board as one continuous clip. The clip lands on the
-          first shot, and every other shot plays its window of it. Change the
-          settings in the one-take panel.
+          {t("screens4_13.storyboard.oneTake.renderDescription")}
         </Caption>
         <FlexColumn gap={SPACING.micro} data-testid="one-take-settings">
           {rows.map(([label, value]) => (
@@ -103,14 +190,16 @@ const OneTakeRenderDialog: React.FC<OneTakeRenderDialogProps> = ({
           ))}
           <Text size="small">
             {priced
-              ? `Estimated cost: about ${formatUsd(cost)}`
-              : "Select a priced model to see the estimate."}
+              ? t("screens4_13.storyboard.oneTake.estimatedCost", {
+                  cost: formatLocalizedUsd(cost, locale)
+                })
+              : t("screens4_13.storyboard.oneTake.estimateUnavailable")}
           </Text>
         </FlexColumn>
         {blockers.length > 0 && (
           <AlertBanner severity="error">
             {blockers.map((blocker) => (
-              <div key={blocker}>{blocker}</div>
+              <div key={blocker}>{localizedBlocker(blocker)}</div>
             ))}
           </AlertBanner>
         )}

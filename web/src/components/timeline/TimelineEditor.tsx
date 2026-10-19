@@ -29,6 +29,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -167,12 +168,6 @@ const MAX_TRACKS_HEIGHT_PX = 600;
 const MIN_PREVIEW_HEIGHT_PX = 160;
 const TRACKS_HEIGHT_STORAGE_KEY = "nodetool.timeline.tracksHeight";
 /** What an archive export's failure notification calls it. */
-const EXPORT_LABEL = {
-  bundle: "Project download",
-  premiere: "Premiere export",
-  media: "Media export"
-} as const;
-
 const clampTracksHeight = (height: number): number =>
   Math.min(MAX_TRACKS_HEIGHT_PX, Math.max(MIN_TRACKS_HEIGHT_PX, height));
 
@@ -242,18 +237,19 @@ const previewRegionStyles = (theme: Theme) =>
 
 /** Human-readable label for the current export phase. */
 function exportPhaseLabel(
-  progress: { phase: string; frame: number; totalFrames: number } | null
+  progress: { phase: string; frame: number; totalFrames: number } | null,
+  t: (key: string, options?: Record<string, unknown>) => string
 ): string {
-  if (!progress) return "Preparing…";
+  if (!progress) return t("i18n-next25.timeline.export.preparing");
   switch (progress.phase) {
     case "audio":
-      return "Mixing audio…";
+      return t("i18n-next25.timeline.export.mixingAudio");
     case "video":
-      return `Encoding frame ${progress.frame} / ${progress.totalFrames}`;
+      return t("i18n-next25.timeline.export.encodingFrame", { frame: progress.frame, totalFrames: progress.totalFrames });
     case "finalizing":
-      return "Finalizing…";
+      return t("i18n-next25.timeline.export.finalizing");
     default:
-      return "Preparing…";
+      return t("i18n-next25.timeline.export.preparing");
   }
 }
 
@@ -275,6 +271,7 @@ const PreviewRegion: React.FC<{
   createSequenceErrorMessage,
   fullWidth = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   // Canvas size + fps come from the store — the single source of truth the
   // compositor and the export already read — so Project settings changes show
@@ -293,7 +290,7 @@ const PreviewRegion: React.FC<{
       }
     >
       {isLoading ? (
-        <LoadingSpinner text="Loading sequence" />
+        <LoadingSpinner text={t("i18n-next25.timeline.loadingSequence")} />
       ) : sequenceUnavailable ? (
         <FlexColumn
           align="center"
@@ -303,8 +300,8 @@ const PreviewRegion: React.FC<{
         >
           <EmptyState
             variant="error"
-            title="Sequence not found"
-            description="The timeline sequence you requested does not exist or you do not have access to it."
+            title={t("i18n-next25.timeline.sequenceNotFound")}
+            description={t("i18n-next25.timeline.sequenceUnavailableDescription")}
           />
           <FlexRow gap={1} align="center" justify="center" sx={{ flexWrap: "wrap" }}>
             {onRetryFetch ? (
@@ -313,9 +310,9 @@ const PreviewRegion: React.FC<{
                 size="small"
                 onClick={onRetryFetch}
                 disabled={createSequencePending}
-                aria-label="Retry loading sequence"
+                aria-label={t("i18n-next25.timeline.retryLoadingSequence")}
               >
-                Retry
+                {t("i18n-next25.timeline.retry")}
               </EditorButton>
             ) : null}
             {onCreateNewSequence ? (
@@ -324,9 +321,9 @@ const PreviewRegion: React.FC<{
                 size="small"
                 onClick={onCreateNewSequence}
                 disabled={createSequencePending}
-                aria-label="Create new sequence"
+                aria-label={t("i18n-next25.timeline.createNewSequence")}
               >
-                {createSequencePending ? "Creating…" : "New sequence"}
+                {createSequencePending ? t("i18n-next25.timeline.creating") : t("i18n-next25.timeline.newSequence")}
               </EditorButton>
             ) : null}
           </FlexRow>
@@ -334,7 +331,7 @@ const PreviewRegion: React.FC<{
             <ErrorBanner
               report={{
                 source: "operation-failure",
-                summary: "Creating a sequence failed",
+                summary: t("i18n-next25.timeline.createSequenceFailed"),
                 errorText: createSequenceErrorMessage
               }}
             >
@@ -470,7 +467,7 @@ const MobilePanelSheet: React.FC<{
       maxHeight="62vh"
       showDragHandle
       showClose={false}
-      ariaLabel="Timeline panels"
+      ariaLabel={t("i18n-next119.timeline.panels")}
     >
       <FlexColumn fullWidth sx={{ height: "52vh", minHeight: 0 }}>
         {activeTab === "inspector" ? (
@@ -554,6 +551,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   sequenceId: sequenceIdProp,
   active = true
 }) => {
+  const { t } = useTranslation();
   const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
   const sequenceId = sequenceIdProp ?? sequenceIdParam;
   const [searchParams] = useSearchParams();
@@ -684,9 +682,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       try {
         const saveResult = await flushAutosave();
         if (!saveResult.ok) {
-          throw new Error(
-            `Could not save the current timeline. ${saveResult.error}`
-          );
+          throw new Error(t("i18n-next25.timeline.export.saveBeforeExportFailed", { error: saveResult.error }));
         }
         const name = sequence?.name || "timeline";
         if (kind === "bundle") {
@@ -699,9 +695,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
             notify({
               type: "warning",
               dismissable: true,
-              content: `Media downloaded. ${missing} ${
-                missing === 1 ? "file was" : "files were"
-              } unavailable and left out.`
+              content: t("i18n-next25.timeline.export.mediaMissing", { count: missing })
             });
           }
           return;
@@ -711,9 +705,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           notify({
             type: "warning",
             dismissable: true,
-            content: `Premiere export downloaded. ${warnings} ${
-              warnings === 1 ? "clip needs" : "clips need"
-            } attention, see export-report.txt in the zip.`
+            content: t("i18n-next25.timeline.export.premiereWarnings", { count: warnings })
           });
         }
       } catch (error) {
@@ -721,15 +713,13 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           type: "error",
           alert: true,
           dismissable: true,
-          content: `${EXPORT_LABEL[kind]} failed. ${
-            error instanceof Error ? error.message : String(error)
-          }`
+          content: `${t(`i18n-next25.timeline.export.label.${kind}`)} ${t("i18n-next25.timeline.export.failed")}: ${error instanceof Error ? error.message : String(error)}`
         });
       } finally {
         setExportingArchive(null);
       }
     },
-    [flushAutosave, sequenceId, sequence?.name]
+    [flushAutosave, sequenceId, sequence?.name, t]
   );
   const handleExportBundle = useCallback(
     () => void exportArchive("bundle"),
@@ -919,7 +909,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const handleCreateNewSequence = useCallback(() => {
     createTimeline.reset();
     createTimeline.mutate(
-      { name: "Untitled sequence", projectId: projectIdForNewSequence },
+      { name: t("i18n-next25.timeline.untitledSequence"), projectId: projectIdForNewSequence },
       {
         onSuccess: (created) => {
           const next = new URLSearchParams(searchParams);
@@ -931,11 +921,11 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         }
       }
     );
-  }, [createTimeline, navigate, projectIdForNewSequence, searchParams]);
+  }, [createTimeline, navigate, projectIdForNewSequence, searchParams, t]);
 
   const createErrorMessage =
     createTimeline.error != null
-      ? createTimeline.error.message || "Could not create sequence."
+      ? createTimeline.error.message || t("i18n-next25.timeline.couldNotCreateSequence")
       : null;
 
   // The dock's panels. Contextual ones (Source, Shot, Instruments, Code, and
@@ -1158,7 +1148,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     () =>
       isExporting ? (
         <Button variant="text" color="inherit" onClick={cancelExport}>
-          Cancel
+          {t("i18n-next25.timeline.cancel")}
         </Button>
       ) : undefined,
     [isExporting, cancelExport]
@@ -1233,7 +1223,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           thickness={SPACING.xxl}
           grip
           keyboardStep={KEYBOARD_RESIZE_STEP_PX}
-          ariaLabel="Resize tracks panel"
+          ariaLabel={t("i18n-next25.timeline.resizeTracksPanel")}
           onResize={handleTracksResize}
           onResizeStart={handleTracksResizeStart}
           onResizeEnd={handleTracksResizeEnd}
@@ -1288,8 +1278,8 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           isMobile ? (
             <ToolbarIconButton
               onClick={openPanelSheet}
-              tooltip="Panels"
-              aria-label="Open panels"
+              tooltip={t("i18n-next25.timeline.panels")}
+              aria-label={t("i18n-next25.timeline.openPanels")}
               // Tinted while a clip is selected: that's when the Inspector has
               // something to show, and it's the only hint on a phone that
               // tapping a clip led somewhere.
@@ -1344,7 +1334,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       <Dialog
         open={isExporting || hasExportError}
         onClose={isExporting ? undefined : clearExportError}
-        title={hasExportError ? "Export failed" : "Exporting video"}
+        title={hasExportError ? t("i18n-next25.timeline.export.failed") : t("i18n-next25.timeline.export.exportingVideo")}
         actions={exportDialogActions}
       >
         {exportError != null ? (
@@ -1353,7 +1343,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
             <ReportBugButton
               context={{
                 source: "operation-failure",
-                summary: "Timeline export failed",
+                summary: t("i18n-next25.timeline.export.timelineFailed"),
                 errorText: exportError
               }}
             />
@@ -1367,7 +1357,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
                   ? "determinate"
                   : "indeterminate"
               }
-              label={exportPhaseLabel(exportProgress)}
+              label={exportPhaseLabel(exportProgress, t)}
             />
           </FlexColumn>
         )}

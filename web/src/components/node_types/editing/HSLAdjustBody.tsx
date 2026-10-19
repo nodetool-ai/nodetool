@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -141,6 +142,7 @@ const HSLAdjustBodyInner: React.FC<HSLAdjustBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -192,16 +194,16 @@ const HSLAdjustBodyInner: React.FC<HSLAdjustBodyProps> = ({
       </div>
 
       <div className="controls">
-        <span className="ctrl-label">Range</span>
+        <span className="ctrl-label">{t("i18n-next46.hslAdjust.range")}</span>
         <NodeSelect
           className="range-select"
           value={colorRange}
           onChange={handleRangeChange}
-          aria-label="Color range"
+          aria-label={t("i18n-next46.hslAdjust.colorRange")}
         >
           {COLOR_RANGES.map((r) => (
             <NodeMenuItem key={r} value={r}>
-              {r.charAt(0).toUpperCase() + r.slice(1)}
+              {t(`i18n-next46.hslAdjust.ranges.${r}`)}
             </NodeMenuItem>
           ))}
         </NodeSelect>
@@ -210,7 +212,7 @@ const HSLAdjustBodyInner: React.FC<HSLAdjustBodyProps> = ({
           const value = clamp1(Number(props[spec.name] ?? 0));
           return (
             <React.Fragment key={spec.name}>
-              <span className="ctrl-label">{spec.label}</span>
+              <span className="ctrl-label">{t(`i18n-next46.hslAdjust.sliders.${spec.name}`)}</span>
               <NodeSlider
                 min={-1}
                 max={1}
@@ -223,7 +225,9 @@ const HSLAdjustBodyInner: React.FC<HSLAdjustBodyProps> = ({
                   )
                 }
                 onChangeCommitted={setPropertyComplete}
-                aria-label={`${spec.label} adjustment`}
+                aria-label={t("i18n-next46.hslAdjust.adjustment", {
+                  label: t(`i18n-next46.hslAdjust.sliders.${spec.name}`)
+                })}
               />
               <span className="ctrl-value">
                 {value > 0 ? "+" : ""}

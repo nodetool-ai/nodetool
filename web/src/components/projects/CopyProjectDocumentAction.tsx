@@ -1,4 +1,5 @@
 import { useState, type MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import { trpc } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -34,6 +35,7 @@ const CopyProjectDocumentAction = ({
   document,
   sourceProjectId
 }: CopyProjectDocumentActionProps) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [destinationProjectId, setDestinationProjectId] = useState("");
   const { data: projects = [] } = trpc.projects.list.useQuery(
@@ -80,27 +82,26 @@ const CopyProjectDocumentAction = ({
         variant="text"
         density="compact"
         onClick={showDialog}
-        aria-label={`Copy ${document.name} to another project`}
+        aria-label={t("pass3_32.projects.copyDocument.actionLabel", { name: document.name })}
       >
-        Copy
+        {t("pass3_32.projects.copyDocument.action")}
       </EditorButton>
       <Dialog
         open={open}
         onClose={closeDialog}
-        title={`Copy ${document.name}`}
+        title={t("pass3_32.projects.copyDocument.title", { name: document.name })}
         onConfirm={confirmCopy}
-        confirmText="Copy"
+        confirmText={t("pass3_32.projects.copyDocument.confirm")}
         confirmDisabled={!destinationProjectId}
         cancelDisabled={copy.isPending}
         isLoading={copy.isPending}
       >
         <FlexColumn gap={SPACING.lg}>
           <Caption color="secondary">
-            Referenced assets, entities, and supported documents are copied into
-            the destination. The source remains unchanged.
+            {t("pass3_32.projects.copyDocument.description")}
           </Caption>
           <SelectField
-            label="Destination project"
+            label={t("pass3_32.projects.copyDocument.destinationProject")}
             value={destinationProjectId}
             onChange={setDestinationProjectId}
             options={destinations.map((project) => ({

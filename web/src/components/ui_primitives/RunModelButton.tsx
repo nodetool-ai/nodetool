@@ -13,6 +13,7 @@
 
 import { forwardRef, memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -74,8 +75,10 @@ export interface RunModelButtonProps {
 const RunModelButtonInner = forwardRef<
   HTMLButtonElement,
   RunModelButtonProps
->(({ label = "Run model", isRunning = false, disabled = false, onClick, className }, ref) => {
+>(({ label, isRunning = false, disabled = false, onClick, className }, ref) => {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t("i18n-next95.runModelButton.label");
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
   const handleClick = useCallback(() => {
@@ -97,10 +100,10 @@ const RunModelButtonInner = forwardRef<
           <PlayArrowIcon />
         )
       }
-      aria-label={label}
+      aria-label={resolvedLabel}
       size="small"
     >
-      {label}
+      {resolvedLabel}
     </Button>
   );
 });

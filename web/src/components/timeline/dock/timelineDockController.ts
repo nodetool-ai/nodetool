@@ -5,7 +5,8 @@ import { dockGroupOfPanel } from "../../../stores/dock/DockLayout";
 import type { DockLayoutState } from "../../../stores/dock/DockLayoutStore";
 import type { DockMaximizeController } from "../../dock/DockCanvas";
 import type { TimelinePanelId } from "../../../stores/timeline/TimelineDockLayout";
-import { UNAVAILABLE_PANEL_NOTICE } from "./timelinePanels";
+import type { TFunction } from "i18next";
+import { unavailablePanelNotice } from "./timelinePanels";
 
 /** What the key handler and the command menu can ask of the timeline's dock. */
 export interface TimelineDockController {
@@ -37,14 +38,15 @@ export interface TimelineDockControllerOptions {
   readonly maximize: () => DockMaximizeController | null;
   readonly requestProgramFullscreen: () => void;
   readonly notify: (message: string) => void;
+  readonly t?: TFunction;
 }
 
 export function createTimelineDockController(options: TimelineDockControllerOptions): TimelineDockController {
-  const { store, isAvailable, focusedGroupId, focusPanel, maximize, requestProgramFullscreen, notify } = options;
+  const { store, isAvailable, focusedGroupId, focusPanel, maximize, requestProgramFullscreen, notify, t } = options;
   return {
     openPanel(id, { focus = false } = {}) {
       if (!isAvailable(id)) {
-        notify(UNAVAILABLE_PANEL_NOTICE[id] ?? `The ${id} panel has nothing to show yet.`);
+        notify(unavailablePanelNotice(id, t));
         return false;
       }
       store.getState().revealPanel(id);

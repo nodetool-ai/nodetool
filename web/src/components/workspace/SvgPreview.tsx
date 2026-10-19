@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -58,6 +59,7 @@ const styles = (theme: Theme) => {
  * the sandbox CSP the storage route sets does not apply.
  */
 const SvgPreview = ({ markup }: SvgPreviewProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const previewStyles = useMemo(() => styles(theme), [theme]);
   const html = useMemo(
@@ -68,7 +70,7 @@ const SvgPreview = ({ markup }: SvgPreviewProps) => {
   if (html === null) {
     return (
       <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <Caption>No &lt;svg&gt; element to render</Caption>
+        <Caption>{t("batch2_0.noSvgElement")}</Caption>
       </FlexColumn>
     );
   }

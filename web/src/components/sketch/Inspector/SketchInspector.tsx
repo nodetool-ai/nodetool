@@ -14,6 +14,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
@@ -27,6 +28,7 @@ import { DirectGenLayerPanel } from "./DirectGenLayerPanel";
 
 const SketchInspectorInner: React.FC = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const activeLayerId = useSketchStore((s) => s.document.activeLayerId);
   const selectedLayerIds = useSketchStore((s) => s.selectedLayerIds);
@@ -45,8 +47,8 @@ const SketchInspectorInner: React.FC = () => {
       <EmptyState
         variant="empty"
         size="small"
-        title={`${selectedLayerIds.length} layers selected`}
-        description="Select a single layer to inspect."
+        title={t("i18n-next52.sketch.inspector.selected", { count: selectedLayerIds.length })}
+        description={t("i18n-next52.sketch.inspector.selectSingle")}
       />
     );
   } else if (!layer) {
@@ -54,8 +56,8 @@ const SketchInspectorInner: React.FC = () => {
       <EmptyState
         variant="empty"
         size="small"
-        title="Inspector"
-        description="Select a layer to inspect."
+        title={t("i18n-next52.sketch.inspector.title")}
+        description={t("i18n-next52.sketch.inspector.selectLayer")}
       />
     );
   } else if (layer.type === "vector") {

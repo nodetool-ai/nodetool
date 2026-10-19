@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
@@ -24,6 +25,7 @@ interface ImageSketchEditorProps {
  * autosaves independently.
  */
 const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
+  const { t } = useTranslation();
   const updateAsset = useAssetStore((state) => state.update);
   const [documentId, setDocumentId] = useState<string | null>(() =>
     readSketchDocumentId(asset)
@@ -53,7 +55,7 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
           onClick={save}
           disabled={saving}
         >
-          {saving ? "Saving…" : "Save to image"}
+          {saving ? t("i18n-next51.imageSketch.saving") : t("i18n-next51.imageSketch.saveToImage")}
         </EditorButton>
         <EditorButton
           variant="text"
@@ -61,7 +63,7 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
           onClick={saveAndClose}
           disabled={saving}
         >
-          Done
+          {t("i18n-next110.imageSketch.done")}
         </EditorButton>
       </FlexRow>
     ),
@@ -90,7 +92,7 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
       <FlexColumn fullWidth fullHeight align="center" justify="center">
         <EmptyState
           variant="error"
-          title="Could not open editor"
+          title={t("i18n-next51.imageSketch.openErrorTitle")}
           description={error}
         />
       </FlexColumn>

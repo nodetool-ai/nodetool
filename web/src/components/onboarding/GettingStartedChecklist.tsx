@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import useOnboardingStore, {
   type OnboardingStepId
@@ -148,6 +149,7 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
   onOpenExamples
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const { completedSteps, dismissed, dismiss } = useOnboardingStore(
     useShallow((s) => ({
       completedSteps: s.completedSteps,
@@ -159,16 +161,16 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
   const steps: ChecklistStep[] = [
     {
       id: "connect-provider",
-      label: "Connect an AI provider",
+      label: t("batch2_5.gettingStartedChecklist.steps.connectProvider"),
       done: hasConfiguredProvider,
       // The dialog is where a key is replaced or another provider added, and
       // a disabled pill left people hunting for another way back to it.
-      doneLabel: "AI provider connected",
+      doneLabel: t("batch2_5.gettingStartedChecklist.steps.providerConnected"),
       onClick: onConnectProvider
     },
     {
       id: "start-guided-flow",
-      label: "Start a guided flow",
+      label: t("batch2_5.gettingStartedChecklist.steps.startGuidedFlow"),
       done: completedSteps.includes("start-guided-flow"),
       // The cards live further down this surface; the pill takes the user
       // to them, starting one marks the step.
@@ -176,7 +178,7 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
     },
     {
       id: "describe-idea",
-      label: "Describe what you want to make",
+      label: t("batch2_5.gettingStartedChecklist.steps.describeIdea"),
       done: completedSteps.includes("describe-idea"),
       // The composer below the cards is the way there; pressing Start
       // marks the step.
@@ -184,7 +186,7 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
     },
     {
       id: "keep-creating",
-      label: "Open an example or a blank doc",
+      label: t("batch2_5.gettingStartedChecklist.steps.openExampleOrBlankDoc"),
       done: completedSteps.includes("keep-creating"),
       onClick: onOpenExamples
     }
@@ -196,11 +198,17 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
   }
 
   return (
-    <section css={styles(theme)} aria-label="Getting started checklist">
+    <section
+      css={styles(theme)}
+      aria-label={t("batch2_5.gettingStartedChecklist.ariaLabel")}
+    >
       <div>
         <div className="checklist-inner">
           <span className="checklist-label">
-            Getting started · {doneCount}/{steps.length}
+            {t("batch2_5.gettingStartedChecklist.progress", {
+              done: doneCount,
+              total: steps.length
+            })}
           </span>
           {steps.map((step) => (
             <button
@@ -234,9 +242,9 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
             color="inherit"
             className="checklist-dismiss"
             onClick={dismiss}
-            aria-label="Dismiss getting started checklist"
+            aria-label={t("batch2_5.gettingStartedChecklist.dismissAriaLabel")}
           >
-            Dismiss
+            {t("batch2_5.gettingStartedChecklist.dismiss")}
           </EditorButton>
         </div>
       </div>

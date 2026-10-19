@@ -13,6 +13,7 @@
  */
 
 import React, { Suspense, lazy, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -77,6 +78,7 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
   onSubmit,
   onCancelSave
 }) => {
+  const { t } = useTranslation();
   const [files, setFiles] = useState<File[]>([]);
   const input = useRef<HTMLInputElement>(null);
   // Which reference a pick replaces, or null when it is appended.
@@ -149,28 +151,31 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
     <Dialog
       open={open}
       onClose={handleCancel}
-      title="Add your own style"
+      title={t("pass3_10.storyboard.addStyle.title")}
       showActions
       onConfirm={handleSubmit}
-      confirmText={saving ? "Reading your references…" : "Add style"}
+      confirmText={
+        saving
+          ? t("pass3_10.storyboard.addStyle.readingReferences")
+          : t("pass3_10.storyboard.addStyle.addStyle")
+      }
       // The primitive holds Cancel while it shows loading, and Cancel is what
       // stops the save. The confirm button names the wait and stays disabled.
       isLoading={saving && !onCancelSave}
       confirmDisabled={saving || files.length === 0}
       cancelDisabled={saving && !onCancelSave}
-      cancelText="Cancel"
+      cancelText={t("pass3_10.storyboard.addStyle.cancel")}
       onCancel={handleCancelButton}
     >
       <FlexColumn gap={GAP.comfortable}>
         <Text size="normal" color="secondary">
-          One to three pictures of the look you want. We describe how they are
-          made — never who or what is in them — and save it as your own style.
+          {t("pass3_10.storyboard.addStyle.description")}
         </Text>
         <EditorButton
           onClick={handleAdd}
           disabled={saving || files.length >= MAX_STYLE_REFERENCES}
         >
-          Choose references
+          {t("pass3_10.storyboard.addStyle.chooseReferences")}
         </EditorButton>
         <input
           type="file"
@@ -178,7 +183,7 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
           multiple
           ref={input}
           accept={STYLE_ACCEPT}
-          aria-label="Reference images"
+          aria-label={t("pass3_10.storyboard.addStyle.referenceImagesLabel")}
           onChange={handlePicked}
         />
         {files.length > 0 ? (
@@ -209,19 +214,23 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
                     variant="text"
                     size="small"
                     disabled={saving}
-                    aria-label={`Replace ${file.name}`}
+                    aria-label={t("pass3_10.storyboard.addStyle.replaceFile", {
+                      fileName: file.name
+                    })}
                     onClick={() => openPicker(index)}
                   >
-                    Replace
+                    {t("pass3_10.storyboard.addStyle.replace")}
                   </EditorButton>
                   <EditorButton
                     variant="text"
                     size="small"
                     disabled={saving}
-                    aria-label={`Remove ${file.name}`}
+                    aria-label={t("pass3_10.storyboard.addStyle.removeFile", {
+                      fileName: file.name
+                    })}
                     onClick={() => handleRemove(index)}
                   >
-                    Remove
+                    {t("pass3_10.storyboard.addStyle.remove")}
                   </EditorButton>
                 </FlexRow>
               </FlexRow>
@@ -229,12 +238,16 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
           </FlexColumn>
         ) : null}
         <Suspense
-          fallback={<Caption color="secondary">Loading estimate…</Caption>}
+          fallback={
+            <Caption color="secondary">
+              {t("pass3_10.storyboard.addStyle.loadingEstimate")}
+            </Caption>
+          }
         >
           <ReferencesEstimate
             references={files.length}
-            result="Describe your references as a style you can reuse"
-            next="Saves the style and applies it to this board. No stills are rendered here."
+            result={t("pass3_10.storyboard.addStyle.estimateResult")}
+            next={t("pass3_10.storyboard.addStyle.estimateNext")}
             model={model}
             brief=""
             maxOutputTokens={STYLE_MAX_OUTPUT_TOKENS}
@@ -247,7 +260,7 @@ export const AddStyleDialog: React.FC<AddStyleDialogProps> = ({
               <ReportBugButton
                 context={{
                   source: "provider-call",
-                  summary: "Storyboard custom style failed",
+                  summary: t("pass3_10.storyboard.addStyle.failureSummary"),
                   errorText: error
                 }}
               />

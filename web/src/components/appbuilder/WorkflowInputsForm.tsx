@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Caption, Tooltip } from "../ui_primitives";
 
 import { Property, Workflow } from "../../stores/ApiTypes";
@@ -179,6 +180,7 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
   onInputChange,
   onError
 }) => {
+  const { t } = useTranslation();
   const [stringDrafts, setStringDrafts] = useState<Record<string, string>>({});
 
   // Seed drafts for string inputs from stored values.
@@ -296,8 +298,8 @@ const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
                         <Tooltip
                           title={
                             exceedsMaxLength
-                              ? `${draft.length - maxLength} characters over the limit; extra characters will not be sent.`
-                              : "Max length. Extra characters will not be sent."
+                              ? t("i18n-next53.appBuilder.inputs.charactersOverLimit", { count: draft.length - maxLength })
+                              : t("i18n-next53.appBuilder.inputs.maxLengthHint")
                           }
                           placement="bottom"
                         >

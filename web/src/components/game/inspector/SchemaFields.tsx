@@ -1,4 +1,6 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Euler, Quaternion } from "three";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -95,6 +97,11 @@ function fieldLabel(path: string): string {
     .replace(/\bid\b/gi, "ID").replace(/\bhud\b/gi, "HUD");
 }
 
+function localizedFieldLabel(path: string, t: TFunction): string {
+  const key = path.split(".").at(-1) ?? path;
+  return t(`game.inspector.fields.${key}`, { defaultValue: fieldLabel(path) });
+}
+
 function trackCurve(easing: string): string {
   switch (easing) {
     case "easeIn": return "0,32 8,31 16,28 24,23 32,16";
@@ -113,11 +120,12 @@ function FieldRow({ label, htmlFor, error, trailing, children }: { label: ReactN
 }
 
 function StringField({ label, value, schema, error, trailing, onChange }: { label: string; value: string; schema: FieldSchema; error?: string; trailing?: ReactNode; onChange: (value: string) => void }) {
+  const { t } = useTranslation();
   const [local, setLocal] = useState(value);
   useEffect(() => setLocal(value), [value]);
   const validLength = local.length >= (schema.minLength ?? 0);
   const validPattern = !schema.pattern || new RegExp(schema.pattern).test(local);
-  const localError = !validLength ? `Enter at least ${schema.minLength} character${schema.minLength === 1 ? "" : "s"}` : !validPattern ? "Invalid format" : undefined;
+  const localError = !validLength ? t("game.inspector.errors.minCharacters", { count: schema.minLength }) : !validPattern ? t("game.inspector.errors.invalidFormat") : undefined;
   return <FieldRow label={label} error={localError ?? error} trailing={trailing}>
     <FieldDensityContext.Provider value="compact">
       <TextInput label={label} hideLabel compact type={schema.pattern === "^#[0-9a-fA-F]{6}$" || /^#[0-9a-fA-F]{6}$/.test(local) ? "color" : "text"}
@@ -137,6 +145,7 @@ function numberAllowed(schema: FieldSchema, value: number): boolean {
 }
 
 function NumberField({ label, value, schema, degrees, error, axis, trailing, onChange }: { label: string; value: number; schema: FieldSchema; degrees: boolean; error?: string; axis?: string; trailing?: ReactNode; onChange: (value: number) => void }) {
+  const { t } = useTranslation();
   const displayed = degrees ? Math.round(value * 180 / Math.PI * 100) / 100 : value;
   const [local, setLocal] = useState(String(displayed));
   useEffect(() => setLocal(String(displayed)), [displayed]);
@@ -149,7 +158,7 @@ function NumberField({ label, value, schema, degrees, error, axis, trailing, onC
     const converted = degrees ? next * Math.PI / 180 : next;
     if (raw.trim() !== "" && numberAllowed(schema, converted)) onChange(converted);
   }} />;
-  const message = invalid ? "Value is outside the allowed range" : error;
+  const message = invalid ? t("game.inspector.errors.outOfRange") : error;
   if (axis) {
     return <FlexColumn gap={SPACING.micro} sx={{ flex: 1, minWidth: 0 }}>{control}{message && <Caption color="error">{message}</Caption>}</FlexColumn>;
   }
@@ -197,7 +206,7 @@ function derivedColliderField(path: string, record: Record<string, unknown>, key
 }
 
 /** The optional fields an object lacks, and the object with one of them added at its default. */
-function objectAdditions(schema: FieldSchema, value: unknown, path: string, references: ColliderReferences): { options: { value: string; label: string }[]; add: (key: string) => Record<string, unknown> } {
+function objectAdditions(schema: FieldSchema, value: unknown, path: string, references: ColliderReferences, t: TFunction): { options: { value: string; label: string }[]; add: (key: string) => Record<string, unknown> } {
   const record = asRecord(value);
   const collider = path.endsWith("collider3d");
   const options = Object.entries(schema.properties ?? {})
@@ -205,7 +214,7 @@ function objectAdditions(schema: FieldSchema, value: unknown, path: string, refe
       !derivedColliderField(path, record, key) &&
       !(collider && key === "layer" && !references.collisionLayers?.length) &&
       !(collider && key === "physicsMaterial" && !references.physicsMaterials?.length))
-    .map(([key]) => ({ value: key, label: fieldLabel(key) }));
+    .map(([key]) => ({ value: key, label: localizedFieldLabel(key, t) }));
   const add = (key: string): Record<string, unknown> => {
     const child = schema.properties?.[key] ?? {};
     const initial = collider && key === "layer" ? references.collisionLayers?.[0] :
@@ -216,12 +225,12 @@ function objectAdditions(schema: FieldSchema, value: unknown, path: string, refe
 }
 
 /** The add menu for a group header, when the group holds an object with absent optional fields. */
-function headerAddMenu(title: string, schema: FieldSchema, value: unknown, path: string, references: ColliderReferences, onChange: (value: unknown) => void): ReactNode {
+function headerAddMenu(title: string, schema: FieldSchema, value: unknown, path: string, references: ColliderReferences, onChange: (value: unknown) => void, t: TFunction): ReactNode {
   const selected = schemaVariant(schema, value);
   if (!isObjectSchema(selected)) return null;
-  const additions = objectAdditions(selected, value, path, references);
+  const additions = objectAdditions(selected, value, path, references, t);
   if (additions.options.length === 0) return null;
-  return <InspectorAddMenu variant="icon" label={`Add to ${title}`} options={additions.options} onSelect={(key) => onChange(additions.add(key))} />;
+  return <InspectorAddMenu variant="icon" label={t("i18n-next101.game.inspector.addTo", { title })} options={additions.options} onSelect={(key) => onChange(additions.add(key))} />;
 }
 
 /** Sets one field of a record. Picking a 3D collider layer also resets raw category and
@@ -240,6 +249,7 @@ function withColliderReference(path: string, record: Record<string, unknown>, ke
 }
 
 export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, physicsMaterials, componentSections = false, componentEditors, componentName, dimension = "2d", addLabel, beforeSections, trailing, hideAdd = false }: SchemaFieldsProps) {
+  const { t } = useTranslation();
   const shared = { issues, assets, collisionLayers, physicsMaterials, componentEditors, dimension };
   const Editor = componentName ? componentEditors?.[componentName] : undefined;
   if (Editor) {
@@ -252,7 +262,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
     const variants = schema.oneOf ?? schema.anyOf ?? [];
     const discriminator = Object.entries(selected.properties ?? {}).find(([, child]) => child.const !== undefined)?.[0];
     return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
-      {discriminator && variants.length > 1 && <FieldRow label={fieldLabel(discriminator)}><InspectorSelect grow label={fieldLabel(discriminator)} value={String(asRecord(value)[discriminator] ?? "")}
+      {discriminator && variants.length > 1 && <FieldRow label={localizedFieldLabel(discriminator, t)}><InspectorSelect grow label={localizedFieldLabel(discriminator, t)} value={String(asRecord(value)[discriminator] ?? "")}
         options={variants.map((option) => ({ value: String(option.properties?.[discriminator]?.const ?? ""), label: String(option.properties?.[discriminator]?.const ?? "") }))}
         onChange={(next) => {
           const variant = variants.find((option) => option.properties?.[discriminator]?.const === next);
@@ -272,11 +282,11 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
     const properties = Object.entries(schema.properties ?? {}).filter(([key, child]) => key !== "kind" && key !== "property" && child.const === undefined &&
       !derivedColliderField(path, record, key));
     const pairs = [
-      { label: fieldLabel(path || "value"), keys: ["x", "y", "z"], axes: ["X", "Y", "Z"] },
+      { label: localizedFieldLabel(path || "value", t), keys: ["x", "y", "z"], axes: ["X", "Y", "Z"] },
       // A bare x/y object is named by its own key, such as "Pivot"; x and y beside other fields are a position.
-      { label: isVectorSchema(schema) && path && !path.endsWith("transform2d") ? fieldLabel(path) : "Position", keys: ["x", "y"], axes: ["X", "Y"] },
-      { label: "Scale", keys: ["scaleX", "scaleY"], axes: ["X", "Y"] },
-      { label: "Size", keys: ["width", "height"], axes: ["W", "H"] }
+      { label: isVectorSchema(schema) && path && !path.endsWith("transform2d") ? localizedFieldLabel(path, t) : t("game.inspector.fields.position"), keys: ["x", "y"], axes: ["X", "Y"] },
+      { label: t("game.inspector.fields.scale"), keys: ["scaleX", "scaleY"], axes: ["X", "Y"] },
+      { label: t("game.inspector.fields.size"), keys: ["width", "height"], axes: ["W", "H"] }
     ].filter((pair) => pair.keys.every((key) => typeof record[key] === "number" &&
       ["number", "integer"].includes(schema.properties?.[key]?.type ?? "") && schema.required?.includes(key)));
     const rows: ReactNode[] = [];
@@ -291,7 +301,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         const rowTrailing: ReactNode = !trailingPlaced && isVectorSchema(schema) ? trailing : undefined;
         trailingPlaced = trailingPlaced || Boolean(rowTrailing);
         rows.push(<FieldRow key={key} label={pair.label} trailing={rowTrailing}>
-          {pair.keys.map((axisKey, index) => <NumberField key={axisKey} label={fieldLabel(axisKey)} axis={pair.axes[index]}
+          {pair.keys.map((axisKey, index) => <NumberField key={axisKey} label={localizedFieldLabel(axisKey, t)} axis={pair.axes[index]}
             value={Number(record[axisKey])} schema={schema.properties?.[axisKey] ?? { type: "number" }} degrees={false}
             error={fieldError(issues, [...issuePath, axisKey])} onChange={(next) => onChange({ ...record, [axisKey]: next })} />)}
         </FieldRow>);
@@ -300,7 +310,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       const label = path ? `${path}.${key}` : key;
       const optional = !schema.required?.includes(key);
       const remove = (): void => { const copy = { ...record }; delete copy[key]; onChange(copy); };
-      const removeAction = optional ? <RowAction icon={<CloseIcon />} label={`Remove ${fieldLabel(key)}`} onClick={remove} /> : undefined;
+      const removeAction = optional ? <RowAction icon={<CloseIcon />} label={t("game.inspector.actions.removeField", { field: localizedFieldLabel(key, t) })} onClick={remove} /> : undefined;
       const group = isGroupSchema(child);
       const childChange = (next: unknown): void => onChange(withColliderReference(path, record, key, next));
       const nested = group && !componentSections;
@@ -310,16 +320,16 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       if (!group) {
         rows.push(<Box key={key} sx={FIELD_WIDTH}>{field}</Box>);
       } else if (componentSections) {
-        groups.push(<InspectorSection key={key} title={fieldLabel(key)}
-          action={optional ? { icon: <CloseIcon />, label: `Remove ${fieldLabel(key)}`, onClick: remove } : undefined}>{field}</InspectorSection>);
+        groups.push(<InspectorSection key={key} title={localizedFieldLabel(key, t)}
+          action={optional ? { icon: <CloseIcon />, label: t("game.inspector.actions.removeField", { field: localizedFieldLabel(key, t) }), onClick: remove } : undefined}>{field}</InspectorSection>);
       } else {
-        groups.push(<FieldGroup key={key} title={fieldLabel(key)} actions={<>
-          {headerAddMenu(fieldLabel(key), child, record[key], label, references, childChange)}
+        groups.push(<FieldGroup key={key} title={localizedFieldLabel(key, t)} actions={<>
+          {headerAddMenu(localizedFieldLabel(key, t), child, record[key], label, references, childChange, t)}
           {removeAction}
         </>}>{field}</FieldGroup>);
       }
     }
-    const additions = objectAdditions(schema, record, path, references);
+    const additions = objectAdditions(schema, record, path, references, t);
     const add = (key: string): void => onChange(additions.add(key));
     const addOptions = hideAdd ? [] : additions.options;
     return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
@@ -327,8 +337,8 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       {beforeSections}
       {groups}
       {addOptions.length > 0 && (componentSections
-        ? <Box sx={ADD_COMPONENT_ROW_SX}><InspectorAddMenu label={addLabel ?? "Add component"} options={addOptions} onSelect={add} /></Box>
-        : <InspectorAddMenu label="Add property" options={addOptions} onSelect={add} />)}
+        ? <Box sx={ADD_COMPONENT_ROW_SX}><InspectorAddMenu label={addLabel ?? t("game.inspector.actions.addComponent")} options={addOptions} onSelect={add} /></Box>
+        : <InspectorAddMenu label={t("game.inspector.actions.addProperty")} options={addOptions} onSelect={add} />)}
       {fieldError(issues, issuePath) && <Caption color="error">{fieldError(issues, issuePath)}</Caption>}
     </FlexColumn>;
   }
@@ -336,9 +346,9 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
   if (schema.type === "array" && tupleLength(schema) > 0) {
     const items = Array.isArray(value) ? value.map(Number) : [];
     if (tupleLength(schema) === 4 && path.endsWith("rotation")) {
-      return <QuaternionField label={fieldLabel(path)} value={items} trailing={trailing} onChange={onChange} />;
+      return <QuaternionField label={localizedFieldLabel(path, t)} value={items} trailing={trailing} onChange={onChange} />;
     }
-    const label = fieldLabel(path);
+    const label = localizedFieldLabel(path, t);
     return <FieldRow label={label} error={error} trailing={trailing}>
       {items.map((item, index) => <NumberField key={index} label={`${label} ${AXES[index]}`} axis={AXES[index]} value={item}
         schema={schema.prefixItems?.[index] ?? { type: "number" }} degrees={false} error={fieldError(issues, [...issuePath, index])}
@@ -353,9 +363,9 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         const itemSchema = schema.prefixItems?.[index] ?? schema.items ?? { type: "string" };
         const move = (to: number): void => { const copy = [...items]; [copy[to], copy[index]] = [copy[index], copy[to]]; onChange(copy); };
         const actions = fixedLength ? undefined : <>
-          <RowAction icon={<ArrowUpwardIcon />} label="Move up" disabled={index === 0} onClick={() => move(index - 1)} />
-          <RowAction icon={<ArrowDownwardIcon />} label="Move down" disabled={index === items.length - 1} onClick={() => move(index + 1)} />
-          <RowAction icon={<CloseIcon />} label="Remove" disabled={items.length <= (schema.minItems ?? 0)} onClick={() => onChange(items.filter((_, position) => position !== index))} />
+          <RowAction icon={<ArrowUpwardIcon />} label={t("game.inspector.actions.moveUp")} disabled={index === 0} onClick={() => move(index - 1)} />
+          <RowAction icon={<ArrowDownwardIcon />} label={t("game.inspector.actions.moveDown")} disabled={index === items.length - 1} onClick={() => move(index + 1)} />
+          <RowAction icon={<CloseIcon />} label={t("game.inspector.actions.remove")} disabled={items.length <= (schema.minItems ?? 0)} onClick={() => onChange(items.filter((_, position) => position !== index))} />
         </>;
         const group = isGroupSchema(itemSchema);
         const kind = asRecord(item).kind;
@@ -364,8 +374,8 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
           trailing={group ? undefined : actions} hideAdd={group} onChange={itemChange} />;
         const key = typeof asRecord(item).id === "string" ? String(asRecord(item).id) : index;
         if (!group) return <Box key={key} sx={FIELD_WIDTH}>{field}</Box>;
-        const title = typeof kind === "string" ? `${index + 1}. ${fieldLabel(kind)}` : `Item ${index + 1}`;
-        return <FieldGroup key={key} title={title} actions={<>{headerAddMenu(title, itemSchema, item, `${path}.${index}`, references, itemChange)}{actions}</>}>
+        const title = typeof kind === "string" ? `${index + 1}. ${localizedFieldLabel(kind, t)}` : t("game.inspector.fields.item", { count: index + 1 });
+        return <FieldGroup key={key} title={title} actions={<>{headerAddMenu(title, itemSchema, item, `${path}.${index}`, references, itemChange, t)}{actions}</>}>
           {path.endsWith("tracks") && <svg role="img" aria-label={`${String(asRecord(item).easing ?? "linear")} curve`} width="64" height="40" viewBox="0 0 40 40">
             <polyline points={trackCurve(String(asRecord(item).easing ?? "linear"))} fill="none" stroke="currentColor" strokeWidth="2" />
           </svg>}
@@ -373,35 +383,35 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         </FieldGroup>;
       })}
       {!fixedLength && <AddButton disabled={items.length >= (schema.maxItems ?? Infinity)}
-        onClick={() => onChange([...items, schemaDefault(schema.items ?? { type: "string" })])}>Add item</AddButton>}
+        onClick={() => onChange([...items, schemaDefault(schema.items ?? { type: "string" })])}>{t("game.inspector.actions.addItem")}</AddButton>}
       {error && <Caption color="error">{error}</Caption>}
     </FlexColumn>;
   }
   if ((path.endsWith("collider2d.category") || path.endsWith("collider2d.mask") || path.endsWith("collider3d.category") || path.endsWith("collider3d.mask")) && typeof value === "number") {
     return <FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>
       <FlexRow align="center" sx={{ minHeight: CONTROL.height.xs }}>
-        <Label component="span" sx={{ mb: 0, flex: 1 }}>{path.endsWith("category") ? "Category" : "Mask"}</Label>
+        <Label component="span" sx={{ mb: 0, flex: 1 }}>{path.endsWith("category") ? t("game.inspector.fields.category") : t("game.inspector.fields.mask")}</Label>
         {trailing}
       </FlexRow>
       <Box sx={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${CONTROL.height.xl + CONTROL.height.xs}px, 1fr))`, columnGap: SPACING.xs }}>
         {Array.from({ length: path.includes("collider3d") ? 16 : 32 }, (_, bit) => <Checkbox key={bit} compact size="small" label={collisionLayers?.[bit] ?? String(bit + 1)}
           checked={((value >>> bit) & 1) === 1} onChange={() => onChange(((value ^ (1 << bit)) >>> 0))}
-          title={`Bit ${bit + 1}`} />)}
+          title={t("game.inspector.accessibility.bit", { bit: bit + 1 })} />)}
       </Box>
       {error && <Caption color="error">{error}</Caption>}
     </FlexColumn>;
   }
-  if (schema.enum) return <FieldRow label={fieldLabel(path)} error={error} trailing={trailing}><InspectorSelect grow label={fieldLabel(path)} value={String(value ?? "")}
+  if (schema.enum) return <FieldRow label={localizedFieldLabel(path, t)} error={error} trailing={trailing}><InspectorSelect grow label={localizedFieldLabel(path, t)} value={String(value ?? "")}
     options={schema.enum.map((option) => ({ value: option, label: String(option) }))}
     onChange={(next) => onChange(schema.enum?.find((option) => String(option) === next) ?? next)} /></FieldRow>;
-  if (schema.type === "boolean") return <BooleanField label={fieldLabel(path)} value={Boolean(value)} error={error} trailing={trailing} onChange={onChange} />;
+  if (schema.type === "boolean") return <BooleanField label={localizedFieldLabel(path, t)} value={Boolean(value)} error={error} trailing={trailing} onChange={onChange} />;
   if (schema.type === "number" || schema.type === "integer") {
     const degrees = path.endsWith("transform2d.rotation");
-    return <NumberField label={degrees ? "Rotation" : fieldLabel(path)} value={typeof value === "number" ? value : 0} schema={schema}
+    return <NumberField label={degrees ? t("game.inspector.fields.rotation") : localizedFieldLabel(path, t)} value={typeof value === "number" ? value : 0} schema={schema}
       degrees={degrees} error={error} trailing={trailing} onChange={onChange} />;
   }
-  const referenceField = path.endsWith("collider3d.layer") ? { label: "Layer", names: collisionLayers } :
-    path.endsWith("collider3d.physicsMaterial") ? { label: "Physics material", names: physicsMaterials } : undefined;
+  const referenceField = path.endsWith("collider3d.layer") ? { label: t("game.inspector.fields.layer"), names: collisionLayers } :
+    path.endsWith("collider3d.physicsMaterial") ? { label: t("game.inspector.fields.physicsMaterial"), names: physicsMaterials } : undefined;
   if (schema.type === "string" && referenceField) {
     const current = typeof value === "string" ? value : "";
     const names = referenceField.names?.includes(current) ? referenceField.names : [current, ...(referenceField.names ?? [])];
@@ -414,10 +424,10 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       const slots = Object.entries(assets).filter(([, binding]) => binding.mediaKind === kind).map(([slot]) => slot);
       const current = typeof value === "string" ? value : "";
       if (current && !slots.includes(current)) slots.unshift(current);
-      return <FieldRow label={fieldLabel(path)} error={error} trailing={trailing}><InspectorSelect grow label={fieldLabel(path)} value={current} options={slots.map((slot) => ({ value: slot, label: slot }))}
+      return <FieldRow label={localizedFieldLabel(path, t)} error={error} trailing={trailing}><InspectorSelect grow label={localizedFieldLabel(path, t)} value={current} options={slots.map((slot) => ({ value: slot, label: slot }))}
         onChange={onChange} /></FieldRow>;
     }
-    return <StringField label={fieldLabel(path)} value={typeof value === "string" ? value : ""} schema={schema} error={error} trailing={trailing} onChange={onChange} />;
+    return <StringField label={localizedFieldLabel(path, t)} value={typeof value === "string" ? value : ""} schema={schema} error={error} trailing={trailing} onChange={onChange} />;
   }
   return <Caption>{path}: unsupported field</Caption>;
 }

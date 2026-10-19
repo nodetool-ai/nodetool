@@ -3,6 +3,7 @@
 // reference curve, and APPLY writes them. UNDO restores the levels from
 // before APPLY.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BAND_HZ, EQ_REFERENCES, alignToReference, referenceById, referenceDb } from '../../engine/autoEq';
 import { useLiveSpectrum } from '../../components/panels/useLiveSpectrum';
 import { KitCapture, fitKitMix } from '../kitMix';
@@ -17,6 +18,7 @@ const Y = (d: number) => T + (18 - Math.max(-30, Math.min(18, d))) / 48 * (B - T
 const line = (ys: number[]) => ys.map((d, i) => `${i ? 'L' : 'M'}${X(BAND_HZ[i]).toFixed(1)} ${Y(d).toFixed(1)}`).join('');
 
 export function KitMixPanel() {
+  const { t } = useTranslation();
   const device = useDrumStore(s => s.device);
   const analyser = useDrumStore(s => s.analyser);
   const params = useDrumStore(s => s.params);
@@ -65,9 +67,9 @@ export function KitMixPanel() {
     setUndo(null);
   };
 
-  const status = progress !== null ? `LISTENING ${Math.round(progress * 100)}%`
-    : fit ? `ERROR ${fit.errorBefore.toFixed(1)} → ${fit.errorAfter.toFixed(1)} dB`
-    : learned ? 'NEEDS TWO SOUNDING PADS' : 'PLAY THE KIT, THEN LEARN';
+  const status = progress !== null ? t('i18n-next20.kitMixPanel.listening', { percent: Math.round(progress * 100) })
+    : fit ? t('i18n-next20.kitMixPanel.error', { before: fit.errorBefore.toFixed(1), after: fit.errorAfter.toFixed(1) })
+    : learned ? t('i18n-next20.kitMixPanel.needsTwoPads') : t('i18n-next20.kitMixPanel.playThenLearn');
   const target = fit?.target ?? BAND_HZ.map(f => referenceDb(ref, f));
   // The kit as it plays now, aligned to the reference like the learned curves.
   const live = useLiveSpectrum(analyser, (levels) => {
@@ -77,36 +79,36 @@ export function KitMixPanel() {
   });
   const rows = fit ? fit.heard.flatMap((h, i) => h ? [i] : []).sort((a, b) => fit.share[b] - fit.share[a]) : [];
 
-  return <section className="panel dr-kitmix" aria-label="Kit auto-mix">
-    <div className="panel-head"><h2>KIT MIX</h2><span className="dr-kitmix-status">{status}</span></div>
+  return <section className="panel dr-kitmix" aria-label={t("i18n-next20.kitMixPanel.label")}>
+    <div className="panel-head"><h2>{t("i18n-next20.kitMixPanel.title")}</h2><span className="dr-kitmix-status">{status}</span></div>
     <div className="dr-kitmix-body">
       <div className="dr-kitmix-side">
-        <select aria-label="Kit mix reference" value={reference} title={ref.hint} onChange={e => setReference(e.target.value)}>
+        <select aria-label={t("i18n-next20.kitMixPanel.reference")} value={reference} title={ref.hint} onChange={e => setReference(e.target.value)}>
           {EQ_REFERENCES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
         </select>
-        <label className="dr-kitmix-amount" title="How much of the fitted level moves to use">
-          <input type="range" min={0} max={1} step={0.05} value={amount} aria-label="Kit mix amount" onChange={e => setAmount(+e.target.value)} />
+        <label className="dr-kitmix-amount" title={t("i18n-next20.kitMixPanel.amountTitle")}>
+          <input type="range" min={0} max={1} step={0.05} value={amount} aria-label={t("i18n-next20.kitMixPanel.amount")} onChange={e => setAmount(+e.target.value)} />
           <output>{Math.round(amount * 100)}%</output>
         </label>
         <div className="dr-kitmix-actions">
           <button type="button" className={`dr-kitmix-learn${progress !== null ? ' on' : ''}`} style={{ '--p': progress ?? 0 } as React.CSSProperties}
-            disabled={!device} onClick={learn}>{progress !== null ? 'STOP' : learned ? 'RELEARN' : 'LEARN'}</button>
-          <button type="button" disabled={!fit || progress !== null} onClick={apply}>APPLY</button>
-          <button type="button" disabled={!undo} onClick={revert}>UNDO</button>
+            disabled={!device} onClick={learn}>{progress !== null ? t('i18n-next20.kitMixPanel.stop') : learned ? t('i18n-next20.kitMixPanel.relearn') : t('i18n-next20.kitMixPanel.learn')}</button>
+          <button type="button" disabled={!fit || progress !== null} onClick={apply}>{t("i18n-next20.kitMixPanel.apply")}</button>
+          <button type="button" disabled={!undo} onClick={revert}>{t("i18n-next20.kitMixPanel.undo")}</button>
         </div>
       </div>
-      <svg className="dr-kitmix-plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Kit spectrum against the reference">
+      <svg className="dr-kitmix-plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("i18n-next20.kitMixPanel.spectrumLabel")}>
         {[100, 1000, 10000].map(f => <g key={f} className="grid"><path d={`M${X(f)} ${T}V${B}`} /><text x={X(f)} y={H - 3} textAnchor="middle">{f >= 1000 ? `${f / 1000}k` : f}</text></g>)}
         <path ref={live} className="live" d="" aria-hidden="true" />
         <path className="target" d={`${line(target.map(d => d + 3))}${target.map((_, i) => `L${X(BAND_HZ[target.length - 1 - i]).toFixed(1)} ${Y(target[target.length - 1 - i] - 3).toFixed(1)}`).join('')}Z`} />
         {fit && <path className="before" d={line(fit.before)} />}
         {fit && <path className="after" d={line(fit.after)} />}
       </svg>
-      <ul className="dr-kitmix-pads" aria-label="Pad level moves">
+      <ul className="dr-kitmix-pads" aria-label={t("i18n-next20.kitMixPanel.padMovesLabel")}>
         {rows.map(i => <li key={i}>
           <span>{String(i + 1).padStart(2, '0')} {padNames[i] ?? ''}</span>
-          <i style={{ width: `${Math.round(fit!.share[i] * 100)}%` }} title={`${Math.round(fit!.share[i] * 100)}% of the kit energy`} />
-          <b className={fit!.moves[i] ? '' : 'hold'}>{fit!.moves[i] ? `${fit!.moves[i] > 0 ? '+' : ''}${fit!.moves[i].toFixed(1)}` : 'HOLD'}</b>
+          <i style={{ width: `${Math.round(fit!.share[i] * 100)}%` }} title={t("i18n-next20.kitMixPanel.kitEnergy", { percent: Math.round(fit!.share[i] * 100) })} />
+          <b className={fit!.moves[i] ? '' : 'hold'}>{fit!.moves[i] ? `${fit!.moves[i] > 0 ? '+' : ''}${fit!.moves[i].toFixed(1)}` : t('i18n-next20.kitMixPanel.hold')}</b>
         </li>)}
       </ul>
     </div>

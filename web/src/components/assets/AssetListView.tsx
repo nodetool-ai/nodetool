@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, useRef, useEffect, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -243,6 +244,9 @@ const AssetRowThumbnail: React.FC<{
   isSvg: boolean;
   previewUrl: string | null | undefined;
 }> = ({ asset, isSvg, previewUrl }) => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const isVideo = asset.content_type?.startsWith("video/") ?? false;
   const videoThumbUrl = useVideoThumbnail(
     isVideo ? previewUrl : null,
@@ -255,11 +259,11 @@ const AssetRowThumbnail: React.FC<{
   return (
     <div
       className="asset-item-thumbnail"
-      title={`${asset.content_type} thumbnail`}
+      title={t("thumbnail", { type: asset.content_type })}
     >
       <MediaThumbnail
         asset={{ content_type: asset.content_type, thumb_url: src }}
-        alt={asset.name ?? "Thumbnail"}
+        alt={asset.name ?? t("fileTypes.thumbnail")}
         fit={isSvg ? "contain" : "cover"}
         borderRadius={0}
       />
@@ -273,6 +277,9 @@ const AssetListView: React.FC<AssetListViewProps> = ({
   containerWidth = 1200,
   isHorizontal = false
 }) => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const theme = useTheme();
   const listStyles = useMemo(() => styles(theme), [theme]);
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
@@ -440,7 +447,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
             />
           )}
           <Text component="span" className="asset-content-type-title">
-            {assetTypeLabel(type)}
+            {t(`types.${type}`, { defaultValue: assetTypeLabel(type) })}
           </Text>
           <Caption component="span" color="muted">
             {count}
@@ -540,8 +547,8 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         {showType && (
           <div className="asset-item-type">
             {isFolder
-              ? "Folder"
-              : asset.content_type?.split("/")[1] || "Unknown"}
+              ? t("fileTypes.folder")
+              : asset.content_type?.split("/")[1] || t("fileTypes.unknown")}
           </div>
         )}
 
@@ -552,14 +559,14 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         )}
       </div>
     );
-  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, formatDate]);
+  }, [virtualListItems, handleSelectAsset, onDoubleClick, handleContextMenu, toggleExpanded, showSize, showType, showDate, formatDate, t]);
 
   if (assets.length === 0) {
     return (
       <Box css={listStyles} className="asset-list-view">
         <EmptyState
           variant="no-data"
-          title="No assets to display"
+          title={t("states.noAssetsToDisplay")}
           size="small"
         />
       </Box>
@@ -571,10 +578,10 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       <div className="asset-list-container">
         <div className="asset-list-header">
           <div className="asset-header-icon-space"></div>
-          <div className="asset-header-name">Name</div>
-          {showSize && <div className="asset-header-size">Size</div>}
-          {showType && <div className="asset-header-type">Type</div>}
-          {showDate && <div className="asset-header-date">Modified</div>}
+          <div className="asset-header-name">{t("listHeaders.name")}</div>
+          {showSize && <div className="asset-header-size">{t("listHeaders.size")}</div>}
+          {showType && <div className="asset-header-type">{t("listHeaders.type")}</div>}
+          {showDate && <div className="asset-header-date">{t("listHeaders.modified")}</div>}
         </div>
 
         <div

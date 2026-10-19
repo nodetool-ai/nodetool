@@ -10,6 +10,7 @@
  */
 
 import { memo, type Ref } from "react";
+import { useTranslation } from "react-i18next";
 import { Switch, SwitchProps } from "@mui/material";
 import { useEditorScope } from "./EditorUiContext";
 import { editorUiClasses } from "../../constants/editorUiClasses";
@@ -49,6 +50,7 @@ export function NodeSwitch({
   ref,
   ...props
 }: NodeSwitchProps) {
+  const { t } = useTranslation();
   const scope = useEditorScope();
   const scopeClass =
     scope === "inspector"
@@ -67,6 +69,10 @@ export function NodeSwitch({
       )}
       sx={sx}
       {...props}
+      inputProps={{
+        "aria-label": t("i18n-next60.editorUi.switch.toggleSetting"),
+        ...props.inputProps
+      }}
     />
   );
 }

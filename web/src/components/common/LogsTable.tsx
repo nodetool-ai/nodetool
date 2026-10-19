@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { Text, TextLink, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx, VirtualList, SHADOW } from "../ui_primitives";
 import type { VirtualListHandle } from "../ui_primitives";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -228,8 +229,6 @@ type RowItemProps = {
 const rowKeyAt = (row: LogRow, index: number) =>
   `${row.workflowId ?? ""}:${row.jobId ?? ""}:${row.nodeId ?? ""}:${row.timestamp}:${row.severity}:${row.content}:${index}`;
 
-const shortRunLabel = (jobId: string): string => `Run #${jobId.slice(0, 8)}`;
-
 const RowItem = memo(({
   row,
   rowKey,
@@ -239,6 +238,7 @@ const RowItem = memo(({
   onToggle,
   onRevealNode
 }: RowItemProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const colors = SEVERITY_COLORS(theme)[row.severity];
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
@@ -302,6 +302,7 @@ const RowItem = memo(({
         className={`row row-${row.severity}${isExpanded ? " expanded" : ""}`}
         role="button"
         tabIndex={0}
+        aria-expanded={isExpanded}
         style={rowStyle}
         onClick={handleRowClick}
         onKeyDown={handleRowKeyDown}
@@ -318,7 +319,7 @@ const RowItem = memo(({
                 {row.jobId ? (
                   <>
                     <span className="context-separator">→</span>
-                    <span title={row.jobId}>{shortRunLabel(row.jobId)}</span>
+                    <span title={row.jobId}>{t("batch2_10.logs.runLabel", { id: row.jobId.slice(0, 8) })}</span>
                   </>
                 ) : null}
                 {row.nodeId ? (
@@ -329,7 +330,7 @@ const RowItem = memo(({
                         asButton
                         className="node-link"
                         onClick={handleRevealNode}
-                        aria-label={`Reveal node ${row.nodeName || row.nodeId}`}
+                        aria-label={t("batch2_10.logs.revealNode", { node: row.nodeName || row.nodeId })}
                       >
                         {row.nodeName || row.nodeId}
                       </TextLink>
@@ -350,7 +351,7 @@ const RowItem = memo(({
         <div className="cell actions" onClick={handleActionsClick}>
           <CopyButton
             value={row.content}
-            tooltip="Copy log"
+            tooltip={t("batch2_10.logs.copyLog")}
             tooltipPlacement="top"
             className="copy-btn"
             sx={{ padding: getSpacingPx(SPACING.micro) }}
@@ -359,7 +360,7 @@ const RowItem = memo(({
             <>
               <ToolbarIconButton
                 icon={<DataObjectIcon fontSize="inherit" />}
-                tooltip="View log data"
+                tooltip={t("batch2_10.logs.viewLogData")}
               onClick={handleClick}
               size="small"
               sx={{ padding: getSpacingPx(SPACING.micro) }}
@@ -390,7 +391,7 @@ const RowItem = memo(({
                       }}
                       onClick={handleClose}
                     >
-                      Close
+                      {t("batch2_10.logs.close")}
                     </Text>
                   </FlexRow>
                 </FlexColumn>
@@ -408,12 +409,13 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   rows,
   rowHeight = 36,
   height,
-  emptyText = "No logs to display",
+  emptyText,
   severities,
   autoScroll = true,
   showTimestampColumn = true,
   onRevealNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const styles = useMemo(() => tableStyles(theme), [theme]);
   const listRef = useRef<VirtualListHandle>(null);
@@ -551,14 +553,14 @@ export const LogsTable: React.FC<LogsTableProps> = ({
       <Card variant="outlined" className="table" sx={{ flex: 1, minHeight: 0 }}>
         <FlexColumn fullWidth fullHeight sx={{ minHeight: 0 }}>
           <div className="header" style={{ gridTemplateColumns: columns }}>
-            <span>Message</span>
-            {showTimestampColumn && <span>Time</span>}
+            <span>{t("batch2_10.logs.message")}</span>
+            {showTimestampColumn && <span>{t("batch2_10.logs.time")}</span>}
             <span style={{ textAlign: "right" }}></span>
           </div>
           <FlexColumn className="list-container" fullWidth sx={{ flex: 1, minHeight: 0 }}>
             {filteredRows.length === 0 ? (
               <FlexColumn className="empty" fullWidth fullHeight align="center" justify="center">
-                <Text size="small">{emptyText}</Text>
+                <Text size="small">{emptyText ?? t("batch2_10.logs.empty")}</Text>
               </FlexColumn>
             ) : (
               <VirtualList
@@ -571,7 +573,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
                 overscan={theme.virtualScroll.overscan.small}
                 getItemKey={getItemKey}
                 getItemProps={getItemProps}
-                ariaLabel="Log messages"
+                ariaLabel={t("batch2_10.logs.ariaLabel")}
                 renderItem={renderRow}
               />
             )}
@@ -582,7 +584,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
       {showScrollButton && (
         <ToolbarIconButton
           icon={<KeyboardArrowDownIcon />}
-          tooltip="Scroll to latest"
+          tooltip={t("batch2_10.logs.scrollToLatest")}
           className="scroll-to-bottom"
           onClick={scrollToBottom}
           size="small"

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   resolveEffectiveProductionRequirement,
   type Shot
@@ -29,6 +30,7 @@ export default function ShotGraphicsEditor({
   onChange,
   readOnly
 }: ShotGraphicsEditorProps): React.ReactElement {
+  const { t } = useTranslation();
   const production = resolveEffectiveProductionRequirement(
     undefined,
     shot.production
@@ -40,7 +42,9 @@ export default function ShotGraphicsEditor({
       NonNullable<NonNullable<Shot["graphics"]>["elements"]>[number]
     >
   ): void => {
-    if (readOnly || !graphics) { return; }
+    if (readOnly || !graphics) {
+      return;
+    }
     onChange({
       ...draft,
       graphics: {
@@ -53,7 +57,7 @@ export default function ShotGraphicsEditor({
   };
   return (
     <FlexColumn gap={SPACING.sm}>
-      <Label>Graphics</Label>
+      <Label>{t("screens4_17.storyboard.shotGraphicsEditor.title")}</Label>
       {!graphics ? (
         <EditorButton
           disabled={readOnly}
@@ -61,19 +65,39 @@ export default function ShotGraphicsEditor({
             onChange({ ...draft, graphics: { mode: "overlay", elements: [] } })
           }
         >
-          Add graphics intent
+          {t("screens4_17.storyboard.shotGraphicsEditor.addIntent")}
         </EditorButton>
       ) : (
         <>
           <SelectField
-            label="Composition mode"
+            label={t(
+              "screens4_17.storyboard.shotGraphicsEditor.compositionMode"
+            )}
             value={graphics.mode ?? "overlay"}
             disabled={readOnly}
             options={[
-              { value: "none", label: "None" },
-              { value: "overlay", label: "Overlay" },
-              { value: "graphics_first", label: "Graphics first" },
-              { value: "hybrid", label: "Hybrid" }
+              {
+                value: "none",
+                label: t("screens4_17.storyboard.shotGraphicsEditor.modes.none")
+              },
+              {
+                value: "overlay",
+                label: t(
+                  "screens4_17.storyboard.shotGraphicsEditor.modes.overlay"
+                )
+              },
+              {
+                value: "graphics_first",
+                label: t(
+                  "screens4_17.storyboard.shotGraphicsEditor.modes.graphicsFirst"
+                )
+              },
+              {
+                value: "hybrid",
+                label: t(
+                  "screens4_17.storyboard.shotGraphicsEditor.modes.hybrid"
+                )
+              }
             ]}
             onChange={(value) => {
               if (
@@ -87,7 +111,7 @@ export default function ShotGraphicsEditor({
             }}
           />
           <TextArea
-            label="Graphic direction"
+            label={t("screens4_17.storyboard.shotGraphicsEditor.direction")}
             value={graphics.direction ?? ""}
             disabled={readOnly}
             onChange={(value) =>
@@ -108,7 +132,12 @@ export default function ShotGraphicsEditor({
                 </Caption>
                 {element.kind === "text" && (
                   <TextInput
-                    label={`Exact text: ${element.id}`}
+                    label={t(
+                      "screens4_17.storyboard.shotGraphicsEditor.exactText",
+                      {
+                        id: element.id
+                      }
+                    )}
                     value={
                       protection?.kind === "exact_text"
                         ? (protection.value ?? "")
@@ -117,7 +146,9 @@ export default function ShotGraphicsEditor({
                     disabled={readOnly || !!protection}
                     helperText={
                       protection
-                        ? "Protected copy comes from the production inputs. Edit it there."
+                        ? t(
+                            "screens4_17.storyboard.shotGraphicsEditor.protectedCopy"
+                          )
                         : undefined
                     }
                     onChange={(event) =>
@@ -127,7 +158,12 @@ export default function ShotGraphicsEditor({
                 )}
                 {element.kind === "asset" && (
                   <TextInput
-                    label={`Asset reference: ${element.id}`}
+                    label={t(
+                      "screens4_17.storyboard.shotGraphicsEditor.assetReference",
+                      {
+                        id: element.id
+                      }
+                    )}
                     value={protection?.asset_id ?? element.asset_id ?? ""}
                     disabled={readOnly || !!protection}
                     onChange={(event) =>
@@ -137,11 +173,18 @@ export default function ShotGraphicsEditor({
                 )}
                 {(element.entity_id ?? protection?.entity_id) && (
                   <Caption>
-                    Entity: {element.entity_id ?? protection?.entity_id}
+                    {t("screens4_17.storyboard.shotGraphicsEditor.entity", {
+                      id: element.entity_id ?? protection?.entity_id
+                    })}
                   </Caption>
                 )}
                 <TextInput
-                  label={`Graphic notes: ${element.id}`}
+                  label={t(
+                    "screens4_17.storyboard.shotGraphicsEditor.graphicNotes",
+                    {
+                      id: element.id
+                    }
+                  )}
                   value={element.direction ?? ""}
                   disabled={readOnly}
                   onChange={(event) =>
@@ -159,26 +202,34 @@ export default function ShotGraphicsEditor({
                   graphics.elements?.map((element) => element.id)
                 );
                 let suffix = 1;
-                while (ids.has(`text-${suffix}`)) { suffix++; }
+                while (ids.has(`text-${suffix}`)) {
+                  suffix++;
+                }
                 onChange({
                   ...draft,
                   graphics: {
                     ...graphics,
                     elements: [
                       ...(graphics.elements ?? []),
-                      { id: `text-${suffix}`, kind: "text", text: "Your text" }
+                      {
+                        id: `text-${suffix}`,
+                        kind: "text",
+                        text: t(
+                          "screens4_17.storyboard.shotGraphicsEditor.defaultText"
+                        )
+                      }
                     ]
                   }
                 });
               }}
             >
-              Add text
+              {t("screens4_17.storyboard.shotGraphicsEditor.addText")}
             </EditorButton>
             <EditorButton
               disabled={readOnly}
               onClick={() => onChange({ ...draft, graphics: undefined })}
             >
-              Remove graphics intent
+              {t("screens4_17.storyboard.shotGraphicsEditor.removeIntent")}
             </EditorButton>
           </FlexRow>
         </>

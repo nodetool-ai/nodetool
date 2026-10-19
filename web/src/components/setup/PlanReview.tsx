@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ClearIcon from "@mui/icons-material/Clear";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -396,6 +397,7 @@ const PackedLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
 const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
   rows
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const basic = rows.filter((row) => !row.advanced);
   const advanced = rows.filter((row) => row.advanced);
@@ -418,7 +420,9 @@ const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
             />
           }
         >
-          {open ? "Fewer options" : "More options"}
+          {open
+            ? t("pass3_3.setup.planReview.fewerOptions")
+            : t("pass3_3.setup.planReview.moreOptions")}
         </EditorButton>
         {summary ? <Caption color="muted">{summary}</Caption> : null}
       </FlexRow>
@@ -458,7 +462,12 @@ const RemoveSectionControl: React.FC<{
   onRemove: (id: string) => void;
   register: (id: string) => (node: HTMLButtonElement | null) => void;
 }> = ({ section, last, noun, onRemove, register }) => {
-  const name = section.removeLabel ?? `Delete ${section.header}`;
+  const { t } = useTranslation();
+  const name =
+    section.removeLabel ??
+    t("pass3_3.setup.planReview.deleteSection", {
+      header: section.header
+    });
   return (
     <ToolbarIconButton
       ref={register(section.id)}
@@ -466,7 +475,11 @@ const RemoveSectionControl: React.FC<{
       variant="error"
       aria-disabled={last || undefined}
       ariaLabel={name}
-      tooltip={last ? `A plan keeps at least one ${noun}.` : name}
+      tooltip={
+        last
+          ? t("pass3_3.setup.planReview.keepOneSection", { noun })
+          : name
+      }
       onClick={() => {
         if (!last) {
           onRemove(section.id);
@@ -572,8 +585,17 @@ const PlanReviewInternal: React.FC<PlanReviewProps> = ({
   onReplan,
   replanPending = false,
   onRemoveSection,
-  sectionNoun = "item"
+  sectionNoun
 }) => {
+  const { t } = useTranslation();
+  const noun =
+    sectionNoun === "beat"
+      ? t("pass3_3.setup.planReview.beat")
+      : sectionNoun === "scene"
+        ? t("pass3_3.setup.planReview.scene")
+        : sectionNoun === "step"
+          ? t("pass3_3.setup.planReview.step")
+          : sectionNoun ?? t("pass3_3.setup.planReview.item");
   // A grouped plan needs two columns; a flat one still reads as prose in one.
   const grouped = sections.some((section) => (section.groups?.length ?? 0) > 0);
 
@@ -612,7 +634,7 @@ const PlanReviewInternal: React.FC<PlanReviewProps> = ({
       <RemoveSectionControl
         section={section}
         last={sections.length <= 1}
-        noun={sectionNoun}
+        noun={noun}
         onRemove={handleRemove}
         register={registerRemoveControl}
       />

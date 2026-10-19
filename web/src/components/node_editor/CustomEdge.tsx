@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react";
 import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 export function CustomEdge({
   id,
@@ -24,6 +25,7 @@ export function CustomEdge({
   data,
   selected
 }: EdgeProps) {
+  const { t } = useTranslation();
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
@@ -47,13 +49,13 @@ export function CustomEdge({
       count: number
     ): string => {
       if (!label || label === "Any") {
-        return "items";
+        return t("customEdge.items");
       }
       const lowerLabel = label.toLowerCase();
       return count === 1 ? lowerLabel : `${lowerLabel}s`;
     };
-    return `${counter} ${formatDataTypeLabel(dataTypeLabel, counter || 0)} streamed`;
-  }, [counter, dataTypeLabel]);
+    return t("customEdge.streamed", { count: counter, itemType: formatDataTypeLabel(dataTypeLabel, counter || 0) });
+  }, [counter, dataTypeLabel, t]);
 
   const labelStyle = useMemo(
     () => ({

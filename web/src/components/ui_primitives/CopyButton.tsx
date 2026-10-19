@@ -12,6 +12,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect, memo, forwardRef } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import { SxProps, Theme } from "@mui/material/styles";
@@ -98,7 +99,7 @@ export const CopyButton = memo(
     (
       {
         value,
-        tooltip = "Copy",
+        tooltip,
         tooltipPlacement = "bottom",
         buttonSize = "small",
         nodrag = true,
@@ -112,6 +113,8 @@ export const CopyButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const defaultTooltip = t("i18n-next85.uiPrimitives.copy");
       const { writeClipboard } = useClipboard();
       const [state, setState] = useState<"idle" | "copied" | "error">("idle");
       const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -162,7 +165,11 @@ export const CopyButton = memo(
       }, [value, disabled, writeClipboard, onCopySuccess, onCopyError]);
 
       const tooltipText =
-        state === "error" ? "Nothing to copy" : state === "copied" ? "Copied!" : tooltip;
+        state === "error"
+          ? t("i18n-next85.uiPrimitives.nothingToCopy")
+          : state === "copied"
+            ? t("i18n-next85.uiPrimitives.copied")
+            : tooltip ?? defaultTooltip;
 
       const iconSize =
         buttonSize === "small"

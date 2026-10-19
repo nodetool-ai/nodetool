@@ -4,6 +4,7 @@
 // ARP pages are gone: the timeline's clips play BL-1.
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DeviceTabs, type DeviceTab } from '../../components/DeviceTabs';
 import { BassFxRack } from './BassFxRack';
 import { EnvPanel } from './EnvPanel';
@@ -14,17 +15,17 @@ import { OscSection, SubSection } from './OscSection';
 
 type Page = 'edit' | 'fx';
 
-const TABS: DeviceTab<Page>[] = [
-  { id: 'edit', label: 'EDIT', width: 76 },
-  { id: 'fx', label: 'FX CHAIN', width: 106 },
-];
-
 export function BassDeviceBody() {
+  const { t } = useTranslation();
   const [page, setPage] = useState<Page>('edit');
+  const tabs: DeviceTab<Page>[] = [
+    { id: 'edit', label: t('i18n-next116.fableSynth.tabs.edit'), width: 76 },
+    { id: 'fx', label: t('i18n-next116.fableSynth.tabs.fxChain'), width: 106 },
+  ];
 
   return (
     <div className="device-body bl-body">
-      <DeviceTabs tabs={TABS} page={page} onSelect={setPage} label="BL-1 pages" />
+      <DeviceTabs tabs={tabs} page={page} onSelect={setPage} label={t('i18n-next116.fableSynth.pages', { device: 'BL-1' })} />
       {page === 'edit' && (
         <div className="device-page" data-page="edit">
           <div className="bl-editrow">

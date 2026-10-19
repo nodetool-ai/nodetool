@@ -11,6 +11,7 @@
  * three drop modes are one exclusive choice, announced as a radio group.
  */
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -303,6 +304,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
   onClick,
   children
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const heading = shortcut ? `${label} (${shortcut})` : label;
   return (
@@ -340,6 +342,7 @@ interface ToolToggleProps {
 }
 
 export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const compactRowCss = useMemo(() => compactRowStyles(theme), [theme]);
   const activeTool = useTimelineUIStore((s) => s.activeTool);
@@ -396,7 +399,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       css={compact ? compactRowCss : undefined}
     >
       <ToolButton
-        label="Select"
+        label={t("i18n-next3.timeline.tools.select")}
         shortcut={formatActionShortcut(preset, "selectTool")}
         active={activeTool === "select"}
         compact={compact}
@@ -404,13 +407,13 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       >
         <PointerIcon />
       </ToolButton>
-      {EDIT_TOOLS.map((t) => (
+      {EDIT_TOOLS.map((tool) => (
         <ToolButton
-          key={t.tool}
-          label={t.label}
-          shortcut={formatActionShortcut(preset, t.action)}
-          description={t.description}
-          active={activeTool === t.tool}
+          key={tool.tool}
+          label={t(`i18n-next3.timeline.tools.${tool.tool}.label`)}
+          shortcut={formatActionShortcut(preset, tool.action)}
+          description={t(`i18n-next3.timeline.tools.${tool.tool}.description`)}
+          active={activeTool === tool.tool}
           compact={compact}
           iconOnly
           onClick={() => setActiveTool(t.tool)}
@@ -419,7 +422,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         </ToolButton>
       ))}
       <ToolButton
-        label="Cut"
+        label={t("i18n-next3.timeline.tools.cut")}
         shortcut={formatActionShortcut(preset, "cutTool")}
         active={activeTool === "cut"}
         compact={compact}
@@ -427,13 +430,13 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       >
         <ContentCutOutlinedIcon />
       </ToolButton>
-      {AFTER_CUT_TOOLS.map((t) => (
+      {AFTER_CUT_TOOLS.map((tool) => (
         <ToolButton
-          key={t.tool}
-          label={t.label}
-          shortcut={formatActionShortcut(preset, t.action)}
-          description={t.description}
-          active={activeTool === t.tool}
+          key={tool.tool}
+          label={t(`i18n-next3.timeline.tools.${tool.tool}.label`)}
+          shortcut={formatActionShortcut(preset, tool.action)}
+          description={t(`i18n-next3.timeline.tools.${tool.tool}.description`)}
+          active={activeTool === tool.tool}
           compact={compact}
           iconOnly
           onClick={() => setActiveTool(t.tool)}
@@ -442,8 +445,8 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         </ToolButton>
       ))}
       <ToolButton
-        label="Ripple"
-        description="Trims and deletes close the gap"
+        label={t("i18n-next3.timeline.tools.ripple")}
+        description={t("i18n-next3.timeline.tools.rippleDescription")}
         active={rippleMode}
         compact={compact}
         onClick={toggleRippleMode}
@@ -455,14 +458,14 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         gap={0.5}
         align="center"
         role="radiogroup"
-        aria-label="Drop mode"
+        aria-label={t("i18n-next3.timeline.tools.dropMode")}
         onKeyDown={handleDropModeKeyDown}
         css={compact ? compactGroupStyles : undefined}
       >
       <ToolButton
-        label="Overwrite"
+        label={t("i18n-next3.timeline.tools.overwrite")}
         role="radio"
-        description="A drop replaces what it covers"
+        description={t("i18n-next3.timeline.tools.overwriteDescription")}
         active={dropMode === "overwrite"}
         compact={compact}
         onClick={() => setDropMode("overwrite")}
@@ -470,9 +473,9 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         <FlipToFrontOutlinedIcon />
       </ToolButton>
       <ToolButton
-        label="Insert"
+        label={t("i18n-next3.timeline.tools.insert")}
         role="radio"
-        description="A drop pushes later clips right (or Ctrl+drag in any mode)"
+        description={t("i18n-next3.timeline.tools.insertDescription")}
         active={dropMode === "insert"}
         compact={compact}
         onClick={() => setDropMode("insert")}
@@ -480,9 +483,9 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         <KeyboardTabOutlinedIcon />
       </ToolButton>
       <ToolButton
-        label="Overlap"
+        label={t("i18n-next3.timeline.tools.overlap")}
         role="radio"
-        description="A drop stacks and cross-fades"
+        description={t("i18n-next3.timeline.tools.overlapDescription")}
         active={dropMode === "overlap"}
         compact={compact}
         onClick={() => setDropMode("overlap")}
@@ -492,9 +495,9 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       </FlexRow>
       <span css={dividerStyles} aria-hidden />
       <ToolButton
-        label="Snap"
+        label={t("i18n-next3.timeline.tools.snap")}
         shortcut={formatActionShortcut(preset, "toggleSnap")}
-        description="Hold Alt while dragging to bypass"
+        description={t("i18n-next3.timeline.tools.snapDescription")}
         active={snapEnabled}
         compact={compact}
         onClick={toggleSnap}
@@ -502,8 +505,8 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         <GridGoldenratioOutlinedIcon />
       </ToolButton>
       <ToolButton
-        label="Bars"
-        description="The ruler counts bars and beats, not seconds"
+        label={t("i18n-next3.timeline.tools.bars")}
+        description={t("i18n-next3.timeline.tools.barsDescription")}
         active={rulerMode === "bars"}
         compact={compact}
         onClick={toggleRulerMode}
@@ -511,7 +514,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         <StraightenOutlinedIcon />
       </ToolButton>
       <SelectField
-        label="Grid division"
+        label={t("i18n-next3.timeline.tools.gridDivision")}
         hideLabel
         size="small"
         value={gridDivision}
@@ -521,8 +524,8 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       />
       <span css={dividerStyles} aria-hidden />
       <ToolButton
-        label="Linked"
-        description="Video and its audio move together"
+        label={t("i18n-next3.timeline.tools.linked")}
+        description={t("i18n-next3.timeline.tools.linkedDescription")}
         active={linkedSelection}
         compact={compact}
         onClick={() => setLinkedSelection(!linkedSelection)}
@@ -530,8 +533,8 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         {linkedSelection ? <LinkOutlinedIcon /> : <LinkOffOutlinedIcon />}
       </ToolButton>
       <ToolButton
-        label="Follow"
-        description="The tracks scroll to keep the playhead in view during playback"
+        label={t("i18n-next3.timeline.tools.follow")}
+        description={t("i18n-next3.timeline.tools.followDescription")}
         active={followPlayhead}
         compact={compact}
         onClick={toggleFollowPlayhead}

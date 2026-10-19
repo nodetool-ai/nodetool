@@ -14,6 +14,7 @@
 
 import React, { memo } from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Box, Caption, FlexColumn, FlexRow, GAP, Text } from "../ui_primitives";
 import { SetupCardButton } from "./SetupCardButton";
@@ -47,8 +48,9 @@ const AlternativesColumnInternal: React.FC<AlternativesColumnProps> = ({
   label,
   showLabel = false,
   alternatives
-}) => (
-  <FlexColumn gap={GAP.comfortable}>
+}) => {
+  const { t } = useTranslation();
+  return <FlexColumn gap={GAP.comfortable}>
     {showLabel ? (
       <Caption component="p" color="muted">
         {label}
@@ -65,7 +67,9 @@ const AlternativesColumnInternal: React.FC<AlternativesColumnProps> = ({
           <SetupCardButton
             role="navigation"
             disabled={alternative.disabled}
-            disabledReason={alternative.disabledReason}
+            disabledReason={alternative.disabledReason?.startsWith("Available in P")
+              ? t("i18n-next33.setup.availableInPhase", { phase: alternative.disabledReason.slice("Available in P".length) })
+              : alternative.disabledReason}
             onSelect={alternative.onSelect}
           >
             <FlexRow gap={GAP.normal} align="flex-start">
@@ -84,7 +88,8 @@ const AlternativesColumnInternal: React.FC<AlternativesColumnProps> = ({
       ))}
     </FlexColumn>
   </FlexColumn>
-);
+  </FlexColumn>;
+};
 
 export const AlternativesColumn = memo(AlternativesColumnInternal);
 AlternativesColumn.displayName = "AlternativesColumn";

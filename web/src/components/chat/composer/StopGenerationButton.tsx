@@ -1,4 +1,5 @@
 import type { Ref } from "react";
+import { useTranslation } from "react-i18next";
 import StopIcon from "@mui/icons-material/Stop";
 import { ToolbarIconButton, MOTION } from "../../ui_primitives";
 
@@ -11,11 +12,12 @@ export function StopGenerationButton({
   onClick,
   ref
 }: StopGenerationButtonProps) {
+  const { t } = useTranslation();
   return (
     <ToolbarIconButton
       ref={ref}
       icon={<StopIcon fontSize="small" />}
-      tooltip="Stop generation"
+      tooltip={t("i18n-next22.chat.composer.stopGeneration")}
       onClick={onClick}
       nodrag={false}
       sx={(theme) => ({

@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -120,6 +121,7 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -187,7 +189,7 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
             value={angle}
             onChange={handleAngleChange}
             onChangeCommitted={handleAngleCommitted}
-            aria-label="Rotation angle"
+            aria-label={t("i18n-next46.rotateAndFlip.rotationAngle")}
           />
           <span className="angle-readout">{Math.round(angle)}°</span>
         </FlexRow>
@@ -198,8 +200,8 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
               isActive={flipH}
               icon={<FlipIcon fontSize="small" />}
               activeIcon={<FlipIcon fontSize="small" />}
-              tooltip="Flip horizontally"
-              ariaLabel="Flip horizontally"
+              tooltip={t("i18n-next46.rotateAndFlip.flipHorizontal")}
+              ariaLabel={t("i18n-next46.rotateAndFlip.flipHorizontal")}
               onClick={toggleFlipH}
             />
             <StateIconButton
@@ -217,16 +219,16 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
                   style={{ transform: "rotate(90deg)" }}
                 />
               }
-              tooltip="Flip vertically"
-              ariaLabel="Flip vertically"
+              tooltip={t("i18n-next46.rotateAndFlip.flipVertical")}
+              ariaLabel={t("i18n-next46.rotateAndFlip.flipVertical")}
               onClick={toggleFlipV}
             />
           </FlexRow>
           <StateIconButton
             size="small"
             icon={<RestartAltIcon fontSize="small" />}
-            tooltip="Reset rotation and flips"
-            ariaLabel="Reset rotation and flips"
+            tooltip={t("i18n-next46.rotateAndFlip.reset")}
+            ariaLabel={t("i18n-next46.rotateAndFlip.reset")}
             onClick={handleReset}
           />
         </FlexRow>

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FlexRow,
   StatusIndicator,
@@ -15,6 +16,7 @@ import { useWorkers } from "../../hooks/useWorkers";
  * teardown.
  */
 const WorkerStatusIndicator: React.FC = () => {
+  const { t } = useTranslation();
   const { activeWorker, stop } = useWorkers();
   const [stopping, setStopping] = useState(false);
 
@@ -36,13 +38,16 @@ const WorkerStatusIndicator: React.FC = () => {
     <FlexRow gap={1} align="center" className="worker-status-indicator">
       <StatusIndicator
         status="success"
-        label={`Worker: ${activeWorker.profile_name}`}
+        label={t("screens4_8.workers.status.workerLabel", { name: activeWorker.profile_name })}
         pulse
-        tooltip={`Attached to ${activeWorker.id} (${activeWorker.ws_url})`}
+        tooltip={t("screens4_8.workers.status.attachedTooltip", {
+          id: activeWorker.id,
+          url: activeWorker.ws_url
+        })}
       />
       <ToolbarIconButton
-        ariaLabel="Stop attached worker"
-        tooltip="Stop attached worker"
+        ariaLabel={t("screens4_8.workers.status.stopAttached")}
+        tooltip={t("screens4_8.workers.status.stopAttached")}
         onClick={handleStop}
         disabled={stopping}
       >

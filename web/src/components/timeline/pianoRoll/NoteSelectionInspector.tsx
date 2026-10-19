@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { moveNotes, setVelocity } from "@nodetool-ai/timeline";
 import type { MidiNote } from "@nodetool-ai/timeline";
+import { useTranslation } from "react-i18next";
 import { Caption, FlexRow, SPACING, TextInput } from "../../ui_primitives";
 
 /** Wide enough for "127" or "12.25" beside the number spinner. */
@@ -27,6 +28,7 @@ export function NoteSelectionInspector({
   onChange,
   velocityAdjust
 }: Props) {
+  const { t } = useTranslation();
   const selected = notes.filter((note) => selectedIds.has(note.id));
   const first = selected[0];
   const lowest = selected.reduce((min, note) => Math.min(min, note.pitch), 127);
@@ -41,8 +43,9 @@ export function NoteSelectionInspector({
   const length = common("durationTick");
   const fields = [
     {
-      label: "Lowest pitch (MIDI)",
-      short: "Pitch",
+      id: "pitch",
+      label: t("pass3_20.pianoRoll.inspector.lowestPitch"),
+      short: t("pass3_20.pianoRoll.inspector.pitch"),
       value: first ? lowest : null,
       min: 0,
       max: 127,
@@ -54,8 +57,9 @@ export function NoteSelectionInspector({
         })
     },
     {
-      label: "Start beat",
-      short: "Start",
+      id: "start",
+      label: t("pass3_20.pianoRoll.inspector.startBeat"),
+      short: t("pass3_20.pianoRoll.inspector.start"),
       value: first ? 1 + start / beatTicks : null,
       min: 1,
       step: 1 / beatTicks,
@@ -66,8 +70,9 @@ export function NoteSelectionInspector({
         })
     },
     {
-      label: "Length (beats)",
-      short: "Length",
+      id: "length",
+      label: t("pass3_20.pianoRoll.inspector.lengthBeats"),
+      short: t("pass3_20.pianoRoll.inspector.length"),
       value: length === null ? null : length / beatTicks,
       min: 1 / beatTicks,
       step: 1 / beatTicks,
@@ -82,8 +87,9 @@ export function NoteSelectionInspector({
         )
     },
     {
-      label: "Velocity",
-      short: "Vel",
+      id: "velocity",
+      label: t("pass3_20.pianoRoll.inspector.velocity"),
+      short: t("pass3_20.pianoRoll.inspector.velocityShort"),
       value: common("velocity"),
       min: 1,
       max: 127,
@@ -94,7 +100,7 @@ export function NoteSelectionInspector({
   return (
     <FlexRow align="center" gap={SPACING.sm} sx={{ flexWrap: "wrap", rowGap: SPACING.xs }}>
       {fields.map((field) => (
-        <FlexRow key={field.label} align="center" gap={SPACING.xs}>
+        <FlexRow key={field.id} align="center" gap={SPACING.xs}>
           <Caption color="muted" aria-hidden sx={{ whiteSpace: "nowrap" }}>
             {field.short}
           </Caption>
@@ -108,7 +114,7 @@ export function NoteSelectionInspector({
             sx={{ width: FIELD_WIDTH_PX }}
             disabled={!first}
             defaultValue={field.value ?? ""}
-            placeholder={first ? "Mixed" : "—"}
+            placeholder={first ? t("pass3_20.pianoRoll.inspector.mixed") : "—"}
             inputProps={{ min: field.min, max: field.max, step: field.step }}
             onBlur={(event) => {
               const value = Math.round(Number(event.target.value) / field.step) * field.step;
@@ -131,7 +137,7 @@ export function NoteSelectionInspector({
                 (event.target as HTMLInputElement).blur();
             }}
           />
-          {field.label === "Velocity" && velocityAdjust}
+          {field.id === "velocity" && velocityAdjust}
         </FlexRow>
       ))}
     </FlexRow>

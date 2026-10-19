@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -123,6 +124,7 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -174,21 +176,21 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
       </div>
 
       <div className="controls">
-        <span className="ctrl-label">Type</span>
+        <span className="ctrl-label">{t("i18n-next46.blur.type")}</span>
         <NodeSelect
           className="type-select"
           value={blurType}
           onChange={handleTypeChange}
-          aria-label="Blur type"
+          aria-label={t("i18n-next46.blur.typeAria")}
         >
-          {BLUR_TYPES.map((t) => (
-            <NodeMenuItem key={t.value} value={t.value}>
-              {t.label}
+          {BLUR_TYPES.map((blurType) => (
+            <NodeMenuItem key={blurType.value} value={blurType.value}>
+              {t(`i18n-next46.blur.types.${blurType.value}`)}
             </NodeMenuItem>
           ))}
         </NodeSelect>
 
-        <span className="ctrl-label">Size</span>
+        <span className="ctrl-label">{t("i18n-next46.blur.size")}</span>
         <NodeSlider
           min={0}
           max={100}
@@ -196,7 +198,7 @@ const BlurBodyInner: React.FC<BlurBodyProps> = ({
           value={size}
           onChange={handleSizeChange}
           onChangeCommitted={handleSizeCommitted}
-          aria-label="Blur size"
+          aria-label={t("i18n-next46.blur.sizeAria")}
         />
         <span className="ctrl-value">{Math.round(size)}</span>
       </div>

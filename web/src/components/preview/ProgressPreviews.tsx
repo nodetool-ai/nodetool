@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import {
   Caption,
@@ -73,8 +74,22 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
 );
 
 const PreviewProgressStates: React.FC = () => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "batch2_14.progress"
+  });
   const theme = useTheme();
   const [seeded, setSeeded] = useState(false);
+  const treeState: ExecutionTreeState = {
+    ...TREE_STATE,
+    tasks: TREE_STATE.tasks.map((task, index) => ({
+      ...task,
+      name: t(
+        ["taskCollectImages", "taskWriteShotList", "taskRenderStoryboard"][
+          index
+        ] ?? "taskCollectImages"
+      )
+    }))
+  };
 
   useEffect(() => {
     const now = Date.now();
@@ -116,11 +131,15 @@ const PreviewProgressStates: React.FC = () => {
         bgcolor: theme.vars.palette.background.default
       }}
     >
-      <FlexRow gap={SPACING.xl} align="flex-start" sx={{ "& > *": { flex: 1 } }}>
-        <Section title="Spinners">
+      <FlexRow
+        gap={SPACING.xl}
+        align="flex-start"
+        sx={{ "& > *": { flex: 1 } }}
+      >
+        <Section title={t("spinners")}>
           <FlexRow gap={SPACING.xxl} align="center">
-            <LoadingSpinner size="small" text="Loading versions" />
-            <LoadingSpinner size="medium" text="Loading models" />
+            <LoadingSpinner size="small" text={t("loadingVersions")} />
+            <LoadingSpinner size="medium" text={t("loadingModels")} />
             <RunGroupButton
               isWorkflowRunning={true}
               state="running"
@@ -128,7 +147,7 @@ const PreviewProgressStates: React.FC = () => {
             />
           </FlexRow>
         </Section>
-        <Section title="Progress bars">
+        <Section title={t("progressBars")}>
           <ProgressBar value={42} label="clip-07.mp4" />
           <ProgressBar
             value={0}
@@ -137,17 +156,21 @@ const PreviewProgressStates: React.FC = () => {
           />
         </Section>
       </FlexRow>
-      <FlexRow gap={SPACING.xl} align="flex-start" sx={{ "& > *": { flex: 1 } }}>
-        <Section title="Execution plan">
-          <ExecutionTree state={TREE_STATE} onToggleTask={() => undefined} />
+      <FlexRow
+        gap={SPACING.xl}
+        align="flex-start"
+        sx={{ "& > *": { flex: 1 } }}
+      >
+        <Section title={t("executionPlan")}>
+          <ExecutionTree state={treeState} onToggleTask={() => undefined} />
         </Section>
-        <Section title="Agent tasks">
+        <Section title={t("agentTasks")}>
           <FlexColumn sx={{ height: 200 }}>
             <TodoSidebar
               todos={[
-                { content: "Read the brief", status: "completed" },
-                { content: "Draft six shots", status: "in_progress" },
-                { content: "Pick a look", status: "pending" }
+                { content: t("todoReadBrief"), status: "completed" },
+                { content: t("todoDraftShots"), status: "in_progress" },
+                { content: t("todoPickLook"), status: "pending" }
               ]}
             />
           </FlexColumn>
@@ -155,13 +178,13 @@ const PreviewProgressStates: React.FC = () => {
             planningUpdate={{
               type: "planning_update",
               phase: "planning",
-              status: "Running",
-              content: "Splitting the brief into tasks"
+              status: t("running"),
+              content: t("planningContent")
             }}
           />
         </Section>
       </FlexRow>
-      <Section title="Model downloads">
+      <Section title={t("modelDownloads")}>
         {seeded && <DownloadProgress name={DOWNLOAD_ID} />}
         {seeded && <DownloadProgress name={PENDING_ID} />}
       </Section>

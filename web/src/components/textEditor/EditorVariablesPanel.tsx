@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type React from "react";
+import { useTranslation } from "react-i18next";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import DataObjectIcon from "@mui/icons-material/DataObject";
@@ -186,6 +187,7 @@ const EditorVariablesPanel = ({
   addSignal,
   readOnly = false
 }: EditorVariablesPanelProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const panelStyles = useMemo(() => styles(theme), [theme]);
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -253,13 +255,17 @@ const EditorVariablesPanel = ({
       <div className="variables-head">
         <div className="variables-title">
           <DataObjectIcon />
-          <span>Variables</span>
+          <span>{t("i18n-next35.textEditor.variablesLabel")}</span>
           <span className="count">{variables.length}</span>
           {unboundCount > 0 && (
-            <span className="unbound">{unboundCount} unbound</span>
+            <span className="unbound">
+              {t("i18n-next35.textEditor.unbound", { count: unboundCount })}
+            </span>
           )}
         </div>
-        <span className="variables-hint">⌘ + click to insert</span>
+        <span className="variables-hint">
+          {t("i18n-next35.textEditor.insertHint")}
+        </span>
       </div>
       <div className="variables-chips">
         {variables.map((variable) => {
@@ -269,7 +275,9 @@ const EditorVariablesPanel = ({
           return (
             <Tooltip
               key={variable.name}
-              title={`Click to set a value · ⌘+click to insert ${variable.name}`}
+              title={t("i18n-next35.textEditor.variableTooltip", {
+                name: variable.name
+              })}
             >
               <div
                 className={`variable-chip ${isUnset && !isEditing ? "unset" : ""}`}
@@ -293,12 +301,16 @@ const EditorVariablesPanel = ({
                   allowEmpty
                   unstyled
                   selectOnFocus={false}
-                  placeholder="value"
-                  ariaLabel={`Value for ${variable.name}`}
+                  placeholder={t("i18n-next35.textEditor.valuePlaceholder")}
+                  ariaLabel={t("i18n-next35.textEditor.valueAriaLabel", {
+                    name: variable.name
+                  })}
                   onEditingChange={stopEditing}
                   onCommit={(next) => onSetValue(variable.name, next)}
                 >
-                  <span className="chip-value">{isUnset ? "unset" : value}</span>
+                  <span className="chip-value">
+                    {isUnset ? t("i18n-next35.textEditor.unset") : value}
+                  </span>
                 </InlineEditableText>
               </div>
             </Tooltip>
@@ -312,8 +324,8 @@ const EditorVariablesPanel = ({
                 value=""
                 editing
                 unstyled
-                placeholder="variable name"
-                ariaLabel="New variable name"
+                placeholder={t("i18n-next35.textEditor.variableNamePlaceholder")}
+                ariaLabel={t("i18n-next35.textEditor.newVariableNameAriaLabel")}
                 sanitize={sanitizeVariableName}
                 onEditingChange={closeAdd}
                 onCommit={commitAdd}
@@ -326,7 +338,7 @@ const EditorVariablesPanel = ({
               startIcon={<AddIcon />}
               onClick={() => setAddOpen(true)}
             >
-              Add
+              {t("i18n-next35.textEditor.addVariable")}
             </EditorButton>
           ))}
       </div>

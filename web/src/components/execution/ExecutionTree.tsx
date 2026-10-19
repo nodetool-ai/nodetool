@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { useTranslation } from "react-i18next";
 /**
  * ExecutionTree — Agent plan/execution timeline.
  *
@@ -363,13 +364,16 @@ const treeStyles = (theme: Theme) =>
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDuration(seconds: number | undefined): string {
+function formatDuration(seconds: number | undefined, locale: string): string {
   if (seconds === undefined) return "";
-  if (seconds < 0.1) return "<0.1s";
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const decimal = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const integer = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+  const paddedInteger = new Intl.NumberFormat(locale, { minimumIntegerDigits: 2, maximumFractionDigits: 0, useGrouping: false });
+  if (seconds < 0.1) return `<${decimal.format(0.1)}s`;
+  if (seconds < 60) return `${decimal.format(seconds)}s`;
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${mins}m${secs.toFixed(0)}s`;
+  return `${integer.format(mins)}m${paddedInteger.format(secs)}s`;
 }
 
 function truncateOutput(output: string, maxLines: number = 2): string {
@@ -408,6 +412,7 @@ StatusBadge.displayName = "StatusBadge";
 // Split out so the args serialization survives a re-render: the inspector
 // rebuilds on every execution event, and a step's args can be large.
 const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = memo(({ call }) => {
+  const { t } = useTranslation();
   const args = call.args;
   const codeArg = useMemo(
     () =>
@@ -427,7 +432,7 @@ const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = memo(({ call }) =
   return (
     <div className="tl-inspector-tool">
       <span className="tl-inspector-body">
-        <strong>{call.name || "tool"}</strong>
+        <strong>{call.name || t("screen_editor.tool")}</strong>
         {call.message ? `  ${call.message}` : ""}
       </span>
       {/* A CodeAct action's one argument is a JavaScript program — show the
@@ -444,22 +449,23 @@ const StepToolCallRow: React.FC<{ call: StepToolCallEntry }> = memo(({ call }) =
 StepToolCallRow.displayName = "StepToolCallRow";
 
 const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
+  const { t, i18n } = useTranslation();
   const resultText = useMemo(() => stringifyResult(step.rawResult), [step.rawResult]);
 
   return (
     <div className="tl-inspector">
       {step.instructions ? (
         <div className="tl-inspector-section">
-          <span className="tl-inspector-label">Instructions</span>
+          <span className="tl-inspector-label">{t("screen_editor.instructions")}</span>
           <span className="tl-inspector-body">{step.instructions}</span>
         </div>
       ) : null}
 
       {step.duration !== undefined ? (
         <div className="tl-inspector-section">
-          <span className="tl-inspector-label">Duration</span>
+          <span className="tl-inspector-label">{t("screen_editor.duration")}</span>
           <span className="tl-inspector-body">
-            {formatDuration(step.duration)}
+            {formatDuration(step.duration, i18n.language)}
           </span>
         </div>
       ) : null}
@@ -467,7 +473,7 @@ const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
       {step.toolCalls.length > 0 ? (
         <div className="tl-inspector-section">
           <span className="tl-inspector-label">
-            Tool calls ({step.toolCalls.length})
+            {t("screen_editor.toolCalls", { count: step.toolCalls.length })}
           </span>
           {step.toolCalls.map((call: StepToolCallEntry, i: number) => (
             <StepToolCallRow key={call.id ?? `${call.name}-${i}`} call={call} />
@@ -477,14 +483,14 @@ const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
 
       {resultText ? (
         <div className="tl-inspector-section">
-          <span className="tl-inspector-label">Result</span>
+          <span className="tl-inspector-label">{t("screen_editor.result")}</span>
           <CodeBlock>{resultText}</CodeBlock>
         </div>
       ) : null}
 
       {step.error ? (
         <div className="tl-inspector-section">
-          <span className="tl-inspector-label tl-inspector-error">Error</span>
+          <span className="tl-inspector-label tl-inspector-error">{t("screen_editor.error")}</span>
           <CodeBlock tone="error">{step.error}</CodeBlock>
         </div>
       ) : null}
@@ -502,6 +508,7 @@ const StepNode: React.FC<{
   step: StepState;
   isLast: boolean;
 }> = memo(({ step, isLast }) => {
+  const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const displayName = step.toolName
@@ -557,12 +564,12 @@ const StepNode: React.FC<{
           {step.status === "running" ? (
             <span className="tl-meta running">
               <StatusDot tone="info" pulse />
-              In progress
+              {t("screen_editor.inProgress")}
             </span>
           ) : step.duration !== undefined ? (
             <span className="tl-meta">
               <AccessTimeRoundedIcon aria-hidden />
-              {formatDuration(step.duration)}
+              {formatDuration(step.duration, i18n.language)}
             </span>
           ) : null}
         </div>
@@ -589,12 +596,13 @@ const TaskNode: React.FC<{
   isLast: boolean;
   onToggleTask: (taskId: string) => void;
 }> = memo(({ task, isLast, onToggleTask }) => {
+  const { t, i18n } = useTranslation();
   const stepCount = task.steps.length;
   const completedSteps = task.steps.filter(
     (s) => s.status === "completed"
   ).length;
   const duration =
-    task.duration !== undefined ? formatDuration(task.duration) : "";
+    task.duration !== undefined ? formatDuration(task.duration, i18n.language) : "";
   const hasSteps = stepCount > 0;
 
   const onToggle = useCallback(() => {
@@ -640,10 +648,10 @@ const TaskNode: React.FC<{
           {task.status === "running" ? (
             <span className="tl-meta running">
               <StatusDot tone="info" pulse />
-              In progress
+              {t("screen_editor.inProgress")}
             </span>
           ) : task.status === "waiting" ? (
-            <span className="tl-meta waiting">waiting</span>
+            <span className="tl-meta waiting">{t("screen_editor.waiting")}</span>
           ) : (
             <span className="tl-meta">
               {duration && (
@@ -652,7 +660,12 @@ const TaskNode: React.FC<{
                   {duration}
                 </>
               )}
-              {hasSteps ? ` ${completedSteps}/${stepCount} steps` : null}
+              {hasSteps
+                ? t("screen_editor.stepsProgress", {
+                    completed: completedSteps,
+                    count: stepCount
+                  })
+                : null}
             </span>
           )}
         </div>
@@ -682,6 +695,7 @@ const PlanningLog: React.FC<{
   entries: PlanningEntry[];
   isActive: boolean;
 }> = memo(({ entries, isActive }) => {
+  const { t } = useTranslation();
   if (entries.length === 0) {
     if (isActive) {
       return (
@@ -692,10 +706,10 @@ const PlanningLog: React.FC<{
             </div>
             <div className="tl-content">
               <div className="tl-row">
-                <span className="planning-phase">Planning</span>
+                <span className="planning-phase">{t("screen_editor.planning")}</span>
                 <span className="tl-meta running">
               <StatusDot tone="info" pulse />
-              In progress
+              {t("screen_editor.inProgress")}
             </span>
               </div>
             </div>
@@ -732,7 +746,7 @@ const PlanningLog: React.FC<{
                 <span className="planning-phase">{entry.phase}</span>
                 {isRunning && <span className="tl-meta running">
               <StatusDot tone="info" pulse />
-              In progress
+              {t("screen_editor.inProgress")}
             </span>}
               </div>
               {entry.content ? (
@@ -758,6 +772,7 @@ interface ExecutionTreeProps {
 }
 
 const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const rootStyles = useMemo(() => treeStyles(theme), [theme]);
 
@@ -784,12 +799,12 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
       {hasTasks && (
         <div className="plan-card">
           <FlexRow className="plan-header" align="center" gap={2}>
-            <span className="plan-title">Execution plan</span>
+            <span className="plan-title">{t("screen_editor.executionPlan")}</span>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <ProgressBar
                 value={progressPct}
                 showValue={false}
-                aria-label="Completed tasks"
+                aria-label={t("screen_editor.completedTasks")}
               />
             </Box>
             <span className="plan-count">

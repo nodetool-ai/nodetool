@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { styled } from "@mui/material/styles";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import { useShallow } from "zustand/react/shallow";
@@ -114,12 +115,13 @@ const HeaderCell = styled("div")(({ theme }) => ({
   "& svg": { fontSize: 15, color: theme.vars.palette.primary.main }
 }));
 
-export const ScriptLaneHeader: React.FC = () => (
-  <HeaderCell aria-label="Script lane">
+export const ScriptLaneHeader: React.FC = () => {
+  const { t } = useTranslation();
+  return <HeaderCell aria-label={t("i18n-next73.scriptLane.label")}>
     <GraphicEqIcon />
-    SCRIPT
+    {t("i18n-next73.scriptLane.title")}
   </HeaderCell>
-);
+};
 
 /** A time span with a stable identity, sorted ascending and non-overlapping. */
 interface TimedKey {

@@ -3,6 +3,7 @@
 // (the SEQUENCER / ARP / CHORDS playback toggles).
 
 import './deviceTabs.css';
+import { useTranslation } from 'react-i18next';
 
 export interface DeviceTab<P extends string> {
   id: P;
@@ -20,8 +21,10 @@ interface DeviceTabsProps<P extends string> {
 }
 
 export function DeviceTabs<P extends string>({ tabs, page, onSelect, label, className = '' }: DeviceTabsProps<P>) {
+  const { t } = useTranslation();
+  const tabLabel = (tab: DeviceTab<P>) => t(`i18n-next44-fablesynth-controls.deviceTabs.${tab.id}`, { defaultValue: tab.label });
   return (
-    <div className={`device-tabs ${className}`} role="tablist" aria-label={label}>
+    <div className={`device-tabs ${className}`} role="tablist" aria-label={t('i18n-next44-fablesynth-controls.deviceTabs.pages', { device: label.replace(/ pages$/, '') })}>
       {tabs.map((t) => (
         <div key={t.id} className={`device-tab${t.led ? ' has-led' : ''}`} style={{ width: t.width }}>
           <button
@@ -30,7 +33,7 @@ export function DeviceTabs<P extends string>({ tabs, page, onSelect, label, clas
             aria-selected={t.id === page}
             className={t.id === page ? 'on' : ''}
             onClick={() => onSelect(t.id)}
-          >{t.label}</button>
+          >{tabLabel(t)}</button>
           {t.led && (
             <button
               type="button"

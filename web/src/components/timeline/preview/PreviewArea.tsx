@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -328,6 +329,7 @@ interface PlaybackScrubberProps {
  */
 const PlaybackScrubber: React.FC<PlaybackScrubberProps> = memo(
   ({ max, value, isPlaying, subscribeTime, step, onChange, onChangeCommitted }) => {
+    const { t } = useTranslation();
     const [liveMs, setLiveMs] = useState<number | null>(null);
     useEffect(() => {
       if (!isPlaying) {
@@ -342,7 +344,7 @@ const PlaybackScrubber: React.FC<PlaybackScrubberProps> = memo(
 
     return (
       <Slider
-        aria-label="Scrub timeline"
+        aria-label={t("i18n-next6.preview.scrubTimeline")}
         min={0}
         max={max}
         step={step}
@@ -386,6 +388,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     audioOnly = false
   }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
 
     const {
       currentTimeMs,
@@ -1292,7 +1295,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       sequenceWidth,
       sequenceHeight,
       isPlaying
-    ) === 1 ? "Full" : "Half";
+    ) === 1 ? t("i18n-next6.preview.full") : t("i18n-next6.preview.half");
     const isFullscreen = isNativeFullscreen || isExpanded;
     const [scrubMs, setScrubMs] = useState<number | null>(null);
 
@@ -1475,7 +1478,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           css={containerCss}
           tabIndex={0}
           onKeyDown={handleKeyDown}
-          aria-label="Transport"
+          aria-label={t("i18n-next6.preview.transport")}
           data-testid="preview-area"
           data-audio-only="true"
         >
@@ -1500,7 +1503,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         css={containerCss}
         tabIndex={0}
         onKeyDown={handleKeyDown}
-        aria-label="Preview area"
+        aria-label={t("i18n-next6.preview.previewArea")}
         data-testid="preview-area"
         data-expanded={isExpanded}
       >
@@ -1511,37 +1514,37 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         <div css={controlBarCss}>
           <ToolbarIconButton
             icon={<SkipPreviousIcon />}
-            tooltip={withActionShortcut("Previous clip boundary", keyboardPreset, "prevCut")}
+            tooltip={withActionShortcut(t("i18n-next6.preview.previousClipBoundary"), keyboardPreset, "prevCut")}
             onClick={jumpToPrevBoundary}
-            aria-label="Previous clip boundary"
+            aria-label={t("i18n-next6.preview.previousClipBoundary")}
             size="small"
             className="timeline-preview__secondary-control"
           />
 
           <ToolbarIconButton
             icon={<NavigateBeforeIcon />}
-            tooltip={withActionShortcut("Step back one frame", keyboardPreset, "stepFrameBack")}
+            tooltip={withActionShortcut(t("i18n-next6.preview.stepBackOneFrame"), keyboardPreset, "stepFrameBack")}
             onClick={stepBack}
             disabled={isPlaying}
-            aria-label="Step back one frame"
+            aria-label={t("i18n-next6.preview.stepBackOneFrame")}
             size="small"
             className="timeline-preview__secondary-control"
           />
 
           <ToolbarIconButton
             icon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-            tooltip={`${isPlaying ? "Pause" : "Play"} (${PLAY_PAUSE_KEY})`}
+            tooltip={`${isPlaying ? t("i18n-next6.preview.pause") : t("i18n-next6.preview.play")} (${PLAY_PAUSE_KEY})`}
             onClick={handlePlayPauseToggle}
-            aria-label={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? t("i18n-next6.preview.pause") : t("i18n-next6.preview.play")}
             variant="primary"
             size="small"
           />
 
           <ToolbarIconButton
             icon={<StopIcon />}
-            tooltip="Stop and return to start"
+            tooltip={t("i18n-next6.preview.stopAndReturnToStart")}
             onClick={handleStop}
-            aria-label="Stop"
+            aria-label={t("i18n-next6.preview.stop")}
             size="small"
           />
 
@@ -1549,13 +1552,13 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             icon={<RepeatIcon />}
             tooltip={withActionShortcut(
               loopPlayback
-                ? "Loop on: playback repeats the in to out range"
-                : "Loop playback",
+                ? t("i18n-next6.preview.loopOnDescription")
+                : t("i18n-next6.preview.loopPlayback"),
               keyboardPreset,
               "toggleLoop"
             )}
             onClick={handleToggleLoop}
-            aria-label="Loop"
+            aria-label={t("i18n-next6.preview.loop")}
             aria-pressed={loopPlayback}
             active={loopPlayback}
             size="small"
@@ -1564,19 +1567,19 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
           <ToolbarIconButton
             icon={<NavigateNextIcon />}
-            tooltip={withActionShortcut("Step forward one frame", keyboardPreset, "stepFrameForward")}
+            tooltip={withActionShortcut(t("i18n-next6.preview.stepForwardOneFrame"), keyboardPreset, "stepFrameForward")}
             onClick={stepForward}
             disabled={isPlaying}
-            aria-label="Step forward one frame"
+            aria-label={t("i18n-next6.preview.stepForwardOneFrame")}
             size="small"
             className="timeline-preview__secondary-control"
           />
 
           <ToolbarIconButton
             icon={<SkipNextIcon />}
-            tooltip={withActionShortcut("Next clip boundary", keyboardPreset, "nextCut")}
+            tooltip={withActionShortcut(t("i18n-next6.preview.nextClipBoundary"), keyboardPreset, "nextCut")}
             onClick={jumpToNextBoundary}
-            aria-label="Next clip boundary"
+            aria-label={t("i18n-next6.preview.nextClipBoundary")}
             size="small"
             className="timeline-preview__secondary-control"
           />
@@ -1602,12 +1605,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           )}
           {showFps && (
             <Caption css={fpsCss} className="timeline-preview__fps">
-              {fps} fps
+              {t("i18n-next6.preview.framesPerSecond", { count: fps })}
             </Caption>
           )}
 
           <SelectField
-            label="Preview quality"
+            label={t("i18n-next6.preview.previewQuality")}
             hideLabel
             size="small"
             value={previewQuality}
@@ -1617,10 +1620,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
               }
             }}
             options={[
-              { value: "auto", label: `Auto (${autoQualityLabel})` },
-              { value: "full", label: "Full" },
-              { value: "half", label: "Half" },
-              { value: "quarter", label: "Quarter" }
+              { value: "auto", label: t("i18n-next6.preview.autoQuality", { quality: autoQualityLabel }) },
+              { value: "full", label: t("i18n-next6.preview.full") },
+              { value: "half", label: t("i18n-next6.preview.half") },
+              { value: "quarter", label: t("i18n-next6.preview.quarter") }
             ]}
             className="timeline-preview__quality"
           />
@@ -1635,15 +1638,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
                 <VolumeUpIcon />
               )
             }
-            tooltip={isSilent ? "Unmute" : "Mute"}
+            tooltip={isSilent ? t("i18n-next6.preview.unmute") : t("i18n-next6.preview.mute")}
             onClick={toggleMute}
-            aria-label={isSilent ? "Unmute" : "Mute"}
+            aria-label={isSilent ? t("i18n-next6.preview.unmute") : t("i18n-next6.preview.mute")}
             aria-pressed={isSilent}
             size="small"
           />
           <div className="timeline-preview__volume">
             <Slider
-              aria-label="Volume"
+              aria-label={t("i18n-next6.preview.volume")}
               min={0}
               max={1}
               step={0.01}
@@ -1656,11 +1659,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
           <ToolbarIconButton
             icon={<FilterBAndWOutlinedIcon />}
-            tooltip="Show the selected clip's subject matte instead of the frame"
+            tooltip={t("i18n-next6.preview.showSubjectMatte")}
             onClick={toggleMatteView}
             disabled={!hasReadyMatte}
             active={matteViewEnabled}
-            aria-label="Show matte"
+            aria-label={t("i18n-next6.preview.showMatte")}
             aria-pressed={matteViewEnabled}
             size="small"
             className="timeline-preview__matte-view"
@@ -1668,9 +1671,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
           <ToolbarIconButton
             icon={isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-            tooltip={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            tooltip={isFullscreen ? t("i18n-next6.preview.exitFullscreen") : t("i18n-next6.preview.fullscreen")}
             onClick={handleFullscreen}
-            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            aria-label={isFullscreen ? t("i18n-next6.preview.exitFullscreen") : t("i18n-next6.preview.fullscreen")}
             size="small"
             className="timeline-preview__fullscreen"
           />

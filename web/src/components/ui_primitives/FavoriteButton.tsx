@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -62,13 +63,16 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
   onToggle,
   variant = "star",
   buttonSize = "small",
-  addTooltip = "Add to favorites",
-  removeTooltip = "Remove from favorites",
+  addTooltip,
+  removeTooltip,
   stopPropagation = true,
   disabled = false,
   className
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const resolvedAddTooltip = addTooltip ?? t("i18n-next96.uiPrimitives.favoriteButton.add");
+  const resolvedRemoveTooltip = removeTooltip ?? t("i18n-next96.uiPrimitives.favoriteButton.remove");
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -94,7 +98,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
 
   return (
     <Tooltip
-      title={isFavorite ? removeTooltip : addTooltip}
+      title={isFavorite ? resolvedRemoveTooltip : resolvedAddTooltip}
       enterDelay={TOOLTIP_ENTER_DELAY}
     >
       <span>
@@ -104,7 +108,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
           onClick={handleClick}
           disabled={disabled}
           size={buttonSize}
-          aria-label={isFavorite ? removeTooltip : addTooltip}
+          aria-label={isFavorite ? resolvedRemoveTooltip : resolvedAddTooltip}
           aria-pressed={isFavorite}
         >
           {getIcon()}

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -32,7 +33,6 @@ interface PlanApprovalCardProps {
   ) => void;
 }
 
-const QUESTION = "Run this plan?";
 
 const styles = (theme: Theme) =>
   css({
@@ -66,6 +66,7 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
   approval,
   onResolve
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const [feedback, setFeedback] = useState("");
@@ -110,7 +111,7 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
       css={cssStyles}
       className="plan-approval-card"
       role="group"
-      aria-label={QUESTION}
+      aria-label={t("i18n-next19.chat.planApprovalCard.question")}
     >
       {planDocument ? (
         <PlanDocument plan={planDocument} framed={false} />
@@ -123,9 +124,9 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
         <TextInput
           size="small"
           compact
-          label="What should change?"
+          label={t("i18n-next19.chat.planApprovalCard.feedbackLabel")}
           hideLabel
-          placeholder="What should change?"
+          placeholder={t("i18n-next19.chat.planApprovalCard.feedbackPlaceholder")}
           value={feedback}
           onChange={handleFeedbackChange}
           onKeyDown={handleFeedbackKeyDown}
@@ -143,10 +144,10 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
             density="normal"
             onClick={handleApprove}
           >
-            Run this plan
+            {t("i18n-next19.chat.planApprovalCard.run")}
           </EditorButton>
           <Tooltip
-            title="Describe the change first"
+            title={t("i18n-next19.chat.planApprovalCard.reviseTooltip")}
             disabled={hasFeedback}
           >
             <span>
@@ -157,7 +158,7 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
                 disabled={!hasFeedback}
                 onClick={handleRevise}
               >
-                Revise
+                {t("i18n-next19.chat.planApprovalCard.revise")}
               </EditorButton>
             </span>
           </Tooltip>
@@ -168,7 +169,7 @@ const PlanApprovalCard: React.FC<PlanApprovalCardProps> = ({
             className="plan-approval-dismiss"
             onClick={handleDismiss}
           >
-            Don't run
+            {t("i18n-next19.chat.planApprovalCard.dontRun")}
           </EditorButton>
         </FlexRow>
       </FlexColumn>

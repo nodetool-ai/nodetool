@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -17,6 +18,7 @@ import ProviderOnboardingCard from "./ProviderOnboardingCard";
 import { CAPABILITY_LABELS, providersForCapability } from "./providerOnboardingCatalog";
 
 const ProviderOnboardingDialog: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { open, capability, reason, highlightSecretKey, dismiss } =
     useProviderOnboardingStore(useShallow((s) => ({
@@ -30,8 +32,8 @@ const ProviderOnboardingDialog: React.FC = () => {
   );
   const providers = useMemo(() => providersForCapability(capability), [capability]);
   const groups = [
-    { title: "Sign in with your account", providers: providers.filter((p) => p.oauth) },
-    { title: "Use an API key", providers: providers.filter((p) => !p.oauth) }
+    { title: t("batch2_7.providerOnboarding.signInGroup"), providers: providers.filter((p) => p.oauth) },
+    { title: t("batch2_7.providerOnboarding.apiKeyGroup"), providers: providers.filter((p) => !p.oauth) }
   ];
   const showLocal = (isElectron || isLocalhost) &&
     (!capability || capability === "generate_message" || capability === "generate_embedding");
@@ -48,11 +50,11 @@ const ProviderOnboardingDialog: React.FC = () => {
       onClose={dismiss}
       maxWidth="sm"
       fullWidth
-      title="Connect an AI provider"
+      title={t("batch2_7.providerOnboarding.title")}
       actions={
         <>
-          <Button variant="text" color="inherit" onClick={handleOpenSettings} sx={{ mr: "auto" }}>See all providers in settings</Button>
-          <Button variant="contained" onClick={dismiss}>Done</Button>
+          <Button variant="text" color="inherit" onClick={handleOpenSettings} sx={{ mr: "auto" }}>{t("batch2_7.providerOnboarding.allProviders")}</Button>
+          <Button variant="contained" onClick={dismiss}>{t("batch2_7.providerOnboarding.done")}</Button>
         </>
       }
     >
@@ -60,10 +62,10 @@ const ProviderOnboardingDialog: React.FC = () => {
         <FlexColumn gap={SPACING.md}>
           <Text sx={{ maxWidth: "60ch" }}>
             {reason ?? (capability
-              ? `Connect a provider for ${CAPABILITY_LABELS[capability]} to continue.`
-              : "Choose an account or API key to use models in your workflows.")}
+              ? t("batch2_7.providerOnboarding.capabilityPrompt", { capability: t(`batch2_7.providerOnboarding.capabilities.${capability}`) })
+              : t("batch2_7.providerOnboarding.chooseProvider"))}
           </Text>
-          <Caption size="small">Your API usage is billed directly to your provider account.</Caption>
+          <Caption size="small">{t("batch2_7.providerOnboarding.billing")}</Caption>
         </FlexColumn>
         {groups.filter((group) => group.providers.length > 0).map((group) => (
           <FlexColumn key={group.title} gap={SPACING.md}>
@@ -84,15 +86,15 @@ const ProviderOnboardingDialog: React.FC = () => {
           <FlexRow align="center" gap={SPACING.lg} wrap>
             <Box component="img" src={ollamaIcon} alt="" sx={{ width: 28, height: 28, ...theme.applyStyles("dark", { filter: "invert(1)" }) }} />
             <FlexColumn gap={SPACING.xs} sx={{ flex: "1 1 180px" }}>
-              <Text size="small">Prefer local models?</Text>
-              <Caption>Install Ollama and download a model to run on your machine.</Caption>
+              <Text size="small">{t("batch2_7.providerOnboarding.localTitle")}</Text>
+              <Caption>{t("batch2_7.providerOnboarding.localDescription")}</Caption>
             </FlexColumn>
-            <EditorButton component="a" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" variant="text" endIcon={<OpenInNewIcon />}>Get Ollama</EditorButton>
+            <EditorButton component="a" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" variant="text" endIcon={<OpenInNewIcon />}>{t("batch2_7.providerOnboarding.getOllama")}</EditorButton>
           </FlexRow>
         )}
         <FlexRow gap={SPACING.md} align="center">
           <LockOutlinedIcon sx={{ fontSize: "1.2em", color: theme.vars.palette.text.secondary }} />
-          <Caption>API keys are encrypted. You can manage or remove them in Settings.</Caption>
+          <Caption>{t("batch2_7.providerOnboarding.encryptedKeys")}</Caption>
         </FlexRow>
       </FlexColumn>
     </Dialog>

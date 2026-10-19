@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -77,6 +78,7 @@ export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
   className
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const handleZoomIn = useCallback(() => {
     onZoomChange(Math.min(maxZoom, zoom + step));
@@ -94,15 +96,15 @@ export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
   const containerClassName = `nodrag zoom-controls${className ? ` ${className}` : ""}`;
 
   return (
-    <Box css={styles(theme)} className={containerClassName} role="group" aria-label="Zoom controls">
-      <Tooltip title="Zoom out" placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
+    <Box css={styles(theme)} className={containerClassName} role="group" aria-label={t("batch2_18.zoom.controls")}>
+      <Tooltip title={t("batch2_18.zoom.out")} placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
         <span>
           <IconButton
             className="zoom-button"
             onClick={handleZoomOut}
             disabled={zoom <= minZoom}
             size={buttonSize}
-            aria-label="Zoom out"
+            aria-label={t("batch2_18.zoom.out")}
           >
             <ZoomOutIcon fontSize={buttonSize} />
           </IconButton>
@@ -115,14 +117,14 @@ export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
         </Typography>
       )}
 
-      <Tooltip title="Zoom in" placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title={t("batch2_18.zoom.in")} placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
         <span>
           <IconButton
             className="zoom-button"
             onClick={handleZoomIn}
             disabled={zoom >= maxZoom}
             size={buttonSize}
-            aria-label="Zoom in"
+            aria-label={t("batch2_18.zoom.in")}
           >
             <ZoomInIcon fontSize={buttonSize} />
           </IconButton>
@@ -130,12 +132,12 @@ export const ZoomControls: React.FC<ZoomControlsProps> = memo(({
       </Tooltip>
 
       {showReset && (
-        <Tooltip title="Reset zoom" placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip title={t("batch2_18.zoom.reset")} placement={tooltipPlacement} enterDelay={TOOLTIP_ENTER_DELAY}>
           <IconButton
             className="zoom-button"
             onClick={handleReset}
             size={buttonSize}
-            aria-label="Reset zoom"
+            aria-label={t("batch2_18.zoom.reset")}
           >
             <RestartAltIcon fontSize={buttonSize} />
           </IconButton>

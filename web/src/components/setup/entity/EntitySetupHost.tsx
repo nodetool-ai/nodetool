@@ -6,21 +6,16 @@ import {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import type { Entity } from "@nodetool-ai/protocol";
 
-import {
-  useEntities,
-  useSaveEntity
-} from "../../../serverState/useEntities";
+import { useEntities, useSaveEntity } from "../../../serverState/useEntities";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { SetupFlow } from "../SetupFlow";
 import type { SetupFlowConfig, SetupStep } from "../types";
-import {
-  DetailsStep,
-  type EntityDetailsValue
-} from "./DetailsStep";
+import { DetailsStep, type EntityDetailsValue } from "./DetailsStep";
 import { ReferenceStep } from "./ReferenceStep";
 import { ReviewFallback, ReviewStep } from "./ReviewStep";
 import {
@@ -52,24 +47,30 @@ const tagsFromText = (value: string): string[] =>
     .filter(Boolean);
 
 /** A plain white canvas, so a blank entity has a reference to be built on. */
-const createBlankReferenceFile = (): Promise<File> =>
+const createBlankReferenceFile = (
+  t: ReturnType<typeof useTranslation>["t"]
+): Promise<File> =>
   new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 1024;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-      reject(new Error("Canvas 2D context unavailable"));
+      reject(new Error(t("i18n-cont-setup-05.entity.errors.canvasUnavailable")));
       return;
     }
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
       if (!blob) {
-        reject(new Error("Failed to render blank image"));
+        reject(new Error(t("i18n-cont-setup-05.entity.errors.blankImageFailed")));
         return;
       }
-      resolve(new File([blob], "Untitled.png", { type: "image/png" }));
+      resolve(
+        new File([blob], t("i18n-cont-setup-05.entity.defaults.untitledReferenceFile"), {
+          type: "image/png"
+        })
+      );
     }, "image/png");
   });
 
@@ -82,6 +83,7 @@ const EntitySetupHost = ({
   onChangeFlow,
   onBusyChange
 }: EntitySetupHostProps) => {
+  const { t } = useTranslation();
   const recoveredDraft = useMemo(
     () => readEntitySetupDraft(draftKey ?? projectId),
     [draftKey, projectId]
@@ -179,7 +181,7 @@ const EntitySetupHost = ({
   const startBlank = useCallback(async () => {
     setStartingBlank(true);
     try {
-      const asset = await createAsset(await createBlankReferenceFile());
+      const asset = await createAsset(await createBlankReferenceFile(t));
       // The creator moved on while the canvas uploaded, so the flow stays
       // where they are (F17).
       if (stageRef.current !== "details") {
@@ -188,7 +190,9 @@ const EntitySetupHost = ({
       setDetails((current) => ({
         ...current,
         name:
-          current.name.trim().length > 0 ? current.name : "Untitled entity"
+          current.name.trim().length > 0
+            ? current.name
+            : t("i18n-cont-setup-05.entity.defaults.untitledName")
       }));
       setAssetId(asset.id);
       setStage("review");
@@ -196,18 +200,18 @@ const EntitySetupHost = ({
       addNotification({
         type: "error",
         alert: true,
-        content: `Could not start a blank entity: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        content: t("i18n-cont-setup-05.entity.errors.blankStart", {
+          detail: error instanceof Error ? error.message : String(error)
+        })
       });
     } finally {
       setStartingBlank(false);
     }
-  }, [addNotification, createAsset]);
+  }, [addNotification, createAsset, t]);
 
   const save = useCallback(async () => {
     if (!referenceAssetId || entitiesLoading || entitiesError) {
-      throw new Error("Choose a reference image before creating the entity.");
+      throw new Error(t("i18n-cont-setup-05.entity.errors.referenceRequired"));
     }
     const input: Parameters<typeof saveEntity.mutateAsync>[0] = {
       assetId: referenceAssetId,
@@ -223,7 +227,7 @@ const EntitySetupHost = ({
     }
     const entity = await saveEntity.mutateAsync(input);
     if (!entity) {
-      throw new Error("The entity could not be read after it was created.");
+      throw new Error(t("i18n-cont-setup-05.entity.errors.createdEntityUnreadable"));
     }
     clearEntitySetupDraft(draftKey ?? projectId);
     onFinish(entity);
@@ -235,34 +239,35 @@ const EntitySetupHost = ({
     onFinish,
     projectId,
     referenceAssetId,
-    saveEntity
+    saveEntity,
+    t
   ]);
 
   const reviewBlockedReason = entitiesError
-    ? "Could not verify your entity library"
+    ? t("i18n-cont-setup-05.entity.steps.review.blocked.libraryError")
     : entitiesLoading
-      ? "Loading your entity library"
+      ? t("i18n-cont-setup-05.entity.steps.review.blocked.libraryLoading")
       : !referenceAssetId
-        ? "Go back and choose a reference image"
+        ? t("i18n-cont-setup-05.entity.steps.review.blocked.reference")
         : details.name.trim().length === 0
-          ? "Go back and name the entity"
-          : "Go back and describe the traits to preserve";
+          ? t("i18n-cont-setup-05.entity.steps.review.blocked.name")
+          : t("i18n-cont-setup-05.entity.steps.review.blocked.descriptor");
 
   const steps = useMemo<SetupStep<EntitySetupStage>[]>(
     () => [
       {
         stage: "details",
-        label: "Details",
-        primaryLabel: "Choose a reference",
+        label: t("i18n-cont-setup-05.entity.steps.details.label"),
+        primaryLabel: t("i18n-cont-setup-05.entity.steps.details.primary"),
         canAdvance:
           details.name.trim().length > 0 &&
           details.descriptor.trim().length > 0,
         blockedReason:
           details.name.trim().length === 0
-            ? "Name the entity"
-            : "Describe the traits to preserve",
+            ? t("i18n-cont-setup-05.entity.steps.details.blocked.name")
+            : t("i18n-cont-setup-05.entity.steps.details.blocked.descriptor"),
         pending: startingBlank,
-        pendingLabel: "Preparing a blank reference",
+        pendingLabel: t("i18n-cont-setup-05.entity.steps.details.pending"),
         render: () =>
           createElement(DetailsStep, {
             value: details,
@@ -273,15 +278,15 @@ const EntitySetupHost = ({
       },
       {
         stage: "reference",
-        label: "Reference",
-        primaryLabel: "Review entity",
+        label: t("i18n-cont-setup-05.entity.steps.reference.label"),
+        primaryLabel: t("i18n-cont-setup-05.entity.steps.reference.primary"),
         canAdvance:
           referenceAssetId !== null && !entitiesLoading && !entitiesError,
         blockedReason: entitiesError
-          ? "Could not verify your entity library"
+          ? t("i18n-cont-setup-05.entity.steps.reference.blocked.libraryError")
           : entitiesLoading
-            ? "Loading your entity library"
-            : "Choose a reference image",
+            ? t("i18n-cont-setup-05.entity.steps.reference.blocked.libraryLoading")
+            : t("i18n-cont-setup-05.entity.steps.reference.blocked.reference"),
         render: () =>
           createElement(ReferenceStep, {
             name: details.name,
@@ -299,8 +304,8 @@ const EntitySetupHost = ({
       },
       {
         stage: "review",
-        label: "Review",
-        primaryLabel: "Create entity",
+        label: t("i18n-cont-setup-05.entity.steps.review.label"),
+        primaryLabel: t("i18n-cont-setup-05.entity.steps.review.primary"),
         canAdvance:
           referenceAssetId !== null &&
           !entitiesLoading &&
@@ -309,7 +314,7 @@ const EntitySetupHost = ({
           details.descriptor.trim().length > 0,
         blockedReason: reviewBlockedReason,
         pending: saveEntity.isPending,
-        pendingLabel: "Creating your entity",
+        pendingLabel: t("i18n-cont-setup-05.entity.steps.review.pending"),
         // The asset is tagged before the save resolves, so a Cancel would
         // say the draft is unchanged about an entity that was created.
         cancelable: false,
@@ -338,7 +343,8 @@ const EntitySetupHost = ({
       save,
       saveEntity.isPending,
       startBlank,
-      startingBlank
+      startingBlank,
+      t
     ]
   );
 
@@ -348,19 +354,16 @@ const EntitySetupHost = ({
   }, [busy, onBusyChange]);
 
   const config: SetupFlowConfig<EntitySetupStage> = {
-    labels: { title: "Entity" },
+    labels: { title: t("i18n-cont-setup-05.entity.title") },
     steps,
     stage,
     onStageChange: setStage
   };
 
-  const handleChangeFlow = useCallback(
-    async () => {
-      await onChangeFlow?.(details.descriptor);
-      clearEntitySetupDraft(draftKey ?? projectId);
-    },
-    [details.descriptor, draftKey, onChangeFlow, projectId]
-  );
+  const handleChangeFlow = useCallback(async () => {
+    await onChangeFlow?.(details.descriptor);
+    clearEntitySetupDraft(draftKey ?? projectId);
+  }, [details.descriptor, draftKey, onChangeFlow, projectId]);
 
   return onChangeFlow ? (
     <SetupFlow config={config} onChangeFlow={handleChangeFlow} />

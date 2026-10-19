@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { BASE_URL } from "../../stores/BASE_URL";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
@@ -33,6 +34,7 @@ interface WorkspaceFileSurfaceProps {
 }
 
 const BinaryFallback = ({ name, url }: { name: string; url: string }) => {
+  const { t } = useTranslation();
   const { handleDownload } = useAssetDownload({ url });
   return (
     <FlexColumn
@@ -45,8 +47,8 @@ const BinaryFallback = ({ name, url }: { name: string; url: string }) => {
       <EmptyState
         variant="no-data"
         title={name}
-        description="No preview available for this file type."
-        actionText="Download"
+        description={t("i18n-next51.workspaceFile.noPreview")}
+        actionText={t("i18n-next51.workspaceFile.download")}
         onAction={handleDownload}
       />
     </FlexColumn>
@@ -74,7 +76,7 @@ const WorkspaceFileSurface = ({ refId, mode }: WorkspaceFileSurfaceProps) => {
     return (
       <FlexColumn fullWidth fullHeight align="center" justify="center">
         <Text size="normal" weight={600}>
-          Invalid workspace file reference
+          {t("i18n-next110.workspaceFile.invalidReference")}
         </Text>
       </FlexColumn>
     );

@@ -17,6 +17,7 @@ import {
   type Node
 } from "@xyflow/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { ThemeRoot } from "../components/ui_primitives";
 import ThemeNodetool from "../components/themes/ThemeNodetool";
@@ -55,6 +56,17 @@ const STATUS_COLOR: Record<string, string> = {
   skipped: "#94A3B8"
 };
 
+const STATUS_I18N_KEYS = {
+  pending: "i18n-next121.e2eRunner.statuses.pending",
+  running: "i18n-next121.e2eRunner.statuses.running",
+  completed: "i18n-next121.e2eRunner.statuses.completed",
+  failed: "i18n-next121.e2eRunner.statuses.failed",
+  error: "i18n-next121.e2eRunner.statuses.error",
+  cancelled: "i18n-next121.e2eRunner.statuses.cancelled",
+  timeout: "i18n-next121.e2eRunner.statuses.timeout",
+  skipped: "i18n-next121.e2eRunner.statuses.skipped"
+} as const satisfies Record<RunStatus, string>;
+
 function StatusDot({ status }: { status: RunStatus | string }) {
   return (
     <span
@@ -83,6 +95,7 @@ function Sidebar({
   onRunAll: () => void;
   onRunNext: () => void;
 }) {
+  const { t } = useTranslation();
   const done = state.records.filter((r) => r.status !== "pending" && r.status !== "running");
   const passed = state.records.filter(
     (r) => r.status === "completed" && r.expectationFailures.length === 0
@@ -104,18 +117,24 @@ function Sidebar({
       }}
     >
       <div style={{ padding: "16px 16px 8px", borderBottom: "1px solid #1E293B" }}>
-        <div style={{ fontSize: 15, fontWeight: 600 }}>E2E Workflow Runner</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>
+          {t("i18n-next121.e2eRunner.title")}
+        </div>
         <div style={{ marginTop: 6, color: "#94A3B8" }}>
-          {passed} passed · {failed} failed · {skipped} skipped /{" "}
-          {state.records.length} total
+          {t("i18n-next121.e2eRunner.summary", {
+            passed,
+            failed,
+            skipped,
+            total: state.records.length
+          })}
         </div>
         {manual && (
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
             <button onClick={onRunNext} style={btnStyle}>
-              Run next
+              {t("i18n-next121.e2eRunner.actions.runNext")}
             </button>
             <button onClick={onRunAll} style={btnStyle}>
-              Run all
+              {t("i18n-next121.e2eRunner.actions.runAll")}
             </button>
           </div>
         )}
@@ -134,10 +153,16 @@ function Sidebar({
             <span style={{ fontWeight: 500 }}>{rec.name}</span>
           </div>
           <div style={{ marginTop: 4, color: "#94A3B8", fontSize: 11 }}>
-            {rec.status}
-            {rec.durationMs != null ? ` · ${rec.durationMs}ms` : ""}
-            {rec.counts.outputs ? ` · ${rec.counts.outputs} out` : ""}
-            {rec.counts.errors ? ` · ${rec.counts.errors} err` : ""}
+            {t(STATUS_I18N_KEYS[rec.status])}
+            {rec.durationMs != null
+              ? ` · ${t("i18n-next121.e2eRunner.metrics.duration", { duration: rec.durationMs })}`
+              : ""}
+            {rec.counts.outputs
+              ? ` · ${t("i18n-next121.e2eRunner.metrics.outputs", { count: rec.counts.outputs })}`
+              : ""}
+            {rec.counts.errors
+              ? ` · ${t("i18n-next121.e2eRunner.metrics.errors", { count: rec.counts.errors })}`
+              : ""}
             {rec.skipReason ? ` · ${rec.skipReason}` : ""}
           </div>
           {rec.expectationFailures.length > 0 && (
@@ -237,6 +262,7 @@ function Canvas({
   harness: Harness;
   state: HarnessState;
 }) {
+  const { t } = useTranslation();
   const [graph, setGraph] = useState<RenderGraph | null>(null);
   const idx = state.currentIndex;
   const adHocNonce = state.adHocNonce;
@@ -257,7 +283,9 @@ function Canvas({
   if (!graph) {
     return (
       <div style={centeredStyle}>
-        {idx < 0 ? "Waiting to start…" : "Building graph…"}
+        {idx < 0
+          ? t("i18n-next121.e2eRunner.canvas.waitingToStart")
+          : t("i18n-next121.e2eRunner.canvas.buildingGraph")}
       </div>
     );
   }

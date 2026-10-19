@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { SxProps, Theme } from "@mui/material/styles";
 import {
   Caption,
@@ -41,8 +42,11 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
   tooltipCatalog,
   rootSx,
   scrollSx,
-  searchPlaceholder = "Search shortcuts"
+  searchPlaceholder
 }) => {
+  const { t } = useTranslation();
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ?? t("i18n-next35.help.searchShortcuts");
   const catalog = tooltipCatalog ?? shortcuts;
   const [search, setSearch] = useState("");
 
@@ -80,8 +84,8 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
       <TextInput
         variant="outlined"
         size="small"
-        placeholder={searchPlaceholder}
-        slotProps={{ htmlInput: { "aria-label": searchPlaceholder } }}
+        placeholder={resolvedSearchPlaceholder}
+        slotProps={{ htmlInput: { "aria-label": resolvedSearchPlaceholder } }}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         sx={{
@@ -106,8 +110,8 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
           <EmptyState
             variant="no-results"
             size="small"
-            title="No matching shortcuts"
-            description="Try a different search term."
+            title={t("i18n-next35.help.noMatchingShortcuts")}
+            description={t("i18n-next35.help.tryDifferentSearchTerm")}
           />
         )}
         {categories.map((cat) => {
@@ -120,8 +124,9 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
               <SectionHeader
                 size="small"
                 title={
-                  SHORTCUT_CATEGORIES[cat] ??
-                  cat.charAt(0).toUpperCase() + cat.slice(1)
+                  t(
+                    `i18n-next35.help.categories.${cat === "image-editor" ? "imageEditor" : cat}`
+                  )
                 }
               />
               {list.map((s) => (

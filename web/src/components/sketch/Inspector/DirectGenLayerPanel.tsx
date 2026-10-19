@@ -10,6 +10,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import TvIcon from "@mui/icons-material/Tv";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
@@ -46,7 +47,6 @@ import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import {
-  describeDirectGenFailure,
   directGenFailure,
   useDirectGenJob
 } from "../../../hooks/sketch/useDirectGenJob";
@@ -69,6 +69,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   layer,
   binding
 }) => {
+  const { t, i18n } = useTranslation();
   const patchBinding = useSketchSessionStore((s) => s.patchBinding);
   const layers = useSketchStore((s) => s.document.layers);
   const { start, cancel } = useDirectGenJob();
@@ -167,12 +168,53 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   // Tells the user what still blocks Generate, in the order they fill the panel.
   let generateBlocker: string | undefined;
   if (!binding.provider || !binding.model) {
-    generateBlocker = "Pick a model first";
+    generateBlocker = t("screens4_25.sketch.directGen.pickModel");
   } else if ((binding.prompt ?? "").trim().length === 0) {
-    generateBlocker = "Write a prompt first";
+    generateBlocker = t("screens4_25.sketch.directGen.writePrompt");
   } else if (isImageToImage && !binding.sourceLayerId) {
-    generateBlocker = "Pick a source layer first";
+    generateBlocker = t("screens4_25.sketch.directGen.pickSourceLayer");
   }
+  const strengthLabel = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(binding.strength ?? DEFAULT_STRENGTH);
+  const formattedSteps = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language).format(
+    binding.numInferenceSteps ?? DEFAULT_STEPS
+  );
+  const failureRemedy = failure
+    ? (() => {
+        switch (failure.kind) {
+          case "no-model":
+            return t("screens4_25.sketch.directGen.failureNoModel");
+          case "no-prompt":
+            return t("screens4_25.sketch.directGen.failureNoPrompt");
+          case "no-source":
+            return t("screens4_25.sketch.directGen.failureNoSource");
+          case "auth":
+            return t("screens4_25.sketch.directGen.failureAuth");
+          case "quota":
+            return t("screens4_25.sketch.directGen.failureQuota");
+          case "refused":
+            return t("screens4_25.sketch.directGen.failureRefused");
+          case "timeout":
+            return t("screens4_25.sketch.directGen.failureTimeout");
+          case "network":
+            return t("screens4_25.sketch.directGen.failureNetwork");
+          case "provider":
+            return t("screens4_25.sketch.directGen.failureProvider");
+          case "unknown":
+            return t("screens4_25.sketch.directGen.failureUnknown");
+        }
+      })()
+    : undefined;
+  const failureDescription = failureRemedy
+    ? failure?.detail
+      ? t("screens4_25.sketch.directGen.failureWithDetail", {
+          message: failureRemedy,
+          detail: failure.detail
+        })
+      : failureRemedy
+    : t("screens4_25.sketch.directGen.generationFailed");
 
   return (
     <Panel
@@ -197,18 +239,18 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           value={binding.prompt ?? ""}
           onChange={(value) => patchBinding(layer.id, { prompt: value })}
           onFocus={revealGenerate}
-          placeholder="Describe the image…"
-          aria-label="Image prompt"
+          placeholder={t("screens4_25.sketch.directGen.promptPlaceholder")}
+          aria-label={t("screens4_25.sketch.directGen.promptLabel")}
           sx={{ "& .MuiOutlinedInput-root": sketchFieldSx }}
           minRows={3}
           maxRows={8}
           compact
         />
 
-        <FlexRow gap={0.5} align="center" sx={{ flexWrap: "wrap" }}>
+        <FlexRow gap={SPACING.micro} align="center" sx={{ flexWrap: "wrap" }}>
           <MediaOptionChip
             icon={<TvIcon fontSize="small" />}
-            header="Resolution"
+            header={t("screens4_25.sketch.directGen.resolution")}
             value={resolution}
             options={resolutionOptions}
             onChange={(r) => applySize(r, aspectRatio)}
@@ -222,16 +264,19 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
             <>
               <MediaOptionChip
                 icon={<TuneIcon fontSize="small" />}
-                label={`Strength ${(binding.strength ?? DEFAULT_STRENGTH).toFixed(2)}`}
-                header="Edit strength"
+                label={t("screens4_25.sketch.directGen.strengthLabel", { strength: strengthLabel })}
+                header={t("screens4_25.sketch.directGen.editStrength")}
                 value={binding.strength ?? DEFAULT_STRENGTH}
                 options={strengthOptions}
                 onChange={(s) => patchBinding(layer.id, { strength: s })}
               />
               <MediaOptionChip
                 icon={<LayersIcon fontSize="small" />}
-                label={`${binding.numInferenceSteps ?? DEFAULT_STEPS} steps`}
-                header="Inference steps"
+                label={t("screens4_25.sketch.directGen.inferenceStepsLabel", {
+                  count: binding.numInferenceSteps ?? DEFAULT_STEPS,
+                  formattedCount: formattedSteps
+                })}
+                header={t("screens4_25.sketch.directGen.inferenceSteps")}
                 value={binding.numInferenceSteps ?? DEFAULT_STEPS}
                 options={stepsOptions}
                 onChange={(n) =>
@@ -245,11 +290,11 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         {isImageToImage &&
           (sourceLayerOptions.length === 0 ? (
             <Caption color="secondary">
-              No source layers available - paint something on a layer first.
+              {t("screens4_25.sketch.directGen.noSourceLayers")}
             </Caption>
           ) : (
             <SelectField
-              label="Source"
+              label={t("screens4_25.sketch.directGen.source")}
               value={binding.sourceLayerId ?? ""}
               onChange={(v) =>
                 patchBinding(layer.id, { sourceLayerId: v ? v : null })
@@ -262,7 +307,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         <FlexRow justify="flex-end" fullWidth>
           <CostEstimateLine
             estimate={generationCostLine(costEstimate)}
-            title="Estimated cost of this generation"
+            title={t("screens4_25.sketch.directGen.estimatedCost")}
           />
         </FlexRow>
 
@@ -273,7 +318,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
             color="inherit"
             onClick={() => cancel(layer.id)}
           >
-            Cancel
+            {t("screens4_25.sketch.directGen.cancel")}
           </EditorButton>
         ) : (
           <EditorButton
@@ -285,23 +330,25 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
             onClick={() => void start(layer.id)}
             data-testid="direct-gen-generate"
           >
-            {binding.currentAssetId ? "Regenerate" : "Generate"}
+            {binding.currentAssetId
+              ? t("screens4_25.sketch.directGen.regenerate")
+              : t("screens4_25.sketch.directGen.generate")}
           </EditorButton>
         )}
         {binding.status === "failed" && (
           <ErrorBanner
             report={{
               source: "job-failure",
-              summary: "Sketch layer generation failed",
-              errorText: failure ? describeDirectGenFailure(failure) : undefined
+              summary: t("screens4_25.sketch.directGen.failureSummary"),
+              errorText: failure ? failureDescription : undefined
             }}
           >
-            {failure ? describeDirectGenFailure(failure) : "Generation failed."}
+            {failureDescription}
           </ErrorBanner>
         )}
         {binding.status === "generated" && binding.currentAssetId && (
           <Caption color="secondary">
-            Done. Asset {binding.currentAssetId.slice(0, 8)}.
+            {t("screens4_25.sketch.directGen.assetCreated", { assetId: binding.currentAssetId.slice(0, 8) })}
           </Caption>
         )}
       </FlexColumn>

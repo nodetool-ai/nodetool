@@ -12,6 +12,7 @@
  * document today's renderer cannot resolve — degrades to the chip alone.
  */
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { parseResourceUri, type ResourceKind } from "@nodetool-ai/protocol";
 
 import {
@@ -69,6 +70,7 @@ const frameSx = {
 } as const;
 
 const SketchPreview: React.FC<{ id: string }> = ({ id }) => {
+  const { t } = useTranslation();
   const query = trpc.sketch.get.useQuery({ id }, { staleTime: 30_000 });
   const document = useMemo(
     () => resolveSketchDocument(query.data),
@@ -79,11 +81,11 @@ const SketchPreview: React.FC<{ id: string }> = ({ id }) => {
     return (
       <Box sx={frameSx}>
         <React.Suspense
-          fallback={<LoadingSpinner size="small" text="Loading preview" />}
+          fallback={<LoadingSpinner size="small" text={t("i18n-next54.message.loadingPreview")} />}
         >
           <LazySketchRenderer
             document={document}
-            ariaLabel="Sketch preview"
+            ariaLabel={t("i18n-next54.message.sketchPreview")}
             showDimensions
           />
         </React.Suspense>
@@ -91,15 +93,16 @@ const SketchPreview: React.FC<{ id: string }> = ({ id }) => {
     );
   }
   if (query.isLoading) {
-    return <LoadingSpinner size="small" text="Loading sketch" />;
+    return <LoadingSpinner size="small" text={t("i18n-next54.message.loadingSketch")} />;
   }
   if (query.isError) {
-    return <Caption color="secondary">Could not load this sketch.</Caption>;
+    return <Caption color="secondary">{t("i18n-next54.message.couldNotLoadSketch")}</Caption>;
   }
   return null;
 };
 
 const TimelinePreview: React.FC<{ id: string }> = ({ id }) => {
+  const { t } = useTranslation();
   const query = trpc.timeline.get.useQuery({ id }, { staleTime: 30_000 });
   const sequence = useMemo(
     () => resolveTimelineSequence(query.data),
@@ -110,11 +113,11 @@ const TimelinePreview: React.FC<{ id: string }> = ({ id }) => {
     return (
       <Box sx={frameSx}>
         <React.Suspense
-          fallback={<LoadingSpinner size="small" text="Loading preview" />}
+          fallback={<LoadingSpinner size="small" text={t("i18n-next54.message.loadingPreview")} />}
         >
           <LazyTimelineRenderer
             sequence={sequence}
-            ariaLabel="Timeline preview"
+            ariaLabel={t("i18n-next54.message.timelinePreview")}
             showMetadata
           />
         </React.Suspense>
@@ -122,16 +125,17 @@ const TimelinePreview: React.FC<{ id: string }> = ({ id }) => {
     );
   }
   if (query.isLoading) {
-    return <LoadingSpinner size="small" text="Loading timeline" />;
+    return <LoadingSpinner size="small" text={t("i18n-next54.message.loadingTimeline")} />;
   }
   if (query.isError) {
-    return <Caption color="secondary">Could not load this timeline.</Caption>;
+    return <Caption color="secondary">{t("i18n-next54.message.couldNotLoadTimeline")}</Caption>;
   }
   return null;
 };
 
 /** A 3D model is a `.glb`/`.gltf` asset; `model3d://<id>` names the asset. */
 const Model3DPreview: React.FC<{ id: string }> = ({ id }) => {
+  const { t } = useTranslation();
   const { url, pending } = useResolvedMedia(assetLocator(id));
 
   if (url) {
@@ -142,22 +146,25 @@ const Model3DPreview: React.FC<{ id: string }> = ({ id }) => {
     );
   }
   if (pending) {
-    return <LoadingSpinner size="small" text="Loading 3D model" />;
+    return <LoadingSpinner size="small" text={t("i18n-next54.message.loading3DModel")} />;
   }
-  return <Caption color="secondary">Could not load this 3D model.</Caption>;
+  return <Caption color="secondary">{t("i18n-next54.message.couldNotLoad3DModel")}</Caption>;
 };
 
 /** The saved game's player; it loads the draft and waits for Play. */
-const GamePreview: React.FC<{ id: string }> = ({ id }) => (
+const GamePreview: React.FC<{ id: string }> = ({ id }) => {
+  const { t } = useTranslation();
+  return (
   <Box
     sx={{ ...frameSx, height: GAME_PREVIEW_HEIGHT }}
     data-testid="game-preview"
   >
-    <React.Suspense fallback={<LoadingSpinner size="small" text="Loading game" />}>
+    <React.Suspense fallback={<LoadingSpinner size="small" text={t("i18n-next54.message.loadingGame")} />}>
       <LazySavedGamePlayer gameId={id} setsDocumentTitle={false} />
     </React.Suspense>
   </Box>
-);
+  );
+};
 
 const ResourcePreview: React.FC<{ kind: ResourceKind; id: string }> = ({
   kind,

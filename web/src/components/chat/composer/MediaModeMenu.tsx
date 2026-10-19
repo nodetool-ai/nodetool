@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ImageIcon from "@mui/icons-material/Image";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -29,8 +30,8 @@ interface MediaModeMenuProps {
 
 interface ModeItem {
   id: MediaMode;
-  label: string;
-  description?: string;
+  labelKey: string;
+  descriptionKey?: string;
   icon: React.ReactNode;
   enabled: boolean;
 }
@@ -38,74 +39,74 @@ interface ModeItem {
 const MODES: ModeItem[] = [
   {
     id: "chat",
-    label: "Chat",
+    labelKey: "chat",
     icon: <ChatBubbleOutlineIcon fontSize="small" />,
     enabled: true
   },
   {
     id: "image",
-    label: "Generate images",
+    labelKey: "generateImages",
     icon: <ImageIcon fontSize="small" />,
     enabled: true
   },
   {
     id: "image_edit",
-    label: "Edit images",
+    labelKey: "editImages",
     icon: <AutoFixHighIcon fontSize="small" />,
     enabled: true
   },
   {
     id: "video",
-    label: "Generate videos",
+    labelKey: "generateVideos",
     icon: <MovieIcon fontSize="small" />,
     enabled: true
   },
   {
     id: "image_to_video",
-    label: "Animate image",
+    labelKey: "animateImage",
     icon: <MovieFilterIcon fontSize="small" />,
     enabled: true
   },
   {
     id: "reference_to_video",
-    label: "Reference to video",
-    description: "several references, one shot",
+    labelKey: "referenceToVideo",
+    descriptionKey: "referenceToVideoDescription",
     icon: <BurstModeIcon fontSize="small" />,
     enabled: true
   },
   {
     id: "audio",
-    label: "Read aloud",
+    labelKey: "readAloud",
     icon: <RecordVoiceOverIcon fontSize="small" />,
     enabled: true
   },
   {
     id: "music",
-    label: "Generate music",
+    labelKey: "generateMusic",
     icon: <AudiotrackIcon fontSize="small" />,
     enabled: true
   },
   {
     id: "audio_to_video",
-    label: "Audio to video",
+    labelKey: "audioToVideo",
     icon: <GraphicEqIcon fontSize="small" />,
     enabled: false
   },
   {
     id: "retake",
-    label: "Retake",
+    labelKey: "retake",
     icon: <ReplayIcon fontSize="small" />,
     enabled: false
   },
   {
     id: "extend",
-    label: "Extend",
+    labelKey: "extend",
     icon: <TimelineIcon fontSize="small" />,
     enabled: false
   },
   {
     id: "motion_control",
-    label: "Motion control",
+    labelKey: "motionControl",
     icon: <TuneIcon fontSize="small" />,
     enabled: false
   }
@@ -125,6 +126,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   onChange,
   modes
 }) => {
+  const { t } = useTranslation();
   return (
     <ContextMenu
       open={open}
@@ -133,16 +135,16 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
       anchorOrigin={{ vertical: "top", horizontal: "left" }}
       transformOrigin={{ vertical: "bottom", horizontal: "left" }}
       minWidth={240}
-      slotProps={{ list: { "aria-label": "Generation mode" } }}
+      slotProps={{ list: { "aria-label": t("i18n-next22.chat.composer.mediaMode.generationMode") } }}
     >
-      <ListSubheader>Mode</ListSubheader>
+      <ListSubheader>{t("i18n-next22.chat.composer.mediaMode.mode")}</ListSubheader>
       {MODES.filter((m) => !modes || modes.includes(m.id)).map((m) => {
         const selected = m.id === value;
         return (
           <MenuItemPrimitive
             key={m.id}
-            label={m.label}
-            secondary={m.enabled ? m.description : "Soon"}
+            label={t(`i18n-next22.chat.composer.mediaMode.modes.${m.labelKey}`)}
+            secondary={m.enabled ? (m.descriptionKey ? t(`i18n-next22.chat.composer.mediaMode.modes.${m.descriptionKey}`) : undefined) : t("i18n-next22.chat.composer.mediaMode.soon")}
             icon={m.icon}
             checkable="radio"
             checked={selected}

@@ -6,6 +6,7 @@ import WorkflowSelect from "./WorkflowSelect";
 import { useState } from "react";
 import { trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useTranslation } from "react-i18next";
 
 interface CollectionItemProps {
   collection: CollectionResponse;
@@ -24,22 +25,42 @@ interface CollectionItemProps {
   deletingCollection: string | null;
 }
 
-const formatEta = (seconds: number): string =>
-  seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)}m ${seconds % 60}s`;
+const formatEta = (seconds: number, locale: string): string => {
+  const secondFormatter = new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit: "second",
+    unitDisplay: "short"
+  });
+  if (seconds < 60) {
+    return secondFormatter.format(seconds);
+  }
+  const minuteFormatter = new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit: "minute",
+    unitDisplay: "short"
+  });
+  return `${minuteFormatter.format(Math.round(seconds / 60))} ${secondFormatter.format(seconds % 60)}`;
+};
 
 const IndexingProgress = memo(function IndexingProgress({
   indexProgress
 }: {
   indexProgress: CollectionItemProps["indexProgress"];
 }) {
+  const { t, i18n } = useTranslation();
   if (!indexProgress) { return null; }
 
   const { current, total, startTime } = indexProgress;
-  let label = `Indexing ${current} of ${total} documents`;
+  let label = t("i18n-next30.collections.indexingProgress", {
+    current,
+    total
+  });
   if (current > 0) {
     const avgTimePerItem = (Date.now() - startTime) / current;
     const etaSeconds = Math.round((avgTimePerItem * (total - current)) / 1000);
-    label += ` · ETA ${formatEta(etaSeconds)}`;
+    label += ` · ${t("i18n-next30.collections.eta", {
+      eta: formatEta(etaSeconds, i18n.resolvedLanguage ?? "en")
+    })}`;
   }
 
   return (
@@ -62,6 +83,7 @@ const CollectionItem = ({
   onDragLeave,
   deletingCollection
 }: CollectionItemProps) => {
+  const { t } = useTranslation();
   const isDeleting = deletingCollection !== null;
   const addNotification = useNotificationStore((state) => state.addNotification);
   const queryClient = useQueryClient();
@@ -78,7 +100,7 @@ const CollectionItem = ({
       addNotification({
         alert: true,
         type: "success",
-        content: "Collection updated successfully"
+        content: t("i18n-next30.collections.updateSuccess")
       });
       queryClient.invalidateQueries({ queryKey: ["collections"] });
     },
@@ -86,7 +108,9 @@ const CollectionItem = ({
       addNotification({
         alert: true,
         type: "error",
-        content: `Failed to update collection: ${error.message}`
+        content: t("i18n-next30.collections.updateError", {
+          error: error.message
+        })
       });
     }
   });
@@ -155,7 +179,7 @@ const CollectionItem = ({
         ) : (
           <DeleteButton
             onClick={handleDeleteClick}
-            tooltip="Delete this collection"
+            tooltip={t("i18n-next30.collections.deleteTooltip")}
             disabled={isDeleting}
             sx={{ mt: -10 }}
             nodrag={false}
@@ -164,7 +188,11 @@ const CollectionItem = ({
       </FlexRow>
       {dragOverCollection === collection.name && <DropZoneOverlay />}
       <FlexRow align="center" gap={SPACING.lg} fullWidth>
-        <Tooltip title={`Collection: ${collection.name}`}>
+        <Tooltip
+          title={t("i18n-next30.collections.collectionTooltip", {
+            name: collection.name
+          })}
+        >
           <Text
             size="small"
             truncate
@@ -183,12 +211,14 @@ const CollectionItem = ({
       </FlexRow>
 
       <FlexRow align="center" gap={SPACING.lg} fullWidth>
-        <Tooltip title="Number of documents in this collection">
+        <Tooltip title={t("i18n-next30.collections.documentCountTooltip")}>
           <Caption color="secondary" sx={{ flexShrink: 0 }}>
-            {collection.count} item{collection.count === 1 ? "" : "s"}
+            {t("i18n-next30.collections.itemCount", {
+              count: collection.count
+            })}
           </Caption>
         </Tooltip>
-        <Tooltip title="Model used for embedding documents">
+        <Tooltip title={t("i18n-next30.collections.embeddingModelTooltip")}>
           <Caption
             sx={{
               flexShrink: 1,
@@ -204,7 +234,7 @@ const CollectionItem = ({
         {isEditingWorkflow ? (
           <WorkflowSelect
             onChange={onWorkflowChange}
-            label="Workflow"
+            label={t("i18n-next30.collections.workflow")}
             value={
               collection.metadata?.workflow
                 ? { id: collection.metadata.workflow as string }
@@ -219,7 +249,7 @@ const CollectionItem = ({
             }}
           />
         ) : (
-          <Tooltip title="Click to change the ingestion workflow for this collection">
+          <Tooltip title={t("i18n-next30.collections.changeWorkflowTooltip")}>
             <EditorButton
               variant="text"
               sx={{
@@ -238,7 +268,8 @@ const CollectionItem = ({
               }}
               onClick={handleEditWorkflow}
             >
-              {collection.workflow_name || "No workflow"}
+              {collection.workflow_name ||
+                t("i18n-next30.collections.noWorkflow")}
             </EditorButton>
           </Tooltip>
         )}

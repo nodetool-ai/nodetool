@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
 import ImageViewer from "../asset_viewer/ImageViewer";
@@ -27,6 +28,7 @@ interface ImageSurfaceProps {
  * cross-contaminate. Inactive edit tabs fall back to the viewer (hidden anyway).
  */
 const ImageSurface = ({ refId, mode, active }: ImageSurfaceProps) => {
+  const { t } = useTranslation();
   const { data: asset, isLoading, error } = useAssetById(refId);
   const setMode = useWorkspaceTabsStore((state) => state.setMode);
 
@@ -46,7 +48,7 @@ const ImageSurface = ({ refId, mode, active }: ImageSurfaceProps) => {
     return (
       <FlexColumn fullWidth fullHeight align="center" justify="center">
         <Text size="normal" weight={600}>
-          {error ? "Failed to load image" : "Image not found"}
+          {error ? t("batch2_0.imageLoadFailed") : t("batch2_0.imageNotFound")}
         </Text>
       </FlexColumn>
     );

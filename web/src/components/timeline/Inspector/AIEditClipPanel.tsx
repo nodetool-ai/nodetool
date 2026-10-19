@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 
@@ -55,11 +56,6 @@ const DEFAULT_STRENGTH = 0.65;
 /** Where a finished edit goes: a take to review, or straight onto the clip. */
 type EditLanding = "take" | "replace";
 
-const LANDING_HINT: Record<EditLanding, string> = {
-  take: "The result is added to version history. Preview it there and apply it.",
-  replace:
-    "The result replaces the clip when it finishes. The original stays in version history."
-};
 const IS_MANAGED_BUILD = !isLocalhost && !isElectron;
 
 const modelKey = (model: { id: string; provider: string }): string =>
@@ -92,6 +88,7 @@ export function getMediaEditEligibility(
 }
 
 const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
+  const { t } = useTranslation();
   const clip = useTimelineStore((state) => findClipById(state.clips, clipId));
   const sequenceId = useTimelineStore((state) => state.sequenceId);
   const [open, setOpen] = usePersistedFold("ai-edit", true);
@@ -135,8 +132,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     return Object.values(state.editSettlements)
       .filter(
         (settlement) =>
-          settlement.sequenceId === sequenceId &&
-          settlement.clipId === clipId
+          settlement.sequenceId === sequenceId && settlement.clipId === clipId
       )
       .sort((a, b) => b.settledAt - a.settledAt)[0];
   });
@@ -163,15 +159,15 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     if (!selectedModel) return undefined;
     return availableModels.find(
       (model) =>
-        model.id === selectedModel.id && model.provider === selectedModel.provider
+        model.id === selectedModel.id &&
+        model.provider === selectedModel.provider
     );
   }, [availableModels, selectedModel]);
 
   const preferredModel = useMemo(() => {
     if (clip?.provider && clip.model) {
       const current = availableModels.find(
-        (model) =>
-          model.id === clip.model && model.provider === clip.provider
+        (model) => model.id === clip.model && model.provider === clip.provider
       );
       if (current) return current;
     }
@@ -260,9 +256,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     });
     if (!requestId) {
       setSubmissionFailed(true);
-      setErrorMessage(
-        "The edit could not be submitted. Check the connection and try again."
-      );
+      setErrorMessage(t("pass3_22.timeline.inspector.aiEdit.submitFailed"));
     }
   }, [
     catalogModel,
@@ -271,7 +265,8 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     instruction,
     landing,
     selectedModel,
-    startEdit
+    startEdit,
+    t
   ]);
 
   const newTakeEligibility = useMemo(() => {
@@ -296,10 +291,10 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     });
     if (!requestId) {
       setNewTakeError(
-        "The new take could not be submitted. This clip may not have a complete generation recipe."
+        t("pass3_22.timeline.inspector.aiEdit.newTakeSubmitFailed")
       );
     }
-  }, [clip, newTakeEligibility.ok, newTakeInstruction, startNewTake]);
+  }, [clip, newTakeEligibility.ok, newTakeInstruction, startNewTake, t]);
 
   if (!clip) return null;
 
@@ -325,30 +320,50 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
   // VideoModel has no metadata declaring strength support for video edits.
   // Hide the control until providers expose that capability explicitly.
   const strengthSupported = false;
+  const eligibilityErrorKey: Record<string, string> = {
+    "Select a timeline sequence before editing.": "sequenceRequired",
+    "Select a clip before editing video.": "clipRequired",
+    "Edit video requires a video clip.": "videoClipRequired",
+    "Edit video requires an active video asset.": "activeVideoAssetRequired",
+    "Edit video requires a positive playable duration.":
+      "positiveDurationRequired",
+    "Edit video does not support time-remapped clips. Bake the retime first.":
+      "timeRemapUnsupported",
+    "Edit video supports constant positive playback speed only.":
+      "constantSpeedRequired",
+    "Edit video currently supports 1x playback only. Bake the speed change first.":
+      "playbackSpeedUnsupported",
+    "Edit video could not resolve a positive constant source window.":
+      "sourceWindowInvalid",
+    "Edit video source bounds do not match the clip's constant playback speed.":
+      "sourceBoundsMismatch"
+  };
   const unavailableReason = !eligibility.ok
-    ? eligibility.error
+    ? t(
+        `pass3_22.timeline.inspector.aiEdit.eligibility.${eligibilityErrorKey[eligibility.error] ?? "unavailable"}`
+      )
     : error
-      ? "The video edit model catalog could not be loaded. Retry to check compatible providers."
+      ? t("pass3_22.timeline.inspector.aiEdit.modelCatalogFailed")
       : noCompatibleModel
-        ? "No compatible video edit model is available. Add a provider or install a local model that supports video_to_video."
+        ? t("pass3_22.timeline.inspector.aiEdit.noCompatibleModelDescription")
         : undefined;
   const settlementMessage = active
     ? undefined
     : settledStatus === "cancelled"
-      ? "The edit was cancelled. The accepted media was left unchanged."
+      ? t("pass3_22.timeline.inspector.aiEdit.settlement.cancelled")
       : settledStatus === "expired"
-        ? "The edit expired before it finished. The captured request is available to retry."
+        ? t("pass3_22.timeline.inspector.aiEdit.settlement.expired")
         : settledStatus === "orphaned"
-          ? "The source clip was deleted before the edit finished. The result was kept for inspection and was not applied."
+          ? t("pass3_22.timeline.inspector.aiEdit.settlement.orphaned")
           : settledStatus === "failed"
-            ? "The provider failed this edit. The accepted media was left unchanged."
+            ? t("pass3_22.timeline.inspector.aiEdit.settlement.failed")
             : undefined;
 
   return (
     <CollapsibleSection
       title={
         <InspectorSectionTitle
-          title="AI edit"
+          title={t("pass3_22.timeline.inspector.aiEdit.title")}
           icon={<AutoAwesomeOutlinedIcon />}
         />
       }
@@ -361,22 +376,26 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
           <EmptyState
             variant="empty"
             size="small"
-            title="Edit video unavailable"
+            title={t("pass3_22.timeline.inspector.aiEdit.unavailableTitle")}
             description={unavailableReason}
           />
         ) : (
           <>
             <TextArea
-              label="Instruction"
+              label={t("pass3_22.timeline.inspector.aiEdit.instruction")}
               value={instruction}
               onChange={(value) => setInstruction(value)}
-              placeholder="e.g. Make it golden hour"
+              placeholder={t(
+                "pass3_22.timeline.inspector.aiEdit.instructionPlaceholder"
+              )}
               minRows={3}
               maxRows={8}
               compact
               fullWidth
               inputProps={{
-                "aria-label": "Edit instruction",
+                "aria-label": t(
+                  "pass3_22.timeline.inspector.aiEdit.instructionAriaLabel"
+                ),
                 "data-testid": "ai-edit-instruction"
               }}
               disabled={active}
@@ -388,25 +407,27 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               <EmptyState
                 variant={error ? "error" : "empty"}
                 size="small"
-                title="No compatible model"
+                title={t(
+                  "pass3_22.timeline.inspector.aiEdit.noCompatibleModelTitle"
+                )}
                 description={unavailableReason}
-                actionText={error ? "Retry model catalog" : undefined}
-                onAction={
+                actionText={
                   error
-                    ? () => void refetch()
+                    ? t("pass3_22.timeline.inspector.aiEdit.retryModelCatalog")
                     : undefined
                 }
+                onAction={error ? () => void refetch() : undefined}
               />
             ) : IS_MANAGED_BUILD ? (
               <CuratedModelSelect
-                label="Video edit model"
+                label={t("pass3_22.timeline.inspector.aiEdit.videoEditModel")}
                 options={managedModelOptions}
                 value={selectedModel?.id ?? ""}
                 onChange={handleModelChange}
               />
             ) : (
               <SelectField
-                label="Model"
+                label={t("pass3_22.timeline.inspector.aiEdit.model")}
                 size="small"
                 value={selectedModel ? modelKey(selectedModel) : ""}
                 options={modelOptions}
@@ -425,24 +446,28 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
                   if (value) setLanding(value);
                 }}
                 disabled={active}
-                aria-label="Where the result goes"
+                aria-label={t(
+                  "pass3_22.timeline.inspector.aiEdit.resultDestination"
+                )}
               >
                 <ToggleOption value="take" data-testid="ai-edit-landing-take">
-                  Add as take
+                  {t("pass3_22.timeline.inspector.aiEdit.addAsTake")}
                 </ToggleOption>
                 <ToggleOption
                   value="replace"
                   data-testid="ai-edit-landing-replace"
                 >
-                  Replace clip
+                  {t("pass3_22.timeline.inspector.aiEdit.replaceClip")}
                 </ToggleOption>
               </ToggleGroup>
-              <Caption>{LANDING_HINT[landing]}</Caption>
+              <Caption>
+                {t(`pass3_22.timeline.inspector.aiEdit.landingHint.${landing}`)}
+              </Caption>
             </FlexColumn>
 
             {strengthSupported && (
               <InspectorSliderRow
-                label="Strength"
+                label={t("pass3_22.timeline.inspector.aiEdit.strength")}
                 min={0}
                 max={1}
                 step={0.05}
@@ -461,9 +486,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
                   active ? <StopRoundedIcon /> : <AutoAwesomeOutlinedIcon />
                 }
                 disabled={
-                  active
-                    ? false
-                    : !instruction.trim() || !modelOptionsReady
+                  active ? false : !instruction.trim() || !modelOptionsReady
                 }
                 onClick={() => {
                   if (active) {
@@ -474,18 +497,25 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
                 }}
                 data-testid="ai-edit-submit"
               >
-                {active ? "Cancel" : failed ? "Retry" : "Edit video"}
+                {active
+                  ? t("pass3_22.timeline.inspector.aiEdit.cancel")
+                  : failed
+                    ? t("pass3_22.timeline.inspector.aiEdit.retry")
+                    : t("pass3_22.timeline.inspector.aiEdit.editVideo")}
               </EditorButton>
               <FlexRow justify="flex-end" fullWidth>
                 <CostEstimateLine
                   estimate={generationCostLine(costEstimate)}
-                  title="Estimated cost of this video edit"
+                  title={t("pass3_22.timeline.inspector.aiEdit.estimatedCost")}
                 />
               </FlexRow>
             </FlexColumn>
 
             {active && (
-              <ThinkingIndicator label="Editing video" announce />
+              <ThinkingIndicator
+                label={t("pass3_22.timeline.inspector.aiEdit.editingVideo")}
+                announce
+              />
             )}
             {settlementMessage && (
               <Caption color="error">{settlementMessage}</Caption>
@@ -494,19 +524,23 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               <ErrorBanner
                 report={{
                   source: "job-failure",
-                  summary: "AI clip edit failed",
+                  summary: t(
+                    "pass3_22.timeline.inspector.aiEdit.editFailedSummary"
+                  ),
                   errorText: editFailure ?? undefined
                 }}
               >
                 {editFailure ??
-                  "The edit failed. Update the instruction or model and retry."}
+                  t("pass3_22.timeline.inspector.aiEdit.editFailed")}
               </ErrorBanner>
             )}
             {errorMessage && (
               <ErrorBanner
                 report={{
                   source: "operation-failure",
-                  summary: "AI clip edit could not start",
+                  summary: t(
+                    "pass3_22.timeline.inspector.aiEdit.editCouldNotStartSummary"
+                  ),
                   errorText: errorMessage
                 }}
               >
@@ -518,15 +552,21 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               <>
                 <Divider />
                 <TextArea
-                  label="New take"
+                  label={t("pass3_22.timeline.inspector.aiEdit.newTake")}
                   value={newTakeInstruction}
                   onChange={(value) => setNewTakeInstruction(value)}
-                  placeholder="Optional direction for the new take"
+                  placeholder={t(
+                    "pass3_22.timeline.inspector.aiEdit.newTakePlaceholder"
+                  )}
                   minRows={2}
                   maxRows={4}
                   compact
                   fullWidth
-                  inputProps={{ "aria-label": "New take direction" }}
+                  inputProps={{
+                    "aria-label": t(
+                      "pass3_22.timeline.inspector.aiEdit.newTakeAriaLabel"
+                    )
+                  }}
                   disabled={active || newTakeActive}
                 />
                 <EditorButton
@@ -536,13 +576,17 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
                   onClick={() => void handleNewTake()}
                   data-testid="new-take-submit"
                 >
-                  {newTakeActive ? "Generating new take…" : "New take"}
+                  {newTakeActive
+                    ? t("pass3_22.timeline.inspector.aiEdit.generatingNewTake")
+                    : t("pass3_22.timeline.inspector.aiEdit.newTake")}
                 </EditorButton>
                 {newTakeError && (
                   <ErrorBanner
                     report={{
                       source: "operation-failure",
-                      summary: "AI clip new take could not start",
+                      summary: t(
+                        "pass3_22.timeline.inspector.aiEdit.newTakeCouldNotStartSummary"
+                      ),
                       errorText: newTakeError
                     }}
                   >

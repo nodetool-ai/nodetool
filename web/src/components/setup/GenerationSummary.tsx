@@ -1,5 +1,6 @@
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import { isModelSelected } from "@nodetool-ai/protocol";
+import { useTranslation } from "react-i18next";
 import {
   Caption,
   FlexColumn,
@@ -48,6 +49,9 @@ export function GenerationEstimateLine({
   noModelCall,
   hideModel = false
 }: GenerationEstimateLineProps) {
+  const { t, i18n } = useTranslation();
+  const formatCount = (value: number) =>
+    new Intl.NumberFormat(i18n.language).format(value);
   // The "empty" sentinel is no choice, whatever default id it carries.
   const model = isModelSelected(rawModel) ? rawModel : null;
   const estimate = noModelCall
@@ -56,19 +60,22 @@ export function GenerationEstimateLine({
   const parts = [
     hideModel || noModelCall
       ? null
-      : (model?.name ?? model?.id ?? "No model selected"),
+      : (model?.name ?? model?.id ?? t("pass3_2.setup.generation.noModelSelected")),
     noModelCall
-      ? "No model call"
+      ? t("pass3_2.setup.generation.noModelCall")
       : estimate
         ? estimate.high === 0
-          ? "$0 (local)"
+          ? t("pass3_2.setup.generation.localCostShort")
           : `~${formatUsd(estimate.low)}–${formatUsd(estimate.high)}`
-        : "Cost unknown",
-    noModelCall ? null : "~30–60s"
+        : t("pass3_2.setup.generation.costUnknown"),
+    noModelCall ? null : t("pass3_2.setup.generation.estimatedWaitShort")
   ].filter((part): part is string => part !== null);
   const assumptions =
     estimate && estimate.high > 0
-      ? ` About ${estimate.inputTokens.toLocaleString()} input and 1,000–${maxOutputTokens.toLocaleString()} output tokens. Actual usage may cost more.`
+      ? ` ${t("pass3_2.setup.generation.tooltipAssumptions", {
+          inputTokens: formatCount(estimate.inputTokens),
+          maxOutputTokens: formatCount(maxOutputTokens)
+        })}`
       : "";
   return (
     <Tooltip
@@ -82,7 +89,7 @@ export function GenerationEstimateLine({
         color="secondary"
         component="span"
         role="group"
-        aria-label="Before you generate"
+        aria-label={t("pass3_2.setup.generation.beforeYouGenerate")}
         tabIndex={0}
         sx={{ whiteSpace: "nowrap", cursor: "help" }}
       >
@@ -104,23 +111,31 @@ export default function GenerationSummary({
   concise = false,
   hideTokenEstimate = false
 }: GenerationSummaryProps) {
+  const { t, i18n } = useTranslation();
+  const formatCount = (value: number) =>
+    new Intl.NumberFormat(i18n.language).format(value);
   // The "empty" sentinel is no choice, whatever default id it carries.
   const model = isModelSelected(rawModel) ? rawModel : null;
   const estimate = noModelCall
     ? null
     : generationEstimate(model, brief, maxOutputTokens, extraInputTokens);
   const cost = noModelCall
-    ? "$0, no model call"
+    ? t("pass3_2.setup.generation.noModelCallCost")
     : estimate
       ? estimate.high === 0
-        ? "$0 provider cost (local model)"
-        : `Rough cost: ${formatUsd(estimate.low)}–${formatUsd(estimate.high)}`
-      : "Cost estimate unavailable for this model";
+        ? t("pass3_2.setup.generation.localModelCost")
+        : t("pass3_2.setup.generation.roughCost", {
+            low: formatUsd(estimate.low),
+            high: formatUsd(estimate.high)
+          })
+      : t("pass3_2.setup.generation.costEstimateUnavailable");
   return (
     <FlexColumn
       gap={GAP.tight}
       role="region"
-      aria-label={compact ? result : "Before you generate"}
+      aria-label={
+        compact ? result : t("pass3_2.setup.generation.beforeYouGenerate")
+      }
     >
       {!compact ? (
         <Text size="normal" weight={500}>
@@ -133,23 +148,35 @@ export default function GenerationSummary({
       <FlexRow gap={GAP.spacious} wrap>
         <Text size="small">
           {noModelCall
-            ? "Uses the existing text or preset"
-            : `Model: ${model?.name ?? model?.id ?? "Not selected"}${model ? ` (${model.provider})` : ""}`}
+            ? t("pass3_2.setup.generation.usesExistingTextOrPreset")
+            : t("pass3_2.setup.generation.model", {
+                name:
+                  model?.name ??
+                  model?.id ??
+                  t("pass3_2.setup.generation.notSelected"),
+                provider: model?.provider ? ` (${model.provider})` : ""
+              })}
         </Text>
         <Text size="small">{cost}</Text>
         <Text size="small">
           {noModelCall
-            ? "Ready immediately"
+            ? t("pass3_2.setup.generation.readyImmediately")
             : concise || compact
-              ? "Rough wait: 30–60s or longer"
-              : "Rough wait: 30–60 seconds; longer for large requests or slower models"}
+              ? t("pass3_2.setup.generation.roughWaitShort")
+              : t("pass3_2.setup.generation.roughWaitLong")}
         </Text>
       </FlexRow>
       {estimate && estimate.high > 0 && !hideTokenEstimate ? (
         <Caption color="secondary">
           {concise
-            ? `Estimate: ~${estimate.inputTokens.toLocaleString()} input tokens and 1,000–${maxOutputTokens.toLocaleString()} output tokens. Actual usage may cost more.`
-            : `Assumes about ${estimate.inputTokens.toLocaleString()} input tokens and 1,000–${maxOutputTokens.toLocaleString()} output tokens. Actual usage, including reasoning, may cost more.`}
+            ? t("pass3_2.setup.generation.tokenEstimate", {
+                inputTokens: formatCount(estimate.inputTokens),
+                maxOutputTokens: formatCount(maxOutputTokens)
+              })
+            : t("pass3_2.setup.generation.tokenAssumptions", {
+                inputTokens: formatCount(estimate.inputTokens),
+                maxOutputTokens: formatCount(maxOutputTokens)
+              })}
         </Caption>
       ) : null}
     </FlexColumn>

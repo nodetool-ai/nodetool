@@ -28,6 +28,7 @@ import React, {
   useEffect,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot } from "@nodetool-ai/protocol";
 
 import {
@@ -108,6 +109,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onValidationChange,
   readOnly = false
 }) => {
+  const { t } = useTranslation();
   const shots = useStoryboardStore(
     (state) => state.boards[boardId]?.shots ?? NO_SHOTS
   );
@@ -149,14 +151,35 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       (!Number.isFinite(Number(value)) || Math.round(Number(value) * 1000) <= 0)
     );
   });
+  const translateProductionMessage = useCallback(
+    (message: string | undefined) => {
+      switch (message) {
+        case "Complete production requirements: speech needs a binding and takes must be 1–3.":
+          return t("pass3_11.storyboard.review.production.invalidRequirements");
+        case "Add the local speech line, or choose Speech mode None. The last saved binding is retained.":
+          return t("pass3_11.storyboard.review.production.missingSpeechLine");
+        case "Complete the production requirements: speech needs a line or audio binding, and takes must be 1–3.":
+          return t(
+            "pass3_11.storyboard.review.production.invalidGenerationRequirements"
+          );
+        case "On-camera speech is unavailable in this guided flow. Choose Off-camera or None.":
+          return t("pass3_11.storyboard.review.production.onCameraUnavailable");
+        default:
+          return message;
+      }
+    },
+    [t]
+  );
   const validationReason = invalidDuration
-    ? "Enter a positive duration in seconds, or clear it to leave timing unspecified."
-    : productionAuthoringBlocker(shots);
+    ? t("pass3_11.storyboard.review.validation.positiveDuration")
+    : translateProductionMessage(productionAuthoringBlocker(shots));
   useEffect(() => {
     onValidationChange?.(validationReason);
     return () => onValidationChange?.(undefined);
   }, [onValidationChange, validationReason]);
-  const productionNote = productionGenerationBlocker(shots, false);
+  const productionNote = translateProductionMessage(
+    productionGenerationBlocker(shots, false)
+  );
   // What a rewrite replaced, kept for as long as the tab is open, so the
   // creator can put it back rather than reconstructing it by hand (F15).
   const replaced = usePreviousScreenplay(boardId);
@@ -172,11 +195,17 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     const numbers = new Map<string, string>();
     sceneOrder(shots).forEach((group, sceneIndex) => {
       group.shots.forEach((shot, position) => {
-        numbers.set(shot.id, `Scene ${sceneIndex + 1} | Shot ${position + 1}`);
+        numbers.set(
+          shot.id,
+          t("pass3_11.storyboard.review.shotNumber", {
+            scene: sceneIndex + 1,
+            shot: position + 1
+          })
+        );
       });
     });
     return numbers;
-  }, [shots]);
+  }, [shots, t]);
 
   const importNotice = useMemo(() => {
     if (!notice) {
@@ -193,10 +222,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       const rest = named.length - NAMED_SHOT_LIMIT;
       return {
         severity: "warning" as const,
-        title: "Your script was kept as written",
-        body: `The Director changed the words or the order of ${listed}${
-          rest > 0 ? ` and ${rest} more` : ""
-        }. The imported text was put back.`
+        title: t("pass3_11.storyboard.review.import.keptAsWrittenTitle"),
+        body:
+          rest > 0
+            ? t("pass3_11.storyboard.review.import.correctedShotsWithMore", {
+                listed,
+                count: rest
+              })
+            : t("pass3_11.storyboard.review.import.correctedShots", {
+                listed
+              })
       };
     }
     if (notice.missingLines.length === 0) {
@@ -204,10 +239,10 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     }
     return {
       severity: "info" as const,
-      title: "Some lines are not in any shot",
+      title: t("pass3_11.storyboard.review.import.missingLinesTitle"),
       body: notice.missingLines.join(" · ")
     };
-  }, [notice, shotNumbers]);
+  }, [notice, shotNumbers, t]);
 
   // What the creator is looking at, in one line: a screenplay is long, and
   // the scroll gives no sense of its size while reading it.
@@ -218,14 +253,18 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       0
     );
     const parts = [
-      `${shots.length} shot${shots.length === 1 ? "" : "s"}`,
-      `${sceneCount} scene${sceneCount === 1 ? "" : "s"}`
+      t("pass3_11.storyboard.review.summary.shots", { count: shots.length }),
+      t("pass3_11.storyboard.review.summary.scenes", { count: sceneCount })
     ];
     if (seconds > 0) {
-      parts.push(`about ${Math.round(seconds)}s`);
+      parts.push(
+        t("pass3_11.storyboard.review.summary.duration", {
+          seconds: Math.round(seconds)
+        })
+      );
     }
     return parts.join(" · ");
-  }, [scenes, shots]);
+  }, [scenes, shots, t]);
 
   const handleRestore = useCallback(() => {
     if (replaced && !readOnly) {
@@ -253,15 +292,105 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     }
   }, [boardId, readOnly, replaced, setScreenplay]);
 
+  const productionFieldLabel = useCallback(
+    (label: string): string => {
+      switch (label) {
+        case "Editorial purpose":
+          return t("pass3_11.storyboard.review.production.editorialPurpose");
+        case "Visual treatment":
+          return t("pass3_11.storyboard.review.production.visualTreatment");
+        case "Requested takes":
+          return t("pass3_11.storyboard.review.production.requestedTakes");
+        case "Speech mode":
+          return t("pass3_11.storyboard.review.production.speechMode");
+        case "Script line":
+          return t("pass3_11.storyboard.review.production.scriptLine");
+        case "Production direction":
+          return t("pass3_11.storyboard.review.production.direction");
+        default:
+          return label;
+      }
+    },
+    [t]
+  );
+
+  const productionOptionLabel = useCallback(
+    (value: string, label: string): string => {
+      switch (value) {
+        case "hook":
+          return t("pass3_11.storyboard.review.production.purpose.hook");
+        case "problem":
+          return t("pass3_11.storyboard.review.production.purpose.problem");
+        case "demonstration":
+          return t(
+            "pass3_11.storyboard.review.production.purpose.demonstration"
+          );
+        case "proof":
+          return t("pass3_11.storyboard.review.production.purpose.proof");
+        case "cta":
+          return t(
+            "pass3_11.storyboard.review.production.purpose.callToAction"
+          );
+        case "story":
+          return t("pass3_11.storyboard.review.production.purpose.story");
+        case "actor_to_camera":
+          return t(
+            "pass3_11.storyboard.review.production.treatment.actorToCamera"
+          );
+        case "product_close_up":
+          return t(
+            "pass3_11.storyboard.review.production.treatment.productCloseUp"
+          );
+        case "lifestyle_b_roll":
+          return t(
+            "pass3_11.storyboard.review.production.treatment.lifestyleBroll"
+          );
+        case "generated_scene":
+          return t(
+            "pass3_11.storyboard.review.production.treatment.generatedScene"
+          );
+        case "none":
+          return t("pass3_11.storyboard.review.production.speech.none");
+        case "off_camera":
+          return t("pass3_11.storyboard.review.production.speech.offCamera");
+        case "on_camera":
+          return t(
+            "pass3_11.storyboard.review.production.speech.onCameraUnavailable"
+          );
+        default:
+          return label;
+      }
+    },
+    [t]
+  );
+
+  const productionFieldHint = useCallback(
+    (hint: string | undefined): string | undefined => {
+      switch (hint) {
+        case "Add a line before choosing a speech mode.":
+          return t("pass3_11.storyboard.review.production.hints.addLine");
+        case "Bound to a Script line. Edit the words and the voice in Script.":
+          return t("pass3_11.storyboard.review.production.hints.boundToScript");
+        case "Bound to a recorded audio take.":
+          return t("pass3_11.storyboard.review.production.hints.boundToAudio");
+        case "Uses local speech. Production voice and audio resolution are unavailable in this setup.":
+          return t("pass3_11.storyboard.review.production.hints.localSpeech");
+        default:
+          return hint;
+      }
+    },
+    [t]
+  );
+
   const sections = useMemo((): PlanReviewSection[] => {
     const groups = sceneOrder(shots, scenes);
     const screenplaySection: PlanReviewSection = {
       id: "screenplay",
-      header: "Title",
+      header: t("pass3_11.storyboard.review.fields.title"),
       rows: [
         {
           id: "title",
-          label: "Title",
+          label: t("pass3_11.storyboard.review.fields.title"),
           hideLabel: true,
           value: title,
           onChange: (value: string) => setTitle(boardId, value)
@@ -286,21 +415,25 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 // STUDIO — I` says nothing about where it is set.
                 {
                   id: `${sceneId}:slugline`,
-                  label: "Slugline",
+                  label: t("pass3_11.storyboard.review.fields.slugline"),
                   hideLabel: true,
                   multiline: true,
                   value: group.scene?.slugline ?? "",
-                  placeholder: "INT. LOCATION — TIME",
+                  placeholder: t(
+                    "pass3_11.storyboard.review.fields.sluglinePlaceholder"
+                  ),
                   onChange: (value: string) =>
                     updateScene(boardId, sceneId, { slugline: value })
                 },
                 {
                   id: `${sceneId}:lighting`,
-                  label: "Lighting",
+                  label: t("pass3_11.storyboard.review.fields.lighting"),
                   hideLabel: true,
                   multiline: true,
                   value: group.scene?.lighting ?? "",
-                  placeholder: "How the scene is lit",
+                  placeholder: t(
+                    "pass3_11.storyboard.review.fields.lightingPlaceholder"
+                  ),
                   onChange: (value: string) =>
                     updateScene(boardId, sceneId, { lighting: value })
                 }
@@ -311,7 +444,9 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         const shotGroups = group.shots.map(
           (shot, position): PlanReviewGroup => ({
             id: shot.id,
-            header: `Shot ${position + 1}`,
+            header: t("pass3_11.storyboard.review.fields.shotHeader", {
+              count: position + 1
+            }),
             // What the shot is, beside its number: its slug and how long it
             // runs. Both are optional on the document, so a shot with neither
             // shows a bare heading.
@@ -322,7 +457,9 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             rows: [
               {
                 id: `${shot.id}:action`,
-                label: `Shot ${position + 1} · Action`,
+                label: t("pass3_11.storyboard.review.fields.shotAction", {
+                  count: position + 1
+                }),
                 // The block's heading numbers the shot, so the row does not
                 // repeat it; the label stays as the field's accessible name.
                 hideLabel: true,
@@ -333,7 +470,9 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               },
               {
                 id: `${shot.id}:dialogue`,
-                label: `Shot ${position + 1} · Dialogue`,
+                label: t("pass3_11.storyboard.review.fields.shotDialogue", {
+                  count: position + 1
+                }),
                 readOnly:
                   !!shot.script_line_ids?.length ||
                   !!productionRequirementsFrom(shot)?.speech_binding
@@ -349,8 +488,10 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                   productionRequirementsFrom(shot)?.speech_binding?.text ??
                   "",
                 multiline: true,
-                placeholder: "Dialogue",
-                addLabel: "Add dialogue",
+                placeholder: t(
+                  "pass3_11.storyboard.review.fields.dialoguePlaceholder"
+                ),
+                addLabel: t("pass3_11.storyboard.review.fields.addDialogue"),
                 onChange: (value: string) => {
                   const current = productionRequirementsFrom(shot);
                   const production =
@@ -379,7 +520,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 // shot too: the block's heading says which shot they are on,
                 // and `Shot 1 · Seconds` wrapped to two lines in the narrow
                 // column while its neighbours took one.
-                label: "Seconds",
+                label: t("pass3_11.storyboard.review.fields.seconds"),
                 compact: true,
                 value:
                   lengths[shot.id] ??
@@ -432,19 +573,39 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                   const patch = { production, action: shot.action };
                   updateShot(boardId, shot.id, patch);
                 }
-              })
+              }).map((field) => ({
+                ...field,
+                label: productionFieldLabel(field.label),
+                placeholder:
+                  field.placeholder ===
+                  "Optional performance or camera direction"
+                    ? t(
+                        "pass3_11.storyboard.review.production.directionPlaceholder"
+                      )
+                    : field.placeholder,
+                hint: productionFieldHint(field.hint),
+                options: field.options?.map((option) => ({
+                  ...option,
+                  label:
+                    option.value === ""
+                      ? t("pass3_11.storyboard.review.production.unspecified")
+                      : productionOptionLabel(option.value, option.label)
+                }))
+              }))
             ]
           })
         );
         return {
           id: sceneId ?? "unscened",
-          header: `Scene ${index + 1}`,
+          header: t("pass3_11.storyboard.review.fields.sceneHeader", {
+            count: index + 1
+          }),
           // The slugline is the scene's name, but it is also the first field
           // below — the header says how big the scene is instead, which the
           // rows do not.
-          subheader: `${group.shots.length} shot${
-            group.shots.length === 1 ? "" : "s"
-          }`,
+          subheader: t("pass3_11.storyboard.review.summary.shots", {
+            count: group.shots.length
+          }),
           rows: sceneRows,
           groups: shotGroups
         };
@@ -468,10 +629,14 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   }, [
     boardId,
     lengths,
+    productionFieldHint,
+    productionFieldLabel,
+    productionOptionLabel,
     readOnly,
     scenes,
     setTitle,
     shots,
+    t,
     title,
     updateScene,
     updateShot
@@ -484,10 +649,10 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     >
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Your screenplay
+          {t("pass3_11.storyboard.review.title")}
         </Text>
         <Text size="normal" color="secondary">
-          Edit anything here. It is the text your storyboard is drawn from.
+          {t("pass3_11.storyboard.review.description")}
         </Text>
       </FlexColumn>
       {importNotice ? (
@@ -502,11 +667,13 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           believing it is wastes the edit. It is named, and the creator decides
           whether to keep it (F9). */}
       {usedFallback ? (
-        <AlertBanner severity="warning" title="Written here, not by your model">
+        <AlertBanner
+          severity="warning"
+          title={t("pass3_11.storyboard.review.fallback.title")}
+        >
           <FlexColumn gap={GAP.tight}>
             <Caption component="span">
-              Your model returned nothing usable, so this outline was built from
-              your brief. Keep it and edit it, or run the Director again.
+              {t("pass3_11.storyboard.review.fallback.description")}
             </Caption>
             <FlexRow gap={GAP.normal} wrap>
               <EditorButton
@@ -515,7 +682,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                 disabled={readOnly || rewriting}
                 onClick={onRewrite}
               >
-                Run the Director again
+                {t("pass3_11.storyboard.review.fallback.runDirector")}
               </EditorButton>
               {onKeepFallback ? (
                 <EditorButton
@@ -524,7 +691,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
                   onClick={onKeepFallback}
                   disabled={readOnly}
                 >
-                  Keep this outline
+                  {t("pass3_11.storyboard.review.fallback.keepOutline")}
                 </EditorButton>
               ) : null}
             </FlexRow>
@@ -539,15 +706,15 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           severity="info"
           title={
             keptAsWritten
-              ? "Directed from your script"
-              : "Rewritten from your brief"
+              ? t("pass3_11.storyboard.review.previous.directedFromScript")
+              : t("pass3_11.storyboard.review.previous.rewrittenFromBrief")
           }
         >
           <FlexRow gap={GAP.normal} align="center" wrap>
             <Caption component="span">
               {keptAsWritten
-                ? "The version before this camera pass is still here."
-                : "The previous screenplay is still here."}
+                ? t("pass3_11.storyboard.review.previous.beforeCameraPass")
+                : t("pass3_11.storyboard.review.previous.previousScreenplay")}
             </Caption>
             <EditorButton
               variant="outlined"
@@ -555,7 +722,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               disabled={readOnly || rewriting}
               onClick={handleRestore}
             >
-              Restore the previous screenplay
+              {t("pass3_11.storyboard.review.previous.restore")}
             </EditorButton>
           </FlexRow>
         </AlertBanner>
@@ -575,11 +742,11 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           >
             {keptAsWritten
               ? rewriting
-                ? "Directing your script…"
-                : "Direct the camera again"
+                ? t("pass3_11.storyboard.review.actions.directingScript")
+                : t("pass3_11.storyboard.review.actions.directAgain")
               : rewriting
-                ? "Rewriting screenplay…"
-                : "Rewrite from brief"}
+                ? t("pass3_11.storyboard.review.actions.rewriting")
+                : t("pass3_11.storyboard.review.actions.rewriteFromBrief")}
           </EditorButton>
         </FlexRow>
         {/* A failed rewrite is read where it was pressed, not below a
@@ -588,7 +755,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           <ErrorBanner
             report={{
               source: "provider-call",
-              summary: "Storyboard screenplay rewrite failed",
+              summary: t("pass3_11.storyboard.review.error.reportSummary"),
               errorText: error
             }}
           >
@@ -596,18 +763,22 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           </ErrorBanner>
         ) : null}
         <Suspense
-          fallback={<Caption color="secondary">Loading estimate…</Caption>}
+          fallback={
+            <Caption color="secondary">
+              {t("pass3_11.storyboard.review.loadingEstimate")}
+            </Caption>
+          }
         >
           <GenerationSummary
             result={
               keptAsWritten
-                ? "Add camera direction to your script again"
-                : "Rewrite the screenplay from your brief"
+                ? t("pass3_11.storyboard.review.estimate.directScript")
+                : t("pass3_11.storyboard.review.estimate.rewriteBrief")
             }
             next={
               keptAsWritten
-                ? "Your words and scene order stay as written. No images are generated."
-                : "Retained shots keep their stills. No images are generated."
+                ? t("pass3_11.storyboard.review.estimate.scriptNext")
+                : t("pass3_11.storyboard.review.estimate.briefNext")
             }
             model={model}
             brief={brief}

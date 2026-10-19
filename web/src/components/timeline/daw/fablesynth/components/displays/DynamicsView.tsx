@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { idleDynamics, type DynamicsMessage } from '../../engine/dynamics';
 import { setupCanvas } from './canvas';
 import type { FxTelemetryEngine } from '../panels/fxAdapter';
@@ -9,6 +10,7 @@ const signed = (v: number) => `${v > 0.05 ? '+' : ''}${Math.abs(v) < 0.05 ? '0.0
 const level = (v: number) => v <= -89 ? '−∞' : v.toFixed(1);
 
 export function DynamicsView({ kind, telemetryEngine, telemetryParams, prefix = '' }: { kind: Kind; telemetryEngine: FxTelemetryEngine; telemetryParams: Record<string, number>; prefix?: string }) {
+  const { t } = useTranslation();
   // Parameter updates redraw the threshold/bypass; audio measurements never
   // enter React state. Subscribing to params also follows hosted engine swaps.
   const params = telemetryParams;
@@ -45,7 +47,7 @@ export function DynamicsView({ kind, telemetryEngine, telemetryParams, prefix = 
         const col = (w - 20) / 3;
         ['LOW', 'MID', 'HIGH'].forEach((name, i) => {
           const x = 10 + i * col, center = x + col / 2;
-          text(name, center, 14, ink, 'center');
+          text(t(`i18n-next44-fablesynth-controls.dynamics.${name.toLowerCase()}`), center, 14, ink, 'center');
           if (i) line(x, 8, x, h - 8, slate, 0.12);
           // Detector level, -60 to 0 dBFS. The wider bipolar lane shows the
           // actual wet-band gain, before automatic compensation and depth.
@@ -101,8 +103,8 @@ export function DynamicsView({ kind, telemetryEngine, telemetryParams, prefix = 
       if (kind === 'comp') readings.push((on ? data.comp.reduction : 0).toFixed(1));
       readouts.current?.querySelectorAll('output').forEach((output, i) => { output.textContent = `${readings[i]} dB`; });
       el.setAttribute('aria-label', kind === 'ott'
-        ? `OTT ${on ? 'active' : 'bypassed'}. Low, mid, high wet gain: ${data.ott.gains.map(g => signed(on ? g : 0)).join(', ')} dB.`
-        : `Compressor ${on ? 'active' : 'bypassed'}. Input ${readings[0]}, output ${readings[1]} dBFS. Gain reduction ${readings[3]} dB.`);
+        ? t('i18n-next44-fablesynth-controls.dynamics.ottAria', { state: on ? t('i18n-next44-fablesynth-controls.dynamics.active') : t('i18n-next44-fablesynth-controls.dynamics.bypassed'), gains: data.ott.gains.map(g => signed(on ? g : 0)).join(', ') })
+        : t('i18n-next44-fablesynth-controls.dynamics.compressorAria', { state: on ? t('i18n-next44-fablesynth-controls.dynamics.active') : t('i18n-next44-fablesynth-controls.dynamics.bypassed'), input: readings[0], output: readings[1], reduction: readings[3] }));
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(draw); };
     redraw.current = schedule;
@@ -123,16 +125,16 @@ export function DynamicsView({ kind, telemetryEngine, telemetryParams, prefix = 
       unsubscribe(); resize.disconnect(); clearInterval(stale); cancelAnimationFrame(frame);
       motion.removeEventListener('change', schedule); redraw.current = () => {};
     };
-  }, [kind, activeEngine, prefix]);
+  }, [kind, activeEngine, prefix, t]);
   useEffect(() => { redraw.current(); }, [params]);
 
   return <>
-    <canvas ref={canvas} className="dynamics-curve" role="img" aria-label={`${kind.toUpperCase()} audio activity`} />
+    <canvas ref={canvas} className="dynamics-curve" role="img" aria-label={t('i18n-next44-fablesynth-controls.dynamics.audioActivity', { kind: kind.toUpperCase() })} />
     <div className="dynamics-readouts" ref={readouts}>
-      <div><span>IN</span><output>−∞ dB</output></div>
-      <div><span>OUT</span><output>−∞ dB</output></div>
-      <div title="Measured automatic level compensation"><span>AUTO</span><output>0.0 dB</output></div>
-      {kind === 'comp' && <div title="Gain reduction before automatic compensation"><span>GR</span><output>0.0 dB</output></div>}
+      <div><span>{t('i18n-next44-fablesynth-controls.dynamics.input')}</span><output>−∞ dB</output></div>
+      <div><span>{t('i18n-next44-fablesynth-controls.dynamics.output')}</span><output>−∞ dB</output></div>
+      <div title={t('i18n-next44-fablesynth-controls.dynamics.autoCompensation')}><span>{t('i18n-next44-fablesynth-controls.dynamics.auto')}</span><output>0.0 dB</output></div>
+      {kind === 'comp' && <div title={t('i18n-next44-fablesynth-controls.dynamics.gainReduction')}><span>GR</span><output>0.0 dB</output></div>}
     </div>
   </>;
 }

@@ -19,6 +19,7 @@ import useMetadataStore from "../../../stores/MetadataStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
+import { useTranslation } from "react-i18next";
 
 // Above every tier on the shared Z_INDEX scale, so it keeps its own value.
 const DOCUMENTATION_PANEL_Z_INDEX = 1000;
@@ -100,6 +101,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const panelSize = usePanelStore((state) => state.panel.panelSize);
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const handleAddNode = useCallback(() => {
     if (nodeMetadata && nodeRef.current) {
@@ -131,7 +133,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
         <div className="warning">
           {nodeType} <br />
           <span style={{ color: theme.vars.palette.grey[100] }}>
-            Sorry, this node does not exist.
+            {t("i18n-next113.help.nodeDoesNotExist")}
           </span>
           <EditorButton
             variant="outlined"
@@ -140,7 +142,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
             onClick={handleOpenNodeMenu}
             sx={{ marginTop: getSpacingPx(SPACING.lg) }}
           >
-            Search for similar nodes
+            {t("i18n-next113.help.searchSimilarNodes")}
           </EditorButton>
         </div>
       );}
@@ -153,7 +155,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
           onClick={handleAddNode}
           sx={{ marginTop: getSpacingPx(SPACING.lg), marginRight: getSpacingPx(SPACING.lg) }}
         >
-          Add node
+          {t("i18n-next113.help.addNode")}
         </EditorButton>
       </>
     );
@@ -162,13 +164,18 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
     nodeType,
     handleAddNode,
     handleOpenNodeMenu,
-    theme.vars.palette.grey
+    theme.vars.palette.grey,
+    t
   ]);
 
   return (
     <div css={cssStyles} ref={nodeRef}>
       <div className="handle"></div>
-      <CloseButton className="close-button" onClick={onClose} tooltip="Close documentation" />
+      <CloseButton
+        className="close-button"
+        onClick={onClose}
+        tooltip={t("i18n-next113.help.closeDocumentation")}
+      />
       <div className="content">{content}</div>
     </div>
   );

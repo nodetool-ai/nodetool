@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -159,6 +160,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -277,17 +279,17 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
           value={mode}
           exclusive
           onChange={handleModeChange}
-          aria-label="Resize mode"
+          aria-label={t("i18n-next46.resizeImage.resizeMode")}
         >
-          <ToggleOption value="scale">Scale</ToggleOption>
-          <ToggleOption value="dimensions">Dimensions</ToggleOption>
-          <ToggleOption value="fit">Fit</ToggleOption>
+          <ToggleOption value="scale">{t("i18n-next46.resizeImage.scale")}</ToggleOption>
+          <ToggleOption value="dimensions">{t("i18n-next46.resizeImage.dimensions")}</ToggleOption>
+          <ToggleOption value="fit">{t("i18n-next46.resizeImage.fit")}</ToggleOption>
         </ToggleGroup>
       </div>
 
       {mode === "scale" ? (
         <div className="scale-controls">
-          <span className="ctrl-label">Scale</span>
+          <span className="ctrl-label">{t("i18n-next46.resizeImage.scale")}</span>
           <NodeSlider
             min={SCALE_MIN}
             max={SCALE_MAX}
@@ -295,7 +297,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
             value={scale}
             onChange={handleScaleChange}
             onChangeCommitted={setPropertyComplete}
-            aria-label="Scale factor"
+            aria-label={t("i18n-next46.resizeImage.scaleFactor")}
           />
           <span className="ctrl-value">{scale.toFixed(2)}×</span>
         </div>
@@ -308,7 +310,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
                   id={`resize-image-width-${id}`}
                   nodeId={id}
                   name="width"
-                  description={widthProperty.description ?? "Target width"}
+                  description={widthProperty.description ?? t("i18n-next46.resizeImage.targetWidth")}
                   value={widthValue}
                   min={mode === "dimensions" ? 0 : (widthProperty.min ?? 1)}
                   max={widthProperty.max ?? 8192}
@@ -327,8 +329,8 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
                 isActive={chainLocked}
                 icon={<LinkOffIcon fontSize="small" />}
                 activeIcon={<LinkIcon fontSize="small" />}
-                tooltip={chainLocked ? "Unlock aspect ratio" : "Lock aspect ratio"}
-                ariaLabel={chainLocked ? "Unlock aspect ratio" : "Lock aspect ratio"}
+                tooltip={chainLocked ? t("i18n-next46.resizeImage.unlockAspectRatio") : t("i18n-next46.resizeImage.lockAspectRatio")}
+                ariaLabel={chainLocked ? t("i18n-next46.resizeImage.unlockAspectRatio") : t("i18n-next46.resizeImage.lockAspectRatio")}
                 onClick={() => setChainLocked((v) => !v)}
               />
             )}
@@ -338,7 +340,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
                   id={`resize-image-height-${id}`}
                   nodeId={id}
                   name="height"
-                  description={heightProperty.description ?? "Target height"}
+                  description={heightProperty.description ?? t("i18n-next46.resizeImage.targetHeight")}
                   value={heightValue}
                   min={mode === "dimensions" ? 0 : (heightProperty.min ?? 1)}
                   max={heightProperty.max ?? 8192}
@@ -355,7 +357,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
 
           {mode === "fit" && (
             <div className="presets-row">
-              <span className="presets-label">Presets</span>
+              <span className="presets-label">{t("i18n-next46.resizeImage.presets")}</span>
               {PRESETS.map((size) => {
                 const active = widthValue === size && heightValue === size;
                 return (
@@ -364,7 +366,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
                     type="button"
                     className={`preset-chip nodrag${active ? " active" : ""}`}
                     onClick={() => applyPreset(size)}
-                    aria-label={`Set ${size} by ${size}`}
+                    aria-label={t("i18n-next46.resizeImage.setSize", { size })}
                   >
                     {size}
                   </button>

@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -23,15 +24,6 @@ import {
 } from "./editorShortcuts";
 import type { ViewPreset } from "./ViewportHelpers";
 import type { ViewPrefs } from "./viewPrefs";
-
-const VIEW_LABELS: Record<ViewPreset, string> = {
-  front: "Front",
-  back: "Back",
-  right: "Right",
-  left: "Left",
-  top: "Top",
-  bottom: "Bottom"
-};
 
 const VIEW_ACTIONS: Record<ViewPreset, EditorAction> = {
   front: "viewFront",
@@ -64,14 +56,24 @@ const ViewportHud = ({
   onFrameAll,
   onFocus,
   onTogglePref
-}: ViewportHudProps) => (
+}: ViewportHudProps) => {
+  const { t } = useTranslation();
+  const viewLabels: Record<ViewPreset, string> = {
+    front: t("i18n-next38.viewport.front"),
+    back: t("i18n-next38.viewport.back"),
+    right: t("i18n-next38.viewport.right"),
+    left: t("i18n-next38.viewport.left"),
+    top: t("i18n-next38.viewport.top"),
+    bottom: t("i18n-next38.viewport.bottom")
+  };
+  return (
     <FlexRow className={className}>
-      <MenuButton label="View" icon={<VideocamOutlinedIcon />} tooltip="Camera views">
+      <MenuButton label={t("i18n-next38.viewport.view")} icon={<VideocamOutlinedIcon />} tooltip={t("i18n-next38.viewport.cameraViews")}>
         {(close) => [
-          ...(Object.keys(VIEW_LABELS) as ViewPreset[]).map((view) => (
+          ...(Object.keys(viewLabels) as ViewPreset[]).map((view) => (
             <MenuItemPrimitive
               key={view}
-              label={VIEW_LABELS[view]}
+              label={viewLabels[view]}
               shortcut={shortcutLabel(VIEW_ACTIONS[view])}
               onClick={() => {
                 onView(view);
@@ -81,7 +83,7 @@ const ViewportHud = ({
           )),
           <MenuItemPrimitive
             key="frame"
-            label="Frame all"
+            label={t("i18n-next38.viewport.frameAll")}
             dividerBefore
             shortcut={shortcutLabel("frameAll")}
             onClick={() => {
@@ -91,7 +93,7 @@ const ViewportHud = ({
           />
         ]}
       </MenuButton>
-      <Tooltip title={withShortcut("Frame all objects", "frameAll")}>
+      <Tooltip title={withShortcut(t("i18n-next38.viewport.frameAllObjects"), "frameAll")}>
         <EditorButton
           density="compact"
           variant="text"
@@ -99,10 +101,10 @@ const ViewportHud = ({
           sx={{ whiteSpace: "nowrap" }}
           onClick={onFrameAll}
         >
-          Frame all
+          {t("i18n-next38.viewport.frameAll")}
         </EditorButton>
       </Tooltip>
-      <Tooltip title={withShortcut("Frame selection", "focusSelection")}>
+      <Tooltip title={withShortcut(t("i18n-next38.viewport.frameSelection"), "focusSelection")}>
         {/* The span keeps the tooltip on a disabled button. */}
         <span>
           <EditorButton
@@ -113,14 +115,14 @@ const ViewportHud = ({
             onClick={onFocus}
             disabled={!canFocus}
           >
-            Frame selection
+            {t("i18n-next38.viewport.frameSelection")}
           </EditorButton>
         </span>
       </Tooltip>
       <Divider orientation="vertical" flexItem />
       <ToolbarIconButton
         icon={<GridOnIcon fontSize="small" />}
-        tooltip="Grid"
+        tooltip={t("i18n-next38.viewport.grid")}
         shortcut={shortcutKeys("toggleGrid")}
         onClick={() => onTogglePref("grid")}
         active={prefs.grid}
@@ -128,7 +130,7 @@ const ViewportHud = ({
       />
       <ToolbarIconButton
         icon={<ViewInArOutlinedIcon fontSize="small" />}
-        tooltip="Wireframe overlay"
+        tooltip={t("i18n-next38.viewport.wireframeOverlay")}
         shortcut={shortcutKeys("toggleWireframe")}
         onClick={() => onTogglePref("wireframe")}
         active={prefs.wireframe}
@@ -136,12 +138,13 @@ const ViewportHud = ({
       />
       <ToolbarIconButton
         icon={<LightbulbOutlinedIcon fontSize="small" />}
-        tooltip="Light icons"
+        tooltip={t("i18n-next38.viewport.lightIcons")}
         onClick={() => onTogglePref("lightIcons")}
         active={prefs.lightIcons}
         size="small"
       />
     </FlexRow>
-);
+  );
+};
 
 export default memo(ViewportHud);

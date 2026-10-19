@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -37,6 +38,7 @@ const BoardActionsMenu: React.FC<BoardActionsMenuProps> = ({
   hasShots,
   workflowMedia
 }) => {
+  const { t } = useTranslation();
   const inStudio = useInStudio();
   const [button, setButton] = useState<HTMLButtonElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -63,8 +65,8 @@ const BoardActionsMenu: React.FC<BoardActionsMenuProps> = ({
       <ToolbarIconButton
         ref={setButton}
         icon={<MoreVertIcon fontSize="small" />}
-        tooltip="More board actions"
-        ariaLabel="More board actions"
+        tooltip={t("screens4_11.storyboard.boardActions.moreActions")}
+        ariaLabel={t("screens4_11.storyboard.boardActions.moreActions")}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         onClick={openMenu}
@@ -75,25 +77,31 @@ const BoardActionsMenu: React.FC<BoardActionsMenuProps> = ({
         onClose={closeMenu}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ list: { "aria-label": "Board actions" } }}
+        slotProps={{
+          list: { "aria-label": t("screens4_11.storyboard.boardActions.menuLabel") }
+        }}
       >
         <MenuItemPrimitive
-          label="Change style…"
+          label={t("screens4_11.storyboard.boardActions.changeStyle")}
           icon={<PaletteOutlinedIcon fontSize="small" />}
           onClick={changeStyle}
         />
         <MenuItemPrimitive
-          label={downloading ? "Preparing ZIP…" : "Download ZIP"}
+          label={
+            downloading
+              ? t("screens4_11.storyboard.boardActions.preparingZip")
+              : t("screens4_11.storyboard.boardActions.downloadZip")
+          }
           icon={<DownloadIcon fontSize="small" />}
           disabled={!hasShots || downloading}
           onClick={downloadZip}
         />
         {!inStudio && (
           <MenuItemPrimitive
-            label="Send to workflow…"
+            label={t("screens4_11.storyboard.boardActions.sendToWorkflow")}
             secondary={
               workflowMedia.length === 0
-                ? "Render a still or clip first"
+                ? t("screens4_11.storyboard.boardActions.renderBeforeSend")
                 : undefined
             }
             icon={<AccountTreeOutlinedIcon fontSize="small" />}

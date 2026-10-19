@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -63,11 +64,12 @@ interface GeminiRowProps {
  * gemini.google.com tab through the extension, so the row leads to that page.
  */
 const GeminiRow: React.FC<GeminiRowProps> = ({ extensionConnected, onSetUp }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
     <FlexRow
       component="article"
-      aria-label="Gemini"
+      aria-label={t("batch2_7.providerOnboarding.gemini")}
       align="center"
       gap={SPACING.lg}
       wrap
@@ -96,7 +98,7 @@ const GeminiRow: React.FC<GeminiRowProps> = ({ extensionConnected, onSetUp }) =>
         {extensionConnected ? (
           <>
             <CheckCircleRoundedIcon sx={{ fontSize: "1.2em", color: theme.vars.palette.success.main }} />
-            <Caption size="small">Extension connected</Caption>
+            <Caption size="small">{t("batch2_7.providerOnboarding.extensionConnected")}</Caption>
           </>
         ) : (
           <EditorButton
@@ -106,7 +108,7 @@ const GeminiRow: React.FC<GeminiRowProps> = ({ extensionConnected, onSetUp }) =>
             startIcon={<ExtensionOutlinedIcon />}
             onClick={onSetUp}
           >
-            Set up
+            {t("i18n-next115.providerOnboarding.setUp")}
           </EditorButton>
         )}
       </FlexRow>
@@ -153,6 +155,7 @@ const SubscriptionsStep: React.FC<SubscriptionsStepProps> = ({
  * request run through.
  */
 const SubscriptionOnboardingDialog: React.FC = () => {
+  const { t } = useTranslation();
   const { open, step, setStep, dismiss } = useSubscriptionOnboardingStore(
     useShallow((s) => ({ open: s.open, step: s.step, setStep: s.setStep, dismiss: s.dismiss }))
   );
@@ -177,31 +180,31 @@ const SubscriptionOnboardingDialog: React.FC = () => {
       onClose={dismiss}
       maxWidth="sm"
       fullWidth
-      title={onSubscriptions ? "Connect your AI subscriptions" : "Add the Chrome extension"}
+      title={onSubscriptions ? t("batch2_7.providerOnboarding.subscriptionsTitle") : t("batch2_7.providerOnboarding.addExtensionTitle")}
       actions={
         onSubscriptions ? (
           <>
             <Button variant="text" color="inherit" onClick={handleUseApiKey} sx={{ mr: "auto" }}>
-              Use an API key instead
+              {t("i18n-next115.providerOnboarding.useApiKeyInstead")}
             </Button>
             <Button variant="contained" onClick={handleNext}>
-              Next: Chrome extension
+              {t("i18n-next118.providerOnboarding.nextExtension")}
             </Button>
           </>
         ) : (
           <>
             <Button variant="text" color="inherit" onClick={handleBack} sx={{ mr: "auto" }}>
-              Back
+              {t("i18n-next118.providerOnboarding.back")}
             </Button>
             <Button variant="contained" onClick={dismiss}>
-              Done
+              {t("i18n-next118.providerOnboarding.done")}
             </Button>
           </>
         )
       }
     >
       <FlexColumn gap={SPACING.xl}>
-        <Caption>Step {onSubscriptions ? 1 : 2} of 2</Caption>
+        <Caption>{t("batch2_7.providerOnboarding.stepCount", { current: onSubscriptions ? 1 : 2, total: 2 })}</Caption>
         {onSubscriptions ? (
           <SubscriptionsStep
             providers={providers}

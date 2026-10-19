@@ -12,6 +12,7 @@
  * than the app store: the store holds refs and selection, never entity data.
  */
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { SelectField, Caption, FlexColumn } from "../../ui_primitives";
 import { trpc } from "../../../trpc/client";
@@ -31,6 +32,7 @@ export const ResourcePickerWidget: React.FC<ResourcePickerProps> = ({
   label,
   disabled
 }) => {
+  const { t } = useTranslation();
   const { resources, designMode, selectResource } = useAppRuntimeContext();
   const binding = resources.find((r) => r.id === resourceBindingId);
 
@@ -64,8 +66,8 @@ export const ResourcePickerWidget: React.FC<ResourcePickerProps> = ({
     return (
       <Caption color="secondary">
         {designMode
-          ? "Pick a resource binding for this widget."
-          : "This picker is not bound to a resource."}
+          ? t("i18n-next53.appBuilder.resources.pickBindingWidget")
+          : t("i18n-next53.appBuilder.resources.pickerUnbound")}
       </Caption>
     );
   }
@@ -81,7 +83,7 @@ export const ResourcePickerWidget: React.FC<ResourcePickerProps> = ({
       />
       {!isLoading && options.length === 0 ? (
         <Caption color="secondary">
-          No {binding.kind} resources in this collection yet.
+          {t("i18n-next53.appBuilder.resources.noResources", { kind: binding.kind })}
         </Caption>
       ) : null}
     </FlexColumn>

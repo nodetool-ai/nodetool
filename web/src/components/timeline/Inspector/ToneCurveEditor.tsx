@@ -3,6 +3,7 @@
 import React, { memo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import type { CurvePoint } from "@nodetool-ai/timeline";
 
 import {
@@ -41,12 +42,11 @@ const IDENTITY_POINTS: readonly CurvePoint[] = [
 
 const CHANNELS: ReadonlyArray<{
   value: CurveChannel;
-  label: string;
 }> = [
-  { value: "master", label: "Master" },
-  { value: "r", label: "Red" },
-  { value: "g", label: "Green" },
-  { value: "b", label: "Blue" }
+  { value: "master" },
+  { value: "r" },
+  { value: "g" },
+  { value: "b" }
 ];
 
 const graphStyles = css({
@@ -76,10 +76,6 @@ function editablePoints(
     : valid;
 }
 
-function pointLabel(channel: string, point: CurvePoint, index: number): string {
-  return `${channel} point ${index + 1}, input ${point.x.toFixed(2)}, output ${point.y.toFixed(2)}`;
-}
-
 const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
   master,
   r,
@@ -87,6 +83,7 @@ const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
   b,
   onPatch
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [channel, setChannel] = useState<CurveChannel>("master");
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -96,8 +93,13 @@ const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
   const draftPointsRef = useRef<CurvePoint[]>([]);
   const curves = { master, r, g, b };
   const points = editablePoints(curves[channel]);
-  const channelLabel =
-    CHANNELS.find((item) => item.value === channel)?.label ?? "Master";
+  const channelLabels: Record<CurveChannel, string> = {
+    master: t("pass3_31.timeline.toneCurve.channels.master"),
+    r: t("pass3_31.timeline.toneCurve.channels.red"),
+    g: t("pass3_31.timeline.toneCurve.channels.green"),
+    b: t("pass3_31.timeline.toneCurve.channels.blue")
+  };
+  const channelLabel = channelLabels[channel];
   const curveColor =
     channel === "r"
       ? theme.vars.palette.error.main
@@ -298,7 +300,7 @@ const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
           exclusive
           quiet
           fullWidth
-          aria-label="Curve channel"
+          aria-label={t("pass3_31.timeline.toneCurve.channelSelectorLabel")}
           onChange={(_event, value: CurveChannel | null) => {
             if (value) {
               setChannel(value);
@@ -307,12 +309,12 @@ const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
         >
           {CHANNELS.map((item) => (
             <ToggleOption key={item.value} value={item.value}>
-              {item.label}
+              {channelLabels[item.value]}
             </ToggleOption>
           ))}
         </ToggleGroup>
         <Button size="small" variant="text" onClick={reset}>
-          Reset
+          {t("pass3_31.timeline.toneCurve.reset")}
         </Button>
       </FlexRow>
 
@@ -321,7 +323,9 @@ const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
         css={graphStyles}
         viewBox={`0 0 ${VIEW_SIZE} ${VIEW_SIZE}`}
         role="group"
-        aria-label={`${channelLabel} tone curve`}
+        aria-label={t("pass3_31.timeline.toneCurve.graphLabel", {
+          channel: channelLabel
+        })}
         onPointerMove={handlePointerMove}
         onPointerUp={finishDrag}
         onPointerCancel={cancelDrag}
@@ -391,7 +395,12 @@ const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
             vectorEffect="non-scaling-stroke"
             role="button"
             tabIndex={0}
-            aria-label={pointLabel(channelLabel, point, index)}
+            aria-label={t("pass3_31.timeline.toneCurve.pointLabel", {
+              channel: channelLabel,
+              index: index + 1,
+              input: point.x.toFixed(2),
+              output: point.y.toFixed(2)
+            })}
             onPointerDown={(event) => handlePointPointerDown(event, index)}
             onDoubleClick={() => removePoint(index)}
             onKeyDown={(event) => handlePointKeyDown(event, index)}
@@ -401,8 +410,7 @@ const ToneCurveEditorInner: React.FC<ToneCurveEditorProps> = ({
       </svg>
 
       <Caption color="muted">
-        Click to add a point. Drag points to shape the curve. Double-click a
-        point or press Delete to remove it.
+        {t("pass3_31.timeline.toneCurve.instructions")}
       </Caption>
     </FlexColumn>
   );

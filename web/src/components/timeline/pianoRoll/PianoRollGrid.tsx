@@ -14,6 +14,7 @@ import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 
 import type { MidiNote, NoteRect } from "@nodetool-ai/timeline";
+import { useTranslation } from "react-i18next";
 
 import { BORDER_RADIUS, TYPOGRAPHY } from "../../ui_primitives";
 import { pickPianoRollColors } from "./pianoRollColors";
@@ -76,6 +77,7 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
     windowToTick,
     marquee
   }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const { mode, systemMode } = useColorScheme();
     const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
@@ -217,7 +219,7 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
       marquee
     ]);
 
-    return <canvas ref={canvasRef} css={canvasStyles} aria-hidden />;
+    return <canvas ref={canvasRef} css={canvasStyles} aria-label={t("pass3_20.pianoRoll.accessibility.noteGrid")} role="img" />;
   }
 );
 

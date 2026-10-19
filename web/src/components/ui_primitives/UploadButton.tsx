@@ -8,6 +8,7 @@
  */
 
 import React, { memo, forwardRef, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton, Button } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import UploadIcon from "@mui/icons-material/Upload";
@@ -99,7 +100,7 @@ export const UploadButton = memo(
     (
       {
         onFileSelect,
-        tooltip = "Upload",
+        tooltip,
         label,
         tooltipPlacement = "bottom",
         buttonSize = "small",
@@ -115,7 +116,9 @@ export const UploadButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
       const fileInputRef = useRef<HTMLInputElement>(null);
+      const tooltipText = tooltip ?? t("i18n-next87.uploadButton.upload");
 
       const handleClick = useCallback(() => {
         fileInputRef.current?.click();
@@ -156,7 +159,7 @@ export const UploadButton = memo(
           />
           {label ? (
             <Tooltip
-              title={tooltip}
+              title={tooltipText}
               enterDelay={TOOLTIP_ENTER_DELAY}
               enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
               placement={tooltipPlacement}
@@ -187,7 +190,7 @@ export const UploadButton = memo(
             </Tooltip>
           ) : (
             <Tooltip
-              title={tooltip}
+              title={tooltipText}
               enterDelay={TOOLTIP_ENTER_DELAY}
               enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
               placement={tooltipPlacement}
@@ -203,7 +206,7 @@ export const UploadButton = memo(
                 onClick={handleClick}
                 disabled={disabled}
                 size={buttonSize}
-                aria-label={tooltip}
+                aria-label={tooltipText}
                 sx={{
                   color: theme.vars.palette.grey[300],
                   "&:hover": {

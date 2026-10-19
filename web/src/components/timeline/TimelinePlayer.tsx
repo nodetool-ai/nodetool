@@ -13,6 +13,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
@@ -46,6 +47,7 @@ interface TimelinePlayerProps {
 
 const TimelinePlayerBody: React.FC<Omit<TimelinePlayerProps, "active">> = memo(
   ({ sequenceId }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const { data: sequence, isLoading, isError } = useTimeline(sequenceId);
 
@@ -58,12 +60,12 @@ const TimelinePlayerBody: React.FC<Omit<TimelinePlayerProps, "active">> = memo(
     return (
       <FlexColumn fullWidth fullHeight css={containerStyles(theme)}>
         {isLoading ? (
-          <LoadingSpinner text="Loading sequence" />
+          <LoadingSpinner text={t("i18n-next65.timeline.player.loading")} />
         ) : unavailable ? (
           <EmptyState
             variant="error"
-            title="Sequence not found"
-            description="The timeline sequence you requested does not exist or you do not have access to it."
+            title={t("i18n-next65.timeline.player.notFoundTitle")}
+            description={t("i18n-next65.timeline.player.notFoundDescription")}
           />
         ) : (
           <PreviewArea

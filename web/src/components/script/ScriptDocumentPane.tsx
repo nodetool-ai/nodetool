@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { DragEvent, ReactNode } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
@@ -133,7 +134,9 @@ const InsertLineGap = ({
   inset: number;
   /** Where the seam sits: on the row's top border, or inside its bottom edge. */
   edge: "top" | "first" | "bottom";
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <FlexRow
     align="center"
     onDragOver={onDragOver}
@@ -160,7 +163,7 @@ const InsertLineGap = ({
       component="button"
       type="button"
       onClick={onInsert}
-      aria-label="Insert line here"
+      aria-label={t("i18n-next25.script.document.insertLineHere")}
       className="insert-line-rule"
       sx={{
         display: "flex",
@@ -185,7 +188,8 @@ const InsertLineGap = ({
       />
     </Box>
   </FlexRow>
-);
+  );
+};
 
 /**
  * One line: the insert/drop gap above it plus the row itself. Owns the per-line
@@ -391,9 +395,9 @@ const SectionBlockInner = ({
           onChange={(e) =>
             setSectionTitle(scriptId, section.id, e.target.value)
           }
-          placeholder="Untitled section"
+          placeholder={t("i18n-next25.script.document.untitledSection")}
           hideLabel
-          label="Section title"
+          label={t("i18n-next25.script.document.sectionTitle")}
           compact
           fullWidth
           disabled={readOnly}
@@ -415,7 +419,7 @@ const SectionBlockInner = ({
         {!readOnly && (
           <Box className="section-remove">
             <ToolbarIconButton
-              tooltip="Delete section"
+              tooltip={t("i18n-next25.script.document.deleteSection")}
               onClick={() => removeSection(scriptId, section.id)}
               icon={<CloseIcon fontSize="small" />}
             />
@@ -479,7 +483,7 @@ const SectionBlockInner = ({
             startIcon={<AddIcon fontSize="small" />}
             onClick={() => addLine(scriptId, section.id)}
           >
-            Add line
+            {t("i18n-next25.script.document.addLine")}
           </EditorButton>
         </FlexRow>
       )}
@@ -549,14 +553,13 @@ const VoiceAllButton = ({
         <FlexColumn gap={SPACING.micro}>
           <Text size="small">
             {lineCount === 0
-              ? "Every line is already voiced."
-              : `${lineCount} line${lineCount === 1 ? "" : "s"} · ${characters} characters${
-                  priced ? ` · about ${formatUsd(cost)}` : ""
-                }${
-                  partial
-                    ? ` (${pricedLineCount} of ${lineCount} lines priced)`
-                    : ""
-                }`}
+              ? t("i18n-next25.script.document.everyLineVoiced")
+              : t("i18n-next25.script.document.voiceEstimate", {
+                  count: lineCount,
+                  characters,
+                  price: priced ? t("i18n-next25.script.document.aboutPrice", { price: formatUsd(cost) }) : "",
+                  partial: partial ? t("i18n-next25.script.document.partialPricing", { pricedLineCount, lineCount }) : ""
+                })}
           </Text>
           {breakdowns.map((breakdown) => (
             <Caption key={breakdown} color="secondary">
@@ -576,8 +579,7 @@ const VoiceAllButton = ({
             ))}
           {priced && (
             <Caption color="secondary">
-              List price from the provider catalog. Voicing is billed by the
-              provider at its own rates.
+              {t("i18n-next25.script.document.providerListPriceNote")}
             </Caption>
           )}
         </FlexColumn>
@@ -589,7 +591,7 @@ const VoiceAllButton = ({
         startIcon={<GraphicEqIcon fontSize="small" />}
         onClick={onClick}
       >
-        {priced ? `Voice all · ~${formatUsd(cost)}` : "Voice all"}
+        {priced ? t("i18n-next25.script.document.voiceAllPrice", { price: formatUsd(cost) }) : t("i18n-next25.script.document.voiceAll")}
       </EditorButton>
     </Tooltip>
   );
@@ -599,7 +601,7 @@ const VoiceAllButton = ({
 const lineLabel = (text: string): string => {
   const trimmed = text.trim();
   if (trimmed === "") {
-    return "an empty line";
+    return "";
   }
   return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : `“${trimmed}”`;
 };
@@ -628,6 +630,7 @@ const VoicingStrip = ({
   scriptId: string;
   readOnly?: boolean;
 }) => {
+  const { t } = useTranslation();
   const setup = useScriptSetup(scriptId);
   const lineText = useScriptStore(
     useShallow((state) => {
@@ -664,7 +667,7 @@ const VoicingStrip = ({
   if (run.status === "queued" && !stopped) {
     return (
       <AlertBanner severity="info" compact sx={{ marginX: SPACING.md }}>
-        {`Voicing queued for ${run.total} ${run.total === 1 ? "line" : "lines"}.`}
+        {t("i18n-next25.script.document.voicingQueued", { count: run.total })}
       </AlertBanner>
     );
   }
@@ -675,9 +678,7 @@ const VoicingStrip = ({
         <FlexRow align="center" gap={SPACING.xs}>
           <LoadingSpinner inline size={16} />
           <Text size="smaller">
-            {`Voicing ${run.voiced + run.failed.length} of ${run.total} ${
-              run.total === 1 ? "line" : "lines"
-            }${run.failed.length > 0 ? ` · ${run.failed.length} failed so far` : ""}`}
+            {t("i18n-next25.script.document.voicingProgress", { count: run.total, completed: run.voiced + run.failed.length, total: run.total, failed: run.failed.length })}
           </Text>
         </FlexRow>
       </AlertBanner>
@@ -694,7 +695,7 @@ const VoicingStrip = ({
         onClose={readOnly ? undefined : () => dismissVoicingRun(scriptId)}
         sx={{ marginX: SPACING.md }}
       >
-        {`Voiced ${run.voiced} ${run.voiced === 1 ? "line" : "lines"}.`}
+        {t("i18n-next25.script.document.voicedComplete", { count: run.voiced })}
       </AlertBanner>
     );
   }
@@ -708,13 +709,14 @@ const VoicingStrip = ({
     >
       <FlexColumn gap={SPACING.xs}>
         <Text size="smaller">
-          {`${stopped ? "Voicing stopped before it finished. " : ""}Voiced ${run.voiced} of ${run.total} lines.${
-            run.failed.length > 0
-              ? ` ${run.failed.length} ${
-                  run.failed.length === 1 ? "line" : "lines"
-                } could not be voiced.`
-              : ""
-          }${stopped && !readOnly ? " Press Voice all to voice the rest." : ""}`}
+          {t("i18n-next25.script.document.voicingSummary", {
+            count: run.total,
+            stoppedPrefix: stopped ? t("i18n-next25.script.document.stoppedPrefix") : "",
+            voiced: run.voiced,
+            total: run.total,
+            failureSummary: run.failed.length > 0 ? t("i18n-next25.script.document.failureSummary", { count: run.failed.length }) : "",
+            continuePrompt: stopped && !readOnly ? t("i18n-next25.script.document.continuePrompt") : ""
+          })}
         </Text>
         {run.failed.length === 0 ? null : (
           <FlexColumn
@@ -731,7 +733,7 @@ const VoicingStrip = ({
                 wrap
               >
                 <Caption>
-                  {`${lineLabel(lineText[failure.lineId] ?? "")} — ${failure.error}`}
+                  {`${lineLabel(lineText[failure.lineId] ?? "") ? t("i18n-next25.script.document.lineLabel", { text: lineLabel(lineText[failure.lineId] ?? "") }) : t("i18n-next25.script.document.emptyLine")} — ${failure.error}`}
                 </Caption>
                 {readOnly ? null : (
                   <EditorButton
@@ -740,7 +742,7 @@ const VoicingStrip = ({
                     disabled={busy}
                     onClick={() => retry([failure.lineId])}
                   >
-                    Retry
+                    {t("i18n-next25.script.document.retry")}
                   </EditorButton>
                 )}
               </FlexRow>
@@ -756,8 +758,8 @@ const VoicingStrip = ({
               onClick={() => retry(run.failed.map((failure) => failure.lineId))}
             >
               {retrying.length > 0
-                ? "Retrying…"
-                : `Retry all ${run.failed.length}`}
+                ? t("i18n-next25.script.document.retrying")
+                : t("i18n-next25.script.document.retryAll", { count: run.failed.length })}
             </EditorButton>
           </FlexRow>
         )}
@@ -771,6 +773,7 @@ const ScriptDocumentPane = ({
   readOnly,
   active = false
 }: ScriptDocumentPaneProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const inStudio = useInStudio();
@@ -983,28 +986,28 @@ const ScriptDocumentPane = ({
       commands.push({
         id: "send-to-timeline",
         label: storyboardId
-          ? "Assemble video"
+          ? t("i18n-next25.script.document.assembleVideo")
           : timelineId
-            ? "Update timeline"
-            : "Send to timeline",
+            ? t("i18n-next25.script.document.updateTimeline")
+            : t("i18n-next25.script.document.sendToTimeline"),
         run: onSendToTimeline
       });
     }
     commands.push({
       id: "export-subtitles",
-      label: "Export Subtitles (SRT)",
+      label: t("i18n-next25.script.document.exportSubtitlesSrt"),
       run: onExportSubtitles
     });
     if (!exportingAudio) {
       commands.push(
         {
           id: "export-audio-wav",
-          label: "Export Audio (WAV)",
+          label: t("i18n-next25.script.document.exportAudioWav"),
           run: () => void exportAudio("wav")
         },
         {
           id: "export-audio-mp3",
-          label: "Export Audio (MP3)",
+          label: t("i18n-next25.script.document.exportAudioMp3"),
           run: () => void exportAudio("mp3")
         }
       );
@@ -1021,7 +1024,7 @@ const ScriptDocumentPane = ({
     exportingAudio,
     exportAudio
   ]);
-  useContextCommands("Script", menuCommands, active);
+  useContextCommands(t("i18n-next25.script.document.scriptContext"), menuCommands, active);
 
   return (
     <FlexColumn
@@ -1065,18 +1068,17 @@ const ScriptDocumentPane = ({
             color: "text.primary"
           }}
         >
-          {title ? `${title} — Script` : "Untitled script"}
+          {title ? t("i18n-next25.script.document.titledScript", { title }) : t("i18n-next25.script.document.untitledScript")}
         </TruncatedText>
         {!isEmpty && (
           <MetaChip>
-            {lineCount} {lineCount === 1 ? "line" : "lines"} · {wordCount}{" "}
-            {wordCount === 1 ? "word" : "words"}
+            {t("i18n-next25.script.document.lineWordCount", { lines: lineCount, words: wordCount })}
             {durationLabel ? ` · ${durationLabel}` : ""}
           </MetaChip>
         )}
         {castCount > 0 && (
           <MetaChip icon={<MicNoneIcon fontSize="inherit" />}>
-            {castCount} {castCount === 1 ? "voice" : "voices"}
+            {t("i18n-next25.script.document.voiceCount", { count: castCount })}
           </MetaChip>
         )}
         {!readOnly && <ScriptSaveIndicator scriptId={scriptId} />}
@@ -1097,8 +1099,8 @@ const ScriptDocumentPane = ({
             canRedo={canRedo}
             onUndo={onUndo}
             onRedo={onRedo}
-            undoTooltip="Undo (⌘Z)"
-            redoTooltip="Redo (⌘⇧Z)"
+            undoTooltip={t("i18n-next25.script.document.undo")}
+            redoTooltip={t("i18n-next25.script.document.redo")}
           />
         )}
         {!readOnly &&
@@ -1106,7 +1108,7 @@ const ScriptDocumentPane = ({
             <FlexRow align="center" gap={SPACING.xs}>
               <LoadingSpinner inline size={16} />
               <Text size="smaller">
-                {voicingAll || voicingLive ? "Voicing…" : "Writing…"}
+                {voicingAll || voicingLive ? t("i18n-next25.script.document.voicing") : t("i18n-next25.script.document.writing")}
               </Text>
             </FlexRow>
           ) : (
@@ -1122,14 +1124,14 @@ const ScriptDocumentPane = ({
             startIcon={<StopIcon fontSize="small" />}
             onClick={stop}
           >
-            Stop
+            {t("i18n-next25.script.document.stop")}
           </EditorButton>
         ) : (
           <Tooltip
             title={
               hasVoicedLine
-                ? "Play current takes in order"
-                : "Voice at least one line to play"
+                ? t("i18n-next25.script.document.playCurrentTakesTooltip")
+                : t("i18n-next25.script.document.voiceToPlayTooltip")
             }
           >
             <span>
@@ -1140,7 +1142,7 @@ const ScriptDocumentPane = ({
                 onClick={play}
                 disabled={!hasVoicedLine}
               >
-                Play through
+                {t("i18n-next25.script.document.playThrough")}
               </EditorButton>
             </span>
           </Tooltip>
@@ -1150,7 +1152,7 @@ const ScriptDocumentPane = ({
           <FlexRow align="center" gap={SPACING.xs}>
             <LoadingSpinner inline size={16} />
             <Text size="smaller">
-              Exporting {exportingAudio.toUpperCase()}…
+              {t("i18n-next25.script.document.exportingAudio", { format: exportingAudio.toUpperCase() })}
             </Text>
           </FlexRow>
         )}
@@ -1163,36 +1165,36 @@ const ScriptDocumentPane = ({
             disabled={assembling || !hasVoicedLine}
             tooltip={
               storyboardId
-                ? "Cut the linked storyboard's shots and these takes into one timeline"
+                ? t("i18n-next25.script.document.assembleStoryboardTooltip")
                 : undefined
             }
             disabledReason={
               hasVoicedLine
                 ? undefined
-                : "Voice at least one line to send it to a timeline"
+                : t("i18n-next25.script.document.voiceToTimelineTooltip")
             }
           >
             {assembling
-              ? "Assembling…"
+              ? t("i18n-next25.script.document.assembling")
               : storyboardId
-                ? "Assemble video"
+                ? t("i18n-next25.script.document.assembleVideo")
                 : timelineId
-                  ? "Update timeline"
-                  : "Send to timeline"}
+                  ? t("i18n-next25.script.document.updateTimeline")
+                  : t("i18n-next25.script.document.sendToTimeline")}
           </EditorButton>
         )}
         {hasVoicedLine && (
           <SendToWorkflowButton
             items={workflowMedia}
-            tooltip="Send every current take to a workflow"
+            tooltip={t("i18n-next25.script.document.sendTakesToWorkflow")}
           />
         )}
         {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}
         {!readOnly && (
           <>
             <ToolbarIconButton
-              tooltip="More actions"
-              ariaLabel="More actions"
+              tooltip={t("i18n-next25.script.document.moreActions")}
+              ariaLabel={t("i18n-next25.script.document.moreActions")}
               onClick={(e) => setMoreAnchor(e.currentTarget)}
               icon={<MoreVertIcon fontSize="small" />}
             />
@@ -1203,12 +1205,12 @@ const ScriptDocumentPane = ({
             >
               <MenuItemPrimitive
                 icon={<SubtitlesIcon fontSize="small" />}
-                label="Export SRT"
+                label={t("i18n-next25.script.document.exportSrt")}
                 disabled={!hasVoicedLine}
                 tooltip={
                   hasVoicedLine
                     ? undefined
-                    : "Voice at least one line to export subtitles"
+                    : t("i18n-next25.script.document.voiceToExportSubtitles")
                 }
                 onClick={() => {
                   setMoreAnchor(null);
@@ -1219,12 +1221,12 @@ const ScriptDocumentPane = ({
                 <MenuItemPrimitive
                   key={format}
                   icon={<AudioFileIcon fontSize="small" />}
-                  label={`Export ${format.toUpperCase()}`}
+                  label={t("i18n-next25.script.document.exportFormat", { format: format.toUpperCase() })}
                   disabled={!hasVoicedLine || exportingAudio !== null}
                   tooltip={
                     hasVoicedLine
                       ? undefined
-                      : "Voice at least one line to export audio"
+                      : t("i18n-next25.script.document.voiceToExportAudio")
                   }
                   onClick={() => {
                     setMoreAnchor(null);
@@ -1264,9 +1266,9 @@ const ScriptDocumentPane = ({
       >
         {isEmpty && (
           <EmptyState
-            title="Empty script"
-            description="Add a line to start writing. Enter splits a line. Assign speakers from the gutter, then voice them."
-            actionText={readOnly ? undefined : "Add first line"}
+            title={t("i18n-next25.script.document.emptyScript")}
+            description={t("i18n-next25.script.document.emptyScriptDescription")}
+            actionText={readOnly ? undefined : t("i18n-next25.script.document.addFirstLine")}
             onAction={readOnly ? undefined : () => addLine(scriptId)}
           />
         )}
@@ -1295,7 +1297,7 @@ const ScriptDocumentPane = ({
               startIcon={<AddIcon fontSize="small" />}
               onClick={() => addSection(scriptId)}
             >
-              Add section
+              {t("i18n-next25.script.document.addSection")}
             </EditorButton>
           </FlexRow>
         )}

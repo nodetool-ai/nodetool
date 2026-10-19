@@ -13,14 +13,20 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/AddOutlined";
 
-import { Box, MOTION, SPACING_PX, ToolbarIconButton } from "../ui_primitives";
+import {
+  FlexRow,
+  MOTION,
+  SPACING_PX,
+  ToolbarIconButton
+} from "../ui_primitives";
 
 export interface ShotInsertPointProps {
   /** The new shot lands directly after this one. */
   afterShotId: string;
-  /** What the tooltip and the accessible name say, e.g. "after Scene 1 | Shot 2". */
+  /** Position after this shot, including its caption. */
   label: string;
   onInsert: (afterShotId: string) => void;
 }
@@ -35,8 +41,6 @@ const slotSx = {
   // Half the grid's gap (SPACING.xl, 16px) out, so the button is centred on
   // the seam between two cards rather than sitting inside either one.
   right: `-${SPACING_PX.md}px`,
-  display: "flex",
-  alignItems: "center",
   opacity: 0,
   transition: MOTION.opacity
 } as const;
@@ -46,20 +50,27 @@ const ShotInsertPointInner: React.FC<ShotInsertPointProps> = ({
   label,
   onInsert
 }) => {
+  const { t } = useTranslation();
   const handleClick = useCallback(() => {
     onInsert(afterShotId);
   }, [onInsert, afterShotId]);
+  const position = label.replace(/^after\s+/, "").trim();
+  const insertLabel = position
+    ? t("screens4_17.storyboard.shotInsertPoint.insertAfter", {
+        label: position
+      })
+    : t("screens4_17.storyboard.shotInsertPoint.insert");
 
   return (
-    <Box className={SHOT_INSERT_POINT_CLASS} sx={slotSx}>
+    <FlexRow className={SHOT_INSERT_POINT_CLASS} align="center" sx={slotSx}>
       <ToolbarIconButton
         size="small"
         icon={<AddIcon fontSize="small" />}
-        tooltip={`Insert a shot ${label}`}
-        aria-label={`Insert a shot ${label}`}
+        tooltip={insertLabel}
+        aria-label={insertLabel}
         onClick={handleClick}
       />
-    </Box>
+    </FlexRow>
   );
 };
 

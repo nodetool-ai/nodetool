@@ -26,6 +26,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -232,6 +233,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const bodyStyles = useMemo(() => styles(theme), [theme]);
   const isRunning = status === "running";
@@ -286,16 +288,18 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
         <span>
           {items.length === 0
             ? isRunning
-              ? "Generating…"
-              : "List"
-            : `${items.length} item${items.length === 1 ? "" : "s"}`}
+              ? t("i18n-next80.listGenerator.generating")
+              : t("i18n-next80.listGenerator.list")
+            : t("i18n-next80.listGenerator.itemCount", { count: items.length })}
         </span>
         {isRunning && <LoadingSpinner inline size={14} color="inherit" />}
       </div>
 
       {items.length === 0 ? (
         <div className="list-empty">
-          {isRunning ? "Generating items…" : "Run to generate a list"}
+          {isRunning
+            ? t("i18n-next80.listGenerator.generatingItems")
+            : t("i18n-next80.listGenerator.runToGenerate")}
         </div>
       ) : (
         <div ref={scrollRef} className="list-scroll nowheel">
@@ -326,7 +330,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
                   >
                     <CopyButton
                       value={item}
-                      tooltip="Copy item"
+                      tooltip={t("i18n-next80.listGenerator.copyItem")}
                       buttonSize="small"
                     />
                   </span>

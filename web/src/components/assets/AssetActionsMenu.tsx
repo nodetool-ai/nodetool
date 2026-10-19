@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import TuneIcon from "@mui/icons-material/Tune";
 import FolderIcon from "@mui/icons-material/FolderOutlined";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
@@ -54,6 +55,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   isFullscreenAssets = false,
   hideFolderControls = false
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next9" });
   const setAssetSearchTerm = useAssetGridStore(
     (state) => state.setAssetSearchTerm
   );
@@ -106,7 +108,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
 
   const modelFilterLabel = modelFilter
     ? (modelOptions.find((m) => m.id === modelFilter)?.label ?? modelFilter)
-    : "Any model";
+    : t("assets.anyModel");
   // Offer the model filter only when the view holds generated assets, or a
   // model is already picked and has to stay clearable.
   const showModelFilter = modelOptions.length > 0 || modelFilter !== null;
@@ -117,7 +119,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
       <Chip
         compact
         icon={favoritesOnly ? <StarIcon /> : <StarBorderIcon />}
-        label="Favorites"
+        label={t("assets.favorites")}
         active={favoritesOnly}
         onClick={() => setFavoritesOnly(!favoritesOnly)}
       />
@@ -128,7 +130,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           density="compact"
           startIcon={<SmartToyOutlinedIcon />}
           endIcon={<ArrowDropDownIcon />}
-          tooltip="Filter by the model that generated the file"
+          tooltip={t("assets.filterByModel")}
           aria-haspopup="menu"
           onClick={(e) => setModelFilterAnchor(e.currentTarget)}
           sx={{ maxWidth: 200 }}
@@ -150,17 +152,17 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           startIcon={<CreateNewFolderIcon />}
           onClick={() => setCreateFolderDialogOpen(true)}
         >
-          New folder
+          {t("assets.newFolder")}
         </EditorButton>
       )}
       <EditorButton
         variant="outlined"
         density="compact"
         startIcon={<TravelExploreIcon />}
-        tooltip="Find openly licensed images and audio on Openverse"
+        tooltip={t("assets.openverseImagesAudioTooltip")}
         onClick={() => setOpenverseOpen(true)}
       >
-        Openverse
+        {t("assets.openverse")}
       </EditorButton>
       <input
         ref={fileInputRef}
@@ -173,10 +175,10 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         variant="contained"
         density="compact"
         startIcon={<FileUploadIcon />}
-        tooltip="Or drop files anywhere on the grid"
+        tooltip={t("assets.uploadDropTooltip")}
         onClick={() => fileInputRef.current?.click()}
       >
-        Upload
+        {t("assets.upload")}
       </EditorButton>
     </FlexRow>
   ) : (
@@ -193,7 +195,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
       {!hideFolderControls && (
         <ToolbarIconButton
           icon={<CreateNewFolderIcon />}
-          tooltip="New folder"
+          tooltip={t("assets.newFolder")}
           onClick={() => setCreateFolderDialogOpen(true)}
           tooltipPlacement="top"
           nodrag={false}
@@ -201,7 +203,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
       )}
       <ToolbarIconButton
         icon={<TravelExploreIcon />}
-        tooltip="Find openly licensed media on Openverse"
+        tooltip={t("assets.openverseMediaTooltip")}
         onClick={() => setOpenverseOpen(true)}
         tooltipPlacement="top"
         nodrag={false}
@@ -209,14 +211,14 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
       <UploadButton
         onFileSelect={(files) => onUploadFiles?.(files)}
         iconVariant="file"
-        tooltip="Upload files"
+        tooltip={t("assets.uploadFilesTooltip")}
         multiple
       />
     </FlexRow>
   );
 
   const search = (
-    <SearchErrorBoundary fallbackTitle="Search input error">
+    <SearchErrorBoundary fallbackTitle={t("assets.searchInputError")}>
       <AssetSearchInput
         onLocalSearchChange={onLocalSearchChange}
         focusOnTyping={false}
@@ -261,7 +263,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             {!hideFolderControls && hasFolders && (
               <ToolbarIconButton
                 icon={foldersVisible ? <FolderIcon /> : <FolderOffIcon />}
-                tooltip={foldersVisible ? "Hide folders" : "Show folders"}
+                tooltip={foldersVisible ? t("assets.hideFolders") : t("assets.showFolders")}
                 onClick={toggleFoldersVisible}
                 tooltipPlacement="top"
                 nodrag={false}
@@ -272,8 +274,8 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
               icon={<TuneIcon />}
               tooltip={
                 expanded
-                  ? "Hide search and view options"
-                  : "Search, sort and view options"
+                  ? t("assets.hideSearchOptions")
+                  : t("assets.showSearchOptions")
               }
               onClick={() => setExpanded((prev) => !prev)}
               tooltipPlacement="top"
@@ -307,7 +309,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
         <MenuItemPrimitive
-          label="Any model"
+          label={t("assets.anyModel")}
           icon={<FilterAltOffIcon />}
           checkable="radio"
           checked={modelFilter === null}

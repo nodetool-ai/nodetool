@@ -40,7 +40,7 @@ import {
   AppRuntimeContext,
   type AppRuntimeContextValue
 } from "../components/appbuilder/runtime/AppRuntimeContext";
-import { appConfig } from "../components/appbuilder/puck/config";
+import { useAppConfig } from "../components/appbuilder/puck/config";
 import {
   extractScriptIO,
   extractWorkflowIO
@@ -195,6 +195,7 @@ const previewQueryClient = new QueryClient({
 useAuth.setState({ user: { id: "app-preview" }, state: "logged_in" });
 
 const AppPreviewApp: React.FC = () => {
+  const appConfig = useAppConfig();
   const slug = useMemo(
     () => new URLSearchParams(window.location.search).get("slug") ?? "",
     []

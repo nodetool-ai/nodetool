@@ -1,4 +1,5 @@
 import { useParams, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import TimelineSurface from "../workspace/TimelineSurface";
 import {
   EditorButton,
@@ -9,10 +10,13 @@ import {
 } from "../ui_primitives";
 
 export default function TimelineRoute() {
+  const { t } = useTranslation();
   const { sequenceId } = useParams<{ sequenceId: string }>();
   const [params, setParams] = useSearchParams();
   if (!sequenceId) {
-    return <EmptyState variant="error" title="Timeline not found" />;
+    return (
+      <EmptyState variant="error" title={t("screen_timeline.route.notFound")} />
+    );
   }
   const mode = params.get("mode") === "edit" ? "edit" : "view";
   const changeMode = (next: "view" | "edit") => {
@@ -27,13 +31,13 @@ export default function TimelineRoute() {
           onClick={() => changeMode("view")}
           aria-pressed={mode === "view"}
         >
-          View
+          {t("screen_timeline.route.view")}
         </EditorButton>
         <EditorButton
           onClick={() => changeMode("edit")}
           aria-pressed={mode === "edit"}
         >
-          Edit
+          {t("screen_timeline.route.edit")}
         </EditorButton>
       </FlexRow>
       <FlexColumn gap={0} sx={{ flex: 1, minHeight: 0 }}>

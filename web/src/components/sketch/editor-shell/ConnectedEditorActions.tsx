@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
@@ -49,16 +50,18 @@ const ViewToggleItem: React.FC<ViewToggleItemProps> = ({
   actionId,
   onClick,
   testId
-}) => (
-  <MenuItemPrimitive
-    label={label}
-    checkable="checkbox"
-    checked={checked}
-    shortcut={displayCombo(actionId)}
-    onClick={onClick}
-    data-testid={testId}
-  />
-);
+}) => {
+  return (
+    <MenuItemPrimitive
+      label={label}
+      checkable="checkbox"
+      checked={checked}
+      shortcut={displayCombo(actionId)}
+      onClick={onClick}
+      data-testid={testId}
+    />
+  );
+};
 
 export interface ConnectedEditorActionsProps {
   /** Compact buttons rendered inline before the menu (e.g. the asset tab's
@@ -100,6 +103,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
   inlineActions,
   menuItems
 }: ConnectedEditorActionsProps) {
+  const { t } = useTranslation();
   const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
   const toggleAssistantPanel = useSketchStore((s) => s.toggleAssistantPanel);
   const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
@@ -151,7 +155,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
 
       {documentId && (
         <>
-          <Tooltip title="Generate an image from a prompt">
+          <Tooltip title={t("i18n-next13.sketch.editorActions.generatePromptTooltip")}>
             <span>
               <EditorButton
                 ref={generateAnchorRef}
@@ -162,7 +166,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
                   setGenerateOpen(true);
                 }}
                 startIcon={<AutoAwesomeIcon fontSize="small" />}
-                aria-label="Generate an image"
+                aria-label={t("i18n-next13.sketch.editorActions.generateImage")}
                 sx={{
                   "@container sketch-workspace (max-width: 400px)": {
                     minWidth: 44,
@@ -172,7 +176,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
                 }}
                 data-testid="sketch-open-generate"
               >
-                <span className="sketch-generate-label">Generate</span>
+                <span className="sketch-generate-label">{t("i18n-next13.sketch.editorActions.generate")}</span>
               </EditorButton>
             </span>
           </Tooltip>
@@ -186,11 +190,11 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         </>
       )}
 
-      <Tooltip title={assistantPanelOpen ? "Hide assistant" : "Show assistant"}>
+      <Tooltip title={assistantPanelOpen ? t("i18n-next13.sketch.editorActions.hideAssistant") : t("i18n-next13.sketch.editorActions.showAssistant")}>
         <IconButton
           size="small"
           onClick={handleAssistant}
-          aria-label={assistantPanelOpen ? "Hide assistant" : "Show assistant"}
+          aria-label={assistantPanelOpen ? t("i18n-next13.sketch.editorActions.hideAssistant") : t("i18n-next13.sketch.editorActions.showAssistant")}
           aria-pressed={assistantPanelOpen}
           data-testid="sketch-assistant-toggle"
         >
@@ -198,11 +202,11 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         </IconButton>
       </Tooltip>
 
-      <Tooltip title="Editor actions">
+      <Tooltip title={t("i18n-next13.sketch.editorActions.editorActions")}>
         <IconButton
           size="small"
           onClick={(e) => setMenuAnchor(e.currentTarget)}
-          aria-label="Editor actions"
+          aria-label={t("i18n-next13.sketch.editorActions.editorActions")}
           aria-haspopup="menu"
           data-testid="sketch-editor-menu"
         >
@@ -219,13 +223,13 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         paperSx={{ minWidth: 220 }}
       >
         <MenuItemPrimitive
-          label="Fit to viewport"
+          label={t("i18n-next13.sketch.editorActions.fitToViewport")}
           icon={<FitScreenIcon fontSize="small" />}
           onClick={handleFit}
           data-testid="sketch-fit-view"
         />
         <MenuItemPrimitive
-          label="Hide panels"
+          label={t("i18n-next13.sketch.editorActions.hidePanels")}
           icon={<ViewSidebarOutlinedIcon fontSize="small" />}
           onClick={handleHidePanels}
           data-testid="sketch-hide-panels"
@@ -233,7 +237,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
 
         <Divider key="view-divider" />
         <ViewToggleItem
-          label="Rulers"
+          label={t("i18n-next119.sketch.rulers")}
           checked={rulersVisible}
           actionId="toggle-rulers"
           onClick={() => {
@@ -243,7 +247,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
           testId="sketch-toggle-rulers"
         />
         <ViewToggleItem
-          label="Guides"
+          label={t("i18n-next119.sketch.guides")}
           checked={guidesVisible}
           actionId="toggle-guides"
           onClick={() => {
@@ -253,7 +257,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
           testId="sketch-toggle-guides"
         />
         <ViewToggleItem
-          label="Snap"
+          label={t("i18n-next119.sketch.snap")}
           checked={snapEnabled}
           actionId="toggle-snap"
           onClick={() => {
@@ -263,7 +267,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
           testId="sketch-toggle-snap"
         />
         <MenuItemPrimitive
-          label="Clear guides"
+          label={t("i18n-next13.sketch.editorActions.clearGuides")}
           onClick={() => {
             closeMenu();
             useSketchStore.getState().clearGuides();

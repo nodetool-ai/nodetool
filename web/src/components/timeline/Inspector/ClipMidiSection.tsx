@@ -9,6 +9,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import MusicNoteOutlinedIcon from "@mui/icons-material/MusicNoteOutlined";
 
 import {
@@ -48,11 +49,6 @@ const DIVISION_OPTIONS = QUANTIZE_DIVISIONS.map((division) => ({
   label: division
 }));
 
-const TARGET_OPTIONS = [
-  { value: "start", label: "Onsets" },
-  { value: "start_and_length", label: "Onsets + lengths" }
-] as const;
-
 const MIN_VELOCITY_FACTOR = 0.1;
 const MAX_VELOCITY_FACTOR = 4;
 
@@ -68,6 +64,7 @@ interface ClipMidiSectionProps {
 
 export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
   ({ clip }) => {
+    const { t } = useTranslation();
     const [open, setOpen] = usePersistedFold("midi");
     const tempo = useTimelineStore((s) => resolveTempo(s));
     const transposeClip = useTimelineStore((s) => s.transposeClip);
@@ -121,13 +118,20 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
       () => scaleClipVelocity(clip.id, velocityFactor),
       [clip.id, scaleClipVelocity, velocityFactor]
     );
+    const targetOptions = [
+      { value: "start", label: t("pass3_25.timeline.inspector.midi.onsets") },
+      {
+        value: "start_and_length",
+        label: t("pass3_25.timeline.inspector.midi.onsetsAndLengths")
+      }
+    ] as const;
 
     return (
       <>
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="MIDI"
+              title={t("pass3_25.timeline.inspector.midi.title")}
               icon={<MusicNoteOutlinedIcon />}
             />
           }
@@ -136,35 +140,41 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
           unmountOnExit
         >
           <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-            <InspectorRow label="Notes">
+            <InspectorRow label={t("pass3_25.timeline.inspector.midi.notes")}>
               <InspectorStaticValue
-                value={`${notes.length} (${audibleCount} audible)`}
+                value={t("pass3_25.timeline.inspector.midi.noteCount", {
+                  total: notes.length,
+                  audible: audibleCount
+                })}
               />
             </InspectorRow>
-            <InspectorRow label="Starts at">
+            <InspectorRow
+              label={t("pass3_25.timeline.inspector.midi.startsAt")}
+            >
               <InspectorStaticValue
                 value={`${formatBarsBeats(clip.startMs, tempo)} · ${tempo.bpm} BPM`}
               />
             </InspectorRow>
 
             <FlexRow justify="flex-end">
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={handleEditNotes}
-              >
-                Edit notes
+              <Button size="small" variant="outlined" onClick={handleEditNotes}>
+                {t("pass3_25.timeline.inspector.midi.editNotes")}
               </Button>
             </FlexRow>
 
-            <InspectorRow label="Transpose">
+            <InspectorRow
+              label={t("pass3_25.timeline.inspector.midi.transpose")}
+            >
               <FlexRow gap={SPACING.xs}>
                 {TRANSPOSE_STEPS.map((semitones) => (
                   <Button
                     key={semitones}
                     size="small"
                     variant="outlined"
-                    aria-label={`Transpose ${stepLabel(semitones)} semitones`}
+                    aria-label={t(
+                      "pass3_25.timeline.inspector.midi.transposeSemitones",
+                      { amount: stepLabel(semitones) }
+                    )}
                     onClick={() => handleTranspose(semitones)}
                   >
                     {stepLabel(semitones)}
@@ -173,22 +183,24 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
               </FlexRow>
             </InspectorRow>
 
-            <InspectorRow label="Quantize">
+            <InspectorRow
+              label={t("pass3_25.timeline.inspector.midi.quantize")}
+            >
               <InspectorSelect
-                label="Quantize division"
+                label={t("pass3_25.timeline.inspector.midi.quantizeDivision")}
                 value={division}
                 options={DIVISION_OPTIONS}
                 onChange={handleDivisionChange}
               />
               <InspectorSelect
-                label="Quantize target"
+                label={t("pass3_25.timeline.inspector.midi.quantizeTarget")}
                 value={target}
-                options={TARGET_OPTIONS}
+                options={targetOptions}
                 onChange={handleTargetChange}
               />
             </InspectorRow>
             <InspectorSliderRow
-              label="Strength"
+              label={t("pass3_25.timeline.inspector.midi.strength")}
               min={0}
               max={1}
               step={0.05}
@@ -198,12 +210,12 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
             />
             <FlexRow justify="flex-end">
               <Button size="small" variant="outlined" onClick={handleQuantize}>
-                Apply quantize
+                {t("pass3_25.timeline.inspector.midi.applyQuantize")}
               </Button>
             </FlexRow>
 
             <InspectorSliderRow
-              label="Velocity ×"
+              label={t("pass3_25.timeline.inspector.midi.velocity")}
               min={MIN_VELOCITY_FACTOR}
               max={MAX_VELOCITY_FACTOR}
               step={0.05}
@@ -218,13 +230,12 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
                 variant="outlined"
                 onClick={handleScaleVelocity}
               >
-                Apply velocity
+                {t("pass3_25.timeline.inspector.midi.applyVelocity")}
               </Button>
             </FlexRow>
 
             <Caption color="muted">
-              Velocities are clamped to 1–127, so a large factor flattens the
-              part rather than making it louder — set the track gain for level.
+              {t("pass3_25.timeline.inspector.midi.velocityHelp")}
             </Caption>
           </FlexColumn>
         </CollapsibleSection>

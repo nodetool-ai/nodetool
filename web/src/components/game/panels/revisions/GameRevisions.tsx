@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import RestoreIcon from "@mui/icons-material/Restore";
 
 import {
@@ -18,14 +19,14 @@ interface GameRevisionsProps {
   readonly onRestore: (revision: string) => Promise<void>;
 }
 
-const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
-
 /** Published revisions, newest first, each restorable into the draft after confirmation. */
 export default function GameRevisions({ revisions, busy, onRestore }: GameRevisionsProps): React.ReactElement {
+  const { t, i18n } = useTranslation();
+  const dateFormat = new Intl.DateTimeFormat(i18n.resolvedLanguage, { dateStyle: "medium", timeStyle: "short" });
   const [pendingRevision, setPendingRevision] = useState<string | null>(null);
   return <FlexColumn sx={{ flex: 1, minHeight: 0 }}>
-    {revisions.length === 0 && <Caption sx={{ px: SPACING.md, py: SPACING.sm }}>No published revisions yet.</Caption>}
-    {revisions.length > 0 && <FlexColumn role="list" aria-label="Revisions"
+    {revisions.length === 0 && <Caption sx={{ px: SPACING.md, py: SPACING.sm }}>{t("screen_game.revisions.empty")}</Caption>}
+    {revisions.length > 0 && <FlexColumn role="list" aria-label={t("screen_game.revisions.listLabel")}
       sx={{ flex: 1, minHeight: 0, overflowY: "auto", py: SPACING.xs, px: SPACING.xs }}>
       {revisions.slice(0, 10).map((entry) => <FlexRow key={entry.revision} role="listitem" align="center" gap={SPACING.sm}
         sx={{ minHeight: CONTROL.height.lg, px: SPACING.sm, borderRadius: CONTROL.radius,
@@ -35,21 +36,21 @@ export default function GameRevisions({ revisions, busy, onRestore }: GameRevisi
             ? <Text size="small" weight={400} truncate sx={{ color: "text.primary" }}>{entry.message}</Text>
             : <Text size="small" family="secondary" truncate sx={{ color: "text.primary" }}>{entry.revision.slice(0, 12)}</Text>}
           <FlexRow gap={SPACING.xs} align="baseline" sx={{ minWidth: 0 }}>
-            <Caption>{DATE_FORMAT.format(new Date(entry.modifiedAt))}</Caption>
-            {entry.current && <Caption color="primary">Current</Caption>}
+            <Caption>{dateFormat.format(new Date(entry.modifiedAt))}</Caption>
+            {entry.current && <Caption color="primary">{t("screen_game.revisions.current")}</Caption>}
           </FlexRow>
         </FlexColumn>
-        <ToolbarIconButton icon={<RestoreIcon fontSize="small" />} tooltip="Restore to draft" disabled={busy}
+        <ToolbarIconButton icon={<RestoreIcon fontSize="small" />} tooltip={t("screen_game.revisions.restoreToDraft")} disabled={busy}
           onClick={() => setPendingRevision(entry.revision)} />
       </FlexRow>)}
     </FlexColumn>}
-    <Dialog open={pendingRevision !== null} title="Restore revision to draft" onClose={() => setPendingRevision(null)}
-      confirmText="Restore to draft" isLoading={busy} showActions onConfirm={() => {
+    <Dialog open={pendingRevision !== null} title={t("screen_game.revisions.confirmTitle")} onClose={() => setPendingRevision(null)}
+      confirmText={t("screen_game.revisions.restoreToDraft")} isLoading={busy} showActions onConfirm={() => {
         if (!pendingRevision || busy) { return; }
         void onRestore(pendingRevision);
         setPendingRevision(null);
       }}>
-      <Text>Restoring replaces the draft and clears its undo history.</Text>
+      <Text>{t("screen_game.revisions.confirmDescription")}</Text>
     </Dialog>
   </FlexColumn>;
 }

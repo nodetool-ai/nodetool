@@ -12,6 +12,7 @@
  * the dialog).
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
@@ -67,20 +68,23 @@ const PortChips = ({
 }: {
   label: string;
   ports: readonly CodeAssistantPort[];
-}) => (
-  <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
-    <Label>{label}</Label>
-    {ports.length === 0 ? (
-      <Text size="smaller" color="secondary">
-        none
-      </Text>
-    ) : (
-      ports.map((port) => (
-        <Chip key={port.name} compact label={`${port.name}: ${port.type}`} />
-      ))
-    )}
-  </FlexRow>
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
+      <Label>{label}</Label>
+      {ports.length === 0 ? (
+        <Text size="smaller" color="secondary">
+          {t("i18n-next34.codeAssistant.none")}
+        </Text>
+      ) : (
+        ports.map((port) => (
+          <Chip key={port.name} compact label={`${port.name}: ${port.type}`} />
+        ))
+      )}
+    </FlexRow>
+  );
+};
 
 const CodeAssistantDialogInner = ({
   open,
@@ -89,6 +93,7 @@ const CodeAssistantDialogInner = ({
   inputs,
   expectedOutput
 }: CodeAssistantDialogProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { findNode, updateNodeData } = useNodes(
     (state) => ({
@@ -188,7 +193,7 @@ const CodeAssistantDialogInner = ({
   }, []);
 
   const workflowId = findNode(nodeId)?.data.workflow_id ?? "";
-  const nodeTitle = seed.title || "Code";
+  const nodeTitle = seed.title || t("i18n-next34.codeAssistant.code");
 
   const handleApply = useCallback(() => {
     const node = findNode(nodeId);
@@ -244,11 +249,11 @@ const CodeAssistantDialogInner = ({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Code assistant"
+      title={t("i18n-next34.codeAssistant.title")}
       maxWidth="lg"
       fullWidth
       onConfirm={handleApply}
-      confirmText="Apply"
+      confirmText={t("i18n-next34.codeAssistant.apply")}
       // Apply overwrites the node's code, so it does not take focus on open.
       actionButtonsProps={{ confirmButtonProps: { autoFocus: false } }}
     >
@@ -259,8 +264,14 @@ const CodeAssistantDialogInner = ({
         <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0 }}>
           <FlexRow gap={SPACING.md} align="center" sx={{ flexWrap: "wrap" }}>
             <SectionHeader size="small" title={nodeTitle} />
-            <PortChips label="Inputs" ports={draftInputs} />
-            <PortChips label="Outputs" ports={draftOutputs} />
+            <PortChips
+              label={t("i18n-next34.codeAssistant.inputs")}
+              ports={draftInputs}
+            />
+            <PortChips
+              label={t("i18n-next34.codeAssistant.outputs")}
+              ports={draftOutputs}
+            />
           </FlexRow>
           <Box
             sx={{
@@ -285,7 +296,7 @@ const CodeAssistantDialogInner = ({
               <ErrorBanner
                 report={{
                   source: "panel-crash",
-                  summary: "Code assistant editor could not start",
+                  summary: t("i18n-next34.codeAssistant.editorStartFailed"),
                   errorText: monacoLoadError
                 }}
               >
@@ -296,7 +307,7 @@ const CodeAssistantDialogInner = ({
             ) : (
               <Box
                 component="pre"
-                aria-label="Code draft"
+                aria-label={t("i18n-next34.codeAssistant.codeDraft")}
                 sx={{
                   ...TYPOGRAPHY.mono.code,
                   margin: 0,
@@ -313,7 +324,7 @@ const CodeAssistantDialogInner = ({
         <ResizableSideDock
           storageKey="code_assistant"
           defaultWidth={CHAT_PANEL_WIDTH}
-          ariaLabel="Resize code assistant"
+          ariaLabel={t("i18n-next34.codeAssistant.resize")}
         >
           <CodeAssistantChatPanel nodeId={nodeId} workflowId={workflowId} />
         </ResizableSideDock>

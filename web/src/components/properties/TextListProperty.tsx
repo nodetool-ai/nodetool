@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useState, useMemo, useRef, ChangeEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
@@ -165,6 +166,7 @@ const flattenTextItems = (items: unknown): TextItem[] => {
 };
 
 const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next47" });
   const theme = useTheme();
   const id = `text-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
@@ -305,9 +307,9 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
 
     try {
       const result = await window.api.dialog.openFile({
-        title: "Select text files",
+        title: t("text.selectFiles"),
         filters: [
-          { name: "Text files", extensions: ["txt", "md", "json", "csv", "xml", "html", "htm", "yaml", "yml", "log", "ini", "cfg", "conf"] }
+          { name: t("text.fileType"), extensions: ["txt", "md", "json", "csv", "xml", "html", "htm", "yaml", "yml", "log", "ini", "cfg", "conf"] }
         ],
         multiSelections: true
       });
@@ -349,7 +351,7 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
     } catch (error) {
       console.error("Error opening file picker:", error);
     }
-  }, [uploadAsset, addNotification, handleAddTexts]);
+  }, [uploadAsset, addNotification, handleAddTexts, t]);
 
   const handleBrowserFilePicker = useCallback(() => {
     fileInputRef.current?.click();
@@ -430,14 +432,14 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
                 className="remove-button"
                 onClick={removeButtonClickHandlers[index]}
                 buttonSize="small"
-                tooltip="Remove text file"
+                tooltip={t("text.remove")}
               />
             </div>
           ))}
         </div>
       )}
 
-      <Tooltip title="Click to select text files or drag and drop">
+      <Tooltip title={t("text.dropzoneTooltip")}>
         <div
           role="button"
           tabIndex={0}
@@ -448,7 +450,7 @@ const TextListProperty = (props: PropertyProps<TextItem[] | null>) => {
           onDragLeave={handleDragLeave}
           onDrop={onDrop}
         >
-          <p>Click or drop text files here</p>
+          <p>{t("text.dropzonePrompt")}</p>
         </div>
       </Tooltip>
     </div>

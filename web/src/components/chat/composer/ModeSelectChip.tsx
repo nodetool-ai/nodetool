@@ -4,6 +4,7 @@
  * inside it.
  */
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -44,39 +45,39 @@ export function modeIconFor(mode: MediaMode): React.ReactNode {
   return <AutoAwesomeIcon fontSize="small" />;
 }
 
-export function modeLabelFor(mode: MediaMode): string {
-  if (mode === "music") return "Music";
+export function modeLabelFor(mode: MediaMode, translate: (key: string) => string = (key) => key): string {
+  if (mode === "music") return translate("i18n-next54.composer.mode.music");
   if (mode === "image") {
-    return "Image";
+    return translate("i18n-next54.composer.mode.image");
   }
   if (mode === "image_edit") {
-    return "Image edit";
+    return translate("i18n-next54.composer.mode.imageEdit");
   }
   if (mode === "video") {
-    return "Video";
+    return translate("i18n-next54.composer.mode.video");
   }
   if (mode === "image_to_video") {
-    return "Image→Video";
+    return translate("i18n-next54.composer.mode.imageToVideo");
   }
   if (mode === "reference_to_video") {
-    return "Refs→Video";
+    return translate("i18n-next54.composer.mode.referenceToVideo");
   }
   if (mode === "audio") {
-    return "Speech";
+    return translate("i18n-next54.composer.mode.speech");
   }
   if (mode === "chat") {
-    return "Chat";
+    return translate("i18n-next54.composer.mode.chat");
   }
   if (mode === "audio_to_video") {
-    return "Audio→Video";
+    return translate("i18n-next54.composer.mode.audioToVideo");
   }
   if (mode === "retake") {
-    return "Retake";
+    return translate("i18n-next54.composer.mode.retake");
   }
   if (mode === "extend") {
-    return "Extend";
+    return translate("i18n-next54.composer.mode.extend");
   }
-  return "Motion";
+  return translate("i18n-next54.composer.mode.motion");
 }
 
 interface ModeSelectChipProps {
@@ -96,7 +97,8 @@ export function ModeSelectChip({
 }: ModeSelectChipProps) {
   const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
   const close = useCallback(() => setAnchor(null), []);
-  const label = modeLabelFor(mode);
+  const { t } = useTranslation();
+  const label = modeLabelFor(mode, t);
 
   return (
     <>

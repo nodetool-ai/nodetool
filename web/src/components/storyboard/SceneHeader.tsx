@@ -13,6 +13,7 @@
  */
 
 import React, { memo, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -50,28 +51,33 @@ const SceneHeaderInner: React.FC<SceneHeaderProps> = ({
   number,
   slugline,
   actions
-}) => (
-  <Box sx={headerSx}>
-    <FlexRow align="baseline" gap={SPACING.md} wrap>
-      <Text component="h3" size="small" sx={numberSx}>
-        {`Scene ${number}`}
-      </Text>
-      {slugline ? (
-        <Caption color="secondary">{slugline}</Caption>
-      ) : null}
-      {actions ? (
-        <FlexRow
-          align="center"
-          gap={SPACING.xs}
-          wrap
-          sx={{ ml: "auto", alignSelf: "center" }}
-        >
-          {actions}
-        </FlexRow>
-      ) : null}
-    </FlexRow>
-  </Box>
-);
+}) => {
+  const { t, i18n } = useTranslation();
+  return (
+    <Box sx={headerSx}>
+      <FlexRow align="baseline" gap={SPACING.md} wrap>
+        <Text component="h3" size="small" sx={numberSx}>
+          {t("screens4_14.storyboard.sceneHeader.title", {
+            number: new Intl.NumberFormat(i18n.language).format(number)
+          })}
+        </Text>
+        {slugline ? (
+          <Caption color="secondary">{slugline}</Caption>
+        ) : null}
+        {actions ? (
+          <FlexRow
+            align="center"
+            gap={SPACING.xs}
+            wrap
+            sx={{ ml: "auto", alignSelf: "center" }}
+          >
+            {actions}
+          </FlexRow>
+        ) : null}
+      </FlexRow>
+    </Box>
+  );
+};
 
 export const SceneHeader = memo(SceneHeaderInner);
 SceneHeader.displayName = "SceneHeader";

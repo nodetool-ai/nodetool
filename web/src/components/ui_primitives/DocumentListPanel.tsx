@@ -3,6 +3,7 @@
 // states, date-grouped rows, delete confirmation. Rows come from `renderItem`.
 
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -59,6 +60,7 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
   matches
 }: DocumentListPanelProps<T>) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
@@ -105,23 +107,28 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
         open={deleteTarget !== null}
         onClose={onCancelDelete}
         onConfirm={onConfirmDelete}
-        title={`Delete ${singular}`}
-        content={`Delete "${deleteTarget?.name ?? ""}"? This cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t("i18n-next87.documentListPanel.deleteTitle", { singular })}
+        content={t("i18n-next87.documentListPanel.deleteConfirmation", {
+          name: deleteTarget?.name ?? ""
+        })}
+        confirmText={t("i18n-next87.documentListPanel.delete")}
+        cancelText={t("i18n-next87.documentListPanel.cancel")}
       />
       <div className="list-panel-search">
         <CategorySearchBar
           ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
-          placeholder={`Search ${plural}`}
+          placeholder={t("i18n-next87.documentListPanel.search", { plural })}
         />
       </div>
 
       {isLoading ? (
         <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-          <LoadingSpinner size="large" text={`Loading ${plural}`} />
+          <LoadingSpinner
+            size="large"
+            text={t("i18n-next87.documentListPanel.loading", { plural })}
+          />
         </FlexColumn>
       ) : isError ? (
         <FlexColumn
@@ -132,8 +139,10 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
         >
           <EmptyState
             variant="error"
-            title={`Could not load ${plural}`}
-            description={errorMessage ?? "Try again later."}
+            title={t("i18n-next87.documentListPanel.loadError", { plural })}
+            description={
+              errorMessage ?? t("i18n-next87.documentListPanel.tryAgainLater")
+            }
           />
           {errorAction}
         </FlexColumn>
@@ -145,9 +154,15 @@ export function DocumentListPanel<T extends DocumentListPanelDocument>({
           sx={{ flex: 1, px: 2 }}
         >
           <EmptyState
-            title={filterValue ? `No matching ${plural}` : `No ${plural} yet`}
+            title={
+              filterValue
+                ? t("i18n-next87.documentListPanel.noMatching", { plural })
+                : t("i18n-next87.documentListPanel.noneYet", { plural })
+            }
             description={
-              filterValue ? "Try a different search term." : emptyDescription
+              filterValue
+                ? t("i18n-next87.documentListPanel.tryDifferentSearch")
+                : emptyDescription
             }
           />
         </FlexColumn>

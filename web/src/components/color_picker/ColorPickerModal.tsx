@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useState, useCallback, useMemo, useEffect, useRef, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
@@ -207,6 +208,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   showContrast = true,
   contrastBackgroundColor = "#ffffff"
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const modalStyles = useMemo(() => styles(theme), [theme]);
   const { addRecentColor, preferredColorMode, setPreferredColorMode } =
@@ -336,8 +338,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         addNotification({
           type: "error",
           alert: true,
-          content:
-            "Failed to copy the color to the clipboard. Please check your browser permissions and try again."
+          content: t("i18n-cont-color-07.modal.copyColorError")
         });
         return;
       }
@@ -351,7 +352,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         copiedTimeoutRef.current = null;
       }, 1500);
     },
-    [color, alpha, addNotification]
+    [color, alpha, addNotification, t]
   );
 
   const handleApply = useCallback(() => {
@@ -380,12 +381,12 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
   const tabs: TabItem[] = useMemo(
     () => [
-      { value: "swatches", label: "Swatches" },
-      { value: "harmonies", label: "Harmonies" },
-      ...(showGradient ? [{ value: "gradient", label: "Gradient" }] : []),
-      ...(showContrast ? [{ value: "contrast", label: "Contrast" }] : [])
+      { value: "swatches", label: t("i18n-cont-color-07.modal.swatchesTab") },
+      { value: "harmonies", label: t("i18n-cont-color-07.modal.harmoniesTab") },
+      ...(showGradient ? [{ value: "gradient", label: t("i18n-cont-color-07.modal.gradientTab") }] : []),
+      ...(showContrast ? [{ value: "contrast", label: t("i18n-cont-color-07.modal.contrastTab") }] : [])
     ],
-    [showContrast, showGradient]
+    [showContrast, showGradient, t]
   );
 
   const content = (
@@ -400,12 +401,12 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
       >
         <FlexColumn className="modal-content" onClick={(e) => e.stopPropagation()}>
           <FlexRow className="modal-header" align="center" justify="space-between" fullWidth>
-            <Text className="modal-title">Color picker</Text>
+            <Text className="modal-title">{t("i18n-cont-color-07.modal.title")}</Text>
             <FlexRow className="header-actions" align="center">
               <EyedropperButton onColorPicked={handleEyedropperPick} />
               <CloseButton
                 onClick={handleApply}
-                tooltip="Close"
+                tooltip={t("i18n-cont-color-07.modal.close")}
                 shortcut={["Esc"]}
                 buttonSize="small"
               />
@@ -439,14 +440,14 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
               />
 
               <FlexRow className="color-preview" align="center">
-                <Tooltip title="Click to copy HEX">
+                <Tooltip title={t("i18n-cont-color-07.modal.clickToCopyHex")}>
                   <FlexRow
                     className="preview-swatch"
                     align="center"
                     justify="center"
                     role="button"
                     tabIndex={0}
-                    aria-label="Copy hex value"
+                    aria-label={t("i18n-cont-color-07.modal.copyHexValue")}
                     onClick={handleCopyHex}
                     onKeyDown={activateOnKey(handleCopyHex)}
                   >
@@ -463,7 +464,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                     </span>
                     {copiedFormat === "hex" && (
                       <FlexRow className="copy-feedback" align="center">
-                        <CheckIcon sx={{ fontSize: ICON_SIZE.xs }} /> Copied
+                        <CheckIcon sx={{ fontSize: ICON_SIZE.xs }} /> {t("i18n-cont-color-07.modal.copied")}
                       </FlexRow>
                     )}
                   </FlexRow>
@@ -511,11 +512,11 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
           <FlexRow className="modal-footer" align="center" justify="space-between" fullWidth>
             <Caption color="secondary">
-              Press Esc to close
+              {t("i18n-cont-color-07.modal.pressEscToClose")}
             </Caption>
             <FlexRow className="footer-actions" align="center">
               <EditorButton variant="outlined" density="compact" onClick={onClose}>
-                Cancel
+                {t("i18n-cont-color-07.modal.cancel")}
               </EditorButton>
               <EditorButton
                 variant="contained"
@@ -523,7 +524,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
                 onClick={handleApply}
                 sx={{ minWidth: "80px" }}
               >
-                Apply
+                {t("i18n-cont-color-07.modal.apply")}
               </EditorButton>
             </FlexRow>
           </FlexRow>

@@ -16,6 +16,7 @@
  * lives in `keyframeRows.ts`.
  */
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -66,14 +67,49 @@ import {
   type KeyframeRowSpec
 } from "./keyframeRows";
 
-/** The easings a keyframe offers, in Premiere's order. */
-const EASING_OPTIONS: { value: string; label: string }[] = [
-  { value: "linear", label: "Linear" },
-  { value: "easeIn", label: "Ease in" },
-  { value: "easeOut", label: "Ease out" },
-  { value: "easeInOut", label: "Ease in and out" },
-  { value: "hold", label: "Hold" }
-];
+type RowLabelKey =
+  | "i18n-cont-inspector-02.keyframes.properties.opacity"
+  | "i18n-cont-inspector-02.keyframes.properties.position"
+  | "i18n-cont-inspector-02.keyframes.properties.scale"
+  | "i18n-cont-inspector-02.keyframes.properties.rotation"
+  | "i18n-cont-inspector-02.keyframes.properties.orbit"
+  | "i18n-cont-inspector-02.keyframes.properties.fieldOfView"
+  | "i18n-cont-inspector-02.keyframes.properties.zoom";
+
+const ROW_LABEL_KEYS: Readonly<Record<string, RowLabelKey>> = {
+  opacity: "i18n-cont-inspector-02.keyframes.properties.opacity",
+  position: "i18n-cont-inspector-02.keyframes.properties.position",
+  scale: "i18n-cont-inspector-02.keyframes.properties.scale",
+  rotation: "i18n-cont-inspector-02.keyframes.properties.rotation",
+  cameraOrbit: "i18n-cont-inspector-02.keyframes.properties.orbit",
+  cameraFov: "i18n-cont-inspector-02.keyframes.properties.fieldOfView",
+  cameraZoom: "i18n-cont-inspector-02.keyframes.properties.zoom"
+} as const;
+
+type InputLabelKey =
+  | "i18n-cont-inspector-02.keyframes.inputs.opacity"
+  | "i18n-cont-inspector-02.keyframes.inputs.positionX"
+  | "i18n-cont-inspector-02.keyframes.inputs.positionY"
+  | "i18n-cont-inspector-02.keyframes.inputs.scaleX"
+  | "i18n-cont-inspector-02.keyframes.inputs.scaleY"
+  | "i18n-cont-inspector-02.keyframes.inputs.rotationDegrees"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraAzimuth"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraElevation"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraFieldOfView"
+  | "i18n-cont-inspector-02.keyframes.inputs.cameraZoom";
+
+const INPUT_LABEL_KEYS: Readonly<Record<string, InputLabelKey>> = {
+  Opacity: "i18n-cont-inspector-02.keyframes.inputs.opacity",
+  "Position X": "i18n-cont-inspector-02.keyframes.inputs.positionX",
+  "Position Y": "i18n-cont-inspector-02.keyframes.inputs.positionY",
+  "Scale X": "i18n-cont-inspector-02.keyframes.inputs.scaleX",
+  "Scale Y": "i18n-cont-inspector-02.keyframes.inputs.scaleY",
+  "Rotation in degrees": "i18n-cont-inspector-02.keyframes.inputs.rotationDegrees",
+  "Camera azimuth": "i18n-cont-inspector-02.keyframes.inputs.cameraAzimuth",
+  "Camera elevation": "i18n-cont-inspector-02.keyframes.inputs.cameraElevation",
+  "Camera field of view": "i18n-cont-inspector-02.keyframes.inputs.cameraFieldOfView",
+  "Camera zoom": "i18n-cont-inspector-02.keyframes.inputs.cameraZoom"
+} as const;
 
 /** Pointer travel (px) before a press on a diamond becomes a drag. */
 const DRAG_SLOP_PX = 3;
@@ -168,6 +204,7 @@ interface DragState {
 export const KeyframeLane: React.FC<LaneProps> = memo(
   ({ clip, row, playheadMs, fps, disabled, onSeek, onMove, onEasing, onDelete }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const laneRef = useRef<HTMLDivElement>(null);
     const [drag, setDrag] = useState<DragState | null>(null);
     const [menu, setMenu] = useState<{ x: number; y: number; atMs: number } | null>(
@@ -175,6 +212,16 @@ export const KeyframeLane: React.FC<LaneProps> = memo(
     );
     const times = rowKeyframeTimesMs(clip, row);
     const duration = Math.max(1, clip.durationMs);
+    const propertyLabelKey = ROW_LABEL_KEYS[row.id];
+    const propertyLabel = propertyLabelKey ? t(propertyLabelKey) : row.label;
+    /** The easings a keyframe offers, in Premiere's order. */
+    const easingOptions = [
+      { value: "linear", label: t("i18n-cont-inspector-02.keyframes.easing.linear") },
+      { value: "easeIn", label: t("i18n-cont-inspector-02.keyframes.easing.easeIn") },
+      { value: "easeOut", label: t("i18n-cont-inspector-02.keyframes.easing.easeOut") },
+      { value: "easeInOut", label: t("i18n-cont-inspector-02.keyframes.easing.easeInOut") },
+      { value: "hold", label: t("i18n-cont-inspector-02.keyframes.easing.hold") }
+    ];
 
     /** Clip-relative ms under `clientX`, snapped to the sequence's frames. */
     const msAt = useCallback(
@@ -257,7 +304,7 @@ export const KeyframeLane: React.FC<LaneProps> = memo(
         css={laneStyles(theme, disabled)}
         onPointerDown={handleLanePointerDown}
         data-testid={`keyframe-lane-${row.id}`}
-        aria-label={`${row.label} keyframes`}
+        aria-label={t("i18n-cont-inspector-02.keyframes.laneLabel", { property: propertyLabel })}
         role="group"
       >
         {times.length > 1 && (
@@ -280,8 +327,11 @@ export const KeyframeLane: React.FC<LaneProps> = memo(
               style={{ left: pct(shownMs) }}
               data-current={current}
               disabled={disabled}
-              aria-label={`${row.label} keyframe at ${formatTimecode(clip.startMs + t, fps)}`}
-              title="Click to go to this keyframe, drag to move it, right-click for easing"
+              aria-label={t("i18n-cont-inspector-02.keyframes.keyframeAt", {
+                property: propertyLabel,
+                time: formatTimecode(clip.startMs + t, fps)
+              })}
+              title={t("i18n-cont-inspector-02.keyframes.keyframeTooltip")}
               data-testid={`keyframe-diamond-${row.id}`}
               onPointerDown={(e) => handleDiamondPointerDown(e, t)}
               onPointerMove={handleDiamondPointerMove}
@@ -305,9 +355,13 @@ export const KeyframeLane: React.FC<LaneProps> = memo(
             open
             position={menu}
             onClose={closeMenu}
-            MenuListProps={{ "aria-label": `${row.label} keyframe` }}
+            MenuListProps={{
+              "aria-label": t("i18n-cont-inspector-02.keyframes.keyframeMenuLabel", {
+                property: propertyLabel
+              })
+            }}
           >
-            {EASING_OPTIONS.map((option) => (
+            {easingOptions.map((option) => (
               <MenuItemPrimitive
                 key={option.value}
                 label={option.label}
@@ -321,7 +375,7 @@ export const KeyframeLane: React.FC<LaneProps> = memo(
             ))}
             <Divider />
             <MenuItemPrimitive
-              label="Delete keyframe"
+              label={t("i18n-cont-inspector-02.keyframes.deleteKeyframe")}
               onClick={() => {
                 onDelete(menu.atMs);
                 closeMenu();
@@ -346,6 +400,7 @@ interface InputProps {
 
 const KeyframedInput: React.FC<InputProps> = memo(
   ({ clip, input, atMs, disabled, onCommit }) => {
+    const { t } = useTranslation();
     const scale = input.displayScale ?? 1;
     const value = inputValueAt(clip, input, atMs) * scale;
     const handleCommit = useCallback(
@@ -363,7 +418,11 @@ const KeyframedInput: React.FC<InputProps> = memo(
         scrub={input.scrub}
         onCommit={handleCommit}
         disabled={disabled}
-        ariaLabel={input.ariaLabel}
+        ariaLabel={
+          INPUT_LABEL_KEYS[input.ariaLabel]
+            ? t(INPUT_LABEL_KEYS[input.ariaLabel])
+            : input.ariaLabel
+        }
       />
     );
   }
@@ -379,6 +438,9 @@ export interface KeyframedPropertyRowProps {
 
 export const KeyframedPropertyRow: React.FC<KeyframedPropertyRowProps> = memo(
   ({ clip, row, disabled = false }) => {
+    const { t } = useTranslation();
+    const propertyLabelKey = ROW_LABEL_KEYS[row.id];
+    const propertyLabel = propertyLabelKey ? t(propertyLabelKey) : row.label;
     const editClipKeyframes = useTimelineStore((s) => s.editClipKeyframes);
     const docApi = useTimelineStoreApi();
     const playbackApi = useTimelinePlaybackStoreApi();
@@ -497,14 +559,23 @@ export const KeyframedPropertyRow: React.FC<KeyframedPropertyRowProps> = memo(
                 activeIcon={<TimerIcon fontSize="inherit" />}
                 tooltip={
                   !inside
-                    ? "Move the playhead over the clip to animate"
+                    ? t("i18n-cont-inspector-02.keyframes.movePlayheadToAnimate")
                     : keyframed
-                      ? `Stop animating ${row.label} (removes its keyframes)`
-                      : `Animate ${row.label} (adds a keyframe at the playhead)`
+                      ? t("i18n-cont-inspector-02.keyframes.stopAnimatingTooltip", {
+                          property: propertyLabel
+                        })
+                      : t("i18n-cont-inspector-02.keyframes.animateTooltip", {
+                          property: propertyLabel
+                        })
                 }
-                ariaLabel={`${keyframed ? "Stop animating" : "Animate"} ${row.label}`}
+                ariaLabel={t(
+                  keyframed
+                    ? "i18n-cont-inspector-02.keyframes.stopAnimatingLabel"
+                    : "i18n-cont-inspector-02.keyframes.animateLabel",
+                  { property: propertyLabel }
+                )}
               />
-              <span>{row.label}</span>
+              <span>{propertyLabel}</span>
             </FlexRow>
           }
         >
@@ -541,7 +612,7 @@ export const KeyframedPropertyRow: React.FC<KeyframedPropertyRowProps> = memo(
             <ToolbarIconButton
               size="small"
               icon={<ChevronLeftIcon fontSize="inherit" />}
-              tooltip="Go to previous keyframe"
+              tooltip={t("i18n-cont-inspector-02.keyframes.previousKeyframe")}
               onClick={handlePrev}
               disabled={!hasPrev}
             />
@@ -552,13 +623,22 @@ export const KeyframedPropertyRow: React.FC<KeyframedPropertyRowProps> = memo(
               disabled={disabled || !inside}
               icon={<DiamondOutlinedIcon fontSize="inherit" />}
               activeIcon={<DiamondIcon fontSize="inherit" />}
-              tooltip={keyedHere ? "Delete keyframe at playhead" : "Add keyframe at playhead"}
-              ariaLabel={`${keyedHere ? "Delete" : "Add"} ${row.label} keyframe`}
+              tooltip={t(
+                keyedHere
+                  ? "i18n-cont-inspector-02.keyframes.deleteAtPlayhead"
+                  : "i18n-cont-inspector-02.keyframes.addAtPlayhead"
+              )}
+              ariaLabel={t(
+                keyedHere
+                  ? "i18n-cont-inspector-02.keyframes.deletePropertyKeyframe"
+                  : "i18n-cont-inspector-02.keyframes.addPropertyKeyframe",
+                { property: propertyLabel }
+              )}
             />
             <ToolbarIconButton
               size="small"
               icon={<ChevronRightIcon fontSize="inherit" />}
-              tooltip="Go to next keyframe"
+              tooltip={t("i18n-cont-inspector-02.keyframes.nextKeyframe")}
               onClick={handleNext}
               disabled={!hasNext}
             />

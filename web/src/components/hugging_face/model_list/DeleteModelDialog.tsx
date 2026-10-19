@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Dialog, LoadingSpinner, Text } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -22,6 +23,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   onClose,
   scope = "local"
 }) => {
+  const { t } = useTranslation();
   const { allModels } = useModels(scope);
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
@@ -33,7 +35,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     await trpc.models.huggingfaceDelete.mutate({ repo_id: repoId, scope });
     addNotification({
       type: "success",
-      content: `Deleted model ${repoId}`,
+      content: t("i18n-next29.delete.notifications.deletedModel", { model: repoId }),
       dismissable: true
     });
     queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
@@ -44,7 +46,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     const deleted = await trpc.models.ollamaDelete.mutate({ model: modelName });
     if (!deleted) {
       throw new Error(
-        `Ollama did not delete ${modelName} — the server may be unreachable or the model already gone.`
+        t("i18n-next29.delete.errors.ollamaDelete", { model: modelName })
       );
     }
     return modelName;
@@ -59,7 +61,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     onSuccess: (modelName) => {
       addNotification({
         type: "success",
-        content: `Deleted Ollama model ${modelName}`,
+        content: t("i18n-next29.delete.notifications.deletedOllamaModel", { model: modelName }),
         dismissable: true
       });
       queryClient.invalidateQueries({ queryKey: ["ollamaModels"] });
@@ -87,12 +89,12 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       } else {
         addNotification({
           type: "warning",
-          content: `Could not determine path for model ${modelId}`,
+          content: t("i18n-next29.delete.errors.unknownPath", { model: modelId }),
           dismissable: true
         });
       }
     },
-    [allModels, addNotification]
+    [allModels, addNotification, t]
   );
 
   const modelForExplorer = modelId
@@ -119,7 +121,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         console.error("Deletion error:", error);
 
         const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
+          error instanceof Error ? error.message : t("i18n-next29.errors.unknown");
 
         const isNotFound =
           errorMessage.includes("Not Found") || errorMessage.includes("404");
@@ -128,7 +130,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
           // Model already gone — treat as success.
           addNotification({
             type: "warning",
-            content: `Model ${modelId} not found (may have been already deleted)`,
+            content: t("i18n-next29.delete.notifications.alreadyDeleted", { model: modelId }),
             dismissable: true
           });
           queryClient.invalidateQueries({ queryKey: ["ollamaModels"] });
@@ -161,7 +163,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     <Dialog
       open={!!modelId}
       onClose={onClose}
-      title="Delete model?"
+      title={t("i18n-next29.delete.title")}
       actions={
         <>
           <Button
@@ -171,7 +173,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
             disabled={isExplorerDisabled || isDeleting}
             sx={{ mr: "auto" }}
           >
-            Show in Explorer
+            {t("i18n-next29.actions.showInExplorer")}
           </Button>
           <Button
             variant="text"
@@ -179,25 +181,25 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
             onClick={onClose}
             disabled={isDeleting}
           >
-            Cancel
+            {t("i18n-next29.delete.cancel")}
           </Button>
           <Button
             variant="contained"
             color="error"
             onClick={handleConfirmDelete}
             disabled={isDeleting}
-            aria-label="Delete"
+            aria-label={t("i18n-next29.delete.confirm")}
           >
             {isDeleting ? (
               <LoadingSpinner inline size="small" color="inherit" />
             ) : (
-              "Delete"
+              t("i18n-next29.delete.confirm")
             )}
           </Button>
         </>
       }
     >
-      <Text>This will delete {modelId}.</Text>
+      <Text>{t("i18n-next29.delete.description", { model: modelId })}</Text>
     </Dialog>
   );
 };

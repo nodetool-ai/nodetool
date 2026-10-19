@@ -12,6 +12,7 @@ import {
   useState
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useTranslation } from "react-i18next";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
@@ -294,6 +295,7 @@ interface NodeLibraryProps {
  */
 const NodeLibrary = memo<NodeLibraryProps>(
   ({ activeSubcategory, onSubcategoryChange, isMobile = false }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const cssStyles = useMemo(() => styles(theme, isMobile), [theme, isMobile]);
     const [query, setQuery] = useState("");
@@ -409,11 +411,11 @@ const NodeLibrary = memo<NodeLibraryProps>(
       () =>
         NODE_SUBCATEGORIES.map((sub) => ({
           value: sub.id,
-          label: sub.label,
+          label: t(`i18n-next12.nodeLibrary.categories.${sub.id}`, { defaultValue: sub.label }),
           icon: isValidElement(sub.icon) ? sub.icon : undefined,
           count: counts[sub.id] ?? 0
         })),
-      [counts]
+      [counts, t]
     );
 
     const handleRailChange = useCallback(
@@ -429,7 +431,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     return (
       <div css={cssStyles} className="nl-root">
         <PanelHeader
-          title="Nodes"
+          title={t("i18n-next12.nodeLibrary.title")}
           count={nodes.length}
           docsTopic="nodes"
           description={getTopLevelCategory("nodes").description}
@@ -442,15 +444,15 @@ const NodeLibrary = memo<NodeLibraryProps>(
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search nodes"
-            aria-label="Search nodes"
+            placeholder={t("i18n-next12.nodeLibrary.search")}
+            aria-label={t("i18n-next12.nodeLibrary.search")}
           />
           {query && (
             <button
               type="button"
               className="nl-search-clear"
               onClick={() => setQuery("")}
-              aria-label="Clear search"
+              aria-label={t("i18n-next12.nodeLibrary.clearSearch")}
             >
               <ClearIcon />
             </button>
@@ -463,7 +465,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
               className="nl-rail"
               orientation="vertical"
               size="small"
-              aria-label="Node categories"
+              aria-label={t("i18n-next12.nodeLibrary.categoriesLabel")}
               tabs={railTabs}
               value={activeSubcategory}
               onChange={handleRailChange}
@@ -474,7 +476,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
                 <EmptyState
                   size="small"
                   variant="no-results"
-                  title="No matching nodes"
+                  title={t("i18n-next12.nodeLibrary.noMatches")}
                 />
               </div>
             ) : (
@@ -522,7 +524,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
             ) : (
               <div className="nl-info-empty">
                 <Text component="span" size="small" color="secondary">
-                  Drag a node onto the canvas. Hover for details.
+                  {t("i18n-next12.nodeLibrary.hoverHint")}
                 </Text>
               </div>
             )}
@@ -533,7 +535,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
           <span>{category.label}</span>
           {!isMobile && (
             <span className="nl-footer-hint">
-              <span className="nl-kbd">drag</span> to add
+              <span className="nl-kbd">{t("i18n-next12.nodeLibrary.drag")}</span> {t("i18n-next12.nodeLibrary.toAdd")}
             </span>
           )}
         </div>

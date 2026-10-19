@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   CSSProperties,
   DragEvent as ReactDragEvent,
@@ -124,6 +125,8 @@ interface TileSectionProps {
   onMouseEnter: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onDragStart: (event: ReactDragEvent<HTMLDivElement>) => void;
   onDragEnd: () => void;
+  translateAction: (key: string, label: string) => string;
+  placeHint: string;
 }
 
 const TileSection = memo(function TileSection({
@@ -134,7 +137,9 @@ const TileSection = memo(function TileSection({
   onKeyDown,
   onMouseEnter,
   onDragStart,
-  onDragEnd
+  onDragEnd,
+  translateAction,
+  placeHint
 }: TileSectionProps) {
   return (
     <section>
@@ -145,6 +150,7 @@ const TileSection = memo(function TileSection({
       </div>
       <div className="tiles-container">
         {actions.map(({ key, label, nodeType, icon, iconColor }) => {
+          const translatedLabel = translateAction(key, label);
           const description = getDescription(nodeType);
           return (
             <Tooltip
@@ -154,7 +160,7 @@ const TileSection = memo(function TileSection({
                 <div>
                   {description && <div>{description}</div>}
                   <div style={description ? TOOLTIP_HINT_STYLE : undefined}>
-                    Click to place · Drag to canvas
+                    {placeHint}
                   </div>
                 </div>
               }
@@ -164,7 +170,7 @@ const TileSection = memo(function TileSection({
                 className="quick-tile"
                 role="button"
                 tabIndex={0}
-                aria-label={label}
+                aria-label={translatedLabel}
                 draggable
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
@@ -178,7 +184,7 @@ const TileSection = memo(function TileSection({
                   {icon}
                 </div>
                 <Text size="small" className="tile-label">
-                  {label}
+                  {translatedLabel}
                 </Text>
               </div>
             </Tooltip>
@@ -190,6 +196,7 @@ const TileSection = memo(function TileSection({
 });
 
 const QuickActionTiles = memo(function QuickActionTiles() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
@@ -251,7 +258,9 @@ const QuickActionTiles = memo(function QuickActionTiles() {
         console.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
-          content: `Unable to find metadata for ${label ?? nodeType}.`,
+          content: t("i18n-next50-node-menu.quickActions.metadataMissing", {
+            name: label ?? nodeType
+          }),
           timeout: NOTIFICATION_TIMEOUT_MEDIUM
         });
         return;
@@ -296,7 +305,12 @@ const QuickActionTiles = memo(function QuickActionTiles() {
       onKeyDown: handleTileKeyDown,
       onMouseEnter: handleTileMouseEnter,
       onDragStart: handleDragStart,
-      onDragEnd: handleDragEnd
+      onDragEnd: handleDragEnd,
+      translateAction: (key: string, label: string) =>
+        t(`i18n-next50-node-menu.quickActions.action.${key}`, {
+          defaultValue: label
+        }),
+      placeHint: t("i18n-next50-node-menu.common.placeHint")
     }),
     [
       getDescription,
@@ -304,19 +318,20 @@ const QuickActionTiles = memo(function QuickActionTiles() {
       handleTileKeyDown,
       handleTileMouseEnter,
       handleDragStart,
-      handleDragEnd
+      handleDragEnd,
+      t
     ]
   );
 
   return (
     <div css={memoizedStyles}>
-      <TileSection title="AI nodes" actions={AI_TASK_ACTIONS} {...sectionProps} />
+      <TileSection title={t("i18n-next50-node-menu.quickActions.aiNodes")} actions={AI_TASK_ACTIONS} {...sectionProps} />
       <TileSection
-        title="Provider models"
+        title={t("i18n-next50-node-menu.quickActions.providerModels")}
         actions={PROVIDER_ACTIONS}
         {...sectionProps}
       />
-      <TileSection title="Constants" actions={CONSTANT_NODES} {...sectionProps} />
+      <TileSection title={t("i18n-next50-node-menu.quickActions.constants")} actions={CONSTANT_NODES} {...sectionProps} />
     </div>
   );
 });

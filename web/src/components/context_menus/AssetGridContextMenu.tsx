@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Divider,
@@ -16,6 +17,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 const AssetGridContextMenu = () => {
+  const { t } = useTranslation();
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
   const closeContextMenu = useContextMenuStore(
@@ -51,35 +53,35 @@ const AssetGridContextMenu = () => {
       position={menuPosition}
     >
       <ListSubheader className="title">
-        Folder: {currentFolder?.name || "ASSETS"}
+        {t("screen_editor.folderIn", { folder: currentFolder?.name || t("screen_editor.assets") })}
       </ListSubheader>
       <ContextMenuItem
         onClick={handleCreateFolder}
-        label="Create new folder"
+        label={t("screen_editor.createFolder")}
         IconComponent={<CreateNewFolderIcon />}
-        tooltip={`Create a new folder in '${currentFolder?.name || "ASSETS"}' `}
+        tooltip={t("screen_editor.createFolderIn", { folder: currentFolder?.name || t("screen_editor.assets") })}
       />
       <Divider />
       <MenuItemPrimitive
         onClick={handleSortByName}
-        label="Sort by name"
+        label={t("screen_editor.sortByName")}
         selected={assetsOrder === "name"}
         icon={<SortByAlphaIcon />}
-        tooltip="Sort assets by name"
+        tooltip={t("screen_editor.sortAssetsByName")}
       />
       <MenuItemPrimitive
         onClick={handleSortByDate}
-        label="Sort by date"
+        label={t("screen_editor.sortByDate")}
         selected={assetsOrder === "date"}
         icon={<AccessTimeIcon />}
-        tooltip="Sort assets by creation date"
+        tooltip={t("screen_editor.sortAssetsByDate")}
       />
       <MenuItemPrimitive
         onClick={handleSortBySize}
-        label="Sort by size"
+        label={t("screen_editor.sortBySize")}
         selected={assetsOrder === "size"}
         icon={<StorageIcon />}
-        tooltip="Sort assets by file size"
+        tooltip={t("screen_editor.sortAssetsBySize")}
       />
     </ContextMenu>
   );

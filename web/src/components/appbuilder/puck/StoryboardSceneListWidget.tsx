@@ -12,6 +12,7 @@
  * `ResourceRef` and the selection, never entity data.
  */
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -54,12 +55,12 @@ const readShots = (document: unknown): ShotRecord[] | null => {
   return shots.filter(isRecord);
 };
 
-const sceneLabel = (shot: ShotRecord, index: number): string => {
+const sceneLabel = (shot: ShotRecord, index: number, fallback: string): string => {
   for (const key of ["slug", "action", "name"]) {
     const value = shot[key];
     if (isString(value) && value.trim().length > 0) return value;
   }
-  return `Scene ${index + 1}`;
+  return `${fallback} ${index + 1}`;
 };
 
 /** Shots carry their position; renumber after every reorder or removal. */
@@ -78,6 +79,7 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
   allowRemove = true,
   disabled
 }) => {
+  const { t } = useTranslation();
   const { binding, designMode, selected } = useBoundResource(
     resourceBindingId,
     true
@@ -131,8 +133,8 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
     return (
       <Caption color="secondary">
         {designMode
-          ? "Pick a resource binding for this scene list."
-          : "This scene list is not bound to a resource."}
+          ? t("i18n-next53.appBuilder.resources.pickBindingSceneList")
+          : t("i18n-next53.appBuilder.resources.sceneListUnbound")}
       </Caption>
     );
   }
@@ -142,8 +144,7 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
   if (binding.kind !== "storyboard") {
     return (
       <Caption color="secondary">
-        Scene lists need a storyboard binding; “{binding.name}” is a{" "}
-        {binding.kind}.
+        {t("i18n-next53.appBuilder.resources.sceneListNeedsStoryboard", { name: binding.name, kind: binding.kind })}
       </Caption>
     );
   }
@@ -153,7 +154,7 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
       <FlexColumn gap={SPACING.xs} fullWidth>
         <Label>{title}</Label>
         <Caption color="secondary">
-          Scenes appear when the app runs against a storyboard.
+          {t("i18n-next53.appBuilder.storyboard.scenesAppearOnRun")}
         </Caption>
       </FlexColumn>
     );
@@ -171,8 +172,7 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
 
       {staleView ? (
         <AlertBanner severity="warning" compact>
-          This storyboard changed since you opened it. Your edit was not applied
-          — the scenes below have been reloaded.
+          {t("i18n-next53.appBuilder.storyboard.staleEdit")}
         </AlertBanner>
       ) : null}
       {writeError ? (
@@ -182,13 +182,13 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
       ) : null}
 
       {!targetId ? (
-        <Caption color="secondary">Select a storyboard to edit its scenes.</Caption>
+        <Caption color="secondary">{t("i18n-next53.appBuilder.storyboard.selectToEdit")}</Caption>
       ) : shots === null ? (
         <Caption color="secondary">
-          {isLoading ? "Loading…" : "This resource has no scenes."}
+          {isLoading ? t("i18n-next53.appBuilder.status.loading") : t("i18n-next53.appBuilder.storyboard.noScenes")}
         </Caption>
       ) : shots.length === 0 ? (
-        <Caption color="secondary">This storyboard has no scenes yet.</Caption>
+        <Caption color="secondary">{t("i18n-next53.appBuilder.storyboard.noScenesYet")}</Caption>
       ) : (
         <Box
           component="ul"
@@ -197,7 +197,7 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
           sx={{ listStyle: "none", m: 0, p: 0, width: "100%" }}
         >
           {shots.map((shot, index) => {
-            const name = sceneLabel(shot, index);
+            const name = sceneLabel(shot, index, t("i18n-next53.appBuilder.storyboard.scene"));
             return (
               <Box
                 component="li"
@@ -218,29 +218,29 @@ export const StoryboardSceneListWidget: React.FC<StoryboardSceneListProps> = ({
                 </Text>
                 <FlexRow gap={SPACING.xs}>
                   <EditorButton
-                    aria-label={`Move ${name} up`}
+                    aria-label={t("i18n-next53.appBuilder.storyboard.moveUp", { name })}
                     disabled={busy || index === 0}
                     onClick={() => writeShots(swap(shots, index, index - 1))}
                   >
-                    Up
+                    {t("i18n-next53.appBuilder.actions.up")}
                   </EditorButton>
                   <EditorButton
-                    aria-label={`Move ${name} down`}
+                    aria-label={t("i18n-next53.appBuilder.storyboard.moveDown", { name })}
                     disabled={busy || index === shots.length - 1}
                     onClick={() => writeShots(swap(shots, index, index + 1))}
                   >
-                    Down
+                    {t("i18n-next53.appBuilder.actions.down")}
                   </EditorButton>
                   {allowRemove ? (
                     <EditorButton
-                      aria-label={`Remove ${name}`}
+                      aria-label={t("i18n-next53.appBuilder.storyboard.removeScene", { name })}
                       color="warning"
                       disabled={busy}
                       onClick={() =>
                         writeShots(shots.filter((_, i) => i !== index))
                       }
                     >
-                      Remove
+                      {t("i18n-next53.appBuilder.actions.remove")}
                     </EditorButton>
                   ) : null}
                 </FlexRow>

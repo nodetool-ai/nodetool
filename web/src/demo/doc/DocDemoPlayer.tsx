@@ -23,6 +23,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import type { Data } from "@puckeditor/core";
 import { ThemeRoot } from "../../components/ui_primitives";
 import { MemoryRouter } from "react-router-dom";
@@ -126,6 +127,7 @@ export function DocDemoPlayer({
   style,
   focusIds = []
 }: DocDemoPlayerProps): React.JSX.Element {
+  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   useVideoPlayhead(rootRef, mediaTimeMs);
   useMediaReadiness(rootRef, timeMs, onPendingMedia);
@@ -180,6 +182,8 @@ export function DocDemoPlayer({
             >
               <div
                 data-focus-id="document-surface"
+                role="region"
+                aria-label={t("i18n-next93.docDemoPlayer.documentSurface")}
                 style={{ flex: 1, minWidth: 0, overflow: "hidden" }}
               >
                 <DocSurfaceView cast={cast} doc={doc} />

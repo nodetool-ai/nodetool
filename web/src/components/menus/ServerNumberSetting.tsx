@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { NumberField } from "../ui_primitives";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { formatRangeHint } from "./NumberSetting";
 
 interface ServerNumberSettingProps {
   /** Registry env var key (e.g. MAX_CONCURRENT_RUNS_PER_WORKFLOW). */
@@ -31,6 +31,7 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
   max = 100,
   id
 }: ServerNumberSettingProps) {
+  const { t, i18n } = useTranslation();
   const fetchSettings = useRemoteSettingsStore((s) => s.fetchSettings);
   const updateSettings = useRemoteSettingsStore((s) => s.updateSettings);
   const addNotification = useNotificationStore((s) => s.addNotification);
@@ -42,6 +43,7 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
   );
 
   const [local, setLocal] = useState<string>(String(defaultValue));
+  const numberFormatter = new Intl.NumberFormat(i18n.resolvedLanguage);
   useEffect(() => {
     setLocal(value != null && value !== "" ? String(value) : String(defaultValue));
   }, [value, defaultValue]);
@@ -57,9 +59,10 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
         addNotification({
           type: "error",
           alert: true,
-          content: `Could not save ${label}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+          content: t("screens4_6.serverNumberSetting.saveError", {
+            label,
+            error: error instanceof Error ? error.message : String(error)
+          })
         });
       });
     }
@@ -93,7 +96,12 @@ export const ServerNumberSetting = React.memo(function ServerNumberSetting({
       label={label}
       helperText={
         <>
-          {description} {formatRangeHint(min, max, defaultValue)}
+          {description}{" "}
+          {t("screens4_6.serverNumberSetting.rangeHint", {
+            min: numberFormatter.format(min),
+            max: numberFormatter.format(max),
+            defaultValue: numberFormatter.format(defaultValue)
+          })}
         </>
       }
       value={local}

@@ -14,6 +14,7 @@
 
 import React, { memo, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -50,6 +51,7 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
   error = null,
   onCancel
 }) => {
+  const { t } = useTranslation();
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
   const [query, setQuery] = useState("");
   const {
@@ -89,19 +91,21 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
         // makes a second workflow nobody asked for.
         disabled: pickingId !== null,
         disabledReason:
-          pickingId === example.id ? "Copying this one" : "Copying an example"
+          pickingId === example.id
+            ? t("pass3_14.workflowSetup.examples.copyingThisExample")
+            : t("pass3_14.workflowSetup.examples.copyingExample")
       })),
-    [matches, pickingId]
+    [matches, pickingId, t]
   );
 
   return (
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Start from an example
+          {t("pass3_14.workflowSetup.examples.title")}
         </Text>
         <Text size="normal" color="secondary">
-          Pick one and we copy it onto your canvas. Nothing runs.
+          {t("pass3_14.workflowSetup.examples.description")}
         </Text>
       </FlexColumn>
 
@@ -112,7 +116,7 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
             <ReportBugButton
               context={{
                 source: "operation-failure",
-                summary: "Copying a workflow example failed",
+                summary: t("pass3_14.workflowSetup.examples.copyFailed"),
                 errorText: error
               }}
             />
@@ -129,7 +133,8 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
           autoFocus
           value={query}
           onChange={setQuery}
-          placeholder="Search examples"
+          placeholder={t("pass3_14.workflowSetup.examples.searchPlaceholder")}
+          aria-label={t("pass3_14.workflowSetup.examples.searchLabel")}
           showClear
         />
         {/* A copy cannot be stopped once asked for, and it opens what it
@@ -139,7 +144,7 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
           onClick={onCancel}
           disabled={pickingId !== null}
         >
-          Back to your idea
+          {t("pass3_14.workflowSetup.examples.backToIdea")}
         </EditorButton>
       </FlexRow>
 
@@ -147,7 +152,7 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
         <FlexRow gap={GAP.normal} align="center">
           <LoadingSpinner size="small" />
           <Caption color="secondary" component="span">
-            Reading the examples this install ships…
+            {t("pass3_14.workflowSetup.examples.loading")}
           </Caption>
         </FlexRow>
       ) : isError ? (
@@ -161,37 +166,40 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
                   void refetch();
                 }}
               >
-                Try again
+                {t("pass3_14.workflowSetup.examples.tryAgain")}
               </EditorButton>
               <ReportBugButton
                 context={{
                   source: "operation-failure",
-                  summary: "Reading the workflow examples failed",
+                  summary: t("pass3_14.workflowSetup.examples.readFailed"),
                   errorText:
-                    listError?.message ?? "Could not read the examples."
+                    listError?.message ??
+                    t("pass3_14.workflowSetup.examples.readError")
                 }}
               />
             </FlexRow>
           }
         >
-          <Caption component="span">Could not read the examples.</Caption>
+          <Caption component="span">
+            {t("pass3_14.workflowSetup.examples.readError")}
+          </Caption>
         </AlertBanner>
       ) : matches.length === 0 ? (
         <EmptyState
           title={
             examples.length === 0
-              ? "This install ships no examples"
-              : "No example matches that"
+              ? t("pass3_14.workflowSetup.examples.emptyTitle")
+              : t("pass3_14.workflowSetup.examples.noMatchesTitle")
           }
           description={
             examples.length === 0
-              ? "Describe the task instead, or start with a blank canvas."
-              : "Try another word, or describe the task instead."
+              ? t("pass3_14.workflowSetup.examples.emptyDescription")
+              : t("pass3_14.workflowSetup.examples.noMatchesDescription")
           }
         />
       ) : (
         <OptionCardGrid
-          label="Example workflows"
+          label={t("pass3_14.workflowSetup.examples.gridLabel")}
           options={options}
           onSelect={(id) => {
             const example = matches.find((entry) => entry.id === id);
@@ -207,7 +215,7 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
         <FlexRow gap={GAP.normal} align="center">
           <LoadingSpinner size="small" />
           <Caption color="secondary" component="span">
-            Copying the example…
+            {t("pass3_14.workflowSetup.examples.copyingProgress")}
           </Caption>
         </FlexRow>
       ) : null}

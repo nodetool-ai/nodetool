@@ -1,4 +1,5 @@
 import ReportBugButton from "../support/ReportBugButton";
+import { useTranslation } from "react-i18next";
 import type { DocumentLoadState } from "../../stores/documentSync";
 import { EditorButton, EmptyState, FlexColumn, LoadingSpinner } from "../ui_primitives";
 
@@ -20,7 +21,10 @@ interface DocumentLoadStatusProps {
  * straight away shows an empty document — indistinguishable from a document
  * that really is empty. This shows the load instead.
  */
-const DocumentLoadStatus = ({ state, label, onRetry, onClose, closeLabel = "Close tab" }: DocumentLoadStatusProps) => (
+const DocumentLoadStatus = ({ state, label, onRetry, onClose, closeLabel }: DocumentLoadStatusProps) => {
+  const { t } = useTranslation();
+  const title = t("batch2_0.documentLoadTitle", { label });
+  return (
   <FlexColumn
     fullWidth
     fullHeight
@@ -29,21 +33,22 @@ const DocumentLoadStatus = ({ state, label, onRetry, onClose, closeLabel = "Clos
     sx={{ minHeight: 0 }}
   >
     {state === "loading" ? (
-      <LoadingSpinner text={`Loading ${label}`} />
+      <LoadingSpinner text={t("batch2_0.loadingDocument", { label })} />
     ) : (
       <EmptyState
         variant="error"
-        title={`Could not load this ${label}`}
-        description={onRetry ? "The document could not be loaded. It may be unavailable or you may need to reconnect." : "The document could not be loaded. Close the tab and open it again to retry."}
-        actionText={onRetry ? "Retry" : undefined}
+        title={title}
+        description={t(onRetry ? "batch2_0.documentLoadRetryDescription" : "batch2_0.documentLoadCloseDescription")}
+        actionText={onRetry ? t("batch2_0.retry") : undefined}
         onAction={onRetry}
       />
     )}
-    {state === "error" && <ReportBugButton context={{ source: "panel-crash", summary: `Could not load this ${label}` }} />}
+    {state === "error" && <ReportBugButton context={{ source: "panel-crash", summary: title }} />}
     {state === "error" && onClose && (
-      <EditorButton onClick={onClose}>{closeLabel}</EditorButton>
+      <EditorButton onClick={onClose}>{closeLabel ?? t("batch2_0.closeTab")}</EditorButton>
     )}
   </FlexColumn>
-);
+  );
+};
 
 export default DocumentLoadStatus;

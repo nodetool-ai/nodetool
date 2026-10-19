@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -19,7 +20,8 @@ import {
   reducedMotion,
   activateOnKey,
   SHADOW,
-  ICON_SIZE
+  ICON_SIZE,
+  SPACING
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { getOutputFromResult } from "../node/outputResult";
@@ -116,6 +118,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
   onToggleExpanded, onUpdateProperty, onSetOutput, onSetInputMapping,
   onRemove, onDuplicate, onMoveUp, onMoveDown,
 }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const nsColor = getNsColor(node.metadata.namespace);
 
@@ -156,9 +159,9 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       )}
 
       <FlexRow
-        gap={1.5}
+        gap={SPACING.sm}
         align="center"
-        padding={2}
+        padding={SPACING.md}
         onClick={onToggleExpanded}
         onKeyDown={activateOnKey(onToggleExpanded)}
         role="button"
@@ -204,8 +207,8 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       {outputValue != null && !isRunning && (
         <Box
           sx={{
-            px: 2,
-            pb: 1.5,
+            px: SPACING.md,
+            pb: SPACING.sm,
             ...(node.nodeType !== PREVIEW_NODE_TYPE && {
               maxHeight: 300,
               overflow: "auto",
@@ -217,7 +220,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       )}
 
       <Collapse in={node.expanded} unmountOnExit>
-        <FlexColumn gap={1.5} sx={{ px: 2, pb: 2 }}>
+        <FlexColumn gap={SPACING.sm} sx={{ px: SPACING.md, pb: SPACING.md }}>
           {node.metadata.description && (
             <Text size="smaller" color="secondary" lineClamp={3}>
               {node.metadata.description}
@@ -236,7 +239,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
           />
 
           {node.metadata.outputs.length > 1 && (
-            <Box sx={{ pt: 1 }}>
+            <Box sx={{ pt: SPACING.xs }}>
               <OutputSelector
                 outputs={node.metadata.outputs}
                 selectedOutput={node.selectedOutput}
@@ -247,12 +250,12 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
 
           <Divider spacing="compact" color="subtle" />
 
-          <FlexRow gap={0.5} align="center">
-            <ToolbarIconButton ariaLabel="Move node up" size="small" onClick={onMoveUp} disabled={index === 0} tooltip="Move up" icon={<ArrowUpwardIcon sx={{ fontSize: ICON_SIZE.md }} />} />
-            <ToolbarIconButton ariaLabel="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} tooltip="Move down" icon={<ArrowDownwardIcon sx={{ fontSize: ICON_SIZE.md }} />} />
+          <FlexRow gap={SPACING.micro} align="center">
+            <ToolbarIconButton ariaLabel={t("pass3_0.chainEditor.nodeActions.moveNodeUp")} size="small" onClick={onMoveUp} disabled={index === 0} tooltip={t("pass3_0.chainEditor.nodeActions.moveUp")} icon={<ArrowUpwardIcon sx={{ fontSize: ICON_SIZE.md }} />} />
+            <ToolbarIconButton ariaLabel={t("pass3_0.chainEditor.nodeActions.moveNodeDown")} size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} tooltip={t("pass3_0.chainEditor.nodeActions.moveDown")} icon={<ArrowDownwardIcon sx={{ fontSize: ICON_SIZE.md }} />} />
             <Box sx={{ flex: 1 }} />
-            <ToolbarIconButton ariaLabel="Duplicate node" size="small" onClick={onDuplicate} tooltip="Duplicate" icon={<ContentCopyIcon sx={{ fontSize: ICON_SIZE.md }} />} />
-            <ToolbarIconButton ariaLabel="Delete node" size="small" onClick={onRemove} tooltip="Delete" icon={<DeleteOutlineIcon sx={{ fontSize: ICON_SIZE.md }} />} sx={{ color: theme.vars.palette.error.main }} />
+            <ToolbarIconButton ariaLabel={t("pass3_0.chainEditor.nodeActions.duplicateNode")} size="small" onClick={onDuplicate} tooltip={t("pass3_0.chainEditor.nodeActions.duplicate")} icon={<ContentCopyIcon sx={{ fontSize: ICON_SIZE.md }} />} />
+            <ToolbarIconButton ariaLabel={t("pass3_0.chainEditor.nodeActions.deleteNode")} size="small" onClick={onRemove} tooltip={t("pass3_0.chainEditor.nodeActions.delete")} icon={<DeleteOutlineIcon sx={{ fontSize: ICON_SIZE.md }} />} sx={{ color: theme.vars.palette.error.main }} />
           </FlexRow>
         </FlexColumn>
       </Collapse>

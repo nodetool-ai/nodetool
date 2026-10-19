@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -126,8 +127,17 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
   onToggleVisible,
   onDelete
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+  const blendOptions = useMemo(
+    () =>
+      BLEND_MODES.map((option) => ({
+        ...option,
+        label: t(`i18n-next34.layerRow.blendModeOption.${option.value}`)
+      })),
+    [t]
+  );
 
   const handleOpacity = useCallback(
     (_: React.ChangeEvent<HTMLInputElement> | null, value: number) =>
@@ -153,7 +163,10 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
       className={`layer-row ${state.visible ? "" : "is-hidden"}`}
       data-layer-key={propertyKey}
     >
-      <div className="thumb" aria-label={`Layer ${index + 1} thumbnail`}>
+      <div
+        className="thumb"
+        aria-label={t("i18n-next34.layerRow.thumbnail", { index: index + 1 })}
+      >
         {imageUrl ? (
           <img src={imageUrl} alt="" />
         ) : (
@@ -166,7 +179,7 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
           id={`layer-opacity-${propertyKey}`}
           nodeId=""
           name="opacity"
-          description="Layer opacity (0 – 1)"
+          description={t("i18n-next34.layerRow.opacityDescription")}
           value={state.opacity}
           min={0}
           max={1}
@@ -182,11 +195,11 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
 
       <div className="blend">
         <SelectField
-          label={`Layer ${index + 1} blend mode`}
+          label={t("i18n-next34.layerRow.blendMode", { index: index + 1 })}
           hideLabel
           value={state.blend_mode}
           onChange={handleBlend}
-          options={BLEND_MODES}
+          options={blendOptions}
           size="small"
           variant="standard"
           className="blend-select"
@@ -197,16 +210,24 @@ const LayerRowImpl: React.FC<LayerRowProps> = ({
         className="vis-btn"
         icon={state.visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
         onClick={handleToggleVisible}
-        ariaLabel={state.visible ? "Hide layer" : "Show layer"}
-        tooltip={state.visible ? "Hide layer" : "Show layer"}
+        ariaLabel={
+          state.visible
+            ? t("i18n-next34.layerRow.hide")
+            : t("i18n-next34.layerRow.show")
+        }
+        tooltip={
+          state.visible
+            ? t("i18n-next34.layerRow.hide")
+            : t("i18n-next34.layerRow.show")
+        }
       />
 
       <StateIconButton
         className="del-btn"
         icon={<DeleteOutlineIcon fontSize="small" />}
         onClick={handleDelete}
-        ariaLabel="Delete layer"
-        tooltip="Delete layer"
+        ariaLabel={t("i18n-next34.layerRow.delete")}
+        tooltip={t("i18n-next34.layerRow.delete")}
       />
     </div>
   );

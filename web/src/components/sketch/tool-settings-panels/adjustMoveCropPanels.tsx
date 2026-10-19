@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   FlexRow,
@@ -48,11 +49,12 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
   onApply,
   onCancel
 }: AdjustmentsSettingsPanelProps) {
+  const { t } = useTranslation();
   const hasChanges = brightness !== 0 || contrast !== 0 || saturation !== 0;
   return (
     <>
       <Box className="setting-row">
-        <Text className="setting-label">Brightness</Text>
+        <Text className="setting-label">{t("i18n-next13.sketch.adjustments.brightness")}</Text>
         <Slider
           size="small"
           min={-100}
@@ -63,7 +65,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         <Text className="setting-value">{brightness}</Text>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Contrast</Text>
+        <Text className="setting-label">{t("i18n-next13.sketch.adjustments.contrast")}</Text>
         <Slider
           size="small"
           min={-100}
@@ -74,7 +76,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         <Text className="setting-value">{contrast}</Text>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Saturation</Text>
+        <Text className="setting-label">{t("i18n-next13.sketch.adjustments.saturation")}</Text>
         <Slider
           size="small"
           min={-100}
@@ -93,7 +95,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           onClick={onApply}
           sx={{ ...sketchButtonSmallSx, flex: 1 }}
         >
-          Apply
+          {t("i18n-next13.sketch.actions.apply")}
         </EditorButton>
         <EditorButton
           size="small"
@@ -103,7 +105,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           onClick={onCancel}
           sx={{ ...sketchButtonSmallSx, flex: 1 }}
         >
-          Cancel
+          {t("i18n-next13.sketch.actions.cancel")}
         </EditorButton>
       </FlexRow>
     </>
@@ -119,6 +121,7 @@ export const MoveSettingsPanel = memo(function MoveSettingsPanel({
   autoSelect,
   onAutoSelectChange
 }: MoveSettingsPanelProps) {
+  const { t } = useTranslation();
   return (
     <FormControlLabel
       control={
@@ -133,7 +136,7 @@ export const MoveSettingsPanel = memo(function MoveSettingsPanel({
         <Text
           sx={{ ...TYPOGRAPHY.sans.label, userSelect: "none" }}
         >
-          Auto-Select
+          {t("i18n-next13.sketch.transform.autoSelect")}
         </Text>
       }
       sx={{ mr: 2, ml: 0 }}
@@ -166,6 +169,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
   onCancel,
   onReset
 }: TransformSettingsPanelProps) {
+  const { t } = useTranslation();
   const rotDeg = Math.round(((rotation * 180) / Math.PI) * 10) / 10;
   return (
     <>
@@ -182,13 +186,13 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           <Text
             sx={{ ...TYPOGRAPHY.sans.label, userSelect: "none" }}
           >
-            Auto-Select
+            {t("i18n-next13.sketch.transform.autoSelect")}
           </Text>
         }
         sx={{ mr: 2, ml: 0 }}
       />
       <Box className="setting-row">
-        <Text className="setting-label">Mode</Text>
+        <Text className="setting-label">{t("i18n-next13.sketch.transform.mode")}</Text>
         <SketchModeToggle
           value={mode}
           onChange={(_, nextMode: TransformMode | null) => {
@@ -198,13 +202,19 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           }}
         >
           {getToolbarTransformModes().map((modeHandler) => {
+            const modeLabel = t(`i18n-next13.sketch.transform.modes.${modeHandler.id}`);
+            const modeTooltip = modeHandler.id === "distort"
+              ? t("i18n-next13.sketch.transform.modeTooltips.distort")
+              : modeHandler.id === "perspective"
+                ? t("i18n-next13.sketch.transform.modeTooltips.perspective")
+                : undefined;
             const button = (
               <SketchModeOption key={modeHandler.id} value={modeHandler.id}>
-                {modeHandler.label}
+                {modeLabel}
               </SketchModeOption>
             );
-            return modeHandler.tooltip ? (
-              <Tooltip key={modeHandler.id} title={modeHandler.tooltip}>
+            return modeTooltip ? (
+              <Tooltip key={modeHandler.id} title={modeTooltip}>
                 {button}
               </Tooltip>
             ) : (
@@ -214,25 +224,25 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         </SketchModeToggle>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Scale X</Text>
+        <Text className="setting-label">{t("i18n-next13.sketch.transform.scaleX")}</Text>
         <Text className="setting-value">
           {(scaleX * 100).toFixed(0)}%
         </Text>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Scale Y</Text>
+        <Text className="setting-label">{t("i18n-next13.sketch.transform.scaleY")}</Text>
         <Text className="setting-value">
           {(scaleY * 100).toFixed(0)}%
         </Text>
       </Box>
       <Box className="setting-row">
-        <Text className="setting-label">Rotation</Text>
+        <Text className="setting-label">{t("i18n-next13.sketch.transform.rotation")}</Text>
         <Text className="setting-value">{rotDeg}°</Text>
       </Box>
       <FlexRow sx={{ gap: getSpacingPx(SPACING.micro), ml: 1 }}>
         <ToolbarIconButton
           icon={<CheckIcon sx={{ fontSize: ICON_SIZE.md }} />}
-          tooltip="Commit"
+          tooltip={t("i18n-next13.sketch.actions.commit")}
           shortcut={["Enter"]}
           tooltipPlacement="bottom"
           onClick={onCommit}
@@ -240,7 +250,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         />
         <ToolbarIconButton
           icon={<CloseIcon sx={{ fontSize: ICON_SIZE.md }} />}
-          tooltip="Cancel"
+          tooltip={t("i18n-next13.sketch.actions.cancel")}
           shortcut={["Esc"]}
           tooltipPlacement="bottom"
           onClick={onCancel}
@@ -248,7 +258,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         />
         <ToolbarIconButton
           icon={<RestartAltIcon sx={{ fontSize: ICON_SIZE.md }} />}
-          tooltip="Reset"
+          tooltip={t("i18n-next13.sketch.actions.reset")}
           tooltipPlacement="bottom"
           onClick={onReset}
           sx={{ padding: 1, color: SKETCH_COLORS.textSecondary }}
@@ -259,9 +269,10 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
 });
 
 export const NoSettingsMessage = memo(function NoSettingsMessage() {
+  const { t } = useTranslation();
   return (
     <Text sx={{ ...sketchHintTextSx }}>
-      No settings for this tool.
+      {t("i18n-next102.sketch.toolSettings.noSettings")}
     </Text>
   );
 });
@@ -275,16 +286,16 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
   onApply: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <Text sx={{ ...sketchHintTextSx }}>
-        Drag to outline the crop. Drag edges or corners to adjust. Press Enter
-        or Apply to crop the canvas.
+        {t("i18n-next102.sketch.toolSettings.cropInstructions")}
       </Text>
       <FlexRow sx={{ gap: getSpacingPx(SPACING.micro), ml: 1 }}>
         <ToolbarIconButton
           icon={<CheckIcon sx={{ fontSize: ICON_SIZE.md }} />}
-          tooltip="Apply crop"
+          tooltip={t("i18n-next102.sketch.toolSettings.applyCrop")}
           shortcut={["Enter"]}
           tooltipPlacement="bottom"
           disabled={!hasPendingCrop}
@@ -293,7 +304,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
         />
         <ToolbarIconButton
           icon={<CloseIcon sx={{ fontSize: ICON_SIZE.md }} />}
-          tooltip="Cancel crop preview"
+          tooltip={t("i18n-next102.sketch.toolSettings.cancelCropPreview")}
           shortcut={["Esc"]}
           tooltipPlacement="bottom"
           disabled={!hasPendingCrop}

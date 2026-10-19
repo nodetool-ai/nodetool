@@ -5,6 +5,7 @@
  */
 
 import { memo, useCallback, useState, type MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   BORDER_RADIUS,
@@ -61,6 +62,7 @@ const ProjectDocumentCard = ({
   onRename,
   compact = false
 }: ProjectDocumentCardProps) => {
+  const { t } = useTranslation();
   const handleOpen = useCallback(() => onOpen(document), [onOpen, document]);
   const progress = documentProgress(document);
   const editedLine = documentEditedLine(document);
@@ -135,7 +137,7 @@ const ProjectDocumentCard = ({
             </Box>
             {editing ? (
               <InlineEditableText
-                ariaLabel="Document name"
+                ariaLabel={t("pass3_33.projects.documentCard.nameLabel")}
                 value={document.name}
                 editing
                 onEditingChange={setEditing}
@@ -204,7 +206,10 @@ const ProjectDocumentCard = ({
           position={menuPosition}
           onClose={handleCloseMenu}
         >
-          <MenuItemPrimitive label="Rename" onClick={handleBeginRename} />
+          <MenuItemPrimitive
+            label={t("pass3_33.projects.documentCard.rename")}
+            onClick={handleBeginRename}
+          />
         </ContextMenu>
       )}
     </>

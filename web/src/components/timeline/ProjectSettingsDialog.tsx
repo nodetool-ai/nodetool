@@ -12,6 +12,7 @@
  * hook already carries, so applying it is one `setTempo` call on the store.
  */
 import React, { memo, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 import { resolveTempo } from "@nodetool-ai/timeline";
@@ -108,6 +109,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
   open,
   onClose
 }) => {
+  const { t } = useTranslation();
   const { fps, width, height } = useTimelineStore(
     useShallow((s) => ({ fps: s.fps, width: s.width, height: s.height }))
   );
@@ -228,9 +230,9 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
     <Dialog
       open={open}
       onClose={() => onClose()}
-      title="Project settings"
+      title={t("i18n-next3.timeline.projectSettings.title")}
       onConfirm={() => void handleApply()}
-      confirmText="Apply"
+      confirmText={t("i18n-next3.timeline.projectSettings.apply")}
       isLoading={isSaving}
       confirmDisabled={!allValid || !dirty || isSaving}
       maxWidth="xs"
@@ -238,21 +240,21 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
     >
       <FlexColumn gap={SPACING.xl}>
         {/* ── Canvas size ─────────────────────────────────────────── */}
-        <FormSection label="Canvas size">
+        <FormSection label={t("i18n-next3.timeline.projectSettings.canvasSize")}>
           {/* Label hidden — the section header names it; an outlined variant
               keeps it consistent with the Width/Height fields below. */}
           <SelectField
-            label="Canvas preset"
+            label={t("i18n-next3.timeline.projectSettings.canvasPreset")}
             hideLabel
             variant="outlined"
             value={resolutionPreset}
             onChange={handleResolutionPreset}
-            options={RESOLUTION_OPTIONS}
+            options={RESOLUTION_OPTIONS.map((option) => ({ ...option, label: option.value === CUSTOM ? t("i18n-next3.timeline.projectSettings.custom") : t(`i18n-next3.timeline.projectSettings.resolutions.${option.value}`) }))}
             size="small"
           />
           <FlexRow gap={SPACING.lg} align="flex-start">
             <NumberField
-              label="Width"
+              label={t("i18n-next3.timeline.projectSettings.width")}
               size="small"
               value={widthText}
               onChange={(e) => setWidthText(e.target.value)}
@@ -267,7 +269,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               sx={{ flex: 1 }}
             />
             <NumberField
-              label="Height"
+              label={t("i18n-next3.timeline.projectSettings.height")}
               size="small"
               value={heightText}
               onChange={(e) => setHeightText(e.target.value)}
@@ -285,16 +287,16 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
         </FormSection>
 
         {/* ── Frame rate ──────────────────────────────────────────── */}
-        <FormSection label="Frame rate">
+        <FormSection label={t("i18n-next3.timeline.projectSettings.frameRate")}>
           <FlexRow gap={SPACING.lg} align="flex-start">
             <FlexColumn sx={{ flex: 2 }}>
               <SelectField
-                label="Frame rate preset"
+                label={t("i18n-next3.timeline.projectSettings.frameRatePreset")}
                 hideLabel
                 variant="outlined"
                 value={fpsPreset}
                 onChange={handleFpsPreset}
-                options={FPS_OPTIONS}
+                options={FPS_OPTIONS.map((option) => ({ ...option, label: option.value === CUSTOM ? t("i18n-next3.timeline.projectSettings.custom") : option.label }))}
                 size="small"
               />
             </FlexColumn>
@@ -317,7 +319,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
         </FormSection>
 
         {/* ── Tempo ───────────────────────────────────────────────── */}
-        <FormSection label="Tempo">
+        <FormSection label={t("i18n-next3.timeline.projectSettings.tempo")}>
           <FlexRow gap={SPACING.lg} align="flex-start">
             <NumberField
               label="BPM"
@@ -333,7 +335,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               sx={{ flex: 1 }}
             />
             <NumberField
-              label="Beats per bar"
+              label={t("i18n-next3.timeline.projectSettings.beatsPerBar")}
               size="small"
               value={beatsPerBarText}
               onChange={(e) => setBeatsPerBarText(e.target.value)}
@@ -349,7 +351,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
             />
             <FlexColumn sx={{ flex: 1 }}>
               <SelectField
-                label="Beat unit"
+                label={t("i18n-next3.timeline.projectSettings.beatUnit")}
                 variant="outlined"
                 value={beatUnit}
                 onChange={setBeatUnit}
@@ -359,12 +361,12 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
             </FlexColumn>
           </FlexRow>
           <NumberField
-            label="Beat one at"
+            label={t("i18n-next3.timeline.projectSettings.beatOneAt")}
             size="small"
             value={offsetText}
             onChange={(e) => setOffsetText(e.target.value)}
             errorMessage={
-              offsetText !== "" && !offsetValid ? "0 or more" : undefined
+              offsetText !== "" && !offsetValid ? t("i18n-next3.timeline.projectSettings.zeroOrMore") : undefined
             }
             min={0}
             step={1}
@@ -373,16 +375,13 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
           />
           {midiClipCount > 0 && (
             <Caption color="secondary">
-              Your {midiClipCount === 1 ? "part" : "parts"} keep the same notes
-              and play at the new speed — the {midiClipCount === 1 ? "clip" : "clips"}{" "}
-              stretch around beat one. Picture and audio clips stay where they are.
+              {t("i18n-next3.timeline.projectSettings.midiNote", { count: midiClipCount })}
             </Caption>
           )}
         </FormSection>
 
         <Caption color="secondary">
-          Applies to the preview and the exported video. Existing clips keep
-          their own source resolution and are scaled to fit the canvas.
+          {t("i18n-next3.timeline.projectSettings.canvasHelp")}
         </Caption>
       </FlexColumn>
     </Dialog>

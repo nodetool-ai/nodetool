@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
   ANIMATED_PROPERTIES,
@@ -38,17 +39,11 @@ import {
   INSPECTOR_ROW_BUTTON_SX
 } from "./InspectorPrimitives";
 import {
-  EASING_HINT,
-  UNPARSEABLE_EASING_HINT
+  EASING_HINT
 } from "./InspectorMotionFields";
 
 type CustomCurve = CustomClipAnimation["curves"][number];
 type CustomKeyframe = CustomCurve["keyframes"][number];
-
-const PROPERTY_OPTIONS = ANIMATED_PROPERTIES.map((property) => ({
-  value: property,
-  label: property
-}));
 
 const DEFAULT_KEYFRAMES: CustomKeyframe[] = [
   { t: 0, value: 0 },
@@ -104,6 +99,7 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
     onPatch,
     onRemove
   }) => {
+    const { t } = useTranslation();
     const handleTimeCommit = useCallback(
       (raw: string) => {
         const t = Number(raw);
@@ -152,7 +148,7 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
               minWidth={52}
               scrub={SCRUB_T}
               onCommit={handleTimeCommit}
-              ariaLabel={`${name} time`}
+              ariaLabel={t("pass3_24.timeline.customCurves.keyframeTime", { name })}
             />
           )}
           <InspectorPillInput
@@ -160,27 +156,27 @@ const KeyframeRow: React.FC<KeyframeRowProps> = memo(
             minWidth={64}
             scrub={SCRUB_VALUE}
             onCommit={handleValueCommit}
-            ariaLabel={`${name} value`}
+            ariaLabel={t("pass3_24.timeline.customCurves.keyframeValue", { name })}
           />
           <InspectorPillInput
             value={keyframe.easing ?? ""}
-            placeholder="linear"
+            placeholder={t("pass3_24.timeline.customCurves.linearPlaceholder")}
             allowEmpty
             minWidth={96}
             onCommit={handleEasingCommit}
-            ariaLabel={`${name} easing`}
+            ariaLabel={t("pass3_24.timeline.customCurves.keyframeEasing", { name })}
           />
           <DeleteButton
             onClick={handleRemove}
             disabled={!canRemove}
-            tooltip={`Delete ${name}`}
-            ariaLabel={`Delete ${name}`}
+            tooltip={t("pass3_24.timeline.customCurves.deleteKeyframe", { name })}
+            ariaLabel={t("pass3_24.timeline.customCurves.deleteKeyframe", { name })}
             iconVariant="clear"
             sx={INSPECTOR_ROW_BUTTON_SX}
           />
         </FlexRow>
         {easingUnparseable && (
-          <Caption color="muted">{UNPARSEABLE_EASING_HINT}</Caption>
+          <Caption color="muted">{t("pass3_24.timeline.customCurves.unparseableEasingHint")}</Caption>
         )}
       </FlexColumn>
     );
@@ -216,7 +212,11 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
     onPatchKeyframe,
     onRemoveKeyframe
   }) => {
-    const curveLabel = `${labelPrefix} curve ${curveIndex + 1}`;
+    const { t } = useTranslation();
+    const curveLabel = t("pass3_24.timeline.customCurves.curveLabel", {
+      prefix: labelPrefix,
+      index: curveIndex + 1
+    });
     const handleRemove = useCallback(
       () => onRemoveCurve(curveIndex),
       [curveIndex, onRemoveCurve]
@@ -236,20 +236,23 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
     return (
       <FlexColumn gap={SPACING.xs}>
         <FlexRow align="center" justify="space-between" gap={SPACING.md}>
-          <Text size="small">Curve {curveIndex + 1}</Text>
+          <Text size="small">{t("pass3_24.timeline.customCurves.curveTitle", { index: curveIndex + 1 })}</Text>
           <DeleteButton
             onClick={handleRemove}
-            tooltip={`Delete ${curveLabel}`}
-            ariaLabel={`Delete ${curveLabel}`}
+            tooltip={t("pass3_24.timeline.customCurves.deleteCurve", { name: curveLabel })}
+            ariaLabel={t("pass3_24.timeline.customCurves.deleteCurve", { name: curveLabel })}
             iconVariant="clear"
             sx={INSPECTOR_ROW_BUTTON_SX}
           />
         </FlexRow>
-        <InspectorRow label="Property">
+        <InspectorRow label={t("pass3_24.timeline.customCurves.property")}>
           <InspectorSelect
-            label={`${curveLabel} property`}
+            label={t("pass3_24.timeline.customCurves.curveProperty", { name: curveLabel })}
             value={curve.property}
-            options={PROPERTY_OPTIONS}
+            options={ANIMATED_PROPERTIES.map((property) => ({
+              value: property,
+              label: t(`pass3_24.timeline.customCurves.properties.${property}`)
+            }))}
             onChange={handlePropertyChange}
             grow
           />
@@ -260,7 +263,10 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
             keyframe={keyframe}
             curveIndex={curveIndex}
             keyIndex={keyIndex}
-            name={`${curveLabel} keyframe ${keyIndex + 1}`}
+            name={t("pass3_24.timeline.customCurves.keyframeLabel", {
+              name: curveLabel,
+              index: keyIndex + 1
+            })}
             sourceAnchored={sourceAnchored}
             canRemove={curve.keyframes.length > 1}
             onPatch={onPatchKeyframe}
@@ -273,7 +279,7 @@ const CurveEditor: React.FC<CurveEditorProps> = memo(
           startIcon={<AddOutlinedIcon />}
           onClick={handleAddKeyframe}
         >
-          {`Add keyframe to curve ${curveIndex + 1}`}
+          {t("pass3_24.timeline.customCurves.addKeyframeToCurve", { index: curveIndex + 1 })}
         </Button>
       </FlexColumn>
     );
@@ -297,6 +303,7 @@ interface ClipCustomCurvesProps {
 
 export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
   ({ custom, labelPrefix, sourceAnchored, onChange }) => {
+    const { t } = useTranslation();
     const curves = custom?.curves ?? EMPTY_CURVES;
     const bakedFromCode = custom?.code !== undefined;
     const bakedFrom = custom?.bakedFrom;
@@ -393,8 +400,9 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
     if (bakedFromCode) {
       return (
         <Caption color="muted">
-          Baked from JavaScript{custom?.bakedAt ? ` on ${custom.bakedAt}` : ""}.
-          Re-bake the script to change these curves.
+          {t("pass3_24.timeline.customCurves.bakedFromJavaScript", {
+            date: custom?.bakedAt ? t("pass3_24.timeline.customCurves.bakedOn", { date: custom.bakedAt }) : ""
+          })}
         </Caption>
       );
     }
@@ -403,11 +411,11 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
       <FlexColumn gap={SPACING.md}>
         {sourceAnchored && (
           <Caption color="muted">
-            Keyframes are placed on the media clock (source ms)
+            {t("pass3_24.timeline.customCurves.sourceClockHint")}
           </Caption>
         )}
         {bakedFrom && (
-          <Caption color="muted">{`Baked from ${bakedFrom.kind}.`}</Caption>
+          <Caption color="muted">{t("pass3_24.timeline.customCurves.bakedFrom", { kind: bakedFrom.kind })}</Caption>
         )}
         {curves.map((curve, curveIndex) => (
           <CurveEditor
@@ -425,13 +433,13 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
         ))}
         <Caption color="muted">
           {sourceAnchored
-            ? "Columns are source time (ms, read-only), value, and easing: "
-            : "Columns are time (0..1 across the animation), value, and easing: "}
-          {EASING_HINT}
+            ? t("pass3_24.timeline.customCurves.sourceColumnsHint")
+            : t("pass3_24.timeline.customCurves.normalizedColumnsHint")}{" "}
+          {t("pass3_24.timeline.customCurves.easingOptions", { options: EASING_HINT })}
         </Caption>
         {curvesError && (
           <Caption color="error" role="alert">
-            {`These curves will not play: ${curvesError}.`}
+            {t("pass3_24.timeline.customCurves.curvesWillNotPlay", { error: curvesError })}
           </Caption>
         )}
         <Button
@@ -441,7 +449,7 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
           onClick={addCurve}
           disabled={nextProperty === undefined}
         >
-          Add curve
+          {t("pass3_24.timeline.customCurves.addCurve")}
         </Button>
       </FlexColumn>
     );

@@ -1,4 +1,5 @@
 import React, { memo, useState, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -32,8 +33,10 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   value,
   recommendedModels,
   modelPacks,
-  voiceLabel = "Voice"
+  voiceLabel
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
+  const resolvedVoiceLabel = voiceLabel ?? t("tts.voice");
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
@@ -177,7 +180,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
     return (
       <CuratedModelSelect
         capability="text_to_speech"
-        label={voiceLabel}
+        label={resolvedVoiceLabel}
         options={STUDIO_VOICES}
         value={selectedVoice}
         onChange={onChange}
@@ -191,9 +194,9 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
         ref={buttonRef}
         active={!!modelId}
         label={
-          currentSelectedModelDetails?.name || modelId || "Select TTS model"
+            currentSelectedModelDetails?.name || modelId || t("tts.selectModel")
         }
-        subLabel="Select text-to-speech model"
+        subLabel={t("tts.selectModelDescription")}
         onClick={handleClick}
       />
 
@@ -202,8 +205,8 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
           options={voiceOptions}
           value={selectedVoice || availableVoices[0] || ""}
           onChange={handleVoiceChange}
-          placeholder="Select voice"
-          label={voiceLabel}
+          placeholder={t("tts.selectVoice")}
+          label={resolvedVoiceLabel}
         />
       )}
 

@@ -4,6 +4,7 @@
  */
 
 import React, { useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
@@ -26,7 +27,7 @@ interface MiniNodeProps {
   height: number;
 }
 
-const MiniNode: React.FC<MiniNodeProps> = memo(function MiniNode({ node, x, y, status, width, height }) {
+const MiniNode: React.FC<MiniNodeProps & { genericNode: string }> = memo(function MiniNode({ node, x, y, status, width, height, genericNode }) {
   const theme = useTheme();
 
   // theme.vars (CSS variables) so the colours follow the active light/dark
@@ -61,7 +62,7 @@ const MiniNode: React.FC<MiniNodeProps> = memo(function MiniNode({ node, x, y, s
         fontWeight={status !== "unchanged" ? "bold" : "normal"}
         style={{ pointerEvents: "none" }}
       >
-        {node.type?.split(".").pop() || "Node"}
+        {node.type?.split(".").pop() || genericNode}
       </text>
       {status !== "unchanged" && (
         <circle
@@ -108,6 +109,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
   width = 280,
   height = 180
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "batch2_9" });
   const theme = useTheme();
 
   const nodePositions = useMemo(() => {
@@ -231,7 +233,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           align="center"
           justify="center"
         >
-          <EmptyState variant="no-data" size="small" title="No changes to display" />
+          <EmptyState variant="no-data" size="small" title={t("versionDiff.noChangesToDisplay")} />
         </FlexColumn>
       </Surface>
     );
@@ -310,10 +312,10 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
               title={
                 <FlexColumn gap={0} align="flex-start">
                     <Caption sx={{ fontWeight: 600 }}>
-                      {node.type?.split(".").pop() || "Node"}
+                      {node.type?.split(".").pop() || t("versionDiff.genericNode")}
                     </Caption>
                     <Caption>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {t(`versionDiff.status.${status}`)}
                     </Caption>
                   </FlexColumn>
                 }
@@ -324,6 +326,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
                     x={pos.x - nodeWidth / 2}
                     y={pos.y - nodeHeight / 2}
                     status={status}
+                    genericNode={t("versionDiff.genericNode")}
                     width={nodeWidth}
                     height={nodeHeight}
                   />

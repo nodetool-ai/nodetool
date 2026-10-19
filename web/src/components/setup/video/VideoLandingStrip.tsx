@@ -17,6 +17,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Caption,
@@ -75,6 +76,7 @@ type SetupPatch = Parameters<
 const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
   onExport
 }) => {
+  const { t } = useTranslation();
   const stage = useTimelineStore((state) => state.setup?.stage);
   const clips = useTimelineStore((state) => state.clips);
   const setScriptEnabled = useTimelineStore((state) => state.setScriptEnabled);
@@ -128,42 +130,48 @@ const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
       align="center"
       padding={PADDING.compact}
       role="region"
-      aria-label="Video next steps"
+      aria-label={t("pass3_13.video.landing.accessibility.regionLabel")}
     >
       {rendering.length > 0 ? (
         <Text size="small" color="secondary" role="status">
-          {`Rendering ${rendering.length} clip${rendering.length === 1 ? "" : "s"}`}
+          {t("pass3_13.video.landing.rendering", { count: rendering.length })}
           {remaining === null
             ? ""
-            : ` · typical duration ${formatSeconds(remaining)}`}
+            : ` · ${t("pass3_13.video.landing.typicalDuration", {
+                duration: formatSeconds(remaining, t)
+              })}`}
         </Text>
       ) : null}
       {failedClipIds.length > 0 ? (
         <EditorButton variant="outlined" onClick={handleRetry}>
-          {`Retry ${failedClipIds.length} failed`}
+          {t("pass3_13.video.landing.retryFailed", {
+            count: failedClipIds.length
+          })}
         </EditorButton>
       ) : null}
       {done && !dismissed ? (
         <>
-          <Caption color="secondary">Next:</Caption>
+          <Caption color="secondary">
+            {t("pass3_13.video.landing.next")}
+          </Caption>
           {clips.length > 0 ? (
             <EditorButton
               variant="text"
               onClick={onExport}
               disabled={!onExport}
             >
-              Export
+              {t("pass3_13.video.landing.export")}
             </EditorButton>
           ) : null}
           <EditorButton variant="text" onClick={handleCaptions}>
-            Add captions
+            {t("pass3_13.video.landing.addCaptions")}
           </EditorButton>
         </>
       ) : null}
       {dismissed ? null : (
         <CloseButton
           onClick={handleDismiss}
-          tooltip="Hide next steps"
+          tooltip={t("pass3_13.video.landing.accessibility.hideNextSteps")}
           sx={{ marginLeft: "auto" }}
         />
       )}

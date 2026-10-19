@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 import React, {
   memo,
   useCallback,
@@ -294,6 +295,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   renderSingle,
   output
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next9" });
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   // Generation timeline drives selection (oldest→newest, current = selected ?? latest).
@@ -695,10 +697,10 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     const meaningful = runs.length > 1 || currentRun.variants.length > 1;
     if (!meaningful) return "";
     const pos = withinRunIndex >= 0 ? withinRunIndex + 1 : 1;
-    return `Run ${runIndex + 1} · ${pos}/${currentRun.variants.length}`;
+    return t("nodeHistory.runPosition", { run: runIndex + 1, position: pos, count: currentRun.variants.length });
   })();
   const detailText = (() => {
-    if (showingLive) return "Live";
+    if (showingLive) return t("nodeHistory.live");
     if (!currentAsset) return "";
     if (currentAsset.content_type?.startsWith("image/")) {
       return imageDims ? `${imageDims.width}x${imageDims.height}` : "";
@@ -784,7 +786,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
             showZero
             size="small"
             color="secondary"
-            ariaLabel={`Pick ${pick}`}
+            ariaLabel={t("nodeHistory.pick", { count: pick })}
             sx={PICK_BADGE_SX}
           />
         ) : null}
@@ -810,7 +812,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
             className="grid nodrag nopan nowheel"
             role="listbox"
             aria-multiselectable={hasDownstream || undefined}
-            aria-label="Generations"
+            aria-label={t("nodeHistory.generations")}
             onPointerDown={stopNodeSelection}
             onClick={handleGridClick}
             onKeyDown={handleGridKeyDown}
@@ -837,7 +839,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                         status={statusType}
                         showIcon
                         pulse={run.status === "running"}
-                        tooltip={run.status}
+                        tooltip={t(`nodeHistory.status.${run.status}`)}
                       />
                     ) : null}
                   </header>
@@ -857,22 +859,22 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
       <div className="node-history-overlay overlay-top-left">
         <div className="overlay-cluster">
           <ToolbarIconButton
-            title={effectiveView === "single" ? "Show grid" : "Show single"}
+            title={effectiveView === "single" ? t("nodeHistory.showGrid") : t("nodeHistory.showSingle")}
             size="small"
             onClick={handleToggleView}
             className="overlay-icon-btn"
-            aria-label="Toggle view"
+            aria-label={t("nodeHistory.toggleView")}
           >
             {effectiveView === "single" ? <GridViewIcon /> : <CropSquareIcon />}
           </ToolbarIconButton>
           {showPagination ? (
             <>
               <ToolbarIconButton
-                title="Previous"
+                title={t("nodeHistory.previous")}
                 size="small"
                 onClick={handlePrev}
                 className="overlay-icon-btn"
-                aria-label="Previous output"
+                aria-label={t("nodeHistory.previousOutput")}
               >
                 <KeyboardArrowLeftIcon />
               </ToolbarIconButton>
@@ -880,11 +882,11 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                 {`${currentIndex + 1} / ${generations.length}`}
               </span>
               <ToolbarIconButton
-                title="Next"
+                title={t("nodeHistory.next")}
                 size="small"
                 onClick={handleNext}
                 className="overlay-icon-btn"
-                aria-label="Next output"
+                aria-label={t("nodeHistory.nextOutput")}
               >
                 <KeyboardArrowRightIcon />
               </ToolbarIconButton>
@@ -904,22 +906,22 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
             />
           ) : null}
           <ToolbarIconButton
-            title={hasTextToOpen ? "Open full text" : "Open in viewer"}
+            title={hasTextToOpen ? t("nodeHistory.openFullText") : t("nodeHistory.openInViewer")}
             size="small"
             onClick={handleOpenViewer}
             disabled={!canOpen}
             className="overlay-icon-btn"
-            aria-label={hasTextToOpen ? "Open full text" : "Open in viewer"}
+            aria-label={hasTextToOpen ? t("nodeHistory.openFullText") : t("nodeHistory.openInViewer")}
           >
             <OpenInFullIcon />
           </ToolbarIconButton>
           <ToolbarIconButton
-            title="Download"
+            title={t("nodeHistory.download")}
             size="small"
             onClick={handleDownload}
             disabled={!currentAsset || showingLive}
             className="overlay-icon-btn"
-            aria-label="Download current output"
+            aria-label={t("nodeHistory.downloadCurrentOutput")}
           >
             <DownloadIcon />
           </ToolbarIconButton>
@@ -945,7 +947,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           runtime won't actually deliver to a disconnected node. */}
       {hasDownstream && selectedIds.length >= 2 ? (
         <div className="downstream-caption">
-          <span className="caption-pill">{`${selectedIds.length} → downstream`}</span>
+          <span className="caption-pill">{t("nodeHistory.downstreamCount", { count: selectedIds.length })}</span>
         </div>
       ) : null}
 
@@ -962,10 +964,10 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         <Dialog
           open={viewerOpen}
           onClose={handleCloseViewer}
-          title="Generated text"
+          title={t("nodeHistory.generatedText")}
           maxWidth="md"
           fullWidth
-          titleActions={<CopyButton value={currentText} tooltip="Copy text" />}
+          titleActions={<CopyButton value={currentText} tooltip={t("nodeHistory.copyText")} />}
         >
           <ScrollArea className="text-popup nowheel" maxHeight="70vh">
             <TextRenderer text={currentText} showActions={false} />

@@ -4,6 +4,7 @@
 // for the chosen style, and APPLY writes them. UNDO restores the settings
 // from before APPLY.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BLOCK_RATE, COMP_STYLES, compStyleById, fitComp } from '../../engine/autoComp';
 import type { FxTelemetryEngine } from './fxAdapter';
 
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function AutoCompStrip({ engine, tap, id, params, setParam }: Props) {
+  const { t } = useTranslation();
   const [styleId, setStyleId] = useState(tap?.style ?? 'glue');
   const [depth, setDepth] = useState(1);
   const [progress, setProgress] = useState<number | null>(null);
@@ -100,9 +102,13 @@ export function AutoCompStrip({ engine, tap, id, params, setParam }: Props) {
 
   const unavailable = !tap?.source && tap?.note;
   const status = unavailable ? tap!.note!
-    : progress !== null ? `LISTENING ${Math.round(progress * 100)}%`
-    : fit ? `${fit.threshold.toFixed(1)} dB · ${fit.ratio}:1 · ${(fit.attack * 1000).toFixed(fit.attack < 0.001 ? 1 : 0)}/${Math.round(fit.release * 1000)} ms · ≈${fit.loudGr.toFixed(1)} dB GR${fit.bpm ? ` · ${fit.bpm} BPM` : ''}${fit.exact ? '' : ' · EST'}${fit.threshold <= -40 && fit.loudGr < style.targetGr * depth - 0.5 ? ' · TOO QUIET FOR THIS STYLE' : ''}`
-    : 'PLAY, THEN LEARN';
+    : progress !== null ? t('i18n-next44-fablesynth-controls.autoComp.listening', { percent: Math.round(progress * 100) })
+    : fit ? t('i18n-next44-fablesynth-controls.autoComp.fitStatus', {
+      threshold: fit.threshold.toFixed(1), ratio: fit.ratio, attack: (fit.attack * 1000).toFixed(fit.attack < 0.001 ? 1 : 0), release: Math.round(fit.release * 1000),
+      gainReduction: fit.loudGr.toFixed(1), bpm: fit.bpm ? ` · ${fit.bpm} BPM` : '', estimate: fit.exact ? '' : ` · ${t('i18n-next44-fablesynth-controls.autoComp.estimate')}`,
+      tooQuiet: fit.threshold <= -40 && fit.loudGr < style.targetGr * depth - 0.5 ? ` · ${t('i18n-next44-fablesynth-controls.autoComp.tooQuiet')}` : ''
+    })
+    : t('i18n-next44-fablesynth-controls.autoComp.playThenLearn');
 
   // Histogram of the blocks' mean detector level with the fitted threshold.
   const hist = useMemo(() => {
@@ -115,24 +121,24 @@ export function AutoCompStrip({ engine, tap, id, params, setParam }: Props) {
 
   return <div className="comp-auto">
     <div className="comp-auto-row">
-      <select aria-label="Auto-comp style" value={styleId} title={style.hint} onChange={e => setStyleId(e.target.value)}>
-        {COMP_STYLES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+      <select aria-label={t('i18n-next44-fablesynth-controls.autoComp.style')} value={styleId} title={t(`i18n-next44-fablesynth-controls.autoComp.styles.${styleId}Hint`, { defaultValue: style.hint })} onChange={e => setStyleId(e.target.value)}>
+        {COMP_STYLES.map(s => <option key={s.id} value={s.id}>{t(`i18n-next44-fablesynth-controls.autoComp.styles.${s.id}`, { defaultValue: s.label })}</option>)}
       </select>
-      <label className="comp-auto-depth" title="Scales the style's gain reduction">
-        <input type="range" min={0.25} max={2} step={0.05} value={depth} aria-label="Auto-comp depth" onChange={e => setDepth(+e.target.value)} />
+      <label className="comp-auto-depth" title={t('i18n-next44-fablesynth-controls.autoComp.depthHelp')}>
+        <input type="range" min={0.25} max={2} step={0.05} value={depth} aria-label={t('i18n-next44-fablesynth-controls.autoComp.depth')} onChange={e => setDepth(+e.target.value)} />
         <output>{Math.round(depth * 100)}%</output>
       </label>
     </div>
     {hist && fit && <svg className="comp-auto-hist" viewBox="0 0 300 34" preserveAspectRatio="none" role="img"
-      aria-label={`Input level histogram, threshold ${fit.threshold.toFixed(1)} dB`}>
+      aria-label={t('i18n-next44-fablesynth-controls.autoComp.histogram', { threshold: fit.threshold.toFixed(1) })}>
       {hist.map((h, i) => <rect key={i} x={i * 10 + 1} y={32 - h * 28} width={8} height={h * 28} className={i * 2 - 60 >= fit.threshold ? 'over' : ''} />)}
       <line x1={(fit.threshold + 60) * 5} x2={(fit.threshold + 60) * 5} y1={0} y2={34} />
     </svg>}
     <div className="comp-auto-row">
       <button type="button" className={`comp-auto-learn${progress !== null ? ' on' : ''}`} disabled={!!unavailable}
-        style={{ '--p': progress ?? 0 } as React.CSSProperties} onClick={learn}>{progress !== null ? 'STOP' : learned ? 'RELEARN' : 'LEARN'}</button>
-      <button type="button" disabled={!fit || progress !== null} onClick={apply}>APPLY</button>
-      <button type="button" disabled={!undo} onClick={revert}>UNDO</button>
+        style={{ '--p': progress ?? 0 } as React.CSSProperties} onClick={learn}>{progress !== null ? t('i18n-next44-fablesynth-controls.autoComp.stop') : learned ? t('i18n-next44-fablesynth-controls.autoComp.relearn') : t('i18n-next44-fablesynth-controls.autoComp.learn')}</button>
+      <button type="button" disabled={!fit || progress !== null} onClick={apply}>{t('i18n-next44-fablesynth-controls.autoComp.apply')}</button>
+      <button type="button" disabled={!undo} onClick={revert}>{t('i18n-next44-fablesynth-controls.autoComp.undo')}</button>
     </div>
     <p className="comp-auto-status">{status}</p>
   </div>;

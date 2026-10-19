@@ -16,6 +16,7 @@
  * and nowhere else.
  */
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RedoIcon from "@mui/icons-material/Redo";
 import UndoIcon from "@mui/icons-material/Undo";
@@ -102,6 +103,7 @@ interface PadToolbarProps {
  * layer stack for.
  */
 const PadToolbar: React.FC<PadToolbarProps> = ({ onUndo, onRedo, onClear }) => {
+  const { t } = useTranslation();
   const activeTool = useSketchStore((s) => s.activeTool);
   const canUndo = useSketchStore((s) => s.canUndo());
   const canRedo = useSketchStore((s) => s.canRedo());
@@ -165,7 +167,7 @@ const PadToolbar: React.FC<PadToolbarProps> = ({ onUndo, onRedo, onClear }) => {
         {SKETCH_PRESET_SWATCHES.map((color) => (
           <IconButton
             key={color}
-            aria-label={`Color ${color}`}
+            aria-label={t("i18n-next53.appBuilder.sketch.color", { color })}
             onClick={() => setColor(color)}
             sx={swatchStyles(color, foregroundColor === color)}
           />
@@ -174,7 +176,7 @@ const PadToolbar: React.FC<PadToolbarProps> = ({ onUndo, onRedo, onClear }) => {
 
       {SIZED_TOOLS.includes(activeTool) ? (
         <Slider
-          aria-label="Stroke size"
+          aria-label={t("i18n-next53.appBuilder.sketch.strokeSize")}
           size="small"
           value={size}
           min={MIN_STROKE_SIZE}
@@ -188,11 +190,11 @@ const PadToolbar: React.FC<PadToolbarProps> = ({ onUndo, onRedo, onClear }) => {
       ) : null}
 
       <FlexRow align="center" gap={SPACING.xs} sx={{ marginLeft: "auto" }}>
-        <Tooltip title="Undo">
+        <Tooltip title={t("i18n-next53.appBuilder.actions.undo")}>
           <span>
             <IconButton
               size="small"
-              aria-label="Undo"
+              aria-label={t("i18n-next53.appBuilder.actions.undo")}
               disabled={!canUndo}
               onClick={onUndo}
             >
@@ -200,11 +202,11 @@ const PadToolbar: React.FC<PadToolbarProps> = ({ onUndo, onRedo, onClear }) => {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Redo">
+        <Tooltip title={t("i18n-next53.appBuilder.actions.redo")}>
           <span>
             <IconButton
               size="small"
-              aria-label="Redo"
+              aria-label={t("i18n-next53.appBuilder.actions.redo")}
               disabled={!canRedo}
               onClick={onRedo}
             >
@@ -212,8 +214,8 @@ const PadToolbar: React.FC<PadToolbarProps> = ({ onUndo, onRedo, onClear }) => {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Clear">
-          <IconButton size="small" aria-label="Clear" onClick={onClear}>
+        <Tooltip title={t("i18n-next53.appBuilder.actions.clear")}>
+          <IconButton size="small" aria-label={t("i18n-next53.appBuilder.actions.clear")} onClick={onClear}>
             <DeleteOutlineIcon fontSize="small" />
           </IconButton>
         </Tooltip>

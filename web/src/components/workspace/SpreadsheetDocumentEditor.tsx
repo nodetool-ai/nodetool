@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -80,6 +81,7 @@ const SpreadsheetDocumentEditor = ({
   readOnly = false,
   active = false
 }: SpreadsheetDocumentEditorProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const editorStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -189,7 +191,7 @@ const SpreadsheetDocumentEditor = ({
         ? [
             {
               id: "save",
-              label: "Save",
+              label: t("i18n-next51.common.save"),
               run: handleSave,
               shortcut: isMac() ? "⌘S" : "Ctrl+S"
             }
@@ -222,7 +224,7 @@ const SpreadsheetDocumentEditor = ({
             errorText: error.message
           }}
         >
-          Could not load this spreadsheet.
+          {t("i18n-next51.spreadsheet.loadError")}
         </ErrorBanner>
       </FlexColumn>
     );
@@ -245,7 +247,7 @@ const SpreadsheetDocumentEditor = ({
         fullHeight
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
-        <EmptyState size="small" variant="no-data" title="This workbook has no sheets" />
+        <EmptyState size="small" variant="no-data" title={t("i18n-next51.spreadsheet.noSheets")} />
       </FlexColumn>
     );
   }
@@ -265,7 +267,7 @@ const SpreadsheetDocumentEditor = ({
               {sheetOptions.length > 1 && (
                 <SelectField
                   className="sheet-select"
-                  label="Sheet"
+                  label={t("i18n-next51.spreadsheet.sheet")}
                   hideLabel
                   size="small"
                   value={activeIndex}
@@ -285,7 +287,7 @@ const SpreadsheetDocumentEditor = ({
                   disabled={!isDirty || isSaving}
                   onClick={handleSave}
                 >
-                  {isSaving ? "Saving…" : "Save"}
+                  {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
                 </EditorButton>
               )}
             </>

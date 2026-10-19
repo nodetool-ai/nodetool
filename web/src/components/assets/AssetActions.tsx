@@ -1,4 +1,5 @@
 import { useCallback, memo, useState, type MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import SortIcon from "@mui/icons-material/Sort";
@@ -28,24 +29,24 @@ import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
 
 type AssetsOrder = "name" | "date" | "size";
 
-const SORT_OPTIONS: { key: AssetsOrder; label: string; short: string }[] = [
-  { key: "date", label: "Newest first", short: "Newest" },
-  { key: "name", label: "Name (A to Z)", short: "Name" },
-  { key: "size", label: "Largest first", short: "Largest" }
+const SORT_OPTIONS: { key: AssetsOrder; labelKey: string; shortKey: string }[] = [
+  { key: "date", labelKey: "sortOptions.newestFirst", shortKey: "sortOptions.newest" },
+  { key: "name", labelKey: "sortOptions.nameAZ", shortKey: "sortOptions.name" },
+  { key: "size", labelKey: "sortOptions.largestFirst", shortKey: "sortOptions.largest" }
 ];
 
-const SIZE_LABELS: Record<SizeFilterKey, string> = {
-  all: "Any size",
-  empty: "Empty files",
-  small: "Under 1 MB",
-  medium: "1 to 10 MB",
-  large: "10 to 100 MB",
-  xlarge: "Over 100 MB"
+const SIZE_LABEL_KEYS: Record<SizeFilterKey, string> = {
+  all: "sizeFilters.anySize",
+  empty: "sizeFilters.emptyFiles",
+  small: "sizeFilters.under1MB",
+  medium: "sizeFilters.1to10MB",
+  large: "sizeFilters.10to100MB",
+  xlarge: "sizeFilters.over100MB"
 };
 
 const VIEW_OPTIONS = [
-  { value: "grid", icon: <GridViewIcon fontSize="small" />, label: "Grid view" },
-  { value: "list", icon: <ViewListIcon fontSize="small" />, label: "List view" }
+  { value: "grid", icon: <GridViewIcon fontSize="small" />, labelKey: "viewOptions.grid" },
+  { value: "list", icon: <ViewListIcon fontSize="small" />, labelKey: "viewOptions.list" }
 ];
 
 interface AssetActionsProps {
@@ -61,6 +62,7 @@ const AssetActions = ({
   handleSelectAllAssets,
   maxItemSize = 10
 }: AssetActionsProps) => {
+  const { t } = useTranslation(undefined, { keyPrefix: "i18n-next57" });
   const { isLoading } = useAssets();
   const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore(
     useShallow(
@@ -78,8 +80,10 @@ const AssetActions = ({
   const [sizeAnchor, setSizeAnchor] = useState<HTMLElement | null>(null);
 
   const sortLabel =
-    SORT_OPTIONS.find((option) => option.key === settings.assetsOrder)
-      ?.short ?? "Name";
+    t(
+      SORT_OPTIONS.find((option) => option.key === settings.assetsOrder)
+        ?.shortKey ?? "sortOptions.name"
+    );
 
   const handleItemSize = useCallback(
     (_event: Event, value: number | number[]) => {
@@ -112,11 +116,11 @@ const AssetActions = ({
         density="compact"
         startIcon={<SortIcon />}
         endIcon={<ArrowDropDownIcon />}
-        tooltip="Sort files"
+        tooltip={t("actions.sortFiles")}
         aria-haspopup="menu"
         onClick={(e) => setSortAnchor(e.currentTarget)}
       >
-        {`Sort: ${sortLabel}`}
+        {t("actions.sort", { label: sortLabel })}
       </EditorButton>
       <EditorButton
         variant="text"
@@ -124,11 +128,11 @@ const AssetActions = ({
         density="compact"
         startIcon={<StraightenIcon />}
         endIcon={<ArrowDropDownIcon />}
-        tooltip="Filter by file size"
+        tooltip={t("actions.filterByFileSize")}
         aria-haspopup="menu"
         onClick={(e) => setSizeAnchor(e.currentTarget)}
       >
-        {SIZE_LABELS[sizeFilter]}
+        {t(SIZE_LABEL_KEYS[sizeFilter])}
       </EditorButton>
 
       <ToggleGroup
@@ -136,13 +140,13 @@ const AssetActions = ({
         exclusive
         value={viewMode}
         onChange={handleViewMode}
-        aria-label="View"
+        aria-label={t("actions.view")}
       >
         {VIEW_OPTIONS.map((option) => (
-          <Tooltip key={option.value} title={option.label}>
+          <Tooltip key={option.value} title={t(option.labelKey)}>
             <ToggleOption
               value={option.value}
-              aria-label={option.label}
+              aria-label={t(option.labelKey)}
               icon={option.icon}
             />
           </Tooltip>
@@ -150,7 +154,7 @@ const AssetActions = ({
       </ToggleGroup>
 
       {viewMode === "grid" && (
-        <Tooltip title="Thumbnail size" placement="bottom">
+        <Tooltip title={t("actions.thumbnailSize")} placement="bottom">
           <FlexRow
             align="center"
             gap={SPACING.sm}
@@ -159,7 +163,7 @@ const AssetActions = ({
             <PhotoSizeSelectSmallIcon sx={{ fontSize: ICON_SIZE.sm }} />
             <Slider
               size="small"
-              aria-label="Thumbnail size"
+              aria-label={t("actions.thumbnailSize")}
               step={1}
               min={1}
               max={maxItemSize}
@@ -175,10 +179,10 @@ const AssetActions = ({
         color="inherit"
         density="compact"
         startIcon={<SelectAllIcon />}
-        tooltip="Select every file in view"
+        tooltip={t("actions.selectEveryFile")}
         onClick={handleSelectAllAssets}
       >
-        Select all
+        {t("actions.selectAll")}
       </EditorButton>
 
       {isLoading && <LoadingSpinner size={16} inline />}
@@ -193,7 +197,7 @@ const AssetActions = ({
         {SORT_OPTIONS.map((option) => (
           <MenuItemPrimitive
             key={option.key}
-            label={option.label}
+            label={t(option.labelKey)}
             checkable="radio"
             checked={settings.assetsOrder === option.key}
             onClick={() => {
@@ -213,7 +217,7 @@ const AssetActions = ({
         {SIZE_FILTERS.map((filter) => (
           <MenuItemPrimitive
             key={filter.key}
-            label={SIZE_LABELS[filter.key]}
+            label={t(SIZE_LABEL_KEYS[filter.key])}
             checkable="radio"
             checked={sizeFilter === filter.key}
             onClick={() => {

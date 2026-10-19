@@ -1,10 +1,12 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScopeView } from '../../components/displays/ScopeView';
 import { DrumKnob } from './DrumKnob';
 import { KitBrowser } from './browser/KitBrowser';
 import { kitOptions, useDrumStore } from '../dr1Store';
 
 export function Header() {
+  const { t } = useTranslation();
   const powered = useDrumStore((s) => s.powered);
   const kitValue = useDrumStore((s) => s.kitValue);
   const userKits = useDrumStore((s) => s.userKits);
@@ -43,14 +45,14 @@ export function Header() {
   return (
     <header className="top-bar dr-header">
       <div className="brand">FABLE<em>SYNTH</em><small>DR-1</small></div>
-      <div className="preset-bar dr-kitbar" aria-label="kit selection">
-        <span className="dr-mini-head">KIT</span>
-        <button className="pb-btn" aria-label="previous kit" onClick={() => stepKit(-1)}>◂</button>
+      <div className="preset-bar dr-kitbar" aria-label={t('i18n-next48.kit.selection')}>
+        <span className="dr-mini-head">{t('i18n-next48.kit.label')}</span>
+        <button className="pb-btn" aria-label={t('i18n-next48.kit.previous')} onClick={() => stepKit(-1)}>◂</button>
         <span className="dr-kitname">
           {currentKit}
-          {kitDirty && !naming && <span className="dr-dirty-dot" aria-label="unsaved changes" title="unsaved changes" />}
+          {kitDirty && !naming && <span className="dr-dirty-dot" aria-label={t('i18n-next48.common.unsavedChanges')} title={t('i18n-next48.common.unsavedChanges')} />}
         </span>
-        <button className="pb-btn" aria-label="next kit" onClick={() => stepKit(1)}>▸</button>
+        <button className="pb-btn" aria-label={t('i18n-next48.kit.next')} onClick={() => stepKit(1)}>▸</button>
         {naming ? (
           <input
             className="dr-name-input"
@@ -61,7 +63,7 @@ export function Header() {
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitSave}
             onKeyDown={onNameKeyDown}
-            aria-label="Kit name"
+            aria-label={t('i18n-next48.kit.name')}
           />
         ) : (
           <>
@@ -69,8 +71,8 @@ export function Header() {
               className="pb-btn pb-save pb-browse"
               aria-expanded={browsing}
               onClick={() => setBrowser(browsing ? null : 'kit')}
-            >BROWSE</button>
-            <button className="pb-btn pb-save" onClick={beginSave}>SAVE</button>
+            >{t('i18n-next48.common.browse')}</button>
+            <button className="pb-btn pb-save" onClick={beginSave}>{t('i18n-next48.common.save')}</button>
           </>
         )}
       </div>
@@ -78,11 +80,11 @@ export function Header() {
       <div className="hud dr-hud">
         <div className="hud-cell">
           {powered && analyser ? <ScopeView analyser={analyser} accent="#4de8ff" /> : <canvas />}
-          <span>SCOPE</span>
+          <span>{t('i18n-next48.common.scope')}</span>
         </div>
       </div>
       <div className="status dr-midi">
-        <div className="status-row"><span className={`led${powered ? ' on' : ''}`} />AUDIO</div>
+        <div className="status-row"><span className={`led${powered ? ' on' : ''}`} />{t('i18n-next48.common.audio')}</div>
       </div>
       <div className="dr-master">
         <DrumKnob paramId="master.volume" size="xs" accent="n" />

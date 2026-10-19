@@ -15,6 +15,7 @@
  */
 
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import ClosedCaptionOutlinedIcon from "@mui/icons-material/ClosedCaptionOutlined";
 
@@ -63,6 +64,7 @@ interface ClipCaptionStyleProps {
 export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
   ({ clip }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const [open, setOpen] = usePersistedFold("caption");
     const patchClip = useTimelineStore((s) => s.patchClip);
     const caption = clip.caption;
@@ -145,7 +147,7 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Caption"
+              title={t("pass3_24.timeline.captionStyle.title")}
               icon={<ClosedCaptionOutlinedIcon />}
             />
           }
@@ -154,90 +156,90 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
           unmountOnExit
         >
           <FlexColumn css={sectionContentStyles(theme)}>
-            <InspectorRow label="Font">
+            <InspectorRow label={t("pass3_24.timeline.captionStyle.font")}>
               <FontPicker
-                label="Caption font family"
+                label={t("pass3_24.timeline.captionStyle.fontFamily")}
                 value={style?.fontFamily}
                 onChange={(fontFamily) => setField("fontFamily", fontFamily)}
               />
             </InspectorRow>
-            <InspectorRow label="Size">
+            <InspectorRow label={t("pass3_24.timeline.captionStyle.size")}>
               <InspectorPillInput
                 value={asPercent(style?.fontSizeFrac)}
                 unit="%"
-                placeholder="5"
+                placeholder={t("pass3_24.timeline.captionStyle.sizePlaceholder")}
                 allowEmpty
                 onCommit={(raw) => handleFraction("fontSizeFrac", raw)}
-                ariaLabel="Caption size as a percentage of frame height"
+                ariaLabel={t("pass3_24.timeline.captionStyle.sizeAriaLabel")}
               />
             </InspectorRow>
-            <InspectorRow label="Color">
+            <InspectorRow label={t("pass3_24.timeline.captionStyle.color")}>
               <BatchedColorInput
                 value={style?.color ?? DEFAULT_COLOR}
                 onChange={(color) => setField("color", color)}
-                ariaLabel="Caption color"
+                ariaLabel={t("pass3_24.timeline.captionStyle.colorAriaLabel")}
               />
             </InspectorRow>
-            <InspectorRow label="Spoken">
+            <InspectorRow label={t("pass3_24.timeline.captionStyle.spoken")}>
               <BatchedColorInput
                 value={style?.activeColor ?? DEFAULT_ACTIVE_COLOR}
                 onChange={(color) => setField("activeColor", color)}
-                ariaLabel="Caption spoken-word color"
+                ariaLabel={t("pass3_24.timeline.captionStyle.spokenAriaLabel")}
               />
             </InspectorRow>
-            <InspectorRow label="Bottom">
+            <InspectorRow label={t("pass3_24.timeline.captionStyle.bottom")}>
               <InspectorPillInput
                 value={asPercent(style?.bottomMarginFrac)}
                 unit="%"
-                placeholder="12"
+                placeholder={t("pass3_24.timeline.captionStyle.bottomPlaceholder")}
                 allowEmpty
                 onCommit={(raw) => handleFraction("bottomMarginFrac", raw)}
-                ariaLabel="Caption distance from the frame bottom"
+                ariaLabel={t("pass3_24.timeline.captionStyle.bottomAriaLabel")}
               />
             </InspectorRow>
-            <InspectorRow label="Outline">
+            <InspectorRow label={t("pass3_24.timeline.captionStyle.outline")}>
               <InspectorPillInput
                 value={outline ? String(outline.widthPx) : ""}
                 unit="px"
-                placeholder="auto"
+                placeholder={t("pass3_24.timeline.captionStyle.autoPlaceholder")}
                 allowEmpty
                 onCommit={handleOutlineWidth}
-                ariaLabel="Caption outline width"
+                ariaLabel={t("pass3_24.timeline.captionStyle.outlineWidthAriaLabel")}
               />
             </InspectorRow>
             {outline && (
-              <InspectorRow label="Outline color">
+              <InspectorRow label={t("pass3_24.timeline.captionStyle.outlineColor")}>
                 <BatchedColorInput
                   value={outline.color}
                   onChange={(color) =>
                     setField("outline", { color, widthPx: outline.widthPx })
                   }
-                  ariaLabel="Caption outline color"
+                  ariaLabel={t("pass3_24.timeline.captionStyle.outlineColorAriaLabel")}
                 />
               </InspectorRow>
             )}
-            <InspectorRow label="Scrim">
+            <InspectorRow label={t("pass3_24.timeline.captionStyle.scrim")}>
               <InspectorPillInput
                 value={scrim ? String(scrim.paddingPx) : ""}
                 unit="px"
-                placeholder="none"
+                placeholder={t("pass3_24.timeline.captionStyle.nonePlaceholder")}
                 allowEmpty
                 onCommit={handleScrimPadding}
-                ariaLabel="Caption scrim padding"
+                ariaLabel={t("pass3_24.timeline.captionStyle.scrimPaddingAriaLabel")}
               />
             </InspectorRow>
             {scrim && (
               <>
-                <InspectorRow label="Scrim color">
+                <InspectorRow label={t("pass3_24.timeline.captionStyle.scrimColor")}>
                   <BatchedColorInput
                     value={scrim.color}
                     onChange={(color) =>
                       setField("background", { ...scrim, color })
                     }
-                    ariaLabel="Caption scrim color"
+                    ariaLabel={t("pass3_24.timeline.captionStyle.scrimColorAriaLabel")}
                   />
                 </InspectorRow>
-                <InspectorRow label="Scrim radius">
+                <InspectorRow label={t("pass3_24.timeline.captionStyle.scrimRadius")}>
                   <InspectorPillInput
                     value={String(scrim.radiusPx ?? 0)}
                     unit="px"
@@ -246,7 +248,7 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
                       if (!Number.isFinite(radiusPx) || radiusPx < 0) return;
                       setField("background", { ...scrim, radiusPx });
                     }}
-                    ariaLabel="Caption scrim corner radius"
+                    ariaLabel={t("pass3_24.timeline.captionStyle.scrimRadiusAriaLabel")}
                   />
                 </InspectorRow>
               </>

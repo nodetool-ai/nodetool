@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useEffect, useRef, memo } from "react";
+import { useTranslation } from "react-i18next";
 
 type AudioVisualizerProps = {
   stream: MediaStream | null;
@@ -12,6 +13,7 @@ const AudioVisualizerComponent = ({
   version = 0,
   height = 64
 }: AudioVisualizerProps) => {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -126,7 +128,14 @@ const AudioVisualizerComponent = ({
     };
   }, [stream, version]);
 
-  return <canvas ref={canvasRef} style={{ width: "100%", height }} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      role="img"
+      aria-label={t("batch2_10.audioVisualizer.label")}
+      style={{ width: "100%", height }}
+    />
+  );
 };
 
 AudioVisualizerComponent.displayName = "AudioVisualizer";

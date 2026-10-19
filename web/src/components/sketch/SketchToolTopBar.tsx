@@ -8,6 +8,7 @@
 
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -22,7 +23,6 @@ import {
   TYPOGRAPHY,
   getSpacingPx
 } from "../ui_primitives";
-import { getToolSettingsLabel } from "./tool-settings-panels/getToolSettingsLabel";
 import {
   SketchTool,
   BrushSettings,
@@ -220,6 +220,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onToggleSettingsCollapsed
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Toolbar className="sketch-tool-top-bar" sx={styles(theme)}>
@@ -230,12 +231,12 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         sx={{ flexShrink: 0 }}
       >
         <Text sx={{ ...TYPOGRAPHY.sans.label }}>
-          {getToolSettingsLabel(activeTool)}
+          {t(`i18n-next52.sketch.tools.${activeTool}`)}
         </Text>
         {onToggleSettingsCollapsed && (
           <Tooltip
             title={
-              settingsCollapsed ? "Show tool settings" : "Hide tool settings"
+              settingsCollapsed ? t("i18n-next52.sketch.toolBar.showSettings") : t("i18n-next52.sketch.toolBar.hideSettings")
             }
           >
             <IconButton
@@ -243,7 +244,7 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
               onClick={onToggleSettingsCollapsed}
               aria-expanded={!settingsCollapsed}
               aria-label={
-                settingsCollapsed ? "Show tool settings" : "Hide tool settings"
+                settingsCollapsed ? t("i18n-next52.sketch.toolBar.showSettings") : t("i18n-next52.sketch.toolBar.hideSettings")
               }
               data-testid="sketch-toggle-tool-settings"
             >

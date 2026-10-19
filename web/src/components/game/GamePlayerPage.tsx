@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, type KeyboardEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import type { GameDocument } from "@nodetool-ai/protocol/game.js";
 
@@ -20,6 +21,8 @@ interface GamePlayerProps {
 }
 
 export function GamePlayer({ gameId, name, document, active = true, setsDocumentTitle = true, autoPlay = false }: GamePlayerProps) {
+  const { t, i18n } = useTranslation();
+  const numberFormat = new Intl.NumberFormat(i18n.resolvedLanguage);
   const { canvasRef, inputRef, playing, playDocument, playState, backend, error,
     beginPlay, stop } = useGamePlaySession({ refId: gameId, active, document, name });
   const status = gamePlayStatus({
@@ -27,7 +30,8 @@ export function GamePlayer({ gameId, name, document, active = true, setsDocument
     playing,
     paused: Boolean(playDocument),
     sceneName: document.scenes.find((scene) => scene.id === playState.sceneId)?.name,
-    sceneCount: document.scenes.length
+    sceneCount: document.scenes.length,
+    t
   });
 
   const autoPlayedRef = useRef(false);
@@ -55,17 +59,17 @@ export function GamePlayer({ gameId, name, document, active = true, setsDocument
     <FlexRow align="center" gap={SPACING.sm} wrap>
       <Text size="big">{name}</Text>
       <EditorButton onClick={beginPlay} disabled={backend === "Initializing"}>
-        {playing ? "Pause" : playDocument ? "Resume" : "Play"}
+        {playing ? t("screen_game.player.pause") : playDocument ? t("screen_game.player.resume") : t("screen_game.player.play")}
       </EditorButton>
-      <EditorButton onClick={stop} disabled={!playDocument}>Stop</EditorButton>
-      <Caption>Score {playState.score} · {status} · {backend}</Caption>
+      <EditorButton onClick={stop} disabled={!playDocument}>{t("screen_game.player.stop")}</EditorButton>
+      <Caption>{t("screen_game.player.score", { score: numberFormat.format(playState.score) })} · {status} · {backend}</Caption>
     </FlexRow>
     {error && <FlexRow align="center" gap={SPACING.sm}>
       <Caption color="error" role="alert">{error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: "Game player failed", errorText: error }} />
+      <ReportBugButton context={{ source: "panel-crash", summary: t("screen_game.player.failed"), errorText: error }} />
     </FlexRow>}
     <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, bgcolor: "common.black" }}>
-      <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label={`${name} game`} tabIndex={0}
+      <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label={t("screen_game.player.gameCanvas", { name })} tabIndex={0}
         onKeyDown={onKeyDown}
         onKeyUp={(event) => inputRef.current.keyUp(event.code)}
         onBlur={() => inputRef.current.release()}
@@ -78,13 +82,14 @@ export function GamePlayer({ gameId, name, document, active = true, setsDocument
 const Player3D = lazy(() => import("./GamePlayer3D"));
 
 export function SavedGamePlayer({ gameId, active = true, setsDocumentTitle = true }: { gameId: string; active?: boolean; setsDocumentTitle?: boolean }) {
+  const { t } = useTranslation();
   const { data, isPending, error } = trpc.games.getDraft.useQuery({ id: gameId ?? "" },
     { enabled: Boolean(gameId), staleTime: 15_000 });
-  if (!gameId) return <EmptyState variant="error" title="Game not found" description="The game link is incomplete." />;
-  if (isPending) return <LoadingSpinner text="Loading game" />;
-  if (error || !data) return <EmptyState variant="error" title="Could not load game" description={error?.message ?? "The game may have been deleted."} />;
+  if (!gameId) return <EmptyState variant="error" title={t("screen_game.player.notFound")} description={t("screen_game.player.incompleteLink")} />;
+  if (isPending) return <LoadingSpinner text={t("screen_game.player.loadingGame")} />;
+  if (error || !data) return <EmptyState variant="error" title={t("screen_game.player.loadFailed")} description={error?.message ?? t("screen_game.player.mayBeDeleted")} />;
   if (data.document.schemaVersion === 3) {
-    return <Suspense fallback={<LoadingSpinner text="Loading 3D player" />}><Player3D gameId={gameId} name={data.game.name} document={data.document} active={active} /></Suspense>;
+    return <Suspense fallback={<LoadingSpinner text={t("screen_game.player.loading3dPlayer")} />}><Player3D gameId={gameId} name={data.game.name} document={data.document} active={active} /></Suspense>;
   }
   return <GamePlayer gameId={gameId} name={data.game.name} document={data.document} active={active} setsDocumentTitle={setsDocumentTitle} />;
 }

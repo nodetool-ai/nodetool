@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo, useRef, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { ImageComparer } from "../../widgets";
 import { createImageUrl, ImageData } from "../../../utils/imageUtils";
 
@@ -24,6 +25,7 @@ interface ImageComparisonRendererProps {
 export const ImageComparisonRenderer: React.FC<ImageComparisonRendererProps> = ({
   value
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next106" });
   const blobUrlARef = useRef<string | null>(null);
   const blobUrlBRef = useRef<string | null>(null);
 
@@ -38,7 +40,7 @@ export const ImageComparisonRenderer: React.FC<ImageComparisonRendererProps> = (
   }, [value.image_a, value.image_b]);
 
   if (!imageAUrl || !imageBUrl) {
-    return <div>Missing image data for comparison</div>;
+    return <div>{t("imageComparison.missingData")}</div>;
   }
 
   return (
@@ -46,8 +48,8 @@ export const ImageComparisonRenderer: React.FC<ImageComparisonRendererProps> = (
       <ImageComparer
         imageA={imageAUrl}
         imageB={imageBUrl}
-        labelA={value.label_a || "A"}
-        labelB={value.label_b || "B"}
+        labelA={value.label_a || t("imageComparison.labelA")}
+        labelB={value.label_b || t("imageComparison.labelB")}
         showLabels={true}
         showMetadata={true}
         initialMode="horizontal"

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { sketchToolSettingsContainerSx } from "./sketchStyles";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -295,6 +296,24 @@ interface SketchCanvasContextMenuProps {
 
 const CONTEXT_MENU_HEADER_HEIGHT_PX = 52;
 
+const TOOL_LABEL_KEYS: Record<SketchTool, string> = {
+  move: "i18n-next4.sketch.tool.move",
+  transform: "i18n-next4.sketch.tool.transform",
+  select: "i18n-next4.sketch.tool.select",
+  brush: "i18n-next4.sketch.tool.brush",
+  pencil: "i18n-next4.sketch.tool.pencil",
+  eraser: "i18n-next4.sketch.tool.eraser",
+  fill: "i18n-next4.sketch.tool.fill",
+  color_picker: "i18n-next4.sketch.tool.colorPicker",
+  blur: "i18n-next4.sketch.tool.blur",
+  clone_stamp: "i18n-next4.sketch.tool.cloneStamp",
+  shape: "i18n-next4.sketch.tool.shape",
+  gradient: "i18n-next4.sketch.tool.gradient",
+  crop: "i18n-next4.sketch.tool.crop",
+  adjust: "i18n-next4.sketch.tool.adjust",
+  segment: "i18n-next4.sketch.tool.segment"
+};
+
 const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   className: paperClassName,
   open,
@@ -360,6 +379,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onCheckSegmentModel,
   onSwapColors
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const activeDefinition = getToolDefinition(activeTool);
   const activeShortcutActionId = getToolShortcutActionId(
@@ -371,6 +391,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     : "";
   const surfaceSoft = theme.vars.palette.grey[800];
   const ActiveIcon = activeDefinition.Icon;
+  const getToolLabel = (definition: ToolDefinition): string =>
+    t(TOOL_LABEL_KEYS[definition.tool]);
   const getToolShortcut = (tool: SketchTool): string => {
     const actionId = getToolShortcutActionId(tool, selectSettings.mode);
     return actionId ? displayCombo(actionId) : "";
@@ -399,8 +421,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     if (isShapeTool(activeTool)) {
       return (
         <FlexRow gap={1}>
-          <ColorPreview label="Stroke" color={shapeSettings.strokeColor} />
-          <ColorPreview label="Fill" color={shapeSettings.fillColor} />
+          <ColorPreview label={t("i18n-next4.sketch.color.stroke")} color={shapeSettings.strokeColor} />
+          <ColorPreview label={t("i18n-next4.sketch.color.fill")} color={shapeSettings.fillColor} />
         </FlexRow>
       );
     }
@@ -408,20 +430,20 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     if (activeTool === "gradient") {
       return (
         <FlexRow gap={1}>
-          <ColorPreview label="Start" color={gradientSettings.startColor} />
-          <ColorPreview label="End" color={gradientSettings.endColor} />
+          <ColorPreview label={t("i18n-next4.sketch.color.start")} color={gradientSettings.startColor} />
+          <ColorPreview label={t("i18n-next4.sketch.color.end")} color={gradientSettings.endColor} />
         </FlexRow>
       );
     }
 
     return (
       <FlexRow gap={1} align="center">
-        <ColorPreview label="FG" color={foregroundColor} />
-        <ColorPreview label="BG" color={backgroundColor} />
+        <ColorPreview label={t("i18n-next4.sketch.color.foregroundShort")} color={foregroundColor} />
+        <ColorPreview label={t("i18n-next4.sketch.color.backgroundShort")} color={backgroundColor} />
         <ToolbarIconButton
           icon={<SwapHorizIcon sx={{ fontSize: ICON_SIZE.md }} />}
           onClick={onSwapColors}
-          aria-label="Swap foreground and background colors"
+          aria-label={t("i18n-next4.sketch.color.swapForegroundBackground")}
           sx={{
             mt: 0,
             border: "1px solid",
@@ -494,7 +516,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
         <SketchToolIconLabel
           className="sketch-context-menu__header-tool"
           direction="row"
-          label={activeDefinition.label}
+          label={getToolLabel(activeDefinition)}
           icon={<ActiveIcon sx={{ fontSize: ICON_SIZE.lg }} />}
           sx={{ flex: "0 1 auto", minWidth: 0 }}
         />
@@ -634,38 +656,38 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   px: 0
                 }}
               >
-                <SectionLabel>Selection</SectionLabel>
+                <SectionLabel>{t("i18n-next4.sketch.selection")}</SectionLabel>
                 <FlexColumn gap={0.3}>
                   <SelectionMenuItem
                     icon={<DeselectIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                    label="Deselect"
+                    label={t("i18n-next4.sketch.deselect")}
                     shortcut={displayCombo("deselect")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onDeselectSelection(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<RestoreIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                    label="Reselect"
+                    label={t("i18n-next4.sketch.reselect")}
                     shortcut={displayCombo("reselect")}
                     onClick={() => { onReselectSelection(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<CropIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                    label="Crop to selection"
+                    label={t("i18n-next4.sketch.cropToSelection")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onCropCanvasToSelection(); onClose(); }}
                   />
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
                   <SelectionMenuItem
                     icon={<ContentCopyIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                    label="Layer via copy"
+                    label={t("i18n-next4.sketch.layerViaCopy")}
                     shortcut={displayCombo("layer-via-copy")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCopy(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<ContentCutIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                    label="Layer via cut"
+                    label={t("i18n-next4.sketch.layerViaCut")}
                     shortcut={displayCombo("layer-via-cut")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCut(); onClose(); }}
@@ -673,13 +695,13 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
                   <SelectionMenuItem
                     icon={<FormatColorFillIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                    label="Fill"
+                    label={t("i18n-next4.sketch.color.fill")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onFillSelectionWithForeground(); onClose(); }}
                   />
                   <SelectionMenuItem
                     icon={<HighlightAltIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-                    label="Stroke"
+                    label={t("i18n-next4.sketch.color.stroke")}
                     disabled={!hasActiveSelection}
                     onClick={() => { onStrokeSelectionWithForeground(); onClose(); }}
                   />
@@ -698,7 +720,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               py: 1
             }}
           >
-            <SectionLabel>Tools</SectionLabel>
+            <SectionLabel>{t("i18n-next4.sketch.tools")}</SectionLabel>
             <FlexColumn
               gap={0.75}
               className="sketch-context-menu__tools-groups"
@@ -718,9 +740,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     }}
                   >
                     {group.map((definition) => (
-                      <ToolGridButton
+          <ToolGridButton
                         key={definition.tool}
-                        definition={definition}
+                        definition={{ ...definition, label: getToolLabel(definition) }}
                         compact
                         selected={definition.tool === activeTool}
                         shortcut={getToolShortcut(definition.tool)}

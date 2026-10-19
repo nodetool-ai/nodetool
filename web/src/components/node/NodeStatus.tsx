@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Text, SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 
@@ -14,6 +15,8 @@ interface NodeStatusProps {
 }
 
 const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {
+  const { t } = useTranslation();
+
   if (status !== "booting") {return null;}
 
   return (
@@ -23,7 +26,7 @@ const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {
       color="warning"
       css={statusCss}
     >
-      Model is booting, taking minutes.
+      {t("i18n-next61.nodeStatus.booting")}
     </Text>
   );
 };

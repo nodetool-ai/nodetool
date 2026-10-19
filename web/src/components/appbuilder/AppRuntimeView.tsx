@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import AppInstanceManager from "./AppInstanceManager";
 import AppRunHistory from "./AppRunHistory";
 import type { ServerAppInstance } from "./runtime/appInstanceApi";
@@ -23,7 +24,7 @@ import {
   useAppRuntimeContext,
   useRuntimeSelector
 } from "./runtime/AppRuntimeContext";
-import { appConfig } from "./puck/config";
+import { useAppConfig } from "./puck/config";
 import {
   AlertBanner,
   Box,
@@ -77,6 +78,7 @@ function RuntimeErrorActions({
   name,
   error
 }: RuntimeErrorActionsProps): React.ReactElement {
+  const { t } = useTranslation();
   const { store } = useAppRuntimeContext();
   const { runId } = useAppOperationRun(operationId);
   const summary = useRun(runId);
@@ -86,15 +88,15 @@ function RuntimeErrorActions({
     <FlexRow gap={SPACING.xs}>
       {runId ? (
         <EditorButton onClick={() => openRunInspection({ runId, spanId })}>
-          View trace
+          {t("i18n-next8.appBuilder.runtime.viewTrace")}
         </EditorButton>
       ) : null}
       {runId ? <AskRunAgentButton runId={runId} spanId={spanId} /> : null}
       <ReportBugButton
-        label="Report failure"
+        label={t("i18n-next8.appBuilder.runtime.reportFailure")}
         context={{
           source: "operation-failure",
-          summary: `${name || operationId} operation failed`,
+          summary: t("i18n-next8.appBuilder.runtime.operationFailed", { operation: name || operationId }),
           errorText: error
         }}
       />
@@ -137,6 +139,7 @@ function RuntimeOperationRunLink({
   operationId: string;
   name: string;
 }): React.ReactElement | null {
+  const { t } = useTranslation();
   const { runId, traceIncomplete } = useAppOperationRun(operationId);
   const { openRunInspection } = useRunInspection();
   if (!runId) {
@@ -146,11 +149,11 @@ function RuntimeOperationRunLink({
     <FlexRow gap={SPACING.xs}>
       <Caption>{name}</Caption>
       <EditorButton onClick={() => openRunInspection({ runId })}>
-        View trace
+        {t("i18n-next8.appBuilder.runtime.viewTrace")}
       </EditorButton>
       <AskRunAgentButton runId={runId} />
       {traceIncomplete ? (
-        <Caption>Some browser activity could not be recorded.</Caption>
+        <Caption>{t("i18n-next8.appBuilder.runtime.browserActivityMissing")}</Caption>
       ) : null}
     </FlexRow>
   );
@@ -237,6 +240,8 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   scriptOverrides,
   scriptRunner
 }) => {
+  const appConfig = useAppConfig();
+  const { t } = useTranslation();
   const resolvingInstance = Boolean(
     application &&
     !instanceId &&
@@ -260,14 +265,14 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
     }
   }, [runtime.instance, onInstanceReady]);
   if (runtime.instanceLoading)
-    return <LoadingSpinner text="Loading instance" />;
+    return <LoadingSpinner text={t("i18n-next8.appBuilder.runtime.loadingInstance")} />;
   const instanceError = runtime.instanceError ? (
     <AlertBanner
       severity="error"
       action={
         <>
           <EditorButton onClick={() => void runtime.reloadInstance?.()}>
-            Reload instance
+            {t("i18n-next8.appBuilder.runtime.reloadInstance")}
           </EditorButton>
           <ReportBugButton
             context={{
@@ -287,7 +292,7 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   }
   // Resolve the workspace identity before widgets seed inputs or queue writes.
   if (resolvingInstance) {
-    return <LoadingSpinner text="Opening instance" />;
+    return <LoadingSpinner text={t("i18n-next8.appBuilder.runtime.openingInstance")} />;
   }
   return (
     <AppRuntimeContext.Provider value={runtime}>

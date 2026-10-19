@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -95,6 +96,7 @@ export interface CompactionCardProps {
  * and lets them read what the model kept.
  */
 const CompactionCard: React.FC<CompactionCardProps> = ({ content }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const summary = compactionSummary(content);
@@ -114,7 +116,7 @@ const CompactionCard: React.FC<CompactionCardProps> = ({ content }) => {
           <FlexRow align="center" gap={SPACING.xs}>
             <UnfoldLessRoundedIcon className="compaction-icon" />
             <Text size="small" className="compaction-title">
-              Earlier conversation summarized
+              {t("i18n-next19.chat.compactionCard.title")}
             </Text>
           </FlexRow>
         }
@@ -125,7 +127,7 @@ const CompactionCard: React.FC<CompactionCardProps> = ({ content }) => {
           </Text>
         ) : (
           <Caption className="compaction-summary">
-            The summary is empty.
+            {t("i18n-next19.chat.compactionCard.emptySummary")}
           </Caption>
         )}
       </CollapsibleSection>

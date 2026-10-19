@@ -11,8 +11,8 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   Caption,
@@ -30,10 +30,38 @@ interface ShotCostLineProps {
 }
 
 const ShotCostLineInner: React.FC<ShotCostLineProps> = ({ estimate, sx }) => {
+  const { t, i18n } = useTranslation();
+  const formatCost = (value: number): string =>
+    new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
+      style: "currency",
+      currency: "USD",
+      maximumSignificantDigits: 8
+    }).format(value);
+  const stepLabel = (label: string): string =>
+    t(label === "Still"
+      ? "screens4_15.storyboard.shotCost.still"
+      : "screens4_15.storyboard.shotCost.clip");
+  const stepReason = (reason: string | undefined): string => {
+    if (reason?.startsWith("No still model picked")) {
+      return t("screens4_15.storyboard.shotCost.noModel", {
+        modelType: t("screens4_15.storyboard.shotCost.stillModel")
+      });
+    }
+    if (reason?.startsWith("No clip model picked")) {
+      return t("screens4_15.storyboard.shotCost.noModel", {
+        modelType: t("screens4_15.storyboard.shotCost.clipModel")
+      });
+    }
+    if (reason?.startsWith("No published price for ")) {
+      return t("screens4_15.storyboard.shotCost.noPublishedPrice", {
+        model: reason.slice("No published price for ".length).replace(/\.$/, "")
+      });
+    }
+    return reason ?? "";
+  };
   const listPrice = (
     <Caption color="secondary">
-      List price from the provider catalog. The render is billed by the provider
-      at its own rates.
+      {t("screens4_15.storyboard.shotCost.listPriceNote")}
     </Caption>
   );
 
@@ -43,13 +71,14 @@ const ShotCostLineInner: React.FC<ShotCostLineProps> = ({ estimate, sx }) => {
         placement="top"
         title={
           <Text size="small">
-            What the last render of this shot cost. Pick the board&apos;s still
-            and clip models to estimate the next one.
+            {t("screens4_15.storyboard.shotCost.lastRenderTooltip")}
           </Text>
         }
       >
         <Caption color="muted" noWrap sx={sx}>
-          {`last render ${formatUsd(estimate.cost)}`}
+          {t("screens4_15.storyboard.shotCost.lastRender", {
+            cost: formatCost(estimate.cost)
+          })}
         </Caption>
       </Tooltip>
     );
@@ -73,8 +102,14 @@ const ShotCostLineInner: React.FC<ShotCostLineProps> = ({ estimate, sx }) => {
             <FlexColumn gap={SPACING.micro}>
               <Text size="small">
                 {step.cost === null
-                  ? `${step.label}: ${step.reason}`
-                  : `${step.label}: ${step.breakdown ?? formatUsd(step.cost)}`}
+                  ? t("screens4_15.storyboard.shotCost.unpricedTooltip", {
+                      step: stepLabel(step.label),
+                      reason: stepReason(step.reason)
+                    })
+                  : t("screens4_15.storyboard.shotCost.pricedTooltip", {
+                      step: stepLabel(step.label),
+                      cost: step.breakdown ?? formatCost(step.cost)
+                    })}
               </Text>
               {step.cost !== null && (
                 <>
@@ -91,14 +126,21 @@ const ShotCostLineInner: React.FC<ShotCostLineProps> = ({ estimate, sx }) => {
         >
           <Caption color={step.cost === null ? "muted" : "secondary"} noWrap>
             {step.cost === null
-              ? `${step.label} —`
-              : `${step.label} ~${formatUsd(step.cost)}`}
+              ? t("screens4_15.storyboard.shotCost.unpriced", {
+                  step: stepLabel(step.label)
+                })
+              : t("screens4_15.storyboard.shotCost.priced", {
+                  step: stepLabel(step.label),
+                  cost: formatCost(step.cost)
+                })}
           </Caption>
         </Tooltip>
       ))}
       {pricedCount > 1 && (
         <Caption color="muted" noWrap>
-          {`total ~${formatUsd(estimate.cost)}`}
+          {t("screens4_15.storyboard.shotCost.total", {
+            cost: formatCost(estimate.cost)
+          })}
         </Caption>
       )}
     </FlexRow>

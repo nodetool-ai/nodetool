@@ -5,6 +5,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Entity } from "@nodetool-ai/protocol";
 
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
@@ -22,8 +23,6 @@ interface ShotEntitiesFieldProps {
   readOnly?: boolean;
 }
 
-const removeLabel = (name: string): string => `Remove ${name} from this shot`;
-
 const ShotEntitiesFieldInner: React.FC<ShotEntitiesFieldProps> = ({
   boardId,
   shotId,
@@ -32,6 +31,7 @@ const ShotEntitiesFieldInner: React.FC<ShotEntitiesFieldProps> = ({
   boardEntityIds,
   readOnly
 }) => {
+  const { t } = useTranslation();
   const toggleShotEntity = useStoryboardStore(
     (state) => state.toggleShotEntity
   );
@@ -55,23 +55,35 @@ const ShotEntitiesFieldInner: React.FC<ShotEntitiesFieldProps> = ({
       }
       toggleShotEntity(boardId, shotId, entity.id, appliedIds);
     },
-    [boardEntityIds, setEntityIds, toggleShotEntity, boardId, shotId, appliedIds]
+    [
+      boardEntityIds,
+      setEntityIds,
+      toggleShotEntity,
+      boardId,
+      shotId,
+      appliedIds
+    ]
   );
 
   return (
     <EntityTilesField
       data-testid="shot-entities"
-      label="In this shot"
+      label={t("screens4_17.storyboard.shotEntitiesField.label")}
       entities={applied}
       selectedIds={appliedIds}
       onPick={handlePick}
       onRemove={handleRemove}
-      removeLabel={removeLabel}
-      emptyText="No entities. Choose a character, location, style or prop to keep it consistent in this shot."
+      removeLabel={(name) =>
+        t("screens4_17.storyboard.shotEntitiesField.remove", { name })
+      }
+      emptyText={t("screens4_17.storyboard.shotEntitiesField.empty")}
       readOnly={readOnly}
       // A new entity joins the board and this shot, as a picked one does.
       extraAction={
-        <CreateEntityButton label="New entity" onCreated={handlePick} />
+        <CreateEntityButton
+          label={t("screens4_17.storyboard.shotEntitiesField.newEntity")}
+          onCreated={handlePick}
+        />
       }
     />
   );

@@ -17,6 +17,7 @@
 
 import React, { forwardRef, memo, useRef } from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -74,6 +75,7 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
   focused = false, actions, panelIdPrefix, sx
 }, ref) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const tabRefs = useRef(new Map<string, HTMLDivElement>());
   const press = useRef<{ id: string; pointerId: number; x: number; y: number } | null>(null);
   const dragged = useRef(false);
@@ -183,7 +185,8 @@ const DockTabStripBase = forwardRef<HTMLDivElement, DockTabStripProps>(function 
             {tab.icon && <span className="dock-tab-icon" aria-hidden>{tab.icon}</span>}
             <Box component="span" sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tab.label}</Box>
             {closable && <Box component="button" type="button" className="dock-tab-close" tabIndex={-1}
-              aria-label={`Close ${tab.label}`} title={`Close ${tab.label}`}
+              aria-label={t("i18n-next91.dockTabStrip.closeTab", { label: tab.label })}
+              title={t("i18n-next91.dockTabStrip.closeTab", { label: tab.label })}
               onPointerDown={(event: React.PointerEvent) => event.stopPropagation()}
               onClick={(event: React.MouseEvent) => { event.stopPropagation(); onClose?.(tab.id); }}
               sx={{

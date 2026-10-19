@@ -11,6 +11,7 @@
  */
 
 import { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 
@@ -33,6 +34,7 @@ interface ClipStoryboardLinkProps {
 }
 
 const ClipStoryboardLinkInner = ({ clip }: ClipStoryboardLinkProps) => {
+  const { t } = useTranslation();
   const link = useClipStoryboardLink(
     clip.storyboardBoardId,
     clip.storyboardShotId
@@ -50,9 +52,9 @@ const ClipStoryboardLinkInner = ({ clip }: ClipStoryboardLinkProps) => {
           size="small"
           startIcon={<LinkOutlinedIcon />}
           onClick={() => setLinkOpen(true)}
-          tooltip="Make this clip follow a shot on a storyboard"
+          tooltip={t("pass3_26.timelineInspector.storyboard.linkTooltip")}
         >
-          Link to shot
+          {t("pass3_26.timelineInspector.storyboard.linkToShot")}
         </EditorButton>
         {linkOpen && (
           <LinkShotDialog clipId={clip.id} onClose={() => setLinkOpen(false)} />
@@ -67,7 +69,7 @@ const ClipStoryboardLinkInner = ({ clip }: ClipStoryboardLinkProps) => {
 
   return (
     <FlexRow align="center" sx={{ pt: SPACING.micro }}>
-      <Tooltip title={`Open ${link.shot.slug ?? "this shot"} on the storyboard`} describeChild>
+      <Tooltip title={t("pass3_26.timelineInspector.storyboard.openShot", { shot: link.shot.slug ?? t("pass3_26.timelineInspector.storyboard.thisShot") })} describeChild>
         <Chip
           compact
           variant="outlined"

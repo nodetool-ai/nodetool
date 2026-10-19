@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   ChangeEvent,
   DragEvent,
@@ -133,12 +134,7 @@ const NARROW_BELOW = 560;
  */
 export const TEXT_INSET = DRAG_RAIL + COLUMN_GAP + GUTTER + COLUMN_GAP;
 
-const PAUSE_AFTER_MS = [
-  { ms: 0, label: "No pause after" },
-  { ms: 500, label: "0.5s pause" },
-  { ms: 1000, label: "1s pause" },
-  { ms: 2000, label: "2s pause" }
-] as const;
+const PAUSE_AFTER_MS = [0, 500, 1000, 2000] as const;
 
 /**
  * Borderless field styling: the script reads as a document, so the input
@@ -177,6 +173,7 @@ const ScriptLineRow = ({
   onDragOver,
   onDrop
 }: ScriptLineRowProps) => {
+  const { t } = useTranslation();
   const patchLine = useScriptStore((s) => s.patchLine);
   const removeLine = useScriptStore((s) => s.removeLine);
   const duplicateLine = useScriptStore((s) => s.duplicateLine);
@@ -242,9 +239,9 @@ const ScriptLineRow = ({
     try {
       await voiceLine(scriptId, line.id);
     } catch (error) {
-      setVoiceError(getErrorMessage(error, "Voicing failed"));
+      setVoiceError(getErrorMessage(error, t("i18n-next25.script.line.voicingFailed")));
     }
-  }, [scriptId, line.id]);
+  }, [scriptId, line.id, t]);
 
   const playCurrent = useCallback(async () => {
     const take = line.takes.find((t) => t.id === line.currentTakeId);
@@ -329,9 +326,9 @@ const ScriptLineRow = ({
           <ScriptShotChip shot={shotLink.shot} onOpen={shotLink.open} />
         )}
         {orphaned && (
-          <Tooltip title="No storyboard shot covers this line">
+          <Tooltip title={t("i18n-next25.script.line.noStoryboardShotTooltip")}>
             <Text size="smaller" color="warning">
-              No shot
+              {t("i18n-next25.script.line.noShot")}
             </Text>
           </Tooltip>
         )}
@@ -356,9 +353,9 @@ const ScriptLineRow = ({
       autoFocus={!hasDirection}
       value={line.direction ?? ""}
       onChange={onDirectionChange}
-      placeholder="Direction (e.g. whispering, tired)…"
+      placeholder={t("i18n-next25.script.line.directionPlaceholder")}
       hideLabel
-      label="Direction"
+      label={t("i18n-next25.script.line.directionLabel")}
       compact
       fullWidth
       disabled={readOnly}
@@ -380,9 +377,9 @@ const ScriptLineRow = ({
         value={line.text}
         onChange={onTextChange}
         onKeyDown={onTextKeyDown}
-        placeholder="Write a line…"
+        placeholder={t("i18n-next25.script.line.textPlaceholder")}
         hideLabel
-        label="Line text"
+        label={t("i18n-next25.script.line.textLabel")}
         compact
         fullWidth
         disabled={readOnly}
@@ -402,14 +399,14 @@ const ScriptLineRow = ({
       />
       {pauseLabel && (
         <Caption color="secondary" sx={{ paddingLeft: SPACING.sm }}>
-          {pauseLabel} pause
+          {t("i18n-next25.script.line.pauseCaption", { pause: pauseLabel })}
         </Caption>
       )}
       {voiceError && (
         <ErrorBanner
           report={{
             source: "job-failure",
-            summary: "Voicing a script line failed",
+            summary: t("i18n-next25.script.line.voicingFailed"),
             errorText: voiceError
           }}
         >
@@ -425,20 +422,20 @@ const ScriptLineRow = ({
 
   const statusIndicator =
     status === "stale" ? (
-      <Tooltip title="The text or voice changed since this take">
+      <Tooltip title={t("i18n-next25.script.line.staleTakeTooltip")}>
         <StatusPill tone="warning" sx={pillSx}>
           <RefreshIcon fontSize="inherit" />
-          Stale
+          {t("i18n-next25.script.line.stale")}
         </StatusPill>
       </Tooltip>
     ) : status === "voiced" ? (
       <StatusPill tone="done" sx={pillSx}>
         <CheckIcon fontSize="inherit" />
-        Take {takeNumber}
+          {t("i18n-next25.script.line.takeNumber", { count: takeNumber })}
       </StatusPill>
     ) : (
       <StatusPill tone="neutral" sx={pillSx}>
-        Draft
+        {t("i18n-next25.script.line.draft")}
       </StatusPill>
     );
 
@@ -465,16 +462,16 @@ const ScriptLineRow = ({
         title={
           voice
             ? status === "stale"
-              ? "Re-voice line"
-              : "Voice line"
-            : "Assign a voice to this speaker first"
+              ? t("i18n-next25.script.line.revoice")
+              : t("i18n-next25.script.line.voice")
+            : t("i18n-next25.script.line.assignVoiceFirst")
         }
       >
         <span>
           <EditorButton
             size="small"
             variant="outlined"
-            aria-label="Voice line"
+            aria-label={t("i18n-next25.script.line.voice")}
             disabled={!voice}
             onClick={() => void onVoice()}
             startIcon={<MicNoneIcon />}
@@ -492,7 +489,7 @@ const ScriptLineRow = ({
                 : { color: "text.secondary", borderColor: "divider" })
             }}
           >
-            Voice
+            {t("i18n-next25.script.line.voice")}
           </EditorButton>
         </span>
       </Tooltip>
@@ -502,8 +499,8 @@ const ScriptLineRow = ({
   const moreMenu = !readOnly && (
     <>
       <ToolbarIconButton
-        tooltip="More line actions"
-        ariaLabel="More line actions"
+        tooltip={t("i18n-next25.script.line.moreActions")}
+        ariaLabel={t("i18n-next25.script.line.moreActions")}
         onClick={(e: MouseEvent<HTMLElement>) => setMoreAnchor(e.currentTarget)}
         icon={<MoreVertIcon fontSize="small" />}
       />
@@ -514,17 +511,17 @@ const ScriptLineRow = ({
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        {PAUSE_AFTER_MS.map((option) => (
+        {PAUSE_AFTER_MS.map((ms) => (
           <MenuItemPrimitive
-            key={option.ms}
-            label={option.label}
-            selected={pauseMs === option.ms}
-            onClick={() => setPause(option.ms)}
+            key={ms}
+            label={t(`i18n-next25.script.line.pauseOption.${ms}`)}
+            selected={pauseMs === ms}
+            onClick={() => setPause(ms)}
           />
         ))}
         <MenuItemPrimitive
           dividerBefore
-          label="Duplicate line"
+          label={t("i18n-next25.script.line.duplicate")}
           icon={<ContentCopyIcon fontSize="small" />}
           onClick={() => {
             duplicateLine(scriptId, line.id);
@@ -534,7 +531,7 @@ const ScriptLineRow = ({
         <MenuItemPrimitive
           color="error"
           dividerBefore
-          label="Delete line"
+          label={t("i18n-next25.script.line.delete")}
           icon={<DeleteOutlineIcon fontSize="small" />}
           onClick={() => {
             removeLine(scriptId, line.id);
@@ -555,14 +552,14 @@ const ScriptLineRow = ({
     >
       {!readOnly && (
         <ToolbarIconButton
-          tooltip={showDirection ? "Delete direction" : "Add direction"}
+          tooltip={showDirection ? t("i18n-next25.script.line.deleteDirection") : t("i18n-next25.script.line.addDirection")}
           onClick={toggleDirection}
           icon={<TheaterComedyIcon fontSize="small" />}
           sx={showDirection ? { color: "primary.main" } : undefined}
         />
       )}
       <ToolbarIconButton
-        tooltip="Play current take"
+        tooltip={t("i18n-next25.script.line.playCurrentTake")}
         disabled={!hasCurrentTake}
         onClick={() => void playCurrent()}
         icon={<PlayArrowIcon fontSize="small" />}
@@ -570,11 +567,11 @@ const ScriptLineRow = ({
       {hasCurrentTake && (
         <SendToWorkflowButton
           items={currentTakeMedia}
-          tooltip="Send current take to a workflow"
+          tooltip={t("i18n-next25.script.line.sendTakeToWorkflow")}
         />
       )}
       <ToolbarIconButton
-        tooltip={`Takes (${line.takes.length})`}
+        tooltip={t("i18n-next25.script.line.takes", { count: line.takes.length })}
         onClick={(e: MouseEvent<HTMLElement>) =>
           setGalleryAnchor(e.currentTarget)
         }
@@ -723,13 +720,13 @@ const ScriptLineRow = ({
       }}
     >
       {draggable ? (
-        <Tooltip title="Drag to reorder">
+        <Tooltip title={t("i18n-next25.script.line.dragToReorder")}>
           <FlexRow
             className="script-line-drag"
             draggable
             onDragStart={handleDragStart}
             onDragEnd={onDragEnd}
-            aria-label="Drag to reorder line"
+            aria-label={t("i18n-next25.script.line.dragToReorderLine")}
             justify="center"
             sx={{
               color: "text.disabled",

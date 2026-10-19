@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -31,10 +32,11 @@ import {
 
 const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const statusChip = engine.separateInstallUrl ? (
-    <Chip label="Separate app" compact variant="outlined" />
+    <Chip label={t("i18n-next70.engineGuide.separateApp")} compact variant="outlined" />
   ) : engine.runtimeId ? (
-    <Chip label="Runtime" compact variant="outlined" />
+    <Chip label={t("i18n-next70.engineGuide.runtime")} compact variant="outlined" />
   ) : null;
 
   return (
@@ -56,13 +58,15 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
           {statusChip}
         </FlexRow>
         <Caption sx={{ color: theme.vars.palette.primary.main }}>
-          {engine.tagline}
+          {t(`i18n-next70.engineGuide.engines.${engine.id}.tagline`)}
         </Caption>
         <Caption sx={{ opacity: 0.7, lineHeight: 1.5, flex: 1 }}>
-          {engine.description}
+          {t(`i18n-next70.engineGuide.engines.${engine.id}.description`)}
         </Caption>
         {engine.platform && (
-          <Caption sx={{ opacity: 0.55 }}>{engine.platform}</Caption>
+          <Caption sx={{ opacity: 0.55 }}>
+            {t(`i18n-next70.engineGuide.engines.${engine.id}.platform`)}
+          </Caption>
         )}
         <FlexRow
           gap={SPACING.micro}
@@ -78,7 +82,7 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
             external
             sx={{ mt: SPACING.micro, fontSize: "var(--fontSizeSmall)" }}
           >
-            Download {engine.name}{" "}
+            {t("i18n-next70.engineGuide.download", { name: engine.name })}{" "}
             <OpenInNewIcon fontSize="inherit" sx={{ ml: SPACING.micro }} />
           </TextLink>
         )}
@@ -87,7 +91,8 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
           external
           sx={{ mt: SPACING.micro, fontSize: "var(--fontSizeSmall)" }}
         >
-          Learn more <OpenInNewIcon fontSize="inherit" sx={{ ml: SPACING.micro }} />
+          {t("i18n-next70.engineGuide.learnMore")}{" "}
+          <OpenInNewIcon fontSize="inherit" sx={{ ml: SPACING.micro }} />
         </TextLink>
       </FlexColumn>
     </Card>
@@ -96,6 +101,7 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
 
 const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   // Select primitives only — deriving a new array inside the selector would
   // change the snapshot on every render and loop useSyncExternalStore.
   const available = useNodePacksStore((state) => state.available);
@@ -131,7 +137,7 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
           {pack.name}
         </Text>
         <Caption sx={{ opacity: 0.7, lineHeight: 1.4 }}>
-          {pack.description}
+          {t("i18n-next70.engineGuide.nodePacks.huggingFace.description")}
         </Caption>
       </FlexColumn>
       {isInstalled ? (
@@ -139,7 +145,9 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
           <CheckCircleIcon
             sx={{ fontSize: ICON_SIZE.sm, color: theme.vars.palette.success.main }}
           />
-          <Caption color="secondary">Installed</Caption>
+          <Caption color="secondary">
+            {t("i18n-next70.engineGuide.installed")}
+          </Caption>
         </FlexRow>
       ) : (
         <EditorButton
@@ -157,7 +165,9 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
           }
           sx={{ flexShrink: 0 }}
         >
-          {available ? "Install" : "Open manager"}
+          {available
+            ? t("i18n-next70.engineGuide.install")
+            : t("i18n-next70.engineGuide.openManager")}
         </EditorButton>
       )}
     </FlexRow>
@@ -166,6 +176,7 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
 
 const EngineGuide: React.FC = () => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const { available, refresh } = useNodePacksStore(
     useShallow((state) => ({
       available: state.available,
@@ -187,11 +198,10 @@ const EngineGuide: React.FC = () => {
       <FlexColumn gap={SPACING.sm}>
         <FlexColumn gap={SPACING.micro}>
           <Text size="big" weight={600}>
-            Local engines
+            {t("i18n-next70.engineGuide.localEngines")}
           </Text>
           <Caption sx={{ opacity: 0.7 }}>
-            NodeTool runs models through these engines. Ollama is the easiest
-            start; the others unlock more model types.
+            {t("i18n-next70.engineGuide.localEnginesDescription")}
           </Caption>
         </FlexColumn>
         <div
@@ -211,12 +221,12 @@ const EngineGuide: React.FC = () => {
         <FlexRow gap={SPACING.xs} align="center" justify="space-between">
           <FlexColumn gap={SPACING.micro}>
             <Text size="big" weight={600}>
-              Node packs
+              {t("i18n-next70.engineGuide.nodePacks")}
             </Text>
             <Caption sx={{ opacity: 0.7 }}>
               {available
-                ? "Install the packs that add the nodes you want to use."
-                : "Node packs install from the desktop app's Package Manager."}
+                ? t("i18n-next70.engineGuide.nodePacksAvailableDescription")
+                : t("i18n-next70.engineGuide.nodePacksUnavailableDescription")}
             </Caption>
           </FlexColumn>
           <EditorButton
@@ -226,7 +236,7 @@ const EngineGuide: React.FC = () => {
             endIcon={<OpenInNewIcon />}
             onClick={openPackageManager}
           >
-            Package manager
+            {t("i18n-next70.engineGuide.packageManager")}
           </EditorButton>
         </FlexRow>
         <FlexColumn gap={SPACING.xs}>
@@ -236,8 +246,7 @@ const EngineGuide: React.FC = () => {
         </FlexColumn>
         {!available && (
           <Caption sx={{ opacity: 0.55, color: theme.vars.palette.text.secondary }}>
-            Running in the browser? Model downloads still work here — node packs
-            and runtimes are managed in the desktop app.
+            {t("i18n-next70.engineGuide.browserDescription")}
           </Caption>
         )}
       </FlexColumn>

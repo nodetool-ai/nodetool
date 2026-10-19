@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -30,6 +31,7 @@ export const TrackFolderHeader: React.FC<TrackFolderHeaderProps> = ({
   collapsed,
   onToggle
 }) => {
+  const { t } = useTranslation();
   const renameTrackFolder = useTimelineStore((state) => state.renameTrackFolder);
   const removeTrackFolder = useTimelineStore((state) => state.removeTrackFolder);
   const [editing, setEditing] = useState(false);
@@ -59,7 +61,7 @@ export const TrackFolderHeader: React.FC<TrackFolderHeaderProps> = ({
             )
           }
           onClick={() => onToggle(folder.id)}
-          aria-label={`${collapsed ? "Expand" : "Collapse"} folder ${folder.name}`}
+          aria-label={t(collapsed ? "i18n-next59.folder.expand" : "i18n-next59.folder.collapse", { name: folder.name })}
           aria-expanded={!collapsed}
           size="small"
           sx={{ p: SPACING.none }}
@@ -70,16 +72,16 @@ export const TrackFolderHeader: React.FC<TrackFolderHeaderProps> = ({
           editing={editing}
           onEditingChange={setEditing}
           onCommit={(name) => renameTrackFolder(folder.id, name)}
-          ariaLabel={`Folder name: ${folder.name}`}
-          title="Double-click to rename folder"
+          ariaLabel={t("i18n-next59.folder.name", { name: folder.name })}
+          title={t("i18n-next59.folder.renameHint")}
           displayAsInput
           sx={{ flex: "1 1 auto", minWidth: 0 }}
         />
-        <Caption aria-label={`${count} tracks`}>({count})</Caption>
+        <Caption aria-label={t("i18n-next59.folder.trackCount", { count })}>({count})</Caption>
         <ToolbarIconButton
           icon={<MoreHorizIcon fontSize="small" />}
           onClick={(event) => setMenuAnchor(event.currentTarget)}
-          aria-label={`Folder options for ${folder.name}`}
+          aria-label={t("i18n-next59.folder.options", { name: folder.name })}
           size="small"
           sx={{ p: SPACING.none }}
         />
@@ -92,14 +94,14 @@ export const TrackFolderHeader: React.FC<TrackFolderHeaderProps> = ({
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
         <MenuItemPrimitive
-          label="Rename folder"
+          label={t("i18n-next59.folder.rename")}
           onClick={() => {
             setMenuAnchor(null);
             setEditing(true);
           }}
         />
         <MenuItemPrimitive
-          label="Ungroup tracks"
+          label={t("i18n-next59.folder.ungroup")}
           onClick={() => {
             removeTrackFolder(folder.id);
             setMenuAnchor(null);

@@ -10,6 +10,7 @@
  */
 
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { styled } from "@mui/material/styles";
 import {
   DecoratorNode,
@@ -75,6 +76,7 @@ const SceneBreak: React.FC<{
   markerId: string;
   label: string;
 }> = ({ nodeKey, markerId, label }) => {
+  const { t } = useTranslation();
   const [editor] = useLexicalComposerContext();
   const docApi = useTimelineStoreApi();
 
@@ -95,7 +97,7 @@ const SceneBreak: React.FC<{
         type="button"
         className="del"
         data-testid="scene-break-delete"
-        aria-label={`Delete ${label}`}
+        aria-label={t("batch2_24.sceneBreak.delete", { label })}
         onClick={remove}
       >
         ×

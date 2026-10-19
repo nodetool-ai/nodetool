@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { setupCanvas } from '../../components/displays/canvas';
 import { pad } from '../params';
 import { useDrumStore } from '../dr1Store';
@@ -49,6 +50,7 @@ function SampleView({ sampleIndex, playhead }: { sampleIndex: number; playhead: 
 }
 
 export function SampleSection() {
+  const { t } = useTranslation();
   const sel = useDrumStore((s) => s.sel);
   const sampleId = pad(sel, 'oscB.table');
   const sampleIndex = useDrumStore((s) => s.params[sampleId]) | 0;
@@ -58,7 +60,7 @@ export function SampleSection() {
     <section className="panel dr-osc-section" data-accent="b">
       <div className="panel-head">
         <span className="dr-led dr-led-b" aria-hidden="true" />
-        <h2>SAMPLE</h2>
+        <h2>{t('i18n-next107.drum.sample.title')}</h2>
         <div className="dr-osc-stepper"><DrumStepper paramId={sampleId} accent="b" /></div>
       </div>
       <div className="dr-osc-body">

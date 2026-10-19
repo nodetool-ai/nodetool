@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { ClipCrop, ClipTransform } from "@nodetool-ai/timeline";
 import { PREVIEW_OVERLAY_Z } from "@nodetool-ai/timeline/render";
 import { Box, SPACING } from "../../ui_primitives";
@@ -33,6 +34,7 @@ export function TrackingOverlay(
   props: TrackingOverlayProps
 ): React.ReactElement | null {
   const { region, onChange, onCancel, frameWidth, frameHeight } = props;
+  const { t } = useTranslation();
   const descriptionId = useId();
   const svgRef = useRef<SVGSVGElement>(null);
   const interactive = onChange !== undefined;
@@ -161,7 +163,11 @@ export function TrackingOverlay(
         height={frameHeight}
         viewBox={`0 0 ${frameWidth} ${frameHeight}`}
         role={onChange ? "group" : "img"}
-        aria-label={onChange ? "Select tracking subject" : "Tracked subject"}
+        aria-label={
+          onChange
+            ? t("i18n-next79.tracking.selectSubject")
+            : t("i18n-next79.tracking.trackedSubject")
+        }
         aria-describedby={descriptionId}
         tabIndex={onChange ? 0 : undefined}
         style={{
@@ -203,9 +209,7 @@ export function TrackingOverlay(
         onLostPointerCapture={cancel}
       >
         <desc id={descriptionId}>
-          Drag around a subject. Enter creates a box. Arrow keys move it. Alt
-          and arrow keys resize it. Shift uses larger steps. Delete clears it.
-          Escape stops selection.
+          {t("i18n-next79.tracking.instructions")}
         </desc>
         {rectangle && (
           <polygon

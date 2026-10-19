@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Theme } from "@mui/material/styles";
 import { Tooltip, EditorButton, FlexRow, getSpacingPx, SPACING } from "../../ui_primitives";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -70,6 +71,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
   onAddToAssets,
   copyValue
 }) => {
+  const { t } = useTranslation();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -79,9 +81,9 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
   const handleCopyError = useCallback((_err: Error) => {
     addNotification({
       type: "error",
-      content: "Failed to copy to clipboard"
+      content: t("i18n-next37.previewActions.copyFailed")
     });
-  }, [addNotification]);
+  }, [addNotification, t]);
 
   return (
     <FlexRow
@@ -92,20 +94,20 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
         margin: `0 0 ${getSpacingPx(SPACING.xs)} 0`
       }}
     >
-      <Tooltip title="Download">
+      <Tooltip title={t("i18n-next37.previewActions.download")}>
         <EditorButton
           onClick={onDownload}
           className="action-button download"
-          aria-label="Download"
+          aria-label={t("i18n-next37.previewActions.download")}
         >
           <FileDownloadIcon />
         </EditorButton>
       </Tooltip>
-      <Tooltip title="Add to assets">
+      <Tooltip title={t("i18n-next37.previewActions.addToAssets")}>
         <EditorButton
           onClick={onAddToAssets}
           className="action-button"
-          aria-label="Add to assets"
+          aria-label={t("i18n-next37.previewActions.addToAssets")}
         >
           <AddIcon />
         </EditorButton>
@@ -117,7 +119,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
           onCopyError={handleCopyError}
           className="action-button copy"
           sx={COPY_BUTTON_SX}
-          aria-label="Copy asset"
+          aria-label={t("i18n-next37.previewActions.copyAsset")}
         />
       ) : (
         <CopyButton
@@ -125,7 +127,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
           onCopyError={handleCopyError}
           className="action-button copy"
           sx={COPY_BUTTON_SX}
-          aria-label="Copy output"
+          aria-label={t("i18n-next37.previewActions.copyOutput")}
         />
       )}
     </FlexRow>

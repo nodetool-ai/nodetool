@@ -10,6 +10,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -78,15 +79,17 @@ export const PanelHeader: React.FC<PanelHeaderProps> = memo(
     children,
     actions,
     onClose,
-    closeLabel = "Close",
+    closeLabel,
     divider = true,
     component = "h2",
     className,
     sx
   }) {
     const theme = useTheme();
+    const { t } = useTranslation();
     const TitleTag = component;
     const titleText = typeof title === "string" ? title : undefined;
+    const resolvedCloseLabel = closeLabel ?? t("i18n-next96.uiPrimitives.panelHeader.close");
 
     return (
       <FlexRow
@@ -151,7 +154,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = memo(
         {docsTopic && (
           <DocsHelpLink
             topic={docsTopic}
-            label={titleText ?? "Help"}
+            label={titleText ?? t("i18n-next96.uiPrimitives.panelHeader.help")}
             variant="label"
           />
         )}
@@ -166,7 +169,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = memo(
             {onClose && (
               <CloseButton
                 onClick={onClose}
-                tooltip={closeLabel}
+                tooltip={resolvedCloseLabel}
                 buttonSize="small"
               />
             )}

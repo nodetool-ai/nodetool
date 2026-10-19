@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useMemo, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { MiniMap, Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
@@ -37,6 +38,7 @@ const minimapStyle = {
 };
 
 const MiniMapNavigator: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
   const visible = useMiniMapStore((state) => state.visible);
@@ -117,36 +119,36 @@ const MiniMapNavigator: React.FC = () => {
     () => [
       {
         category: NodeTypeCategory.Input,
-        label: "Input nodes",
+        label: t("i18n-next66.node.miniMapNavigator.inputNodes"),
         color: getNodeCategoryColor(NodeTypeCategory.Input, isDarkMode)
       },
       {
         category: NodeTypeCategory.Constant,
-        label: "Constant nodes",
+        label: t("i18n-next66.node.miniMapNavigator.constantNodes"),
         color: getNodeCategoryColor(NodeTypeCategory.Constant, isDarkMode)
       },
       {
         category: NodeTypeCategory.Processing,
-        label: "Processing nodes",
+        label: t("i18n-next66.node.miniMapNavigator.processingNodes"),
         color: getNodeCategoryColor(NodeTypeCategory.Processing, isDarkMode)
       },
       {
         category: NodeTypeCategory.Group,
-        label: "Group nodes",
+        label: t("i18n-next66.node.miniMapNavigator.groupNodes"),
         color: getNodeCategoryColor(NodeTypeCategory.Group, isDarkMode)
       },
       {
         category: NodeTypeCategory.Comment,
-        label: "Comment nodes",
+        label: t("i18n-next66.node.miniMapNavigator.commentNodes"),
         color: getNodeCategoryColor(NodeTypeCategory.Comment, isDarkMode)
       },
       {
         category: NodeTypeCategory.Output,
-        label: "Output nodes",
+        label: t("i18n-next66.node.miniMapNavigator.outputNodes"),
         color: getNodeCategoryColor(NodeTypeCategory.Output, isDarkMode)
       }
     ],
-    [isDarkMode]
+    [isDarkMode, t]
   );
 
   if (!visible) {
@@ -189,7 +191,7 @@ const MiniMapNavigator: React.FC = () => {
           >
             {colorMode === "type" && showLegend && (
               <ToolbarIconButton
-                title="Node type legend"
+                title={t("i18n-next66.node.miniMapNavigator.nodeTypeLegend")}
                 size="small"
                 onClick={handleOpenLegend}
                 sx={{
@@ -206,7 +208,7 @@ const MiniMapNavigator: React.FC = () => {
               </ToolbarIconButton>
             )}
             <ToolbarIconButton
-              title="Color mode settings"
+              title={t("i18n-next66.node.miniMapNavigator.colorModeSettings")}
               size="small"
               onClick={handleOpenSettings}
               sx={{
@@ -233,12 +235,12 @@ const MiniMapNavigator: React.FC = () => {
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <MenuItemPrimitive
-          label="Default colors"
+          label={t("i18n-next66.node.miniMapNavigator.defaultColors")}
           selected={colorMode === "default"}
           onClick={handleSetDefaultMode}
         />
         <MenuItemPrimitive
-          label="Color by type"
+          label={t("i18n-next66.node.miniMapNavigator.colorByType")}
           selected={colorMode === "type"}
           onClick={handleSetTypeMode}
         />
@@ -253,7 +255,7 @@ const MiniMapNavigator: React.FC = () => {
       >
         <FlexColumn gap={SPACING.xs} sx={{ padding: getSpacingPx(SPACING.md) }}>
           <Caption component="div" color="secondary" sx={{ ...EYEBROW }}>
-            Node types
+            {t("i18n-next66.node.miniMapNavigator.nodeTypes")}
           </Caption>
           {legendItems.map((item) => (
             <FlexRow key={item.category} align="center" gap={SPACING.md}>

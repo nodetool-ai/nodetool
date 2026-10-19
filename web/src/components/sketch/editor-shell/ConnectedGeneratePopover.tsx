@@ -23,6 +23,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
@@ -93,6 +94,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
   onClose
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const docW = useSketchStore((s) => s.document.canvas.width);
   const docH = useSketchStore((s) => s.document.canvas.height);
@@ -200,7 +202,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
     try {
       const layerId = useSketchStore
         .getState()
-        .addLayer(uniqueLayerName("Text-to-Image"));
+        .addLayer(uniqueLayerName(t("i18n-next52.sketch.generate.layerName")));
       const { width, height } = resolveImageSize(resolution, aspectRatio);
       useSketchSessionStore.getState().upsertBinding({
         layerId,
@@ -220,11 +222,11 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
       await start(layerId);
       setPrompt("");
     } catch (e) {
-      reportError(e instanceof Error ? e.message : "Generation failed.");
+      reportError(e instanceof Error ? e.message : t("i18n-next52.sketch.generate.failed"));
     } finally {
       setGenerating(false);
     }
-  }, [model, prompt, provider, resolution, aspectRatio, start]);
+  }, [model, prompt, provider, resolution, aspectRatio, start, reportError, t]);
 
   // The form creates a text-to-image binding with exactly these fields, so it
   // prices through the same hook the layer inspector uses.
@@ -266,13 +268,13 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
           <TextArea
             value={prompt}
             onChange={(value) => setPrompt(value)}
-            placeholder="Describe the image…"
+            placeholder={t("i18n-next52.sketch.generate.prompt")}
             autoFocus
             minRows={2}
             maxRows={6}
             fullWidth
             inputProps={{
-              "aria-label": "Generation prompt",
+              "aria-label": t("i18n-next52.sketch.generate.promptLabel"),
               "data-testid": "sketch-gen-prompt"
             }}
             onKeyDown={(e) => {
@@ -294,7 +296,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
             <MediaControlChip
               ref={imageModelAnchorRef}
               icon={<ImageIcon fontSize="small" />}
-              label={modelName || "Select model"}
+              label={modelName || t("i18n-next52.sketch.generate.selectModel")}
               active={imageModelOpen}
               onClick={() => setImageModelOpen(true)}
               truncate
@@ -322,7 +324,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
               anchorEl={resolutionAnchor}
               open={!!resolutionAnchor}
               onClose={() => setResolutionAnchor(null)}
-              header="Resolution"
+              header={t("i18n-next52.sketch.generate.resolution")}
               value={resolution}
               options={resolutionOptions}
               onChange={handleResolutionChange}
@@ -349,7 +351,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
           <FlexRow justify="flex-end" fullWidth>
             <CostEstimateLine
               estimate={generationCostLine(costEstimate)}
-              title="Estimated cost of this generation"
+              title={t("i18n-next52.sketch.generate.cost")}
             />
           </FlexRow>
 
@@ -369,7 +371,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
             data-testid="sketch-gen-submit"
             sx={{ alignSelf: "flex-end", height: 34 }}
           >
-            Generate
+            {t("i18n-next52.sketch.generate.generate")}
           </EditorButton>
         </FlexColumn>
       </Popover>

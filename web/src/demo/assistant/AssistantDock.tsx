@@ -12,6 +12,7 @@
  * other player that wants to show the assistant that drove a run.
  */
 import React, { useLayoutEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import ChatView from "../../components/chat/containers/ChatView";
 import { FlexRow, Text, SPACING } from "../../components/ui_primitives";
@@ -47,6 +48,7 @@ export function AssistantDock({
   style,
   focusIds = []
 }: AssistantDockProps): React.JSX.Element {
+  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const scrollPositions = useRef(new Map<string, number>());
   const state = useMemo(
@@ -66,6 +68,8 @@ export function AssistantDock({
       ref={rootRef}
       data-assistant-dock
       data-focus-id="assistant-dock"
+      role="region"
+      aria-label={t("i18n-next93.assistantDock.ariaLabel")}
       style={{
         display: "flex",
         flexDirection: "column",

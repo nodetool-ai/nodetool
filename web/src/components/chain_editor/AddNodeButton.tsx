@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { EditorButton } from "../editor_ui";
-import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS, ICON_SIZE } from "../ui_primitives";
+import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS, ICON_SIZE, SPACING } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import { FlexColumn } from "../ui_primitives";
 
@@ -13,6 +14,7 @@ interface AddNodeButtonProps {
 
 export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = false }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   if (isHero) {
     return (
@@ -21,27 +23,27 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
         startIcon={<AddIcon />}
         onClick={onClick}
         sx={{
-          mt: 3,
-          px: 4,
-          py: 1.5,
+          mt: SPACING.lg,
+          px: SPACING.xl,
+          py: SPACING.sm,
           borderRadius: BORDER_RADIUS.sm,
           fontSize: "var(--fontSizeNormal)",
           fontWeight: 600,
           textTransform: "none",
         }}
       >
-        Add first node
+        {t("pass3_0.chainEditor.addNode.addFirstNode")}
       </EditorButton>
     );
   }
 
   return (
-    <FlexColumn align="center" sx={{ py: 0.5 }}>
+    <FlexColumn align="center" sx={{ py: SPACING.micro }}>
       <Box sx={{ width: 2, height: 14, backgroundColor: theme.vars.palette.divider }} />
       <ToolbarIconButton
         size="small"
-        ariaLabel="Add node"
-        tooltip="Add node"
+        ariaLabel={t("pass3_0.chainEditor.addNode.addNode")}
+        tooltip={t("pass3_0.chainEditor.addNode.addNode")}
         onClick={onClick}
         icon={<AddIcon sx={{ fontSize: ICON_SIZE.sm, color: theme.vars.palette.primary.main }} />}
         sx={{

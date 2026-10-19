@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { parseEasing, type ShapeFill } from "@nodetool-ai/timeline";
 
 import { Caption, FlexColumn, SPACING, TextInput, BatchedColorInput } from "../../ui_primitives";
@@ -80,11 +81,8 @@ TextCommitField.displayName = "TextCommitField";
  * document keeps the string — a newer build may read it (I2) — and this build
  * eases linearly, so the caption says that rather than refusing the edit.
  */
-export const UNPARSEABLE_EASING_HINT =
-  "Not an easing this build reads; plays linear";
-
 export const EASING_HINT =
-  "linear, easeIn, easeOut, easeInOut, easeOutBack, easeOutElastic, easeOutBounce, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass)";
+  "linear, easeIn, easeOut, easeInOut, easeOutBack, easeOutElastic, easeOutBounce, cubic-bezier(x1,y1,x2,y2), spring(stiffness,damping,mass)";
 
 /** The four edges a wipe, push or slide can travel from. */
 export const DIRECTION_OPTIONS = [
@@ -105,7 +103,9 @@ interface EasingFieldProps {
 }
 
 export const EasingField: React.FC<EasingFieldProps> = memo(
-  ({ value, ariaLabel, onChange, hint = true, label = "Easing" }) => {
+  ({ value, ariaLabel, onChange, hint = true, label }) => {
+    const { t } = useTranslation();
+    const fieldLabel = label ?? t("i18n-cont-inspector-02.motion.easing");
     const handleCommit = useCallback(
       (raw: string) => {
         const trimmed = raw.trim();
@@ -119,10 +119,10 @@ export const EasingField: React.FC<EasingFieldProps> = memo(
       value !== undefined && value !== "" && parseEasing(value) === null;
     return (
       <>
-        <InspectorRow label={label}>
+        <InspectorRow label={fieldLabel}>
           <InspectorPillInput
             value={value ?? ""}
-            placeholder="linear"
+            placeholder={t("i18n-cont-inspector-02.motion.linearPlaceholder")}
             allowEmpty
             minWidth={140}
             onCommit={handleCommit}
@@ -130,21 +130,16 @@ export const EasingField: React.FC<EasingFieldProps> = memo(
           />
         </InspectorRow>
         {unparseable && (
-          <Caption color="muted">{UNPARSEABLE_EASING_HINT}</Caption>
+          <Caption color="muted">{t("i18n-cont-inspector-02.motion.unparseableEasing")}</Caption>
         )}
-        {hint && <Caption color="muted">{EASING_HINT}</Caption>}
+        {hint && <Caption color="muted">{t("i18n-cont-inspector-02.motion.easingHint")}</Caption>}
       </>
     );
   }
 );
 EasingField.displayName = "EasingField";
 
-const FILL_TYPE_OPTIONS = [
-  { value: "none", label: "None" },
-  { value: "solid", label: "Solid" },
-  { value: "linear", label: "Linear gradient" },
-  { value: "radial", label: "Radial gradient" }
-] as const;
+const FILL_TYPE_VALUES = ["none", "solid", "linear", "radial"] as const;
 
 // A new gradient's black-to-white ramp, drawn into the picture rather than the
 // editor's chrome, so these are document values and not palette tokens.
@@ -165,6 +160,11 @@ interface FillFieldsProps {
 /** Fill-type select plus the fields that type carries. */
 export const FillFields: React.FC<FillFieldsProps> = memo(
   ({ fill, labelPrefix, onChange }) => {
+    const { t } = useTranslation();
+    const fillTypeOptions = FILL_TYPE_VALUES.map((value) => ({
+      value,
+      label: t(`i18n-cont-inspector-02.motion.fillTypes.${value}`)
+    }));
     const handleTypeChange = useCallback(
       (value: string) => {
         if (value === "none") {
@@ -208,25 +208,25 @@ export const FillFields: React.FC<FillFieldsProps> = memo(
 
     return (
       <FlexColumn gap={SPACING.xs}>
-        <InspectorRow label="Fill">
+        <InspectorRow label={t("i18n-cont-inspector-02.motion.fill")}>
           <InspectorSelect
-            label={`${labelPrefix} type`}
+            label={t("i18n-cont-inspector-02.motion.fillTypeLabel", { prefix: labelPrefix })}
             value={fill?.type ?? "none"}
-            options={FILL_TYPE_OPTIONS}
+            options={fillTypeOptions}
             onChange={handleTypeChange}
           />
         </InspectorRow>
         {fill?.type === "solid" && (
-          <InspectorRow label="Fill color">
+          <InspectorRow label={t("i18n-cont-inspector-02.motion.fillColor")}>
             <BatchedColorInput
               value={fill.color}
               onChange={(color) => onChange({ type: "solid", color })}
-              ariaLabel={`${labelPrefix} color`}
+              ariaLabel={t("i18n-cont-inspector-02.motion.fillColorLabel", { prefix: labelPrefix })}
             />
           </InspectorRow>
         )}
         {fill?.type === "linear" && (
-          <InspectorRow label="Angle">
+          <InspectorRow label={t("i18n-cont-inspector-02.motion.angle")}>
             <InspectorPillInput
               value={String(fill.angle)}
               unit="°"
@@ -235,21 +235,21 @@ export const FillFields: React.FC<FillFieldsProps> = memo(
                 if (!Number.isFinite(angle)) return;
                 onChange({ type: "linear", angle, stops: fill.stops });
               }}
-              ariaLabel={`${labelPrefix} angle`}
+              ariaLabel={t("i18n-cont-inspector-02.motion.angleLabel", { prefix: labelPrefix })}
             />
           </InspectorRow>
         )}
         {fill && fill.type !== "solid" && (
           <>
-            <InspectorRow label="Stops">
+            <InspectorRow label={t("i18n-cont-inspector-02.motion.stops")}>
               <TextCommitField
                 value={formatGradientStops(fill.stops)}
-                ariaLabel={`${labelPrefix} stops`}
+                ariaLabel={t("i18n-cont-inspector-02.motion.stopsLabel", { prefix: labelPrefix })}
                 onCommit={handleStopsCommit}
               />
             </InspectorRow>
             <Caption color="muted">
-              offset:color pairs, e.g. 0:#000000, 1:#ffffff
+              {t("i18n-cont-inspector-02.motion.gradientStopsHint")}
             </Caption>
           </>
         )}

@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import GroupsIcon from "@mui/icons-material/Groups";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -46,6 +47,7 @@ import StudioShell from "./StudioShell";
 type DockTab = "cast" | "assistant";
 
 const StudioScriptPage = () => {
+  const { t } = useTranslation();
   const { scriptId = "" } = useParams<{ scriptId: string }>();
   const theme = useTheme();
   const navigate = useNavigate();
@@ -82,17 +84,17 @@ const StudioScriptPage = () => {
 
   const dockTabs = useMemo(
     () => [
-      { value: "cast", label: "Cast", icon: <GroupsIcon /> },
-      { value: "assistant", label: "Assistant", icon: <AutoAwesomeIcon /> }
+      { value: "cast", label: t("screen_remaining.studio.cast"), icon: <GroupsIcon /> },
+      { value: "assistant", label: t("screen_remaining.studio.assistant"), icon: <AutoAwesomeIcon /> }
     ],
-    []
+    [t]
   );
 
   const createVideo = (
     <Tooltip
       title={
         assembleError ??
-        "Lay the voiced lines onto a timeline and open the video editor."
+        t("screen_remaining.studio.createVideoTooltip")
       }
     >
       <span>
@@ -111,7 +113,7 @@ const StudioScriptPage = () => {
               });
           }}
         >
-          {assembling ? "Assembling…" : "Create video"}
+          {assembling ? t("screen_remaining.studio.assembling") : t("screen_remaining.studio.createVideo")}
         </EditorButton>
       </span>
     </Tooltip>
@@ -121,37 +123,37 @@ const StudioScriptPage = () => {
   // copy lands looks like a script with no lines.
   if (loadState !== "ready") {
     return (
-      <StudioShell title={title || "Untitled script"}>
-        <DocumentLoadStatus state={loadState} label="script" />
+      <StudioShell title={title || t("screen_remaining.studio.untitledScript")}>
+        <DocumentLoadStatus state={loadState} label={t("screen_remaining.studio.script")} />
       </StudioShell>
     );
   }
 
   if (setupStage !== "done") {
     return (
-      <StudioShell title={title || "Untitled script"}>
+      <StudioShell title={title || t("screen_remaining.studio.untitledScript")}>
         <SetupFlow config={setupConfig} />
       </StudioShell>
     );
   }
 
   return (
-    <StudioShell title={title || "Untitled script"} actions={createVideo}>
+    <StudioShell title={title || t("screen_remaining.studio.untitledScript")} actions={createVideo}>
       {/* The button's tooltip is out of reach for keyboard and touch, so a
           failed Create video says why here. */}
       {assembleError ? (
         <AlertBanner
           severity="error"
-          title="We couldn't create the video"
+          title={t("screen_remaining.studio.videoCreateError")}
           sx={{ margin: SPACING.md }}
           action={
             <ReportBugButton
-              label="Report this failure"
+              label={t("screen_remaining.studio.reportFailure")}
               variant="outlined"
               size="small"
               context={{
                 source: "manual",
-                summary: "Studio script failed to create its video",
+                summary: t("screen_remaining.studio.scriptVideoError"),
                 errorText: assembleError
               }}
             />

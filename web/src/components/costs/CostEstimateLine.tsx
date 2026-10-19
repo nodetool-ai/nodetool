@@ -11,6 +11,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Caption, FlexColumn, Text, Tooltip } from "../ui_primitives";
 
 /** A figure to show, plus what produced it. */
@@ -37,12 +38,16 @@ export interface CostEstimateLineProps {
 const CostEstimateLineInternal: React.FC<CostEstimateLineProps> = ({
   estimate,
   title,
-  ariaPrefix = "Estimated cost"
+  ariaPrefix
 }) => {
+  const { t } = useTranslation();
+
   if (!estimate) {
     return null;
   }
 
+  const resolvedAriaPrefix =
+    ariaPrefix ?? t("i18n-next71.costEstimateLine.estimatedCost");
   const prefix = estimate.isLowerBound ? "≥" : "≈";
   const detail = (
     <FlexColumn gap={0.5}>
@@ -53,8 +58,7 @@ const CostEstimateLineInternal: React.FC<CostEstimateLineProps> = ({
         </Caption>
       ))}
       <Caption color="secondary">
-        List price from the provider catalog. The run is billed by the provider
-        at its own rates.
+        {t("i18n-next71.costEstimateLine.providerCatalogNotice")}
       </Caption>
     </FlexColumn>
   );
@@ -65,7 +69,7 @@ const CostEstimateLineInternal: React.FC<CostEstimateLineProps> = ({
         component="span"
         color="muted"
         className="cost-estimate-line"
-        aria-label={`${ariaPrefix} ${estimate.label}`}
+        aria-label={`${resolvedAriaPrefix} ${estimate.label}`}
         sx={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}
       >
         {prefix}&nbsp;{estimate.label}

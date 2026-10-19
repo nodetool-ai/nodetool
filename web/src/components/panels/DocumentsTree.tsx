@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { SvgIconComponent } from "@mui/icons-material";
@@ -164,6 +165,7 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
   onDuplicate,
   onRename
 }: DocumentTreeRowProps) {
+  const { t } = useTranslation();
   const Icon = LEAF_ICONS[leaf.type];
   const [editing, setEditing] = useState(false);
   const handleClick = useCallback(() => onOpen(leaf), [leaf, onOpen]);
@@ -267,7 +269,7 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
           />
           {editing ? (
             <InlineEditableText
-              ariaLabel={`Rename ${leaf.name}`}
+              ariaLabel={t("i18n-next31.documents.rename", { name: leaf.name })}
               value={leaf.name}
               editing
               onEditingChange={setEditing}
@@ -292,15 +294,15 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
             </TruncatedText>
           )}
           <Text size="smaller" color="secondary" sx={{ flexShrink: 0 }}>
-            {leaf.typeLabel}
+            {t(`i18n-next31.documents.type.${leaf.type}`)}
           </Text>
         </FlexRow>
       </Box>
       {onRename && !editing && (
         <ToolbarIconButton
           icon={<DriveFileRenameOutlineIcon fontSize="small" />}
-          tooltip={`Rename ${leaf.name}`}
-          aria-label={`Rename ${leaf.name}`}
+          tooltip={t("i18n-next31.documents.rename", { name: leaf.name })}
+          aria-label={t("i18n-next31.documents.rename", { name: leaf.name })}
           onClick={handleBeginRename}
           size="small"
           className="documents-tree-rename"
@@ -309,8 +311,8 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
       {onDuplicate && (
         <ToolbarIconButton
           icon={<ContentCopyIcon fontSize="small" />}
-          tooltip={`Duplicate ${leaf.name}`}
-          aria-label={`Duplicate ${leaf.name}`}
+          tooltip={t("i18n-next31.documents.duplicate", { name: leaf.name })}
+          aria-label={t("i18n-next31.documents.duplicate", { name: leaf.name })}
           onClick={handleDuplicate}
           size="small"
           className="documents-tree-duplicate"
@@ -319,8 +321,8 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
       {onDelete && (
         <DeleteButton
           onClick={handleDelete}
-          tooltip={`Delete ${leaf.name}`}
-          ariaLabel={`Delete ${leaf.name}`}
+          tooltip={t("i18n-next31.documents.delete", { name: leaf.name })}
+          ariaLabel={t("i18n-next31.documents.delete", { name: leaf.name })}
           iconVariant="outline"
           className="documents-tree-delete"
         />
@@ -331,7 +333,7 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
           position={menuPosition}
           onClose={handleCloseMenu}
         >
-          <MenuItemPrimitive label="Rename" onClick={handleBeginRename} />
+          <MenuItemPrimitive label={t("i18n-next31.documents.renameAction")} onClick={handleBeginRename} />
         </ContextMenu>
       )}
     </FlexRow>
@@ -359,6 +361,7 @@ const DocumentTreeGroupRow = ({
   onDuplicate,
   onRename
 }: DocumentTreeGroupRowProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const Icon = GROUP_ICONS[group.id];
   const handleKeyDown = useCallback(
@@ -417,7 +420,7 @@ const DocumentTreeGroupRow = ({
           expanded={expanded}
           iconVariant="chevron"
           onClick={handleDisclosureClick}
-          aria-label={`${expanded ? "Collapse" : "Expand"} ${group.label}`}
+          aria-label={t(expanded ? "i18n-next31.documents.collapseGroup" : "i18n-next31.documents.expandGroup", { group: t(`i18n-next31.documents.group.${group.id}`) })}
           tabIndex={-1}
         />
         <Icon aria-hidden="true" sx={{ fontSize: ICON_SIZE.md }} />
@@ -450,6 +453,7 @@ const DocumentTreeGroupRow = ({
 };
 
 const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const openApplication = useOpenApplication();
@@ -471,11 +475,11 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
   const errorContext = useMemo<BugReportContext>(
     () => ({
       source: "panel-crash",
-      summary: "Project documents failed to load",
+      summary: t("i18n-next31.documents.loadFailureSummary"),
       errorText: error?.message,
       stackTrace: error?.stack
     }),
-    [error]
+    [error, t]
   );
 
   const filteredGroups = useMemo(() => {
@@ -486,14 +490,16 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
     return groups
       .map((group) => ({
         ...group,
-        children: group.children.filter((document) =>
-          `${document.name} ${document.typeLabel}`
+        children: group.children.filter((document) => {
+          const typeLabel = t(`i18n-next31.documents.type.${document.type}`);
+          const groupLabel = t(`i18n-next31.documents.group.${group.id}`);
+          return `${document.name} ${typeLabel} ${groupLabel}`
             .toLowerCase()
-            .includes(normalizedQuery)
-        )
+            .includes(normalizedQuery);
+        })
       }))
       .filter((group) => group.children.length > 0);
-  }, [groups, query]);
+  }, [groups, query, t]);
 
   const handleOpen = useCallback(
     (document: DocumentTreeLeaf) => {
@@ -549,15 +555,15 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
         .catch((duplicateError: unknown) =>
           addNotification({
             type: "error",
-            content: `Could not duplicate ${document.name}: ${
+            content: t("i18n-next31.documents.duplicateFailure", { name: document.name, error: (
               duplicateError instanceof Error
                 ? duplicateError.message
-                : "Unknown error"
-            }`
+                : t("i18n-next31.documents.unknownError")
+            ) })
           })
         );
     },
-    [addNotification, duplicateWorkflow, location.pathname, navigate]
+    [addNotification, duplicateWorkflow, location.pathname, navigate, t]
   );
 
   const renameDocument = useRenameDocument();
@@ -586,11 +592,11 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
         onError: (mutationError) =>
           addNotification({
             type: "error",
-            content: `Could not delete ${name}: ${mutationError.message}`
+            content: t("i18n-next31.documents.deleteFailure", { name, error: mutationError.message })
           })
       }
     );
-  }, [addNotification, deleteDocument, documentToDelete]);
+  }, [addNotification, deleteDocument, documentToDelete, t]);
 
   const toggleGroup = useCallback((groupId: DocumentTreeGroup["id"]) => {
     setCollapsedGroups((previous) => {
@@ -608,22 +614,22 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
     <FlexColumn fullHeight fullWidth gap={0}>
       {!isMobile && (
         <PanelHeader
-          title="Documents"
-          description="Open documents in the current project."
+          title={t("i18n-next31.documents.title")}
+          description={t("i18n-next31.documents.subtitle")}
         />
       )}
       <FlexColumn sx={{ py: SPACING.md }}>
         <SearchInput
           value={query}
           onChange={setQuery}
-          ariaLabel="Search documents"
-          placeholder="Search documents"
+          ariaLabel={t("i18n-next31.documents.search")}
+          placeholder={t("i18n-next31.documents.search")}
           fullWidth
         />
       </FlexColumn>
       {isLoading ? (
         <FlexColumn fullHeight align="center" justify="center">
-          <LoadingSpinner text="Loading documents" />
+          <LoadingSpinner text={t("i18n-next31.documents.loading")} />
         </FlexColumn>
       ) : isError ? (
         <FlexColumn
@@ -634,10 +640,10 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
         >
           <EmptyState
             variant="error"
-            title="Could not load documents"
+            title={t("i18n-next31.documents.loadFailureTitle")}
             description={
               <FlexColumn align="center" gap={SPACING.sm}>
-                <Text size="small">{error?.message ?? "Try again later."}</Text>
+                <Text size="small">{error?.message ?? t("i18n-next31.documents.tryAgainLater")}</Text>
                 <ReportBugButton context={errorContext} />
               </FlexColumn>
             }
@@ -652,14 +658,14 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
         >
           <EmptyState
             variant={query.trim() ? "no-results" : "empty"}
-            title={query.trim() ? "No matching documents" : "No documents yet"}
+            title={query.trim() ? t("i18n-next31.documents.noMatching") : t("i18n-next31.documents.noDocuments")}
             description={
               query.trim()
                 ? // This search covers documents and text files only. Name
                   // where the rest lives, or an empty result reads as "it
                   // does not exist" (study-7-I5).
-                  "This searches documents only. Conversations are in Chats, and uploads are in the Library."
-                : "Workflows, text files and other documents created in this project will appear here. Uploads are in the Library."
+                  t("i18n-next31.documents.noMatchingDescription")
+                : t("i18n-next31.documents.emptyDescription")
             }
           />
         </FlexColumn>
@@ -667,7 +673,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
         <ScrollArea fullHeight thin sx={{ flex: 1, minHeight: 0 }}>
           <FlexColumn
             role="tree"
-            aria-label="Project documents"
+            aria-label={t("i18n-next31.documents.treeLabel")}
             gap={SPACING.xs}
           >
             {filteredGroups.map((group) => (
@@ -690,14 +696,14 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
         open={Boolean(documentToDelete)}
         onClose={() => setDocumentToDelete(undefined)}
         onConfirm={handleConfirmDelete}
-        title={`Delete ${documentToDelete?.typeLabel.toLowerCase() ?? "document"}?`}
+        title={t("i18n-next31.documents.deleteConfirmTitle", { type: documentToDelete?.typeLabel.toLowerCase() ?? t("i18n-next31.documents.document") })}
         content={
           documentToDelete?.type === "entity"
-            ? `"${documentToDelete.name}" will stop being an entity. Its asset is kept.`
-            : `"${documentToDelete?.name ?? ""}" will be permanently deleted.`
+            ? t("i18n-next31.documents.deleteEntityDescription", { name: documentToDelete.name })
+            : t("i18n-next31.documents.deleteDescription", { name: documentToDelete?.name ?? "" })
         }
-        confirmText="Delete"
-        cancelText="Cancel"
+        confirmText={t("i18n-next31.documents.deleteAction")}
+        cancelText={t("i18n-next31.documents.cancel")}
       />
       {entityToEdit && (
         <EntityEditorDialog

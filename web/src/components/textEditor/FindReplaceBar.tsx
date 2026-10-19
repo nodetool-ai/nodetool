@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
@@ -115,6 +116,7 @@ const FindReplaceBar = ({
   totalMatches = 0,
   isVisible = true
 }: FindReplaceBarProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [replaceTerm, setReplaceTerm] = useState("");
@@ -178,7 +180,9 @@ const FindReplaceBar = ({
     onClose?.();
   }, [onClose]);
 
-  if (!isVisible) {return null;}
+  if (!isVisible) {
+    return null;
+  }
 
   const isValidSearch = isValidInput(searchTerm);
 
@@ -186,7 +190,7 @@ const FindReplaceBar = ({
     <Toolbar
       className="find-replace-bar"
       role="toolbar"
-      aria-label="Find and replace"
+      aria-label={t("screen_scripts_text.textEditor.findReplace")}
       density="compact"
       css={styles(theme)}
       sx={{ flexWrap: "wrap", py: SPACING.xs, pl: SPACING.xl }}
@@ -194,14 +198,14 @@ const FindReplaceBar = ({
       <ToolbarGroup className="search-group">
         <NodeTextField
           className="search-input"
-          placeholder="Find"
+          placeholder={t("screen_scripts_text.textEditor.find")}
           value={searchTerm}
           onChange={handleSearchChange}
           onKeyDown={handleKeyDown}
           autoFocus
           slotProps={{
             htmlInput: {
-              "aria-label": "Search text",
+              "aria-label": t("screen_scripts_text.textEditor.searchText"),
               maxLength: MAX_SEARCH_LENGTH
             }
           }}
@@ -213,7 +217,7 @@ const FindReplaceBar = ({
 
         <ToolbarIconButton
           icon={<KeyboardArrowUpIcon fontSize="small" />}
-          tooltip="Previous"
+          tooltip={t("screen_scripts_text.textEditor.previousMatch")}
           onClick={onPrevious}
           disabled={totalMatches === 0}
           className="toolbar-button"
@@ -221,7 +225,7 @@ const FindReplaceBar = ({
 
         <ToolbarIconButton
           icon={<KeyboardArrowDownIcon fontSize="small" />}
-          tooltip="Next"
+          tooltip={t("screen_scripts_text.textEditor.nextMatch")}
           onClick={onNext}
           disabled={totalMatches === 0}
           className="toolbar-button"
@@ -229,7 +233,7 @@ const FindReplaceBar = ({
 
         <ToolbarIconButton
           icon={<ReplaceIcon fontSize="small" />}
-          tooltip="Toggle replace"
+          tooltip={t("screen_scripts_text.textEditor.toggleReplace")}
           onClick={handleToggleReplace}
           className="toolbar-button"
         />
@@ -239,13 +243,13 @@ const FindReplaceBar = ({
         <ToolbarGroup className="search-group">
           <NodeTextField
             className="replace-input"
-            placeholder="Replace with…"
+            placeholder={t("screen_scripts_text.textEditor.replaceWith")}
             value={replaceTerm}
             onChange={handleReplaceChange}
             onKeyDown={handleKeyDown}
             slotProps={{
               htmlInput: {
-                "aria-label": "Replace text",
+                "aria-label": t("screen_scripts_text.textEditor.replaceText"),
                 maxLength: MAX_SEARCH_LENGTH
               }
             }}
@@ -253,8 +257,12 @@ const FindReplaceBar = ({
 
           <span>
             <ToolbarIconButton
-              icon={<span style={TYPOGRAPHY.sans.label}>Replace</span>}
-              tooltip="Replace"
+              icon={
+                <span style={TYPOGRAPHY.sans.label}>
+                  {t("i18n-next113.textEditor.replace")}
+                </span>
+              }
+              tooltip={t("screen_scripts_text.textEditor.replace")}
               onClick={handleReplace}
               disabled={!isValidSearch || totalMatches === 0}
               className="toolbar-button"
@@ -263,8 +271,12 @@ const FindReplaceBar = ({
 
           <span>
             <ToolbarIconButton
-              icon={<span style={TYPOGRAPHY.sans.label}>All</span>}
-              tooltip="Replace all"
+              icon={
+                <span style={TYPOGRAPHY.sans.label}>
+                  {t("i18n-next113.textEditor.all")}
+                </span>
+              }
+              tooltip={t("screen_scripts_text.textEditor.replaceAll")}
               onClick={handleReplaceAll}
               disabled={!isValidSearch || totalMatches === 0}
               className="toolbar-button"
@@ -273,7 +285,12 @@ const FindReplaceBar = ({
         </ToolbarGroup>
       )}
 
-      <CloseButton onClick={handleClose} buttonSize="small" tooltip="Close Find/Replace" className="toolbar-button" />
+      <CloseButton
+        onClick={handleClose}
+        buttonSize="small"
+        tooltip={t("screen_scripts_text.textEditor.closeFindReplace")}
+        className="toolbar-button"
+      />
     </Toolbar>
   );
 };

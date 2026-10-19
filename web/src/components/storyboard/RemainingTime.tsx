@@ -12,6 +12,7 @@
  */
 
 import { memo, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   durationBucketKey,
@@ -24,10 +25,15 @@ import { Caption } from "../ui_primitives";
  * Seconds as `~M:SS`. Minutes are not padded and are not capped at 60, so a
  * twelve-minute render reads `~12:05` rather than rolling over into hours.
  */
-export const formatRemainingTime = (seconds: number): string => {
+export const formatRemainingTime = (seconds: number, locale = "en"): string => {
   const total = Math.max(0, Math.round(seconds));
   const minutes = Math.floor(total / 60);
-  return `~${minutes}:${String(total % 60).padStart(2, "0")}`;
+  const format = new Intl.NumberFormat(locale, { useGrouping: false });
+  const padded = new Intl.NumberFormat(locale, {
+    useGrouping: false,
+    minimumIntegerDigits: 2
+  });
+  return `~${format.format(minutes)}:${padded.format(total % 60)}`;
 };
 
 export interface RemainingTimeProps {
@@ -38,6 +44,7 @@ export interface RemainingTimeProps {
 }
 
 const RemainingTimeImpl = ({ shotId, className }: RemainingTimeProps) => {
+  const { t, i18n } = useTranslation();
   const job = useStoryboardGenerationStore((state) => state.shotJobs[shotId]);
   const model = job?.renderInputs?.model;
   const samples = useStoryboardGenerationStore((state) =>
@@ -72,7 +79,12 @@ const RemainingTimeImpl = ({ shotId, className }: RemainingTimeProps) => {
 
   return (
     <Caption color="secondary" className={className}>
-      {`${formatRemainingTime(remainingMs / 1000)} remaining`}
+      {t("screens4_13.storyboard.remainingTime.remaining", {
+        time: formatRemainingTime(
+          remainingMs / 1000,
+          i18n.resolvedLanguage ?? i18n.language
+        )
+      })}
     </Caption>
   );
 };

@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -143,6 +144,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   hideModelPicker = false,
   threadId
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
@@ -502,54 +504,54 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     }
     if (mode === "image") {
       return isMobile
-        ? "Describe an image…"
-        : "Describe the image you want to generate…";
+        ? t("i18n-next54.composer.placeholder.imageShort")
+        : t("i18n-next54.composer.placeholder.image");
     }
     if (mode === "image_edit") {
       return isMobile
-        ? "Describe the edits…"
-        : "Describe the edits to apply to the dropped image…";
+        ? t("i18n-next54.composer.placeholder.editsShort")
+        : t("i18n-next54.composer.placeholder.edits");
     }
     if (mode === "video") {
       return isMobile
-        ? "Describe a video…"
-        : "Describe your video… like a man drinking a cup of coffee…";
+        ? t("i18n-next54.composer.placeholder.videoShort")
+        : t("i18n-next54.composer.placeholder.video");
     }
     if (mode === "image_to_video") {
       return isMobile
-        ? "Describe the animation…"
-        : "Describe how the dropped image should animate…";
+        ? t("i18n-next54.composer.placeholder.animationShort")
+        : t("i18n-next54.composer.placeholder.animation");
     }
     if (mode === "reference_to_video") {
       return isMobile
-        ? "Describe the shot…"
-        : "Describe the shot — the attached images and videos are the references…";
+        ? t("i18n-next54.composer.placeholder.shotShort")
+        : t("i18n-next54.composer.placeholder.shot");
     }
     if (mode === "audio") {
-      return "Type the text you want spoken…";
+      return t("i18n-next54.composer.placeholder.spokenText");
     }
-    if (mode === "music") return "Describe the music you want to generate…";
+    if (mode === "music") return t("i18n-next54.composer.placeholder.music");
     if (mode === "audio_to_video") {
-      return "Describe a scene synced to audio…";
+      return t("i18n-next54.composer.placeholder.audioVideo");
     }
     if (mode === "retake") {
-      return "Refine the last generation…";
+      return t("i18n-next54.composer.placeholder.retake");
     }
     if (mode === "extend") {
-      return "Describe how to extend…";
+      return t("i18n-next54.composer.placeholder.extend");
     }
     if (mode === "motion_control") {
-      return "Describe the motion…";
+      return t("i18n-next54.composer.placeholder.motion");
     }
     if (mode === "chat" && permissionMode === "plan") {
       return isMobile
-        ? "Describe the work to plan…"
-        : "Describe the work. The agent will propose a plan, not run it.";
+        ? t("i18n-next54.composer.placeholder.planShort")
+        : t("i18n-next54.composer.placeholder.plan");
     }
     return isMobile
-      ? "Message… or @ to add an asset"
-      : "Continue the thread — or type @ to add an asset…";
-  }, [mode, isMobile, placeholderOverride, permissionMode]);
+      ? t("i18n-next54.composer.placeholder.messageShort")
+      : t("i18n-next54.composer.placeholder.message");
+  }, [mode, isMobile, placeholderOverride, permissionMode, t]);
 
   const isMediaMode =
     mode === "image" ||
@@ -756,9 +758,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   );
 
   const chatProviderLabel = useMemo(() => {
-    if (!isModelSelected(chatModel)) return "Select model";
+    if (!isModelSelected(chatModel)) return t("i18n-next54.composer.selectModel");
     return chatModel.name || chatModel.id;
-  }, [chatModel]);
+  }, [chatModel, t]);
 
   const isDisabled = disabled || isBusy;
 
@@ -793,7 +795,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         <textarea
           ref={textareaRef}
           className="media-compose-input"
-          aria-label="Message prompt"
+          aria-label={t("i18n-next54.composer.messagePrompt")}
           aria-expanded={isSkillMenuOpen}
           aria-controls={isSkillMenuOpen ? skillMenuId : undefined}
           value={prompt}
@@ -829,9 +831,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
         {!providerSetup.needsSetup && needsModel && modelGate && (
           <SelectModelBanner
-            reason={`Pick a ${modelGate.label} model to ${
-              isMediaMode ? "generate" : "send"
-            }.`}
+              reason={t("i18n-next54.composer.pickModel", {
+                kind: modelGate.label,
+                action: t(isMediaMode ? "i18n-next54.composer.generate" : "i18n-next54.composer.send")
+              })}
             onSelect={openModelPicker}
           />
         )}
@@ -843,7 +846,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             sx={{ px: SPACING.xs, color: "text.secondary" }}
           >
             <Text size="small" color="secondary">
-              Message queued - {queuedMessage.prompt.slice(0, 60)}
+              {t("i18n-next54.composer.messageQueued", { prompt: queuedMessage.prompt.slice(0, 60) })}
             </Text>
             {(onStop || (!isLoading && !isStreaming)) && (
               <Text
@@ -860,7 +863,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 }}
                 onClick={sendQueuedNow}
               >
-                Send now
+                {t("i18n-next54.composer.sendNow")}
               </Text>
             )}
             <Text
@@ -877,7 +880,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               }}
               onClick={cancelQueued}
             >
-              Cancel
+              {t("common.cancel")}
             </Text>
           </FlexRow>
         )}
@@ -897,7 +900,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                   <AddIcon fontSize="small" />
                 )
               }
-              title={isUploading ? "Uploading…" : "Add to message"}
+              title={isUploading ? t("i18n-next54.composer.uploading") : t("i18n-next54.composer.addToMessage")}
               onClick={openAttachDialog}
               disabled={disabled}
               showChevron={false}
@@ -958,9 +961,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 className="media-generate-btn"
                 onClick={handleSend}
                 disabled={isDisabled || !canGenerate}
-                aria-label="Generate"
+                aria-label={t("i18n-next54.composer.generate")}
               >
-                Generate
+                {t("i18n-next54.composer.generate")}
               </button>
             ) : null}
           </div>

@@ -5,6 +5,7 @@
  * script's — so `name` is omitted for that case.
  */
 import { memo, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Dialog, FlexColumn, SPACING, TextInput } from "../ui_primitives";
 
@@ -26,6 +27,7 @@ const SaveToMyNodesDialogInner: React.FC<SaveToMyNodesDialogProps> = ({
   onCancel,
   onConfirm
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState(initialName ?? "");
   const [category, setCategory] = useState(initialCategory);
 
@@ -43,8 +45,8 @@ const SaveToMyNodesDialogInner: React.FC<SaveToMyNodesDialogProps> = ({
     <Dialog
       open={open}
       onClose={onCancel}
-      title="Save to My Nodes"
-      confirmText="Save"
+      title={t("screen_nodes.saveToMyNodes")}
+      confirmText={t("common.save")}
       isLoading={busy}
       confirmDisabled={!valid}
       onConfirm={() =>
@@ -54,7 +56,7 @@ const SaveToMyNodesDialogInner: React.FC<SaveToMyNodesDialogProps> = ({
       <FlexColumn gap={SPACING.lg}>
         {askName ? (
           <TextInput
-            label="Node name"
+            label={t("screen_nodes.nodeName")}
             size="small"
             autoFocus
             value={name}
@@ -62,12 +64,12 @@ const SaveToMyNodesDialogInner: React.FC<SaveToMyNodesDialogProps> = ({
           />
         ) : null}
         <TextInput
-          label="Category"
+          label={t("screen_nodes.category")}
           size="small"
           autoFocus={!askName}
           value={category}
           onChange={(event) => setCategory(event.target.value)}
-          helperText="Where the node appears under My Nodes."
+          helperText={t("screen_nodes.myNodesCategoryHelp")}
         />
       </FlexColumn>
     </Dialog>

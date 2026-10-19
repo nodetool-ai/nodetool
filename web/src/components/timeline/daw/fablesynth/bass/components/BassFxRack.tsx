@@ -2,6 +2,7 @@
 // the BL-1 worklet, drawn by the shared FX panels through an adapter.
 
 import { useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTimelineHistoryBatch } from '../../../../../../stores/timeline/useTimelineHistoryBatch';
 import { useBassStore } from '../bassStoreContext';
 import { BassKnob } from './BassKnob';
@@ -49,12 +50,14 @@ function useBurstSetParam(setParam: (id: string, value: number) => void): (id: s
 }
 
 function BassPower({ paramId }: { paramId: string }) {
+  const { t } = useTranslation();
   const on = useBassStore((s) => s.params[paramId] > 0.5);
   const setParam = useBassStore((s) => s.setParam);
-  return <button className={`power-btn fx-power${on ? ' on' : ''}`} type="button" aria-label={`${paramId} power`} aria-pressed={on} onClick={() => setParam(paramId, on ? 0 : 1)} />;
+  return <button className={`power-btn fx-power${on ? ' on' : ''}`} type="button" aria-label={t('i18n-next48.fx.power', { label: paramId })} aria-pressed={on} onClick={() => setParam(paramId, on ? 0 : 1)} />;
 }
 
 export function BassFxRack() {
+  const { t } = useTranslation();
   const params = useBassStore((s) => s.params);
   const setParam = useBurstSetParam(useBassStore((s) => s.setParam));
   const device = useBassStore((s) => s.device);
@@ -77,7 +80,7 @@ export function BassFxRack() {
         <DynamicsPanel kind="comp" adapter={adapter} />
         <DrivePanel adapter={adapter} />
         <ChorusPanel adapter={adapter} />
-        <TapeEchoPanel adapter={{ ...adapter, title: 'DELAY', context: 'PING-PONG' }} />
+        <TapeEchoPanel adapter={{ ...adapter, title: t('i18n-next48.fx.delay'), context: t('i18n-next48.fx.pingPong') }} />
         <ReverbPanel adapter={adapter} />
       </div>
     </section>

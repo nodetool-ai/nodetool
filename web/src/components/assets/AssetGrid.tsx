@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import {
   Text,
@@ -58,6 +59,9 @@ const SelectedItemsInfo: React.FC<{
   assets: Asset[];
   onClear: () => void;
 }> = memo(({ selectedAssetIds, assets, onClear }) => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const totalSize = useMemo(() => {
     if (selectedAssetIds.length === 0) return 0;
     const selectedSet = new Set(selectedAssetIds);
@@ -81,10 +85,9 @@ const SelectedItemsInfo: React.FC<{
     >
       <div className="selected-asset-info">
         <Text className="selected-info">
-          {selectedAssetIds.length}{" "}
-          {selectedAssetIds.length === 1 ? "item" : "items"} selected
+          {t("selection.selected", { count: selectedAssetIds.length })}
           {totalSize > 0 && (
-            <Tooltip title="Total size of selected items" disableInteractive>
+            <Tooltip title={t("selection.totalSize")} disableInteractive>
               <span style={{ marginLeft: getSpacingPx(SPACING.md), opacity: 0.7 }}>
                 ({formatFileSize(totalSize)})
               </span>
@@ -94,7 +97,7 @@ const SelectedItemsInfo: React.FC<{
         <ToolbarIconButton
           className="clear-selection"
           icon={<CloseIcon />}
-          tooltip="Clear selection"
+          tooltip={t("actions.clearSelection")}
           shortcut={["Esc"]}
           tooltipPlacement="top"
           onClick={onClear}
@@ -133,6 +136,9 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isMobile = false,
   forceGlobalAssets = false
 }) => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const {
     error,
     folderFilesFiltered,
@@ -318,7 +324,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           className="asset-grid-fetch-error"
           severity="error"
           compact
-          title="Could not refresh assets"
+          title={t("states.refreshError.title")}
           sx={{
             flexShrink: 0,
             mb: getSpacingPx(SPACING.sm),
@@ -330,7 +336,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
               size="small"
               onClick={() => refetchAssetsAndFolders()}
             >
-              Retry
+              {t("actions.retry")}
             </EditorButton>
           }
         >
@@ -363,7 +369,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
               initialSize={
                 foldersDocked ? initialFoldersPanelWidth : FOLDERS_PANEL_HEIGHT
               }
-              separatorLabel="Resize the folder pane"
+              separatorLabel={t("actions.resizeFolderPane")}
               first={
                 <PanelErrorBoundary panelName="Asset folders">
                   <AssetFoldersPanel

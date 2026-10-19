@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { shallow } from "zustand/shallow";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -147,27 +148,27 @@ const LIST_CONSTANT_PATHS: Record<
   image: {
     constantPath: "nodetool.constant.ImageList",
     inputPath: "nodetool.input.ImageListInput",
-    label: "Image List"
+    label: "imageList"
   },
   video: {
     constantPath: "nodetool.constant.VideoList",
     inputPath: "nodetool.input.VideoListInput",
-    label: "Video List"
+    label: "videoList"
   },
   audio: {
     constantPath: "nodetool.constant.AudioList",
     inputPath: "nodetool.input.AudioListInput",
-    label: "Audio List"
+    label: "audioList"
   },
   text: {
     constantPath: "nodetool.constant.TextList",
     inputPath: "nodetool.input.TextListInput",
-    label: "Text List"
+    label: "textList"
   },
   str: {
     constantPath: "nodetool.constant.TextList",
     inputPath: "nodetool.input.StringListInput",
-    label: "Text List"
+    label: "textList"
   }
 };
 
@@ -177,6 +178,7 @@ const getListConstantPathForElementType = (
   LIST_CONSTANT_PATHS[elementTypeName] ?? null;
 
 const InputContextMenu: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const allMetadata = useMetadataStore((state) => state.metadata);
@@ -240,7 +242,9 @@ const InputContextMenu: React.FC = () => {
   const promptNodeMetadata =
     type?.type === "str" ? getMetadata("nodetool.text.Prompt") : null;
 
-  const specializedListLabel = specializedListPaths?.label;
+  const specializedListLabel = specializedListPaths
+    ? t(`screen_editor.${specializedListPaths.label}`)
+    : undefined;
 
   const isEnumType = type?.type === "enum";
 
@@ -860,11 +864,11 @@ const InputContextMenu: React.FC = () => {
   }
 
   const constantLabel = specializedListLabel
-    ? `Create ${specializedListLabel}`
-    : "Constant";
+    ? t("screen_editor.createTypedConstant", { type: specializedListLabel })
+    : t("screen_editor.constant");
   const inputLabel = specializedListLabel
-    ? `Create ${specializedListLabel} input`
-    : "Input";
+    ? t("screen_editor.createTypedInput", { type: specializedListLabel })
+    : t("screen_editor.input");
 
   return (
     <ContextMenu
@@ -887,12 +891,12 @@ const InputContextMenu: React.FC = () => {
           inputRef={searchInputRef}
           size="small"
           fullWidth
-          placeholder="Search nodes"
+          placeholder={t("screen_editor.searchNodes")}
           value={searchTerm}
           onChange={handleSearchChange}
           onClick={(event) => event.stopPropagation()}
           onKeyDown={handleSearchKeyDown}
-          aria-label="Search connectable nodes"
+          aria-label={t("screen_editor.searchConnectableNodes")}
           sx={{
             "& .MuiOutlinedInput-root": {
               backgroundColor: "action.disabledBackground",
@@ -926,7 +930,7 @@ const InputContextMenu: React.FC = () => {
               endAdornment: searchTerm ? (
                 <InputAdornment position="end">
                   <ToolbarIconButton
-                    aria-label="clear search"
+                    aria-label={t("screen_editor.clearSearch")}
                     onClick={handleClearSearch}
                     size="small"
                     icon={<ClearIcon sx={{ fontSize: ICON_SIZE.sm }} />}
@@ -942,7 +946,9 @@ const InputContextMenu: React.FC = () => {
         <ContextMenuItem
           className="create-collect-element-constant-node"
           onClick={handleCreateCollectElementConstantNode}
-          label={`Create ${labelForType(collectElementType?.type || "")} constant`}
+          label={t("screen_editor.createTypedConstant", {
+            type: labelForType(collectElementType?.type || "")
+          })}
           IconComponent={<PushPinIcon />}
         />
       )}
@@ -950,7 +956,9 @@ const InputContextMenu: React.FC = () => {
         <ContextMenuItem
           className="create-collect-element-input-node"
           onClick={handleCreateCollectElementInputNode}
-          label={`Create ${labelForType(collectElementType?.type || "")} input`}
+          label={t("screen_editor.createTypedInput", {
+            type: labelForType(collectElementType?.type || "")
+          })}
           IconComponent={<InputIcon />}
         />
       )}
@@ -974,7 +982,7 @@ const InputContextMenu: React.FC = () => {
         <ContextMenuItem
           className="create-prompt-node"
           onClick={handleCreatePromptNode}
-          label="Prompt"
+          label={t("screen_editor.prompt")}
           IconComponent={<EditNoteIcon />}
         />
       )}
@@ -982,7 +990,7 @@ const InputContextMenu: React.FC = () => {
         <ContextMenuItem
           className="create-value-with-ai"
           onClick={handleCreateValueWithAI}
-          label="Create value with AI…"
+          label={t("screen_editor.createValueWithAI")}
           IconComponent={<AutoAwesomeIcon />}
         />
       )}
@@ -1015,7 +1023,7 @@ const InputContextMenu: React.FC = () => {
         {rankedConnectableNodes.length === 0 ? (
           <Box sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
             <Text size="small">
-              No nodes match &quot;{searchTerm}&quot;.
+                {t("screen_editor.noNodesMatch", { query: searchTerm })}
             </Text>
           </Box>
         ) : (

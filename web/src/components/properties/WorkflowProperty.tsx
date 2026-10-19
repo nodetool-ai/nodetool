@@ -1,4 +1,5 @@
 import { WorkflowList } from "../../stores/ApiTypes";
+import { useTranslation } from "react-i18next";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
@@ -15,6 +16,7 @@ export interface WorkflowValue {
 }
 
 const WorkflowProperty = (props: PropertyProps<WorkflowValue | null>) => {
+  const { t } = useTranslation();
   const { property, value, onChange } = props;
   const id = `workflow-${property.name}-${props.propertyIndex}`;
   const load = useWorkflowManager((state) => state.load);
@@ -48,8 +50,8 @@ const WorkflowProperty = (props: PropertyProps<WorkflowValue | null>) => {
         value={value?.id || ""}
         onChange={handleChange}
       >
-        {isLoading && <NodeMenuItem disabled>Loading…</NodeMenuItem>}
-        {error && <NodeMenuItem disabled>Error: {error.message}</NodeMenuItem>}
+        {isLoading && <NodeMenuItem disabled>{t("i18n-next104.properties.loading")}</NodeMenuItem>}
+        {error && <NodeMenuItem disabled>{t("i18n-next104.properties.error", { message: error.message })}</NodeMenuItem>}
         {data?.workflows &&
           data.workflows.map((workflow) => (
             <NodeMenuItem key={workflow.id} value={workflow.id}>

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -117,26 +118,29 @@ interface TaskUpdateDisplayProps {
   taskUpdate: TaskUpdate;
 }
 
-const getEventDisplayText = (event: string): string => {
+const getEventDisplayText = (
+  t: (key: "i18n-next61.taskUpdate.events.taskCreated" | "i18n-next61.taskUpdate.events.stepStarted" | "i18n-next61.taskUpdate.events.enteredConclusion" | "i18n-next61.taskUpdate.events.maxIterationsReached" | "i18n-next61.taskUpdate.events.maxToolCallsReached" | "i18n-next61.taskUpdate.events.stepCompleted" | "i18n-next61.taskUpdate.events.stepFailed" | "i18n-next61.taskUpdate.events.taskCompleted" | "i18n-next61.taskUpdate.events.taskFailed") => string,
+  event: string
+): string => {
   switch (event) {
     case "task_created":
-      return "Task created";
+      return t("i18n-next61.taskUpdate.events.taskCreated");
     case "step_started":
-      return "Step started";
+      return t("i18n-next61.taskUpdate.events.stepStarted");
     case "entered_conclusion_stage":
-      return "Entering conclusion";
+      return t("i18n-next61.taskUpdate.events.enteredConclusion");
     case "max_iterations_reached":
-      return "Max iterations reached";
+      return t("i18n-next61.taskUpdate.events.maxIterationsReached");
     case "max_tool_calls_reached":
-      return "Max tool calls reached";
+      return t("i18n-next61.taskUpdate.events.maxToolCallsReached");
     case "step_completed":
-      return "Step completed";
+      return t("i18n-next61.taskUpdate.events.stepCompleted");
     case "step_failed":
-      return "Step failed";
+      return t("i18n-next61.taskUpdate.events.stepFailed");
     case "task_completed":
-      return "Task completed";
+      return t("i18n-next61.taskUpdate.events.taskCompleted");
     case "task_failed":
-      return "Task failed";
+      return t("i18n-next61.taskUpdate.events.taskFailed");
     default:
       return event.replace(/_/g, " ");
   }
@@ -145,6 +149,7 @@ const getEventDisplayText = (event: string): string => {
 const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
   taskUpdate
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const task = taskUpdate.task;
@@ -161,10 +166,10 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
     <div className="task-update-container noscroll" css={cssStyles}>
       <div className="task-header">
         <Text className="task-animated-heading">
-          Agent task
+          {t("i18n-next61.taskUpdate.agentTask")}
         </Text>
         <span className="task-event-badge">
-          {getEventDisplayText(taskUpdate.event)}
+          {getEventDisplayText(t, taskUpdate.event)}
         </span>
       </div>
 
@@ -183,7 +188,9 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
 
       {task?.steps && task.steps.length > 0 && (
         <Box className="steps-section">
-          <Text className="steps-header">Execution plan</Text>
+          <Text className="steps-header">
+            {t("i18n-next61.taskUpdate.executionPlan")}
+          </Text>
           {task.steps.map((step, idx) => {
             const isCurrent =
               currentStep &&

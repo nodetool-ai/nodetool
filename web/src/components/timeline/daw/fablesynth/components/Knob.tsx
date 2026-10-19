@@ -8,6 +8,7 @@ import { useControlMenu } from './ControlMenu';
 
 import type * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PARAMS, DEST_OF_PARAM, SOURCE_COLORS, normToValue, valueToNorm, routeBipolar, routeLabel } from '../params';
 import { useStore } from '../store';
 import { useModsByDest } from '../hooks/useModsByDest';
@@ -88,6 +89,7 @@ interface KnobProps {
 }
 
 export function Knob({ paramId, size = 'md', accent, label }: KnobProps) {
+  const { t } = useTranslation();
   const controlMenu = useControlMenu('WT1', paramId);
   const def = PARAMS[paramId];
   const value = useStore((s) => s.params[paramId]);
@@ -203,7 +205,7 @@ export function Knob({ paramId, size = 'md', accent, label }: KnobProps) {
       data-accent={accent}
       tabIndex={0}
       role="slider"
-      aria-label={label || def.label || def.id}
+      aria-label={t('i18n-next44-fablesynth-controls.knob.control', { label: label || def.label || def.id })}
       aria-valuemin={def.min}
       aria-valuemax={def.max}
       aria-valuenow={value}

@@ -5,6 +5,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import type { Entity } from "@nodetool-ai/protocol";
@@ -34,6 +35,7 @@ import {
 import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
 
 const EntityLibraryInternal: React.FC = () => {
+  const { t } = useTranslation();
   const projectId =
     useWorkspaceTabsStore((state) => state.activeProjectId) ?? LOOSE_PROJECT_ID;
   const { data: entities, isLoading } = useEntities();
@@ -99,8 +101,8 @@ const EntityLibraryInternal: React.FC = () => {
   const content = useMemo(() => {
     if (isLoading) {
       return (
-        <FlexRow align="center" justify="center" sx={{ p: 4 }}>
-          <LoadingSpinner />
+        <FlexRow align="center" justify="center" sx={{ p: SPACING.xl }}>
+          <LoadingSpinner text={t("screens4_22.entities.loadingEntities")} />
         </FlexRow>
       );
     }
@@ -108,9 +110,9 @@ const EntityLibraryInternal: React.FC = () => {
       return (
         <EmptyState
           variant="empty"
-          title="No entities yet"
-          description="Tag an image as a character, location, style, or prop to reuse it across shots. In the Library, right-click an image and choose Use as entity."
-          actionText="Add entity"
+          title={t("screens4_22.entities.emptyTitle")}
+          description={t("screens4_22.entities.libraryEmptyDescription")}
+          actionText={t("screens4_22.entities.addEntity")}
           onAction={handleAdd}
         />
       );
@@ -127,7 +129,7 @@ const EntityLibraryInternal: React.FC = () => {
         ))}
       </AutoGrid>
     );
-  }, [isLoading, entities, handleAdd, handleEdit, handleRemove]);
+  }, [isLoading, entities, handleAdd, handleEdit, handleRemove, t]);
 
   if (creating) {
     return (
@@ -139,7 +141,7 @@ const EntityLibraryInternal: React.FC = () => {
           disabled={setupBusy}
           sx={{ alignSelf: "flex-start", ml: SPACING.xl, mt: SPACING.md }}
         >
-          Back to entities
+          {t("screens4_22.entities.backToEntities")}
         </EditorButton>
         <EntitySetupHost
           key={`${draftKey}:${startAssetId ?? ""}`}
@@ -156,18 +158,18 @@ const EntityLibraryInternal: React.FC = () => {
   }
 
   return (
-    <FlexColumn gap={SPACING.md} sx={{ p: 2, width: "100%" }}>
+    <FlexColumn gap={SPACING.md} sx={{ p: SPACING.md, width: "100%" }}>
       <FlexRow align="center" justify="space-between">
         <FlexColumn gap={0}>
-          <Text size="big">Entities</Text>
-          <Caption>Reusable characters, locations, styles, and props</Caption>
+          <Text size="big">{t("screens4_22.entities.entitiesLabel")}</Text>
+          <Caption>{t("screens4_22.entities.librarySubtitle")}</Caption>
         </FlexColumn>
         <EditorButton
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleAdd}
         >
-          Add entity
+          {t("screens4_22.entities.addEntity")}
         </EditorButton>
       </FlexRow>
 

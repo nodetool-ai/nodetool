@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Text,
   MOTION,
@@ -205,6 +206,31 @@ const listStyles = (theme: Theme) =>
     }
   });
 
+function formatRelativeDateLabel(label: string, locale: string): string {
+  const match = /^([0-9]+) (years?|months?|weeks?|days?) ago$/.exec(label);
+  if (!match) {
+    return label;
+  }
+  const count = Number(match[1]);
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  switch (match[2]) {
+    case "year":
+    case "years":
+      return formatter.format(-count, "year");
+    case "month":
+    case "months":
+      return formatter.format(-count, "month");
+    case "week":
+    case "weeks":
+      return formatter.format(-count, "week");
+    case "day":
+    case "days":
+      return formatter.format(-count, "day");
+    default:
+      return label;
+  }
+}
+
 const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   workflows,
   onOpenWorkflow,
@@ -218,6 +244,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   selectedWorkflows,
   showCheckboxes
 }) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => listStyles(theme), [theme]);
   const currentWorkflowId = useWorkflowManager(
@@ -308,6 +335,13 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const renderItem = useCallback(
     (item: ListItem) => {
       if (item.type === "header") {
+        const today = t("pass3_38.workflowListView.today");
+        const yesterday = t("pass3_38.workflowListView.yesterday");
+        const label = item.label === "Today"
+          ? today
+          : item.label === "Yesterday"
+            ? yesterday
+            : formatRelativeDateLabel(item.label, i18n.language);
         return (
           <Text
             className="date-header"
@@ -316,7 +350,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
             weight={400}
             sx={{ ...EYEBROW, lineHeight: 1.1, width: "100%" }}
           >
-            {item.label}
+            {label}
           </Text>
         );
       }
@@ -349,7 +383,9 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
       onDelete,
       onEdit,
       onRename,
-      onOpenAsApp
+      onOpenAsApp,
+      t,
+      i18n.language
     ]
   );
 
@@ -366,7 +402,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
       overscan={theme.virtualScroll.overscan.normal}
       getItemKey={getItemKey}
       getItemProps={getItemProps}
-      ariaLabel="Workflows"
+      ariaLabel={t("pass3_38.workflowListView.workflowsLabel")}
       renderItem={renderItem}
     />
   );

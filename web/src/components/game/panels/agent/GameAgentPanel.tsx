@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { UiContext, UiDocumentRef } from "@nodetool-ai/protocol";
 
 import { FlexColumn } from "../../../ui_primitives";
@@ -15,6 +16,7 @@ interface GameAgentPanelProps {
 }
 
 function GameAgentPanel({ gameId, name, selectedEntityIds, behaviorIndex, onThreadId, focusMessage }: GameAgentPanelProps) {
+  const { t } = useTranslation();
   const focused = useMemo<UiDocumentRef>(() => ({ type: "game", id: gameId, title: name }), [gameId, name]);
   const systemPrompt = useMemo(() => gameAssistantPrompt(gameId), [gameId]);
   const getSelection = useCallback((): UiContext["selection"] => ({ entity_ids: [...selectedEntityIds],
@@ -30,8 +32,8 @@ function GameAgentPanel({ gameId, name, selectedEntityIds, behaviorIndex, onThre
       getSelection={getSelection}
       workflowId={gameId}
       systemPrompt={systemPrompt}
-      welcomeTitle="Game assistant"
-      welcomeBody='Try "Add a boss that appears at wave 5", "Make the forest darker and add fog", or "Why does the player pass through this wall?"'
+      welcomeTitle={t("screen_game.agent.welcomeTitle")}
+      welcomeBody={t("screen_game.agent.welcomeBody")}
     />
     </FlexColumn>
   );

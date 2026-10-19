@@ -1,4 +1,5 @@
 import { Knob } from '../Knob';
+import { useTranslation } from 'react-i18next';
 import { Stepper } from '../Stepper';
 import { PowerButton } from '../PowerButton';
 import { VSlider } from '../VSlider';
@@ -14,6 +15,7 @@ interface OscPanelProps {
 }
 
 export function OscPanel({ prefix, accentKey, title, gridArea }: OscPanelProps) {
+  const { t } = useTranslation();
   const on = useStore((s) => s.params[`${prefix}.on`]);
   const tableIndex = useStore((s) => s.params[`${prefix}.table`]);
   const pos = useStore((s) => s.params[`${prefix}.pos`]);
@@ -27,7 +29,7 @@ export function OscPanel({ prefix, accentKey, title, gridArea }: OscPanelProps) 
         <span className="ph-power"><PowerButton paramId={`${prefix}.on`} /></span>
         <h2>{title}</h2>
         <span className="ph-stepper">
-          <button className="wt-edit" aria-label="edit wavetable" title="import / draw wavetable" onClick={() => openEditor(prefix)}>✎</button>
+          <button className="wt-edit" aria-label={t('i18n-next45-fablesynth-effects.osc.editWavetable')} title={t('i18n-next45-fablesynth-effects.osc.importDrawWavetable')} onClick={() => openEditor(prefix)}>✎</button>
           <Stepper paramId={`${prefix}.table`} />
         </span>
       </div>

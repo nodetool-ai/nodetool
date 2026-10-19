@@ -32,6 +32,7 @@ export function matchesSearch(keywords: string, search: string): boolean {
 }
 
 const GENERAL_KEYWORDS = [
+  "language english chinese 简体中文 语言 appearance",
   "select nodes on drag selection editor workspace",
   "sound notifications beep",
   "automatic updates desktop",

@@ -1,8 +1,9 @@
 import React, { Suspense } from "react";
+import { useTranslation } from "react-i18next";
 
 import { isCloudProfile } from "../../lib/runtimeConfig";
 import { EmptyState, LoadingSpinner } from "../ui_primitives";
-import { PAGE_TAB_TITLES, type PageTabKey } from "./pageTabs";
+import { type PageTabKey } from "./pageTabs";
 
 const AssetExplorer = React.lazy(() => import("../assets/AssetExplorer"));
 const TutorialsPage = React.lazy(() => import("../tutorials/TutorialsPage"));
@@ -75,12 +76,14 @@ interface PageSurfaceProps {
  * lazily loaded so it only costs bundle weight once its tab is opened.
  */
 const PageSurface = ({ pageKey }: PageSurfaceProps) => {
+  const { t } = useTranslation();
+  const pageTitle = t(`i18n-next51.page.titles.${pageKey}`);
   if (LOCAL_ONLY_PAGES.has(pageKey) && isCloudProfile()) {
     return (
-      <div style={surfaceStyle} aria-label={PAGE_TAB_TITLES[pageKey]}>
+      <div style={surfaceStyle} aria-label={pageTitle}>
         <EmptyState
-          title={`${PAGE_TAB_TITLES[pageKey]} is not available on this server`}
-          description="It manages files on the machine the server runs on. Use the desktop app or a self-hosted install for it."
+          title={t("i18n-next51.page.notAvailable", { page: pageTitle })}
+          description={t("i18n-next51.page.localOnlyDescription")}
         />
       </div>
     );
@@ -90,7 +93,7 @@ const PageSurface = ({ pageKey }: PageSurfaceProps) => {
     ? surfaceStyle
     : SCROLLING_SURFACE_STYLE;
   return (
-    <div style={style} aria-label={PAGE_TAB_TITLES[pageKey]}>
+    <div style={style} aria-label={pageTitle}>
       <Suspense fallback={<LoadingSpinner />}>
         <Component />
       </Suspense>

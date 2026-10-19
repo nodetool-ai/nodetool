@@ -6,6 +6,7 @@
  * to try again.
  */
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -27,8 +28,9 @@ const ChatErrorBanner = ({
   error,
   onDismiss,
   onRetry
-}: ChatErrorBannerProps) => (
-  <AlertBanner
+}: ChatErrorBannerProps) => {
+  const { t } = useTranslation();
+  return <AlertBanner
     className="chat-error-banner"
     severity="error"
     compact
@@ -45,11 +47,12 @@ const ChatErrorBanner = ({
       <ProviderFailureReportButton errorText={error} />
       {onRetry && (
         <EditorButton density="compact" onClick={onRetry}>
-          Retry
+          {t("i18n-next11.chat.retry")}
         </EditorButton>
       )}
     </FlexRow>
   </AlertBanner>
-);
+  </AlertBanner>;
+};
 
 export default memo(ChatErrorBanner);

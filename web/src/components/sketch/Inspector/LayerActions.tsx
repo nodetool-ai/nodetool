@@ -2,6 +2,7 @@
 /** Generated-layer inspector action toolbar. */
 
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -125,6 +126,7 @@ interface LayerActionsProps {
 
 export const LayerActions: React.FC<LayerActionsProps> = memo(
   ({ layerId, binding }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const navigate = useNavigate();
 
@@ -138,7 +140,7 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
     const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
     const removeLayer = useSketchStore((s) => s.removeLayer);
     const sourceName = useSketchStore(
-      (s) => s.document.layers.find((l) => l.id === layerId)?.name ?? "Layer"
+      (s) => s.document.layers.find((l) => l.id === layerId)?.name
     );
 
     const isLocked = binding.status === "locked";
@@ -173,7 +175,12 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
       }
       duplicateBusyRef.current = true;
       setDuplicateBusy(true);
-      const newLayerId = addLayer(`${sourceName} (copy)`, "raster");
+      const newLayerId = addLayer(
+        `${sourceName ?? t("screens4_26.sketch.layerActions.layerFallback")} (${t(
+          "screens4_26.sketch.layerActions.copySuffix"
+        )})`,
+        "raster"
+      );
       try {
         const newBinding = await trpcClient.sketch.layers.duplicate.mutate({
           id: documentId,
@@ -185,7 +192,9 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
       } catch (err) {
         removeLayer(newLayerId);
         reportDuplicateError(
-          err instanceof Error ? err.message : "Failed to duplicate layer"
+          err instanceof Error
+            ? err.message
+            : t("screens4_26.sketch.layerActions.duplicateError")
         );
       } finally {
         duplicateBusyRef.current = false;
@@ -198,7 +207,8 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
       removeLayer,
       setActiveLayer,
       sourceName,
-      upsertBinding
+      upsertBinding,
+      t
     ]);
 
     const handleToggleLock = useCallback(() => {
@@ -219,25 +229,27 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
         await generateLayer();
       } catch (err) {
         reportGenerationError(
-          err instanceof Error
-            ? err.message
-            : "Failed to start layer generation"
+            err instanceof Error
+              ? err.message
+              : t("screens4_26.sketch.layerActions.startGenerationError")
         );
       } finally {
         generatePendingRef.current = false;
         setGeneratePending(false);
       }
-    }, [generateLayer]);
+    }, [generateLayer, t]);
 
     const handleCancelGeneration = useCallback(async () => {
       try {
         await cancelLayerGeneration();
       } catch (err) {
         reportGenerationError(
-          err instanceof Error ? err.message : "Failed to cancel generation"
+          err instanceof Error
+            ? err.message
+            : t("screens4_26.sketch.layerActions.cancelGenerationError")
         );
       }
-    }, [cancelLayerGeneration]);
+    }, [cancelLayerGeneration, t]);
 
     const handleOpenInNodeEditor = useCallback(() => {
       if (!binding.workflowId || !documentId) {
@@ -251,15 +263,17 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
     return (
       <>
         <FlexRow css={actionsRowStyles(theme)}>
-          <span css={sectionLabelStyles(theme)}>Layer</span>
+          <span css={sectionLabelStyles(theme)}>
+            {t("screens4_26.sketch.layerActions.layer")}
+          </span>
 
           <Tooltip
             title={
               isActive
-                ? "Cancel generation"
+                ? t("screens4_26.sketch.layerActions.cancelGeneration")
                 : generatePending
-                  ? "Starting…"
-                  : "Generate layer from the bound workflow and overrides"
+                  ? t("screens4_26.sketch.layerActions.starting")
+                  : t("screens4_26.sketch.layerActions.generateDescription")
             }
             placement="top"
           >
@@ -280,7 +294,9 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
                 }
                 disableRipple
                 aria-label={
-                  isActive ? "Cancel layer generation" : "Generate layer"
+                  isActive
+                    ? t("screens4_26.sketch.layerActions.cancelLayerGeneration")
+                    : t("screens4_26.sketch.layerActions.generateLayer")
                 }
                 data-testid="layer-action-generate"
               >
@@ -291,10 +307,10 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
 
           <ToolbarIconButton
             icon={<ContentCopyIcon fontSize="small" />}
-            tooltip="Duplicate — copies overrides; tweak params for a variation"
+            tooltip={t("screens4_26.sketch.layerActions.duplicateTooltip")}
             onClick={() => void handleDuplicate()}
             disabled={duplicateBusy || !documentId}
-            aria-label="Duplicate layer"
+            aria-label={t("screens4_26.sketch.layerActions.duplicateLayer")}
             data-testid="layer-action-duplicate"
           />
 
@@ -308,30 +324,36 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
             }
             tooltip={
               isLocked
-                ? "Locked — successful generations do not replace current output"
-                : "Unlocked — successful generations replace current output"
+                ? t("screens4_26.sketch.layerActions.lockedTooltip")
+                : t("screens4_26.sketch.layerActions.unlockedTooltip")
             }
             active={isLocked}
             onClick={handleToggleLock}
-            aria-label={isLocked ? "Unlock layer" : "Lock layer"}
+            aria-label={
+              isLocked
+                ? t("screens4_26.sketch.layerActions.unlockLayer")
+                : t("screens4_26.sketch.layerActions.lockLayer")
+            }
             data-testid="layer-action-lock"
           />
 
           <ToolbarIconButton
             icon={<RestartAltIcon fontSize="small" />}
-            tooltip="Revert — clear the current generation back to draft"
+            tooltip={t("screens4_26.sketch.layerActions.revertTooltip")}
             onClick={handleRevert}
             disabled={!binding.lastGeneratedHash}
-            aria-label="Revert layer to draft"
+            aria-label={t("screens4_26.sketch.layerActions.revertLayer")}
             data-testid="layer-action-revert"
           />
 
           {binding.workflowId && documentId && (
             <ToolbarIconButton
               icon={<OpenInNewIcon fontSize="small" />}
-              tooltip="Open in node editor"
+              tooltip={t("screens4_26.sketch.layerActions.openInNodeEditor")}
               onClick={handleOpenInNodeEditor}
-              aria-label="Open layer workflow in node editor"
+              aria-label={t(
+                "screens4_26.sketch.layerActions.openWorkflowInNodeEditor"
+              )}
               data-testid="layer-action-open-in-editor"
             />
           )}

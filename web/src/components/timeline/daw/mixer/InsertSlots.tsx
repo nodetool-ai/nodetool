@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -127,6 +128,7 @@ const slotsStyles = (theme: Theme) =>
 
 export const InsertSlots: React.FC<InsertSlotsProps> = memo(
   ({ channel, effects, onAdd, onToggle, onOpen }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const styles = useMemo(() => slotsStyles(theme), [theme]);
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -142,7 +144,7 @@ export const InsertSlots: React.FC<InsertSlotsProps> = memo(
     return (
       <div css={styles}>
         {effects.length > 0 && (
-          <div className="inserts__list" role="list" aria-label={`${channel} inserts`}>
+          <div className="inserts__list" role="list" aria-label={t("i18n-next77.mixer.inserts.label", { channel })}>
             {effects.map((effect) => {
               const title = effectTitle(effect);
               return (
@@ -156,12 +158,12 @@ export const InsertSlots: React.FC<InsertSlotsProps> = memo(
                     type="button"
                     className="insert__power"
                     aria-pressed={effect.enabled}
-                    aria-label={`${effect.enabled ? "Bypass" : "Enable"} ${title}`}
+                    aria-label={effect.enabled ? t("i18n-next77.mixer.inserts.bypass", { title }) : t("i18n-next77.mixer.inserts.enable", { title })}
                     onClick={() => onToggle(effect.id, !effect.enabled)}
                   >
                     <PowerSettingsNewIcon />
                   </button>
-                  <Tooltip title={`Open ${title}`}>
+                  <Tooltip title={t("i18n-next77.mixer.inserts.open", { title })}>
                     <button
                       type="button"
                       className="insert__name"
@@ -179,7 +181,7 @@ export const InsertSlots: React.FC<InsertSlotsProps> = memo(
         <button
           type="button"
           className="insert__add"
-          aria-label={`Add an effect to ${channel}`}
+          aria-label={t("i18n-next77.mixer.inserts.add", { channel })}
           aria-haspopup="menu"
           aria-expanded={!!menuAnchor}
           onClick={(event) => setMenuAnchor(event.currentTarget)}

@@ -19,6 +19,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -171,6 +172,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const nodeStoreRef = useNodeStoreRef();
@@ -434,10 +436,10 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
             maxHeight={PREVIEW_MAX_HEIGHT}
           />
         ) : previewSrc ? (
-          <img src={previewSrc} alt="Composited output" />
+          <img src={previewSrc} alt={t("i18n-next46.compositor.compositedOutput")} />
         ) : (
           <CheckerDropzone
-            message="Add layers, then run"
+            message={t("i18n-next46.compositor.addLayersThenRun")}
             icon={<ImageIcon />}
           />
         )}
@@ -445,7 +447,11 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
       <FlexColumn className="layers" gap={0.5}>
         {imageKeys.length === 0 ? (
-          <EmptyState size="small" title="No layers yet" description="Add one below." />
+          <EmptyState
+            size="small"
+            title={t("i18n-next46.compositor.noLayers")}
+            description={t("i18n-next46.compositor.addLayerBelow")}
+          />
         ) : (
           imageKeys.map((key, idx) => (
             <LayerRow
@@ -466,14 +472,14 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
       <FlexRow className="add-row" gap={0.5} align="center">
         <DynamicInputButton
-          itemLabel="layer"
+          itemLabel={t("i18n-next46.compositor.layer")}
           onAdd={onAddLayer}
         />
         <EditorButton
           startIcon={<EditIcon />}
           onClick={() => setEditorOpen(true)}
         >
-          Edit layout
+          {t("i18n-next114.compositor.editLayout")}
         </EditorButton>
       </FlexRow>
 

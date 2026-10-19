@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useEffect, useState, useId } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import LoginIcon from "@mui/icons-material/Login";
@@ -32,18 +33,18 @@ import type { OnboardingProvider } from "./providerOnboardingCatalog";
 
 type StoredCredentialStatus = "configured" | "verified" | "unavailable" | "rejected";
 
-const statusLabel: Record<StoredCredentialStatus, string> = {
-  configured: "Configured",
-  verified: "Verified",
-  unavailable: "Unavailable",
-  rejected: "Rejected"
-};
-
 const statusColor: Record<StoredCredentialStatus, "secondary" | "success" | "warning" | "error"> = {
   configured: "secondary",
   verified: "success",
   unavailable: "warning",
   rejected: "error"
+};
+
+const statusTranslationKey: Record<StoredCredentialStatus, string> = {
+  configured: "configured",
+  verified: "verified",
+  unavailable: "unavailable",
+  rejected: "rejected"
 };
 
 const statusFromValidation = (
@@ -56,19 +57,6 @@ const statusFromValidation = (
       return "rejected";
     case "unverifiable":
       return "unavailable";
-  }
-};
-
-const detailFromValidation = (
-  status: SecretValidation["status"]
-): string | null => {
-  switch (status) {
-    case "valid":
-      return null;
-    case "invalid":
-      return "The provider rejected the key.";
-    case "unverifiable":
-      return "The key was saved, but it could not be verified.";
   }
 };
 
@@ -91,6 +79,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
   configured,
   defaultExpanded = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const keyFieldId = useId();
   const oauth = useOAuthConnection(provider.oauth ?? null);
@@ -146,12 +135,12 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         type: status === "verified" ? "success" : "warning",
         content:
           status === "verified"
-            ? `${provider.name} connected`
-            : `${provider.name} key saved — ${statusLabel[status].toLowerCase()}`,
+            ? t("i18n-next33.provider.connected", { provider: provider.name })
+            : t("i18n-next33.provider.keySaved", { provider: provider.name, status: t(`i18n-next33.provider.status.${statusTranslationKey[status]}`) }),
         alert: true
       });
     },
-    [updateSecret, provider, addNotification]
+    [updateSecret, provider, addNotification, t]
   );
 
   /**
@@ -170,22 +159,22 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
     try {
       const result = await validateSecret(provider.secretKey, trimmed);
       if (result.status === "invalid") {
-        setRejected(detailFromValidation(result.status));
+        setRejected(t("i18n-next33.provider.keyRejected"));
         return;
       }
       await persistKey(
         trimmed,
         statusFromValidation(result),
         result.status === "unverifiable"
-          ? detailFromValidation(result.status)
+          ? t("i18n-next33.provider.keyUnverified")
           : null
       );
     } catch {
-      setSaveError("Couldn't save the key. Check your connection and try again.");
+      setSaveError(t("i18n-next33.provider.saveError"));
     } finally {
       setSaving(false);
     }
-  }, [keyValue, validateSecret, persistKey, provider, saving]);
+  }, [keyValue, validateSecret, persistKey, provider, saving, t]);
 
   /** Store a key the provider rejected — the user's call, not ours. */
   const handleSaveAnyway = useCallback(async () => {
@@ -196,13 +185,13 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
     setSaving(true);
     setSaveError(null);
     try {
-      await persistKey(trimmed, "rejected", "The provider rejected this key.");
+      await persistKey(trimmed, "rejected", t("i18n-next33.provider.rejectedKey"));
     } catch {
-      setSaveError("Couldn't save the key. Check your connection and try again.");
+      setSaveError(t("i18n-next33.provider.saveError"));
     } finally {
       setSaving(false);
     }
-  }, [keyValue, persistKey, saving]);
+  }, [keyValue, persistKey, saving, t]);
 
   const handleRecheck = useCallback(async () => {
     if (rechecking || !hasStoredKey) {
@@ -215,19 +204,17 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
       setStoredCredentialStatus(statusFromValidation(result));
       setStatusDetail(
         result.status === "invalid"
-          ? "The provider rejected the stored key."
+          ? t("i18n-next33.provider.storedKeyRejected")
           : result.status === "unverifiable"
-            ? "The stored key could not be verified."
+            ? t("i18n-next33.provider.storedKeyUnverified")
             : null
       );
     } catch {
-      setSaveError(
-        "Couldn't recheck the key. Check your connection and try again."
-      );
+      setSaveError(t("i18n-next33.provider.recheckError"));
     } finally {
       setRechecking(false);
     }
-  }, [hasStoredKey, provider.secretKey, rechecking, validateSecret]);
+  }, [hasStoredKey, provider.secretKey, rechecking, validateSecret, t]);
 
   const handleReplace = useCallback(() => {
     setReplacing(true);
@@ -308,7 +295,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                   }}
                 />
                 <Caption size="small">
-                  {statusLabel[storedStatus]}
+                  {t(`i18n-next33.provider.status.${statusTranslationKey[storedStatus]}`)}
                 </Caption>
                 <EditorButton
                   density="compact"
@@ -317,7 +304,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                   onClick={handleRecheck}
                   disabled={rechecking}
                 >
-                  {rechecking ? "Checking…" : "Recheck"}
+                  {rechecking ? t("i18n-next33.provider.checking") : t("i18n-next33.provider.recheck")}
                 </EditorButton>
                 <EditorButton
                   density="compact"
@@ -325,7 +312,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                   size="small"
                   onClick={handleReplace}
                 >
-                  Replace key
+                  {t("i18n-next33.provider.replaceKey")}
                 </EditorButton>
               </FlexRow>
             ) : oauth.isConnected ? (
@@ -336,7 +323,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                     color: theme.vars.palette.success.main
                   }}
                 />
-                <Caption size="small">Connected</Caption>
+                <Caption size="small">{t("i18n-next33.provider.connectedLabel")}</Caption>
               </FlexRow>
             ) : (
               <>
@@ -353,7 +340,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                     onClick={oauth.connect}
                     disabled={oauth.isConnecting}
                   >
-                    {oauth.isConnecting ? "Waiting…" : "Sign in"}
+                    {oauth.isConnecting ? t("i18n-next33.provider.waiting") : t("i18n-next33.provider.signIn")}
                   </EditorButton>
                 )}
                 {!provider.oauthOnly && (
@@ -379,7 +366,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                     aria-controls={expanded ? keyFieldId : undefined}
                     onClick={() => setExpanded((v) => !v)}
                   >
-                    {provider.oauth ? "Use API key" : "Add API key"}
+                    {provider.oauth ? t("i18n-next33.provider.useApiKey") : t("i18n-next33.provider.addApiKey")}
                   </EditorButton>
                 )}
               </>
@@ -393,9 +380,9 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
             <FlexRow gap={SPACING.xs} align="center">
               <TextInput
                 size="small"
-                label={`${provider.name} API key`}
+                label={t("i18n-next33.provider.apiKeyLabel", { provider: provider.name })}
                 type="password"
-                placeholder={`Paste your ${provider.name} API key`}
+                placeholder={t("i18n-next33.provider.apiKeyPlaceholder", { provider: provider.name })}
                 value={keyValue}
                 onChange={(e) => setKeyValue(e.target.value)}
                 onKeyDown={(e) => {
@@ -422,9 +409,9 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                 {saving ? (
                   <LoadingSpinner size="small" inline />
                 ) : replacing ? (
-                  "Replace"
+                  t("i18n-next33.provider.replace")
                 ) : (
-                  "Connect"
+                  t("i18n-next33.provider.connect")
                 )}
               </EditorButton>
             </FlexRow>
@@ -443,7 +430,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                   window.open(provider.keyUrl, "_blank", "noopener,noreferrer")
                 }
               >
-                Get a key from {provider.name}
+                {t("i18n-next33.provider.getKey", { provider: provider.name })}
               </EditorButton>
               <Caption size="smaller" >
                 {provider.costHint}
@@ -458,7 +445,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                   onClick={handleSaveAnyway}
                   disabled={saving}
                 >
-                  Save anyway
+                  {t("i18n-next33.provider.saveAnyway")}
                 </EditorButton>
               </FlexRow>
             )}

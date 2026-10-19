@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import {
@@ -37,6 +38,7 @@ const SubgraphTabStrip = ({
   hostActiveKey,
   hostLabel
 }: SubgraphTabStripProps) => {
+  const { t } = useTranslation();
   const workflowManagerStore = useWorkflowManagerStore();
   const tabs = useSubgraphTabsStore((state) => state.tabs);
   const activeKey = useSubgraphTabsStore((state) => state.activeKey);
@@ -86,7 +88,7 @@ const SubgraphTabStrip = ({
 
   return (
     <DockTabStrip
-      ariaLabel="Workflow and subgraph canvases"
+      ariaLabel={t("i18n-next119.workspace.workflowAndSubgraphCanvases")}
       tabs={stripTabs}
       activeId={shownKey === hostActiveKey ? HOST_TAB_ID : (shownKey ?? HOST_TAB_ID)}
       onActivate={handleActivate}

@@ -1,5 +1,6 @@
 import InfoIcon from "@mui/icons-material/InfoOutlined";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FlexRow,
   FlexColumn,
@@ -14,6 +15,7 @@ import {
 } from "../ui_primitives";
 
 const CollectionHeader = () => {
+  const { t } = useTranslation();
   const [formatInfoAnchor, setFormatInfoAnchor] = useState<HTMLElement | null>(
     null
   );
@@ -38,7 +40,7 @@ const CollectionHeader = () => {
       >
         <InfoIcon sx={{ fontSize: ICON_SIZE.sm }} />
         <Text size="small" weight={600}>
-          What are collections?
+          {t("i18n-next30.collections.headerTitle")}
         </Text>
       </FlexRow>
       <Popover
@@ -49,8 +51,7 @@ const CollectionHeader = () => {
       >
         <FlexColumn gap={1} sx={{ p: 2, maxWidth: 400 }}>
           <Caption color="secondary">
-            Collections store documents for semantic search. Drop text files
-            here to index them:
+            {t("i18n-next30.collections.headerDescription")}
           </Caption>
           <ul
             style={{
@@ -59,12 +60,11 @@ const CollectionHeader = () => {
               listStyle: "disc"
             }}
           >
-            <li>Plain text and Markdown</li>
-            <li>HTML, CSV, and JSON</li>
+            <li>{t("i18n-next30.collections.fileTypesText")}</li>
+            <li>{t("i18n-next30.collections.fileTypesStructured")}</li>
           </ul>
           <Caption color="secondary">
-            To index PDFs, Office files, or images, extract their text with a
-            workflow first.
+            {t("i18n-next30.collections.fileTypesUnsupported")}
           </Caption>
         </FlexColumn>
       </Popover>

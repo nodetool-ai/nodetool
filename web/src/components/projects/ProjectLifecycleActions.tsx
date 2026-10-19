@@ -5,6 +5,7 @@ import {
   type MouseEvent,
   type SyntheticEvent
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -64,6 +65,7 @@ const ProjectLifecycleActions = ({
   project,
   layout = "buttons"
 }: ProjectLifecycleActionsProps) => {
+  const { t } = useTranslation();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const closeMenu = useCallback(() => setMenuAnchor(null), []);
@@ -71,17 +73,26 @@ const ProjectLifecycleActions = ({
   const restore = useRestoreProject();
   const remove = useDeleteProject();
   const exportProject = useExportProject();
-  const addNotification = useNotificationStore((state) => state.addNotification);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const stop = (event: MouseEvent<HTMLElement>) => event.stopPropagation();
   const reportError = useCallback(
-    (action: string, error: ErrorWithMessage) =>
+    (
+      action: "export" | "archive" | "restore" | "delete",
+      error: ErrorWithMessage
+    ) =>
       addNotification({
         type: "error",
         alert: true,
-        content: `Could not ${action} ${project.name}: ${error.message}`
+        content: t("pass3_33.projects.lifecycle.error", {
+          action: t(`pass3_33.projects.lifecycle.actions.${action}`),
+          projectName: project.name,
+          error: error.message
+        })
       }),
-    [addNotification, project.name]
+    [addNotification, project.name, t]
   );
   const handleExport = useCallback(
     (event: MouseEvent<HTMLElement>) => {
@@ -98,7 +109,10 @@ const ProjectLifecycleActions = ({
     (event: MouseEvent<HTMLElement>) => {
       stop(event);
       setMenuAnchor(null);
-      archive.mutate({ id: project.id }, { onError: (error) => reportError("archive", error) });
+      archive.mutate(
+        { id: project.id },
+        { onError: (error) => reportError("archive", error) }
+      );
     },
     [archive, project.id, reportError]
   );
@@ -106,18 +120,18 @@ const ProjectLifecycleActions = ({
     (event: MouseEvent<HTMLElement>) => {
       stop(event);
       setMenuAnchor(null);
-      restore.mutate({ id: project.id }, { onError: (error) => reportError("restore", error) });
+      restore.mutate(
+        { id: project.id },
+        { onError: (error) => reportError("restore", error) }
+      );
     },
     [project.id, reportError, restore]
   );
-  const requestDelete = useCallback(
-    (event: MouseEvent<HTMLElement>) => {
-      stop(event);
-      setMenuAnchor(null);
-      setConfirmingDelete(true);
-    },
-    []
-  );
+  const requestDelete = useCallback((event: MouseEvent<HTMLElement>) => {
+    stop(event);
+    setMenuAnchor(null);
+    setConfirmingDelete(true);
+  }, []);
   const confirmDelete = useCallback(() => {
     remove.mutate(
       { id: project.id },
@@ -135,8 +149,10 @@ const ProjectLifecycleActions = ({
       <>
         <ToolbarIconButton
           icon={<MoreHorizIcon />}
-          tooltip="Project actions"
-          ariaLabel={`Actions for ${project.name}`}
+          tooltip={t("pass3_33.projects.lifecycle.projectActions")}
+          ariaLabel={t("pass3_33.projects.lifecycle.actionsForProject", {
+            projectName: project.name
+          })}
           aria-haspopup="menu"
           aria-expanded={Boolean(menuAnchor)}
           onClick={(event: MouseEvent<HTMLButtonElement>) => {
@@ -152,26 +168,30 @@ const ProjectLifecycleActions = ({
           transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
           <MenuItemPrimitive
-            label={exportProject.isPending ? "Exporting…" : "Export"}
+            label={
+              exportProject.isPending
+                ? t("pass3_33.projects.lifecycle.exporting")
+                : t("pass3_33.projects.lifecycle.actions.export")
+            }
             icon={<FileDownloadOutlinedIcon />}
             disabled={exportProject.isPending}
             onClick={handleExport}
           />
           {project.archivedAt ? (
             <MenuItemPrimitive
-              label="Restore"
+              label={t("pass3_33.projects.lifecycle.actions.restore")}
               icon={<UnarchiveOutlinedIcon />}
               onClick={handleRestore}
             />
           ) : (
             <MenuItemPrimitive
-              label="Archive"
+              label={t("pass3_33.projects.lifecycle.actions.archive")}
               icon={<ArchiveOutlinedIcon />}
               onClick={handleArchive}
             />
           )}
           <MenuItemPrimitive
-            label="Delete project"
+            label={t("pass3_33.projects.lifecycle.deleteProject")}
             icon={<DeleteOutlineIcon />}
             color="error"
             dividerBefore
@@ -187,19 +207,34 @@ const ProjectLifecycleActions = ({
           onClick={handleExport}
           disabled={exportProject.isPending}
         >
-          {exportProject.isPending ? "Exporting…" : "Export"}
+          {exportProject.isPending
+            ? t("pass3_33.projects.lifecycle.exporting")
+            : t("pass3_33.projects.lifecycle.actions.export")}
         </EditorButton>
         {project.archivedAt ? (
-          <EditorButton density="compact" variant="text" onClick={handleRestore}>
-            Restore
+          <EditorButton
+            density="compact"
+            variant="text"
+            onClick={handleRestore}
+          >
+            {t("pass3_33.projects.lifecycle.actions.restore")}
           </EditorButton>
         ) : (
-          <EditorButton density="compact" variant="text" onClick={handleArchive}>
-            Archive
+          <EditorButton
+            density="compact"
+            variant="text"
+            onClick={handleArchive}
+          >
+            {t("pass3_33.projects.lifecycle.actions.archive")}
           </EditorButton>
         )}
-        <EditorButton density="compact" color="error" variant="text" onClick={requestDelete}>
-          Delete
+        <EditorButton
+          density="compact"
+          color="error"
+          variant="text"
+          onClick={requestDelete}
+        >
+          {t("pass3_33.projects.lifecycle.actions.delete")}
         </EditorButton>
       </FlexRow>
     );
@@ -215,19 +250,22 @@ const ProjectLifecycleActions = ({
       <Dialog
         open={confirmingDelete}
         onClose={() => !remove.isPending && setConfirmingDelete(false)}
-        title={`Delete ${project.name}?`}
+        title={t("pass3_33.projects.lifecycle.confirmDeleteTitle", {
+          projectName: project.name
+        })}
         onConfirm={confirmDelete}
-        confirmText="Delete project"
+        confirmText={t("pass3_33.projects.lifecycle.deleteProject")}
         destructive
         isLoading={remove.isPending}
       >
         <FlexColumn gap={SPACING.md}>
           <Text size="small">
-            Delete {project.name} and all of its documents, conversations,
-            generated outputs, assets, jobs, and project files.
+            {t("pass3_33.projects.lifecycle.confirmDeleteBody", {
+              projectName: project.name
+            })}
           </Text>
           <Text size="small" color="error">
-            This cannot be undone.
+            {t("pass3_33.projects.lifecycle.deleteIrreversible")}
           </Text>
         </FlexColumn>
       </Dialog>

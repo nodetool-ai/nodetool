@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import { trpc } from "../../trpc/client";
@@ -29,6 +30,7 @@ interface TimelineSurfaceProps {
  * host brings its own instance, so setup writes persist while the flow is up.
  */
 const TimelineSurface = ({ refId, mode, active }: TimelineSurfaceProps) => {
+  const { t } = useTranslation();
   // Keyed by sequence, so a finished flow does not carry over to another one.
   const [finishedId, setFinishedId] = useState<string | null>(null);
   const finished = finishedId === refId;
@@ -41,10 +43,10 @@ const TimelineSurface = ({ refId, mode, active }: TimelineSurfaceProps) => {
   }
 
   if (query.isPending) {
-    return <DocumentLoadStatus state="loading" label="video" />;
+    return <DocumentLoadStatus state="loading" label={t("i18n-next51.timeline.video")} />;
   }
   if (query.isError) {
-    return <DocumentLoadStatus state="error" label="video" />;
+    return <DocumentLoadStatus state="error" label={t("i18n-next51.timeline.video")} />;
   }
 
   // The flow's last step writes stage `done` to the store, and autosave

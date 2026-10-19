@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Chunk } from "../../../stores/ApiTypes";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
@@ -17,6 +18,7 @@ type Props = {
 };
 
 export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const memoizedStyles = useMemo(() => outputStyles(theme), [theme]);
   const contentType = chunk.content_type;
@@ -27,7 +29,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
         srcDoc={(chunk.content as string) ?? ""}
         sandbox=""
         style={{ width: "100%", minHeight: 320, border: "none" }}
-        title="HTML chunk output"
+        title={t("i18n-next37.chunkRenderer.htmlChunkOutput")}
       />
     );
   }
@@ -66,7 +68,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
           // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
           // the native controls (scrub, volume) get the mouse events.
           className="nodrag nopan"
-          aria-label="Video output"
+          aria-label={t("i18n-next37.chunkRenderer.videoOutput")}
           style={{ width: "100%" }}
         />
       );
@@ -74,7 +76,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
       return (
         <div className="output value" css={memoizedStyles}>
           <a href={chunk.content as string} target="_blank" rel="noreferrer">
-            Open document
+            {t("i18n-next37.chunkRenderer.openDocument")}
           </a>
         </div>
       );

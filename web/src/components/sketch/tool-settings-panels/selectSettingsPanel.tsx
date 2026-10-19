@@ -1,4 +1,5 @@
 import { memo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
@@ -52,6 +53,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   onSmoothSelectionBorders,
   onConvertSelectionToBorder
 }: SelectSettingsPanelProps) {
+  const { t } = useTranslation();
   const refineAnchorRef = useRef<HTMLButtonElement | null>(null);
   const [refineOpen, setRefineOpen] = useState(false);
   const selectionPreviewMode = useSketchStore((s) => s.selectionPreviewMode);
@@ -73,40 +75,40 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         <SketchModeOption
           value="rectangle"
           variant="icon"
-          aria-label="Rectangular marquee"
-          title="Rectangular marquee"
+          aria-label={t("i18n-cont-sketch-tools-08.selection.rectangularMarquee")}
+          title={t("i18n-cont-sketch-tools-08.selection.rectangularMarquee")}
         >
           <RectangleOutlinedIcon fontSize="inherit" />
         </SketchModeOption>
         <SketchModeOption
           value="ellipse"
           variant="icon"
-          aria-label="Elliptical marquee"
-          title="Elliptical marquee"
+          aria-label={t("i18n-cont-sketch-tools-08.selection.ellipticalMarquee")}
+          title={t("i18n-cont-sketch-tools-08.selection.ellipticalMarquee")}
         >
           <RadioButtonUncheckedIcon fontSize="inherit" />
         </SketchModeOption>
         <SketchModeOption
           value="lasso"
           variant="icon"
-          aria-label="Freehand lasso"
-          title="Freehand (lasso)"
+          aria-label={t("i18n-cont-sketch-tools-08.selection.freehandLasso")}
+          title={t("i18n-cont-sketch-tools-08.selection.freehandLassoTooltip")}
         >
           <GestureOutlinedIcon fontSize="inherit" />
         </SketchModeOption>
         <SketchModeOption
           value="lasso_polygon"
           variant="icon"
-          aria-label="Polygon selection"
-          title="Polygon"
+          aria-label={t("i18n-cont-sketch-tools-08.selection.polygonSelection")}
+          title={t("i18n-cont-sketch-tools-08.selection.polygon")}
         >
           <PentagonOutlinedIcon fontSize="inherit" />
         </SketchModeOption>
         <SketchModeOption
           value="magic_wand"
           variant="icon"
-          aria-label="Magic wand"
-          title="Magic wand (click to sample)"
+          aria-label={t("i18n-cont-sketch-tools-08.selection.magicWand")}
+          title={t("i18n-cont-sketch-tools-08.selection.magicWandTooltip")}
         >
           <AutoAwesomeOutlinedIcon fontSize="inherit" />
         </SketchModeOption>
@@ -115,7 +117,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
       {settings.mode === "magic_wand" ? (
         <>
           <Box className="setting-row">
-            <Text className="setting-label">Tol.</Text>
+            <Text className="setting-label">{t("i18n-cont-sketch-tools-08.selection.toleranceAbbreviation")}</Text>
             <Slider
               size="small"
               min={0}
@@ -139,8 +141,8 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
             }}
             sx={{ flexWrap: "wrap" }}
           >
-            <SketchModeOption value="contiguous">Contiguous</SketchModeOption>
-            <SketchModeOption value="allLayers">All layers</SketchModeOption>
+            <SketchModeOption value="contiguous">{t("i18n-cont-sketch-tools-08.selection.contiguous")}</SketchModeOption>
+            <SketchModeOption value="allLayers">{t("i18n-cont-sketch-tools-08.selection.allLayers")}</SketchModeOption>
           </SketchModeToggle>
         </>
       ) : null}
@@ -174,9 +176,9 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
               lineHeight: 1
             }}
           >
-            Invert
+            {t("i18n-cont-sketch-tools-08.selection.invert")}
           </EditorButton>
-          <Tooltip title="Refine selection (grow, shrink, feather, smooth, border)">
+          <Tooltip title={t("i18n-cont-sketch-tools-08.selection.refineSelectionTooltip")}>
             <span>
               <EditorButton
                 ref={refineAnchorRef}
@@ -193,15 +195,15 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                   "& .MuiButton-startIcon": { mr: 0.5 }
                 }}
               >
-                Refine…
+                {t("i18n-cont-sketch-tools-08.selection.refine")}
               </EditorButton>
             </span>
           </Tooltip>
           <Tooltip
             title={
               showAsMask
-                ? "Showing selection as red overlay — click to switch to marching ants"
-                : "Showing selection as marching ants — click to switch to red overlay"
+                ? t("i18n-cont-sketch-tools-08.selection.redOverlayTooltip")
+                : t("i18n-cont-sketch-tools-08.selection.marchingAntsTooltip")
             }
           >
             <span>
@@ -211,8 +213,8 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                 }
                 aria-label={
                   showAsMask
-                    ? "Switch to marching ants"
-                    : "Switch to mask overlay"
+                    ? t("i18n-cont-sketch-tools-08.selection.switchToMarchingAnts")
+                    : t("i18n-cont-sketch-tools-08.selection.switchToMaskOverlay")
                 }
                 sx={{
                   ...iconButtonCompactSx,
@@ -247,12 +249,12 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
               flexItem
               sx={{ alignSelf: "stretch", borderColor: "grey.700" }}
             />
-            <Tooltip title="Crop canvas to selection">
+            <Tooltip title={t("i18n-cont-sketch-tools-08.selection.cropCanvasToSelection")}>
               <span>
                 <ToolbarIconButton
                   disabled={!hasActiveSelection}
                   onClick={onCropCanvasToSelection}
-                  aria-label="Crop canvas to selection"
+                  aria-label={t("i18n-cont-sketch-tools-08.selection.cropCanvasToSelection")}
                   sx={{
                     ...iconButtonCompactSx,
                     borderRadius: BORDER_RADIUS.xs,

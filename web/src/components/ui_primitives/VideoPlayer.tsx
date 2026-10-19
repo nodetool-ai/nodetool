@@ -18,6 +18,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -213,13 +214,14 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   muted = false,
   onTimeUpdate,
   onDurationChange,
-  label = "Video player",
+  label,
   prominentPlay = false,
   hoverControls = false,
   seekToSeconds,
   className
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const videoRef = useRef<FullscreenVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -352,6 +354,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
     () => styles(theme, controlsVisible),
     [theme, controlsVisible]
   );
+  const playerLabel = label ?? t("i18n-next86.videoPlayer.label");
 
   return (
     <div
@@ -375,7 +378,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
         muted={muted}
         playsInline
         preload="metadata"
-        aria-label={label}
+        aria-label={playerLabel}
         onPlay={handlePlay}
         onPause={handlePause}
         onLoadedMetadata={handleLoadedMetadata}
@@ -384,7 +387,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
       />
       {prominentPlay && !isPlaying && (
         <IconButton
-          aria-label="Play clip"
+          aria-label={t("i18n-next86.videoPlayer.playClip")}
           onClick={handleTogglePlay}
           sx={[
             {
@@ -416,7 +419,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
           className="play-button"
           size="small"
           onClick={handleTogglePlay}
-          aria-label={isPlaying ? "Pause" : "Play"}
+          aria-label={isPlaying ? t("i18n-next86.videoPlayer.pause") : t("i18n-next86.videoPlayer.play")}
         >
           {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
         </IconButton>
@@ -428,7 +431,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
           step={0.05}
           value={currentTime}
           onChange={handleSeek}
-          aria-label="Seek"
+          aria-label={t("i18n-next86.videoPlayer.seek")}
         />
         <span className="timestamp">
           {formatTime(currentTime)} / {formatTime(duration)}
@@ -437,7 +440,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
           className="speed-select"
           value={speed}
           onChange={handleSpeedChange}
-          aria-label="Playback speed"
+          aria-label={t("i18n-next86.videoPlayer.playbackSpeed")}
         >
           {SPEED_OPTIONS.map((s) => (
             <option key={s} value={s}>
@@ -450,7 +453,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
             className="fullscreen-button"
             size="small"
             onClick={handleToggleFullscreen}
-            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            aria-label={isFullscreen ? t("i18n-next86.videoPlayer.exitFullscreen") : t("i18n-next86.videoPlayer.enterFullscreen")}
           >
             {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
           </IconButton>

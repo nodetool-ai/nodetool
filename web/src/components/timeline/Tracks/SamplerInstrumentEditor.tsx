@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createTimeOrderedUuid,
@@ -35,6 +36,7 @@ export default function SamplerInstrumentEditor({
   instrument,
   onChange
 }: SamplerInstrumentEditorProps): React.JSX.Element {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState("");
   const [mapping, setMapping] = useState("drum");
   const [uploading, setUploading] = useState(false);
@@ -110,30 +112,28 @@ export default function SamplerInstrumentEditor({
   };
   return (
     <FlexColumn gap={SPACING.lg}>
-      <Label>Sampler</Label>
+      <Label>{t("i18n-cont-music-09.sampler.title")}</Label>
       <Caption color="muted">
-        Load recordings up to 60 seconds. Drum mappings play on one key. Pitched
-        mappings transpose from the root note. Overlapping ranges layer samples.
-        Stereo recordings are mixed to mono.
+        {t("i18n-cont-music-09.sampler.description")}
       </Caption>
       <SelectField
-        label="New sample mapping"
+        label={t("i18n-cont-music-09.sampler.newMapping")}
         value={mapping}
         options={[
-          { value: "drum", label: "Drum · one key" },
-          { value: "pitched", label: "Pitched · full keyboard" }
+          { value: "drum", label: t("i18n-cont-music-09.sampler.mapping.drum") },
+          { value: "pitched", label: t("i18n-cont-music-09.sampler.mapping.pitched") }
         ]}
         onChange={setMapping}
       />
       <SelectField
-        label="Audio sample"
+        label={t("i18n-cont-music-09.sampler.audioSample")}
         value={selected}
         options={[
           {
             value: "",
             label: assets.isLoading
-              ? "Loading samples…"
-              : "Choose an audio asset"
+              ? t("i18n-cont-music-09.sampler.loadingSamples")
+              : t("i18n-cont-music-09.sampler.chooseAudioAsset")
           },
           ...(assets.data ?? []).map((asset) => ({
             value: asset.id,
@@ -150,20 +150,20 @@ export default function SamplerInstrumentEditor({
             if (asset) add(asset.id, asset.name);
           }}
         >
-          Add sample
+          {t("i18n-cont-music-09.sampler.addSample")}
         </Button>
         <Button
           disabled={uploading || instrument.zones.length >= 32}
           onClick={() => fileInput.current?.click()}
         >
-          {uploading ? "Uploading…" : "Upload audio"}
+          {uploading ? t("i18n-cont-music-09.sampler.uploading") : t("i18n-cont-music-09.sampler.uploadAudio")}
         </Button>
         <input
           ref={fileInput}
           type="file"
           accept="audio/*,.wav,.flac,.mp3,.ogg,.m4a"
           hidden
-          aria-label="Upload sampler audio"
+          aria-label={t("i18n-cont-music-09.sampler.uploadAudio")}
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = "";
@@ -192,24 +192,26 @@ export default function SamplerInstrumentEditor({
       </FlexRow>
       {(error || assets.error) && (
         <Caption role="alert">
-          {error || "Could not load audio assets."}
+          {error
+            ? t("i18n-cont-music-09.sampler.uploadError", { message: error })
+            : t("i18n-cont-music-09.sampler.loadAssetsError")}
         </Caption>
       )}
       <SelectField
-        label="Playback"
+        label={t("i18n-cont-music-09.sampler.playback")}
         value={instrument.oneShot ? "one-shot" : "gated"}
         options={[
-          { value: "one-shot", label: "One-shot · play full sample" },
-          { value: "gated", label: "Gated · release at note-off" }
+          { value: "one-shot", label: t("i18n-cont-music-09.sampler.playbackMode.oneShot") },
+          { value: "gated", label: t("i18n-cont-music-09.sampler.playbackMode.gated") }
         ]}
         onChange={(value) =>
           onChange({ ...instrument, oneShot: value === "one-shot" })
         }
       />
       <FlexRow gap={SPACING.md}>
-        <FormField label="Attack (ms)" compact sx={{ flex: 1, minWidth: 0 }}>
+        <FormField label={t("i18n-cont-music-09.sampler.attackMs")} compact sx={{ flex: 1, minWidth: 0 }}>
           <NumericField
-            label="Attack (ms)"
+            label={t("i18n-cont-music-09.sampler.attackMs")}
             value={instrument.attackMs}
             min={0}
             max={10000}
@@ -221,9 +223,9 @@ export default function SamplerInstrumentEditor({
             }
           />
         </FormField>
-        <FormField label="Release (ms)" compact sx={{ flex: 1, minWidth: 0 }}>
+        <FormField label={t("i18n-cont-music-09.sampler.releaseMs")} compact sx={{ flex: 1, minWidth: 0 }}>
           <NumericField
-            label="Release (ms)"
+            label={t("i18n-cont-music-09.sampler.releaseMs")}
             value={instrument.releaseMs}
             min={0}
             max={30000}
@@ -235,9 +237,9 @@ export default function SamplerInstrumentEditor({
             }
           />
         </FormField>
-        <FormField label="Gain (dB)" compact sx={{ flex: 1, minWidth: 0 }}>
+        <FormField label={t("i18n-cont-music-09.sampler.gainDb")} compact sx={{ flex: 1, minWidth: 0 }}>
           <NumericField
-            label="Gain (dB)"
+            label={t("i18n-cont-music-09.sampler.gainDb")}
             value={instrument.gainDb}
             min={-60}
             max={12}
@@ -254,9 +256,9 @@ export default function SamplerInstrumentEditor({
         <FlexColumn key={zone.id} gap={SPACING.md}>
           <Label>{zone.name}</Label>
           <FlexRow gap={SPACING.md}>
-            <FormField label="Root note" compact sx={{ flex: 1, minWidth: 0 }}>
+            <FormField label={t("i18n-cont-music-09.sampler.rootNote")} compact sx={{ flex: 1, minWidth: 0 }}>
               <NumericField
-                label={`${zone.name} root note`}
+                label={t("i18n-cont-music-09.sampler.zoneRootNote", { name: zone.name })}
                 value={zone.rootNote}
                 min={0}
                 max={127}
@@ -272,9 +274,9 @@ export default function SamplerInstrumentEditor({
                 }}
               />
             </FormField>
-            <FormField label="Lowest key" compact sx={{ flex: 1, minWidth: 0 }}>
+            <FormField label={t("i18n-cont-music-09.sampler.lowestKey")} compact sx={{ flex: 1, minWidth: 0 }}>
               <NumericField
-                label={`${zone.name} lowest key`}
+                label={t("i18n-cont-music-09.sampler.zoneLowestKey", { name: zone.name })}
                 value={zone.lowNote}
                 min={0}
                 max={zone.highNote}
@@ -287,12 +289,12 @@ export default function SamplerInstrumentEditor({
               />
             </FormField>
             <FormField
-              label="Highest key"
+              label={t("i18n-cont-music-09.sampler.highestKey")}
               compact
               sx={{ flex: 1, minWidth: 0 }}
             >
               <NumericField
-                label={`${zone.name} highest key`}
+                label={t("i18n-cont-music-09.sampler.zoneHighestKey", { name: zone.name })}
                 value={zone.highNote}
                 min={zone.lowNote}
                 max={127}
@@ -305,9 +307,9 @@ export default function SamplerInstrumentEditor({
               />
             </FormField>
           </FlexRow>
-          <FormField label="Gain (dB)" compact sx={{ flex: 1, minWidth: 0 }}>
+          <FormField label={t("i18n-cont-music-09.sampler.gainDb")} compact sx={{ flex: 1, minWidth: 0 }}>
             <NumericField
-              label={`${zone.name} gain (dB)`}
+              label={t("i18n-cont-music-09.sampler.zoneGainDb", { name: zone.name })}
               value={zone.gainDb}
               min={-60}
               max={12}
@@ -325,7 +327,7 @@ export default function SamplerInstrumentEditor({
                 )
               }
             >
-              Play {zone.name}
+              {t("i18n-cont-music-09.sampler.playZone", { name: zone.name })}
             </Button>
             <Button
               onClick={() =>
@@ -335,14 +337,14 @@ export default function SamplerInstrumentEditor({
                 })
               }
             >
-              Remove {zone.name}
+              {t("i18n-cont-music-09.sampler.removeZone", { name: zone.name })}
             </Button>
           </FlexRow>
         </FlexColumn>
       ))}
       {!instrument.zones.length && (
         <Caption color="muted">
-          Add a recording to play this instrument.
+          {t("i18n-cont-music-09.sampler.emptyZones")}
         </Caption>
       )}
     </FlexColumn>

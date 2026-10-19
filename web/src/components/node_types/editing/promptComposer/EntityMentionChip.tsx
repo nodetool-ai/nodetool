@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -90,6 +91,7 @@ export const EntityMentionChip: React.FC<{
   label: string;
   thumb?: string;
 }> = ({ uri, label, thumb }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const entityId = parseEntityUri(uri);
   // Resolve live so a renamed / re-described entity updates every mention.
@@ -128,7 +130,7 @@ export const EntityMentionChip: React.FC<{
         <div css={previewCardStyles(theme)}>
           {previewUrl && <img src={previewUrl} alt={displayLabel} />}
           <span className="preview-name">
-            {displayLabel} · {kind}
+            {displayLabel} · {t(`i18n-next34.assetMention.entityKind.${kind}`)}
           </span>
           {marker.descriptor && (
             <span className="preview-descriptor">{marker.descriptor}</span>

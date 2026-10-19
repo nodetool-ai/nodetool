@@ -1,6 +1,7 @@
 import { memo, useEffect } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { trpcClient } from "../../trpc/client";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
@@ -36,6 +37,7 @@ const findApplicationForWorkflow = async (
  * workflow we open that app's workspace tab, otherwise the link is dead.
  */
 const LegacyAppRedirect = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { workflowId } = useParams<{ workflowId?: string }>();
   const openTab = useWorkspaceTabsStore((state) => state.openForegroundTab);
@@ -53,7 +55,7 @@ const LegacyAppRedirect = () => {
         type: "application",
         ref: data.id,
         mode: "view",
-        title: data.name || "Untitled app",
+        title: data.name || t("screen_apps.common.untitledApp"),
         projectId: data.projectId
       });
     }
@@ -64,7 +66,7 @@ const LegacyAppRedirect = () => {
   if (isLoading) {
     return (
       <FlexColumn align="center" justify="center" sx={{ height: "100vh" }}>
-        <LoadingSpinner size="large" text="Looking for this app" />
+        <LoadingSpinner size="large" text={t("screen_apps.legacy.loading")} />
       </FlexColumn>
     );
   }
@@ -79,9 +81,9 @@ const LegacyAppRedirect = () => {
       >
         <EmptyState
           variant="error"
-          title="App not found"
-          description="No app is built on this workflow. Open the Apps panel to create one."
-          actionText="Back to workspace"
+          title={t("screen_apps.legacy.notFoundTitle")}
+          description={t("screen_apps.legacy.notFoundDescription")}
+          actionText={t("screen_apps.legacy.backToWorkspace")}
           onAction={() => navigate("/workspace", { replace: true })}
         />
       </FlexColumn>

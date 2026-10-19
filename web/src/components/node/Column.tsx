@@ -1,6 +1,7 @@
 import { ColumnDef } from "../../stores/ApiTypes";
 import isEqual from "../../utils/isEqual";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { NodeTextField, NodeSelect, NodeMenuItem, DeleteButton } from "../ui_primitives";
 
 interface ColumnProps {
@@ -23,8 +24,10 @@ const Column: React.FC<ColumnProps> = ({
   onDelete,
   validDataTypes,
   showDescription = false
-}: ColumnProps) => (
-  <div className="column">
+}: ColumnProps) => {
+  const { t } = useTranslation();
+  return (
+    <div className="column">
     <div className="item-name">
       <NodeTextField
         className="textfield"
@@ -61,11 +64,12 @@ const Column: React.FC<ColumnProps> = ({
     <DeleteButton
       onClick={onDelete}
       buttonSize="small"
-      tooltip="Delete column"
+      tooltip={t("i18n-next119.column.delete")}
       className="delete-button"
       tabIndex={-1}
     />
-  </div>
-);
+    </div>
+  );
+};
 
 export default memo(Column, isEqual);

@@ -21,6 +21,7 @@ import React, {
   useRef,
   useState
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -54,17 +55,17 @@ import {
 type ChannelKey = "r" | "g" | "b";
 type HistogramView = "r" | "g" | "b" | "luminance";
 
-const CHANNEL_OPTIONS: ReadonlyArray<{ value: ChannelKey; label: string }> = [
-  { value: "r", label: "R" },
-  { value: "g", label: "G" },
-  { value: "b", label: "B" }
+const CHANNEL_OPTIONS: ReadonlyArray<{ value: ChannelKey; labelKey: string }> = [
+  { value: "r", labelKey: "red" },
+  { value: "g", labelKey: "green" },
+  { value: "b", labelKey: "blue" }
 ];
 
-const HIST_VIEW_OPTIONS: ReadonlyArray<{ value: HistogramView; label: string }> = [
-  { value: "r", label: "R" },
-  { value: "g", label: "G" },
-  { value: "b", label: "B" },
-  { value: "luminance", label: "L" }
+const HIST_VIEW_OPTIONS: ReadonlyArray<{ value: HistogramView; label: string; labelKey: string }> = [
+  { value: "r", label: "R", labelKey: "red" },
+  { value: "g", label: "G", labelKey: "green" },
+  { value: "b", label: "B", labelKey: "blue" },
+  { value: "luminance", label: "L", labelKey: "luminance" }
 ];
 
 const HIST_HEIGHT = 56;
@@ -268,6 +269,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
   isOutputNode
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
   const properties = nodeMetadata.properties ?? [];
@@ -477,10 +479,10 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
           value={histView}
           exclusive
           onChange={handleHistViewChange}
-          aria-label="Histogram channel"
+          aria-label={t("screen_editor.nodeEditing.levels.histogramChannel")}
         >
           {HIST_VIEW_OPTIONS.map((o) => (
-            <ToggleOption key={o.value} value={o.value} aria-label={o.label}>
+            <ToggleOption key={o.value} value={o.value} aria-label={t(`screen_editor.nodeEditing.levels.channels.${o.labelKey}`)}>
               {o.label}
             </ToggleOption>
           ))}
@@ -496,18 +498,18 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
             value={channel}
             exclusive
             onChange={handleChannelChange}
-            aria-label="Channel"
+            aria-label={t("screen_editor.nodeEditing.levels.channel")}
           >
             {CHANNEL_OPTIONS.map((o) => (
-              <ToggleOption key={o.value} value={o.value} aria-label={o.label}>
-                {o.label}
+              <ToggleOption key={o.value} value={o.value} aria-label={t(`screen_editor.nodeEditing.levels.channels.${o.labelKey}`)}>
+                {t(`screen_editor.nodeEditing.levels.channels.${o.labelKey}`)}
               </ToggleOption>
             ))}
           </ToggleGroup>
         </FlexRow>
 
         <FlexRow className="slider-row" align="center" gap={0.5}>
-          <span className="slider-label">Black</span>
+          <span className="slider-label">{t("screen_editor.nodeEditing.levels.black")}</span>
           <NodeSlider
             min={0}
             max={255}
@@ -515,12 +517,12 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
             value={channelProps.black}
             onChange={handleBlackChange}
             onChangeCommitted={commit}
-            aria-label="Black point"
+            aria-label={t("screen_editor.nodeEditing.levels.blackPoint")}
           />
           <span className="slider-readout">{channelProps.black}</span>
         </FlexRow>
         <FlexRow className="slider-row" align="center" gap={0.5}>
-          <span className="slider-label">Gamma</span>
+          <span className="slider-label">{t("screen_editor.nodeEditing.levels.gamma")}</span>
           <NodeSlider
             min={0.1}
             max={10}
@@ -528,12 +530,12 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
             value={channelProps.gamma}
             onChange={handleGammaChange}
             onChangeCommitted={commit}
-            aria-label="Gamma"
+            aria-label={t("screen_editor.nodeEditing.levels.gamma")}
           />
           <span className="slider-readout">{channelProps.gamma.toFixed(2)}</span>
         </FlexRow>
         <FlexRow className="slider-row" align="center" gap={0.5}>
-          <span className="slider-label">White</span>
+          <span className="slider-label">{t("screen_editor.nodeEditing.levels.white")}</span>
           <NodeSlider
             min={0}
             max={255}
@@ -541,7 +543,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
             value={channelProps.white}
             onChange={handleWhiteChange}
             onChangeCommitted={commit}
-            aria-label="White point"
+            aria-label={t("screen_editor.nodeEditing.levels.whitePoint")}
           />
           <span className="slider-readout">{channelProps.white}</span>
         </FlexRow>
@@ -550,8 +552,8 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
           <StateIconButton
             size="small"
             icon={<RestartAltIcon fontSize="small" />}
-            tooltip="Reset levels"
-            ariaLabel="Reset levels"
+            tooltip={t("screen_editor.nodeEditing.levels.reset")}
+            ariaLabel={t("screen_editor.nodeEditing.levels.reset")}
             onClick={handleReset}
           />
         </div>

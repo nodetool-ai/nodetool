@@ -8,6 +8,7 @@
  * filter narrows to one of the kinds present in the result.
  */
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import ReportBugButton from "../support/ReportBugButton";
 import {
@@ -36,6 +37,7 @@ function kindsOf(memories: readonly Memory[]): string[] {
 }
 
 const MemoryPage: React.FC = () => {
+  const { t } = useTranslation();
   const utils = trpc.useUtils();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -74,7 +76,7 @@ const MemoryPage: React.FC = () => {
       addNotification({
         type: "error",
         alert: true,
-        content: `Could not delete memory: ${error.message}`
+        content: t("screen_chat.memory.deleteFailed", { error: error.message })
       });
     }
   });
@@ -85,11 +87,11 @@ const MemoryPage: React.FC = () => {
         addNotification({
           type: "error",
           alert: true,
-          content: `Could not open chat: ${error instanceof Error ? error.message : String(error)}`
+          content: t("screen_chat.memory.openChatFailed", { error: error instanceof Error ? error.message : String(error) })
         });
       });
     },
-    [addNotification]
+    [addNotification, t]
   );
 
   const content = (() => {
@@ -104,9 +106,9 @@ const MemoryPage: React.FC = () => {
       return (
         <EmptyState
           variant="error"
-          title="Could not load memories"
-          description="Check your connection and try again."
-          actionText="Retry"
+          title={t("screen_chat.memory.loadFailed")}
+          description={t("screen_chat.memory.checkConnection")}
+          actionText={t("screen_chat.common.retry")}
           onAction={() => { void activeQuery.refetch(); }}
         />
       );
@@ -116,14 +118,14 @@ const MemoryPage: React.FC = () => {
         <EmptyState
           variant={searching || kind ? "no-results" : "empty"}
           title={
-            searching || kind ? "No memory matches" : "Nothing remembered yet"
+            searching || kind ? t("screen_chat.memory.noMatches") : t("screen_chat.memory.emptyTitle")
           }
           description={
             searching || kind
               ? kind
-                ? `No memories match the ${kind} filter${searching ? " and search" : ""}. Select All to reset the filter.`
-                : "No memory contains all of those words."
-              : "The agent records project notes and the assets it creates as it works. They show up here."
+                ? t("screen_chat.memory.filterNoMatches", { kind, search: searching ? t("screen_chat.memory.andSearch") : "", interpolation: { escapeValue: false } })
+                : t("screen_chat.memory.searchNoMatches")
+              : t("screen_chat.memory.emptyDescription")
           }
         />
       );
@@ -146,28 +148,28 @@ const MemoryPage: React.FC = () => {
   return (
     <PageLayout
       icon={<PsychologyOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
-      title="Memory"
-      subtitle="What the agent remembers across every conversation — project notes and the resources they refer to."
+      title={t("screen_chat.memory.title")}
+      subtitle={t("screen_chat.memory.subtitle")}
     >
       <FlexColumn gap={SPACING.md} sx={{ width: "100%" }}>
         <FlexRow align="center" justify="space-between" gap={SPACING.md}>
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Search memories"
-            ariaLabel="Search memories by keyword"
+            placeholder={t("screen_chat.memory.searchPlaceholder")}
+            ariaLabel={t("screen_chat.memory.searchLabel")}
             size="small"
             debounceMs={250}
             sx={{ maxWidth: 360, width: "100%" }}
           />
           <Text size="small" sx={{ opacity: 0.6, flexShrink: 0 }}>
-            {visible.length === 1 ? "1 memory" : `${visible.length} memories`}
+            {t("screen_chat.memory.count", { count: visible.length })}
           </Text>
         </FlexRow>
         {(kinds.length > 1 || kind !== null) && (
           <FlexRow gap={SPACING.sm} sx={{ flexWrap: "wrap" }}>
             <Chip
-              label="All"
+              label={t("screen_chat.common.all")}
               compact
               variant="outlined"
               active={kind === null}
@@ -188,9 +190,9 @@ const MemoryPage: React.FC = () => {
         {activeQuery.isError && activeQuery.data && (
           <AlertBanner
             severity="error"
-            action={<EditorButton onClick={() => { void activeQuery.refetch(); }}>Retry</EditorButton>}
+            action={<EditorButton onClick={() => { void activeQuery.refetch(); }}>{t("screen_chat.common.retry")}</EditorButton>}
           >
-            Could not refresh memories. Showing the last loaded results.
+            {t("screen_chat.memory.refreshFailed")}
           </AlertBanner>
         )}
         {activeQuery.isError && <ReportBugButton context={{ source: "panel-crash", summary: "Could not load memories", errorText: activeQuery.error?.message }} />}
@@ -204,10 +206,10 @@ const MemoryPage: React.FC = () => {
             deleteMemory.mutate({ id: memoryToDelete });
           }
         }}
-        title="Delete memory"
-        content="Delete this memory? This cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={t("screen_chat.memory.deleteTitle")}
+        content={t("screen_chat.memory.deleteConfirm")}
+        confirmText={t("screen_chat.common.delete")}
+        cancelText={t("screen_chat.common.cancel")}
       />
     </PageLayout>
   );

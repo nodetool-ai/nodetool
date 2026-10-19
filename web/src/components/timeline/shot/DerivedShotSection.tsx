@@ -9,6 +9,7 @@
  */
 
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { MAX_DERIVED_FRAMES } from "@nodetool-ai/timeline";
 
 import ErrorBanner from "../../support/ErrorBanner";
@@ -29,19 +30,12 @@ import {
 } from "../../../hooks/timeline/useDeriveShotFromClip";
 import { getErrorMessage } from "../../../utils/errorHandling";
 
-const FRAME_COUNT_OPTIONS = Array.from(
-  { length: MAX_DERIVED_FRAMES },
-  (_, i) => ({
-    value: String(i + 1),
-    label: i === 0 ? "1 frame" : `${i + 1} frames`
-  })
-);
-
 interface DerivedShotSectionProps {
   clipId: string;
 }
 
 const DerivedShotSectionInner = ({ clipId }: DerivedShotSectionProps) => {
+  const { t } = useTranslation();
   const { derive } = useDeriveShotFromClip();
   const selectClip = useTimelineUIStore((state) => state.selectClip);
   const [frameCount, setFrameCount] = useState("3");
@@ -49,6 +43,13 @@ const DerivedShotSectionInner = ({ clipId }: DerivedShotSectionProps) => {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [derived, setDerived] = useState<DerivedShot | null>(null);
+  const frameCountOptions = Array.from(
+    { length: MAX_DERIVED_FRAMES },
+    (_, i) => ({
+      value: String(i + 1),
+      label: t("batch2_28.derived.frameCount", { count: i + 1 })
+    })
+  );
 
   const handleDerive = useCallback(async () => {
     setWorking(true);
@@ -59,11 +60,11 @@ const DerivedShotSectionInner = ({ clipId }: DerivedShotSectionProps) => {
       );
       setAction("");
     } catch (failure) {
-      setError(getErrorMessage(failure, "The derived shot could not be made."));
+      setError(getErrorMessage(failure, t("batch2_28.derived.errorFallback")));
     } finally {
       setWorking(false);
     }
-  }, [action, clipId, derive, frameCount]);
+  }, [action, clipId, derive, frameCount, t]);
 
   const handleRenderClose = useCallback(() => {
     if (derived) {
@@ -74,26 +75,23 @@ const DerivedShotSectionInner = ({ clipId }: DerivedShotSectionProps) => {
 
   return (
     <FlexColumn gap={SPACING.sm} data-testid="derived-shot-section">
-      <Caption color="secondary">
-        Frames from this clip become the references for a new shot. Its clip
-        goes on a new track above this one.
-      </Caption>
-      <FormField label="Reference frames">
+      <Caption color="secondary">{t("batch2_28.derived.description")}</Caption>
+      <FormField label={t("batch2_28.derived.referenceFrames")}>
         <SelectField
           size="small"
-          label="Reference frames"
+          label={t("batch2_28.derived.referenceFrames")}
           hideLabel
           value={frameCount}
           onChange={setFrameCount}
-          options={FRAME_COUNT_OPTIONS}
+          options={frameCountOptions}
           disabled={working}
         />
       </FormField>
       <TextArea
-        label="Description"
+        label={t("batch2_28.derived.descriptionLabel")}
         value={action}
         onChange={(value) => setAction(value)}
-        placeholder="What the new shot shows (defaults to this shot's)"
+        placeholder={t("batch2_28.derived.descriptionPlaceholder")}
         maxRows={6}
         compact
         fullWidth
@@ -106,13 +104,15 @@ const DerivedShotSectionInner = ({ clipId }: DerivedShotSectionProps) => {
         disabled={working}
         data-testid="derived-shot-create"
       >
-        {working ? "Taking frames…" : "Create derived shot"}
+        {working
+          ? t("batch2_28.derived.takingFrames")
+          : t("batch2_28.derived.create")}
       </EditorButton>
       {error && (
         <ErrorBanner
           report={{
             source: "operation-failure",
-            summary: "Creating a derived shot failed",
+            summary: t("batch2_28.derived.errorSummary"),
             errorText: error
           }}
         >

@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { pad } from '../params';
 import { useDrumStore } from '../dr1Store';
 import { DrumEnvView } from './DrumEnvView';
 import { DrumKnob } from './DrumKnob';
 
 export function AmpEnvPanel() {
+  const { t } = useTranslation();
   const sel = useDrumStore((s) => s.sel);
   const attackId = pad(sel, 'aenv.att');
   const holdId = pad(sel, 'aenv.hold');
@@ -17,8 +19,8 @@ export function AmpEnvPanel() {
   return (
     <section className="panel dr-edit-panel dr-amp-env">
       <div className="panel-head">
-        <h2>AMP ENV</h2>
-        <span className="panel-hint">AHD · ONE-SHOT</span>
+        <h2>{t('i18n-next107.drum.ampEnv.title')}</h2>
+        <span className="panel-hint">{t('i18n-next107.drum.ampEnv.note')}</span>
       </div>
       <DrumEnvView
         className="dr-env-view"

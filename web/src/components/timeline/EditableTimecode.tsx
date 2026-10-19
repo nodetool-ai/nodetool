@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
@@ -31,7 +32,9 @@ const restingSx: SxProps<Theme> = {
 };
 
 export const EditableTimecode: React.FC<EditableTimecodeProps> = memo(
-  ({ sx, className, ariaLabel = "Current time", fps: fpsProp }) => {
+  ({ sx, className, ariaLabel, fps: fpsProp }) => {
+    const { t } = useTranslation();
+    const effectiveAriaLabel = ariaLabel ?? t("timeline.timecode.currentTime");
     const sequenceFps = useTimelineStore((s) => s.fps);
     const fps = fpsProp ?? sequenceFps;
     const playbackApi = useTimelinePlaybackStoreApi();
@@ -70,7 +73,7 @@ export const EditableTimecode: React.FC<EditableTimecodeProps> = memo(
         editing={editing}
         onEditingChange={setEditing}
         onCommit={commit}
-        ariaLabel={ariaLabel}
+        ariaLabel={effectiveAriaLabel}
         sx={[restingSx, ...(Array.isArray(sx) ? sx : [sx])]}
         className={className}
       >
@@ -79,8 +82,8 @@ export const EditableTimecode: React.FC<EditableTimecodeProps> = memo(
           ref={textRef}
           role="button"
           tabIndex={0}
-          aria-label={`${ariaLabel}. Click to type a time or an offset`}
-          title="Click to type a timecode, or +/- frames to move"
+          aria-label={t("timeline.timecode.editAria", { label: effectiveAriaLabel })}
+          title={t("timeline.timecode.editTitle")}
           onClick={startEditing}
           onKeyDown={(e: React.KeyboardEvent) => {
             if (e.key === "Enter") {

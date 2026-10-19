@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   LEFT_PANEL_MORE_GROUPS,
@@ -57,37 +58,47 @@ const MorePanel: React.FC<MorePanelProps> = ({
   onAppPageAction,
   isMobile = false
 }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredGroups = LEFT_PANEL_MORE_GROUPS.map((group) => ({
-    ...group,
-    categories: group.categories.filter((category) => {
-      if (hiddenViews.includes(category.id)) {
-        return false;
-      }
-      if (!normalizedQuery) {
-        return true;
-      }
-      return `${group.label} ${category.label} ${category.description}`
-        .toLowerCase()
-        .includes(normalizedQuery);
-    })
-  })).filter((group) => group.categories.length > 0);
+  const filteredGroups = LEFT_PANEL_MORE_GROUPS.map((group) => {
+    const translatedGroup = t(`i18n-next31.more.group.${group.id}`);
+    const categories = group.categories
+      .map((category) => ({
+        ...category,
+        label: t(`i18n-next31.more.category.${category.id}.label`),
+        description: t(
+          `i18n-next31.more.category.${category.id}.description`
+        )
+      }))
+      .filter((category) => {
+        if (hiddenViews.includes(category.id)) {
+          return false;
+        }
+        if (!normalizedQuery) {
+          return true;
+        }
+        return `${translatedGroup} ${category.label} ${category.description}`
+          .toLowerCase()
+          .includes(normalizedQuery);
+      });
+    return { ...group, label: translatedGroup, categories };
+  }).filter((group) => group.categories.length > 0);
 
   return (
     <FlexColumn fullHeight>
       {!isMobile && (
         <PanelHeader
-          title="More"
-          description="Search and open additional panels."
+          title={t("i18n-next31.more.title")}
+          description={t("i18n-next31.more.description")}
         />
       )}
       <FlexColumn sx={{ py: SPACING.md, px: isMobile ? SPACING.xl : 0 }}>
         <SearchInput
           value={query}
           onChange={setQuery}
-          ariaLabel="Search all panels"
-          placeholder="Search all panels"
+          ariaLabel={t("i18n-next31.more.search")}
+          placeholder={t("i18n-next31.more.search")}
           fullWidth
         />
       </FlexColumn>

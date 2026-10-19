@@ -12,6 +12,7 @@
  */
 
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import SpeedOutlinedIcon from "@mui/icons-material/SpeedOutlined";
 import {
@@ -40,10 +41,6 @@ import {
   InspectorSectionTitle
 } from "./InspectorPrimitives";
 import { parseFiniteNumber } from "./InspectorPrimitives.helpers";
-import {
-  EASING_HINT,
-  UNPARSEABLE_EASING_HINT
-} from "./InspectorMotionFields";
 
 type RemapKeyframe = ClipTimeRemap["keyframes"][number];
 
@@ -70,6 +67,7 @@ interface ClipTimeRemapProps {
 
 const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
   ({ clip }) => {
+    const { t } = useTranslation();
     const [open, setOpen] = usePersistedFold("timeRemap");
     const patchClip = useTimelineStore((s) => s.patchClip);
     const trackLocked = useTimelineStore(
@@ -77,6 +75,7 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
     );
     const locked = !!clip.locked || trackLocked;
     const [duplicate, setDuplicate] = useState(false);
+    const easingList = "linear, easeIn, easeOut, easeInOut, easeOutBack, easeOutElastic, easeOutBounce, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass)";
 
     const clipRef = useRef(clip);
     clipRef.current = clip;
@@ -184,7 +183,7 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Time remap"
+              title={t("pass3_26.timelineInspector.timeRemap.title")}
               icon={<SpeedOutlinedIcon />}
               checked={keyframes !== undefined}
               onCheckedChange={handleEnabled}
@@ -198,14 +197,12 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
           <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
             {keyframes === undefined ? (
               <Caption color="muted">
-                Enable the remap to drive the source position with a curve
-                instead of a speed. It replaces Speed for this clip.
+                {t("pass3_26.timelineInspector.timeRemap.enableHelp")}
               </Caption>
             ) : (
               <>
                 {rowIdsRef.current.map((rowKey, index) => {
                   const keyframe = keyframes[index];
-                  const name = `Time remap keyframe ${index + 1}`;
                   const easingUnparseable =
                     keyframe.easing !== undefined &&
                     keyframe.easing !== "" &&
@@ -225,7 +222,7 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
                             });
                           }}
                           disabled={locked}
-                          ariaLabel={`${name} time`}
+                          ariaLabel={t("pass3_26.timelineInspector.timeRemap.keyframeTime", { number: index + 1 })}
                         />
                         <InspectorPillInput
                           value={String(keyframe.sourceMs)}
@@ -240,11 +237,11 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
                             });
                           }}
                           disabled={locked}
-                          ariaLabel={`${name} source time`}
+                          ariaLabel={t("pass3_26.timelineInspector.timeRemap.keyframeSourceTime", { number: index + 1 })}
                         />
                         <InspectorPillInput
                           value={keyframe.easing ?? ""}
-                          placeholder="linear"
+                          placeholder={t("pass3_26.timelineInspector.timeRemap.easingPlaceholder")}
                           allowEmpty
                           minWidth={96}
                           onCommit={(raw) => {
@@ -254,20 +251,20 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
                             });
                           }}
                           disabled={locked}
-                          ariaLabel={`${name} easing`}
+                          ariaLabel={t("pass3_26.timelineInspector.timeRemap.keyframeEasing", { number: index + 1 })}
                         />
                         <DeleteButton
                           onClick={() => removeKeyframe(index)}
                           disabled={locked}
-                          tooltip={`Delete ${name.toLowerCase()}`}
-                          ariaLabel={`Delete ${name.toLowerCase()}`}
+                          tooltip={t("pass3_26.timelineInspector.timeRemap.deleteKeyframe", { number: index + 1 })}
+                          ariaLabel={t("pass3_26.timelineInspector.timeRemap.deleteKeyframe", { number: index + 1 })}
                           iconVariant="clear"
                           sx={INSPECTOR_ROW_BUTTON_SX}
                         />
                       </FlexRow>
                       {easingUnparseable && (
                         <Caption color="muted">
-                          {UNPARSEABLE_EASING_HINT}
+                    {t("pass3_26.timelineInspector.timeRemap.unparseableEasingHelp")}
                         </Caption>
                       )}
                     </FlexColumn>
@@ -275,18 +272,14 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
                 })}
                 {duplicate && (
                   <Caption color="muted">
-                    Another keyframe already sits at that time. Keyframe times
-                    must differ.
+                    {t("pass3_26.timelineInspector.timeRemap.duplicateTimeError")}
                   </Caption>
                 )}
                 <Caption color="muted">
-                  Columns are time (0..1 across the clip), source position, and
-                  easing: {EASING_HINT}
+                  {t("pass3_26.timelineInspector.timeRemap.columnsHelp", { easing: easingList })}
                 </Caption>
                 <Caption color="muted">
-                  Source times may descend, which plays the clip backwards.
-                  Split and trim refuse a remapped clip until the remap is
-                  baked.
+                  {t("pass3_26.timelineInspector.timeRemap.reversePlaybackHelp")}
                 </Caption>
                 <FlexRow gap={SPACING.md}>
                   <Button
@@ -296,7 +289,7 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
                     onClick={addKeyframe}
                     disabled={locked}
                   >
-                    Add keyframe
+                    {t("pass3_26.timelineInspector.timeRemap.addKeyframe")}
                   </Button>
                   <Button
                     size="small"
@@ -304,7 +297,7 @@ const TimeRemapEditor: React.FC<ClipTimeRemapProps> = memo(
                     onClick={handleClear}
                     disabled={locked}
                   >
-                    Clear
+                    {t("pass3_26.timelineInspector.timeRemap.clear")}
                   </Button>
                 </FlexRow>
               </>
@@ -336,11 +329,12 @@ interface ClipCompositionProps {
  */
 export const ClipCompositionInfo: React.FC<ClipCompositionProps> = memo(
   ({ clip }) => {
+    const { t } = useTranslation();
     const params = Object.entries(clip.compositionParams ?? {});
     if (clip.compositionId === undefined) return null;
     return (
       <FlexColumn gap={SPACING.xs} sx={{ py: SPACING.xs }}>
-        <InspectorRow label="Composition">
+        <InspectorRow label={t("pass3_26.timelineInspector.composition.title")}>
           <Caption color="muted">{clip.compositionId}</Caption>
         </InspectorRow>
         {params.map(([name, value]) => (
@@ -349,8 +343,7 @@ export const ClipCompositionInfo: React.FC<ClipCompositionProps> = memo(
           </InspectorRow>
         ))}
         <Caption color="muted">
-          Stamped when the composition was inserted. Re-insert it to change
-          these values.
+          {t("pass3_26.timelineInspector.composition.help")}
         </Caption>
       </FlexColumn>
     );

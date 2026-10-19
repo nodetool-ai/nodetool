@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Text, EditorButton, getSpacingPx, SPACING } from "../ui_primitives";
 import { useApiKeyValidation } from "../../hooks/useApiKeyValidation";
 import { getRequiredSecretKeyForNamespace } from "../../utils/nodeProvider";
@@ -11,15 +12,16 @@ interface ApiKeyValidationProps {
 
 const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
   ({ nodeNamespace }) => {
+    const { t } = useTranslation();
     const missingAPIKey = useApiKeyValidation(nodeNamespace);
 
     const handleConnectProvider = useCallback(() => {
       openProviderOnboarding({
         highlightSecretKey:
           getRequiredSecretKeyForNamespace(nodeNamespace) ?? undefined,
-        reason: "This node needs a provider key. Connect it to run the node."
+        reason: t("i18n-next61.apiKeyValidation.connectReason")
       });
-    }, [nodeNamespace]);
+    }, [nodeNamespace, t]);
 
     const content = useMemo(() => {
       if (!missingAPIKey || !isString(missingAPIKey)) {return null;}
@@ -37,7 +39,9 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               marginBottom: "0"
             }}
           >
-            {String(missingAPIKey)} is missing!
+            {t("i18n-next61.apiKeyValidation.missing", {
+              key: String(missingAPIKey)
+            })}
           </Text>
           <EditorButton
             className="api-key-button"
@@ -56,11 +60,11 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               borderRadius: ".1em"
             }}
           >
-            Connect provider
+            {t("i18n-next61.apiKeyValidation.connectProvider")}
           </EditorButton>
         </>
       );
-    }, [missingAPIKey, handleConnectProvider]);
+    }, [missingAPIKey, handleConnectProvider, t]);
 
     return content;
   }

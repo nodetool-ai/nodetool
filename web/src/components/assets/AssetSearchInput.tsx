@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, memo } from "react";
+import { useTranslation } from "react-i18next";
 import Public from "@mui/icons-material/Public";
 import Folder from "@mui/icons-material/FolderOutlined";
 import { registerTypeToFocus } from "../../stores/KeyPressedStore";
@@ -26,6 +27,9 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   debounceTime = 500,
   width
 }) => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   // Global search state and hooks
@@ -234,12 +238,12 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   }, [focusOnTyping, debouncedSetSearchTerm]);
 
   const effectivePlaceholder = isGlobalSearchMode
-    ? "Search all assets"
-    : "Search current folder";
+    ? t("search.allAssets")
+    : t("search.currentFolder");
 
   const toggleLabel = isGlobalSearchMode
-    ? "Switch to local search"
-    : "Switch to global search";
+    ? t("search.switchToLocal")
+    : t("search.switchToGlobal");
 
   return (
     <div

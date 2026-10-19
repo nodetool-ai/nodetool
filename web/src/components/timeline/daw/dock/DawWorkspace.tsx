@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStoreApi } from "../../../../stores/timeline/TimelineUIStore";
@@ -39,6 +40,7 @@ export interface DawWorkspaceProps {
 }
 
 export const DawWorkspace: React.FC<DawWorkspaceProps> = memo(({ onGenerate }) => {
+  const { t } = useTranslation();
   const isMobile = useTimelineIsMobile();
   const fps = useTimelineStore((s) => s.fps);
   const dockHeight = useTimelineLayoutStore((s) => s.dawDockHeightPx);
@@ -165,7 +167,7 @@ export const DawWorkspace: React.FC<DawWorkspaceProps> = memo(({ onGenerate }) =
         thickness={isMobile ? SPACING.xxl : SPACING.sm}
         grip={isMobile}
         keyboardStep={KEYBOARD_RESIZE_STEP_PX}
-        ariaLabel="Resize DAW dock"
+        ariaLabel={t("i18n-next119.daw.resizeDock")}
         onResize={handleResize}
         onResizeStart={handleResizeStart}
         onResizeEnd={handleResizeEnd}

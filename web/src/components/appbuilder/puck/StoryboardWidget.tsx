@@ -7,6 +7,7 @@
  * Without this widget the id lands in an app as an opaque JSON value.
  */
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
@@ -61,6 +62,7 @@ export const ReadOnlyBoardLoader: React.FC<{
   boardId: string;
   children: React.ReactNode;
 }> = ({ boardId, children }) => {
+  const { t } = useTranslation();
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
   useEffect(() => {
     ensureBoard(boardId);
@@ -74,7 +76,7 @@ export const ReadOnlyBoardLoader: React.FC<{
     return (
       <DocumentLoadStatus
         state={loadState}
-        label="storyboard"
+        label={t("i18n-next53.appBuilder.storyboard.label")}
         onRetry={() => setRetryToken((value) => value + 1)}
       />
     );
@@ -85,8 +87,10 @@ export const ReadOnlyBoardLoader: React.FC<{
 const BoardView: React.FC<{ boardId: string; height: number }> = ({
   boardId,
   height
-}) => (
-  <ReadOnlyBoardLoader boardId={boardId}>
+}) => {
+  const { t } = useTranslation();
+  return (
+    <ReadOnlyBoardLoader boardId={boardId}>
     <Box
       sx={{
         height,
@@ -97,15 +101,17 @@ const BoardView: React.FC<{ boardId: string; height: number }> = ({
       }}
     >
       <React.Suspense
-        fallback={<LoadingSpinner size="small" text="Loading storyboard" />}
+        fallback={<LoadingSpinner size="small" text={t("i18n-next53.appBuilder.storyboard.loading")} />}
       >
         <LazyStoryboardBoard boardId={boardId} readOnly />
       </React.Suspense>
     </Box>
-  </ReadOnlyBoardLoader>
-);
+    </ReadOnlyBoardLoader>
+  );
+};
 
 export const StoryboardWidget: React.FC<StoryboardWidgetProps> = (props) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { value, designMode } = useWidgetRuntime({
     id: props.id,
@@ -118,14 +124,14 @@ export const StoryboardWidget: React.FC<StoryboardWidgetProps> = (props) => {
   if (designMode) {
     return (
       <Caption color="secondary">
-        Bind this to a storyboard output to show the board.
+        {t("i18n-next53.appBuilder.storyboard.bindOutput")}
       </Caption>
     );
   }
   if (!boardId) {
     return (
       <Caption color="secondary">
-        {props.placeholder ?? "No storyboard yet"}
+        {props.placeholder ?? t("i18n-next53.appBuilder.storyboard.noStoryboardYet")}
       </Caption>
     );
   }
@@ -143,7 +149,7 @@ export const StoryboardWidget: React.FC<StoryboardWidgetProps> = (props) => {
           navigate(href);
         }}
       >
-        Open storyboard
+        {t("i18n-next53.appBuilder.storyboard.openStoryboard")}
       </EditorButton>
     </FlexColumn>
   );

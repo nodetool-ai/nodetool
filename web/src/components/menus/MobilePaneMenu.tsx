@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -74,6 +75,7 @@ interface MobilePaneMenuProps {
 }
 
 const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { handlePaste } = useCopyPaste();
   const reactFlowInstance = useReactFlow();
@@ -167,12 +169,12 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
     <MobileBottomSheet
       open={open}
       onClose={onClose}
-      title="Canvas menu"
-      ariaLabel="Canvas actions and node insertion"
+      title={t("screens4_4.mobilePane.title")}
+      ariaLabel={t("screens4_4.mobilePane.ariaLabel")}
     >
       <div className="menu-content" css={styles(theme)}>
         <List dense>
-          <ListSubheader disableSticky>Actions</ListSubheader>
+          <ListSubheader disableSticky>{t("screens4_4.mobilePane.actions")}</ListSubheader>
           <ListItem className={`menu-item ${!isClipboardValid ? "disabled" : ""}`}>
             <ListItemButton onClick={handlePasteAction} disabled={!isClipboardValid}>
               <ListItemIcon className="menu-item-icon">
@@ -180,8 +182,8 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText 
                 className="menu-item-text"
-                primary="Paste" 
-                secondary={!isClipboardValid ? "No valid nodes in clipboard" : "Paste copied nodes"}
+                primary={t("screens4_4.mobilePane.paste")}
+                secondary={!isClipboardValid ? t("screens4_4.mobilePane.noValidNodes") : t("screens4_4.mobilePane.pasteCopiedNodes")}
               />
             </ListItemButton>
           </ListItem>
@@ -193,15 +195,15 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText 
                 className="menu-item-text"
-                primary="Fit screen" 
-                secondary="Center all nodes in view"
+                primary={t("screens4_4.mobilePane.fitScreen")}
+                secondary={t("screens4_4.mobilePane.centerNodes")}
               />
             </ListItemButton>
           </ListItem>
 
           <Divider sx={dividerSx} />
 
-          <ListSubheader disableSticky>AI nodes</ListSubheader>
+          <ListSubheader disableSticky>{t("screens4_4.mobilePane.aiNodes")}</ListSubheader>
           <ListItem className="menu-item">
             <ListItemButton onClick={addAgentNode}>
               <ListItemIcon className="menu-item-icon">
@@ -209,15 +211,15 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText 
                 className="menu-item-text"
-                primary="Add agent" 
-                secondary="AI agent for processing"
+                primary={t("screens4_4.mobilePane.addAgent")}
+                secondary={t("screens4_4.mobilePane.agentDescription")}
               />
             </ListItemButton>
           </ListItem>
 
           <Divider sx={dividerSx} />
 
-          <ListSubheader disableSticky>Input nodes</ListSubheader>
+          <ListSubheader disableSticky>{t("screens4_4.mobilePane.inputNodes")}</ListSubheader>
           <ListItem className="menu-item">
             <ListItemButton onClick={addInputNode} data-node-type="StringInput">
               <ListItemIcon className="menu-item-icon">
@@ -225,8 +227,8 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="String input"
-                secondary="Text input field"
+                primary={t("screens4_4.mobilePane.stringInput")}
+                secondary={t("screens4_4.mobilePane.textInputDescription")}
               />
             </ListItemButton>
           </ListItem>
@@ -238,8 +240,8 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Integer input"
-                secondary="Whole number input"
+                primary={t("screens4_4.mobilePane.integerInput")}
+                secondary={t("screens4_4.mobilePane.wholeNumberDescription")}
               />
             </ListItemButton>
           </ListItem>
@@ -251,8 +253,8 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Float input"
-                secondary="Decimal number input"
+                primary={t("screens4_4.mobilePane.floatInput")}
+                secondary={t("screens4_4.mobilePane.decimalNumberDescription")}
               />
             </ListItemButton>
           </ListItem>
@@ -264,8 +266,8 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Chat input"
-                secondary="Chat message input"
+                primary={t("screens4_4.mobilePane.chatInput")}
+                secondary={t("screens4_4.mobilePane.chatMessageDescription")}
               />
             </ListItemButton>
           </ListItem>
@@ -277,15 +279,15 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Image input"
-                secondary="Image file input"
+                primary={t("screens4_4.mobilePane.imageInput")}
+                secondary={t("screens4_4.mobilePane.imageFileDescription")}
               />
             </ListItemButton>
           </ListItem>
 
           <Divider sx={dividerSx} />
 
-          <ListSubheader disableSticky>Organization</ListSubheader>
+          <ListSubheader disableSticky>{t("screens4_4.mobilePane.organization")}</ListSubheader>
           <ListItem className="menu-item">
             <ListItemButton onClick={addComment}>
               <ListItemIcon className="menu-item-icon">
@@ -293,8 +295,8 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText 
                 className="menu-item-text"
-                primary="Add comment" 
-                secondary="Text comment note"
+                primary={t("screens4_4.mobilePane.addComment")}
+                secondary={t("screens4_4.mobilePane.commentDescription")}
               />
             </ListItemButton>
           </ListItem>
@@ -306,8 +308,8 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               </ListItemIcon>
               <ListItemText
                 className="menu-item-text"
-                primary="Add group"
-                secondary="Group container for nodes"
+                primary={t("screens4_4.mobilePane.addGroup")}
+                secondary={t("screens4_4.mobilePane.groupDescription")}
               />
             </ListItemButton>
           </ListItem>

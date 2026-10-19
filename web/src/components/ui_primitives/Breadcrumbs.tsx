@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -119,6 +120,7 @@ const BreadcrumbsInternal: React.FC<BreadcrumbsProps> = ({
   maxItems,
   className
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
@@ -148,7 +150,7 @@ const BreadcrumbsInternal: React.FC<BreadcrumbsProps> = ({
       <MuiBreadcrumbs
         separator={getSeparator(separator)}
         maxItems={maxItems}
-        aria-label="breadcrumb"
+        aria-label={t("i18n-next88.breadcrumbs.label")}
       >
         {items.map((item, index) => {
           const isLast = index === items.length - 1;

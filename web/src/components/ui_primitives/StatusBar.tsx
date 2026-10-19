@@ -14,6 +14,7 @@
  */
 
 import { forwardRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Box } from "./Box";
 import type { BoxProps } from "./Box";
 import { LoadingSpinner } from "./LoadingSpinner";
@@ -84,13 +85,6 @@ StatusBarItem.displayName = "StatusBarItem";
 
 export type SaveStateValue = "idle" | "dirty" | "saving" | "saved" | "error";
 
-const DEFAULT_LABELS: Record<Exclude<SaveStateValue, "idle">, string> = {
-  dirty: "Unsaved changes",
-  saving: "Saving…",
-  saved: "Saved",
-  error: "Save failed"
-};
-
 const DOT_COLOR: Record<Exclude<SaveStateValue, "idle">, string> = {
   dirty: "warning.main",
   saving: "info.main",
@@ -119,10 +113,17 @@ export const SaveState: React.FC<SaveStateProps> = ({
   labels,
   className
 }) => {
+  const { t } = useTranslation();
   if (state === "idle") {
     return null;
   }
-  const label = labels?.[state] ?? DEFAULT_LABELS[state];
+  const defaultLabels: Record<Exclude<SaveStateValue, "idle">, string> = {
+    dirty: t("i18n-next103.saveState.dirty"),
+    saving: t("i18n-next103.saveState.saving"),
+    saved: t("i18n-next103.saveState.saved"),
+    error: t("i18n-next103.saveState.error")
+  };
+  const label = labels?.[state] ?? defaultLabels[state];
   return (
     <Box
       className={className}

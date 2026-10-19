@@ -6,6 +6,7 @@
  */
 
 import React, { memo, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -52,6 +53,7 @@ const meterStyles = (theme: Theme) =>
   });
 
 export const MasterMeter: React.FC = memo(() => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const audioGraph = useTimelinePlaybackStore((s) => s.audioGraph);
   const isPlaying = useTimelinePlaybackStore((s) => s.isPlaying);
@@ -105,7 +107,7 @@ export const MasterMeter: React.FC = memo(() => {
       ref={rootRef}
       css={meterCss}
       role="meter"
-      aria-label="Master level"
+      aria-label={t("batch2_26.daw.transport.masterLevel")}
       aria-valuemin={FLOOR_DB}
       aria-valuemax={0}
       aria-valuenow={FLOOR_DB}

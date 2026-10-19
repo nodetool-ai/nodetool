@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -179,6 +180,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
     testId,
     children
   }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const [dragOver, setDragOver] = useState<"left" | "right" | null>(null);
     const [dragging, setDragging] = useState(false);
@@ -243,13 +245,13 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
     );
 
     const grip = reorderable ? (
-      <Tooltip title="Drag to reorder, or Alt + arrow keys">
+      <Tooltip title={t("i18n-next77.deviceCard.reorderTooltip")}>
         <div
           className="device-card__grip"
           draggable
           role="button"
           tabIndex={0}
-          aria-label={`Reorder ${title}`}
+          aria-label={t("i18n-next77.deviceCard.reorderAria", { title })}
           aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
@@ -264,8 +266,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
       enabled !== undefined && onEnabledChange ? (
         <ToolbarIconButton
           icon={<PowerSettingsNewIcon fontSize="small" />}
-          tooltip={enabled ? `Turn ${title} off` : `Turn ${title} on`}
-          aria-label={`${title} on`}
+          tooltip={enabled ? t("i18n-next77.deviceCard.turnOff", { title }) : t("i18n-next77.deviceCard.turnOn", { title })}
+          aria-label={t("i18n-next77.deviceCard.turnOn", { title })}
           aria-pressed={enabled}
           active={enabled}
           onClick={() => onEnabledChange(!enabled)}
@@ -284,8 +286,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
             <ChevronLeftIcon fontSize="small" />
           )
         }
-        tooltip={collapsed ? `Expand ${title}` : `Collapse ${title}`}
-        aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
+        tooltip={collapsed ? t("i18n-next77.deviceCard.expand", { title }) : t("i18n-next77.deviceCard.collapse", { title })}
+        aria-label={collapsed ? t("i18n-next77.deviceCard.expand", { title }) : t("i18n-next77.deviceCard.collapse", { title })}
         aria-expanded={!collapsed}
         onClick={onToggleCollapsed}
         size="small"
@@ -323,8 +325,8 @@ export const DeviceCard: React.FC<DeviceCardProps> = memo(
               {onRemove && (
                 <ToolbarIconButton
                   icon={<DeleteOutlineIcon fontSize="small" />}
-                  tooltip={`Remove ${title}`}
-                  aria-label={`Remove ${title}`}
+                  tooltip={t("i18n-next77.deviceCard.remove", { title })}
+                  aria-label={t("i18n-next77.deviceCard.remove", { title })}
                   onClick={onRemove}
                   size="small"
                 />

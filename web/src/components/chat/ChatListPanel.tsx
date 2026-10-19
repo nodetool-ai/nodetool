@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -29,6 +30,7 @@ import {
 
 /** Opens a thread as a chat tab, leaving the rest of the workspace in place. */
 const useOpenThreadTab = () => {
+  const { t } = useTranslation();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,14 +41,14 @@ const useOpenThreadTab = () => {
         type: "chat",
         ref: threadId,
         mode: "view",
-        title: title || "New chat",
+        title: title || t("i18n-next11.chat.newChat"),
         projectId
       });
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");
       }
     },
-    [location.pathname, navigate, openTab]
+    [location.pathname, navigate, openTab, t]
   );
 };
 
@@ -57,6 +59,7 @@ interface CreateChatButtonProps {
 export const CreateChatButton = memo(function CreateChatButton({
   projectId
 }: CreateChatButtonProps) {
+  const { t } = useTranslation();
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -74,15 +77,15 @@ export const CreateChatButton = memo(function CreateChatButton({
       console.error("Failed to create new chat thread:", error);
       addNotification({
         type: "error",
-        content: "Could not start a new conversation. Please try again."
+        content: t("i18n-next11.chat.newConversationError")
       });
     }
-  }, [createNewThread, openThreadTab, addNotification, projectId]);
+  }, [createNewThread, openThreadTab, addNotification, projectId, t]);
 
   return (
-    <Tooltip title="New chat" placement="right-start">
+    <Tooltip title={t("i18n-next11.chat.newChat")} placement="right-start">
       <ToolbarIconButton
-        ariaLabel="New chat"
+        ariaLabel={t("i18n-next11.chat.newChat")}
         onClick={() => void handleCreate()}
         tabIndex={-1}
         icon={<AddIcon />}
@@ -101,6 +104,7 @@ interface ChatListPanelProps {
 }
 
 const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
+  const { t } = useTranslation();
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
@@ -136,8 +140,8 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
     (threadId: string) =>
       threads[threadId]
         ? threadPreview(threads[threadId].title, messageCache[threadId])
-        : "Empty conversation",
-    [threads, messageCache]
+        : t("i18n-next11.chat.emptyConversation"),
+    [threads, messageCache, t]
   );
 
   const threadsWithMessages = useMemo<Record<string, ThreadInfo>>(() => {
@@ -179,11 +183,11 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
         console.error("Failed to delete thread:", error);
         addNotification({
           type: "error",
-          content: "Could not delete the conversation. Please try again."
+          content: t("i18n-next11.chat.deleteConversationError")
         });
       });
     },
-    [deleteThread, addNotification]
+    [deleteThread, addNotification, t]
   );
 
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
@@ -207,7 +211,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
           ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
-          placeholder="Search conversations"
+          placeholder={t("i18n-next11.chat.searchConversations")}
         />
       </FlexColumn>
 
@@ -219,7 +223,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
             role="status"
             aria-live="polite"
           >
-            <ShimmerText>Loading conversations…</ShimmerText>
+            <ShimmerText>{t("i18n-next11.chat.loadingConversations")}</ShimmerText>
           </Text>
         </FlexColumn>
       ) : threadsError ? (
@@ -231,7 +235,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
         >
           <EmptyState
             variant="error"
-            title="Could not load conversations"
+            title={t("i18n-next11.chat.loadConversationsError")}
             description={threadsError}
           />
         </FlexColumn>
@@ -245,9 +249,9 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
           {/* UX research study 4: this line used to point at another menu,
               and newcomers lost several actions finding "New chat". */}
           <EmptyState
-            title="No conversations yet"
-            description="Ask a question to start one."
-            actionText="New chat"
+            title={t("i18n-next11.chat.noConversationsYet")}
+            description={t("i18n-next11.chat.startConversationPrompt")}
+            actionText={t("i18n-next11.chat.newChat")}
             onAction={() => void handleNewThread()}
           />
         </FlexColumn>

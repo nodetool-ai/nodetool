@@ -6,6 +6,7 @@
  */
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Box, BoxProps } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import { useTheme } from "@mui/material/styles";
@@ -64,6 +65,7 @@ export const ColorSwatch: React.FC<ColorSwatchProps> = React.memo(({
   ...props
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const radius =
     borderRadius ??
@@ -79,7 +81,7 @@ export const ColorSwatch: React.FC<ColorSwatchProps> = React.memo(({
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => e.key === "Enter" && handleClick() : undefined}
-      aria-label={`Color ${color}`}
+      aria-label={t("i18n-next92.colorSwatch.ariaLabel", { color })}
       sx={{
         width: size,
         height: size,

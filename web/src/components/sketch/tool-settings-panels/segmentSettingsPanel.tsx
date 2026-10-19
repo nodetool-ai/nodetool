@@ -1,4 +1,5 @@
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
@@ -28,26 +29,26 @@ import type { ImageModelValue } from "../../../stores/ApiTypes";
 import { useSketchStore } from "../state";
 import { getLayerDataImageUrl } from "../serialization";
 
-function promptModeHelpText(mode: SegmentPromptMode): string {
+function promptModeHelpKey(mode: SegmentPromptMode): string {
   if (mode === "point") {
-    return "Click: include · Alt+click: exclude";
+    return "pointHelp";
   }
   if (mode === "box") {
-    return "Drag to draw a bounding box";
+    return "boxHelp";
   }
-  return "Finds what Concept names; some models find objects on their own";
+  return "autoHelp";
 }
 
-function getSegmentationStatusMessage(status: SegmentationStatus): string {
+function segmentationStatusMessageKey(status: SegmentationStatus): string {
   switch (status) {
     case "checking-model":
-      return "Checking model…";
+      return "checkingModel";
     case "encoding":
-      return "Encoding image…";
+      return "encodingImage";
     case "inferring":
-      return "Segmenting…";
+      return "segmenting";
     default:
-      return "Processing…";
+      return "processing";
   }
 }
 
@@ -79,6 +80,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   onClearPrompts,
   onCheckModel
 }: SegmentSettingsPanelProps) {
+  const { t } = useTranslation();
   const isRunning =
     segmentationStatus === "inferring" ||
     segmentationStatus === "encoding" ||
@@ -110,7 +112,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     modelReady &&
     (settings.promptMode === "auto" ? canSplitSelectedLayer : true);
   const segmentActionLabel =
-    settings.promptMode === "auto" ? "Split selected layer" : "Segment";
+    settings.promptMode === "auto"
+      ? t("i18n-cont-sketch-tools-08.segment.splitSelectedLayer")
+      : t("i18n-cont-sketch-tools-08.segment.segment");
   const showClearPrompts = settings.promptMode !== "auto";
   // The picker names the model, so its status line is only worth a row when
   // the model cannot run.
@@ -138,7 +142,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       {/* What runs, and how the user points at the object. */}
       <Box className="setting-group">
         <Box className="setting-row">
-          <Text className="setting-label">Model</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.segment.model")}</Text>
           {/* The picker's button is `width: 100%`, so it needs a box to fill
               — left free it stretched to a third of the bar. */}
           <Box sx={{ width: 192, flexShrink: 0 }}>
@@ -164,10 +168,10 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               }}
             >
               {modelInfo.status === "not-installed" &&
-                (modelInfo.errorMessage ?? "Model not available")}
+                (modelInfo.errorMessage ?? t("i18n-cont-sketch-tools-08.segment.modelNotAvailable"))}
               {modelInfo.status === "error" &&
-                (modelInfo.errorMessage ?? "Connection failed")}
-              {modelInfo.status === "checking" && "Checking…"}
+                (modelInfo.errorMessage ?? t("i18n-cont-sketch-tools-08.segment.connectionFailed"))}
+              {modelInfo.status === "checking" && t("i18n-cont-sketch-tools-08.segment.checking")}
             </Text>
           )}
         </Box>
@@ -180,16 +184,16 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             }
           }}
         >
-          <SketchModeOption value="point">Point</SketchModeOption>
-          <SketchModeOption value="box">Box</SketchModeOption>
-          <SketchModeOption value="auto">Auto</SketchModeOption>
+          <SketchModeOption value="point">{t("i18n-cont-sketch-tools-08.segment.point")}</SketchModeOption>
+          <SketchModeOption value="box">{t("i18n-cont-sketch-tools-08.segment.box")}</SketchModeOption>
+          <SketchModeOption value="auto">{t("i18n-cont-sketch-tools-08.segment.auto")}</SketchModeOption>
         </SketchModeToggle>
       </Box>
 
       {/* What counts as an object. */}
       <Box className="setting-group">
         <Box className="setting-row">
-          <Text className="setting-label">Max objects</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.segment.maxObjects")}</Text>
           <Slider
             size="small"
             min={1}
@@ -201,7 +205,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </Box>
 
         <Box className="setting-row">
-          <Text className="setting-label">Confidence</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.segment.confidence")}</Text>
           <Slider
             size="small"
             min={0}
@@ -216,7 +220,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </Box>
 
         <Box className="setting-row">
-          <Text className="setting-label">Min size</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.segment.minSize")}</Text>
           <Slider
             size="small"
             min={0}
@@ -229,7 +233,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </Box>
 
         <Box className="setting-row">
-          <Text className="setting-label">Feather</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.segment.feather")}</Text>
           <Slider
             size="small"
             min={0}
@@ -245,7 +249,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       {/* What the run leaves behind. */}
       <Box className="setting-group">
         <Box className="setting-row">
-          <Text className="setting-label">Source layer</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.segment.sourceLayer")}</Text>
           <SketchModeToggle
             value={settings.sourceLayerAction}
             onChange={(_, v) => {
@@ -254,9 +258,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               }
             }}
           >
-            <SketchModeOption value="keep">Keep</SketchModeOption>
-            <SketchModeOption value="hide">Hide</SketchModeOption>
-            <SketchModeOption value="lock">Lock</SketchModeOption>
+            <SketchModeOption value="keep">{t("i18n-cont-sketch-tools-08.segment.keep")}</SketchModeOption>
+            <SketchModeOption value="hide">{t("i18n-cont-sketch-tools-08.segment.hide")}</SketchModeOption>
+            <SketchModeOption value="lock">{t("i18n-cont-sketch-tools-08.segment.lock")}</SketchModeOption>
           </SketchModeToggle>
         </Box>
 
@@ -270,7 +274,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           }
           label={
             <Text sx={{ ...TYPOGRAPHY.sans.label }}>
-              {settings.outputCutouts ? "Cutout layers" : "Mask layers"}
+              {settings.outputCutouts
+                ? t("i18n-cont-sketch-tools-08.segment.cutoutLayers")
+                : t("i18n-cont-sketch-tools-08.segment.maskLayers")}
             </Text>
           }
           sx={{ ml: 0, mr: 0 }}
@@ -279,15 +285,15 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
 
       <Box className="setting-group">
         <Box className="setting-row">
-          <Text className="setting-label">Concept</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.segment.concept")}</Text>
           <TextInput
             compact
             value={settings.conceptPrompt}
             onChange={(event) =>
               onChange({ conceptPrompt: event.target.value })
             }
-            placeholder="Describe the object"
-            inputProps={{ "aria-label": "Concept prompt" }}
+            placeholder={t("i18n-cont-sketch-tools-08.segment.describeObject")}
+            inputProps={{ "aria-label": t("i18n-cont-sketch-tools-08.segment.conceptPrompt") }}
             // Wide enough for the placeholder to read in full, and it keeps
             // the bar from being dominated by one text field.
             sx={{ width: 200 }}
@@ -314,7 +320,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 onClick={onClearPrompts}
                 sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
               >
-                Clear
+                {t("i18n-cont-sketch-tools-08.segment.clear")}
               </EditorButton>
             )}
           </>
@@ -327,7 +333,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 color: "info.main"
               }}
             >
-              {getSegmentationStatusMessage(segmentationStatus)}
+              {t(`i18n-cont-sketch-tools-08.segment.${segmentationStatusMessageKey(segmentationStatus)}`)}
             </Text>
             <EditorButton
               size="small"
@@ -336,7 +342,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               onClick={onCancelSegmentation}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
-              Cancel
+              {t("i18n-cont-sketch-tools-08.segment.cancel")}
             </EditorButton>
           </>
         )}
@@ -349,7 +355,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               onClick={onApplyResult}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
-              Apply
+              {t("i18n-cont-sketch-tools-08.segment.apply")}
             </EditorButton>
             <EditorButton
               size="small"
@@ -357,7 +363,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               onClick={onDiscardResult}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
-              Discard
+              {t("i18n-cont-sketch-tools-08.segment.discard")}
             </EditorButton>
           </>
         )}
@@ -373,8 +379,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             }}
           >
             {settings.promptMode === "auto" && !canSplitSelectedLayer
-              ? "Select exactly one raster layer to split."
-              : promptModeHelpText(settings.promptMode)}
+              ? t("i18n-cont-sketch-tools-08.segment.selectOneRasterLayer")
+              : t(`i18n-cont-sketch-tools-08.segment.${promptModeHelpKey(settings.promptMode)}`)}
           </Text>
         )}
       </FlexRow>
@@ -395,7 +401,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             wordBreak: "break-word"
           }}
         >
-          {segmentationError ?? "Segmentation failed."}
+          {segmentationError ?? t("i18n-cont-sketch-tools-08.segment.segmentationFailed")}
         </Text>
       )}
     </>

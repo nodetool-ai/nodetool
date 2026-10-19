@@ -2,6 +2,7 @@
 /** Inspector panel for generated sketch layers — header, inputs form, actions, and version history. */
 
 import React, { memo, useCallback, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -89,6 +90,7 @@ const inputsContainerStyles = (theme: Theme) =>
 
 export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
   ({ layer }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const binding = useLayerBinding(layer.id);
     const documentId = useSketchSessionStore((s) => s.documentId);
@@ -174,8 +176,12 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
           <EmptyState
             variant="empty"
             size="small"
-            title="No workflow binding"
-            description="This layer does not have a generated-layer binding yet."
+            title={t(
+              "screens4_26.sketch.generatedLayerPanel.noWorkflowBinding.title"
+            )}
+            description={t(
+              "screens4_26.sketch.generatedLayerPanel.noWorkflowBinding.description"
+            )}
           />
         </Panel>
       );
@@ -200,7 +206,7 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
               <AlertBanner
                 severity="error"
                 compact
-                title="Generation failed"
+                title={t("screens4_26.sketch.generatedLayerPanel.generationFailed")}
                 onClose={() => clearJob(layer.id)}
               >
                 {jobErrorMessage}
@@ -214,7 +220,9 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
               <EmptyState
                 variant="error"
                 size="small"
-                description="Failed to load workflow inputs."
+                description={t(
+                  "screens4_26.sketch.generatedLayerPanel.workflowInputsError"
+                )}
               />
             )}
             {!isLoading && !isError && workflow && (
@@ -223,7 +231,9 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
                   <EmptyState
                     variant="empty"
                     size="small"
-                    description="This workflow has no editable input parameters."
+                    description={t(
+                      "screens4_26.sketch.generatedLayerPanel.noEditableInputs"
+                    )}
                   />
                 ) : nodeStoreForForm ? (
                   <NodeContext.Provider value={nodeStoreForForm}>
@@ -247,7 +257,7 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
             <FlexRow justify="flex-end" fullWidth sx={{ px: 0.5, pb: 0.5 }}>
               <CostEstimateLine
                 estimate={workflowCostLine(costEstimate)}
-                title="Estimated cost of one run of this workflow"
+                title={t("screens4_26.sketch.generatedLayerPanel.estimatedRunCost")}
               />
             </FlexRow>
             <LayerActions layerId={layer.id} binding={binding} />

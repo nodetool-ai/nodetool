@@ -1,5 +1,6 @@
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import { useTranslation } from "react-i18next";
 
 import { EditorButton } from "../editor_ui";
 import {
@@ -56,6 +57,7 @@ const FirstWorkflowGuide = ({
   onChooseOwn,
   onClose
 }: FirstWorkflowGuideProps) => {
+  const { t } = useTranslation();
   const insets = useCanvasSideInsets();
   if (hasSavedWorkflows !== false) {
     return null;
@@ -63,7 +65,7 @@ const FirstWorkflowGuide = ({
 
   return (
     <Surface
-      aria-label="First workflow guide"
+      aria-label={t("screen_nodes.firstWorkflowGuide")}
       bordered
       elevation={3}
       padding={SPACING.xl}
@@ -79,42 +81,41 @@ const FirstWorkflowGuide = ({
       <FlexColumn gap={SPACING.lg}>
         <FlexRow align="flex-start" justify="space-between" gap={SPACING.lg}>
           <FlexColumn gap={SPACING.xs}>
-            <Text size="big">Build your first useful workflow</Text>
+            <Text size="big">{t("screen_nodes.firstWorkflowTitle")}</Text>
             <Caption>
-              Connect a text input to an output, run it, and see the result.
-              This starter needs no model or provider setup.
+              {t("screen_nodes.firstWorkflowDescription")}
             </Caption>
           </FlexColumn>
           {started ? (
-            <CloseButton onClick={onClose} tooltip="Close guide" />
+            <CloseButton onClick={onClose} tooltip={t("screen_nodes.closeGuide")} />
           ) : null}
         </FlexRow>
 
         {started ? (
           <FlexColumn component="ol" gap={SPACING.sm} sx={{ m: 0, p: 0 }}>
             <ReadinessItem complete={readiness.input}>
-              Input added
+              {t("screen_nodes.inputAdded")}
             </ReadinessItem>
             <ReadinessItem complete={readiness.output}>
-              Output added
+              {t("screen_nodes.outputAdded")}
             </ReadinessItem>
             <ReadinessItem complete={readiness.connection}>
-              Input connected to output
+              {t("screen_nodes.inputConnectedToOutput")}
             </ReadinessItem>
             <ReadinessItem complete={readiness.saved}>
-              Workflow saved
+              {t("screen_nodes.workflowSaved")}
             </ReadinessItem>
             <ReadinessItem complete={readiness.run}>
-              Workflow run completed
+              {t("screen_nodes.workflowRunCompleted")}
             </ReadinessItem>
           </FlexColumn>
         ) : (
           <FlexRow gap={SPACING.md} wrap>
             <EditorButton variant="contained" onClick={onStart}>
-              Add the two-node starter
+              {t("i18n-next104-node.firstWorkflowGuide.addStarter")}
             </EditorButton>
             <EditorButton variant="outlined" onClick={onChooseOwn}>
-              Choose my own nodes
+              {t("i18n-next104-node.firstWorkflowGuide.chooseOwn")}
             </EditorButton>
           </FlexRow>
         )}

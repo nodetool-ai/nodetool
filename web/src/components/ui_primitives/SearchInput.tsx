@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, useState, memo, forwardRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -149,7 +150,7 @@ const styles = (theme: Theme, dense: boolean) => css`
 export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>(({
   value,
   onChange,
-  placeholder = "Search",
+  placeholder,
   ariaLabel,
   showClear = true,
   size = "small",
@@ -160,7 +161,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   onClear,
   className,
   fullWidth = false,
-  clearTooltip = "Clear search",
+  clearTooltip,
   tooltipPlacement = "top",
   startAdornment,
   loading = false,
@@ -172,6 +173,9 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   sx
 }, ref) => {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const placeholderText = placeholder ?? t("i18n-next85.uiPrimitives.search");
+  const clearTooltipText = clearTooltip ?? t("i18n-next85.uiPrimitives.clearSearch");
   const dense = useFieldDensity() === "compact";
   const autoFocusEnabled = useAutoFocusEnabled();
   const [localValue, setLocalValue] = useState(value);
@@ -235,7 +239,9 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
     }
   }, [localValue, onSubmit, handleClear, onKeyDown, escapeClears]);
   const clearLabel =
-    typeof clearTooltip === "string" ? clearTooltip : "Clear search";
+    typeof clearTooltipText === "string"
+      ? clearTooltipText
+      : t("i18n-next85.uiPrimitives.clearSearch");
   
   React.useEffect(() => {
     setLocalValue(value);
@@ -256,7 +262,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
         value={localValue}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={placeholderText}
         size={size}
         disabled={disabled}
         autoFocus={autoFocus && autoFocusEnabled}
@@ -264,7 +270,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
         sx={sx}
         inputRef={setInputRef}
         slotProps={{
-          htmlInput: { "aria-label": ariaLabel ?? placeholder, ...inputProps },
+          htmlInput: { "aria-label": ariaLabel ?? placeholderText, ...inputProps },
           input: {
             startAdornment: (
               <InputAdornment position="start">
@@ -280,7 +286,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
             ) : showClear && localValue ? (
               <InputAdornment position="end">
                 <Tooltip 
-                  title={clearTooltip} 
+                  title={clearTooltipText}
                   enterDelay={TOOLTIP_ENTER_DELAY}
                   placement={tooltipPlacement}
                 >

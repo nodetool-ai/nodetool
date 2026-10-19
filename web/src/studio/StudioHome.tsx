@@ -15,6 +15,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import TheatersRoundedIcon from "@mui/icons-material/TheatersRounded";
 import RecordVoiceOverRoundedIcon from "@mui/icons-material/RecordVoiceOverRounded";
@@ -57,12 +58,6 @@ import type {
 } from "./groupLinkedProjects";
 import { creationProjectId } from "../stores/WorkspaceTabsStore";
 
-const KIND_LABEL = {
-  storyboard: "Storyboard",
-  script: "Script",
-  timeline: "Video"
-} satisfies Record<StudioDocumentKind, string>;
-
 const KIND_ICON = {
   storyboard: <TheatersRoundedIcon fontSize="small" />,
   script: <RecordVoiceOverRoundedIcon fontSize="small" />,
@@ -79,7 +74,13 @@ const ProjectCard = ({
   project: StudioProject;
   onOpen: (document: StudioDocument) => void;
 }) => {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const kindLabel: Record<StudioDocumentKind, string> = {
+    storyboard: t("screen_remaining.studio.storyboard"),
+    script: t("screen_remaining.studio.script"),
+    timeline: t("screen_remaining.studio.video")
+  };
   return (
     <FlexColumn
       gap={SPACING.sm}
@@ -97,7 +98,7 @@ const ProjectCard = ({
           {project.name}
         </Text>
         <Text size="smaller" color="secondary">
-          {new Date(project.updatedAt).toLocaleDateString()}
+          {new Date(project.updatedAt).toLocaleDateString(i18n.language)}
         </Text>
       </FlexRow>
       <FlexRow align="center" gap={SPACING.sm} wrap>
@@ -122,7 +123,7 @@ const ProjectCard = ({
             }}
           >
             {KIND_ICON[document.kind]}
-            <Text size="smaller">{KIND_LABEL[document.kind]}</Text>
+            <Text size="smaller">{kindLabel[document.kind]}</Text>
           </FlexRow>
         ))}
       </FlexRow>
@@ -142,13 +143,17 @@ const BlankStart = ({
   busy: boolean;
   disabled: boolean;
   onStart: () => void;
-}) => (
-  <EditorButton variant="text" startIcon={icon} onClick={onStart} disabled={disabled}>
-    {busy ? "Creating…" : label}
-  </EditorButton>
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <EditorButton variant="text" startIcon={icon} onClick={onStart} disabled={disabled}>
+      {busy ? t("screen_remaining.studio.creating") : label}
+    </EditorButton>
+  );
+};
 
 const StudioHome = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
@@ -197,12 +202,12 @@ const StudioHome = () => {
   const startStoryboard = useCallback(() => {
     runCreate("storyboard", null, async () => {
       const created = await createStoryboard.mutateAsync({
-        name: "Untitled storyboard",
+        name: t("screen_remaining.studio.untitledStoryboard"),
         projectId: creationProjectId()
       });
       return `/studio/storyboard/${created.id}`;
     });
-  }, [createStoryboard, runCreate]);
+  }, [createStoryboard, runCreate, t]);
 
   // The Storyboard entry card: a board at stage `idea`, opened straight away.
   // The board page renders the flow from that stage and stamps the curated
@@ -210,33 +215,33 @@ const StudioHome = () => {
   const startStoryboardFlow = useCallback(() => {
     runCreate("storyboard", "storyboard", async () => {
       const created = await createStoryboard.mutateAsync({
-        name: "Untitled storyboard",
+        name: t("screen_remaining.studio.untitledStoryboard"),
         projectId: creationProjectId(),
         document: newStoryboardSetupDocument("")
       });
       return `/studio/storyboard/${created.id}`;
     });
-  }, [createStoryboard, runCreate]);
+  }, [createStoryboard, runCreate, t]);
 
   // The Script entry card: a script at stage `idea`. The script page renders
   // the flow from that stage, same as the board does.
   const startScriptFlow = useCallback(() => {
     runCreate("script", "script", async () => {
       const created = await createScript.mutateAsync({
-        name: "Untitled script",
+        name: t("screen_remaining.studio.untitledScript"),
         projectId: creationProjectId(),
         document: newScriptSetupDocument("")
       });
       return `/studio/script/${created.id}`;
     });
-  }, [createScript, runCreate]);
+  }, [createScript, runCreate, t]);
 
   // The Video card. `timeline.create` takes no document, so the setup lands as
   // one PATCH straight after the create.
   const startVideoFlow = useCallback(() => {
     runCreate("timeline", "video", async () => {
       const created = await createTimeline.mutateAsync({
-        name: "Untitled video",
+        name: t("screen_remaining.studio.untitledVideo"),
         projectId: creationProjectId()
       });
       let withSetup;
@@ -258,7 +263,7 @@ const StudioHome = () => {
       seedTimelineDetail(withSetup);
       return `/studio/timeline/${created.id}`;
     });
-  }, [createTimeline, deleteTimeline, runCreate, seedTimelineDetail]);
+  }, [createTimeline, deleteTimeline, runCreate, seedTimelineDetail, t]);
 
   const handleEntryCard = useCallback(
     (id: string) => {
@@ -275,34 +280,39 @@ const StudioHome = () => {
 
   const entryOptions = useMemo<readonly OptionCardItem[]>(
     () =>
-      creating === null
-        ? STUDIO_ENTRY_CARDS
-        : STUDIO_ENTRY_CARDS.map((card) =>
-            card.id === pendingCard
+      STUDIO_ENTRY_CARDS.map((card) => {
+        const localizedCard = {
+          ...card,
+          title: t(`i18n-next99.studio.entryCards.${card.id}.title`),
+          description: t(`i18n-next99.studio.entryCards.${card.id}.description`)
+        };
+        return creating === null
+          ? localizedCard
+          : card.id === pendingCard
               ? {
-                  ...card,
-                  meta: "Creating…",
+                  ...localizedCard,
+                  meta: t("screen_remaining.studio.creating"),
                   disabled: true,
-                  disabledReason: "Creating your draft…"
+                  disabledReason: t("screen_remaining.studio.creatingDraft")
                 }
               : {
-                  ...card,
+                  ...localizedCard,
                   disabled: true,
-                  disabledReason: "Another start is in progress."
-                }
-          ),
-    [creating, pendingCard]
+                  disabledReason: t("screen_remaining.studio.anotherStartInProgress")
+                };
+      }),
+    [creating, pendingCard, t]
   );
 
   const startScript = useCallback(() => {
     runCreate("script", null, async () => {
       const created = await createScript.mutateAsync({
-        name: "Untitled script",
+        name: t("screen_remaining.studio.untitledScript"),
         projectId: creationProjectId()
       });
       return `/studio/script/${created.id}`;
     });
-  }, [createScript, runCreate]);
+  }, [createScript, runCreate, t]);
 
   const openDocument = useCallback(
     (document: StudioDocument) => navigate(documentRoute(document)),
@@ -318,11 +328,10 @@ const StudioHome = () => {
       >
         <FlexColumn align="center" gap={SPACING.sm} sx={{ pt: SPACING.xl }}>
           <Text size="giant" weight={600}>
-            Make a video
+            {t("i18n-next99.studio.home.title")}
           </Text>
           <Text size="normal" color="secondary">
-            Pick where to start. Each one takes a sentence and returns a
-            document you can keep editing.
+            {t("i18n-next99.studio.home.description")}
           </Text>
         </FlexColumn>
 
@@ -330,15 +339,15 @@ const StudioHome = () => {
           {startError ? (
             <AlertBanner
               severity="error"
-              title="We couldn't start it"
+              title={t("screen_remaining.studio.startErrorTitle")}
               action={
                 <ReportBugButton
-                  label="Report this failure"
+                  label={t("screen_remaining.studio.reportFailure")}
                   variant="outlined"
                   size="small"
                   context={{
                     source: "manual",
-                    summary: "Studio could not create a document",
+                    summary: t("screen_remaining.studio.createError"),
                     errorText: startError
                   }}
                 />
@@ -348,25 +357,25 @@ const StudioHome = () => {
             </AlertBanner>
           ) : null}
           <OptionCardGrid
-            label="What are you making?"
+            label={t("screen_remaining.studio.promptLabel")}
             options={entryOptions}
             onSelect={handleEntryCard}
             minColumnWidth={200}
           />
           <FlexRow align="center" gap={SPACING.sm} wrap>
             <Text size="smaller" color="secondary" sx={{ flex: 1 }}>
-              or start blank:
+              {t("screen_remaining.studio.blankStart")}
             </Text>
             <BlankStart
               icon={<TheatersRoundedIcon />}
-              label="New storyboard"
+              label={t("screen_remaining.studio.newStoryboard")}
               busy={creating === "storyboard"}
               disabled={creating !== null}
               onStart={startStoryboard}
             />
             <BlankStart
               icon={<RecordVoiceOverRoundedIcon />}
-              label="New script"
+              label={t("screen_remaining.studio.newScript")}
               busy={creating === "script"}
               disabled={creating !== null}
               onStart={startScript}
@@ -377,7 +386,7 @@ const StudioHome = () => {
         {projects.length > 0 && (
           <FlexColumn gap={SPACING.sm} sx={{ width: "100%", maxWidth: 880 }}>
             <Text size="small" weight={600} color="secondary">
-              Recent projects
+              {t("screen_remaining.studio.recentProjects")}
             </Text>
             {projects.slice(0, 12).map((project) => (
               <ProjectCard

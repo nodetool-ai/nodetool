@@ -13,7 +13,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
-import { formatUsd } from "@nodetool-ai/model-pricing";
+import { useTranslation } from "react-i18next";
 import {
   SCENE_CLIP_MAX_SHOTS,
   SCENE_CLIP_MIN_SHOTS
@@ -62,8 +62,6 @@ export interface SceneClipDialogProps {
   onClose: () => void;
 }
 
-const seconds = (value: number): string => `${Math.round(value * 10) / 10}s`;
-
 const thumbSx = {
   width: "4.5rem",
   flex: "0 0 auto",
@@ -81,6 +79,86 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
   saved,
   onClose
 }) => {
+  const { t, i18n } = useTranslation();
+  const formatNumber = useCallback(
+    (value: number): string =>
+      new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(value),
+    [i18n.language]
+  );
+  const seconds = useCallback(
+    (value: number): string =>
+      t("screens4_14.storyboard.sceneClip.seconds", { value: formatNumber(value) }),
+    [formatNumber, t]
+  );
+  const formatUsd = (value: number): string =>
+    new Intl.NumberFormat(i18n.language, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 12
+    }).format(value);
+  const translateBlocker = (blocker: string): string => {
+    if (blocker === "A shot in this scene clip was deleted.") {
+      return t("screens4_14.storyboard.sceneClip.blockers.shotDeleted");
+    }
+    if (blocker === "The shots in this scene clip are no longer next to each other.") {
+      return t("screens4_14.storyboard.sceneClip.blockers.notAdjacent");
+    }
+    if (blocker === "The shots in this scene clip are no longer in one scene.") {
+      return t("screens4_14.storyboard.sceneClip.blockers.differentScenes");
+    }
+    if (blocker === "Add a shot to the board first.") {
+      return t("screens4_14.storyboard.sceneClip.blockers.addShot");
+    }
+    if (blocker === "Render a still for at least one shot.") {
+      return t("screens4_14.storyboard.sceneClip.blockers.renderStill");
+    }
+    if (blocker === "No video model chosen.") {
+      return t("screens4_14.storyboard.sceneClip.blockers.noVideoModel");
+    }
+    const countLimit = blocker.match(/^(\d+) images is over the limit of (\d+)\. Remove (\d+)\.$/);
+    if (countLimit) {
+      return t("screens4_14.storyboard.sceneClip.blockers.imageLimit", {
+        imageCount: formatNumber(Number(countLimit[1])),
+        limit: formatNumber(Number(countLimit[2])),
+        remove: formatNumber(Number(countLimit[3]))
+      });
+    }
+    const unavailableDuration = blocker.match(/^(.+) does not offer a (.+) clip\. Pick one of (.+)\.$/);
+    if (unavailableDuration) {
+      const choices = unavailableDuration[3]
+        .split(", ")
+        .map((choice) => {
+          const value = Number(choice.replace(/s$/, ""));
+          return Number.isFinite(value) ? seconds(value) : choice;
+        })
+        .join(", ");
+      const durationValue = Number(unavailableDuration[2].replace(/s$/, ""));
+      return t("screens4_14.storyboard.sceneClip.blockers.durationUnavailable", {
+        model: unavailableDuration[1],
+        duration: Number.isFinite(durationValue)
+          ? seconds(durationValue)
+          : unavailableDuration[2],
+        choices
+      });
+    }
+    const tooLong = blocker.match(/^The take runs (.+)\. One take renders at most (.+)\.$/);
+    if (tooLong) {
+      const durationValue = Number(tooLong[1].replace(/s$/, ""));
+      const limitValue = Number(tooLong[2].replace(/s$/, ""));
+      return t("screens4_14.storyboard.sceneClip.blockers.durationLimit", {
+        duration: Number.isFinite(durationValue) ? seconds(durationValue) : tooLong[1],
+        limit: Number.isFinite(limitValue) ? seconds(limitValue) : tooLong[2]
+      });
+    }
+    const clipRange = blocker.match(/^A scene clip covers (\d+) to (\d+) shots\.$/);
+    if (clipRange) {
+      return t("screens4_14.storyboard.sceneClip.blockers.shotRange", {
+        min: formatNumber(Number(clipRange[1])),
+        max: formatNumber(Number(clipRange[2]))
+      });
+    }
+    return blocker;
+  };
   const [draft, setDraft] = useState<SceneClipDirection>(clip);
   const setSceneClip = useStoryboardStore((state) => state.setSceneClip);
   const removeSceneClip = useStoryboardStore((state) => state.removeSceneClip);
@@ -112,9 +190,12 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         .slice(0, Math.max(0, sceneShots.length - SCENE_CLIP_MIN_SHOTS + 1))
         .map((shot, index) => ({
           value: String(index),
-          label: `Shot ${index + 1}${shot.slug ? ` · ${shot.slug}` : ""}`
+          label: `${t("screens4_14.storyboard.sceneClip.shot", {
+            count: index + 1,
+            number: new Intl.NumberFormat(i18n.language).format(index + 1)
+          })}${shot.slug ? ` · ${shot.slug}` : ""}`
         })),
-    [sceneShots]
+    [sceneShots, i18n.language, t]
   );
   const maxCount = Math.min(SCENE_CLIP_MAX_SHOTS, sceneShots.length - startIndex);
   const countOptions = useMemo(
@@ -123,10 +204,16 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         { length: Math.max(0, maxCount - SCENE_CLIP_MIN_SHOTS + 1) },
         (_, i) => {
           const value = SCENE_CLIP_MIN_SHOTS + i;
-          return { value: String(value), label: `${value} shots` };
+          return {
+            value: String(value),
+            label: t("screens4_14.storyboard.sceneClip.shots", {
+              count: value,
+              number: new Intl.NumberFormat(i18n.language).format(value)
+            })
+          };
         }
       ),
-    [maxCount]
+    [maxCount, i18n.language, t]
   );
 
   const handleStartChange = useCallback(
@@ -175,19 +262,24 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         ? [...declared]
         : [...ONE_TAKE_FALLBACK_DURATIONS];
     return [
-      { value: "", label: `Shot total (${seconds(shotTotal)})` },
+      {
+        value: "",
+        label: t("screens4_14.storyboard.sceneClip.shotTotal", {
+          duration: seconds(shotTotal)
+        })
+      },
       ...values.map((value) => ({ value: String(value), label: seconds(value) }))
     ];
-  }, [catalogModel?.durations, shotTotal]);
+  }, [catalogModel?.durations, shotTotal, seconds, t]);
   const resolutionOptions = useMemo(() => {
     const declared = catalogModel?.resolutions;
     const values =
       declared && declared.length > 0 ? declared : ONE_TAKE_FALLBACK_RESOLUTIONS;
     return [
-      { value: "", label: "Default" },
+      { value: "", label: t("screens4_14.storyboard.sceneClip.default") },
       ...values.map((value) => ({ value, label: value }))
     ];
-  }, [catalogModel?.resolutions]);
+  }, [catalogModel?.resolutions, t]);
 
   const cost = useMemo(
     () =>
@@ -216,13 +308,13 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         type: "error",
         alert: true,
         dismissable: true,
-        content: `Scene clip did not start. ${
+        content: `${t("screens4_14.storyboard.sceneClip.startFailed")} ${
           error instanceof Error ? error.message : String(error)
         }`
       });
     });
     onClose();
-  }, [blockers.length, setSceneClip, boardId, draft, renderSceneClip, onClose]);
+  }, [blockers.length, setSceneClip, boardId, draft, renderSceneClip, onClose, t]);
 
   const handleRemove = useCallback(() => {
     removeSceneClip(boardId, clip.id);
@@ -236,7 +328,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
     <Dialog
       open
       onClose={onClose}
-      title="Render scene clip"
+      title={t("screens4_14.storyboard.sceneClip.dialogTitle")}
       fullWidth
       maxWidth="sm"
       actions={
@@ -248,7 +340,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
               onClick={handleRemove}
               sx={{ mr: "auto" }}
             >
-              Remove scene clip
+              {t("screens4_14.storyboard.sceneClip.remove")}
             </Button>
           )}
           <Button
@@ -257,7 +349,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
             color="inherit"
             onClick={onClose}
           >
-            Cancel
+            {t("screens4_14.storyboard.sceneClip.cancel")}
           </Button>
           <Button
             className="button-confirm"
@@ -266,22 +358,22 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
             disabled={blockers.length > 0}
             autoFocus
           >
-            {`Render scene clip${priced ? ` · ~${formatUsd(cost)}` : ""}`}
+            {t("screens4_14.storyboard.sceneClip.render", {
+              cost: priced ? ` · ~${formatUsd(cost ?? 0)}` : ""
+            })}
           </Button>
         </>
       }
     >
       <FlexColumn gap={SPACING.lg} data-testid="scene-clip-dialog">
         <Caption color="secondary">
-          Renders these shots as one continuous clip. The clip lands on the
-          first shot, and each other shot plays its window of it, so the cut
-          keeps its order.
+          {t("screens4_14.storyboard.sceneClip.description")}
         </Caption>
 
         <FlexRow gap={SPACING.lg} wrap>
           <Box sx={settingSx}>
             <SelectField
-              label="From"
+              label={t("screens4_14.storyboard.sceneClip.from")}
               size="small"
               value={String(startIndex)}
               onChange={handleStartChange}
@@ -290,7 +382,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
           </Box>
           <Box sx={settingSx}>
             <SelectField
-              label="Length"
+              label={t("screens4_14.storyboard.sceneClip.length")}
               size="small"
               value={String(count)}
               onChange={handleCountChange}
@@ -314,7 +406,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
                       locator={{ asset_id: assetId }}
                       preferThumbnail
                       loading="lazy"
-                      alt={shot?.slug ?? "Shot still"}
+                      alt={shot?.slug ?? t("screens4_14.storyboard.sceneClip.shotStillAlt")}
                       aspectRatio="16 / 9"
                       fit="cover"
                     />
@@ -322,7 +414,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
                     <Box sx={{ aspectRatio: "16 / 9" }} />
                   )}
                   <Caption color="secondary" sx={{ px: SPACING.micro }}>
-                    {`${imageIndex >= 0 ? `[Image ${imageIndex + 1}] ` : ""}${seconds(step.start_seconds)}–${seconds(step.end_seconds)}`}
+                    {`${imageIndex >= 0 ? t("screens4_14.storyboard.sceneClip.imageReference", { number: new Intl.NumberFormat(i18n.language).format(imageIndex + 1) }) : ""}${seconds(step.start_seconds)}–${seconds(step.end_seconds)}`}
                   </Caption>
                 </FlexColumn>
               );
@@ -333,15 +425,15 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
         <TextArea
           minRows={3}
           size="small"
-          label="Your prompt"
-          placeholder="One continuous move from the doorway to the window."
-          helperText="Optional. The shots' actions, motion and sound are added after it. Refer to stills as [Image N]."
+          label={t("screens4_14.storyboard.sceneClip.promptLabel")}
+          placeholder={t("screens4_14.storyboard.sceneClip.promptPlaceholder")}
+          helperText={t("screens4_14.storyboard.sceneClip.promptHelp")}
           value={draft.prompt}
           onChange={handlePromptChange}
         />
 
-        <FormSection label="Render settings">
-          <FormField label="Video model" sx={modelFieldSx}>
+        <FormSection label={t("screens4_14.storyboard.sceneClip.renderSettings")}>
+          <FormField label={t("screens4_14.storyboard.sceneClip.videoModel")} sx={modelFieldSx}>
             <VideoModelSelect
               value={model?.id ?? ""}
               provider={model?.provider}
@@ -352,7 +444,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
           <FlexRow gap={SPACING.lg} wrap>
             <Box sx={settingSx}>
               <SelectField
-                label="Duration"
+                label={t("screens4_14.storyboard.sceneClip.duration")}
                 size="small"
                 value={
                   draft.duration_seconds ? String(draft.duration_seconds) : ""
@@ -363,7 +455,7 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
             </Box>
             <Box sx={settingSx}>
               <SelectField
-                label="Resolution"
+                label={t("screens4_14.storyboard.sceneClip.resolution")}
                 size="small"
                 value={draft.resolution ?? ""}
                 onChange={handleResolutionChange}
@@ -372,19 +464,27 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
             </Box>
           </FlexRow>
           <Text size="small" data-testid="scene-clip-summary">
-            {`${seconds(duration_seconds)} · ${settings.aspect_ratio} · ${resolution} · ${references.length} of ${ONE_TAKE_MAX_IMAGES} images`}
+            {t("screens4_14.storyboard.sceneClip.summary", {
+              duration: seconds(duration_seconds),
+              aspectRatio: settings.aspect_ratio,
+              resolution,
+              imageCount: new Intl.NumberFormat(i18n.language).format(references.length),
+              maxImages: new Intl.NumberFormat(i18n.language).format(ONE_TAKE_MAX_IMAGES)
+            })}
           </Text>
           <Text size="small">
             {priced
-              ? `Estimated cost: about ${formatUsd(cost)}`
-              : "Select a priced model to see the estimate."}
+              ? t("screens4_14.storyboard.renderCost.estimatedFull", {
+                  cost: formatUsd(cost ?? 0)
+                })
+              : t("screens4_14.storyboard.renderCost.selectPricedModel")}
           </Text>
         </FormSection>
 
         {blockers.length > 0 && (
           <AlertBanner severity="error">
             {blockers.map((blocker) => (
-              <div key={blocker}>{blocker}</div>
+              <div key={blocker}>{translateBlocker(blocker)}</div>
             ))}
           </AlertBanner>
         )}

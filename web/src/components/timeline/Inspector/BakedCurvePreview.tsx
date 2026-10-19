@@ -13,9 +13,15 @@
  * with no provider.
  */
 import React, { memo } from "react";
-import { css } from "@emotion/react";
+import { useTranslation } from "react-i18next";
 
-import { BORDER_RADIUS, FONT_SIZE_MONO, SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  BORDER_RADIUS,
+  FONT_SIZE_MONO,
+  FlexColumn,
+  FlexRow,
+  SPACING
+} from "../../ui_primitives";
 
 /** One point of the curve: where it sits, and what it is worth there. */
 export interface BakedCurvePoint {
@@ -36,9 +42,7 @@ const PREVIEW_HEIGHT = 48;
  * middle rather than divided by a zero span — "no variation" is a shape worth
  * seeing, not an error.
  */
-export function bakedCurvePolyline(
-  points: readonly BakedCurvePoint[]
-): string {
+export function bakedCurvePolyline(points: readonly BakedCurvePoint[]): string {
   if (points.length === 0) return "";
   if (points.length === 1) {
     return `0,${VIEW_HEIGHT / 2} ${VIEW_WIDTH},${VIEW_HEIGHT / 2}`;
@@ -71,30 +75,6 @@ export function bakedCurvePolyline(
     .join(" ");
 }
 
-const wrapStyles = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: getSpacingPx(SPACING.micro),
-  padding: getSpacingPx(SPACING.xs),
-  borderRadius: BORDER_RADIUS.md,
-  border: "1px solid var(--palette-divider)",
-  backgroundColor: "var(--palette-background-default)"
-});
-
-const svgStyles = css({
-  display: "block",
-  width: "100%",
-  height: PREVIEW_HEIGHT
-});
-
-const rangeRowStyles = css({
-  display: "flex",
-  justifyContent: "space-between",
-  fontFamily: "var(--fontFamily2)",
-  fontSize: FONT_SIZE_MONO.caption,
-  color: "var(--palette-text-secondary)"
-});
-
 export interface BakedCurvePreviewProps {
   points: readonly BakedCurvePoint[];
   /** Accessible name, e.g. "scale from audio". */
@@ -103,6 +83,7 @@ export interface BakedCurvePreviewProps {
 
 export const BakedCurvePreview: React.FC<BakedCurvePreviewProps> = memo(
   ({ points, label }) => {
+    const { t } = useTranslation();
     const polyline = bakedCurvePolyline(points);
     if (polyline === "") return null;
 
@@ -113,13 +94,27 @@ export const BakedCurvePreview: React.FC<BakedCurvePreviewProps> = memo(
       Number.isInteger(value) ? String(value) : value.toFixed(2);
 
     return (
-      <div css={wrapStyles}>
+      <FlexColumn
+        gap={SPACING.micro}
+        sx={{
+          p: SPACING.xs,
+          borderRadius: BORDER_RADIUS.md,
+          border: "1px solid var(--palette-divider)",
+          backgroundColor: "var(--palette-background-default)"
+        }}
+      >
         <svg
-          css={svgStyles}
+          style={{ display: "block", width: "100%", height: PREVIEW_HEIGHT }}
           viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
           preserveAspectRatio="none"
           role="img"
-          aria-label={`${label} curve, ${points.length} keyframes`}
+          aria-label={t(
+            "pass3_22.timeline.inspector.bakedCurvePreview.accessibleLabel",
+            {
+              label,
+              count: points.length
+            }
+          )}
         >
           <polyline
             points={polyline}
@@ -129,11 +124,18 @@ export const BakedCurvePreview: React.FC<BakedCurvePreviewProps> = memo(
             vectorEffect="non-scaling-stroke"
           />
         </svg>
-        <div css={rangeRowStyles}>
+        <FlexRow
+          justify="space-between"
+          sx={{
+            fontFamily: "var(--fontFamily2)",
+            fontSize: FONT_SIZE_MONO.caption,
+            color: "var(--palette-text-secondary)"
+          }}
+        >
           <span>{format(low)}</span>
           <span>{format(high)}</span>
-        </div>
-      </div>
+        </FlexRow>
+      </FlexColumn>
     );
   }
 );

@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useState, type DragEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useTheme } from "@mui/material/styles";
 
@@ -31,19 +32,6 @@ import ProjectLifecycleActions from "./ProjectLifecycleActions";
 const MEDIA_HEIGHT = 176;
 const EMPTY_MEDIA_HEIGHT_XS = 72;
 
-/** What each kind of project document is called in the card's tooltip. */
-const DOCUMENT_NOUN: Record<ProjectDocument["type"], [string, string]> = {
-  storyboard: ["board", "boards"],
-  script: ["script", "scripts"],
-  timeline: ["cut", "cuts"],
-  sketch: ["sketch", "sketches"],
-  application: ["app", "apps"],
-  game: ["game", "games"],
-  jsscript: ["JS script", "JS scripts"],
-  workflow: ["workflow", "workflows"],
-  text: ["text file", "text files"]
-};
-
 interface DocumentKindCount {
   type: ProjectDocument["type"];
   count: number;
@@ -63,12 +51,14 @@ const countByKind = (
   return [...counts].map(([type, count]) => ({ type, count }));
 };
 
-const describeKinds = (kinds: readonly DocumentKindCount[]): string =>
+const describeKinds = (
+  kinds: readonly DocumentKindCount[],
+  t: ReturnType<typeof useTranslation>["t"]
+): string =>
   kinds
-    .map(({ type, count }) => {
-      const [one, many] = DOCUMENT_NOUN[type];
-      return `${count} ${count === 1 ? one : many}`;
-    })
+    .map(({ type, count }) =>
+      t(`pass3_33.projects.documentKinds.${type}`, { count })
+    )
     .join(" · ");
 
 interface ProjectCardProps {
@@ -84,6 +74,7 @@ interface ProjectCardProps {
  */
 const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [dropActive, setDropActive] = useState(false);
   const { project, documents, spend } = detail;
   const stills = documents.flatMap((doc) => doc.thumbnails).slice(0, 3);
@@ -102,6 +93,7 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
 
   return (
     <Card
+      component={FlexColumn}
       variant="outlined"
       padding="none"
       clickable
@@ -115,8 +107,6 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
       onDrop={handleDrop}
       sx={{
         overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
         ...selectableTileStyles(theme, { selected: dropActive })
       }}
     >
@@ -177,7 +167,9 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
               </FlexRow>
             )}
             <Caption color="muted">
-              {documents.length === 0 ? "Nothing made yet" : "No stills yet"}
+              {documents.length === 0
+                ? t("pass3_33.projects.card.empty.noDocuments")
+                : t("pass3_33.projects.card.empty.noStills")}
             </Caption>
           </FlexColumn>
         )}
@@ -200,7 +192,8 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
           >
             {PROJECT_GLYPH}
           </Box>
-          <TruncatedText sx={{ flex: 1, minWidth: 0, ...TYPOGRAPHY.sans.label }}
+          <TruncatedText
+            sx={{ flex: 1, minWidth: 0, ...TYPOGRAPHY.sans.label }}
           >
             {project.name}
           </TruncatedText>
@@ -220,13 +213,17 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
         >
           {statusLine}
         </TruncatedText>
-        <FlexRow align="center" gap={SPACING.md} sx={{ mt: "auto", pt: SPACING.sm }}>
+        <FlexRow
+          align="center"
+          gap={SPACING.md}
+          sx={{ mt: "auto", pt: SPACING.sm }}
+        >
           {kinds.length > 0 && (
-            <Tooltip title={describeKinds(kinds)}>
+            <Tooltip title={describeKinds(kinds, t)}>
               <FlexRow
                 align="center"
                 gap={SPACING.md}
-                aria-label={describeKinds(kinds)}
+                aria-label={describeKinds(kinds, t)}
                 sx={{ minWidth: 0, overflow: "hidden" }}
               >
                 {kinds.map(({ type, count }) => (
@@ -240,7 +237,10 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
                   >
                     <Box
                       component="span"
-                      sx={{ color: TYPE_COLOR[type], ...TYPOGRAPHY.sans.caption }}
+                      sx={{
+                        color: TYPE_COLOR[type],
+                        ...TYPOGRAPHY.sans.caption
+                      }}
                     >
                       {TYPE_GLYPH[type]}
                     </Box>
@@ -255,7 +255,7 @@ const ProjectCard = ({ detail, onOpen, onDropDocument }: ProjectCardProps) => {
             </Tooltip>
           )}
           <Box sx={{ flex: 1 }} />
-          <Tooltip title="Spent at provider rates">
+          <Tooltip title={t("pass3_33.projects.card.providerSpendTooltip")}>
             <Box
               component="span"
               sx={{

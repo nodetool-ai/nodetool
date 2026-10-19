@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type ReactNode, type Ref } from "react";
+import { useTranslation } from "react-i18next";
 import type { SerializedStyles } from "@emotion/react";
 import {
   MOTION,
@@ -47,12 +48,63 @@ export const DashboardSectionHeader = memo(function DashboardSectionHeader({
   count,
   children
 }: DashboardSectionHeaderProps) {
+  const { t } = useTranslation();
+  const sectionTitles: Record<string, string> = {
+    "Start from a template": t("pass3_19.portal.dashboardChrome.titles.template", {
+      defaultValue: "Start from a template"
+    }),
+    "Start from a timeline": t("pass3_19.portal.dashboardChrome.titles.timeline", {
+      defaultValue: "Start from a timeline"
+    }),
+    "Start from a storyboard": t("pass3_19.portal.dashboardChrome.titles.storyboard", {
+      defaultValue: "Start from a storyboard"
+    }),
+    "Start from a game": t("pass3_19.portal.dashboardChrome.titles.game", {
+      defaultValue: "Start from a game"
+    }),
+    "Start from an app": t("pass3_19.portal.dashboardChrome.titles.app", {
+      defaultValue: "Start from an app"
+    }),
+    Recipes: t("pass3_19.portal.dashboardChrome.titles.recipes", {
+      defaultValue: "Recipes"
+    })
+  };
+  const countMatch = /^(\d+) (apps?|timelines?|boards?|examples?)$/.exec(count ?? "");
+  const ofCountMatch = /^(\d+) of (\d+)$/.exec(count ?? "");
+  const countKeys: Record<
+    string,
+    | "pass3_19.portal.dashboardChrome.counts.app"
+    | "pass3_19.portal.dashboardChrome.counts.timeline"
+    | "pass3_19.portal.dashboardChrome.counts.board"
+    | "pass3_19.portal.dashboardChrome.counts.example"
+  > = {
+    app: "pass3_19.portal.dashboardChrome.counts.app",
+    apps: "pass3_19.portal.dashboardChrome.counts.app",
+    timeline: "pass3_19.portal.dashboardChrome.counts.timeline",
+    timelines: "pass3_19.portal.dashboardChrome.counts.timeline",
+    board: "pass3_19.portal.dashboardChrome.counts.board",
+    boards: "pass3_19.portal.dashboardChrome.counts.board",
+    example: "pass3_19.portal.dashboardChrome.counts.example",
+    examples: "pass3_19.portal.dashboardChrome.counts.example"
+  };
+  const translatedCount = ofCountMatch
+    ? t("pass3_19.portal.dashboardChrome.counts.of", {
+        visibleCount: Number(ofCountMatch[1]),
+        totalCount: Number(ofCountMatch[2]),
+        defaultValue: count ?? ""
+      })
+    : countMatch
+    ? t(countKeys[countMatch[2]], {
+        count: Number(countMatch[1]),
+        defaultValue: count ?? ""
+      })
+    : count;
   return (
     <SectionHeader
-      title={title}
+      title={sectionTitles[title] ?? title}
       titleComponent="h2"
       size="large"
-      count={count}
+      count={translatedCount}
       action={
         children ? (
           <FlexRow align="center" gap={SPACING.xs}>
@@ -99,14 +151,26 @@ export const DashboardSearchBox = memo(function DashboardSearchBox({
   ref
 }: DashboardSearchBoxProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const placeholders: Record<string, string> = {
+    "Search templates by name, tag": t(
+      "pass3_19.portal.dashboardChrome.search.templatesPlaceholder",
+      { defaultValue: "Search templates by name, tag" }
+    )
+  };
+  const labels: Record<string, string> = {
+    "Search templates": t("pass3_19.portal.dashboardChrome.search.templatesLabel", {
+      defaultValue: "Search templates"
+    })
+  };
   return (
     <div css={searchStyles(theme)}>
       <SearchInput
         ref={ref}
         value={value}
         onChange={onChange}
-        placeholder={placeholder}
-        ariaLabel={ariaLabel}
+        placeholder={placeholders[placeholder] ?? placeholder}
+        ariaLabel={labels[ariaLabel] ?? ariaLabel}
         fullWidth
         endHint={kbd ? <span className="kbd">{kbd}</span> : undefined}
       />
@@ -143,9 +207,16 @@ export const SectionLink = memo(function SectionLink({
   onClick
 }: SectionLinkProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const translatedChildren =
+    children === "Browse all"
+      ? t("pass3_19.portal.dashboardChrome.browseAll", {
+          defaultValue: "Browse all"
+        })
+      : children;
   return (
     <button type="button" css={linkStyles(theme)} onClick={onClick}>
-      {children}
+      {translatedChildren}
       <svg
         width="13"
         height="13"

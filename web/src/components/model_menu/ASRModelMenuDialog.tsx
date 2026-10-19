@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ASRModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
@@ -28,6 +29,7 @@ function ASRModelMenuDialog({
   recommendedModels: recommendedModelsFromProps,
   modelPacks
 }: ASRModelMenuDialogProps) {
+  const { t } = useTranslation();
   const modelData = useASRModelsByProvider();
   // Local providers such as whisper.cpp list only the files on disk. Without
   // the recommended list a caller that passes none offers nothing to download.
@@ -50,8 +52,8 @@ function ASRModelMenuDialog({
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
-      title="Select ASR model"
-      searchPlaceholder="Search speech-to-text models"
+      title={t("screen_modelMenu.selectASRModel")}
+      searchPlaceholder={t("screen_modelMenu.searchASRModels")}
       storeHook={useASRModelMenuStore}
       modelType="asr_model"
       localCapabilities={LOCAL_CAPABILITIES}

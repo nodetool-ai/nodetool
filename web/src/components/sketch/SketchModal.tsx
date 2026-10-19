@@ -8,6 +8,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
@@ -115,13 +116,14 @@ interface SketchModalProps {
 
 const SketchModal: React.FC<SketchModalProps> = ({
   open,
-  title = "Image editor",
+  title,
   initialDocument,
   onClose,
   onDocumentChange,
   onExportImage,
   onExportMask
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const modalStyles = useMemo(() => styles(theme), [theme]);
   const editorRef = useRef<SketchEditorHandle>(null);
@@ -129,7 +131,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
     (close: () => void) => [
       <MenuItemPrimitive
         key="export-psd"
-        label="Export PSD"
+        label={t("i18n-next4.sketch.exportPsd")}
         icon={<LayersOutlinedIcon fontSize="small" />}
         onClick={() => {
           close();
@@ -139,7 +141,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
       />,
       <MenuItemPrimitive
         key="import-psd"
-        label="Import PSD…"
+        label={t("i18n-next4.sketch.importPsd")}
         icon={<FileUploadOutlinedIcon fontSize="small" />}
         onClick={() => {
           close();
@@ -148,7 +150,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
         data-testid="sketch-import-psd"
       />
     ],
-    []
+    [t]
   );
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
@@ -176,14 +178,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
   const headerPenPressureOn = penPressure.pressureSensitivity !== false;
 
   const symmetryLabels = {
-    off: "Off",
-    horizontal: "Horizontal",
-    vertical: "Vertical",
-    dual: "Dual axis",
-    radial: `Radial (${symmetryRays})`,
-    mandala: `Mandala (${symmetryRays})`
+    off: t("i18n-next4.sketch.symmetry.off"),
+    horizontal: t("i18n-next4.sketch.symmetry.horizontal"),
+    vertical: t("i18n-next4.sketch.symmetry.vertical"),
+    dual: t("i18n-next4.sketch.symmetry.dualAxis"),
+    radial: t("i18n-next4.sketch.symmetry.radial", { count: symmetryRays }),
+    mandala: t("i18n-next4.sketch.symmetry.mandala", { count: symmetryRays })
   } satisfies Record<SymmetryMode, string>;
-  const symmetryLabel = symmetryLabels[symmetryMode] || "Off";
+  const symmetryLabel = symmetryLabels[symmetryMode] || t("i18n-next4.sketch.symmetry.off");
   const symmetryActive = symmetryMode !== "off";
 
   useEffect(() => {
@@ -252,7 +254,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
     >
       <Box className="sketch-modal-header">
         <Text sx={{ fontWeight: 500, mr: "auto" }}>
-          {title}
+          {title ?? t("i18n-next4.sketch.imageEditor")}
         </Text>
 
         {isPressureSketchTool(activeTool) ? (
@@ -268,8 +270,8 @@ const SketchModal: React.FC<SketchModalProps> = ({
             <Tooltip
               title={
                 headerPenPressureOn
-                  ? "Turn off pen pressure"
-                  : "Turn on pen pressure"
+                  ? t("i18n-next4.sketch.turnOffPenPressure")
+                  : t("i18n-next4.sketch.turnOnPenPressure")
               }
               enterDelay={SKETCH_TOOLTIP_DELAY_MS}
               enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
@@ -280,7 +282,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   setPenPressure({ pressureSensitivity: !headerPenPressureOn })
                 }
                 color={headerPenPressureOn ? "primary" : "default"}
-                aria-label="Toggle pen pressure"
+                aria-label={t("i18n-next4.sketch.togglePenPressure")}
                 aria-expanded={headerPenPressureOn}
                 aria-controls="sketch-modal-pen-pressure-panel"
                 sx={{
@@ -318,26 +320,26 @@ const SketchModal: React.FC<SketchModalProps> = ({
         ) : null}
 
         <FlexRow align="center" sx={{ gap: getSpacingPx(SPACING.micro) }}>
-          <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title={t("i18n-next4.sketch.undoWithShortcut", { shortcut: displayCombo("undo") })} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
-              <IconButton size="small" aria-label="Undo" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
+              <IconButton size="small" aria-label={t("i18n-next4.sketch.undo")} onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
                 <UndoIcon sx={{ fontSize: ICON_SIZE.md }} />
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title={`Redo (${displayCombo("redo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title={t("i18n-next4.sketch.redoWithShortcut", { shortcut: displayCombo("redo") })} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
-              <IconButton size="small" aria-label="Redo" onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
+              <IconButton size="small" aria-label={t("i18n-next4.sketch.redo")} onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
                 <RedoIcon sx={{ fontSize: ICON_SIZE.md }} />
               </IconButton>
             </span>
           </Tooltip>
 
-          <Tooltip title="Keyboard shortcuts" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title={t("i18n-next4.sketch.keyboardShortcuts")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
               onClick={() => setShortcutsPaneOpen((open) => !open)}
-              aria-label={shortcutsPaneOpen ? "Hide keyboard shortcuts" : "Show keyboard shortcuts"}
+              aria-label={shortcutsPaneOpen ? t("i18n-next4.sketch.hideKeyboardShortcuts") : t("i18n-next4.sketch.showKeyboardShortcuts")}
               aria-expanded={shortcutsPaneOpen}
               color={shortcutsPaneOpen ? "primary" : "default"}
             >
@@ -347,10 +349,10 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
           <Divider orientation="vertical" flexItem sx={{ mx: getSpacingPx(SPACING.xs) }} />
 
-          <Tooltip title={`Symmetry: ${symmetryLabel}`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title={t("i18n-next4.sketch.symmetry.tooltip", { mode: symmetryLabel })} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
               size="small"
-              aria-label="Symmetry menu"
+              aria-label={t("i18n-next4.sketch.symmetry.menu")}
               aria-haspopup="true"
               aria-expanded={Boolean(symmetryAnchorEl)}
               onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
@@ -377,7 +379,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             {(symmetryMode === "radial" || symmetryMode === "mandala") && (
               <Box sx={{ px: SPACING.lg, py: SPACING.md }}>
                 <Caption color="secondary">
-                  Rays: {symmetryRays}
+                  {t("i18n-next4.sketch.symmetry.rays", { count: symmetryRays })}
                 </Caption>
                 <Slider
                   value={symmetryRays}
@@ -398,36 +400,36 @@ const SketchModal: React.FC<SketchModalProps> = ({
           {confirmDiscard ? (
             <>
               <Caption sx={{ color: "warning.main", whiteSpace: "nowrap" }}>
-                Discard changes?
+                {t("i18n-next4.sketch.discardChangesQuestion")}
               </Caption>
               <DeleteButton
                 iconVariant="outline"
-                tooltip="Discard changes"
-                ariaLabel="Confirm discard"
+                tooltip={t("i18n-next4.sketch.discardChanges")}
+                ariaLabel={t("i18n-next4.sketch.confirmDiscard")}
                 onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}
                 sx={{ color: "error.main", "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.sm } }}
               />
-              <IconButton size="small" aria-label="Cancel discard" autoFocus onClick={() => setConfirmDiscard(false)}>
+              <IconButton size="small" aria-label={t("i18n-next4.sketch.cancelDiscard")} autoFocus onClick={() => setConfirmDiscard(false)}>
                 <CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />
               </IconButton>
             </>
           ) : (
-            <Tooltip title="Discard all changes and close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-              <IconButton size="small" aria-label="Discard changes" onClick={() => setConfirmDiscard(true)} sx={{ color: "error.light" }}>
+            <Tooltip title={t("i18n-next4.sketch.discardAllAndClose")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+              <IconButton size="small" aria-label={t("i18n-next4.sketch.discardChanges")} onClick={() => setConfirmDiscard(true)} sx={{ color: "error.light" }}>
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           )}
 
-          <Tooltip title="Export image" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" aria-label="Export image" onClick={() => editorRef.current?.exportPng()}>
+          <Tooltip title={t("i18n-next4.sketch.exportImage")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <IconButton size="small" aria-label={t("i18n-next4.sketch.exportImage")} onClick={() => editorRef.current?.exportPng()}>
               <SaveAltIcon sx={{ fontSize: ICON_SIZE.md }} />
             </IconButton>
           </Tooltip>
 
           {!confirmDiscard && (
-            <Tooltip title="Save & close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-              <IconButton size="small" aria-label="Save and close" onClick={handleRequestClose} sx={{ color: "success.light" }}>
+            <Tooltip title={t("i18n-next4.sketch.saveAndClose")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+              <IconButton size="small" aria-label={t("i18n-next4.sketch.saveAndClose")} onClick={handleRequestClose} sx={{ color: "success.light" }}>
                 <CheckIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -498,13 +500,13 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 }}
               >
                 <Text id="sketch-shortcuts-heading" sx={{ fontWeight: 600 }}>
-                  Keyboard shortcuts
+                  {t("i18n-next4.sketch.keyboardShortcuts")}
                 </Text>
-                <Tooltip title="Close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+                <Tooltip title={t("i18n-next4.sketch.close")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                   <IconButton
                     size="small"
                     onClick={() => setShortcutsPaneOpen(false)}
-                    aria-label="Close keyboard shortcuts"
+                    aria-label={t("i18n-next4.sketch.closeKeyboardShortcuts")}
                   >
                     <CloseIcon sx={{ fontSize: ICON_SIZE.md }} />
                   </IconButton>
@@ -518,10 +520,10 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 }}
               >
                 <TabGroup
-                  aria-label="Image editor shortcuts"
+                  aria-label={t("i18n-next4.sketch.imageEditorShortcuts")}
                   tabs={[
-                    { value: "shortcuts", label: "Shortcuts" },
-                    { value: "keyboard", label: "Keyboard" }
+                    { value: "shortcuts", label: t("i18n-next4.sketch.shortcuts") },
+                    { value: "keyboard", label: t("i18n-next4.sketch.keyboard") }
                   ]}
                   value={shortcutsSubTab}
                   onChange={(v) =>
@@ -560,7 +562,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   >
                     <ShortcutsSearchableList
                       shortcuts={SKETCH_KEYBOARD_SHORTCUTS}
-                      searchPlaceholder="Search shortcuts"
+                      searchPlaceholder={t("i18n-next4.sketch.searchShortcuts")}
                       rootSx={{ flex: 1, minHeight: 0 }}
                       scrollSx={{ flex: 1, minHeight: 0 }}
                     />

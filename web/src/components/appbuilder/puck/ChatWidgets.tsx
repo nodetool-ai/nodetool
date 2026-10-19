@@ -11,6 +11,7 @@
  * every run, so a reply that stayed there alone would vanish on send.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   composeUserMessage,
   messagesFrom,
@@ -47,13 +48,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const str = (value: unknown): string =>
   isString(value) ? value : value == null ? "" : String(value);
 
-const ROLE_LABELS: Record<string, string> = {
-  user: "You",
-  assistant: "Assistant",
-  system: "System",
-  tool: "Tool"
-};
-
 const MessageParts: React.FC<{ content: unknown }> = ({ content }) => {
   if (isString(content)) return <MarkdownBlock text={content} />;
   const parts = Array.isArray(content) ? content : [content];
@@ -80,6 +74,7 @@ const MessageParts: React.FC<{ content: unknown }> = ({ content }) => {
 // identity across those renders, so memoizing here leaves only the reply in
 // flight re-rendering.
 const Bubble: React.FC<{ message: ChatMessage }> = React.memo(({ message }) => {
+  const { t } = useTranslation();
   const isUser = message.role === "user";
   return (
     <FlexRow
@@ -99,7 +94,7 @@ const Bubble: React.FC<{ message: ChatMessage }> = React.memo(({ message }) => {
         }}
       >
         <Caption color="secondary">
-          {ROLE_LABELS[message.role] ?? message.role}
+          {message.role === "user" ? t("i18n-next53.appBuilder.chat.roles.user") : message.role === "assistant" ? t("i18n-next53.appBuilder.chat.roles.assistant") : message.role === "system" ? t("i18n-next53.appBuilder.chat.roles.system") : message.role === "tool" ? t("i18n-next53.appBuilder.chat.roles.tool") : message.role}
         </Caption>
         <MessageParts content={message.content} />
       </FlexColumn>
@@ -127,6 +122,7 @@ export const ChatThreadWidget: React.FC<ChatThreadWidgetProps> = ({
   maxHeight,
   placeholder
 }) => {
+  const { t } = useTranslation();
   const { write, designMode } = useAppRuntimeContext();
   const historyRef = useBindingRef(binding, "read");
   const historyValue = useBindingValue(historyRef);
@@ -196,7 +192,7 @@ export const ChatThreadWidget: React.FC<ChatThreadWidgetProps> = ({
         ref={scrollRef}
         thin
         maxHeight={maxHeight && maxHeight > 0 ? maxHeight : 360}
-        aria-label={label || "Conversation"}
+        aria-label={label || t("i18n-next53.appBuilder.chat.conversation")}
         sx={{
           width: "100%",
           minHeight: 96,
@@ -210,8 +206,8 @@ export const ChatThreadWidget: React.FC<ChatThreadWidgetProps> = ({
           <Caption color="secondary">
             {placeholder ??
               (designMode
-                ? "Messages appear here once the app runs."
-                : "No messages yet")}
+                ? t("i18n-next53.appBuilder.chat.messagesAppearOnRun")
+                : t("i18n-next53.appBuilder.chat.noMessages"))}
           </Caption>
         ) : (
           <FlexColumn gap={SPACING.md} fullWidth>
@@ -265,6 +261,7 @@ export const ChatComposerWidget: React.FC<ChatComposerWidgetProps> = ({
   events,
   disabled
 }) => {
+  const { t } = useTranslation();
   const { write } = useAppRuntimeContext();
   const { setValue, emit, designMode, runnerState } = useWidgetRuntime({
     id,
@@ -378,14 +375,14 @@ export const ChatComposerWidget: React.FC<ChatComposerWidgetProps> = ({
       <FlexRow gap={SPACING.sm} align="flex-end" fullWidth>
         <TextInput
           value={draft}
-          placeholder={placeholder ?? "Write a message…"}
+          placeholder={placeholder ?? t("i18n-next53.appBuilder.chat.writeMessage")}
           multiline
           minRows={2}
           maxRows={8}
           size="small"
           fullWidth
           disabled={disabled}
-          inputProps={{ "aria-label": label || "Message" }}
+          inputProps={{ "aria-label": label || t("i18n-next53.appBuilder.chat.message") }}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setDraft(e.target.value)
           }
@@ -414,10 +411,10 @@ export const ChatComposerWidget: React.FC<ChatComposerWidgetProps> = ({
               variant="outlined"
               size="small"
               disabled={disabled}
-              aria-label="Attach image"
+              aria-label={t("i18n-next53.appBuilder.chat.attachImage")}
               onClick={() => fileInputRef.current?.click()}
             >
-              Attach
+              {t("i18n-next53.appBuilder.chat.attach")}
             </EditorButton>
           </>
         ) : null}
@@ -427,7 +424,7 @@ export const ChatComposerWidget: React.FC<ChatComposerWidgetProps> = ({
           disabled={disabled || !canSend}
           onClick={send}
         >
-          {isRunning ? "Sending…" : sendLabel || "Send"}
+          {isRunning ? t("i18n-next53.appBuilder.chat.sending") : sendLabel || t("i18n-next53.appBuilder.chat.send")}
         </EditorButton>
       </FlexRow>
     </FlexColumn>

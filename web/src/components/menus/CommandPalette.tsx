@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Command, CommandInput } from "cmdk";
 
 import { useCommandMenuStore } from "../../stores/CommandMenuStore";
@@ -29,6 +30,7 @@ interface CommandPaletteProps {
  * then the commands that work everywhere.
  */
 const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
+  const { t } = useTranslation();
   const open = useCommandMenuStore((state) => state.open);
   const setOpen = useCommandMenuStore((state) => state.setOpen);
   const input = useRef<HTMLInputElement>(null);
@@ -49,16 +51,16 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
       onClose={() => setOpen(false)}
       className="command-menu-dialog"
       css={styles}
-      aria-label="Command menu"
+      aria-label={t("screens4_2.commandPalette.accessibility.dialog")}
     >
-      <Command label="Command menu" className="command-menu">
+      <Command label={t("screens4_2.commandPalette.accessibility.commandList")} className="command-menu">
         <CommandInput
           ref={input}
-          placeholder="Type a command or search"
-          aria-label="Command menu search"
+          placeholder={t("screens4_2.commandPalette.searchPlaceholder")}
+          aria-label={t("screens4_2.commandPalette.accessibility.search")}
         />
         <Command.List>
-          <Command.Empty>No results found.</Command.Empty>
+          <Command.Empty>{t("screens4_2.commandPalette.emptyState.noResults")}</Command.Empty>
           <SwitchTabCommands />
           <ContextCommandGroups />
           {children}

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 // Full-page settings (formerly a Dialog).
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useMediaQuery
 } from "@mui/material";
@@ -70,12 +71,12 @@ import {
   THEME_CONTRAST_LABELS,
   isThemeContrast
 } from "../themes/themeContrasts";
+import LanguageSetting from "../settings/LanguageSetting";
 import StorageHistorySettings from "../settings/StorageHistorySettings";
 import {
   SETTINGS_TAB_ITEMS,
   matchesSearch,
   otherMatchingTabs,
-  settingsTabLabel,
   tabHasMatches
 } from "./settingsSearch";
 
@@ -91,58 +92,16 @@ const sameIds = (
     ? prev === next
     : prev.size === next.length && next.every((id) => prev.has(id));
 
-const PRIVACY_SIDEBAR_SECTIONS = [
-  {
-    category: "Privacy",
-    items: [
-      { id: "product-analytics", label: "Product analytics" },
-      { id: "what-is-collected", label: "What is collected" },
-      { id: "diagnostics", label: "Diagnostics" },
-      { id: "recent-events", label: "Recent events" }
-    ]
-  }
-];
-
 const settingsDocsTopic = (section: SettingsSection): DocsTopic =>
   section === "providers" ? "providers" : "configuration";
 
-const settingsDocsLabel = (section: SettingsSection): string =>
-  section === "providers" ? "Models & providers" : "Configuration";
-
-const UPDATE_CHANNEL_OPTIONS = [
-  { value: "latest", label: "Stable" },
-  { value: "nightly", label: "Nightly" }
-] as const;
-
-const CLOSE_BEHAVIOR_OPTIONS = [
-  { value: "ask", label: "Ask every time" },
-  { value: "quit", label: "Quit application" },
-  { value: "background", label: "Keep running in background" }
-] as const;
-
-const PAN_CONTROLS_OPTIONS = [
-  { value: "LMB", label: "Pan canvas" },
-  { value: "RMB", label: "Select nodes (box)" }
-] as const;
-
-const SELECTION_MODE_OPTIONS = [
-  { value: "full", label: "Full" },
-  { value: "partial", label: "Partial" }
-] as const;
-
-const AUTOSAVE_INTERVAL_OPTIONS = [
-  { value: 1, label: "1 minute" },
-  { value: 5, label: "5 minutes" },
-  { value: 10, label: "10 minutes" },
-  { value: 15, label: "15 minutes" },
-  { value: 30, label: "30 minutes" },
-  { value: 60, label: "60 minutes" }
-] as const;
-
-const THEME_MODE_OPTIONS = [
-  { value: "dark", label: "Dark" },
-  { value: "light", label: "Light" }
-] as const;
+const SETTINGS_TAB_KEYS = {
+  general: "screens4_6.settings.tabs.general",
+  providers: "screens4_6.settings.tabs.providers",
+  integrations: "screens4_6.settings.tabs.integrations",
+  privacy: "screens4_6.settings.tabs.privacy",
+  about: "screens4_6.settings.tabs.about"
+} as const;
 
 const TEXT_SIZE_OPTIONS = TEXT_SIZES.map((size) => ({
   value: size,
@@ -153,11 +112,6 @@ const THEME_CONTRAST_OPTIONS = THEME_CONTRASTS.map((contrast) => ({
   value: contrast,
   label: THEME_CONTRAST_LABELS[contrast]
 }));
-
-const TIME_FORMAT_OPTIONS = [
-  { value: "12h", label: "12h" },
-  { value: "24h", label: "24h" }
-] as const;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -215,6 +169,47 @@ const SearchItem = React.memo(function SearchItem({
 });
 
 function SettingsPage() {
+  const { t } = useTranslation();
+  const privacySidebarSections = [
+    {
+      category: t("screens4_6.settings.sidebar.categories.privacy"),
+      items: [
+        { id: "product-analytics", label: t("screens4_6.settings.sidebar.items.productAnalytics") },
+        { id: "what-is-collected", label: t("screens4_6.settings.sidebar.items.whatIsCollected") },
+        { id: "diagnostics", label: t("screens4_6.settings.sidebar.items.diagnostics") },
+        { id: "recent-events", label: t("screens4_6.settings.sidebar.items.recentEvents") }
+      ]
+    }
+  ];
+  const updateChannelOptions = [
+    { value: "latest", label: t("screens4_6.settings.options.stable") },
+    { value: "nightly", label: t("screens4_6.settings.options.nightly") }
+  ] as const;
+  const closeBehaviorOptions = [
+    { value: "ask", label: t("screens4_6.settings.options.askEveryTime") },
+    { value: "quit", label: t("screens4_6.settings.options.quitApplication") },
+    { value: "background", label: t("screens4_6.settings.options.keepRunningInBackground") }
+  ] as const;
+  const panControlsOptions = [
+    { value: "LMB", label: t("screens4_6.settings.options.panCanvas") },
+    { value: "RMB", label: t("screens4_6.settings.options.selectNodesBox") }
+  ] as const;
+  const selectionModeOptions = [
+    { value: "full", label: t("screens4_6.settings.options.full") },
+    { value: "partial", label: t("screens4_6.settings.options.partial") }
+  ] as const;
+  const autosaveIntervalOptions = [1, 5, 10, 15, 30, 60].map((value) => ({
+    value,
+    label: t("screens4_6.settings.options.minutes", { count: value })
+  }));
+  const themeModeOptions = [
+    { value: "dark", label: t("screens4_6.settings.options.dark") },
+    { value: "light", label: t("screens4_6.settings.options.light") }
+  ] as const;
+  const timeFormatOptions = [
+    { value: "12h", label: t("screens4_6.settings.options.hour12") },
+    { value: "24h", label: t("screens4_6.settings.options.hour24") }
+  ] as const;
   const section = useSettingsPageStore((state) => state.section);
   const setSection = useSettingsPageStore((state) => state.setSection);
   const session = useAuth((state) => state.session);
@@ -344,10 +339,10 @@ function SettingsPage() {
       addNotification({
         type: "error",
         alert: true,
-        content: "Failed to save automatic update preference."
+          content: t("screens4_6.settings.errors.saveAutoUpdates")
       });
     });
-  }, [addNotification, autoUpdatesEnabled, desktopUpdateSettingsApi, supportsDesktopUpdateSettings]);
+  }, [addNotification, autoUpdatesEnabled, desktopUpdateSettingsApi, supportsDesktopUpdateSettings, t]);
 
   const handleUpdateChannelChange = useCallback((value: string) => {
     if (!supportsDesktopUpdateSettings) {
@@ -364,10 +359,10 @@ function SettingsPage() {
         addNotification({
           type: "error",
           alert: true,
-          content: "Failed to save update channel preference."
+          content: t("screens4_6.settings.errors.saveUpdateChannel")
         });
       });
-  }, [addNotification, desktopUpdateSettingsApi, supportsDesktopUpdateSettings, updateChannel]);
+  }, [addNotification, desktopUpdateSettingsApi, supportsDesktopUpdateSettings, updateChannel, t]);
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -478,14 +473,14 @@ function SettingsPage() {
         addNotification({
           type: "info",
           alert: true,
-          content: "Nodetool API token copied to clipboard"
+          content: t("screens4_6.settings.notifications.tokenCopied")
         });
       } catch (error) {
         console.error("Failed to copy to clipboard:", error);
         addNotification({
           type: "error",
           alert: true,
-          content: "Failed to copy token to clipboard"
+          content: t("screens4_6.settings.errors.copyToken")
         });
       }
     }
@@ -604,7 +599,7 @@ function SettingsPage() {
         : section === "about"
           ? getAboutSidebarSections()
           : section === "privacy"
-            ? PRIVACY_SIDEBAR_SECTIONS
+            ? privacySidebarSections
             : [];
   const sidebarSections = visibleSectionIds
     ? allSidebarSections
@@ -684,22 +679,24 @@ function SettingsPage() {
         <header className="settings-page-header">
           <div className="settings-page-header__titles">
             <div className="settings-page-header__heading">
-              <h1 className="settings-page-header__title">Settings</h1>
+              <h1 className="settings-page-header__title">{t("screens4_6.settings.title")}</h1>
               <DocsHelpLink
                 topic={settingsDocsTopic(section)}
-                label={settingsDocsLabel(section)}
+                label={t(section === "providers"
+                  ? "screens4_6.settings.docs.modelsAndProviders"
+                  : "screens4_6.settings.docs.configuration")}
               />
             </div>
           </div>
           <div className="settings-page-header__search">
             <SearchInput
-              placeholder="Search settings"
+              placeholder={t("screens4_6.settings.searchPlaceholder")}
               value={searchTerm}
               onChange={setSearchTerm}
               size="medium"
               fullWidth
               showClear
-              ariaLabel="Search settings"
+              ariaLabel={t("screens4_6.settings.searchLabel")}
             />
           </div>
         </header>
@@ -708,7 +705,7 @@ function SettingsPage() {
             <div className="sticky-header">
               <TabGroup
                 className="settings-tabs"
-                aria-label="settings tabs"
+                aria-label={t("screens4_6.settings.tabsLabel")}
                 tabs={[...SETTINGS_TAB_ITEMS]}
                 value={section}
                 onChange={handleSectionChange}
@@ -736,13 +733,17 @@ function SettingsPage() {
                   <div className="settings-search-alts">
                     {!currentTabHasMatches && (
                       <Caption>
-                        No matches in {settingsTabLabel(section)}.
+                        {t("screens4_6.settings.noMatchesInTab", {
+                          tab: t(SETTINGS_TAB_KEYS[section])
+                        })}
                       </Caption>
                     )}
                     {matchingOtherTabs.length > 0 && (
                       <>
                         <Caption>
-                          {currentTabHasMatches ? "Also in" : "See"}
+                          {currentTabHasMatches
+                            ? t("screens4_6.settings.alsoIn")
+                            : t("screens4_6.settings.see")}
                         </Caption>
                         {matchingOtherTabs.map((tab) => (
                           <TextLink
@@ -750,7 +751,7 @@ function SettingsPage() {
                             asButton
                             onClick={() => setSection(tab)}
                           >
-                            {settingsTabLabel(tab)}
+                            {t(SETTINGS_TAB_KEYS[tab])}
                           </TextLink>
                         ))}
                       </>
@@ -760,22 +761,22 @@ function SettingsPage() {
                 {/* Tab 0: General */}
                 <TabPanel section="general" current={section}>
                   <Caption className="settings-autosave-note">
-                    Changes on this tab apply immediately.
+                    {t("screens4_6.settings.changesApplyImmediately")}
                   </Caption>
                   <div className="general-settings">
                     <div className="settings-section">
                       <Text size="big" id="editor" className="settings-heading">
-                        Editor
+                        {t("i18n-next115.settings.editorHeading")}
                       </Text>
                       <SearchItem
                         search={search}
                         keywords="editor workspace select nodes on drag selection"
                       >
                         <LabeledSwitch
-                          label="Select nodes on drag"
+                          label={t("screens4_6.settings.editor.selectNodesOnDrag.label")}
                           checked={!!settings.selectNodesOnDrag}
                           onChange={handleSelectNodesOnDragChange}
-                          description="Mark nodes as selected after changing a node's position. If disabled, nodes can still be selected by clicking on them."
+                          description={t("screens4_6.settings.editor.selectNodesOnDrag.description")}
                         />
                       </SearchItem>
 
@@ -785,10 +786,10 @@ function SettingsPage() {
                           keywords="editor workspace sound notifications beep"
                         >
                           <LabeledSwitch
-                            label="Sound notifications"
+                            label={t("screens4_6.settings.editor.soundNotifications.label")}
                             checked={!!settings.soundNotifications}
                             onChange={handleSoundNotificationsChange}
-                            description="Play a system beep sound when workflows complete, exports finish, or other important events occur."
+                            description={t("screens4_6.settings.editor.soundNotifications.description")}
                           />
                         </SearchItem>
                       )}
@@ -798,7 +799,7 @@ function SettingsPage() {
                     {isElectron && (
                       <div className="settings-section">
                         <Text size="big" id="updates" className="settings-heading">
-                          Updates
+                          {t("screens4_6.settings.sections.updates")}
                         </Text>
                         {supportsDesktopUpdateSettings && (
                           <SearchItem
@@ -806,10 +807,10 @@ function SettingsPage() {
                             keywords="editor workspace updates automatic desktop"
                           >
                             <LabeledSwitch
-                              label="Automatic updates"
+                              label={t("screens4_6.settings.updates.automatic.label")}
                               checked={autoUpdatesEnabled}
                               onChange={handleAutoUpdatesChange}
-                              description="Check for and download desktop app updates from the selected release channel."
+                              description={t("screens4_6.settings.updates.automatic.description")}
                             />
                           </SearchItem>
                         )}
@@ -819,11 +820,11 @@ function SettingsPage() {
                             keywords="editor workspace update channel stable nightly"
                           >
                             <SelectField
-                              label="Update channel"
+                              label={t("screens4_6.settings.updates.channel.label")}
                               value={updateChannel}
                               onChange={handleUpdateChannelChange}
-                              options={UPDATE_CHANNEL_OPTIONS}
-                              description="Stable follows full releases. Nightly follows prerelease nightly builds. Nightly builds default to the Nightly channel."
+                              options={updateChannelOptions}
+                              description={t("screens4_6.settings.updates.channel.description")}
                             />
                           </SearchItem>
                         )}
@@ -832,15 +833,15 @@ function SettingsPage() {
                           keywords="editor workspace on close behavior quit background tray"
                         >
                           <SelectField
-                            label="On close behavior"
+                          label={t("screens4_6.settings.updates.closeBehavior.label")}
                             value={closeBehavior}
                             onChange={(v) =>
                               handleCloseBehaviorChange(
                                 v as "ask" | "quit" | "background"
                               )
                             }
-                            options={CLOSE_BEHAVIOR_OPTIONS}
-                            description="What happens when you close the main window. Ask every time shows a dialog with options, Quit application closes the app completely, and Keep running in background keeps it running in the system tray."
+                            options={closeBehaviorOptions}
+                            description={t("screens4_6.settings.updates.closeBehavior.description")}
                           />
                         </SearchItem>
                       </div>
@@ -857,19 +858,22 @@ function SettingsPage() {
                         id="appearance"
                         className="settings-heading"
                       >
-                        Appearance
+                        {t("screens4_6.settings.sections.appearance")}
                       </Text>
+                      <SearchItem search={search} keywords="language English Chinese 简体中文 语言 appearance">
+                        <LanguageSetting />
+                      </SearchItem>
                       {resolvedThemeMode && (
                         <SearchItem
                           search={search}
                           keywords="appearance theme dark light mode colors contrast readability"
                         >
                           <SelectField
-                            label="Theme"
+                            label={t("screens4_6.settings.appearance.theme.label")}
                             value={resolvedThemeMode}
                             onChange={handleThemeModeChange}
-                            options={THEME_MODE_OPTIONS}
-                            description="Dark or light colors for the whole app. The sun and moon button in the sidebar switches it too. Right-click that button to open these settings."
+                            options={themeModeOptions}
+                            description={t("screens4_6.settings.appearance.theme.description")}
                           />
                         </SearchItem>
                       )}
@@ -878,11 +882,11 @@ function SettingsPage() {
                         keywords="appearance theme contrast soft dim dimmed brightness background colors readability eye strain"
                       >
                         <SelectField
-                          label="Contrast"
+                          label={t("screens4_6.settings.appearance.contrast.label")}
                           value={settings.themeContrast}
                           onChange={handleThemeContrastChange}
                           options={THEME_CONTRAST_OPTIONS}
-                          description="Soft lifts the dark theme off black and dims the light theme off white, with gentler text, for long sessions."
+                          description={t("screens4_6.settings.appearance.contrast.description")}
                         />
                       </SearchItem>
                       <SearchItem
@@ -890,11 +894,11 @@ function SettingsPage() {
                         keywords="appearance text size font size zoom larger smaller bigger readability accessibility"
                       >
                         <SelectField
-                          label="Text size"
+                          label={t("screens4_6.settings.appearance.textSize.label")}
                           value={settings.textSize}
                           onChange={handleTextSizeChange}
                           options={TEXT_SIZE_OPTIONS}
-                          description="Size of text across the whole app, including menus and nodes."
+                          description={t("screens4_6.settings.appearance.textSize.description")}
                         />
                       </SearchItem>
                       <SearchItem
@@ -902,11 +906,11 @@ function SettingsPage() {
                         keywords="appearance time format 12h 24h"
                       >
                         <SelectField
-                          label="Time format"
+                          label={t("screens4_6.settings.appearance.timeFormat.label")}
                           value={settings.timeFormat}
                           onChange={handleTimeFormatChange}
-                          options={TIME_FORMAT_OPTIONS}
-                          description="Display time in 12h or 24h format."
+                          options={timeFormatOptions}
+                          description={t("screens4_6.settings.appearance.timeFormat.description")}
                         />
                       </SearchItem>
                     </div>
@@ -917,19 +921,19 @@ function SettingsPage() {
                         id="execution"
                         className="settings-heading"
                       >
-                        Execution
+                        {t("screens4_6.settings.sections.execution")}
                       </Text>
                       <SearchItem
                         search={search}
                         keywords="execution warn before large runs confirmation"
                       >
                         <LabeledSwitch
-                          label="Warn before large runs"
+                          label={t("screens4_6.settings.execution.warnLargeRuns.label")}
                           checked={settings.confirmLargeRun ?? true}
                           onChange={(checked) =>
                             updateSettings({ confirmLargeRun: checked })
                           }
-                          description="Running a workflow executes every node at once. Show a confirmation when a run would launch many model/provider nodes that could overload an API."
+                          description={t("screens4_6.settings.execution.warnLargeRuns.description")}
                         />
                       </SearchItem>
 
@@ -939,14 +943,14 @@ function SettingsPage() {
                       >
                         <NumberSetting
                           id="large-run-threshold-input"
-                          label="Large-run threshold"
+                          label={t("screens4_6.settings.execution.largeRunThreshold.label")}
                           value={settings.largeRunThreshold ?? 5}
                           onCommit={handleLargeRunThresholdChange}
                           min={1}
                           max={100}
                           fallback={5}
                           disabled={!(settings.confirmLargeRun ?? true)}
-                          description="Warn when a run would execute more than this many model/provider nodes (LLM, image, audio, API, etc.)."
+                          description={t("screens4_6.settings.execution.largeRunThreshold.description")}
                         />
                       </SearchItem>
 
@@ -956,14 +960,14 @@ function SettingsPage() {
                       >
                         <NumberSetting
                           id="audio-buffer-ms-input"
-                          label="Audio buffer (ms)"
+                          label={t("screens4_6.settings.execution.audioBuffer.label")}
                           value={settings.audioBufferMs ?? 100}
                           onCommit={handleAudioBufferMsChange}
                           min={20}
                           max={1000}
                           step={10}
                           fallback={100}
-                          description="Playback buffer for realtime audio (modular synth patches). Lower values reduce knob-to-ear latency; higher values prevent dropouts when the editor is busy."
+                          description={t("screens4_6.settings.execution.audioBuffer.description")}
                         />
                       </SearchItem>
 
@@ -972,12 +976,12 @@ function SettingsPage() {
                         keywords="timeline preview video decoder webcodecs frame exact"
                       >
                         <LabeledSwitch
-                          label="Decode timeline preview with WebCodecs"
+                          label={t("screens4_6.settings.execution.webCodecs.label")}
                           checked={settings.timelinePreviewDecoder === "webcodecs"}
                           onChange={(checked) =>
                             updateSettings({ timelinePreviewDecoder: checked ? "webcodecs" : "element" })
                           }
-                          description="Draw the exact frame for the playhead in the timeline preview. Clips that WebCodecs cannot decode keep using the browser video player."
+                          description={t("screens4_6.settings.execution.webCodecs.description")}
                         />
                       </SearchItem>
 
@@ -987,11 +991,11 @@ function SettingsPage() {
                       >
                         <ServerNumberSetting
                           envVar="MAX_CONCURRENT_JOBS"
-                          label="Max concurrent runs"
+                          label={t("screens4_6.settings.execution.maxConcurrentRuns.label")}
                           defaultValue={4}
                           min={1}
                           max={64}
-                          description="Maximum number of workflow runs you can execute at once. Additional runs queue and start automatically as running ones finish."
+                          description={t("screens4_6.settings.execution.maxConcurrentRuns.description")}
                         />
                       </SearchItem>
 
@@ -1001,11 +1005,11 @@ function SettingsPage() {
                       >
                         <ServerNumberSetting
                           envVar="MAX_CONCURRENT_RUNS_PER_WORKFLOW"
-                          label="Max concurrent runs per workflow"
+                          label={t("screens4_6.settings.execution.maxConcurrentRunsPerWorkflow.label")}
                           defaultValue={4}
                           min={1}
                           max={64}
-                          description="How many runs of the same workflow may run at once before further runs queue. Applies to concurrent generation (timeline, sketch); canvas runs always stay sequential."
+                          description={t("screens4_6.settings.execution.maxConcurrentRunsPerWorkflow.description")}
                         />
                       </SearchItem>
                     </div>
@@ -1016,18 +1020,18 @@ function SettingsPage() {
                         id="canvas-navigation"
                         className="settings-heading"
                       >
-                        Canvas & navigation
+                        {t("screens4_6.settings.sections.canvasNavigation")}
                       </Text>
                       <SearchItem
                         search={search}
                         keywords="canvas navigation pan controls mouse select left click drag"
                       >
                         <SelectField
-                          label="Left-click drag"
+                          label={t("screens4_6.settings.canvasNavigation.leftClickDrag.label")}
                           value={settings.panControls}
                           onChange={handlePanControlsChange}
-                          options={PAN_CONTROLS_OPTIONS}
-                          description="What dragging with the left mouse button does on empty canvas. Pan canvas moves the view. Select nodes draws a selection box; pan with the right or middle mouse button (and two-finger scroll on a trackpad)."
+                          options={panControlsOptions}
+                          description={t("screens4_6.settings.canvasNavigation.leftClickDrag.description")}
                         />
                       </SearchItem>
 
@@ -1036,11 +1040,11 @@ function SettingsPage() {
                         keywords="canvas navigation node selection mode full partial"
                       >
                         <SelectField
-                          label="Node selection mode"
+                          label={t("screens4_6.settings.canvasNavigation.selectionMode.label")}
                           value={settings.selectionMode}
                           onChange={handleSelectionModeChange}
-                          options={SELECTION_MODE_OPTIONS}
-                          description="When drawing a selection box: Full selects only nodes that are fully enclosed, Partial also selects intersecting nodes."
+                          options={selectionModeOptions}
+                          description={t("screens4_6.settings.canvasNavigation.selectionMode.description")}
                         />
                       </SearchItem>
 
@@ -1049,10 +1053,10 @@ function SettingsPage() {
                         keywords="canvas navigation grid snap align nodes"
                       >
                         <LabeledSwitch
-                          label="Snap to grid"
+                          label={t("screens4_6.settings.canvasNavigation.snapToGrid.label")}
                           checked={!!settings.snapToGrid}
                           onChange={handleSnapToGridChange}
-                          description="Align nodes to the canvas grid while dragging. Also in the View menu of the desktop app."
+                          description={t("screens4_6.settings.canvasNavigation.snapToGrid.description")}
                         />
                       </SearchItem>
 
@@ -1062,14 +1066,14 @@ function SettingsPage() {
                       >
                         <NumberSetting
                           id="grid-snap-input"
-                          label="Grid snap precision"
+                          label={t("screens4_6.settings.canvasNavigation.gridSnapPrecision.label")}
                           value={settings.gridSnap}
                           onCommit={setGridSnap}
                           min={1}
                           max={100}
                           fallback={25}
                           disabled={!settings.snapToGrid}
-                          description="Grid size used when Snap to grid is on. The canvas grid is drawn every 25 units."
+                          description={t("screens4_6.settings.canvasNavigation.gridSnapPrecision.description")}
                         />
                       </SearchItem>
 
@@ -1079,13 +1083,13 @@ function SettingsPage() {
                       >
                         <NumberSetting
                           id="connection-snap-input"
-                          label="Connection snap range"
+                          label={t("screens4_6.settings.canvasNavigation.connectionSnapRange.label")}
                           value={settings.connectionSnap}
                           onCommit={setConnectionSnap}
                           min={5}
                           max={30}
                           fallback={20}
-                          description="Snap distance for connecting nodes."
+                          description={t("screens4_6.settings.canvasNavigation.connectionSnapRange.description")}
                         />
                       </SearchItem>
                     </div>
@@ -1100,19 +1104,19 @@ function SettingsPage() {
                         id="autosave"
                         className="settings-heading"
                       >
-                        Autosave & version history
+                        {t("screens4_6.settings.sections.autosave")}
                       </Text>
                       <SearchItem
                         search={search}
                         keywords="autosave version history enable"
                       >
                         <LabeledSwitch
-                          label="Enable autosave"
+                          label={t("screens4_6.settings.autosave.enabled.label")}
                           checked={settings.autosave?.enabled ?? true}
                           onChange={(checked) =>
                             updateAutosaveSettings({ enabled: checked })
                           }
-                          description="Automatically save your workflow at regular intervals."
+                          description={t("screens4_6.settings.autosave.enabled.description")}
                         />
                       </SearchItem>
 
@@ -1121,16 +1125,16 @@ function SettingsPage() {
                         keywords="autosave version history interval minutes"
                       >
                         <SelectField
-                          label="Autosave interval (minutes)"
+                          label={t("screens4_6.settings.autosave.interval.label")}
                           value={settings.autosave?.intervalMinutes ?? 10}
                           onChange={(v) =>
                             updateAutosaveSettings({
                               intervalMinutes: Number(v)
                             })
                           }
-                          options={AUTOSAVE_INTERVAL_OPTIONS}
+                          options={autosaveIntervalOptions}
                           disabled={!settings.autosave?.enabled}
-                          description="How often to automatically save your workflow."
+                          description={t("screens4_6.settings.autosave.interval.description")}
                         />
                       </SearchItem>
 
@@ -1139,14 +1143,14 @@ function SettingsPage() {
                         keywords="autosave version history save before running checkpoint"
                       >
                         <LabeledSwitch
-                          label="Save before running"
+                          label={t("screens4_6.settings.autosave.saveBeforeRun.label")}
                           checked={settings.autosave?.saveBeforeRun ?? true}
                           onChange={(checked) =>
                             updateAutosaveSettings({
                               saveBeforeRun: checked
                             })
                           }
-                          description="Create a checkpoint version before executing workflow."
+                          description={t("screens4_6.settings.autosave.saveBeforeRun.description")}
                         />
                       </SearchItem>
 
@@ -1155,14 +1159,14 @@ function SettingsPage() {
                         keywords="autosave version history save on window close"
                       >
                         <LabeledSwitch
-                          label="Save on window close"
+                          label={t("screens4_6.settings.autosave.saveOnClose.label")}
                           checked={settings.autosave?.saveOnClose ?? true}
                           onChange={(checked) =>
                             updateAutosaveSettings({
                               saveOnClose: checked
                             })
                           }
-                          description="Automatically save when closing the tab or window."
+                          description={t("screens4_6.settings.autosave.saveOnClose.description")}
                         />
                       </SearchItem>
 
@@ -1191,7 +1195,7 @@ function SettingsPage() {
                   ) && (
                     <>
                       <Text size="big" id="folders" className="settings-heading">
-                        Folders
+                        {t("screens4_6.settings.sidebar.items.folders")}
                       </Text>
                       <FoldersSettings />
                     </>
@@ -1207,7 +1211,7 @@ function SettingsPage() {
                         id="connected-accounts"
                         className="settings-heading"
                       >
-                        Connected accounts
+                        {t("screens4_6.settings.sidebar.items.connectedAccounts")}
                       </Text>
                       <ConnectedAccountsSettings />
                     </>
@@ -1224,7 +1228,7 @@ function SettingsPage() {
                         id="mcp-integration"
                         className="settings-heading"
                       >
-                        MCP integration
+                        {t("screens4_6.settings.sidebar.items.mcpIntegration")}
                       </Text>
                       <MCPSettingsMenu />
                     </>
@@ -1241,7 +1245,7 @@ function SettingsPage() {
                         id="browser-extension"
                         className="settings-heading"
                       >
-                        Browser extension
+                        {t("screens4_6.settings.sidebar.items.browserExtension")}
                       </Text>
                       <BrowserExtensionSettingsMenu />
                     </>
@@ -1256,19 +1260,19 @@ function SettingsPage() {
                         id="nodetool-api-token"
                         className="settings-heading"
                       >
-                        Nodetool API
+                        {t("screens4_6.settings.sidebar.items.nodetoolApi")}
                       </Text>
                       <div className="settings-section">
                         <div className="settings-item">
                           <Text>
-                            Use the Nodetool API to execute workflows
+                            {t("screens4_6.settings.apiToken.intro")} {" "}
                             programmatically.{" "}
                             <TextLink
                               href="https://github.com/nodetool-ai/nodetool#using-the-workflow-api-"
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              API documentation on GitHub
+                              {t("screens4_6.settings.apiToken.documentationLink")}
                             </TextLink>
                           </Text>
                           <div className="secrets">
@@ -1279,19 +1283,18 @@ function SettingsPage() {
                               }}
                             />
                             <Text component="span">
-                              This token authenticates your account. Keep it
-                              secure and do not share it publicly.
+                              {t("screens4_6.settings.apiToken.securityNotice")}
                             </Text>
                           </div>
                           <Box>
-                            <Tooltip title="Copy token">
+                            <Tooltip title={t("screens4_6.settings.apiToken.copyTooltip")}>
                               <EditorButton
                                 size="small"
                                 variant="outlined"
                                 startIcon={<ContentCopyIcon />}
                                 onClick={copyAuthToken}
                               >
-                                Copy token
+                                {t("screens4_6.settings.apiToken.copyButton")}
                               </EditorButton>
                             </Tooltip>
                           </Box>

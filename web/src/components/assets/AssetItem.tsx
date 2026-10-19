@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import ImageIcon from "@mui/icons-material/Image";
 import VideoFileIcon from "@mui/icons-material/VideoFile";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
@@ -384,6 +385,9 @@ const deleteButtonOverlayStyle = css({
 });
 
 const AssetItem: React.FC<AssetItemProps> = (props) => {
+  const { t } = useTranslation("translation", {
+    keyPrefix: "i18n-next42-assets-grid"
+  });
   const theme = useTheme();
   const assetStyles = useMemo(() => styles(theme), [theme]);
   const {
@@ -570,7 +574,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
         {isText && !isJson && !isCsv && (
           <TextSnippetIcon
             className="placeholder"
-            titleAccess={asset.content_type || "Text file"}
+            titleAccess={asset.content_type || t("fileTypes.text")}
           />
         )}
         {isAudio && (
@@ -578,7 +582,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             style={{ color: `var(--c_${assetType})` }}
             onClick={handleAudioClick}
             className="placeholder"
-            titleAccess={asset.content_type || "Audio file"}
+            titleAccess={asset.content_type || t("fileTypes.audio")}
           />
         )}
         {isVideo && (
@@ -593,7 +597,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               <VideoFileIcon
                 className="placeholder"
                 style={{ color: `var(--c_${assetType})`, zIndex: Z_INDEX.raised }}
-                titleAccess={asset.content_type || "Video file"}
+                titleAccess={asset.content_type || t("fileTypes.video")}
               />
             )}
           </>
@@ -604,7 +608,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               <PictureAsPdfIcon
                 className="placeholder"
                 style={{ color: `var(--c_${assetType})` }}
-                titleAccess={asset.content_type || "PDF file"}
+                titleAccess={asset.content_type || t("fileTypes.pdf")}
               />
             )}
             {asset.thumb_url && (
@@ -625,14 +629,14 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           <DataObjectIcon
             className="placeholder"
             style={{ color: `var(--c_${assetType})` }}
-            titleAccess={asset.content_type || "JSON file"}
+            titleAccess={asset.content_type || t("fileTypes.json")}
           />
         )}
         {isCsv && (
           <TableChartIcon
             className="placeholder"
             style={{ color: `var(--c_${assetType})` }}
-            titleAccess={asset.content_type || "CSV file"}
+            titleAccess={asset.content_type || t("fileTypes.csv")}
           />
         )}
         {!isImage &&
@@ -645,7 +649,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <InsertDriveFileIcon
               className="placeholder"
               style={{ color: `var(--c_${assetType})` }}
-              titleAccess={asset.content_type || "Unknown file type"}
+              titleAccess={asset.content_type || t("fileTypes.unknown")}
             />
           )}
         {showFavoriteButton && !isParent && (
@@ -676,7 +680,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               zIndex: Z_INDEX.raised
             }}
           >
-            Media offline
+            {t("fileTypes.offline")}
           </StatusPill>
         )}
       </div>
@@ -686,7 +690,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             <Text
               className="filetype info"
               size="smaller"
-              title={asset.content_type || "Unknown content type"}
+              title={asset.content_type || t("fileTypes.unknownContentType")}
               style={{
                 color: `var(--c_${assetType}, var(--palette-common-white))`,
                 textTransform: "uppercase",
@@ -703,7 +707,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             assetItemSize > 3 && (
               <Text
                 className="filesize info"
-                title={`File size: ${formatFileSize(asset.size)}`}
+                title={t("fileSize", { size: formatFileSize(asset.size) })}
               >
                 {formatFileSize(asset.size)}
               </Text>

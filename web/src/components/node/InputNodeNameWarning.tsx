@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import { useNodes } from "../../contexts/NodeContext";
 import { Text, Tooltip, getSpacingPx, SPACING, ICON_SIZE } from "../ui_primitives";
@@ -16,6 +17,7 @@ const InputNodeNameWarning: React.FC<InputNodeNameWarningProps> = ({
   nodeType,
   name
 }) => {
+  const { t } = useTranslation();
   const isInput = nodeType.startsWith(INPUT_PREFIX);
   const isMissing = isInput && (!name || name.trim() === "");
   // Inputs sharing a name collapse into one parameter: one port on a
@@ -40,8 +42,10 @@ const InputNodeNameWarning: React.FC<InputNodeNameWarningProps> = ({
     <Tooltip
       title={
         isMissing
-          ? "Input nodes require a name for the workflow to run. Please set a unique name for this input."
-          : `Another input is also named "${name}". Give each input a unique name.`
+          ? t("i18n-next36.nodeEditor.inputNodeNameWarning.missingTooltip")
+          : t("i18n-next36.nodeEditor.inputNodeNameWarning.duplicateTooltip", {
+              name
+            })
       }
       placement="top"
     >
@@ -64,7 +68,9 @@ const InputNodeNameWarning: React.FC<InputNodeNameWarningProps> = ({
         }}
       >
         <WarningAmberOutlinedIcon sx={{ fontSize: ICON_SIZE.xs }} />
-        {isMissing ? "Name required" : "Duplicate name"}
+        {isMissing
+          ? t("i18n-next36.nodeEditor.inputNodeNameWarning.nameRequired")
+          : t("i18n-next36.nodeEditor.inputNodeNameWarning.duplicateName")}
       </Text>
     </Tooltip>
   );

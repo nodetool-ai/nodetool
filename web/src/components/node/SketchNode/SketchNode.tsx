@@ -21,6 +21,7 @@ import React, {
   useRef,
   useEffect
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { Box, CheckerDropzone, MOTION, SPACING, SHADOW, BORDER_RADIUS, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
@@ -442,6 +443,7 @@ interface SketchNodeProps extends NodeProps {
 }
 
 const SketchNode: React.FC<SketchNodeProps> = (props) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const hasParent = props.parentId !== undefined;
   const isFocused = useNodeFocusStore(
@@ -1305,7 +1307,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             id={props.id}
             data={props.data}
             hasParent={hasParent}
-            metadataTitle="Sketch"
+            metadataTitle={t("i18n-next82.node.sketch.title")}
             selected={props.selected}
             iconType="image"
             iconBaseColor={inputAccentColor}
@@ -1316,7 +1318,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             <div
               className="sketch-preview-wrap"
               role="button"
-              aria-label="Open sketch editor"
+              aria-label={t("i18n-next82.node.sketch.openEditor")}
               tabIndex={0}
               onClick={handleOpenEditor}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleOpenEditor(); } }}
@@ -1327,7 +1329,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                     <img
                       className="preview-image"
                       src={displayPreviewUri}
-                      alt="Image editor preview"
+                      alt={t("i18n-next82.node.sketch.previewAlt")}
                     />
                     <div className="edit-overlay">
                       <EditIcon
@@ -1336,12 +1338,14 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                           color: theme.vars.palette.common.white
                         }}
                       />
-                      <span className="edit-overlay-label">Edit sketch</span>
+                      <span className="edit-overlay-label">
+                        {t("i18n-next82.node.sketch.edit")}
+                      </span>
                     </div>
                   </>
                 ) : (
                   <CheckerDropzone
-                    message="Click to open the sketch editor"
+                    message={t("i18n-next82.node.sketch.clickToOpen")}
                     icon={<BrushIcon />}
                   />
                 )}
@@ -1382,7 +1386,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               <NodeOutput
                 id={props.id}
                 output={SKETCH_LAYERS_OUTPUT}
-                displayName="Layers"
+                displayName={t("i18n-next82.node.sketch.layers")}
               />
               {exposedOutputLayerOutputs.map((item) => (
                 <NodeOutput
@@ -1407,7 +1411,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       <SketchProvider active={isModalOpen}>
         <SketchModal
           open={isModalOpen}
-          title="Sketch"
+          title={t("i18n-next82.node.sketch.title")}
           initialDocument={editorDocument || sketchDoc}
           onClose={handleCloseEditor}
           onDocumentChange={handleDocumentChange}

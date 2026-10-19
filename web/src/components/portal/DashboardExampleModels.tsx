@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   creationProjectId,
   useWorkspaceTabsStore
@@ -28,15 +29,19 @@ import {
   fetchExampleModelCatalog,
   type ExampleModel
 } from "../../utils/exampleModels";
-import { notifyMutationError } from "../../utils/notifyMutationError";
 import { useAddExampleModelAsset } from "../../hooks/useAddExampleModelAsset";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { NO_EXAMPLE_NEEDS } from "../../utils/exampleNeeds";
 import ExampleNeedsPill from "./ExampleNeedsPill";
 
 const DashboardExampleModels = () => {
+  const { t } = useTranslation();
   const [pack, setPack] = useState(EXAMPLE_MODEL_PACKS[0].slug);
   const navigate = useNavigate();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const addExampleModelAsset = useAddExampleModelAsset();
   const catalog = useQuery({
     queryKey: exampleModelQueryKeys.catalog(pack),
@@ -61,31 +66,37 @@ const DashboardExampleModels = () => {
       navigate("/workspace");
       useOnboardingStore.getState().markStep("keep-creating");
     },
-    onError: (error) => notifyMutationError("add the example model", error)
+    onError: (error) => {
+      console.error("Failed to add the example model", error);
+      addNotification({
+        type: "error",
+        alert: true,
+        content: t("pass3_16.portal.models.installError")
+      });
+    }
   });
-  const packLabel =
-    EXAMPLE_MODEL_PACKS.find((entry) => entry.slug === pack)?.label ?? pack;
+  const packLabelKey =
+    EXAMPLE_MODEL_PACKS.find((entry) => entry.slug === pack)?.slug ?? pack;
 
   return (
     <FlexColumn
       component="section"
-      aria-label="Example 3D models"
+      aria-label={t("pass3_16.portal.models.ariaLabel")}
       gap={SPACING.xl}
       sx={{ p: SPACING.xxl }}
     >
       <FlexColumn gap={SPACING.xs}>
-        <Text size="big">Start from a 3D model</Text>
-        <Text color="secondary">
-          Open a low-poly game model in the 3D editor. Each opens as your own
-          editable copy in the current project.
-        </Text>
-        <Caption>glTF 2.0 · Meters, +Y up · No model or API key needed</Caption>
+        <Text size="big">{t("pass3_16.portal.models.title")}</Text>
+        <Text color="secondary">{t("pass3_16.portal.models.description")}</Text>
+        <Caption>{t("pass3_16.portal.models.technicalDetails")}</Caption>
       </FlexColumn>
       <TabGroup
-        aria-label="Model packs"
+        aria-label={t("pass3_16.portal.models.packTabsLabel")}
         tabs={EXAMPLE_MODEL_PACKS.map(({ slug, label }) => ({
           value: slug,
-          label
+          label: t(`pass3_16.portal.models.packs.${slug}`, {
+            defaultValue: label
+          })
         }))}
         value={pack}
         onChange={setPack}
@@ -94,7 +105,11 @@ const DashboardExampleModels = () => {
       <Card padding="none" variant="outlined" sx={{ overflow: "hidden" }}>
         <ResponsiveImage
           locator={exampleModelOverviewUri(pack)}
-          alt={`Every model in the ${packLabel} pack`}
+          alt={t("pass3_16.portal.models.overviewAlt", {
+            pack: t(`pass3_16.portal.models.packs.${packLabelKey}`, {
+              defaultValue: packLabelKey
+            })
+          })}
           aspectRatio="16 / 9"
           fit="contain"
           loading="lazy"
@@ -102,14 +117,17 @@ const DashboardExampleModels = () => {
       </Card>
       {catalog.isPending ? (
         <FlexColumn align="center" padding={PADDING.spacious}>
-          <LoadingSpinner size="medium" text="Loading models" />
+          <LoadingSpinner
+            size="medium"
+            text={t("pass3_16.portal.models.loading")}
+          />
         </FlexColumn>
       ) : catalog.isError ? (
         <EmptyState
           variant="error"
-          title="Couldn't load models"
-          description="Try again in a moment."
-          actionText="Retry"
+          title={t("pass3_16.portal.models.loadErrorTitle")}
+          description={t("pass3_16.portal.models.loadErrorDescription")}
+          actionText={t("pass3_16.portal.models.retry")}
           onAction={() => void catalog.refetch()}
         />
       ) : (
@@ -124,19 +142,25 @@ const DashboardExampleModels = () => {
                   <Caption color="secondary">{model.use}</Caption>
                   <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
                   <Caption>
-                    {model.triangles.toLocaleString()} triangles
+                    {t("pass3_16.portal.models.triangleCount", {
+                      count: model.triangles
+                    })}
                     {model.clips.length > 0
                       ? ` · ${model.clips.join(", ")}`
                       : ""}
                   </Caption>
                   <EditorButton
                     disabled={install.isPending}
-                    aria-label={`Open ${model.name}`}
+                    aria-label={t("pass3_16.portal.models.openNamed", {
+                      name: model.name
+                    })}
                     aria-busy={opening}
                     onClick={() => install.mutate(model)}
                     sx={{ alignSelf: "flex-start", mt: "auto" }}
                   >
-                    {opening ? "Opening model…" : "Open model"}
+                    {opening
+                      ? t("pass3_16.portal.models.opening")
+                      : t("pass3_16.portal.models.open")}
                   </EditorButton>
                 </FlexColumn>
               </Card>

@@ -1,6 +1,7 @@
 import AddIcon from "@mui/icons-material/AddOutlined";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { DragEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -73,7 +74,7 @@ function createSketchDragImage(name: string): HTMLElement {
   container.appendChild(icon);
 
   const label = document.createElement("div");
-  label.textContent = name || "Untitled sketch";
+  label.textContent = name;
   label.style.cssText = `
     min-width: 0;
     overflow: hidden;
@@ -110,8 +111,10 @@ const SketchListItem = memo(function SketchListItem({
   onCommitRename,
   onCancelRename
 }: SketchListItemProps) {
+  const { t } = useTranslation();
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
+  const untitledSketch = t("i18n-next52.sketch.list.untitled");
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLButtonElement>) => {
       const payload = { id, name, updatedAt };
@@ -119,22 +122,22 @@ const SketchListItem = memo(function SketchListItem({
         {
           type: "sketch",
           payload,
-          metadata: { sourceId: id, sourceName: name || "Untitled sketch" }
+          metadata: { sourceId: id, sourceName: name || untitledSketch }
         },
         event.dataTransfer
       );
       event.dataTransfer.effectAllowed = "copyMove";
-      const dragImage = createSketchDragImage(name);
+      const dragImage = createSketchDragImage(name || untitledSketch);
       document.body.appendChild(dragImage);
       event.dataTransfer.setDragImage(dragImage, 10, 10);
       window.setTimeout(() => document.body.removeChild(dragImage), 0);
       setActiveDrag({
         type: "sketch",
         payload,
-        metadata: { sourceId: id, sourceName: name || "Untitled sketch" }
+        metadata: { sourceId: id, sourceName: name || untitledSketch }
       });
     },
-    [id, name, updatedAt, setActiveDrag]
+    [id, name, updatedAt, setActiveDrag, untitledSketch]
   );
   const handleDragEnd = useCallback(() => {
     clearDrag();
@@ -144,8 +147,8 @@ const SketchListItem = memo(function SketchListItem({
     <ListPanelItem
       id={id}
       name={name}
-      fallbackName="Untitled sketch"
-      renameLabel="Sketch name"
+      fallbackName={t("i18n-next52.sketch.list.untitled")}
+      renameLabel={t("i18n-next52.sketch.list.name")}
       icon={BrushOutlinedIcon}
       active={active}
       editing={editing}
@@ -161,6 +164,7 @@ const SketchListItem = memo(function SketchListItem({
 });
 
 export const CreateSketchButton = memo(function CreateSketchButton() {
+  const { t } = useTranslation();
   const utils = trpc.useUtils();
   const createSketch = trpc.sketch.create.useMutation({
     onSuccess: () => {
@@ -176,7 +180,7 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
     try {
       const sketch = await createSketch.mutateAsync({
         id: newDocumentId(),
-        name: "Untitled sketch",
+        name: t("i18n-next52.sketch.list.untitled"),
         projectId: creationProjectId()
       });
       if (location.pathname.startsWith("/workspace")) {
@@ -184,7 +188,7 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
           type: "sketch",
           ref: sketch.id,
           mode: "edit",
-          title: sketch.name || "Untitled sketch",
+          title: sketch.name || t("i18n-next52.sketch.list.untitled"),
           projectId: sketch.projectId
         });
       } else {
@@ -192,14 +196,14 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
       }
       setVisibility(false);
     } catch (error) {
-      notifyMutationError("create the sketch", error);
+      notifyMutationError(t("i18n-next52.sketch.list.createError"), error);
     }
-  }, [createSketch, location.pathname, navigate, openTab, setVisibility]);
+  }, [createSketch, location.pathname, navigate, openTab, setVisibility, t]);
 
   return (
-    <Tooltip title="New sketch" placement="right-start">
+    <Tooltip title={t("i18n-next52.sketch.list.new")} placement="right-start">
       <ToolbarIconButton
-        ariaLabel="New sketch"
+        ariaLabel={t("i18n-next52.sketch.list.new")}
         onClick={() => void handleCreate()}
         disabled={createSketch.isPending}
         tabIndex={-1}
@@ -214,6 +218,7 @@ interface SketchListPanelProps {
 }
 
 const SketchListPanel = ({ projectId }: SketchListPanelProps) => {
+  const { t } = useTranslation();
   const { data, isLoading, isError, error } = trpc.sketch.list.useQuery(
     { projectId },
     { staleTime: 30_000, retry: false }
@@ -237,7 +242,7 @@ const SketchListPanel = ({ projectId }: SketchListPanelProps) => {
           type: "sketch",
           ref: id,
           mode: "edit",
-          title: name || "Untitled sketch",
+          title: name || t("i18n-next52.sketch.list.untitled"),
           projectId
         });
       } else {
@@ -245,7 +250,7 @@ const SketchListPanel = ({ projectId }: SketchListPanelProps) => {
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openTab, projectId, setVisibility]
+    [location.pathname, navigate, openTab, projectId, setVisibility, t]
   );
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -298,10 +303,10 @@ const SketchListPanel = ({ projectId }: SketchListPanelProps) => {
           document: source.document
         });
       } catch (error) {
-        notifyMutationError("duplicate the sketch", error);
+        notifyMutationError(t("i18n-next52.sketch.list.duplicateError"), error);
       }
     },
-    [utils, createSketch, updateSketch]
+    [utils, createSketch, updateSketch, t]
   );
 
   const handleRequestRename = useCallback((item: SidebarDocumentItem) => {
@@ -326,13 +331,13 @@ const SketchListPanel = ({ projectId }: SketchListPanelProps) => {
 
   return (
     <DocumentListPanel
-      singular="sketch"
-      plural="sketches"
+      singular={t("i18n-next52.sketch.list.singular")}
+      plural={t("i18n-next52.sketch.list.plural")}
       documents={data}
       isLoading={isLoading}
       isError={isError}
       errorMessage={error?.message}
-      emptyDescription="Create a new sketch with the + button above."
+      emptyDescription={t("i18n-next52.sketch.list.empty")}
       deleteTarget={itemToDelete}
       onCancelDelete={() => setItemToDelete(null)}
       onConfirmDelete={handleConfirmDelete}

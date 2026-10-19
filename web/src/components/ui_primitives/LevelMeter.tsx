@@ -17,6 +17,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -122,6 +123,7 @@ export const LevelMeter = memo(function LevelMeter({
   className
 }: LevelMeterProps): React.JSX.Element {
   const theme = useTheme();
+  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const fills = useRef<(HTMLDivElement | null)[]>([]);
   const peaks = useRef<(HTMLDivElement | null)[]>([]);
@@ -237,7 +239,7 @@ export const LevelMeter = memo(function LevelMeter({
         type="button"
         className="level-meter__clip"
         data-clipped="false"
-        aria-label={`Clear ${label} clip indicator`}
+        aria-label={t("i18n-next91.levelMeter.clearClipIndicator", { label })}
         onClick={clearClip}
       />
       <div className="level-meter__bars" aria-hidden="true">

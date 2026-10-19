@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -13,6 +14,7 @@ import {
 import Select from "../inputs/Select";
 
 const WaveRecorder = (props: WaveRecorderProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const {
     error,
@@ -30,13 +32,32 @@ const WaveRecorder = (props: WaveRecorderProps) => {
   const deviceOptions = useMemo(() => {
     const options = audioInputDevices.map((device) => ({
       value: device.deviceId,
-      label: device.label
+      label:
+        device.label === "System default input"
+          ? t("batch2_15.audio.systemDefaultInput")
+          : /^Microphone \d+$/.test(device.label)
+            ? t("batch2_15.audio.microphone", { number: device.label.slice("Microphone ".length) })
+            : device.label
     }));
     if (!options.some((option) => option.value === "")) {
-      return [{ value: "", label: "System default input" }, ...options];
+      return [{ value: "", label: t("batch2_15.audio.systemDefaultInput") }, ...options];
     }
     return options;
-  }, [audioInputDevices]);
+  }, [audioInputDevices, t]);
+
+  const translatedError = error
+    ? error === "No media devices available"
+      ? t("batch2_15.audio.errors.noMediaDevices")
+      : error === "No devices found"
+        ? t("batch2_15.audio.errors.noDevicesFound")
+        : error === "No audio input devices found"
+          ? t("batch2_15.audio.errors.noAudioInputDevices")
+          : error.startsWith("Error enumerating devices: ")
+            ? t("batch2_15.audio.errors.enumeratingDevices", { error: error.slice("Error enumerating devices: ".length) })
+            : error.startsWith("Upload failed: ")
+              ? t("batch2_15.audio.errors.uploadFailed", { error: error.slice("Upload failed: ".length) })
+              : error
+    : null;
 
   const styles = (theme: Theme) =>
     css({
@@ -114,7 +135,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         density="compact"
         disabled={isLoading}
       >
-        {isRecording ? "STOP" : "RECORD"}
+        {isRecording ? t("batch2_15.audio.stop") : t("batch2_15.audio.record")}
         {isLoading && <LoadingSpinner size="small" />}
       </EditorButton>
 
@@ -123,6 +144,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         onClick={toggleDeviceListVisibility}
         variant="text"
         density="compact"
+        aria-label={t("batch2_15.audio.inputDevice")}
       >
         {isDeviceListVisible ? (
           <SettingsInputComponentIcon className="toggle-on" />
@@ -130,7 +152,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
           <SettingsInputComponentIcon className="toggle-off" />
         )}
       </EditorButton>
-      {error && <div className="error">{error}</div>}
+      {translatedError && <div className="error" role="alert">{translatedError}</div>}
 
       {isDeviceListVisible && (
         <div className="audio-device-list" style={{ margin: theme.spacing(1.5) }}>
@@ -143,7 +165,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                   color: "var(--palette-grey-100)"
                 }}
               >
-                Input device
+                {t("batch2_15.audio.inputDevice")}
               </Text>
               <div
                 className={`device-select${
@@ -154,8 +176,8 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                   options={deviceOptions}
                   value={selectedInputDeviceId}
                   onChange={handleInputDeviceChange}
-                  placeholder="System default input"
-                  label="Input device"
+                  placeholder={t("batch2_15.audio.systemDefaultInput")}
+                  label={t("batch2_15.audio.inputDevice")}
                   tabIndex={isRecording || isLoading ? -1 : 0}
                 />
               </div>
@@ -174,7 +196,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                 left: "0.5em"
               }}
             >
-              No audio input devices found.
+              {t("batch2_15.audio.errors.noAudioInputDevices")}
             </Text>
           )}
         </div>

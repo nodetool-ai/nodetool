@@ -3,7 +3,14 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { BORDER_RADIUS, Chip, getSpacingPx, SPACING, StatusBar } from "../ui_primitives";
+import { useTranslation } from "react-i18next";
+import {
+  BORDER_RADIUS,
+  Chip,
+  getSpacingPx,
+  SPACING,
+  StatusBar
+} from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 
 interface EditorStatusBarProps {
@@ -71,6 +78,8 @@ const EditorStatusBar = ({
   encoding = "UTF-8"
 }: EditorStatusBarProps) => {
   const theme = useTheme();
+  const { t, i18n } = useTranslation("translation", { keyPrefix: "screen_scripts_text" });
+  const numberFormat = new Intl.NumberFormat(i18n.resolvedLanguage);
 
   const wordCount = text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
   const charCount = text.length;
@@ -84,40 +93,50 @@ const EditorStatusBar = ({
     >
       <div className="stats">
         <div className="stat-item">
-          <span className="label">Words:</span>
-          <span className="value">{wordCount.toLocaleString()}</span>
+          <span className="label">{t("textEditor.words")}</span>
+          <span className="value">{numberFormat.format(wordCount)}</span>
         </div>
         <span className="stat-dot" />
         <div className="stat-item">
-          <span className="label">Chars:</span>
-          <span className="value">{charCount.toLocaleString()}</span>
+          <span className="label">{t("textEditor.characters")}</span>
+          <span className="value">{numberFormat.format(charCount)}</span>
         </div>
         <span className="stat-dot" />
         <div className="stat-item">
-          <span className="label">Lines:</span>
-          <span className="value">{lineCount.toLocaleString()}</span>
+          <span className="label">{t("textEditor.lines")}</span>
+          <span className="value">{numberFormat.format(lineCount)}</span>
         </div>
         {varCount !== undefined && (
           <>
             <span className="stat-dot" />
             <div className="stat-item">
-              <span className="label">Vars:</span>
-              <span className="value">{varCount.toLocaleString()}</span>
+              <span className="label">{t("textEditor.variablesShort")}</span>
+              <span className="value">{numberFormat.format(varCount)}</span>
             </div>
           </>
         )}
       </div>
       <div className="status-info">
         {readOnly && (
-          <Chip compact color="warning" icon={<LockIcon />} label="Read-only" />
+          <Chip
+            compact
+            color="warning"
+            icon={<LockIcon />}
+            label={t("textEditor.readOnly")}
+          />
         )}
         {cursor && (
           <span className="info-item">
-            Ln {cursor.line}, Col {cursor.column}
+            {t("textEditor.cursorPosition", {
+              line: numberFormat.format(cursor.line),
+              column: numberFormat.format(cursor.column)
+            })}
           </span>
         )}
         {languageLabel && <span className="info-item">{languageLabel}</span>}
-        <span className="info-item">Spaces: {indentSize}</span>
+        <span className="info-item">
+          {t("textEditor.spaces", { count: indentSize })}
+        </span>
         <span className="info-item">{encoding}</span>
       </div>
     </StatusBar>

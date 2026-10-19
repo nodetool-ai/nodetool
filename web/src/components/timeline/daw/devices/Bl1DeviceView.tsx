@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   useTimelinePlaybackStoreApi,
@@ -21,6 +22,7 @@ import "../fablesynth/bass/bl1Base.css";
 import "../fablesynth/bass/bass.css";
 
 export default function Bl1DeviceView({ trackId }: InstrumentDeviceViewProps): React.JSX.Element {
+  const { t } = useTranslation();
   const doc = useTimelineStoreApi();
   const playback = useTimelinePlaybackStoreApi();
   const store = useMemo(
@@ -33,7 +35,7 @@ export default function Bl1DeviceView({ trackId }: InstrumentDeviceViewProps): R
   return (
     <BassStoreProvider store={store}>
       <div className="fablesynth fablesynth-bl1" data-device="bl1" data-track-id={trackId}>
-        <main className="bass-rack" aria-label="BL-1 bass synth">
+        <main className="bass-rack" aria-label={t("i18n-next77.bl1.ariaLabel")}>
           <Header />
           <BassDeviceBody />
         </main>

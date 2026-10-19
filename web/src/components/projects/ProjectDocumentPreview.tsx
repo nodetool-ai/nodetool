@@ -8,6 +8,7 @@
  */
 
 import { memo, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 
 import {
@@ -23,7 +24,10 @@ import {
   StatusDot,
   TYPOGRAPHY
 } from "../ui_primitives";
-import { trackTypeAccent, trackTypeMeta } from "../timeline/Tracks/trackVisuals";
+import {
+  trackTypeAccent,
+  trackTypeMeta
+} from "../timeline/Tracks/trackVisuals";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import type { ProjectDocument } from "./projectStatus";
 
@@ -35,13 +39,14 @@ type ScriptPreview = Extract<Preview, { kind: "script" }>;
 type TimelinePreview = Extract<Preview, { kind: "timeline" }>;
 
 /** A line's dot: voiced reads as done, stale as needing another pass. */
-const LINE_STATE_COLOR: Record<ScriptPreview["lines"][number]["state"], string> =
-  {
-    voiced: "var(--palette-success-main)",
-    stale: "var(--palette-warning-main)",
-    draft: "var(--palette-text-disabled)"
-  };
-
+const LINE_STATE_COLOR: Record<
+  ScriptPreview["lines"][number]["state"],
+  string
+> = {
+  voiced: "var(--palette-success-main)",
+  stale: "var(--palette-warning-main)",
+  draft: "var(--palette-text-disabled)"
+};
 
 const Frame = ({ children }: { children: ReactNode }) => (
   <Box
@@ -79,47 +84,58 @@ const StillStrip = ({ document }: { document: ProjectDocument }) => (
   </Frame>
 );
 
-const ScriptLines = ({ preview }: { preview: ScriptPreview }) => (
-  <Frame>
-    <FlexColumn gap={SPACING.md} sx={{ p: SPACING.lg, bgcolor: "background.paper" }}>
-      {preview.lines.map((line, index) => (
-        <FlexRow key={index} align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
-          <StatusDot sx={{ bgcolor: LINE_STATE_COLOR[line.state] }} />
-          {line.speaker && (
-            <Box
-              component="span"
-              sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
-            >
-              {line.speaker}
-            </Box>
-          )}
-          <Caption
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
-            }}
+const ScriptLines = ({ preview }: { preview: ScriptPreview }) => {
+  const { t } = useTranslation();
+  return (
+    <Frame>
+      <FlexColumn
+        gap={SPACING.md}
+        sx={{ p: SPACING.lg, bgcolor: "background.paper" }}
+      >
+        {preview.lines.map((line, index) => (
+          <FlexRow
+            key={index}
+            align="center"
+            gap={SPACING.md}
+            sx={{ minWidth: 0 }}
           >
-            {line.text}
-          </Caption>
-          {line.state === "stale" && (
-            <Box
-              component="span"
+            <StatusDot sx={{ bgcolor: LINE_STATE_COLOR[line.state] }} />
+            {line.speaker && (
+              <Box
+                component="span"
+                sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
+              >
+                {line.speaker}
+              </Box>
+            )}
+            <Caption
               sx={{
-                ...TYPOGRAPHY.mono.caption,
-                color: "warning.main"
+                flex: 1,
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
               }}
             >
-              stale
-            </Box>
-          )}
-        </FlexRow>
-      ))}
-    </FlexColumn>
-  </Frame>
-);
+              {line.text}
+            </Caption>
+            {line.state === "stale" && (
+              <Box
+                component="span"
+                sx={{
+                  ...TYPOGRAPHY.mono.caption,
+                  color: "warning.main"
+                }}
+              >
+                {t("pass3_33.projects.documentPreview.stale")}
+              </Box>
+            )}
+          </FlexRow>
+        ))}
+      </FlexColumn>
+    </Frame>
+  );
+};
 
 /** Where the faint time grid falls behind each lane, as a share of the span. */
 const GRID_STOPS = [0.25, 0.5, 0.75];

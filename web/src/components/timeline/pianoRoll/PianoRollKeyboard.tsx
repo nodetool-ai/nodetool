@@ -13,6 +13,7 @@ import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 
 import type { MidiInstrument } from "@nodetool-ai/timeline";
+import { useTranslation } from "react-i18next";
 
 import { TYPOGRAPHY } from "../../ui_primitives";
 import { playAuditionNote } from "../preview/audition";
@@ -48,6 +49,7 @@ interface PianoRollKeyboardProps {
 
 export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
   ({ geometry, heightPx, instrument }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const { mode, systemMode } = useColorScheme();
     const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
@@ -125,7 +127,7 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
         css={canvasStyles}
         style={{ height: heightPx }}
         onPointerDown={handlePointerDown}
-        aria-label="Piano keyboard"
+        aria-label={t("pass3_20.pianoRoll.accessibility.pianoKeyboard")}
         role="img"
       />
     );

@@ -11,6 +11,7 @@
  */
 
 import { forwardRef, useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
@@ -72,16 +73,17 @@ function ConflictRow({
   acceptLabel: string;
   discardLabel: string;
 }): ReactElement {
+  const { t } = useTranslation();
   const [showDetail, setShowDetail] = useState(false);
   const hasDraft = conflict.draftDetail != null;
   const hasDetail = conflict.detail != null;
   const toggleLabel = hasDraft
     ? showDetail
-      ? "Hide diff"
-      : "View diff"
+      ? t("i18n-next88.conflictBanner.hideDiff")
+      : t("i18n-next88.conflictBanner.viewDiff")
     : showDetail
-      ? "Hide external value"
-      : "View external value";
+      ? t("i18n-next88.conflictBanner.hideExternalValue")
+      : t("i18n-next88.conflictBanner.viewExternalValue");
   return (
     <FlexColumn gap={0.25}>
       <FlexRow align="center" justify="space-between">
@@ -107,14 +109,14 @@ function ConflictRow({
         <FlexRow gap={SPACING.md} align="stretch">
           {hasDraft && (
             <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
-              <Caption>Your edit</Caption>
+              <Caption>{t("i18n-next88.conflictBanner.yourEdit")}</Caption>
               <Box component="pre" sx={valuePaneSx}>
                 {conflict.draftDetail}
               </Box>
             </FlexColumn>
           )}
           <FlexColumn gap={0.25} sx={{ flex: hasDraft ? 1 : undefined, minWidth: 0 }}>
-            {hasDraft && <Caption>External</Caption>}
+            {hasDraft && <Caption>{t("i18n-next88.conflictBanner.external")}</Caption>}
             <Box component="pre" sx={valuePaneSx}>
               {conflict.detail}
             </Box>
@@ -137,10 +139,13 @@ function ConflictRow({
  */
 export const ConflictBanner = forwardRef<HTMLDivElement, ConflictBannerProps>(
   (
-    { conflicts, onAccept, onDiscard, acceptLabel = "Accept", discardLabel = "Discard", sx },
+    { conflicts, onAccept, onDiscard, acceptLabel, discardLabel, sx },
     ref
   ) => {
-    const summary = `${conflicts.length} change${conflicts.length === 1 ? "" : "s"} made outside the editor conflict${conflicts.length === 1 ? "s" : ""} with your edits.`;
+    const { t } = useTranslation();
+    const resolvedAcceptLabel = acceptLabel ?? t("i18n-next88.conflictBanner.accept");
+    const resolvedDiscardLabel = discardLabel ?? t("i18n-next88.conflictBanner.discard");
+    const summary = t("i18n-next88.conflictBanner.summary", { count: conflicts.length });
 
     return (
       <Alert ref={ref} severity="warning" sx={sx}>
@@ -152,8 +157,8 @@ export const ConflictBanner = forwardRef<HTMLDivElement, ConflictBannerProps>(
               conflict={conflict}
               onAccept={onAccept}
               onDiscard={onDiscard}
-              acceptLabel={acceptLabel}
-              discardLabel={discardLabel}
+              acceptLabel={resolvedAcceptLabel}
+              discardLabel={resolvedDiscardLabel}
             />
           ))}
         </FlexColumn>

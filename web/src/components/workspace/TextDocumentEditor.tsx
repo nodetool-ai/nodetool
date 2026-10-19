@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -91,6 +92,7 @@ const TextDocumentEditor = ({
   asset,
   active = false
 }: TextDocumentEditorProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const editorStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -334,19 +336,19 @@ const TextDocumentEditor = ({
     if (isDirty && !isSaving) {
       commands.push({
         id: "save",
-        label: "Save",
+        label: t("i18n-next51.common.save"),
         run: handleSave,
         shortcut: `${mod}S`
       });
     }
     if (!isCsv) {
       commands.push(
-        { id: "undo", label: "Undo", run: handleUndo, shortcut: `${mod}Z` },
-        { id: "redo", label: "Redo", run: handleRedo, shortcut: `${shiftMod}Z` }
+        { id: "undo", label: t("i18n-next51.common.undo"), run: handleUndo, shortcut: `${mod}Z` },
+        { id: "redo", label: t("i18n-next51.common.redo"), run: handleRedo, shortcut: `${shiftMod}Z` }
       );
       commands.push({
         id: "word-wrap",
-        label: wordWrap ? "Turn off word wrap" : "Turn on word wrap",
+        label: wordWrap ? t("i18n-next51.text.turnOffWordWrap") : t("i18n-next51.text.turnOnWordWrap"),
         run: () => setWordWrap((wrap) => !wrap)
       });
     }
@@ -358,7 +360,8 @@ const TextDocumentEditor = ({
     wordWrap,
     handleSave,
     handleUndo,
-    handleRedo
+    handleRedo,
+    t
   ]);
   useContextCommands("Text", menuCommands, active);
 
@@ -402,7 +405,7 @@ const TextDocumentEditor = ({
               errorText: textError.message
             }}
           >
-            Could not load this text file.
+            {t("i18n-next51.text.loadError")}
           </ErrorBanner>
         </FlexColumn>
       );
@@ -436,7 +439,7 @@ const TextDocumentEditor = ({
                   disabled={!isDirty || isSaving}
                   onClick={handleSave}
                 >
-                  {isSaving ? "Saving…" : "Save"}
+                  {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
                 </EditorButton>
               </>
             }
@@ -452,7 +455,7 @@ const TextDocumentEditor = ({
           wordWrap={wordWrap}
           placeholder={
             isMarkdown
-              ? "Start writing. Use the buttons above for headings, bold and lists."
+              ? t("i18n-next51.text.markdownPlaceholder")
               : undefined
           }
           onChange={setContent}
@@ -490,7 +493,7 @@ const TextDocumentEditor = ({
               disabled={!isDirty || isSaving}
               onClick={handleSave}
             >
-              {isSaving ? "Saving…" : "Save"}
+              {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
             </EditorButton>
           </FlexRow>
         </Toolbar>

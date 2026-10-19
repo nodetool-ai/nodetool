@@ -8,6 +8,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { SwipeableDrawer } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -128,6 +129,7 @@ const MobileBottomSheetInternal: React.FC<MobileBottomSheetProps> = ({
   ariaLabel
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const handleOpen = React.useCallback(() => {
     onOpen?.();
@@ -159,7 +161,11 @@ const MobileBottomSheetInternal: React.FC<MobileBottomSheetProps> = ({
             {title}
           </Text>
           {showClose && (
-            <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
+            <CloseButton
+              onClick={onClose}
+              buttonSize="small"
+              tooltip={t("i18n-next87.mobileBottomSheet.close")}
+            />
           )}
         </FlexRow>
       )}

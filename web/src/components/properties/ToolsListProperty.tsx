@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   ToolbarIconButton,
@@ -118,6 +119,7 @@ const AVAILABLE_TOOLS: ToolEntry[] = [
 ];
 
 const ToolsListProperty = (props: PropertyProps<Tool[]>) => {
+  const { t } = useTranslation();
   const id = `tools-list-${props.property.name}-${props.propertyIndex}`;
   const toolNames: string[] = useMemo(
     () => props.value?.map((tool) => tool.name) || [],
@@ -201,7 +203,7 @@ const ToolsListProperty = (props: PropertyProps<Tool[]>) => {
         ))}
 
         <ToolbarIconButton
-          tooltip="Add / remove tools"
+          tooltip={t("i18n-next119.properties.addRemoveTools")}
           tooltipPlacement="top"
           icon={<Add fontSize="small" />}
           size="small"

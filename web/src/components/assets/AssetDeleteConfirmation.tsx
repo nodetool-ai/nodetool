@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import InsertDriveFile from "@mui/icons-material/InsertDriveFile";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -27,6 +28,7 @@ interface AssetDeleteConfirmationProps {
 const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   assets
 }) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next27" });
   const [isLoading, setIsLoading] = useState(false);
   const [totalAssets, setTotalAssets] = useState(0);
   const [folderCount, setFolderCount] = useState(0);
@@ -121,22 +123,20 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       await refetchAssetsAndFolders();
       const parts = [
         folderCount > 0
-          ? `${folderCount} folder${folderCount !== 1 ? "s" : ""}`
+          ? t(folderCount === 1 ? "assetDelete.folderOne" : "assetDelete.folderOther", { count: folderCount })
           : null,
-        fileCount > 0 ? `${fileCount} file${fileCount !== 1 ? "s" : ""}` : null
+        fileCount > 0 ? t(fileCount === 1 ? "assetDelete.fileOne" : "assetDelete.fileOther", { count: fileCount }) : null
       ].filter((part): part is string => part !== null);
       addNotification({
         type: "success",
         alert: true,
-        content: `Deleted ${parts.join(" and ") || "selection"}`
+        content: t("assetDelete.deleted", { items: parts.join(" and ") || t("assetDelete.selection") })
       });
     } catch (error) {
       addNotification({
         type: "error",
         alert: true,
-        content: `Could not delete: ${
-          error instanceof Error ? error.message : "unknown error"
-        }`
+        content: t("assetDelete.failed", { error: error instanceof Error ? error.message : t("assetDelete.unknownError") })
       });
     } finally {
       setIsLoading(false);
@@ -154,16 +154,13 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
 
   const itemCount = folderCount + fileCount || assets.length;
   const plural = (count: number, word: string) =>
-    `${count} ${word}${count !== 1 ? "s" : ""}`;
+    t(count === 1 ? `assetDelete.${word}One` : `assetDelete.${word}Other`, { count });
   const folderSummary =
     folderCount === 0 || isAssetTreeLoading
       ? null
       : folderCount === 1 && fileCount === 0
-        ? `The folder contains ${plural(totalAssets - 1, "file")}.`
-        : `${plural(folderCount, "folder")} and ${plural(
-            fileCount,
-            "file"
-          )} containing ${plural(totalAssets, "item")}.`;
+        ? t("assetDelete.folderContains", { files: t((totalAssets - 1) === 1 ? "assetDelete.fileOne" : "assetDelete.fileOther", { count: totalAssets - 1 }) })
+        : t("assetDelete.folderSummary", { folders: plural(folderCount, "folder"), files: plural(fileCount, "file"), items: plural(totalAssets, "item") });
 
   return (
     <Dialog
@@ -173,9 +170,9 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       disableRestoreFocus
       maxWidth="sm"
       fullWidth
-      title={`Delete ${plural(itemCount, "item")}?`}
+      title={t(itemCount === 1 ? "assetDelete.titleOne" : "assetDelete.titleOther", { count: itemCount })}
       onConfirm={executeDeletion}
-      confirmText="Delete"
+      confirmText={t("assetDelete.delete")}
       destructive
       isLoading={isLoading}
       confirmDisabled={isAssetTreeLoading || showRootFolderWarning}
@@ -186,11 +183,11 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       >
         {showRootFolderWarning ? (
           <AlertBanner severity="warning">
-            The root folder cannot be deleted.
+            {t("assetDelete.rootFolderWarning")}
           </AlertBanner>
         ) : null}
         <Text color="secondary">
-          You can right click selected assets and download them before deleting.
+          {t("assetDelete.downloadBeforeDelete")}
         </Text>
         {folderSummary && !showRootFolderWarning ? (
           <Text>{folderSummary}</Text>

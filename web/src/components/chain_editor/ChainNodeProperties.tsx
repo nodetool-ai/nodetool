@@ -8,6 +8,7 @@
  */
 import { css } from "@emotion/react";
 import React, { createElement, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -129,6 +130,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
   onUpdate,
   onSetInputMapping,
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const store = useMemo(() => getEmptyStore(), []);
   const cssStyles = useMemo(() => chainPropertyStyles(theme), [theme]);
@@ -191,7 +193,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
     return (
       <Box sx={{ py: 1.5, textAlign: "center" }}>
         <Text size="smaller" color="secondary" sx={{ fontStyle: "italic" }}>
-          No configurable properties
+          {t("pass3_1.chainNodeProperties.noConfigurableProperties")}
         </Text>
       </Box>
     );
@@ -239,7 +241,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                     role="button"
                     tabIndex={0}
                     aria-haspopup="menu"
-                    aria-label={`Change source for ${prop.title ?? prop.name}`}
+                    aria-label={t("pass3_1.chainNodeProperties.changeSource", { field: prop.title ?? prop.name })}
                     sx={{
                       px: 1.5,
                       py: 1,
@@ -261,7 +263,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                       >
                         {sourceNode
                           ? `${sourceIndex + 1} · ${sourceNode.metadata.title}`
-                          : "Missing source"}
+                          : t("pass3_1.chainNodeProperties.missingSource")}
                         {mapping.sourceOutput &&
                         sourceNode &&
                         sourceNode.metadata.outputs.length > 1
@@ -271,19 +273,19 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                       <Text size="smaller" color="secondary">
                         {sourceOutput
                           ? formatType(sourceOutput.type)
-                          : "from previous step"}
+                          : t("pass3_1.chainNodeProperties.fromPreviousStep")}
                       </Text>
                     </FlexColumn>
                     {!sourceCompatible && (
                       <WarningAmberIcon
-                        titleAccess="Source type does not match this field"
+                        titleAccess={t("pass3_1.chainNodeProperties.sourceTypeMismatch")}
                         sx={{ fontSize: ICON_SIZE.sm, color: theme.vars.palette.warning.main }}
                       />
                     )}
                     <ToolbarIconButton
                       size="small"
-                      ariaLabel={`Disconnect ${prop.title ?? prop.name}`}
-                      tooltip="Disconnect — edit the value instead"
+                      ariaLabel={t("pass3_1.chainNodeProperties.disconnectField", { field: prop.title ?? prop.name })}
+                      tooltip={t("pass3_1.chainNodeProperties.disconnectTooltip")}
                       onClick={(e) => {
                         e.stopPropagation();
                         onSetInputMapping(prop.name, null);
@@ -314,8 +316,8 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                   >
                     <ToolbarIconButton
                       size="small"
-                      ariaLabel={`Connect ${prop.title ?? prop.name} to a previous step`}
-                      tooltip="Use output from a previous step"
+                      ariaLabel={t("pass3_1.chainNodeProperties.connectField", { field: prop.title ?? prop.name })}
+                      tooltip={t("pass3_1.chainNodeProperties.connectTooltip")}
                       onClick={(e) => handleOpenPicker(prop.name, e.currentTarget)}
                       icon={
                         <AddLinkIcon sx={{ fontSize: ICON_SIZE.sm, color: secondary }} />
@@ -355,7 +357,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
           <ListSubheader
             title={
               activeProp
-                ? `Pick which step's output fills this ${formatType(activeProp.type)} field`
+                ? t("pass3_1.chainNodeProperties.pickOutputDescription", { type: formatType(activeProp.type) })
                 : undefined
             }
           >
@@ -364,8 +366,8 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
 
           {activeMapping && (
             <MenuItemPrimitive
-              label="Disconnect"
-              secondary="Edit the value manually"
+              label={t("pass3_1.chainNodeProperties.disconnect")}
+              secondary={t("pass3_1.chainNodeProperties.editValueManually")}
               icon={<LinkOffIcon />}
               onClick={() => handleSelect(null)}
             />
@@ -374,10 +376,10 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
           {compatibleOptions.length === 0 && (
             <EditorMenuItem disabled>
               <ListItemText
-                primary="No compatible outputs in previous steps"
+                primary={t("pass3_1.chainNodeProperties.noCompatibleOutputs")}
                 secondary={
                   activeProp
-                    ? `This field takes ${formatType(activeProp.type)}`
+                    ? t("pass3_1.chainNodeProperties.fieldAcceptsType", { type: formatType(activeProp.type) })
                     : undefined
                 }
               />
@@ -415,9 +417,9 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
 
           {incompatibleOptions.length > 0 && (
             <ListSubheader>
-              {`Not compatible with ${
-                activeProp ? formatType(activeProp.type) : "this field"
-              }`}
+              {t("pass3_1.chainNodeProperties.notCompatibleWith", {
+                type: activeProp ? formatType(activeProp.type) : t("pass3_1.chainNodeProperties.thisField")
+              })}
             </ListSubheader>
           )}
           {incompatibleOptions.map(({ node, step, output }) => (

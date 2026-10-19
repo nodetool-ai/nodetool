@@ -18,6 +18,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   AlertBanner,
@@ -90,15 +91,20 @@ const IMAGE_EXTENSION: Record<string, string> = {
  */
 export const downloadVariation = async (
   assetId: string,
-  label: string
+  label: string,
+  translate: (key: string, options?: Record<string, unknown>) => string
 ): Promise<void> => {
   const url = await resolveMediaUri(`asset://${assetId}`);
   if (!url) {
-    throw new Error("Its file could not be found.");
+    throw new Error(translate("pass3_7.imageSetup.contact.downloadMissing"));
   }
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`The file could not be read (${response.status}).`);
+    throw new Error(
+      translate("pass3_7.imageSetup.contact.downloadUnreadable", {
+        status: response.status
+      })
+    );
   }
   const blob = await response.blob();
   const extension = IMAGE_EXTENSION[blob.type] ?? "png";
@@ -114,20 +120,10 @@ export const downloadVariation = async (
   setTimeout(() => URL.revokeObjectURL(objectUrl));
 };
 
-/** Status wording that says what is happening rather than naming a state. */
-const STATUS_TEXT: Record<string, string> = {
-  draft: "Waiting to start",
-  queued: "Queued",
-  generating: "Rendering",
-  failed: "This one failed"
-};
-
 /** Statuses that mean the request has not settled yet. */
 const PENDING = new Set(["draft", "queued", "generating"]);
 
 /** What a failure says when the take recorded no reason of its own. */
-const UNRECORDED_REASON = "This one did not render, and gave no reason.";
-
 /** Where saving a variation to the library has got to. */
 type SaveState = "idle" | "saving" | "saved" | "failed";
 
@@ -149,6 +145,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
   onSaveToLibrary,
   onOpenCanvas
 }) => {
+  const { t } = useTranslation();
   const bindings = useSketchSessionStore((state) => state.bindings);
   const { start } = useDirectGenJob();
   const [actions, setActions] = useState<
@@ -176,7 +173,9 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
       const failure = status === "failed" ? directGenFailure(layerId) : null;
       return {
         layerId,
-        label: names[index] || `Variation ${index + 1}`,
+        label:
+          names[index] ||
+          t("pass3_7.imageSetup.contact.variation", { number: index + 1 }),
         assetId: binding?.currentAssetId,
         status,
         pending: PENDING.has(status),
@@ -188,10 +187,10 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
             ? null
             : failure
               ? describeDirectGenFailure(failure)
-              : UNRECORDED_REASON
+              : t("pass3_7.imageSetup.contact.unrecordedFailure")
       };
     });
-  }, [bindings, layerIds, layerNames]);
+  }, [bindings, layerIds, layerNames, t]);
 
   const landed = tiles.filter((tile) => tile.assetId !== undefined).length;
   const failedTiles = tiles.filter((tile) => tile.failed);
@@ -201,7 +200,12 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
   // A batch usually fails for one reason — a key, a quota, a prompt — so the
   // sheet says it once above the grid instead of on every tile.
   const reasons = Array.from(
-    new Set(failedTiles.map((tile) => tile.reason ?? UNRECORDED_REASON))
+    new Set(
+      failedTiles.map(
+        (tile) =>
+          tile.reason ?? t("pass3_7.imageSetup.contact.unrecordedFailure")
+      )
+    )
   );
   const sharedReason = failed > 1 && reasons.length === 1 ? reasons[0] : null;
 
@@ -252,7 +256,10 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
         ...current,
         [layerId]: {
           state: "saving",
-          message: destination === "entity" ? "Saving to entities…" : "Opening…"
+          message:
+            destination === "entity"
+              ? t("pass3_7.imageSetup.contact.savingEntity")
+              : t("pass3_7.imageSetup.contact.opening")
         }
       }));
       try {
@@ -267,8 +274,8 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
             state: "saved",
             message:
               destination === "entity"
-                ? "Saved to entities."
-                : "Opened in a new node canvas."
+                ? t("pass3_7.imageSetup.contact.savedEntity")
+                : t("pass3_7.imageSetup.contact.openedCanvas")
           }
         }));
       } catch (cause) {
@@ -279,31 +286,37 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
             state: "failed",
             message:
               destination === "entity"
-                ? `Could not save to entities.${reason}`
-                : `Could not open that canvas.${reason}`
+                ? `${t("pass3_7.imageSetup.contact.saveEntityFailed")}${reason}`
+                : `${t("pass3_7.imageSetup.contact.openCanvasFailed")}${reason}`
           }
         }));
       }
     },
-    [onSaveToLibrary, onOpenCanvas]
+    [onSaveToLibrary, onOpenCanvas, t]
   );
 
   return (
     <FlexColumn gap={GAP.spacious}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Pick your image
+          {t("pass3_7.imageSetup.contact.heading")}
         </Text>
         <Text size="normal" color="secondary">
-          Every variation stays on the document, so nothing you rendered is
-          lost.
+          {t("pass3_7.imageSetup.contact.intro")}
         </Text>
         {/* What the batch did, said once and out loud, so a reader who cannot
             see the grid still learns that three landed and one did not. */}
         <Text size="small" color="secondary" role="status" aria-live="polite">
-          {`${landed} of ${tiles.length} rendered` +
-            (failed > 0 ? ` · ${failed} failed` : "") +
-            (pending > 0 ? ` · ${pending} still running` : "")}
+          {t("pass3_7.imageSetup.contact.batchStatus", {
+            landed,
+            total: tiles.length
+          })}
+          {failed > 0
+            ? ` · ${failed} ${t("pass3_7.imageSetup.contact.failedCount")}`
+            : ""}
+          {pending > 0
+            ? ` · ${pending} ${t("pass3_7.imageSetup.contact.pendingCount")}`
+            : ""}
         </Text>
       </FlexColumn>
 
@@ -314,7 +327,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
             <ReportBugButton
               context={{
                 source: "provider-call",
-                summary: "Image variations failed to render",
+                summary: t("pass3_7.imageSetup.contact.renderFailed"),
                 errorText: reasons.join("\n")
               }}
             />
@@ -322,9 +335,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
         >
           <FlexColumn gap={GAP.tight}>
             <Text size="small">
-              Nothing rendered. Try a variation again, change the model or size
-              under the generation settings, or open the editor and work from
-              the canvas.
+              {t("pass3_7.imageSetup.contact.nothingRendered")}
             </Text>
             {reasons.map((reason) => (
               <Text key={reason} size="small">
@@ -345,7 +356,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
             <ReportBugButton
               context={{
                 source: "provider-call",
-                summary: "More image variations failed to start",
+                summary: t("pass3_7.imageSetup.contact.moreFailed"),
                 errorText: makeMoreError
               }}
             />
@@ -357,7 +368,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
 
       <Box
         role="group"
-        aria-label="Variations"
+        aria-label={t("pass3_7.imageSetup.contact.variations")}
         sx={{
           display: "grid",
           gridTemplateColumns:
@@ -376,7 +387,9 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
           >
             <Box
               role="group"
-              aria-label={`${tile.label} preview`}
+              aria-label={t("pass3_7.imageSetup.contact.previewLabel", {
+                label: tile.label
+              })}
               aria-busy={tile.pending}
               className={MEDIA_GALLERY_HOST_CLASS}
               // A click on the still picks it, the same as `Sketch editor`
@@ -419,7 +432,11 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                   }}
                 >
                   <Caption color="secondary">
-                    {STATUS_TEXT[tile.status] ?? "Rendering"}
+                    {t(`pass3_7.imageSetup.contact.status.${tile.status}`, {
+                      defaultValue: t(
+                        "pass3_7.imageSetup.contact.status.generating"
+                      )
+                    })}
                   </Caption>
                 </Box>
               )}
@@ -448,13 +465,19 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                       disabled={!tile.assetId}
                       onClick={() => pick(tile.layerId)}
                     >
-                      Sketch editor
+                      {t("pass3_7.imageSetup.contact.sketchEditor")}
                     </EditorButton>
                     {(
                       [
-                        ["entity", "Save to entities"],
-                        ["canvas", "New node canvas"],
-                        ["video", "Image to video"]
+                        [
+                          "entity",
+                          t("pass3_7.imageSetup.contact.saveToEntities")
+                        ],
+                        [
+                          "canvas",
+                          t("pass3_7.imageSetup.contact.newNodeCanvas")
+                        ],
+                        ["video", t("pass3_7.imageSetup.contact.imageToVideo")]
                       ] as const
                     ).map(([destination, label]) => (
                       <EditorButton
@@ -476,7 +499,11 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                   disabled={tile.pending}
                   onClick={() => regenerate(tile.layerId, tile.failed)}
                 >
-                  {tile.failed ? `Try ${tile.label} again` : "Regenerate"}
+                  {tile.failed
+                    ? t("pass3_7.imageSetup.contact.retryVariation", {
+                        label: tile.label
+                      })
+                    : t("pass3_7.imageSetup.contact.regenerate")}
                   {/* Another render is paid for, so its price sits on the button. */}
                   {regenerateDetail ? ` · ${regenerateDetail}` : ""}
                 </EditorButton>
@@ -485,7 +512,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                     variant="text"
                     onClick={() => {
                       if (tile.assetId) {
-                        downloadVariation(tile.assetId, tile.label).catch(
+                        downloadVariation(tile.assetId, tile.label, t).catch(
                           (cause: unknown) => {
                             const reason =
                               cause instanceof Error ? ` ${cause.message}` : "";
@@ -493,7 +520,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                               ...current,
                               [tile.layerId]: {
                                 state: "failed",
-                                message: `Could not download ${tile.label}.${reason}`
+                                message: `${t("pass3_7.imageSetup.contact.downloadFailed", { label: tile.label })}${reason}`
                               }
                             }));
                           }
@@ -501,7 +528,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                       }
                     }}
                   >
-                    Download
+                    {t("pass3_7.imageSetup.contact.download")}
                   </EditorButton>
                 ) : null}
               </FlexRow>
@@ -526,7 +553,9 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
           disabled={makeMorePending}
           onClick={onMakeMore}
         >
-          {makeMorePending ? "Making more…" : "Make more variations"}
+          {makeMorePending
+            ? t("pass3_7.imageSetup.contact.makingMore")
+            : t("pass3_7.imageSetup.contact.makeMore")}
         </EditorButton>
         {makeMoreDetail && !makeMorePending ? (
           <Caption color="secondary" sx={{ alignSelf: "center" }}>
@@ -534,10 +563,10 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
           </Caption>
         ) : null}
         <EditorButton variant="text" onClick={onBackToSettings}>
-          Back to generation settings
+          {t("pass3_7.imageSetup.contact.backToSettings")}
         </EditorButton>
         <EditorButton variant="text" onClick={onOpenEditor}>
-          Open editor
+          {t("pass3_7.imageSetup.contact.openEditor")}
         </EditorButton>
       </FlexRow>
     </FlexColumn>

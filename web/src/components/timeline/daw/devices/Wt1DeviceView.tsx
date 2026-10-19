@@ -10,6 +10,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { WavetableMidiInstrument } from "@nodetool-ai/timeline";
 
@@ -48,13 +49,14 @@ function wavetableOf(
 }
 
 function Wt1Rack({ store }: { store: Wt1StoreApi }): React.JSX.Element {
+  const { t } = useTranslation();
   const root = useRef<HTMLDivElement>(null);
   return (
     <Wt1StoreProvider store={store}>
       <Wt1Keys root={root} />
       <div ref={root} className="fablesynth fablesynth-wt1" data-device="wt1" tabIndex={-1}>
         <WavetableEditor />
-        <main className="fs-rack" aria-label="WT-1 wavetable synth">
+        <main className="fs-rack" aria-label={t("i18n-next77.wt1.ariaLabel")}>
           <TopBar />
           <WtDeviceBody />
           <KeyboardBar />
@@ -71,6 +73,7 @@ function Wt1Keys({ root }: { root: React.RefObject<HTMLDivElement | null> }): nu
 }
 
 export default function Wt1DeviceView({ trackId }: InstrumentDeviceViewProps): React.JSX.Element {
+  const { t } = useTranslation();
   const doc = useTimelineStoreApi();
   const isWavetable = useTimelineStore((s) => wavetableOf(s.tracks, trackId) !== null);
   const audioGraph = useTimelinePlaybackStore((s) => s.audioGraph);
@@ -167,7 +170,7 @@ export default function Wt1DeviceView({ trackId }: InstrumentDeviceViewProps): R
   if (!isWavetable) {
     return (
       <div className="fablesynth fablesynth-wt1" data-device="wt1">
-        <p className="fs-empty">This track does not play WT-1.</p>
+        <p className="fs-empty">{t("i18n-next77.wt1.notPlaying")}</p>
       </div>
     );
   }

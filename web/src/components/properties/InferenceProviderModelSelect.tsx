@@ -1,4 +1,5 @@
 import { useModelProviderSetup } from "../../hooks/useModelProviderSetup";
+import { useTranslation } from "react-i18next";
 import useSelect from "../../hooks/nodes/useSelect";
 import { Text, FlexColumn } from "../ui_primitives";
 import { InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
@@ -47,8 +48,7 @@ const providerOptions = [
     { label: "Replicate", value: "replicate" },
     { label: "Sambanova", value: "sambanova" },
     { label: "Together", value: "together" },
-    { label: "Z.AI", value: "zai-org" },
-    { label: "Add providers…", value: "__add_providers" }
+    { label: "Z.AI", value: "zai-org" }
 ];
 
 const InferenceProviderModelSelect = ({
@@ -56,6 +56,7 @@ const InferenceProviderModelSelect = ({
   onChange,
   value: rawValue
 }: PropertyProps) => {
+    const { t } = useTranslation("translation", { keyPrefix: "i18n-next40" });
     const [providerOpen, setProviderOpen] = useState(false);
     const [modelOpen, setModelOpen] = useState(false);
     const closeSelect = useSelect((s) => s.close);
@@ -139,33 +140,36 @@ const InferenceProviderModelSelect = ({
         <FlexColumn gap={2}>
             <div>
                 <Text size="small" sx={{ mb: 1 }}>
-                    Provider
+                    {t("inference.provider")}
                 </Text>
                 <Select
                     onOpenChange={setProviderOpen}
-                    options={providerOptions}
+                    options={[
+                      ...providerOptions,
+                      { value: "__add_providers", label: t("modelSelect.addProvidersEllipsis") }
+                    ]}
                     value={value.provider}
                     onChange={handleChangeProvider}
-                    placeholder="Select an inference provider"
+                    placeholder={t("inference.selectProvider")}
                 />
             </div>
 
             {value.provider && (
                 <div>
                     <Text size="small" sx={{ mb: 1 }}>
-                        Model
+                        {t("inference.model")}
                     </Text>
                     <Select
                         onOpenChange={setModelOpen}
-                        options={[...modelOptions, { value: "__add_providers", label: "Add providers…" }]}
+                        options={[...modelOptions, { value: "__add_providers", label: t("modelSelect.addProvidersEllipsis") }]}
                         value={value.model_id}
                         onChange={handleChangeModel}
                         placeholder={
                             isLoadingModels
-                                ? "Loading models…"
+                                ? t("modelSelect.loadingModels")
                                 : modelsError
-                                    ? "Error loading models"
-                                    : "Select a model"
+                                    ? t("modelSelect.errorLoadingModels")
+                                    : t("modelSelect.selectModel")
                         }
                     />
                 </div>

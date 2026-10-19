@@ -1,7 +1,19 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, ICON_SIZE, EmptyState } from "../ui_primitives";
+import {
+  Box,
+  FlexRow,
+  FlexColumn,
+  Text,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  ICON_SIZE,
+  EmptyState
+} from "../ui_primitives";
 import { CostNodeIcon } from "./CostNodeIcon";
 import {
   groupExecutions,
@@ -105,7 +117,10 @@ const ExecutionRows: React.FC<{ rows: Execution[] }> = ({ rows }) => {
                 color: theme.vars.palette.text.secondary
               }}
             >
-              <CostNodeIcon category={e.category} sx={{ fontSize: ICON_SIZE.sm }} />
+              <CostNodeIcon
+                category={e.category}
+                sx={{ fontSize: ICON_SIZE.sm }}
+              />
             </FlexRow>
             <FlexColumn sx={{ minWidth: 0 }}>
               <Text
@@ -315,6 +330,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
   executions,
   groupBy
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isExecution = groupBy === "execution";
 
@@ -338,14 +354,20 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
       <Box sx={headerSx}>
         {isExecution ? (
           <>
-            <HeaderText>Node</HeaderText>
-            <HeaderText>Workflow</HeaderText>
-            <HeaderText>Provider / model</HeaderText>
-            <HeaderText align="right">Tokens (in/out)</HeaderText>
-            <HeaderText align="right">Runtime</HeaderText>
-            <HeaderText>Status</HeaderText>
+            <HeaderText>{t("i18n-next1.costs.table.node")}</HeaderText>
+            <HeaderText>{t("i18n-next1.costs.table.workflow")}</HeaderText>
+            <HeaderText>{t("i18n-next1.costs.table.providerModel")}</HeaderText>
+            <HeaderText align="right">
+              {t("i18n-next1.costs.table.tokens")}
+            </HeaderText>
+            <HeaderText align="right">
+              {t("i18n-next1.costs.table.runtime")}
+            </HeaderText>
+            <HeaderText>{t("i18n-next1.costs.table.status")}</HeaderText>
             <FlexRow align="center" justify="flex-end" gap={SPACING.micro}>
-              <HeaderText align="right">When</HeaderText>
+              <HeaderText align="right">
+                {t("i18n-next1.costs.table.when")}
+              </HeaderText>
               <ArrowDropDownIcon
                 sx={{
                   fontSize: ICON_SIZE.sm,
@@ -353,22 +375,28 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
                 }}
               />
             </FlexRow>
-            <HeaderText align="right">Cost</HeaderText>
+            <HeaderText align="right">
+              {t("i18n-next1.costs.table.cost")}
+            </HeaderText>
           </>
         ) : (
           <>
             <HeaderText>
               {groupBy === "nodeType"
-                ? "Node type"
+                ? t("i18n-next1.costs.table.nodeType")
                 : groupBy === "workflow"
-                  ? "Workflow"
+                  ? t("i18n-next1.costs.table.workflow")
                   : groupBy === "provider"
-                    ? "Provider"
-                    : "Model"}
+                    ? t("i18n-next1.costs.table.provider")
+                    : t("i18n-next1.costs.table.model")}
             </HeaderText>
-            <HeaderText align="right">Executions</HeaderText>
-            <HeaderText>Share of spend</HeaderText>
-            <HeaderText align="right">Cost</HeaderText>
+            <HeaderText align="right">
+              {t("i18n-next1.costs.table.executions")}
+            </HeaderText>
+            <HeaderText>{t("i18n-next1.costs.table.shareOfSpend")}</HeaderText>
+            <HeaderText align="right">
+              {t("i18n-next1.costs.table.cost")}
+            </HeaderText>
           </>
         )}
       </Box>
@@ -386,7 +414,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
         <EmptyState
           variant="no-results"
           size="small"
-          title="No executions match the current filters"
+          title={t("i18n-next1.costs.table.noMatches")}
         />
       )}
     </Box>

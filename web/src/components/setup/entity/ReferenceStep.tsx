@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { EntityKind } from "@nodetool-ai/protocol";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
@@ -29,10 +30,7 @@ import {
   Text,
   TextArea
 } from "../../ui_primitives";
-import {
-  SETUP_CONTENT_WIDTH,
-  SETUP_MEDIA_WIDTH
-} from "../layout";
+import { SETUP_CONTENT_WIDTH, SETUP_MEDIA_WIDTH } from "../layout";
 import { GalleryFrame } from "../MediaGallery";
 
 interface ReferenceStepProps {
@@ -56,111 +54,39 @@ interface ReferencePromptOption {
   readonly aspectRatio: "1:1" | "2:3" | "3:2";
 }
 
-const PROMPT_OPTIONS: Record<
-  EntityKind,
-  readonly [ReferencePromptOption, ...ReferencePromptOption[]]
-> = {
-  character: [
-    {
-      id: "full-body",
-      label: "Full body",
-      instruction:
-        "Show one full-body, front-facing pose, head to toe. Center the character against a neutral background with even studio lighting. Make their face, clothing, and distinctive features clear.",
-      aspectRatio: "1:1"
-    },
-    {
-      id: "portrait",
-      label: "Portrait",
-      instruction:
-        "Show a head-and-shoulders portrait with the face fully visible and a neutral expression. Use a simple background and even lighting so facial features and hair are easy to identify.",
-      aspectRatio: "2:3"
-    },
-    {
-      id: "character-sheet",
-      label: "Character sheet",
-      instruction:
-        "Create a character sheet with front, side, and back views plus a close-up of the face. Keep proportions, clothing, colors, and distinctive features consistent across views. Use a clean background without text or labels.",
-      aspectRatio: "3:2"
-    }
-  ],
-  location: [
-    {
-      id: "establishing-view",
-      label: "Establishing view",
-      instruction:
-        "Show a wide establishing view of the location. Make its layout, architecture, landmarks, and atmosphere clear in one coherent scene.",
-      aspectRatio: "3:2"
-    },
-    {
-      id: "detail-view",
-      label: "Detail view",
-      instruction:
-        "Show a closer view of the location's defining materials, objects, and architectural details. Keep the setting and atmosphere recognizable.",
-      aspectRatio: "1:1"
-    },
-    {
-      id: "location-sheet",
-      label: "Location sheet",
-      instruction:
-        "Create a location sheet with three views of the same place from different angles. Keep the architecture, landmarks, lighting, and color palette consistent. No text or labels.",
-      aspectRatio: "3:2"
-    }
-  ],
-  style: [
-    {
-      id: "style-sample",
-      label: "Style sample",
-      instruction:
-        "Create one cohesive scene that clearly shows this visual style's palette, lighting, texture, and rendering treatment.",
-      aspectRatio: "1:1"
-    },
-    {
-      id: "style-sheet",
-      label: "Style sheet",
-      instruction:
-        "Create a visual style sheet with three different subjects rendered in the same style. Keep the palette, lighting, texture, and rendering treatment consistent. No text or labels.",
-      aspectRatio: "3:2"
-    },
-    {
-      id: "texture-detail",
-      label: "Texture detail",
-      instruction:
-        "Show a close-up sample of this style's defining textures, brushwork, materials, and color relationships, with enough detail to reuse the treatment.",
-      aspectRatio: "1:1"
-    }
-  ],
-  prop: [
-    {
-      id: "product-view",
-      label: "Product view",
-      instruction:
-        "Show one clear three-quarter view of the object, fully visible and centered against a neutral background. Use even studio lighting to reveal its shape, materials, and colors.",
-      aspectRatio: "1:1"
-    },
-    {
-      id: "detail-view",
-      label: "Detail view",
-      instruction:
-        "Show a close-up of the object's distinctive details, materials, markings, and construction. Keep the object recognizable against a simple background.",
-      aspectRatio: "1:1"
-    },
-    {
-      id: "turnaround-sheet",
-      label: "Turnaround sheet",
-      instruction:
-        "Create an object turnaround sheet with front, side, and back views. Keep its shape, scale, materials, colors, and details consistent across views. Use a clean background without text or labels.",
-      aspectRatio: "3:2"
-    }
-  ]
+const PROMPT_OPTION_KEYS: Record<EntityKind, readonly [string, ...string[]]> = {
+  character: ["full-body", "portrait", "character-sheet"],
+  location: ["establishing-view", "detail-view", "location-sheet"],
+  style: ["style-sample", "style-sheet", "texture-detail"],
+  prop: ["product-view", "detail-view", "turnaround-sheet"]
+};
+
+const aspectRatios: Record<string, ReferencePromptOption["aspectRatio"]> = {
+  "full-body": "1:1",
+  portrait: "2:3",
+  "character-sheet": "3:2",
+  "establishing-view": "3:2",
+  "detail-view": "1:1",
+  "location-sheet": "3:2",
+  "style-sample": "1:1",
+  "style-sheet": "3:2",
+  "texture-detail": "1:1",
+  "product-view": "1:1",
+  "turnaround-sheet": "3:2"
 };
 
 const referencePrompt = (
+  t: ReturnType<typeof useTranslation>["t"],
   name: string,
   kind: EntityKind,
   descriptor: string,
   option: ReferencePromptOption
 ): string =>
-  `A reference image of ${name || `the ${kind}`}. ${descriptor.trim()} ${option.instruction}`;
+  t("i18n-cont-setup-05.entity.reference.prompt.template", {
+    name: name || t(`i18n-cont-setup-05.entity.kinds.${kind}`),
+    descriptor: descriptor.trim(),
+    instruction: option.instruction
+  });
 
 /** How long a reference render may take before the dialog gives up on it. */
 const REFERENCE_TIMEOUT_MS = 5 * 60_000;
@@ -182,16 +108,27 @@ const GenerateReferenceDialog = ({
   onClose,
   onPick
 }: GenerateReferenceDialogProps) => {
+  const { t, i18n } = useTranslation();
   const rememberedModel = getRememberedModel("image");
-  const options = PROMPT_OPTIONS[kind];
+  const options = PROMPT_OPTION_KEYS[kind].map((id) => ({
+    id,
+    label: t(`i18n-cont-setup-05.entity.reference.prompt.promptOptions.${id}.label`),
+    instruction: t(
+      `i18n-cont-setup-05.entity.reference.prompt.promptOptions.${id}.instruction`
+    ),
+    aspectRatio: aspectRatios[id] ?? "1:1"
+  }));
   const [selectedOption, setSelectedOption] = useState(options[0].id);
   const [prompt, setPrompt] = useState(() =>
-    referencePrompt(name, kind, descriptor, options[0])
+    referencePrompt(t, name, kind, descriptor, options[0])
   );
   const [model, setModel] = useState(rememberedModel?.model ?? "");
   const [provider, setProvider] = useState(rememberedModel?.provider ?? "");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const aspectRatio =
+    options.find((option) => option.id === selectedOption)?.aspectRatio ??
+    "1:1";
 
   const handleModelChange = useCallback((value: ImageModelValue) => {
     setModel(value.id);
@@ -242,7 +179,7 @@ const GenerateReferenceDialog = ({
         ? answer.asset_ids.find((id): id is string => typeof id === "string")
         : undefined;
       if (!assetId) {
-        throw new Error("The image model returned no reference image.");
+        throw new Error(t("i18n-cont-setup-05.entity.reference.errors.noImage"));
       }
       useLastModelStore.getState().remember("image", { provider, model });
       onPick(assetId);
@@ -254,7 +191,7 @@ const GenerateReferenceDialog = ({
       setError(
         cause instanceof Error
           ? cause.message
-          : "The reference image could not be generated."
+          : t("i18n-cont-setup-05.entity.reference.errors.generationFailed")
       );
     } finally {
       if (controllerRef.current === controller) {
@@ -262,11 +199,8 @@ const GenerateReferenceDialog = ({
         setGenerating(false);
       }
     }
-  }, [model, onClose, onPick, options, prompt, provider, selectedOption]);
+  }, [aspectRatio, model, onClose, onPick, prompt, provider, t]);
 
-  const aspectRatio =
-    options.find((option) => option.id === selectedOption)?.aspectRatio ??
-    "1:1";
   // The dialog's button spends money, so its price and its reason for being
   // off sit under the model it depends on.
   const estimate = model
@@ -280,29 +214,43 @@ const GenerateReferenceDialog = ({
       })
     : null;
   const modelHelper = !model
-    ? "Pick an image model to generate the reference."
+    ? t("i18n-cont-setup-05.entity.reference.modelHelper.choose")
     : estimate
-      ? `Used to create the reference image. About ${estimate.label}.`
-      : "Used to create the reference image.";
+      ? t("i18n-cont-setup-05.entity.reference.modelHelper.estimated", {
+          estimate: new Intl.NumberFormat(
+            i18n.resolvedLanguage ?? i18n.language,
+            { style: "currency", currency: "USD" }
+          ).format(estimate.total)
+        })
+      : t("i18n-cont-setup-05.entity.reference.modelHelper.default");
 
   return (
     <Dialog
       open={open}
       onClose={handleClose}
-      title="Generate a reference image"
+      title={t("i18n-cont-setup-05.entity.reference.generate.title")}
       maxWidth="sm"
       fullWidth
       onConfirm={() => void handleGenerate()}
-      confirmText={generating ? "Generating…" : "Generate reference"}
+      confirmText={
+        generating
+          ? t("i18n-cont-setup-05.entity.reference.generate.generating")
+          : t("i18n-cont-setup-05.entity.reference.generate.confirm")
+      }
       confirmDisabled={generating || !prompt.trim() || !model || !provider}
       isLoading={generating}
     >
       <FlexColumn gap={GAP.comfortable}>
         <Caption color="secondary">
-          Choose a view, then edit the prompt to refine the image.
+          {t("i18n-cont-setup-05.entity.reference.generate.description")}
         </Caption>
-        <FormField label="View">
-          <FlexRow gap={GAP.tight} wrap role="group" aria-label="View">
+        <FormField label={t("i18n-cont-setup-05.entity.reference.generate.viewLabel")}>
+          <FlexRow
+            gap={GAP.tight}
+            wrap
+            role="group"
+            aria-label={t("i18n-cont-setup-05.entity.reference.generate.viewLabel")}
+          >
             {options.map((option) => (
               <Chip
                 key={option.id}
@@ -311,7 +259,7 @@ const GenerateReferenceDialog = ({
                 aria-pressed={selectedOption === option.id}
                 onClick={() => {
                   setSelectedOption(option.id);
-                  setPrompt(referencePrompt(name, kind, descriptor, option));
+                  setPrompt(referencePrompt(t, name, kind, descriptor, option));
                 }}
                 disabled={generating}
               />
@@ -319,14 +267,14 @@ const GenerateReferenceDialog = ({
           </FlexRow>
         </FormField>
         <TextArea
-          label="Prompt"
+          label={t("i18n-cont-setup-05.entity.reference.generate.promptLabel")}
           value={prompt}
           onChange={(value) => setPrompt(value)}
           rows={4}
           autoFocus
         />
         <FormField
-          label="Image model"
+          label={t("i18n-cont-setup-05.entity.reference.generate.modelLabel")}
           helperText={modelHelper}
         >
           <ImageModelSelect
@@ -343,7 +291,7 @@ const GenerateReferenceDialog = ({
               <ReportBugButton
                 context={{
                   source: "provider-call",
-                  summary: "Entity reference image failed to generate",
+                  summary: t("i18n-cont-setup-05.entity.reference.errors.reportSummary"),
                   errorText: error
                 }}
               />
@@ -355,7 +303,7 @@ const GenerateReferenceDialog = ({
         {generating ? (
           <FlexRow gap={GAP.tight} align="center">
             <LoadingSpinner inline size="small" />
-            <Caption>Creating your reference image…</Caption>
+            <Caption>{t("i18n-cont-setup-05.entity.reference.generate.progress")}</Caption>
           </FlexRow>
         ) : null}
       </FlexColumn>
@@ -376,17 +324,17 @@ export const ReferenceStep = ({
   onClosePicker,
   onPick
 }: ReferenceStepProps) => {
+  const { t } = useTranslation();
   const [generatorOpen, setGeneratorOpen] = useState(false);
 
   return (
     <FlexColumn gap={GAP.spacious} sx={{ maxWidth: SETUP_CONTENT_WIDTH }}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h1">
-          Choose a reference image
+          {t("i18n-cont-setup-05.entity.reference.title")}
         </Text>
         <Text color="secondary">
-          Pick the clearest image of the traits you want future generations to
-          preserve, or create one with AI.
+          {t("i18n-cont-setup-05.entity.reference.description")}
         </Text>
       </FlexColumn>
 
@@ -394,11 +342,15 @@ export const ReferenceStep = ({
         <GalleryFrame
           locator={`asset://${assetId}`}
           kind="image"
-          caption={name ? `${name} reference` : "Selected reference"}
+          caption={
+            name
+              ? t("i18n-cont-setup-05.entity.reference.imageCaption", { name })
+              : t("i18n-cont-setup-05.entity.reference.selectedCaption")
+          }
         >
           <ResponsiveImage
             locator={`asset://${assetId}`}
-            alt="Selected entity reference"
+            alt={t("i18n-cont-setup-05.entity.reference.selectedAlt")}
             // Stable hook for the reference slot. The rendered <img> is not one:
             // jsdom fetches a src but has no image codec, so it fires `error`
             // for even a valid data: URI and the error fallback replaces the
@@ -425,19 +377,19 @@ export const ReferenceStep = ({
           disabled={assetsLoading || assetsError}
         >
           {assetsError
-            ? "Assets unavailable"
+            ? t("i18n-cont-setup-05.entity.reference.assets.unavailable")
             : assetsLoading
-              ? "Loading assets"
+              ? t("i18n-cont-setup-05.entity.reference.assets.loading")
               : assetId
-                ? "Change reference"
-                : "Choose from assets"}
+                ? t("i18n-cont-setup-05.entity.reference.assets.change")
+                : t("i18n-cont-setup-05.entity.reference.assets.choose")}
         </EditorButton>
         <EditorButton
           variant="outlined"
           startIcon={<AutoAwesomeOutlinedIcon />}
           onClick={() => setGeneratorOpen(true)}
         >
-          Generate with AI
+          {t("i18n-cont-setup-05.entity.reference.generate.open")}
         </EditorButton>
       </FlexRow>
 

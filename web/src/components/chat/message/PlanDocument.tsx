@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -13,8 +14,6 @@ import {
 } from "../../ui_primitives";
 import type { PlanDocumentModel } from "./parsePlanDocument";
 
-const PLAN_IDLE_NOTE =
-  "Nothing ran. Switch to Default or Auto, then send a message.";
 
 interface PlanDocumentProps {
   plan: PlanDocumentModel;
@@ -74,13 +73,11 @@ const styles = (theme: Theme) =>
     }
   });
 
-const plural = (count: number, word: string): string =>
-  count === 1 ? `1 ${word}` : `${count} ${word}s`;
-
 const PlanDocument: React.FC<PlanDocumentProps> = ({
   plan,
   framed = true
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const stepCount = plan.tasks.reduce((sum, task) => sum + task.steps.length, 0);
@@ -92,9 +89,7 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
     return map;
   }, [plan.tasks]);
 
-  const counts = [plural(plan.tasks.length, "task"), plural(stepCount, "step")].join(
-    " · "
-  );
+  const counts = [t("i18n-next19.chat.planDocument.taskCount", { count: plan.tasks.length }), t("i18n-next19.chat.planDocument.stepCount", { count: stepCount })].join(" · ");
 
   return (
     <div
@@ -112,7 +107,7 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
           sx={{ minWidth: 0 }}
         >
           <Caption className="plan-document-kicker" color="secondary">
-            Plan
+            {t("i18n-next19.chat.planDocument.label")}
           </Caption>
           <span className="plan-document-counts">{counts}</span>
         </FlexRow>
@@ -126,7 +121,7 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
         </Text>
         {plan.parallelizable > 1 && (
           <Caption color="secondary">
-            {plan.parallelizable} can run together
+            {t("i18n-next19.chat.planDocument.canRunTogether", { count: plan.parallelizable })}
           </Caption>
         )}
       </FlexColumn>
@@ -155,7 +150,7 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
                 </Text>
                 {depTitles.length > 0 && (
                   <Caption className="plan-task-deps">
-                    after {depTitles.join(", ")}
+                    {t("i18n-next19.chat.planDocument.afterDependencies", { dependencies: depTitles.join(", ") })}
                   </Caption>
                 )}
                 {task.steps.map((step) => (
@@ -175,7 +170,7 @@ const PlanDocument: React.FC<PlanDocumentProps> = ({
       </div>
       {plan.executed === false && (
         <Caption color="secondary" className="plan-document-note">
-          {PLAN_IDLE_NOTE}
+          {t("i18n-next19.chat.planDocument.idleNote")}
         </Caption>
       )}
     </div>

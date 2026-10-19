@@ -1,4 +1,5 @@
 import React, { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Box,
@@ -62,13 +63,14 @@ const RowBreak = () => (
 const AdvancedToggleButton: React.FC<{
   open: boolean;
   onToggle: () => void;
-}> = ({ open, onToggle }) => (
-  <EditorButton
+}> = ({ open, onToggle }) => {
+  const { t } = useTranslation();
+  return <EditorButton
     size="small"
     variant="text"
     onClick={onToggle}
     aria-pressed={open}
-    aria-label="Toggle advanced stroke options"
+    aria-label={t("i18n-cont-sketch-tools-08.paint.toggleAdvancedStrokeOptions")}
     sx={{
       minWidth: 0,
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
@@ -80,9 +82,9 @@ const AdvancedToggleButton: React.FC<{
     }}
     startIcon={open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
   >
-    Advanced
+    {t("i18n-cont-sketch-tools-08.paint.advanced")}
   </EditorButton>
-);
+};
 
 interface BrushSettingsPanelProps {
   settings: BrushSettings;
@@ -136,26 +138,23 @@ interface StrokeAssistSettingsPanelProps<T extends StrokeAssistToolSettings> {
  */
 const STROKE_ASSIST_PRESETS: Array<{
   value: Exclude<StrokeAssistPreset, "custom">;
-  label: string;
-  tooltip: string;
+  labelKey: string;
+  tooltipKey: string;
 }> = [
   {
     value: "smooth",
-    label: "Smooth",
-    tooltip:
-      "Rolling-average stabilizer. Filters jitter while the tip keeps following the cursor — good for general drawing."
+    labelKey: "smooth",
+    tooltipKey: "smoothTooltip"
   },
   {
     value: "lazy",
-    label: "Lazy",
-    tooltip:
-      "Rope/leash. Tip stays still until the cursor exceeds a dead-zone radius, then trails behind in a straight line. Best for slow, deliberate inking."
+    labelKey: "lazy",
+    tooltipKey: "lazyTooltip"
   },
   {
     value: "inking",
-    label: "Ink",
-    tooltip:
-      "Lazy leash + 45° angle snap. Long strokes lock to nearest 45° direction — for clean axis-aligned linework."
+    labelKey: "ink",
+    tooltipKey: "inkTooltip"
   }
 ];
 
@@ -177,6 +176,7 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
   settings,
   onChange
 }: StrokeAssistSettingsPanelProps<T>) {
+  const { t } = useTranslation();
   const assist = resolveStrokeAssistSettings(
     settings.stabilizer,
     settings.strokeAssist
@@ -240,25 +240,25 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
       >
         <SketchModeOption
           value="off"
-          title="No stroke assist. Tip follows the raw pointer."
+          title={t("i18n-cont-sketch-tools-08.paint.noStrokeAssistTooltip")}
         >
-          Off
+          {t("i18n-cont-sketch-tools-08.paint.off")}
         </SketchModeOption>
-        {STROKE_ASSIST_PRESETS.map(({ value, label, tooltip }) => (
-          <SketchModeOption key={value} value={value} title={tooltip}>
-            {label}
+        {STROKE_ASSIST_PRESETS.map(({ value, labelKey, tooltipKey }) => (
+          <SketchModeOption key={value} value={value} title={t(`i18n-cont-sketch-tools-08.paint.${tooltipKey}`)}>
+            {t(`i18n-cont-sketch-tools-08.paint.${labelKey}`)}
           </SketchModeOption>
         ))}
         <SketchModeOption
           value="custom"
-          title="Tune algorithm, strength and angle snap manually."
+          title={t("i18n-cont-sketch-tools-08.paint.customAssistTooltip")}
         >
-          Custom
+          {t("i18n-cont-sketch-tools-08.paint.custom")}
         </SketchModeOption>
       </SketchModeToggle>
       {assistOn && (
         <Box className="setting-row">
-          <Text className="setting-label">Strength</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.strength")}</Text>
           <Slider
             size="small"
             min={0}
@@ -287,15 +287,15 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         >
           <SketchModeOption
             value="stabilizer"
-            title="Rolling-average smoothing — tip follows the cursor along a low-pass-filtered path."
+            title={t("i18n-cont-sketch-tools-08.paint.stabilizerTooltip")}
           >
-            Stabilizer
+            {t("i18n-cont-sketch-tools-08.paint.stabilizer")}
           </SketchModeOption>
           <SketchModeOption
             value="lazy"
-            title="Leash drag — tip stays put inside a dead-zone, then trails the cursor along a straight line."
+            title={t("i18n-cont-sketch-tools-08.paint.dragTooltip")}
           >
-            Drag
+            {t("i18n-cont-sketch-tools-08.paint.drag")}
           </SketchModeOption>
         </SketchModeToggle>
       )}
@@ -310,14 +310,14 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         }}
         sx={{ flexWrap: "wrap" }}
       >
-        <SketchModeOption value="off" title="No angle snap.">
-          Free
+        <SketchModeOption value="off" title={t("i18n-cont-sketch-tools-08.paint.noAngleSnapTooltip")}>
+          {t("i18n-cont-sketch-tools-08.paint.free")}
         </SketchModeOption>
         {STROKE_ASSIST_ANGLE_OPTIONS.map((angle) => (
           <SketchModeOption
             key={angle}
             value={angle}
-            title={`Snap stroke direction to nearest ${angle}°.`}
+            title={t("i18n-cont-sketch-tools-08.paint.snapAngleTooltip", { angle })}
           >
             {angle}°
           </SketchModeOption>
@@ -325,7 +325,7 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
       </SketchModeToggle>
       {snapOn && (
         <Box className="setting-row">
-          <Text className="setting-label">Snap</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.snap")}</Text>
           <Slider
             size="small"
             min={0}
@@ -349,6 +349,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
   omitPaintSliders = false,
   omitStrokeAssist = false
 }: BrushSettingsPanelProps) {
+  const { t } = useTranslation();
   // Local UI state — we only need to remember the disclosure across
   // re-renders of the same panel instance. Switching to a different tool
   // unmounts the panel and naturally resets to "collapsed", which is the
@@ -367,10 +368,10 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
             }
           }}
         >
-          <SketchModeOption value="round">Round</SketchModeOption>
-          <SketchModeOption value="soft">Soft</SketchModeOption>
-          <SketchModeOption value="airbrush">Air</SketchModeOption>
-          <SketchModeOption value="spray">Spray</SketchModeOption>
+          <SketchModeOption value="round">{t("i18n-cont-sketch-tools-08.paint.round")}</SketchModeOption>
+          <SketchModeOption value="soft">{t("i18n-cont-sketch-tools-08.paint.soft")}</SketchModeOption>
+          <SketchModeOption value="airbrush">{t("i18n-cont-sketch-tools-08.paint.air")}</SketchModeOption>
+          <SketchModeOption value="spray">{t("i18n-cont-sketch-tools-08.paint.spray")}</SketchModeOption>
         </SketchModeToggle>
       </SettingGroup>
       {/* Group 2 — Paint params. Size/Opacity/Hard are always present;
@@ -381,7 +382,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
         {!omitPaintSliders && (
           <>
             <Box className="setting-row setting-row--wide">
-              <Text className="setting-label">Size</Text>
+              <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.size")}</Text>
               <Slider
                 size="small"
                 min={1}
@@ -392,7 +393,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
               <Text className="setting-value">{settings.size}</Text>
             </Box>
             <Box className="setting-row">
-              <Text className="setting-label">Opacity</Text>
+              <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.opacity")}</Text>
               <Slider
                 size="small"
                 min={0}
@@ -408,7 +409,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
           </>
         )}
         <Box className="setting-row">
-          <Text className="setting-label">Hard</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.hard")}</Text>
           <Slider
             size="small"
             min={0}
@@ -424,7 +425,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
         {(settings.brushType === "round" || settings.brushType === "soft") && (
           <>
             <Box className="setting-row">
-              <Text className="setting-label">Round</Text>
+              <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.round")}</Text>
               <Slider
                 size="small"
                 min={0.1}
@@ -438,7 +439,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
               </Text>
             </Box>
             <Box className="setting-row">
-              <Text className="setting-label">Angle</Text>
+              <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.angle")}</Text>
               <Slider
                 size="small"
                 min={0}
@@ -480,6 +481,7 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
   omitPaintSliders = false,
   omitStrokeAssist = false
 }: PencilSettingsPanelProps) {
+  const { t } = useTranslation();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const pixelMode: "pixel" | "soft" =
     (settings.pixelPerfect ?? true) ? "pixel" : "soft";
@@ -496,21 +498,21 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
         >
           <SketchModeOption
             value="pixel"
-            title="Pixel-art mode. Each dab is a crisp N×N square centered on the pixel under the cursor."
+            title={t("i18n-cont-sketch-tools-08.paint.pixelModeTooltip")}
           >
-            Pixel
+            {t("i18n-cont-sketch-tools-08.paint.pixel")}
           </SketchModeOption>
           <SketchModeOption
             value="soft"
-            title="Soft mode. Antialiased circular dabs — feels like a small brush."
+            title={t("i18n-cont-sketch-tools-08.paint.softModeTooltip")}
           >
-            Soft
+            {t("i18n-cont-sketch-tools-08.paint.soft")}
           </SketchModeOption>
         </SketchModeToggle>
         {!omitPaintSliders && (
           <>
             <Box className="setting-row setting-row--wide">
-              <Text className="setting-label">Size</Text>
+              <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.size")}</Text>
               <Slider
                 size="small"
                 min={1}
@@ -521,7 +523,7 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
               <Text className="setting-value">{settings.size}</Text>
             </Box>
             <Box className="setting-row">
-              <Text className="setting-label">Opacity</Text>
+              <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.opacity")}</Text>
               <Slider
                 size="small"
                 min={0}
@@ -557,6 +559,7 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
   settings,
   onChange
 }: EraserSettingsPanelProps) {
+  const { t } = useTranslation();
   const mode = effectiveEraserMode(settings);
   // Eraser doesn't expose the full stroke-assist surface (presets,
   // algorithm, angle snap) — those are overkill for erasing. We keep a
@@ -593,21 +596,21 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
         >
           <SketchModeOption
             value="brush"
-            title="Erase with the current brush stamp (soft / hard / spray follow brush settings)."
+            title={t("i18n-cont-sketch-tools-08.paint.eraseWithBrushTooltip")}
           >
-            Brush
+            {t("i18n-cont-sketch-tools-08.paint.brush")}
           </SketchModeOption>
           <SketchModeOption
             value="pencil"
-            title="Erase with crisp pencil dabs — follows the pencil tool's Pixel/Soft toggle."
+            title={t("i18n-cont-sketch-tools-08.paint.eraseWithPencilTooltip")}
           >
-            Pencil
+            {t("i18n-cont-sketch-tools-08.paint.pencil")}
           </SketchModeOption>
         </SketchModeToggle>
       </SettingGroup>
       <SettingGroup>
         <Box className="setting-row setting-row--wide">
-          <Text className="setting-label">Size</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.size")}</Text>
           <Slider
             size="small"
             min={1}
@@ -618,7 +621,7 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
           <Text className="setting-value">{settings.size}</Text>
         </Box>
         <Box className="setting-row">
-          <Text className="setting-label">Opacity</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.opacity")}</Text>
           <Slider
             size="small"
             min={0}
@@ -632,7 +635,7 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
           </Text>
         </Box>
         <Box className="setting-row">
-          <Text className="setting-label">Stabilize</Text>
+          <Text className="setting-label">{t("i18n-cont-sketch-tools-08.paint.stabilize")}</Text>
           <Slider
             size="small"
             min={0}

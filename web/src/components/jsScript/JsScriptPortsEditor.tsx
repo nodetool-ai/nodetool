@@ -6,6 +6,7 @@
  * reads what is declared here.
  */
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/AddOutlined";
 
 import {
@@ -52,6 +53,7 @@ const JsScriptPortsEditor = ({
   readOnly = false,
   onChange
 }: JsScriptPortsEditorProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const patch = useCallback(
     (index: number, next: Partial<JsScriptPort>) => {
       onChange(
@@ -84,31 +86,31 @@ const JsScriptPortsEditor = ({
               startIcon={<AddIcon />}
               onClick={add}
             >
-              Add
+              {t("actions.add")}
             </EditorButton>
           )
         }
       />
       {ports.length === 0 ? (
         <Text size="small" color="secondary">
-          None declared.
+          {t("ports.noneDeclared")}
         </Text>
       ) : (
         ports.map((port, index) => (
           <FlexRow key={index} gap={SPACING.sm} align="center">
             <TextInput
-              label={`${label} ${index + 1} name`}
+              label={t("ports.fieldName", { label, number: index + 1 })}
               hideLabel
               size="small"
               value={port.name}
-              placeholder="name"
+              placeholder={t("ports.namePlaceholder")}
               disabled={readOnly}
               onChange={(event) => patch(index, { name: event.target.value })}
               sx={{ flex: 1, minWidth: 0 }}
             />
             <Box sx={{ width: 110, flexShrink: 0 }}>
               <SelectField
-                label={`${label} ${index + 1} type`}
+                label={t("ports.fieldType", { label, number: index + 1 })}
                 hideLabel
                 size="small"
                 value={port.type}
@@ -119,7 +121,7 @@ const JsScriptPortsEditor = ({
             </Box>
             {!readOnly && (
               <DeleteButton
-                ariaLabel={`Delete ${label} ${index + 1}`}
+                ariaLabel={t("ports.delete", { label, number: index + 1 })}
                 onClick={() => remove(index)}
               />
             )}

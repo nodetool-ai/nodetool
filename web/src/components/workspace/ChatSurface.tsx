@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 import { FlexColumn } from "../ui_primitives";
@@ -49,6 +50,7 @@ const NO_MESSAGES: Message[] = [];
  * the focused tab.
  */
 const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
+  const { t } = useTranslation();
   const runtime = useThreadRuntime(refId);
   // Until the thread's messages are in, an empty cache is indistinguishable
   // from an empty conversation, and the tab greets the user with the welcome
@@ -223,7 +225,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   const noMessagesPlaceholder = useMemo(
     () =>
       loadingThread ? (
-        <DocumentLoadStatus state="loading" label="conversation" />
+        <DocumentLoadStatus state="loading" label={t("i18n-next51.chat.conversation")} />
       ) : (
         <WelcomePlaceholder onSuggestionClick={handleSuggestionClick} />
       ),
@@ -240,7 +242,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         type: "chat",
         ref: threadId,
         mode: "view",
-        title: "New chat",
+        title: t("i18n-next51.chat.newChat"),
         projectId
       });
     } catch (error) {
@@ -251,13 +253,13 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   const busy = runtime.status === "loading" || runtime.status === "streaming";
   const menuCommands = useMemo<ContextCommand[]>(() => {
     const commands: ContextCommand[] = [
-      { id: "new-chat", label: "New chat", run: handleNewChat }
+      { id: "new-chat", label: t("i18n-next51.chat.newChat"), run: handleNewChat }
     ];
     if (busy) {
-      commands.push({ id: "stop", label: "Stop generating", run: handleStop });
+      commands.push({ id: "stop", label: t("i18n-next51.chat.stopGenerating"), run: handleStop });
     }
     return commands;
-  }, [busy, handleNewChat, handleStop]);
+  }, [busy, handleNewChat, handleStop, t]);
   useContextCommands("Chat", menuCommands, active);
 
   return (

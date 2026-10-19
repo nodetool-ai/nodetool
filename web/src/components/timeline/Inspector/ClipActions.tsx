@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { memo, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -38,6 +39,7 @@ interface ClipActionsProps {
 
 export const ClipActions: React.FC<ClipActionsProps> = memo(
   ({ clipId, duplicateOffsetMs = 0 }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const navigate = useNavigate();
 
@@ -65,7 +67,9 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
         selectClip(newClipId);
       } catch (err) {
         reportDuplicateError(
-          err instanceof Error ? err.message : "Failed to duplicate clip"
+          err instanceof Error
+            ? err.message
+            : t("pass3_22.timeline.inspector.clipActions.duplicateFailed")
         );
       } finally {
         duplicateBusyRef.current = false;
@@ -76,7 +80,8 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
       duplicateOffsetMs,
       duplicateClip,
       selectClip,
-      reportDuplicateError
+      reportDuplicateError,
+      t
     ]);
 
     // ── Regenerate as new clip ─────────────────────────────────────────────
@@ -89,7 +94,9 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
         selectClip(newClipId);
       } catch (err) {
         reportDuplicateError(
-          err instanceof Error ? err.message : "Failed to create copy"
+          err instanceof Error
+            ? err.message
+            : t("pass3_22.timeline.inspector.clipActions.createCopyFailed")
         );
       }
     }, [
@@ -97,7 +104,8 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
       duplicateOffsetMs,
       regenerateAsCopy,
       selectClip,
-      reportDuplicateError
+      reportDuplicateError,
+      t
     ]);
 
     // ── Lock ───────────────────────────────────────────────────────────────
@@ -141,19 +149,25 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
               panel; this toolbar is for clip operations only. */}
           <ToolbarIconButton
             icon={<ContentCopyIcon fontSize="small" />}
-            tooltip="Duplicate — copies overrides; tweak params for a variation"
+            tooltip={t(
+              "pass3_22.timeline.inspector.clipActions.duplicateTooltip"
+            )}
             onClick={() => void handleDuplicate()}
             disabled={duplicateBusy}
-            aria-label="Duplicate clip"
+            aria-label={t("pass3_22.timeline.inspector.clipActions.duplicate")}
             data-testid="clip-action-duplicate"
           />
 
           {clip.sourceType === "generated" && (
             <ToolbarIconButton
               icon={<AutoAwesomeMotionIcon fontSize="small" />}
-              tooltip="Regenerate as new clip — drops a fresh copy beside this one so you can roll a new take without losing the existing render"
+              tooltip={t(
+                "pass3_22.timeline.inspector.clipActions.regenerateTooltip"
+              )}
               onClick={handleRegenerateAsCopy}
-              aria-label="Regenerate as new clip"
+              aria-label={t(
+                "pass3_22.timeline.inspector.clipActions.regenerate"
+              )}
               data-testid="clip-action-regenerate-as-copy"
             />
           )}
@@ -168,36 +182,51 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
             }
             tooltip={
               clip.locked
-                ? "Locked: timing is frozen and successful generations do not replace the current output"
-                : "Unlocked: lock to freeze timing and keep successful generations from replacing the current output"
+                ? t("pass3_22.timeline.inspector.clipActions.lockedTooltip")
+                : t("pass3_22.timeline.inspector.clipActions.unlockedTooltip")
             }
             active={clip.locked}
             onClick={handleToggleLock}
-            aria-label={clip.locked ? "Unlock clip" : "Lock clip"}
+            aria-label={
+              clip.locked
+                ? t("pass3_22.timeline.inspector.clipActions.unlock")
+                : t("pass3_22.timeline.inspector.clipActions.lock")
+            }
             data-testid="clip-action-lock"
           />
 
           <ToolbarIconButton
             icon={<ImageIcon fontSize="small" />}
-            tooltip="Replace output… Pick an existing asset without regenerating"
+            tooltip={t(
+              "pass3_22.timeline.inspector.clipActions.replaceTooltip"
+            )}
             onClick={handleOpenReplace}
-            aria-label="Replace clip output"
+            aria-label={t(
+              "pass3_22.timeline.inspector.clipActions.replaceOutput"
+            )}
             data-testid="clip-action-replace-output"
           />
 
           {clip.workflowId && sequenceId && (
             <ToolbarIconButton
               icon={<OpenInNewIcon fontSize="small" />}
-              tooltip="Open in node editor"
+              tooltip={t(
+                "pass3_22.timeline.inspector.clipActions.openInNodeEditorTooltip"
+              )}
               onClick={handleOpenInNodeEditor}
-              aria-label="Open clip workflow in node editor"
+              aria-label={t(
+                "pass3_22.timeline.inspector.clipActions.openWorkflowInNodeEditor"
+              )}
               data-testid="clip-action-open-in-editor"
             />
           )}
         </FlexRow>
 
         {replaceOpen && (
-          <ReplaceClipAssetDialog clipId={clipId} onClose={handleCloseReplace} />
+          <ReplaceClipAssetDialog
+            clipId={clipId}
+            onClose={handleCloseReplace}
+          />
         )}
       </>
     );

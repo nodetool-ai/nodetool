@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -117,6 +118,7 @@ const OutlineBodyInner: React.FC<OutlineBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(
     () => [styles(theme), adjustmentSliderStyles(theme)],
@@ -163,7 +165,7 @@ const OutlineBodyInner: React.FC<OutlineBodyProps> = ({
       </div>
 
       <div className="color-row">
-        <span className="color-row-label">Color</span>
+        <span className="color-row-label">{t("i18n-next80.outline.color")}</span>
         <ColorPicker
           color={colorHex}
           onColorChange={handleColorChange}
@@ -179,7 +181,7 @@ const OutlineBodyInner: React.FC<OutlineBodyProps> = ({
           return (
             <AdjustmentSlider
               key={spec.name}
-              spec={spec}
+              spec={{ ...spec, label: t(`i18n-next80.outline.sliders.${spec.name}`) }}
               value={value}
               onChange={handleChange}
               onCommit={setPropertyComplete}

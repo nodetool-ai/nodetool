@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -86,6 +87,7 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -130,11 +132,11 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
     if (currentName && !graphVariableNames.includes(currentName)) {
       opts.unshift({
         value: currentName,
-        label: `${currentName} (no Set Variable node)`
+        label: t("i18n-next46.getVariable.missingSetter", { name: currentName })
       });
     }
     return opts;
-  }, [graphVariableNames, currentName]);
+  }, [graphVariableNames, currentName, t]);
 
   const { setProperty, setPropertyComplete } = useBespokePropertyWriter({
     nodeId: id,
@@ -154,15 +156,13 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
       <HandleColumn id={id} properties={triggerProperty} />
 
       <div className="explanation">
-        Reads a variable published by any Set Variable node in this workflow. It
-        waits for the first value, then streams every value the setter
-        publishes — no ordering wire needed.
+        {t("i18n-next46.getVariable.explanation")}
       </div>
 
       {options.length > 0 ? (
         <div className="picker">
           <SelectField
-            label="Variable"
+            label={t("i18n-next46.getVariable.variable")}
             value={currentName}
             onChange={handleChange}
             options={options}
@@ -172,8 +172,7 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
         </div>
       ) : (
         <div className="empty-hint">
-          No variables defined yet. Add a Set Variable node to this workflow to
-          choose one.
+          {t("i18n-next46.getVariable.noVariables")}
         </div>
       )}
 

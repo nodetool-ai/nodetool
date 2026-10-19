@@ -4,6 +4,7 @@
  * failed node, a crashed panel and a failed job.
  */
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import { EditorButton, Tooltip } from "../ui_primitives";
 import { openBugReport } from "../../stores/BugReportStore";
@@ -19,11 +20,12 @@ interface ReportBugButtonProps {
 
 const ReportBugButton = ({
   context,
-  label = "Report",
+  label,
   variant = "text",
   size = "small",
   className
 }: ReportBugButtonProps) => {
+  const { t } = useTranslation();
   const handleClick = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
@@ -36,7 +38,7 @@ const ReportBugButton = ({
     // `describeChild` keeps the visible label as the button's accessible name.
     // Without it MUI turns the tooltip into an `aria-label`, so the name a
     // screen reader announces no longer contains the text on screen.
-    <Tooltip title="Report this as a bug" describeChild>
+    <Tooltip title={t("screens4_10.support.reportBug.tooltip")} describeChild>
       <EditorButton
         className={className}
         variant={variant}
@@ -44,7 +46,7 @@ const ReportBugButton = ({
         onClick={handleClick}
         startIcon={<BugReportIcon />}
       >
-        {label}
+        {label ?? t("screens4_10.support.reportBug.button")}
       </EditorButton>
     </Tooltip>
   );

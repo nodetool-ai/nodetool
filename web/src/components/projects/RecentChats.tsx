@@ -5,6 +5,7 @@
  */
 
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import { usePanelStore } from "../../stores/PanelStore";
 import {
@@ -28,9 +29,46 @@ import type { Thread } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 
 const RECENT_CHAT_COUNT = 4;
+const RELATIVE_TIME_UNITS: Record<string, Intl.RelativeTimeFormatUnit> = {
+  sec: "second",
+  min: "minute",
+  hour: "hour",
+  day: "day",
+  week: "week",
+  month: "month",
+  year: "year"
+};
 
-const chatTitle = (thread: Thread): string =>
-  thread.title?.trim() || "New chat";
+const localizeRelativeTime = (
+  date: Date | string,
+  locale: string,
+  justNowLabel: string
+): string => {
+  const formatted = relativeTime(date);
+  if (formatted === "just now") {
+    return justNowLabel;
+  }
+
+  const match = /^(\d+) (sec|min|hour|day|week|month|year)s? ago$/.exec(
+    formatted
+  );
+  if (!match) {
+    return formatted;
+  }
+
+  const unit = RELATIVE_TIME_UNITS[match[2]];
+  if (!unit) {
+    return formatted;
+  }
+
+  return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(
+    -Number(match[1]),
+    unit
+  );
+};
+
+const chatTitle = (thread: Thread, fallbackTitle: string): string =>
+  thread.title?.trim() || fallbackTitle;
 
 interface RecentChatCardProps {
   thread: Thread;
@@ -41,8 +79,9 @@ const RecentChatCard = memo(function RecentChatCard({
   thread,
   onOpen
 }: RecentChatCardProps) {
+  const { i18n, t } = useTranslation();
   const handleOpen = useCallback(() => onOpen(thread), [onOpen, thread]);
-  const title = chatTitle(thread);
+  const title = chatTitle(thread, t("pass3_35.recentChats.newChat"));
 
   return (
     <Card
@@ -73,7 +112,13 @@ const RecentChatCard = memo(function RecentChatCard({
           </Label>
         </FlexRow>
         <Caption color="secondary">
-          Active {relativeTime(thread.updated_at)}
+          {t("pass3_35.recentChats.active", {
+            time: localizeRelativeTime(
+              thread.updated_at,
+              i18n.resolvedLanguage ?? i18n.language,
+              t("pass3_35.recentChats.justNow")
+            )
+          })}
         </Caption>
       </FlexColumn>
     </Card>
@@ -81,6 +126,7 @@ const RecentChatCard = memo(function RecentChatCard({
 });
 
 const RecentChats = () => {
+  const { t } = useTranslation();
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
   );
@@ -110,11 +156,11 @@ const RecentChats = () => {
         type: "chat",
         ref: thread.id,
         mode: "view",
-        title: chatTitle(thread),
+        title: chatTitle(thread, t("pass3_35.recentChats.newChat")),
         projectId: thread.project_id ?? projectId ?? undefined
       });
     },
-    [openTab, projectId]
+    [openTab, projectId, t]
   );
   const showAllChats = useCallback(
     () => handleViewChange("chats"),
@@ -130,11 +176,11 @@ const RecentChats = () => {
     <FlexColumn
       component="section"
       gap={SPACING.md}
-      aria-label="Recent chats"
+      aria-label={t("pass3_35.recentChats.sectionLabel")}
     >
       <FlexRow align="center" gap={SPACING.md}>
         <Caption color="muted" sx={{ flex: 1 }}>
-          Recent chats
+          {t("pass3_35.recentChats.heading")}
         </Caption>
         {data?.next && (
           <EditorButton
@@ -142,7 +188,7 @@ const RecentChats = () => {
             density="compact"
             onClick={showAllChats}
           >
-            All chats
+            {t("pass3_35.recentChats.allChats")}
           </EditorButton>
         )}
       </FlexRow>

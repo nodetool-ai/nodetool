@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useWorkspaceTabsStore,
   type WorkspaceTabMode
@@ -28,6 +29,7 @@ interface TextSurfaceProps {
  *   modes, read-only in view mode.
  */
 const TextSurface = ({ refId, mode, active }: TextSurfaceProps) => {
+  const { t } = useTranslation();
   const { data: asset, isLoading, error } = useAssetById(refId);
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
 
@@ -43,7 +45,7 @@ const TextSurface = ({ refId, mode, active }: TextSurfaceProps) => {
         fullHeight
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
-        <LoadingSpinner />
+        <LoadingSpinner text={t("i18n-next84.textSurface.loading")} />
       </FlexColumn>
     );
   }
@@ -56,7 +58,7 @@ const TextSurface = ({ refId, mode, active }: TextSurfaceProps) => {
         sx={{ alignItems: "center", justifyContent: "center" }}
       >
         <Text size="normal" weight={600}>
-          Failed to load text asset
+          {t("i18n-next84.textSurface.loadError")}
         </Text>
       </FlexColumn>
     );

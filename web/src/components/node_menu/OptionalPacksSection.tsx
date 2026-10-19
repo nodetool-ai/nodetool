@@ -23,6 +23,7 @@ import { memo, useCallback, useMemo, useState, type MouseEvent } from "react";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { openSettingsTab } from "../workspace/openPageTab";
 import { useShallow } from "zustand/react/shallow";
 
@@ -119,6 +120,7 @@ const popoverStyles = (theme: Theme) =>
   });
 
 const OptionalPacksSection = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -209,7 +211,7 @@ const OptionalPacksSection = () => {
 
   return (
     <div css={styles(theme)} className="optional-packs-section">
-      <Tooltip title="Reveal advanced and niche node packs" describeChild>
+      <Tooltip title={t("i18n-next5.optionalPacks.revealTooltip")} describeChild>
         <button
           type="button"
           className="optional-packs-trigger"
@@ -218,7 +220,7 @@ const OptionalPacksSection = () => {
           aria-expanded={Boolean(anchorEl)}
         >
           <Inventory2OutlinedIcon className="icon" />
-          <span className="label">Optional packs</span>
+          <span className="label">{t("i18n-next5.optionalPacks.label")}</span>
           <span className="count">
             {enabledCount > 0 ? `${enabledCount}/${total}` : `+${total}`}
           </span>
@@ -236,27 +238,24 @@ const OptionalPacksSection = () => {
         <div css={popoverStyles(theme)}>
           <FlexColumn gap={1}>
             <Text size="normal" weight={600}>
-              Optional node packs
+              {t("i18n-next5.optionalPacks.title")}
             </Text>
             <Text size="small" color="secondary">
-              Advanced and niche nodes are tucked into optional packs to keep
-              this menu focused. Turn on what you need — they appear in the list
-              right away. Search always finds every node, even when its pack is
-              off.
+              {t("i18n-next5.optionalPacks.description")}
             </Text>
 
             <Divider />
 
             <FlexRow align="center" justify="space-between">
               <Text size="small" weight={600}>
-                Categories
+                {t("i18n-next5.optionalPacks.categories")}
               </Text>
               <FlexRow gap={1.5} align="center">
                 <TextLink asButton onClick={() => enableAll()}>
-                  Show all
+                  {t("i18n-next5.optionalPacks.showAll")}
                 </TextLink>
                 <TextLink asButton onClick={() => disableAll()}>
-                  Hide all
+                  {t("i18n-next5.optionalPacks.hideAll")}
                 </TextLink>
               </FlexRow>
             </FlexRow>
@@ -280,11 +279,10 @@ const OptionalPacksSection = () => {
                 <Divider />
                 <FlexColumn gap={SPACING.micro}>
                   <Text size="small" weight={600}>
-                    Providers
+                    {t("i18n-next5.optionalPacks.providers")}
                   </Text>
                   <Text size="small" color="secondary">
-                    Provider nodes appear once you add their API key — setting a
-                    key enables the pack automatically.
+                    {t("i18n-next5.optionalPacks.providersDescription")}
                   </Text>
                 </FlexColumn>
                 <FlexColumn gap={SPACING.micro}>
@@ -305,18 +303,16 @@ const OptionalPacksSection = () => {
                           <span className="key-set">
                             <CheckCircleOutlineIcon />
                             <Text size="small" color="inherit">
-                              Key set
+                              {t("i18n-next5.optionalPacks.keySet")}
                             </Text>
                           </span>
                         ) : (
                           <Tooltip
-                            title={`Add ${getSecretDisplayName(
-                              provider.requiredKey
-                            )}`}
+                            title={t("i18n-next5.optionalPacks.addCredential", { name: getSecretDisplayName(provider.requiredKey) })}
                             describeChild
                           >
                             <TextLink asButton onClick={openApiKeys}>
-                              Add API key
+                            {t("i18n-next5.optionalPacks.addApiKey")}
                             </TextLink>
                           </Tooltip>
                         )}
@@ -332,10 +328,10 @@ const OptionalPacksSection = () => {
                 <Divider />
                 <FlexColumn gap={SPACING.micro}>
                   <Text size="small" weight={600}>
-                    Local packs
+                    {t("i18n-next5.optionalPacks.localPacks")}
                   </Text>
                   <Text size="small" color="secondary">
-                    Run locally — no API key required.
+                    {t("i18n-next5.optionalPacks.localDescription")}
                   </Text>
                 </FlexColumn>
                 <FlexColumn gap={SPACING.micro}>
@@ -362,7 +358,7 @@ const OptionalPacksSection = () => {
                 <Divider />
                 <FlexRow justify="flex-end">
                   <TextLink asButton onClick={handleManagePacks}>
-                    More packs…
+                    {t("i18n-next5.optionalPacks.morePacks")}
                   </TextLink>
                 </FlexRow>
               </>

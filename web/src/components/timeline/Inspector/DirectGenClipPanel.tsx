@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -128,6 +129,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   clipId,
   additionalSections
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [promptOpen, setPromptOpen] = usePersistedFold("direct-gen-prompt", true);
 
@@ -360,16 +362,16 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     const action = isActive ? cancelClipGeneration() : generateClip();
     action.catch((err: unknown) => {
       addNotification({
-        content: `Clip generation failed: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        content: t("pass3_27.directGenClip.generationFailedWithReason", {
+          error: err instanceof Error ? err.message : String(err)
+        }),
         type: "error",
         alert: true,
         dedupeKey: "timeline-clip-generate-failed",
         replaceExisting: true
       });
     });
-  }, [isActive, cancelClipGeneration, generateClip, addNotification]);
+  }, [isActive, cancelClipGeneration, generateClip, addNotification, t]);
 
   if (!clip) {
     return null;
@@ -377,14 +379,14 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
 
   const promptPlaceholder =
     kind === "video"
-      ? "Describe the video…"
+      ? t("pass3_27.directGenClip.prompt.video")
       : kind === "music"
-        ? "Describe the music…"
+        ? t("pass3_27.directGenClip.prompt.music")
         : kind === "audio"
-          ? "Type text to speak…"
-          : "Describe the image…";
+          ? t("pass3_27.directGenClip.prompt.audio")
+          : t("pass3_27.directGenClip.prompt.image");
 
-  const generateLabel = clip.currentAssetId ? "Regenerate" : "Generate";
+  const generateLabel = clip.currentAssetId ? t("pass3_27.directGenClip.regenerate") : t("pass3_27.directGenClip.generate");
 
   return (
     <Panel background="default" bordered={false} sx={panelSx}>
@@ -394,7 +396,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
         <CollapsibleSection
           title={
             <InspectorSectionTitle
-              title="Prompt"
+              title={t("pass3_27.directGenClip.prompt.title")}
               icon={<AutoAwesomeOutlinedIcon />}
             />
           }
@@ -417,13 +419,13 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                   value="text-to-image"
                   data-testid="direct-gen-mode-t2i"
                 >
-                  Text → Image
+                  {t("pass3_27.directGenClip.mode.textToImage")}
                 </ToggleOption>
                 <ToggleOption
                   value="image-to-image"
                   data-testid="direct-gen-mode-i2i"
                 >
-                  Image → Image
+                  {t("pass3_27.directGenClip.mode.imageToImage")}
                 </ToggleOption>
               </ToggleGroup>
             )}
@@ -485,7 +487,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               compact
               fullWidth
               inputProps={{
-                "aria-label": "Prompt",
+                "aria-label": t("pass3_27.directGenClip.prompt.title"),
                 "data-testid": "direct-gen-prompt"
               }}
             />
@@ -495,11 +497,11 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                 <EmptyState
                   variant="empty"
                   size="small"
-                  description="No source clips with a rendered asset are available."
+                  description={t("pass3_27.directGenClip.noSourceClips")}
                 />
               ) : (
                 <SelectField
-                  label={isImageToVideo ? "Source image" : "Source clip"}
+                  label={isImageToVideo ? t("pass3_27.directGenClip.sourceImage") : t("pass3_27.directGenClip.sourceClip")}
                   value={clip.sourceClipId ?? ""}
                   onChange={handleSourceChange}
                   options={sourceOptions}
@@ -514,7 +516,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               <FlexRow gap={0.5} align="center" sx={{ flexWrap: "wrap" }}>
                 <MediaOptionChip
                   icon={<TvIcon fontSize="small" />}
-                  header="Resolution"
+                  header={t("pass3_27.directGenClip.resolution")}
                   value={imageResolution}
                   options={resolutionOptions}
                   onChange={(r) => applyImageSize(r, imageAspect)}
@@ -528,8 +530,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                   <>
                     <MediaOptionChip
                       icon={<TuneIcon fontSize="small" />}
-                      label={`Strength ${(clip.strength ?? DEFAULT_STRENGTH).toFixed(2)}`}
-                      header="Edit strength"
+                      label={t("pass3_27.directGenClip.strengthValue", { value: (clip.strength ?? DEFAULT_STRENGTH).toFixed(2) })}
+                      header={t("pass3_27.directGenClip.editStrength")}
                       value={clip.strength ?? DEFAULT_STRENGTH}
                       options={strengthOptions}
                       onChange={(s) =>
@@ -538,8 +540,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                     />
                     <MediaOptionChip
                       icon={<LayersIcon fontSize="small" />}
-                      label={`${clip.numInferenceSteps ?? DEFAULT_STEPS} steps`}
-                      header="Inference steps"
+                      label={t("pass3_27.directGenClip.stepsValue", { count: clip.numInferenceSteps ?? DEFAULT_STEPS })}
+                      header={t("pass3_27.directGenClip.inferenceSteps")}
                       value={clip.numInferenceSteps ?? DEFAULT_STEPS}
                       options={stepsOptions}
                       onChange={(n) =>
@@ -554,8 +556,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               <FlexRow gap={0.5} align="center" sx={{ flexWrap: "wrap" }}>
                 <MediaOptionChip
                   icon={<AccessTimeIcon fontSize="small" />}
-                  label={`${videoDuration} Sec`}
-                  header="Duration"
+                  label={t("pass3_27.directGenClip.durationValue", { count: videoDuration })}
+                  header={t("pass3_27.directGenClip.duration")}
                   value={videoDuration}
                   options={durationOptions}
                   onChange={handleDurationChange}
@@ -563,7 +565,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                 />
                 <MediaOptionChip
                   icon={<TvIcon fontSize="small" />}
-                  header="Video resolution"
+                  header={t("pass3_27.directGenClip.videoResolution")}
                   value={
                     (clip.resolution as VideoResolution | undefined) ??
                     DEFAULT_VIDEO_RESOLUTION
@@ -586,7 +588,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
             <FlexRow justify="flex-end" fullWidth>
               <CostEstimateLine
                 estimate={generationCostLine(costEstimate)}
-                title="Estimated cost of this generation"
+                title={t("pass3_27.directGenClip.estimatedCost")}
               />
             </FlexRow>
 
@@ -601,16 +603,16 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               onClick={handleGenerateClick}
               data-testid="direct-gen-generate"
             >
-              {isActive ? "Cancel" : generateLabel}
+              {isActive ? t("pass3_27.directGenClip.cancel") : generateLabel}
             </EditorButton>
             {isFailed && (
               <ErrorBanner
                 report={{
                   source: "job-failure",
-                  summary: "Clip generation failed"
+                  summary: t("pass3_27.directGenClip.generationFailed")
                 }}
               >
-                Generation failed.
+                {t("pass3_27.directGenClip.generationFailed")}
               </ErrorBanner>
             )}
           </FlexColumn>

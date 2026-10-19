@@ -1,4 +1,5 @@
 import React, { memo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PageLayout, TabGroup } from "../ui_primitives";
 import DashboardExampleApps from "./DashboardExampleApps";
 import DashboardExampleGames from "./DashboardExampleGames";
@@ -13,19 +14,23 @@ import DashboardTemplates from "./DashboardTemplates";
  * examples for each editor in separate tabs.
  */
 const ExamplesPage: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("apps");
 
   return (
     <PageLayout padded={false} scrollable showHeader={false}>
       <TabGroup
         tabs={[
-          { value: "apps", label: "Apps" },
-          { value: "workflows", label: "Workflows" },
-          { value: "storyboards", label: "Storyboards" },
-          { value: "timelines", label: "Timelines" },
-          { value: "sketches", label: "Sketches" },
-          { value: "models", label: "3D models" },
-          { value: "games", label: "Games" }
+          { value: "apps", label: t("pass3_18.examples.tabs.apps") },
+          { value: "workflows", label: t("pass3_18.examples.tabs.workflows") },
+          {
+            value: "storyboards",
+            label: t("pass3_18.examples.tabs.storyboards")
+          },
+          { value: "timelines", label: t("pass3_18.examples.tabs.timelines") },
+          { value: "sketches", label: t("pass3_18.examples.tabs.sketches") },
+          { value: "models", label: t("pass3_18.examples.tabs.models3d") },
+          { value: "games", label: t("pass3_18.examples.tabs.games") }
         ]}
         value={activeTab}
         onChange={setActiveTab}

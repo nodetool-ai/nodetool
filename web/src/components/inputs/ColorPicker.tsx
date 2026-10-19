@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Tooltip,
   MOTION,
@@ -82,6 +83,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   showCustom = false,
   buttonSize = 20
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const cssColorMatrix = useMemo(() => colorMatrixStyle(theme), [theme]);
@@ -147,12 +149,12 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   return (
     <div className="color-picker" css={cssStyles}>
       <Tooltip
-        title="Set color"
+        title={t("i18n-next49-color-inputs.colorPicker.setColor")}
         placement="bottom"
       >
         <Button
           className="open-colors-button"
-          aria-label="Choose color"
+          aria-label={t("i18n-next49-color-inputs.colorPicker.chooseColor")}
           aria-haspopup="dialog"
           onClick={handleClick}
           style={{
@@ -199,7 +201,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 backgroundColor: cellColor || "transparent"
               }}
               aria-label={
-                cellColor === null ? "No color" : `Color ${cellColor}`
+                cellColor === null
+                  ? t("i18n-next49-color-inputs.colorPicker.noColor")
+                  : t("i18n-next49-color-inputs.colorPicker.color", { color: cellColor })
               }
               onClick={handleColorCellButtonClick}
             />
@@ -211,7 +215,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               size="small"
               onClick={handleOpenModal}
             >
-              Custom Color…
+              {t("i18n-next49-color-inputs.colorPicker.customColor")}
             </Button>
           )}
         </div>

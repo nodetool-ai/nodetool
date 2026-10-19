@@ -7,6 +7,7 @@
  * The bound value is the storyboard id, or a `{ type: "storyboard", id }` ref.
  */
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Caption, LoadingSpinner } from "../../ui_primitives";
 import { AppEvent } from "../types";
@@ -29,6 +30,7 @@ interface StoryboardPreviewWidgetProps {
 export const StoryboardPreviewWidget: React.FC<StoryboardPreviewWidgetProps> = (
   props
 ) => {
+  const { t } = useTranslation();
   const { value, designMode } = useWidgetRuntime({
     id: props.id,
     bindingMode: "read",
@@ -40,21 +42,31 @@ export const StoryboardPreviewWidget: React.FC<StoryboardPreviewWidgetProps> = (
   if (designMode) {
     return (
       <Caption color="secondary">
-        Bind this to a storyboard output to play the board.
+        {t(
+          "i18n-next109.appbuilder.puck.storyboardPreview.designModeDescription"
+        )}
       </Caption>
     );
   }
   if (!boardId) {
     return (
       <Caption color="secondary">
-        {props.placeholder ?? "No storyboard yet"}
+        {props.placeholder ??
+          t("i18n-next109.appbuilder.puck.storyboardPreview.noStoryboard")}
       </Caption>
     );
   }
   return (
     <ReadOnlyBoardLoader boardId={boardId}>
       <React.Suspense
-        fallback={<LoadingSpinner size="small" text="Loading preview" />}
+        fallback={
+          <LoadingSpinner
+            size="small"
+            text={t(
+              "i18n-next109.appbuilder.puck.storyboardPreview.loadingPreview"
+            )}
+          />
+        }
       >
         <LazyStoryboardPreview boardId={boardId} height={props.height} />
       </React.Suspense>

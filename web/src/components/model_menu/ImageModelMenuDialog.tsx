@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useImageModelMenuStore } from "../../stores/ModelMenuStore";
@@ -30,6 +31,7 @@ function ImageModelMenuDialog({
   modelPacks,
   selectedModel
 }: ImageModelMenuDialogProps) {
+  const { t } = useTranslation();
   const modelData = useImageModelsByProvider({ task });
   const localCapabilities = useMemo(
     () => imageTaskCapabilities(task === undefined ? undefined : [task].flat()),
@@ -42,8 +44,8 @@ function ImageModelMenuDialog({
       onClose={onClose}
       modelData={modelData}
       onModelChange={onModelChange}
-      title="Select image model"
-      searchPlaceholder="Search image models"
+      title={t("screen_modelMenu.selectImageModel")}
+      searchPlaceholder={t("screen_modelMenu.searchImageModels")}
       storeHook={useImageModelMenuStore}
       modelType="image_model"
       localCapabilities={localCapabilities}

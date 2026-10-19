@@ -14,12 +14,13 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { ToolbarIconButton, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { SxProps, Theme, useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
-import { copyAssetToClipboard, isClipboardSupported, getClipboardSupportMessage } from "../../utils/clipboardUtils";
+import { copyAssetToClipboard, getClipboardType, isClipboardSupported } from "../../utils/clipboardUtils";
 import { isElectron } from "../../utils/browser";
 
 const FEEDBACK_TIMEOUT = 2000;
@@ -259,6 +260,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
     electronOnly = false,
     tabIndex = 0
   }) => {
+    const { t } = useTranslation();
     const theme = useTheme();
     const [state, setState] = useState<"idle" | "copied" | "error">("idle");
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -313,26 +315,36 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
 
     const getDefaultTooltip = () => {
       if (isImageType(contentType)) {
-        return "Copy image (paste into any image editor)";
+        return t("batch2_10.copyAsset.copyImage");
       }
       if (isVideoType(contentType)) {
-        return "Copy video info";
+        return t("batch2_10.copyAsset.copyVideoInfo");
       }
       if (isAudioType(contentType)) {
-        return "Copy audio info";
+        return t("batch2_10.copyAsset.copyAudioInfo");
       }
-      return "Copy content";
+      return t("batch2_10.copyAsset.copyContent");
     };
 
     const tooltipText =
       state === "error"
-        ? "Failed to copy"
+        ? t("batch2_10.copyAsset.failed")
         : state === "copied"
-          ? "Copied!"
+          ? t("batch2_10.copyAsset.copied")
           : tooltip || getDefaultTooltip();
 
-    const fullTooltip = showCompatibilityInfo && state === "idle" 
-      ? `${tooltipText}\n${getClipboardSupportMessage(contentType)}`
+    const clipboardType = getClipboardType(contentType);
+    const supportMessage = clipboardType === "image"
+      ? t("batch2_10.copyAsset.support.image")
+      : clipboardType === "html"
+        ? t("batch2_10.copyAsset.support.html")
+        : clipboardType === "unsupported"
+          ? t("batch2_10.copyAsset.support.unsupported")
+          : isVideoType(contentType) || isAudioType(contentType)
+            ? t("batch2_10.copyAsset.support.media")
+            : t("batch2_10.copyAsset.support.text");
+    const fullTooltip = showCompatibilityInfo && state === "idle"
+      ? `${tooltipText}\n${supportMessage}`
       : tooltipText;
 
     const iconSize = size === "small" ? 14 : size === "medium" ? 18 : 22;

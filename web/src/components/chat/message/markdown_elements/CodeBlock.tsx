@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 import Prism from "../../../../prismCore";
 import "../../../../prismGlobal";
 import DOMPurify from "dompurify";
@@ -243,6 +244,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   onInsert,
   ...props
 }) => {
+  const { t } = useTranslation();
   const codeContent = String(children).trimEnd();
   const match = /language-(\w+)/.exec(className || "");
   const isDarkMode = useIsDarkMode();
@@ -305,7 +307,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
           <FlexRow gap={SPACING.md} align="center">
             {onInsert != null && (
               <EditorButton variant="outlined" onClick={handleInsert}>
-                Insert into editor
+                {t("i18n-next108.codeBlock.insertIntoEditor")}
               </EditorButton>
             )}
             <CopyButton value={codeContent} />

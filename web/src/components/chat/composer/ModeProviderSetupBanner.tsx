@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import { AlertBanner, EditorButton } from "../../ui_primitives";
 
@@ -15,8 +16,9 @@ interface ModeProviderSetupBannerProps {
 const ModeProviderSetupBanner: React.FC<ModeProviderSetupBannerProps> = ({
   reason,
   onConnect
-}) => (
-  <AlertBanner
+}) => {
+  const { t } = useTranslation();
+  return <AlertBanner
     severity="info"
     compact
     icon={<KeyRoundedIcon fontSize="small" />}
@@ -27,13 +29,14 @@ const ModeProviderSetupBanner: React.FC<ModeProviderSetupBannerProps> = ({
         size="small"
         onClick={onConnect}
       >
-        Connect a provider
+        {t("i18n-next18.chat.composer.connectProvider")}
       </EditorButton>
     }
     sx={{ mx: 1, mb: 0.5, alignItems: "center" }}
   >
     {reason}
   </AlertBanner>
-);
+  </AlertBanner>;
+};
 
 export default memo(ModeProviderSetupBanner);

@@ -7,6 +7,7 @@
  * navigation goes through `navigateTo`, never `useNavigate`.
  */
 import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Command } from "cmdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import BugReportIcon from "@mui/icons-material/BugReport";
@@ -84,6 +85,7 @@ const uniqueValues = (labels: readonly string[]): string[] => {
 
 /** The open tabs of the current project, so any tab is a few keys away. */
 export const SwitchTabCommands = memo(function SwitchTabCommands() {
+  const { t } = useTranslation();
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const activeProjectId = useWorkspaceTabsStore(
@@ -105,8 +107,8 @@ export const SwitchTabCommands = memo(function SwitchTabCommands() {
     [tabs, activeProjectId, activeTabId, onWorkspace]
   );
   const values = useMemo(
-    () => uniqueValues(targets.map((tab) => `Go to ${tabDisplayTitle(tab)}`)),
-    [targets]
+    () => uniqueValues(targets.map((tab) => t("screens4_4.globalCommands.goToTab", { title: tabDisplayTitle(tab) }))),
+    [targets, t]
   );
 
   const switchTo = useCallback(
@@ -122,7 +124,7 @@ export const SwitchTabCommands = memo(function SwitchTabCommands() {
   }
 
   return (
-    <Command.Group heading="Open tabs">
+    <Command.Group heading={t("screens4_4.globalCommands.openTabs")}>
       {targets.map((tab, index) => (
         <Command.Item
           key={tab.id}
@@ -139,6 +141,7 @@ export const SwitchTabCommands = memo(function SwitchTabCommands() {
 
 /** App pages and destinations: the same list the rail and logo menu show. */
 const NavigateCommands = memo(function NavigateCommands() {
+  const { t } = useTranslation();
   const appActions = useAppMenuActions();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
@@ -147,26 +150,26 @@ const NavigateCommands = memo(function NavigateCommands() {
       type: "project-list",
       ref: PROJECT_LIST_REF,
       mode: "view",
-      title: "Projects"
+      title: t("screens4_4.globalCommands.projects")
     });
     showWorkspace();
-  }, [openTab]);
+  }, [openTab, t]);
 
   return (
-    <Command.Group heading="Go to">
+    <Command.Group heading={t("screens4_4.globalCommands.goTo")}>
       {window.location.pathname !== WORKSPACE_PATH && (
         <Command.Item
-          value="Workspace"
+          value={t("screens4_4.globalCommands.workspace")}
           onSelect={() => runCommandAndClose(() => navigateTo(WORKSPACE_PATH))}
         >
-          <SpaceDashboardOutlinedIcon /> Workspace
+          <SpaceDashboardOutlinedIcon /> {t("screens4_4.globalCommands.workspace")}
         </Command.Item>
       )}
       <Command.Item
-        value="Projects"
+        value={t("screens4_4.globalCommands.projects")}
         onSelect={() => runCommandAndClose(openProjects)}
       >
-        <Glyph>{PROJECT_GLYPH}</Glyph> Projects
+        <Glyph>{PROJECT_GLYPH}</Glyph> {t("screens4_4.globalCommands.projects")}
       </Command.Item>
       {appActions.map((action) => (
         <Command.Item
@@ -188,10 +191,10 @@ const NavigateCommands = memo(function NavigateCommands() {
         </Command.Item>
       ))}
       <Command.Item
-        value="Studio"
+        value={t("screens4_4.globalCommands.studio")}
         onSelect={() => runCommandAndClose(() => navigateTo("/studio"))}
       >
-        <MovieFilterOutlinedIcon /> Studio
+        <MovieFilterOutlinedIcon /> {t("screens4_4.globalCommands.studio")}
       </Command.Item>
     </Command.Group>
   );
@@ -199,6 +202,7 @@ const NavigateCommands = memo(function NavigateCommands() {
 
 /** Every project, so switching projects does not need the tab bar. */
 const ProjectCommands = memo(function ProjectCommands() {
+  const { t } = useTranslation();
   const { data: projects } = useProjects();
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
@@ -214,10 +218,10 @@ const ProjectCommands = memo(function ProjectCommands() {
       uniqueValues(
         targets.map(
           (project) =>
-            `Switch to project ${project.isPersonal ? "Personal" : project.name}`
+            t("screens4_4.globalCommands.switchToProject", { name: project.isPersonal ? t("screens4_4.globalCommands.personal") : project.name })
         )
       ),
-    [targets]
+    [targets, t]
   );
 
   if (targets.length === 0) {
@@ -225,9 +229,9 @@ const ProjectCommands = memo(function ProjectCommands() {
   }
 
   return (
-    <Command.Group heading="Projects">
+    <Command.Group heading={t("screens4_4.globalCommands.projects")}>
       {targets.map((project, index) => {
-        const name = project.isPersonal ? "Personal" : project.name;
+        const name = project.isPersonal ? t("screens4_4.globalCommands.personal") : project.name;
         return (
           <Command.Item
             key={project.id}
@@ -250,21 +254,44 @@ const ProjectCommands = memo(function ProjectCommands() {
 
 /** The `+ New` catalog, flattened: submenus become one item per choice. */
 const CreateCommands = memo(function CreateCommands() {
+  const { t } = useTranslation();
   const catalog = useNewDocumentCatalog({}, showWorkspace);
+  const templateLabels: Record<string, string> = {
+    "Untitled.md": t("screens4_4.globalCommands.templates.markdown"),
+    "Untitled.json": t("screens4_4.globalCommands.templates.json"),
+    "Untitled.yaml": t("screens4_4.globalCommands.templates.yaml"),
+    "Untitled.csv": t("screens4_4.globalCommands.templates.csv"),
+    "Untitled.tsv": t("screens4_4.globalCommands.templates.tsv"),
+    "Untitled.txt": t("screens4_4.globalCommands.templates.plainText")
+  };
+  const entryLabels: Record<string, string> = {
+    workflow: t("screens4_4.globalCommands.createEntries.workflow"),
+    chat: t("screens4_4.globalCommands.createEntries.chat"),
+    text: t("screens4_4.globalCommands.createEntries.text"),
+    image: t("screens4_4.globalCommands.createEntries.image"),
+    svg: t("screens4_4.globalCommands.createEntries.svg"),
+    video: t("screens4_4.globalCommands.createEntries.video"),
+    storyboard: t("screens4_4.globalCommands.createEntries.storyboard"),
+    app: t("screens4_4.globalCommands.createEntries.app"),
+    script: t("screens4_4.globalCommands.createEntries.script"),
+    jsscript: t("screens4_4.globalCommands.createEntries.jsscript"),
+    skill: t("screens4_4.globalCommands.createEntries.skill"),
+    model3d: t("screens4_4.globalCommands.createEntries.model3d")
+  };
 
   return (
-    <Command.Group heading="Create">
+    <Command.Group heading={t("screens4_4.globalCommands.create")}>
       {catalog.entries.map((entry) => {
         if (entry.submenu === "texts") {
           return TEXT_FILE_TEMPLATES.map((template) => (
             <Command.Item
               key={`text-${template.filename}`}
-              value={`New text file ${template.label}`}
+              value={t("screens4_4.globalCommands.newTextFileValue", { label: templateLabels[template.filename] ?? template.label })}
               onSelect={() =>
                 runCommandAndClose(() => catalog.createTextFile(template))
               }
             >
-              {entry.icon} New text file: {template.label}
+              {entry.icon} {t("screens4_4.globalCommands.newTextFile", { label: templateLabels[template.filename] ?? template.label })}
             </Command.Item>
           ));
         }
@@ -272,12 +299,12 @@ const CreateCommands = memo(function CreateCommands() {
           return (
             <Command.Item
               key={entry.key}
-              value="New storyboard"
+              value={t("screens4_4.globalCommands.newStoryboard")}
               onSelect={() =>
                 runCommandAndClose(catalog.createBlankStoryboard)
               }
             >
-              {entry.icon} New storyboard
+            {entry.icon} {t("screens4_4.globalCommands.newStoryboard")}
             </Command.Item>
           );
         }
@@ -288,10 +315,10 @@ const CreateCommands = memo(function CreateCommands() {
         return (
           <Command.Item
             key={entry.key}
-            value={entry.menuLabel}
+            value={entryLabels[entry.key] ?? entry.menuLabel}
             onSelect={() => runCommandAndClose(create)}
           >
-            {entry.icon} {entry.menuLabel}
+            {entry.icon} {entryLabels[entry.key] ?? entry.menuLabel}
           </Command.Item>
         );
       })}
@@ -306,6 +333,7 @@ const CreateCommands = memo(function CreateCommands() {
  * app, then opens it.
  */
 const AppCommands = memo(function AppCommands() {
+  const { t } = useTranslation();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -329,10 +357,10 @@ const AppCommands = memo(function AppCommands() {
       addNotification({
         type: "error",
         alert: true,
-        content: `Failed to export app bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+        content: t("screens4_4.globalCommands.exportBundleFailed", { error: error instanceof Error ? error.message : t("screens4_4.globalCommands.unknownError") })
       });
     }
-  }, [applicationId, applicationName, addNotification]);
+  }, [applicationId, applicationName, addNotification, t]);
 
   const exportProject = useCallback(async () => {
     if (!applicationId) return;
@@ -342,10 +370,10 @@ const AppCommands = memo(function AppCommands() {
       addNotification({
         type: "error",
         alert: true,
-        content: `Failed to export app project: ${error instanceof Error ? error.message : "Unknown error"}`
+        content: t("screens4_4.globalCommands.exportProjectFailed", { error: error instanceof Error ? error.message : t("screens4_4.globalCommands.unknownError") })
       });
     }
-  }, [applicationId, applicationName, addNotification]);
+  }, [applicationId, applicationName, addNotification, t]);
 
   const handleAppBundleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -362,18 +390,18 @@ const AppCommands = memo(function AppCommands() {
         addNotification({
           type: "success",
           alert: true,
-          content: `Imported app "${app.name}"`
+          content: t("screens4_4.globalCommands.importedApp", { name: app.name })
         });
       } catch (error) {
         addNotification({
           type: "error",
           alert: true,
-          content: `Failed to import app bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+          content: t("screens4_4.globalCommands.importBundleFailed", { error: error instanceof Error ? error.message : t("screens4_4.globalCommands.unknownError") })
         });
       }
       if (appBundleInputRef.current) appBundleInputRef.current.value = "";
     },
-    [queryClient, openTab, addNotification]
+    [queryClient, openTab, addNotification, t]
   );
 
   return (
@@ -382,19 +410,19 @@ const AppCommands = memo(function AppCommands() {
         ref={appBundleInputRef}
         type="file"
         accept=".json,application/json"
-        aria-label="Import app bundle file"
+        aria-label={t("screens4_4.globalCommands.importAppBundleFile")}
         style={{ display: "none" }}
         onChange={handleAppBundleFileChange}
       />
-      <Command.Group heading="App">
+      <Command.Group heading={t("screens4_4.globalCommands.app")}>
         {applicationId && (
           <Command.Item onSelect={() => runCommandAndClose(exportApp)}>
-            <FolderZipRoundedIcon /> Export App as Bundle (.app.json)
+            <FolderZipRoundedIcon /> {t("screens4_4.globalCommands.exportAppBundle")}
           </Command.Item>
         )}
         {applicationId && (
           <Command.Item onSelect={() => runCommandAndClose(exportProject)}>
-            <FolderZipRoundedIcon /> Export App as Standalone Project (.zip)
+            <FolderZipRoundedIcon /> {t("screens4_4.globalCommands.exportAppProject")}
           </Command.Item>
         )}
         {/* The file picker must open inside the click's user activation, so
@@ -404,7 +432,7 @@ const AppCommands = memo(function AppCommands() {
             appBundleInputRef.current?.click();
           }}
         >
-          <FolderZipRoundedIcon /> Import App from Bundle (.app.json)
+          <FolderZipRoundedIcon /> {t("screens4_4.globalCommands.importAppBundle")}
         </Command.Item>
       </Command.Group>
     </>
@@ -412,6 +440,7 @@ const AppCommands = memo(function AppCommands() {
 });
 
 const HelpCommands = memo(function HelpCommands() {
+  const { t } = useTranslation();
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
@@ -419,7 +448,7 @@ const HelpCommands = memo(function HelpCommands() {
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
 
   return (
-    <Command.Group heading="Help">
+    <Command.Group heading={t("screens4_4.globalCommands.help")}>
       <Command.Item
         onSelect={() =>
           runCommandAndClose(() => {
@@ -428,7 +457,7 @@ const HelpCommands = memo(function HelpCommands() {
           })
         }
       >
-        <KeyboardRoundedIcon /> Keyboard Shortcuts
+        <KeyboardRoundedIcon /> {t("screens4_4.globalCommands.keyboardShortcuts")}
       </Command.Item>
       <Command.Item
         onSelect={() =>
@@ -440,7 +469,7 @@ const HelpCommands = memo(function HelpCommands() {
           )
         }
       >
-        <BugReportIcon /> Report a Bug
+        <BugReportIcon /> {t("screens4_4.globalCommands.reportBug")}
       </Command.Item>
     </Command.Group>
   );
@@ -450,6 +479,7 @@ const HelpCommands = memo(function HelpCommands() {
 const COMMAND_MENU_WORKFLOW_LIMIT = 100;
 
 const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
+  const { t } = useTranslation();
   const load = useWorkflowManager((state) => state.load);
 
   const { data: workflows } = useQuery<WorkflowList>({
@@ -464,10 +494,10 @@ const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
     () =>
       uniqueValues(
         (workflows?.workflows ?? []).map(
-          (workflow) => `Open workflow ${workflow.name}`
+          (workflow) => t("screens4_4.globalCommands.openWorkflowValue", { name: workflow.name })
         )
       ),
-    [workflows]
+    [workflows, t]
   );
 
   if (!workflows || workflows.workflows.length === 0) {
@@ -475,7 +505,7 @@ const OpenWorkflowCommands = memo(function OpenWorkflowCommands() {
   }
 
   return (
-    <Command.Group heading="Workflows">
+    <Command.Group heading={t("screens4_4.globalCommands.workflows")}>
       {workflows.workflows.map((workflow, index) => (
         <Command.Item
           key={workflow.id}

@@ -14,6 +14,7 @@
  */
 
 import { forwardRef, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton, IconButtonProps } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import { LoadingSpinner } from "./LoadingSpinner";
@@ -92,7 +93,7 @@ export const RefreshButton = memo(
   forwardRef<HTMLButtonElement, RefreshButtonProps>(
     (
       {
-        tooltip = "Refresh",
+        tooltip,
         isLoading = false,
         iconVariant = "refresh",
         tooltipPlacement = "top",
@@ -108,6 +109,8 @@ export const RefreshButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const tooltipText = tooltip ?? t("i18n-next85.uiPrimitives.refresh");
 
       const getIcon = () => {
         if (isLoading) {
@@ -147,7 +150,7 @@ export const RefreshButton = memo(
 
       return (
         <Tooltip
-          title={tooltip}
+          title={tooltipText}
           enterDelay={TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
@@ -162,7 +165,7 @@ export const RefreshButton = memo(
                 className
               )}
               disabled={disabled || isLoading}
-              aria-label={tooltip}
+              aria-label={tooltipText}
               tabIndex={tabIndex}
               sx={{
                 ...getSizeStyles(),

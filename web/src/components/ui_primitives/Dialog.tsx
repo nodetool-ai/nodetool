@@ -34,6 +34,7 @@
  */
 
 import { CSSProperties, forwardRef, memo, ReactNode, useId } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog as MuiDialog,
   DialogProps as MuiDialogProps,
@@ -172,6 +173,7 @@ export const Dialog = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
       const titleId = useId();
       // A dialog opened from inside a popover has to clear that popover's
       // invisible backdrop, which the theme pins far above the modal layer.
@@ -197,7 +199,7 @@ export const Dialog = memo(
         shouldShowCloseButton && onClose ? (
           <CloseButton
             onClick={() => onClose({}, "escapeKeyDown")}
-            tooltip="Close"
+            tooltip={t("i18n-next91.dialog.close")}
           />
         ) : null;
       const headerActions =
@@ -310,8 +312,8 @@ export const Dialog = memo(
               <DialogActionButtons
                 onConfirm={onConfirm}
                 onCancel={handleCancel}
-                confirmText={confirmText}
-                cancelText={cancelText}
+                confirmText={confirmText ?? t("i18n-next91.dialog.confirm")}
+                cancelText={cancelText ?? t("i18n-next91.dialog.cancel")}
                 isLoading={isLoading}
                 confirmDisabled={confirmDisabled}
                 cancelDisabled={cancelDisabled}

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useRunWarningStore } from "../../stores/RunWarningStore";
 import {
   Dialog,
@@ -15,6 +16,7 @@ import {
  * by {@link useRunWarningStore}.
  */
 const RunWarningDialog: React.FC = () => {
+  const { t } = useTranslation();
   const open = useRunWarningStore((s) => s.open);
   const kind = useRunWarningStore((s) => s.kind);
   const heavyCount = useRunWarningStore((s) => s.heavyCount);
@@ -44,31 +46,24 @@ const RunWarningDialog: React.FC = () => {
       onClose={handleCancel}
       title={
         isConcurrent
-          ? "Start another entire workflow run?"
-          : "Run the entire workflow?"
+          ? t("screen_shared.runWarning.concurrentTitle")
+          : t("screen_shared.runWarning.heavyTitle")
       }
       onConfirm={handleConfirm}
-      confirmText={isConcurrent ? "Start second run" : "Run anyway"}
+      confirmText={isConcurrent ? t("screen_shared.runWarning.startSecondRun") : t("screen_shared.runWarning.runAnyway")}
       content={
         <FlexColumn gap={SPACING.sm}>
           {isConcurrent ? (
             <Text>
-              This workflow is <strong>already running</strong>. Starting
-              another run will execute both at the same time — for realtime
-              audio patches that means overlapping sound. Stop the current run
-              first if you meant to restart it.
+              {t("screen_shared.runWarning.concurrentBody", { count: heavyCount })}
             </Text>
           ) : (
             <>
               <Text>
-                This run will execute{" "}
-                <strong>{heavyCount} model/provider nodes</strong> — above the
-                warning threshold of {threshold}. Each may call an external API
-                or run a model, so running them all at once can be slow or hit
-                provider rate limits.
+                {t("screen_shared.runWarning.heavyBody", { count: heavyCount, threshold })}
               </Text>
               <Checkbox
-                label="Don't ask again for this session"
+                label={t("screen_shared.runWarning.dontAskAgain")}
                 checked={dontAskAgain}
                 onChange={(_event, checked) => setDontAskAgain(checked)}
               />

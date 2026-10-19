@@ -11,6 +11,7 @@
 
 /** @jsxImportSource @emotion/react */
 import React, { memo, useState, useRef, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   FlexColumn,
   FlexRow,
@@ -52,13 +53,6 @@ import {
 const SV_SIZE = 160;
 const HUE_HEIGHT = 12;
 
-const RGB_LABELS = { r: "Red", g: "Green", b: "Blue" } as const;
-const HSL_LABELS = {
-  h: "Hue (degrees)",
-  s: "Saturation (percent)",
-  l: "Lightness (percent)"
-} as const;
-
 interface ColorPickerPopoverProps {
   anchorEl: HTMLElement | null;
   color: string;
@@ -74,6 +68,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   onColorChange,
   onClose
 }) => {
+  const { t, i18n } = useTranslation();
   const open = Boolean(anchorEl);
   const [mode, setMode] = useState<ColorMode>("hex");
 
@@ -81,6 +76,20 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   const fgHex6 = colorToHex6(color);
   const hsl = rgbToHsl(r, g, b);
   const hsv = rgbToHsv(r, g, b);
+  const rgbLabels = {
+    r: t("screens4_24.sketch.colorPicker.red"),
+    g: t("screens4_24.sketch.colorPicker.green"),
+    b: t("screens4_24.sketch.colorPicker.blue")
+  } as const;
+  const hslLabels = {
+    h: t("screens4_24.sketch.colorPicker.hueDegrees"),
+    s: t("screens4_24.sketch.colorPicker.saturationPercent"),
+    l: t("screens4_24.sketch.colorPicker.lightnessPercent")
+  } as const;
+  const formattedAlpha = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
+    style: "percent",
+    maximumFractionDigits: 0
+  }).format(a);
 
   // Local hue state — prevents hue jump when dragging in desaturated areas
   const [localHue, setLocalHue] = useState<number>(hsv.h);
@@ -219,11 +228,11 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       }}
     >
       <FlexRow className="color-picker__header" align="center" justify="flex-end" sx={{ minHeight: "22px", mt: `-${getSpacingPx(SPACING.sm)}`, mr: `-${getSpacingPx(SPACING.sm)}`, mb: getSpacingPx(SPACING.micro) }}>
-        <Tooltip title="Cancel — keep previous color">
+        <Tooltip title={t("screens4_24.sketch.colorPicker.cancelTooltip")}>
           <IconButton
             size="small"
             onClick={handleCancel}
-            aria-label="Cancel color change"
+            aria-label={t("screens4_24.sketch.colorPicker.cancel")}
             sx={{ p: getSpacingPx(SPACING.micro), color: SKETCH_COLORS.textSecondary, "&:hover": { color: SKETCH_COLORS.textPrimary, bgcolor: "rgba(255,255,255,0.06)" } }}
           >
             <CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />
@@ -233,6 +242,8 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
 
       <Box
         className="color-picker__sv-area"
+        role="group"
+        aria-label={t("screens4_24.sketch.colorPicker.saturationBrightness")}
         ref={svBoxRef}
         onMouseDown={handleSvMouseDown}
         sx={{
@@ -276,6 +287,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
 
       <Box className="color-picker__hue" sx={{ px: getSpacingPx(SPACING.xs) }}>
         <Slider
+          aria-label={t("screens4_24.sketch.colorPicker.hue")}
           value={localHue}
           min={0}
           max={360}
@@ -304,8 +316,9 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
 
       <Box className="color-picker__opacity" sx={{ px: getSpacingPx(SPACING.xs) }}>
         <FlexRow align="center" sx={{ gap: getSpacingPx(SPACING.sm) }}>
-          <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }}>A</Text>
+          <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }} aria-hidden="true">A</Text>
           <Slider
+            aria-label={t("screens4_24.sketch.colorPicker.opacity")}
             value={Math.round(a * 100)}
             min={0}
             max={100}
@@ -333,18 +346,19 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
             }}
           />
           <Text sx={{ fontSize: FONT_SIZE_SANS.caption, color: SKETCH_COLORS.textSecondary, minWidth: "28px", textAlign: "right" }}>
-            {Math.round(a * 100)}%
+            {formattedAlpha}
           </Text>
         </FlexRow>
       </Box>
 
       {/* Color preview: old → new */}
       <FlexRow className="color-picker__preview" sx={{ gap: getSpacingPx(SPACING.micro), height: "20px", borderRadius: BORDER_RADIUS.xs, overflow: "hidden" }}>
-        <Box sx={{ flex: 1, backgroundColor: initialColor, border: "1px solid rgba(255,255,255,0.1)" }} />
-        <Box sx={{ flex: 1, backgroundColor: color, border: "1px solid rgba(255,255,255,0.1)" }} />
+        <Box role="img" aria-label={t("screens4_24.sketch.colorPicker.previousColorPreview")} sx={{ flex: 1, backgroundColor: initialColor, border: "1px solid rgba(255,255,255,0.1)" }} />
+        <Box role="img" aria-label={t("screens4_24.sketch.colorPicker.currentColorPreview")} sx={{ flex: 1, backgroundColor: color, border: "1px solid rgba(255,255,255,0.1)" }} />
       </FlexRow>
 
       <ToggleButtonGroup
+        aria-label={t("screens4_24.sketch.colorPicker.colorFormat")}
         value={mode}
         exclusive
         onChange={(_, v) => v && setMode(v as ColorMode)}
@@ -365,7 +379,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
             handleHex(e.target.value);
           }}
           onBlur={() => setHexDraft(null)}
-          inputProps={{ maxLength: 7, "aria-label": "Hex color" }}
+          inputProps={{ maxLength: 7, "aria-label": t("screens4_24.sketch.colorPicker.hexColor") }}
           sx={{
             "& .MuiInputBase-root": { fontSize: FONT_SIZE_SANS.label, height: "22px" },
             "& .MuiInputBase-input": { padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`, textAlign: "center" }
@@ -384,7 +398,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 onChange={(e) => handleRgb(ch, e.target.value)}
                 min={0}
                 max={255}
-                ariaLabel={RGB_LABELS[ch]}
+                ariaLabel={rgbLabels[ch]}
                 align="center"
                 sx={numSx}
               />
@@ -406,7 +420,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 onChange={(e) => handleHsl(ch, e.target.value)}
                 min={0}
                 max={ch === "h" ? 360 : 100}
-                ariaLabel={HSL_LABELS[ch]}
+                ariaLabel={hslLabels[ch]}
                 align="center"
                 sx={numSx}
               />
@@ -430,7 +444,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           boxShadow: "none"
         }}
       >
-        OK
+        {t("screens4_24.sketch.colorPicker.confirm")}
       </EditorButton>
 
     </Popover>

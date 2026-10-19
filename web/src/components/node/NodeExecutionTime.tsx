@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Text,
   FlexRow,
@@ -64,6 +65,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
   workflowId,
   status
 }) => {
+  const { t } = useTranslation();
   const duration = useNodeExecutionDuration(workflowId, nodeId);
 
   const shouldShow = status === "completed" || status === "error";
@@ -86,7 +88,9 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
         weight={500}
         sx={isError ? TEXT_SX_ERROR : TEXT_SX_SUCCESS}
       >
-        {isError ? "Failed in" : "Completed in"}
+        {isError
+          ? t("i18n-next66.node.nodeExecutionTime.failedIn")
+          : t("i18n-next66.node.nodeExecutionTime.completedIn")}
         <Box
           component="span"
           sx={DURATION_SPAN_SX}

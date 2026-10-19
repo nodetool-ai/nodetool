@@ -29,6 +29,7 @@ import {
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -482,6 +483,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   onClick,
   onDoubleClick
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -501,6 +503,16 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
 
   const modelUrl = asset?.get_url || url || "";
   const { captureScreenshot } = useScreenshotCapture();
+
+  const lightingOptions = LIGHTING_PRESETS.map(({ value }) => ({
+    value,
+    label: t(`i18n-next68.assetViewer.model3d.lighting.${value}`)
+  }));
+  const backgroundOptions = BACKGROUND_COLORS.map(({ value, color }) => ({
+    value,
+    color,
+    label: t(`i18n-next68.assetViewer.model3d.background.${value}`)
+  }));
 
   const bgColorValue = useMemo(
     () =>
@@ -526,10 +538,15 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
       const supported = ["glb", "gltf"];
       const isSupported = ext ? supported.includes(ext) : false;
 
-      const lines = [`Failed to load 3D model: ${fileName}`];
+      const lines = [
+        t("i18n-next68.assetViewer.model3d.loadFailed", { fileName })
+      ];
       if (ext && !isSupported) {
         lines.push(
-          `Format ".${ext}" is not supported. Supported formats: ${supported.map((e) => `.${e}`).join(", ")}.`
+          t("i18n-next68.assetViewer.model3d.unsupportedFormat", {
+            extension: ext,
+            supportedFormats: supported.map((e) => `.${e}`).join(", ")
+          })
         );
       }
       if (error.message) {
@@ -538,11 +555,11 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
       if (modelUrl) {
         const display =
           modelUrl.length > 120 ? modelUrl.slice(0, 120) + "…" : modelUrl;
-        lines.push(`URL: ${display}`);
+        lines.push(t("i18n-next68.assetViewer.model3d.url", { url: display }));
       }
       setLoadError(lines.join("\n"));
     },
-    [asset?.name, modelUrl]
+    [asset?.name, modelUrl, t]
   );
 
   useEffect(() => {
@@ -632,7 +649,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         fullWidth
       >
         <Text size="small" color="secondary">
-          No 3D model loaded
+          {t("i18n-next68.assetViewer.model3d.noModelLoaded")}
         </Text>
       </FlexColumn>
     );
@@ -659,7 +676,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <FlexColumn className="loading-overlay" align="center" gap={SPACING.xs}>
               <LoadingSpinner
                 size={compact ? "small" : "medium"}
-                text={compact ? undefined : "Loading model"}
+                text={compact ? undefined : t("i18n-next68.assetViewer.model3d.loading")}
               />
             </FlexColumn>
           )}
@@ -756,7 +773,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         {isFullscreen && (
           <ToolbarIconButton
             icon={<CloseIcon />}
-            tooltip="Exit Fullscreen (Esc)"
+            tooltip={t("i18n-next68.assetViewer.model3d.exitFullscreenEsc")}
             className="fullscreen-close-button"
             onClick={exitFullscreen}
             size="medium"
@@ -767,7 +784,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
           <FlexRow className="controls-toolbar" gap={SPACING.micro} align="center">
             <ToolbarIconButton
               icon={<GridOnIcon fontSize="small" />}
-              tooltip="Toggle grid"
+              tooltip={t("i18n-next68.assetViewer.model3d.toggleGrid")}
               onClick={handleToggleGrid}
               active={showGrid}
               size="small"
@@ -775,7 +792,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
 
             <ToolbarIconButton
               icon={<ViewInArIcon fontSize="small" />}
-              tooltip="Toggle axes"
+              tooltip={t("i18n-next68.assetViewer.model3d.toggleAxes")}
               onClick={handleToggleAxes}
               active={showAxes}
               size="small"
@@ -788,45 +805,45 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               onChange={(_, value) => setWireframe(value === "wireframe")}
             >
               <ToggleOption value="solid" size="small">
-                Solid
+                {t("i18n-next68.assetViewer.model3d.solid")}
               </ToggleOption>
               <ToggleOption value="wireframe" size="small">
-                Wire
+                {t("i18n-next68.assetViewer.model3d.wire")}
               </ToggleOption>
             </ToggleGroup>
 
             <SelectField
               className="controls-select"
-              label="Lighting preset"
+              label={t("i18n-next68.assetViewer.model3d.lightingPreset")}
               hideLabel
               size="small"
               appearance="inspector"
               value={lightingPreset}
               onChange={handleLightingChange}
-              options={LIGHTING_PRESETS}
+              options={lightingOptions}
             />
 
             <SelectField
               className="controls-select"
-              label="Background color"
+              label={t("i18n-next68.assetViewer.model3d.backgroundColor")}
               hideLabel
               size="small"
               appearance="inspector"
               value={backgroundColor}
               onChange={handleBackgroundChange}
-              options={BACKGROUND_COLORS}
+              options={backgroundOptions}
             />
 
             <ToolbarIconButton
               icon={<RestartAltIcon fontSize="small" />}
-              tooltip="Reset camera"
+              tooltip={t("i18n-next68.assetViewer.model3d.resetCamera")}
               onClick={handleResetCamera}
               size="small"
             />
 
             <ToolbarIconButton
               icon={<CameraAltIcon fontSize="small" />}
-              tooltip="Take screenshot"
+              tooltip={t("i18n-next68.assetViewer.model3d.takeScreenshot")}
               onClick={handleScreenshot}
               size="small"
             />
@@ -839,7 +856,11 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   <FullscreenIcon fontSize="small" />
                 )
               }
-              tooltip={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              tooltip={t(
+                isFullscreen
+                  ? "i18n-next68.assetViewer.model3d.exitFullscreen"
+                  : "i18n-next68.assetViewer.model3d.fullscreen"
+              )}
               onClick={toggleFullscreen}
               size="small"
             />

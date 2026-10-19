@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Code,
@@ -43,6 +44,7 @@ export const OAuthManualCompletionDialog = ({
   onSubmit,
   onCancel
 }: OAuthManualCompletionDialogProps) => {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
 
   const handleCancel = useCallback(() => {
@@ -63,9 +65,13 @@ export const OAuthManualCompletionDialog = ({
     <Dialog
       open
       onClose={handleCancel}
-      title={`Finish signing in with ${label}`}
+      title={t("screen_settings.oauth.finishSignInTitle", { provider: label })}
       onConfirm={handleConfirm}
-      confirmText={isSubmitting ? "Connecting…" : "Connect"}
+      confirmText={
+        isSubmitting
+          ? t("screen_settings.oauth.connecting")
+          : t("screen_settings.oauth.connect")
+      }
       confirmDisabled={value.trim().length === 0 || isSubmitting}
       isLoading={isSubmitting}
       maxWidth="sm"
@@ -74,24 +80,28 @@ export const OAuthManualCompletionDialog = ({
       <FlexColumn gap={SPACING.lg}>
         {prompt.input === "code" ? (
           <Text size="small">
-            This server cannot receive the sign-in callback, so {label} shows
-            you a code instead. Approve the sign-in, then copy the code the page
-            displays and paste it below.
+            {t("screen_settings.oauth.codeInstructions", { provider: label })}
           </Text>
         ) : (
           <Text size="small">
-            {label} sends the browser to{" "}
-            <Code>{prompt.redirectUri ?? "a local address"}</Code>, which only
-            exists on your own machine — so this server never sees it. Approve
-            the sign-in, then copy the whole address the browser ends up on (an
-            error page is expected) and paste it below.
+            {t("screen_settings.oauth.redirectInstructionsStart", {
+              provider: label
+            })}{" "}
+            <Code>
+              {prompt.redirectUri ?? t("screen_settings.oauth.localAddress")}
+            </Code>
+            {t("screen_settings.oauth.redirectInstructionsEnd")}
           </Text>
         )}
         <TextInput
-          label={prompt.input === "code" ? "Authorization code" : "Redirect address"}
+          label={
+            prompt.input === "code"
+              ? t("screen_settings.oauth.authorizationCode")
+              : t("screen_settings.oauth.redirectAddress")
+          }
           placeholder={
             prompt.input === "code"
-              ? "code#state"
+              ? t("screen_settings.oauth.codeStatePlaceholder")
               : "http://localhost:1455/auth/callback?code=…&state=…"
           }
           value={value}
@@ -101,11 +111,11 @@ export const OAuthManualCompletionDialog = ({
           autoFocus
           helperText={
             <>
-              Sign-in window closed?{" "}
+              {t("screen_settings.oauth.signInWindowClosed")}{" "}
               <TextLink href={prompt.authUrl} external>
-                Open it again
+                {t("screen_settings.oauth.openAgain")}
               </TextLink>
-              . The link expires after 10 minutes.
+              {t("screen_settings.oauth.linkExpiry")}
             </>
           }
         />

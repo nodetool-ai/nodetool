@@ -16,6 +16,7 @@
  */
 
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { SxProps, Theme } from "@mui/material/styles";
 import type { BoardRenderContext, Shot } from "@nodetool-ai/protocol";
 import { shotStaleness } from "@nodetool-ai/protocol";
@@ -109,6 +110,7 @@ const ShotStatusPillInner = ({
   renderContext,
   sx
 }: ShotStatusPillProps) => {
+  const { t } = useTranslation();
   const jobStatus = useStoryboardGenerationStore(
     (state) => state.shotJobs[shot.id]?.status
   );
@@ -120,6 +122,26 @@ const ShotStatusPillInner = ({
   if (!pill) {
     return null;
   }
+  const isStaleLabel = pill.label.endsWith(" · stale");
+  const lifecycleLabel = isStaleLabel
+    ? pill.label.slice(0, -" · stale".length)
+    : pill.label;
+  const labelKeys: Record<string, string> = {
+    "rendering clip": "renderingClip",
+    "rendering still": "renderingStill",
+    failed: "failed",
+    covered: "covered",
+    "still · clip queued": "stillClipQueued",
+    still: "still",
+    planned: "planned",
+    stale: "stale"
+  };
+  const localizedLabel = t(
+    `screens4_19.storyboard.shotStatus.${labelKeys[lifecycleLabel] ?? "stale"}`
+  );
+  const label = isStaleLabel && lifecycleLabel !== "stale"
+    ? t("screens4_19.storyboard.shotStatus.staleWithStatus", { status: localizedLabel })
+    : localizedLabel;
   return (
     <StatusPill
       tone={pill.tone}
@@ -127,7 +149,7 @@ const ShotStatusPillInner = ({
       data-testid="shot-status-pill"
       sx={{ ...sx, border: "none" }}
     >
-      {pill.label}
+      {label}
     </StatusPill>
   );
 };

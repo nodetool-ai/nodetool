@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import useOnboardingStore from "../../stores/OnboardingStore";
@@ -142,16 +143,16 @@ const ExampleAppCard = memo(function ExampleAppCard({
   app,
   onUse
 }: ExampleAppCardProps) {
+  const { t } = useTranslation();
   const [thumbFailed, setThumbFailed] = useState(false);
   const src = thumbSrc(app.thumbnailUrl);
   const workflows = app.workflows.length;
   return (
-    <Tooltip title={`Use ${app.name}`} describeChild>
-      <button
-        type="button"
-        className="app-card"
-        onClick={() => onUse(app)}
-      >
+    <Tooltip
+      title={t("pass3_16.portal.apps.useApp", { name: app.name })}
+      describeChild
+    >
+      <button type="button" className="app-card" onClick={() => onUse(app)}>
         <span className="app-thumb" aria-hidden>
           {src && !thumbFailed ? (
             <img
@@ -169,7 +170,7 @@ const ExampleAppCard = memo(function ExampleAppCard({
           <span className="app-desc">{app.description}</span>
           <ExampleNeedsPill needs={app.needs} />
           <span className="app-meta">
-            {workflows} workflow{workflows === 1 ? "" : "s"}
+            {t("pass3_16.portal.apps.workflowCount", { count: workflows })}
           </span>
         </span>
       </button>
@@ -192,6 +193,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   onBrowseAll
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const sectionWrap = useSectionWrap();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const handleUse = useCallback(
@@ -217,7 +219,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
     () => runsAsIsFirst(data ?? [], (app) => app.needs),
     [data]
   );
-  const countLabel = `${apps.length} app${apps.length === 1 ? "" : "s"}`;
+  const countLabel = t("pass3_16.portal.apps.count", { count: apps.length });
   const visibleApps = compact ? apps.slice(0, 4) : apps;
 
   return (
@@ -226,31 +228,35 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
       aria-labelledby="dashboard-example-apps-title"
     >
       <div css={compact ? css({ maxWidth: "none", padding: 0 }) : sectionWrap}>
-        <DashboardSectionHeader title="Start from an app" count={countLabel}>
+        <DashboardSectionHeader
+          title={t("pass3_16.portal.apps.title")}
+          count={countLabel}
+        >
           {compact && onBrowseAll && apps.length > visibleApps.length && (
             <EditorButton
               variant="text"
               density="compact"
               onClick={onBrowseAll}
             >
-              See all apps
+              {t("pass3_16.portal.apps.seeAll")}
             </EditorButton>
           )}
         </DashboardSectionHeader>
-        <p className="apps-lede">
-          Open an app to use it, or edit a copy to customize its workflows.
-        </p>
+        <p className="apps-lede">{t("pass3_16.portal.apps.description")}</p>
         {isLoading ? (
           <div className="apps-loading">
-            <LoadingSpinner size="medium" text="Loading apps" />
+            <LoadingSpinner
+              size="medium"
+              text={t("pass3_16.portal.apps.loading")}
+            />
           </div>
         ) : isError ? (
           <div className="apps-empty">
             <EmptyState
               variant="error"
-              title="Couldn't load apps"
-              description="Try again in a moment."
-              actionText="Retry"
+              title={t("pass3_16.portal.apps.loadErrorTitle")}
+              description={t("pass3_16.portal.apps.loadErrorDescription")}
+              actionText={t("pass3_16.portal.apps.retry")}
               onAction={() => refetch()}
             />
           </div>
@@ -258,8 +264,8 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
           <div className="apps-empty">
             <EmptyState
               variant="no-data"
-              title="No apps available"
-              description="Example apps will appear here when the server ships them."
+              title={t("pass3_16.portal.apps.emptyTitle")}
+              description={t("pass3_16.portal.apps.emptyDescription")}
             />
           </div>
         ) : (
@@ -269,11 +275,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
             gap={compact ? GAP.comfortable : SPACING.xl}
           >
             {visibleApps.map((app) => (
-              <ExampleAppCard
-                key={app.slug}
-                app={app}
-                onUse={handleUse}
-              />
+              <ExampleAppCard key={app.slug} app={app} onUse={handleUse} />
             ))}
           </AutoGrid>
         )}

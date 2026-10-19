@@ -8,6 +8,7 @@ import {
   useRef,
   useLayoutEffect
 } from "react";
+import { useTranslation } from "react-i18next";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
@@ -75,6 +76,7 @@ const StringProperty = ({
   isInspector,
   onPropertyContextMenu
 }: PropertyProps<string>) => {
+  const { t } = useTranslation();
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -133,7 +135,7 @@ const StringProperty = ({
       <>
         <ToolbarIconButton
           className="inspector-supplemental-action"
-          tooltip="Open editor"
+          tooltip={t("i18n-next63.properties.openEditor")}
           icon={<OpenInFullIcon />}
           onClick={toggleExpand}
           size="small"
@@ -147,7 +149,7 @@ const StringProperty = ({
         />
       </>
     ),
-    [inspectorToolbarActionSx, toggleExpand, value]
+    [inspectorToolbarActionSx, t, toggleExpand, value]
   );
 
   useInspectorHeaderSupplementalRegistration(
@@ -181,7 +183,7 @@ const StringProperty = ({
         {!isInspector ? (
           <div className="string-action-buttons">
             <ToolbarIconButton
-              tooltip="Open editor"
+              tooltip={t("i18n-next63.properties.openEditor")}
               icon={<OpenInFullIcon />}
               onClick={toggleExpand}
               size="small"
@@ -243,7 +245,9 @@ const StringProperty = ({
               className="string-value-input"
               value={stringValue}
               onActivate={startEditing}
-              ariaLabel={`Edit ${property.name}`}
+              ariaLabel={t("i18n-next63.properties.editProperty", {
+                name: property.name
+              })}
               tabIndex={tabIndex}
               minRows={compactRows ? 1 : 3}
               maxRows={compactRows ? 4 : 3}

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useRef, createRef, memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { AlertColor } from "@mui/material";
 import { useTheme, type Theme } from "@mui/material/styles";
 import {
@@ -159,6 +160,7 @@ const NotificationItem = memo(function NotificationItem({
   in: inProp,
   onExited
 }: NotificationItemProps) {
+  const { t } = useTranslation();
   const handleClose = useCallback(() => {
     onClose(notification.id);
   }, [notification.id, onClose]);
@@ -198,7 +200,7 @@ const NotificationItem = memo(function NotificationItem({
                   <CopyButton
                     value={notification.content}
                     className="copy-button"
-                    tooltip="Copy message"
+                    tooltip={t("i18n-next104-node.alert.copyMessage")}
                   />
                 )
               )}

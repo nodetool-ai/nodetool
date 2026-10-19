@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useEffect, useLayoutEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { TimelineSequence } from "@nodetool-ai/timeline";
@@ -61,9 +62,10 @@ const firstPreviewTime = (sequence: TimelineSequence): number => {
 const TimelineRendererContent: React.FC<TimelineRendererProps> = ({
   sequence,
   className,
-  ariaLabel = "Timeline preview",
+  ariaLabel,
   showMetadata = false
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const styles = useMemo(() => rendererStyles(theme), [theme]);
 
@@ -76,7 +78,7 @@ const TimelineRendererContent: React.FC<TimelineRendererProps> = ({
       css={styles}
       className={rootClassName}
       role="img"
-      aria-label={ariaLabel}
+      aria-label={ariaLabel ?? t("timeline.renderer.preview")}
       data-testid="timeline-renderer"
     >
       <PreviewArea
@@ -89,7 +91,11 @@ const TimelineRendererContent: React.FC<TimelineRendererProps> = ({
       {showMetadata && (
         <FlexColumn className="timeline-renderer__meta" padding={PADDING.micro}>
           <Caption>
-            {sequence.width} × {sequence.height} · {sequence.clips.length} clips
+            {t("timeline.renderer.metadata", {
+              width: sequence.width,
+              height: sequence.height,
+              count: sequence.clips.length
+            })}
           </Caption>
         </FlexColumn>
       )}

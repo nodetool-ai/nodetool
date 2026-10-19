@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
+import { useTranslation } from "react-i18next";
 import AnimationOutlinedIcon from "@mui/icons-material/AnimationOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import {
@@ -51,8 +52,6 @@ import {
 
 const ROLES: AnimationRole[] = ["in", "out", "emphasis", "loop"];
 const EASINGS: EasingId[] = EASING_IDS;
-/** Labels that differ from the raw id. Every other easing shows its id as-is. */
-const EASING_LABELS: Partial<Record<EasingId, string>> = { hold: "Hold" };
 const EMPTY_ANIMATIONS: ClipAnimation[] = [];
 
 /**
@@ -65,21 +64,12 @@ const CUSTOM_PRESET = "custom";
 const CUSTOM_OPTION = { value: CUSTOM_PRESET, label: "custom (keyframes)" };
 const CUSTOM_DEFAULT_DURATION_MS = 800;
 
-const ROLE_LABELS: Record<AnimationRole, string> = {
-  in: "In",
-  out: "Out",
-  emphasis: "Emphasis",
-  loop: "Loop"
+const ROLE_KEYS: Record<AnimationRole, string> = {
+  in: "animations.roles.in",
+  out: "animations.roles.out",
+  emphasis: "animations.roles.emphasis",
+  loop: "animations.roles.loop"
 };
-
-const EASING_OPTIONS = EASINGS.map((easing) => ({
-  value: easing,
-  label: EASING_LABELS[easing] ?? easing
-}));
-const ROLE_OPTIONS = ROLES.map((role) => ({
-  value: role,
-  label: ROLE_LABELS[role]
-}));
 
 /** The catalog is static, so both the per-role split and the select's option
  *  list are built once instead of re-filtered and re-mapped on every render. */
@@ -154,127 +144,150 @@ interface AnimationParamControlProps {
 
 const AnimationParamControl: React.FC<AnimationParamControlProps> = memo(
   ({ animation, spec, onChange }) => {
-  const value = animation.params?.[spec.name] ?? spec.default;
-  const handleChange = useCallback(
-    (next: number | string | boolean) => onChange(spec.name, next),
-    [onChange, spec.name]
-  );
-  const options = useMemo(
-    () =>
-      spec.options?.map((option) => ({ value: option, label: option })) ?? [],
-    [spec.options]
-  );
-  const handleSeedCommit = useCallback(
-    (raw: string) => {
-      const parsed = Number.parseInt(raw, 10);
-      if (!Number.isFinite(parsed)) return;
-      const min = spec.min ?? 0;
-      const max = spec.max ?? parsed;
-      handleChange(Math.min(max, Math.max(min, parsed)));
-    },
-    [handleChange, spec.min, spec.max]
-  );
-  if (spec.options) {
-    return (
-      <InspectorRow label={spec.name}>
-        <InspectorSelect
-          label={`${animation.role} ${spec.name}`}
-          value={String(value)}
-          options={options}
+    const { t } = useTranslation();
+    const value = animation.params?.[spec.name] ?? spec.default;
+    const handleChange = useCallback(
+      (next: number | string | boolean) => onChange(spec.name, next),
+      [onChange, spec.name]
+    );
+    const options = useMemo(
+      () =>
+        spec.options?.map((option) => ({ value: option, label: option })) ?? [],
+      [spec.options]
+    );
+    const handleSeedCommit = useCallback(
+      (raw: string) => {
+        const parsed = Number.parseInt(raw, 10);
+        if (!Number.isFinite(parsed)) return;
+        const min = spec.min ?? 0;
+        const max = spec.max ?? parsed;
+        handleChange(Math.min(max, Math.max(min, parsed)));
+      },
+      [handleChange, spec.min, spec.max]
+    );
+    if (spec.options) {
+      return (
+        <InspectorRow
+          label={t(`pass3_23.animations.params.${spec.name}`, {
+            defaultValue: spec.name
+          })}
+        >
+          <InspectorSelect
+            label={t("pass3_23.animations.paramLabel", {
+              role: t(`pass3_23.${ROLE_KEYS[animation.role]}`),
+              param: t(`pass3_23.animations.params.${spec.name}`, {
+                defaultValue: spec.name
+              })
+            })}
+            value={String(value)}
+            options={options.map((option) => ({
+              value: option.value,
+              label: t(
+                `pass3_23.animations.paramOptions.${spec.name}.${option.value}`,
+                { defaultValue: option.label }
+              )
+            }))}
+            onChange={handleChange}
+          />
+        </InspectorRow>
+      );
+    }
+
+    // Control kind is inferred from the default's own type — `PresetParamValue`
+    // already covers number/string/boolean, so a param needs no extra "kind"
+    // field to say which control it wants.
+    if (typeof spec.default === "boolean") {
+      return (
+        <InspectorToggleRow
+          label={t(`pass3_23.animations.params.${spec.name}`, {
+            defaultValue: spec.name
+          })}
+          checked={value === true}
           onChange={handleChange}
         />
-      </InspectorRow>
-    );
-  }
+      );
+    }
 
-  // Control kind is inferred from the default's own type — `PresetParamValue`
-  // already covers number/string/boolean, so a param needs no extra "kind"
-  // field to say which control it wants.
-  if (typeof spec.default === "boolean") {
-    return (
-      <InspectorToggleRow
-        label={spec.name}
-        checked={value === true}
-        onChange={handleChange}
-      />
-    );
-  }
+    // A bare string param with no enumerated `options` (e.g. `followPath`'s
+    // authored path `d`) is free text rather than a slider or a select.
+    if (typeof spec.default === "string") {
+      return (
+        <InspectorRow
+          label={t(`pass3_23.animations.params.${spec.name}`, {
+            defaultValue: spec.name
+          })}
+        >
+          <TextCommitField
+            value={typeof value === "string" ? value : String(spec.default)}
+            ariaLabel={t("pass3_23.animations.paramLabel", {
+              role: t(`pass3_23.${ROLE_KEYS[animation.role]}`),
+              param: t(`pass3_23.animations.params.${spec.name}`, {
+                defaultValue: spec.name
+              })
+            })}
+            onCommit={handleChange}
+          />
+        </InspectorRow>
+      );
+    }
 
-  // A bare string param with no enumerated `options` (e.g. `followPath`'s
-  // authored path `d`) is free text rather than a slider or a select.
-  if (typeof spec.default === "string") {
-    return (
-      <InspectorRow label={spec.name}>
-        <TextCommitField
-          value={typeof value === "string" ? value : String(spec.default)}
-          ariaLabel={`${animation.role} ${spec.name}`}
-          onCommit={handleChange}
+    // `seed` picks a PRNG stream rather than sitting on a meaningful scale
+    // (0..1,000,000) — a typed integer field, not a slider.
+    if (spec.name === "seed" && isNumber(value)) {
+      return (
+        <InspectorRow
+          label={t(`pass3_23.animations.params.${spec.name}`, {
+            defaultValue: spec.name
+          })}
+        >
+          <InspectorPillInput
+            value={String(Math.round(value))}
+            onCommit={handleSeedCommit}
+            ariaLabel={t("pass3_23.animations.paramLabel", {
+              role: t(`pass3_23.${ROLE_KEYS[animation.role]}`),
+              param: t(`pass3_23.animations.params.${spec.name}`, {
+                defaultValue: spec.name
+              })
+            })}
+          />
+        </InspectorRow>
+      );
+    }
+
+    if (isNumber(value) && spec.min !== undefined && spec.max !== undefined) {
+      const integerRange =
+        Number.isInteger(spec.min) && Number.isInteger(spec.max);
+      const step = integerRange
+        ? 1
+        : Math.max((spec.max - spec.min) / 100, 0.001);
+      return (
+        <InspectorSliderRow
+          label={t(`pass3_23.animations.params.${spec.name}`, {
+            defaultValue: spec.name
+          })}
+          value={value}
+          display={Number.isInteger(value) ? String(value) : value.toFixed(3)}
+          min={spec.min}
+          max={spec.max}
+          step={step}
+          origin={isNumber(spec.default) ? spec.default : undefined}
+          onChange={handleChange}
         />
-      </InspectorRow>
-    );
-  }
+      );
+    }
 
-  // `seed` picks a PRNG stream rather than sitting on a meaningful scale
-  // (0..1,000,000) — a typed integer field, not a slider.
-  if (spec.name === "seed" && isNumber(value)) {
-    return (
-      <InspectorRow label={spec.name}>
-        <InspectorPillInput
-          value={String(Math.round(value))}
-          onCommit={handleSeedCommit}
-          ariaLabel={`${animation.role} ${spec.name}`}
-        />
-      </InspectorRow>
-    );
-  }
-
-  if (
-    isNumber(value) &&
-    spec.min !== undefined &&
-    spec.max !== undefined
-  ) {
-    const integerRange =
-      Number.isInteger(spec.min) && Number.isInteger(spec.max);
-    const step = integerRange
-      ? 1
-      : Math.max((spec.max - spec.min) / 100, 0.001);
-    return (
-      <InspectorSliderRow
-        label={spec.name}
-        value={value}
-        display={Number.isInteger(value) ? String(value) : value.toFixed(3)}
-        min={spec.min}
-        max={spec.max}
-        step={step}
-        origin={isNumber(spec.default) ? spec.default : undefined}
-        onChange={handleChange}
-      />
-    );
-  }
-
-  return null;
+    return null;
   }
 );
 AnimationParamControl.displayName = "AnimationParamControl";
 
 const DEFAULT_STAGGER_OFFSET_MS = 120;
 
-const STAGGER_UNIT_LABELS: Record<string, string> = {
-  word: "Word",
-  character: "Character",
-  line: "Line"
+const STAGGER_UNIT_KEYS: Record<string, string> = {
+  word: "animations.units.word",
+  character: "animations.units.character",
+  line: "animations.units.line"
 };
-
-const STAGGER_UNIT_OPTIONS = STAGGER_UNITS.map((unit) => ({
-  value: unit,
-  label: STAGGER_UNIT_LABELS[unit] ?? unit
-}));
-
-const STAGGER_FROM_OPTIONS = [
-  { value: "start", label: "Start" },
-  { value: "end", label: "End" },
-  { value: "center", label: "Center" }
-];
 
 /**
  * How many units a text clip splits into for `unit`.
@@ -349,6 +362,7 @@ interface FollowPathShapePickerProps {
  */
 const FollowPathShapePicker: React.FC<FollowPathShapePickerProps> = memo(
   ({ onPick }) => {
+    const { t } = useTranslation();
     const shapeClips = useTimelineStore(
       useShallow((s) =>
         s.clips.flatMap((candidate) =>
@@ -367,13 +381,16 @@ const FollowPathShapePicker: React.FC<FollowPathShapePickerProps> = memo(
 
     const options = useMemo(
       () => [
-        { value: CHOOSE_SHAPE_CLIP, label: "Choose a shape clip…" },
+        {
+          value: CHOOSE_SHAPE_CLIP,
+          label: t("pass3_23.animations.chooseShapeClip")
+        },
         ...shapeClips.map((candidate) => ({
           value: candidate.id,
           label: candidate.name || candidate.id
         }))
       ],
-      [shapeClips]
+      [shapeClips, t]
     );
 
     const handlePick = useCallback(
@@ -389,9 +406,9 @@ const FollowPathShapePicker: React.FC<FollowPathShapePickerProps> = memo(
     if (shapeClips.length === 0) return null;
 
     return (
-      <InspectorRow label="Use shape clip">
+      <InspectorRow label={t("pass3_23.animations.useShapeClip")}>
         <InspectorSelect
-          label="Use shape clip"
+          label={t("pass3_23.animations.useShapeClip")}
           value={CHOOSE_SHAPE_CLIP}
           options={options}
           onChange={handlePick}
@@ -419,302 +436,356 @@ interface ClipAnimationEditorProps {
  * One animation's controls. Bound to its own id so a sibling's edit leaves
  * these callbacks identical and the memoized fields below skip the render.
  */
-const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(({
-  animation,
-  staggerAvailable,
-  clipDurationMs,
-  text,
-  onPatch,
-  onDelete
-}) => {
-  const preset = ANIMATION_PRESETS.find(
-    (candidate) => candidate.id === animation.preset
-  );
-  const isCustom = animation.preset === CUSTOM_PRESET;
-  const animationId = animation.id;
-  const onPatchThis = useCallback(
-    (patch: Partial<ClipAnimation>) => onPatch(animationId, patch),
-    [animationId, onPatch]
-  );
-  const handleDelete = useCallback(
-    () => onDelete(animationId),
-    [animationId, onDelete]
-  );
-  const animationRef = useRef(animation);
-  animationRef.current = animation;
+const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = memo(
+  ({
+    animation,
+    staggerAvailable,
+    clipDurationMs,
+    text,
+    onPatch,
+    onDelete
+  }) => {
+    const { t } = useTranslation();
+    const roleLabel = t(`pass3_23.${ROLE_KEYS[animation.role]}`);
+    const easingOptions = EASINGS.map((easing) => ({
+      value: easing,
+      label: easing === "hold" ? t("pass3_23.animations.easing.hold") : easing
+    }));
+    const staggerUnitOptions = STAGGER_UNITS.map((unit) => ({
+      value: unit,
+      label: t(`pass3_23.${STAGGER_UNIT_KEYS[unit]}`, { defaultValue: unit })
+    }));
+    const staggerFromOptions = [
+      { value: "start", label: t("pass3_23.animations.from.start") },
+      { value: "end", label: t("pass3_23.animations.from.end") },
+      { value: "center", label: t("pass3_23.animations.from.center") }
+    ];
+    const preset = ANIMATION_PRESETS.find(
+      (candidate) => candidate.id === animation.preset
+    );
+    const isCustom = animation.preset === CUSTOM_PRESET;
+    const animationId = animation.id;
+    const onPatchThis = useCallback(
+      (patch: Partial<ClipAnimation>) => onPatch(animationId, patch),
+      [animationId, onPatch]
+    );
+    const handleDelete = useCallback(
+      () => onDelete(animationId),
+      [animationId, onDelete]
+    );
+    const animationRef = useRef(animation);
+    animationRef.current = animation;
 
-  const handlePresetChange = useCallback(
-    (value: string) => {
-      if (value === CUSTOM_PRESET) {
+    const handlePresetChange = useCallback(
+      (value: string) => {
+        if (value === CUSTOM_PRESET) {
+          onPatchThis({
+            preset: CUSTOM_PRESET,
+            params: undefined,
+            custom: makeCustomAnimation()
+          });
+          return;
+        }
+        const next = presetsForRole(animationRef.current.role).find(
+          (candidate) => candidate.id === value
+        );
+        if (!next) return;
         onPatchThis({
-          preset: CUSTOM_PRESET,
-          params: undefined,
-          custom: makeCustomAnimation()
+          preset: next.id,
+          durationMs: next.defaultDurationMs,
+          easing: next.defaultEasing,
+          params: defaultParams(next),
+          custom: undefined
         });
-        return;
-      }
-      const next = presetsForRole(animationRef.current.role).find(
-        (candidate) => candidate.id === value
-      );
-      if (!next) return;
-      onPatchThis({
-        preset: next.id,
-        durationMs: next.defaultDurationMs,
-        easing: next.defaultEasing,
-        params: defaultParams(next),
-        custom: undefined
-      });
-    },
-    [onPatchThis]
-  );
+      },
+      [onPatchThis]
+    );
 
-  const handleCustomChange = useCallback(
-    (custom: CustomClipAnimation) => onPatchThis({ custom }),
-    [onPatchThis]
-  );
+    const handleCustomChange = useCallback(
+      (custom: CustomClipAnimation) => onPatchThis({ custom }),
+      [onPatchThis]
+    );
 
-  const patchParam = useCallback(
-    (name: string, value: number | string | boolean) => {
-      onPatchThis({
-        params: { ...animationRef.current.params, [name]: value }
-      });
-    },
-    [onPatchThis]
-  );
+    const patchParam = useCallback(
+      (name: string, value: number | string | boolean) => {
+        onPatchThis({
+          params: { ...animationRef.current.params, [name]: value }
+        });
+      },
+      [onPatchThis]
+    );
 
-  const patchParams = useCallback(
-    (patch: FollowPathParams) => {
-      onPatchThis({
-        params: { ...animationRef.current.params, ...patch }
-      });
-    },
-    [onPatchThis]
-  );
+    const patchParams = useCallback(
+      (patch: FollowPathParams) => {
+        onPatchThis({
+          params: { ...animationRef.current.params, ...patch }
+        });
+      },
+      [onPatchThis]
+    );
 
-  const handleEnabledChange = useCallback(
-    (enabled: boolean) => onPatchThis({ enabled }),
-    [onPatchThis]
-  );
+    const handleEnabledChange = useCallback(
+      (enabled: boolean) => onPatchThis({ enabled }),
+      [onPatchThis]
+    );
 
-  const handleDurationCommit = useCallback(
-    (raw: string) => {
-      const durationMs = Number(raw);
-      if (Number.isFinite(durationMs) && durationMs > 0) {
-        onPatchThis({ durationMs });
-      }
-    },
-    [onPatchThis]
-  );
+    const handleDurationCommit = useCallback(
+      (raw: string) => {
+        const durationMs = Number(raw);
+        if (Number.isFinite(durationMs) && durationMs > 0) {
+          onPatchThis({ durationMs });
+        }
+      },
+      [onPatchThis]
+    );
 
-  const handleDelayCommit = useCallback(
-    (raw: string) => {
-      const delayMs = Number(raw);
-      if (Number.isFinite(delayMs) && delayMs >= 0) {
-        onPatchThis({ delayMs });
-      }
-    },
-    [onPatchThis]
-  );
+    const handleDelayCommit = useCallback(
+      (raw: string) => {
+        const delayMs = Number(raw);
+        if (Number.isFinite(delayMs) && delayMs >= 0) {
+          onPatchThis({ delayMs });
+        }
+      },
+      [onPatchThis]
+    );
 
-  const handleEasingChange = useCallback(
-    (easing: string | undefined) => onPatchThis({ easing: easing as EasingId }),
-    [onPatchThis]
-  );
+    const handleEasingChange = useCallback(
+      (easing: string | undefined) =>
+        onPatchThis({ easing: easing as EasingId }),
+      [onPatchThis]
+    );
 
-  const handleStaggerToggle = useCallback(
-    (on: boolean) =>
-      onPatchThis({
-        stagger: on
-          ? { unit: "word", offsetMs: DEFAULT_STAGGER_OFFSET_MS }
-          : undefined
-      }),
-    [onPatchThis]
-  );
+    const handleStaggerToggle = useCallback(
+      (on: boolean) =>
+        onPatchThis({
+          stagger: on
+            ? { unit: "word", offsetMs: DEFAULT_STAGGER_OFFSET_MS }
+            : undefined
+        }),
+      [onPatchThis]
+    );
 
-  const handleStaggerUnitChange = useCallback(
-    (unit: string) => {
-      const stagger = animationRef.current.stagger;
-      if (!stagger) return;
-      onPatchThis({ stagger: { ...stagger, unit } });
-    },
-    [onPatchThis]
-  );
+    const handleStaggerUnitChange = useCallback(
+      (unit: string) => {
+        const stagger = animationRef.current.stagger;
+        if (!stagger) return;
+        onPatchThis({ stagger: { ...stagger, unit } });
+      },
+      [onPatchThis]
+    );
 
-  const handleStaggerFromChange = useCallback(
-    (from: string) => {
-      const stagger = animationRef.current.stagger;
-      if (!stagger) return;
-      onPatchThis({ stagger: { ...stagger, from: from as StaggerFrom } });
-    },
-    [onPatchThis]
-  );
+    const handleStaggerFromChange = useCallback(
+      (from: string) => {
+        const stagger = animationRef.current.stagger;
+        if (!stagger) return;
+        onPatchThis({ stagger: { ...stagger, from: from as StaggerFrom } });
+      },
+      [onPatchThis]
+    );
 
-  const handleStaggerOffsetCommit = useCallback(
-    (raw: string) => {
-      const offsetMs = Number(raw);
-      const stagger = animationRef.current.stagger;
-      if (stagger && Number.isFinite(offsetMs) && offsetMs > 0) {
-        onPatchThis({ stagger: { ...stagger, offsetMs } });
-      }
-    },
-    [onPatchThis]
-  );
+    const handleStaggerOffsetCommit = useCallback(
+      (raw: string) => {
+        const offsetMs = Number(raw);
+        const stagger = animationRef.current.stagger;
+        if (stagger && Number.isFinite(offsetMs) && offsetMs > 0) {
+          onPatchThis({ stagger: { ...stagger, offsetMs } });
+        }
+      },
+      [onPatchThis]
+    );
 
-  // Derived during render: the caption follows the store, and an agent's edit
-  // reports the same overrun a typed one does.
-  const stagger = animation.stagger;
-  const staggerUnits = stagger ? staggerUnitCount(text, stagger.unit) : 0;
-  const staggerSpan = stagger
-    ? staggerSpanMs(
-        animation.durationMs,
-        stagger.offsetMs,
-        staggerUnits,
-        stagger.from
-      )
-    : 0;
-  const staggerOverrun =
-    stagger && staggerSpan > clipDurationMs ? staggerSpan : null;
+    // Derived during render: the caption follows the store, and an agent's edit
+    // reports the same overrun a typed one does.
+    const stagger = animation.stagger;
+    const staggerUnits = stagger ? staggerUnitCount(text, stagger.unit) : 0;
+    const staggerSpan = stagger
+      ? staggerSpanMs(
+          animation.durationMs,
+          stagger.offsetMs,
+          staggerUnits,
+          stagger.from
+        )
+      : 0;
+    const staggerOverrun =
+      stagger && staggerSpan > clipDurationMs ? staggerSpan : null;
 
-  return (
-    <FlexColumn gap={SPACING.md} sx={EDITOR_SX}>
-      <FlexRow align="center" justify="space-between" gap={SPACING.md}>
-        <Text size="small">{ROLE_LABELS[animation.role]}</Text>
-        <DeleteButton
-          onClick={handleDelete}
-          tooltip={`Remove ${ROLE_LABELS[animation.role]} animation`}
-          ariaLabel={`Remove ${ROLE_LABELS[animation.role]} animation`}
-          iconVariant="clear"
-          sx={INSPECTOR_ROW_BUTTON_SX}
+    return (
+      <FlexColumn gap={SPACING.md} sx={EDITOR_SX}>
+        <FlexRow align="center" justify="space-between" gap={SPACING.md}>
+          <Text size="small">{roleLabel}</Text>
+          <DeleteButton
+            onClick={handleDelete}
+            tooltip={t("pass3_23.animations.removeRole", { role: roleLabel })}
+            ariaLabel={t("pass3_23.animations.removeRole", { role: roleLabel })}
+            iconVariant="clear"
+            sx={INSPECTOR_ROW_BUTTON_SX}
+          />
+        </FlexRow>
+
+        <InspectorToggleRow
+          label={t("pass3_23.animations.enabled")}
+          checked={animation.enabled !== false}
+          onChange={handleEnabledChange}
         />
-      </FlexRow>
 
-      <InspectorToggleRow
-        label="Enabled"
-        checked={animation.enabled !== false}
-        onChange={handleEnabledChange}
-      />
-
-      <InspectorRow label="Preset">
-        <InspectorSelect
-          label={`${animation.role} animation preset`}
-          value={animation.preset}
-          options={PRESET_OPTIONS_BY_ROLE[animation.role]}
-          onChange={handlePresetChange}
-        />
-      </InspectorRow>
-
-      {/* Hand-set keyframes span the clip: a delay would detach them from the
-          keyframe rows' lanes, and the clip's length is their duration. */}
-      {!preset?.fullClip && !isKeyframeAnimation(animation) && (
-        <>
-          <InspectorRow
-            label={animation.role === "loop" ? "Period" : "Duration"}
-          >
-            <InspectorPillInput
-              value={String(animation.durationMs)}
-              unit="ms"
-              onCommit={handleDurationCommit}
-              ariaLabel={`${animation.role} animation duration`}
-            />
-          </InspectorRow>
-          <InspectorRow label="Delay">
-            <InspectorPillInput
-              value={String(animation.delayMs ?? 0)}
-              unit="ms"
-              onCommit={handleDelayCommit}
-              ariaLabel={`${animation.role} animation delay`}
-            />
-          </InspectorRow>
-        </>
-      )}
-
-      {isCustom ? (
-        // A custom animation's easing carries the whole grammar (D3), which no
-        // select can enumerate, so it is typed rather than picked.
-        <EasingField
-          value={animation.easing}
-          ariaLabel={`${animation.role} animation easing`}
-          onChange={handleEasingChange}
-        />
-      ) : (
-        <InspectorRow label="Easing">
+        <InspectorRow label={t("pass3_23.animations.preset")}>
           <InspectorSelect
-            label={`${animation.role} animation easing`}
-            value={animation.easing ?? preset?.defaultEasing ?? "linear"}
-            options={EASING_OPTIONS}
-            onChange={handleEasingChange}
+            label={t("pass3_23.animations.rolePreset", { role: roleLabel })}
+            value={animation.preset}
+            options={PRESET_OPTIONS_BY_ROLE[animation.role].map((option) => ({
+              value: option.value,
+              label:
+                option.value === CUSTOM_PRESET
+                  ? t("pass3_23.animations.customKeyframes")
+                  : t(`pass3_23.animations.presets.${option.value}`, {
+                      defaultValue: option.value
+                    })
+            }))}
+            onChange={handlePresetChange}
           />
         </InspectorRow>
-      )}
 
-      {staggerAvailable && !preset?.fullClip && (
-        <>
-          <InspectorToggleRow
-            label="Stagger"
-            checked={stagger !== undefined}
-            onChange={handleStaggerToggle}
+        {/* Hand-set keyframes span the clip: a delay would detach them from the
+          keyframe rows' lanes, and the clip's length is their duration. */}
+        {!preset?.fullClip && !isKeyframeAnimation(animation) && (
+          <>
+            <InspectorRow
+              label={
+                animation.role === "loop"
+                  ? t("pass3_23.animations.period")
+                  : t("pass3_23.animations.duration")
+              }
+            >
+              <InspectorPillInput
+                value={String(animation.durationMs)}
+                unit="ms"
+                onCommit={handleDurationCommit}
+                ariaLabel={t("pass3_23.animations.roleDuration", {
+                  role: roleLabel
+                })}
+              />
+            </InspectorRow>
+            <InspectorRow label={t("pass3_23.animations.delay")}>
+              <InspectorPillInput
+                value={String(animation.delayMs ?? 0)}
+                unit="ms"
+                onCommit={handleDelayCommit}
+                ariaLabel={t("pass3_23.animations.roleDelay", {
+                  role: roleLabel
+                })}
+              />
+            </InspectorRow>
+          </>
+        )}
+
+        {isCustom ? (
+          // A custom animation's easing carries the whole grammar (D3), which no
+          // select can enumerate, so it is typed rather than picked.
+          <EasingField
+            value={animation.easing}
+            ariaLabel={t("pass3_23.animations.roleEasing", { role: roleLabel })}
+            onChange={handleEasingChange}
           />
-          {stagger !== undefined && (
-            <>
-              <InspectorRow label="Unit">
-                <InspectorSelect
-                  label={`${animation.role} animation stagger unit`}
-                  value={stagger.unit}
-                  options={STAGGER_UNIT_OPTIONS}
-                  onChange={handleStaggerUnitChange}
-                />
-              </InspectorRow>
-              <InspectorRow label="From">
-                <InspectorSelect
-                  label={`${animation.role} animation stagger from`}
-                  value={stagger.from ?? "start"}
-                  options={STAGGER_FROM_OPTIONS}
-                  onChange={handleStaggerFromChange}
-                />
-              </InspectorRow>
-              <InspectorRow label="Offset">
-                <InspectorPillInput
-                  value={String(stagger.offsetMs)}
-                  unit="ms"
-                  onCommit={handleStaggerOffsetCommit}
-                  ariaLabel={`${animation.role} animation stagger offset`}
-                />
-              </InspectorRow>
-              {staggerOverrun !== null && (
-                <Caption color="warning">
-                  {`Staggered over ${staggerUnits} ${stagger.unit}s this runs ${Math.round(staggerOverrun)}ms, past the clip's ${clipDurationMs}ms. The last units are cut off.`}
-                </Caption>
-              )}
-            </>
-          )}
-        </>
-      )}
+        ) : (
+          <InspectorRow label={t("pass3_23.animations.easing.label")}>
+            <InspectorSelect
+              label={t("pass3_23.animations.roleEasing", { role: roleLabel })}
+              value={animation.easing ?? preset?.defaultEasing ?? "linear"}
+              options={easingOptions}
+              onChange={handleEasingChange}
+            />
+          </InspectorRow>
+        )}
 
-      {isCustom && (
-        <ClipCustomCurves
-          custom={animation.custom}
-          labelPrefix={animation.role}
-          sourceAnchored={isSourceAnchoredAnimation(animation)}
-          onChange={handleCustomChange}
-        />
-      )}
+        {staggerAvailable && !preset?.fullClip && (
+          <>
+            <InspectorToggleRow
+              label={t("pass3_23.animations.stagger")}
+              checked={stagger !== undefined}
+              onChange={handleStaggerToggle}
+            />
+            {stagger !== undefined && (
+              <>
+                <InspectorRow label={t("pass3_23.animations.unit")}>
+                  <InspectorSelect
+                    label={t("pass3_23.animations.roleStaggerUnit", {
+                      role: roleLabel
+                    })}
+                    value={stagger.unit}
+                    options={staggerUnitOptions}
+                    onChange={handleStaggerUnitChange}
+                  />
+                </InspectorRow>
+                <InspectorRow label={t("pass3_23.animations.from.label")}>
+                  <InspectorSelect
+                    label={t("pass3_23.animations.roleStaggerFrom", {
+                      role: roleLabel
+                    })}
+                    value={stagger.from ?? "start"}
+                    options={staggerFromOptions}
+                    onChange={handleStaggerFromChange}
+                  />
+                </InspectorRow>
+                <InspectorRow label={t("pass3_23.animations.offset")}>
+                  <InspectorPillInput
+                    value={String(stagger.offsetMs)}
+                    unit="ms"
+                    onCommit={handleStaggerOffsetCommit}
+                    ariaLabel={t("pass3_23.animations.roleStaggerOffset", {
+                      role: roleLabel
+                    })}
+                  />
+                </InspectorRow>
+                {staggerOverrun !== null && (
+                  <Caption color="warning">
+                    {t("pass3_23.animations.staggerOverrun", {
+                      count: staggerUnits,
+                      unit: t(`pass3_23.${STAGGER_UNIT_KEYS[stagger.unit]}`, {
+                        count: staggerUnits,
+                        defaultValue: stagger.unit
+                      }),
+                      duration: Math.round(staggerOverrun),
+                      clipDuration: clipDurationMs
+                    })}
+                  </Caption>
+                )}
+              </>
+            )}
+          </>
+        )}
 
-      {preset?.id === "followPath" && (
-        <FollowPathShapePicker onPick={patchParams} />
-      )}
+        {isCustom && (
+          <ClipCustomCurves
+            custom={animation.custom}
+            labelPrefix={animation.role}
+            sourceAnchored={isSourceAnchoredAnimation(animation)}
+            onChange={handleCustomChange}
+          />
+        )}
 
-      {preset?.params.map((spec) => (
-        <AnimationParamControl
-          key={spec.name}
-          animation={animation}
-          spec={spec}
-          onChange={patchParam}
-        />
-      ))}
-      {preset && <Caption color="muted">{preset.describe}</Caption>}
-    </FlexColumn>
-  );
-});
+        {preset?.id === "followPath" && (
+          <FollowPathShapePicker onPick={patchParams} />
+        )}
+
+        {preset?.params.map((spec) => (
+          <AnimationParamControl
+            key={spec.name}
+            animation={animation}
+            spec={spec}
+            onChange={patchParam}
+          />
+        ))}
+        {preset && (
+          <Caption color="muted">
+            {t(`pass3_23.animations.descriptions.${preset.id}`, {
+              defaultValue: preset.describe
+            })}
+          </Caption>
+        )}
+      </FlexColumn>
+    );
+  }
+);
 ClipAnimationEditor.displayName = "ClipAnimationEditor";
 
 interface ClipAnimationsProps {
@@ -722,6 +793,25 @@ interface ClipAnimationsProps {
 }
 
 export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
+  const { t } = useTranslation();
+  const roleOptions = ROLES.map((role) => ({
+    value: role,
+    label: t(`pass3_23.${ROLE_KEYS[role]}`)
+  }));
+  const presetOptionsByRole = Object.fromEntries(
+    ROLES.map((role) => [
+      role,
+      PRESET_OPTIONS_BY_ROLE[role].map((option) => ({
+        value: option.value,
+        label:
+          option.value === CUSTOM_PRESET
+            ? t("pass3_23.animations.customKeyframes")
+            : t(`pass3_23.animations.presets.${option.value}`, {
+                defaultValue: option.value
+              })
+      }))
+    ])
+  ) as Record<AnimationRole, { value: string; label: string }[]>;
   const [open, setOpen] = usePersistedFold("animate");
   const setClipAnimations = useTimelineStore(
     (state) => state.setClipAnimations
@@ -799,7 +889,7 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
       <CollapsibleSection
         title={
           <InspectorSectionTitle
-            title="Animate"
+            title={t("pass3_23.animations.title")}
             icon={<AnimationOutlinedIcon />}
           />
         }
@@ -810,16 +900,16 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
         <FlexColumn gap={SPACING.md} sx={{ py: SPACING.xs }}>
           <FlexRow gap={SPACING.md} align="center">
             <InspectorSelect
-              label="New animation role"
+              label={t("pass3_23.animations.newRole")}
               value={newRole}
-              options={ROLE_OPTIONS}
+              options={roleOptions}
               onChange={handleRoleChange}
               grow
             />
             <InspectorSelect
-              label="New animation preset"
+              label={t("pass3_23.animations.newPreset")}
               value={newPreset}
-              options={PRESET_OPTIONS_BY_ROLE[newRole]}
+              options={presetOptionsByRole[newRole]}
               onChange={setNewPreset}
               grow
             />
@@ -829,19 +919,20 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
               startIcon={<AddOutlinedIcon />}
               onClick={handleAdd}
             >
-              Add
+              {t("pass3_23.animations.add")}
             </Button>
           </FlexRow>
 
           {inOutOverruns && (
             <Caption color="warning">
-              {`In and out together run ${inOutSpan}ms, past the clip's ${clip.durationMs}ms. They overlap in the middle.`}
+              {t("pass3_23.animations.inOutOverrun", {
+                duration: inOutSpan,
+                clipDuration: clip.durationMs
+              })}
             </Caption>
           )}
           {animations.length === 0 ? (
-            <Caption color="muted">
-              Add an entrance, exit, emphasis, or loop preset.
-            </Caption>
+            <Caption color="muted">{t("pass3_23.animations.empty")}</Caption>
           ) : (
             groupedAnimations.map((animation) => (
               <ClipAnimationEditor

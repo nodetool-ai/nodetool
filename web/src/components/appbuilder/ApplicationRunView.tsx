@@ -8,6 +8,7 @@
  * the draft runs instead, which is what makes an unpublished app testable.
  */
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import type { Data } from "@puckeditor/core";
 
@@ -66,6 +67,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   previewDraft = false,
   draftDocument
 }) => {
+  const { t } = useTranslation();
   const [executionEpoch, setExecutionEpoch] = useState(0);
   const hasPinnedInstance = Boolean(instanceId) && !previewDraft;
   const applicationQuery = useApplication(applicationId);
@@ -138,7 +140,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   ]);
 
   if (isLoading || (!hasPinnedInstance && !previewDraft && releaseLoading)) {
-    return <LoadingSpinner size="large" text="Loading app" />;
+    return <LoadingSpinner size="large" text={t("i18n-next8.appBuilder.run.loadingApp")} />;
   }
 
   const failedQuery = applicationQuery.isError
@@ -148,15 +150,15 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
       : null;
   if (failedQuery) {
     const title = applicationQuery.isError
-      ? "Could not load app"
-      : "Could not load released app";
+      ? t("i18n-next8.appBuilder.run.loadAppFailed")
+      : t("i18n-next8.appBuilder.run.loadReleasedAppFailed");
     return (
       <AlertBanner
         severity="error"
         action={
           <>
             <EditorButton onClick={() => void failedQuery.refetch()}>
-              Retry
+              {t("i18n-next8.appBuilder.run.retry")}
             </EditorButton>
             <ReportBugButton
               context={{
@@ -177,8 +179,8 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     return (
       <EmptyState
         variant="empty"
-        title="Nothing to run yet"
-        description="Add widgets in the Design view, then run the app here."
+        title={t("i18n-next8.appBuilder.run.nothingToRunTitle")}
+        description={t("i18n-next8.appBuilder.run.nothingToRunDescription")}
       />
     );
   }
@@ -189,27 +191,27 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     hostWorkflowId &&
     hostQuery.isLoading
   ) {
-    return <LoadingSpinner size="large" text="Loading workflow" />;
+    return <LoadingSpinner size="large" text={t("i18n-next8.appBuilder.run.loadingWorkflow")} />;
   }
 
   if (!workflow) {
     return (
       <EmptyState
         variant="error"
-        title="Workflow unavailable"
+        title={t("i18n-next8.appBuilder.run.workflowUnavailableTitle")}
         description={
           <>
-            This app runs workflow {hostWorkflowId}, which could not be loaded.
+            {t("i18n-next8.appBuilder.run.workflowUnavailableDescription", { workflowId: hostWorkflowId })}
             <ReportBugButton
               context={{
                 source: "notification",
-                summary: "App workflow unavailable",
+                summary: t("i18n-next8.appBuilder.run.workflowUnavailableTitle"),
                 errorText: hostQuery.error?.message
               }}
             />
           </>
         }
-        actionText="Retry"
+        actionText={t("i18n-next8.appBuilder.run.retry")}
         onAction={() => void hostQuery.refetch()}
       />
     );
@@ -219,7 +221,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     <FlexColumn gap={0} fullWidth sx={{ height: "100%", minHeight: 0 }}>
       {previewDraft && (
         <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
-          Previewing current draft. This does not change the released app.
+          {t("i18n-next8.appBuilder.run.previewDraftNotice")}
         </Caption>
       )}
       <AppRuntimeView

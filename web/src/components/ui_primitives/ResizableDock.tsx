@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { FlexColumn } from "./FlexColumn";
 import { FlexRow } from "./FlexRow";
@@ -67,11 +68,16 @@ export const ResizableDock = ({
   defaultWidth = DEFAULT_WIDTH,
   minWidth = MIN_WIDTH,
   maxWidth = MAX_WIDTH,
-  ariaLabel = "Resize assistant panel",
+  ariaLabel,
   className,
   enabled = true,
   children
 }: ResizableDockProps) => {
+  const { t } = useTranslation();
+  const resolvedAriaLabel =
+    ariaLabel === undefined
+      ? t("i18n-next97.resizableDock.ariaLabel")
+      : ariaLabel;
   const fullKey = storagePrefix + storageKey;
   const [width, setWidth] = useState(() =>
     clamp(readStoredWidth(fullKey, defaultWidth), minWidth, maxWidth)
@@ -123,7 +129,7 @@ export const ResizableDock = ({
         invert={side === "right"}
         // Home has always jumped to the widest dock, whichever side it is on.
         invertExtremes
-        ariaLabel={ariaLabel}
+        ariaLabel={resolvedAriaLabel}
       />
       <FlexColumn
         fullHeight

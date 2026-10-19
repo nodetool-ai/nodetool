@@ -9,6 +9,7 @@
  */
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Caption,
@@ -33,36 +34,82 @@ export const ShotlistReport: React.FC<ShotlistReportProps> = ({
   shotCount,
   entries,
   onClose
-}) => (
-  <Dialog open={open} onClose={onClose} title="Shotlist imported">
-    <FlexColumn gap={GAP.normal}>
-      <Text size="normal">
-        {shotCount} shot{shotCount === 1 ? "" : "s"} imported. These values did
-        not come with them.
-      </Text>
-      <FlexColumn
-        gap={GAP.tight}
-        component="ul"
-        sx={{ listStyle: "none", margin: 0, padding: 0, "& li": { listStyle: "none" } }}
-      >
-        {entries.map((entry) => (
-          <Caption
-            key={`${entry.row}:${entry.column}:${entry.value}`}
-            component="li"
-            color="secondary"
-          >
-            Row {entry.row}, {entry.column}
-            {entry.value === "" ? "" : ` — “${entry.value}”`}: {entry.reason}
-          </Caption>
-        ))}
-      </FlexColumn>
-      {/* One way out: the import already wrote the board, so there is nothing
+}) => {
+  const { t } = useTranslation();
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={t("pass3_11.storyboard.shotlistReport.title")}
+    >
+      <FlexColumn gap={GAP.normal}>
+        <Text size="normal">
+          {t("pass3_11.storyboard.shotlistReport.summary", {
+            count: shotCount
+          })}
+        </Text>
+        <FlexColumn
+          gap={GAP.tight}
+          component="ul"
+          sx={{
+            listStyle: "none",
+            margin: 0,
+            padding: 0,
+            "& li": { listStyle: "none" }
+          }}
+        >
+          {entries.map((entry) => (
+            <Caption
+              key={`${entry.row}:${entry.column}:${entry.value}`}
+              component="li"
+              color="secondary"
+            >
+              {t(
+                entry.value === ""
+                  ? "pass3_11.storyboard.look.shotlist.rowWithoutValue"
+                  : "pass3_11.storyboard.look.shotlist.rowWithValue",
+                {
+                  row: entry.row,
+                  column: entry.column,
+                  value: entry.value,
+                  reason:
+                    entry.reason === "Row skipped: a shot needs a description."
+                      ? t(
+                          "pass3_11.storyboard.shotlistReport.reasons.missingDescription"
+                        )
+                      : entry.reason ===
+                          "Not a positive number. The shot imported without a duration."
+                        ? t(
+                            "pass3_11.storyboard.shotlistReport.reasons.invalidDuration"
+                          )
+                        : entry.reason.startsWith("Not one of: ")
+                          ? t(
+                              "pass3_11.storyboard.shotlistReport.reasons.invalidChoice",
+                              {
+                                options: entry.reason
+                                  .slice("Not one of: ".length)
+                                  .replace(
+                                    ". The shot imported without it.",
+                                    ""
+                                  )
+                              }
+                            )
+                          : entry.reason
+                }
+              )}
+            </Caption>
+          ))}
+        </FlexColumn>
+        {/* One way out: the import already wrote the board, so there is nothing
           here to confirm or cancel. */}
-      <FlexRow justify="flex-end">
-        <EditorButton onClick={onClose}>Continue</EditorButton>
-      </FlexRow>
-    </FlexColumn>
-  </Dialog>
-);
+        <FlexRow justify="flex-end">
+          <EditorButton onClick={onClose}>
+            {t("pass3_11.storyboard.shotlistReport.continue")}
+          </EditorButton>
+        </FlexRow>
+      </FlexColumn>
+    </Dialog>
+  );
+};
 
 export default ShotlistReport;

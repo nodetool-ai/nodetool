@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import React, { useCallback, memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import FolderIcon from "@mui/icons-material/FolderOutlined";
@@ -102,6 +103,7 @@ function nameFromPath(path: string): string {
 }
 
 const WorkspacesManager: React.FC = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
@@ -134,7 +136,7 @@ const WorkspacesManager: React.FC = () => {
       addNotification({
         type: "success",
         alert: true,
-        content: "Workspace added",
+        content: t("batch2_1.notifications.added"),
         dismissable: true
       });
     },
@@ -142,7 +144,7 @@ const WorkspacesManager: React.FC = () => {
       addNotification({
         type: "error",
         alert: true,
-        content: String(error),
+        content: t("batch2_1.errors.operation", { error: String(error) }),
         dismissable: true
       });
     }
@@ -159,7 +161,7 @@ const WorkspacesManager: React.FC = () => {
       addNotification({
         type: "error",
         alert: true,
-        content: String(error),
+        content: t("batch2_1.errors.operation", { error: String(error) }),
         dismissable: true
       });
     }
@@ -174,7 +176,7 @@ const WorkspacesManager: React.FC = () => {
       addNotification({
         type: "success",
         alert: true,
-        content: "Workspace removed",
+        content: t("batch2_1.notifications.removed"),
         dismissable: true
       });
     },
@@ -182,7 +184,7 @@ const WorkspacesManager: React.FC = () => {
       addNotification({
         type: "error",
         alert: true,
-        content: String(error),
+        content: t("batch2_1.errors.operation", { error: String(error) }),
         dismissable: true
       });
     }
@@ -230,15 +232,15 @@ const WorkspacesManager: React.FC = () => {
             </FlexRow>
           ) : error ? (
             <ErrorBanner
-              title="Could not load workspaces"
+              title={t("batch2_1.errors.loadTitle")}
               onRetry={handleRetry}
               report={{
                 source: "operation-failure",
-                summary: "Workspaces failed to load",
+                summary: t("batch2_1.errors.loadSummary"),
                 errorText: error instanceof Error ? error.message : String(error)
               }}
             >
-              Check your connection and try again.
+              {t("batch2_1.errors.loadDescription")}
             </ErrorBanner>
           ) : workspaces.length > 0 ? (
             <List className="workspace-list">
@@ -253,7 +255,7 @@ const WorkspacesManager: React.FC = () => {
                       {!workspace.is_accessible && (
                         <Chip
                           size="small"
-                          label="Inaccessible"
+                          label={t("batch2_1.manager.inaccessible")}
                           color="error"
                           variant="outlined"
                         />
@@ -271,8 +273,8 @@ const WorkspacesManager: React.FC = () => {
                       }
                       tooltip={
                         workspace.is_default
-                          ? "Default workspace"
-                          : "Set as default"
+                          ? t("batch2_1.manager.defaultWorkspace")
+                          : t("batch2_1.manager.setDefault")
                       }
                       onClick={() => handleToggleDefault(workspace)}
                       sx={{
@@ -287,7 +289,7 @@ const WorkspacesManager: React.FC = () => {
                     {!workspace.is_default && (
                       <ToolbarIconButton
                         icon={<DeleteIcon fontSize="small" />}
-                        tooltip="Remove"
+                        tooltip={t("batch2_1.common.remove")}
                         onClick={() => handleDeleteWorkspace(workspace.id)}
                       />
                     )}
@@ -298,11 +300,11 @@ const WorkspacesManager: React.FC = () => {
           ) : (
             <EmptyState
               icon={<FolderIcon />}
-              title="No workspaces configured"
+              title={t("batch2_1.manager.emptyTitle")}
               description={
                 canManage
-                  ? "Add a workspace to allow agents to access local folders"
-                  : "This deployment manages your workspace for you"
+                  ? t("batch2_1.manager.emptyCanManage")
+                  : t("batch2_1.manager.emptyManaged")
               }
             />
           )}
@@ -315,7 +317,7 @@ const WorkspacesManager: React.FC = () => {
                 fullWidth
                 disabled={createMutation.isPending}
               >
-                {createMutation.isPending ? "Adding…" : "Add Workspace"}
+                {createMutation.isPending ? t("batch2_1.manager.adding") : t("batch2_1.manager.addWorkspace")}
               </EditorButton>
             </div>
           )}
@@ -328,15 +330,14 @@ const WorkspacesManager: React.FC = () => {
         open={deleteConfirmOpen}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Remove this workspace?"
+        title={t("batch2_1.manager.removeTitle")}
         content={
           <Text>
-            The workspace will be removed from NodeTool. The folder itself will
-            not be deleted.
+            {t("batch2_1.manager.removeDescription")}
           </Text>
         }
-        confirmText="Remove"
-        cancelText="Cancel"
+        confirmText={t("batch2_1.common.remove")}
+        cancelText={t("batch2_1.common.cancel")}
       />
     </>
   );

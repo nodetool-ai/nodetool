@@ -7,6 +7,7 @@
  */
 
 import React, { memo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import RotateRightIcon from "@mui/icons-material/RotateRight";
@@ -43,6 +44,8 @@ const ClipTransformContextMenu: React.FC<ClipTransformContextMenuProps> = ({
   onFlipHorizontal,
   onFlipVertical
 }) => {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (!open) {
       return undefined;
@@ -77,10 +80,10 @@ const ClipTransformContextMenu: React.FC<ClipTransformContextMenuProps> = ({
       minWidth={200}
       paperSx={{ maxWidth: 280 }}
     >
-      <ListSubheader>Transform</ListSubheader>
+      <ListSubheader>{t("i18n-next79.clipTransform.transform")}</ListSubheader>
 
       <MenuItemPrimitive
-        label="Reset"
+        label={t("i18n-next79.clipTransform.reset")}
         icon={<RestartAltIcon />}
         shortcut="."
         onClick={run(onReset)}
@@ -89,17 +92,17 @@ const ClipTransformContextMenu: React.FC<ClipTransformContextMenuProps> = ({
       <Divider />
 
       <MenuItemPrimitive
-        label="Rotate 180°"
+        label={t("i18n-next79.clipTransform.rotate180")}
         icon={<Rotate90DegreesCwIcon />}
         onClick={run(onRotate180)}
       />
       <MenuItemPrimitive
-        label="Rotate 90° CW"
+        label={t("i18n-next79.clipTransform.rotate90CW")}
         icon={<RotateRightIcon />}
         onClick={run(onRotate90CW)}
       />
       <MenuItemPrimitive
-        label="Rotate 90° CCW"
+        label={t("i18n-next79.clipTransform.rotate90CCW")}
         icon={<RotateLeftIcon />}
         onClick={run(onRotate90CCW)}
       />
@@ -107,12 +110,12 @@ const ClipTransformContextMenu: React.FC<ClipTransformContextMenuProps> = ({
       <Divider />
 
       <MenuItemPrimitive
-        label="Flip horizontal"
+        label={t("i18n-next79.clipTransform.flipHorizontal")}
         icon={<FlipIcon />}
         onClick={run(onFlipHorizontal)}
       />
       <MenuItemPrimitive
-        label="Flip vertical"
+        label={t("i18n-next79.clipTransform.flipVertical")}
         icon={<FlipIcon sx={{ transform: "rotate(90deg)" }} />}
         onClick={run(onFlipVertical)}
       />

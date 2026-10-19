@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
@@ -178,14 +179,14 @@ const treeViewStyles = (theme: Theme) => ({
   }
 });
 
-const createErrorItem = (itemId: string): TreeViewItem => ({
+const createErrorItem = (itemId: string, errorLabel: string): TreeViewItem => ({
   id: `${itemId}/error`,
-  label: "⚠️ Access denied",
+  label: errorLabel,
   children: undefined,
   className: "error-item"
 });
 
-const fileToTreeItem = (file: FileInfo): TreeViewItem => {
+const fileToTreeItem = (file: FileInfo, loadingLabel: string): TreeViewItem => {
   const item: TreeViewItem = {
     id: file.path,
     label: file.name,
@@ -198,7 +199,7 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => {
     item.children = [
       {
         id: file.path + "/loading",
-        label: "Loading…",
+        label: loadingLabel,
         className: "loading-item",
         children: []
       }
@@ -210,13 +211,14 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => {
 
 const fetchWorkspaceFiles = async (
   workspaceId: string,
+  loadingLabel: string,
   path: string = "."
 ): Promise<TreeViewItem[]> => {
   const data = await trpcClient.workspace.listFiles.query({
     id: workspaceId,
     path
   });
-  return data.map((file) => fileToTreeItem(file));
+  return data.map((file) => fileToTreeItem(file, loadingLabel));
 };
 
 const findItemInTree = (
@@ -258,9 +260,9 @@ const updateTreeWithChildren = (
 /** How deep a workspace path sits, so parents can be merged before children. */
 const depthOf = (path: string): number => path.split("/").length;
 
-const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
+const shouldLoadChildren = (item: TreeViewItem | undefined, loadingLabel: string): boolean => {
   return Boolean(
-    item?.children?.length === 1 && item.children[0].label === "Loading…"
+    item?.children?.length === 1 && item.children[0].label === loadingLabel
   );
 };
 
@@ -277,6 +279,7 @@ interface WorkspaceTreeProps {
 }
 
 const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
   const filesRef = useRef<TreeViewItem[]>([]);
@@ -303,7 +306,10 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     refetch: refetchFiles
   } = useQuery({
     queryKey: ["workspace-files", workspaceId],
-    queryFn: () => fetchWorkspaceFiles(workspaceId!),
+    queryFn: () =>
+      workspaceId
+        ? fetchWorkspaceFiles(workspaceId, t("batch2_1.tree.loading"))
+        : Promise.resolve([]),
     enabled: Boolean(workspaceId)
   });
 
@@ -327,8 +333,8 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
       const loaded = await Promise.all(
         expanded.map(async (itemId) => ({
           itemId,
-          children: await fetchWorkspaceFiles(wsId, itemId).catch(() => [
-            createErrorItem(itemId)
+          children: await fetchWorkspaceFiles(wsId, t("batch2_1.tree.loading"), itemId).catch(() => [
+            createErrorItem(itemId, t("batch2_1.tree.accessDenied"))
           ])
         }))
       );
@@ -366,19 +372,19 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
 
       const currentFiles = filesRef.current;
       const targetItem = findItemInTree(currentFiles, itemId);
-      if (!shouldLoadChildren(targetItem)) return;
+      if (!shouldLoadChildren(targetItem, t("batch2_1.tree.loading"))) return;
 
       try {
-        const children = await fetchWorkspaceFiles(wsId, itemId || ".");
+        const children = await fetchWorkspaceFiles(wsId, t("batch2_1.tree.loading"), itemId || ".");
         if (workspaceIdRef.current !== wsId) return;
         setFiles((prev) => updateTreeWithChildren(prev, itemId, children));
       } catch (error) {
         if (workspaceIdRef.current !== wsId) return;
         console.error("Failed to load children:", error);
-        setFiles((prev) => updateTreeWithChildren(prev, itemId, [createErrorItem(itemId)]));
+        setFiles((prev) => updateTreeWithChildren(prev, itemId, [createErrorItem(itemId, t("batch2_1.tree.accessDenied"))]));
       }
     },
-    []
+    [t]
   );
 
   const handleItemClick = useCallback(
@@ -456,12 +462,12 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
   return (
     <Box css={workspaceTreeStyles(theme)}>
       <PanelHeader
-        title="Workspace Explorer"
+        title={t("batch2_1.tree.title")}
         docsTopic="workspaces"
         actions={
           <RefreshButton
             onClick={handleRefresh}
-            tooltip="Refresh"
+            tooltip={t("batch2_1.common.refresh")}
             tooltipPlacement="bottom"
           />
         }
@@ -476,7 +482,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         <SettingsButton
           className="settings-button"
           onClick={handleManageWorkspace}
-          tooltip="Manage workspaces"
+          tooltip={t("batch2_1.tree.manage")}
         />
       </div>
 
@@ -485,7 +491,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           <span
             className="breadcrumb-segment"
             role="button"
-            aria-label="Go to workspace root"
+            aria-label={t("batch2_1.tree.goToRoot")}
             tabIndex={0}
             onClick={() => setSelectedFilePath("")}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedFilePath(""); } }}
@@ -509,7 +515,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
             startIcon={<FolderOpenIcon />}
             onClick={handleOpenInFolder}
           >
-            Open in folder
+            {t("batch2_1.tree.openInFolder")}
           </EditorButton>
           {Boolean(window.api?.shell?.openPath) && (
             <EditorButton
@@ -518,7 +524,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
               startIcon={<OpenInNewIcon />}
               onClick={handleOpenExternally}
             >
-              Open externally
+              {t("batch2_1.tree.openExternally")}
             </EditorButton>
           )}
         </div>
@@ -538,9 +544,9 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           <EmptyState
             size="small"
             icon={<FolderOpenIcon />}
-            title="No workspace selected"
-            description="Select a workspace above or create one."
-            actionText="Create workspace"
+            title={t("batch2_1.tree.noneSelected")}
+            description={t("batch2_1.tree.selectOrCreate")}
+            actionText={t("batch2_1.tree.createWorkspace")}
             onAction={handleManageWorkspace}
           />
         ) : files.length > 0 ? (
@@ -555,7 +561,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
                 }
               }}
               items={files}
-              aria-label="workspace file browser"
+              aria-label={t("batch2_1.tree.fileBrowser")}
               selectedItems={selectedFilePath}
               sx={treeViewStyles(theme)}
               slotProps={{
@@ -571,8 +577,8 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           <EmptyState
             size="small"
             icon={<FolderOpenIcon />}
-            title="Workspace is empty"
-            description="Add files to your workspace folder to see them here."
+            title={t("batch2_1.tree.emptyTitle")}
+            description={t("batch2_1.tree.emptyDescription")}
           />
         )}
       </div>

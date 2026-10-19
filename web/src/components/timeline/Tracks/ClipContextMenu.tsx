@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
 import MusicNoteOutlinedIcon from "@mui/icons-material/MusicNoteOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -62,6 +63,7 @@ export function ClipContextMenu({
   onRequestReplace,
   onError
 }: ClipContextMenuProps) {
+  const { t } = useTranslation();
   const actions = useClipMenuActions(clipId, { onRequestReplace, onError });
   const hasTransition = useTimelineStore(
     (s) => (findClipById(s.clips, clipId)?.transitionIn?.durationMs ?? 0) > 0
@@ -106,31 +108,31 @@ export function ClipContextMenu({
   return (
     <ContextMenu open position={position} onClose={onClose}>
       <MenuItemPrimitive
-        label="Split at playhead"
+        label={t("i18n-next59.clipMenu.splitAtPlayhead")}
         icon={<ContentCutOutlinedIcon fontSize="small" />}
         onClick={run(actions.splitAtPlayhead)}
       />
       {actions.isMidi && (
         <MenuItemPrimitive
-          label="Edit notes"
+          label={t("i18n-next59.clipMenu.editNotes")}
           icon={<MusicNoteOutlinedIcon fontSize="small" />}
           onClick={run(actions.editNotes)}
         />
       )}
       {actions.canEditVideo && (
         <MenuItemPrimitive
-          label="Edit video…"
+          label={t("i18n-next59.clipMenu.editVideo")}
           icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
           onClick={run(actions.openAiEdit)}
         />
       )}
       <MenuItemPrimitive
-        label="Duplicate"
+        label={t("i18n-next59.clipMenu.duplicate")}
         icon={<ContentCopyIcon fontSize="small" />}
         onClick={run(actions.duplicate)}
       />
       <MenuItemPrimitive
-        label={hasTransition ? "Remove transition" : "Cross-fade in"}
+        label={t(hasTransition ? "i18n-next59.clipMenu.removeTransition" : "i18n-next59.clipMenu.crossFadeIn")}
         icon={<GradientOutlinedIcon fontSize="small" />}
         onClick={run(() =>
           hasTransition
@@ -140,7 +142,7 @@ export function ClipContextMenu({
       />
       {canFade && (
         <MenuItemPrimitive
-          label={hasFade ? "Remove fades" : "Fade in and out"}
+          label={t(hasFade ? "i18n-next59.clipMenu.removeFades" : "i18n-next59.clipMenu.fadeInOut")}
           icon={<GraphicEqOutlinedIcon fontSize="small" />}
           onClick={run(() =>
             hasFade
@@ -151,20 +153,20 @@ export function ClipContextMenu({
       )}
       {actions.canDetectBeats && (
         <MenuItemPrimitive
-          label="Detect beats"
+          label={t("i18n-next59.clipMenu.detectBeats")}
           icon={<QueueMusicOutlinedIcon fontSize="small" />}
           onClick={run(actions.detectBeats)}
         />
       )}
       {actions.isGenerated && (
         <MenuItemPrimitive
-          label="Regenerate as new clip"
+          label={t("i18n-next59.clipMenu.regenerateClip")}
           icon={<AutoAwesomeMotionIcon fontSize="small" />}
           onClick={run(actions.regenerateAsCopy)}
         />
       )}
       <MenuItemPrimitive
-        label={actions.locked ? "Unlock" : "Lock"}
+        label={t(actions.locked ? "i18n-next59.clipMenu.unlock" : "i18n-next59.clipMenu.lock")}
         icon={
           actions.locked ? (
             <LockIcon fontSize="small" />
@@ -176,7 +178,7 @@ export function ClipContextMenu({
       />
       {!actions.locked && (
         <MenuItemPrimitive
-          label={disabled ? "Enable" : "Disable"}
+          label={t(disabled ? "i18n-next59.clipMenu.enable" : "i18n-next59.clipMenu.disable")}
           icon={
             disabled ? (
               <VisibilityOutlinedIcon fontSize="small" />
@@ -192,38 +194,34 @@ export function ClipContextMenu({
       )}
       {actions.canReplace && (
         <MenuItemPrimitive
-          label="Replace clip…"
+          label={t("i18n-next59.clipMenu.replaceClip")}
           icon={<ImageIcon fontSize="small" />}
           onClick={run(actions.openReplace)}
         />
       )}
       {!inStudio && workflowMedia.length > 0 && (
         <MenuItemPrimitive
-          label={
-            workflowMedia.length === 1
-              ? "Send to workflow…"
-              : `Send ${workflowMedia.length} clips to workflow…`
-          }
+          label={t("i18n-next59.clipMenu.sendClipsToWorkflow", { count: workflowMedia.length })}
           icon={<AccountTreeOutlinedIcon fontSize="small" />}
           onClick={run(() => onSendToWorkflow(workflowMedia, position))}
         />
       )}
       {actions.canOpenInNodeEditor && (
         <MenuItemPrimitive
-          label="Open in node editor"
+          label={t("i18n-next59.clipMenu.openNodeEditor")}
           icon={<OpenInNewIcon fontSize="small" />}
           onClick={run(actions.openInNodeEditor)}
         />
       )}
       {isLinked && (
         <MenuItemPrimitive
-          label="Unlink"
+          label={t("i18n-next59.clipMenu.unlink")}
           icon={<LinkOffIcon fontSize="small" />}
           onClick={run(onUnlink)}
         />
       )}
       <MenuItemPrimitive
-        label="Delete"
+        label={t("i18n-next59.clipMenu.delete")}
         icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
         color="error"
         dividerBefore

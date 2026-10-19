@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useStore } from "zustand";
 import { useTheme } from "@mui/material/styles";
 import { BoxHelper, Box3, GridHelper, Matrix4, Object3D, OrthographicCamera, PerspectiveCamera, Raycaster, Vector2, Vector3 } from "three";
@@ -42,12 +43,12 @@ import type { GamePlaySession3D } from "../useGamePlaySession3D";
 export type GameViewportAction3D = "Move" | "Rotate" | "Scale" | "Ground";
 
 const TOOLS: readonly { mode: GameGizmoMode3D; label: string; command: "tool.move" | "tool.rotate" | "tool.scale"; icon: ReactNode }[] = [
-  { mode: "translate", label: "Move", command: "tool.move", icon: <OpenWithIcon fontSize="small" /> },
-  { mode: "rotate", label: "Rotate", command: "tool.rotate", icon: <ThreeSixtyIcon fontSize="small" /> },
-  { mode: "scale", label: "Scale", command: "tool.scale", icon: <OpenInFullIcon fontSize="small" /> }
+  { mode: "translate", label: "move", command: "tool.move", icon: <OpenWithIcon fontSize="small" /> },
+  { mode: "rotate", label: "rotate", command: "tool.rotate", icon: <ThreeSixtyIcon fontSize="small" /> },
+  { mode: "scale", label: "scale", command: "tool.scale", icon: <OpenInFullIcon fontSize="small" /> }
 ];
 const ACTIONS: Readonly<Record<GameGizmoMode3D, GameViewportAction3D>> = { translate: "Move", rotate: "Rotate", scale: "Scale" };
-const PIVOT_LABELS: Readonly<Record<GameGizmoPivot3D, string>> = { center: "Selection centre", active: "Active entity", individual: "Individual origins" };
+const PIVOT_LABELS: Readonly<Record<GameGizmoPivot3D, string>> = { center: "center", active: "active", individual: "individual" };
 const AXIS_VIEWS: readonly { readonly view: GameAxisView3D; readonly command: string }[] = [
   { view: "front", command: "view.front" }, { view: "back", command: "view.back" }, { view: "right", command: "view.right" },
   { view: "left", command: "view.left" }, { view: "top", command: "view.top" }, { view: "bottom", command: "view.bottom" }
@@ -126,6 +127,7 @@ function staticObjects(renderer: GameRenderer3D, frame: GameRenderFrame3D, movin
 
 export default function GameViewport3D({ document, host, selectedIds = NO_IDS, highlightedIds = NO_IDS, sceneId, onSelect, onSelectMany, onOps,
   onGestureStart, onGestureEnd, playerOnly = false }: GameViewport3DProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const settingsStore = useGameViewportSettings3DStore();
   const space = useStore(settingsStore, (state) => state.space);
@@ -530,63 +532,63 @@ export default function GameViewport3D({ document, host, selectedIds = NO_IDS, h
 
   const mouseLook = host.playDocument && resolveGameInputBindings(host.playDocument).look.some((binding) => binding.kind === "mouse");
   const hint = host.playDocument ? mouseLook
-    ? "Use the game's controls. Click for mouse look, Esc to release it."
-    : "Use the game's controls. Mouse buttons work without pointer capture."
-    : flyMode ? "WASD to fly. R/F to rise and descend. Drag to look."
-      : "Drag to orbit. Shift-drag to pan. Scroll to zoom. Shift-click adds to the selection.";
+    ? t("screen_game.viewport.mouseLookHelp")
+    : t("screen_game.viewport.mouseButtonsHelp")
+    : flyMode ? t("screen_game.viewport.flyHelp")
+      : t("screen_game.viewport.orbitHelp");
   return <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-    {!playerOnly && <DockPanelHeader title="Viewport" label={host.playDocument ? "Game" : "Scene"}
+    {!playerOnly && <DockPanelHeader title={t("screen_game.viewport.viewport")} label={host.playDocument ? t("screen_game.viewport.game") : t("screen_game.viewport.scene")}
       icon={host.playDocument ? <SportsEsportsOutlinedIcon sx={HEADER_ICON_SX} /> : <GridViewOutlinedIcon sx={HEADER_ICON_SX} />}>
       {editing && <>
-        <FlexRow gap={SPACING.micro} align="center" role="group" aria-label="Transform mode">
-          {TOOLS.map((tool) => <ToolbarIconButton key={tool.mode} icon={tool.icon} tooltip={tool.label} shortcut={toolShortcuts[tool.command]}
+        <FlexRow gap={SPACING.micro} align="center" role="group" aria-label={t("screen_game.viewport.transformMode")}>
+          {TOOLS.map((tool) => <ToolbarIconButton key={tool.mode} icon={tool.icon} tooltip={t(`screen_game.viewport.tools.${tool.label}`)} shortcut={toolShortcuts[tool.command]}
             aria-pressed={mode === tool.mode} active={mode === tool.mode} onClick={() => setMode(tool.mode)} />)}
         </FlexRow>
         <ToolbarIconButton icon={space === "local" ? <MyLocationOutlinedIcon fontSize="small" /> : <PublicOutlinedIcon fontSize="small" />}
-          tooltip={space === "local" ? "Local space" : "World space"} ariaLabel="Local space" shortcut={spaceShortcut}
+          tooltip={space === "local" ? t("screen_game.viewport.localSpace") : t("screen_game.viewport.worldSpace")} ariaLabel={t("screen_game.viewport.coordinateSpace")} shortcut={spaceShortcut}
           aria-pressed={space === "local"} active={space === "local"} onClick={settings.toggleSpace} />
         <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
-        <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip="Snap" shortcut={snapShortcut} aria-pressed={snap} active={snap}
+        <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip={t("screen_game.viewport.snap")} shortcut={snapShortcut} aria-pressed={snap} active={snap}
           onClick={() => settings.toggle("snap")} />
-        <ToolbarIconButton icon={<TuneOutlinedIcon fontSize="small" />} tooltip="Gizmo settings" aria-haspopup="dialog"
+        <ToolbarIconButton icon={<TuneOutlinedIcon fontSize="small" />} tooltip={t("screen_game.viewport.gizmoSettings")} aria-haspopup="dialog"
           aria-expanded={Boolean(settingsAnchor)} onClick={(event) => setSettingsAnchor(event.currentTarget)} />
-        <ToolbarIconButton icon={<VerticalAlignBottomOutlinedIcon fontSize="small" />} tooltip="Align to ground" shortcut={groundShortcut}
+        <ToolbarIconButton icon={<VerticalAlignBottomOutlinedIcon fontSize="small" />} tooltip={t("screen_game.viewport.alignToGround")} shortcut={groundShortcut}
           onClick={alignToGround} disabled={!hasSelection} />
-        <ToolbarIconButton icon={<LayersOutlinedIcon fontSize="small" />} tooltip="Overlays" aria-pressed={overlays} active={overlays} onClick={() => setOverlays((value) => !value)} />
+        <ToolbarIconButton icon={<LayersOutlinedIcon fontSize="small" />} tooltip={t("screen_game.viewport.overlays")} aria-pressed={overlays} active={overlays} onClick={() => setOverlays((value) => !value)} />
         <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
-        <ToolbarIconButton icon={<FlightOutlinedIcon fontSize="small" />} tooltip="Fly camera" aria-pressed={flyMode} active={flyMode} onClick={() => setFlyMode((value) => !value)} />
-        <ToolbarIconButton icon={<CenterFocusStrongOutlinedIcon fontSize="small" />} tooltip="Frame selection" shortcut={frameShortcut} onClick={frameSelection} disabled={!hasSelection} />
+        <ToolbarIconButton icon={<FlightOutlinedIcon fontSize="small" />} tooltip={t("screen_game.viewport.flyCamera")} aria-pressed={flyMode} active={flyMode} onClick={() => setFlyMode((value) => !value)} />
+        <ToolbarIconButton icon={<CenterFocusStrongOutlinedIcon fontSize="small" />} tooltip={t("screen_game.viewport.frameSelection")} shortcut={frameShortcut} onClick={frameSelection} disabled={!hasSelection} />
         <Popover open={Boolean(settingsAnchor)} anchorEl={settingsAnchor} onClose={() => setSettingsAnchor(null)} placement="bottom-right"
-          slotProps={{ paper: { role: "dialog", "aria-label": "Gizmo settings" } }}>
+          slotProps={{ paper: { role: "dialog", "aria-label": t("screen_game.viewport.gizmoSettings") } }}>
           <FlexColumn gap={SPACING.md} sx={{ p: SPACING.md }}>
             <FlexColumn gap={SPACING.xs}>
-              <Label>Pivot</Label>
-              <ToggleGroup exclusive size="small" aria-label="Pivot" value={pivot}
+              <Label>{t("screen_game.viewport.pivot")}</Label>
+              <ToggleGroup exclusive size="small" aria-label={t("screen_game.viewport.pivot")} value={pivot}
                 onChange={(_event, value: unknown) => { if (value === "center" || value === "active" || value === "individual") { settings.setPivot(value); } }}>
-                {(["center", "active", "individual"] as const).map((value) => <ToggleOption key={value} value={value}>{PIVOT_LABELS[value]}</ToggleOption>)}
+                {(["center", "active", "individual"] as const).map((value) => <ToggleOption key={value} value={value}>{t(`screen_game.viewport.pivots.${PIVOT_LABELS[value]}`)}</ToggleOption>)}
               </ToggleGroup>
             </FlexColumn>
             <FlexColumn gap={SPACING.xs}>
-              <Label>Snap increments</Label>
+              <Label>{t("screen_game.viewport.snapIncrements")}</Label>
               <FlexRow gap={SPACING.sm}>
-                <NumericField label="Move (m)" value={increments.translate} step={0.05} min={GAME_SNAP_LIMITS_3D.translate.min}
+                <NumericField label={t("screen_game.viewport.moveMeters")} value={increments.translate} step={0.05} min={GAME_SNAP_LIMITS_3D.translate.min}
                   max={GAME_SNAP_LIMITS_3D.translate.max} onCommit={(value) => settings.setIncrement("translate", value)} />
-                <NumericField label="Rotate (°)" value={increments.rotate} step={5} min={GAME_SNAP_LIMITS_3D.rotate.min}
+                <NumericField label={t("screen_game.viewport.rotateDegrees")} value={increments.rotate} step={5} min={GAME_SNAP_LIMITS_3D.rotate.min}
                   max={GAME_SNAP_LIMITS_3D.rotate.max} onCommit={(value) => settings.setIncrement("rotate", value)} />
-                <NumericField label="Scale" value={increments.scale} step={0.05} min={GAME_SNAP_LIMITS_3D.scale.min}
+                <NumericField label={t("screen_game.viewport.scale")} value={increments.scale} step={0.05} min={GAME_SNAP_LIMITS_3D.scale.min}
                   max={GAME_SNAP_LIMITS_3D.scale.max} onCommit={(value) => settings.setIncrement("scale", value)} />
               </FlexRow>
             </FlexColumn>
-            <LabeledSwitch label="Surface snap" description="Move drags rest the selection on the surface under the pointer."
+            <LabeledSwitch label={t("screen_game.viewport.surfaceSnap")} description={t("screen_game.viewport.surfaceSnapDescription")}
               checked={surfaceSnap} onChange={() => settings.toggle("surfaceSnap")} />
-            <LabeledSwitch label="Orbit around selection" description="The camera turns around the selection when it changes."
+            <LabeledSwitch label={t("screen_game.viewport.orbitAroundSelection")} description={t("screen_game.viewport.orbitAroundSelectionDescription")}
               checked={orbitSelection} onChange={() => settings.toggle("orbitSelection")} />
           </FlexColumn>
         </Popover>
       </>}
     </DockPanelHeader>}
     <Box sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0, bgcolor: "common.black" }}>
-      <Box component="canvas" ref={host.canvasRef} data-game-undo-scope tabIndex={0} aria-label="3D game viewport"
+      <Box component="canvas" ref={host.canvasRef} data-game-undo-scope tabIndex={0} aria-label={t("screen_game.viewport.gameViewport3d")}
         onKeyDown={(event) => {
           if (host.playDocument && host.playing) {
             host.inputRef.current.keyDown(event.code, event.key);

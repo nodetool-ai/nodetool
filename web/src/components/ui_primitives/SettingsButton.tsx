@@ -8,6 +8,7 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { IconButton } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -87,7 +88,7 @@ export const SettingsButton = memo(
     (
       {
         onClick,
-        tooltip = "Settings",
+        tooltip,
         tooltipPlacement = "bottom",
         buttonSize = "small",
         iconVariant = "settings",
@@ -100,6 +101,8 @@ export const SettingsButton = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const resolvedTooltip = tooltip ?? t("i18n-next95.settingsButton.tooltip");
 
       const handleClick = useCallback(
         (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -120,7 +123,7 @@ export const SettingsButton = memo(
 
       return (
         <Tooltip
-          title={tooltip}
+          title={resolvedTooltip}
           enterDelay={TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
@@ -137,7 +140,7 @@ export const SettingsButton = memo(
             onClick={handleClick}
             disabled={disabled}
             size={buttonSize}
-            aria-label={tooltip}
+            aria-label={resolvedTooltip}
             sx={{
               color: theme.vars.palette.grey[300],
               "&:hover": {

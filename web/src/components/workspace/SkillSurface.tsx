@@ -1,4 +1,5 @@
 import { useSkill } from "../../hooks/skills/useSkills";
+import { useTranslation } from "react-i18next";
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import SkillEditorPane from "../skills/SkillEditorPane";
 import ErrorBanner from "../support/ErrorBanner";
@@ -19,6 +20,7 @@ interface SkillSurfaceProps {
 }
 
 const SkillSurface = ({ refId, mode }: SkillSurfaceProps) => {
+  const { t } = useTranslation("translation", { keyPrefix: "i18n-next106" });
   const { data: skill, isLoading, error } = useSkill(refId);
 
   if (isLoading) {
@@ -34,12 +36,12 @@ const SkillSurface = ({ refId, mode }: SkillSurfaceProps) => {
         <ErrorBanner
           report={{
             source: "panel-crash",
-            summary: "Skill surface failed to load",
+            summary: t("skillSurface.loadFailedSummary"),
             errorText: error?.message,
             stackTrace: error instanceof Error ? error.stack : undefined
           }}
         >
-          Could not load this skill.
+          {t("skillSurface.loadFailed")}
         </ErrorBanner>
       </FlexColumn>
     );

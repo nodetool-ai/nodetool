@@ -29,6 +29,7 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 
 import {
   AudioPlayback,
@@ -176,6 +177,7 @@ const VoiceSample: React.FC<{ preset: PresetTile; autoPlay: boolean }> = ({
   preset,
   autoPlay
 }) => {
+  const { t } = useTranslation();
   const holder = useRef<HTMLDivElement>(null);
   const handlePlay = useCallback(() => {
     preset.onPlaySample?.();
@@ -193,7 +195,9 @@ const VoiceSample: React.FC<{ preset: PresetTile; autoPlay: boolean }> = ({
       <Box ref={holder} sx={{ width: "100%", padding: PADDING.compact }}>
         <AudioPlayback
           locator={preset.audio}
-          label={`${preset.title} sample`}
+          label={t("pass3_3.setup.presetTileGrid.sampleLabel", {
+            title: preset.title
+          })}
           autoPlay={autoPlay}
         />
       </Box>
@@ -207,8 +211,10 @@ const VoiceSample: React.FC<{ preset: PresetTile; autoPlay: boolean }> = ({
         disabled={preset.samplePending === true || preset.disabled === true}
       >
         {preset.samplePending === true
-          ? "Generating sample…"
-          : `Hear ${preset.title}`}
+          ? t("pass3_3.setup.presetTileGrid.generatingSample")
+          : t("pass3_3.setup.presetTileGrid.hearSample", {
+              title: preset.title
+            })}
       </EditorButton>
     </Box>
   );
@@ -300,6 +306,7 @@ const FramedTile: React.FC<{
   auditioning
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const handleFrameClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       // The frame is a div, which a disabled fieldset does not disable, so a
@@ -343,7 +350,9 @@ const FramedTile: React.FC<{
         {kind === "clip" && preset.video !== undefined ? (
           <VideoPlayer
             locator={preset.video}
-            label={`${preset.title} sample`}
+            label={t("pass3_3.setup.presetTileGrid.sampleLabel", {
+              title: preset.title
+            })}
           />
         ) : null}
         {kind === "audition" ? (
@@ -375,7 +384,7 @@ const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
   selectedId,
   onSelect,
   onAddOwn,
-  addOwnLabel = "Add your own",
+  addOwnLabel,
   addOwnDisabled,
   addOwnDisabledReason,
   addOwnOptionId,
@@ -384,6 +393,9 @@ const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
   minColumnWidth = 160,
   reservePreview
 }) => {
+  const { t } = useTranslation();
+  const resolvedAddOwnLabel =
+    addOwnLabel ?? t("pass3_3.setup.presetTileGrid.addYourOwn");
   // The stills whose art did not load. They hold no picture, so they must not
   // keep the grid in picture shape on their own.
   const [brokenIds, setBrokenIds] = useState<ReadonlySet<string>>(new Set());
@@ -419,7 +431,7 @@ const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
   if (addOwnOptionId !== undefined) {
     // Each field stays absent rather than present-and-undefined: `preset.audio
     // !== undefined` and its siblings decide what the tile draws.
-    addOption = { id: addOwnOptionId, title: addOwnLabel };
+    addOption = { id: addOwnOptionId, title: resolvedAddOwnLabel };
     if (addOwnDescription !== undefined) {
       addOption.description = addOwnDescription;
     }
@@ -515,7 +527,7 @@ const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
                 <AddIcon aria-hidden />
               </Box>
               <Text size="small" component="span">
-                {addOwnLabel}
+                {resolvedAddOwnLabel}
               </Text>
             </FlexColumn>
           ) : (
@@ -524,7 +536,7 @@ const PresetTileGridInternal: React.FC<PresetTileGridProps> = ({
             <FlexRow gap={GAP.tight} align="center">
               <AddIcon aria-hidden fontSize="small" />
               <Text size="small" component="span">
-                {addOwnLabel}
+                {resolvedAddOwnLabel}
               </Text>
             </FlexRow>
           )}

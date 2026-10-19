@@ -5,6 +5,7 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import ErrorBanner from "../support/ErrorBanner";
 import { LoadingSpinner, FlexColumn } from "../ui_primitives";
@@ -14,6 +15,7 @@ import { trpcClient } from "../../trpc/client";
 import type { Workflow } from "../../stores/ApiTypes";
 
 const ChainEditorPage: React.FC = () => {
+  const { t } = useTranslation();
   const { workflowId } = useParams<{ workflowId?: string }>();
   const [loading, setLoading] = useState(!!workflowId);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ const ChainEditorPage: React.FC = () => {
         if (workflowId) {
           const data = await trpcClient.workflows.get.query({ id: workflowId });
           if (!data) {
-            setError("Workflow not found");
+            setError(t("pass3_0.chainEditor.errors.workflowNotFound"));
             return;
           }
           loadWorkflow(data as Workflow);
@@ -35,18 +37,18 @@ const ChainEditorPage: React.FC = () => {
           newWorkflow();
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load workflow");
+        setError(err instanceof Error ? err.message : t("pass3_0.chainEditor.errors.loadFailed"));
       } finally {
         setLoading(false);
       }
     };
     init();
-  }, [workflowId, loadWorkflow, newWorkflow]);
+  }, [workflowId, loadWorkflow, newWorkflow, t]);
 
   if (loading) {
     return (
       <FlexColumn align="center" justify="center" fullHeight fullWidth gap={2}>
-        <LoadingSpinner size="large" text="Loading workflow" />
+        <LoadingSpinner size="large" text={t("pass3_0.chainEditor.loadingWorkflow")} />
       </FlexColumn>
     );
   }
@@ -57,7 +59,7 @@ const ChainEditorPage: React.FC = () => {
         <ErrorBanner
           report={{
             source: "operation-failure",
-            summary: "Chain editor failed to load the workflow",
+            summary: t("pass3_0.chainEditor.errors.loadSummary"),
             errorText: error,
             workflowId
           }}

@@ -11,6 +11,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { FlexColumn, GAP, Text } from "../../ui_primitives";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -20,19 +21,8 @@ import type { OptionCardItem } from "../OptionCardGrid";
 import { SETUP_STILL_GROUPS, setupStill } from "../stills";
 import { VIDEO_FORMATS, videoFormatById, tracksForFormat } from "./formats";
 
-/** "15s · 16:9 · 30fps" — the numbers the card decides, said out loud. */
-const formatSpec = (durationMs: number, aspect: string, fps: number): string =>
-  `${Math.round(durationMs / 1000)}s · ${aspect} · ${fps}fps`;
-
-const OPTIONS: readonly OptionCardItem[] = VIDEO_FORMATS.map((format) => ({
-  id: format.id,
-  title: format.title,
-  description: format.description,
-  meta: formatSpec(format.durationMs, format.aspectRatio, format.fps),
-  image: setupStill(SETUP_STILL_GROUPS.videoFormats, format.id)
-}));
-
 const FormatStepInternal: React.FC = () => {
+  const { t } = useTranslation();
   const selectedId = useTimelineStore((state) => state.setup?.format ?? null);
   const setSetup = useTimelineStore((state) => state.setSetup);
   // Resolution and frame rate are top-level sequence fields, not part of the
@@ -41,7 +31,23 @@ const FormatStepInternal: React.FC = () => {
   const tracks = useTimelineStore((state) => state.tracks);
   const insertTrack = useTimelineStore((state) => state.insertTrack);
 
-  const options = useMemo(() => OPTIONS, []);
+  const options = useMemo<readonly OptionCardItem[]>(
+    () =>
+      VIDEO_FORMATS.map((format) => ({
+        id: format.id,
+        title: t(`pass3_12.video.format.options.${format.id}.title`),
+        description: t(
+          `pass3_12.video.format.options.${format.id}.description`
+        ),
+        meta: t("pass3_12.video.format.meta", {
+          duration: Math.round(format.durationMs / 1000),
+          aspect: format.aspectRatio,
+          fps: format.fps
+        }),
+        image: setupStill(SETUP_STILL_GROUPS.videoFormats, format.id)
+      })),
+    [t]
+  );
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -77,18 +83,17 @@ const FormatStepInternal: React.FC = () => {
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          Choose a video template
+          {t("pass3_12.video.format.title")}
         </Text>
         <Text size="normal" color="secondary">
-          Each template combines a target length, frame shape and editing style.
-          These are starting settings, not generated footage.
+          {t("pass3_12.video.format.description")}
         </Text>
       </FlexColumn>
       {/* One template, not seven independent switches: the cards are radios
           with a single tab stop. Stated rather than inferred from the fact
           that a selection is tracked (F26). */}
       <OptionCardGrid
-        label="Format"
+        label={t("pass3_12.video.format.optionsLabel")}
         options={options}
         selectedId={selectedId}
         onSelect={handleSelect}

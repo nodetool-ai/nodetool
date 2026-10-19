@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Text, Caption, Box, BORDER_RADIUS, SPACING, getSpacingPx, ICON_SIZE } from "../ui_primitives";
@@ -120,6 +121,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
   backgroundColor
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const foregroundRgb = useMemo(() => hexToRgb(foregroundColor), [foregroundColor]);
   const backgroundRgb = useMemo(() => hexToRgb(backgroundColor), [backgroundColor]);
@@ -133,21 +135,21 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
     () => [
       {
         type: "protanopia" as const,
-        label: "Protanopia",
-        description: "Red-blind"
+        label: t("i18n-cont-color-07.contrast.protanopia"),
+        description: t("i18n-cont-color-07.contrast.redBlind")
       },
       {
         type: "deuteranopia" as const,
-        label: "Deuteranopia",
-        description: "Green-blind"
+        label: t("i18n-cont-color-07.contrast.deuteranopia"),
+        description: t("i18n-cont-color-07.contrast.greenBlind")
       },
       {
         type: "tritanopia" as const,
-        label: "Tritanopia",
-        description: "Blue-blind"
+        label: t("i18n-cont-color-07.contrast.tritanopia"),
+        description: t("i18n-cont-color-07.contrast.blueBlind")
       }
     ],
-    []
+    [t]
   );
 
   const colorBlindnessSimulations = useMemo(() => {
@@ -172,18 +174,18 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
           className="preview-box"
           style={{ backgroundColor: backgroundColor, color: foregroundColor }}
         >
-          <span className="preview-label">Preview on background</span>
-          <span className="preview-text">Normal text sample</span>
-          <span className="preview-text-large">Large text sample</span>
+          <span className="preview-label">{t("i18n-cont-color-07.contrast.previewOnBackground")}</span>
+          <span className="preview-text">{t("i18n-cont-color-07.contrast.normalTextSample")}</span>
+          <span className="preview-text-large">{t("i18n-cont-color-07.contrast.largeTextSample")}</span>
         </div>
 
         <div
           className="preview-box"
           style={{ backgroundColor: foregroundColor, color: backgroundColor }}
         >
-          <span className="preview-label">Inverse preview</span>
-          <span className="preview-text">Normal text sample</span>
-          <span className="preview-text-large">Large text sample</span>
+          <span className="preview-label">{t("i18n-cont-color-07.contrast.inversePreview")}</span>
+          <span className="preview-text">{t("i18n-cont-color-07.contrast.normalTextSample")}</span>
+          <span className="preview-text-large">{t("i18n-cont-color-07.contrast.largeTextSample")}</span>
         </div>
       </div>
 
@@ -204,32 +206,32 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
         <Caption
           sx={{ textAlign: "center", display: "block", color: "grey.500" }}
         >
-          Contrast ratio
+          {t("i18n-cont-color-07.contrast.contrastRatio")}
         </Caption>
       </div>
 
       <div className="compliance-grid">
         <div className="compliance-item">
           <ComplianceIcon passed={compliance.aa} />
-          <span className="compliance-label">AA Normal (4.5:1)</span>
+          <span className="compliance-label">{t("i18n-cont-color-07.contrast.aaNormal")}</span>
         </div>
         <div className="compliance-item">
           <ComplianceIcon passed={compliance.aaLarge} />
-          <span className="compliance-label">AA Large (3:1)</span>
+          <span className="compliance-label">{t("i18n-cont-color-07.contrast.aaLarge")}</span>
         </div>
         <div className="compliance-item">
           <ComplianceIcon passed={compliance.aaa} />
-          <span className="compliance-label">AAA Normal (7:1)</span>
+          <span className="compliance-label">{t("i18n-cont-color-07.contrast.aaaNormal")}</span>
         </div>
         <div className="compliance-item">
           <ComplianceIcon passed={compliance.aaaLarge} />
-          <span className="compliance-label">AAA Large (4.5:1)</span>
+          <span className="compliance-label">{t("i18n-cont-color-07.contrast.aaaLarge")}</span>
         </div>
       </div>
 
       <div className="color-blindness-section">
         <Text className="color-blindness-title">
-          Color blindness preview
+          {t("i18n-cont-color-07.contrast.colorBlindnessPreview")}
         </Text>
         <div className="color-blindness-grid">
           {colorBlindnessSimulations.map((sim) => (
@@ -239,12 +241,12 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = React.memo(({
                 <div
                   className="cb-swatch"
                   style={{ backgroundColor: sim.foreground }}
-                  title={`Foreground: ${sim.foreground}`}
+                  title={t("i18n-cont-color-07.contrast.foregroundTitle", { color: sim.foreground })}
                 />
                 <div
                   className="cb-swatch"
                   style={{ backgroundColor: sim.background }}
-                  title={`Background: ${sim.background}`}
+                  title={t("i18n-cont-color-07.contrast.backgroundTitle", { color: sim.background })}
                 />
               </div>
               <span className="cb-label">{sim.description}</span>

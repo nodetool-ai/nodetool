@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -32,10 +33,11 @@ const skipLinkStyles = (theme: Theme) =>
 
 export const SkipLinks = memo(function SkipLinks() {
   const theme = useTheme();
+  const { t } = useTranslation();
   return (
-    <nav css={skipLinkStyles(theme)} aria-label="Skip links">
+    <nav css={skipLinkStyles(theme)} aria-label={t("i18n-next86.skipLinks.navigationLabel")}>
       <a className="skip-link" href="#main-content">
-        Skip to main content
+        {t("i18n-next86.skipLinks.mainContent")}
       </a>
     </nav>
   );

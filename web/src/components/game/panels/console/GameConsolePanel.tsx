@@ -1,4 +1,5 @@
 import { useId, useMemo, useState, type ReactElement, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { useStore } from "zustand";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
@@ -32,11 +33,6 @@ interface GameConsolePanelProps {
   readonly onAskAssistant: (prompt: string) => void;
 }
 
-const LEVEL_LABEL: Readonly<Record<GameConsoleLevel, { readonly one: string; readonly many: string }>> = {
-  error: { one: "Error", many: "Errors" },
-  warning: { one: "Warning", many: "Warnings" },
-  log: { one: "Log", many: "Logs" }
-};
 const NO_ENTRIES: readonly GameConsoleEntry[] = [];
 
 function levelColor(theme: Theme, level: GameConsoleLevel): string {
@@ -54,13 +50,15 @@ function LevelIcon({ level, color }: { readonly level: GameConsoleLevel; readonl
 
 /** Width of the search field in the toolbar: seven control heights, on the 4px grid. */
 
-function tickLabel(group: GameConsoleGroup): string | null {
+function tickLabel(group: GameConsoleGroup, t: ReturnType<typeof useTranslation>["t"]): string | null {
   if (group.tick === undefined) { return null; }
-  return group.firstTick !== undefined && group.firstTick !== group.tick ? `Ticks ${group.firstTick}–${group.tick}` : `Tick ${group.tick}`;
+  return group.firstTick !== undefined && group.firstTick !== group.tick
+    ? t("screen_game.console.ticksRange", { start: group.firstTick, end: group.tick }) : t("screen_game.console.tick", { tick: group.tick });
 }
 
 /** Errors, warnings and script log lines from the play session, with filters, entity links and an assistant hand-off per line. */
 export default function GameConsolePanel({ gameId, document, liveEntries = NO_ENTRIES, onSelectEntity, onAskAssistant }: GameConsolePanelProps): ReactElement {
+  const { t } = useTranslation();
   const theme = useTheme();
   const store = getGameConsoleStore(gameId);
   const lineId = useId();
@@ -83,16 +81,17 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
     });
   };
   return <FlexColumn sx={{ height: "100%", minHeight: 0 }}>
-    <DockPanelHeader title="Console" fill>
+    <DockPanelHeader title={t("screen_game.console.title")} fill>
       <FieldDensityContext.Provider value="compact">
-        <SearchInput value={query} onChange={setQuery} placeholder="Filter" ariaLabel="Filter console" size="small"
+        <SearchInput value={query} onChange={setQuery} placeholder={t("screen_game.console.filterPlaceholder")} ariaLabel={t("screen_game.console.filterLabel")} size="small"
           sx={{ flex: 1, minWidth: 0 }} />
       </FieldDensityContext.Provider>
       <Divider orientation="vertical" flexItem sx={{ mx: SPACING.xs, my: SPACING.xs }} />
       {GAME_CONSOLE_LEVELS.map((level) => {
         const on = levels.has(level);
-        return <Tooltip key={level} title={on ? `Hide ${LEVEL_LABEL[level].many.toLowerCase()}` : `Show ${LEVEL_LABEL[level].many.toLowerCase()}`}>
-          <EditorButton aria-pressed={on} aria-label={`${LEVEL_LABEL[level].many} ${counts[level]}`} onClick={() => toggle(level)}
+        const label = t(`screen_game.console.levels.${level}`);
+        return <Tooltip key={level} title={on ? t("screen_game.console.hideLevel", { level: label }) : t("screen_game.console.showLevel", { level: label })}>
+          <EditorButton aria-pressed={on} aria-label={t("screen_game.console.levelCount", { level: label, count: counts[level] })} onClick={() => toggle(level)}
             startIcon={<LevelIcon level={level} color={on ? levelColor(theme, level) : theme.vars.palette.text.disabled} />}
             sx={{
               height: CONTROL.height.sm, px: SPACING.sm, gap: SPACING.xs, color: on ? "text.primary" : "text.disabled",
@@ -104,19 +103,19 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
       })}
       <Divider orientation="vertical" flexItem sx={{ mx: SPACING.xs, my: SPACING.xs }} />
       <EditorButton disabled={stored.length === 0} onClick={() => store.getState().clear()}
-        sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>Clear</EditorButton>
+        sx={{ height: CONTROL.height.sm, color: "text.secondary" }}>{t("screen_game.console.clear")}</EditorButton>
     </DockPanelHeader>
-    <ScrollArea role="log" aria-label="Console" sx={{ flex: 1, minHeight: 0 }}>
+    <ScrollArea role="log" aria-label={t("screen_game.console.title")} sx={{ flex: 1, minHeight: 0 }}>
       {visible.length === 0
         ? <FlexColumn align="center" gap={SPACING.micro} sx={{ px: SPACING.lg, py: SPACING.xl, textAlign: "center" }}>
-          <Caption size="small" color="secondary">{groups.length === 0 ? "No console output" : "No lines match the filters"}</Caption>
-          {groups.length === 0 && <Caption color="muted">Script errors, warnings and log lines appear here while the game plays.</Caption>}
+          <Caption size="small" color="secondary">{groups.length === 0 ? t("screen_game.console.noOutput") : t("screen_game.console.noMatches")}</Caption>
+          {groups.length === 0 && <Caption color="muted">{t("screen_game.console.emptyDescription")}</Caption>}
         </FlexColumn>
-        : <Box component="ul" aria-label="Console lines" sx={{ listStyle: "none", m: 0, p: 0 }}>
+        : <Box component="ul" aria-label={t("i18n-next101.game.console.linesAria")} sx={{ listStyle: "none", m: 0, p: 0 }}>
           {visible.map((group) => {
             const name = group.entityId ? entityNames.get(JSON.stringify([gameConsoleEntityScene(document, group.entityId, group.sceneId), group.entityId])) : undefined;
             const sceneId = group.entityId ? gameConsoleEntityScene(document, group.entityId, group.sceneId) : undefined;
-            const ticks = tickLabel(group);
+            const ticks = tickLabel(group, t);
             return <FlexRow key={group.id} component="li" gap={SPACING.sm} align="flex-start" data-level={group.level}
               sx={{
                 minHeight: CONTROL.height.sm, boxSizing: "border-box", px: SPACING.md, py: SPACING.xs,
@@ -125,7 +124,7 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
                 "& .console-ask": { opacity: 0 },
                 "&:hover .console-ask, &:focus-within .console-ask": { opacity: 1 }
               }}>
-              <Box component="span" role="img" aria-label={LEVEL_LABEL[group.level].one}
+              <Box component="span" role="img" aria-label={t(`screen_game.console.levels.${group.level}`)}
                 sx={{ display: "flex", alignItems: "center", height: "1.5em", ...TYPOGRAPHY.mono.code }}>
                 <LevelIcon level={group.level} color={levelColor(theme, group.level)} />
               </Box>
@@ -133,17 +132,17 @@ export default function GameConsolePanel({ gameId, document, liveEntries = NO_EN
                 ...TYPOGRAPHY.mono.code, flex: 1, minWidth: 0, color: "text.primary", overflowWrap: "anywhere", whiteSpace: "pre-wrap"
               }}>{group.message}</Box>
               <FlexRow gap={SPACING.sm} align="center" sx={{ flexShrink: 0, minHeight: "1.5em", ...TYPOGRAPHY.mono.code }}>
-                {group.count > 1 && <Caption component="span" color="secondary" aria-label={`Repeated ${group.count} times`} sx={{
+                {group.count > 1 && <Caption component="span" color="secondary" aria-label={t("screen_game.console.repeated", { count: group.count })} sx={{
                   px: SPACING.xs, borderRadius: BORDER_RADIUS.pill, backgroundColor: theme.vars.palette.action.selected,
                   fontVariantNumeric: "tabular-nums"
                 }}>{`×${group.count}`}</Caption>}
                 {group.entityId && (sceneId
-                  ? <TextLink asButton onClick={() => onSelectEntity(sceneId, group.entityId ?? "")} aria-label={`Select ${name || group.entityId}`}>
+                  ? <TextLink asButton onClick={() => onSelectEntity(sceneId, group.entityId ?? "")} aria-label={t("screen_game.console.selectEntity", { name: name || group.entityId })}>
                     <Caption component="span" color="inherit">{name || group.entityId}</Caption></TextLink>
                   : <Caption component="span" color="muted">{group.entityId}</Caption>)}
                 {ticks && <Caption component="span" color="muted" sx={{ fontVariantNumeric: "tabular-nums" }}>{ticks}</Caption>}
                 <ToolbarIconButton className="console-ask" icon={<AutoAwesomeOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />}
-                  tooltip="Ask the assistant" aria-describedby={`${lineId}-${group.id}`}
+                  tooltip={t("screen_game.console.askAssistant")} aria-describedby={`${lineId}-${group.id}`}
                   onClick={() => onAskAssistant(gameConsolePrompt(group, name))}
                   sx={{ p: SPACING.micro, my: -SPACING.micro }} />
               </FlexRow>

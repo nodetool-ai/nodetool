@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Knob } from '../Knob';
 import { EnvView } from '../displays/EnvView';
 import { ModSourceChip } from '../ModSourceChip';
@@ -22,11 +23,12 @@ interface EnvPanelProps {
 }
 
 export function EnvPanel({ pages, ...props }: EnvPanelProps) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(0);
   if (!pages) return <EnvBody {...props} />;
   const cur = pages[page]!;
   const tabs = (
-    <div className="filter-tabs env-tabs" role="tablist" aria-label={`${props.title} pages`}>
+    <div className="filter-tabs env-tabs" role="tablist" aria-label={t('i18n-next45-fablesynth-effects.envelope.pages', { title: props.title })}>
       {pages.map((p, i) => (
         <button key={p.id} type="button" role="tab" className="filter-tab" aria-selected={page === i}
           onClick={() => setPage(i)}>{p.label}</button>

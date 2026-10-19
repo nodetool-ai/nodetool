@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import DownloadIcon from "@mui/icons-material/Download";
 
 import { EditorButton, Tooltip } from "../../ui_primitives";
@@ -33,6 +34,7 @@ const ModelRowDownload: React.FC<ModelRowDownloadProps> = ({
   onDownload,
   targetLabel
 }) => {
+  const { t } = useTranslation();
   const idKey = targets.map(modelDownloadId).join("\n");
   const ids = useMemo(() => idKey.split("\n"), [idKey]);
   // Select one id, not the `downloads` map: the map is replaced on every
@@ -67,19 +69,18 @@ const ModelRowDownload: React.FC<ModelRowDownloadProps> = ({
   }
 
   const [main, ...rest] = targets;
-  const what =
-    rest.length === 0
-      ? main?.repoId
-      : `${main?.repoId} and ${rest.length} more ${rest.length === 1 ? "repository" : "repositories"}`;
+  const what = rest.length === 0
+    ? main?.repoId
+    : t("screen_modelMenu.repositoryAndMore", { repository: main?.repoId, count: rest.length });
   return (
-    <Tooltip title={`Download ${what} to ${targetLabel ?? "this computer"}`}>
+    <Tooltip title={t("screen_modelMenu.downloadToTarget", { item: what, target: targetLabel ?? t("screen_modelMenu.thisComputer") })}>
       <EditorButton
         variant="outlined"
         onClick={handleClick}
         startIcon={<DownloadIcon />}
         sx={{ flexShrink: 0 }}
       >
-        Download
+        {t("screen_modelMenu.download")}
       </EditorButton>
     </Tooltip>
   );

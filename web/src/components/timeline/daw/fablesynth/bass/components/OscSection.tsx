@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { WavetableView } from '../../components/displays/WavetableView';
 import { bl1Tables } from '../../../devices/bl1Tables';
 import { useBassStore } from '../bassStoreContext';
@@ -6,6 +7,7 @@ import { BassPosSlider } from './BassPosSlider';
 import { BassStepper } from './BassStepper';
 
 export function OscSection() {
+  const { t } = useTranslation();
   const tableValue = useBassStore((s) => s.params['osc.table']);
   const pos = useBassStore((s) => s.params['osc.pos']);
   const modPos = useBassStore((s) => s.vizPos);
@@ -14,7 +16,7 @@ export function OscSection() {
   return (
     <section className="panel bl-osc-section" data-accent="a">
       <div className="panel-head">
-        <h2>OSC</h2>
+        <h2>{t('i18n-next98.oscillator.title')}</h2>
         <div className="bl-osc-stepper">
           <BassStepper paramId="osc.table" accent="a" />
         </div>
@@ -42,19 +44,20 @@ export function OscSection() {
 }
 
 export function SubSection() {
+  const { t } = useTranslation();
   return (
     <section className="panel bl-sub-section" data-accent="n">
       <div className="panel-head">
-        <h2>SUB</h2>
+        <h2>{t('i18n-next98.sub.title')}</h2>
       </div>
       <div className="bl-sub-body">
         <div className="bl-sub-steppers">
           <div className="bl-sub-row">
-            <span className="bl-sub-label">SHAPE</span>
+            <span className="bl-sub-label">{t('i18n-next98.sub.shape')}</span>
             <BassStepper paramId="sub.shape" accent="n" />
           </div>
           <div className="bl-sub-row">
-            <span className="bl-sub-label">OCT</span>
+            <span className="bl-sub-label">{t('i18n-next98.sub.octave')}</span>
             <BassStepper paramId="sub.oct" accent="n" />
           </div>
         </div>

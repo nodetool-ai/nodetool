@@ -23,6 +23,7 @@ import React, {
   useState,
   useEffect
 } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -163,6 +164,7 @@ const CLIP_OVERSCAN_PX = 320;
 
 export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClips = false, collapsedFolderIds }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const timelineStore = useTimelineStoreApi();
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
@@ -382,7 +384,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       e.stopPropagation();
 
       if (track.locked) {
-        showWarning("This track is locked.", true);
+        showWarning(t("i18n-next73.trackLane.locked"), true);
         return;
       }
 
@@ -393,7 +395,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
       // Multi-asset drags are not supported for clip creation — guide the user.
       if (dragData.type === "assets-multiple") {
-        showWarning("Drop one asset at a time onto a track.", true);
+        showWarning(t("i18n-next73.trackLane.singleAsset"), true);
         return;
       }
 
@@ -409,15 +411,15 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
       const mediaType = assetMediaType(asset.content_type, asset.name);
       if (!mediaType) {
-        showWarning(`Cannot import "${asset.name}": unsupported media type.`);
+        showWarning(t("i18n-next73.trackLane.unsupportedMedia", { name: asset.name }));
         return;
       }
 
       if (!isCompatibleWithTrack(mediaType, track.type)) {
         const expected =
-          mediaType === "audio" ? "an audio" : "a video or overlay";
+          mediaType === "audio" ? t("i18n-next73.trackLane.audio") : t("i18n-next73.trackLane.videoOrOverlay");
         showWarning(
-          `Cannot drop ${mediaType} asset onto this ${track.type} track — use ${expected} track.`,
+          t("i18n-next73.trackLane.incompatibleMedia", { mediaType, trackType: track.type, expected }),
           true
         );
         return;
@@ -458,7 +460,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       addImportedClip,
       resolveDropInStore,
       importVideoWithAudio,
-      showWarning
+      showWarning,
+      t
     ]
   );
 
@@ -815,12 +818,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       trackId: track.id,
       startMs: contextMenuPos.startMs,
       durationMs: DEFAULT_TEXT_CLIP_DURATION_MS,
-      name: "Text",
+      name: t("i18n-next73.trackLane.textClipName"),
       mediaType: "text",
       sourceType: "imported",
       status: "generated",
       textStyle: {
-        text: "Text",
+        text: t("i18n-next73.trackLane.textClipContent"),
         fontSizePx: DEFAULT_TEXT_CLIP_FONT_SIZE_PX,
         color: DEFAULT_TEXT_CLIP_COLOR
       }
@@ -828,7 +831,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
     addClip(clip);
     setSelection([clip.id]);
     setContextMenuPos(null);
-  }, [addClip, contextMenuPos, setSelection, track.id]);
+  }, [addClip, contextMenuPos, setSelection, t, track.id]);
 
   const handleAddMidi = useCallback(() => {
     if (!contextMenuPos) return;
@@ -892,7 +895,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       onContextMenu={handleLaneContextMenu}
       role="listbox"
       tabIndex={0}
-      aria-label={`Track: ${track.name}`}
+      aria-label={t("i18n-next73.trackLane.label", { name: track.name })}
       aria-multiselectable="true"
     >
       {selectedGap && (
@@ -925,27 +928,27 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
             generated-clip picker. */}
         {(track.type === "overlay" || track.type === "video") && (
           <MenuItemPrimitive
-            label="Add text"
+            label={t("i18n-next119.trackLane.addText")}
             icon={<TitleIcon fontSize="small" />}
             onClick={handleAddText}
           />
         )}
         {track.type === "midi" ? (
           <MenuItemPrimitive
-            label="Add MIDI clip"
+            label={t("i18n-next119.trackLane.addMidiClip")}
             icon={<AddIcon fontSize="small" />}
             onClick={handleAddMidi}
           />
         ) : (
           <MenuItemPrimitive
-            label="Add generated clip here…"
+            label={t("i18n-next119.trackLane.addGeneratedClipHere")}
             icon={<AddIcon fontSize="small" />}
             onClick={handleAddClipFromMenu}
           />
         )}
         {menuGap && (
           <MenuItemPrimitive
-            label="Close gap"
+            label={t("i18n-next119.trackLane.closeGap")}
             icon={<CompressOutlinedIcon fontSize="small" />}
             onClick={handleCloseGap}
           />

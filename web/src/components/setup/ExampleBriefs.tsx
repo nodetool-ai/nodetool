@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Caption,
   EditorButton,
@@ -38,6 +39,7 @@ export function ExampleBriefs({
   onSelect,
   briefRef
 }: ExampleBriefsProps) {
+  const { t } = useTranslation();
   const [replaced, setReplaced] = useState<Replaced | null>(null);
   // The example last put in the brief. A brief still equal to it is not the
   // creator's text, so picking another example over it offers no Undo.
@@ -71,16 +73,24 @@ export function ExampleBriefs({
     briefRef?.current?.focus();
   };
   return (
-    <FlexColumn role="group" aria-label="Inspiration" gap={GAP.tight}>
+    <FlexColumn
+      role="group"
+      aria-label={t("pass3_2.setup.exampleBriefs.inspiration")}
+      gap={GAP.tight}
+    >
       {undo ? (
         <FlexRow gap={GAP.normal} align="center" wrap>
-          <Caption role="status">The example replaced your text.</Caption>
+          <Caption role="status">
+            {t("pass3_2.setup.exampleBriefs.replacedText")}
+          </Caption>
           <EditorButton variant="text" size="small" onClick={restore}>
-            Undo
+            {t("pass3_2.setup.exampleBriefs.undo")}
           </EditorButton>
         </FlexRow>
       ) : null}
-      {choices.length > 0 ? <Caption>Try an example</Caption> : null}
+      {choices.length > 0 ? (
+        <Caption>{t("pass3_2.setup.exampleBriefs.tryExample")}</Caption>
+      ) : null}
       {choices.map((text) => (
         <EditorButton
           key={text}

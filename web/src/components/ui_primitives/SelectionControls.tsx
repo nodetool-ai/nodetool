@@ -15,6 +15,7 @@
  */
 
 import { forwardRef, memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, ButtonProps, Box, Typography } from "@mui/material";
 import { Tooltip } from "./Tooltip";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
@@ -100,8 +101,8 @@ export const SelectionControls = memo(
         onSelectAll,
         onClear,
         showCount = true,
-        selectAllLabel = "Select all",
-        clearLabel = "Clear",
+        selectAllLabel,
+        clearLabel,
         variant = "buttons",
         size = "small",
         nodrag = true,
@@ -111,6 +112,9 @@ export const SelectionControls = memo(
       ref
     ) => {
       const theme = useTheme();
+      const { t } = useTranslation();
+      const resolvedSelectAllLabel = selectAllLabel ?? t("i18n-next86.selectionControls.selectAll");
+      const resolvedClearLabel = clearLabel ?? t("i18n-next86.selectionControls.clear");
 
       const isAllSelected = selectedCount === totalCount && totalCount > 0;
       const isPartiallySelected = selectedCount > 0 && selectedCount < totalCount;
@@ -157,7 +161,7 @@ export const SelectionControls = memo(
               className
             )}
             role="group"
-            aria-label="Selection controls"
+            aria-label={t("i18n-next86.selectionControls.groupLabel")}
             sx={{
               display: "flex",
               alignItems: "center",
@@ -166,7 +170,7 @@ export const SelectionControls = memo(
             }}
           >
             <Tooltip
-              title={hasSelection ? clearLabel : selectAllLabel}
+              title={hasSelection ? resolvedClearLabel : resolvedSelectAllLabel}
               enterDelay={TOOLTIP_ENTER_DELAY}
               enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
             >
@@ -203,7 +207,7 @@ export const SelectionControls = memo(
             className
           )}
           role="group"
-          aria-label="Selection controls"
+          aria-label={t("i18n-next86.selectionControls.groupLabel")}
           sx={{
             display: "flex",
             alignItems: "center",
@@ -220,11 +224,11 @@ export const SelectionControls = memo(
                 marginRight: theme.spacing(1)
               }}
             >
-              {selectedCount} selected
+              {t("i18n-next86.selectionControls.selectedCount", { count: selectedCount })}
             </Typography>
           )}
           <Tooltip
-            title={selectAllLabel}
+            title={resolvedSelectAllLabel}
             enterDelay={TOOLTIP_ENTER_DELAY}
             enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           >
@@ -235,11 +239,11 @@ export const SelectionControls = memo(
               size={size}
               sx={buttonSx}
             >
-              {selectAllLabel}
+              {resolvedSelectAllLabel}
             </Button>
           </Tooltip>
           <Tooltip
-            title={clearLabel}
+            title={resolvedClearLabel}
             enterDelay={TOOLTIP_ENTER_DELAY}
             enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           >
@@ -251,7 +255,7 @@ export const SelectionControls = memo(
               startIcon={<ClearIcon />}
               sx={buttonSx}
             >
-              {clearLabel}
+              {resolvedClearLabel}
             </Button>
           </Tooltip>
         </Box>

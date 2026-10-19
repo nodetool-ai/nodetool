@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -72,6 +73,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = memo(({
   ...rest
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   const displayValue = formatValue ? formatValue(value) : `${Math.round(value)}%`;
 
@@ -99,7 +101,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = memo(({
         variant={progressVariant}
         value={value}
         color={color}
-        aria-label={label || "Progress"}
+        aria-label={label || t("i18n-next91.progressBar.progress")}
         sx={[
           { height: BAR_HEIGHT[size] },
           accent

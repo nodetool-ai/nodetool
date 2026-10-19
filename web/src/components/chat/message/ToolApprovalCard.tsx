@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -35,13 +36,6 @@ interface ToolApprovalCardProps {
   args: Record<string, unknown>;
   onResolve: (approvalId: string, decision: ApprovalDecision) => void;
 }
-
-/** The question the card asks, by what the call is about to do. */
-const QUESTIONS: Record<string, string> = {
-  execute: "Run this action?",
-  write: "Make this change?",
-  external: "Allow this action?"
-};
 
 const styles = (theme: Theme) =>
   css({
@@ -102,10 +96,15 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
   args,
   onResolve
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
-  const question = QUESTIONS[category] ?? "Allow this action?";
+  const question = category === "execute"
+    ? t("i18n-next19.chat.toolApprovalCard.questions.execute")
+    : category === "write"
+      ? t("i18n-next19.chat.toolApprovalCard.questions.write")
+      : t("i18n-next19.chat.toolApprovalCard.questions.allow");
   const summary = description?.trim() || message;
 
   const code = useMemo(() => {
@@ -160,7 +159,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
             unmountOnExit
             title={
               <Caption size="small" color="secondary">
-                Show code
+                {t("i18n-next19.chat.toolApprovalCard.showCode")}
               </Caption>
             }
           >
@@ -174,7 +173,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
             unmountOnExit
             title={
               <Caption size="small" color="secondary">
-                Show arguments
+                {t("i18n-next19.chat.toolApprovalCard.showArguments")}
               </Caption>
             }
           >
@@ -190,7 +189,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
           disableElevation
           onClick={handleAllow}
         >
-          Allow
+          {t("i18n-next19.chat.toolApprovalCard.allow")}
         </EditorButton>
         <EditorButton
           variant="outlined"
@@ -198,7 +197,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
           density="normal"
           onClick={handleAllowForChat}
         >
-          Allow for this chat
+          {t("i18n-next19.chat.toolApprovalCard.allowForChat")}
         </EditorButton>
         <EditorButton
           variant="text"
@@ -207,7 +206,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
           className="approval-deny"
           onClick={handleDeny}
         >
-          Deny
+          {t("i18n-next19.chat.toolApprovalCard.deny")}
         </EditorButton>
       </CardActions>
     </Card>

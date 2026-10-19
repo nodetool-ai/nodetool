@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface EditableInputProps {
   value: string;
@@ -21,6 +22,7 @@ const EditableInput: React.FC<EditableInputProps> = ({
   onFocusChange,
   shouldFocus = false
 }) => {
+  const { t } = useTranslation();
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const isInitialMount = useRef(true);
@@ -136,7 +138,7 @@ const EditableInput: React.FC<EditableInputProps> = ({
         tabIndex={tabIndex}
         autoFocus={false}
         onKeyDown={handleKeyDown}
-        aria-label="Edit value"
+        aria-label={t("screen_properties.inputs.editValue")}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { useMediaQuery } from "@mui/material";
 import CodeIcon from "@mui/icons-material/Code";
@@ -53,15 +54,6 @@ type MobilePane = "code" | "console" | "settings" | "assistant";
 const DOCK_WIDTH = 340;
 const CONSOLE_HEIGHT = 220;
 
-const DEFAULT_NAME = "Untitled JS script";
-
-const MOBILE_TABS = [
-  { value: "code", label: "Code", icon: <CodeIcon /> },
-  { value: "console", label: "Run", icon: <TerminalIcon /> },
-  { value: "settings", label: "Script", icon: <TuneIcon /> },
-  { value: "assistant", label: "Assistant", icon: <AutoAwesomeIcon /> }
-];
-
 const MOBILE_PANES: readonly MobilePane[] = [
   "code",
   "console",
@@ -86,6 +78,7 @@ const isMobilePane = (value: string): value is MobilePane =>
  * the console output, and the assistant thread survive a switch.
  */
 const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const ensureScript = useJsScriptStore((state) => state.ensureScript);
@@ -96,6 +89,12 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
   const readOnly = mode === "view";
   const [dockTab, setDockTab] = useState<DockTab>("settings");
   const [mobilePane, setMobilePane] = useState<MobilePane>("code");
+  const mobileTabs = [
+    { value: "code", label: t("i18n-next51.jsScript.code"), icon: <CodeIcon /> },
+    { value: "console", label: t("i18n-next51.jsScript.run"), icon: <TerminalIcon /> },
+    { value: "settings", label: t("i18n-next51.jsScript.script"), icon: <TuneIcon /> },
+    { value: "assistant", label: t("i18n-next51.jsScript.assistant"), icon: <AutoAwesomeIcon /> }
+  ];
 
   useEffect(() => {
     ensureScript(refId);
@@ -109,12 +108,12 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
     enabled: !readOnly,
     onUndo: useCallback(() => undo(refId), [undo, refId]),
     onRedo: useCallback(() => redo(refId), [redo, refId]),
-    menuHeading: "JS script"
+    menuHeading: t("i18n-next51.jsScript.menuHeading")
   });
 
   useEffect(() => {
-    setTabTitle(refId, "jsscript", name || DEFAULT_NAME);
-  }, [setTabTitle, refId, name]);
+    setTabTitle(refId, "jsscript", name || t("i18n-next51.jsScript.untitled"));
+  }, [setTabTitle, refId, name, t]);
 
   // External writes the dirty draft refused — offered per merge unit.
   const conflicts = useDocumentConflicts("jsscript", refId);
@@ -157,16 +156,16 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
 
   const dockTabs = useMemo(
     () => [
-      { value: "settings", label: "Script", icon: <TuneIcon /> },
-      { value: "assistant", label: "Assistant", icon: <AutoAwesomeIcon /> }
+      { value: "settings", label: t("i18n-next51.jsScript.script"), icon: <TuneIcon /> },
+      { value: "assistant", label: t("i18n-next51.jsScript.assistant"), icon: <AutoAwesomeIcon /> }
     ],
-    []
+    [t]
   );
 
   // The store seeds an empty script on mount, so rendering before the server
   // copy lands looks like a script with an empty body.
   if (loadState !== "ready") {
-    return <DocumentLoadStatus state={loadState} label="JS script" />;
+    return <DocumentLoadStatus state={loadState} label={t("i18n-next51.jsScript.label")} />;
   }
 
   const editor = <JsScriptEditorPane scriptId={refId} readOnly={readOnly} />;
@@ -188,7 +187,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
     return (
       <FlexColumn fullHeight sx={{ minHeight: 0 }}>
         <TabGroup
-          tabs={MOBILE_TABS}
+          tabs={mobileTabs}
           value={mobilePane}
           onChange={(value) => {
             if (isMobilePane(value)) {
@@ -258,7 +257,7 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
       <ResizableSideDock
         storageKey="jsscript_assistant"
         defaultWidth={DOCK_WIDTH}
-        ariaLabel="Resize JS script assistant"
+        ariaLabel={t("i18n-next51.jsScript.resizeAssistant")}
       >
         <TabGroup
           tabs={dockTabs}

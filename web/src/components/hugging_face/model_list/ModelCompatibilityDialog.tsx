@@ -15,6 +15,7 @@ import {
 } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type {
   ModelCompatibilityResult,
   NodeCompatibilityInfo
@@ -126,13 +127,14 @@ const styles = (theme: Theme) =>
 
 const NodeList: React.FC<{
   items: NodeCompatibilityInfo[];
-  label: string;
+  labelKey: string;
   isRecommended?: boolean;
-}> = ({ items, label, isRecommended }) => {
+}> = ({ items, labelKey, isRecommended }) => {
+  const { t } = useTranslation();
   if (items.length === 0) {
     return (
       <Text size="small" className="empty-state">
-        No {label.toLowerCase()} nodes found for this model type.
+        {t("i18n-next29.compatibility.emptyNodes", { category: t(`i18n-next29.compatibility.${labelKey}`) })}
       </Text>
     );
   }
@@ -158,7 +160,7 @@ const NodeList: React.FC<{
                 </Text>
                 {isRecommended && (
                   <Chip
-                    label="Best match"
+                    label={t("i18n-next29.compatibility.bestMatch")}
                     compact
                     color="primary"
                     variant="outlined"
@@ -186,7 +188,7 @@ const NodeList: React.FC<{
             <div className="copy-button">
               <CopyButton
                 value={node.nodeType}
-                tooltip="Copy node type"
+                tooltip={t("i18n-next29.compatibility.copyNodeType")}
                 tooltipPlacement="left"
               />
             </div>
@@ -210,6 +212,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
   model,
   compatibility
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -218,7 +221,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      title="Node compatibility"
+      title={t("i18n-next29.compatibility.title")}
     >
       <div css={styles(theme)}>
         <FlexColumn gap={SPACING.lg}>
@@ -251,16 +254,16 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
                   sx={{ color: "primary.main" }}
                 />
                 <Text size="small" weight={600} sx={{ color: "primary.main" }}>
-                  Recommended nodes
+                  {t("i18n-next29.compatibility.recommendedNodes")}
                 </Text>
               </FlexRow>
               <Caption color="secondary">
-                {compatibility.recommended.length} matches
+                {t("i18n-next29.compatibility.matches", { count: compatibility.recommended.length })}
               </Caption>
             </FlexRow>
             <NodeList
               items={compatibility.recommended}
-              label="recommended"
+              labelKey="recommended"
               isRecommended
             />
           </FlexColumn>
@@ -282,14 +285,14 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
                   sx={{ color: "text.secondary" }}
                 />
                 <Text size="small" weight={600}>
-                  Compatible nodes
+                  {t("i18n-next29.compatibility.compatibleNodes")}
                 </Text>
               </FlexRow>
               <Caption color="secondary">
-                {compatibility.compatible.length} matches
+                {t("i18n-next29.compatibility.matches", { count: compatibility.compatible.length })}
               </Caption>
             </FlexRow>
-            <NodeList items={compatibility.compatible} label="compatible" />
+            <NodeList items={compatibility.compatible} labelKey="compatible" />
           </FlexColumn>
         </FlexColumn>
       </div>

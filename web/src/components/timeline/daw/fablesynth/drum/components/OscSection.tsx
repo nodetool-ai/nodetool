@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { WavetableView } from '../../components/displays/WavetableView';
 import { pad } from '../params';
 import { useDrumStore } from '../dr1Store';
@@ -10,6 +11,7 @@ interface OscSectionProps {
 }
 
 export function OscSection({ osc }: OscSectionProps) {
+  const { t } = useTranslation();
   const sel = useDrumStore((s) => s.sel);
   const tableId = pad(sel, `${osc}.table`);
   const posId = pad(sel, `${osc}.pos`);
@@ -24,7 +26,7 @@ export function OscSection({ osc }: OscSectionProps) {
     <section className="panel dr-osc-section" data-accent={accentKey}>
       <div className="panel-head">
         <span className={`dr-led dr-led-${accentKey}`} aria-hidden="true" />
-        <h2>OSC {osc === 'oscA' ? 'A' : 'B'}</h2>
+        <h2>{t('i18n-next107.drum.oscillator.title')} {osc === 'oscA' ? 'A' : 'B'}</h2>
         <div className="dr-osc-stepper">
           <DrumStepper paramId={tableId} accent={accentKey} />
         </div>

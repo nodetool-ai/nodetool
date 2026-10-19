@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { parseChoiceCardOptions, type ChoiceCardOption } from "@nodetool-ai/app-runtime";
 export type { ChoiceCardOption } from "@nodetool-ai/app-runtime";
 import type { Theme } from "@mui/material/styles";
@@ -166,6 +167,7 @@ const MediaPlaceholder: React.FC<{
   designMode?: boolean;
   producing?: boolean;
 }> = ({ height, text, designMode, producing }) => {
+  const { t } = useTranslation();
   const full = designMode || producing;
   return (
     <FlexColumn
@@ -187,7 +189,7 @@ const MediaPlaceholder: React.FC<{
     >
       {producing && <MagicGenerationFill borderRadius={BORDER_RADIUS.md} />}
       <Caption color="secondary" sx={{ position: "relative" }}>
-        {producing ? "Generating…" : text}
+        {producing ? t("i18n-next53.appBuilder.status.generating") : text}
       </Caption>
     </FlexColumn>
   );
@@ -197,6 +199,7 @@ const MediaDownloadButton: React.FC<{
   src: string;
   filename: string;
 }> = React.memo(({ src, filename }) => {
+  const { t } = useTranslation();
   const href = useResolvedMediaUri(src);
   if (!href) return null;
 
@@ -207,13 +210,13 @@ const MediaDownloadButton: React.FC<{
       size="small"
       variant="text"
       density="compact"
-      aria-label={`Download ${filename}`}
+      aria-label={t("i18n-next53.appBuilder.media.download", { filename })}
       onClick={(event) => {
         event.preventDefault();
         void downloadResolvedMedia(href, filename);
       }}
     >
-      Download
+      {t("i18n-next53.appBuilder.actions.download")}
     </EditorButton>
   );
 });
@@ -451,6 +454,7 @@ export const ImageWidget: React.FC<
     width?: number;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, designMode, producing } = useBinding(props, "read");
   const aspectRatio = props.aspectRatio || undefined;
   const width = isNumber(props.width) && props.width > 0 ? props.width : undefined;
@@ -466,7 +470,7 @@ export const ImageWidget: React.FC<
     return (
       <MediaPlaceholder
         height={height}
-        text={props.placeholder ?? "No image"}
+        text={props.placeholder ?? t("i18n-next53.appBuilder.media.noImage")}
         designMode={designMode}
         producing={producing}
       />
@@ -522,6 +526,7 @@ export const AudioWidget: React.FC<
     filename?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, designMode, producing } = useBinding(props, "read");
   const sources = React.useMemo(
     () =>
@@ -534,7 +539,7 @@ export const AudioWidget: React.FC<
     return (
       <MediaPlaceholder
         height={56}
-        text={props.placeholder ?? "No audio yet"}
+        text={props.placeholder ?? t("i18n-next53.appBuilder.media.noAudio")}
         designMode={designMode}
         producing={producing}
       />
@@ -567,6 +572,7 @@ export const VideoWidget: React.FC<
     filename?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, designMode, producing } = useBinding(props, "read");
   const sources = React.useMemo(
     () =>
@@ -580,7 +586,7 @@ export const VideoWidget: React.FC<
     return (
       <MediaPlaceholder
         height={height}
-        text={props.placeholder ?? "No video yet"}
+        text={props.placeholder ?? t("i18n-next53.appBuilder.media.noVideo")}
         designMode={designMode}
         producing={producing}
       />
@@ -698,6 +704,7 @@ export const OutputWidget: React.FC<
     filename?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value } = useBinding(props, "read");
   const items = props.formattedValue
     ? [props.formattedValue]
@@ -705,7 +712,7 @@ export const OutputWidget: React.FC<
   if (items.length === 0) {
     return (
       <Caption color="secondary">
-        {props.placeholder ?? "No result yet"}
+        {props.placeholder ?? t("i18n-next53.appBuilder.media.noResult")}
       </Caption>
     );
   }
@@ -786,7 +793,7 @@ export const TableWidget: React.FC<
       };
     }
     return {
-      columns: [{ key: "value", label: props.label || "Value" }],
+      columns: [{ key: "value", label: props.label || t("i18n-next53.appBuilder.fields.value") }],
       rows: items.map((item) => ({
         value: typeof item === "object" ? JSON.stringify(item) : str(item)
       }))
@@ -795,7 +802,7 @@ export const TableWidget: React.FC<
 
   if (rows.length === 0) {
     return (
-      <Caption color="secondary">{props.placeholder ?? "No rows yet"}</Caption>
+      <Caption color="secondary">{props.placeholder ?? t("i18n-next53.appBuilder.media.noRows")}</Caption>
     );
   }
   return (
@@ -867,6 +874,7 @@ export const AlertWidget: React.FC<
     title?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, designMode } = useBinding(props, "read");
   const text =
     props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
@@ -883,7 +891,7 @@ export const AlertWidget: React.FC<
       title={props.title || undefined}
       sx={{ width: "100%" }}
     >
-      {text || "Alert"}
+      {text || t("i18n-next53.appBuilder.status.alert")}
     </AlertBanner>
   );
 };
@@ -951,7 +959,7 @@ export const ListWidget: React.FC<
   ).filter((item) => item != null && item !== "");
   if (items.length === 0) {
     return (
-      <Caption color="secondary">{props.placeholder ?? "No items yet"}</Caption>
+      <Caption color="secondary">{props.placeholder ?? t("i18n-next53.appBuilder.media.noItems")}</Caption>
     );
   }
   return (
@@ -999,6 +1007,7 @@ export const KeyValueWidget: React.FC<
     placeholder?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value } = useBinding(props, "read");
   const entries =
     value && isObjectLike(value) && !Array.isArray(value)
@@ -1009,7 +1018,7 @@ export const KeyValueWidget: React.FC<
   if (entries.length === 0) {
     return (
       <Caption color="secondary">
-        {props.placeholder ?? "No values yet"}
+        {props.placeholder ?? t("i18n-next53.appBuilder.media.noValues")}
       </Caption>
     );
   }
@@ -1050,6 +1059,7 @@ export const StatWidget: React.FC<
     placeholder?: string;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value } = useBinding(props, "read");
   const shown =
     props.formattedValue ?? (value != null && value !== "" ? str(value) : "");
@@ -1082,7 +1092,7 @@ export const DownloadWidget: React.FC<
   if (!href && !designMode) {
     return (
       <Caption color="secondary">
-        {props.placeholder ?? "Nothing to download yet"}
+        {props.placeholder ?? t("i18n-next53.appBuilder.media.nothingToDownload")}
       </Caption>
     );
   }
@@ -1099,7 +1109,7 @@ export const DownloadWidget: React.FC<
       rel="noopener"
       download={props.filename || ""}
     >
-      {props.label ?? "Download"}
+      {props.label ?? t("i18n-next53.appBuilder.actions.download")}
     </EditorButton>
   );
 };
@@ -1288,6 +1298,7 @@ export const ChoiceCardsWidget: React.FC<
     disabled?: boolean;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, setValue, emit } = useBinding(props, "write");
   const selected = str(value);
   const { value: boundOptions } = useBinding({ id: `${props.id}-options`, binding: props.optionsBinding }, "read");
@@ -1297,7 +1308,7 @@ export const ChoiceCardsWidget: React.FC<
       {props.label ? <Label>{props.label}</Label> : null}
       <Box
         role="radiogroup"
-        aria-label={props.label || "Choices"}
+        aria-label={props.label || t("i18n-next53.appBuilder.fields.choices")}
         sx={{
           display: "grid",
           gridTemplateColumns: {
@@ -1444,6 +1455,7 @@ export const StepperWidget: React.FC<
     disabled?: boolean;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, setValue, emit } = useBinding(props, "write");
   const steps = props.steps ?? [];
   const current = steps.findIndex((step) => step.value === str(value));
@@ -1467,7 +1479,7 @@ export const StepperWidget: React.FC<
   return (
     <FlexColumn
       component="nav"
-      aria-label={props.label || "Steps"}
+      aria-label={props.label || t("i18n-next53.appBuilder.fields.steps")}
       gap={SPACING.sm}
       fullWidth
       sx={{ containerType: "inline-size" }}
@@ -1535,7 +1547,7 @@ export const StepperWidget: React.FC<
                   className="app-stepper-step"
                   disabled={blocked(index)}
                   aria-current={index === current ? "step" : undefined}
-                  aria-label={`Step ${index + 1} of ${steps.length}: ${title}${state === "done" ? ", done" : ""}`}
+                  aria-label={t("i18n-next53.appBuilder.fields.stepAria", { index: index + 1, total: steps.length, title, status: state === "done" ? t("i18n-next53.appBuilder.status.doneSuffix") : "" })}
                   onClick={() => choose(index)}
                   sx={{
                     display: "flex",
@@ -1594,6 +1606,7 @@ export const ApprovalWidget: React.FC<
     disabled?: boolean;
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { value, setValue, emit } = useBinding(props, "write");
   const choose = (next: "approved" | "rejected") => {
     if (props.disabled) return;
@@ -1619,7 +1632,7 @@ export const ApprovalWidget: React.FC<
             disabled={props.disabled}
             onClick={() => choose("approved")}
           >
-            {props.approveLabel || "Approve"}
+            {props.approveLabel || t("i18n-next53.appBuilder.actions.approve")}
           </EditorButton>
           <EditorButton
             aria-pressed={value === "rejected"}
@@ -1628,7 +1641,7 @@ export const ApprovalWidget: React.FC<
             disabled={props.disabled}
             onClick={() => choose("rejected")}
           >
-            {props.rejectLabel || "Needs changes"}
+            {props.rejectLabel || t("i18n-next53.appBuilder.actions.needsChanges")}
           </EditorButton>
         </FlexRow>
       </FlexColumn>
@@ -1715,6 +1728,7 @@ export const ButtonWidget: React.FC<
     align?: "start" | "end";
   }
 > = (props) => {
+  const { t } = useTranslation();
   const { emit, designMode, runnerState } = useBinding(props, "none");
   const isRunning = runnerState === "running";
   const runsOnClick = (props.events ?? []).some(
@@ -1751,7 +1765,7 @@ export const ButtonWidget: React.FC<
         showRunning ? <LoadingSpinner inline size={16} color="inherit" /> : undefined
       }
     >
-      {showRunning ? "Running…" : (props.label ?? "Button")}
+      {showRunning ? t("i18n-next53.appBuilder.status.running") : (props.label ?? t("i18n-next53.appBuilder.actions.button"))}
     </EditorButton>
   );
   if (fullWidth) return button;
@@ -1906,6 +1920,7 @@ export const TabsWidget: React.FC<{
   tab2?: SlotComponent;
   tab3?: SlotComponent;
 }> = ({ tab1Label, tab2Label, tab3Label, tab1, tab2, tab3 }) => {
+  const { t } = useTranslation();
   const panes = [
     { value: "tab1", label: tab1Label, Slot: tab1 },
     { value: "tab2", label: tab2Label, Slot: tab2 },
@@ -1919,7 +1934,7 @@ export const TabsWidget: React.FC<{
     : panes[0]?.value;
 
   if (panes.length === 0) {
-    return <Caption color="secondary">Name a tab to show its content</Caption>;
+    return <Caption color="secondary">{t("i18n-next53.appBuilder.layout.nameTab")}</Caption>;
   }
   return (
     <FlexColumn gap={SPACING.lg} fullWidth>
@@ -1958,12 +1973,15 @@ export const AccordionWidget: React.FC<{
   title?: string;
   defaultOpen?: boolean;
   content?: SlotComponent;
-}> = ({ title, defaultOpen, content: Content }) => (
-  <CollapsibleSection
-    title={title || "Section"}
-    defaultOpen={defaultOpen !== false}
-    compact
-  >
-    {Content ? <Content style={slotStack} /> : null}
-  </CollapsibleSection>
-);
+}> = ({ title, defaultOpen, content: Content }) => {
+  const { t } = useTranslation();
+  return (
+    <CollapsibleSection
+      title={title || t("i18n-next53.appBuilder.layout.section")}
+      defaultOpen={defaultOpen !== false}
+      compact
+    >
+      {Content ? <Content style={slotStack} /> : null}
+    </CollapsibleSection>
+  );
+};

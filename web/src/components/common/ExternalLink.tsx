@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Tooltip, ICON_SIZE } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
@@ -22,6 +23,7 @@ function ExternalLink({
   tooltipText,
   ref
 }: ExternalLinkProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const linkStyles = css({
@@ -55,6 +57,7 @@ function ExternalLink({
       <span>{children}</span>
       <NorthEastIcon
         fontSize={size}
+        aria-label={t("i18n-next84.externalLink.opensInNewTab")}
         sx={{
           marginLeft: theme.spacing(0.5),
           fontSize: ICON_SIZE.xs,

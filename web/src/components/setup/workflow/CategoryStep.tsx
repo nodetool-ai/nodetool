@@ -14,6 +14,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { LanguageModelValue } from "../../../stores/ApiTypes";
 
 import { Caption, FlexColumn, GAP, Text } from "../../ui_primitives";
@@ -37,57 +38,59 @@ export interface PlannerModelFooterFieldProps {
 /** The planner model, for the shell's footer. */
 export const PlannerModelFooterField: React.FC<
   PlannerModelFooterFieldProps
-> = ({ plannerModel, onPlannerModelChange, readOnly = false }) => (
-  <SetupFooterField label="Model">
-    <LanguageModelSelect
-      value={plannerModel?.id ?? ""}
-      provider={plannerModel?.provider}
-      placeholder="Planner model"
-      disabled={readOnly}
-      onChange={(value: LanguageModelValue) =>
-        onPlannerModelChange({ provider: value.provider, id: value.id })
-      }
-    />
-  </SetupFooterField>
-);
+> = ({ plannerModel, onPlannerModelChange, readOnly = false }) => {
+  const { t } = useTranslation();
+  return (
+    <SetupFooterField label={t("pass3_14.workflowSetup.category.modelLabel")}>
+      <LanguageModelSelect
+        value={plannerModel?.id ?? ""}
+        provider={plannerModel?.provider}
+        placeholder={t(
+          "pass3_14.workflowSetup.category.plannerModelPlaceholder"
+        )}
+        disabled={readOnly}
+        onChange={(value: LanguageModelValue) =>
+          onPlannerModelChange({ provider: value.provider, id: value.id })
+        }
+      />
+    </SetupFooterField>
+  );
+};
 
 const CategoryStepInternal: React.FC<WorkflowCategoryStepProps> = ({
   selectedId,
   onSelect
 }) => {
+  const { t } = useTranslation();
   const chosen = workflowCategory(selectedId ?? undefined);
   return (
     <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h2">
-          What kind of workflow?
+          {t("pass3_14.workflowSetup.category.title")}
         </Text>
         <Text size="normal" color="secondary">
-          This decides which nodes the plan reaches for, and how it runs once it
-          is built.
+          {t("pass3_14.workflowSetup.category.description")}
         </Text>
       </FlexColumn>
       <OptionCardGrid
-        label="Workflow category"
+        label={t("pass3_14.workflowSetup.category.gridLabel")}
         options={WORKFLOW_CATEGORIES}
         selectedId={selectedId}
         onSelect={onSelect}
       />
       {chosen ? (
         <Caption color="secondary" component="p">
-          {`Built to run: ${RUN_MODE_LABEL[chosen.defaultRunMode]}. You can change that in the next step.`}
+          {t("pass3_14.workflowSetup.category.runModeSummary", {
+            runMode: t(
+              `pass3_14.workflowSetup.category.runModes.${chosen.defaultRunMode}`
+            )
+          })}
         </Caption>
       ) : null}
     </FlexColumn>
   );
 };
-
-/** How each run mode reads in a sentence. Shared with the setup step's cards. */
-export const RUN_MODE_LABEL = {
-  manual: "by hand",
-  app: "as an app with a form",
-  trigger: "on a trigger"
-} as const;
 
 export const WorkflowCategoryStep = memo(CategoryStepInternal);
 WorkflowCategoryStep.displayName = "WorkflowCategoryStep";

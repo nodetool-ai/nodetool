@@ -8,6 +8,7 @@
  */
 
 import React, { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Caption, FlexColumn, Text, Tooltip } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
 import { useMediaCostEstimate } from "./useMediaCostEstimate";
@@ -19,6 +20,7 @@ interface MediaCostEstimateProps {
 const MediaCostEstimateInternal: React.FC<MediaCostEstimateProps> = ({
   mode
 }) => {
+  const { t } = useTranslation();
   const estimate = useMediaCostEstimate(mode);
 
   if (!estimate) {
@@ -27,12 +29,15 @@ const MediaCostEstimateInternal: React.FC<MediaCostEstimateProps> = ({
 
   const perOutput =
     estimate.quantity > 1
-      ? `${estimate.quantity} outputs × ${estimate.breakdown ?? "list price"}`
+      ? t("i18n-next18.chat.composer.mediaCost.outputsBreakdown", {
+          count: estimate.quantity,
+          breakdown: estimate.breakdown ?? t("i18n-next18.chat.composer.mediaCost.listPrice")
+        })
       : estimate.breakdown;
 
   const detail = (
     <FlexColumn gap={0.5}>
-      <Text size="small">Estimated cost of this generation</Text>
+      <Text size="small">{t("i18n-next18.chat.composer.mediaCost.estimatedCostTitle")}</Text>
       {perOutput && (
         <Caption color="secondary">{perOutput}</Caption>
       )}
@@ -47,8 +52,7 @@ const MediaCostEstimateInternal: React.FC<MediaCostEstimateProps> = ({
         </Caption>
       ))}
       <Caption color="secondary">
-        List price from the provider catalog. The run is billed by the provider
-        at its own rates.
+        {t("i18n-next18.chat.composer.mediaCost.billingNote")}
       </Caption>
     </FlexColumn>
   );
@@ -57,7 +61,7 @@ const MediaCostEstimateInternal: React.FC<MediaCostEstimateProps> = ({
     <Tooltip title={detail} placement="top">
       <span
         className="media-cost-estimate"
-        aria-label={`Estimated cost ${estimate.label}`}
+        aria-label={t("i18n-next18.chat.composer.mediaCost.estimatedCostLabel", { amount: estimate.label })}
       >
         ≈&nbsp;{estimate.label}
       </span>

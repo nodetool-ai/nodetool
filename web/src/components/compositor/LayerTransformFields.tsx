@@ -8,6 +8,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -47,6 +48,7 @@ const LayerTransformFieldsInner: React.FC<LayerTransformFieldsProps> = ({
   transform,
   onChange
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -86,22 +88,22 @@ const LayerTransformFieldsInner: React.FC<LayerTransformFieldsProps> = ({
 
   return (
     <FlexColumn css={cssStyles} className="transform-fields">
-      <Caption>Transform</Caption>
+      <Caption>{t("screen_sketch.compositor.transform")}</Caption>
       <FlexRow gap={0.5}>
         {field("X", "x", Math.round(transform.x), (v) => ({ x: v }))}
         {field("Y", "y", Math.round(transform.y), (v) => ({ y: v }))}
       </FlexRow>
       <FlexRow gap={0.5}>
-        {field("Scale X", "scaleX", round2(transform.scaleX), (v) => ({
+        {field(t("screen_sketch.compositor.scaleX"), "scaleX", round2(transform.scaleX), (v) => ({
           scaleX: Math.max(0.02, v)
         }), { min: 0.02, max: 64 })}
-        {field("Scale Y", "scaleY", round2(transform.scaleY), (v) => ({
+        {field(t("screen_sketch.compositor.scaleY"), "scaleY", round2(transform.scaleY), (v) => ({
           scaleY: Math.max(0.02, v)
         }), { min: 0.02, max: 64 })}
       </FlexRow>
       <FlexRow gap={0.5}>
         {field(
-          "Rotation°",
+          t("screen_sketch.compositor.rotation"),
           "rotation",
           Math.round(transform.rotation * DEG),
           (v) => ({ rotation: (v / DEG) }),

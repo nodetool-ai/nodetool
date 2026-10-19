@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Text, Z_INDEX } from "../ui_primitives";
 import { Asset } from "../../stores/ApiTypes";
 import { getAlphaSurfaceBg } from "../../styles/AlphaSurface";
@@ -40,6 +41,7 @@ const styles = (theme: Theme) =>
  * The viewer supports zooming and panning.
  */
 const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const viewerStyles = styles(theme);
 
@@ -201,7 +203,10 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
               textShadow: "inherit"
             }}
           >
-            {`${imageWidth} x ${imageHeight}`}
+            {t("i18n-next68.assetViewer.imageViewer.dimensions", {
+              width: imageWidth,
+              height: imageHeight
+            })}
           </Text>
         </div>
       )}

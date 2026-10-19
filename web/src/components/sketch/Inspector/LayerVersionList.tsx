@@ -2,6 +2,7 @@
 /** Collapsible version history list for a single generated layer. */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -51,6 +52,7 @@ interface LayerVersionListProps {
 export const LayerVersionList: React.FC<LayerVersionListProps> = memo(
   ({ documentId, layerId }) => {
     const theme = useTheme();
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
 
     const { data: versions, isLoading, error } = useLayerVersions(
@@ -118,17 +120,17 @@ export const LayerVersionList: React.FC<LayerVersionListProps> = memo(
           }}
         >
           <Text size="small" weight={500}>
-            {expanded && count > 0 ? `Versions (${count})` : "Versions"}
+            {expanded && count > 0 ? t("i18n-next52.sketch.versions.title", { count }) : t("i18n-next52.sketch.versions.title")}
           </Text>
           <ToolbarIconButton
             icon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            tooltip={expanded ? "Collapse versions" : "Expand versions"}
+            tooltip={expanded ? t("i18n-next52.sketch.versions.collapse") : t("i18n-next52.sketch.versions.expand")}
             size="small"
             onClick={(e) => {
               e.stopPropagation();
               toggleExpanded();
             }}
-            aria-label={expanded ? "Collapse versions" : "Expand versions"}
+            aria-label={expanded ? t("i18n-next52.sketch.versions.collapse") : t("i18n-next52.sketch.versions.expand")}
           />
         </FlexRow>
 
@@ -144,7 +146,7 @@ export const LayerVersionList: React.FC<LayerVersionListProps> = memo(
               <EmptyState
                 variant="error"
                 size="small"
-                title="Failed to load versions"
+                title={t("i18n-next52.sketch.versions.loadFailed")}
               />
             )}
 
@@ -152,8 +154,8 @@ export const LayerVersionList: React.FC<LayerVersionListProps> = memo(
               <EmptyState
                 variant="empty"
                 size="small"
-                title="No versions yet"
-                description="Successful generations will appear here"
+                title={t("i18n-next52.sketch.versions.empty")}
+                description={t("i18n-next52.sketch.versions.emptyDescription")}
               />
             )}
 

@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Euler, Quaternion } from "three";
 import { ZodError } from "zod";
 import { GameOpError, gameDocumentOp3D, trackGameAuthoringEdits, validateGame3D, type GameDocumentOp3D } from "@nodetool-ai/game-runtime";
@@ -31,8 +32,6 @@ interface GameInspector3DProps {
   readonly onScript: (index: number) => void;
 }
 
-const TRANSFORM_LABELS = { position: "Position", rotation: "Rotation", scale: "Scale" } as const;
-const TRANSFORM_UNITS = { position: "Position in meters", rotation: "Rotation in degrees", scale: "Scale factor" } as const;
 const ENTITY_FIELDS = gameSchemaFields(gameEntity3D.omit({ id: true, name: true, transform3d: true, behaviors: true, decal3d: true }));
 const SCENE_FIELDS = gameSchemaFields(gameScene3D.omit({ id: true, entities: true }));
 const ICON_SX = { fontSize: FONT_SIZE_SANS.title, color: "text.secondary", flexShrink: 0 } as const;
@@ -40,6 +39,7 @@ const ACTION_SX = { width: CONTROL.height.xs, height: CONTROL.height.xs, p: SPAC
 const HEADER_SX = { py: SPACING.sm, minHeight: CONTROL.height.lg } as const;
 
 export default function GameInspector3D({ document, sceneId, entityId, onOps, onOperationError, onScript }: GameInspector3DProps) {
+  const { t } = useTranslation();
   const scene = document.scenes.find((item) => item.id === sceneId);
   const entity = scene?.entities.find((item) => item.id === entityId);
   const validation = useMemo(() => validateGame3D(document), [document]);
@@ -48,7 +48,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
     let ops: GameDocumentOp3D[];
     try {
       const authored = trackGameAuthoringEdits(document, next);
-      if (authored.schemaVersion !== 3) { throw new Error("A 3D inspector cannot change game dimension"); }
+      if (authored.schemaVersion !== 3) { throw new Error(t("i18n-next2.gameInspector3d.dimensionError")); }
       ops = diffGameDocuments3D(document, authored);
     } catch (error) {
       if (!(error instanceof GameOpError) && !(error instanceof ZodError)) { throw error; }
@@ -67,25 +67,25 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
       <FlexRow gap={SPACING.sm} align="center" sx={HEADER_SX}>
         <PublicOutlinedIcon sx={ICON_SX} />
         <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-          <Text weight={500} truncate>{scene?.name ?? "Scene"}</Text>
-          <Caption>Scene settings. Select an entity to edit it.</Caption>
+          <Text weight={500} truncate>{scene?.name ?? t("i18n-next2.gameInspector3d.scene")}</Text>
+          <Caption>{t("i18n-next2.gameInspector3d.sceneHelp")}</Caption>
         </FlexColumn>
       </FlexRow>
-      {scene && <InspectorSection title="Environment preset"><EnvironmentPresetEditor sceneId={scene.id} onOps={onOps} /></InspectorSection>}
-      {scene && <SchemaFields componentSections addLabel="Add setting" schema={SCENE_FIELDS}
+      {scene && <InspectorSection title={t("i18n-next2.gameInspector3d.environmentPreset")}><EnvironmentPresetEditor sceneId={scene.id} onOps={onOps} /></InspectorSection>}
+      {scene && <SchemaFields componentSections addLabel={t("i18n-next2.gameInspector3d.addSetting")} schema={SCENE_FIELDS}
         componentEditors={GAME_COMPONENT_EDITORS} dimension="3d"
         value={settings} assets={document.assets} onChange={(value) => {
           const updated = gameScene3D.parse({ ...gameScene3D.omit({ id: true, entities: true }).parse(value), id: scene.id, entities: scene.entities });
-          applyDocument({ ...document, scenes: document.scenes.map((item) => item.id === sceneId ? updated : item) }, "Change Scene Settings");
+          applyDocument({ ...document, scenes: document.scenes.map((item) => item.id === sceneId ? updated : item) }, t("i18n-next2.gameInspector3d.changeSceneSettings"));
         }} />}
-      <InspectorSection title="Collision layers">
+      <InspectorSection title={t("i18n-next2.gameInspector3d.collisionLayers")}>
         <CollisionMatrixEditor document={document} onDocument={applyDocument} />
       </InspectorSection>
-      <InspectorSection title="Physics materials">
+      <InspectorSection title={t("i18n-next2.gameInspector3d.physicsMaterials")}>
         <PhysicsMaterialsEditor document={document} onDocument={applyDocument} />
       </InspectorSection>
       {validation.diagnostics.map((issue, index) => <Caption key={`${issue.code}:${index}`} color="error">{issue.path.join(".")}: {issue.message}</Caption>)}
-      {validation.diagnostics.length > 0 && <ReportBugButton context={{ source: "panel-crash", summary: "3D game validation failed",
+      {validation.diagnostics.length > 0 && <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-next2.gameInspector3d.validationFailed"),
         errorText: validation.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("\n"),
         nodeDetail: `Game: ${document.id}\nScene: ${sceneId}` }} />}
     </FlexColumn>;
@@ -99,8 +99,8 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
       { ...item, entities: item.entities.map((candidate) => candidate.id === entity.id ? updated : candidate) } : item) }, label);
   };
   const transformField = (kind: "position" | "scale" | "rotation", values: { x: number; y: number; z: number }): ReactNode =>
-    <InspectorFieldRow label={<Box component="span" title={TRANSFORM_UNITS[kind]}>{TRANSFORM_LABELS[kind]}</Box>}>
-      {(["x", "y", "z"] as const).map((axis) => <InspectorValueInput key={axis} ariaLabel={`${kind} ${axis}`} grow minWidth={CONTROL.height.xl}
+    <InspectorFieldRow label={<Box component="span" title={t(`i18n-next2.gameInspector3d.transformUnits.${kind}`)}>{t(`i18n-next2.gameInspector3d.transformLabels.${kind}`)}</Box>}>
+      {(["x", "y", "z"] as const).map((axis) => <InspectorValueInput key={axis} ariaLabel={t("i18n-next2.gameInspector3d.transformAxis", { kind: t(`i18n-next2.gameInspector3d.transformLabels.${kind}`), axis })} grow minWidth={CONTROL.height.xl}
         value={String(Math.round(values[axis] * 1000) / 1000)}
         onCommit={(value) => {
           const numeric = Number(value);
@@ -108,8 +108,8 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
           if (kind === "rotation") {
             const updated = { ...rotation, [axis]: numeric };
             const quaternion = new Quaternion().setFromEuler(new Euler(updated.x * Math.PI / 180, updated.y * Math.PI / 180, updated.z * Math.PI / 180, "YXZ"));
-            apply({ transform3d: { rotation: [quaternion.x, quaternion.y, quaternion.z, quaternion.w] } }, `Rotate ${entity.name || entity.id}`);
-          } else { apply({ transform3d: { [kind]: { ...values, [axis]: numeric } } }, `${kind === "position" ? "Move" : "Scale"} ${entity.name || entity.id}`); }
+            apply({ transform3d: { rotation: [quaternion.x, quaternion.y, quaternion.z, quaternion.w] } }, t("i18n-next2.gameInspector3d.rotateEntity", { entity: entity.name || entity.id }));
+          } else { apply({ transform3d: { [kind]: { ...values, [axis]: numeric } } }, t(`i18n-next2.gameInspector3d.transformActions.${kind}`, { entity: entity.name || entity.id })); }
         }} />)}
     </InspectorFieldRow>;
   const { id: _id, name: _name, transform3d: _transform, behaviors: _behaviors, ...components } = entity;
@@ -117,32 +117,32 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
     <FlexRow gap={SPACING.sm} align="center" sx={HEADER_SX}>
       <ViewInArOutlinedIcon sx={ICON_SX} />
       <FieldDensityContext.Provider value="compact">
-        <TextInput label="Name" hideLabel compact value={entity.name} placeholder={entity.id} title={`ID: ${entity.id}`} sx={{ flex: 1, minWidth: 0 }}
-          onChange={(event) => replaceEntity({ ...entity, name: event.target.value }, "Rename Entity")} />
+        <TextInput label={t("i18n-next2.gameInspector3d.name")} hideLabel compact value={entity.name} placeholder={entity.id} title={t("i18n-next2.gameInspector3d.id", { id: entity.id })} sx={{ flex: 1, minWidth: 0 }}
+          onChange={(event) => replaceEntity({ ...entity, name: event.target.value }, t("i18n-next2.gameInspector3d.renameEntity"))} />
       </FieldDensityContext.Provider>
-      <ToolbarIconButton icon={<DeleteOutlineIcon fontSize="small" />} tooltip="Delete entity" variant="error" sx={ACTION_SX}
+      <ToolbarIconButton icon={<DeleteOutlineIcon fontSize="small" />} tooltip={t("i18n-next2.gameInspector3d.deleteEntity")} variant="error" sx={ACTION_SX}
         onClick={() => onOps([{ op: "remove_entity", scene_id: sceneId, entity_id: entity.id }])} />
     </FlexRow>
     <GameOverrideFields document={document} sceneId={sceneId} entityId={entity.id} onOps={onOps} />
     <DecalEditor3D key={entity.id} document={document} sceneId={sceneId} entityId={entity.id} onOps={onOps} />
     <SchemaFields schema={ENTITY_FIELDS} value={components} path="entity" assets={document.assets} componentSections
       componentEditors={GAME_COMPONENT_EDITORS} dimension="3d"
-      collisionLayers={document.collisionLayers} physicsMaterials={physicsMaterialNames} beforeSections={<InspectorSection title="Transform">
+      collisionLayers={document.collisionLayers} physicsMaterials={physicsMaterialNames} beforeSections={<InspectorSection title={t("i18n-next2.gameInspector3d.transform")}>
         {transformField("position", position)}
         {transformField("rotation", rotation)}
         {transformField("scale", scale)}
       </InspectorSection>} onChange={(value) => {
         const updated = gameEntity3D.parse({ ...gameEntity3D.omit({ id: true, name: true, transform3d: true, behaviors: true }).parse(value),
           id: entity.id, name: entity.name, transform3d: entity.transform3d, behaviors: entity.behaviors });
-        replaceEntity(updated, updated.light3d && entity.light3d?.intensity !== updated.light3d.intensity ? "Change Light Intensity" : "Change Entity Components");
+        replaceEntity(updated, updated.light3d && entity.light3d?.intensity !== updated.light3d.intensity ? t("i18n-next2.gameInspector3d.changeLightIntensity") : t("i18n-next2.gameInspector3d.changeEntityComponents"));
       }} />
-    <InspectorSection title="Behaviors">
-      {entity.behaviors.length === 0 && <Caption>No behaviors yet.</Caption>}
+    <InspectorSection title={t("i18n-next2.gameInspector3d.behaviors")}>
+      {entity.behaviors.length === 0 && <Caption>{t("i18n-next2.gameInspector3d.noBehaviors")}</Caption>}
       {entity.behaviors.map((behavior, index) => <FlexColumn key={`${behavior.kind}:${index}`} gap={SPACING.xs} sx={{ width: "100%", minWidth: 0 }}>
         <FlexRow gap={SPACING.xs} align="center" sx={{ minHeight: CONTROL.height.sm }}>
           <Label component="span" sx={{ mb: 0, flex: 1, minWidth: 0, color: "text.primary" }}>{index + 1}. {behavior.kind}</Label>
-          {behavior.kind === "script" && <RowAction icon={<CodeIcon />} label="Edit script" onClick={() => onScript(index)} />}
-          <RowAction icon={<CloseIcon />} label="Remove behavior" onClick={() => onOps([{ op: "remove_behavior", scene_id: sceneId, entity_id: entity.id, index }])} />
+          {behavior.kind === "script" && <RowAction icon={<CodeIcon />} label={t("i18n-next2.gameInspector3d.editScript")} onClick={() => onScript(index)} />}
+          <RowAction icon={<CloseIcon />} label={t("i18n-next2.gameInspector3d.removeBehavior")} onClick={() => onOps([{ op: "remove_behavior", scene_id: sceneId, entity_id: entity.id, index }])} />
         </FlexRow>
         {behavior.kind === "script" && behavior.params && <ScriptParamsEditor params={behavior.params} values={behavior.values} assets={document.assets}
           entities={scene?.entities ?? []} issues={validation.issues}
@@ -151,7 +151,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
           onChange={(value) => onOps([gameDocumentOp3D.parse({ op: "update_behavior", scene_id: sceneId, entity_id: entity.id, index, behavior: value })])} />}
       </FlexColumn>)}
       <AddButton onClick={() => onOps([{ op: "add_behavior", scene_id: sceneId, entity_id: entity.id,
-        behavior: { kind: "script", source: '(input) => ({ state: input.state, commands: [] })' } }])}>Add script</AddButton>
+        behavior: { kind: "script", source: '(input) => ({ state: input.state, commands: [] })' } }])}>{t("i18n-next2.gameInspector3d.addScript")}</AddButton>
     </InspectorSection>
   </FlexColumn>;
 }

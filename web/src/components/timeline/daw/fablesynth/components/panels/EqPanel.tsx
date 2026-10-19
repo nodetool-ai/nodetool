@@ -1,4 +1,5 @@
 import { tiltedLevels, useLiveSpectrum } from './useLiveSpectrum';
+import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { PARAMS, fmtDb, fmtHz } from '../../params';
 import { EQ_BANDS, eqCoefficients, eqResponseDb, eqValue, readEqBands } from '../../engine/eqResponse';
@@ -13,6 +14,7 @@ const X = (freq: number) => LEFT + Math.log(freq / 20) / Math.log(1000) * (RIGHT
 const Y = (gain: number) => TOP + (15 - gain) / 30 * (BOTTOM - TOP);
 
 export function EqPanel({ adapter }: { adapter: FxPanelAdapter }) {
+  const { t } = useTranslation();
   const prefix = adapter.prefix ?? '';
   const source = adapter.params;
   const params = useMemo(() => Object.fromEntries(
@@ -79,19 +81,19 @@ export function EqPanel({ adapter }: { adapter: FxPanelAdapter }) {
   };
 
   return (
-    <section className={`panel panel-eq${on ? '' : ' eq-bypassed'}`} style={{ gridArea: 'eq' }} aria-label="Four-band parametric equalizer">
+    <section className={`panel panel-eq${on ? '' : ' eq-bypassed'}`} style={{ gridArea: 'eq' }} aria-label={t("i18n-next15.wavetable.eqLabel")}>
       <div className="panel-head">
         {adapter.renderPower(prefix + "fx.eq.on")}
         <h2>EQ</h2>
-        <span className="eq-caption">{on ? '4 BAND' : 'BYPASS'}</span>
+        <span className="eq-caption">{on ? t('i18n-next15.wavetable.fourBand') : t('i18n-next15.wavetable.bypass')}</span>
         <button type="button" className={`eq-auto-toggle${autoOpen ? ' on' : ''}`} aria-pressed={autoOpen}
-          title="Auto-EQ: match the spectrum to a reference" onClick={() => setAutoOpen(o => !o)}>AUTO</button>
-        <div className="eq-bands" role="group" aria-label="Select EQ band">
-          {bands.map((b, i) => <button key={i} type="button" aria-label={`Select EQ band ${i + 1}`}
+          title={t("i18n-next15.wavetable.autoEqTitle")} onClick={() => setAutoOpen(o => !o)}>AUTO</button>
+        <div className="eq-bands" role="group" aria-label={t("i18n-next15.wavetable.selectEqBand")}>
+          {bands.map((b, i) => <button key={i} type="button" aria-label={t("i18n-next15.wavetable.selectEqBandNumber", { count: i + 1 })}
             aria-pressed={selected === i} className={b.on ? '' : 'band-off'} onClick={() => select(i)}>{i + 1}</button>)}
         </div>
       </div>
-      <svg ref={svg} className="eq-curve" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="EQ response. Drag nodes to set frequency and gain."
+      <svg ref={svg} className="eq-curve" viewBox={`0 0 ${W} ${H}`} role="group" aria-label={t("i18n-next15.wavetable.eqResponseLabel")}
         onPointerMove={e => {
           const d = drag.current, rect = svg.current?.getBoundingClientRect();
           if (!d || !rect) return;
@@ -124,11 +126,11 @@ export function EqPanel({ adapter }: { adapter: FxPanelAdapter }) {
           <path d={`${paths[selected]} L${RIGHT},${Y(0)} L${LEFT},${Y(0)} Z`} fill={`url(#${id}-fill)`} />
           {paths.slice(0, 4).map((d, i) => <path key={i} d={d} className={`eq-band-curve${selected === i ? ' selected' : ''}`} />)}
           <path d={on ? paths[4] : `M${LEFT},${Y(0)} H${RIGHT}`} className="eq-sum" />
-          {autoOpen && matchPath && <path d={matchPath} className="eq-auto-match"><title>Correction that would match the reference exactly</title></path>}
+          {autoOpen && matchPath && <path d={matchPath} className="eq-auto-match"><title>{t("i18n-next15.wavetable.eqCorrectionTitle")}</title></path>}
         </g>
         {bands.map((b, i) => <g key={i} className={`eq-node${selected === i ? ' selected' : ''}${b.on ? '' : ' disabled'}`}
           transform={`translate(${X(b.freq)}, ${Y(b.gain)})`} data-eq-band={i} tabIndex={0} role="button"
-          aria-label={`EQ band ${i + 1}, ${fmtHz(b.freq)}, ${fmtDb(b.gain)}, Q ${b.q.toFixed(2)}${b.on ? '' : ', bypassed'}`}
+          aria-label={t("i18n-next15.wavetable.eqBandDetails", { count: i + 1, frequency: fmtHz(b.freq), gain: fmtDb(b.gain), q: b.q.toFixed(2), state: b.on ? "" : t("i18n-next15.wavetable.bypassedSuffix") })}
           aria-pressed={selected === i} onFocus={() => select(i)}
           onPointerDown={e => {
             if (e.button !== 0) return;
@@ -147,19 +149,19 @@ export function EqPanel({ adapter }: { adapter: FxPanelAdapter }) {
               if (e.key === 'Enter' || e.key === ' ') select(i);
             }
           }}>
-          <title>Band {i + 1}: drag frequency / gain · scroll Q · Shift for fine · double-click to reset</title>
+          <title>{t("i18n-next15.wavetable.eqBandInstructions", { count: i + 1 })}</title>
           <circle r="12" className="eq-node-hit" /><circle r="7" className="eq-node-dot" />
           <text textAnchor="middle" dy="3">{i + 1}</text>
         </g>)}
       </svg>
       {autoOpen ? <AutoEqStrip analysis={analysis} params={params} setParam={setParam} sampleRate={sampleRate} onFit={setFit} /> : <>
       <div className="eq-band-tools">
-        <button className="eq-enable" aria-label={`Enable EQ band ${selected + 1}`} aria-pressed={band.on}
-          onClick={() => setParam(keys.on, band.on ? 0 : 1)}><span />BAND {selected + 1}</button>
+        <button className="eq-enable" aria-label={t("i18n-next15.wavetable.enableEqBand", { count: selected + 1 })} aria-pressed={band.on}
+          onClick={() => setParam(keys.on, band.on ? 0 : 1)}><span />{t("i18n-next15.wavetable.bandNumber", { count: selected + 1 })}</button>
         <select aria-label={`EQ band ${selected + 1} shape`} value={band.type} onChange={e => setParam(keys.type, Number(e.target.value))}>
-          <option value={0}>LOW SHELF</option><option value={1}>BELL</option><option value={2}>HIGH SHELF</option>
+          <option value={0}>{t("i18n-next15.wavetable.lowShelf")}</option><option value={1}>{t("i18n-next15.wavetable.bell")}</option><option value={2}>{t("i18n-next15.wavetable.highShelf")}</option>
         </select>
-        <button className="eq-reset" onClick={() => resetBand(selected)} title="Reset selected band">RESET</button>
+        <button className="eq-reset" onClick={() => resetBand(selected)} title={t("i18n-next15.wavetable.resetSelectedBand")}>{t("i18n-next15.wavetable.reset")}</button>
       </div>
       <div className="eq-controls">
         {(['freq', 'gain', 'q'] as const).map(key => <div className="eq-control" key={`${selected}-${key}`}>

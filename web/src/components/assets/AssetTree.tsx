@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Text,
@@ -47,6 +48,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   onLoading
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [assetTree, setAssetTree] = useState<AssetTreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
@@ -249,7 +251,9 @@ const AssetTree: React.FC<AssetTreeProps> = ({
                       <ExpandLess />
                     )}
                     <Text size="small" color="secondary">
-                      ({node.totalAssets - 1} items)
+                      {t("i18n-next43-assets-navigation.assetTree.items", {
+                        count: node.totalAssets - 1
+                      })}
                     </Text>
                   </>
                 )}
@@ -267,7 +271,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         ))}
       </List>
     );
-  }, [closedFolders, createFolderToggleHandler, getFileIcon, theme]);
+  }, [closedFolders, createFolderToggleHandler, getFileIcon, t, theme]);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -278,7 +282,10 @@ const AssetTree: React.FC<AssetTreeProps> = ({
       {renderAssetTree(assetTree)}
     </Box>
   ) : (
-    <EmptyState size="small" title="No assets found" />
+    <EmptyState
+      size="small"
+      title={t("i18n-next43-assets-navigation.assetTree.noAssets")}
+    />
   );
 };
 

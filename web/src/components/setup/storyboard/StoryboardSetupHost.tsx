@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useStoryboardServerSync } from "../../../hooks/storyboard/useStoryboardServerSync";
@@ -40,6 +41,7 @@ const StoryboardSetupHost = ({
   onFinish,
   onChangeFlow
 }: StoryboardSetupHostProps) => {
+  const { t } = useTranslation();
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
   useEffect(() => {
     ensureBoard(boardId);
@@ -61,7 +63,12 @@ const StoryboardSetupHost = ({
   // The store seeds an empty board on mount, and an empty board's stage reads
   // `done` — rendering before the server copy lands would show no flow at all.
   if (loadState !== "ready") {
-    return <DocumentLoadStatus state={loadState} label="storyboard" />;
+    return (
+      <DocumentLoadStatus
+        state={loadState}
+        label={t("pass3_11.storyboard.host.documentLabel")}
+      />
+    );
   }
 
   // The look step writes `done` before it sends the stills (D3) and the host
@@ -69,8 +76,15 @@ const StoryboardSetupHost = ({
   // `done`, so this covers that wait instead of a blank panel.
   if (config.stage === "done") {
     return (
-      <FlexColumn align="center" justify="center" sx={{ padding: PADDING.section }}>
-        <ThinkingIndicator label="Opening your storyboard" announce />
+      <FlexColumn
+        align="center"
+        justify="center"
+        sx={{ padding: PADDING.section }}
+      >
+        <ThinkingIndicator
+          label={t("pass3_11.storyboard.host.opening")}
+          announce
+        />
       </FlexColumn>
     );
   }

@@ -6,6 +6,7 @@
  * Mounted by graph-entry.tsx.
  */
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -270,6 +271,7 @@ function GraphInner({
 // ─── App ─────────────────────────────────────────────────────────
 
 export default function App() {
+  const { t } = useTranslation();
   const [graphData, setGraphData] = useState<{
     nodes: Node<NodeData>[];
     edges: Edge[];
@@ -284,7 +286,7 @@ export default function App() {
         const params = new URLSearchParams(window.location.search);
         const dataParam = params.get("data");
         if (!dataParam) {
-          setError("No ?data= param. Pass base64-encoded workflow JSON.");
+          setError(t("screen_remaining.graphViewer.missingData"));
           return;
         }
 
@@ -361,7 +363,7 @@ export default function App() {
         setError(String(err));
       }
     })();
-  }, []);
+  }, [t]);
 
   if (error) {
     return (
@@ -397,7 +399,7 @@ export default function App() {
           color: "#64748B"
         }}
       >
-        Loading…
+        {t("screen_remaining.graphViewer.loading")}
       </div>
     );
   }

@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { memo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import type { ExampleTimelineSummary } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { useExampleTimelines, useInstallExampleTimeline } from "../../hooks/useTimelineSequence";
@@ -59,17 +60,18 @@ interface TimelineCardProps {
 }
 
 const TimelineCard = memo(function TimelineCard({ timeline, installing, onInstall }: TimelineCardProps) {
+  const { t } = useTranslation();
   const poster = useResolvedMediaUri(timeline.posterUri);
   return (
     <article className="timeline-card">
       <div className="timeline-preview">
-        <VideoPlayer locator={timeline.videoUri} poster={poster} label={`${timeline.name} preview`} prominentPlay />
+        <VideoPlayer locator={timeline.videoUri} poster={poster} label={t("pass3_17.timelines.previewLabel", { name: timeline.name })} prominentPlay />
       </div>
       <div className="timeline-body">
         <span className="timeline-name">{timeline.name}</span>
         <span className="timeline-description">{timeline.description}</span>
         <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
-        <span className="timeline-meta">{Math.round(timeline.durationMs / 1000)} seconds · {timeline.clipCount} editable clips · {timeline.fps} fps</span>
+        <span className="timeline-meta">{t("pass3_17.timelines.metadata", { seconds: Math.round(timeline.durationMs / 1000), count: timeline.clipCount, fps: timeline.fps })}</span>
         <EditorButton
           variant="contained"
           density="compact"
@@ -77,7 +79,7 @@ const TimelineCard = memo(function TimelineCard({ timeline, installing, onInstal
           onClick={() => onInstall(timeline)}
           sx={{ alignSelf: "flex-start" }}
         >
-          {installing ? "Adding timeline…" : "Install timeline"}
+          {installing ? t("pass3_17.timelines.adding") : t("pass3_17.timelines.install")}
         </EditorButton>
       </div>
     </article>
@@ -85,6 +87,7 @@ const TimelineCard = memo(function TimelineCard({ timeline, installing, onInstal
 });
 
 const DashboardExampleTimelines = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const navigate = useNavigate();
@@ -102,23 +105,23 @@ const DashboardExampleTimelines = () => {
         useOnboardingStore.getState().markStep("keep-creating");
       },
       onError: (error) => {
-        addNotification({ type: "error", alert: true, content: `Couldn't add ${timeline.name}: ${error.message}` });
+        addNotification({ type: "error", alert: true, content: t("pass3_17.timelines.addError", { name: timeline.name, error: error.message }) });
       }
     });
-  }, [addNotification, install, navigate, openTab]);
+  }, [addNotification, install, navigate, openTab, t]);
 
   const timelines = data ?? [];
   return (
-    <section css={styles(theme)} aria-label="Example timelines">
+    <section css={styles(theme)} aria-label={t("pass3_17.timelines.ariaLabel")}>
       <div css={sectionWrap}>
-        <DashboardSectionHeader title="Start from a timeline" count={`${timelines.length} timelines`} />
-        <p className="timeline-lede">Watch a timeline directly, or install a copy to make your own version.</p>
+        <DashboardSectionHeader title={t("pass3_17.timelines.sectionTitle")} count={t("pass3_17.timelines.count", { count: timelines.length })} />
+        <p className="timeline-lede">{t("pass3_17.timelines.lede")}</p>
         {isLoading ? (
-          <div className="timeline-state"><LoadingSpinner size="medium" text="Loading timelines" /></div>
+          <div className="timeline-state"><LoadingSpinner size="medium" text={t("pass3_17.timelines.loading")} /></div>
         ) : isError ? (
-          <div className="timeline-state"><EmptyState variant="error" title="Couldn't load timelines" description="Try again in a moment." actionText="Retry" onAction={() => refetch()} /></div>
+          <div className="timeline-state"><EmptyState variant="error" title={t("pass3_17.timelines.loadErrorTitle")} description={t("pass3_17.common.tryAgain")} actionText={t("pass3_17.common.retry")} onAction={() => refetch()} /></div>
         ) : timelines.length === 0 ? (
-          <div className="timeline-state"><EmptyState variant="no-data" title="No timelines available" description="Example timelines will appear here when this install ships them." /></div>
+          <div className="timeline-state"><EmptyState variant="no-data" title={t("pass3_17.timelines.emptyTitle")} description={t("pass3_17.timelines.emptyDescription")} /></div>
         ) : (
           <AutoGrid minItemWidth={360} fill="fit">
             {timelines.map((timeline) => (

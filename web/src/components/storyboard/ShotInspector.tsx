@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Shot } from "@nodetool-ai/protocol";
 
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
@@ -82,6 +83,15 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   onClose,
   onEdit
 }) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+  const formatNumber = useCallback(
+    (value: number) =>
+      new Intl.NumberFormat(locale, {
+        useGrouping: false
+      }).format(value),
+    [locale]
+  );
   const removeShot = useStoryboardStore((state) => state.removeShot);
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? NO_ENTITY_IDS
@@ -98,8 +108,10 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isGenerating = isShotGenerating(shot);
-  const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
-  const shotNumber = `SH ${String(shot.index + 1).padStart(2, "0")}`;
+  const shotName = `${formatNumber(shot.index + 1)}. ${
+    shot.slug ?? t("i18n-cont-storyboard-04.storyboard.shotInspector.untitledShot")
+  }`;
+  const shotNumber = formatNumber(shot.index + 1);
   const onBoard = new Set(boardEntityIds);
   const shotEntities = allEntities
     ? entitiesForShot(
@@ -123,9 +135,13 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
       .sort((a, b) => a.position - b.position)[0];
     return {
       lineId: first?.id ?? null,
-      label: first ? `Script · line ${first.position + 1}` : "Script"
+      label: first
+        ? t("i18n-cont-storyboard-04.storyboard.shotInspector.scriptLine", {
+            line: formatNumber(first.position + 1)
+          })
+        : t("i18n-cont-storyboard-04.storyboard.shotInspector.script")
     };
-  }, [scriptId, scriptLines, shot.script_line_ids]);
+  }, [formatNumber, scriptId, scriptLines, shot.script_line_ids, t]);
   const timelineLink = useShotTimelineLink(boardId, shot.id);
 
   const handleOpenScript = useCallback(() => {
@@ -141,8 +157,13 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         lineId: scriptLink.lineId
       });
     }
-    openTab({ type: "script", ref: scriptId, mode: "edit", title: "Script" });
-  }, [openTab, scriptId, scriptLink]);
+    openTab({
+      type: "script",
+      ref: scriptId,
+      mode: "edit",
+      title: t("i18n-cont-storyboard-04.storyboard.shotInspector.script")
+    });
+  }, [openTab, scriptId, scriptLink, t]);
 
   // A start that throws records its reason on the shot's job state (and
   // toasts it), which is what the card's error line shows — so the rejection
@@ -180,16 +201,23 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
         }}
       >
         <Box sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}>
-          {`${shotNumber} selected`}
+          {t("i18n-cont-storyboard-04.storyboard.shotInspector.selectedShot", {
+            number: shotNumber
+          })}
         </Box>
         <Divider orientation="vertical" flexItem />
         <Box sx={{ flex: "1 1 240px", minWidth: 0 }}>
           <ShotActionText action={shot.action} entities={shotEntities} />
         </Box>
         <Divider orientation="vertical" flexItem />
-        <Caption color="secondary">Appears in</Caption>
+        <Caption color="secondary">
+          {t("i18n-cont-storyboard-04.storyboard.shotInspector.appearsIn")}
+        </Caption>
         {timelineLink && (
-          <Tooltip title="Open the cut with this shot's clip selected" describeChild>
+          <Tooltip
+            title={t("i18n-cont-storyboard-04.storyboard.shotInspector.openCutTooltip")}
+            describeChild
+          >
             <Chip
               compact
               variant="outlined"
@@ -200,7 +228,10 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
           </Tooltip>
         )}
         {scriptLink && (
-          <Tooltip title="Open the script this shot's lines come from" describeChild>
+          <Tooltip
+            title={t("i18n-cont-storyboard-04.storyboard.shotInspector.openScriptTooltip")}
+            describeChild
+          >
             <Chip
               compact
               variant="outlined"
@@ -211,7 +242,9 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
           </Tooltip>
         )}
         {!timelineLink && !scriptLink && (
-          <Caption color="muted">nothing yet</Caption>
+          <Caption color="muted">
+            {t("i18n-cont-storyboard-04.storyboard.shotInspector.noDocumentLinks")}
+          </Caption>
         )}
         {!readOnly && (
           <>
@@ -220,9 +253,11 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
                 variant="contained"
                 color="primary"
                 onClick={() => onEdit(shot.id)}
-                tooltip="Open this shot's fields, takes and script lines under its card"
+                tooltip={t(
+                  "i18n-cont-storyboard-04.storyboard.shotInspector.editTooltip"
+                )}
               >
-                Edit
+                {t("i18n-cont-storyboard-04.storyboard.shotInspector.edit")}
               </EditorButton>
             )}
             <EditorButton
@@ -231,51 +266,57 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
               sx={quietActionSx}
               tooltip={
                 shot.clip
-                  ? "Re-render this clip with a note applied"
-                  : "Render a clip first"
+                  ? t("i18n-cont-storyboard-04.storyboard.shotInspector.iterateTooltip")
+                  : t("i18n-cont-storyboard-04.storyboard.shotInspector.renderClipFirst")
               }
             >
-              Iterate
+              {t("i18n-cont-storyboard-04.storyboard.shotInspector.iterate")}
             </EditorButton>
             <EditorButton
               onClick={handleRegenerate}
               disabled={isGenerating}
               sx={quietActionSx}
-              tooltip="Render a new still and pick its model"
+              tooltip={t(
+                "i18n-cont-storyboard-04.storyboard.shotInspector.regenerateTooltip"
+              )}
             >
-              Regenerate
+              {t("i18n-cont-storyboard-04.storyboard.shotInspector.regenerate")}
             </EditorButton>
             <EditorButton
               onClick={() => setConfirmDelete(true)}
               disabled={isGenerating}
               sx={quietActionSx}
-              tooltip="Delete this shot"
+              tooltip={t("i18n-cont-storyboard-04.storyboard.shotInspector.deleteTooltip")}
             >
-              Delete
+              {t("i18n-cont-storyboard-04.storyboard.shotInspector.delete")}
             </EditorButton>
           </>
         )}
         {onClose && (
-          <CloseButton onClick={onClose} tooltip="Clear shot selection" />
+          <CloseButton
+            onClick={onClose}
+            tooltip={t("i18n-cont-storyboard-04.storyboard.shotInspector.clearSelection")}
+          />
         )}
       </FlexRow>
 
       <Dialog
         open={iterateOpen}
         onClose={() => setIterateOpen(false)}
-        title="Iterate on this clip"
+        title={t("i18n-cont-storyboard-04.storyboard.shotInspector.iterateDialogTitle")}
         onConfirm={handleIterateConfirm}
-        confirmText="Iterate"
+        confirmText={t("i18n-cont-storyboard-04.storyboard.shotInspector.iterate")}
         confirmDisabled={iterateText.trim().length === 0}
       >
         <FlexColumn gap={SPACING.xs}>
           <Caption color="secondary">
-            Describe the change to make. The current clip is re-rendered with
-            your note applied.
+            {t("i18n-cont-storyboard-04.storyboard.shotInspector.iterateDescription")}
           </Caption>
           <TextArea
             value={iterateText}
-            placeholder="e.g. make it darker, add rain"
+            placeholder={t(
+              "i18n-cont-storyboard-04.storyboard.shotInspector.iteratePlaceholder"
+            )}
             onChange={(value) => setIterateText(value)}
             rows={3}
             autoFocus
@@ -296,13 +337,15 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
       <Dialog
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="Delete shot?"
+        title={t("i18n-cont-storyboard-04.storyboard.shotInspector.deleteDialogTitle")}
         onConfirm={handleDelete}
-        confirmText="Delete"
+        confirmText={t("i18n-cont-storyboard-04.storyboard.shotInspector.delete")}
         destructive
       >
         <Text>
-          {`Remove “${shotName}” from the board. Generated stills and clips stay in your asset library.`}
+          {t("i18n-cont-storyboard-04.storyboard.shotInspector.deleteDescription", {
+            shotName
+          })}
         </Text>
       </Dialog>
     </Panel>

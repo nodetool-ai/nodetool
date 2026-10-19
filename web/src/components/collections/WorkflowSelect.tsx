@@ -10,6 +10,7 @@ import { memo } from "react";
 import isEqual from "../../utils/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
+import { useTranslation } from "react-i18next";
 
 interface WorkflowSelectProps {
   id?: string;
@@ -25,6 +26,7 @@ interface WorkflowSelectProps {
 const WORKFLOW_SELECT_LIMIT = 100;
 
 const WorkflowSelect = (props: WorkflowSelectProps) => {
+  const { t } = useTranslation();
   const load = useWorkflowManager((state) => state.load);
 
   const { data, error, isLoading } = useQuery<WorkflowList, Error>({
@@ -39,7 +41,13 @@ const WorkflowSelect = (props: WorkflowSelectProps) => {
   );
 
   if (error) {
-    return <Text>{error.message}</Text>;
+    return (
+      <Text>
+        {t("i18n-next30.collections.workflowLoadError", {
+          error: error.message
+        })}
+      </Text>
+    );
   }
 
   return (

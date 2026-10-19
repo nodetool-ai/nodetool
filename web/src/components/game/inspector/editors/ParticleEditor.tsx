@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { GAME_PARTICLE_PRESET_IDS, gameParticleEmitter, gameParticleIssues, gameParticles, getGameParticlePreset, type GameParticleEmitter } from "@nodetool-ai/protocol";
 
 import { Caption, CurveEditor, EditorButton, FlexColumn, FlexRow, GradientEditor, InspectorFieldRow, InspectorSection, InspectorSelect, SPACING } from "../../../ui_primitives";
@@ -7,16 +8,13 @@ import SchemaFields from "../SchemaFields";
 import type { GameComponentEditorProps } from "../componentEditors";
 import ParticlePreview from "./ParticlePreview";
 
-const CURVES = [
-  { field: "sizeOverLifetime", label: "Size over lifetime" },
-  { field: "speedOverLifetime", label: "Speed over lifetime" },
-  { field: "opacityOverLifetime", label: "Opacity over lifetime" }
-] as const;
-const CUSTOM_FIELDS = new Set<string>([...CURVES.map(({ field }) => field), "colorOverLifetime"]);
+const CURVE_FIELDS = ["sizeOverLifetime", "speedOverLifetime", "opacityOverLifetime"] as const;
+const CUSTOM_FIELDS = new Set<string>([...CURVE_FIELDS, "colorOverLifetime"]);
 // The multiplicative identity is game data and must not change with the editor theme.
 const IDENTITY_GRADIENT_COLOR = "#ffffff";
 
 export default function ParticleEditor({ value, onChange, schema, assets, dimension, path, issuePath, issues }: GameComponentEditorProps) {
+  const { t } = useTranslation();
   const parsed = useMemo(() => gameParticles.safeParse(value), [value]);
   const [selected, setSelected] = useState(0);
   const [preset, setPreset] = useState("");
@@ -31,6 +29,7 @@ export default function ParticleEditor({ value, onChange, schema, assets, dimens
     return <SchemaFields schema={schema} value={value} onChange={onChange} assets={assets} path={path} issuePath={issuePath} issues={issues} />;
   }
   const particles = parsed.data;
+  const curves = CURVE_FIELDS.map((field) => ({ field, label: t(`i18n-next2.particleEditor.curves.${field}`) }));
   const index = Math.min(selected, particles.emitters.length - 1);
   const emitter = particles.emitters[index];
   const commit = (next: unknown): void => {
@@ -61,39 +60,39 @@ export default function ParticleEditor({ value, onChange, schema, assets, dimens
   };
 
   return <FlexColumn gap={SPACING.sm}>
-    <InspectorFieldRow label="Preset">
-      <InspectorSelect grow label="Particle preset" value={preset} options={[
-        { value: "", label: "Choose preset" }, ...GAME_PARTICLE_PRESET_IDS.map((id) => ({ value: id, label: id.charAt(0).toUpperCase() + id.slice(1) }))
+    <InspectorFieldRow label={t("i18n-next2.particleEditor.preset")}>
+      <InspectorSelect grow label={t("i18n-next2.particleEditor.particlePreset")} value={preset} options={[
+        { value: "", label: t("i18n-next2.particleEditor.choosePreset") }, ...GAME_PARTICLE_PRESET_IDS.map((id) => ({ value: id, label: t(`i18n-next2.particleEditor.presetNames.${id}`) }))
       ]} onChange={setPreset} />
-      <EditorButton disabled={!preset} sx={{ flexShrink: 0, whiteSpace: "nowrap" }} onClick={() => { commit(getGameParticlePreset(preset, dimension)); setSelected(0); }}>Apply preset</EditorButton>
+      <EditorButton disabled={!preset} sx={{ flexShrink: 0, whiteSpace: "nowrap" }} onClick={() => { commit(getGameParticlePreset(preset, dimension)); setSelected(0); }}>{t("i18n-next2.particleEditor.applyPreset")}</EditorButton>
     </InspectorFieldRow>
-    <Caption>Applying a preset replaces this component's emitters. Other entity components stay unchanged.</Caption>
+    <Caption>{t("i18n-next2.particleEditor.presetHint")}</Caption>
     <ParticlePreview particles={particles} dimension={dimension} assets={assets} />
-    <InspectorFieldRow label="Emitter">
-      <InspectorSelect grow label="Particle emitter" value={String(index)} options={particles.emitters.map((item, position) =>
+    <InspectorFieldRow label={t("i18n-next2.particleEditor.emitter")}>
+      <InspectorSelect grow label={t("i18n-next2.particleEditor.particleEmitter")} value={String(index)} options={particles.emitters.map((item, position) =>
         ({ value: String(position), label: item.id }))} onChange={(next) => setSelected(Number(next))} />
     </InspectorFieldRow>
     <FlexRow gap={SPACING.sm}>
-      <EditorButton disabled={particles.emitters.length >= 8} onClick={add}>Add emitter</EditorButton>
-      <EditorButton disabled={particles.emitters.length <= 1} onClick={remove}>Remove emitter</EditorButton>
+      <EditorButton disabled={particles.emitters.length >= 8} onClick={add}>{t("i18n-next2.particleEditor.addEmitter")}</EditorButton>
+      <EditorButton disabled={particles.emitters.length <= 1} onClick={remove}>{t("i18n-next2.particleEditor.removeEmitter")}</EditorButton>
     </FlexRow>
     <SchemaFields schema={genericSchema} value={emitter} onChange={replaceEmitter} assets={assets}
       path={`${path}.emitters.${index}`} issuePath={[...issuePath, "emitters", index]} issues={issues} />
-    {CURVES.map(({ field, label }) => <InspectorSection key={field} title={label}>
+    {curves.map(({ field, label }) => <InspectorSection key={field} title={label}>
       {emitter[field] ? <>
         <CurveEditor label={label} value={emitter[field]} onChange={(keys) => change({ [field]: keys })} />
-        <EditorButton onClick={() => { const next = { ...emitter }; delete next[field]; replaceEmitter(next); }}>Remove {label.toLowerCase()}</EditorButton>
-      </> : <EditorButton onClick={() => change({ [field]: [{ t: 0, value: 1 }, { t: 1, value: 1 }] })}>Add {label.toLowerCase()}</EditorButton>}
+        <EditorButton onClick={() => { const next = { ...emitter }; delete next[field]; replaceEmitter(next); }}>{t("i18n-next2.particleEditor.removeCurve", { curve: label })}</EditorButton>
+      </> : <EditorButton onClick={() => change({ [field]: [{ t: 0, value: 1 }, { t: 1, value: 1 }] })}>{t("i18n-next2.particleEditor.addCurve", { curve: label })}</EditorButton>}
     </InspectorSection>)}
-    <InspectorSection title="Color over lifetime">
+    <InspectorSection title={t("i18n-next2.particleEditor.colorOverLifetime")}>
       {emitter.colorOverLifetime ? <>
-        <GradientEditor label="Particle color over lifetime" value={emitter.colorOverLifetime} onChange={(keys) => change({ colorOverLifetime: keys })} />
-        <EditorButton onClick={() => { const next = { ...emitter }; delete next.colorOverLifetime; replaceEmitter(next); }}>Remove color over lifetime</EditorButton>
-      </> : <EditorButton onClick={() => change({ colorOverLifetime: [{ t: 0, color: IDENTITY_GRADIENT_COLOR }] })}>Add color over lifetime</EditorButton>}
+        <GradientEditor label={t("i18n-next2.particleEditor.particleColorOverLifetime")} value={emitter.colorOverLifetime} onChange={(keys) => change({ colorOverLifetime: keys })} />
+        <EditorButton onClick={() => { const next = { ...emitter }; delete next.colorOverLifetime; replaceEmitter(next); }}>{t("i18n-next2.particleEditor.removeColorOverLifetime")}</EditorButton>
+      </> : <EditorButton onClick={() => change({ colorOverLifetime: [{ t: 0, color: IDENTITY_GRADIENT_COLOR }] })}>{t("i18n-next2.particleEditor.addColorOverLifetime")}</EditorButton>}
     </InspectorSection>
     {error && <>
       <Caption color="error" role="alert">{error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: "Particle settings are invalid", errorText: error }} />
+      <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-next2.particleEditor.invalidSettings"), errorText: error }} />
     </>}
   </FlexColumn>;
 }

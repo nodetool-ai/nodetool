@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -134,6 +135,7 @@ const TrackStripSlot: React.FC<{
 TrackStripSlot.displayName = "TrackStripSlot";
 
 export const MixerView: React.FC<MixerViewProps> = memo(({ onOpenDevice, onOpenEffect }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const styles = useMemo(() => mixerStyles(theme), [theme]);
   const trackIds = useMixerTrackIds();
@@ -162,13 +164,13 @@ export const MixerView: React.FC<MixerViewProps> = memo(({ onOpenDevice, onOpenE
   const closeInsert = useCallback(() => setOpenEffect(null), []);
 
   return (
-    <div css={styles} data-testid="daw-mixer" role="region" aria-label="Mixer">
-      <div className="mixer__channels" role="group" aria-label="Channels">
+    <div css={styles} data-testid="daw-mixer" role="region" aria-label={t("batch2_26.daw.mixer.title")}>
+      <div className="mixer__channels" role="group" aria-label={t("batch2_26.daw.mixer.channels")}>
         {trackIds.length === 0 ? (
           <div className="mixer__empty">
             <EmptyState
-              title="No audio or MIDI tracks"
-              description="Add an audio or MIDI track to mix it here."
+              title={t("batch2_26.daw.mixer.emptyTitle")}
+              description={t("batch2_26.daw.mixer.emptyDescription")}
             />
           </div>
         ) : (

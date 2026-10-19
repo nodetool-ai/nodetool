@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useState, type ChangeEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -60,11 +61,6 @@ const EMPTY_DRAFT: DraftState = {
   url: "",
   headers: ""
 };
-
-const TRANSPORT_OPTIONS = [
-  { value: "stdio", label: "Command (stdio)" },
-  { value: "http", label: "HTTP URL" }
-] as const;
 
 /** `KEY=value` lines → record. Blank lines and lines without `=` are skipped. */
 function parseKeyValues(text: string): Record<string, string> {
@@ -137,24 +133,24 @@ function configFrom(draft: DraftState): McpServerConfig {
   return { ...base, transport };
 }
 
-function idError(id: string): string | null {
-  if (!id) return "Enter an id.";
+function idError(id: string): "required" | "format" | null {
+  if (!id) return "required";
   if (!MCP_SERVER_ID_PATTERN.test(id)) {
-    return "Lowercase letters, digits and _ only, up to 32 characters.";
+    return "format";
   }
   return null;
 }
 
-function urlError(url: string): string | null {
-  if (!url.trim()) return "Enter a URL.";
+function urlError(url: string): "required" | "protocol" | "invalid" | null {
+  if (!url.trim()) return "required";
   try {
     const parsed = new URL(url.trim());
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return "Use an http or https URL.";
+      return "protocol";
     }
     return null;
   } catch {
-    return "That is not a valid URL.";
+    return "invalid";
   }
 }
 
@@ -175,6 +171,7 @@ const ServerRow = memo(function ServerRow({
   probing: boolean;
   probe: ProbeResult | null;
 }) {
+  const { t: translate, i18n } = useTranslation();
   const theme = useTheme();
   const handleEdit = useCallback(() => onEdit(server), [onEdit, server]);
   const handleDelete = useCallback(() => onDelete(server), [onDelete, server]);
@@ -221,14 +218,14 @@ const ServerRow = memo(function ServerRow({
             </Text>
             <Chip label={t.type} compact variant="outlined" />
             {!server.enabled && (
-              <Chip label="Disabled" compact variant="outlined" />
+              <Chip label={translate("screens4_3.externalMcp.disabled")} compact variant="outlined" />
             )}
           </FlexRow>
           <Caption sx={{ opacity: 0.55, wordBreak: "break-all" }}>
             {summary}
           </Caption>
           <Caption size="smaller" sx={{ opacity: 0.45 }}>
-            Tools appear as {`${MCP_TOOL_PREFIX}${server.id}_<tool>`}
+            {translate("screens4_3.externalMcp.toolNameHelp", { toolName: `${MCP_TOOL_PREFIX}${server.id}_<tool>` })}
           </Caption>
           {probe && (
             <Caption
@@ -238,11 +235,11 @@ const ServerRow = memo(function ServerRow({
             >
               {probe.ok
                 ? probe.tools.length === 0
-                  ? "Connected. The server offers no tools."
-                  : `${probe.tools.length} tool${probe.tools.length === 1 ? "" : "s"}: ${probe.tools
+                  ? translate("screens4_3.externalMcp.connectedNoTools")
+                  : translate("screens4_3.externalMcp.toolsFound", { count: probe.tools.length, formattedCount: new Intl.NumberFormat(i18n.language).format(probe.tools.length), tools: probe.tools
                       .map((tool) => tool.name)
-                      .join(", ")}`
-                : (probe.error ?? "Could not connect.")}
+                      .join(", ") })
+                : (probe.error ?? translate("screens4_3.externalMcp.couldNotConnect"))}
             </Caption>
           )}
         </FlexColumn>
@@ -256,7 +253,7 @@ const ServerRow = memo(function ServerRow({
           onClick={handleProbe}
           disabled={probing}
         >
-          {probing ? "Connecting…" : "Test"}
+          {probing ? translate("screens4_3.externalMcp.connecting") : translate("screens4_3.customProviders.test")}
         </EditorButton>
         <EditorButton
           density="compact"
@@ -264,7 +261,7 @@ const ServerRow = memo(function ServerRow({
           size="small"
           onClick={handleToggle}
         >
-          {server.enabled ? "Disable" : "Enable"}
+          {server.enabled ? translate("screens4_3.externalMcp.disable") : translate("screens4_3.externalMcp.enable")}
         </EditorButton>
         <EditorButton
           density="compact"
@@ -272,7 +269,7 @@ const ServerRow = memo(function ServerRow({
           size="small"
           onClick={handleEdit}
         >
-          Edit
+          {translate("screens4_3.common.edit")}
         </EditorButton>
         <EditorButton
           density="compact"
@@ -282,7 +279,7 @@ const ServerRow = memo(function ServerRow({
           startIcon={<DeleteIcon />}
           onClick={handleDelete}
         >
-          Remove
+          {translate("screens4_3.common.remove")}
         </EditorButton>
       </FlexRow>
     </Card>
@@ -296,6 +293,7 @@ const ServerRow = memo(function ServerRow({
  */
 export const ExternalMcpServersSection = memo(
   function ExternalMcpServersSection() {
+    const { t } = useTranslation();
     const theme = useTheme();
     const queryClient = useQueryClient();
     const addNotification = useNotificationStore(
@@ -328,7 +326,7 @@ export const ExternalMcpServersSection = memo(
         addNotification({
           type: "error",
           alert: true,
-          content: `Could not save the server: ${err instanceof Error ? err.message : String(err)}`
+          content: t("screens4_3.externalMcp.saveError", { error: err instanceof Error ? err.message : String(err) })
         });
       }
     });
@@ -423,10 +421,18 @@ export const ExternalMcpServersSection = memo(
       draft.type === "http"
         ? urlError(draft.url)
         : !stdioEnabled
-          ? "Stdio servers are not available on this deployment."
+          ? t("screens4_3.externalMcp.stdioUnavailable")
           : draft.command.trim()
             ? null
-            : "Enter a command.";
+            : t("screens4_3.externalMcp.commandRequired");
+    const translatedIdError = draftIdError ? t(`screens4_3.externalMcp.idErrors.${draftIdError}`) : undefined;
+    const translatedUrlError = transportError && draft.type === "http"
+      ? t(`screens4_3.externalMcp.urlErrors.${transportError}`)
+      : undefined;
+    const transportOptions = [
+      { value: "stdio", label: t("screens4_3.externalMcp.commandStdio") },
+      { value: "http", label: t("screens4_3.externalMcp.httpUrl") }
+    ];
 
     const handleSave = useCallback(() => {
       saveMutation.mutate(configFrom(draft));
@@ -446,10 +452,9 @@ export const ExternalMcpServersSection = memo(
           sx={{ marginBottom: theme.spacing(3) }}
         >
           <FlexColumn gap={0.5}>
-            <Text size="big">External servers</Text>
+            <Text size="big">{t("screens4_3.externalMcp.heading")}</Text>
             <Caption sx={{ opacity: 0.55 }}>
-              Give the agent the tools of any MCP server: Blender, Hugging
-              Face, or a script of your own. Works with every model provider.
+              {t("screens4_3.externalMcp.description")}
             </Caption>
           </FlexColumn>
           <EditorButton
@@ -459,15 +464,15 @@ export const ExternalMcpServersSection = memo(
             startIcon={<AddIcon />}
             onClick={handleAdd}
           >
-            Add server
+            {t("screens4_3.externalMcp.addServer")}
           </EditorButton>
         </FlexRow>
 
         {servers.length === 0 ? (
           <EmptyState
             variant="no-results"
-            title="No external servers"
-            description="Add a command or a URL. Its tools join the agent's toolbelt on the next message."
+            title={t("screens4_3.externalMcp.emptyTitle")}
+            description={t("screens4_3.externalMcp.emptyDescription")}
           />
         ) : (
           <FlexColumn sx={{ gap: theme.spacing(2) }}>
@@ -490,16 +495,16 @@ export const ExternalMcpServersSection = memo(
           open={dialogOpen}
           onClose={handleClose}
           fullWidth
-          title={editingId ? "Edit MCP server" : "Add MCP server"}
+          title={editingId ? t("screens4_3.externalMcp.editTitle") : t("screens4_3.externalMcp.addTitle")}
           onConfirm={handleSave}
-          confirmText={editingId ? "Save" : "Add"}
+          confirmText={editingId ? t("screens4_3.common.save") : t("screens4_3.common.add")}
           confirmDisabled={
             Boolean(draftIdError) || Boolean(transportError) || duplicateId
           }
         >
           <FlexColumn gap={SPACING.lg}>
             <TextInput
-              label="Name"
+              label={t("screens4_3.common.name")}
               value={draft.name}
               onChange={handleNameChange}
               fullWidth
@@ -509,7 +514,7 @@ export const ExternalMcpServersSection = memo(
               size="small"
             />
             <TextInput
-              label="ID"
+              label={t("screens4_3.externalMcp.id")}
               value={draft.id}
               onChange={field("id")}
               fullWidth
@@ -519,28 +524,28 @@ export const ExternalMcpServersSection = memo(
               size="small"
               errorMessage={
                 duplicateId
-                  ? "That id is already in use."
-                  : (draftIdError ?? undefined)
+                  ? t("screens4_3.externalMcp.duplicateId")
+                  : translatedIdError
               }
-              helperText={`Tools are named ${MCP_TOOL_PREFIX}${draft.id || "id"}_<tool>`}
+              helperText={t("screens4_3.externalMcp.toolNameHelp", { toolName: `${MCP_TOOL_PREFIX}${draft.id || "id"}_<tool>` })}
             />
             <SelectField
-              label="Connection"
+              label={t("screens4_3.externalMcp.connection")}
               value={draft.type}
               onChange={handleTypeChange}
-              options={TRANSPORT_OPTIONS}
+              options={transportOptions}
               size="small"
               variant="outlined"
               description={
                 stdioEnabled
                   ? undefined
-                  : "This deployment cannot run commands; only HTTP servers connect."
+                  : t("screens4_3.externalMcp.httpOnlyDeployment")
               }
             />
             {draft.type === "stdio" ? (
               <>
                 <TextInput
-                  label="Command"
+                  label={t("screens4_3.externalMcp.command")}
                   value={draft.command}
                   onChange={field("command")}
                   fullWidth
@@ -550,7 +555,7 @@ export const ExternalMcpServersSection = memo(
                   errorMessage={transportError ?? undefined}
                 />
                 <TextInput
-                  label="Arguments"
+                  label={t("screens4_3.externalMcp.arguments")}
                   value={draft.args}
                   onChange={field("args")}
                   fullWidth
@@ -559,10 +564,10 @@ export const ExternalMcpServersSection = memo(
                   placeholder="blender-mcp"
                   variant="outlined"
                   size="small"
-                  helperText="One argument per line, so a path with a space stays one argument."
+                  helperText={t("screens4_3.externalMcp.argumentsHelp")}
                 />
                 <TextInput
-                  label="Environment"
+                  label={t("screens4_3.externalMcp.environment")}
                   value={draft.env}
                   onChange={field("env")}
                   fullWidth
@@ -571,14 +576,14 @@ export const ExternalMcpServersSection = memo(
                   placeholder={"HF_TOKEN=${HF_TOKEN}\nDEBUG=1"}
                   variant="outlined"
                   size="small"
-                  helperText="One KEY=value per line. A literal value is stored encrypted; ${NAME} reads the secret NAME from your API keys."
+                  helperText={t("screens4_3.externalMcp.secretValuesHelp")}
                 />
                 <TextInput
-                  label="Working directory"
+                  label={t("screens4_3.externalMcp.workingDirectory")}
                   value={draft.cwd}
                   onChange={field("cwd")}
                   fullWidth
-                  placeholder="Optional"
+                  placeholder={t("screens4_3.common.optional")}
                   variant="outlined"
                   size="small"
                 />
@@ -586,18 +591,18 @@ export const ExternalMcpServersSection = memo(
             ) : (
               <>
                 <TextInput
-                  label="URL"
+                  label={t("screens4_3.externalMcp.url")}
                   value={draft.url}
                   onChange={field("url")}
                   fullWidth
                   placeholder="https://huggingface.co/mcp"
                   variant="outlined"
                   size="small"
-                  errorMessage={transportError ?? undefined}
-                  helperText="Streamable HTTP, with SSE as the fallback."
+                  errorMessage={translatedUrlError}
+                  helperText={t("screens4_3.externalMcp.urlHelp")}
                 />
                 <TextInput
-                  label="Headers"
+                  label={t("screens4_3.externalMcp.headers")}
                   value={draft.headers}
                   onChange={field("headers")}
                   fullWidth
@@ -606,12 +611,12 @@ export const ExternalMcpServersSection = memo(
                   placeholder={"Authorization=Bearer ${HF_TOKEN}"}
                   variant="outlined"
                   size="small"
-                  helperText="One Header=value per line. A literal value is stored encrypted; ${NAME} reads the secret NAME from your API keys."
+                  helperText={t("screens4_3.externalMcp.secretValuesHelp")}
                 />
               </>
             )}
             <LabeledSwitch
-              label="Enabled"
+              label={t("screens4_3.externalMcp.enabled")}
               checked={draft.enabled}
               onChange={handleEnabledChange}
               size="small"
@@ -621,10 +626,10 @@ export const ExternalMcpServersSection = memo(
 
         <ConfirmDialog
           open={Boolean(pendingDelete)}
-          title="Remove server?"
-          content={`Remove ${pendingDelete?.name ?? ""}? Its tools leave the agent's toolbelt.`}
-          confirmText="Remove"
-          cancelText="Cancel"
+          title={t("screens4_3.externalMcp.removeTitle")}
+          content={t("screens4_3.externalMcp.removeConfirm", { name: pendingDelete?.name ?? "" })}
+          confirmText={t("screens4_3.common.remove")}
+          cancelText={t("screens4_3.common.cancel")}
           destructive
           onConfirm={confirmDelete}
           onClose={handleCancelDelete}

@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
 import type { DragEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
@@ -37,8 +38,8 @@ const cardStyles = (theme: Theme) =>
   css({
     ".example-card": {
       ...selectableTileStyles(theme),
-      display: "flex",
-      flexDirection: "column",
+      display: "grid",
+      gridTemplateRows: "auto 1fr",
       minWidth: 0,
       padding: 0,
       textAlign: "left",
@@ -68,8 +69,7 @@ const cardStyles = (theme: Theme) =>
       background: theme.vars.palette.c_scrim_strong
     },
     ".example-body": {
-      display: "flex",
-      flexDirection: "column",
+      display: "grid",
       gap: getSpacingPx(SPACING.micro),
       padding: getSpacingPx(SPACING.sm)
     }
@@ -88,6 +88,7 @@ const ExampleCard = memo(function ExampleCard({
   opening,
   onOpen
 }: ExampleCardProps) {
+  const { t } = useTranslation();
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
   const [thumbFailed, setThumbFailed] = useState(false);
@@ -143,10 +144,10 @@ const ExampleCard = memo(function ExampleCard({
         </span>
         <span className="example-body">
           <TruncatedText sx={TYPOGRAPHY.sans.label}>
-            {entry.name || "Untitled example"}
+            {entry.name || t("pass3_40.examples.untitledExample")}
           </TruncatedText>
           <Caption color="secondary" noWrap>
-            {opening ? "Adding a copy…" : entry.secondary}
+            {opening ? t("pass3_40.examples.addingCopy") : entry.secondary}
           </Caption>
         </span>
       </button>
@@ -166,48 +167,63 @@ const ExampleSection = ({
   entries,
   openingKey,
   onOpen
-}: ExampleSectionProps) => (
-  <FlexColumn
-    component="section"
-    aria-label={`Example ${group.label.toLowerCase()}`}
-    gap={0.5}
-  >
-    <SectionHeader title={group.label} size="small" />
-    {group.dropHint && (
-      <Caption color="secondary" sx={{ px: SPACING.md, pb: SPACING.xs }}>
-        {group.dropHint}
-      </Caption>
-    )}
-    {group.isLoading ? (
-      <FlexRow justify="center" sx={{ py: SPACING.md }}>
-        <LoadingSpinner
-          size="small"
-          text={`Loading ${group.label.toLowerCase()}`}
-        />
-      </FlexRow>
-    ) : group.isError ? (
-      <EmptyState
-        variant="error"
-        size="small"
-        title={`Could not load ${group.label.toLowerCase()}`}
-        actionText="Retry"
-        onAction={group.retry}
-      />
-    ) : (
-      <AutoGrid minItemWidth={128} gap={SPACING.md}>
-        {entries.map((entry) => (
-          <ExampleCard
-            key={entry.key}
-            entry={entry}
-            icon={group.icon}
-            opening={entry.key === openingKey}
-            onOpen={onOpen}
+}: ExampleSectionProps) => {
+  const { t } = useTranslation();
+  const label = t(`pass3_40.examples.categories.${group.kind}`);
+  const dropHintKey =
+    group.kind === "workflows"
+      ? "pass3_40.examples.dropHints.workflows"
+      : group.kind === "models"
+        ? "pass3_40.examples.dropHints.models"
+        : group.kind === "storyboards" ||
+            group.kind === "timelines" ||
+            group.kind === "sketches"
+          ? "pass3_40.examples.dropHints.canvas"
+          : null;
+
+  return (
+    <FlexColumn
+      component="section"
+      aria-label={t("pass3_40.examples.categoryRegion", { category: label })}
+      gap={SPACING.xs}
+    >
+      <SectionHeader title={label} size="small" />
+      {dropHintKey && (
+        <Caption color="secondary" sx={{ px: SPACING.md, pb: SPACING.xs }}>
+          {t(dropHintKey)}
+        </Caption>
+      )}
+      {group.isLoading ? (
+        <FlexRow justify="center" sx={{ py: SPACING.md }}>
+          <LoadingSpinner
+            size="small"
+            text={t("pass3_40.examples.loadingCategory", { category: label })}
           />
-        ))}
-      </AutoGrid>
-    )}
-  </FlexColumn>
-);
+        </FlexRow>
+      ) : group.isError ? (
+        <EmptyState
+          variant="error"
+          size="small"
+          title={t("pass3_40.examples.loadError", { category: label })}
+          actionText={t("pass3_40.examples.retry")}
+          onAction={group.retry}
+        />
+      ) : (
+        <AutoGrid minItemWidth={128} gap={SPACING.md}>
+          {entries.map((entry) => (
+            <ExampleCard
+              key={entry.key}
+              entry={entry}
+              icon={group.icon}
+              opening={entry.key === openingKey}
+              onOpen={onOpen}
+            />
+          ))}
+        </AutoGrid>
+      )}
+    </FlexColumn>
+  );
+};
 
 /**
  * The left panel's Examples view: every kind of shipped example as a card
@@ -216,6 +232,7 @@ const ExampleSection = ({
  * surfaces that take them.
  */
 const ExamplesPanel = () => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { groups, openingKey, open } = useExampleGroups();
   const [filter, setFilter] = useState<ExampleFilter>("all");
@@ -252,19 +269,19 @@ const ExamplesPanel = () => {
         <CategorySearchBar
           value={query}
           onChange={setQuery}
-          placeholder="Search examples"
+          placeholder={t("pass3_40.examples.searchPlaceholder")}
         />
       </div>
       <FlexRow
         role="group"
-        aria-label="Example types"
+        aria-label={t("pass3_40.examples.typeFilters")}
         wrap
         gap={SPACING.xs}
         sx={{ pb: SPACING.md }}
       >
         <Chip
           compact
-          label="All"
+          label={t("pass3_40.examples.allCategories")}
           active={filter === "all"}
           onClick={() => setFilter("all")}
         />
@@ -272,19 +289,23 @@ const ExamplesPanel = () => {
           <Chip
             key={group.kind}
             compact
-            label={group.label}
+            label={t(`pass3_40.examples.categories.${group.kind}`)}
             active={filter === group.kind}
             onClick={() => setFilter(group.kind)}
           />
         ))}
       </FlexRow>
       {visible.length === 0 ? (
-        <FlexColumn justify="center" align="center" sx={{ flex: 1, px: 2 }}>
+        <FlexColumn
+          justify="center"
+          align="center"
+          sx={{ flex: 1, px: SPACING.md }}
+        >
           <EmptyState
             variant="no-results"
-            title="No matching examples"
-            description="Try a different search term."
-            actionText="Clear search"
+            title={t("pass3_40.examples.noMatchingExamples")}
+            description={t("pass3_40.examples.tryDifferentSearch")}
+            actionText={t("pass3_40.examples.clearSearch")}
             onAction={() => setQuery("")}
           />
         </FlexColumn>

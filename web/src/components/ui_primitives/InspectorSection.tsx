@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, type KeyboardEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
@@ -159,6 +160,7 @@ export const InspectorSectionTitle = memo(function InspectorSectionTitle({
   title, icon, checked, onCheckedChange, checkboxDisabled, meta, action
 }: InspectorSectionTitleProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const hasCheckbox = onCheckedChange !== undefined;
   return (
     <span css={titleStyles(theme, hasCheckbox && !checked)}>
@@ -167,7 +169,7 @@ export const InspectorSectionTitle = memo(function InspectorSectionTitle({
           type="button"
           role="checkbox"
           aria-checked={!!checked}
-          aria-label={`${title} enabled`}
+          aria-label={t("i18n-next103.inspectorSection.enabled", { title })}
           disabled={checkboxDisabled}
           css={checkboxStyles(theme, !!checked)}
           onClick={(event) => {

@@ -1,4 +1,5 @@
 import { memo, useCallback, useState, type MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
@@ -77,6 +78,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
   onSave,
   onDone
 }: AudioEditorToolbarProps) {
+  const { t } = useTranslation();
   const [effectsAnchor, setEffectsAnchor] = useState<HTMLElement | null>(null);
   const openEffectsMenu = useCallback(
     (event: MouseEvent<HTMLElement>) => setEffectsAnchor(event.currentTarget),
@@ -91,24 +93,26 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
     [onEffect]
   );
 
-  const scope = hasSelection ? "selection" : "whole clip";
+  const scope = hasSelection
+    ? t("audio_repair.toolbar.selectionScope")
+    : t("audio_repair.toolbar.clipScope");
 
   return (
     <Toolbar
       role="toolbar"
-      aria-label="Audio edits"
+      aria-label={t("batch2_16.toolbar.audioEdits")}
       sx={{ flexWrap: "wrap", py: SPACING.xs }}
     >
-      <ToolbarGroup role="group" aria-label="History">
+      <ToolbarGroup role="group" aria-label={t("batch2_16.toolbar.history")}>
         <ToolbarIconButton
           icon={<UndoIcon fontSize="small" />}
-          tooltip="Undo"
+          tooltip={t("batch2_16.toolbar.undo")}
           onClick={onUndo}
           disabled={!canUndo}
         />
         <ToolbarIconButton
           icon={<RedoIcon fontSize="small" />}
-          tooltip="Redo"
+          tooltip={t("batch2_16.toolbar.redo")}
           onClick={onRedo}
           disabled={!canRedo}
         />
@@ -116,34 +120,34 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
 
       <ToolbarDivider />
 
-      <ToolbarGroup role="group" aria-label="Selection edits">
+      <ToolbarGroup role="group" aria-label={t("batch2_16.toolbar.selectionEdits")}>
         <ToolbarIconButton
           icon={<CropOutlinedIcon fontSize="small" />}
-          tooltip="Trim to selection"
+          tooltip={t("batch2_16.toolbar.trim")}
           onClick={onTrim}
           disabled={!hasSelection}
         />
         <ToolbarIconButton
           icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
-          tooltip="Delete selection"
+          tooltip={t("batch2_16.toolbar.delete")}
           onClick={onDelete}
           disabled={!hasSelection}
         />
         <ToolbarIconButton
           icon={<VolumeOffOutlinedIcon fontSize="small" />}
-          tooltip="Silence selection"
+          tooltip={t("batch2_16.toolbar.silence")}
           onClick={onSilence}
           disabled={!hasSelection}
         />
         <ToolbarIconButton
           icon={<TrendingUpOutlinedIcon fontSize="small" />}
-          tooltip="Fade in selection"
+          tooltip={t("batch2_16.toolbar.fadeIn")}
           onClick={onFadeIn}
           disabled={!hasSelection}
         />
         <ToolbarIconButton
           icon={<TrendingDownOutlinedIcon fontSize="small" />}
-          tooltip="Fade out selection"
+          tooltip={t("batch2_16.toolbar.fadeOut")}
           onClick={onFadeOut}
           disabled={!hasSelection}
         />
@@ -151,29 +155,29 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
 
       <ToolbarDivider />
 
-      <ToolbarGroup role="group" aria-label="Level edits">
+      <ToolbarGroup role="group" aria-label={t("batch2_16.toolbar.levelEdits")}>
         <ToolbarIconButton
           icon={<HeightOutlinedIcon fontSize="small" />}
-          tooltip={`Normalize ${scope}`}
-          ariaLabel="Normalize"
+          tooltip={t("batch2_16.toolbar.normalize", { scope })}
+          ariaLabel={t("batch2_16.toolbar.normalizeLabel")}
           onClick={onNormalize}
         />
         <ToolbarIconButton
           icon={<VolumeUpOutlinedIcon fontSize="small" />}
-          tooltip={`Amplify ${scope}`}
-          ariaLabel="Amplify"
+          tooltip={t("batch2_16.toolbar.amplify", { scope })}
+          ariaLabel={t("batch2_16.toolbar.amplifyLabel")}
           onClick={onAmplify}
         />
         <ToolbarIconButton
           icon={<VolumeDownOutlinedIcon fontSize="small" />}
-          tooltip={`Quieten ${scope}`}
-          ariaLabel="Quieten"
+          tooltip={t("batch2_16.toolbar.quieten", { scope })}
+          ariaLabel={t("batch2_16.toolbar.quietenLabel")}
           onClick={onQuieten}
         />
         <ToolbarIconButton
           icon={<SwapHorizOutlinedIcon fontSize="small" />}
-          tooltip={`Reverse ${scope}`}
-          ariaLabel="Reverse"
+          tooltip={t("batch2_16.toolbar.reverse", { scope })}
+          ariaLabel={t("batch2_16.toolbar.reverseLabel")}
           onClick={onReverse}
         />
       </ToolbarGroup>
@@ -190,7 +194,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         aria-haspopup="menu"
         aria-expanded={effectsAnchor ? "true" : undefined}
       >
-        Effects
+        {t("batch2_16.toolbar.effects")}
       </EditorButton>
       <EditorMenu
         anchorEl={effectsAnchor}
@@ -205,7 +209,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
             color="secondary"
             sx={{ px: SPACING.lg, pt: SPACING.xs, pb: SPACING.micro }}
           >
-            {group}
+            {t(`batch2_16.effects.groups.${group}`)}
           </Caption>,
           ...AUDIO_EFFECTS.filter((effect) => effect.group === group).map(
             (effect) => (
@@ -213,7 +217,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
                 key={effect.id}
                 onClick={() => pickEffect(effect.id)}
               >
-                {effect.params.length > 0 ? `${effect.label}…` : effect.label}
+                {t(`batch2_16.effects.${effect.id}.label`)}{effect.params.length > 0 ? "…" : ""}
               </EditorMenuItem>
             )
           )
@@ -229,7 +233,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
           density="compact"
           onClick={onDone}
         >
-          Done
+          {t("batch2_16.toolbar.done")}
         </EditorButton>
         <EditorButton
           variant="contained"
@@ -237,9 +241,9 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
           disableElevation
           onClick={onSave}
           disabled={saving || !canSave}
-          disabledReason={canSave ? undefined : "Available once the audio has loaded"}
+          disabledReason={canSave ? undefined : t("batch2_16.toolbar.saveUnavailable")}
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("batch2_16.toolbar.saving") : t("batch2_16.toolbar.save")}
         </EditorButton>
       </ToolbarGroup>
     </Toolbar>

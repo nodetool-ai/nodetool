@@ -9,6 +9,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { findNativeGameTemplate, isModelSelected } from "@nodetool-ai/protocol";
 
 import {
@@ -63,6 +64,7 @@ const GameSetupHost: React.FC<GameSetupHostProps> = ({
   onFinish,
   onChangeFlow
 }) => {
+  const { t } = useTranslation();
   const store = useWorkflowManagerStore();
   const loaded = useGameWorkflowLoaded(workflowId);
   const workflowProjectId = useWorkflowManager(
@@ -74,9 +76,7 @@ const GameSetupHost: React.FC<GameSetupHostProps> = ({
   // the row, which the manager only has once something fetched it.
   useEffect(() => {
     if (!loaded) {
-      void store
-        .getState()
-        .fetchWorkflow(workflowId, { makeCurrent: false });
+      void store.getState().fetchWorkflow(workflowId, { makeCurrent: false });
     }
   }, [loaded, store, workflowId]);
 
@@ -171,17 +171,27 @@ const GameSetupHost: React.FC<GameSetupHostProps> = ({
     if (settledDone && gameId) {
       handleFinish({
         gameId,
-        name: game?.project_name ?? game?.design?.title ?? "Untitled game",
+        name:
+          game?.project_name ??
+          game?.design?.title ??
+          t("pass3_5.game.defaults.untitledName"),
         projectId,
         failures: []
       });
     }
-  }, [game, gameId, handleFinish, projectId, settledDone]);
+  }, [game, gameId, handleFinish, projectId, settledDone, t]);
 
   if (!loaded) {
     return (
-      <FlexColumn align="center" justify="center" sx={{ padding: PADDING.section }}>
-        <ThinkingIndicator label="Opening your game setup" announce />
+      <FlexColumn
+        align="center"
+        justify="center"
+        sx={{ padding: PADDING.section }}
+      >
+        <ThinkingIndicator
+          label={t("pass3_5.game.loading.openingSetup")}
+          announce
+        />
       </FlexColumn>
     );
   }
@@ -192,19 +202,15 @@ const GameSetupHost: React.FC<GameSetupHostProps> = ({
     return (
       <FlexColumn gap={GAP.comfortable} sx={{ padding: PADDING.section }}>
         <Text size="big" component="h2">
-          Legacy game setup
+          {t("pass3_5.game.legacy.title")}
         </Text>
-        <Caption>
-          This setup used the removed Godot workflow. Its source files and
-          generated assets remain available. Create a native game to rebuild
-          its gameplay.
-        </Caption>
+        <Caption>{t("pass3_5.game.legacy.description")}</Caption>
         <EditorButton
           variant="contained"
           sx={{ alignSelf: "flex-start" }}
           onClick={() => void onStartAlternative("blank-2d")}
         >
-          Create native game
+          {t("pass3_5.game.legacy.createNative")}
         </EditorButton>
       </FlexColumn>
     );
@@ -212,8 +218,15 @@ const GameSetupHost: React.FC<GameSetupHostProps> = ({
 
   if (settledDone) {
     return (
-      <FlexColumn align="center" justify="center" sx={{ padding: PADDING.section }}>
-        <ThinkingIndicator label="Opening your game" announce />
+      <FlexColumn
+        align="center"
+        justify="center"
+        sx={{ padding: PADDING.section }}
+      >
+        <ThinkingIndicator
+          label={t("pass3_5.game.loading.openingGame")}
+          announce
+        />
       </FlexColumn>
     );
   }
