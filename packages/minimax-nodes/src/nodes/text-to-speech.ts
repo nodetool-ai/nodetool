@@ -69,8 +69,8 @@ export class MinimaxTextToSpeechNode extends BaseNode {
     "- Generate character voices\n" +
     "- Build audiobooks and podcasts";
   static readonly metadataOutputTypes = { output: "audio" };
-  static readonly inlineFields: string[] = ["text"];
-  static readonly inputFields: string[] = ["voice_id"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["text", "voice_id"];
   static readonly requiredSettings = ["MINIMAX_API_KEY"];
   static readonly autoSaveAsset = true;
 
