@@ -39,7 +39,9 @@ let workspaceDir: string;
 const savedEnv = { ...process.env };
 
 async function buildServer(): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false });
+  // The token segment is longer than Fastify's default 100-character param
+  // limit; server.ts raises it to 8000 for every route.
+  const app = Fastify({ logger: false, routerOptions: { maxParamLength: 8000 } });
   app.decorateRequest("userId", null);
   await app.register(gamesRoutes, { apiOptions: {} as never });
   await app.ready();
