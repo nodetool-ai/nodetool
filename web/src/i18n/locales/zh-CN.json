@@ -6195,14 +6195,10 @@
         "guidedFlowOpenFailure": "无法打开引导式{{kind}}流程的项目",
         "openDocument": "打开你的{{kind}}",
         "describeRegion": "描述你想制作的内容",
-        "heading": "你想制作什么？",
-        "intro": "你可以提问并获取答案，也可以描述想制作的内容。智能体会规划并构建内容，你可以随时查看，而且所有生成内容都可以继续编辑。",
-        "quickCreateGroup": "创建游戏或 3D 模型",
-        "game": "游戏",
-        "newModel": "新建 3D 模型",
-        "newModelTooltip": "打开空白 3D 模型并手动编辑。无需 AI 提供商。",
+        "heading": "你想创建什么？",
+        "intro": "把想法变成图像、视频、应用和工作流。提出问题，或描述要做的东西。",
         "chatPromptLabel": "聊天提示",
-        "promptPlaceholder": "提出问题或描述要制作的内容，例如为我们的台灯制作一段 30 秒的发布短片。输入 / 选择技能，输入 @ 选择文件或实体。",
+        "promptPlaceholder": "描述你想创建的内容。输入 / 选择技能，输入 @ 选择文件或实体。",
         "removeReference": "移除 {{name}}",
         "referenceImages": "参考图片",
         "referenceImageCountShort_one": "参考图片 · {{count}}",
@@ -6218,14 +6214,9 @@
         "moreStarters_other": "更多 {{count}} 项",
         "pickSkillOrDescribe": "选择一个技能开始，或直接描述你想要的内容。",
         "guidedFlowsRegion": "从引导式流程开始",
-        "guidedFlowsHeading": "从引导式流程开始",
-        "guidedFlowsDescription": "只需几个简短步骤，每一步都会生成可继续编辑的文档。",
-        "gameStartsAs": "游戏卡片的初始类型",
         "gameDimension": "游戏维度",
         "game2d": "2D 游戏",
         "game3d": "3D 探索",
-        "fewerFormats": "收起格式",
-        "moreFormats": "更多格式",
         "blankDocument": "空白文档",
         "blankDocumentDescription": "— 将作为独立标签页打开，不属于任何项目",
         "browseExamples": "浏览示例",
@@ -6257,7 +6248,59 @@
           "txt": "纯文本 (.txt)"
         },
         "unsupportedReferenceFiles_one": "参考图片只能使用图片文件。未添加 {{files}}。",
-        "unsupportedReferenceFiles_other": "参考图片只能使用图片文件。未添加 {{files}}。"
+        "unsupportedReferenceFiles_other": "参考图片只能使用图片文件。未添加 {{files}}。",
+        "createCards": {
+          "image": {
+            "title": "创建图像",
+            "description": "从一句简单的提示开始"
+          },
+          "video": {
+            "title": "创建视频",
+            "description": "把想法变成片段"
+          },
+          "app": {
+            "title": "创建应用",
+            "description": "做一个他人可用的页面"
+          },
+          "workflow": {
+            "title": "创建工作流",
+            "description": "自动化并组合步骤"
+          },
+          "model3d": {
+            "title": "3D 模型",
+            "description": "一个空白 3D 模型，手动编辑。无需 AI 提供商。"
+          }
+        },
+        "allTypes": {
+          "title": "浏览所有创建类型",
+          "description": "故事板、3D、游戏、脚本、朗读等"
+        },
+        "recentProjects": {
+          "heading": "最近的项目",
+          "viewAll": "查看所有项目",
+          "edited": "编辑于{{time}}"
+        },
+        "exploreExamples": {
+          "heading": "浏览示例",
+          "intro": "获取灵感，从现成的示例开始。",
+          "viewAll": "查看所有示例",
+          "images": {
+            "title": "图像库",
+            "description": "草图、艺术和插画"
+          },
+          "videos": {
+            "title": "视频示例",
+            "description": "预告片、广告和剪辑"
+          },
+          "apps": {
+            "title": "应用示例",
+            "description": "Web 应用和工具"
+          },
+          "workflows": {
+            "title": "工作流示例",
+            "description": "自动化、多步骤"
+          }
+        }
       }
     }
   },

@@ -31,11 +31,22 @@ import {
   type ProductionReferenceBinding
 } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame } from "@nodetool-ai/game-runtime";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
+import MicNoneOutlinedIcon from "@mui/icons-material/MicNoneOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
+import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import ViewDayOutlinedIcon from "@mui/icons-material/ViewDayOutlined";
+import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
+import WebOutlinedIcon from "@mui/icons-material/WebOutlined";
 
 import {
   BORDER_RADIUS,
@@ -43,6 +54,7 @@ import {
   Box,
   Caption,
   Chip,
+  CircularActionButton,
   CloseButton,
   Divider,
   EditorButton,
@@ -56,6 +68,7 @@ import {
   reducedMotion,
   ResponsiveImage,
   ScrollArea,
+  SHADOW,
   CONTROL,
   SPACING,
   SPACING_PX,
@@ -70,7 +83,6 @@ import type {
   MessageContent,
   Workflow
 } from "../../stores/ApiTypes";
-import { useProjectDocumentTotal } from "./useProjectDocumentTotal";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { DroppedFile } from "../chat/types/chat.types";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -121,17 +133,14 @@ import useOnboardingStore, {
   isOnboardingFinished
 } from "../../stores/OnboardingStore";
 import GettingStartedChecklist from "../onboarding/GettingStartedChecklist";
-import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import RecentChats from "./RecentChats";
+import RecentProjects from "./RecentProjects";
+import ExploreExamples from "./ExploreExamples";
+import StartCreationTypes, { type CreationTypeCard } from "./StartCreationTypes";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import ReportBugButton from "../support/ReportBugButton";
 import { openPageTab } from "../workspace/openPageTab";
-import {
-  OPTION_CARD_CLASS,
-  OptionCardGrid,
-  type OptionCardItem
-} from "../setup/OptionCardGrid";
 import { ENTRY_CARDS, type EntryFlowId } from "../setup/entryCards";
 import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
@@ -176,26 +185,59 @@ import {
   VISIBLE_STARTERS
 } from "./projectStarters";
 import { useSkills } from "../../hooks/skills/useSkills";
-import storyboardBackground from "../../assets/guided-flows/storyboard.webp";
-import videoBackground from "../../assets/guided-flows/video.webp";
-import scriptBackground from "../../assets/guided-flows/script.webp";
-import imageBackground from "../../assets/guided-flows/image.webp";
-import workflowBackground from "../../assets/guided-flows/workflow.webp";
-import gameBackground from "../../assets/guided-flows/game.webp";
+/** The four kinds the start page leads with, in the order shown. */
+const PRIMARY_CREATION_IDS: readonly EntryFlowId[] = [
+  "image",
+  "video",
+  "app",
+  "workflow"
+];
 
-const ENTRY_BACKGROUNDS: Partial<Record<EntryFlowId, string>> = {
-  storyboard: storyboardBackground,
-  video: videoBackground,
-  script: scriptBackground,
-  speech: scriptBackground,
-  image: imageBackground,
-  workflow: workflowBackground,
-  game: gameBackground,
-  app: workflowBackground
+/** The rest, behind "Explore all creation types". */
+const MORE_CREATION_IDS: readonly EntryFlowId[] = [
+  "storyboard",
+  "script",
+  "speech",
+  "game",
+  "entity"
+];
+
+/** The blank 3D model card's id; it opens a document, not a flow. */
+const MODEL_CARD_ID = "model3d";
+
+const CREATION_ICONS: Record<EntryFlowId | typeof MODEL_CARD_ID, React.ReactNode> = {
+  image: <ImageOutlinedIcon />,
+  video: <VideocamOutlinedIcon />,
+  app: <WebOutlinedIcon />,
+  workflow: <AccountTreeOutlinedIcon />,
+  storyboard: <ViewDayOutlinedIcon />,
+  script: <MicNoneOutlinedIcon />,
+  speech: <RecordVoiceOverOutlinedIcon />,
+  game: <SportsEsportsOutlinedIcon />,
+  entity: <PersonOutlineOutlinedIcon />,
+  [MODEL_CARD_ID]: <ViewInArOutlinedIcon />
 };
 
-/** Width of the centered column, per the new-project mockup. */
-const COLUMN_WIDTH = 860;
+/** Each kind's tint, from the theme so both modes answer for themselves. */
+const CREATION_ACCENTS: Record<EntryFlowId | typeof MODEL_CARD_ID, string> = {
+  image: "var(--palette-error-main)",
+  video: "var(--palette-secondary-main)",
+  app: "var(--palette-success-main)",
+  workflow: "var(--palette-warning-main)",
+  storyboard: "var(--palette-secondary-main)",
+  script: "var(--palette-info-main)",
+  speech: "var(--palette-info-main)",
+  game: "var(--palette-warning-main)",
+  entity: "var(--palette-primary-main)",
+  [MODEL_CARD_ID]: "var(--palette-success-main)"
+};
+
+/** Width of the centered column, per the start page mockup. */
+const COLUMN_WIDTH = 1200;
+/** Width of the heading and the prompt box inside that column. */
+const COMPOSER_WIDTH = 960;
+/** Side of the round send button, in px. */
+const SEND_BUTTON_SIZE = 40;
 /** The measure of a centered line of intro copy, in px. */
 const INTRO_TEXT_WIDTH = 640;
 /** A dropped reference image's thumbnail, in px. */
@@ -619,7 +661,6 @@ const NewProjectSurface = ({
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
   );
-  const projectDocumentTotal = useProjectDocumentTotal();
 
   /**
    * Make a document's project the one on screen before its tab opens. The
@@ -1537,11 +1578,6 @@ const NewProjectSurface = ({
     [isUploading, pendingFlow, runDestinationFlow, starting]
   );
 
-  const handleMakeGame = useCallback(
-    () => handleEntryCard("game"),
-    [handleEntryCard]
-  );
-
   const handleNewModel = async (): Promise<void> => {
     if (
       starting ||
@@ -1565,53 +1601,81 @@ const NewProjectSurface = ({
 
   // The chosen card says what it is doing; the other cards are off, because a
   // second flow started over the first would create an unwanted draft.
-  const entryOptions = useMemo<readonly OptionCardItem[]>(() => {
-    const cards = ENTRY_CARDS.filter((card) =>
-      showMoreFlows ||
-      ["storyboard", "image", "speech", "workflow", "game", "app"].includes(
-        card.id
-      )
-    ).map((card) => ({
-      ...card,
-      title: t(`pass3_32.projects.home.entryCards.${card.id}.title`),
-      description: card.id === "game" && gameDimension === "3d"
-        ? t("pass3_32.projects.home.entryCards.game.description3d")
-        : t(`pass3_32.projects.home.entryCards.${card.id}.description`),
-      image: ENTRY_BACKGROUNDS[card.id]
-    }));
-    if (pendingFlow === null) {
+  const creationCards = useMemo<{
+    primary: readonly CreationTypeCard[];
+    more: readonly CreationTypeCard[];
+  }>(() => {
+    const flowCard = (id: EntryFlowId, primary: boolean): CreationTypeCard => {
+      const card: CreationTypeCard = {
+        id,
+        title: primary
+          ? t(`pass3_32.projects.home.createCards.${id}.title`)
+          : t(`pass3_32.projects.home.entryCards.${id}.title`),
+        description: primary
+          ? t(`pass3_32.projects.home.createCards.${id}.description`)
+          : id === "game" && gameDimension === "3d"
+            ? t("pass3_32.projects.home.entryCards.game.description3d")
+            : t(`pass3_32.projects.home.entryCards.${id}.description`),
+        icon: CREATION_ICONS[id],
+        accent: CREATION_ACCENTS[id]
+      };
+      if (pendingFlow !== null) {
+        return id === pendingFlow
+          ? {
+              ...card,
+              meta: t("pass3_32.projects.home.disabled.creatingMeta"),
+              disabled: true,
+              // Every card files a draft into the open project and makes none.
+              disabledReason: t("pass3_32.projects.home.disabled.creatingDraft")
+            }
+          : {
+              ...card,
+              disabled: true,
+              disabledReason: t("pass3_32.projects.home.disabled.flowStarting")
+            };
+      }
       if (starting) {
-        return cards.map((card) => ({
+        return {
           ...card,
           disabled: true,
           disabledReason: t("pass3_32.projects.home.disabled.documentOpening")
-        }));
+        };
       }
       // A card started now would take only the references already uploaded.
       return isUploading
-        ? cards.map((card) => ({
+        ? {
             ...card,
             disabled: true,
             disabledReason: t("pass3_32.projects.home.disabled.uploadingReferences")
-          }))
-        : cards;
+          }
+        : card;
+    };
+    const modelBusy =
+      starting || pendingFlow !== null || isUploading || creating !== null;
+    const modelCard: CreationTypeCard = {
+      id: MODEL_CARD_ID,
+      title: t("pass3_32.projects.home.createCards.model3d.title"),
+      description: t("pass3_32.projects.home.createCards.model3d.description"),
+      icon: CREATION_ICONS[MODEL_CARD_ID],
+      accent: CREATION_ACCENTS[MODEL_CARD_ID],
+      disabled: modelBusy,
+      disabledReason: modelBusy
+        ? t("pass3_32.projects.home.disabled.waitForCurrentWork")
+        : undefined
+    };
+    return {
+      primary: PRIMARY_CREATION_IDS.map((id) => flowCard(id, true)),
+      more: [...MORE_CREATION_IDS.map((id) => flowCard(id, false)), modelCard]
+    };
+  }, [creating, gameDimension, isUploading, pendingFlow, starting, t]);
+
+  const handleCreationCard = (id: string): void => {
+    if (id === MODEL_CARD_ID) {
+      void handleNewModel();
+      return;
     }
-    return cards.map((card) =>
-      card.id === pendingFlow
-        ? {
-            ...card,
-            meta: t("pass3_32.projects.home.disabled.creatingMeta"),
-            disabled: true,
-            // Every card files a draft into the open project and makes none.
-            disabledReason: t("pass3_32.projects.home.disabled.creatingDraft")
-          }
-        : {
-            ...card,
-            disabled: true,
-            disabledReason: t("pass3_32.projects.home.disabled.flowStarting")
-          }
-    );
-  }, [isUploading, pendingFlow, showMoreFlows, gameDimension, starting, t]);
+    handleEntryCard(id);
+  };
 
   /**
    * The flow's last step wrote stage `done`: hand the finished board its own
@@ -2165,7 +2229,6 @@ const NewProjectSurface = ({
 
   // One project's work: its documents, then its latest chats, both scoped by
   // the project picker in the documents header.
-  const noDocuments = projectDocumentTotal === 0;
   const projectWork = (
     <FlexColumn gap={SPACING.xl}>
       <CurrentProjectDocuments />
@@ -2173,11 +2236,24 @@ const NewProjectSurface = ({
     </FlexColumn>
   );
 
+  const composerPillSx = {
+    ...composerToolSx,
+    border: "1px solid",
+    borderColor: "divider",
+    borderRadius: BORDER_RADIUS.pill,
+    px: SPACING.lg
+  };
+
   return (
     <ScrollArea fullHeight>
       <FlexColumn
         align="center"
-        sx={{ minHeight: "100%", px: { xs: SPACING.lg, sm: SPACING.xl } }}
+        sx={(theme) => ({
+          minHeight: "100%",
+          px: { xs: SPACING.lg, sm: SPACING.xl },
+          // A soft wash behind the heading, fading out before the cards.
+          background: `radial-gradient(ellipse 70% 420px at 15% 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.08), transparent), radial-gradient(ellipse 60% 360px at 90% 0%, rgba(${theme.vars.palette.secondary.mainChannel} / 0.06), transparent)`
+        })}
       >
         <FlexColumn
           sx={{
@@ -2199,363 +2275,300 @@ const NewProjectSurface = ({
             />
           )}
 
-          {/* The prompt's `/` and `@` menus open downward when
-              the field is too near the top of the viewport for them to fit
-              above it (`mentionMenuPosition`). */}
-          <FlexColumn
-            component="section"
-            aria-label={t("pass3_32.projects.home.describeRegion")}
-            gap={SPACING.lg}
-            sx={{ pt: showOnboarding ? 0 : SPACING.xxl }}
-          >
-            <FlexColumn gap={SPACING.sm} align="center">
-              <Text size="giant" component="h1" sx={{ textAlign: "center" }}>
-                {t("pass3_32.projects.home.heading")}
-              </Text>
-              <Text
-                color="secondary"
-                sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
-              >
-                {t("pass3_32.projects.home.intro")}
-              </Text>
-            </FlexColumn>
-
-            <FlexRow
-              role="group"
-              aria-label={t("pass3_32.projects.home.quickCreateGroup")}
-              justify="center"
-              gap={SPACING.md}
-              wrap
-            >
-              <EditorButton
-                variant="outlined"
-                size="medium"
-                startIcon={<Box component="span" aria-hidden>{TYPE_GLYPH.game}</Box>}
-                disabled={
-                  starting || pendingFlow !== null || isUploading || creating !== null
-                }
-                disabledReason={t("pass3_32.projects.home.disabled.waitForCurrentWork")}
-                onClick={handleMakeGame}
-              >
-                {t("pass3_32.projects.home.game")}
-              </EditorButton>
-              <EditorButton
-                variant="outlined"
-                size="medium"
-                startIcon={<Box component="span" aria-hidden>{TYPE_GLYPH.model3d}</Box>}
-                tooltip={t("pass3_32.projects.home.newModelTooltip")}
-                disabled={
-                  starting || pendingFlow !== null || isUploading || creating !== null
-                }
-                disabledReason={t("pass3_32.projects.home.disabled.waitForCurrentWork")}
-                onClick={() => void handleNewModel()}
-              >
-                {t("pass3_32.projects.home.newModel")}
-              </EditorButton>
-            </FlexRow>
-
+          <FlexColumn gap={SPACING.xl}>
+            {/* The prompt's `/` and `@` menus open downward when
+                the field is too near the top of the viewport for them to fit
+                above it (`mentionMenuPosition`). */}
             <FlexColumn
+              component="section"
+              aria-label={t("pass3_32.projects.home.describeRegion")}
+              gap={SPACING.xl}
               sx={{
-                bgcolor: "background.paper",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: BORDER_RADIUS.xl,
-                transition: MOTION.border,
-                ...reducedMotion({ transition: MOTION.none }),
-                "&:hover": { borderColor: "action.active" },
-                "&:focus-within": { borderColor: "primary.main" }
+                width: "100%",
+                maxWidth: `${COMPOSER_WIDTH}px`,
+                alignSelf: "center",
+                pt: showOnboarding ? 0 : { xs: SPACING.xl, sm: SPACING.xxxl }
               }}
             >
-              <TextInput
-                value={prompt}
-                autoFocus
-                multiline
-                minRows={3}
-                maxRows={12}
-                variant="standard"
-                label={t("pass3_32.projects.home.chatPromptLabel")}
-                hideLabel
-                inputRef={promptRef}
-                placeholder={t("pass3_32.projects.home.promptPlaceholder")}
-                onChange={(event) => setPrompt(event.target.value)}
-                onKeyDown={handlePromptKeyDown}
-                slotProps={{ input: { disableUnderline: true } }}
-                sx={{ px: SPACING.xl, pt: SPACING.lg }}
-              />
-              {mentionMenu}
-              {skillMenu}
+              <FlexColumn gap={SPACING.sm} align="center">
+                <Text size="giant" component="h1" sx={{ textAlign: "center" }}>
+                  {t("pass3_32.projects.home.heading")}
+                </Text>
+                <Text
+                  color="secondary"
+                  sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
+                >
+                  {t("pass3_32.projects.home.intro")}
+                </Text>
+              </FlexColumn>
 
-              {droppedFiles.length > 0 && (
-                <FlexRow gap={SPACING.md} wrap sx={{ px: SPACING.xl }}>
-                  {droppedFiles.map((file) =>
-                    // A text file or a document has no picture to show, so
-                    // it reads as its name rather than a broken thumbnail.
-                    !file.type.startsWith("image/") ? (
-                      <Chip
-                        key={file.id}
-                        icon={<InsertDriveFileOutlinedIcon />}
-                        label={file.name}
-                        onDelete={() => removeFile(file.id)}
-                      />
-                    ) : (
-                    <Box key={file.id} sx={{ position: "relative" }}>
-                      <ResponsiveImage
-                        locator={file.dataUri}
-                        alt={file.name}
-                        fit="cover"
-                        borderRadius={BORDER_RADIUS.sm}
-                        showErrorFallback
-                        sx={{ width: REFERENCE_THUMB_SIZE, height: REFERENCE_THUMB_SIZE }}
-                      />
-                      <CloseButton
-                        onClick={() => removeFile(file.id)}
-                        tooltip={t("pass3_32.projects.home.removeReference", { name: file.name })}
-                        buttonSize="small"
-                        iconVariant="clear"
-                        sx={{
-                          position: "absolute",
-                          top: -SPACING_PX.xs,
-                          right: -SPACING_PX.xs
-                        }}
-                      />
-                    </Box>
-                    )
-                  )}
-                </FlexRow>
-              )}
-
-              {/* The context a turn carries sits quietly on the left; the one
-                  primary action is the send on the right. */}
-              <FlexRow
-                align="center"
-                gap={SPACING.xs}
-                wrap
-                sx={{ px: SPACING.md, pt: SPACING.md, pb: SPACING.md }}
+              <FlexColumn
+                sx={(theme) => ({
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: BORDER_RADIUS.xl,
+                  boxShadow: SHADOW(theme).md,
+                  transition: `${MOTION.border}, ${MOTION.shadow}`,
+                  ...reducedMotion({ transition: MOTION.none }),
+                  "&:hover": { borderColor: "action.active" },
+                  "&:focus-within": { borderColor: "primary.main" }
+                })}
               >
-                <EditorButton
-                  variant="text"
-                  color="inherit"
-                  density="normal"
-                  startIcon={<AddPhotoAlternateOutlinedIcon />}
-                  onClick={() => refInputRef.current?.click()}
-                  sx={composerToolSx}
-                >
-                  {referenceImageCount === 0
-                    ? t("pass3_32.projects.home.referenceImages")
-                    : t("pass3_32.projects.home.referenceImageCountShort", { count: referenceImageCount })}
-                </EditorButton>
-                <input
-                  ref={refInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  aria-label={t("pass3_32.projects.home.referenceImages")}
-                  onChange={handleRefImages}
-                  style={{ display: "none" }}
+                <TextInput
+                  value={prompt}
+                  autoFocus
+                  multiline
+                  minRows={2}
+                  maxRows={12}
+                  variant="standard"
+                  label={t("pass3_32.projects.home.chatPromptLabel")}
+                  hideLabel
+                  inputRef={promptRef}
+                  placeholder={t("pass3_32.projects.home.promptPlaceholder")}
+                  onChange={(event) => setPrompt(event.target.value)}
+                  onKeyDown={handlePromptKeyDown}
+                  slotProps={{ input: { disableUnderline: true } }}
+                  sx={{ px: SPACING.xl, pt: SPACING.xl }}
                 />
-                <EditorButton
-                  variant="text"
-                  color="inherit"
-                  density="normal"
-                  startIcon={<PeopleAltOutlinedIcon />}
-                  onClick={() => setEntityPickerOpen(true)}
-                  sx={composerToolSx}
-                >
-                  {selectedEntities.length === 0
-                    ? t("pass3_32.projects.home.entitiesNone")
-                    : t("pass3_32.projects.home.entitiesSelected", {
-                        entities: selectedEntities.map((entity) => entity.name).join(", ")
-                      })}
-                </EditorButton>
-                <EditorButton
-                  ref={modelButtonRef}
-                  variant="text"
-                  color="inherit"
-                  density="normal"
-                  startIcon={<AutoAwesomeOutlinedIcon />}
-                  onClick={(event) => setModelAnchor(event.currentTarget)}
-                  sx={composerToolSx}
-                >
-                  {isModelSelected(selectedModel)
-                    ? t("pass3_32.projects.home.selectedModel", {
-                        name: selectedModel?.name || selectedModel?.id
-                      })
-                    : t("pass3_32.projects.home.selectModel")}
-                </EditorButton>
-                <Box sx={{ flex: 1 }} />
-                {estimate && (
-                  <Box
-                    component="span"
-                    sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
-                  >
-                    {formatEstimate(estimate)}
-                  </Box>
-                )}
-                <Caption
-                  color="muted"
-                  aria-hidden
-                  sx={{ display: { xs: "none", sm: "block" }, px: SPACING.sm }}
-                >
-                  {sendShortcutLabel}
-                </Caption>
-                <EditorButton
-                  variant="contained"
-                  color="primary"
-                  density="normal"
-                  endIcon={<ArrowUpwardIcon />}
-                  disabled={
-                    prompt.trim().length === 0 || starting || isUploading
-                  }
-                  onClick={() => void handleStart()}
-                  sx={{ borderRadius: BORDER_RADIUS.pill }}
-                >
-                  {t("pass3_32.projects.home.sendToChat")}
-                </EditorButton>
-              </FlexRow>
-            </FlexColumn>
+                {mentionMenu}
+                {skillMenu}
 
-            {starters.length > 0 && (
-              <FlexColumn gap={SPACING.md} align="center">
+                {droppedFiles.length > 0 && (
+                  <FlexRow gap={SPACING.md} wrap sx={{ px: SPACING.xl }}>
+                    {droppedFiles.map((file) =>
+                      // A text file or a document has no picture to show, so
+                      // it reads as its name rather than a broken thumbnail.
+                      !file.type.startsWith("image/") ? (
+                        <Chip
+                          key={file.id}
+                          icon={<InsertDriveFileOutlinedIcon />}
+                          label={file.name}
+                          onDelete={() => removeFile(file.id)}
+                        />
+                      ) : (
+                      <Box key={file.id} sx={{ position: "relative" }}>
+                        <ResponsiveImage
+                          locator={file.dataUri}
+                          alt={file.name}
+                          fit="cover"
+                          borderRadius={BORDER_RADIUS.sm}
+                          showErrorFallback
+                          sx={{ width: REFERENCE_THUMB_SIZE, height: REFERENCE_THUMB_SIZE }}
+                        />
+                        <CloseButton
+                          onClick={() => removeFile(file.id)}
+                          tooltip={t("pass3_32.projects.home.removeReference", { name: file.name })}
+                          buttonSize="small"
+                          iconVariant="clear"
+                          sx={{
+                            position: "absolute",
+                            top: -SPACING_PX.xs,
+                            right: -SPACING_PX.xs
+                          }}
+                        />
+                      </Box>
+                      )
+                    )}
+                  </FlexRow>
+                )}
+
+                {/* The context a turn carries sits quietly on the left as
+                    pills; the one primary action is the round send on the
+                    right. */}
                 <FlexRow
-                  justify="center"
+                  align="center"
                   gap={SPACING.sm}
                   wrap
-                  role="group"
-                  aria-label={t("pass3_32.projects.home.startFromSkill")}
+                  sx={{ px: SPACING.lg, pt: SPACING.md, pb: SPACING.lg }}
                 >
-                  {visibleStarters.map((entry) => {
-                    const active = entry.name === starter?.name;
-                    return (
-                      <Tooltip
-                        key={entry.name}
-                        title={entry.description}
-                        placement="bottom"
-                        // Described by, not named by: the pill's name stays
-                        // the skill's label.
-                        describeChild
-                      >
-                        <Chip
-                          compact
-                          label={starterLabel(entry.name)}
-                          active={active}
-                          // The picked starter is drawn in the project colour.
-                          accent={active ? PROJECT_COLOR : undefined}
-                          onClick={() => handleToggleStarter(entry.name)}
-                        />
-                      </Tooltip>
-                    );
-                  })}
-                  {(hiddenStarterCount > 0 || showAllStarters) && (
-                    <Chip
-                      compact
-                      aria-expanded={showAllStarters}
-                      label={
-                        showAllStarters
-                          ? t("pass3_32.projects.home.showFewer")
-                          : t("pass3_32.projects.home.moreStarters", { count: hiddenStarterCount })
-                      }
-                      onClick={() => setShowAllStarters((shown) => !shown)}
-                      sx={{ borderStyle: "dashed" }}
-                    />
-                  )}
-                </FlexRow>
-                {starter ? (
-                  <Caption
-                    color="secondary"
-                    sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
+                  <EditorButton
+                    variant="text"
+                    color="inherit"
+                    density="normal"
+                    startIcon={<AddPhotoAlternateOutlinedIcon />}
+                    onClick={() => refInputRef.current?.click()}
+                    sx={composerPillSx}
                   >
-                    {starter.description}
+                    {referenceImageCount === 0
+                      ? t("pass3_32.projects.home.referenceImages")
+                      : t("pass3_32.projects.home.referenceImageCountShort", { count: referenceImageCount })}
+                  </EditorButton>
+                  <input
+                    ref={refInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    aria-label={t("pass3_32.projects.home.referenceImages")}
+                    onChange={handleRefImages}
+                    style={{ display: "none" }}
+                  />
+                  <EditorButton
+                    variant="text"
+                    color="inherit"
+                    density="normal"
+                    startIcon={<PeopleAltOutlinedIcon />}
+                    onClick={() => setEntityPickerOpen(true)}
+                    sx={composerPillSx}
+                  >
+                    {selectedEntities.length === 0
+                      ? t("pass3_32.projects.home.entitiesNone")
+                      : t("pass3_32.projects.home.entitiesSelected", {
+                          entities: selectedEntities.map((entity) => entity.name).join(", ")
+                        })}
+                  </EditorButton>
+                  <EditorButton
+                    ref={modelButtonRef}
+                    variant="text"
+                    color="inherit"
+                    density="normal"
+                    startIcon={<AutoAwesomeOutlinedIcon />}
+                    endIcon={<ExpandMoreIcon />}
+                    onClick={(event) => setModelAnchor(event.currentTarget)}
+                    sx={composerPillSx}
+                  >
+                    {isModelSelected(selectedModel)
+                      ? t("pass3_32.projects.home.selectedModel", {
+                          name: selectedModel?.name || selectedModel?.id
+                        })
+                      : t("pass3_32.projects.home.selectModel")}
+                  </EditorButton>
+                  <Box sx={{ flex: 1 }} />
+                  {estimate && (
+                    <Box
+                      component="span"
+                      sx={{ ...TYPOGRAPHY.mono.caption, color: "text.secondary" }}
+                    >
+                      {formatEstimate(estimate)}
+                    </Box>
+                  )}
+                  <Caption
+                    color="muted"
+                    aria-hidden
+                    sx={{ display: { xs: "none", sm: "block" }, px: SPACING.sm }}
+                  >
+                    {sendShortcutLabel}
                   </Caption>
-                ) : (
-                  <Caption color="muted">
-                    {t("pass3_32.projects.home.pickSkillOrDescribe")}
-                  </Caption>
-                )}
-              </FlexColumn>
-            )}
-          </FlexColumn>
-
-          {!noDocuments && projectWork}
-
-          <FlexColumn
-            component="section"
-            id="guided-flows"
-            aria-label={t("pass3_32.projects.home.guidedFlowsRegion")}
-            gap={SPACING.lg}
-            // Only the flow cards sit on black. The section's other buttons
-            // (More formats, the game dimension select, a card's expand
-            // control) keep their own surfaces.
-            sx={{
-              [`& .${OPTION_CARD_CLASS}`]: { bgcolor: "common.black" },
-              [`& .${OPTION_CARD_CLASS}:not([aria-disabled="true"]):hover`]: {
-                bgcolor: "common.black",
-                borderColor: "primary.main"
-              },
-              [`& .${OPTION_CARD_CLASS} img`]: {
-                opacity: 0.7,
-                transition: MOTION.opacity,
-                ...reducedMotion({ transition: MOTION.none })
-              },
-              [`& .${OPTION_CARD_CLASS}:not([aria-disabled="true"]):hover img`]:
-                {
-                  opacity: 0.9
-                }
-            }}
-          >
-            <FlexRow align="flex-end" gap={SPACING.md} wrap>
-              <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minWidth: 0 }}>
-                <Text size="big" component="h2">
-                  {t("pass3_32.projects.home.guidedFlowsHeading")}
-                </Text>
-                <Caption color="secondary">
-                  {t("pass3_32.projects.home.guidedFlowsDescription")}
-                </Caption>
-              </FlexColumn>
-              {showMoreFlows && <FlexRow align="center" gap={SPACING.sm}>
-                <Caption color="muted">{t("pass3_32.projects.home.gameStartsAs")}</Caption>
-                <InspectorSelect
-                  label={t("pass3_32.projects.home.gameDimension")}
-                  value={gameDimension}
-                  options={[
-                    { value: "2d", label: t("pass3_32.projects.home.game2d") },
-                    { value: "3d", label: t("pass3_32.projects.home.game3d") }
-                  ]}
-                  onChange={(value) => {
-                    if (value === "2d" || value === "3d") {
-                      setGameDimension(value);
+                  <CircularActionButton
+                    icon={<ArrowUpwardIcon />}
+                    ariaLabel={t("pass3_32.projects.home.sendToChat")}
+                    tooltip={t("pass3_32.projects.home.sendToChat")}
+                    tooltipPlacement="top"
+                    size={SEND_BUTTON_SIZE}
+                    color="primary.contrastText"
+                    disabled={
+                      prompt.trim().length === 0 || starting || isUploading
                     }
-                  }}
-                />
-              </FlexRow>}
-            </FlexRow>
-            <OptionCardGrid
-              label={t("pass3_32.projects.home.guidedFlowsRegion")}
-              options={entryOptions}
-              onSelect={handleEntryCard}
-              minColumnWidth={190}
-              variant="media"
-              // These cards route to a flow, they do not pick one of a set:
-              // no pressed state, and each is its own tab stop.
-              mode="navigation"
-            />
-            <EditorButton
-              aria-expanded={showMoreFlows}
-              onClick={() => setShowMoreFlows((shown) => !shown)}
-            >
-              {showMoreFlows ? t("pass3_32.projects.home.fewerFormats") : t("pass3_32.projects.home.moreFormats")}
-            </EditorButton>
+                    onClick={() => void handleStart()}
+                    // The send keeps its colour while it waits for a prompt,
+                    // faded rather than greyed out, as in the mockup.
+                    sx={{
+                      "&.Mui-disabled": {
+                        opacity: 0.4,
+                        bgcolor: "primary.main",
+                        color: "primary.contrastText"
+                      }
+                    }}
+                  />
+                </FlexRow>
+              </FlexColumn>
+
+              {starters.length > 0 && (
+                <FlexColumn gap={SPACING.md} align="center">
+                  <FlexRow
+                    justify="center"
+                    gap={SPACING.sm}
+                    wrap
+                    role="group"
+                    aria-label={t("pass3_32.projects.home.startFromSkill")}
+                  >
+                    {visibleStarters.map((entry) => {
+                      const active = entry.name === starter?.name;
+                      return (
+                        <Tooltip
+                          key={entry.name}
+                          title={entry.description}
+                          placement="bottom"
+                          // Described by, not named by: the pill's name stays
+                          // the skill's label.
+                          describeChild
+                        >
+                          <Chip
+                            compact
+                            label={starterLabel(entry.name)}
+                            active={active}
+                            // The picked starter is drawn in the project colour.
+                            accent={active ? PROJECT_COLOR : undefined}
+                            onClick={() => handleToggleStarter(entry.name)}
+                          />
+                        </Tooltip>
+                      );
+                    })}
+                    {(hiddenStarterCount > 0 || showAllStarters) && (
+                      <Chip
+                        compact
+                        aria-expanded={showAllStarters}
+                        label={
+                          showAllStarters
+                            ? t("pass3_32.projects.home.showFewer")
+                            : t("pass3_32.projects.home.moreStarters", { count: hiddenStarterCount })
+                        }
+                        onClick={() => setShowAllStarters((shown) => !shown)}
+                        sx={{ borderStyle: "dashed" }}
+                      />
+                    )}
+                  </FlexRow>
+                  {starter ? (
+                    <Caption
+                      color="secondary"
+                      sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
+                    >
+                      {starter.description}
+                    </Caption>
+                  ) : (
+                    <Caption color="muted">
+                      {t("pass3_32.projects.home.pickSkillOrDescribe")}
+                    </Caption>
+                  )}
+                </FlexColumn>
+              )}
+            </FlexColumn>
+
+            <Box id="guided-flows">
+              <StartCreationTypes
+                primary={creationCards.primary}
+                more={creationCards.more}
+                expanded={showMoreFlows}
+                onToggleExpanded={() => setShowMoreFlows((shown) => !shown)}
+                onSelect={handleCreationCard}
+                moreControls={
+                  <FlexRow justify="flex-end">
+                    <InspectorSelect
+                      label={t("pass3_32.projects.home.gameDimension")}
+                      value={gameDimension}
+                      options={[
+                        { value: "2d", label: t("pass3_32.projects.home.game2d") },
+                        { value: "3d", label: t("pass3_32.projects.home.game3d") }
+                      ]}
+                      onChange={(value) => {
+                        if (value === "2d" || value === "3d") {
+                          setGameDimension(value);
+                        }
+                      }}
+                    />
+                  </FlexRow>
+                }
+              />
+            </Box>
           </FlexColumn>
 
-          {/* A project with no documents has nothing to resume, so the flow
-              cards come first and stay on the first screen. */}
-          {noDocuments && projectWork}
+          <RecentProjects />
 
-          {/* Examples come after the flows: they are a place to browse, not
-              the first thing to do. */}
-          <StartExamples
-            onBrowseAll={handleOpenExamples}
-            onMakeGame={handleMakeGame}
-          />
+          {/* Examples are a place to browse, so they sit after the ways to
+              make something and the way back into recent work. */}
+          <ExploreExamples />
+
+          {projectWork}
         </FlexColumn>
 
         <Box sx={{ flex: 1, minHeight: SPACING.xxxl }} />

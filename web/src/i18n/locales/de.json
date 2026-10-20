@@ -6196,13 +6196,9 @@
         "openDocument": "Dein {{kind}} öffnen",
         "describeRegion": "Beschreibe, was du erstellen möchtest",
         "heading": "Was möchtest du erstellen?",
-        "intro": "Stelle eine Frage und erhalte eine Antwort oder beschreibe, was du erstellen möchtest. Ein Agent plant und erstellt es, während du zusiehst. Alles bleibt bearbeitbar.",
-        "quickCreateGroup": "Spiel oder 3D-Modell erstellen",
-        "game": "Spiel",
-        "newModel": "Neues 3D-Modell",
-        "newModelTooltip": "Öffne ein leeres 3D-Modell und bearbeite es von Hand. Kein KI-Anbieter erforderlich.",
+        "intro": "Mach aus einer Idee Bilder, Videos, Apps und Workflows. Stell eine Frage oder beschreib, was entstehen soll.",
         "chatPromptLabel": "Chat-Prompt",
-        "promptPlaceholder": "Stelle eine Frage oder beschreibe, was erstellt werden soll: ein 30-sekündiger Launch-Spot für unsere Schreibtischlampe. Gib / für einen Skill oder @ für eine Datei oder Entität ein.",
+        "promptPlaceholder": "Beschreib, was du erstellen möchtest. Tippe / für einen Skill, @ für eine Datei oder Entität.",
         "removeReference": "{{name}} entfernen",
         "referenceImages": "Referenzbilder",
         "referenceImageCountShort_one": "Referenzbilder · {{count}}",
@@ -6218,14 +6214,9 @@
         "moreStarters_other": "{{count}} weitere",
         "pickSkillOrDescribe": "Wähle einen Skill für den Einstieg oder beschreibe einfach, was du möchtest.",
         "guidedFlowsRegion": "Mit einem geführten Ablauf starten",
-        "guidedFlowsHeading": "Mit einem geführten Ablauf starten",
-        "guidedFlowsDescription": "Ein paar kurze Schritte, jeder endet mit einem Dokument, das du weiterbearbeitest.",
-        "gameStartsAs": "Spielkarte beginnt als",
         "gameDimension": "Spieldimension",
         "game2d": "2D-Spiel",
         "game3d": "3D-Erkundung",
-        "fewerFormats": "Weniger Formate",
-        "moreFormats": "Mehr Formate",
         "blankDocument": "Leeres Dokument",
         "blankDocumentDescription": "— wird als lose Registerkarte außerhalb eines Projekts geöffnet",
         "browseExamples": "Beispiele durchsuchen",
@@ -6257,7 +6248,59 @@
           "txt": "Klartext (.txt)"
         },
         "unsupportedReferenceFiles_one": "Nur Bilder können als Referenzbilder verwendet werden. {{files}} wurde nicht hinzugefügt.",
-        "unsupportedReferenceFiles_other": "Nur Bilder können als Referenzbilder verwendet werden. {{files}} wurden nicht hinzugefügt."
+        "unsupportedReferenceFiles_other": "Nur Bilder können als Referenzbilder verwendet werden. {{files}} wurden nicht hinzugefügt.",
+        "createCards": {
+          "image": {
+            "title": "Bild erstellen",
+            "description": "Aus einem einfachen Prompt"
+          },
+          "video": {
+            "title": "Video erstellen",
+            "description": "Ideen werden zu Clips"
+          },
+          "app": {
+            "title": "App erstellen",
+            "description": "Eine Seite, die andere nutzen können"
+          },
+          "workflow": {
+            "title": "Workflow erstellen",
+            "description": "Schritte automatisieren und kombinieren"
+          },
+          "model3d": {
+            "title": "3D-Modell",
+            "description": "Ein leeres 3D-Modell zum Bearbeiten von Hand. Kein KI-Anbieter nötig."
+          }
+        },
+        "allTypes": {
+          "title": "Alle Erstellungsarten ansehen",
+          "description": "Storyboards, 3D, Spiele, Skripte, Vorlesen und mehr"
+        },
+        "recentProjects": {
+          "heading": "Zuletzt bearbeitete Projekte",
+          "viewAll": "Alle Projekte ansehen",
+          "edited": "Bearbeitet {{time}}"
+        },
+        "exploreExamples": {
+          "heading": "Beispiele entdecken",
+          "intro": "Lass dich inspirieren und starte mit einem fertigen Beispiel.",
+          "viewAll": "Alle Beispiele ansehen",
+          "images": {
+            "title": "Bildergalerie",
+            "description": "Skizzen, Kunst und Illustrationen"
+          },
+          "videos": {
+            "title": "Videobeispiele",
+            "description": "Trailer, Werbespots und Schnitte"
+          },
+          "apps": {
+            "title": "App-Beispiele",
+            "description": "Web-Apps und Tools"
+          },
+          "workflows": {
+            "title": "Workflow-Beispiele",
+            "description": "Automatisierungen, mehrstufig"
+          }
+        }
       }
     }
   },
