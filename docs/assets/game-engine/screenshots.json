@@ -4,7 +4,7 @@
       "file": "docs/assets/game-engine/kindle.png",
       "source": "packages/cli/tests/fixtures/native-game-goldens/kindle.png",
       "sourceCommit": "f328d856addeffd49f5d19c233957cab7b1ccb45",
-      "sha256": "7901b3f445c7011d4584fc98dfaf351ec908b072ff0fa36989a901f2ff6e19e1",
+      "sha256": "6724bde484e2127e71914dc099a87fdd5ec9cc4b12c2aab72ffbc7b81f9126a9",
       "width": 1280,
       "height": 720,
       "tick": 60,

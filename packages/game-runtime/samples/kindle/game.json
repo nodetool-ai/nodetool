@@ -567,14 +567,6 @@
             "intensity": 1.2,
             "radius": 5,
             "falloff": 1.4
-          },
-          {
-            "x": 0,
-            "y": -3.4,
-            "color": "#46d8cc",
-            "intensity": 0.9,
-            "radius": 7,
-            "falloff": 1.5
           }
         ]
       },
@@ -654,26 +646,6 @@
             "y": -1.6
           },
           "mode": "repeatX",
-          "scrollRate": {
-            "x": 0,
-            "y": 0
-          }
-        },
-        {
-          "id": "vignette",
-          "assetId": "vignette",
-          "width": 20.2,
-          "height": 11.36,
-          "layer": 60,
-          "parallax": {
-            "x": 0,
-            "y": 0
-          },
-          "origin": {
-            "x": 0,
-            "y": 0
-          },
-          "mode": "none",
           "scrollRate": {
             "x": 0,
             "y": 0
@@ -2506,8 +2478,9 @@
                   "min": 0.35,
                   "max": 0.6
                 },
-                "color": "#3a3446",
-                "opacity": 0.35,
+                "color": "#2c2836",
+                "opacity": 0.32,
+                "unlit": true,
                 "sizeOverLifetime": [
                   {
                     "t": 0,
@@ -3310,12 +3283,6 @@
             "scaleY": 1
           },
           "behaviors": [],
-          "light2d": {
-            "color": "#46d8cc",
-            "intensity": 1.1,
-            "radius": 10.8,
-            "falloff": 1.5
-          },
           "particles": {
             "emitters": [
               {
@@ -3475,6 +3442,17 @@
       "ui": {
         "safeArea": true,
         "nodes": [
+          {
+            "kind": "image",
+            "id": "vignette",
+            "anchor": {
+              "x": 0,
+              "y": 0
+            },
+            "width": 1280,
+            "height": 720,
+            "assetId": "vignette"
+          },
           {
             "kind": "text",
             "id": "logo",
@@ -3681,38 +3659,6 @@
             "intensity": 1,
             "radius": 4,
             "falloff": 1.6
-          },
-          {
-            "x": 30.0,
-            "y": -2.7,
-            "color": "#3fd0c4",
-            "intensity": 0.9,
-            "radius": 4,
-            "falloff": 1.6
-          },
-          {
-            "x": 40.0,
-            "y": -3.7,
-            "color": "#3fd0c4",
-            "intensity": 0.9,
-            "radius": 4,
-            "falloff": 1.6
-          },
-          {
-            "x": 71.0,
-            "y": -3.7,
-            "color": "#3fd0c4",
-            "intensity": 0.9,
-            "radius": 9.0,
-            "falloff": 1.6
-          },
-          {
-            "x": 159.0,
-            "y": -1.7000000000000002,
-            "color": "#3fd0c4",
-            "intensity": 0.9,
-            "radius": 9.0,
-            "falloff": 1.6
           }
         ]
       },
@@ -3792,26 +3738,6 @@
             "y": -1.6
           },
           "mode": "repeatX",
-          "scrollRate": {
-            "x": 0,
-            "y": 0
-          }
-        },
-        {
-          "id": "vignette",
-          "assetId": "vignette",
-          "width": 20.2,
-          "height": 11.36,
-          "layer": 60,
-          "parallax": {
-            "x": 0,
-            "y": 0
-          },
-          "origin": {
-            "x": 0,
-            "y": 0
-          },
-          "mode": "none",
           "scrollRate": {
             "x": 0,
             "y": 0
@@ -54058,7 +53984,7 @@
                   "min": "#7c7186",
                   "max": "#b8a894"
                 },
-                "opacity": 0.55,
+                "opacity": 0.45,
                 "sizeOverLifetime": [
                   {
                     "t": 0,
@@ -54080,7 +54006,8 @@
                   }
                 ],
                 "drag": 2.5,
-                "layer": 6
+                "layer": 6,
+                "unlit": true
               }
             ]
           }
@@ -54307,8 +54234,9 @@
                   "min": 0.35,
                   "max": 0.6
                 },
-                "color": "#3a3446",
-                "opacity": 0.35,
+                "color": "#2c2836",
+                "opacity": 0.32,
+                "unlit": true,
                 "sizeOverLifetime": [
                   {
                     "t": 0,
@@ -54623,8 +54551,9 @@
                   "min": 0.35,
                   "max": 0.6
                 },
-                "color": "#3a3446",
-                "opacity": 0.35,
+                "color": "#2c2836",
+                "opacity": 0.32,
+                "unlit": true,
                 "sizeOverLifetime": [
                   {
                     "t": 0,
@@ -54933,8 +54862,8 @@
           "behaviors": [],
           "light2d": {
             "color": "#46d8cc",
-            "intensity": 1.1,
-            "radius": 3.5,
+            "intensity": 1.2,
+            "radius": 3,
             "falloff": 1.5
           },
           "particles": {
@@ -55185,8 +55114,8 @@
           "behaviors": [],
           "light2d": {
             "color": "#46d8cc",
-            "intensity": 1.1,
-            "radius": 3.5,
+            "intensity": 1.2,
+            "radius": 3,
             "falloff": 1.5
           },
           "particles": {
@@ -55677,8 +55606,8 @@
           "behaviors": [],
           "light2d": {
             "color": "#46d8cc",
-            "intensity": 1.1,
-            "radius": 8.1,
+            "intensity": 1.2,
+            "radius": 4.5,
             "falloff": 1.5
           },
           "particles": {
@@ -56169,8 +56098,8 @@
           "behaviors": [],
           "light2d": {
             "color": "#46d8cc",
-            "intensity": 1.1,
-            "radius": 8.1,
+            "intensity": 1.2,
+            "radius": 4.5,
             "falloff": 1.5
           },
           "particles": {
@@ -56842,6 +56771,17 @@
       "ui": {
         "safeArea": true,
         "nodes": [
+          {
+            "kind": "image",
+            "id": "vignette",
+            "anchor": {
+              "x": 0,
+              "y": 0
+            },
+            "width": 1280,
+            "height": 720,
+            "assetId": "vignette"
+          },
           {
             "kind": "panel",
             "id": "hud-left",
