@@ -116,3 +116,31 @@ describe("AssetItemContextMenu — Use as entity (study-7)", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("AssetItemContextMenu — Transform with workflow", () => {
+  beforeEach(() => {
+    closeContextMenu.mockClear();
+    useAssetGridStore.setState({ transformAsset: null });
+  });
+
+  it("opens the transform dialog for the right-clicked file", async () => {
+    const video = asset({ id: "video-1", content_type: "video/mp4" });
+    renderMenu([video]);
+
+    await userEvent.click(screen.getByText("Transform with workflow…"));
+
+    expect(useAssetGridStore.getState().transformAsset).toBe(video);
+    expect(closeContextMenu).toHaveBeenCalled();
+  });
+
+  it("is not offered for several files", () => {
+    renderMenu([asset({ id: "a" }), asset({ id: "b" })]);
+    expect(screen.queryByText("Transform with workflow…")).not.toBeInTheDocument();
+  });
+
+  it("is not offered for a folder", () => {
+    renderMenu([asset({ content_type: "folder", name: "Shots" })]);
+    expect(screen.getByText("Rename")).toBeInTheDocument();
+    expect(screen.queryByText("Transform with workflow…")).not.toBeInTheDocument();
+  });
+});

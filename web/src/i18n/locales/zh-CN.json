@@ -180,6 +180,8 @@
     "openAssetAsTabTooltip": "在新的编辑器标签页中打开此素材",
     "sendToWorkflow": "发送到工作流",
     "sendMediaToWorkflowTooltip": "将所选媒体作为常量节点添加到工作流画布",
+    "transformWithWorkflow": "用工作流转换…",
+    "transformWithWorkflowTooltip": "用你的某个工作流处理此文件",
     "useAsEntity": "用作实体…",
     "useAsEntityTooltip": "将此图像标记为角色、地点、风格或道具，以便在不同镜头中重复使用",
     "editTimeline": "编辑时间线",
@@ -18429,6 +18431,51 @@
         "waitingToStart": "等待开始…",
         "buildingGraph": "正在构建图…"
       }
+    }
+  },
+  "transformWithWorkflow": {
+    "title": "用工作流转换",
+    "sourceKind": "来源：{{kind}}",
+    "pickDescription": "选择一个带有{{kind}}输入的工作流。其他输入保持已保存的值。",
+    "searchPlaceholder": "按名称搜索工作流",
+    "searchLabel": "工作流",
+    "loadFailed": "无法加载你的工作流。",
+    "noWorkflowsTitle": "没有匹配的工作流",
+    "noWorkflowsDescription": "在工作流中添加{{kind}}输入节点后即可在此使用。",
+    "noSearchResults": "没有与“{{query}}”匹配的工作流。",
+    "chooseInput": "此工作流有多个匹配的输入。请选择接收该文件的输入。",
+    "unsupportedTitle": "没有可转换的内容",
+    "unsupportedDescription": "文件夹不能通过工作流处理。",
+    "run": "运行",
+    "cancel": "取消",
+    "close": "关闭",
+    "cancelRun": "停止运行",
+    "chooseAnother": "选择其他工作流",
+    "runAgain": "再次运行",
+    "done": "完成",
+    "progress": "进度",
+    "runningNode": "正在运行 {{node}}",
+    "nodeProgress": "当前步骤",
+    "updates": "更新",
+    "outputs": "输出",
+    "noOutputs": "工作流已完成，但没有输出。",
+    "transformOutput": "转换",
+    "saveToAssets": "保存到素材",
+    "inAssets": "已在素材中",
+    "saveFailed": "无法将输出保存到你的素材。",
+    "status": {
+      "idle": "就绪",
+      "running": "运行中",
+      "completed": "完成",
+      "failed": "失败",
+      "cancelled": "已停止"
+    },
+    "kind": {
+      "image": "图像",
+      "video": "视频",
+      "audio": "音频",
+      "model3d": "3D 模型",
+      "document": "文档"
     }
   }
 }

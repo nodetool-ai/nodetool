@@ -180,6 +180,8 @@
     "openAssetAsTabTooltip": "Dieses Asset in einem neuen Editor-Tab öffnen",
     "sendToWorkflow": "An Workflow senden",
     "sendMediaToWorkflowTooltip": "Ausgewählte Medien als Konstanten-Knoten zu einer Workflow-Leinwand hinzufügen",
+    "transformWithWorkflow": "Mit Workflow umwandeln…",
+    "transformWithWorkflowTooltip": "Diese Datei durch einen deiner Workflows laufen lassen",
     "useAsEntity": "Als Entität verwenden …",
     "useAsEntityTooltip": "Markiere dieses Bild als Figur, Ort, Stil oder Requisite, um es in mehreren Einstellungen wiederzuverwenden",
     "editTimeline": "Timeline bearbeiten",
@@ -18429,6 +18431,51 @@
         "waitingToStart": "Warten auf Start…",
         "buildingGraph": "Graph wird erstellt…"
       }
+    }
+  },
+  "transformWithWorkflow": {
+    "title": "Mit Workflow umwandeln",
+    "sourceKind": "Quelle: {{kind}}",
+    "pickDescription": "Wähle einen Workflow mit einem Eingang für {{kind}}. Seine anderen Eingänge behalten ihre gespeicherten Werte.",
+    "searchPlaceholder": "Workflows nach Namen suchen",
+    "searchLabel": "Workflows",
+    "loadFailed": "Deine Workflows konnten nicht geladen werden.",
+    "noWorkflowsTitle": "Keine passenden Workflows",
+    "noWorkflowsDescription": "Füge einem Workflow einen Eingangsknoten für {{kind}} hinzu, um ihn hier zu verwenden.",
+    "noSearchResults": "Keine Workflows passen zu „{{query}}“.",
+    "chooseInput": "Dieser Workflow hat mehrere passende Eingänge. Wähle den Eingang für die Datei.",
+    "unsupportedTitle": "Nichts umzuwandeln",
+    "unsupportedDescription": "Ordner können nicht durch einen Workflow laufen.",
+    "run": "Ausführen",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "cancelRun": "Lauf stoppen",
+    "chooseAnother": "Anderen Workflow wählen",
+    "runAgain": "Erneut ausführen",
+    "done": "Fertig",
+    "progress": "Fortschritt",
+    "runningNode": "{{node}} läuft",
+    "nodeProgress": "Aktueller Schritt",
+    "updates": "Updates",
+    "outputs": "Ausgaben",
+    "noOutputs": "Der Workflow wurde ohne Ausgaben beendet.",
+    "transformOutput": "Umwandeln",
+    "saveToAssets": "In Assets speichern",
+    "inAssets": "In Assets",
+    "saveFailed": "Die Ausgabe konnte nicht in deinen Assets gespeichert werden.",
+    "status": {
+      "idle": "Bereit",
+      "running": "Läuft",
+      "completed": "Fertig",
+      "failed": "Fehlgeschlagen",
+      "cancelled": "Gestoppt"
+    },
+    "kind": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Audio",
+      "model3d": "3D-Modell",
+      "document": "Dokument"
     }
   }
 }
