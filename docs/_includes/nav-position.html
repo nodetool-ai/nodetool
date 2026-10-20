@@ -1,10 +1,12 @@
 {%- comment -%}
   Finds the current page in _data/navigation.yml. Sets nav_section (the
-  sidebar group title), nav_prev and nav_next (neighbouring entries in reading
-  order, across groups). All three stay empty for pages not in the sidebar.
+  sidebar group title), nav_section_url (the group's first page, which the
+  breadcrumb links to), nav_prev and nav_next (neighbouring entries in reading
+  order, across groups). All stay empty for pages not in the sidebar.
 {%- endcomment -%}
 {%- assign nav_key = page.url | remove: ".html" -%}
 {%- assign nav_section = nil -%}
+{%- assign nav_section_url = nil -%}
 {%- assign nav_prev = nil -%}
 {%- assign nav_next = nil -%}
 {%- assign nav_last_item = nil -%}
@@ -16,6 +18,7 @@
     {%- elsif item.url == nav_key -%}
       {%- assign nav_found = true -%}
       {%- assign nav_section = section.title -%}
+      {%- assign nav_section_url = section.pages.first.url -%}
       {%- assign nav_prev = nav_last_item -%}
     {%- endif -%}
     {%- assign nav_last_item = item -%}

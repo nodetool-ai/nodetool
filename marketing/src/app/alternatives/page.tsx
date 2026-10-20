@@ -3,6 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import JsonLd from "../../components/JsonLd";
+import ReadMoreLinks from "@/components/ReadMoreLinks";
 import { breadcrumbSchema, itemListSchema } from "@/lib/jsonld";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 import { ALTERNATIVES_CATEGORY_ORDER, ALTERNATIVES_INTRO, competitors } from "@/data/competitorEntries";
@@ -34,6 +35,13 @@ function groupedCompetitors() {
   };
   return [...groups.entries()].sort(([a], [b]) => rank(a) - rank(b));
 }
+
+const READ_MORE = [
+  { label: "Why NodeTool, in the docs", href: "https://docs.nodetool.ai/comparisons" },
+  { label: "Node-based workflows", href: "/node-based-workflows" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Download NodeTool", href: "/download" },
+];
 
 export default function AlternativesIndexPage() {
   const groups = groupedCompetitors();
@@ -68,6 +76,7 @@ export default function AlternativesIndexPage() {
               </ul>
             </section>
           ))}
+          <ReadMoreLinks id="alternatives-links" links={READ_MORE} />
         </div>
         <JsonLd data={breadcrumbSchema([{ name: "Comparisons", url: "/alternatives" }])} />
         <JsonLd

@@ -20,6 +20,7 @@ import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
 import McpInstallCommand from "../../components/agents/McpInstallCommand";
 import TrackedLink from "../../components/TrackedLink";
+import ReadMoreLinks from "../../components/ReadMoreLinks";
 import AgentSessionMock from "../../components/developers/AgentSessionMock";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import CodeBlock from "../../components/developers/CodeBlock";
@@ -165,6 +166,13 @@ const deeperLinks = [
     body: "Deploy the container image on your own infrastructure.",
     href: "https://docs.nodetool.ai/self-hosted-deployment",
   },
+];
+
+const DEVELOPER_PAGES = [
+  { label: "MCP server for coding agents", href: "/mcp" },
+  { label: "Agents: the open-source creative harness", href: "/agents" },
+  { label: "@nodetool-ai/browser: drive your signed-in Chrome", href: "/libraries/browser" },
+  { label: "@nodetool-ai/sandbox-compiler: run npm packages in QuickJS", href: "/libraries/sandbox-compiler" },
 ];
 
 function NumberedSteps({ items }: { items: { title: string; body: string }[] }) {
@@ -455,6 +463,12 @@ export default function DevelopersPage() {
               </li>
             ))}
           </ul>
+          <ReadMoreLinks
+            id="developer-pages"
+            heading="More for developers"
+            className="mt-12 max-w-3xl"
+            links={DEVELOPER_PAGES}
+          />
         </div>
       </section>
 

@@ -69,22 +69,31 @@ export interface TemplateEntry extends PageEntry {
 
 export { templateEntries } from "./templateEntries.generated";
 
-/** Templates sharing the most tags with `entry`, best first. */
+/**
+ * Indexable templates sharing the most tags with `entry`, best first. Ties go
+ * to the templates that follow `entry` in `all`, wrapping around, rather than
+ * to the alphabetically first ones: an alphabetical tie-break sent most related
+ * links to a few templates and left others linked from the hub alone.
+ */
 export function relatedTemplates(
   entry: TemplateEntry,
   all: TemplateEntry[],
   limit = 9,
 ): TemplateEntry[] {
   const tags = new Set(entry.tags);
+  const origin = all.findIndex((t) => t.slug === entry.slug);
+  const distance = (index: number) =>
+    (index - origin + all.length) % all.length;
   return all
-    .filter((t) => t.slug !== entry.slug)
-    .map((t) => ({
+    .map((t, index) => ({
       t,
+      distance: distance(index),
       score:
         t.tags.filter((tag) => tags.has(tag)).length +
         (t.category === entry.category ? 0.5 : 0),
     }))
-    .sort((a, b) => b.score - a.score || a.t.name.localeCompare(b.t.name))
+    .filter(({ t }) => t.slug !== entry.slug && t.indexable)
+    .sort((a, b) => b.score - a.score || a.distance - b.distance)
     .slice(0, limit)
     .map((x) => x.t);
 }

@@ -100,6 +100,7 @@ export const IMAGE_FAQ: QaPair[] = [
 export const IMAGE_LINKS: { label: string; href: string }[] = [
   { label: "Sketch Editor guide", href: "https://docs.nodetool.ai/sketch-editor" },
   { label: "AI video editor", href: "/ai-video-editor" },
+  { label: "Storyboards made in NodeTool", href: "/storyboards" },
   { label: "AI for advertising", href: "/marketing" },
   { label: "MCP server for coding agents", href: "/mcp" },
   { label: "Every supported model", href: "/models" },

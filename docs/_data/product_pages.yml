@@ -1,0 +1,42 @@
+# Docs page -> the nodetool.ai page that presents the same feature. The page
+# layout renders the entry as an "On nodetool.ai" link below the content, so a
+# reader of a guide can reach the product overview and examples. Keys match
+# the page URLs in navigation.yml. Point only at routes that exist under
+# marketing/src/app.
+
+"/key-concepts": { title: "Node-based workflows", url: "https://nodetool.ai/node-based-workflows" }
+"/first-workflow": { title: "Node-based workflows", url: "https://nodetool.ai/node-based-workflows" }
+"/workflow-editor": { title: "Node-based workflows", url: "https://nodetool.ai/node-based-workflows" }
+"/nodes/": { title: "Node-based workflows", url: "https://nodetool.ai/node-based-workflows" }
+"/templates-gallery": { title: "Templates", url: "https://nodetool.ai/templates" }
+"/installation": { title: "Download NodeTool", url: "https://nodetool.ai/download" }
+"/desktop-app": { title: "Download NodeTool", url: "https://nodetool.ai/download" }
+"/comparisons": { title: "NodeTool alternatives compared", url: "https://nodetool.ai/alternatives" }
+"/creative-agent": { title: "Agents", url: "https://nodetool.ai/agents" }
+"/global-chat-agents": { title: "Agents", url: "https://nodetool.ai/agents" }
+"/storyboard-editor": { title: "Storyboards", url: "https://nodetool.ai/storyboards" }
+"/ai-video-production": { title: "AI video editor", url: "https://nodetool.ai/ai-video-editor" }
+"/video-editor": { title: "AI video editor", url: "https://nodetool.ai/ai-video-editor" }
+"/ai-timeline-editing": { title: "AI video editor", url: "https://nodetool.ai/ai-video-editor" }
+"/sketch-editor": { title: "AI image editor", url: "https://nodetool.ai/ai-image-editor" }
+"/game-editor": { title: "Game development", url: "https://nodetool.ai/gamedev" }
+"/game-engine/": { title: "Game development", url: "https://nodetool.ai/gamedev" }
+"/game-engine/quick-start": { title: "Game development", url: "https://nodetool.ai/gamedev" }
+"/mcp-server": { title: "MCP server", url: "https://nodetool.ai/mcp" }
+"/mcp-production": { title: "MCP server", url: "https://nodetool.ai/mcp" }
+"/models-and-providers": { title: "Supported models", url: "https://nodetool.ai/models" }
+"/models": { title: "Supported models", url: "https://nodetool.ai/models" }
+"/providers": { title: "Providers", url: "https://nodetool.ai/providers" }
+"/costs-and-credits": { title: "Pricing", url: "https://nodetool.ai/pricing" }
+"/use-cases": { title: "Recipes", url: "https://nodetool.ai/recipes" }
+"/use-cases/movie-trailer": { title: "Movie trailer use case", url: "https://nodetool.ai/use-cases/movie-trailer" }
+"/use-cases/movie-poster": { title: "Movie poster use case", url: "https://nodetool.ai/use-cases/movie-poster" }
+"/use-cases/documentary-teaser": { title: "Documentary teaser use case", url: "https://nodetool.ai/use-cases/documentary-teaser" }
+"/use-cases/product-video": { title: "Product video use case", url: "https://nodetool.ai/use-cases/product-video" }
+"/cookbook": { title: "Recipes", url: "https://nodetool.ai/recipes" }
+"/developer/": { title: "NodeTool for developers", url: "https://nodetool.ai/developers" }
+"/api-reference": { title: "NodeTool for developers", url: "https://nodetool.ai/developers" }
+"/developer/sdk": { title: "NodeTool for developers", url: "https://nodetool.ai/developers" }
+"/self-hosted-deployment": { title: "NodeTool for developers", url: "https://nodetool.ai/developers" }
+"/chrome-extension": { title: "@nodetool-ai/browser", url: "https://nodetool.ai/libraries/browser" }
+"/javascript-sandbox": { title: "@nodetool-ai/sandbox-compiler", url: "https://nodetool.ai/libraries/sandbox-compiler" }

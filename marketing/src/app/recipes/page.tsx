@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import ReadMoreLinks from "@/components/ReadMoreLinks";
 import TrackedLink from "@/components/TrackedLink";
 import RecipeCard from "@/components/RecipeCard";
 import { recipeEntries } from "@/data/recipes";
@@ -23,6 +24,13 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
+
+const READ_MORE = [
+  { label: "Workflow templates", href: "/templates" },
+  { label: "Ad library", href: "/ad-library" },
+  { label: "Cookbook", href: "https://docs.nodetool.ai/cookbook" },
+  { label: "Use cases guide", href: "https://docs.nodetool.ai/use-cases" },
+];
 
 export default function RecipesHub() {
   const itemListLd = {
@@ -96,6 +104,8 @@ export default function RecipesHub() {
             </div>
           </div>
         </section>
+      <ReadMoreLinks id="recipes-links" links={READ_MORE} className="mx-auto max-w-5xl px-6 pb-24" />
+
       </div>
       <SiteFooter />
     </main>

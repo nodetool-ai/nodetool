@@ -73,5 +73,5 @@ test("the game page fits on a phone and offers the full touch player", async ({ 
   await expect(page.getByRole("link", { name: "Open full game", exact: true })).toHaveAttribute("target", "_blank");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole("button", { name: "Open menu" }).click();
-  await expect(page.getByRole("dialog", { name: "Site menu" }).getByRole("link", { name: "Game dev", exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Site menu" }).getByRole("link", { name: "Game development", exact: true })).toBeVisible();
 });

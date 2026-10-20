@@ -3,6 +3,7 @@ import { Download, ArrowRight } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import JsonLd from "../../components/JsonLd";
+import ReadMoreLinks from "@/components/ReadMoreLinks";
 import FaqSection from "../../components/FaqSection";
 import SearchStarter from "../../components/SearchStarter";
 import { breadcrumbSchema, itemListSchema } from "../../lib/jsonld";
@@ -117,6 +118,15 @@ const faq = [
     answer:
       "No, and the two get searched for interchangeably. Node-based refers to the graph — boxes and connections on a canvas. NodeTool's backend does happen to run on Node.js and ships a TypeScript SDK, so if you arrived looking for AI in Node.js, the developer docs cover that too.",
   },
+];
+
+const READ_MORE = [
+  { label: "Node-based workflows", href: "/node-based-workflows" },
+  { label: "Workflow templates", href: "/templates" },
+  { label: "Every supported model", href: "/models" },
+  { label: "Agents that build the graph for you", href: "/agents" },
+  { label: "Key concepts guide", href: "https://docs.nodetool.ai/key-concepts" },
+  { label: "Node reference", href: "https://docs.nodetool.ai/nodes/" },
 ];
 
 export default function NodeBasedAiPage() {
@@ -331,6 +341,8 @@ export default function NodeBasedAiPage() {
         </section>
 
         <FaqSection items={faq} />
+
+        <ReadMoreLinks id="node-ai-links" links={READ_MORE} className="mx-auto mt-16 max-w-3xl px-6" />
 
         <section className="mx-auto my-24 max-w-2xl px-6 text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">

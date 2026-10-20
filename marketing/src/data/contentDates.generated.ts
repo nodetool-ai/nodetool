@@ -23,20 +23,20 @@ export const contentDates: {
       "hash": "b9a7ae3e72adb4a0"
     },
     "/ai-video-editor": {
-      "date": "2026-10-17",
-      "hash": "24ad74597b981888"
+      "date": "2026-10-20",
+      "hash": "fd9ee060019f6aa6"
     },
     "/ai-image-editor": {
-      "date": "2026-10-17",
-      "hash": "aba3028184ac67e9"
+      "date": "2026-10-20",
+      "hash": "f766b366d635ba58"
     },
     "/mcp": {
-      "date": "2026-10-17",
-      "hash": "6bbedc4db5b90e3e"
+      "date": "2026-10-20",
+      "hash": "ffaab11d5322e861"
     },
     "/developers": {
-      "date": "2026-10-17",
-      "hash": "9f60c8802a434e2a"
+      "date": "2026-10-20",
+      "hash": "11bc235d47950bb7"
     },
     "/studio": {
       "date": "2026-10-17",

@@ -38,6 +38,42 @@ test.describe("marketing smoke", () => {
     ).toBeVisible();
   });
 
+  test("header menus link every landing page and open from the keyboard", async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/mcp");
+    const nav = page.getByRole("navigation", { name: "Primary" });
+
+    const product = nav.getByRole("button", { name: "Product" });
+    await expect(product).toHaveAttribute("aria-expanded", "false");
+    await product.focus();
+    await page.keyboard.press("Enter");
+    await expect(product).toHaveAttribute("aria-expanded", "true");
+    for (const href of [
+      "/node-based-workflows",
+      "/agents",
+      "/ai-video-editor",
+      "/ai-image-editor",
+      "/mcp",
+      "/models"
+    ]) {
+      await expect(nav.locator(`a[href="${href}"]`)).toBeVisible();
+    }
+    await expect(nav.locator('a[href="/mcp"]')).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+    await page.keyboard.press("Escape");
+    await expect(product).toHaveAttribute("aria-expanded", "false");
+    await expect(product).toBeFocused();
+
+    await nav.getByRole("button", { name: "Resources" }).hover();
+    await expect(nav.locator('a[href="/alternatives"]')).toBeVisible();
+    await nav.getByRole("button", { name: "Solutions" }).hover();
+    await expect(nav.locator('a[href="/gamedev"]')).toBeVisible();
+  });
+
   test("homepage download CTA lands on the first-party download page", async ({
     page
   }) => {

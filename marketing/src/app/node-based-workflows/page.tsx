@@ -3,6 +3,7 @@ import { Download, ArrowRight } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import JsonLd from "../../components/JsonLd";
+import ReadMoreLinks from "@/components/ReadMoreLinks";
 import FaqSection from "../../components/FaqSection";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import SearchStarter from "../../components/SearchStarter";
@@ -189,6 +190,17 @@ const faq = [
     answer:
       "NodeTool is open source under AGPL-3.0, and NodeTool Studio is free to run on macOS, Windows, and Linux. You pay hosted providers directly for the generations you run, and local models cost nothing per run.",
   },
+];
+
+const READ_MORE = [
+  { label: "Node-based AI: what the nodes do", href: "/node-based-ai" },
+  { label: "Workflow templates", href: "/templates" },
+  { label: "Every supported model", href: "/models" },
+  { label: "MCP server for coding agents", href: "/mcp" },
+  { label: "Key concepts guide", href: "https://docs.nodetool.ai/key-concepts" },
+  { label: "Your first workflow", href: "https://docs.nodetool.ai/first-workflow" },
+  { label: "Workflow Editor guide", href: "https://docs.nodetool.ai/workflow-editor" },
+  { label: "Node reference", href: "https://docs.nodetool.ai/nodes/" },
 ];
 
 export default function NodeBasedWorkflowsPage() {
@@ -453,6 +465,8 @@ export default function NodeBasedWorkflowsPage() {
         </section>
 
         <FaqSection items={faq} />
+
+        <ReadMoreLinks id="workflow-links" links={READ_MORE} className="mx-auto mt-16 max-w-3xl px-6" />
 
         <section className="mx-auto my-24 max-w-2xl px-6 text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
