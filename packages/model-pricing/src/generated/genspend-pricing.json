@@ -2,8 +2,8 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-10-13T10:52:53.057Z",
-  "catalogGeneratedAt": "2026-10-13T10:52:51.845Z",
+  "updatedAt": "2026-10-20T08:47:13.566Z",
+  "catalogGeneratedAt": "2026-10-20T08:47:12.111Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
   "catalogModels": 165,
   "catalogOfferings": 563,
@@ -19,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 364,
+  "pricedModels": 363,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.0/reference-to-video": {
       "unit_price": 0.14,
@@ -5574,69 +5574,6 @@
           8
         ],
         "max": 8
-      }
-    },
-    "kie:bytedance/seedance-1.5-pro": {
-      "unit_price": 0.0175,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "seedance-1.5-pro",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://kie.ai/seedance-1-5-pro",
-      "variants": [
-        {
-          "price_usd": 0.0175,
-          "unit_class": "per-video-second",
-          "resolution": "720p",
-          "with_audio": false,
-          "tier": "pro",
-          "is_base": true
-        },
-        {
-          "price_usd": 0.075,
-          "unit_class": "per-video-second",
-          "resolution": "1080p",
-          "with_audio": true,
-          "tier": "pro",
-          "is_base": false
-        },
-        {
-          "price_usd": 0.0375,
-          "unit_class": "per-video-second",
-          "resolution": "1080p",
-          "with_audio": false,
-          "tier": "pro",
-          "is_base": false
-        },
-        {
-          "price_usd": 0.035,
-          "unit_class": "per-video-second",
-          "resolution": "720p",
-          "with_audio": true,
-          "tier": "pro",
-          "is_base": false
-        },
-        {
-          "price_usd": 0.0175,
-          "unit_class": "per-video-second",
-          "resolution": "480p",
-          "with_audio": true,
-          "tier": "pro",
-          "is_base": false
-        },
-        {
-          "price_usd": 0.00875,
-          "unit_class": "per-video-second",
-          "resolution": "480p",
-          "with_audio": false,
-          "tier": "pro",
-          "is_base": false
-        }
-      ],
-      "clip_seconds": {
-        "min": 4,
-        "max": 12
       }
     },
     "kie:bytedance/seedance-2": {
