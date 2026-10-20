@@ -48,7 +48,7 @@
       "file": "docs/assets/game-engine/blacksite.png",
       "source": "packages/cli/tests/fixtures/native-game-goldens/blacksite.png",
       "sourceCommit": "f328d856addeffd49f5d19c233957cab7b1ccb45",
-      "sha256": "b36c1cf7047d1240039408c995b2388e775aac620687fb0d3e3c24e2ead0d100",
+      "sha256": "002fead126e2d2db8ce13b6a1ef6251efd89c2db8b87addd54713e5b04d6509e",
       "width": 1280,
       "height": 720,
       "tick": 60,

@@ -1,14 +1,29 @@
 # BLACKSITE
 
 A first-person shooter mission built on NodeTool's native 3D runtime. Destroy
-five security drones, then reach the cyan exit behind the reactors. Cover stops
-rifle shots and enemy fire. The rifle holds 18 rounds and reloads in 72 ticks.
-The mission includes original facility and weapon models and synthesized audio.
+five security drones, then reach the cyan extraction gate behind the reactors.
+Cover stops rifle shots and enemy fire. The rifle holds 18 rounds and reloads
+in 72 ticks. Each drone charges for 39 ticks, glowing red, before it fires.
 
-The material pass includes generated albedo textures, a tread-plate normal map,
-beveled machinery, cylindrical reactors, and warm/cool lighting.
-[Texture prompts](textures/PROMPTS.md) record the imagegen inputs.
-This is a playable prototype, not a finished AAA production.
+The mission is the engine's flagship 3D demo. It uses:
+
+- A night look: a moonlit key light with three shadow cascades, a procedural
+  sky, height fog, AgX tone mapping, bloom, vignette, and SMAA.
+- Particles for muzzle flash, tracers, sparks, rain, splashes, steam, embers,
+  and drone explosions. Rifle impacts, explosions, and drone shots are prefabs
+  that the player script spawns, so they cost no script calls.
+- Decals for floor stencils, hazard stripes, oil, grime, and scorch marks.
+- A hover clip in the drone model, played by an animator without a script.
+- A UI widget tree for the HUD, with Bebas Neue and Inter fonts.
+- Spatial sound for drone charges, shots, and explosions, a streamed music
+  loop, and a mixer with buses, reverb, ducking, and an extraction snapshot.
+
+The `tools/` scripts regenerate the media: `synthesize_audio.py` (effects and
+score), `paint_decals.py` (decal images), `build_rifle.py` (rifle model), and
+`prepare_drone.py` (drone hover clip and sensor). Each one documents its usage.
+[Texture prompts](textures/PROMPTS.md) record the facility imagegen inputs.
+Bebas Neue and Inter are under the SIL Open Font License, copied in
+[licenses](licenses/).
 
 Install BLACKSITE from NodeTool's Examples page to copy the game, models, and
 audio into your project. In the editor player, hold the right mouse button to

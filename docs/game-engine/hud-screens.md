@@ -7,9 +7,9 @@ description: "Build working game HUDs and understand the limits of the document 
 
 Use the shared widget tree for persistent HUD elements. Both dimensions use the same layout model. Document screen definitions are accepted by validation, but the shipped runtime and renderer do not implement their menu behavior.
 
-![BLACKSITE HUD with objective, armor, ammunition, and control labels](/assets/game-engine/blacksite.png)
+![BLACKSITE HUD with objective, armor, and ammunition panels drawn by the UI widget tree](/assets/game-engine/blacksite.png)
 
-*BLACKSITE demonstrates gameplay information positioned around the viewport. Its screenshot does not imply a dedicated visual HUD editor. [Capture source](/game-engine/screenshots).*
+*BLACKSITE builds its HUD from UI panels, text, and bars with bundled fonts, and its player script updates them with `ui` commands. The screenshot does not imply a dedicated visual HUD editor. [Capture source](/game-engine/screenshots).*
 
 ## Lay out a HUD
 

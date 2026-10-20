@@ -35,8 +35,9 @@ vi.mock("../src/scripts3d.js", async (importOriginal) => {
   };
 });
 
-// A fresh-context script, so prepare retains no document realm and every context it creates must be disposed.
-const freshSource = "input => { const next = (input.state || 0) + 1; return { state: next, commands: [] }; }";
+// A fresh-context script (its initializer call could keep closure state), so prepare retains no document realm
+// and every context it creates must be disposed.
+const freshSource = "(() => input => { const next = (input.state || 0) + 1; return { state: next, commands: [] }; })()";
 
 function fixture(): GameDocument {
   const base = createTopDownRoomGame("a".repeat(32));
@@ -58,10 +59,11 @@ describe("one-time script setup", () => {
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
     const session = await createGameSession3D(createNative3DGame("a".repeat(32)), 1);
     try {
-      // None of the sample's three scripts is persistent: three validation contexts plus two warm-up contexts.
+      // The sample's three scripts are reusable: three validation contexts, three frozen realms kept for the
+      // session, and three warm-up contexts. Only the frozen realms stay alive.
       const contexts = [...new Set(evaluate.mock.contexts)];
-      expect(contexts).toHaveLength(5);
-      expect(contexts.some((context) => context.alive)).toBe(false);
+      expect(contexts).toHaveLength(9);
+      expect(contexts.filter((context) => context.alive)).toHaveLength(3);
       session.step(gameInputFrame3D.parse({ pressed: [], axes: { moveZ: -1 } }));
       expect(batches).toEqual([{ calls: 3, compiled: 0 }]);
     } finally { session.dispose(); evaluate.mockRestore(); }
@@ -83,7 +85,8 @@ describe("one-time script setup", () => {
     try {
       expect(invoke).toHaveBeenCalled();
       const contexts = [...new Set(evaluate.mock.contexts)];
-      expect(contexts).toHaveLength(3);
+      // One validation context and three warm-up contexts.
+      expect(contexts).toHaveLength(4);
       expect(contexts.some((context) => context.alive)).toBe(false);
       expect(next.run([call], input, 1).results).toEqual([{ entityId: "worker", state: 2, commands: [] }]);
     } finally { next.dispose(); evaluate.mockRestore(); invoke.mockRestore(); }

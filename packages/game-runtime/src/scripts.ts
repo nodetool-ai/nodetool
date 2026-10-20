@@ -6,7 +6,7 @@ import { GameScriptLogCollector, withGameScriptLogs, type GameScriptLogEntry } f
 import { GameScriptSaveCollector, type GameSaveRequest } from "./script-saves.js";
 import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, SCRIPT_SYNCHRONOUS_RESULT, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
-import { canPersistGameScript } from "./script-persistence.js";
+import { canPersistGameScript, canReuseGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
 import { ScriptWorldSnapshot, type ScriptWorldEntity } from "./script-world.js";
 import { prefabScriptSourceKey, sceneScriptSourceKey, scriptSourceKey } from "./script-source.js";
@@ -136,8 +136,9 @@ function evaluate(context: QuickJSContext, code: string): unknown {
   try { return context.dump(value); } finally { value.dispose(); }
 }
 
-function evaluateSourceKind(context: QuickJSContext, source: string): unknown {
-  return evaluate(context, `((tag) => {
+/** Strict evaluation is for realms that are reused between calls, where writes to frozen built-ins must throw. */
+function evaluateSourceKind(context: QuickJSContext, source: string, strict = false): unknown {
+  return evaluate(context, `${strict ? '"use strict";' : ""}((tag) => {
     globalThis.__gameScript = (${source});
     const check = (value, name) => {
       if (typeof value === "function" && tag(value) !== "[object Function]") {
@@ -163,11 +164,15 @@ function initializeContext(context: QuickJSContext, seed: number, helpers: strin
           return state / 4294967296;
         };
         Object.defineProperty(random, "state", { get: () => state });
+        globalThis.__gameReseed = (seed) => { state = seed >>> 0; };
         return random;
       })(), writable: false, configurable: false
     });
     Object.defineProperty(Math, "random", { value: __gameRandom, writable: false, configurable: false });
-    ${helpers}
+    ((reseed) => {
+      delete globalThis.__gameReseed;
+      return ${helpers};
+    })(globalThis.__gameReseed)
   `, "game-transport.js", { type: "global" }));
 }
 
@@ -243,6 +248,8 @@ interface ScriptRealm {
   readonly queryJson: QuickJSHandle;
   readonly worldGetter: QuickJSHandle;
   setWorldReader(reader: (() => QuickJSHandle) | undefined): void;
+  /** Reused realms read the call's `world` through a frozen global accessor. Other realms ignore this. */
+  setGlobalWorld(world: QuickJSHandle | undefined): void;
 }
 
 /** A context with the transport helpers installed and no user source evaluated yet. */
@@ -250,6 +257,7 @@ type RealmShell = Omit<ScriptRealm, "sourceKey">;
 
 function disposeRealm(realm: RealmShell): void {
   realm.setWorldReader(undefined);
+  realm.setGlobalWorld(undefined);
   realm.worldGetter.dispose();
   realm.queryJson.dispose();
   realm.defineData.dispose();
@@ -267,6 +275,29 @@ interface ScriptDefinitions {
   }[] }[];
 }
 
+/**
+ * Freezes every object reachable from the global object, plus the intrinsics only reachable from syntax or iterators,
+ * so a reused realm carries no state from one call to the next. `world` becomes an accessor for the call's world API.
+ */
+const LOCKDOWN = `((freeze, ownKeys, prototypeOf, descriptor, defineProperty) => (getWorld) => {
+  defineProperty(globalThis, "world", { get: () => getWorld(), enumerable: true, configurable: false });
+  const seen = new Set();
+  const visit = (value) => {
+    if ((typeof value !== "object" && typeof value !== "function") || value === null || seen.has(value)) { return; }
+    seen.add(value);
+    freeze(value);
+    visit(prototypeOf(value));
+    for (const key of ownKeys(value)) {
+      const property = descriptor(value, key);
+      if ("value" in property) { visit(property.value); } else { visit(property.get); visit(property.set); }
+    }
+  };
+  visit(globalThis);
+  for (const sample of [function* () {}, async function () {}, async function* () {}, (function* () {})(), (async function* () {})(),
+    [].values(), new Map().entries(), new Set().values(), ""[Symbol.iterator](), /a/g[Symbol.matchAll]("a")]) { visit(sample); }
+})(Object.freeze, Reflect.ownKeys, Object.getPrototypeOf, Object.getOwnPropertyDescriptor, Object.defineProperty)`;
+/** Bounds the frozen realms kept for reusable sources, about 60 KiB each in the 16 MiB script heap. */
+const REUSABLE_REALM_LIMIT = 32;
 /** Bounds the validated entry-scene realms held until the first batch, about 30 KiB each. */
 const PREPARED_REALM_LIMIT = 64;
 const SCRIPT_BATCH_MS = 50;
@@ -278,8 +309,9 @@ const WARMUP_BATCH_MS = 1000;
  */
 const FIRST_BATCH_MS = 1000;
 const WARMUP_SOURCES = [
-  ["warmup:fresh", "(input) => { const world = input.world; return { state: { tick: input.tick, entities: world.length, ids: world.map((entity) => entity.id) }, commands: [] }; }"],
-  ["warmup:persistent", "(input) => ({ state: [input.state, input.world], commands: [] })"]
+  ["warmup:persistent", "(input) => ({ state: [input.state, input.world], commands: [] })"],
+  ["warmup:reusable", "(input) => { const world = input.world; return { state: { tick: input.tick, entities: world.length, ids: world.map((entity) => entity.id) }, commands: [] }; }"],
+  ["warmup:fresh", "(() => (input) => ({ state: { tick: input.tick, entities: input.world.length }, commands: [] }))()"]
 ] as const;
 /** Warms the lifecycle-object path, only for documents that use it. */
 const HOOK_WARMUP_SOURCE = ["warmup:hooks", "({ onStart(input) { after(1, \"tick\"); }, tick() {}, onUpdate(input) { return { state: [input.state, input.world] }; } })"] as const;
@@ -339,6 +371,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   // Resolved `input.params` JSON per behavior definition. Values are document data, so this is serialized once per session.
   const paramsJson = new Map<string, string>();
   const persistentSources = new Set<string>();
+  // Function sources whose realm is frozen and reused between calls, keyed by source rather than entity.
+  const reusableSources = new Set<string>();
+  const reusableRealms = new Map<string, ScriptRealm>();
   const hookSources = new Set<string>();
   const eventSources = new Set<string>();
   const realms = new Map<string, ScriptRealm>();
@@ -351,6 +386,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   const disposeRealms = (): void => {
     for (const realm of realms.values()) { disposeRealm(realm); }
     realms.clear();
+    for (const realm of reusableRealms.values()) { disposeRealm(realm); }
+    reusableRealms.clear();
     releasePrepared();
   };
   const retain = (keys: ReadonlySet<string>): void => {
@@ -360,17 +397,23 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   };
   // Host-only setup. Creating a context can run a QuickJS cycle collection of earlier disposed contexts.
   // Only lifecycle-object realms install the hook dispatcher, so function realms evaluate the same helpers as before.
-  const createRealmShell = (seed: number, persistent: boolean, hooks = false): RealmShell => {
+  // A reusable shell reseeds the random generator from each call's `rngState`, as a fresh shell seeds it on creation.
+  const createRealmShell = (seed: number, persistent: boolean, hooks = false, reusable = false): RealmShell => {
     const context = runtime.newContext();
     let invoke: QuickJSHandle | undefined;
     let defineData: QuickJSHandle | undefined;
     let queryJson: QuickJSHandle | undefined;
     let worldGetter: QuickJSHandle | undefined;
     let worldReader: (() => QuickJSHandle) | undefined;
+    let globalWorld: QuickJSHandle | undefined;
+    const setGlobalWorld = (world: QuickJSHandle | undefined): void => { globalWorld?.dispose(); globalWorld = world; };
     try {
       worldGetter = persistent ? context.newFunction("legacyWorld", () => {
         if (!worldReader) { throw new Error("Legacy world read outside an active script call"); }
         return worldReader();
+      }) : reusable ? context.newFunction("world", () => {
+        if (!globalWorld) { throw new Error("world read outside an active script call"); }
+        return globalWorld.dup();
       }) : context.undefined.dup();
       // Capture pristine helpers together, without introducing bindings visible to user source.
       const helpers = initializeContext(context, seed, `[
@@ -382,11 +425,15 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         if (typeof json !== "string" || json.length > 4096) { throw new Error("world query arguments exceed 4096 characters or are not JSON"); }
         return json;
       })(JSON.stringify),
-      ((defineProperty, synchronousResult${hooks ? ", dispatch" : ""}) => (data, getWorld, rngState) => {
-        ${persistent ? "" : "data = JSON.parse(data);"}
+      ((defineProperty, synchronousResult${hooks ? ", dispatch" : ""}) => (data, getWorld, rngState, worldJson) => {
+        ${persistent ? "" : "data = JSON.parse(data);"}${reusable ? "reseed(rngState);" : ""}
         const payload = ${payloadExpression};
         ${persistent ? `defineProperty(payload, "world", {
           enumerable: true, configurable: true, get: getWorld,
+          set(value) { defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); }
+        });` : ""}${reusable ? `defineProperty(payload, "world", {
+          enumerable: true, configurable: true,
+          get() { const value = JSON.parse(worldJson); defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); return value; },
           set(value) { defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); }
         });` : ""}
         const value = synchronousResult(${hooks ? "dispatch(__gameScript, payload, data.call.steps)" : "__gameScript(payload)"}, "Game script");
@@ -397,16 +444,21 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         queryJson = context.getProp(helpers, 1);
         invoke = context.getProp(helpers, 2);
       } finally { helpers.dispose(); }
-      return { context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; } };
+      return { context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; }, setGlobalWorld };
     } catch (error) {
-      worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
+      setGlobalWorld(undefined); worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
     }
   };
-  /** Evaluates user source in the shell, which this takes ownership of. */
-  const loadSource = (shell: RealmShell, sourceKey: string, source: string, hooks: boolean): ScriptRealm => {
+  /** Evaluates user source in the shell, which this takes ownership of. A reusable realm is then frozen. */
+  const loadSource = (shell: RealmShell, sourceKey: string, source: string, hooks: boolean, reusable = false): ScriptRealm => {
     try {
-      if (evaluateSourceKind(shell.context, source) !== (hooks ? "object" : "function")) {
+      if (evaluateSourceKind(shell.context, source, reusable) !== (hooks ? "object" : "function")) {
         throw new Error(`Game script ${sourceKey} must be a ${hooks ? "lifecycle object" : "function expression"}`);
+      }
+      if (reusable) {
+        const lockdown = scriptHandleResult(shell.context, shell.context.evalCode(LOCKDOWN, "game-lockdown.js", { type: "global" }));
+        try { scriptHandleResult(shell.context, shell.context.callFunction(lockdown, shell.context.undefined, shell.worldGetter)).dispose(); }
+        finally { lockdown.dispose(); }
       }
       return { ...shell, sourceKey };
     } catch (error) {
@@ -454,6 +506,14 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             const { realm, hooks, onEvent } = inspectSource(key, behavior.source, persistent);
             if (persistent) {
               persistentSources.add(key);
+            }
+            if (!persistent && !hooks && canReuseGameScript(behavior.source)) {
+              reusableSources.add(key);
+              // Freezing a realm takes milliseconds, so it happens here rather than inside a tick budget.
+              if (reusableRealms.size < REUSABLE_REALM_LIMIT) {
+                try { reusableRealms.set(key, loadSource(createRealmShell(0, false, false, true), key, behavior.source, false, true)); }
+                catch { reusableSources.delete(key); }
+              }
             }
             if (hooks) { hookSources.add(key); }
             if (onEvent) { eventSources.add(key); }
@@ -551,60 +611,105 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         };
         runtime.setInterruptHandler(() => performance.now() >= batchDeadline);
         const persistent = persistentSources.has(call.sourceKey);
-        let realm = realms.get(call.stateKey);
-        let shell: RealmShell | undefined;
-        let worldHandle: QuickJSHandle | undefined;
-        let worldCall: ReturnType<ScriptWorldSnapshot["install"]> | undefined;
-        try {
-          if (realm && realm.sourceKey !== call.sourceKey) {
-            disposeRealm(realm); realms.delete(call.stateKey); realm = undefined;
-          }
-          if (!realm && persistent) {
-            realm = prepared.get(call.sourceKey);
-            prepared.delete(call.sourceKey);
-          }
-          // Context setup is host work, so it counts against the batch budget only. The call budget starts
-          // before any user source is evaluated, so the script's own execution limit is unchanged.
-          const hooks = hookSources.has(call.sourceKey);
-          if (!realm) { shell = createRealmShell(nextRngState, persistent, hooks); }
-          assertBeforeDeadline(batchDeadline, batchBudget);
-          callStarted = performance.now();
-          callExceeded = startScriptCallTimer(callClock, callBudgetMs);
-          runtime.setInterruptHandler(() => performance.now() >= batchDeadline || callExceeded());
-          if (shell) {
-            const loading = shell;
-            shell = undefined;
-            realm = loadSource(loading, call.sourceKey, source, hooks);
-          }
-          if (!realm) { throw new Error("Game script realm was not created"); }
-          if (persistent) { realms.set(call.stateKey, realm); }
-          const { context, invoke, defineData, worldGetter } = realm;
-          if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
-          checkCallDeadline();
-          // The shared input is serialized once per tick; only the call is serialized per call.
-          const params = paramsJson.get(call.sourceKey);
-          const plan = hooks ? planScriptHooks(call.state, call.lifecycle, input.tick) : undefined;
-          const data = `{"call":${callJson(call, plan)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}${params === undefined ? "" : `,"params":${params}`}}`;
-          checkCallDeadline();
-          const normalized: unknown = persistent ? JSON.parse(data) : data;
-          let argument: QuickJSHandle | undefined;
-          let seed: QuickJSHandle | undefined;
-          let output: unknown;
+        const hooks = hookSources.has(call.sourceKey);
+        let plan: GameScriptHookPlan | undefined;
+        /** Runs the call in a retained, reused or fresh realm and returns the guest's output. */
+        const guestCall = (reusable: boolean): unknown => {
+          let realm = reusable ? reusableRealms.get(call.sourceKey) : realms.get(call.stateKey);
+          let shell: RealmShell | undefined;
+          let worldHandle: QuickJSHandle | undefined;
+          let worldCall: ReturnType<ScriptWorldSnapshot["install"]> | undefined;
           try {
-            argument = gameScriptValue(context, normalized, defineData, persistent);
-            seed = context.newNumber(nextRngState);
-            realm.setWorldReader(() => {
-              checkCallDeadline();
-              worldHandle ??= gameScriptValue(context, readLegacyWorld(), defineData, true);
-              checkCallDeadline();
-              return worldHandle.dup();
-            });
-            const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed));
-            try { output = context.dump(value); } finally { value.dispose(); }
-            worldCall?.assertWithinLimit();
+            if (realm && realm.sourceKey !== call.sourceKey) {
+              disposeRealm(realm); realms.delete(call.stateKey); realm = undefined;
+            }
+            if (!realm && persistent) {
+              realm = prepared.get(call.sourceKey);
+              prepared.delete(call.sourceKey);
+            }
+            // Context setup is host work, so it counts against the batch budget only. The call budget starts
+            // before any user source is evaluated, so the script's own execution limit is unchanged.
+            // A reusable source is a function expression, so loading and freezing its realm runs no user code.
+            if (!realm) { shell = createRealmShell(nextRngState, persistent, hooks, reusable); }
+            if (shell && reusable) {
+              const loading = shell;
+              shell = undefined;
+              realm = loadSource(loading, call.sourceKey, source, false, true);
+              reusableRealms.set(call.sourceKey, realm);
+            }
+            assertBeforeDeadline(batchDeadline, batchBudget);
+            callStarted = performance.now();
+            callExceeded = startScriptCallTimer(callClock, callBudgetMs);
+            runtime.setInterruptHandler(() => performance.now() >= batchDeadline || callExceeded());
+            if (shell) {
+              const loading = shell;
+              shell = undefined;
+              realm = loadSource(loading, call.sourceKey, source, hooks);
+            }
+            if (!realm) { throw new Error("Game script realm was not created"); }
+            if (persistent) { realms.set(call.stateKey, realm); }
+            const active = realm;
+            const { context, invoke, defineData, worldGetter } = active;
+            if (!persistent) {
+              worldCall = getHostWorld().install(context, checkCallDeadline, active.defineData, active.queryJson,
+                reusable ? (world) => { active.setGlobalWorld(world.dup()); } : undefined);
+            }
+            checkCallDeadline();
+            // The shared input is serialized once per tick; only the call is serialized per call.
+            const params = paramsJson.get(call.sourceKey);
+            plan = hooks ? planScriptHooks(call.state, call.lifecycle, input.tick) : undefined;
+            // A reused realm parses the world entries only when the script reads `input.world`.
+            const data = `{"call":${callJson(call, plan)},"input":${persistent || reusable ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}${params === undefined ? "" : `,"params":${params}`}}`;
+            checkCallDeadline();
+            const normalized: unknown = persistent ? JSON.parse(data) : data;
+            let argument: QuickJSHandle | undefined;
+            let seed: QuickJSHandle | undefined;
+            let worldJson: QuickJSHandle | undefined;
+            let output: unknown;
+            try {
+              argument = gameScriptValue(context, normalized, defineData, persistent);
+              seed = context.newNumber(nextRngState);
+              worldJson = reusable ? context.newString(scriptWorldJson()) : context.undefined.dup();
+              active.setWorldReader(() => {
+                checkCallDeadline();
+                worldHandle ??= gameScriptValue(context, readLegacyWorld(), defineData, true);
+                checkCallDeadline();
+                return worldHandle.dup();
+              });
+              const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed, worldJson));
+              try { output = context.dump(value); } finally { value.dispose(); }
+              worldCall?.assertWithinLimit();
+            } finally {
+              active.setWorldReader(undefined);
+              argument?.dispose(); seed?.dispose(); worldJson?.dispose();
+            }
+            return output;
+          } catch (error) {
+            worldHandle?.dispose(); worldHandle = undefined;
+            if (shell) { disposeRealm(shell); shell = undefined; }
+            // A realm whose call failed is not reused.
+            if (reusable && realm) { reusableRealms.delete(call.sourceKey); }
+            if (!persistent && realm) { disposeRealm(realm); realm = undefined; }
+            throw error;
           } finally {
-            realm.setWorldReader(undefined);
-            argument?.dispose(); seed?.dispose();
+            worldCall?.end();
+            worldHandle?.dispose();
+            realm?.setGlobalWorld(undefined);
+            if (!persistent && !reusable && realm) { disposeRealm(realm); }
+          }
+        };
+        try {
+          let output: unknown;
+          if (!reusableSources.has(call.sourceKey) || (!reusableRealms.has(call.sourceKey) && reusableRealms.size >= REUSABLE_REALM_LIMIT)) {
+            output = guestCall(false);
+          } else {
+            try { output = guestCall(true); } catch (error) {
+              if (performance.now() >= batchDeadline || callExceeded()) { throw error; }
+              // Strict mode or a frozen built-in rejected the call. A fresh realm runs it as written, so this source
+              // keeps using fresh realms. Either way the call sees only its own input.
+              reusableSources.delete(call.sourceKey);
+              output = guestCall(false);
+            }
           }
           if (typeof output !== "string") {
             throw new Error("Output is not JSON");
@@ -640,15 +745,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           results.push({ entityId: call.entityId, state: value.state, commands: value.commands });
         } catch (error) {
           // A failed batch cannot retain partially evaluated realms.
-          worldHandle?.dispose(); worldHandle = undefined;
-          if (shell) { disposeRealm(shell); shell = undefined; }
-          if (!persistent && realm) { disposeRealm(realm); realm = undefined; }
           disposeRealms();
           throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
-        } finally {
-          worldCall?.end();
-          worldHandle?.dispose();
-          if (!persistent && realm) { disposeRealm(realm); }
         }
         checkCallDeadline();
         const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
@@ -677,6 +775,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       const warmupCalls = warmups.map(([key, source]) => {
         sources.set(key, source);
         if (canPersistGameScript(source)) { persistentSources.add(key); }
+        else if (canReuseGameScript(source)) { reusableSources.add(key); }
         if (key === HOOK_WARMUP_SOURCE[0]) { hookSources.add(key); }
         return { sourceKey: key, stateKey: key, entityId: key, source: key, state: null, maxCommands: 0, maxTickMs: WARMUP_BATCH_MS } as unknown as Call;
       });
@@ -689,7 +788,11 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         // prepared ones, so batches create realms on demand as they do past PREPARED_REALM_LIMIT. The next runner warms again.
       } finally {
         retain(new Set());
-        for (const [key] of warmups) { sources.delete(key); persistentSources.delete(key); hookSources.delete(key); }
+        for (const [key] of warmups) {
+          sources.delete(key); persistentSources.delete(key); reusableSources.delete(key); hookSources.delete(key);
+          const realm = reusableRealms.get(key);
+          if (realm) { disposeRealm(realm); reusableRealms.delete(key); }
+        }
       }
     }
     let firstBatch = true;
@@ -714,6 +817,18 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         for (const { update, persistent, onEvent } of candidates) {
           sources.set(update.sourceKey, update.source);
           if (persistent) { persistentSources.add(update.sourceKey); } else { persistentSources.delete(update.sourceKey); }
+          const reused = reusableRealms.get(update.sourceKey);
+          if (reused) { disposeRealm(reused); reusableRealms.delete(update.sourceKey); }
+          reusableSources.delete(update.sourceKey);
+          if (!persistent && canReuseGameScript(update.source)) {
+            reusableSources.add(update.sourceKey);
+            if (reusableRealms.size < REUSABLE_REALM_LIMIT) {
+              const deadline = performance.now() + 100;
+              runtime.setInterruptHandler(() => performance.now() >= deadline);
+              try { reusableRealms.set(update.sourceKey, loadSource(createRealmShell(0, false, false, true), update.sourceKey, update.source, false, true)); }
+              catch { reusableSources.delete(update.sourceKey); }
+            }
+          }
           if (onEvent) { eventSources.add(update.sourceKey); } else { eventSources.delete(update.sourceKey); }
           const realm = prepared.get(update.sourceKey);
           if (realm) { disposeRealm(realm); prepared.delete(update.sourceKey); }

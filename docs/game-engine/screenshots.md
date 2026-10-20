@@ -21,7 +21,7 @@ The images below are unchanged copies of the repository's accepted native-game g
 | [Lumen](/assets/game-engine/lumen.png) | WebGPU 2D | 1280 × 720 | Forest layers and luminous art |
 | [Neon Drift](/assets/game-engine/neon-drift.png) | WebGPU 2D | 1280 × 720 | Shooter sprites and title composition |
 | [AETHER](/assets/game-engine/aether.png) | WebGL2 3D | 1280 × 720 | Model-based platform scene, camera framing, HUD |
-| [BLACKSITE](/assets/game-engine/blacksite.png) | WebGL2 3D | 1280 × 720 | First-person model scene and gameplay HUD |
+| [BLACKSITE](/assets/game-engine/blacksite.png) | WebGL2 3D | 1280 × 720 | First-person night scene with shadows, fog, particles, decals, and UI HUD |
 | [Signal Forge](/assets/game-engine/signal-forge.png) | WebGL2 3D | 960 × 540 | Industrial models, interaction target, objective and control labels |
 
 The [source fixture directory](https://github.com/nodetool-ai/nodetool/tree/f328d856addeffd49f5d19c233957cab7b1ccb45/packages/cli/tests/fixtures/native-game-goldens) contains the originals and manifest. The [machine-readable image record](/assets/game-engine/screenshots.json) gives source paths, dimensions, and SHA-256 hashes.

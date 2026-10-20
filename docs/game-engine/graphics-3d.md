@@ -7,9 +7,9 @@ description: "Render prepared models and primitives with lights, shadows, skies,
 
 3D games render through WebGL2. World coordinates use meters, +Y up, and −Z forward. Entity rotations are quaternions in `[x, y, z, w]` order.
 
-![BLACKSITE first-person view showing textured architecture, props, lighting, and HUD](/assets/game-engine/blacksite.png)
+![BLACKSITE first-person night view with shadowed lighting, rain particles, floor decals, and HUD](/assets/game-engine/blacksite.png)
 
-*BLACKSITE uses prepared model assets. Embedded GLB textures are distinct from the unfinished separate material-texture interface. [Capture source](/game-engine/screenshots).*
+*BLACKSITE combines prepared model assets with cascaded shadows, height fog, bloom, decals, and particles. Embedded GLB textures are distinct from the unfinished separate material-texture interface. [Capture source](/game-engine/screenshots).*
 
 ## Add a model or primitive
 
