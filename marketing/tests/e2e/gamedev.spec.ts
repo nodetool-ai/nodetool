@@ -31,6 +31,9 @@ for (const game of games) {
     await expect(player.locator("#status")).toContainText("Ready", { timeout: 30_000 });
     await player.locator("canvas").click();
     await page.keyboard.press("Space");
+    // A running software-rendered frame blocks the player's main thread, so every later action waits on it.
+    await player.getByRole("button", { name: "Pause", exact: true }).click();
+    await expect(player.getByRole("button", { name: "Resume", exact: true })).toBeVisible();
     await player.getByRole("button", { name: "Save", exact: true }).click();
     await expect(player.locator("#status")).toHaveText("Game saved");
     const savedScene = await player.locator("canvas").evaluate(async (element) => {
