@@ -35,14 +35,14 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "Qwen3.6 35B A3B (17.7 GB)"
   },
   {
-    repoId: "unsloth/Qwen3.5-9B-GGUF",
-    file: "Qwen3.5-9B-Q4_K_M.gguf",
-    name: "Qwen3.5 9B (5.7 GB)"
-  },
-  {
     repoId: "unsloth/gemma-4-12b-it-GGUF",
     file: "gemma-4-12b-it-Q4_K_M.gguf",
     name: "gemma 4 12b it (7.1 GB)"
+  },
+  {
+    repoId: "unsloth/Qwen3.5-9B-GGUF",
+    file: "Qwen3.5-9B-Q4_K_M.gguf",
+    name: "Qwen3.5 9B (5.7 GB)"
   },
   {
     repoId: "unsloth/gemma-4-26B-A4B-it-GGUF",
@@ -50,19 +50,14 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "gemma 4 26B A4B it (16.9 GB)"
   },
   {
-    repoId: "mistralai/Ministral-3-3B-Instruct-2512-GGUF",
-    file: "Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
-    name: "Ministral 3 3B Instruct 2512 (2.1 GB)"
-  },
-  {
-    repoId: "LiquidAI/d1-3B-GGUF",
-    file: "d1-3B-Q4_K_M.gguf",
-    name: "d1 3B (1.7 GB)"
-  },
-  {
     repoId: "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
     file: "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
     name: "Qwen2.5 Coder 7B Instruct (4.7 GB)"
+  },
+  {
+    repoId: "LiquidAI/LFM2.5-2.6B-GGUF",
+    file: "LFM2.5-2.6B-Q4_K_M.gguf",
+    name: "LFM2.5 2.6B (1.7 GB)"
   },
   {
     repoId: "unsloth/Qwen3.5-4B-GGUF",
@@ -70,24 +65,9 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "Qwen3.5 4B (2.7 GB)"
   },
   {
-    repoId: "mistralai/Devstral-Small-2507_gguf",
-    file: "Devstral-Small-2507-Q4_K_M.gguf",
-    name: "Devstral Small 2507 (14.3 GB)"
-  },
-  {
-    repoId: "bartowski/AesCode-8B-GGUF",
-    file: "AesCode-8B-Q4_K_M.gguf",
-    name: "AesCode 8B (5.2 GB)"
-  },
-  {
-    repoId: "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
-    file: "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf",
-    name: "Qwen3 Coder 30B A3B Instruct (18.6 GB)"
-  },
-  {
-    repoId: "Qwen/Qwen3-VL-4B-Instruct-GGUF",
-    file: "Qwen3VL-4B-Instruct-Q4_K_M.gguf",
-    name: "Qwen3 VL 4B Instruct (2.5 GB)"
+    repoId: "LiquidAI/d1-3B-GGUF",
+    file: "d1-3B-Q4_K_M.gguf",
+    name: "d1 3B (1.7 GB)"
   },
   {
     repoId: "unsloth/gemma-4-31B-it-GGUF",
@@ -100,9 +80,14 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "gemma 4 E4B it (5.0 GB)"
   },
   {
-    repoId: "LiquidAI/LFM2.5-2.6B-GGUF",
-    file: "LFM2.5-2.6B-Q4_K_M.gguf",
-    name: "LFM2.5 2.6B (1.7 GB)"
+    repoId: "Qwen/Qwen3-4B-GGUF",
+    file: "Qwen3-4B-Q4_K_M.gguf",
+    name: "Qwen3 4B (2.5 GB)"
+  },
+  {
+    repoId: "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+    file: "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf",
+    name: "Qwen3 Coder 30B A3B Instruct (18.6 GB)"
   },
   {
     repoId: "openbmb/MiniCPM5-2B-GGUF",
@@ -110,19 +95,9 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "MiniCPM5 2B (1.6 GB)"
   },
   {
-    repoId: "Qwen/Qwen3-4B-GGUF",
-    file: "Qwen3-4B-Q4_K_M.gguf",
-    name: "Qwen3 4B (2.5 GB)"
-  },
-  {
-    repoId: "bartowski/MiMo-V2.6-Distill-Qwen-9B-GGUF",
-    file: "MiMo-V2.6-Distill-Qwen-9B-Q4_K_M.gguf",
-    name: "MiMo V2.6 Distill Qwen 9B (5.8 GB)"
-  },
-  {
-    repoId: "bartowski/AesCode-32B-GGUF",
-    file: "AesCode-32B-Q4_K_S.gguf",
-    name: "AesCode 32B (19.1 GB)"
+    repoId: "ggml-org/vllm-d3-mini-GGUF",
+    file: "vllm-d3-mini-Q4_K_M.gguf",
+    name: "vllm d3 mini (3.7 GB)"
   },
   {
     repoId: "Qwen/Qwen3-8B-GGUF",
@@ -130,29 +105,9 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "Qwen3 8B (5.0 GB)"
   },
   {
-    repoId: "mistralai/Ministral-3-3B-Reasoning-2512-GGUF",
-    file: "Ministral-3-3B-Reasoning-2512-Q4_K_M.gguf",
-    name: "Ministral 3 3B Reasoning 2512 (2.1 GB)"
-  },
-  {
-    repoId: "mistralai/Ministral-3-8B-Reasoning-2512-GGUF",
-    file: "Ministral-3-8B-Reasoning-2512-Q4_K_M.gguf",
-    name: "Ministral 3 8B Reasoning 2512 (5.2 GB)"
-  },
-  {
-    repoId: "unsloth/Qwen3.5-35B-A3B-GGUF",
-    file: "Qwen3.5-35B-A3B-UD-IQ4_XS.gguf",
-    name: "Qwen3.5 35B A3B (17.5 GB)"
-  },
-  {
-    repoId: "unsloth/Qwen3.6-27B-MTP-GGUF",
-    file: "Qwen3.6-27B-Q4_K_M.gguf",
-    name: "Qwen3.6 27B MTP (17.1 GB)"
-  },
-  {
-    repoId: "unsloth/LFM2.5-8B-A1B-GGUF",
-    file: "LFM2.5-8B-A1B-UD-Q4_K_M.gguf",
-    name: "LFM2.5 8B A1B (5.3 GB)"
+    repoId: "Qwen/Qwen3-VL-8B-Instruct-GGUF",
+    file: "Qwen3VL-8B-Instruct-Q4_K_M.gguf",
+    name: "Qwen3 VL 8B Instruct (5.0 GB)"
   },
   {
     repoId: "ibm-granite/granite-4.2-8b-GGUF",
@@ -160,24 +115,19 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "granite 4.2 8b (5.3 GB)"
   },
   {
-    repoId: "ggml-org/vllm-d3-mini-GGUF",
-    file: "vllm-d3-mini-Q4_K_M.gguf",
-    name: "vllm d3 mini (3.7 GB)"
+    repoId: "bartowski/MiMo-V2.6-Distill-Qwen-9B-GGUF",
+    file: "MiMo-V2.6-Distill-Qwen-9B-Q4_K_M.gguf",
+    name: "MiMo V2.6 Distill Qwen 9B (5.8 GB)"
   },
   {
-    repoId: "unsloth/gpt-oss-20b-GGUF",
-    file: "gpt-oss-20b-Q4_K_M.gguf",
-    name: "gpt oss 20b (11.6 GB)"
+    repoId: "unsloth/LFM2.5-8B-A1B-GGUF",
+    file: "LFM2.5-8B-A1B-UD-Q4_K_M.gguf",
+    name: "LFM2.5 8B A1B (5.3 GB)"
   },
   {
-    repoId: "Qwen/Qwen3-VL-30B-A3B-Instruct-GGUF",
-    file: "Qwen3VL-30B-A3B-Instruct-Q4_K_M.gguf",
-    name: "Qwen3 VL 30B A3B Instruct (18.6 GB)"
-  },
-  {
-    repoId: "Qwen/Qwen2.5-Coder-3B-Instruct-GGUF",
-    file: "qwen2.5-coder-3b-instruct-q4_k_m.gguf",
-    name: "Qwen2.5 Coder 3B Instruct (2.1 GB)"
+    repoId: "ggml-org/vllm-d3-flash-GGUF",
+    file: "vllm-d3-flash-Q4_K_M.gguf",
+    name: "vllm d3 flash (6.6 GB)"
   },
   {
     repoId: "Qwen/QwQ-32B-GGUF",
@@ -185,9 +135,24 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "QwQ 32B (19.9 GB)"
   },
   {
-    repoId: "Qwen/Qwen3-VL-8B-Thinking-GGUF",
-    file: "Qwen3VL-8B-Thinking-Q4_K_M.gguf",
-    name: "Qwen3 VL 8B Thinking (5.0 GB)"
+    repoId: "unsloth/gpt-oss-20b-GGUF",
+    file: "gpt-oss-20b-Q4_K_M.gguf",
+    name: "gpt oss 20b (11.6 GB)"
+  },
+  {
+    repoId: "Qwen/Qwen3-VL-4B-Instruct-GGUF",
+    file: "Qwen3VL-4B-Instruct-Q4_K_M.gguf",
+    name: "Qwen3 VL 4B Instruct (2.5 GB)"
+  },
+  {
+    repoId: "unsloth/Qwen3.6-27B-MTP-GGUF",
+    file: "Qwen3.6-27B-Q4_K_M.gguf",
+    name: "Qwen3.6 27B MTP (17.1 GB)"
+  },
+  {
+    repoId: "LiquidAI/LFM2.5-230M-GGUF",
+    file: "LFM2.5-230M-Q4_K_M.gguf",
+    name: "LFM2.5 230M (153 MB)"
   },
   {
     repoId: "JetBrains/Qwen3.8-3.6-27B-blend-GGUF",
@@ -195,9 +160,9 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "Qwen3.8 3.6 27B blend (16.8 GB)"
   },
   {
-    repoId: "ggml-org/vllm-d3-flash-GGUF",
-    file: "vllm-d3-flash-Q4_K_M.gguf",
-    name: "vllm d3 flash (6.6 GB)"
+    repoId: "openbmb/MiniCPM-V-4.7-1B-DSpark-gguf",
+    file: "dspark-MiniCPM-V-4_7-1B-Q4_K_M.gguf",
+    name: "MiniCPM V 4.7 1B DSpark (133 MB)"
   },
   {
     repoId: "openbmb/MiniCPM-V-4.7-35B-A3B-DSpark-gguf",
@@ -215,29 +180,14 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "Qwen1.5 0.5B Chat (407 MB)"
   },
   {
-    repoId: "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
-    file: "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
-    name: "Meta Llama 3.1 8B Instruct (4.9 GB)"
+    repoId: "Qwen/Qwen2.5-Coder-3B-Instruct-GGUF",
+    file: "qwen2.5-coder-3b-instruct-q4_k_m.gguf",
+    name: "Qwen2.5 Coder 3B Instruct (2.1 GB)"
   },
   {
-    repoId: "mistralai/Magistral-Small-2509-GGUF",
-    file: "Magistral-Small-2509-Q4_K_M.gguf",
-    name: "Magistral Small 2509 (14.3 GB)"
-  },
-  {
-    repoId: "Qwen/Qwen3-VL-8B-Instruct-GGUF",
-    file: "Qwen3VL-8B-Instruct-Q4_K_M.gguf",
-    name: "Qwen3 VL 8B Instruct (5.0 GB)"
-  },
-  {
-    repoId: "mistralai/Ministral-3-14B-Reasoning-2512-GGUF",
-    file: "Ministral-3-14B-Reasoning-2512-Q4_K_M.gguf",
-    name: "Ministral 3 14B Reasoning 2512 (8.2 GB)"
-  },
-  {
-    repoId: "LiquidAI/LFM2.5-230M-GGUF",
-    file: "LFM2.5-230M-Q4_K_M.gguf",
-    name: "LFM2.5 230M (153 MB)"
+    repoId: "unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
+    file: "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf",
+    name: "DeepSeek R1 0528 Qwen3 8B (5.0 GB)"
   },
   {
     repoId: "ggml-org/Clef-Flash-GGUF",
@@ -245,13 +195,63 @@ export const TRENDING_CHAT_GGUFS: readonly RecommendedGguf[] = [
     name: "Clef Flash (6.5 GB)"
   },
   {
-    repoId: "openbmb/MiniCPM-V-4.7-1B-DSpark-gguf",
-    file: "dspark-MiniCPM-V-4_7-1B-Q4_K_M.gguf",
-    name: "MiniCPM V 4.7 1B DSpark (133 MB)"
+    repoId: "lmstudio-community/Mistral-7B-Instruct-v0.3-GGUF",
+    file: "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+    name: "Mistral 7B Instruct v0.3 (4.4 GB)"
   },
   {
-    repoId: "Qwen/Qwen1.5-7B-Chat-GGUF",
-    file: "qwen1_5-7b-chat-q4_k_m.gguf",
-    name: "Qwen1.5 7B Chat (4.8 GB)"
+    repoId: "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+    file: "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+    name: "Meta Llama 3.1 8B Instruct (4.9 GB)"
+  },
+  {
+    repoId: "NousResearch/Hermes-3-Llama-3.1-8B-GGUF",
+    file: "Hermes-3-Llama-3.1-8B.Q4_K_M.gguf",
+    name: "Hermes 3 Llama 3.1 8B (4.9 GB)"
+  },
+  {
+    repoId: "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF",
+    file: "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
+    name: "Qwen2.5 Coder 1.5B Instruct (1.1 GB)"
+  },
+  {
+    repoId: "bartowski/Llama-3.2-3B-Instruct-GGUF",
+    file: "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+    name: "Llama 3.2 3B Instruct (2.0 GB)"
+  },
+  {
+    repoId: "bartowski/DeepSeek-R1-Distill-Qwen-14B-GGUF",
+    file: "DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf",
+    name: "DeepSeek R1 Distill Qwen 14B (9.0 GB)"
+  },
+  {
+    repoId: "Qwen/Qwen3-VL-32B-Instruct-GGUF",
+    file: "Qwen3VL-32B-Instruct-Q4_K_M.gguf",
+    name: "Qwen3 VL 32B Instruct (19.8 GB)"
+  },
+  {
+    repoId: "Qwen/Qwen3-VL-32B-Thinking-GGUF",
+    file: "Qwen3VL-32B-Thinking-Q4_K_M.gguf",
+    name: "Qwen3 VL 32B Thinking (19.8 GB)"
+  },
+  {
+    repoId: "LiquidAI/LFM2.5-2.6B-DSpark-GGUF",
+    file: "LFM2.5-2.6B-DSpark-Q4_K_M.gguf",
+    name: "LFM2.5 2.6B DSpark (200 MB)"
+  },
+  {
+    repoId: "bartowski/AesCode-8B-GGUF",
+    file: "AesCode-8B-Q4_K_M.gguf",
+    name: "AesCode 8B (5.2 GB)"
+  },
+  {
+    repoId: "ggml-org/vllm-d3-GGUF",
+    file: "vllm-d3-Q4_K_M.gguf",
+    name: "vllm d3 (19.4 GB)"
+  },
+  {
+    repoId: "Qwen/Qwen2-7B-Instruct-GGUF",
+    file: "qwen2-7b-instruct-q4_k_m.gguf",
+    name: "Qwen2 7B Instruct (4.7 GB)"
   }
 ];
