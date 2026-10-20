@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { stub } from "../../../../test-utils/doubles";
+import { asTextArea, stub } from "../../../../test-utils/doubles";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -14,8 +14,8 @@ import type { AssetMentionMenuProps } from "../../../node_types/editing/promptCo
 
 // Stub the search hook so the picker shows a fixed asset set (no trpc / stores).
 const MOCK_ASSETS: Asset[] = [
-  { id: "a1", name: "fox.png", content_type: "image/png" } as Asset,
-  { id: "a2", name: "wave.wav", content_type: "audio/wav" } as Asset
+  stub<Asset>({ id: "a1", name: "fox.png", content_type: "image/png" }),
+  stub<Asset>({ id: "a2", name: "wave.wav", content_type: "audio/wav" })
 ];
 const MOCK_ENTITIES = stub<Entity[]>([
   {
@@ -200,7 +200,7 @@ describe("useTextareaAssetMention", () => {
     const user = userEvent.setup();
     const onSelectAsset = jest.fn();
     render(<Harness onSelectAsset={onSelectAsset} />);
-    const textarea = screen.getByLabelText("prompt") as HTMLTextAreaElement;
+    const textarea = asTextArea(screen.getByLabelText("prompt"));
 
     await user.type(textarea, "hi @fo");
     await screen.findByTestId("asset-mention-menu");
@@ -219,7 +219,7 @@ describe("useTextareaAssetMention", () => {
   it("leaves a single space when the sentence goes on after a picked asset", async () => {
     const user = userEvent.setup();
     render(<Harness onSelectAsset={jest.fn()} />);
-    const textarea = screen.getByLabelText("prompt") as HTMLTextAreaElement;
+    const textarea = asTextArea(screen.getByLabelText("prompt"));
 
     await user.type(textarea, "When is the next meeting, according to @");
     await user.click(await screen.findByTestId("tile-a1"));
@@ -303,7 +303,7 @@ describe("useTextareaAssetMention", () => {
     const user = userEvent.setup();
     const onSelectAsset = jest.fn();
     render(<Harness onSelectAsset={onSelectAsset} includeEntities />);
-    const textarea = screen.getByLabelText("prompt") as HTMLTextAreaElement;
+    const textarea = asTextArea(screen.getByLabelText("prompt"));
 
     await user.type(textarea, "hi @mar");
     await screen.findByTestId("asset-mention-menu");

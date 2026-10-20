@@ -3,6 +3,7 @@ import React, { useRef, useState, useCallback } from "react";
 import "@testing-library/jest-dom";
 import { render, fireEvent, act } from "@testing-library/react";
 import { usePromptHistory } from "../../hooks/usePromptHistory";
+import { queryTextArea } from "../../../../test-utils/doubles";
 
 // jsdom's requestAnimationFrame fires async; run the caret-setting callback
 // synchronously so tests can assert caret state right after a key press.
@@ -57,9 +58,7 @@ function Harness() {
 }
 
 function getInput() {
-  return document.querySelector<HTMLTextAreaElement>(
-    '[data-testid="input"]'
-  ) as HTMLTextAreaElement;
+  return queryTextArea(document, '[data-testid="input"]');
 }
 
 function type(text: string) {

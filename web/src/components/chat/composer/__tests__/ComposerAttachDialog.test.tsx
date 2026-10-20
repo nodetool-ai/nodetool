@@ -11,6 +11,7 @@ import {
 import mockTheme from "../../../../__mocks__/themeMock";
 import { trpc } from "../../../../trpc/client";
 import { useWorkspaceTabsStore } from "../../../../stores/WorkspaceTabsStore";
+import { asMock, queryInput, stub } from "../../../../test-utils/doubles";
 import type { Asset } from "../../../../stores/ApiTypes";
 
 jest.mock("../../../../trpc/client", () => ({
@@ -18,13 +19,13 @@ jest.mock("../../../../trpc/client", () => ({
   trpcClient: {}
 }));
 
-const ASSET = {
+const ASSET = stub<Asset>({
   id: "as1",
   name: "beach.png",
   content_type: "image/png",
   thumb_url: "",
   get_url: ""
-} as unknown as Asset;
+});
 
 jest.mock(
   "../../../node_types/editing/promptComposer/useAssetMentionSearch",
@@ -59,7 +60,7 @@ jest.mock("../../../../serverState/useEntities", () => ({
   })
 }));
 
-const useIndexQuery = trpc.documents.index.useQuery as unknown as jest.Mock;
+const useIndexQuery = asMock(trpc.documents.index.useQuery);
 
 const renderDialog = () => {
   const props = {
@@ -168,9 +169,7 @@ describe("ComposerAttachDialog", () => {
 
     await user.click(screen.getByRole("tab", { name: "Upload" }));
     const file = new File(["x"], "notes.txt", { type: "text/plain" });
-    const input = document.querySelector(
-      'input[type="file"]'
-    ) as HTMLInputElement;
+    const input = queryInput(document, 'input[type="file"]');
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(props.onUploadFiles).toHaveBeenCalledWith([file]);

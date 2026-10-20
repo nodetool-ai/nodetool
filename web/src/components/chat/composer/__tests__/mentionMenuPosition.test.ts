@@ -14,7 +14,7 @@ const rectAt = (top: number, height = 80): DOMRect =>
     x: 40,
     y: top,
     toJSON: () => ({})
-  }) as DOMRect;
+  });
 
 describe("mentionMenuPosition", () => {
   beforeEach(() => {

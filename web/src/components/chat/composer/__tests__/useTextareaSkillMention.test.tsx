@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
+import { asTextArea } from "../../../../test-utils/doubles";
 
 import {
   findSkillTrigger,
@@ -102,7 +103,7 @@ describe("useTextareaSkillMention", () => {
   it("wraps arrow navigation and inserts the canonical name on Enter", async () => {
     const user = userEvent.setup();
     renderHarness();
-    const textarea = screen.getByLabelText("prompt") as HTMLTextAreaElement;
+    const textarea = asTextArea(screen.getByLabelText("prompt"));
 
     await user.type(textarea, "before /res after");
     textarea.setSelectionRange(11, 11);

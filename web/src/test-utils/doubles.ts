@@ -147,6 +147,26 @@ export function queryInput(
   return found;
 }
 
+/** The `<textarea>` matching `selector`. */
+export function queryTextArea(
+  root: ParentNode,
+  selector: string
+): HTMLTextAreaElement {
+  const found = root.querySelector(selector);
+  if (!(found instanceof HTMLTextAreaElement)) {
+    throw new Error(`expected a textarea matching ${selector}, found none`);
+  }
+  return found;
+}
+
+/** Narrows a node a query already found to the `<textarea>` it must be. */
+export function asTextArea(node: Node | null): HTMLTextAreaElement {
+  if (!(node instanceof HTMLTextAreaElement)) {
+    throw new Error("expected an HTMLTextAreaElement");
+  }
+  return node;
+}
+
 /** Narrows a node a query already found, such as `closest` or `parentElement`. */
 export function asElement(node: Node | null): HTMLElement {
   if (!(node instanceof HTMLElement)) {
