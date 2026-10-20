@@ -35,6 +35,7 @@ import {
   pruneAnalyticsEvents,
   recordAnalyticsEvents
 } from "@nodetool-ai/models";
+import { parseJsonBodies } from "../lib/json-body.js";
 
 const log = createLogger("nodetool.websocket.analytics");
 
@@ -47,6 +48,9 @@ const MAX_EVENT_AGE_MS = 7 * 24 * 3_600_000;
 export const ANALYTICS_BODY_LIMIT = 64 * 1024;
 
 const PRUNE_INTERVAL_MS = 24 * 3_600_000;
+
+/** Per client. A browser flushes its queue a few times a minute at most. */
+const ANALYTICS_RATE_LIMIT = { max: 60, timeWindow: "1 minute" };
 
 export type AnalyticsRouteMode = "ingest" | "relay" | "off";
 
@@ -131,10 +135,18 @@ const analyticsRoute =
       app.addHook("onClose", async () => clearInterval(timer));
     }
 
+    // `server.ts` hands every route a raw Buffer. Parse `application/json`
+    // here and nothing else: a `text/plain` body is a POST any website can
+    // send without a preflight.
+    parseJsonBodies(app);
+
     app.post(
       ANALYTICS_INGEST_PATH,
       {
         bodyLimit: ANALYTICS_BODY_LIMIT,
+        // The route is public and writes rows in ingest mode, so it gets a
+        // tighter limit than the global one.
+        config: { rateLimit: ANALYTICS_RATE_LIMIT },
         // Only the outer shape here: Fastify's validator coerces types, and
         // the strict check (exact keys, enums, no coercion) is validateBatch.
         schema: { body: { type: "object" } }

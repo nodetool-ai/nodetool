@@ -81,6 +81,25 @@ describe("/api/files/local", () => {
     expect(await res.text()).toBe("video-bytes");
   });
 
+  // This route answers on the API's own origin, which the local trust check
+  // treats as the user's UI, so an SVG's script must not run.
+  it("serves SVG with a sandbox policy, ranges included", async () => {
+    const file = path.join(tmpDir, "x.svg");
+    await fs.writeFile(file, "<svg xmlns='http://www.w3.org/2000/svg'/>");
+
+    for (const headers of [undefined, { Range: "bytes=0-3" }]) {
+      const res = await handleFileRequest(localRequest(file, { headers }));
+      expect(res.headers.get("Content-Type")).toBe("image/svg+xml");
+      expect(res.headers.get("Content-Security-Policy")).toMatch(
+        /default-src 'none'.*sandbox/
+      );
+    }
+    const png = path.join(tmpDir, "x.png");
+    await fs.writeFile(png, "png");
+    const res = await handleFileRequest(localRequest(png));
+    expect(res.headers.get("Content-Security-Policy")).toBeNull();
+  });
+
   it("serves a byte range as 206 Partial Content", async () => {
     const file = path.join(tmpDir, "song.mp3");
     await fs.writeFile(file, "0123456789");

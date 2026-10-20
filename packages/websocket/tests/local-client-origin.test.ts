@@ -5,13 +5,14 @@ const TOKEN = "a".repeat(64);
 
 function allowed(
   origin: string | undefined,
-  extra: { host?: string; presentedToken?: string } = {}
+  extra: { host?: string; presentedToken?: string; fetchSite?: string } = {}
 ): boolean {
   return isLocalClientRequest({
     origin,
     host: extra.host ?? "127.0.0.1:7777",
     presentedToken: extra.presentedToken,
-    expectedToken: TOKEN
+    expectedToken: TOKEN,
+    fetchSite: extra.fetchSite
   });
 }
 
@@ -19,6 +20,18 @@ describe("isLocalClientRequest", () => {
   it("allows clients that send no Origin", () => {
     expect(allowed(undefined)).toBe(true);
     expect(allowed("")).toBe(true);
+  });
+
+  // A cross-site `<img>` or top-level navigation sends no Origin either.
+  it("refuses a request without Origin that another site sent", () => {
+    expect(allowed(undefined, { fetchSite: "cross-site" })).toBe(false);
+    expect(allowed(undefined, { fetchSite: "Cross-Site" })).toBe(false);
+    expect(allowed(undefined, { fetchSite: "same-origin" })).toBe(true);
+    expect(allowed(undefined, { fetchSite: "same-site" })).toBe(true);
+    expect(allowed(undefined, { fetchSite: "none" })).toBe(true);
+    expect(
+      allowed(undefined, { fetchSite: "cross-site", presentedToken: TOKEN })
+    ).toBe(true);
   });
 
   it("allows the server's own UI, localhost dev servers and file://", () => {

@@ -539,6 +539,8 @@ describe("isSafeTokenUrl", () => {
     expect(isSafeTokenUrl("http://[::1]:8000", {})).toBe(true);
     expect(isSafeTokenUrl("http://203.0.113.7:8000", {})).toBe(false);
     expect(isSafeTokenUrl("http://vps.example.com:8000", {})).toBe(false);
+    expect(isSafeTokenUrl("http://127.example.com:8000", {})).toBe(false);
+    expect(isSafeTokenUrl("http://127.0.0.2:8000", {})).toBe(true);
     expect(
       isSafeTokenUrl("http://vps.example.com:8000", {
         NODETOOL_ALLOW_INSECURE_HTTP: "1"

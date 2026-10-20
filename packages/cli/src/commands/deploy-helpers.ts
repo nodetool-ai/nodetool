@@ -6,6 +6,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { isIP } from "node:net";
 
 import {
   AdminHTTPClient,
@@ -126,7 +127,12 @@ export function isSafeTokenUrl(
   if (parsed.protocol === "https:") return true;
   if (env["NODETOOL_ALLOW_INSECURE_HTTP"] === "1") return true;
   const host = parsed.hostname.replace(/^\[|\]$/g, "");
-  return host === "localhost" || host === "::1" || host.startsWith("127.");
+  // `isIP`, not just the prefix: `127.example.com` is a DNS name.
+  return (
+    host === "localhost" ||
+    host === "::1" ||
+    (isIP(host) === 4 && host.startsWith("127."))
+  );
 }
 
 function requireServerUrl(deployment: AnyDeployment, name: string): string {

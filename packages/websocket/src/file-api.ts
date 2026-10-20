@@ -52,6 +52,16 @@ const LOCAL_MIME_TYPES: Record<string, string> = {
   ".json": "application/json"
 };
 
+/**
+ * Script restrictions for SVG. This route answers on the API's own origin, and
+ * the local trust check takes a same-origin page for the user's own UI, so a
+ * script inside a file from `~/Downloads` must never run here.
+ */
+const SVG_SAFE_HEADERS: Record<string, string> = {
+  "Content-Security-Policy":
+    "default-src 'none'; style-src 'unsafe-inline'; sandbox; frame-ancestors 'self'"
+};
+
 function localMimeType(filePath: string): string {
   return (
     LOCAL_MIME_TYPES[path.extname(filePath).toLowerCase()] ??
@@ -88,6 +98,7 @@ async function handleLocalFileStream(
 
   const cors = corsHeaders(request);
   const contentType = localMimeType(resolved);
+  const safety = contentType === "image/svg+xml" ? SVG_SAFE_HEADERS : {};
   const fileSize = stat.size;
   const lastModified = stat.mtime.toUTCString();
 
@@ -96,6 +107,7 @@ async function handleLocalFileStream(
       status: 200,
       headers: {
         ...cors,
+        ...safety,
         "Content-Type": contentType,
         "Content-Length": String(fileSize),
         "Last-Modified": lastModified,
@@ -124,6 +136,7 @@ async function handleLocalFileStream(
       status: 206,
       headers: {
         ...cors,
+        ...safety,
         "Content-Type": contentType,
         "Content-Length": String(end - start + 1),
         "Content-Range": `bytes ${start}-${end}/${fileSize}`,
@@ -137,6 +150,7 @@ async function handleLocalFileStream(
     status: 200,
     headers: {
       ...cors,
+      ...safety,
       "Content-Type": contentType,
       "Content-Length": String(fileSize),
       "Last-Modified": lastModified,
