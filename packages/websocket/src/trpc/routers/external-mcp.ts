@@ -10,7 +10,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import {
   deleteExternalMcpServer,
-  isLocalMcpProfile,
+  isLocalMcpAllowedFor,
   loadExternalMcpServers,
   probeExternalMcpServer,
   saveExternalMcpServer
@@ -40,7 +40,7 @@ export const externalMcpRouter = router({
     )
     .query(async ({ ctx }) => ({
       servers: await loadExternalMcpServers(ctx.userId),
-      stdio_enabled: isLocalMcpProfile()
+      stdio_enabled: await isLocalMcpAllowedFor(ctx.userId)
     })),
 
   save: protectedProcedure

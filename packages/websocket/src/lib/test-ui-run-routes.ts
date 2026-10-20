@@ -7,6 +7,8 @@ import applicationsRoutes from "../routes/applications.js";
 import appRunsRoutes from "../routes/app-runs.js";
 import runSpansRoutes from "../routes/run-spans.js";
 import type { AppBuildDeps } from "./app-build-service.js";
+import { isLocalClientRequest } from "./local-client-origin.js";
+import { isLocalHostHeader } from "./localhost-trust.js";
 
 const methodSchema = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 
@@ -41,7 +43,23 @@ function studyAppModel(): { provider: string; model: string } | null {
 export function createTestUiRunRoutes() {
   const app = Fastify();
   const studyModel = studyAppModel();
-  app.addHook("onRequest", async (request) => {
+  app.addHook("onRequest", async (request, reply) => {
+    // Every request runs as user "1", so a page on another site (or a
+    // rebound DNS name) must not reach these routes through the browser.
+    const fetchSite = request.headers["sec-fetch-site"];
+    const local =
+      isLocalHostHeader(request.headers.host, []) &&
+      isLocalClientRequest({
+        origin: request.headers.origin,
+        host: request.headers.host,
+        presentedToken: undefined,
+        expectedToken: null,
+        fetchSite: typeof fetchSite === "string" ? fetchSite : undefined
+      });
+    if (!local) {
+      await reply.status(403).send({ error: "Forbidden" });
+      return reply;
+    }
     request.userId = "1";
     if (request.headers.authorization?.startsWith("Bearer nda_")) {
       request.appSession = { applicationId: "visitor-session", version: 0 };

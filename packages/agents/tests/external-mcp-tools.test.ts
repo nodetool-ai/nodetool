@@ -527,6 +527,7 @@ describe("inheritedChildEnv", () => {
       SECRETS_MASTER_KEY: "m",
       SUPABASE_URL: "https://x.supabase.co",
       DATABASE_URL: "postgres://u:p@db/n",
+      DIRECT_URL: "postgres://u:p@db/n",
       AWS_REGION: "us-east-1",
       DB_PASSWORD: "p"
     });

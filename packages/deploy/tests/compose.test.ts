@@ -9,7 +9,8 @@ import type { DockerDeployment } from "../src/deployment-config.js";
 
 // Mock writeFileSync
 vi.mock("fs", () => ({
-  writeFileSync: vi.fn()
+  writeFileSync: vi.fn(),
+  chmodSync: vi.fn()
 }));
 
 function makeDeployment(
@@ -412,6 +413,8 @@ describe("generateComposeFile()", () => {
       expect.any(String),
       { encoding: "utf-8", mode: 0o600 }
     );
+    const { chmodSync } = await import("fs");
+    expect(chmodSync).toHaveBeenCalledWith("/tmp/test-compose.yml", 0o600);
   });
 
   it("should not write to file when no outputPath", async () => {

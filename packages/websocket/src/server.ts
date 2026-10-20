@@ -890,7 +890,11 @@ app.addHook("onSend", async (request, reply) => {
   if (!path.startsWith("/api/storage/")) {
     reply.header("X-Content-Type-Options", "nosniff");
     reply.header("X-Frame-Options", "SAMEORIGIN");
-    reply.header("Content-Security-Policy", "frame-ancestors 'self'");
+    // A route that sets its own policy (an SVG served with `sandbox`) keeps
+    // it: replacing it would let the file's script run on this origin.
+    if (!reply.hasHeader("Content-Security-Policy")) {
+      reply.header("Content-Security-Policy", "frame-ancestors 'self'");
+    }
   }
   reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
 });
@@ -1119,11 +1123,13 @@ app.addHook("onRequest", async (req, reply) => {
     isTrustedLocalAddress(clientIp, trustLocalNetworks)
   ) {
     const presented = req.headers[LOCAL_CLIENT_TOKEN_HEADER];
+    const fetchSite = req.headers["sec-fetch-site"];
     const fromLocalClient = isLocalClientRequest({
       origin: req.headers.origin,
       host: req.headers.host,
       presentedToken: typeof presented === "string" ? presented : undefined,
-      expectedToken: localClientToken
+      expectedToken: localClientToken,
+      fetchSite: typeof fetchSite === "string" ? fetchSite : undefined
     });
     const localHost = isLocalHostHeader(req.headers.host, allowedHosts);
     if (localHost && fromLocalClient) {
