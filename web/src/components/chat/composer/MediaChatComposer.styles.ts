@@ -7,6 +7,9 @@ import { MOTION, BORDER_RADIUS, dropZoneOverStyle } from "../../ui_primitives";
  * textarea header, footer chip row, and primary Generate button.
  * Matches the reference screenshots.
  */
+/** Send and Stop share this diameter so one replaces the other in place. */
+export const SEND_BUTTON_SIZE = 32;
+
 export const createMediaComposerStyles = (theme: Theme) =>
   css({
     width: "100%",
@@ -34,11 +37,14 @@ export const createMediaComposerStyles = (theme: Theme) =>
       flexDirection: "column",
       gap: theme.spacing(1.5),
       transition: `${MOTION.border}, ${MOTION.shadow}`,
+      // Focus reads as a neutral ring, not a colored glow: the Send button
+      // carries the accent color.
       "&:focus-within": {
-        borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.5)`,
-        boxShadow: `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.1), 0 8px 24px ${theme.vars.palette.c_scrim_soft}`,
+        borderColor: theme.vars.palette.grey[500],
+        boxShadow: `0 0 0 3px ${theme.vars.palette.c_overlay_strong}, 0 8px 24px ${theme.vars.palette.c_scrim_soft}`,
         [theme.getColorSchemeSelector("dark")]: {
-          boxShadow: `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.12), 0 10px 40px ${theme.vars.palette.c_scrim}`
+          borderColor: theme.vars.palette.grey[600],
+          boxShadow: `0 0 0 3px ${theme.vars.palette.c_overlay}, 0 10px 40px ${theme.vars.palette.c_scrim}`
         }
       },
       // The shared drag-over look of every drop target (DropZone).
@@ -189,6 +195,38 @@ export const createMediaComposerStyles = (theme: Theme) =>
         boxShadow: "none",
         background: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[500]
+      }
+    },
+
+    // Chat mode's Send: a round filled button at the end of the toolbar,
+    // greyed out until there is something to send.
+    ".media-send-btn": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: SEND_BUTTON_SIZE,
+      height: SEND_BUTTON_SIZE,
+      padding: 0,
+      borderRadius: BORDER_RADIUS.circle,
+      border: "none",
+      background: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.contrastText,
+      cursor: "pointer",
+      transition: `${MOTION.background}, ${MOTION.opacity}`,
+      "&:hover:not(:disabled)": {
+        background: theme.vars.palette.primary.dark
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 2
+      },
+      "&:disabled": {
+        cursor: "not-allowed",
+        background: theme.vars.palette.c_overlay_strong,
+        color: theme.vars.palette.text.disabled
+      },
+      svg: {
+        fontSize: 18
       }
     },
 

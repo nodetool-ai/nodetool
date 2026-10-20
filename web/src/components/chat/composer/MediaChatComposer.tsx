@@ -12,8 +12,15 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import AddIcon from "@mui/icons-material/AddOutlined";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
-import { FlexRow, LoadingSpinner, Text, SPACING } from "../../ui_primitives";
+import {
+  FlexRow,
+  LoadingSpinner,
+  Text,
+  Tooltip,
+  SPACING
+} from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
   resolveImageSize
@@ -941,8 +948,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             <ModeChips mode={mode} openModelPickerRef={modelPickerRef} />
           </div>
 
-          {/* The Generate button for media modes, or Stop while a run is in
-              flight. Chat mode has no button of its own — Enter sends. */}
+          {/* Send in chat mode, Generate in media modes, or Stop while a run
+              is in flight. Send stays visible while the prompt is empty so
+              the composer always shows where the message goes. */}
           <div className="media-primary-action">
             {/* What the next Generate would cost, next to the button that
                 spends it. Silent in chat mode and whenever no price can be
@@ -965,7 +973,21 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               >
                 {t("i18n-next54.composer.generate")}
               </button>
-            ) : null}
+            ) : (
+              <Tooltip title={t("i18n-next54.composer.send")}>
+                <span>
+                  <button
+                    type="button"
+                    className="media-send-btn"
+                    onClick={handleSend}
+                    disabled={isDisabled || !canGenerate}
+                    aria-label={t("i18n-next54.composer.send")}
+                  >
+                    <ArrowUpwardIcon fontSize="small" />
+                  </button>
+                </span>
+              </Tooltip>
+            )}
           </div>
 
           {/* Host-supplied actions after the chips (the canvas workflow

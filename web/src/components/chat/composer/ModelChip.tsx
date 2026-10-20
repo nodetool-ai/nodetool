@@ -92,7 +92,6 @@ export function ModelChip({
       onClick={() => setOpen(true)}
       showChevron
       truncate
-      grow
       maxWidth={MODEL_CHIP_MAX_WIDTH}
     />
   );

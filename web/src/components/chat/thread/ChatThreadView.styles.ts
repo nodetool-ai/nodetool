@@ -125,13 +125,13 @@ export const createStyles = (theme: Theme) => ({
       maxWidth: "100%"
     },
 
-    // User message content gets the colored background. A soft primary tint
-    // separates the user's voice from the surface — `background.paper` was
-    // nearly invisible against the default background.
+    // User message content sits on a neutral muted bubble, the assistant's
+    // on the bare surface. `background.paper` was nearly invisible against
+    // the default background, and a primary tint competed with links.
     ".user .message-content": {
-      background: `rgb(${theme.vars.palette.primary.mainChannel} / 0.14)`,
+      background: theme.vars.palette.c_overlay_strong,
       color: theme.vars.palette.text.primary,
-      borderRadius: BORDER_RADIUS.xl,
+      borderRadius: BORDER_RADIUS.lg,
       padding: theme.spacing(SPACING.xs),
       textAlign: "left"
     },
