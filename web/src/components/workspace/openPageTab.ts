@@ -8,6 +8,10 @@ import {
   useSettingsPageStore,
   type SettingsSection
 } from "../../stores/SettingsPageStore";
+import {
+  useExamplesPageStore,
+  type ExampleTab
+} from "../../stores/ExamplesPageStore";
 import { PAGE_TAB_TITLES, type PageTabKey } from "./pageTabs";
 
 export const openPageTab = (key: PageTabKey): void => {
@@ -26,4 +30,10 @@ export const openSettingsTab = (
 ): void => {
   useSettingsPageStore.getState().setSection(section);
   openPageTab("settings");
+};
+
+/** Open Examples, optionally on a given kind of example. */
+export const openExamplesTab = (tab: ExampleTab = "apps"): void => {
+  useExamplesPageStore.getState().setTab(tab);
+  openPageTab("examples");
 };

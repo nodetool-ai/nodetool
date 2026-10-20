@@ -1,5 +1,9 @@
-import React, { memo, useState } from "react";
+import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  isExampleTab,
+  useExamplesPageStore
+} from "../../stores/ExamplesPageStore";
 import { PageLayout, TabGroup } from "../ui_primitives";
 import DashboardExampleApps from "./DashboardExampleApps";
 import DashboardExampleGames from "./DashboardExampleGames";
@@ -11,11 +15,13 @@ import DashboardTemplates from "./DashboardTemplates";
 
 /**
  * Full-screen Examples page. Reachable from the logo menu; wraps the shipped
- * examples for each editor in separate tabs.
+ * examples for each editor in separate tabs. The tab lives in
+ * `ExamplesPageStore`, so the start page can open it on a given kind.
  */
 const ExamplesPage: React.FC = () => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("apps");
+  const activeTab = useExamplesPageStore((state) => state.tab);
+  const setTab = useExamplesPageStore((state) => state.setTab);
 
   return (
     <PageLayout padded={false} scrollable showHeader={false}>
@@ -33,7 +39,11 @@ const ExamplesPage: React.FC = () => {
           { value: "games", label: t("pass3_18.examples.tabs.games") }
         ]}
         value={activeTab}
-        onChange={setActiveTab}
+        onChange={(value) => {
+          if (isExampleTab(value)) {
+            setTab(value);
+          }
+        }}
         sx={{ flexShrink: 0, borderBottom: 1, borderColor: "divider" }}
       />
       {activeTab === "apps" ? (

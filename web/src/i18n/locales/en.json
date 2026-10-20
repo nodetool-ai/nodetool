@@ -6195,14 +6195,10 @@
         "guidedFlowOpenFailure": "Guided {{kind}} flow could not open its project",
         "openDocument": "Open your {{kind}}",
         "describeRegion": "Describe what you want to make",
-        "heading": "What do you want to make?",
-        "intro": "Ask a question and get an answer, or describe something to make. An agent plans it and builds it while you watch, and everything it makes stays editable.",
-        "quickCreateGroup": "Create a game or 3D model",
-        "game": "Game",
-        "newModel": "New 3D model",
-        "newModelTooltip": "Open a blank 3D model to edit by hand. No AI provider needed.",
+        "heading": "What would you like to create?",
+        "intro": "Turn an idea into images, videos, apps and workflows. Ask a question, or describe what to make.",
         "chatPromptLabel": "Chat prompt",
-        "promptPlaceholder": "Ask a question, or describe what to make: a 30-second launch spot for our desk lamp. Type / for a skill, @ for a file or entity.",
+        "promptPlaceholder": "Describe what you want to create. Type / for a skill, @ for a file or entity.",
         "removeReference": "Remove {{name}}",
         "referenceImages": "Reference images",
         "referenceImageCountShort_one": "Ref images · {{count}}",
@@ -6218,14 +6214,9 @@
         "moreStarters_other": "{{count}} more",
         "pickSkillOrDescribe": "Pick a skill to start from, or just describe what you want.",
         "guidedFlowsRegion": "Start with a guided flow",
-        "guidedFlowsHeading": "Start with a guided flow",
-        "guidedFlowsDescription": "A few short steps, each ending in a document you keep editing.",
-        "gameStartsAs": "Game card starts as",
         "gameDimension": "Game dimension",
         "game2d": "2D game",
         "game3d": "3D exploration",
-        "fewerFormats": "Fewer formats",
-        "moreFormats": "More formats",
         "blankDocument": "Blank document",
         "blankDocumentDescription": "— opens as a loose tab, outside any project",
         "browseExamples": "Browse examples",
@@ -6257,7 +6248,59 @@
           "txt": "Plain text (.txt)"
         },
         "unsupportedReferenceFiles_one": "Reference images only accept pictures. {{files}} was not added.",
-        "unsupportedReferenceFiles_other": "Reference images only accept pictures. {{files}} were not added."
+        "unsupportedReferenceFiles_other": "Reference images only accept pictures. {{files}} were not added.",
+        "createCards": {
+          "image": {
+            "title": "Create image",
+            "description": "From a simple prompt"
+          },
+          "video": {
+            "title": "Create video",
+            "description": "Turn ideas into clips"
+          },
+          "app": {
+            "title": "Create app",
+            "description": "Build a page others can use"
+          },
+          "workflow": {
+            "title": "Create workflow",
+            "description": "Automate and combine steps"
+          },
+          "model3d": {
+            "title": "3D model",
+            "description": "A blank 3D model to edit by hand. No AI provider needed."
+          }
+        },
+        "allTypes": {
+          "title": "Explore all creation types",
+          "description": "Storyboards, 3D, games, scripts, read aloud and more"
+        },
+        "recentProjects": {
+          "heading": "Recent projects",
+          "viewAll": "View all projects",
+          "edited": "Edited {{time}}"
+        },
+        "exploreExamples": {
+          "heading": "Explore examples",
+          "intro": "Get inspired and start from a ready-made example.",
+          "viewAll": "View all examples",
+          "images": {
+            "title": "Image gallery",
+            "description": "Sketches, art and illustrations"
+          },
+          "videos": {
+            "title": "Video examples",
+            "description": "Trailers, ads and edits"
+          },
+          "apps": {
+            "title": "App examples",
+            "description": "Web apps and tools"
+          },
+          "workflows": {
+            "title": "Workflow examples",
+            "description": "Automations, multi-step"
+          }
+        }
       }
     }
   },
