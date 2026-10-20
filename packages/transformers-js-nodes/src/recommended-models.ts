@@ -23,6 +23,8 @@ export interface TjsModelRef {
    * for a chat model is a multi-gigabyte download and slow on a CPU.
    */
   dtype?: string;
+  /** Encoder-decoder language models use a text-to-text pipeline. */
+  pipelineTask?: "text2text-generation";
 }
 
 const MODELS: Record<string, readonly TjsModelRef[]> = {
@@ -71,7 +73,14 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
     { repo_id: "HuggingFaceTB/SmolLM3-3B-ONNX" },
     { repo_id: "HuggingFaceTB/SmolLM2-1.7B-Instruct" },
     { repo_id: "HuggingFaceTB/SmolLM2-360M-Instruct" },
-    { repo_id: "HuggingFaceTB/SmolLM2-135M-Instruct" }
+    { repo_id: "HuggingFaceTB/SmolLM2-135M-Instruct" },
+    { repo_id: "teapotai/teapotllm", dtype: "q8", pipelineTask: "text2text-generation" },
+    { repo_id: "onnx-community/Llama-3.2-1B-Instruct-ONNX", dtype: "q4" },
+    { repo_id: "onnx-community/Llama-3.2-3B-Instruct-ONNX", dtype: "q4" },
+    { repo_id: "onnx-community/Qwen2.5-0.5B-Instruct", dtype: "q4" },
+    { repo_id: "onnx-community/Qwen2.5-1.5B-Instruct", dtype: "q4" },
+    { repo_id: "onnx-community/Qwen2.5-Coder-1.5B-Instruct", dtype: "q4" },
+    { repo_id: "onnx-community/Phi-3.5-mini-instruct-onnx-web" }
   ],
 
   "tjs.fill_mask": [
@@ -217,4 +226,10 @@ export function defaultRepoFor(modelType: string): string {
     );
   }
   return list[0].repo_id;
+}
+
+/** Resolve the pipeline architecture for a recommended language model. */
+export function textGenerationTaskFor(repoId: string): "text-generation" | "text2text-generation" {
+  return MODELS["tjs.text_generation"].find((ref) => ref.repo_id === repoId)?.pipelineTask
+    ?? "text-generation";
 }

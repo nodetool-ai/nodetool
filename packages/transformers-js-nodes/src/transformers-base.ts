@@ -11,7 +11,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { ModelCache, type DisposableModel } from "./model-cache.js";
 import { getTransformersJsCacheDir } from "./cache-dir.js";
 import { trackModelLoad } from "./model-load-progress.js";
-import { recommendedDtypeFor } from "./recommended-models.js";
+import { recommendedDtypeFor, textGenerationTaskFor } from "./recommended-models.js";
 import type { MusicgenModel, MusicgenTokenizer } from "./music-shared.js";
 import type { JanusModel, JanusProcessor } from "./janus-shared.js";
 
@@ -200,7 +200,10 @@ interface PipelineOptions {
 export async function getPipeline<TPipeline extends object>(
   options: PipelineOptions
 ): Promise<TPipeline> {
-  const { task, model, revision } = options;
+  const { model, revision } = options;
+  const task = options.task === "text-generation" && model
+    ? textGenerationTaskFor(model)
+    : options.task;
   const dtype = options.dtype ?? (model ? recommendedDtypeFor(model) : undefined);
   const device = resolveDevice(options.device);
   const key: PipelineCacheKey = JSON.stringify([
