@@ -51,8 +51,9 @@
   s.thr = clamp(s.thr + (axes.throttle || 0) * 0.55 * dt, 0, 1);
   if (tapped("gear") && !s.ground) { s.gear = !s.gear; cmds.push({ kind: "emit", event: "gear" }); cmds.push({ kind: "setAnimParam", name: "gear", value: s.gear }); }
   if (tapped("camera")) s.cam = (s.cam + 1) % 3;
-  const brake = pressed("brake");
   if (s.started < 0 && s.thr > 0.05) s.started = input.tick;
+  // The parking brake holds the jet on the runway until the throttle first comes up.
+  const brake = pressed("brake") || s.started < 0;
 
   // Atmosphere and aerodynamics.
   const speed = len(vel);
@@ -99,14 +100,16 @@
         const rate = (compression - s.comp[k]) / dt;
         const n = Math.max(0, springs[k][0] * compression + springs[k][1] * rate);
         const point = hit.position ? vec(hit.position) : add(origin, mul(U, -hit.distance));
+        // The tyre pushes along the ground normal, so a nose-low stance does not drive the jet forward.
+        const N = hit.normal ? norm(vec(hit.normal)) : U;
         const rel = add(vel, cross(omega, add(point, mul(pos, -1))));
         const steer = k === 0 ? clamp(yaw, -1, 1) * 0.5 * clamp(1 - speed / 70, 0, 1) : 0;
         const side = norm(add(mul(R, Math.cos(steer)), mul(F, -Math.sin(steer))));
-        const ahead = norm(cross(U, side));
+        const ahead = norm(cross(N, side));
         const vSide = dot(rel, side), vAhead = dot(rel, ahead);
         const fSide = -clamp(vSide / 0.6, -1, 1) * 0.9 * n;
         const fAhead = -clamp(vAhead / 0.5, -1, 1) * (brake && k > 0 ? 0.55 : 0.018) * n;
-        const total = add(mul(U, n), add(mul(side, fSide), mul(ahead, fAhead)));
+        const total = add(mul(N, n), add(mul(side, fSide), mul(ahead, fAhead)));
         cmds.push({ kind: "addForceAtPoint", force: obj(total), point: obj(point) });
         onGround = true;
         load += n;

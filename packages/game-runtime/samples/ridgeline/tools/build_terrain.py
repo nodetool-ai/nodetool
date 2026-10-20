@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Builds the RIDGELINE island: textured terrain tiles, forests, river and collider.
+"""Builds the RIDGELINE island: textured terrain tiles, forests and river.
 
 Run from the repository root:
 
     python3 packages/game-runtime/samples/ridgeline/tools/build_terrain.py OUT_DIR
 
 Writes `terrain-<i>.glb` (four 5 km tiles with 2048 px albedo and normal maps),
-`forest-<i>.glb` (conifers per tile), `river.glb`, `terrain.collider.json` (a
-coarser triangle mesh for physics) and `layout.json` (runway, canyon path and
-heights the game document builder reads). The output is deterministic.
+`forest-<i>.glb` (conifers per tile), `river.glb`, `heights.npy` (the height
+grid that plan_course.py and build_collider.py read) and `layout.json` (runway
+and canyon path for the game document builder). The output is deterministic.
 """
 import io
 import json
@@ -25,7 +25,6 @@ import landscape as L  # noqa: E402
 GRID = 2033            # base height samples across the island (4.92 m)
 TEXTURE = 4096         # global texel count across the island (2.44 m)
 TILE_VERTS = 255       # vertices per tile edge (uint16 indices)
-COLLIDER_VERTS = 241   # collider vertices across the whole island
 
 
 def box_blur(a, radius):
@@ -132,8 +131,8 @@ def build_maps(h_base, texture=TEXTURE):
 
     grass_a, grass_b, grass_dry = srgb("#4f5f34"), srgb("#6b7442"), srgb("#8c855a")
     forest_floor = srgb("#26381d")
-    rock_a, rock_b, rock_dark = srgb("#7b7064"), srgb("#958a7c"), srgb("#4f4740")
-    scree = srgb("#8d8070")
+    rock_a, rock_b, rock_dark = srgb("#65584b"), srgb("#7d7064"), srgb("#3a332c")
+    scree = srgb("#7a6e60")
     snow = srgb("#eef2f7")
     sand = srgb("#c8b285")
     seabed = srgb("#5f6b58")
@@ -366,22 +365,6 @@ def terrain_tiles(h_base, albedo, normal, out):
     return tiles
 
 
-def collider(h_base, out):
-    n = COLLIDER_VERTS
-    t = np.linspace(0, GRID - 1, n)
-    idx = np.round(t).astype(int)
-    hh = h_base[np.ix_(idx, idx)]
-    coords = -L.HALF + t * (L.SIZE / (GRID - 1))
-    gx, gz = np.meshgrid(coords, coords)
-    vertices = np.stack([gx, hh, gz], axis=-1).reshape(-1)
-    vertices = np.round(vertices, 2)
-    indices = grid_indices(n).reshape(-1)
-    payload = {"vertices": [float(v) for v in vertices], "indices": [int(i) for i in indices]}
-    text = json.dumps(payload, separators=(",", ":"))
-    (out / "terrain.collider.json").write_text(text)
-    return {"vertices": int(n * n), "triangles": int(len(indices) // 3)}
-
-
 def conifer(rng, base, height, radius, color):
     """Two stacked six-sided cones without bases: 12 triangles."""
     positions, normals, colors, indices = [], [], [], []
@@ -499,12 +482,11 @@ def main():
     albedo, normal, density, h_hi = build_maps(h_base)
     Image.fromarray(albedo).resize((1024, 1024), Image.LANCZOS).save(out / "albedo-preview.png")
     tiles = terrain_tiles(h_base, albedo, normal, out)
-    collider_stats = collider(h_base, out)
     forest_files, trees = forests(density, h_hi, out)
     river(out)
     layout = {"waterLevel": L.WATER_LEVEL, "airfieldHeight": L.AIRFIELD_HEIGHT, "runway": L.RUNWAY,
               "canyon": L.canyon_path_smooth(4).round(1).tolist(), "tiles": tiles, "forests": forest_files,
-              "trees": trees, "collider": collider_stats, "gridSpacing": L.SIZE / (GRID - 1)}
+              "trees": trees, "gridSpacing": L.SIZE / (GRID - 1)}
     (out / "layout.json").write_text(json.dumps(layout, indent=1))
     print(json.dumps({k: v for k, v in layout.items() if k != "canyon"}, indent=1))
 

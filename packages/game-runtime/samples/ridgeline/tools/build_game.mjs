@@ -148,7 +148,7 @@ const cloud = (index, { p, r }) => {
 const gates = course.gates.map((gate, index) => ({
   id: gate.id, tags: ["gate"], transform3d: { position: v3(gate.p), rotation: gate.q },
   model: { assetId: "gate", castShadow: false, receiveShadow: false },
-  collider3d: { kind: "sphere", radius: 16, sensor: true, layer: "gates" }, body3d: { type: "static" },
+  collider3d: { kind: "sphere", radius: 18.5, sensor: true, layer: "gates" }, body3d: { type: "static" },
   audioSource: { assetId: "sfx-gate", onEvent: "gate", volume: 0.9, spatial: true, minDistance: 40, maxDistance: 2000 },
   props: { order: index + 1 }
 }));
@@ -206,8 +206,10 @@ const jetEntity = {
     __SPAWN__: { p: course.spawn.p, q: course.spawn.q, air: false }, __WATER__: layout.waterLevel }), maxCommands: 64, maxTickMs: 20 }]
 };
 
-const exhaust = {
-  id: "exhaust", parentId: "jet", transform3d: { position: { x: 0, y: 0.1, z: 6.7 }, rotation: [0.7071068, 0, 0, 0.7071068] },
+// One child at the nozzle carries every engine and airframe effect, so a single script drives them. The entity is
+// turned a quarter turn about X, so emitter +Y points aft and a box's local z extent is vertical.
+const effects = {
+  id: "effects", parentId: "jet", transform3d: { position: { x: 0, y: 0.1, z: 6.7 }, rotation: [0.7071068, 0, 0, 0.7071068] },
   particles: { emitters: [
     { id: "flame", playOnStart: false, rate: 0, maxParticles: 220, space: "local", shape: { kind: "cone", angle: 3, radius: 0.35 },
       lifetime: { min: 0.06, max: 0.12 }, speed: { min: 28, max: 40 }, size: { min: 0.55, max: 0.8 }, color: "#ffb15a",
@@ -218,38 +220,25 @@ const exhaust = {
       opacityOverLifetime: [{ t: 0, value: 1 }, { t: 1, value: 0 }], blend: "additive", unlit: true },
     { id: "heat", playOnStart: false, rate: 0, maxParticles: 120, space: "world", shape: { kind: "cone", angle: 6, radius: 0.3 },
       lifetime: { min: 0.3, max: 0.6 }, speed: { min: 8, max: 14 }, size: { min: 0.6, max: 1.2 }, color: "#a7a39c", opacity: 0.08,
-      sizeOverLifetime: [{ t: 0, value: 0.6 }, { t: 1, value: 2.4 }], opacityOverLifetime: [{ t: 0, value: 0 }, { t: 0.2, value: 1 }, { t: 1, value: 0 }], unlit: true }
-  ] },
-  behaviors: [{ kind: "script", source: script("exhaust.js"), maxTickMs: 20 }]
-};
-
-const vapor = {
-  id: "vapor", parentId: "jet", transform3d: { position: { x: 0, y: -0.15, z: 1.9 } },
-  particles: { emitters: [
-    { id: "wing", playOnStart: false, rate: 0, maxParticles: 400, space: "world", shape: { kind: "box", size: { x: 9.6, y: 0.05, z: 1.6 } },
+      sizeOverLifetime: [{ t: 0, value: 0.6 }, { t: 1, value: 2.4 }], opacityOverLifetime: [{ t: 0, value: 0 }, { t: 0.2, value: 1 }, { t: 1, value: 0 }], unlit: true },
+    { id: "wing", playOnStart: false, rate: 0, maxParticles: 400, space: "world", shape: { kind: "box", size: { x: 9.6, y: 3.2, z: 0.1 } },
       lifetime: { min: 0.18, max: 0.35 }, speed: { min: 0, max: 0.5 }, size: { min: 0.5, max: 1.1 }, color: "#f4f7fb", opacity: 0.32,
       sizeOverLifetime: [{ t: 0, value: 0.6 }, { t: 1, value: 1.8 }], opacityOverLifetime: [{ t: 0, value: 0 }, { t: 0.2, value: 1 }, { t: 1, value: 0 }], unlit: true },
-    { id: "tips", playOnStart: false, rate: 0, maxParticles: 600, space: "world", shape: { kind: "box", size: { x: 10.2, y: 0.02, z: 0.1 } },
+    { id: "tips", playOnStart: false, rate: 0, maxParticles: 600, space: "world", shape: { kind: "box", size: { x: 10.2, y: 0.1, z: 0.02 } },
       lifetime: { min: 0.9, max: 1.4 }, speed: 0, size: { min: 0.16, max: 0.24 }, color: "#ffffff", opacity: 0.55,
       sizeOverLifetime: [{ t: 0, value: 0.6 }, { t: 1, value: 2.2 }], opacityOverLifetime: [{ t: 0, value: 0 }, { t: 0.05, value: 1 }, { t: 1, value: 0 }], unlit: true }
   ] },
-  behaviors: [{ kind: "script", source: script("vapor.js"), maxTickMs: 20 }]
+  behaviors: [{ kind: "script", source: script("fx.js"), maxTickMs: 20 }]
 };
 
-const beacon = {
-  id: "beacon", transform3d: { position: v3(course.gates[0].p) }, body3d: { type: "kinematic" },
-  light3d: { kind: "point", color: "#ffa34a", intensity: 30, range: 120, decay: 1.4 },
-  particles: { emitters: [
-    { id: "glow", rate: 18, maxParticles: 64, shape: { kind: "sphere", radius: 9, fromSurface: true }, lifetime: { min: 0.8, max: 1.4 }, speed: { min: 0.5, max: 2 },
-      size: { min: 1.4, max: 2.6 }, color: "#ffb36a", opacityOverLifetime: [{ t: 0, value: 0 }, { t: 0.3, value: 0.7 }, { t: 1, value: 0 }], blend: "additive", unlit: true }
-  ] },
-  behaviors: [{ kind: "script", source: script("beacon.js", { __GATES__: course.gates.map((gate) => gate.p) }), maxTickMs: 20 }]
-};
-
-const camera = {
-  id: "camera", transform3d: { position: v3([course.spawn.p[0], course.spawn.p[1] + 5, course.spawn.p[2] + 20]) }, body3d: { type: "kinematic" },
-  camera3d: { projection: { kind: "perspective", fov: 62, near: 0.5, far: 24000 }, behavior: { kind: "fixed" } },
+// Gameplay cameras cannot carry a body, so the script poses a kinematic rig and the camera rides on it.
+const cameraRig = {
+  id: "camera-rig", transform3d: { position: v3([course.spawn.p[0], course.spawn.p[1] + 5, course.spawn.p[2] + 20]) }, body3d: { type: "kinematic" },
   behaviors: [{ kind: "script", source: script("camera.js"), maxTickMs: 20 }]
+};
+const camera = {
+  id: "camera", parentId: "camera-rig", transform3d: { position: { x: 0, y: 0, z: 0 } },
+  camera3d: { projection: { kind: "perspective", fov: 62, near: 0.5, far: 24000 }, behavior: { kind: "fixed" } }
 };
 
 const parked = [[-60, 300, 0.92], [-60, 360, 0.92], [205, 520, -0.38]].map(([x, z, yaw], index) => ({
@@ -272,14 +261,14 @@ const entities = [
     primitive: { kind: "plane", dimensions: { x: 60000, y: 1, z: 60000 }, castShadow: false, receiveShadow: true,
       material: { color: "#1d3a4a", metalness: 0.15, roughness: 0.12, normalTexture: { assetId: "water-normal", tiling: { x: 900, y: 900 } } } } },
   ...parked,
-  jetEntity, exhaust, vapor,
+  jetEntity, effects,
   sound("snd-idle", "engine-idle", "sfx-engine-idle", 0.55), sound("snd-mil", "engine-mil", "sfx-engine-mil", 0.7),
   sound("snd-ab", "engine-ab", "sfx-engine-ab", 0.85), sound("snd-wind", "wind", "sfx-wind", 0.35),
   sound("snd-gear", "gear", "sfx-gear", 0.6), sound("snd-touchdown", "touchdown", "sfx-touchdown", 0.8),
   sound("snd-stall", "stall", "sfx-stall", 0.6), sound("snd-ab-light", "afterburner", "sfx-afterburner", 0.9),
   { id: "snd-crash", transform3d: { position: { x: 0, y: 0, z: 0 } }, audioSource: { assetId: "sfx-crash", onEvent: "crash", volume: 1 } },
   { id: "snd-victory", transform3d: { position: { x: 0, y: 0, z: 0 } }, audioSource: { assetId: "sfx-victory", onEvent: "victory", volume: 0.9 } },
-  camera, beacon, ...gates,
+  cameraRig, camera, ...gates,
   ...course.clouds.map((entry, index) => cloud(index, entry))
 ];
 
@@ -347,8 +336,8 @@ const document = {
     axes: {
       pitch: [{ kind: "keys", negative: ["KeyW", "ArrowUp"], positive: ["KeyS", "ArrowDown"] }, { kind: "gamepadAxis", axis: 1, deadZone: 0.12 }, { kind: "touchStick", axis: "y" }],
       roll: [{ kind: "keys", negative: ["KeyA", "ArrowLeft"], positive: ["KeyD", "ArrowRight"] }, { kind: "gamepadAxis", axis: 0, deadZone: 0.12 }, { kind: "touchStick", axis: "x" }],
-      yaw: [{ kind: "keys", negative: ["KeyQ"], positive: ["KeyE"] }, { kind: "gamepadButtons", negative: [4], positive: [5] }],
-      throttle: [{ kind: "keys", negative: ["ControlLeft", "KeyX"], positive: ["ShiftLeft", "KeyZ"] }, { kind: "gamepadButtons", negative: [6], positive: [7] }]
+      yaw: [{ kind: "keys", negative: ["KeyQ"], positive: ["KeyE"] }, { kind: "gamepadButtons", negative: 4, positive: 5 }],
+      throttle: [{ kind: "keys", negative: ["ControlLeft", "KeyX"], positive: ["ShiftLeft", "KeyZ"] }, { kind: "gamepadButtons", negative: 6, positive: 7 }]
     },
     look: [{ kind: "mouse", sensitivity: 1 }, { kind: "gamepadStick", xAxis: 2, yAxis: 3, deadZone: 0.15 }, { kind: "touchDrag" }]
   },
@@ -359,8 +348,8 @@ const document = {
     id: "island", name: "island", activeCameraId: "camera", gravity: { x: 0, y: -9.81, z: 0 },
     environment: {
       background: "#9fb6cf", ambient: { color: "#b7c8e0", intensity: 0.22 },
-      fog: { kind: "height", color: "#c6cbd2", density: 0.00028, baseHeight: 0, heightFalloff: 0.0011, maxOpacity: 0.92 },
-      shadows: { enabled: true, mapSize: 4096, extent: 400, cascades: { count: 4, split: 0.82, maxDistance: 4500 } },
+      fog: { kind: "height", color: "#c8c3bb", density: 0.00006, baseHeight: 0, heightFalloff: 0.0009, maxOpacity: 0.85 },
+      shadows: { enabled: true, mapSize: 2048, extent: 400, cascades: { count: 4, split: 0.82, maxDistance: 4500 } },
       sky: { kind: "procedural", sunEntityId: "sun", turbidity: 5, rayleigh: 2.2, groundColor: "#5d6a72", intensity: 0.85 },
       postProcessing: { enabled: true, exposure: 1.0, toneMapping: "agx", bloom: { threshold: 3, softness: 0.2, radius: 0.12, intensity: 0.35 },
         vignette: { intensity: 0.32, radius: 0.5, softness: 0.6 }, antialias: "smaa" }
@@ -377,11 +366,11 @@ const document = {
     transitions: [{ on: { kind: "trigger", event: "victory" }, snapshot: "finish", fadeTicks: 120 }]
   } },
   ui,
-  performance: { budgets: { drawCalls: 1000, triangles: 3000000, particles: 4096, voices: 24 } }
+  performance: { budgets: { drawCalls: 1000, triangles: 5000000, particles: 4096, voices: 24 } }
 };
 
 const parsed = gameDocument3D.safeParse(document);
-if (!parsed.success) throw new Error(JSON.stringify(parsed.error.issues.slice(0, 10), null, 1));
+if (!parsed.success) throw new Error(parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("\n"));
 writeFileSync(path.join(SAMPLE, "game.json"), `${JSON.stringify(document, null, 1)}\n`);
 console.log(`game.json written with ${Object.keys(assets).length} assets and ${entities.length} entities`);
 console.log(readdirSync(ASSETS).length, "asset files");

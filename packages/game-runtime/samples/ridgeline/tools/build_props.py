@@ -91,7 +91,7 @@ class Mesh:
 
 
 def runway_texture():
-    """Asphalt with markings, 256 x 4096, u across the runway, v from south (0) to north (1)."""
+    """Asphalt with markings, 256 x 4096, u west to east and the image top at the north end."""
     width_m = L.RUNWAY["width"]
     length_m = L.RUNWAY["z_max"] - L.RUNWAY["z_min"]
     w, h = 256, 4096
@@ -167,13 +167,14 @@ def airfield(out):
                                         "emissiveFactor": [1, 0.95, 0.85], "extensions": {"KHR_materials_emissive_strength": {"emissiveStrength": 18}}}),
         "Warning": glb.material({"name": "Warning", "pbrMetallicRoughness": {"baseColorFactor": [1, 0.05, 0.02, 1], "metallicFactor": 0, "roughnessFactor": 0.4},
                                  "emissiveFactor": [1, 0.04, 0.02], "extensions": {"KHR_materials_emissive_strength": {"emissiveStrength": 12}}}),
-        "Tank": glb.material({"name": "Tank", "pbrMetallicRoughness": {"baseColorFactor": [0.78, 0.79, 0.77, 1], "metallicFactor": 0.7, "roughnessFactor": 0.3}}),
+        "Tank": glb.material({"name": "Tank", "pbrMetallicRoughness": {"baseColorFactor": [0.52, 0.53, 0.5, 1], "metallicFactor": 0.25, "roughnessFactor": 0.55}}),
     }
     parts = {name: Mesh() for name in mats}
     hw = L.RUNWAY["width"] / 2
     z0, z1 = L.RUNWAY["z_min"], L.RUNWAY["z_max"]
-    y = Y0 + 0.06
-    parts["Runway"].quad((-hw, y, z1), (hw, y, z1), (hw, y, z0), (-hw, y, z0), normal=(0, 1, 0), uv=((0, 0), (1, 0), (1, 1), (0, 1)))
+    y = Y0 + 0.08
+    # Mesh.quad winds a, c, b, so the corners go clockwise seen from above for an upward face.
+    parts["Runway"].quad((-hw, y, z0), (hw, y, z0), (hw, y, z1), (-hw, y, z1), normal=(0, 1, 0), uv=((0, 0), (1, 0), (1, 1), (0, 1)))
     # Edge lights every 60 m, threshold bars at both ends, approach lights to the south.
     z = z0 + 10
     while z <= z1 - 10:

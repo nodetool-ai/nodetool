@@ -3,8 +3,8 @@
 The island spans 10 km on each side, centred on the origin, with +X east,
 +Y up and -Z north. Heights are metres. The airfield runway runs north along
 x = 0 between z = +900 and z = -900 on a plateau at AIRFIELD_HEIGHT. A canyon
-follows CANYON_PATH from the lake north of the airfield, through the northern
-range, and out to the eastern foothills. Sea and lake water share WATER_LEVEL.
+follows CANYON_PATH from the north end of the runway, through the northern
+range, and down the eastern foothills to the southern farmland. Sea and lake water share WATER_LEVEL.
 """
 import numpy as np
 
@@ -16,9 +16,9 @@ RUNWAY = {"x": 0.0, "z_min": -900.0, "z_max": 900.0, "width": 45.0}
 
 # Canyon centreline in (x, z) metres, with the river bed height at each point.
 CANYON_PATH = np.array([
-    (-650, -1750, 30), (-900, -2350, 60), (-650, -2950, 90), (-50, -3350, 120),
+    (-260, -1150, 34), (-650, -1750, 30), (-900, -2350, 60), (-650, -2950, 90), (-50, -3350, 120),
     (700, -3450, 140), (1350, -3150, 150), (1800, -2550, 160), (2350, -2150, 170),
-    (2800, -1550, 150), (2850, -800, 110), (2700, -150, 70),
+    (2800, -1550, 150), (2850, -800, 110), (2700, -150, 70), (2450, 500, 58), (2050, 1050, 48), (1450, 1450, 40),
 ], float)
 
 
