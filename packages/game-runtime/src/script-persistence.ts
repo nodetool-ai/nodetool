@@ -65,3 +65,75 @@ export function canPersistGameScript(source: string): boolean {
     return false;
   }
 }
+
+type SyntaxNode = { readonly type: string; readonly [key: string]: unknown };
+
+const isSyntaxNode = (value: unknown): value is SyntaxNode =>
+  typeof value === "object" && value !== null && typeof (value as { type?: unknown }).type === "string";
+
+/** Names whose meaning differs between sloppy and strict code without throwing. */
+const sloppyOnlyNames = new Set(["arguments", "eval", "Function", "Reflect"]);
+
+/** True when strict evaluation of the node can only differ from sloppy evaluation by throwing. */
+function strictEquivalent(node: SyntaxNode, plainThis: boolean, functionBodyStatement: boolean): boolean {
+  switch (node.type) {
+    // Class code is strict in both modes.
+    case "ClassDeclaration":
+    case "ClassExpression":
+      return true;
+    case "ThisExpression":
+      return !plainThis;
+    case "Identifier":
+      return !sloppyOnlyNames.has(node["name"] as string);
+    // Sloppy code hoists block-level functions out of their block (Annex B), strict code does not.
+    case "FunctionDeclaration":
+      return functionBodyStatement && functionEquivalent(node, true);
+    case "FunctionExpression":
+      return functionEquivalent(node, true);
+    case "ArrowFunctionExpression":
+      return functionEquivalent(node, plainThis);
+    case "Property":
+      if (node["method"] === true || node["kind"] !== "init") {
+        return (node["computed"] !== true || strictEquivalent(node["key"] as SyntaxNode, plainThis, false))
+          && functionEquivalent(node["value"] as SyntaxNode, false);
+      }
+      break;
+  }
+  for (const [key, value] of Object.entries(node)) {
+    if (key === "type") { continue; }
+    for (const child of Array.isArray(value) ? value : [value]) {
+      if (isSyntaxNode(child) && !strictEquivalent(child, plainThis, false)) { return false; }
+    }
+  }
+  return true;
+}
+
+function functionEquivalent(fn: SyntaxNode, plainThis: boolean): boolean {
+  const body = fn["body"] as SyntaxNode;
+  return (fn["params"] as SyntaxNode[]).every((param) => strictEquivalent(param, plainThis, false))
+    && (body.type === "BlockStatement"
+      ? (body["body"] as SyntaxNode[]).every((statement) => strictEquivalent(statement, plainThis, true))
+      : strictEquivalent(body, plainThis, false));
+}
+
+/**
+ * A synchronous function expression whose strict evaluation can only differ from sloppy evaluation by throwing.
+ * Its realm is reused between calls with frozen built-ins; a call that throws there is repeated in a fresh realm.
+ */
+export function canReuseGameScript(source: string): boolean {
+  try {
+    const program = parse(`"use strict";(${source})`, { ecmaVersion: "latest" });
+    const statement = program.body[1];
+    if (program.body.length !== 2 || statement?.type !== "ExpressionStatement") {
+      return false;
+    }
+    const fn = statement.expression;
+    if ((fn.type !== "ArrowFunctionExpression" && fn.type !== "FunctionExpression") || fn.async || fn.generator) {
+      return false;
+    }
+    // A top-level arrow sees the global `this` in both modes. A function called without a receiver does not.
+    return functionEquivalent(fn as unknown as SyntaxNode, fn.type === "FunctionExpression");
+  } catch {
+    return false;
+  }
+}

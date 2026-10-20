@@ -75,7 +75,9 @@ export class ScriptWorldSnapshot {
     return candidates.map((entry) => entry.entity);
   }
 
-  install(context: QuickJSContext, checkDeadline: () => void, defineData: QuickJSHandle, queryJson: QuickJSHandle): { end(): void; assertWithinLimit(): void } {
+  /** Sets the global `world`, or hands the object to `bind` in a realm whose global object is frozen. */
+  install(context: QuickJSContext, checkDeadline: () => void, defineData: QuickJSHandle, queryJson: QuickJSHandle,
+    bind?: (world: QuickJSHandle) => void): { end(): void; assertWithinLimit(): void } {
     let active = true;
     let queries = 0;
     const assertWithinLimit = (): void => {
@@ -139,7 +141,7 @@ export class ScriptWorldSnapshot {
     });
       context.setProp(world, "get", get);
       context.setProp(world, "query", query);
-      context.setProp(context.global, "world", world);
+      if (bind) { bind(world); } else { context.setProp(context.global, "world", world); }
     } finally {
       get?.dispose(); query?.dispose(); world?.dispose();
     }

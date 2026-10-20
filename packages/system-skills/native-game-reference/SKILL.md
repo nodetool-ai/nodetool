@@ -61,9 +61,14 @@ Functions, lifecycle hooks, and timer methods must be synchronous. Async functio
 and generators fail preparation. Returning a promise, thenable, or iterator fails
 the call. Use tick timers for delayed work.
 
-Store persistent values in returned `state`. A function that the engine proves
-keeps no hidden state is compiled once and reused. Other sources evaluate in a
-fresh context each call, so closures and globals do not persist between calls.
+Store persistent values in returned `state`. Nothing else carries over between
+calls. A plain function expression such as `(input) => { … }` runs in strict
+mode in a reused sandbox whose built-ins and global object are frozen, which
+makes each call several times cheaper. Assigning to a global or a built-in
+there throws, and the engine then repeats the call in a fresh context and keeps
+that source in fresh contexts. Other sources, such as a function returned by an
+initializer call, evaluate in a fresh context each call. Prefer plain function
+expressions and keep helpers and temporary values in local variables.
 Source initialization uses the seeded random generator. `maxTickMs` limits each
 call, subject to the total script budget for the tick. Source and input/output
 limits count UTF-8 bytes.

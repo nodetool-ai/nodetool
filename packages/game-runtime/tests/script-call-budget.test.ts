@@ -5,8 +5,8 @@ import { createTopDownRoomGame } from "../src/sample.js";
 import { defaultScriptCallClock, wallScriptCallClock, threadCpuScriptCallClock, startScriptCallTimer } from "../src/script-clock.js";
 import { prepareGameScripts, scriptSourceKey, type GameScriptCall } from "../src/scripts.js";
 
-// Destructuring the input makes this a fresh-context script, so every call creates and disposes a context.
-const freshSource = "({ state }) => ({ state: (state || 0) + 1, commands: [] })";
+// An initializer call could keep closure state, so this is a fresh-context script: every call creates and disposes a context.
+const freshSource = "(() => ({ state }) => ({ state: (state || 0) + 1, commands: [] }))()";
 
 function fixture(): GameDocument {
   const base = createTopDownRoomGame("a".repeat(32));
