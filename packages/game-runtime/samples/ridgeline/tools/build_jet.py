@@ -20,12 +20,13 @@ from pathlib import Path
 import numpy as np
 
 MATERIALS = {
-    "Paint": {"pbrMetallicRoughness": {"baseColorFactor": [0.82, 0.84, 0.86, 1], "metallicFactor": 0.05, "roughnessFactor": 0.32},
-              "extensions": {"KHR_materials_clearcoat": {"clearcoatFactor": 0.8, "clearcoatRoughnessFactor": 0.08}}},
+    # Two-tone air superiority grey, semi-matte, so the airframe reads against sky and snow.
+    "Paint": {"pbrMetallicRoughness": {"baseColorFactor": [0.085, 0.095, 0.11, 1], "metallicFactor": 0.15, "roughnessFactor": 0.5},
+              "extensions": {"KHR_materials_clearcoat": {"clearcoatFactor": 0.35, "clearcoatRoughnessFactor": 0.2}}},
     "Accent": {"pbrMetallicRoughness": {"baseColorFactor": [0.93, 0.27, 0.05, 1], "metallicFactor": 0.05, "roughnessFactor": 0.3},
                "extensions": {"KHR_materials_clearcoat": {"clearcoatFactor": 0.8, "clearcoatRoughnessFactor": 0.08}}},
     "Graphite": {"pbrMetallicRoughness": {"baseColorFactor": [0.07, 0.075, 0.085, 1], "metallicFactor": 0.2, "roughnessFactor": 0.45}},
-    "Canopy": {"alphaMode": "BLEND", "pbrMetallicRoughness": {"baseColorFactor": [0.12, 0.17, 0.22, 0.42], "metallicFactor": 0.9, "roughnessFactor": 0.04}},
+    "Canopy": {"alphaMode": "BLEND", "pbrMetallicRoughness": {"baseColorFactor": [0.42, 0.3, 0.1, 0.55], "metallicFactor": 0.95, "roughnessFactor": 0.04}},
     "Frame": {"pbrMetallicRoughness": {"baseColorFactor": [0.18, 0.19, 0.2, 1], "metallicFactor": 0.6, "roughnessFactor": 0.35}},
     "Nozzle": {"pbrMetallicRoughness": {"baseColorFactor": [0.36, 0.33, 0.3, 1], "metallicFactor": 1.0, "roughnessFactor": 0.32}},
     "Heat": {"pbrMetallicRoughness": {"baseColorFactor": [0.22, 0.17, 0.14, 1], "metallicFactor": 0.6, "roughnessFactor": 0.45},

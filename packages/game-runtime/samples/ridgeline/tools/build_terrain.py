@@ -5,8 +5,9 @@ Run from the repository root:
 
     python3 packages/game-runtime/samples/ridgeline/tools/build_terrain.py OUT_DIR
 
-Writes `terrain-<i>.glb` (four 5 km tiles with 2048 px albedo and normal maps),
-`forest-<i>.glb` (conifers per tile), `river.glb`, `heights.npy` (the height
+Writes `terrain-<i>.glb` (four 5 km tiles with 2048 px albedo and normal maps, meshed
+adaptively down to the 4.9 m height grid),
+`forest-<i>.glb` (three-tier conifers per tile), `river.glb`, `heights.npy` (the height
 grid that plan_course.py and build_collider.py read) and `layout.json` (runway
 and canyon path for the game document builder). The output is deterministic.
 """
@@ -24,7 +25,10 @@ import landscape as L  # noqa: E402
 
 GRID = 2033            # base height samples across the island (4.92 m)
 TEXTURE = 4096         # global texel count across the island (2.44 m)
-TILE_VERTS = 255       # vertices per tile edge (uint16 indices)
+MESH_TOLERANCE = 2.0   # metres a terrain mesh cell may deviate from the height grid
+TILE_TRIANGLES = 240000  # under the renderer's 250k triangles per model
+FOREST_BLOCK = 1250.0  # metres per forest mesh, the unit the renderer culls
+CHUNK_VERTS = 60000    # vertices per terrain mesh primitive (uint16 indices)
 
 
 def box_blur(a, radius):
@@ -108,9 +112,8 @@ def build_maps(h_base, texture=TEXTURE):
     h_fine = h + detail * (2.0 + 9.0 * rocky) + grit * (0.4 + 1.6 * rocky)
     fine_n = normals_from_heights(h_fine, spacing)
 
-    # Mesh normals at render resolution, interpolated back up, define the tangent frame.
-    step = (GRID - 1) // 2 // (TILE_VERTS - 1)
-    mesh_n = normals_from_heights(h_base[::step, ::step], L.SIZE / (GRID - 1) * step)
+    # The terrain mesh takes its vertex normals from the full height grid, so the same field defines the tangent frame.
+    mesh_n = normals_from_heights(h_base, L.SIZE / (GRID - 1))
     mesh_n = np.dstack([upsample(mesh_n[..., i], texture) for i in range(3)])
     mesh_n /= np.linalg.norm(mesh_n, axis=2, keepdims=True)
     tangent = np.dstack([np.ones_like(h), np.zeros_like(h), np.zeros_like(h)])
@@ -319,79 +322,162 @@ class GLB:
                 + struct.pack("<II", len(self.buffer), 0x004E4942) + bytes(self.buffer))
 
 
-def grid_indices(n):
-    i = np.arange(n - 1)
-    a = (i[:, None] * n + i[None, :]).reshape(-1)
-    b = a + 1
-    c = a + n
-    d = c + 1
-    return np.stack([a, c, b, b, c, d], axis=1).reshape(-1, 3)
+def mesh_cells(h, tolerance):
+    """Quadtree cells of the height grid, split until bilinear interpolation stays within the quadrant's tolerance.
+
+    Cells never cross the centre lines, so each of the four texture quadrants gets whole cells. Cells entirely
+    under the sea stop at 64 samples, because the sea plane covers them.
+    """
+    n = h.shape[0] - 1
+    half = n // 2
+    found = []
+    stack = [(0, 0, n, n)]
+    while stack:
+        i0, j0, i1, j1 = stack.pop()
+        block = h[j0:j1 + 1, i0:i1 + 1]
+        ti = np.linspace(0, 1, i1 - i0 + 1)[None, :]
+        tj = np.linspace(0, 1, j1 - j0 + 1)[:, None]
+        bilinear = (block[0, 0] * (1 - ti) + block[0, -1] * ti) * (1 - tj) + (block[-1, 0] * (1 - ti) + block[-1, -1] * ti) * tj
+        size = max(i1 - i0, j1 - j0)
+        if size <= 64 and block.max() < L.WATER_LEVEL - 6:
+            found.append((i0, j0, i1, j1))
+            continue
+        if size > 64 or (size > 1 and np.abs(block - bilinear).max() > tolerance[(j0 >= half) * 2 + (i0 >= half)]):
+            im, jm = (i0 + i1) // 2, (j0 + j1) // 2
+            for box in ((im, jm, i1, j1), (i0, jm, im, j1), (im, j0, i1, jm), (i0, j0, im, jm)):
+                if box[2] > box[0] and box[3] > box[1]:
+                    stack.append(box)
+            continue
+        found.append((i0, j0, i1, j1))
+    return found
 
 
 def terrain_tiles(h_base, albedo, normal, out):
-    """Four 5 km tiles. Tile (i, j) covers x column i and z row j."""
+    """Four 5 km tiles. Tile (i, j) covers x column i and z row j.
+
+    Each cell is fanned from its centre through every cell corner on its edges, so cells of different sizes
+    share edges without cracks. Vertex normals come from the full height grid.
+    """
+    n = GRID - 1
+    half = n // 2
     half_tex = TEXTURE // 2
-    spacing = L.SIZE / (GRID - 1)
-    step = (GRID - 1) // 2 // (TILE_VERTS - 1)
-    assert step * (TILE_VERTS - 1) * 2 == GRID - 1
-    normals = normals_from_heights(h_base, spacing)
+    spacing = L.SIZE / n
+    field = normals_from_heights(h_base, spacing)
+    # Steep quadrants coarsen in 0.25 m steps until each tile fits the renderer's triangle budget.
+    tolerance = [MESH_TOLERANCE] * 4
+    while True:
+        cells = mesh_cells(h_base, tolerance)
+        corners = set()
+        for i0, j0, i1, j1 in cells:
+            corners.update(((i0, j0), (i1, j0), (i0, j1), (i1, j1)))
+        counts = [0] * 4
+        for i0, j0, i1, j1 in cells:
+            edge = sum((c, j0) in corners or (c, j1) in corners for c in range(i0 + 1, i1)) + \
+                sum((i0, r) in corners or (i1, r) in corners for r in range(j0 + 1, j1))
+            counts[(j0 >= half) * 2 + (i0 >= half)] += 2 if edge == 0 else 4 + edge
+        over = [k for k in range(4) if counts[k] > TILE_TRIANGLES]
+        if not over:
+            break
+        for k in over:
+            tolerance[k] += 0.25
+
+    def sample(grid, i, j):
+        fi, fj = min(int(i), n - 1), min(int(j), n - 1)
+        ti, tj = i - fi, j - fj
+        return (grid[fj, fi] * (1 - ti) + grid[fj, fi + 1] * ti) * (1 - tj) + (grid[fj + 1, fi] * (1 - ti) + grid[fj + 1, fi + 1] * ti) * tj
+
     tiles = []
+    triangles = 0
     for j in range(2):
         for i in range(2):
-            r0 = j * (GRID - 1) // 2
-            c0 = i * (GRID - 1) // 2
-            rows = slice(r0, r0 + (TILE_VERTS - 1) * step + 1, step)
-            cols = slice(c0, c0 + (TILE_VERTS - 1) * step + 1, step)
-            hh = h_base[rows, cols]
-            nn = normals[rows, cols]
-            xs = -L.HALF + np.arange(c0, c0 + (TILE_VERTS - 1) * step + 1, step) * spacing
-            zs = -L.HALF + np.arange(r0, r0 + (TILE_VERTS - 1) * step + 1, step) * spacing
-            gx, gz = np.meshgrid(xs, zs)
-            positions = np.stack([gx, hh, gz], axis=-1).reshape(-1, 3)
-            u = (gx - xs[0]) / (xs[-1] - xs[0])
-            v = (gz - zs[0]) / (zs[-1] - zs[0])
-            uvs = np.stack([u, v], axis=-1).reshape(-1, 2)
-            # Half-texel inset keeps tiles from sampling across their seams.
-            uvs = uvs * (1 - 1 / half_tex) + 0.5 / half_tex
+            own = [c for c in cells if c[0] >= i * half and c[2] <= (i + 1) * half and c[1] >= j * half and c[3] <= (j + 1) * half]
             glb = GLB("RIDGELINE build_terrain.py")
             ta = glb.image(jpeg(albedo[j * half_tex:(j + 1) * half_tex, i * half_tex:(i + 1) * half_tex], 88), "image/jpeg")
             tn = glb.image(jpeg(normal[j * half_tex:(j + 1) * half_tex, i * half_tex:(i + 1) * half_tex], 92), "image/jpeg")
             material = glb.material({"name": "Terrain", "pbrMetallicRoughness": {"baseColorTexture": {"index": ta}, "metallicFactor": 0, "roughnessFactor": 0.95},
                                      "normalTexture": {"index": tn, "scale": 1.0}})
-            glb.mesh(f"Terrain {i}{j}", positions, nn.reshape(-1, 3), grid_indices(TILE_VERTS), material, uvs=uvs)
+            chunk = []
+
+            def flush():
+                nonlocal triangles
+                if not chunk:
+                    return
+                index, positions, normals, uvs, indices = {}, [], [], [], []
+                for ring, centre in chunk:
+                    ids = []
+                    for key in ring + ([centre] if centre else []):
+                        if key not in index:
+                            ci, cj = key
+                            index[key] = len(positions)
+                            positions.append((-L.HALF + ci * spacing, sample(h_base, ci, cj), -L.HALF + cj * spacing))
+                            nrm = sample(field, ci, cj)
+                            normals.append(nrm / np.linalg.norm(nrm))
+                            uvs.append(((ci - i * half) / half, (cj - j * half) / half))
+                        ids.append(index[key])
+                    if centre is None:
+                        a, b, c, d = ids
+                        indices += [(a, d, b), (b, d, c)]
+                    else:
+                        middle, edge = ids[-1], ids[:-1]
+                        indices += [(middle, edge[(k + 1) % len(edge)], edge[k]) for k in range(len(edge))]
+                uv = np.array(uvs) * (1 - 1 / half_tex) + 0.5 / half_tex
+                glb.mesh(f"Terrain {i}{j}.{len(glb.meshes)}", np.array(positions), np.array(normals), np.array(indices), material, uvs=uv)
+                triangles += len(indices)
+                chunk.clear()
+
+            used = 0
+            for i0, j0, i1, j1 in own:
+                # Boundary corners counter-clockwise seen from above (+Y), starting at (i0, j0).
+                ring = [(c, j0) for c in range(i0, i1) if (c, j0) in corners]
+                ring += [(i1, r) for r in range(j0, j1) if (i1, r) in corners]
+                ring += [(c, j1) for c in range(i1, i0, -1) if (c, j1) in corners]
+                ring += [(i0, r) for r in range(j1, j0, -1) if (i0, r) in corners]
+                centre = None if len(ring) == 4 else ((i0 + i1) / 2, (j0 + j1) / 2)
+                if used + len(ring) + 1 > CHUNK_VERTS:
+                    flush()
+                    used = 0
+                chunk.append((ring, centre))
+                used += len(ring) + 1
+            flush()
             name = f"terrain-{j * 2 + i}.glb"
             (out / name).write_bytes(glb.bytes())
-            tiles.append({"file": name, "x": [float(xs[0]), float(xs[-1])], "z": [float(zs[0]), float(zs[-1])]})
+            tiles.append({"file": name, "x": [-L.HALF + i * half * spacing, -L.HALF + (i + 1) * half * spacing],
+                          "z": [-L.HALF + j * half * spacing, -L.HALF + (j + 1) * half * spacing]})
+    print(json.dumps({"terrainCells": len(cells), "terrainTriangles": triangles, "meshTolerance": tolerance}))
     return tiles
 
 
+TIERS = ((0.12, 0.55, 1.0), (0.36, 0.8, 0.74), (0.6, 1.0, 0.46))
+
+
 def conifer(rng, base, height, radius, color):
-    """Two stacked six-sided cones without bases: 12 triangles."""
+    """Three stacked open cones, darker underneath, with linear vertex colours: 18 triangles."""
     positions, normals, colors, indices = [], [], [], []
     sides = sides_per_tree()
     turn = rng.random() * np.pi
-    for tier, (bottom, top, r) in enumerate(((0.18, 0.72, 1.0), (0.48, 1.0, 0.68))):
+    color = color ** 2.2
+    for tier, (bottom, top, r) in enumerate(TIERS):
         apex = base + np.array([0, height * top, 0])
         ring_y = base[1] + height * bottom
         start = len(positions)
         positions.append(apex)
         normals.append(np.array([0, 1, 0]))
-        shade = 0.82 + 0.18 * tier
-        colors.append(np.append(np.clip(color * (shade + 0.15), 0, 1), 1))
+        shade = 0.8 + 0.12 * tier
+        colors.append(np.append(np.clip(color * (shade + 0.35), 0, 1), 1))
         for s in range(sides):
             a = turn + s * 2 * np.pi / sides
             p = np.array([base[0] + np.cos(a) * radius * r, ring_y, base[2] + np.sin(a) * radius * r])
             positions.append(p)
             nrm = np.array([np.cos(a), 0.55, np.sin(a)])
             normals.append(nrm / np.linalg.norm(nrm))
-            colors.append(np.append(np.clip(color * shade * 0.75, 0, 1), 1))
+            colors.append(np.append(np.clip(color * shade * 0.55, 0, 1), 1))
         for s in range(sides):
             indices.append([start, start + 1 + (s + 1) % sides, start + 1 + s])
     return positions, normals, colors, indices
 
 
 def sides_per_tree():
-    return 5
+    return 6
 
 
 def forests(density, h_hi, out):
@@ -400,8 +486,8 @@ def forests(density, h_hi, out):
     spacing = 21.0
     count = int(L.SIZE / spacing)
     tex_spacing = L.SIZE / (TEXTURE - 1)
-    tiles = [([], [], [], []) for _ in range(4)]
-    palette = np.array([srgb(c) for c in ("#2f4a25", "#3a5629", "#2a4122", "#43592b", "#36502b")])
+    tiles = [{} for _ in range(4)]
+    palette = np.array([srgb(c) for c in ("#26402a", "#2f4a2c", "#223826", "#3a4f2c", "#2c4532", "#45512e")])
     totals = 0
     for gz in range(count):
         for gx in range(count):
@@ -418,26 +504,29 @@ def forests(density, h_hi, out):
             radius = tree_h * (0.26 + rng.random() * 0.08)
             color = palette[rng.integers(len(palette))] * (0.85 + rng.random() * 0.3)
             p, n, c, i = conifer(rng, np.array([x, y, z]), tree_h, radius, color)
-            tile = tiles[(1 if z > 0 else 0) * 2 + (1 if x > 0 else 0)]
-            offset = len(tile[0])
-            tile[0].extend(p)
-            tile[1].extend(n)
-            tile[2].extend(c)
-            tile[3].extend((np.array(i) + offset).tolist())
+            block = (int((x + L.HALF) // FOREST_BLOCK), int((z + L.HALF) // FOREST_BLOCK))
+            tiles[(1 if z > 0 else 0) * 2 + (1 if x > 0 else 0)].setdefault(block, []).append((p, n, c, i))
             totals += 1
     files = []
-    for index, (p, n, c, i) in enumerate(tiles):
+    trees_per_chunk = 65535 // (len(TIERS) * (sides_per_tree() + 1))
+    for index, blocks in enumerate(tiles):
         glb = GLB("RIDGELINE build_terrain.py")
-        material = glb.material({"name": "Conifer", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 1], "metallicFactor": 0, "roughnessFactor": 0.9}})
-        p, n, c, i = np.array(p), np.array(n), (np.array(c) * 255).round(), np.array(i)
-        per_tree = 2 * (sides_per_tree() + 1)
-        trees_per_chunk = 65535 // per_tree
-        tree_count = len(p) // per_tree
-        for chunk, start in enumerate(range(0, tree_count, trees_per_chunk)):
-            end = min(tree_count, start + trees_per_chunk)
-            v0, v1 = start * per_tree, end * per_tree
-            tri = i[(i.min(axis=1) >= v0) & (i.max(axis=1) < v1)] - v0
-            glb.mesh(f"Forest {index}.{chunk}", p[v0:v1], n[v0:v1], tri, material, colors=c[v0:v1])
+        # Linear needle colours are dark, so the vertex colours store four times the value for 8-bit precision.
+        material = glb.material({"name": "Conifer", "pbrMetallicRoughness": {"baseColorFactor": [0.25, 0.25, 0.25, 1], "metallicFactor": 0, "roughnessFactor": 0.9}})
+        tree_count = 0
+        # One mesh per block, so the camera and every shadow cascade cull the forest block by block.
+        for key in sorted(blocks):
+            trees = blocks[key]
+            tree_count += len(trees)
+            for start in range(0, len(trees), trees_per_chunk):
+                p, n, c, i = [], [], [], []
+                for tp, tn, tc, ti in trees[start:start + trees_per_chunk]:
+                    i.extend((np.array(ti) + len(p)).tolist())
+                    p.extend(tp)
+                    n.extend(tn)
+                    c.extend(tc)
+                c = (np.clip(np.array(c) * [4, 4, 4, 1], 0, 1) * 255).round()
+                glb.mesh(f"Forest {index}.{len(glb.meshes)}", np.array(p), np.array(n), np.array(i), material, colors=c)
         name = f"forest-{index}.glb"
         (out / name).write_bytes(glb.bytes())
         files.append({"file": name, "trees": tree_count})
@@ -445,7 +534,7 @@ def forests(density, h_hi, out):
 
 
 def river(out):
-    """A water ribbon along the canyon bed, 1.2 m above the gravel."""
+    """A water ribbon along the canyon bed, 1.2 m above the gravel, as wide as the bed between its banks."""
     path = L.canyon_path_smooth(24)
     left, right = [], []
     for k in range(len(path)):
@@ -454,19 +543,26 @@ def river(out):
         dx, dz = b[0] - a[0], b[1] - a[1]
         length = np.hypot(dx, dz)
         nx, nz = -dz / length, dx / length
-        width = 22 + 8 * np.sin(k * 0.37)
         y = path[k][2] + 1.2
-        left.append([path[k][0] + nx * width, y, path[k][1] + nz * width])
-        right.append([path[k][0] - nx * width, y, path[k][1] - nz * width])
+        # Each bank ends 4 m past the point where the ground rises 2 m above the water, so it tucks under the bank.
+        for side, edge in ((1, left), (-1, right)):
+            reach = np.arange(2.0, 40.0, 1.0)
+            ground = L.height(path[k][0] + side * nx * reach, path[k][1] + side * nz * reach)
+            dry = np.nonzero(ground > y + 2)[0]
+            width = min(reach[dry[0]] + 4 if len(dry) else 40.0, 40.0)
+            edge.append([path[k][0] + side * nx * width, y, path[k][1] + side * nz * width])
     positions = np.array([v for pair in zip(left, right) for v in pair])
     normals = np.tile([0, 1, 0], (len(positions), 1))
+    # U runs across the ribbon and V along it, so the game document can tile the water normal map along the flow.
+    along = np.concatenate([[0], np.cumsum(np.hypot(np.diff(path[:, 0]), np.diff(path[:, 1])))])
+    uvs = np.array([(u, t) for t in along / along[-1] for u in (0, 1)])
     indices = []
     for k in range(len(path) - 1):
         a, b, c, d = 2 * k, 2 * k + 1, 2 * k + 2, 2 * k + 3
         indices += [[a, c, b], [b, c, d]]
     glb = GLB("RIDGELINE build_terrain.py")
     material = glb.material({"name": "River", "pbrMetallicRoughness": {"baseColorFactor": [0.05, 0.13, 0.15, 1], "metallicFactor": 0.0, "roughnessFactor": 0.06}})
-    glb.mesh("River", positions, normals, np.array(indices), material)
+    glb.mesh("River", positions, normals, np.array(indices), material, uvs=uvs)
     (out / "river.glb").write_bytes(glb.bytes())
 
 

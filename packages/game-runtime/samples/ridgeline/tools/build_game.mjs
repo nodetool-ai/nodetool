@@ -27,6 +27,8 @@ const read = (name) => readFileSync(path.join(media, name));
 const layout = JSON.parse(read("layout.json"));
 const course = JSON.parse(read("course.json"));
 
+const riverLength = layout.canyon.slice(1).reduce((sum, point, k) => sum + Math.hypot(point[0] - layout.canyon[k][0], point[1] - layout.canyon[k][1]), 0);
+
 const ASSETS = path.join(SAMPLE, "assets");
 rmSync(ASSETS, { recursive: true, force: true });
 mkdirSync(ASSETS, { recursive: true });
@@ -255,7 +257,9 @@ const entities = [
   ...[0, 1, 2, 3].map((k) => ({ id: `forest-${k}`, name: "Forest", transform3d: { position: { x: 0, y: 0, z: 0 } }, model: { assetId: `forest-${k}`, castShadow: true, receiveShadow: true } })),
   { id: "ground", name: "Terrain collider", transform3d: { position: { x: 0, y: 0, z: 0 } }, body3d: { type: "static" },
     collider3d: { kind: "triangleMesh", assetId: "terrain-collider", layer: "world", physicsMaterial: "runway" } },
-  { id: "river", transform3d: { position: { x: 0, y: 0, z: 0 } }, model: { assetId: "river", castShadow: false } },
+  { id: "river", transform3d: { position: { x: 0, y: 0, z: 0 } }, model: { assetId: "river", castShadow: false,
+    material: { color: "#163440", metalness: 0.1, roughness: 0.16,
+      normalTexture: { assetId: "water-normal", tiling: { x: 1, y: Math.round(riverLength / 50) } } } } },
   { id: "airfield", transform3d: { position: { x: 0, y: 0, z: 0 } }, model: { assetId: "airfield" } },
   { id: "sea", transform3d: { position: { x: 0, y: layout.waterLevel, z: 0 } },
     primitive: { kind: "plane", dimensions: { x: 60000, y: 1, z: 60000 }, castShadow: false, receiveShadow: true,
@@ -277,12 +281,12 @@ const burst = (id, emitters, ticks) => ({ rootId: id, entities: [{ id, transform
 
 const prefabs = {
   "gate-burst": burst("gate-burst", [
-    { id: "ring", playOnStart: true, loop: false, duration: 0.1, rate: 0, bursts: [{ time: 0, count: 140 }], shape: { kind: "circle", radius: 17, fromEdge: true },
-      lifetime: { min: 0.6, max: 1.1 }, speed: { min: 2, max: 10 }, size: { min: 0.5, max: 1.2 }, color: "#ffc27a",
-      colorOverLifetime: [{ t: 0, color: "#fff4dc" }, { t: 1, color: "#ff7a1c" }], opacityOverLifetime: [{ t: 0, value: 1 }, { t: 1, value: 0 }],
-      drag: 1.2, blend: "additive", unlit: true },
-    { id: "flash", playOnStart: true, loop: false, duration: 0.1, rate: 0, bursts: [{ time: 0, count: 2 }], lifetime: 0.25, speed: 0, size: 46,
-      color: "#ffd7a0", opacityOverLifetime: [{ t: 0, value: 0.6 }, { t: 1, value: 0 }], blend: "additive", unlit: true }
+    // Sparks thrown off the ring. The camera flies through the gate a moment later, so they stay small and
+    // there is no full-ring flash, which would white out the view from inside it.
+    { id: "ring", playOnStart: true, loop: false, duration: 0.1, rate: 0, bursts: [{ time: 0, count: 110 }], shape: { kind: "circle", radius: 18, fromEdge: true },
+      lifetime: { min: 0.2, max: 0.35 }, speed: { min: 4, max: 12 }, size: { min: 0.15, max: 0.4 }, color: "#ffc27a",
+      colorOverLifetime: [{ t: 0, color: "#fff4dc" }, { t: 1, color: "#ff7a1c" }], opacityOverLifetime: [{ t: 0, value: 0.9 }, { t: 1, value: 0 }],
+      drag: 1.2, blend: "additive", unlit: true }
   ], 30),
   "crash-burst": burst("crash-burst", [
     { id: "fireball", playOnStart: true, loop: false, duration: 0.1, rate: 0, bursts: [{ time: 0, count: 90 }], shape: { kind: "sphere", radius: 3 },
@@ -347,11 +351,11 @@ const document = {
   scenes: [{
     id: "island", name: "island", activeCameraId: "camera", gravity: { x: 0, y: -9.81, z: 0 },
     environment: {
-      background: "#9fb6cf", ambient: { color: "#b7c8e0", intensity: 0.22 },
-      fog: { kind: "height", color: "#c8c3bb", density: 0.00006, baseHeight: 0, heightFalloff: 0.0009, maxOpacity: 0.85 },
+      background: "#9fb6cf", ambient: { color: "#b7c8e0", intensity: 0.15 },
+      fog: { kind: "height", color: "#b9c4cf", density: 0.000025, baseHeight: 0, heightFalloff: 0.0009, maxOpacity: 0.6 },
       shadows: { enabled: true, mapSize: 2048, extent: 400, cascades: { count: 4, split: 0.82, maxDistance: 4500 } },
-      sky: { kind: "procedural", sunEntityId: "sun", turbidity: 5, rayleigh: 2.2, groundColor: "#5d6a72", intensity: 0.85 },
-      postProcessing: { enabled: true, exposure: 1.0, toneMapping: "agx", bloom: { threshold: 3, softness: 0.2, radius: 0.12, intensity: 0.35 },
+      sky: { kind: "procedural", sunEntityId: "sun", turbidity: 3.5, rayleigh: 2.2, groundColor: "#5d6a72", intensity: 0.85 },
+      postProcessing: { enabled: true, exposure: 0.75, toneMapping: "aces", bloom: { threshold: 3, softness: 0.2, radius: 0.12, intensity: 0.35 },
         vignette: { intensity: 0.32, radius: 0.5, softness: 0.6 }, antialias: "smaa" }
     },
     music: { assetId: "score", volume: 0.5, fadeInTicks: 120, fadeOutTicks: 120, streaming: { loopStartSeconds: 0 } },

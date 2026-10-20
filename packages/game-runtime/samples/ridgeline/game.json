@@ -206,8 +206,8 @@
  "assets": {
   "terrain-0": {
    "mediaKind": "model",
-   "assetId": "773c7741cdae90794ada5720fff168bf",
-   "digest": "773c7741cdae90794ada5720fff168bfb77e73edfdb81575294e4fd21c8f66c3",
+   "assetId": "5f345f138ab858aa0e796b0d4ff8d185",
+   "digest": "5f345f138ab858aa0e796b0d4ff8d1851f1d32b75255f76a3d7eaf1a312980f6",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
@@ -219,59 +219,78 @@
     },
     "max": {
      "x": 0,
-     "y": 1601.9968537375191,
+     "y": 1611.1626532717237,
      "z": 0
     }
    },
    "nodeIds": [
     "node:0",
-    "node:1"
+    "node:1",
+    "node:2",
+    "node:3",
+    "node:4",
+    "node:5",
+    "node:6",
+    "node:7",
+    "node:8"
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 1619517,
+   "geometryBytes": 2928994,
    "textureBytes": 44739244,
-   "triangles": 129032,
+   "triangles": 231992,
    "supportedExtensions": [
     "KHR_mesh_quantization"
    ]
   },
   "forest-0": {
    "mediaKind": "model",
-   "assetId": "a8d18cf49de16af7a641ffad7160cf6f",
-   "digest": "a8d18cf49de16af7a641ffad7160cf6ff8d57277cfca087a0398cf9c2657a1aa",
+   "assetId": "fa2ddc15d4142d88fda2646bdc70b792",
+   "digest": "fa2ddc15d4142d88fda2646bdc70b79260f90eb3dd472277346723401ca62866",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
    "bounds": {
     "min": {
-     "x": -4377.538770993545,
-     "y": 29.548927324423175,
-     "z": -5003.800573870716
+     "x": -4378.160522448748,
+     "y": 28.8351631977921,
+     "z": -5004.020047912192
     },
     "max": {
-     "x": 3.8346401219741892,
+     "x": 4.115039506300718,
      "y": 1143.6850151285619,
-     "z": 5.146509568663532
+     "z": 5.250373615242552
     }
    },
    "nodeIds": [
     "node:0",
-    "node:1"
+    "node:1",
+    "node:2",
+    "node:3",
+    "node:4",
+    "node:5",
+    "node:6",
+    "node:7",
+    "node:8",
+    "node:9",
+    "node:10",
+    "node:11",
+    "node:12",
+    "node:13"
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 1101600,
+   "geometryBytes": 1943100,
    "textureBytes": 0,
-   "triangles": 51000,
+   "triangles": 91800,
    "supportedExtensions": [
     "KHR_mesh_quantization"
    ]
   },
   "terrain-1": {
    "mediaKind": "model",
-   "assetId": "97360cb477e5fbe733fa7728252c5f70",
-   "digest": "97360cb477e5fbe733fa7728252c5f70319dbdcce47a07edc5e1e5b905631a91",
+   "assetId": "64a0978095260f0fe3715de678787095",
+   "digest": "64a0978095260f0fe3715de678787095bb4a4683cb6cb74115f5d886bf114907",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
@@ -283,60 +302,80 @@
     },
     "max": {
      "x": 5000,
-     "y": 1857.6942075796412,
+     "y": 1861.633220458558,
      "z": 0
     }
    },
    "nodeIds": [
     "node:0",
-    "node:1"
+    "node:1",
+    "node:2",
+    "node:3",
+    "node:4",
+    "node:5",
+    "node:6",
+    "node:7",
+    "node:8"
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 1619517,
+   "geometryBytes": 2957748,
    "textureBytes": 44739244,
-   "triangles": 129032,
+   "triangles": 234700,
    "supportedExtensions": [
     "KHR_mesh_quantization"
    ]
   },
   "forest-1": {
    "mediaKind": "model",
-   "assetId": "7cff567d501f1022fc9431bb2bd24b5a",
-   "digest": "7cff567d501f1022fc9431bb2bd24b5a37c469d4fe014946adca9a5b6ca2fac4",
+   "assetId": "3c64139794731bf722babefa00b68388",
+   "digest": "3c64139794731bf722babefa00b68388c29bf26da648a80361d1ce13411a244f",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
    "bounds": {
     "min": {
-     "x": -5.460240200933185,
-     "y": 33.622522886739944,
-     "z": -5002.098453375895
+     "x": -5.2720494164505,
+     "y": 32.66369212428435,
+     "z": -5003.089075237093
     },
     "max": {
-     "x": 4780.435545374451,
+     "x": 4781.2925028077225,
      "y": 1099.057011700538,
-     "z": 2.726836861393167
+     "z": 3.022927511715352
     }
    },
    "nodeIds": [
     "node:0",
     "node:1",
-    "node:2"
+    "node:2",
+    "node:3",
+    "node:4",
+    "node:5",
+    "node:6",
+    "node:7",
+    "node:8",
+    "node:9",
+    "node:10",
+    "node:11",
+    "node:12",
+    "node:13",
+    "node:14",
+    "node:15"
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 1492344,
+   "geometryBytes": 2632329,
    "textureBytes": 0,
-   "triangles": 69090,
+   "triangles": 124362,
    "supportedExtensions": [
     "KHR_mesh_quantization"
    ]
   },
   "terrain-2": {
    "mediaKind": "model",
-   "assetId": "e1c5a12ba7b8fa1c188be2f30cd8d6f7",
-   "digest": "e1c5a12ba7b8fa1c188be2f30cd8d6f727cc79519b0518cdb942d23e313338f5",
+   "assetId": "97bda72b15cee5a1b4c77ba820264f61",
+   "digest": "97bda72b15cee5a1b4c77ba820264f618322aa7d333a8146281eab7cb0297735",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
@@ -348,60 +387,74 @@
     },
     "max": {
      "x": 0,
-     "y": 1048.71170052921,
+     "y": 1049.9562129844853,
      "z": 5000
     }
    },
    "nodeIds": [
     "node:0",
-    "node:1"
+    "node:1",
+    "node:2",
+    "node:3",
+    "node:4"
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 1619517,
+   "geometryBytes": 1187278,
    "textureBytes": 44739244,
-   "triangles": 129032,
+   "triangles": 94261,
    "supportedExtensions": [
     "KHR_mesh_quantization"
    ]
   },
   "forest-2": {
    "mediaKind": "model",
-   "assetId": "28a2337d5e0286eb6f326e51fea022fd",
-   "digest": "28a2337d5e0286eb6f326e51fea022fd279f528629e3b3205a35d82cd887e2b8",
+   "assetId": "76e15e00bdc56e3a6cad3d3dce73f0e5",
+   "digest": "76e15e00bdc56e3a6cad3d3dce73f0e54be0f8b846b237ddd1e857d5e8f75ac6",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
    "bounds": {
     "min": {
-     "x": -4268.305503025113,
-     "y": 32.13969047701801,
-     "z": -4.882968348916165
+     "x": -4269.408309164825,
+     "y": 31.46833114250086,
+     "z": -5.701183149465578
     },
     "max": {
-     "x": 2.3123786884325455,
+     "x": 2.5631657988449206,
      "y": 1012.9432570665289,
-     "z": 3873.882850893395
+     "z": 3873.8631702900325
     }
    },
    "nodeIds": [
     "node:0",
     "node:1",
-    "node:2"
+    "node:2",
+    "node:3",
+    "node:4",
+    "node:5",
+    "node:6",
+    "node:7",
+    "node:8",
+    "node:9",
+    "node:10",
+    "node:11",
+    "node:12",
+    "node:13"
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 1232064,
+   "geometryBytes": 2173224,
    "textureBytes": 0,
-   "triangles": 57040,
+   "triangles": 102672,
    "supportedExtensions": [
     "KHR_mesh_quantization"
    ]
   },
   "terrain-3": {
    "mediaKind": "model",
-   "assetId": "cf24e81a5a98298613f048e0aa1c4da6",
-   "digest": "cf24e81a5a98298613f048e0aa1c4da6153991903a126e1c8450f25a6e15e675",
+   "assetId": "ae406c3c8ee3056d60c19bf772e4a06b",
+   "digest": "ae406c3c8ee3056d60c19bf772e4a06bbe88922300b8b5174f2d9e87acb322af",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
@@ -413,72 +466,85 @@
     },
     "max": {
      "x": 5000,
-     "y": 1373.4320430681266,
+     "y": 1390.551614350547,
      "z": 5000
     }
    },
    "nodeIds": [
     "node:0",
-    "node:1"
+    "node:1",
+    "node:2",
+    "node:3",
+    "node:4"
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 1619517,
+   "geometryBytes": 1272681,
    "textureBytes": 44739244,
-   "triangles": 129032,
+   "triangles": 100853,
    "supportedExtensions": [
     "KHR_mesh_quantization"
    ]
   },
   "forest-3": {
    "mediaKind": "model",
-   "assetId": "a8962719074fdad5d60ad468f5fc0362",
-   "digest": "a8962719074fdad5d60ad468f5fc0362fab9dc723681b4e3ab5078b6c4037038",
+   "assetId": "382cd2a2dfb9ce4f840a9a0e2db08ca4",
+   "digest": "382cd2a2dfb9ce4f840a9a0e2db08ca4b55d872ab1f2a23995c7b08d50307a80",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
    "bounds": {
     "min": {
-     "x": -3.9371629814604603,
-     "y": 30.121974214253214,
-     "z": -5.0444514649339
+     "x": -4.0102835891825634,
+     "y": 29.41672144856784,
+     "z": -5.486519299467773
     },
     "max": {
-     "x": 4130.810237162957,
+     "x": 4130.2365856799415,
      "y": 1109.9732568771608,
-     "z": 3784.9018005047906
+     "z": 3785.444954346504
     }
    },
    "nodeIds": [
     "node:0",
-    "node:1"
+    "node:1",
+    "node:2",
+    "node:3",
+    "node:4",
+    "node:5",
+    "node:6",
+    "node:7",
+    "node:8",
+    "node:9",
+    "node:10",
+    "node:11"
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 902880,
+   "geometryBytes": 1592580,
    "textureBytes": 0,
-   "triangles": 41800,
+   "triangles": 75240,
    "supportedExtensions": [
     "KHR_mesh_quantization"
    ]
   },
   "river": {
    "mediaKind": "model",
-   "assetId": "7e690adee695624326bfb85031eab01e",
-   "digest": "7e690adee695624326bfb85031eab01e866e71af044f48d5e738fd8906bdcc7e",
+   "assetId": "b975f755f601c797103e71afce19d835",
+   "digest": "b975f755f601c797103e71afce19d8357c5f2ce9e9c208fa316d43d4debb7d4f",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
    "bounds": {
     "min": {
-     "x": -917.0603719244222,
+     "x": -939.9997574689287,
      "y": 29.80937499999999,
-     "z": -3476.027284870992
+     "z": -3500.434544663337
     },
     "max": {
-     "x": 2889.0768440063016,
+     "x": 2903.599369808777,
      "y": 171.41701388888885,
-     "z": 1461.8706649472658
+     "z": 1465.3356104923532
     }
    },
    "nodeIds": [
@@ -487,7 +553,7 @@
    ],
    "clipIds": [],
    "clipDurations": {},
-   "geometryBytes": 10098,
+   "geometryBytes": 12794,
    "textureBytes": 0,
    "triangles": 672,
    "supportedExtensions": [
@@ -496,8 +562,8 @@
   },
   "airfield": {
    "mediaKind": "model",
-   "assetId": "1b4648d0dfb1a235996ee7bbdcce8616",
-   "digest": "1b4648d0dfb1a235996ee7bbdcce8616328bfbe73de3242824e323c20b7125f2",
+   "assetId": "f1d49d05be9be34f7c8544f674cc685e",
+   "digest": "f1d49d05be9be34f7c8544f674cc685e35414042920f6f7fbd20e254dc11425d",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
@@ -574,8 +640,8 @@
   },
   "jet": {
    "mediaKind": "model",
-   "assetId": "b0c549e676165dd628024fc7d702494a",
-   "digest": "b0c549e676165dd628024fc7d702494a269a87d06b121753d5c8e89c4a90a0a4",
+   "assetId": "314f20d3f34436dfb4e1f5951473cb73",
+   "digest": "314f20d3f34436dfb4e1f5951473cb73cd71efeea0a454b9bd0e7265012d8baa",
    "required": true,
    "format": "glb",
    "preparationVersion": "1",
@@ -778,25 +844,25 @@
         "bursts": [
          {
           "time": 0,
-          "count": 140
+          "count": 110
          }
         ],
         "shape": {
          "kind": "circle",
-         "radius": 17,
+         "radius": 18,
          "fromEdge": true
         },
         "lifetime": {
-         "min": 0.6,
-         "max": 1.1
+         "min": 0.2,
+         "max": 0.35
         },
         "speed": {
-         "min": 2,
-         "max": 10
+         "min": 4,
+         "max": 12
         },
         "size": {
-         "min": 0.5,
-         "max": 1.2
+         "min": 0.15,
+         "max": 0.4
         },
         "color": "#ffc27a",
         "colorOverLifetime": [
@@ -812,7 +878,7 @@
         "opacityOverLifetime": [
          {
           "t": 0,
-          "value": 1
+          "value": 0.9
          },
          {
           "t": 1,
@@ -820,35 +886,6 @@
          }
         ],
         "drag": 1.2,
-        "blend": "additive",
-        "unlit": true
-       },
-       {
-        "id": "flash",
-        "playOnStart": true,
-        "loop": false,
-        "duration": 0.1,
-        "rate": 0,
-        "bursts": [
-         {
-          "time": 0,
-          "count": 2
-         }
-        ],
-        "lifetime": 0.25,
-        "speed": 0,
-        "size": 46,
-        "color": "#ffd7a0",
-        "opacityOverLifetime": [
-         {
-          "t": 0,
-          "value": 0.6
-         },
-         {
-          "t": 1,
-          "value": 0
-         }
-        ],
         "blend": "additive",
         "unlit": true
        }
@@ -1251,15 +1288,15 @@
     "background": "#9fb6cf",
     "ambient": {
      "color": "#b7c8e0",
-     "intensity": 0.22
+     "intensity": 0.15
     },
     "fog": {
      "kind": "height",
-     "color": "#c8c3bb",
-     "density": 0.00006,
+     "color": "#b9c4cf",
+     "density": 0.000025,
      "baseHeight": 0,
      "heightFalloff": 0.0009,
-     "maxOpacity": 0.85
+     "maxOpacity": 0.6
     },
     "shadows": {
      "enabled": true,
@@ -1274,15 +1311,15 @@
     "sky": {
      "kind": "procedural",
      "sunEntityId": "sun",
-     "turbidity": 5,
+     "turbidity": 3.5,
      "rayleigh": 2.2,
      "groundColor": "#5d6a72",
      "intensity": 0.85
     },
     "postProcessing": {
      "enabled": true,
-     "exposure": 1,
-     "toneMapping": "agx",
+     "exposure": 0.75,
+     "toneMapping": "aces",
      "bloom": {
       "threshold": 3,
       "softness": 0.2,
@@ -1509,7 +1546,19 @@
      },
      "model": {
       "assetId": "river",
-      "castShadow": false
+      "castShadow": false,
+      "material": {
+       "color": "#163440",
+       "metalness": 0.1,
+       "roughness": 0.16,
+       "normalTexture": {
+        "assetId": "water-normal",
+        "tiling": {
+         "x": 1,
+         "y": 199
+        }
+       }
+      }
      }
     },
     {

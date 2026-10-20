@@ -98,8 +98,10 @@ def runway_texture():
     ppm_x = w / width_m
     ppm_z = h / length_m
     rng = np.random.default_rng(3)
-    base = 0.2 + 0.03 * rng.standard_normal((h, w))
-    streak = np.repeat(0.02 * rng.standard_normal((1, w)), h, axis=0)
+    base = 0.2 + 0.022 * rng.standard_normal((h, w))
+    # Patches of older and newer asphalt a few metres across. Lines that run the full length read as motion blur.
+    patches = np.asarray(Image.fromarray((rng.random((h // 24, w // 24)) * 255).astype(np.uint8)).resize((w, h), Image.BICUBIC), float) / 255
+    streak = 0.035 * (patches - 0.5)
     rubber = np.zeros((h, w))
     for at in (220, length_m - 220):
         zz = (np.arange(h) / ppm_z - at)
