@@ -1,7 +1,7 @@
 import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems } from "./frame.js";
-import { applyLighting, spritePixelBounds } from "./lighting.js";
+import { computeIrradiance, multiplyIrradiance, spritePixelBounds } from "./lighting.js";
 import { gameFontFamily } from "./fonts.js";
 import { loadGameUiImages, paintGameHud2D } from "./ui/hud2d.js";
 import { applyGpuEffects } from "./gpu-capture.js";
@@ -108,6 +108,8 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
   const lightContext = lightCanvas?.getContext("2d");
   const lightingFrame = overscan === 0 ? frame : { ...frame,
     width: frame.width * canvas.width / outputWidth, height: frame.height * canvas.height / outputHeight };
+  // One viewport irradiance field per frame, shared by every lit sprite.
+  let irradiance: Float32Array | null = null;
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index];
     if (!item) continue;
@@ -123,8 +125,8 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
     lightContext.clearRect(bounds.x, bounds.y, bounds.width, bounds.height);
     drawIndex(index, lightContext, true);
     const pixels = lightContext.getImageData(bounds.x, bounds.y, bounds.width, bounds.height);
-    applyLighting(pixels.data, bounds.width, bounds.height, lightingFrame, options.interpolation ?? 1,
-      { viewportWidth: canvas.width, viewportHeight: canvas.height, x: bounds.x, y: bounds.y });
+    irradiance ??= computeIrradiance(canvas.width, canvas.height, lightingFrame, options.interpolation ?? 1);
+    if (irradiance) multiplyIrradiance(pixels.data, bounds.width, bounds.height, irradiance, canvas.width, bounds.x, bounds.y);
     // The canvas records drawImage by reference and replays it at encode time, so each
     // lit sprite composites from its own canvas rather than the reused light buffer.
     const lit = createCanvas(bounds.width, bounds.height);

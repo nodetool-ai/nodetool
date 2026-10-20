@@ -1,7 +1,7 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import type { GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
 import { pixelRect, projectedCamera, sourceRect, tintPixels, visibleItems, type VisibleItem } from "./frame.js";
-import { applyLighting, spritePixelBounds } from "./lighting.js";
+import { computeIrradiance, multiplyIrradiance, spritePixelBounds } from "./lighting.js";
 import { loadGameUiImages, paintGameHud2D } from "./ui/hud2d.js";
 import { CANVAS2D_MAX_PARTICLES, PARTICLE_DOT_ASSET, PARTICLE_DOT_SIZE, particleDotPixels, type GameParticleField } from "./particles/render2d.js";
 
@@ -109,6 +109,8 @@ export class Canvas2DGameRenderer implements GameRenderer {
       this.lightCanvas = undefined;
     }
     const lightCanvas = this.lightCanvas;
+    // One viewport irradiance field per frame, shared by every lit sprite.
+    let irradiance: Float32Array | null = null;
     for (let index = 0; index < items.length; index++) {
       const entry = items[index];
       const image = images[index];
@@ -126,8 +128,8 @@ export class Canvas2DGameRenderer implements GameRenderer {
       lightContext.clearRect(bounds.x, bounds.y, bounds.width, bounds.height);
       this.drawSprite(lightContext, entry, image, frame, camera, pixelScale, sx, sy, true);
       const pixels = lightContext.getImageData(bounds.x, bounds.y, bounds.width, bounds.height);
-      applyLighting(pixels.data, bounds.width, bounds.height, frame, interpolation,
-        { viewportWidth: this.canvas.width, viewportHeight: this.canvas.height, x: bounds.x, y: bounds.y });
+      irradiance ??= computeIrradiance(this.canvas.width, this.canvas.height, frame, interpolation);
+      if (irradiance) multiplyIrradiance(pixels.data, bounds.width, bounds.height, irradiance, this.canvas.width, bounds.x, bounds.y);
       lightContext.putImageData(pixels, bounds.x, bounds.y);
       context.save();
       context.globalCompositeOperation = entry.blend === "additive" ? "lighter" : "source-over";

@@ -33,17 +33,18 @@ function linearColor(color: string): readonly [number, number, number] {
     LINEAR_FROM_BYTE[Math.round(channels[2] * 255)]];
 }
 
-/** Multiplies world pixels by ambient and point-light irradiance without changing alpha. */
-export function applyLighting(
-  pixels: Uint8ClampedArray,
+type LightRegion = { readonly viewportWidth: number; readonly viewportHeight: number; readonly x: number; readonly y: number };
+
+/** Linear ambient plus point-light irradiance, three floats per pixel, for a width by height region. */
+export function computeIrradiance(
   width: number,
   height: number,
   frame: GameRenderFrame,
   interpolation: number,
-  region?: { readonly viewportWidth: number; readonly viewportHeight: number; readonly x: number; readonly y: number },
-): void {
+  region?: LightRegion,
+): Float32Array | null {
   const lighting = frame.lighting;
-  if (!lighting) return;
+  if (!lighting) return null;
   const camera = projectedCamera(frame, interpolation);
   const viewportWidth = region?.viewportWidth ?? width;
   const viewportHeight = region?.viewportHeight ?? height;
@@ -81,11 +82,43 @@ export function applyLighting(
       }
     }
   }
-  for (let index = 0, lightIndex = 0; index < pixels.length; index += 4, lightIndex += 3) {
-    if (pixels[index + 3] === 0) continue;
-    for (let channel = 0; channel < 3; channel += 1) {
-      const linear = Math.min(1, LINEAR_FROM_BYTE[pixels[index + channel]] * irradiance[lightIndex + channel]);
-      pixels[index + channel] = BYTE_FROM_LINEAR[Math.round(linear * 4096)];
+  return irradiance;
+}
+
+/**
+ * Multiplies a width by height block of pixels by irradiance read from a field that is
+ * fieldWidth pixels wide, starting at (originX, originY), without changing alpha.
+ */
+export function multiplyIrradiance(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  irradiance: Float32Array,
+  fieldWidth = width,
+  originX = 0,
+  originY = 0,
+): void {
+  for (let y = 0; y < height; y += 1) {
+    let lightIndex = ((y + originY) * fieldWidth + originX) * 3;
+    for (let index = y * width * 4, end = index + width * 4; index < end; index += 4, lightIndex += 3) {
+      if (pixels[index + 3] === 0) continue;
+      for (let channel = 0; channel < 3; channel += 1) {
+        const linear = Math.min(1, LINEAR_FROM_BYTE[pixels[index + channel]] * irradiance[lightIndex + channel]);
+        pixels[index + channel] = BYTE_FROM_LINEAR[Math.round(linear * 4096)];
+      }
     }
   }
+}
+
+/** Multiplies world pixels by ambient and point-light irradiance without changing alpha. */
+export function applyLighting(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  frame: GameRenderFrame,
+  interpolation: number,
+  region?: LightRegion,
+): void {
+  const irradiance = computeIrradiance(width, height, frame, interpolation, region);
+  if (irradiance) multiplyIrradiance(pixels, width, height, irradiance);
 }
