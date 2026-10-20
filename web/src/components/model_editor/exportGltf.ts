@@ -118,6 +118,12 @@ export interface GltfExportOptions {
    * for other tools drop them, since those tools would show them.
    */
   onlyVisible?: boolean;
+  /**
+   * Objects written before the root's children, as top-level nodes of the
+   * file only. The Blender render uses it to make the view camera the
+   * scene's first camera without adding it to the editor.
+   */
+  leadingNodes?: THREE.Object3D[];
 }
 
 /**
@@ -129,7 +135,7 @@ export interface GltfExportOptions {
 export const exportSceneToGltf = (
   root: THREE.Object3D,
   animations: THREE.AnimationClip[] = [],
-  { binary = true, onlyVisible = false }: GltfExportOptions = {}
+  { binary = true, onlyVisible = false, leadingNodes = [] }: GltfExportOptions = {}
 ): Promise<Blob> => {
   try {
     assertSkinsComplete(root);
@@ -140,7 +146,7 @@ export const exportSceneToGltf = (
   // of calling `add`, so the live objects keep their parent in the editor.
   const scene = new THREE.Scene();
   scene.name = root.name;
-  scene.children.push(...root.children);
+  scene.children.push(...leadingNodes, ...root.children);
   const restore = prepareForExport(root);
   return new Promise<Blob>((resolve, reject) => {
     const exporter = new GLTFExporter();

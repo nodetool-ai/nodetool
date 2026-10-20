@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { exportSceneToGlb } from "../exportGltf";
+import { exportSceneToGlb, exportSceneToGltf } from "../exportGltf";
 import { EDITOR_SETTINGS_EXTRA, HIDDEN_EXTRA } from "../sceneOps";
 import { createPrimitive } from "../objectFactory";
 
@@ -36,6 +36,21 @@ describe("exportSceneToGlb", () => {
     // The live objects stay parented to the editor root.
     expect(box.parent).toBe(root);
     expect(root.children).toEqual([box, light]);
+  });
+
+  it("writes leading nodes first without adding them to the editor", async () => {
+    const root = new THREE.Group();
+    const box = new THREE.Mesh();
+    root.add(box);
+    const camera = new THREE.PerspectiveCamera();
+
+    await exportSceneToGltf(root, [], { onlyVisible: true, leadingNodes: [camera] });
+
+    const input = mockParse.mock.calls[0][0] as THREE.Scene;
+    expect(input.children).toEqual([camera, box]);
+    expect(mockParse.mock.calls[0][3]).toMatchObject({ onlyVisible: true });
+    expect(camera.parent).toBeNull();
+    expect(root.children).toEqual([box]);
   });
 
   it("passes the loaded animation clips to the exporter", async () => {
