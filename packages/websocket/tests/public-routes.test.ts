@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import {
   isPublicAppDeploymentRequest,
+  isPublicGamePlayRequest,
   isPublicOAuthRequest,
   isPublicSharedWorkflowRequest,
   isPublicWorkflowMetadataRequest,
@@ -236,5 +237,28 @@ describe("isStaticAppRequest", () => {
   it("never treats an undecodable path or a non-GET as static", () => {
     expect(isStaticAppRequest(null, "GET")).toBe(false);
     expect(isStaticAppRequest("/index.html", "POST")).toBe(false);
+  });
+});
+
+describe("isPublicGamePlayRequest", () => {
+  it("exempts reading one file under a play token", () => {
+    for (const path of ["/api/game-play/tok3n.sig/index.html", "/api/game-play/tok3n.sig/assets/a.png"]) {
+      expect(isPublicGamePlayRequest(path, "GET")).toBe(true);
+      expect(isPublicAuthExemptRoute(path, "GET")).toBe(true);
+    }
+    expect(isPublicGamePlayRequest("/api/game-play/tok3n.sig/index.html", "HEAD")).toBe(true);
+  });
+
+  it("exempts no bare token, no mutation, and no other game route", () => {
+    for (const [path, method] of [
+      ["/api/game-play/", "GET"],
+      ["/api/game-play/tok3n", "GET"],
+      ["/api/game-play//index.html", "GET"],
+      ["/api/game-play/tok3n/index.html", "POST"],
+      ["/api/games/abc/export-zip", "GET"]
+    ] as const) {
+      expect(isPublicGamePlayRequest(path, method)).toBe(false);
+      expect(isPublicAuthExemptRoute(path, method)).toBe(false);
+    }
   });
 });

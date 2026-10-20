@@ -51,14 +51,24 @@ export default function AppsScreen({ navigation }: AppsScreenProps) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Settings')}
-          accessibilityRole="button"
-          accessibilityLabel="Open settings"
-          style={styles.headerButton}
-        >
-          <Ionicons name="settings-outline" size={22} color={colors.text} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Games')}
+            accessibilityRole="button"
+            accessibilityLabel="Open games"
+            style={styles.headerButton}
+          >
+            <Ionicons name="game-controller-outline" size={22} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
+            style={styles.headerButton}
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.text} />
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation, colors.text]);
@@ -174,6 +184,9 @@ export default function AppsScreen({ navigation }: AppsScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
   },
   headerButton: {
     width: MIN_TOUCH_TARGET,

@@ -48,3 +48,7 @@ nodetool game build game.json --out game-desktop --assets-dir game-assets \
 The Tauri project includes the web player and native shell. Compile on the target platform with Rust and the platform toolchain. The local editor can stream executable build output into its Console. Hosted servers refuse local compiler execution. Windows, macOS, and Linux installers are built on their respective platforms.
 
 System web views differ in graphics support. Check the packaged application rather than assuming desktop export matches Chrome. See the [desktop export instructions](/game-editor#build-a-desktop-app) for prerequisites and output locations.
+
+## Play on a phone
+
+The NodeTool mobile app plays a game's published revision from the same web build, served under a short-lived signed link. See [Play on a phone](/game-engine/mobile-player).

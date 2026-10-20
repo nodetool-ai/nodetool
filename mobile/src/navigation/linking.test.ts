@@ -95,6 +95,8 @@ describe('linking', () => {
       'AssetViewer',
       'Jobs',
       'JobDetail',
+      'Games',
+      'GamePlayer',
       'Settings',
       'LanguageModelSelection',
     ];
@@ -119,6 +121,12 @@ describe('linking', () => {
       expect(state?.routes[0].name).toBe('Main');
       expect(routeForPath('/jobs').name).toBe('Jobs');
       expect(routeForPath('/documents').name).toBe('Documents');
+    });
+
+    it('routes game/:gameId to GamePlayer above the tabs', () => {
+      expect(routeForPath('/game/g1')).toEqual({ name: 'GamePlayer', params: { gameId: 'g1' } });
+      expect(getStateFromPath('/game/g1', linking.config)?.routes.map((route) => route.name)).toEqual(['Main', 'GamePlayer']);
+      expect(routeForPath('/games').name).toBe('Games');
     });
 
     it('routes asset/:assetId to AssetViewer', () => {

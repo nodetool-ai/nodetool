@@ -22,7 +22,7 @@ import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
 import { gameDocumentDigest } from "../game-code-bake.js";
 import { previewGameAuthoringSpec, applyGameAuthoringSpec, browseGameAssetsSpec } from "./game.specs.js";
 import { browseGameAssets } from "./game-asset-browser.js";
-import { GAME_BUILD_INTEGRITY_FILE, gameBuildIntegrityManifest, verifiedGameBuildCache } from "../game-build-integrity.js";
+import { GAME_BUILD_INTEGRITY_FILE, gameBuildIntegrityManifest, readGameBuildManifest, verifiedGameBuildCache } from "../game-build-integrity.js";
 
 const log = createLogger("capabilities.game");
 
@@ -1177,6 +1177,34 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
+}
+
+export interface NativeGameBuildFileRequest {
+  readonly userId: string;
+  readonly gameId: string;
+  /** A `build_path` that `buildOwnedNativeGame` returned for this game. */
+  readonly buildPath: string;
+  /** A path relative to the build, as its integrity manifest lists it. */
+  readonly path: string;
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * One file of an owned game's finished web build. It answers null unless the caller still owns the game, the build
+ * belongs to it, the integrity manifest lists the path, and the stored bytes match the manifest's digest. A path the
+ * manifest does not list is never read, so no request reaches another file in the workspace.
+ */
+export async function readOwnedNativeGameBuildFile(request: NativeGameBuildFileRequest): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  const game = await ownedGame(request.userId, request.gameId);
+  if (!game || !request.buildPath.startsWith(`game-builds/${game.id}/`)) return null;
+  const workspace = await workspaceOf(request.userId, game);
+  if (!workspace) return null;
+  const manifest = await readGameBuildManifest(workspace, request.buildPath, request.signal);
+  const file = manifest?.files.find((entry) => entry.path === request.path);
+  if (!file) return null;
+  const bytes = await workspace.read(`${request.buildPath}/${file.path}`);
+  if (!bytes || bytes.byteLength !== file.byteLength || createHash("sha256").update(bytes).digest("hex") !== file.digest) return null;
+  return { bytes, contentType: BUILD_CONTENT_TYPES[file.path.slice(file.path.lastIndexOf(".") + 1)] ?? "application/octet-stream" };
 }
 
 const buildGame: CapabilityExport = {

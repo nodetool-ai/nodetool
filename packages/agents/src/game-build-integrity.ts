@@ -23,27 +23,34 @@ export function gameBuildIntegrityManifest(buildPath: string, fingerprint: strin
   return manifest;
 }
 
-/** A cache hit requires every published file, within the same file and byte budgets as a fresh export. */
-export async function verifiedGameBuildCache(workspace: Workspace, buildPath: string, fingerprint: string, entry: string,
-  limits: { files: number; bytes: number }, signal?: AbortSignal): Promise<boolean> {
+export type GameBuildManifest = z.infer<typeof manifestSchema> & { readonly manifestBytes: number };
+
+/** The build's published integrity manifest, or null when it is missing, oversized, malformed or names another build. */
+export async function readGameBuildManifest(workspace: Workspace, buildPath: string, signal?: AbortSignal): Promise<GameBuildManifest | null> {
   signal?.throwIfAborted();
   const path = `${buildPath}/${GAME_BUILD_INTEGRITY_FILE}`;
   const stat = await workspace.stat(path);
   signal?.throwIfAborted();
-  if (!stat || stat.isDirectory || stat.size > MAX_MANIFEST_BYTES) { return false; }
+  if (!stat || stat.isDirectory || stat.size > MAX_MANIFEST_BYTES) { return null; }
   const content = await workspace.read(path);
   signal?.throwIfAborted();
-  if (!content || content.byteLength > MAX_MANIFEST_BYTES) { return false; }
+  if (!content || content.byteLength > MAX_MANIFEST_BYTES) { return null; }
   let value: unknown;
-  try { value = JSON.parse(Buffer.from(content).toString("utf8")); } catch { return false; }
+  try { value = JSON.parse(Buffer.from(content).toString("utf8")); } catch { return null; }
   const parsed = manifestSchema.safeParse(value);
-  if (!parsed.success) { return false; }
-  const manifest = parsed.data;
-  if (manifest.buildPath !== buildPath || manifest.fingerprint !== fingerprint || manifest.entry !== entry || manifest.files.length + 1 > limits.files) { return false; }
+  return parsed.success && parsed.data.buildPath === buildPath ? { ...parsed.data, manifestBytes: content.byteLength } : null;
+}
+
+/** A cache hit requires every published file, within the same file and byte budgets as a fresh export. */
+export async function verifiedGameBuildCache(workspace: Workspace, buildPath: string, fingerprint: string, entry: string,
+  limits: { files: number; bytes: number }, signal?: AbortSignal): Promise<boolean> {
+  const manifest = await readGameBuildManifest(workspace, buildPath, signal);
+  if (!manifest) { return false; }
+  if (manifest.fingerprint !== fingerprint || manifest.entry !== entry || manifest.files.length + 1 > limits.files) { return false; }
   const paths = new Set(manifest.files.map(file => file.path));
   const game = entry === "index.html" ? "game.json" : "dist/game.json";
   if (paths.size !== manifest.files.length || paths.has(GAME_BUILD_INTEGRITY_FILE) || !paths.has(entry) || !paths.has(game)) { return false; }
-  let bytes = content.byteLength;
+  let bytes = manifest.manifestBytes;
   for (const file of manifest.files) {
     signal?.throwIfAborted();
     bytes += file.byteLength;

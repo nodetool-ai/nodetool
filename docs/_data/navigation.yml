@@ -127,6 +127,8 @@
       url: "/game-engine/agent-authoring"
     - title: "Publish and Export"
       url: "/game-engine/publishing"
+    - title: "Play on a Phone"
+      url: "/game-engine/mobile-player"
     - title: "Performance and Debugging"
       url: "/game-engine/debugging"
     - title: "Feature Coverage"
