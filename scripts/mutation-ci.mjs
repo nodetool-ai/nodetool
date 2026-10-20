@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { totalmem } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs, run, selectFiles } from "../packages/mutator/dist/cli.js";
@@ -15,6 +16,12 @@ import { loadSnapshots, scoreTable, survivors } from "./mutation-score.mjs";
 export const TARGETS = ["agents", "auth", "config", "kernel", "mutator", "node-sdk", "runtime", "security", "storage"]
   .map((name) => `packages/${name}/src`);
 const MAX_PARTITIONS = 256;
+// One `vitest related` run over an agents file peaks near 6.5 GB. Four of
+// them in parallel exhausted a 16 GB runner, which then shut down.
+const AGENT_SUITE_BYTES = 7 * 1024 ** 3;
+export function mutantWorkers(file, memory = totalmem()) {
+  return file.startsWith("packages/agents/") ? Math.max(1, Math.floor(memory / AGENT_SUITE_BYTES)) : null;
+}
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 function writeJson(path, data) {
@@ -129,9 +136,11 @@ export async function executePartition(root, plan, id, output) {
   let complete = false;
   try {
     const file = partition.file === null ? null : plan.files.find((item) => item.file === partition.file);
+    const workers = file === null ? null : mutantWorkers(file.file);
     code = file === null ? 0 : await run([
       "--root", root, "--base", plan.base, "--no-coverage", file.file,
-      "--shard", `${partition.shard.index}/${partition.shard.count}`, "--metrics-dir", metrics
+      "--shard", `${partition.shard.index}/${partition.shard.count}`, "--metrics-dir", metrics,
+      ...(workers === null ? [] : ["--max-workers", String(workers)])
     ], undefined, undefined, {
       selection: (selectedFile, ids) => {
         assert.equal(selectedFile, file.file, "Runtime selected an unexpected source file");
