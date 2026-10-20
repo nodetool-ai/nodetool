@@ -25,16 +25,6 @@ export const PASTE_ATTRIBUTE_GROUPS = [
 
 export type PasteAttributeGroup = (typeof PASTE_ATTRIBUTE_GROUPS)[number];
 
-export const PASTE_ATTRIBUTE_LABELS: Record<PasteAttributeGroup, string> = {
-  motion: "Motion (position, scale, rotation, crop, corners)",
-  opacity: "Opacity and blend mode",
-  effects: "Video effects",
-  animations: "Animations and keyframes",
-  speed: "Speed",
-  volume: "Volume",
-  audioEffects: "Audio effects"
-};
-
 const FIELDS: Record<
   Exclude<PasteAttributeGroup, "speed">,
   readonly (keyof TimelineClip)[]

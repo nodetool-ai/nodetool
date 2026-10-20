@@ -41,16 +41,6 @@ export const CLIP_AUDIO_EFFECT_TYPES: readonly ClipAudioEffectType[] = [
   "distortion"
 ];
 
-export const CLIP_AUDIO_EFFECT_LABELS: Record<ClipAudioEffectType, string> = {
-  gain: "Gain",
-  eq3: "3-band EQ",
-  filter: "Filter",
-  compressor: "Compressor",
-  echo: "Echo",
-  reverb: "Reverb",
-  distortion: "Distortion"
-};
-
 export const CLIP_AUDIO_KNOBS: KnobTable = {
   gain: [
     { key: "gainDb", label: "Gain", min: -24, max: 24, step: 0.1, unit: "dB", digits: 1, origin: 0 }
