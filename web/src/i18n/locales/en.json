@@ -17762,12 +17762,12 @@
         "planShort": "Describe the work to plan…",
         "plan": "Describe the work. The agent will propose a plan, not run it.",
         "messageShort": "Message… or @ to add an asset",
-        "message": "Continue the thread — or type @ to add an asset…"
+        "message": "Ask anything, or type @ to add an asset…"
       },
       "messagePrompt": "Message prompt",
       "pickModel": "Pick a {{kind}} model to {{action}}.",
       "generate": "Generate",
-      "send": "send",
+      "send": "Send",
       "messageQueued": "Message queued - {{prompt}}",
       "sendNow": "Send now",
       "uploading": "Uploading…",

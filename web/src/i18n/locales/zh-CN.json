@@ -17762,7 +17762,7 @@
         "planShort": "描述要规划的工作…",
         "plan": "描述要完成的工作。代理会提出计划，但不会执行。",
         "messageShort": "消息…或输入 @ 添加资产",
-        "message": "继续对话 — 或输入 @ 添加资产…"
+        "message": "随便问，或输入 @ 添加资产…"
       },
       "messagePrompt": "消息提示",
       "pickModel": "选择一个{{kind}}模型以{{action}}。",

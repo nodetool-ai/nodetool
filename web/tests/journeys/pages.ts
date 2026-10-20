@@ -230,7 +230,7 @@ export class ChatPage {
   }
 
   composer(): Locator {
-    return this.page.getByPlaceholder(/Continue the thread/i);
+    return this.page.getByPlaceholder(/Ask anything/i);
   }
 
   async send(message: string): Promise<void> {

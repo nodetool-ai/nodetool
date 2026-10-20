@@ -840,7 +840,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           <SelectModelBanner
               reason={t("i18n-next54.composer.pickModel", {
                 kind: modelGate.label,
-                action: t(isMediaMode ? "i18n-next54.composer.generate" : "i18n-next54.composer.send")
+                // The button labels are capitalized; mid-sentence they are not.
+                action: t(
+                  isMediaMode ? "i18n-next54.composer.generate" : "i18n-next54.composer.send"
+                ).toLocaleLowerCase()
               })}
             onSelect={openModelPicker}
           />

@@ -17762,7 +17762,7 @@
         "planShort": "Beschreibe die zu planende Arbeit…",
         "plan": "Beschreibe die Arbeit. Der Agent schlägt einen Plan vor und führt ihn nicht aus.",
         "messageShort": "Nachricht… oder @, um ein Asset hinzuzufügen",
-        "message": "Setze den Thread fort — oder gib @ ein, um ein Asset hinzuzufügen…"
+        "message": "Frag etwas oder gib @ ein, um ein Asset hinzuzufügen…"
       },
       "messagePrompt": "Nachrichten-Prompt",
       "pickModel": "Wähle ein {{kind}}-Modell für {{action}} aus.",
