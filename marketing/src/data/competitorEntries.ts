@@ -139,6 +139,9 @@ export type Competitor = {
    */
   related?: string[];
 
+  /** Hero headline and subline, when the category default in `alternativesVisuals.ts` does not fit. */
+  hero?: { headline: string; subline: string };
+
   /** Optional search snippet for pages with a distinct, high-volume query intent. */
   seo?: { title: string; description: string };
   starter?: { id: SearchStarter; source: LandingPage; heading: string };
