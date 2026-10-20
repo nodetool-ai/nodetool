@@ -1,7 +1,8 @@
 import type { Ref } from "react";
 import { useTranslation } from "react-i18next";
 import StopIcon from "@mui/icons-material/Stop";
-import { ToolbarIconButton, MOTION } from "../../ui_primitives";
+import { ToolbarIconButton, BORDER_RADIUS, MOTION } from "../../ui_primitives";
+import { SEND_BUTTON_SIZE } from "./MediaChatComposer.styles";
 
 interface StopGenerationButtonProps {
   onClick: () => void;
@@ -21,9 +22,10 @@ export function StopGenerationButton({
       onClick={onClick}
       nodrag={false}
       sx={(theme) => ({
-        width: 36,
-        height: 36,
+        width: SEND_BUTTON_SIZE,
+        height: SEND_BUTTON_SIZE,
         padding: 0,
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.grey[600],
         color: theme.vars.palette.text.primary,
         transition: `${MOTION.background}, ${MOTION.transform}`,
