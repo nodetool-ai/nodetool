@@ -19,16 +19,11 @@ jest.mock("@react-navigation/native", () => ({
   useNavigation: () => ({ navigate: jest.fn() }),
 }));
 
-jest.mock("../../../stores/WorkflowRunner", () => ({
-  useWorkflowRunner: () => ({
-    getState: () => ({
-      job_id: null,
-      run: jest.fn().mockResolvedValue(undefined),
-      cancel: jest.fn().mockResolvedValue(undefined),
-    }),
-    subscribe: () => () => {},
-  }),
-}));
+jest.mock("../../../stores/WorkflowRunner", () =>
+  jest
+    .requireActual("../../../test-utils/workflowRunnerMock")
+    .workflowRunnerMock()
+);
 
 import { webSocketService } from "../../../services/WebSocketService";
 
