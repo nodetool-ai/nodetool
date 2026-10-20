@@ -15,6 +15,10 @@ and holds the real image each beat shows. The timeline carries the motion, and
 with `load_skill` before the first `edit_timeline` call: it owns every op shape
 this skill quotes, and `motion-graphics` owns the build loop.
 
+`ad-story-loops` decides which question the hook opens and where it pays off.
+`ad-creative-testing` builds a matched second version to test a hook or a
+structure.
+
 ## Rules that do not bend
 
 - **Every claim matches the destination page.** Read the page before writing a

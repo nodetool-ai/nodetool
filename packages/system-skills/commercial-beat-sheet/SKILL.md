@@ -5,7 +5,7 @@ description: Write a shootable, precisely timed commercial beat sheet and store 
 
 Take a product brief and produce a complete, shootable commercial beat sheet as a NodeTool storyboard. Call the storyboard and entity capabilities directly; build no workflow.
 
-This skill is the ad's structure. Pair it with a job skill for the look: `product-commercial` for a polished product film, `ugc-video` for a phone-shot creator ad. A product page URL that should end as a finished cut is `launch-commercial`; a sound-off animated ad built from the product's real screenshots is `motion-ad`.
+This skill is the ad's structure. Pair it with a job skill for the look: `product-commercial` for a polished product film, `ugc-video` for a phone-shot creator ad. A product page URL that should end as a finished cut is `launch-commercial`; a sound-off animated ad built from the product's real screenshots is `motion-ad`. When the brief asks for retention, open loops or a series, `ad-story-loops` plans which questions the spot opens and where each pays off, before the beats are filled. `ad-creative-testing` builds matched variants to test a hook or structure.
 
 ---
 

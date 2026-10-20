@@ -101,6 +101,13 @@ job skill pairs with a board skill for structure: `ugc-video` and
 `product-commercial` with `commercial-beat-sheet`, `script-video` with
 `explainer-storyboard`, `short-film` with `trailer-template`.
 
+Two skills sit across the ad and marketing boards. `ad-story-loops` plans the
+loop map, which questions a piece opens and where each pays off, before a
+board skill fills its beats, and stores it in the board brief and each shot's
+`notes`. `ad-creative-testing` copies a finished cut into matched variants that
+differ in one storytelling choice, writes the test plan the user runs on their
+ad platform, and reads the results back.
+
 ## The craft and the model lines
 
 | Skill | Answers |
