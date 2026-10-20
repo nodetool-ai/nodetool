@@ -347,7 +347,7 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
     ".metrics/mutation-ci/results"
   ]);
   for (const job of Object.values(jobs)) {
-    expect(job["timeout-minutes"]).toBe(job === jobs["mutate-changed"] ? 90 : 45);
+    expect(job["timeout-minutes"]).toBe(job === jobs["mutate-changed"] ? 180 : 45);
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout@"));
     expect(checkout.with["fetch-depth"]).toBe(0);
     expect(checkout.with.filter).toBe("blob:none");

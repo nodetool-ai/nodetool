@@ -17,7 +17,8 @@ export const TARGETS = ["agents", "auth", "config", "kernel", "mutator", "node-s
   .map((name) => `packages/${name}/src`);
 const MAX_PARTITIONS = 256;
 // One `vitest related` run over an agents file peaks near 6.5 GB. Four of
-// them in parallel exhausted a 16 GB runner, which then shut down.
+// them in parallel exhausted a 16 GB runner, which then shut down. Half
+// the workers take twice as long, so mutate-changed allows 180 minutes.
 const AGENT_SUITE_BYTES = 7 * 1024 ** 3;
 export function mutantWorkers(file, memory = totalmem()) {
   return file.startsWith("packages/agents/") ? Math.max(1, Math.floor(memory / AGENT_SUITE_BYTES)) : null;
