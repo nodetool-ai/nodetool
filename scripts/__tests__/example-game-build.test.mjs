@@ -16,15 +16,15 @@ function fixture() {
   const root = mkdtempSync(path.join(tmpdir(), "example-game-build-"));
   roots.push(root);
   const base = path.join(root, "packages/base-nodes/nodetool");
-  const media = path.join(base, "assets/nodetool-base/games/kindle");
-  const manifest = path.join(base, "examples/games/kindle.game.json");
+  const media = path.join(base, "assets/nodetool-base/games/lumen");
+  const manifest = path.join(base, "examples/games/lumen.game.json");
   mkdirSync(path.dirname(manifest), { recursive: true });
-  cpSync(path.join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/games/kindle"), media, { recursive: true });
-  cpSync(path.join(ROOT, "packages/base-nodes/nodetool/examples/games/kindle.game.json"), manifest);
+  cpSync(path.join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/games/lumen"), media, { recursive: true });
+  cpSync(path.join(ROOT, "packages/base-nodes/nodetool/examples/games/lumen.game.json"), manifest);
   mkdirSync(path.join(root, "scripts/example-games"), { recursive: true });
   cpSync(path.join(ROOT, "scripts/example-games/build.mjs"), path.join(root, "scripts/example-games/build.mjs"));
   symlinkSync(path.join(ROOT, "node_modules"), path.join(root, "node_modules"), "dir");
-  const source = path.join(root, "sources/kindle");
+  const source = path.join(root, "sources/lumen");
   mkdirSync(path.join(source, "assets"), { recursive: true });
   const document = JSON.parse(readFileSync(manifest, "utf8")).document;
   for (const [slot, binding] of Object.entries(document.assets)) {
@@ -46,7 +46,7 @@ async function changeFirstImage(f) {
   writeFileSync(path.join(f.source, "assets", `${binding.assetId}.jpg`), bytes);
 }
 function run(f, args = []) {
-  return spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=kindle", ...args], {
+  return spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=lumen", ...args], {
     cwd: f.root, encoding: "utf8", env: { ...process.env, NODETOOL_GAMES_DIR: path.join(f.root, "sources") }
   });
 }
@@ -66,11 +66,11 @@ it("preserves the complete published generation when poster capture fails", asyn
   const before = snapshot(f);
   await changeFirstImage(f);
   writeFileSync(path.join(f.source, "game.json"), JSON.stringify(f.document));
-  writeFileSync(path.join(f.source, "inputs-route.json"), "[]");
+  writeFileSync(path.join(f.source, "inputs.json"), "[]");
   const bin = path.join(f.root, "bin");
   mkdirSync(bin);
   writeFileSync(path.join(bin, "npm"), `#!${process.execPath}\nprocess.stderr.write("intentional capture failure\\n"); process.exit(1);\n`, { mode: 0o755 });
-  const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=kindle", "--posters"], {
+  const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=lumen", "--posters"], {
     cwd: f.root, encoding: "utf8", env: { ...process.env, NODETOOL_GAMES_DIR: path.join(f.root, "sources"), PATH: `${bin}${path.delimiter}${process.env.PATH}` }
   });
   expect(result.status).not.toBe(0);
@@ -100,8 +100,8 @@ it("rolls back media and manifest when the manifest rename fails", async () => {
   const preload = path.join(f.root, "rename-failure.mjs");
   writeFileSync(preload, `import fs from "node:fs"; import {syncBuiltinESMExports} from "node:module";
 const rename=fs.renameSync; let failed=false;
-fs.renameSync=(from,to)=>{ if(!failed && from.includes(".game-bundles-") && from.endsWith("kindle.game.json")){failed=true;throw new Error("intentional publication failure");} return rename(from,to);}; syncBuiltinESMExports();`);
-  const result = spawnSync(process.execPath, ["--import", preload, "scripts/example-games/build.mjs", "--slug=kindle"], {
+fs.renameSync=(from,to)=>{ if(!failed && from.includes(".game-bundles-") && from.endsWith("lumen.game.json")){failed=true;throw new Error("intentional publication failure");} return rename(from,to);}; syncBuiltinESMExports();`);
+  const result = spawnSync(process.execPath, ["--import", preload, "scripts/example-games/build.mjs", "--slug=lumen"], {
     cwd: f.root, encoding: "utf8", env: { ...process.env, NODETOOL_GAMES_DIR: path.join(f.root, "sources") }
   });
   expect(result.status).not.toBe(0);
@@ -113,7 +113,7 @@ function catalogFixture() {
   const f = fixture();
   cpSync(path.join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/games"), path.join(f.base, "assets/nodetool-base/games"), { recursive: true });
   cpSync(path.join(ROOT, "packages/base-nodes/nodetool/examples/games"), path.join(f.base, "examples/games"), { recursive: true });
-  for (const slug of ["signal-forge", "aether", "blacksite"]) {
+  for (const slug of ["signal-forge", "aether", "blacksite", "kindle"]) {
     cpSync(path.join(ROOT, "packages/game-runtime/samples", slug), path.join(f.root, "packages/game-runtime/samples", slug), { recursive: true });
   }
   return f;
@@ -163,7 +163,7 @@ it("rejects fresh canonical 2D poster capture before changing any shipped path",
   const before = snapshot(f);
   const env = { ...process.env };
   delete env.NODETOOL_GAMES_DIR;
-  const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=kindle", "--posters"], { cwd: f.root, encoding: "utf8", env });
+  const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=lumen", "--posters"], { cwd: f.root, encoding: "utf8", env });
   expect(result.status).not.toBe(0);
   expect(result.stderr).toMatch(/fresh poster capture requires NODETOOL_GAMES_DIR/);
   expect(snapshot(f)).toEqual(before);
@@ -186,12 +186,12 @@ it("keeps a capture-named image asset when capturing a fresh poster", () => {
   const f = fixture();
   f.document.assets.capture = { ...f.document.assets.far };
   writeFileSync(path.join(f.source, "game.json"), JSON.stringify(f.document));
-  writeFileSync(path.join(f.source, "inputs-route.json"), "[]");
+  writeFileSync(path.join(f.source, "inputs.json"), "[]");
   const bin = path.join(f.root, "bin");
   mkdirSync(bin);
   const image = path.join(f.source, "assets", `${f.document.assets.far.assetId}.png`);
-  writeFileSync(path.join(bin, "npm"), `#!${process.execPath}\nconst fs=require("node:fs");fs.copyFileSync(${JSON.stringify(image)},process.argv[process.argv.indexOf("--out")+1]);process.stdout.write("Captured tick 420\\n");\n`, { mode: 0o755 });
-  const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=kindle", "--posters"], {
+  writeFileSync(path.join(bin, "npm"), `#!${process.execPath}\nconst fs=require("node:fs");fs.copyFileSync(${JSON.stringify(image)},process.argv[process.argv.indexOf("--out")+1]);process.stdout.write("Captured tick 900\\n");\n`, { mode: 0o755 });
+  const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=lumen", "--posters"], {
     cwd: f.root, encoding: "utf8", env: { ...process.env, NODETOOL_GAMES_DIR: path.join(f.root, "sources"), PATH: `${bin}${path.delimiter}${process.env.PATH}` }
   });
   expect(result.status, result.stderr).toBe(0);

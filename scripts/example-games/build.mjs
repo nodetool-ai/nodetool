@@ -1,17 +1,18 @@
 // Builds the shipped example games from their source projects.
 //
-// `node scripts/example-games/build.mjs` reads committed 3D source projects and
-// the canonical packaged 2D documents/media. NODETOOL_GAMES_DIR can explicitly
-// override the 2D source projects. It stages verified media for
+// `node scripts/example-games/build.mjs` reads committed source projects and
+// the canonical packaged Lumen and Neon Drift documents/media.
+// NODETOOL_GAMES_DIR can explicitly override those packaged sources. It stages verified media for
 // packages/base-nodes/nodetool/assets/nodetool-base/games/<slug>/, and writes
 // packages/base-nodes/nodetool/examples/games/<slug>.game.json with every asset
 // slot bound to its `package://` file. Installing a bundle copies those files
 // into the user's assets (packages/websocket/src/lib/example-games.ts).
-// The committed 3D samples provide editable sources. The packaged Kindle, Lumen
-// and Neon Drift documents, media and posters are their canonical source.
+// The committed samples (the 3D games and Kindle) provide editable sources. The
+// packaged Lumen and Neon Drift documents, media and posters are their
+// canonical source.
 // Use --slug=<slug> to rebuild one game.
 //
-// Add `--posters` to capture each poster again. Canonical 2D sources have no
+// Add `--posters` to capture each poster again. The packaged sources have no
 // committed input recordings, so their fresh capture requires an explicit
 // NODETOOL_GAMES_DIR project and recording. 2D uses Dawn, 3D uses Chromium.
 // A script that runs past its time
@@ -65,8 +66,9 @@ const GAMES = [
     description:
       "A jump-and-run through a drowned temple. Run, wall-jump and ride moving lifts to relight four braziers and gather the embers on the way.",
     controls: "Arrows to run · Space to jump · Jump off walls",
+    sourceDir: path.join(ROOT, "packages/game-runtime/samples/kindle"),
     posterTick: 420,
-    inputs: "inputs-route.json"
+    inputs: "completion.inputs.json"
   },
   {
     slug: "lumen",

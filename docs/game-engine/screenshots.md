@@ -17,7 +17,7 @@ The images below are unchanged copies of the repository's accepted native-game g
 
 | Image | Renderer | Resolution | What it illustrates |
 |---|---|---|---|
-| [Kindle](/assets/game-engine/kindle.png) | WebGPU 2D | 1280 × 720 | Sprite scene, layered art, title typography, tiled platform |
+| [Kindle](/assets/game-engine/kindle.png) | WebGPU 2D | 1280 × 720 | Title scene with layered art, animated water, light shafts, particles, and a HUD widget tree |
 | [Lumen](/assets/game-engine/lumen.png) | WebGPU 2D | 1280 × 720 | Forest layers and luminous art |
 | [Neon Drift](/assets/game-engine/neon-drift.png) | WebGPU 2D | 1280 × 720 | Shooter sprites and title composition |
 | [AETHER](/assets/game-engine/aether.png) | WebGL2 3D | 1280 × 720 | Model-based platform scene, camera framing, HUD |

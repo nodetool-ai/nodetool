@@ -8,8 +8,8 @@ rolls back paths already replaced. If rollback itself fails, the error identifie
 the retained recovery directory. Publication uses renames with rollback rather
 than a cross-directory filesystem transaction.
 
-Signal Forge, Aether and Blacksite use their committed projects under
-`packages/game-runtime/samples/`. Kindle, Lumen and Neon Drift use their packaged
+Signal Forge, Aether, Blacksite and Kindle use their committed projects under
+`packages/game-runtime/samples/`. Lumen and Neon Drift use their packaged
 documents under `packages/base-nodes/nodetool/examples/games/` and their
 content-verified media and posters under
 `packages/base-nodes/nodetool/assets/nodetool-base/games/`. These packaged 2D
@@ -23,9 +23,9 @@ files named by their bound asset IDs. Bound digests must match the files. Asset
 slots cannot contain path separators or use the reserved `poster.jpg` filename.
 
 Existing posters are preserved by default. `--posters` requests fresh capture.
-The committed 2D catalog has no input recordings, so fresh 2D capture requires an
-explicit project and its recording: `inputs-route.json` for Kindle, `inputs.json`
-for Lumen and Neon Drift. Missing recordings fail before any shipped paths
+The committed samples carry `completion.inputs.json`. Lumen and Neon Drift have
+no committed recording, so their fresh capture requires an explicit project and
+its `inputs.json`. Missing recordings fail before any shipped paths
 change. The builder never substitutes an old poster for a requested capture.
 
 Run the transactional publication controls with:
