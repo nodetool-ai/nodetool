@@ -87,6 +87,11 @@ s(
   "Path to the manimgx executable used by the nodetool.manimgx nodes. If not specified, the nodes look for manimgx on PATH and in ~/.local/bin."
 );
 s(
+  "MODEL_FOLDERS",
+  "Folders",
+  "Extra folders the llama.cpp local and stable-diffusion.cpp providers search for models, subfolders included, such as a ComfyUI models folder. Separate several folders with ; (semicolon). llama.cpp lists every GGUF language model. stable-diffusion.cpp lists single-file .safetensors checkpoints that include their VAE and text encoders, as in ComfyUI's checkpoints folder."
+);
+s(
   "VECTORSTORE_DB_PATH",
   "Folders",
   "Location of the sqlite-vec vector database file. Used to store and retrieve embeddings for semantic search and RAG applications."
