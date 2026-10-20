@@ -276,12 +276,6 @@ function prepareForFakeRun(
 const CANNOT_COMPLETE: Record<string, string> = {
   "Brand a UGC Product Video.json":
     "openai.audio.Transcribe calls the OpenAI API directly for word timings",
-  "Compose Directed Campaign Formats.json":
-    "reads the accepted creative contract an earlier campaign step writes",
-  "Render a Directed Campaign Hero.json":
-    "reads the campaign plan Propose Three Campaign Directions writes",
-  "Revise an Accepted Campaign Hero.json":
-    "reads the accepted hero contract an earlier campaign step writes",
   "Reopen a Directed Campaign.json":
     "reads a saved directed-campaign.json record",
   "Propose Three Campaign Directions.json":

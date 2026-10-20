@@ -857,10 +857,14 @@ describe("Directed Campaign Kit workflow contracts", () => {
   it("fails an oversized export without silently dropping artifacts", async () => {
     const fake = createFakeContext({ jobId: "oversized-record" });
     cleanups.push(fake.cleanup);
-    const largeHero = imageRef(new Uint8Array(800));
+    const largeHero = imageRef(TINY_PNG);
     const smallPng = imageRef(TINY_PNG, 1080, 1350);
     const storyPng = imageRef(TINY_PNG, 1080, 1920);
-    const rawSvg = { data: Buffer.from("<svg/>").toString("base64") };
+    const rawSvg = {
+      data: Buffer.from(
+        '<svg><g id="hero-slot" data-height="1000"></g></svg>'
+      ).toString("base64")
+    };
     try {
       const shippedCode = codeFor(FILES.layouts, "layout-finalize");
       expect(shippedCode).toContain("16 * 1024 * 1024");

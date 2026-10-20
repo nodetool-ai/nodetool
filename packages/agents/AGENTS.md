@@ -502,6 +502,14 @@ around every tool- and plan-approval round trip.
   fresh-engine options. Regressions are `tests/js-sandbox-engine.test.ts` and
   `tests/js-sandbox-worker-engine.test.ts`.
   See [the reproduction and upstream issue draft](docs/quickjs-descriptor-leak.md).
+- quickjs-emscripten-core reads C output pointers through a typed-array view
+  made before the call. A call that grows the WASM heap detaches that view,
+  so `executePendingJobs` read the job's context pointer as `undefined` and
+  built a second context nobody freed. Any guest that allocated a few
+  megabytes after its first `await` then aborted on free with
+  `list_empty(&rt->gc_obj_list)`. `src/js-sandbox-worker/engine.ts` rebuilds
+  the view over the current heap. Pinned by "frees the runtime after a job
+  grows the WASM heap" in `tests/js-sandbox-engine.test.ts`.
 - A worker that reports an interpreter failure is discarded. Guest exceptions
   are ordinary results and keep the worker reusable. The pool creates a
   replacement on the next acquisition, as tested in

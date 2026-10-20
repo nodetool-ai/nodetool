@@ -20,7 +20,7 @@
     "inputs": {},
     "models": {},
     "files": {
-      "/templates/samples/a-gradient-card-as-png.webp": "c2df92a562ce4beea7a0b7d32ea160aee61062dc876ed4fbfb3336be7e1dbff2"
+      "/templates/samples/a-gradient-card-as-png.webp": "3df462b356f878a59454f4b784de99c8ef3fd1ec80201e6241ef0f285227653d"
     }
   },
   "black-and-white-hard": {
@@ -73,7 +73,7 @@
     "inputs": {},
     "models": {},
     "files": {
-      "/templates/samples/circles-and-lines.webp": "6da38d4c83a1e6cbc38a07af820ff76125dc98a251f49a62d4e28a99a832a272"
+      "/templates/samples/circles-and-lines.webp": "6758dac4006ce81741dd9144c9eb4c999a0810114ce14ecb73988301bdb3824c"
     }
   },
   "boost-saturation": {
@@ -192,7 +192,7 @@
     "inputs": {},
     "models": {},
     "files": {
-      "/templates/samples/draw-a-badge-in-svg.webp": "e208a081e6196aba901ba3d7a91f308017793be88817e98f785bf256b3c70257"
+      "/templates/samples/draw-a-badge-in-svg.webp": "629ad37fd099009c95d2c426d26f619505b559c4cae6d7da294a974c4cc41c2d"
     }
   },
   "drop-the-first-few": {
@@ -2548,6 +2548,26 @@
     },
     "files": {
       "/templates/samples/vectorize-a-generated-logo.webp": "37ce7e56484d263c7d5c580d9795d6f359419d2242220ac816e45875bbd1512c"
+    }
+  },
+  "compose-directed-campaign-formats": {
+    "inputs": {
+      "in-hero": {
+        "type": "image",
+        "file": "coffee.jpg"
+      },
+      "in-contract": {
+        "type": "text",
+        "value": "{\"schemaVersion\": 1, \"kind\": \"hero\", \"brief\": {\"productName\": \"House Blend Coffee\", \"campaignMessage\": \"A small-batch house blend, roasted every week and shipped within two days of roasting.\", \"audience\": \"Home coffee drinkers who grind their own beans.\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\", \"referenceRole\": \"none\", \"referenceUse\": \"\", \"referenceIgnore\": \"\"}, \"selectedDirection\": {\"id\": \"B\", \"title\": \"First light at the counter\", \"setting\": \"A pale stone kitchen counter beside a tall window, with a burr grinder and a scattering of fresh beans just out of focus.\", \"composition\": \"The mug sits on the right third at eye level. Beans lead the eye from the lower left. The upper left stays open for the headline.\", \"lighting\": \"Low golden sunrise light from the left, with soft steam backlit above the cup and long, warm shadows.\", \"palette\": \"Cream ceramic, roasted brown, warm amber and a deep green shadow tone.\", \"preservationInstructions\": \"Keep the white espresso cup, its crema, the moka pot of ground coffee and the bean shapes exactly as in the product photo.\"}, \"copy\": {\"productName\": \"House Blend Coffee\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\"}, \"sourceOrder\": [\"product identity\"], \"render\": {\"aspectRatio\": \"16:9\", \"resolution\": \"1K\", \"prompt\": \"Sample contract shipped with the example. Run Render a Directed Campaign Hero to capture your own.\"}}"
+      },
+      "in-version": {
+        "type": "text",
+        "value": "original"
+      }
+    },
+    "models": {},
+    "files": {
+      "/templates/samples/compose-directed-campaign-formats.webp": "c92227fcb4568be44537c108ba9571f71c02c8e16e252898c18cd75dae2df9f9"
     }
   }
 }
