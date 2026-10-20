@@ -53,7 +53,10 @@ async function settle<T>(promise: Promise<T>): Promise<T> {
   }
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
 
 describe("ToapisProvider", () => {
   it("requires an API key", () => {
@@ -246,5 +249,120 @@ describe("ToapisProvider", () => {
       .rejects.toThrow("Unknown ToAPIs image model");
     await expect(provider().textToVideo({ model: { ...VIDEO_MODEL, id: "seedance-1" }, prompt: "x" }))
       .rejects.toThrow("Unknown ToAPIs video model");
+  });
+
+  it.each(["1:3", "7:4", "auto"])("preserves the VIP ratio %s", async (ratio) => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(done("vip_ratio"));
+    vi.stubGlobal("fetch", fetchMock);
+    await provider().textToImage({ model: IMAGE_MODEL, prompt: "x", aspectRatio: ratio, resolution: "2K" });
+    expect(jsonTo(fetchMock, `${API}/images/generations`).size).toBe(ratio);
+  });
+
+  it("maps VIP pixel dimensions to a supported custom ratio", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(done("vip_pixels"));
+    vi.stubGlobal("fetch", fetchMock);
+    await provider().textToImage({ model: IMAGE_MODEL, prompt: "x", width: 1344, height: 768 });
+    expect(jsonTo(fetchMock, `${API}/images/generations`).size).toBe("7:4");
+  });
+
+  it("preserves a VIP custom ratio when editing an uploaded image", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(uploaded(1)).mockResolvedValueOnce(done("vip_edit"));
+    vi.stubGlobal("fetch", fetchMock);
+    await provider().imageToImage([PNG], { model: IMAGE_MODEL, prompt: "x", aspectRatio: "1:3", resolution: "2K" });
+    expect(jsonTo(fetchMock, `${API}/images/generations`).size).toBe("1:3");
+  });
+
+  it.each(["0:1", "1:0", "4:1", "1:4", "not-a-ratio"])("rejects invalid VIP ratio %s before creating a task", async (ratio) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(provider().textToImage({ model: IMAGE_MODEL, prompt: "x", aspectRatio: ratio }))
+      .rejects.toThrow("aspect ratio");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-VIP custom ratio before uploading or creating a task", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(provider().imageToImage([PNG], {
+      model: { ...IMAGE_MODEL, id: "gpt-image-2" }, prompt: "x", aspectRatio: "1:3"
+    })).rejects.toThrow("aspect ratio");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("times out during the polling sleep without querying past the deadline", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValueOnce(reply({ id: "sleep_timeout", status: "queued" })).mockResolvedValueOnce(done("sleep_timeout"));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = provider().textToVideo({ model: VIDEO_MODEL, prompt: "x", timeoutSeconds: 1 })
+      .then(() => "completed", (error: unknown) => String(error));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(await result).toContain("timed out");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts an in-flight poll at the deadline and clears its timer", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    let pollSignal: AbortSignal | null | undefined;
+    let outcome = "pending";
+    const fetchMock = vi.fn().mockResolvedValueOnce(reply({ id: "http_timeout", status: "queued" }))
+      .mockImplementation((_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+        pollSignal = init.signal;
+        pollSignal?.addEventListener("abort", () => reject(pollSignal?.reason), { once: true });
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = provider().textToVideo({ model: VIDEO_MODEL, prompt: "x", timeoutSeconds: 15, signal: controller.signal })
+      .then(() => { outcome = "completed"; }, (error: unknown) => { outcome = String(error); });
+    try {
+      await vi.advanceTimersByTimeAsync(15000);
+      expect(outcome).toContain("timed out");
+      expect(pollSignal?.aborted).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      controller.abort();
+      await result;
+    }
+  });
+
+  it("bounds Retry-After waits by the polling deadline", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValueOnce(reply({ id: "retry_timeout", status: "queued" }))
+      .mockResolvedValue(new Response("{}", { status: 429, headers: { "Retry-After": "120" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    let outcome = "pending";
+    const result = provider().textToVideo({ model: VIDEO_MODEL, prompt: "x", timeoutSeconds: 15 })
+      .then(() => { outcome = "completed"; }, (error: unknown) => { outcome = String(error); });
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(outcome).toContain("timed out");
+    expect(vi.getTimerCount()).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.runAllTimersAsync();
+    await result;
+  });
+
+  it("keeps the caller abort reason and clears the deadline timer", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const reason = new Error("caller stopped waiting");
+    const fetchMock = vi.fn().mockResolvedValue(reply({ id: "caller_abort", status: "queued" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = provider().textToVideo({ model: VIDEO_MODEL, prompt: "x", timeoutSeconds: 15, signal: controller.signal })
+      .then(() => undefined, (error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort(reason);
+    expect(await result).toBe(reason);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the deadline timer after a successful poll", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(reply({ id: "poll_success", status: "queued" })).mockResolvedValueOnce(done("poll_success")));
+    const result = provider().textToVideo({ model: VIDEO_MODEL, prompt: "x", timeoutSeconds: 15 });
+    await vi.advanceTimersByTimeAsync(10000);
+    await result;
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
