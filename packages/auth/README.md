@@ -32,9 +32,11 @@ npm install @nodetool-ai/auth
 ```ts
 import { LocalAuthProvider, SupabaseAuthProvider } from "@nodetool-ai/auth";
 
-const provider = process.env.SUPABASE_JWT_SECRET
-  ? new SupabaseAuthProvider({ supabaseJwtSecret: process.env.SUPABASE_JWT_SECRET })
-  : new LocalAuthProvider();
+const { SUPABASE_URL, SUPABASE_KEY } = process.env;
+const provider =
+  SUPABASE_URL && SUPABASE_KEY
+    ? new SupabaseAuthProvider({ supabaseUrl: SUPABASE_URL, supabaseKey: SUPABASE_KEY })
+    : new LocalAuthProvider();
 
 const token = provider.extractTokenFromHeaders(request.headers);
 const result = await provider.verifyToken(token ?? "");
