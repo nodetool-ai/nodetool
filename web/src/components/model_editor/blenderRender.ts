@@ -60,6 +60,10 @@ export const DEFAULT_BLENDER_RENDER_SETTINGS: BlenderRenderSettings = {
   zoom: 1,
   lighting: "studio",
   lightIntensity: 1,
+  // The render's backdrop, drawn into the picture rather than the editor's
+  // chrome, so it is a document value (the RenderImage node's default) and
+  // not a palette token.
+  // eslint-disable-next-line design-tokens/color-tokens
   backgroundColor: "#808080",
   transparent: false,
   timeout: 600
