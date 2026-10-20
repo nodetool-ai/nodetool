@@ -1,4 +1,4 @@
-import { createDockLayoutModel, sameDockLayout, type DockLayout } from "../stores/dock/DockLayout";
+import { createDockLayoutModel, type DockLayout } from "../stores/dock/DockLayout";
 import { createDockLayoutStore, type DockLayoutScope, type DockLayoutStorage } from "../stores/dock/DockLayoutStore";
 
 export const SAMPLE_PRESETS = ["Default", "Scripting", "Animation", "Wide"] as const;
@@ -35,6 +35,5 @@ export const sampleLayoutSchema = sampleDockModel.schema;
 export const hydrateSampleLayout = sampleDockModel.hydrate;
 export const registerMissingSamplePanels = sampleDockModel.registerMissingPanels;
 export const transitionSampleLayout = sampleDockModel.transition;
-export const sameSampleLayout = sameDockLayout;
 export const createSampleDockStore = (scope: DockLayoutScope, storage: DockLayoutStorage) => createDockLayoutStore(sampleDockModel, scope, storage);
 export type SampleDockStorage = DockLayoutStorage;

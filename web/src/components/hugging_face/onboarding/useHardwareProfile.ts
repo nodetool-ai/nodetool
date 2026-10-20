@@ -51,13 +51,6 @@ const tierFor = (budgetGb: number | null): HardwareTier | null => {
   return "workstation";
 };
 
-export const TIER_LABELS = {
-  entry: "Entry — small models run great",
-  mid: "Mid-range — 7–14B models are comfortable",
-  high: "High-end — up to ~24B and image models",
-  workstation: "Workstation — the largest local models"
-} satisfies Record<HardwareTier, string>;
-
 /**
  * Read hardware from the live system stats and combine it with the manual
  * override into a single budget the onboarding UI recommends against.
