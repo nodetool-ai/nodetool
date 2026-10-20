@@ -7,9 +7,9 @@ description: "Prepare 2D art, layer backgrounds, animate sprites, and apply ligh
 
 Use image asset bindings for sprites, tilemaps, and background layers. Each binding connects a logical slot in the game to prepared image bytes. Replacing the slot can update the art without replacing gameplay entities.
 
-![Kindle title scene with layered temple art, a character sprite, and a tiled floor](/assets/game-engine/kindle.png)
+![Kindle title scene with layered temple art, a character sprite, a tiled floor, and animated water](/assets/game-engine/kindle.png)
 
-*Kindle's WebGPU capture combines sprites, scenery, text, and a tiled platform. [Capture source](/game-engine/screenshots).*
+*Kindle's WebGPU capture combines sprites, scenery, an animated water sheet, additive light shafts, particles, and HUD widgets. [Capture source](/game-engine/screenshots).*
 
 ## Place and animate art
 
