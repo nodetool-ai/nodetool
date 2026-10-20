@@ -19,7 +19,7 @@
         "id": "intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Revise an Accepted Campaign Hero\n\nMakes one bounded edit to an accepted campaign hero and records exactly what changed. Use it when a hero is approved but needs a single adjustment, such as a new time of day.\n\n**How it works:** \"Accepted hero\" passes through \"Normalize app image\", which turns an app value into an image reference. \"Capture revision request\" reads that image, the \"Accepted contract\", and the \"Change\", \"Preserve\" and \"Allow to respond\" texts, checks their length limits, and writes a prompt plus a child contract that keeps the parent. \"Make one revision\" edits the hero at strength 0.45 and 16:9, with a negative prompt against added text or a changed product. \"Finalize revision candidate\" waits for the image, then emits \"Revision candidate\", \"Revision contract\" and \"Review phase\". The edit step uses your default image model, or the one you pick on the node.\n\n**Try this:** Set \"Change\" to \"Add light rain on the stone surface\" and keep \"Preserve\" as it is. The candidate should change the weather and leave the cup and composition alone."
+          "comment": "# Revise an Accepted Campaign Hero\n\nMakes one bounded edit to an accepted campaign hero and records exactly what changed. Use it when a hero is approved but needs a single adjustment, such as a new time of day. It ships with the coffee photo and a sample contract, so Run works at once.\n\n**How it works:** \"Accepted hero\" passes through \"Normalize app image\", which turns an app value into an image reference. \"Capture revision request\" reads that image, the \"Accepted contract\", and the \"Change\", \"Preserve\" and \"Allow to respond\" texts, checks their length limits, and writes a prompt plus a child contract that keeps the parent. \"Make one revision\" edits the hero at strength 0.45 and 16:9, with a negative prompt against added text or a changed product. \"Finalize revision candidate\" waits for the image, then emits \"Revision candidate\", \"Revision contract\" and \"Review phase\". The edit step uses your default image model, or the one you pick on the node.\n\n**Try this:** Set \"Change\" to \"Dust the table with a little cocoa powder\" and keep \"Preserve\" as it is. The candidate should change the weather and leave the cup, the beans and the composition alone."
         },
         "ui_properties": {
           "position": {
@@ -39,7 +39,7 @@
           "name": "hero",
           "value": {
             "type": "image",
-            "uri": ""
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
           },
           "description": "Accepted campaign hero. This is the primary and only editing source."
         },
@@ -59,7 +59,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "contract",
-          "value": "",
+          "value": "{\"schemaVersion\": 1, \"kind\": \"hero\", \"brief\": {\"productName\": \"House Blend Coffee\", \"campaignMessage\": \"A small-batch house blend, roasted every week and shipped within two days of roasting.\", \"audience\": \"Home coffee drinkers who grind their own beans.\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\", \"referenceRole\": \"none\", \"referenceUse\": \"\", \"referenceIgnore\": \"\"}, \"selectedDirection\": {\"id\": \"B\", \"title\": \"First light at the counter\", \"setting\": \"A pale stone kitchen counter beside a tall window, with a burr grinder and a scattering of fresh beans just out of focus.\", \"composition\": \"The mug sits on the right third at eye level. Beans lead the eye from the lower left. The upper left stays open for the headline.\", \"lighting\": \"Low golden sunrise light from the left, with soft steam backlit above the cup and long, warm shadows.\", \"palette\": \"Cream ceramic, roasted brown, warm amber and a deep green shadow tone.\", \"preservationInstructions\": \"Keep the white espresso cup, its crema, the moka pot of ground coffee and the bean shapes exactly as in the product photo.\"}, \"copy\": {\"productName\": \"House Blend Coffee\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\"}, \"sourceOrder\": [\"product identity\"], \"render\": {\"aspectRatio\": \"16:9\", \"resolution\": \"1K\", \"prompt\": \"Sample contract shipped with the example. Run Render a Directed Campaign Hero to capture your own.\"}}",
           "description": "Accepted hero contract.",
           "line_mode": "multi_line"
         },
@@ -100,7 +100,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "preserve",
-          "value": "Keep the cup, camera position, composition, stone surface, headline, CTA, and spacing.",
+          "value": "Keep the cup, the moka pot, the beans, the camera position, the composition and the wooden table.",
           "description": "What must remain unchanged.",
           "line_mode": "multi_line",
           "max_length": 700
@@ -141,7 +141,7 @@
         "id": "normalize-hero",
         "type": "nodetool.code.Code",
         "data": {
-          "code": "let value = inputs.value;\nif (typeof value === \"string\") {\n  const trimmed = value.trim();\n  if (trimmed.startsWith(\"{\")) {\n    try { value = JSON.parse(trimmed); } catch { value = { type: \"image\", uri: trimmed }; }\n  } else {\n    value = { type: \"image\", uri: trimmed };\n  }\n}\nif (!value || value.type !== \"image\" || (typeof value.uri !== \"string\" && typeof value.data !== \"string\" && typeof value.asset_id !== \"string\")) throw new Error(\"The accepted hero is not a valid image reference.\");\nawait output(\"image\", value);"
+          "code": "let value = inputs.value;\nif (typeof value === \"string\") {\n  const trimmed = value.trim();\n  if (trimmed.startsWith(\"{\")) {\n    try { value = JSON.parse(trimmed); } catch { value = { type: \"image\", uri: trimmed }; }\n  } else {\n    value = { type: \"image\", uri: trimmed };\n  }\n}\nif (!value || value.type !== \"image\" || (typeof value.uri !== \"string\" && typeof value.data !== \"string\" && typeof value.asset_id !== \"string\")) throw new Error(\"The accepted hero is not a valid image reference.\");\n// Inline bytes would cross the node boundary as one large value, so store\n// them once and pass the small reference on.\nif (typeof value.data === \"string\" && value.data.length > 0) {\n  const bytes = await media.bytes(value);\n  const info = await media.info(value);\n  value = await media.toImage(bytes, { mimeType: info.mimeType || undefined });\n}\nawait output(\"image\", value);"
         },
         "ui_properties": {
           "position": {

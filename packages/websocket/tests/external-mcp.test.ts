@@ -12,6 +12,7 @@ import {
   STDIO_MCP_DISABLED_ERROR,
   closeExternalMcpPools,
   deleteExternalMcpServer,
+  isLocalMcpAllowedFor,
   isLocalMcpProfile,
   loadExternalMcpServers,
   probeExternalMcpServer,
@@ -23,7 +24,9 @@ const KEYS = [
   "NODETOOL_ENV",
   "SUPABASE_URL",
   "SUPABASE_KEY",
-  "NODETOOL_ALLOW_STDIO_MCP"
+  "NODETOOL_ALLOW_STDIO_MCP",
+  "ADMIN_USER_IDS",
+  "USERS_FILE"
 ] as const;
 const saved: Record<string, string | undefined> = {};
 
@@ -178,6 +181,30 @@ describe("external MCP persistence", () => {
 
     process.env.NODETOOL_ALLOW_STDIO_MCP = "1";
     expect(isLocalMcpProfile()).toBe(true);
+  });
+
+  // A Local-mode server with API users from `nodetool deploy users-add` is
+  // multi-user without Supabase. A `user`-role account must not get a shell.
+  it("refuses stdio servers to a non-admin user in Local mode", async () => {
+    process.env.USERS_FILE = "/nonexistent/nodetool-users.json";
+    expect(isLocalMcpProfile()).toBe(true);
+    expect(await isLocalMcpAllowedFor("1")).toBe(true);
+    expect(await isLocalMcpAllowedFor("bob")).toBe(false);
+
+    await expect(saveExternalMcpServer("bob", stdio)).rejects.toThrow(
+      STDIO_MCP_DISABLED_ERROR
+    );
+    const probe = await probeExternalMcpServer("bob", stdio);
+    expect(probe.error).toBe(STDIO_MCP_DISABLED_ERROR);
+    await expect(
+      saveExternalMcpServer("bob", {
+        ...http,
+        transport: { type: "http", url: "http://169.254.169.254/mcp", headers: {} }
+      })
+    ).rejects.toThrow(/unsafe URL/);
+
+    process.env.ADMIN_USER_IDS = "bob";
+    expect(await isLocalMcpAllowedFor("bob")).toBe(true);
   });
 
   it("refuses stdio servers under the cloud profile", async () => {

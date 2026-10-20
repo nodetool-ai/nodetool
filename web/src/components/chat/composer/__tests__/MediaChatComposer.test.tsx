@@ -285,6 +285,28 @@ describe("MediaChatComposer", () => {
     expect(promptBox().value).toBe("");
   });
 
+  it("shows Send disabled until there is a prompt, then sends on click", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    renderComposer(onSendMessage);
+
+    const send = screen.getByRole("button", { name: /^send$/i });
+    expect(send).toBeDisabled();
+
+    await user.type(promptBox(), "hello there");
+    expect(send).toBeEnabled();
+    await user.click(send);
+
+    expect(onSendMessage).toHaveBeenCalledTimes(1);
+    expect(promptBox()).toHaveValue("");
+  });
+
+  it("swaps Send for Stop while a reply streams", () => {
+    renderComposer(jest.fn(), { isStreaming: true, onStop: jest.fn() });
+
+    expect(screen.queryByRole("button", { name: /^send$/i })).toBeNull();
+  });
+
   it("keeps an unaccepted draft and prevents duplicate sends", async () => {
     const user = userEvent.setup();
     let accept: (accepted: boolean) => void = () => undefined;

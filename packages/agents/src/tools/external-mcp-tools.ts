@@ -536,11 +536,11 @@ function rememberResolved(
 /**
  * Variable names that carry the server's own credentials: provider API keys,
  * `SERVER_AUTH_TOKEN`, `SECRETS_MASTER_KEY`, Supabase and cloud keys, the
- * database URL. A stdio server is third-party code, and it gets only the
+ * database URLs. A stdio server is third-party code, and it gets only the
  * credentials its config declares.
  */
 const CREDENTIAL_ENV_NAME =
-  /KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|^SUPABASE_|^AWS_|^AZURE_|^GOOGLE_APPLICATION|^DATABASE_URL$/i;
+  /KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|^SUPABASE_|^AWS_|^AZURE_|^GOOGLE_APPLICATION|^DATABASE_URL$|^DIRECT_URL$/i;
 
 /**
  * The parent's env without its credentials. The SDK's default env is a short

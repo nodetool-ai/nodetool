@@ -440,13 +440,6 @@ export const classifyFit = (
   return "over";
 };
 
-export const FIT_LABELS = {
-  fits: "Fits your machine",
-  tight: "Tight fit",
-  over: "Needs more memory",
-  unknown: "Set your memory to check"
-} satisfies Record<FitLevel, string>;
-
 const FIT_ORDER = {
   fits: 0,
   tight: 1,

@@ -44,13 +44,6 @@ export const sceneClipStatus = (
     : "planned";
 };
 
-export const SCENE_CLIP_STATUS_LABELS: Record<SceneClipStatus, string> = {
-  planned: "not rendered",
-  rendering: "rendering",
-  rendered: "rendered",
-  broken: "needs fixing"
-};
-
 /** One shot's place in a scene clip, for its card. */
 export interface SceneClipPart {
   clipId: string;

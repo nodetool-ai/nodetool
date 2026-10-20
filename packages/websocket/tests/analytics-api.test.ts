@@ -66,6 +66,12 @@ async function build(env: Record<string, string>, extra: AnalyticsRouteOptions =
     }
   };
   app = Fastify({ logger: false });
+  // The same parser setup as server.ts: every body arrives as a raw Buffer
+  // unless the route parses JSON itself.
+  app.removeAllContentTypeParsers();
+  app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
+    done(null, body);
+  });
   await app.register(
     createAnalyticsRoute({
       env,
@@ -119,6 +125,19 @@ describe("POST /api/analytics/v1/events", () => {
     expect(stored).toEqual([]);
     expect(relayed).toHaveLength(1);
     expect(JSON.stringify(relayed)).not.toContain("203.0.113.7");
+  });
+
+  // A website can send `text/plain` cross-site without a preflight.
+  it("refuses a body that is not application/json", async () => {
+    await build({ NODETOOL_ANALYTICS_INGEST: "1" });
+    const res = await app.inject({
+      method: "POST",
+      url: URL_PATH,
+      headers: { "content-type": "text/plain" },
+      payload: JSON.stringify(batch())
+    });
+    expect(res.statusCode).toBeGreaterThanOrEqual(400);
+    expect(stored).toEqual([]);
   });
 
   it("accepts and discards when relaying is off", async () => {

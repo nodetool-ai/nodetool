@@ -94,13 +94,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/a-gradient-card-as-png",
     "title": "A Gradient Card as PNG — NodeTool AI Workflow Template",
-    "description": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
+    "description": "Draw a studio pass card as vector art, with an aurora of blurred gradients, film grain and a sparkline, then rasterise it to a 1600×960 PNG. Runs with no model or key.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "a-gradient-card-as-png",
     "name": "A Gradient Card as PNG",
-    "summary": "A certified starter that runs as-is with no asset, provider, or API key. Build vector art in a Code node, rasterise it, and inspect the generated 800×480 PNG.",
+    "summary": "Draw a studio pass card as vector art, with an aurora of blurred gradients, film grain and a sparkline, then rasterise it to a 1600×960 PNG. Runs with no model or key.",
     "tags": [
       "image",
       "example",
@@ -3678,13 +3678,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/circles-and-lines",
     "title": "Circles and Lines — NodeTool AI Workflow Template",
-    "description": "Three SVG elements — circle, ellipse and line — written as one Code node, so the array order is the paint order.",
+    "description": "An orbital poster drawn from circles, ellipses and lines in one Code node. The array order is the paint order, so the planets pass in front of the sun.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "circles-and-lines",
     "name": "Circles and Lines",
-    "summary": "Three SVG elements — circle, ellipse and line — written as one Code node, so the array order is the paint order.",
+    "summary": "An orbital poster drawn from circles, ellipses and lines in one Code node. The array order is the paint order, so the planets pass in front of the sun.",
     "tags": [
       "image",
       "example"
@@ -4382,13 +4382,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/compose-directed-campaign-formats",
     "title": "Compose Directed Campaign Formats — NodeTool AI Workflow Template",
-    "description": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
+    "description": "Lay one accepted hero out as finished 4:5 and 9:16 ads, as PNGs and editable SVGs, then export a portable campaign record. Ships with a sample hero and contract.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "compose-directed-campaign-formats",
     "name": "Compose Directed Campaign Formats",
-    "summary": "Compose one accepted hero into deterministic 1080×1350 and 1080×1920 PNG and self-contained SVG formats, then export a portable versioned campaign record.",
+    "summary": "Lay one accepted hero out as finished 4:5 and 9:16 ads, as PNGs and editable SVGs, then export a portable campaign record. Ships with a sample hero and contract.",
     "tags": [
       "campaign",
       "image",
@@ -4460,7 +4460,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 1115,
-          "width": 280
+          "width": 280,
+          "subtitle": "{\"schemaVersion\": 1, \"kind\": \"hero\", \"brief\": {\"productName\": \"House Blend Coffee\", \"campaignMessage\": \"A small-batch house blend, roasted…"
         },
         {
           "id": "in-version",
@@ -7116,13 +7117,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/draw-a-badge-in-svg",
     "title": "Draw a Badge in SVG — NodeTool AI Workflow Template",
-    "description": "Compose a badge from SVG elements rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+    "description": "Draw a gold release seal from SVG paths, circles and rotated letters instead of generating an image. Every shape stays editable, with no regeneration and no resampling.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "draw-a-badge-in-svg",
     "name": "Draw a Badge in SVG",
-    "summary": "Compose a badge from SVG elements rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+    "summary": "Draw a gold release seal from SVG paths, circles and rotated letters instead of generating an image. Every shape stays editable, with no regeneration and no resampling.",
     "tags": [
       "image",
       "example"
@@ -20763,7 +20764,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 578,
-          "width": 280
+          "width": 280,
+          "subtitle": "{\"schemaVersion\": 1, \"brief\": {\"schemaVersion\": 1, \"productName\": \"House Blend Coffee\", \"campaignMessage\": \"A small-batch house blend, roas…"
         },
         {
           "id": "in-choice",
@@ -20772,7 +20774,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 803,
           "width": 280,
-          "subtitle": "A"
+          "subtitle": "B"
         },
         {
           "id": "hero-prepare",
@@ -22376,7 +22378,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 759,
-          "width": 280
+          "width": 280,
+          "subtitle": "{\"schemaVersion\": 1, \"kind\": \"hero\", \"brief\": {\"productName\": \"House Blend Coffee\", \"campaignMessage\": \"A small-batch house blend, roasted…"
         },
         {
           "id": "in-change",
@@ -22394,7 +22397,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 1209,
           "width": 280,
-          "subtitle": "Keep the cup, camera position, composition, stone surface, headline, CTA, and spacing."
+          "subtitle": "Keep the cup, the moka pot, the beans, the camera position, the composition and the wooden table."
         },
         {
           "id": "in-allow",

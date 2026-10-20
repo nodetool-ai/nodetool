@@ -32,9 +32,13 @@ export interface CodeBlockProps
   onInsert?: (text: string, language?: string) => void;
 }
 
+// One bordered card: the header and the code share an edge and a radius.
 const cssStyles = css({
   minWidth: 0,
   maxWidth: "100%",
+  border: "1px solid var(--palette-grey-800)",
+  borderRadius: BORDER_RADIUS.md,
+  overflow: "hidden",
   ".code-block-header": {
     display: "flex",
     justifyContent: "space-between",
@@ -46,8 +50,7 @@ const cssStyles = css({
     paddingBottom: getSpacingPx(SPACING.sm),
     paddingLeft: getSpacingPx(SPACING.xl),
     paddingRight: getSpacingPx(SPACING.xl),
-    borderTopLeftRadius: BORDER_RADIUS.md,
-    borderTopRightRadius: BORDER_RADIUS.md
+    borderBottom: "1px solid var(--palette-grey-800)"
   },
   ".code-block-language": {
     fontFamily: "var(--fontFamily2)",
@@ -63,12 +66,7 @@ const contentStyles = (colors: CodeThemeColors) =>
     fontSize: FONT_SIZE_MONO.code,
     padding: getSpacingPx(SPACING.xl),
     margin: 0,
-    border: "1px solid var(--palette-grey-800)",
     boxSizing: "border-box",
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: BORDER_RADIUS.md,
-    borderBottomRightRadius: BORDER_RADIUS.md,
     backgroundColor: colors.background,
     color: colors.foreground,
     whiteSpace: "pre-wrap",
@@ -78,10 +76,13 @@ const contentStyles = (colors: CodeThemeColors) =>
     maxHeight: "40vh",
     lineHeight: 1.5,
     tabSize: 2,
-    "& code": {
+    // Prism's theme gives a `code[class*="language-"]` outside a <pre>
+    // `white-space: normal`, which folds every line of the block into one.
+    "& code, & code[class*=\"language-\"]": {
       fontFamily: "inherit",
       background: "none",
-      color: "inherit"
+      color: "inherit",
+      whiteSpace: "inherit"
     },
     ".token.comment, .token.prolog, .token.cdata": {
       color: colors.comment,
@@ -125,12 +126,7 @@ const lightContentStyles = contentStyles(oneLightColors);
 const svgPreviewStyles = css({
   padding: getSpacingPx(SPACING.xl),
   margin: 0,
-  border: "1px solid var(--palette-grey-800)",
   boxSizing: "border-box",
-  borderTopLeftRadius: 0,
-  borderTopRightRadius: 0,
-  borderBottomLeftRadius: BORDER_RADIUS.md,
-  borderBottomRightRadius: BORDER_RADIUS.md,
   backgroundColor: "var(--palette-background-paper)",
   overflow: "visible",
   "& svg": {

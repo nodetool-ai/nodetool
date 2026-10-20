@@ -27,8 +27,11 @@ const EXTENSION_ORIGIN = /^(chrome|moz)-extension:\/\/[a-z0-9-]+$/i;
  * local user without a token.
  *
  * - The desktop app's launch token always passes.
- * - No `Origin` passes: non-browser clients (CLI, MCP clients, scripts) and
- *   same-origin GETs do not send one.
+ * - No `Origin` passes, unless `Sec-Fetch-Site` says another site sent it.
+ *   Non-browser clients (CLI, MCP clients, scripts) and same-origin GETs send
+ *   no `Origin`, but neither do a cross-site `<img>`, `<script>` or top-level
+ *   navigation. A browser sets `Sec-Fetch-Site` on every request and no page
+ *   can change it.
  * - `Origin: null` fails: sandboxed iframes and opaque documents send it.
  * - A browser extension's origin passes, since a page cannot claim one.
  * - Same-origin passes. The `Host` check that runs alongside this one has
@@ -41,12 +44,14 @@ export function isLocalClientRequest(opts: {
   host: string | undefined;
   presentedToken: string | undefined;
   expectedToken: string | null;
+  /** The `Sec-Fetch-Site` header, when the caller is a browser. */
+  fetchSite?: string | undefined;
 }): boolean {
   if (matchesServerAuthToken(opts.presentedToken, opts.expectedToken)) {
     return true;
   }
   const origin = opts.origin?.trim();
-  if (!origin) return true;
+  if (!origin) return opts.fetchSite?.trim().toLowerCase() !== "cross-site";
   if (origin === "null") return false;
   if (EXTENSION_ORIGIN.test(origin)) return true;
   let originHost: string;

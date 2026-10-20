@@ -10,8 +10,8 @@
   "a-gradient-card-as-png": {
     "caption": "",
     "image": "/templates/samples/a-gradient-card-as-png.webp",
-    "imageWidth": 800,
-    "imageHeight": 480
+    "imageWidth": 1280,
+    "imageHeight": 768
   },
   "black-and-white-hard": {
     "caption": "",
@@ -60,8 +60,8 @@
   "circles-and-lines": {
     "caption": "",
     "image": "/templates/samples/circles-and-lines.webp",
-    "imageWidth": 300,
-    "imageHeight": 180
+    "imageWidth": 1024,
+    "imageHeight": 1280
   },
   "boost-saturation": {
     "caption": "",
@@ -150,8 +150,8 @@
   "draw-a-badge-in-svg": {
     "caption": "",
     "image": "/templates/samples/draw-a-badge-in-svg.webp",
-    "imageWidth": 300,
-    "imageHeight": 160
+    "imageWidth": 640,
+    "imageHeight": 640
   },
   "drop-the-first-few": {
     "caption": "",
@@ -1130,5 +1130,19 @@
     "image": "/templates/samples/vectorize-a-generated-logo.webp",
     "imageWidth": 1024,
     "imageHeight": 1024
+  },
+  "compose-directed-campaign-formats": {
+    "caption": "",
+    "inputText": "Accepted hero for House Blend Coffee. Headline: Roasted this week, brewed this morning. Call to action: Order a bag.",
+    "image": "/templates/samples/compose-directed-campaign-formats.webp",
+    "imageWidth": 1280,
+    "imageHeight": 933,
+    "inputImage": "/templates/samples/coffee.jpg",
+    "credit": {
+      "name": "Photo by Janko Ferlic",
+      "url": "https://commons.wikimedia.org/wiki/File:White_Ceramic_Mug_Filled_With_Coffee_Beside_Coffee_Beans_(43087322071).jpg",
+      "license": "CC0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
   }
 }

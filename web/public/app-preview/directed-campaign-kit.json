@@ -2966,7 +2966,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "plan",
-              "value": "",
+              "value": "{\"schemaVersion\": 1, \"brief\": {\"schemaVersion\": 1, \"productName\": \"House Blend Coffee\", \"campaignMessage\": \"A small-batch house blend, roasted every week and shipped within two days of roasting.\", \"audience\": \"Home coffee drinkers who grind their own beans.\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\", \"productImage\": {\"type\": \"image\", \"uri\": \"package://nodetool-base/recipe-inputs/coffee.jpg\"}, \"referenceImage\": null, \"referenceRole\": \"none\", \"referenceUse\": \"\", \"referenceIgnore\": \"\"}, \"directions\": [{\"id\": \"A\", \"title\": \"Roastery morning\", \"setting\": \"A working roastery with burlap sacks and a cooling tray of beans in the background.\", \"composition\": \"The mug sits centre-left in the foreground, the roaster soft behind it, with open space on the right for copy.\", \"lighting\": \"Cool daylight from high factory windows with a warm rim light on the mug.\", \"palette\": \"Steel grey, burlap tan, roasted brown and cream.\", \"preservationInstructions\": \"Keep the white espresso cup, its crema, the moka pot of ground coffee and the bean shapes exactly as in the product photo.\"}, {\"id\": \"B\", \"title\": \"First light at the counter\", \"setting\": \"A pale stone kitchen counter beside a tall window, with a burr grinder and a scattering of fresh beans just out of focus.\", \"composition\": \"The mug sits on the right third at eye level. Beans lead the eye from the lower left. The upper left stays open for the headline.\", \"lighting\": \"Low golden sunrise light from the left, with soft steam backlit above the cup and long, warm shadows.\", \"palette\": \"Cream ceramic, roasted brown, warm amber and a deep green shadow tone.\", \"preservationInstructions\": \"Keep the white espresso cup, its crema, the moka pot of ground coffee and the bean shapes exactly as in the product photo.\"}, {\"id\": \"C\", \"title\": \"Weekend table\", \"setting\": \"A worn oak breakfast table with a folded newspaper, a small plate of pastry and scattered beans.\", \"composition\": \"Top-down at a slight angle, the mug at the lower right, the table edge running diagonally, open space at the top.\", \"lighting\": \"Soft overcast window light with gentle shadows.\", \"palette\": \"Oak brown, cream, muted sage and charcoal.\", \"preservationInstructions\": \"Keep the white espresso cup, its crema, the moka pot of ground coffee and the bean shapes exactly as in the product photo.\"}]}",
               "description": "Validated serialized plan from Propose Three Campaign Directions.",
               "line_mode": "multi_line"
             },
@@ -2986,7 +2986,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "choice",
-              "value": "A",
+              "value": "B",
               "description": "Direction ID A, B, or C."
             },
             "ui_properties": {
@@ -3067,7 +3067,7 @@
               "name": "hero",
               "value": {
                 "type": "image",
-                "uri": ""
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
               },
               "description": "Accepted original or accepted revision hero."
             },
@@ -3087,7 +3087,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "contract",
-              "value": "",
+              "value": "{\"schemaVersion\": 1, \"kind\": \"hero\", \"brief\": {\"productName\": \"House Blend Coffee\", \"campaignMessage\": \"A small-batch house blend, roasted every week and shipped within two days of roasting.\", \"audience\": \"Home coffee drinkers who grind their own beans.\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\", \"referenceRole\": \"none\", \"referenceUse\": \"\", \"referenceIgnore\": \"\"}, \"selectedDirection\": {\"id\": \"B\", \"title\": \"First light at the counter\", \"setting\": \"A pale stone kitchen counter beside a tall window, with a burr grinder and a scattering of fresh beans just out of focus.\", \"composition\": \"The mug sits on the right third at eye level. Beans lead the eye from the lower left. The upper left stays open for the headline.\", \"lighting\": \"Low golden sunrise light from the left, with soft steam backlit above the cup and long, warm shadows.\", \"palette\": \"Cream ceramic, roasted brown, warm amber and a deep green shadow tone.\", \"preservationInstructions\": \"Keep the white espresso cup, its crema, the moka pot of ground coffee and the bean shapes exactly as in the product photo.\"}, \"copy\": {\"productName\": \"House Blend Coffee\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\"}, \"sourceOrder\": [\"product identity\"], \"render\": {\"aspectRatio\": \"16:9\", \"resolution\": \"1K\", \"prompt\": \"Sample contract shipped with the example. Run Render a Directed Campaign Hero to capture your own.\"}}",
               "description": "Creative contract for this accepted hero.",
               "line_mode": "multi_line"
             },
@@ -3312,7 +3312,7 @@
               "name": "hero",
               "value": {
                 "type": "image",
-                "uri": ""
+                "uri": "package://nodetool-base/recipe-inputs/coffee.jpg"
               },
               "description": "Accepted campaign hero. This is the primary and only editing source."
             },
@@ -3332,7 +3332,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "contract",
-              "value": "",
+              "value": "{\"schemaVersion\": 1, \"kind\": \"hero\", \"brief\": {\"productName\": \"House Blend Coffee\", \"campaignMessage\": \"A small-batch house blend, roasted every week and shipped within two days of roasting.\", \"audience\": \"Home coffee drinkers who grind their own beans.\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\", \"referenceRole\": \"none\", \"referenceUse\": \"\", \"referenceIgnore\": \"\"}, \"selectedDirection\": {\"id\": \"B\", \"title\": \"First light at the counter\", \"setting\": \"A pale stone kitchen counter beside a tall window, with a burr grinder and a scattering of fresh beans just out of focus.\", \"composition\": \"The mug sits on the right third at eye level. Beans lead the eye from the lower left. The upper left stays open for the headline.\", \"lighting\": \"Low golden sunrise light from the left, with soft steam backlit above the cup and long, warm shadows.\", \"palette\": \"Cream ceramic, roasted brown, warm amber and a deep green shadow tone.\", \"preservationInstructions\": \"Keep the white espresso cup, its crema, the moka pot of ground coffee and the bean shapes exactly as in the product photo.\"}, \"copy\": {\"productName\": \"House Blend Coffee\", \"headline\": \"Roasted this week, brewed this morning\", \"cta\": \"Order a bag\"}, \"sourceOrder\": [\"product identity\"], \"render\": {\"aspectRatio\": \"16:9\", \"resolution\": \"1K\", \"prompt\": \"Sample contract shipped with the example. Run Render a Directed Campaign Hero to capture your own.\"}}",
               "description": "Accepted hero contract.",
               "line_mode": "multi_line"
             },
@@ -3373,7 +3373,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "preserve",
-              "value": "Keep the cup, camera position, composition, stone surface, headline, CTA, and spacing.",
+              "value": "Keep the cup, the moka pot, the beans, the camera position, the composition and the wooden table.",
               "description": "What must remain unchanged.",
               "line_mode": "multi_line",
               "max_length": 700

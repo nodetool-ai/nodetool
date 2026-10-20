@@ -9,6 +9,7 @@ export async function loadSandboxEngine(
   const newContext = engine.module.newContext.bind(engine.module);
   engine.module.newContext = (...args) => {
     const context = newContext(...args);
+    refreshPointerViews(context.runtime);
     const getProp = context.getProp.bind(context);
     const symbolDescriptions = new Scope();
     const dispose = context.dispose.bind(context);
@@ -45,4 +46,49 @@ export async function loadSandboxEngine(
     return context;
   };
   return engine;
+}
+
+const REFRESHED = Symbol("nodetool.refreshedPointerViews");
+
+interface PointerArrayMemory {
+  module: { HEAPU8: Uint8Array };
+  newTypedArray: (
+    kind: Int32ArrayConstructor,
+    length: number
+  ) => { value: { typedArray: Int32Array; ptr: number } };
+  [REFRESHED]?: true;
+}
+
+/**
+ * quickjs-emscripten-core@0.31 reads output pointers through a typed-array
+ * view made before the C call. When the call grows the WASM heap, the view's
+ * buffer is detached and reads `undefined`. `executePendingJobs` then takes
+ * `undefined` for the job's context pointer and builds a brand-new context,
+ * which nothing frees, so the runtime aborts on free with
+ * `list_empty(&rt->gc_obj_list)`. Any guest that allocated a few megabytes
+ * after its first `await` hit it. The view is rebuilt over the current heap
+ * whenever the old one went stale.
+ */
+function refreshPointerViews(runtime: unknown): void {
+  const memory = (runtime as { memory?: PointerArrayMemory }).memory;
+  if (!memory) return;
+  const proto = Object.getPrototypeOf(memory) as PointerArrayMemory;
+  if (proto[REFRESHED]) return;
+  const newTypedArray = proto.newTypedArray;
+  proto.newTypedArray = function (kind, length) {
+    const lifetime = newTypedArray.call(this, kind, length);
+    const holder = lifetime.value;
+    const heap = this.module;
+    let view = holder.typedArray;
+    Object.defineProperty(holder, "typedArray", {
+      get: () => {
+        if (view.buffer !== heap.HEAPU8.buffer) {
+          view = new kind(heap.HEAPU8.buffer, holder.ptr, length);
+        }
+        return view;
+      }
+    });
+    return lifetime;
+  };
+  proto[REFRESHED] = true;
 }

@@ -72,8 +72,8 @@ describe("certified starter workflows", () => {
           expect.objectContaining({
             type: "image",
             mimeType: "image/png",
-            width: 800,
-            height: 480
+            width: 1600,
+            height: 960
           })
         );
         expect(output.data).toEqual(expect.stringMatching(/^iVBORw0KGgo/));

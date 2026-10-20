@@ -7,7 +7,7 @@
  */
 
 import { createHash } from "crypto";
-import { writeFileSync } from "fs";
+import { chmodSync, writeFileSync } from "fs";
 import yaml from "js-yaml";
 import type { ContainerConfig, DockerDeployment } from "./deployment-config.js";
 import { imageConfigFullName } from "./deployment-config.js";
@@ -198,6 +198,8 @@ export function generateComposeFile(
   if (outputPath) {
     // The file carries container.environment, SECRETS_MASTER_KEY included.
     writeFileSync(outputPath, content, { encoding: "utf-8", mode: 0o600 });
+    // `mode` applies only when the file is created; an older file keeps its own.
+    chmodSync(outputPath, 0o600);
   }
 
   return content;

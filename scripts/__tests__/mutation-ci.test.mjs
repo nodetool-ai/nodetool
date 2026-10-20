@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 import { belongsToShard } from "../../packages/mutator/dist/shards.js";
-import { aggregate, createPlan, executePartition, createPartitions, TARGETS } from "../mutation-ci.mjs";
+import { aggregate, createPlan, executePartition, createPartitions, mutantWorkers, TARGETS } from "../mutation-ci.mjs";
 
 const helper = new URL("../mutation-ci.mjs", import.meta.url).pathname;
 let resultDirectory;
@@ -347,7 +347,7 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
     ".metrics/mutation-ci/results"
   ]);
   for (const job of Object.values(jobs)) {
-    expect(job["timeout-minutes"]).toBe(job === jobs["mutate-changed"] ? 90 : 45);
+    expect(job["timeout-minutes"]).toBe(job === jobs["mutate-changed"] ? 180 : 45);
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout@"));
     expect(checkout.with["fetch-depth"]).toBe(0);
     expect(checkout.with.filter).toBe("blob:none");
@@ -414,4 +414,11 @@ it("downloads one partition into its canonical result directory without flatteni
   });
   expect(steps.indexOf(single)).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
   expect(steps.indexOf(multiple)).toBeLessThan(steps.findIndex((step) => step.name === "Verify the exact union and report survivors"));
+});
+
+it("runs as many agents mutants at once as the runner's memory holds", () => {
+  const gib = 1024 ** 3;
+  expect(mutantWorkers("packages/agents/src/js-sandbox-worker/interpreter.ts", 16 * gib)).toBe(2);
+  expect(mutantWorkers("packages/agents/src/tools/x.ts", 4 * gib)).toBe(1);
+  expect(mutantWorkers("packages/kernel/src/graph.ts", 16 * gib)).toBeNull();
 });

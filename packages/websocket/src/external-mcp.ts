@@ -35,13 +35,15 @@ import {
   secretReferencesIn,
   type McpServerConfig
 } from "@nodetool-ai/protocol";
+import { isAdmin } from "./lib/admin.js";
 
 const log = createLogger("nodetool.websocket.external-mcp");
 
 /** The `Setting` key the server list lives under. */
 export const EXTERNAL_MCP_SETTING_KEY = "EXTERNAL_MCP_SERVERS";
 
-const pools = new Map<string, McpClientPool>();
+/** Each user's pool, and whether it was made without the SSRF guard. */
+const pools = new Map<string, { pool: McpClientPool; local: boolean }>();
 
 /** Per-user write serialization: save and delete are read-modify-write. */
 const writeQueues = new Map<string, Promise<unknown>>();
@@ -74,6 +76,23 @@ export function isLocalMcpProfile(): boolean {
     return process.env["NODETOOL_ALLOW_STDIO_MCP"]?.trim() === "1";
   }
   return true;
+}
+
+/**
+ * Whether this user may spawn stdio servers and reach private hosts.
+ *
+ * A Local-mode server is single-user only until someone runs
+ * `nodetool deploy users-add`: each API user then has their own id and a
+ * bearer token, and a `user`-role account must not get a shell on the host.
+ * So in Local mode the deployment-level answer above applies to admins only
+ * (user "1", `ADMIN_USER_IDS`, or an API user with the admin role). Under
+ * Supabase auth the operator's `NODETOOL_ALLOW_STDIO_MCP=1` already says
+ * every account is trusted with a shell.
+ */
+export async function isLocalMcpAllowedFor(userId: string): Promise<boolean> {
+  if (!isLocalMcpProfile()) return false;
+  if (isAuthEnforced()) return true;
+  return isAdmin(userId);
 }
 
 export const STDIO_MCP_DISABLED_ERROR =
@@ -109,41 +128,49 @@ const PROBE_CONNECT_TIMEOUT_MS = 15_000;
 
 function newPool(
   userId: string,
+  local: boolean,
   extra: McpClientPoolOptions = {}
 ): McpClientPool {
   const options: McpClientPoolOptions = {
     ...extra,
     getSecret: userSecretResolver(userId)
   };
-  // The cloud profile fetches through the SSRF guard, which re-checks every
-  // redirect hop. A local install may reach its own loopback servers.
-  if (!isLocalMcpProfile()) options.fetch = guardedFetch;
+  // The cloud profile and non-admin users fetch through the SSRF guard, which
+  // re-checks every redirect hop. A local admin may reach loopback servers.
+  if (!local) options.fetch = guardedFetch;
   return new McpClientPool(options);
 }
 
-function poolFor(userId: string): McpClientPool {
-  let pool = pools.get(userId);
-  if (pool === undefined) {
-    pool = newPool(userId);
-    pools.set(userId, pool);
-  }
+async function poolFor(userId: string): Promise<McpClientPool> {
+  const local = await isLocalMcpAllowedFor(userId);
+  const existing = pools.get(userId);
+  if (existing !== undefined && existing.local === local) return existing.pool;
+  // The user's role changed since the pool was made, and its fetch guard was
+  // fixed then. Start over with the guard the role now calls for.
+  // No await between the lookup and the set, so two turns never both build one.
+  if (existing !== undefined) void existing.pool.close().catch(() => undefined);
+  const pool = newPool(userId, local);
+  pools.set(userId, { pool, local });
   return pool;
 }
 
-/** Refuse what this deployment cannot connect to. */
-function assertConnectable(config: McpServerConfig): void {
-  if (isLocalMcpProfile()) return;
+/** Refuse what this user cannot connect to on this deployment. */
+function assertConnectable(config: McpServerConfig, local: boolean): void {
+  if (local) return;
   if (config.transport.type === "stdio") {
     throw new Error(STDIO_MCP_DISABLED_ERROR);
   }
   assertSafePublicHttpsUrl(config.transport.url);
 }
 
-/** The servers this deployment can actually connect to. */
-function connectable(servers: McpServerConfig[]): McpServerConfig[] {
+/** The servers this user can actually connect to. */
+function connectable(
+  servers: McpServerConfig[],
+  local: boolean
+): McpServerConfig[] {
   return servers.filter((s) => {
     try {
-      assertConnectable(s);
+      assertConnectable(s, local);
       return true;
     } catch {
       return false;
@@ -182,7 +209,8 @@ async function writeServers(
     value: JSON.stringify(servers),
     description: "External MCP servers whose tools join the agent toolbelt"
   });
-  await poolFor(userId).sync(connectable(servers));
+  const local = await isLocalMcpAllowedFor(userId);
+  await (await poolFor(userId)).sync(connectable(servers, local));
 }
 
 /**
@@ -262,7 +290,8 @@ export async function saveExternalMcpServer(
   userId: string,
   config: McpServerConfig
 ): Promise<McpServerConfig[]> {
-  assertConnectable(config);
+  const local = await isLocalMcpAllowedFor(userId);
+  assertConnectable(config, local);
   return serializedFor(userId, async () => {
     const current = await loadExternalMcpServers(userId);
     const previous = current.find((s) => s.id === config.id);
@@ -272,8 +301,11 @@ export async function saveExternalMcpServer(
     // A rotated literal keeps the same reference, so the fingerprint alone
     // would keep the old connection. Drop this server first; the sync
     // below reopens it with the values now stored.
-    await poolFor(userId).sync(
-      connectable(current.filter((s) => s.id !== config.id))
+    await (await poolFor(userId)).sync(
+      connectable(
+        current.filter((s) => s.id !== config.id),
+        local
+      )
     );
     await writeServers(userId, next);
     return next;
@@ -316,8 +348,9 @@ export async function probeExternalMcpServer(
   userId: string,
   config: McpServerConfig
 ): Promise<ExternalMcpServerProbe> {
+  const local = await isLocalMcpAllowedFor(userId);
   try {
-    assertConnectable(config);
+    assertConnectable(config, local);
   } catch (err) {
     return {
       id: config.id,
@@ -326,7 +359,7 @@ export async function probeExternalMcpServer(
       error: err instanceof Error ? err.message : String(err)
     };
   }
-  const pool = newPool(userId, {
+  const pool = newPool(userId, local, {
     connectTimeoutMs: PROBE_CONNECT_TIMEOUT_MS
   });
   try {
@@ -349,8 +382,9 @@ export async function probeExternalMcpServer(
  */
 export async function externalMcpToolsFor(userId: string): Promise<Tool[]> {
   const servers = await loadExternalMcpServers(userId);
-  const pool = poolFor(userId);
-  await pool.sync(connectable(servers));
+  const local = await isLocalMcpAllowedFor(userId);
+  const pool = await poolFor(userId);
+  await pool.sync(connectable(servers, local));
   if (pool.serverIds().length === 0) return [];
   return getExternalMcpTools(pool, (serverId, error) => {
     log.warn("External MCP server skipped for this turn", {
@@ -365,5 +399,5 @@ export async function externalMcpToolsFor(userId: string): Promise<Tool[]> {
 export async function closeExternalMcpPools(): Promise<void> {
   const all = [...pools.values()];
   pools.clear();
-  await Promise.all(all.map((p) => p.close()));
+  await Promise.all(all.map((p) => p.pool.close()));
 }
