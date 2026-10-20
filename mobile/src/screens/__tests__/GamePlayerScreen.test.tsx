@@ -26,8 +26,8 @@ const mockInject = jest.fn();
 jest.mock('react-native-webview', () => {
   const { forwardRef, useImperativeHandle } = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  const WebView = forwardRef((props: WebViewProps, ref) => {
-    mockWebViewProps = props;
+  const WebView = forwardRef<unknown, Record<string, unknown>>((props, ref) => {
+    mockWebViewProps = props as WebViewProps;
     useImperativeHandle(ref, () => ({ injectJavaScript: mockInject }));
     return <View testID="game-player-webview" />;
   });
