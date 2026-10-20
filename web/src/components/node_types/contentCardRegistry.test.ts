@@ -117,7 +117,10 @@ describe("getDynamicInputLabel", () => {
     expect(getDynamicInputLabel(meta("nodetool.agents.Agent"))).toBe(
       "variable"
     );
-    expect(getDynamicInputLabel(meta("nodetool.text.Concat"))).toBe("variable");
+    // Concat joins its inputs and substitutes nothing, so it says "text input".
+    expect(getDynamicInputLabel(meta("nodetool.text.Concat", "str"))).toBe(
+      "text input"
+    );
   });
 
   it("derives label from primary-output variant", () => {

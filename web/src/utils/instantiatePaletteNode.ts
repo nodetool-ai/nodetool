@@ -26,6 +26,14 @@ const typeMetadata = (type: string): TypeMetadata => ({
   optional: false
 });
 
+/**
+ * Dynamic-input nodes that do nothing until they have inputs. They start with
+ * these, so the node shows sockets to connect and fields to type into.
+ */
+const STARTER_DYNAMIC_INPUTS: Record<string, string[]> = {
+  "nodetool.text.Concat": ["input_1", "input_2"]
+};
+
 type PaletteCreateNodeFn = (
   metadata: NodeMetadata,
   position: XYPosition,
@@ -163,6 +171,18 @@ export function instantiatePaletteNode(
 
       return { node, afterAdd: hasFollowUp ? afterAdd : undefined };
     }
+  }
+
+  const starterInputs = STARTER_DYNAMIC_INPUTS[metadata.node_type];
+  if (starterInputs) {
+    return {
+      node: createNode(metadata, position),
+      afterAdd: {
+        dynamic_properties: Object.fromEntries(
+          starterInputs.map((name) => [name, ""])
+        )
+      }
+    };
   }
 
   return { node: createNode(metadata, position) };

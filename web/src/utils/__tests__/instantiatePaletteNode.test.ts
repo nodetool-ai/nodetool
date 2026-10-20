@@ -105,6 +105,18 @@ describe("instantiatePaletteNode", () => {
     expect(result.afterAdd).toBeUndefined();
   });
 
+  it("gives a new Concat two inputs to connect or type into", () => {
+    const metadata = makeMetadata("nodetool.text.Concat");
+    const createNode = makeCreateNode();
+
+    const result = instantiatePaletteNode(metadata, { x: 0, y: 0 }, createNode);
+
+    expect(createNode).toHaveBeenCalledWith(metadata, { x: 0, y: 0 });
+    expect(result.afterAdd).toEqual({
+      dynamic_properties: { input_1: "", input_2: "" }
+    });
+  });
+
   it("creates a code node for snippets with inferred IO", () => {
     const snippet = {
       id: "test-snippet",

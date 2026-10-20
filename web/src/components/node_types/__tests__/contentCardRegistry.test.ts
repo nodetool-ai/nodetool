@@ -237,6 +237,14 @@ describe("getDynamicInputLabel", () => {
     expect(getDynamicInputLabel(metadata)).toBe("image input");
   });
 
+  it("returns text input for Concat, which joins its inputs without substitution", () => {
+    const metadata = mockMetadata({
+      node_type: "nodetool.text.Concat",
+      outputs: [mockOutputSlot("str")]
+    });
+    expect(getDynamicInputLabel(metadata)).toBe("text input");
+  });
+
   it("returns input for generic/unknown", () => {
     const metadata = mockMetadata({
       node_type: "some.Node",

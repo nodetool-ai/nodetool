@@ -80,6 +80,17 @@ describe("NodeMenuStore", () => {
       expect(state.clickPosition).toEqual({ x: 100, y: 200 });
     });
 
+    it("places nodes at dropPosition rather than at the menu's anchor", () => {
+      useNodeMenuStore.getState().openNodeMenu({
+        x: 100,
+        y: 200,
+        dropPosition: { x: 600, y: 380 }
+      });
+
+      const state = useNodeMenuStore.getState();
+      expect(state.clickPosition).toEqual({ x: 600, y: 380 });
+    });
+
     it("closes menu and resets state", () => {
       useNodeMenuStore.setState({
         isMenuOpen: true,
