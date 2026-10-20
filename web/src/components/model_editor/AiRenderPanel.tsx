@@ -5,6 +5,9 @@
  * image-edit model with the creator's brief and optional style references,
  * and lists the renders. Each render is an ordinary image asset, so it can be
  * reused as the style reference of the next one to keep a look consistent.
+ *
+ * The shot section controls what the capture shows: the frame's aspect
+ * ratio, the lens, quick camera views, and saved shots to return to.
  */
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +16,7 @@ import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import ImageIcon from "@mui/icons-material/Image";
 import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
+import BookmarkAddOutlinedIcon from "@mui/icons-material/BookmarkAddOutlined";
 
 import type { Asset, ImageModel } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -39,6 +43,8 @@ import {
   ToolbarIconButton,
   Tooltip,
   UploadButton,
+  Chip,
+  SelectField,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
@@ -47,7 +53,17 @@ import { useMediaOptions } from "../../hooks/useModelsByProvider";
 import { useSceneAiRender } from "../../hooks/model3d/useSceneAiRender";
 import { deserializeDragData, DRAG_DATA_MIME } from "../../lib/dragdrop/serialization";
 import { deriveImageSizePreset } from "../../stores/MediaGenerationStore";
-import { CAPTURE_PASSES, type CapturePass } from "./aiRender";
+import {
+  CAPTURE_PASSES,
+  SHOT_ASPECTS,
+  SHOT_LENSES,
+  type CapturePass,
+  type ShotAspect,
+  type ShotLens,
+  type ShotPose,
+  type ShotSettings
+} from "./aiRender";
+import type { ViewPreset } from "./ViewportHelpers";
 
 /** A viewport capture and the pixel size it was drawn at. */
 export interface ViewportCapture {
@@ -56,10 +72,34 @@ export interface ViewportCapture {
   height: number;
 }
 
-interface AiRenderPanelProps {
-  /** Render the viewport without editor helpers. Throws when it is not ready. */
-  capture: (pass: CapturePass) => ViewportCapture;
+/** The editor camera, as the shot controls move it. */
+export interface ShotCamera {
+  view: (view: ViewPreset) => void;
+  frameAll: () => void;
+  /** The current pose, or null before the viewport is ready. */
+  current: () => ShotPose | null;
+  restore: (pose: ShotPose) => void;
 }
+
+interface AiRenderPanelProps {
+  /** Render the shot frame without editor helpers. Throws when it is not ready. */
+  capture: (pass: CapturePass) => ViewportCapture;
+  shot: ShotSettings;
+  onShotChange: (shot: ShotSettings) => void;
+  camera: ShotCamera;
+}
+
+interface SavedShot {
+  id: string;
+  name: string;
+  pose: ShotPose;
+  settings: ShotSettings;
+}
+
+/** Saved shots are a short list to jump between, not a library. */
+const MAX_SAVED_SHOTS = 8;
+
+const QUICK_VIEWS: ViewPreset[] = ["front", "right", "top"];
 
 interface StyleReference {
   assetId: string;
@@ -114,7 +154,7 @@ const writeSettings = (settings: StoredSettings): void => {
 const isImageAsset = (asset: Pick<Asset, "content_type">): boolean =>
   asset.content_type.startsWith("image/");
 
-const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
+const AiRenderPanel = ({ capture, shot, onShotChange, camera }: AiRenderPanelProps) => {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { render } = useSceneAiRender();
@@ -140,6 +180,41 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
     resolutions?: string[];
   } | null>(null);
   const modelAnchorRef = useRef<HTMLButtonElement>(null);
+  const [savedShots, setSavedShots] = useState<SavedShot[]>([]);
+  const shotCount = useRef(0);
+
+  const saveShot = useCallback(() => {
+    const pose = camera.current();
+    if (!pose) {
+      setNotice(t("i18n-cont-model-editor-11.modelEditor.errors.captureNotReady"));
+      return;
+    }
+    shotCount.current += 1;
+    const saved: SavedShot = {
+      id: crypto.randomUUID(),
+      name: t("i18n-cont-model-editor-11.aiRender.shot.savedName", { index: shotCount.current }),
+      pose,
+      settings: shot
+    };
+    setSavedShots((prev) => [...prev, saved].slice(-MAX_SAVED_SHOTS));
+  }, [camera, shot, t]);
+
+  const restoreShot = useCallback(
+    (saved: SavedShot) => {
+      onShotChange(saved.settings);
+      camera.restore(saved.pose);
+    },
+    [camera, onShotChange]
+  );
+
+  const aspectOptions = useMemo(
+    () =>
+      SHOT_ASPECTS.map((aspect) => ({
+        value: aspect,
+        label: aspect === "viewport" ? t("i18n-cont-model-editor-11.aiRender.shot.aspectViewport") : aspect
+      })),
+    [t]
+  );
 
   // A remembered model carries only ids, so its size constraints come from
   // the server until the creator picks a model through the dialog.
@@ -387,6 +462,72 @@ const AiRenderPanel = ({ capture }: AiRenderPanelProps) => {
               task={["image_to_image", "image_edit"]}
             />
           )}
+        </FlexColumn>
+
+        <FlexColumn gap={SPACING.sm}>
+          <Label size="small">{t("i18n-cont-model-editor-11.aiRender.shot.title")}</Label>
+          <SelectField
+            label={t("i18n-cont-model-editor-11.aiRender.shot.frame")}
+            value={shot.aspect}
+            options={aspectOptions}
+            onChange={(value) => onShotChange({ ...shot, aspect: value as ShotAspect })}
+            size="small"
+          />
+          <FlexColumn gap={SPACING.xs}>
+            <Caption>{t("i18n-cont-model-editor-11.aiRender.shot.lens")}</Caption>
+            <ToggleGroup
+              size="small"
+              exclusive
+              fullWidth
+              value={shot.lens}
+              onChange={(_e, value) => value !== null && onShotChange({ ...shot, lens: value as ShotLens })}
+            >
+              {SHOT_LENSES.map((lens) => (
+                <ToggleOption
+                  key={lens}
+                  value={lens}
+                  size="small"
+                  aria-label={
+                    lens === "free"
+                      ? t("i18n-cont-model-editor-11.aiRender.shot.lensFreeHint")
+                      : t("i18n-cont-model-editor-11.aiRender.shot.lensMm", { mm: lens })
+                  }
+                >
+                  {lens === "free" ? t("i18n-cont-model-editor-11.aiRender.shot.lensFree") : lens}
+                </ToggleOption>
+              ))}
+            </ToggleGroup>
+          </FlexColumn>
+          <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap" }}>
+            {QUICK_VIEWS.map((view) => (
+              <EditorButton key={view} variant="outlined" density="compact" onClick={() => camera.view(view)}>
+                {t(`i18n-cont-model-editor-11.aiRender.shot.views.${view}`)}
+              </EditorButton>
+            ))}
+            <EditorButton variant="outlined" density="compact" onClick={camera.frameAll}>
+              {t("i18n-cont-model-editor-11.aiRender.shot.frameAll")}
+            </EditorButton>
+          </FlexRow>
+          <FlexRow gap={SPACING.xs} align="center" sx={{ flexWrap: "wrap" }}>
+            <EditorButton
+              variant="text"
+              density="compact"
+              startIcon={<BookmarkAddOutlinedIcon />}
+              onClick={saveShot}
+            >
+              {t("i18n-cont-model-editor-11.aiRender.shot.save")}
+            </EditorButton>
+            {savedShots.map((saved) => (
+              <Chip
+                key={saved.id}
+                compact
+                label={saved.name}
+                onClick={() => restoreShot(saved)}
+                onDelete={() => setSavedShots((prev) => prev.filter((s) => s.id !== saved.id))}
+                aria-label={t("i18n-cont-model-editor-11.aiRender.shot.restore", { name: saved.name })}
+              />
+            ))}
+          </FlexRow>
         </FlexColumn>
 
         <FlexColumn gap={SPACING.xs}>
