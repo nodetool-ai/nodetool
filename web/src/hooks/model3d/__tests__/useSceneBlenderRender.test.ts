@@ -31,6 +31,15 @@ const request: SceneBlenderRenderRequest = {
   name: "room"
 };
 
+// jsdom's File has no arrayBuffer(), so read it the old way.
+const bytesOf = (file: File): Promise<Uint8Array> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(file);
+  });
+
 beforeEach(() => {
   runMock.mockReset();
   createAsset.mockClear();
@@ -61,7 +70,7 @@ describe("useSceneBlenderRender", () => {
     });
     const png = createAsset.mock.calls[1][0];
     expect(png.name).toBe("room-blender.png");
-    expect(new Uint8Array(await png.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
+    expect(await bytesOf(png)).toEqual(new Uint8Array([1, 2, 3]));
     expect(deleteAsset).toHaveBeenCalledWith("scene-1");
   });
 
