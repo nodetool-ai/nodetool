@@ -765,17 +765,19 @@ if (!_cloudProfile) {
     {},
     {
       NODE_LLAMA_CPP_MODELS_DIR: "",
-      NODE_LLAMA_CPP_GPU_BACKEND: ""
+      NODE_LLAMA_CPP_GPU_BACKEND: "",
+      MODEL_FOLDERS: ""
     },
     { access: "in_process", displayName: "llama.cpp local" }
   );
   // stable-diffusion.cpp: starts the `sd-cpp` runtime package's sd-server on
   // demand. No secret; SD_CPP_SERVER_PATH points at another sd-server.
+  // MODEL_FOLDERS adds checkpoints from folders such as ComfyUI's models.
   registerBuiltinProvider(
     PROVIDER_IDS.STABLE_DIFFUSION_CPP,
     StableDiffusionCppProvider,
     {},
-    { SD_CPP_SERVER_PATH: "" },
+    { SD_CPP_SERVER_PATH: "", MODEL_FOLDERS: "" },
     { access: "local_service", displayName: "stable-diffusion.cpp" }
   );
   // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
