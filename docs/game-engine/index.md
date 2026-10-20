@@ -32,6 +32,7 @@ A game has one dimension. It cannot mix 2D and 3D scenes or change dimension aft
 | Retained construction, overrides, rebuilds | Supported | Supported | [Construction](/game-engine/construction) |
 | Saves, snapshots, deterministic replay | Supported | Supported | [Saves and replay](/game-engine/saves-replay) |
 | Standalone web and desktop export | Supported | Supported | [Publishing](/game-engine/publishing) |
+| Mobile app player | Supported, not yet validated on devices | Needs WebGL2 in the web view, not yet validated on devices | [Play on a phone](/game-engine/mobile-player) |
 
 ## Rendering boundaries
 

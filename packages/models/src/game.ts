@@ -233,6 +233,15 @@ export class Game extends DBModel {
     return rows.map((row) => new Game(row));
   }
 
+  /** Every game the user owns, across projects. Callers still check each game's project. */
+  static async listByUser(userId: string): Promise<Game[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(games)
+      .where(eq(games.user_id, userId));
+    return rows.map((row) => new Game(row));
+  }
+
   static async readDraft(
     userId: string,
     id: string,

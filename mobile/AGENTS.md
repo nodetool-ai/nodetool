@@ -17,7 +17,14 @@ chat, follow jobs, capture assets, and view results.
 
 - **Kept surfaces**: Login, Settings, Apps (the home screen after login), App,
   Chat, Threads, LanguageModelSelection, Jobs, JobDetail, Assets, AssetViewer,
-  Documents, StoryboardEditor, TimelineViewer, and SketchViewer.
+  Documents, StoryboardEditor, TimelineViewer, SketchViewer, Games, and
+  GamePlayer.
+- **Games**: play only. `GamePlayer` runs the exported web player in
+  `react-native-webview` from a signed play URL (`games.playSession`) and owns
+  only loading, errors, orientation and pause. Keep the page's contract in
+  `components/game/gamePlayerBridge.ts`: no user token in the web view, no
+  navigation outside the session directory, and no message kinds beyond the
+  five it parses. See [Play on a phone](../docs/game-engine/mobile-player.md).
 - **Documents**: the list shows storyboards, timelines, and sketches. Other
   kinds open in the desktop or web app, and `useOpenResource` says so instead
   of pushing a screen.

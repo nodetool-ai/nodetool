@@ -15,6 +15,8 @@ import TimelineViewerScreenBase from './src/screens/TimelineViewerScreen';
 import SketchViewerScreenBase from './src/screens/SketchViewerScreen';
 import JobDetailScreenBase from './src/screens/JobDetailScreen';
 import ThreadsScreenBase from './src/screens/ThreadsScreen';
+import GamesScreenBase from './src/screens/GamesScreen';
+import GamePlayerScreenBase from './src/screens/GamePlayerScreen';
 import { ErrorBoundary, withScreenBoundary } from './src/components/ErrorBoundary';
 import { OfflineBanner } from './src/components/OfflineBanner';
 import { apiService } from './src/services/api';
@@ -45,6 +47,8 @@ const SketchViewerScreen = withScreenBoundary(SketchViewerScreenBase, 'SketchVie
 const JobDetailScreen = withScreenBoundary(JobDetailScreenBase, 'JobDetail');
 const ThreadsScreen = withScreenBoundary(ThreadsScreenBase, 'Threads');
 const AssetFolderScreen = withScreenBoundary(AssetsScreenBase, 'AssetFolder');
+const GamesScreen = withScreenBoundary(GamesScreenBase, 'Games');
+const GamePlayerScreen = withScreenBoundary(GamePlayerScreenBase, 'GamePlayer');
 
 
 export default function App() {
@@ -122,6 +126,8 @@ export default function App() {
                 backgroundColor: colors.background,
               },
               animation: reduceMotion ? 'none' : 'slide_from_right',
+              // The app allows every orientation so the game player can turn sideways; every other screen stays upright.
+              orientation: 'portrait',
             }}
           >
             {isLoggedIn ? (
@@ -175,6 +181,22 @@ export default function App() {
                   name="JobDetail"
                   component={JobDetailScreen}
                   options={{ title: 'Job' }}
+                />
+                <Stack.Screen
+                  name="Games"
+                  component={GamesScreen}
+                  options={{ title: 'Games' }}
+                />
+                <Stack.Screen
+                  name="GamePlayer"
+                  component={GamePlayerScreen}
+                  options={{
+                    headerShown: false,
+                    orientation: 'default',
+                    gestureEnabled: false,
+                    animation: reduceMotion ? 'none' : 'fade',
+                    contentStyle: { backgroundColor: '#000000' },
+                  }}
                 />
                 <Stack.Screen
                   name="Threads"

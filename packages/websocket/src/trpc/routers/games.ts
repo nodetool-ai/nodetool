@@ -23,6 +23,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { boundedGameDraftHistory, MAX_GAME_DRAFT_OPS } from "./gameDraftHistory.js";
+import { createGamePlayToken } from "../../lib/game-play-token.js";
 
 const log = createLogger("nodetool.games");
 
@@ -56,6 +57,17 @@ export interface GameDocumentOpSchema extends z.ZodType<z.output<typeof anyGameD
 const gameDocument: GameDocumentSchema = anyGameDocument;
 const gameDocumentOp: GameDocumentOpSchema = anyGameDocumentOp;
 const gameWithDocument = z.object({ game: gameInfo, document: gameDocument });
+const gamePlaySession = z.object({
+  gameId: z.string(),
+  name: z.string(),
+  revision: z.string(),
+  dimension: z.enum(["2d", "3d"]),
+  /** The orientation the game is drawn for, when the document fixes one. A 2D game's camera decides it at runtime. */
+  orientation: z.enum(["landscape", "portrait"]).nullable(),
+  /** Server-relative entry URL. Every file the player fetches resolves under it. */
+  path: z.string(),
+  expiresAt: z.string()
+});
 const authoringPreview = z.object({
   candidate: gameAuthoringCandidate,
   document: gameDocument,
@@ -509,6 +521,52 @@ export const gamesRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Project not found");
       }
       return (await Game.listByProject(ctx.userId, input.projectId)).map(info);
+    }),
+
+  /** Every game the caller owns, newest first, for a client with no project picker (the mobile player). */
+  listAll: gameProcedure
+    .output(z.array(gameInfo))
+    .query(async ({ ctx }) => {
+      const owned = new Map<string, boolean>();
+      const games: Game[] = [];
+      for (const game of await Game.listByUser(ctx.userId)) {
+        let projectOwned = owned.get(game.project_id);
+        if (projectOwned === undefined) {
+          projectOwned = (await Project.findOwned(ctx.userId, game.project_id)) !== null;
+          owned.set(game.project_id, projectOwned);
+        }
+        if (projectOwned) { games.push(game); }
+      }
+      return games.sort((a, b) => b.updated_at.localeCompare(a.updated_at)).map(info);
+    }),
+
+  /**
+   * A short-lived URL for the web build of a published revision. The build is the one `export-zip` ships, and the URL
+   * carries a signed play token instead of the caller's credentials, so a WebView can load it with nothing else.
+   */
+  playSession: gameProcedure
+    .input(idInput.extend({ revision: z.string().regex(/^[a-f0-9]{32}$/).optional() }).strict())
+    .output(gamePlaySession)
+    .mutation(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      const revision = input.revision ?? game.current_revision;
+      const document = await readRevision(await gameWorkspace(ctx.userId, game), game, revision);
+      const { buildOwnedNativeGame } = await import("@nodetool-ai/agents/game-build");
+      const built = await buildOwnedNativeGame({ userId: ctx.userId, gameId: game.id, revision, target: "web", storage: getAssetAdapter() });
+      if ("error" in built) {
+        throwApiError(built.error === "Game not found" || built.error === "Game revision not found" ? ApiErrorCode.NOT_FOUND : ApiErrorCode.INVALID_INPUT, built.error);
+      }
+      const { token, expiresAt } = createGamePlayToken({ userId: ctx.userId, gameId: game.id, buildPath: built.build_path });
+      const aspectRatio = document.schemaVersion === 3 ? document.presentation.aspectRatio : null;
+      return {
+        gameId: game.id,
+        name: game.name,
+        revision,
+        dimension: document.schemaVersion === 3 ? "3d" as const : "2d" as const,
+        orientation: aspectRatio === null ? null : aspectRatio >= 1 ? "landscape" as const : "portrait" as const,
+        path: `/api/game-play/${token}/index.html`,
+        expiresAt: new Date(expiresAt).toISOString()
+      };
     }),
 
   create: gameProcedure

@@ -59,6 +59,8 @@ const ROUTES = [
   { name: 'jobs', path: 'jobs' },
   { name: 'job-detail', path: (v) => `job/${v}`, needs: 'jobId' },
   { name: 'job-detail-failed', path: (v) => `job/${v}`, needs: 'failedJobId' },
+  // The game player is a native web view, which Expo web does not render, so only the list is captured.
+  { name: 'games', path: 'games' },
   { name: 'settings', path: 'settings' },
   { name: 'model-selection', path: 'settings/models' },
   { name: 'storyboard-editor', path: (v) => `document/storyboard/${v}`, needs: 'storyboardId' },

@@ -63,6 +63,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       SketchViewer: 'document/sketch/:id',
       AssetViewer: 'asset/:assetId',
       JobDetail: 'job/:jobId',
+      Games: 'games',
+      GamePlayer: 'game/:gameId',
       Settings: 'settings',
       LanguageModelSelection: 'settings/models',
     },

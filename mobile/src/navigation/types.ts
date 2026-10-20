@@ -55,6 +55,17 @@ export type RootStackParamList = {
     id: string;
     name?: string;
   };
+  /** Every game the user owns, to play. Reached from the Apps header. */
+  Games: undefined;
+  /**
+   * One game's published revision, played in a web view. `revision` pins an
+   * older one; without it the current revision plays.
+   */
+  GamePlayer: {
+    gameId: string;
+    revision?: string;
+    name?: string;
+  };
   /** One job: status, timing, cost, error, and its outputs. */
   JobDetail: { jobId: string };
   Threads: undefined;

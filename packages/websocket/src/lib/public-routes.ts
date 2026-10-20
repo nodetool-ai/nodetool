@@ -134,6 +134,22 @@ export function isPublicSharedWorkflowRequest(
  * signature. Only POSTs to the exact callback shape are exempt; neighbouring
  * provider routes and arbitrary path suffixes remain behind session auth.
  */
+/**
+ * One file of a published game build. The signed play token in the path is the
+ * credential (`lib/game-play-token.ts`), and the route re-checks that its user
+ * still owns the game, so it needs no session.
+ */
+export function isPublicGamePlayRequest(
+  pathname: string,
+  method: string
+): boolean {
+  const prefix = "/api/game-play/";
+  if ((method !== "GET" && method !== "HEAD") || !pathname.startsWith(prefix)) return false;
+  const rest = pathname.slice(prefix.length);
+  const slash = rest.indexOf("/");
+  return slash > 0;
+}
+
 export function isPublicFalWebhookRequest(
   pathname: string,
   method: string
@@ -193,6 +209,7 @@ export function isPublicAuthExemptRoute(
     isPublicWorkflowMetadataRequest(pathname, method) ||
     isPublicAppDeploymentRequest(pathname, method) ||
     isPublicSharedWorkflowRequest(pathname, method) ||
+    isPublicGamePlayRequest(pathname, method) ||
     isPublicFalWebhookRequest(pathname, method) ||
     isPublicAtlasCloudWebhookRequest(pathname, method) ||
     isPublicMcpOauthAsRequest(pathname)
