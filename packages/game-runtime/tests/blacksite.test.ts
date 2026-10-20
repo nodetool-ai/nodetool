@@ -28,8 +28,28 @@ describe("BLACKSITE mission", () => {
       const drones = snapshot.entities.filter((entity) => /^drone-\d$/.test(entity.id));
       expect(drones).toHaveLength(5);
       expect(drones.every((entity) => !entity.active)).toBe(true);
-      expect(snapshot.hud.find((label) => label.id === "win")?.text).toBe("SECTOR CLEAR");
-      expect(snapshot.hud.find((label) => label.id === "ammo")?.text).toBe("08 / 18");
+      expect(snapshot.ui?.["banner-title"]?.text).toBe("SECTOR CLEAR");
+      expect(snapshot.ui?.["ammo-value"]?.text).toBe("08");
+    } finally {
+      session.dispose();
+    }
+  }, 30_000);
+
+  it("telegraphs each drone shot with a charge at the firing drone", async () => {
+    const session = await createGameSession3D(await blacksite(), 1);
+    const advance = gameInputFrame3D.parse({ pressed: [], axes: { moveZ: -1 } });
+    const cues: Record<string, number[]> = { charge: [], zap: [], hurt: [] };
+    try {
+      for (let tick = 0; tick < 240; tick++) {
+        const result = session.step(tick >= 1 && tick <= 30 ? advance : idle);
+        for (const event of result.events) {
+          if (event.kind === "trigger" && event.event in cues) { cues[event.event].push(result.tick); }
+        }
+      }
+      expect(cues.zap.length).toBeGreaterThan(0);
+      expect(cues.zap.map((tick) => tick - 39)).toEqual(cues.charge.slice(0, cues.zap.length));
+      expect(cues.hurt.length).toBeGreaterThan(0);
+      expect(session.snapshot().ui?.["hp-value"]?.text).toBe(String(100 - 10 * cues.hurt.length));
     } finally {
       session.dispose();
     }
@@ -48,11 +68,11 @@ describe("BLACKSITE mission", () => {
       session.step(idle);
       for (let tick = 0; tick < 28; tick++) { session.step(fire); }
       expect(session.inspect().entities.find((entity) => entity.id === "drone-0")?.active).toBe(true);
-      expect(session.snapshot().hud.find((label) => label.id === "ammo")?.text).toBe("14 / 18");
+      expect(session.snapshot().ui?.["ammo-value"]?.text).toBe("14");
       session.step(gameInputFrame3D.parse({ pressed: [], justPressed: ["r"] }));
-      expect(session.snapshot().hud.find((label) => label.id === "weapon")?.text).toBe("RELOADING");
+      expect(session.snapshot().ui?.weapon?.text).toBe("RELOADING");
       for (let tick = 0; tick < 73; tick++) { session.step(idle); }
-      expect(session.snapshot().hud.find((label) => label.id === "ammo")?.text).toBe("18 / 18");
+      expect(session.snapshot().ui?.["ammo-value"]?.text).toBe("18");
     } finally {
       session.dispose();
     }
