@@ -6,6 +6,7 @@ import { Boxes, Download } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import ReadMoreLinks from "@/components/ReadMoreLinks";
 import TrackedLink from "@/components/TrackedLink";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import { templateEntries, type TemplateEntry } from "@/data/templates";
@@ -64,6 +65,13 @@ function groupByCategory(entries: TemplateEntry[]) {
       ),
   }));
 }
+
+const READ_MORE = [
+  { label: "Recipes: templates chained into a project", href: "/recipes" },
+  { label: "Node-based workflows", href: "/node-based-workflows" },
+  { label: "Templates Gallery guide", href: "https://docs.nodetool.ai/templates-gallery" },
+  { label: "Your first workflow", href: "https://docs.nodetool.ai/first-workflow" },
+];
 
 export default function TemplatesHub() {
   const groups = groupByCategory(templateEntries);
@@ -201,6 +209,8 @@ export default function TemplatesHub() {
             </div>
           </section>
         ))}
+      <ReadMoreLinks id="templates-links" links={READ_MORE} className="mx-auto max-w-7xl px-6 pb-24 lg:px-8" />
+
       </div>
 
       <SiteFooter />

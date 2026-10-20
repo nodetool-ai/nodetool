@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import ReadMoreLinks from "@/components/ReadMoreLinks";
 import {
   modelEntries,
   modalityLabel,
@@ -33,6 +34,15 @@ export const metadata: Metadata = {
 };
 
 const VIDEO_MODALITIES: Modality[] = ["text-to-video", "image-to-video"];
+
+const READ_MORE = [
+  { label: "Providers and their API keys", href: "/providers" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Node-based workflows", href: "/node-based-workflows" },
+  { label: "Models & Providers guide", href: "https://docs.nodetool.ai/models-and-providers" },
+  { label: "Local and cloud models", href: "https://docs.nodetool.ai/models" },
+  { label: "Costs & Credits guide", href: "https://docs.nodetool.ai/costs-and-credits" },
+];
 
 export default function ModelsHubPage() {
   const video = modelEntries.filter((m) =>
@@ -114,6 +124,8 @@ export default function ModelsHubPage() {
             ))}
           </div>
         </section>
+
+        <ReadMoreLinks id="models-links" links={READ_MORE} className="mx-auto mt-16 max-w-5xl px-6" />
 
         <div className="h-24" />
       </div>

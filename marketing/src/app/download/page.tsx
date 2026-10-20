@@ -4,6 +4,7 @@ import { ArrowRight, HardDrive, KeyRound, ShieldCheck } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import ReadMoreLinks from "@/components/ReadMoreLinks";
 import DownloadPanel from "@/components/DownloadPanel";
 import DownloadStarter from "@/components/DownloadStarter";
 import { breadcrumbSchema } from "@/lib/jsonld";
@@ -66,6 +67,13 @@ const install = [
       "Run it directly, or install the Flatpak from the same release.",
     ],
   },
+];
+
+const READ_MORE = [
+  { label: "Installation guide", href: "https://docs.nodetool.ai/installation" },
+  { label: "Quick start", href: "https://docs.nodetool.ai/getting-started" },
+  { label: "Desktop app guide", href: "https://docs.nodetool.ai/desktop-app" },
+  { label: "Troubleshooting", href: "https://docs.nodetool.ai/troubleshooting" },
 ];
 
 export default function DownloadPage() {
@@ -185,6 +193,8 @@ export default function DownloadPage() {
             </div>
           </div>
         </section>
+      <ReadMoreLinks id="download-links" links={READ_MORE} className="mx-auto max-w-5xl px-6 pb-24" />
+
       </div>
 
       <SiteFooter />

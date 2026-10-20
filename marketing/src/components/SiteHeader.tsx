@@ -2,7 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { track } from "../lib/analytics";
 import { useGithubStars, formatStars } from "../lib/useGithubStars";
 import { EDITIONS } from "../data/editions";
@@ -14,20 +14,157 @@ import AnnouncementBar from "./AnnouncementBar";
  * pathname, so cross-linking between personas is consistent everywhere.
  */
 
-type NavItem = { name: string; href: string; external?: boolean };
+type NavLink = { name: string; href: string; external?: boolean };
+type NavGroup = { name: string; links: NavLink[] };
+type NavEntry = NavLink | NavGroup;
 
-const NAV: NavItem[] = [
-  { name: "Studio", href: "/studio" },
-  { name: EDITIONS.cloud.navLabel, href: "/cloud" },
-  { name: "Nodes", href: "/node-based-workflows" },
-  { name: "Agents", href: "/agents" },
-  { name: "Developers", href: "/developers" },
-  { name: "Marketing", href: "/marketing" },
-  { name: "Game dev", href: "/gamedev" },
+const DOCS_URL = "https://docs.nodetool.ai";
+
+/**
+ * Landing pages belong in a group here, not only in the footer: a page that is
+ * linked from every route's header gets found by readers and crawlers alike.
+ */
+const NAV: NavEntry[] = [
+  {
+    name: "Product",
+    links: [
+      { name: "Studio", href: "/studio" },
+      { name: EDITIONS.cloud.navLabel, href: "/cloud" },
+      { name: "Agents", href: "/agents" },
+      { name: "Node-based workflows", href: "/node-based-workflows" },
+      { name: "AI video editor", href: "/ai-video-editor" },
+      { name: "AI image editor", href: "/ai-image-editor" },
+      { name: "Storyboards", href: "/storyboards" },
+      { name: "MCP server", href: "/mcp" },
+      { name: "Supported models", href: "/models" },
+      { name: "Download", href: "/download" },
+    ],
+  },
+  {
+    name: "Solutions",
+    links: [
+      { name: "Developers", href: "/developers" },
+      { name: "Marketing", href: "/marketing" },
+      { name: "Game development", href: "/gamedev" },
+      { name: "Local-first", href: "/solutions/local-first" },
+      { name: "Researchers", href: "/solutions/researchers" },
+      { name: "All solutions", href: "/solutions" },
+    ],
+  },
+  {
+    name: "Resources",
+    links: [
+      { name: "Templates", href: "/templates" },
+      { name: "Recipes", href: "/recipes" },
+      { name: "Ad library", href: "/ad-library" },
+      { name: "Compare alternatives", href: "/alternatives" },
+      { name: "FAQ", href: "/faq" },
+    ],
+  },
   { name: "Pricing", href: "/pricing" },
   { name: "Blog", href: "/blog" },
-  { name: "Docs", href: "https://docs.nodetool.ai", external: true },
+  { name: "Docs", href: DOCS_URL, external: true },
 ];
+
+const isGroup = (entry: NavEntry): entry is NavGroup => "links" in entry;
+
+/** A section is current on its own page and on every page under it. */
+const isCurrentSection = (pathname: string | null, link: NavLink): boolean =>
+  !link.external &&
+  pathname !== null &&
+  (pathname === link.href || pathname.startsWith(`${link.href}/`));
+
+const externalProps = (link: NavLink) =>
+  link.external ? { target: "_blank", rel: "noopener noreferrer" } : {};
+
+const trackDocs = (link: NavLink) =>
+  link.href === DOCS_URL ? () => track("Open Docs") : undefined;
+
+/**
+ * Desktop disclosure menu. Hover opens it for a mouse, Enter or Space toggles
+ * it for a keyboard, and Escape, moving focus out, or leaving with the pointer
+ * closes it.
+ */
+function NavDropdown({
+  group,
+  pathname,
+}: {
+  group: NavGroup;
+  pathname: string | null;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const panelId = React.useId();
+  const current = group.links.some((link) => isCurrentSection(pathname, link));
+
+  return (
+    <li
+      className="relative list-none"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          setOpen(false);
+          buttonRef.current?.focus();
+        }
+      }}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        // A pointer click after hover would otherwise close the menu it opened.
+        onClick={(event) =>
+          setOpen((wasOpen) => (event.detail === 0 ? !wasOpen : true))
+        }
+        className={`inline-flex items-center gap-1 whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-full lift focus-ring ${
+          current
+            ? "bg-blue-600/25 text-blue-200 border border-blue-500/40"
+            : "text-slate-300 hover:text-blue-200 hover:bg-slate-800/60"
+        }`}
+      >
+        {group.name}
+        <ChevronDownIcon
+          className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+      <div
+        id={panelId}
+        className={`absolute left-1/2 top-full -translate-x-1/2 pt-2 ${open ? "block" : "hidden"}`}
+      >
+        <ul className="min-w-[15rem] rounded-2xl border border-slate-800 bg-slate-950/95 p-2 shadow-xl shadow-black/40 backdrop-blur">
+          {group.links.map((link) => {
+            const here = pathname === link.href;
+            return (
+              <li key={link.href} className="list-none">
+                <a
+                  href={link.href}
+                  {...externalProps(link)}
+                  onClick={() => setOpen(false)}
+                  className={`block whitespace-nowrap rounded-xl px-3 py-2 text-sm focus-ring ${
+                    here
+                      ? "bg-blue-600/20 text-blue-200"
+                      : "text-slate-300 hover:bg-slate-800/70 hover:text-white"
+                  }`}
+                  aria-current={here ? "page" : undefined}
+                >
+                  {link.name}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </li>
+  );
+}
 
 const GITHUB_URL = "https://github.com/nodetool-ai/nodetool";
 
@@ -116,12 +253,35 @@ var wide=window.matchMedia("(min-width: 1280px)");
 window.__ntNavMenu={open:open,close:close};
 })();`;
 
+function MobileNavLink({
+  link,
+  pathname,
+}: {
+  link: NavLink;
+  pathname: string | null;
+}) {
+  const here = pathname === link.href;
+  return (
+    <a
+      href={link.href}
+      {...externalProps(link)}
+      onClick={trackDocs(link)}
+      className={`block rounded-lg px-3 py-3 text-base font-medium transition-colors focus-ring ${
+        isCurrentSection(pathname, link)
+          ? "bg-blue-600/20 text-blue-200"
+          : "text-slate-200 hover:bg-slate-800/60 hover:text-white"
+      }`}
+      data-nav="close"
+      aria-current={here ? "page" : undefined}
+    >
+      {link.name}
+    </a>
+  );
+}
+
 export default function SiteHeader() {
   const pathname = usePathname();
   const stars = useGithubStars();
-
-  const isActive = (item: NavItem) =>
-    !item.external && (pathname === item.href);
 
   return (
     <header>
@@ -144,28 +304,31 @@ export default function SiteHeader() {
             </div>
 
             <ul className="hidden xl:flex items-center gap-1 rounded-full bg-slate-900/40 ring-1 ring-white/5 px-2 py-1 border border-slate-800/50">
-              {NAV.map((item) => {
-                const active = isActive(item);
+              {NAV.map((entry) => {
+                if (isGroup(entry)) {
+                  return (
+                    <NavDropdown
+                      key={entry.name}
+                      group={entry}
+                      pathname={pathname}
+                    />
+                  );
+                }
+                const active = isCurrentSection(pathname, entry);
                 return (
-                  <li key={item.name} className="list-none">
+                  <li key={entry.name} className="list-none">
                     <a
-                      href={item.href}
-                      {...(item.external
-                        ? { target: "_blank", rel: "noopener noreferrer" }
-                        : {})}
-                      onClick={
-                        item.name === "Docs"
-                          ? () => track("Open Docs")
-                          : undefined
-                      }
+                      href={entry.href}
+                      {...externalProps(entry)}
+                      onClick={trackDocs(entry)}
                       className={`whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-full lift focus-ring ${
                         active
                           ? "bg-blue-600/25 text-blue-200 border border-blue-500/40"
                           : "text-slate-300 hover:text-blue-200 hover:bg-slate-800/60"
                       }`}
-                      aria-current={active ? "page" : undefined}
+                      aria-current={pathname === entry.href ? "page" : undefined}
                     >
-                      {item.name}
+                      {entry.name}
                     </a>
                   </li>
                 );
@@ -237,27 +400,27 @@ export default function SiteHeader() {
             </button>
           </div>
           <div className="mt-6 space-y-2">
-            {NAV.map((item) => {
-              const active = isActive(item);
-              return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  {...(item.external
-                    ? { target: "_blank", rel: "noopener noreferrer" }
-                    : {})}
-                  className={`block rounded-lg px-3 py-3 text-base font-medium transition-colors focus-ring ${
-                    active
-                      ? "bg-blue-600/20 text-blue-200"
-                      : "text-slate-200 hover:bg-slate-800/60 hover:text-white"
-                  }`}
-                  data-nav="close"
-                  aria-current={active ? "page" : undefined}
+            {NAV.map((entry) =>
+              isGroup(entry) ? (
+                <section
+                  key={entry.name}
+                  aria-labelledby={`mobile-nav-${entry.name}`}
+                  className="pb-2"
                 >
-                  {item.name}
-                </a>
-              );
-            })}
+                  <h2
+                    id={`mobile-nav-${entry.name}`}
+                    className="px-3 pt-3 pb-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400"
+                  >
+                    {entry.name}
+                  </h2>
+                  {entry.links.map((link) => (
+                    <MobileNavLink key={link.href} link={link} pathname={pathname} />
+                  ))}
+                </section>
+              ) : (
+                <MobileNavLink key={entry.name} link={entry} pathname={pathname} />
+              )
+            )}
             <a
               href={GITHUB_URL}
               target="_blank"
