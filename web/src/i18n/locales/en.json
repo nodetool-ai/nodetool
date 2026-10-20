@@ -1893,6 +1893,8 @@
       "webPlayerDescription": "Static site, published revision (.zip)",
       "desktopApp": "Desktop app",
       "desktopAppDescription": "Tauri project for Windows, macOS and Linux (.zip)",
+      "mobileApp": "Mobile app",
+      "mobileAppDescription": "Expo project for iOS and Android (.zip)",
       "desktopExecutable": "Desktop executable",
       "desktopExecutableDescription": "Compile on this computer with cargo, output in the Console"
     },
@@ -1974,6 +1976,7 @@
         "publish": "Publish game",
         "exportWeb": "Export web player",
         "exportDesktop": "Export desktop app",
+        "exportMobile": "Export mobile app",
         "buildExecutable": "Build desktop executable"
       },
       "edit": {
@@ -2060,6 +2063,7 @@
     "shell": {
       "contextMenuLabel": "Game",
       "buildingDesktop": "Building the desktop app project from the published revision",
+      "buildingMobile": "Building the mobile app project from the published revision",
       "buildingWeb": "Building the web player from the published revision",
       "exportFailed": "Export failed: {{error}}",
       "exportFailedSummary": "Game export failed",

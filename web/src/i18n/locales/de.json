@@ -1893,6 +1893,8 @@
       "webPlayerDescription": "Statische Website, veröffentlichte Revision (.zip)",
       "desktopApp": "Desktop-App",
       "desktopAppDescription": "Tauri-Projekt für Windows, macOS und Linux (.zip)",
+      "mobileApp": "Mobile App",
+      "mobileAppDescription": "Expo-Projekt für iOS und Android (.zip)",
       "desktopExecutable": "Desktop-Programmdatei",
       "desktopExecutableDescription": "Auf diesem Computer mit cargo kompilieren, Ausgabe in der Konsole"
     },
@@ -1974,6 +1976,7 @@
         "publish": "Spiel veröffentlichen",
         "exportWeb": "Webplayer exportieren",
         "exportDesktop": "Desktop-App exportieren",
+        "exportMobile": "Mobile App exportieren",
         "buildExecutable": "Desktop-Programmdatei erstellen"
       },
       "edit": {
@@ -2060,6 +2063,7 @@
     "shell": {
       "contextMenuLabel": "Spiel",
       "buildingDesktop": "Desktop-App-Projekt aus der veröffentlichten Revision wird erstellt",
+      "buildingMobile": "Mobile-App-Projekt aus der veröffentlichten Revision wird erstellt",
       "buildingWeb": "Webplayer aus der veröffentlichten Revision wird erstellt",
       "exportFailed": "Export fehlgeschlagen: {{error}}",
       "exportFailedSummary": "Spiel-Export fehlgeschlagen",

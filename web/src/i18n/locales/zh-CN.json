@@ -1893,6 +1893,8 @@
       "webPlayerDescription": "静态网站，已发布版本（.zip）",
       "desktopApp": "桌面应用",
       "desktopAppDescription": "适用于 Windows、macOS 和 Linux 的 Tauri 项目（.zip）",
+      "mobileApp": "移动应用",
+      "mobileAppDescription": "适用于 iOS 和 Android 的 Expo 项目（.zip）",
       "desktopExecutable": "桌面可执行文件",
       "desktopExecutableDescription": "在此计算机上使用 cargo 编译，输出位于控制台"
     },
@@ -1974,6 +1976,7 @@
         "publish": "发布游戏",
         "exportWeb": "导出网页播放器",
         "exportDesktop": "导出桌面应用",
+        "exportMobile": "导出移动应用",
         "buildExecutable": "构建桌面可执行文件"
       },
       "edit": {
@@ -2060,6 +2063,7 @@
     "shell": {
       "contextMenuLabel": "游戏",
       "buildingDesktop": "正在根据已发布版本构建桌面应用项目",
+      "buildingMobile": "正在根据已发布版本构建移动应用项目",
       "buildingWeb": "正在根据已发布版本构建网页播放器",
       "exportFailed": "导出失败：{{error}}",
       "exportFailedSummary": "游戏导出失败",

@@ -1304,6 +1304,7 @@ nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
 nodetool game capture game.json --ticks 120 --out frame.png --backend webgpu
 nodetool game build game.json --out game-build --assets-dir game-assets
 nodetool game build game.json --out game-desktop --assets-dir game-assets --target tauri --name "Cave Run" --compile
+nodetool game build game.json --out game-mobile --assets-dir game-assets --target expo --name "Cave Run"
 nodetool game smoke game-build --json
 ```
 
@@ -1312,7 +1313,7 @@ nodetool game smoke game-build --json
 - `game validate <game_file>` — `--json`.
 - `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--saves <file>`, `--json`.
 - `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
-- `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--target <web|tauri>` (default `web`), `--json`. `--target tauri` writes a [Tauri](https://tauri.app) desktop app project: the web player in `dist/` and a native shell in `src-tauri/`. It accepts `--name <name>`, `--identifier <reverse-dns>`, `--app-version <MAJOR.MINOR.PATCH>`, `--icon <png|jpeg|webp>`, and `--compile`, which runs `cargo build --release` and reports the executable path. Run `npm install && npm run build` in the project for installers.
+- `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--target <web|tauri|expo>` (default `web`), `--json`. `--target tauri` writes a [Tauri](https://tauri.app) desktop app project: the web player in `dist/` and a native shell in `src-tauri/`. It accepts `--name <name>`, `--identifier <reverse-dns>`, `--app-version <MAJOR.MINOR.PATCH>`, `--icon <png|jpeg|webp>`, and `--compile`, which runs `cargo build --release` and reports the executable path. Run `npm install && npm run build` in the project for installers. `--target expo` writes an [Expo](https://expo.dev) project for iOS and Android that shows the game in a WebView, with the whole game in one offline page at `assets/game/game.html`. It accepts `--name`, `--identifier`, `--app-version`, `--icon`, and `--orientation <default|portrait|landscape>`. Run `npm install && npx expo start` in the project to play it in Expo Go.
 - `game smoke <directory>` — `--json`. Serves an exported build in headless Chromium with outside network access blocked, renders 300 scripted frames, and checks tick progress. Console errors, page errors, failed requests, and stalled ticks return a nonzero exit status. Install Chromium with `npx playwright install chromium`.
 
 Schema version 2 adds sprite `visualAnimation` tracks and scene `backgrounds`.

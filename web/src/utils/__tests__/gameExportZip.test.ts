@@ -22,6 +22,13 @@ describe("exportGameZip", () => {
     expect(mockSave).toHaveBeenCalledWith(res, "Room_Escape-desktop.zip");
   });
 
+  it("requests the mobile export and names it after the game", async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
+    await exportGameZip("id", "expo", "Cave Run");
+    expect(mockFetch.mock.calls[0][0]).toBe("/api/games/id/export-zip?target=expo");
+    expect(mockSave.mock.calls[0][1]).toBe("Cave_Run-mobile.zip");
+  });
+
   it("names a web export and falls back to 'game' for an empty name", async () => {
     mockFetch.mockResolvedValue({ ok: true, status: 200 });
     await exportGameZip("id", "web", "");

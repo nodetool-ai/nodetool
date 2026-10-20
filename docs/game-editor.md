@@ -354,6 +354,24 @@ WebGPU effects depend on the system web view. Where it has no WebGPU, as in WebK
 
 ---
 
+## Build a mobile app
+
+A mobile build is an [Expo](https://expo.dev) project for iOS and Android. The app shows the published revision full screen in a WebView and plays offline. It needs no NodeTool server.
+
+- **The editor.** Choose **Export build**, then **Mobile app**. The zip holds a `mobile/` folder.
+- **The agent.** Ask it for a mobile build. It calls `build_native_game` with `target: "expo"`.
+- **The CLI.** `nodetool game build game.json --out game-mobile --target expo --name "Cave Run"`.
+
+The project holds `App.js` (the WebView screen), `app.json` (name, identifier, version, orientation), `assets/` (icons and the game), `package.json`, `eas.json`, and a README. The app takes the game's name, and its identifier defaults to `ai.nodetool.game.<name>` with letters and digits only, because iOS and Android accept different punctuation. A 3D game locks the screen to the shape of its presentation aspect ratio. A 2D game follows the device, and its player asks for a turn when the shape is wrong.
+
+The game itself is one page, `assets/game/game.html`. It carries the player, the game document, the script runtime and every asset. The page answers the player's own file requests from those embedded bytes, so it needs no web server and no file access. The app loads it under a fixed `https://game.invalid/` origin that never resolves, which gives the player the secure origin it needs for asset digests, WebAssembly and saved games. A build carries at most 128 MB of game files.
+
+To try it, run `npm install && npx expo start` in the project and scan the QR code with Expo Go. To make installable apps, run `eas build --platform android --profile preview` for an APK, or `eas build --platform ios` with an Apple Developer account. `npx expo run:android` and `npx expo run:ios` build locally with Android Studio or Xcode.
+
+Leaving the app pauses the game. The screen stays on while the game is open. The touch controls, orientation prompt and audio are the web player's own, as in a mobile browser.
+
+---
+
 ## Generate assets
 
 The game documents bind art and sound by slot name, so you can replace placeholders without touching entities.

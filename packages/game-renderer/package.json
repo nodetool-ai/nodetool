@@ -88,6 +88,11 @@
       "types": "./dist/build-tauri.d.ts",
       "import": "./dist/build-tauri.js"
     },
+    "./build-expo": {
+      "nodetool-dev": "./src/build-expo.ts",
+      "types": "./dist/build-expo.d.ts",
+      "import": "./dist/build-expo.js"
+    },
     "./preparation3d": {
       "nodetool-dev": "./src/preparation3d.ts",
       "types": "./dist/preparation3d.d.ts",
