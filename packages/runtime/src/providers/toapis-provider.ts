@@ -112,13 +112,30 @@ function gcd(a: number, b: number): number {
 
 /** ToAPIs takes an aspect ratio, not pixels. Pixel sizes map to their reduced ratio. */
 function aspectRatio(spec: ImageSpec, ratio?: string | null, width?: number | null, height?: number | null): string | undefined {
-  if (ratio && spec.aspectRatios.includes(ratio)) return ratio;
+  if (ratio) return requireAspectRatio(spec, ratio);
   if (width && height && width > 0 && height > 0) {
     const divisor = gcd(width, height);
     const reduced = `${width / divisor}:${height / divisor}`;
-    if (spec.aspectRatios.includes(reduced)) return reduced;
+    return requireAspectRatio(spec, reduced);
   }
   return undefined;
+}
+
+function requireAspectRatio(spec: ImageSpec, ratio: string): string {
+  if (spec.aspectRatios.includes(ratio)) return ratio;
+  // VIP also accepts custom ratios up to 3:1 in either orientation, or auto.
+  // https://docs.toapis.com/docs/cn/api-reference/images/gpt-image-2-vip/generation
+  if (spec.id === "gpt-image-2-vip") {
+    if (ratio === "auto") return ratio;
+    if (/^\d+:\d+$/.test(ratio)) {
+      const [width = 0, height = 0] = ratio.split(":").map(Number);
+      if (Number.isSafeInteger(width) && Number.isSafeInteger(height) && width > 0 && height > 0 &&
+          width / height <= 3 && height / width <= 3) {
+        return ratio;
+      }
+    }
+  }
+  throw new Error(`Unsupported ToAPIs ${spec.id} aspect ratio: ${ratio}`);
 }
 
 /**
@@ -351,18 +368,30 @@ export class ToapisProvider extends BaseProvider {
     const interval = kind === "images" ? IMAGE_POLL_INTERVAL_MS : VIDEO_POLL_INTERVAL_MS;
     const deadline = Date.now() + timeoutSeconds * 1000;
     let current = created;
-    while (!TERMINAL.has(current.status)) {
-      if (Date.now() >= deadline) {
-        throw new Error(`ToAPIs ${noun} task ${created.id} timed out while ${current.status}`);
+    if (TERMINAL.has(current.status)) return current;
+    const timeoutError = () => new Error(`ToAPIs ${noun} task ${created.id} timed out while ${current.status}`);
+    const timeout = new AbortController();
+    const pollSignal = signal ? AbortSignal.any([signal, timeout.signal]) : timeout.signal;
+    const timer = setTimeout(() => timeout.abort(timeoutError()), Math.max(0, deadline - Date.now()));
+    const checkDeadline = () => {
+      pollSignal.throwIfAborted();
+      if (Date.now() >= deadline) throw timeoutError();
+    };
+    try {
+      while (!TERMINAL.has(current.status)) {
+        checkDeadline();
+        await sleep(Math.min(interval, Math.max(0, deadline - Date.now())), pollSignal);
+        checkDeadline();
+        current = await this.parse(
+          await fetchWithRetry(path, { headers: this.headers(), signal: pollSignal }),
+          `${noun} status`
+        );
+        checkDeadline();
       }
-      await sleep(interval, signal);
-      signal?.throwIfAborted();
-      current = await this.parse(
-        await fetchWithRetry(path, { headers: this.headers(), signal }),
-        `${noun} status`
-      );
+      return current;
+    } finally {
+      clearTimeout(timer);
     }
-    return current;
   }
 
   private async download(url: string, signal?: AbortSignal): Promise<Uint8Array> {
