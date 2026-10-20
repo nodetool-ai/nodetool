@@ -11133,7 +11133,9 @@
         "undo": "Rückgängig",
         "undoNamed": "{{label}} rückgängig machen",
         "redo": "Wiederholen",
-        "redoNamed": "{{label}} wiederherstellen"
+        "redoNamed": "{{label}} wiederherstellen",
+        "renderBlender": "Mit Blender rendern",
+        "hideBlenderRender": "Blender-Rendering ausblenden"
       },
       "tools": {
         "move": "Verschieben",
@@ -11203,7 +11205,9 @@
         "import": "{{name}} importieren",
         "parent": "{{name}} als übergeordnetes Objekt festlegen",
         "transform": "{{verb}} {{name}}"
-      }
+      },
+      "resizeBlenderPanel": "Größe des Blender-Render-Bereichs ändern",
+      "blenderDescription": "Die Szene mit Blender in voller Qualität rendern"
     },
     "outliner": {
       "objectLabel": "{{name}} ({{type}})",
@@ -11292,6 +11296,74 @@
         "save": "Einstellung speichern",
         "savedName": "Einstellung {{index}}",
         "restore": "Zu {{name}} wechseln"
+      }
+    },
+    "blenderRender": {
+      "emptyTitle": "Noch keine Blender-Renderings",
+      "emptyDescription": "Richte die Einstellung und die Render-Optionen ein und rendere die Szene dann mit Blender.",
+      "rendering": "Blender rendert die Szene…",
+      "cancel": "Rendering abbrechen",
+      "renderAlt": "Blender-Rendering: {{caption}}",
+      "caption": "{{engine}} · {{width}} × {{height}} · {{samples}} Samples",
+      "sections": {
+        "render": "Rendern",
+        "output": "Ausgabe",
+        "camera": "Kamera",
+        "lighting": "Beleuchtung",
+        "advanced": "Erweitert"
+      },
+      "fields": {
+        "engine": "Engine",
+        "samples": "Samples",
+        "denoise": "Entrauschen",
+        "width": "Breite",
+        "height": "Höhe",
+        "resolutionPercentage": "Skalierung %",
+        "transparent": "Transparenter Hintergrund",
+        "backgroundColor": "Hintergrund",
+        "azimuth": "Azimut",
+        "elevation": "Elevation",
+        "fov": "Sichtfeld",
+        "zoom": "Zoom",
+        "lighting": "Vorgabe",
+        "lightIntensity": "Intensität",
+        "timeout": "Zeitlimit (s)"
+      },
+      "engines": {
+        "eevee": "EEVEE",
+        "cycles": "Cycles"
+      },
+      "engineHints": {
+        "eevee": "Schnell, Echtzeit-Qualität",
+        "cycles": "Pathtracing, langsamer und realistischer"
+      },
+      "cameras": {
+        "view": "Diese Ansicht",
+        "scene": "Szenenkamera",
+        "orbit": "Orbit"
+      },
+      "cameraHints": {
+        "view": "Aus der Viewport-Kamera rendern, wie du sie gerade siehst",
+        "scene": "Aus der ersten Kamera der Szene rendern",
+        "orbit": "Die ganze Szene aus dem unten eingestellten Winkel einrahmen"
+      },
+      "lighting": {
+        "studio": "Studio",
+        "soft": "Weich",
+        "flat": "Flach"
+      },
+      "lightingHint": "Blender nutzt die Vorgabe nur, wenn die Szene keine eigenen Lichter hat.",
+      "matchView": "Seitenverhältnis der Ansicht",
+      "formatHint": "Renderings werden als PNG-Bilder in deinen Assets gespeichert.",
+      "render": "Mit Blender rendern",
+      "requirement": "Benötigt Blender 5.2 oder neuer auf dem Rechner, auf dem NodeTool läuft.",
+      "earlierRenders": "Frühere Renderings",
+      "showRender": "Rendering anzeigen: {{caption}}",
+      "failed": "Fehlgeschlagen",
+      "errors": {
+        "export": "Die Szene konnte nicht exportiert werden.",
+        "render": "Das Blender-Rendering ist fehlgeschlagen.",
+        "context": "Blender-Rendering der Szene im 3D-Editor fehlgeschlagen"
       }
     },
     "properties": {

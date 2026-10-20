@@ -43,6 +43,7 @@ import KeyboardIcon from "@mui/icons-material/Keyboard";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
+import CameraEnhanceOutlinedIcon from "@mui/icons-material/CameraEnhanceOutlined";
 
 import {
   AlertBanner,
@@ -84,6 +85,8 @@ import {
   type CapturePass,
   type ShotSettings
 } from "./aiRender";
+import BlenderRenderPanel from "./BlenderRenderPanel";
+import { makeViewCamera, type BlenderCameraMode } from "./blenderRender";
 import EditorStatusBar from "./EditorStatusBar";
 import ViewportContextMenu from "./ViewportContextMenu";
 import AnimationBar from "./AnimationBar";
@@ -112,7 +115,7 @@ import {
   createPrimitive,
   type PrimitiveKind
 } from "./objectFactory";
-import { exportSceneToGlb } from "./exportGltf";
+import { exportSceneToGlb, exportSceneToGltf } from "./exportGltf";
 import { EXPORT_FORMATS, exportFileName, exportModel, type ExportFormat } from "./exportModel";
 import { saveBlobAsFile } from "../../utils/downloadResponse";
 import {
@@ -202,6 +205,15 @@ const readShot = (): ShotSettings => {
     return raw ? parseShotSettings(JSON.parse(raw)) : DEFAULT_SHOT;
   } catch {
     return DEFAULT_SHOT;
+  }
+};
+
+const BLENDER_RENDER_OPEN_KEY = "model3d.blenderRenderOpen";
+const readBlenderRenderOpen = (): boolean => {
+  try {
+    return localStorage.getItem(BLENDER_RENDER_OPEN_KEY) === "true";
+  } catch {
+    return false;
   }
 };
 
@@ -476,6 +488,7 @@ const Model3DEditor = ({
   const [showAssistant, setShowAssistant] = useState<boolean>(readAssistantOpen);
   const [showAiRender, setShowAiRender] = useState<boolean>(readAiRenderOpen);
   const [shot, setShot] = useState<ShotSettings>(readShot);
+  const [showBlenderRender, setShowBlenderRender] = useState<boolean>(readBlenderRenderOpen);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -523,6 +536,18 @@ const Model3DEditor = ({
     } catch {
       // Persistence is best-effort; ignore storage failures.
     }
+  }, []);
+
+  const toggleBlenderRender = useCallback(() => {
+    setShowBlenderRender((open) => {
+      const next = !open;
+      try {
+        localStorage.setItem(BLENDER_RENDER_OPEN_KEY, String(next));
+      } catch {
+        // Persistence is best-effort; ignore storage failures.
+      }
+      return next;
+    });
   }, []);
 
   const togglePref = useCallback((key: keyof ViewPrefs) => {
@@ -646,6 +671,26 @@ const Model3DEditor = ({
       return { image, width: crop.width, height: crop.height };
     },
     [root, theme, t, shot.aspect]
+  );
+  const viewAspect = useCallback((): number => {
+    const canvas = captureRef.current?.gl.domElement;
+    return canvas && canvas.height > 0 ? canvas.width / canvas.height : 1;
+  }, []);
+  // The scene as Blender renders it: hidden objects left out, and for the
+  // `view` camera a copy of the viewport camera written as the first camera.
+  const exportForBlender = useCallback(
+    (camera: BlenderCameraMode, aspect: number): Promise<Blob> => {
+      const leadingNodes: THREE.Object3D[] = [];
+      if (camera === "view") {
+        const capture = captureRef.current;
+        if (!capture) {
+          return Promise.reject(new Error(t("i18n-cont-model-editor-11.modelEditor.errors.captureNotReady")));
+        }
+        leadingNodes.push(makeViewCamera(capture.camera, root, aspect));
+      }
+      return exportSceneToGltf(root, animationClips, { onlyVisible: true, leadingNodes });
+    },
+    [root, animationClips, t]
   );
 
   // Load the GLB/GLTF into the editor root once per URL.
@@ -1567,6 +1612,14 @@ const Model3DEditor = ({
             ariaLabel={t("i18n-cont-model-editor-11.modelEditor.actions.renderAi")}
           />
           <ToolbarIconButton
+            icon={<CameraEnhanceOutlinedIcon fontSize="small" />}
+            tooltip={t(showBlenderRender ? "i18n-cont-model-editor-11.modelEditor.actions.hideBlenderRender" : "i18n-cont-model-editor-11.modelEditor.actions.renderBlender")}
+            onClick={toggleBlenderRender}
+            active={showBlenderRender}
+            size="small"
+            ariaLabel={t("i18n-cont-model-editor-11.modelEditor.actions.renderBlender")}
+          />
+          <ToolbarIconButton
             icon={<AutoAwesomeIcon fontSize="small" />}
             tooltip={t(showAssistant ? "i18n-cont-model-editor-11.modelEditor.actions.hideAssistant" : "i18n-cont-model-editor-11.modelEditor.actions.showAssistant")}
             onClick={toggleAssistant}
@@ -1892,6 +1945,30 @@ const Model3DEditor = ({
                 shot={shot}
                 onShotChange={changeShot}
                 camera={shotCamera}
+              />
+            </div>
+          </ResizableSideDock>
+        </div>
+
+        {/* Kept mounted so a render in flight survives hiding the panel. */}
+        <div style={{ display: showBlenderRender && !loadError ? "contents" : "none" }}>
+          <ResizableSideDock
+            storageKey="model3d_blender_render"
+            defaultWidth={ASSISTANT_PANEL_WIDTH}
+            ariaLabel={t("i18n-cont-model-editor-11.modelEditor.resizeBlenderPanel")}
+          >
+            <PanelHeader
+              title={t("i18n-cont-model-editor-11.modelEditor.actions.renderBlender")}
+              icon={<CameraEnhanceOutlinedIcon />}
+              description={t("i18n-cont-model-editor-11.modelEditor.blenderDescription")}
+              onClose={toggleBlenderRender}
+              closeLabel={t("i18n-cont-model-editor-11.modelEditor.actions.hideBlenderRender")}
+            />
+            <div className="panel-body">
+              <BlenderRenderPanel
+                exportScene={exportForBlender}
+                viewAspect={viewAspect}
+                name={modelNameFromFile(name ?? "") || "scene"}
               />
             </div>
           </ResizableSideDock>

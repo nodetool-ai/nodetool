@@ -257,6 +257,47 @@ describe("NodeLlamaCppProvider – GGUF discovery", () => {
   });
 });
 
+describe("NodeLlamaCppProvider – model folders", () => {
+  let root: string;
+  let prevHubCache: string | undefined;
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "nlc-folders-"));
+    await mkdir(join(root, "hub"));
+    await mkdir(join(root, "flat"));
+    prevHubCache = process.env.HF_HUB_CACHE;
+    process.env.HF_HUB_CACHE = join(root, "hub");
+  });
+
+  afterEach(async () => {
+    if (prevHubCache === undefined) delete process.env.HF_HUB_CACHE;
+    else process.env.HF_HUB_CACHE = prevHubCache;
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("lists GGUFs in the subfolders of every configured folder by absolute path", async () => {
+    const comfy = join(root, "ComfyUI", "models");
+    await mkdir(join(comfy, "text_encoders", "qwen"), { recursive: true });
+    await mkdir(join(comfy, "checkpoints"), { recursive: true });
+    await writeFile(join(comfy, "text_encoders", "qwen", "qwen3-4b.gguf"), "x");
+    await writeFile(join(comfy, "checkpoints", "sd15.safetensors"), "x");
+    const other = join(root, "other");
+    await mkdir(other);
+    await writeFile(join(other, "llama.gguf"), "x");
+
+    const provider = new NodeLlamaCppProvider({
+      NODE_LLAMA_CPP_MODELS_DIR: join(root, "flat"),
+      MODEL_FOLDERS: `${comfy};${other}`
+    });
+    const models = onDisk(await provider.getAvailableLanguageModels());
+    expect(models.map((m) => m.id).sort()).toEqual([
+      join(comfy, "text_encoders", "qwen", "qwen3-4b.gguf"),
+      join(other, "llama.gguf")
+    ]);
+    expect(models.find((m) => m.id.endsWith("qwen3-4b.gguf"))?.name).toBe("qwen3-4b.gguf (qwen)");
+  });
+});
+
 describe("NodeLlamaCppProvider – recommended downloads", () => {
   let hubDir: string;
   let modelsDir: string;

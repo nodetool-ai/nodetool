@@ -11133,7 +11133,9 @@
         "undo": "撤销",
         "undoNamed": "撤销：{{label}}",
         "redo": "重做",
-        "redoNamed": "重做：{{label}}"
+        "redoNamed": "重做：{{label}}",
+        "renderBlender": "用 Blender 渲染",
+        "hideBlenderRender": "隐藏 Blender 渲染"
       },
       "tools": {
         "move": "移动",
@@ -11203,7 +11205,9 @@
         "import": "导入{{name}}",
         "parent": "将{{name}}设为子对象",
         "transform": "{{verb}}{{name}}"
-      }
+      },
+      "resizeBlenderPanel": "调整 Blender 渲染面板大小",
+      "blenderDescription": "用 Blender 以完整质量渲染场景"
     },
     "outliner": {
       "objectLabel": "{{name}}（{{type}}）",
@@ -11292,6 +11296,74 @@
         "save": "保存镜头",
         "savedName": "镜头 {{index}}",
         "restore": "切换到 {{name}}"
+      }
+    },
+    "blenderRender": {
+      "emptyTitle": "还没有 Blender 渲染",
+      "emptyDescription": "设置好镜头和渲染参数，然后用 Blender 渲染场景。",
+      "rendering": "Blender 正在渲染场景…",
+      "cancel": "取消渲染",
+      "renderAlt": "Blender 渲染：{{caption}}",
+      "caption": "{{engine}} · {{width}} × {{height}} · {{samples}} 采样",
+      "sections": {
+        "render": "渲染",
+        "output": "输出",
+        "camera": "相机",
+        "lighting": "灯光",
+        "advanced": "高级"
+      },
+      "fields": {
+        "engine": "引擎",
+        "samples": "采样数",
+        "denoise": "降噪",
+        "width": "宽度",
+        "height": "高度",
+        "resolutionPercentage": "缩放 %",
+        "transparent": "透明背景",
+        "backgroundColor": "背景",
+        "azimuth": "方位角",
+        "elevation": "仰角",
+        "fov": "视野",
+        "zoom": "缩放",
+        "lighting": "预设",
+        "lightIntensity": "强度",
+        "timeout": "超时（秒）"
+      },
+      "engines": {
+        "eevee": "EEVEE",
+        "cycles": "Cycles"
+      },
+      "engineHints": {
+        "eevee": "快速，实时画质",
+        "cycles": "路径追踪，更慢但更真实"
+      },
+      "cameras": {
+        "view": "当前视图",
+        "scene": "场景相机",
+        "orbit": "环绕"
+      },
+      "cameraHints": {
+        "view": "从你现在看到的视口相机渲染",
+        "scene": "从场景中的第一个相机渲染",
+        "orbit": "按下方设置的角度框住整个场景"
+      },
+      "lighting": {
+        "studio": "影棚",
+        "soft": "柔和",
+        "flat": "平光"
+      },
+      "lightingHint": "仅当场景没有自己的灯光时，Blender 才使用预设。",
+      "matchView": "匹配视图宽高比",
+      "formatHint": "渲染结果会以 PNG 图像保存到你的资源中。",
+      "render": "用 Blender 渲染",
+      "requirement": "运行 NodeTool 的机器上需要 Blender 5.2 或更高版本。",
+      "earlierRenders": "之前的渲染",
+      "showRender": "显示渲染：{{caption}}",
+      "failed": "失败",
+      "errors": {
+        "export": "无法导出场景。",
+        "render": "Blender 渲染失败。",
+        "context": "3D 编辑器场景的 Blender 渲染失败"
       }
     },
     "properties": {
