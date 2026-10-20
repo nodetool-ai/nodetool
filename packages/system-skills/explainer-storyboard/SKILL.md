@@ -7,7 +7,7 @@ description: Turn a confirmed product or feature brief into a shootable 30–120
 
 Create a complete, shootable explainer beat sheet as a NodeTool storyboard. Work directly through the storyboard and entity capability modules. Do not build a workflow or run a pipeline. Do not render stills, clips, or assemble a timeline unless the user asks.
 
-This skill is the explainer's structure. When the voiceover should time the shots, load `script-video` as well: write the VO from this beat sheet into a script, voice it, and let the linked board take each shot's length from its takes.
+This skill is the explainer's structure. When the voiceover should time the shots, load `script-video` as well: write the VO from this beat sheet into a script, voice it, and let the linked board take each shot's length from its takes. `ad-story-loops` orders the reveals so the aha is set up before it lands.
 
 ## Truthful brief
 
