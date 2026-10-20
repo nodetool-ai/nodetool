@@ -27,6 +27,8 @@ const mockCreateNode = jest.fn().mockReturnValue({
 
 const { renderHook } = nodeStoreRenderers(
   makeNodeStore({
+      nodes: [],
+      findNode: () => undefined,
       addNode: mockAddNode,
       createNode: mockCreateNode,
       updateNodeData: mockUpdateNodeData
@@ -198,6 +200,99 @@ describe("useCreateNode", () => {
       mockMetadata,
       { x: 100, y: 200 }
     );
+  });
+
+  it("places a node below one that already sits at the menu position", () => {
+    const occupied = nodeStoreRenderers(
+      makeNodeStore({
+        nodes: [
+          {
+            id: "existing",
+            position: { x: 100, y: 200 },
+            measured: { width: 280, height: 130 },
+            data: {}
+          }
+        ],
+        findNode: () => undefined,
+        addNode: mockAddNode,
+        createNode: mockCreateNode,
+        updateNodeData: mockUpdateNodeData
+      })
+    );
+    const { result } = occupied.renderHook(() => useCreateNode());
+    const mockMetadata = {
+      node_type: "test",
+      title: "Test Node",
+      description: "Test description",
+      namespace: "test",
+      layout: "default",
+      outputs: [],
+      properties: [],
+      supports_dynamic_inputs: false,
+      supports_dynamic_outputs: false,
+      recommended_models: [],
+      is_streaming_output: false,
+      required_settings: [],
+    };
+
+    act(() => {
+      result.current(mockMetadata);
+    });
+
+    // 200 + 130 high + the 20px overlap margin.
+    expect(mockCreateNode).toHaveBeenCalledWith(mockMetadata, {
+      x: 100,
+      y: 350
+    });
+  });
+
+  it("moves a new node clear of others once its real size is measured", () => {
+    jest.useFakeTimers();
+    const mockUpdateNode = jest.fn();
+    const existing = {
+      id: "existing",
+      position: { x: 100, y: 200 },
+      measured: { width: 280, height: 130 },
+      data: {}
+    };
+    const measured = nodeStoreRenderers(
+      makeNodeStore({
+        nodes: [existing],
+        findNode: () => ({
+          id: "new-node-1",
+          position: { x: 100, y: 200 },
+          measured: { width: 280, height: 300 }
+        }),
+        updateNode: mockUpdateNode,
+        addNode: mockAddNode,
+        createNode: mockCreateNode,
+        updateNodeData: mockUpdateNodeData
+      })
+    );
+    const { result } = measured.renderHook(() => useCreateNode());
+
+    act(() => {
+      result.current({
+        node_type: "test",
+        title: "Test Node",
+        description: "Test description",
+        namespace: "test",
+        layout: "default",
+        outputs: [],
+        properties: [],
+        supports_dynamic_inputs: false,
+        supports_dynamic_outputs: false,
+        recommended_models: [],
+        is_streaming_output: false,
+        required_settings: []
+      });
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(mockUpdateNode).toHaveBeenCalledWith("new-node-1", {
+      position: { x: 100, y: 350 }
+    });
+    jest.useRealTimers();
   });
 
   it("tracks node as recently used", () => {

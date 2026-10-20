@@ -66,6 +66,9 @@ never put it in a packet.
 | `same-character` | You will make several pictures of your ginger cat, Miso, and want the same cat in every one. Using your photo of Miso, set the app up so it knows what Miso looks like. | empty | 25 | Setting up a recurring subject |
 | `make-3d` | You want a simple table in 3D: a flat top on four legs. Build it here by hand, then turn it so you can see it from underneath. | empty | 40 | Building a 3D object by hand |
 | `find-thing` | Someone here worked on plans for releasing the next version of a product. You do not know whether it was a conversation, a document or something else. Find it and open it. | seeded-demo | 15 | Finding something by search |
+| `build-blank` | You want a small process here that takes two words you type and shows them as one line, the first word followed by the second. Build it yourself, step by step, without asking the app to build it for you. Then run it until you see the line. | empty | 40 | Building a graph on an empty canvas |
+| `change-instructions` | Someone left something here that turns trip notes into a packing list. You want every item on the list to say how many to pack. Change what it is told to do, then run it once. | working-run | 20 | Finding a step's hidden settings |
+| `reconnect` | Someone left something here that should turn trip notes into a packing list, but the list it makes never uses the notes. Make it use them, then run it once. | unwired-run | 20 | Reading and repairing a graph's wires |
 
 `add-key`, `read-aloud`, `make-tool`, `make-game`, `keep-answer` and `same-character` need a test key in
 `credentials`. `add-photo` and `change-photo` need an image in `assets`, `photo-video` two
@@ -114,6 +117,9 @@ studies the choice and not the setup.
 | `same-character` | An entity named Miso with the photo as its reference image, visible in the library. | Whether it went to the composer's entity picker, the rail's Entities page, or the chat. | [image](../../agentic-qa/references/protocols/library.md#image) |
 | `make-3d` | A 3D model with a top and four legs, viewed from below. | Whether it found the duplicate, and whether a moved part left the view. | [app-first-use](../../agentic-qa/references/protocols/first-use.md#app-first-use) |
 | `find-thing` | The conversation "Plan our v2 product launch" is open. | Which list or search it tried first, and how it read an empty search result. | [chat-find](../../agentic-qa/references/protocols/chat.md#chat-find) |
+| `build-blank` | A workflow built on the canvas, without the assistant or a guided flow, that joins two typed texts, run with the joined line visible. | Where new nodes landed, how it found the joining node, and whether it wired or typed values in. | [automation](../../agentic-qa/references/protocols/workflows.md#automation) |
+| `change-instructions` | The Agent's system instruction asks for quantities, and a run after the change completed. | Whether it looked on the node before opening the side panel. | [automation](../../agentic-qa/references/protocols/workflows.md#automation) |
+| `reconnect` | A wire from "Trip notes" to the Agent's prompt, and a run after the change completed. | How it found the port's name (zoom, hover, selection, or position). | [automation](../../agentic-qa/references/protocols/workflows.md#automation) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -161,6 +167,11 @@ top and one leg: a full table needs about 70 at three actions per number,
 so judge it on the route and the stalls, or give it 70. `find-thing` is
 answered by the Chats list in the seeded account, so it says little about
 search unless the account holds more conversations than one list shows.
+
+Study 9 found that `build-blank` takes 17 to 39 actions, so give it 40.
+`change-instructions` and `reconnect` take 6 to 10 from home, and the rest of
+their budget goes on the fixed reply, which every participant read as a stub.
+Judge both on mechanics.
 
 ## Adding a task
 

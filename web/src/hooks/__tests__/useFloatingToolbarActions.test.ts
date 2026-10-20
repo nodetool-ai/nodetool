@@ -612,10 +612,16 @@ describe("useFloatingToolbarActions", () => {
         result.current.handleToggleNodeMenu();
       });
 
+      // A node picked from the menu lands near the middle of the window,
+      // not at the menu's top-left corner under the tab bar.
       expect(mockOpenNodeMenu).toHaveBeenCalledWith(
         expect.objectContaining({
           x: expect.any(Number),
-          y: expect.any(Number)
+          y: expect.any(Number),
+          dropPosition: {
+            x: Math.floor(window.innerWidth / 2 - 140),
+            y: Math.floor(window.innerHeight / 2 - 70)
+          }
         })
       );
       expect(mockCloseNodeMenu).not.toHaveBeenCalled();
