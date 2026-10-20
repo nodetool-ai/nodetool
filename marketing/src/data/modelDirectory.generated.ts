@@ -3897,7 +3897,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 999,
+    "total": 1003,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7070,6 +7070,27 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "toapis",
+        "models": [
+          {
+            "id": "gpt-image-2",
+            "name": "GPT Image 2"
+          },
+          {
+            "id": "gpt-image-2-vip",
+            "name": "GPT Image 2 VIP"
+          },
+          {
+            "id": "gpt-image-2.5-flare",
+            "name": "GPT Image 2.5 Flare"
+          },
+          {
+            "id": "gpt-image-2.5-sunburst",
+            "name": "GPT Image 2.5 Sunburst"
+          }
+        ]
+      },
+      {
         "provider": "aki",
         "models": [
           {
@@ -7164,7 +7185,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "video",
-    "total": 991,
+    "total": 994,
     "providers": [
       {
         "provider": "fal_ai",
@@ -10433,6 +10454,23 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "T2V-01-Director",
             "name": "MiniMax Video-01 Director"
+          }
+        ]
+      },
+      {
+        "provider": "toapis",
+        "models": [
+          {
+            "id": "seedance-2",
+            "name": "Seedance 2"
+          },
+          {
+            "id": "seedance-2-fast",
+            "name": "Seedance 2 Fast"
+          },
+          {
+            "id": "seedance-2-mini",
+            "name": "Seedance 2 Mini"
           }
         ]
       },
