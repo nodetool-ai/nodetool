@@ -10,6 +10,7 @@ import useMediaGenerationStore from "../../../../stores/MediaGenerationStore";
 import useGlobalChatStore from "../../../../stores/GlobalChatStore";
 import { useChatDraftStore } from "../../../../stores/ChatDraftStore";
 import { useProvidersByCapability } from "../../../../hooks/useProviders";
+import { asTextArea, stub } from "../../../../test-utils/doubles";
 import type { MessageContent, MusicModel } from "../../../../stores/ApiTypes";
 
 // The provider query decides whether the composer refuses a send and shows the
@@ -114,11 +115,13 @@ jest.mock("../../../model_menu/MusicModelMenuDialog", () => ({
     open ? (
       <button
         onClick={() =>
-          onModelChange({
-            id: "music-1",
-            name: "Test music",
-            provider: "fal_ai"
-          } as MusicModel)
+          onModelChange(
+            stub<MusicModel>({
+              id: "music-1",
+              name: "Test music",
+              provider: "fal_ai"
+            })
+          )
         }
       >
         Pick music model
@@ -131,10 +134,7 @@ jest.mock("../../../model_menu/TTSModelMenuDialog", () => ({
     open ? <div data-testid="tts-model-dialog" /> : null
 }));
 
-const mockUseProvidersByCapability =
-  useProvidersByCapability as jest.MockedFunction<
-    typeof useProvidersByCapability
-  >;
+const mockUseProvidersByCapability = jest.mocked(useProvidersByCapability);
 
 const THREAD_ID = "thread-1";
 
@@ -189,12 +189,13 @@ const renderComposer = (
 };
 
 const promptBox = () =>
-  screen.getByLabelText("Message prompt") as HTMLTextAreaElement;
+  asTextArea(screen.getByLabelText("Message prompt"));
 
 describe("MediaChatComposer", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseProvidersByCapability.mockReturnValue({
+    mockUseProvidersByCapability.mockReturnValue(
+      stub<ReturnType<typeof useProvidersByCapability>>({
       providers: [
         {
           provider: "openai",
@@ -209,7 +210,8 @@ describe("MediaChatComposer", () => {
       isLoading: false,
       isFetching: false,
       error: null
-    } as ReturnType<typeof useProvidersByCapability>);
+      })
+    );
     useMediaGenerationStore.setState({ ...MEDIA_DEFAULTS });
     useChatDraftStore.setState({ drafts: {} });
     useGlobalChatStore.setState({ selectedModel: CHAT_MODEL });
@@ -269,17 +271,14 @@ describe("MediaChatComposer", () => {
 
   it("sends the typed prompt on Enter and clears the box", async () => {
     const user = userEvent.setup();
-    const onSendMessage = jest.fn();
+    const onSendMessage = jest.fn<void, [MessageContent[], string]>();
     renderComposer(onSendMessage);
 
     await user.click(promptBox());
     await user.keyboard("hello there{Enter}");
 
     expect(onSendMessage).toHaveBeenCalledTimes(1);
-    const [content, prompt] = onSendMessage.mock.calls[0] as [
-      MessageContent[],
-      string
-    ];
+    const [content, prompt] = onSendMessage.mock.calls[0];
     expect(content).toEqual([{ type: "text", text: "hello there" }]);
     expect(prompt).toBe("hello there");
     expect(promptBox().value).toBe("");

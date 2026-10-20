@@ -12,12 +12,8 @@ jest.mock("../../../../stores/ProviderOnboardingStore", () => ({
   openProviderOnboarding: jest.fn()
 }));
 
-const mockUseProvidersByCapability =
-  useProvidersByCapability as jest.MockedFunction<
-    typeof useProvidersByCapability
-  >;
-const mockOpenProviderOnboarding =
-  openProviderOnboarding as jest.MockedFunction<typeof openProviderOnboarding>;
+const mockUseProvidersByCapability = jest.mocked(useProvidersByCapability);
+const mockOpenProviderOnboarding = jest.mocked(openProviderOnboarding);
 
 const providersResult = (
   providers: { provider: string; capabilities: string[] }[],

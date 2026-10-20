@@ -23,7 +23,7 @@ describe("PermissionSelector", () => {
     // mode change is mirrored over is stubbed.
     jest
       .spyOn(globalWebSocketManager, "send")
-      .mockResolvedValue(undefined as never);
+      .mockResolvedValue(undefined);
     useGlobalChatStore.setState({
       currentThreadId: THREAD_ID,
       permissionMode: {},
