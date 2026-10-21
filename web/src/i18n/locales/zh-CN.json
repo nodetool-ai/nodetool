@@ -18568,6 +18568,20 @@
       "audio": "音频",
       "model3d": "3D 模型",
       "document": "文档"
+    },
+    "open": "用工作流转换…",
+    "openStill": "用工作流转换静帧…",
+    "openClip": "用工作流转换片段…",
+    "applyFailed": "无法在此处使用该输出。",
+    "sketchName": "草图",
+    "sceneName": "3D 场景",
+    "clipName": "片段",
+    "apply": {
+      "addToScene": "添加到场景",
+      "addAsLayer": "添加为图层",
+      "replaceAudio": "替换音频",
+      "replaceClip": "替换片段",
+      "addAsTake": "添加为新版本"
     }
   }
 }

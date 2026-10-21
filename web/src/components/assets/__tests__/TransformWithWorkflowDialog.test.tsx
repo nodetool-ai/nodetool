@@ -1,6 +1,7 @@
 /**
  * @jest-environment jsdom
  */
+import type { ComponentProps } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -13,7 +14,10 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
 import { createAssetFile } from "../../../utils/createAssetFile";
 import { trpcClient } from "../../../trpc/client";
-import TransformWithWorkflowDialog from "../TransformWithWorkflowDialog";
+import TransformWithWorkflowDialog, {
+  TransformWithWorkflowView
+} from "../TransformWithWorkflowDialog";
+import type { TransformApplyAction } from "../transformWorkflow";
 
 jest.mock("../../../trpc/client", () => ({
   trpcClient: { workflows: { list: { query: jest.fn() } } }
@@ -63,6 +67,23 @@ const renderDialog = () => {
     <QueryClientProvider client={client}>
       <ThemeProvider theme={mockTheme}>
         <TransformWithWorkflowDialog />
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
+
+const renderView = (
+  props: Partial<ComponentProps<typeof TransformWithWorkflowView>> = {}
+) => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <ThemeProvider theme={mockTheme}>
+        <TransformWithWorkflowView
+          source={{ kind: "image", name: "Sketch", uri: "data:image/png;base64,AAAA" }}
+          onClose={jest.fn()}
+          {...props}
+        />
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -184,6 +205,89 @@ describe("TransformWithWorkflowDialog", () => {
       workflowId: "wf-recolor",
       params: { photo: { type: "image", uri: "asset://saved-1", asset_id: "saved-1" } }
     });
+  });
+
+  it("runs an editor's media that has no asset as its data URI", async () => {
+    renderView();
+
+    await userEvent.click(await screen.findByText("Upscale"));
+    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    expect(runOptions[0].params).toEqual({
+      image: { type: "image", uri: "data:image/png;base64,AAAA" }
+    });
+  });
+
+  it("hands a matching output back to the editor that opened it, then closes", async () => {
+    const onApply = jest.fn<void, Parameters<TransformApplyAction["onApply"]>>();
+    const onClose = jest.fn();
+    renderView({
+      onClose,
+      apply: { label: "Add as layer", kinds: ["image"], onApply }
+    });
+
+    await userEvent.click(await screen.findByText("Upscale"));
+    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+    act(() => {
+      runOptions[0].onMessage?.({
+        type: "output_update",
+        node_id: "out",
+        node_name: "result",
+        value: { type: "image", uri: "asset://out-1.png", asset_id: "out-1" }
+      });
+      runOptions[0].onMessage?.({
+        type: "output_update",
+        node_id: "clip",
+        node_name: "clip",
+        value: { type: "video", uri: "asset://out-2.mp4", asset_id: "out-2" }
+      });
+    });
+    await act(async () => {
+      finishRun({ success: true, outputs: {} });
+    });
+
+    // Only the image output offers the editor's action.
+    expect(screen.getAllByRole("button", { name: "Add as layer" })).toHaveLength(1);
+    await userEvent.click(screen.getByRole("button", { name: "Add as layer" }));
+
+    expect(onApply).toHaveBeenCalledWith({
+      assetId: "out-1",
+      kind: "image",
+      name: "result",
+      uri: "asset://out-1"
+    });
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("keeps the dialog open and says so when the editor cannot take the output", async () => {
+    const onClose = jest.fn();
+    jest.spyOn(console, "error").mockImplementation(() => undefined);
+    renderView({
+      onClose,
+      apply: {
+        label: "Add as layer",
+        kinds: ["image"],
+        onApply: () => Promise.reject(new Error("no editor"))
+      }
+    });
+
+    await userEvent.click(await screen.findByText("Upscale"));
+    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+    act(() => {
+      runOptions[0].onMessage?.({
+        type: "output_update",
+        node_id: "out",
+        node_name: "result",
+        value: { type: "image", uri: "asset://out-1.png", asset_id: "out-1" }
+      });
+    });
+    await act(async () => {
+      finishRun({ success: true, outputs: {} });
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Add as layer" }));
+
+    expect(await screen.findByText("Could not use the output here.")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("cancels a live run when the dialog closes", async () => {

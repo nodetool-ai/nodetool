@@ -37,7 +37,10 @@ import CompareIcon from "@mui/icons-material/Compare";
 import EditIcon from "@mui/icons-material/EditOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 import AssetFilmstrip from "./AssetFilmstrip";
+import { TransformWithWorkflowView } from "./TransformWithWorkflowDialog";
+import { transformSourceFromAsset } from "./transformWorkflow";
 import AssetInfoPanel from "../context_menus/AssetInfoPanel";
 import { ImageComparer } from "../widgets";
 //
@@ -513,6 +516,19 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   // Copy to clipboard state and handler
   const [copied, setCopied] = useState(false);
+
+  // The source is fixed when the dialog opens, so stepping through the
+  // filmstrip behind it does not change what the run takes.
+  const [transformAsset, setTransformAsset] = useState<Asset | null>(null);
+  const transformSource = useMemo(
+    () => (currentAsset ? transformSourceFromAsset(currentAsset) : null),
+    [currentAsset]
+  );
+  const handleTransform = useCallback(() => {
+    if (currentAsset) {
+      setTransformAsset(currentAsset);
+    }
+  }, [currentAsset]);
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleCopyToClipboard = useCallback(async () => {
     const assetSrc = currentAsset?.get_url || url;
@@ -742,6 +758,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               sx={viewerActionButtonSx}
             />
           )}
+          {transformSource && !compareMode && inLibrary && (
+            <ToolbarIconButton
+              icon={<AutoFixHighOutlinedIcon />}
+              tooltip={t("transformWithWorkflow.open")}
+              onClick={handleTransform}
+              className="button transform"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
           {currentAsset?.workflow_id && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<AccountTreeIcon />}
@@ -793,6 +819,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           />
         </FlexRow>
       </Dialog>
+      {transformAsset && (
+        <TransformWithWorkflowView
+          key={transformAsset.id}
+          source={transformSourceFromAsset(transformAsset)}
+          onClose={() => setTransformAsset(null)}
+          aboveFloating
+        />
+      )}
     </div>
   );
 };

@@ -94,14 +94,68 @@ export const transformKindOfRef = (value: unknown): TransformKind | null => {
   }
 };
 
-/** What a transform runs on: a stored asset of a known kind. */
+/**
+ * What a transform runs on: a stored asset, or media an editor holds that has
+ * no asset of its own (a sketch's composite, a 3D scene with unsaved edits),
+ * passed as a `data:` URI.
+ */
 export interface TransformSource {
-  assetId: string;
   kind: TransformKind;
   name: string;
+  /** `asset://<id>` for a stored asset, else the media's own URI. */
+  uri: string;
+  assetId?: string;
   /** The asset's folder and project, where saved outputs go. */
   parentId?: string;
   projectId?: string;
+}
+
+/** The source for a stored asset of a known kind. */
+export const transformSourceFromAssetId = (
+  assetId: string,
+  kind: TransformKind,
+  name: string
+): TransformSource => ({ kind, name, uri: assetLocator(assetId), assetId });
+
+/** The source for a `*Ref` an editor holds, or null when it carries no media. */
+export const transformSourceFromRef = (
+  ref: { uri?: string | null; asset_id?: string | null },
+  kind: TransformKind,
+  name: string
+): TransformSource | null => {
+  const assetId = assetIdOf(ref);
+  if (assetId) {
+    return transformSourceFromAssetId(assetId, kind, name);
+  }
+  return ref.uri ? { kind, name, uri: ref.uri } : null;
+};
+
+/** Encode editor-held bytes as the `data:` URI a source carries. */
+export const blobToDataUri = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error ?? new Error("Could not read the file."));
+    reader.readAsDataURL(blob);
+  });
+
+/** An output stored as an asset, handed to the editor that opened the dialog. */
+export interface TransformResult {
+  assetId: string;
+  kind: TransformKind;
+  name: string;
+  /** `asset://<id>`. */
+  uri: string;
+}
+
+/**
+ * An editor's way to take an output back: "Add as layer" in the sketch
+ * editor, "Replace clip" on the timeline. Only outputs of `kinds` offer it.
+ */
+export interface TransformApplyAction {
+  label: string;
+  kinds: readonly TransformKind[];
+  onApply: (result: TransformResult) => void | Promise<void>;
 }
 
 export const transformSourceFromAsset = (
@@ -112,9 +166,7 @@ export const transformSourceFromAsset = (
     return null;
   }
   return {
-    assetId: asset.id,
-    kind,
-    name: asset.name,
+    ...transformSourceFromAssetId(asset.id, kind, asset.name),
     parentId: asset.parent_id || undefined,
     projectId: asset.project_id || undefined
   };
@@ -182,11 +234,13 @@ export const transformParams = (
   source: TransformSource,
   target: TransformInput
 ): Record<string, unknown> => {
-  const ref = {
+  const ref: Record<string, string> = {
     type: REF_TYPE[source.kind],
-    uri: assetLocator(source.assetId),
-    asset_id: source.assetId
+    uri: source.uri
   };
+  if (source.assetId) {
+    ref.asset_id = source.assetId;
+  }
   return { [target.input.name]: target.list ? [ref] : ref };
 };
 

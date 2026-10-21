@@ -18568,6 +18568,20 @@
       "audio": "Audio",
       "model3d": "3D-Modell",
       "document": "Dokument"
+    },
+    "open": "Mit Workflow umwandeln…",
+    "openStill": "Standbild mit Workflow umwandeln…",
+    "openClip": "Clip mit Workflow umwandeln…",
+    "applyFailed": "Die Ausgabe konnte hier nicht verwendet werden.",
+    "sketchName": "Skizze",
+    "sceneName": "3D-Szene",
+    "clipName": "Clip",
+    "apply": {
+      "addToScene": "Zur Szene hinzufügen",
+      "addAsLayer": "Als Ebene hinzufügen",
+      "replaceAudio": "Audio ersetzen",
+      "replaceClip": "Clip ersetzen",
+      "addAsTake": "Als Take hinzufügen"
     }
   }
 }
