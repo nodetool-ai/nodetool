@@ -165,6 +165,200 @@ export const SEED_GRAPHS: readonly SeedGraph[] = [
     }
   },
   {
+    id: "cycle-faults",
+    graph: {
+      nodes: [
+        {
+          id: "c1",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "c2",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "c3",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "tail",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "d1",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "d2",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "d3",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "d4",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "self",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "ctl1",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "ctl2",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "loop",
+          type: "nodetool.control.Loop",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "body",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        }
+      ],
+      edges: [
+        {
+          id: "c-12",
+          source: "c1",
+          sourceHandle: "output",
+          target: "c2",
+          targetHandle: "a"
+        },
+        {
+          id: "c-23",
+          source: "c2",
+          sourceHandle: "output",
+          target: "c3",
+          targetHandle: "a"
+        },
+        {
+          id: "c-31",
+          source: "c3",
+          sourceHandle: "output",
+          target: "c1",
+          targetHandle: "a"
+        },
+        {
+          id: "c-3t",
+          source: "c3",
+          sourceHandle: "output",
+          target: "tail",
+          targetHandle: "a"
+        },
+        {
+          id: "d-12",
+          source: "d1",
+          sourceHandle: "output",
+          target: "d2",
+          targetHandle: "a"
+        },
+        {
+          id: "d-13",
+          source: "d1",
+          sourceHandle: "output",
+          target: "d3",
+          targetHandle: "a"
+        },
+        {
+          id: "d-24",
+          source: "d2",
+          sourceHandle: "output",
+          target: "d4",
+          targetHandle: "a"
+        },
+        {
+          id: "d-34",
+          source: "d3",
+          sourceHandle: "output",
+          target: "d4",
+          targetHandle: "b"
+        },
+        {
+          id: "self-1",
+          source: "self",
+          sourceHandle: "output",
+          target: "self",
+          targetHandle: "a"
+        },
+        {
+          id: "self-2",
+          source: "self",
+          sourceHandle: "output",
+          target: "self",
+          targetHandle: "b"
+        },
+        {
+          id: "ghost-self",
+          source: "nowhere",
+          sourceHandle: "output",
+          target: "nowhere",
+          targetHandle: "a"
+        },
+        {
+          id: "ghost-edge",
+          source: "c1",
+          sourceHandle: "output",
+          target: "nowhere",
+          targetHandle: "a"
+        },
+        {
+          id: "ctl-12",
+          source: "ctl1",
+          sourceHandle: "output",
+          target: "ctl2",
+          targetHandle: "a",
+          edge_type: "control"
+        },
+        {
+          id: "ctl-21",
+          source: "ctl2",
+          sourceHandle: "output",
+          target: "ctl1",
+          targetHandle: "a"
+        },
+        {
+          id: "loop-body",
+          source: "loop",
+          sourceHandle: "output",
+          target: "body",
+          targetHandle: "a"
+        },
+        {
+          id: "loop-back",
+          source: "body",
+          sourceHandle: "output",
+          target: "loop",
+          targetHandle: "next"
+        },
+        {
+          id: "loop-cond",
+          source: "body",
+          sourceHandle: "output",
+          target: "loop",
+          targetHandle: "condition"
+        }
+      ]
+    }
+  },
+  {
     id: "wiring-faults",
     graph: {
       nodes: [
