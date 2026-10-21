@@ -78,7 +78,7 @@ const useNumberCommit = (onCommit: (value: number) => void, integer?: boolean) =
 
 // Bounded params (both min and max defined) add a slider before the value;
 // unbounded ones (dimensions, segments, intensity) are a value field alone.
-const NumberRow = memo(({ label, value, onCommit, step = 0.01, min, max, integer }: NumberRowProps) => {
+export const NumberRow = memo(({ label, value, onCommit, step = 0.01, min, max, integer }: NumberRowProps) => {
   const isSlider = min !== undefined && max !== undefined;
   const { commit, gesture } = useNumberCommit(onCommit, integer);
   return (

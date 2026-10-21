@@ -242,7 +242,7 @@ llama.cpp points NodeTool at a local `llama-server` instance for chat. `llama-se
 
 ## llama.cpp local
 
-llama.cpp local (provider id `node_llama_cpp`) runs GGUF models inside the NodeTool backend through the `node-llama-cpp` binding, with no separate server. It serves chat and embeddings. Models are GGUF files in `NODE_LLAMA_CPP_MODELS_DIR`, which defaults to the shared llama.cpp cache. `NODE_LLAMA_CPP_GPU_BACKEND` selects `auto`, `metal`, `cuda`, `vulkan`, or `cpu`. No key. Local only.
+llama.cpp local (provider id `node_llama_cpp`) runs GGUF models inside the NodeTool backend through the `node-llama-cpp` binding, with no separate server. It serves chat and embeddings. Models are GGUF files in `NODE_LLAMA_CPP_MODELS_DIR`, which defaults to the shared llama.cpp cache, and the Hugging Face hub cache. `MODEL_FOLDERS` in **Settings › Folders** adds folders, such as a ComfyUI `models` folder, and their subfolders. Every GGUF language model in them appears in the model picker. `NODE_LLAMA_CPP_GPU_BACKEND` selects `auto`, `metal`, `cuda`, `vulkan`, or `cpu`. No key. Local only.
 
 The model picker also offers GGUF models to download: a curated list in `node-llama-cpp-models.ts`, then the trending models in `node-llama-cpp-trending.generated.ts`. A nightly workflow (`.github/workflows/gguf-trending-sync.yml`) runs `npm run sync:gguf-trending`, which reads the [trending GGUF repos](https://huggingface.co/models?library=gguf&sort=trending) and opens a PR when the list changes. It keeps chat models from the trusted publishers in `scripts/gguf/sources.json`, skips uncensored and merged variants, and picks one Q4 file of 20 GB or less from each repo. It keeps up to 50 models, one repo for each base model.
 
@@ -261,6 +261,8 @@ It requires no native package. Local only.
 ## stable-diffusion.cpp
 
 stable-diffusion.cpp (provider id `stable_diffusion_cpp`) generates images locally: text-to-image and image-to-image. It starts the `sd-server` binary from the `sd-cpp` runtime package on the first generation and keeps it running while the same model is in use. Install the package in **Settings › Packages**, or run `nodetool runtime add sd-cpp`. `SD_CPP_SERVER_PATH` selects another `sd-server`. The model picker offers each model with a Download button. A model can load files from several Hugging Face repositories, and one click downloads all of them into the Hugging Face cache. Text encoders and VAEs that several models share download once.
+
+`MODEL_FOLDERS` in **Settings › Folders** adds the single-file checkpoints in a folder and its subfolders, such as a ComfyUI `models` folder. A checkpoint qualifies when its `.safetensors` file holds the diffusion model, the VAE and the text encoders: SD 1.x and 2.x, SDXL, and SD3 or FLUX.1 files that bundle their encoders. LoRAs, VAEs, and diffusion models that need separate encoders are left out. The provider reads the architecture from the tensor names and picks default steps, guidance and size for it. The model id is the file's absolute path.
 
 The catalog is in `packages/runtime/src/providers/sdcpp-models.ts`:
 

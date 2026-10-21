@@ -15,7 +15,8 @@ const { fakePipeline, loadTransformers } = vi.hoisted(() => ({
   }))
 }));
 
-vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
+vi.mock("@nodetool-ai/transformers-js-nodes", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@nodetool-ai/transformers-js-nodes")>()),
   getPipeline: vi.fn(async () => fakePipeline),
   loadTransformers
 }));
@@ -287,5 +288,54 @@ describe("generateMessages", () => {
     controller.abort();
     await expect(gen.next()).rejects.toThrow(/abort/i);
     expect(interrupt).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TeapotLLM chat", () => {
+  it("passes context and question as plain text with encoder special tokens enabled", async () => {
+    const applyChatTemplate = vi.fn(() => { throw new Error("No chat template"); });
+    Object.assign(fakePipeline, { tokenizer: { apply_chat_template: applyChatTemplate } });
+    fakePipeline.mockResolvedValue([{ generated_text: "330 meters." }]);
+    const result = await generateMessage({
+      model: "teapotai/teapotllm",
+      messages: [
+        { role: "system", content: "The Eiffel Tower is 330 meters tall." },
+        { role: "user", content: "How tall is it?" }
+      ]
+    });
+    expect(result.content).toBe("330 meters.");
+    expect(applyChatTemplate).not.toHaveBeenCalled();
+    expect(fakePipeline).toHaveBeenCalledWith(
+      "The Eiffel Tower is 330 meters tall.\n\nHow tall is it?",
+      { max_new_tokens: 512, do_sample: false }
+    );
+  });
+
+  it("rejects tools that text-to-text models cannot execute", async () => {
+    await expect(generateMessage({
+      model: "teapotai/teapotllm",
+      messages: [{ role: "user", content: "Search for it." }],
+      tools: [{ name: "search", description: "Search", inputSchema: { type: "object", properties: {} } }]
+    })).rejects.toThrow("Text-to-text models do not support chat tool calls.");
+    expect(fakePipeline).not.toHaveBeenCalled();
+  });
+
+  it("streams text-to-text output without applying a chat template", async () => {
+    Object.assign(fakePipeline, { tokenizer: {} });
+    fakePipeline.mockImplementation(async (_input, options) => {
+      options.streamer.cb("330 meters.");
+      return [{ generated_text: "330 meters." }];
+    });
+    const items = [];
+    for await (const item of generateMessages({
+      model: "teapotai/teapotllm",
+      messages: [{ role: "user", content: "How tall is it?" }]
+    })) {
+      items.push(item);
+    }
+    expect(items).toEqual([
+      { type: "chunk", content_type: "text", content: "330 meters.", done: false },
+      { type: "chunk", content_type: "text", content: "", done: true }
+    ]);
   });
 });

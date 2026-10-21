@@ -51,6 +51,7 @@ const renderMenu = (
         onSendToWorkflow={jest.fn()}
         onClose={jest.fn()}
         onRequestReplace={jest.fn()}
+        onRequestTransform={jest.fn()}
         onError={jest.fn()}
         {...props}
       />
@@ -225,6 +226,22 @@ describe("ClipContextMenu", () => {
     it("hides the item for a clip with no rendered media", () => {
       renderMenu({ clipId: "clip-4" });
       expect(screen.queryByText(/to workflow/)).toBeNull();
+    });
+
+    it("offers Transform with workflow for a clip with media", async () => {
+      const onRequestTransform = jest.fn();
+      const onClose = jest.fn();
+      renderMenu({ clipId: "clip-2", onRequestTransform, onClose });
+
+      await userEvent.click(screen.getByText("Transform with workflow…"));
+
+      expect(onRequestTransform).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("hides Transform with workflow for clips without a file", () => {
+      renderMenu({ clipId: "clip-3" });
+      expect(screen.queryByText("Transform with workflow…")).toBeNull();
     });
   });
 });

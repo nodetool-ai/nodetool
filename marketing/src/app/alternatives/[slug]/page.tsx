@@ -8,6 +8,9 @@ import JsonLd from "../../../components/JsonLd";
 import ComparisonMesh from "../../../components/ComparisonMesh";
 import FaqSection from "../../../components/FaqSection";
 import SearchStarter from "../../../components/SearchStarter";
+import HeroDemoPlayer from "../../../components/HeroDemoPlayer";
+import AlternativeMedia from "../../../components/AlternativeMedia";
+import { alternativeVisuals, HERO_REEL } from "../../../data/alternativesVisuals";
 import { breadcrumbSchema, itemListSchema } from "../../../lib/jsonld";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import {
@@ -48,6 +51,9 @@ export async function generateMetadata({
   };
 }
 
+/** Facts the hero states for every comparison; each is backed by the feature tables. */
+const HERO_CHIPS = ["Open source", "Local and hosted models", "Your own provider accounts"];
+
 function Cell({ value }: { value: string | boolean }) {
   if (value === true)
     return <Check className="mx-auto h-5 w-5 text-emerald-400" aria-label="Yes" />;
@@ -66,6 +72,7 @@ export default async function AlternativesPage({
   if (!c) notFound();
 
   const theme = THEMES[c.theme];
+  const visuals = alternativeVisuals(c);
   const tools = alternativesFor(c.slug);
   const rows: FeatureRow[] = c.rows;
   // Most competitor bullets are real capabilities, so they read as checks. Only
@@ -105,40 +112,216 @@ export default async function AlternativesPage({
       <SiteHeader />
 
       <div className="relative isolate pt-28 sm:pt-36">
-        {/* Hero + limitation intro */}
-        <section aria-labelledby="alt-title" className="mx-auto max-w-3xl px-6 text-center">
-          <span
-            className={`inline-flex items-center gap-2 rounded-full border ${theme.chip} px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]`}
+        {/* Hero: the competitor keyword stays in the H1, the promise leads,
+            and a NodeTool reel carries the argument. */}
+        <section aria-labelledby="alt-title" className="mx-auto max-w-6xl px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 id="alt-title">
+              <span
+                className={`inline-flex items-center gap-2 rounded-full border ${theme.chip} px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]`}
+              >
+                {c.name} alternative
+              </span>
+              <span className="sr-only">: </span>
+              <span className="mt-6 block text-4xl font-semibold tracking-tight text-white md:text-6xl">
+                {visuals.headline}
+              </span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-300">
+              {visuals.subline}
+            </p>
+            <ul className="mt-6 flex flex-wrap justify-center gap-2 text-sm text-slate-200">
+              {HERO_CHIPS.map((chip) => (
+                <li
+                  key={chip}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1"
+                >
+                  <Check className="h-4 w-4 text-emerald-400" aria-hidden />
+                  {chip}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <SmartDownloadButton
+                placement="hero"
+                {...(c.starter ? { source: c.starter.source, starter: c.starter.id } : {})}
+                icon={<Download className="h-5 w-5" />}
+                classNameOverride={`inline-flex items-center justify-center gap-2 rounded-xl ${theme.button} px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition-all focus-ring`}
+              />
+              <a
+                href="#glance-title"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-6 py-3.5 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 focus-ring"
+              >
+                Compare with {c.name} <ArrowRight className="h-4 w-4" aria-hidden />
+              </a>
+            </div>
+          </div>
+          <div className="mx-auto mt-12 max-w-5xl rounded-2xl border border-slate-800/70 bg-slate-900/40 p-2 shadow-2xl ring-1 ring-white/5">
+            <HeroDemoPlayer
+              mediaBase={HERO_REEL.base}
+              alt={HERO_REEL.alt}
+              caption={HERO_REEL.caption}
+            />
+          </div>
+        </section>
+
+        {/* At a glance. The short answer leads so an answer engine can lift it. */}
+        <section aria-labelledby="glance-title" className="mx-auto mt-20 max-w-5xl scroll-mt-28 px-6">
+          <h2
+            id="glance-title"
+            className="mb-4 text-center text-2xl font-semibold tracking-tight text-white md:text-3xl"
           >
-            {c.name} alternatives
-          </span>
-          <h1
-            id="alt-title"
-            className="mt-6 text-4xl font-semibold tracking-tight text-white md:text-5xl"
-          >
-            Looking for an alternative to {c.name}?
-          </h1>
-          {/* Direct answer first — the paragraph an answer engine can lift. */}
-          <p className="mt-5 text-lg leading-relaxed text-white">
+            NodeTool vs {c.name} at a glance
+          </h2>
+          <p className="mx-auto mb-8 max-w-3xl text-center text-lg leading-relaxed text-slate-300">
             {shortAnswer(c)}
           </p>
-          <p className="mt-4 leading-relaxed text-slate-400">
-            {c.limitation}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="relative flex flex-col rounded-2xl border border-slate-800/70 bg-slate-900/60 p-8 ring-1 ring-white/5 backdrop-blur-md">
+              <h3 className="text-xl font-semibold text-white">{c.name}</h3>
+              <p className="mt-1 text-sm text-slate-400">{c.competitorTagline}</p>
+              <ul className="mt-6 space-y-3 text-sm text-slate-300">
+                {c.competitorBullets.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <CompetitorBulletIcon className={competitorBulletClass} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="relative flex flex-col rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-8 ring-1 ring-emerald-500/10 backdrop-blur-md">
+              <h3 className="text-xl font-semibold text-white">NodeTool</h3>
+              <p className="mt-1 text-sm text-slate-400">{c.nodetoolTagline}</p>
+              <ul className="mt-6 space-y-3 text-sm text-slate-300">
+                {c.nodetoolBullets.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Product evidence: three stages of one project, each in its editor. */}
+        <section aria-labelledby="stages-title" className="mx-auto mt-20 max-w-6xl px-6">
+          <h2
+            id="stages-title"
+            className="text-center text-2xl font-semibold tracking-tight text-white md:text-3xl"
+          >
+            {visuals.stagesHeading}
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-center leading-relaxed text-slate-400">
+            {visuals.stagesIntro}
           </p>
+          <ol className="mt-10 grid gap-6 md:grid-cols-3">
+            {visuals.stages.map((stage) => (
+              <li
+                key={stage.label}
+                className="flex flex-col overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-900/50 ring-1 ring-white/5"
+              >
+                <div className="border-b border-slate-800/70 bg-slate-950">
+                  <AlternativeMedia media={stage.media} />
+                </div>
+                <div className="p-6">
+                  <p className="font-jetbrains text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    {stage.label}
+                  </p>
+                  <h3 className="mt-2 text-lg font-semibold text-white">{stage.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">{stage.body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Feature table: NodeTool vs the tool people are leaving */}
+        <section aria-label="Compare" className="mx-auto mt-20 max-w-5xl px-6">
+          <h2 className="mb-6 text-center text-2xl font-semibold tracking-tight text-white md:text-3xl">
+            NodeTool vs {c.name}, feature by feature
+          </h2>
+          <div className="overflow-x-auto rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="bg-slate-900/60 text-sm">
+                  <th className="px-5 py-4 font-medium text-slate-400">Feature</th>
+                  <th className="px-5 py-4 text-center font-semibold text-white">{c.name}</th>
+                  <th className="px-5 py-4 text-center font-semibold text-emerald-300">NodeTool</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr
+                    key={row.label}
+                    className={i % 2 ? "bg-slate-950/40" : "bg-slate-900/20"}
+                  >
+                    <td className="px-5 py-4 text-sm font-medium text-slate-200">{row.label}</td>
+                    <td className="px-5 py-4 text-center"><Cell value={row.competitor} /></td>
+                    <td className="px-5 py-4 text-center"><Cell value={row.nodetool} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {c.sources && (
+            <p className="mt-6 text-center text-sm leading-relaxed text-slate-400">
+              Check current capabilities and plan terms: {c.sources.map((source, index) => (
+                <React.Fragment key={source.href}>
+                  {index > 0 ? " · " : ""}
+                  <a href={source.href} className="text-blue-300 underline underline-offset-2 hover:text-blue-200 focus-ring">{source.title}</a>
+                </React.Fragment>
+              ))}
+            </p>
+          )}
         </section>
 
         {c.starter && (
-          <SearchStarter
-            starter={c.starter.id}
-            source={c.starter.source}
-            heading={c.starter.heading}
-          />
+          <div className="mt-10">
+            <SearchStarter
+              starter={c.starter.id}
+              source={c.starter.source}
+              heading={c.starter.heading}
+            />
+          </div>
         )}
 
-        {/* Tool list */}
+        {/* Why the comparison comes up, and when to pick which. */}
+        <section aria-labelledby="explainer-title" className="mx-auto mt-20 max-w-3xl px-6">
+          <div className="rounded-2xl border border-slate-800/70 bg-slate-950/40 p-8 md:p-10">
+            <h2
+              id="explainer-title"
+              className="text-2xl font-semibold tracking-tight text-white"
+            >
+              {c.explainerHeading}
+            </h2>
+            <p className="mt-4 leading-relaxed text-slate-300">
+              {c.explainerParagraph}
+            </p>
+            <p className="mt-4 leading-relaxed text-slate-400">
+              {c.heroParagraph}
+            </p>
+            <p className="mt-4 leading-relaxed text-slate-400">
+              {c.limitation}
+            </p>
+            {c.slug === "comfyui" && (
+              <p className="mt-4 text-sm text-slate-400">
+                ComfyUI video support: <a className="text-blue-300 underline" href="https://docs.comfy.org/tutorials/video/wan/wan2_2">official Wan workflow guide</a>.
+              </p>
+            )}
+            {c.slug === "lm-studio" && (
+              <p className="mt-4 text-sm text-slate-400">
+                LM Studio capabilities: <a className="text-blue-300 underline" href="https://lmstudio.ai/docs/app/basics/rag">document chat</a> and <a className="text-blue-300 underline" href="https://lmstudio.ai/docs/developer/core/mcp">MCP tools</a>.
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* Tool list: other alternatives, after the product argument. */}
         <section
           aria-labelledby="alt-list-title"
-          className="mx-auto mt-16 max-w-3xl px-6"
+          className="mx-auto mt-20 max-w-5xl px-6"
         >
           <h2
             id="alt-list-title"
@@ -146,18 +329,18 @@ export default async function AlternativesPage({
           >
             What are the best {c.name} alternatives?
           </h2>
-          <ul className="space-y-4">
+          <ul className="grid gap-4 md:grid-cols-2">
             {tools.map((t) => (
               <li
                 key={t.name}
-                className={`rounded-2xl border p-6 ${
+                className={`rounded-2xl border p-5 ${
                   t.isNodetool
-                    ? "border-emerald-500/30 bg-emerald-500/5 ring-1 ring-emerald-500/10"
+                    ? "border-emerald-500/30 bg-emerald-500/5 ring-1 ring-emerald-500/10 md:col-span-2"
                     : "border-slate-800/70 bg-slate-900/40"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold text-white">
+                  <h3 className="text-base font-semibold text-white">
                     {t.name}
                     {t.isNodetool && (
                       <span className="ml-2 align-middle text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">
@@ -180,112 +363,6 @@ export default async function AlternativesPage({
               </li>
             ))}
           </ul>
-        </section>
-
-        {/* At a glance — ported from the retired /vs page so the head-to-head
-            copy still has a home. */}
-        <section aria-labelledby="glance-title" className="mx-auto mt-16 max-w-5xl px-6">
-          <h2
-            id="glance-title"
-            className="mb-6 text-center text-2xl font-semibold tracking-tight text-white"
-          >
-            NodeTool vs {c.name} at a glance
-          </h2>
-          <p className="mx-auto mb-8 max-w-3xl text-center leading-relaxed text-slate-400">
-            {c.heroParagraph}
-          </p>
-          {c.slug === "comfyui" && (
-            <p className="mx-auto mb-8 max-w-3xl text-center text-sm text-slate-400">
-              ComfyUI video support: <a className="text-blue-300 underline" href="https://docs.comfy.org/tutorials/video/wan/wan2_2">official Wan workflow guide</a>.
-            </p>
-          )}
-          {c.slug === "lm-studio" && (
-            <p className="mx-auto mb-8 max-w-3xl text-center text-sm text-slate-400">
-              LM Studio capabilities: <a className="text-blue-300 underline" href="https://lmstudio.ai/docs/app/basics/rag">document chat</a> and <a className="text-blue-300 underline" href="https://lmstudio.ai/docs/developer/core/mcp">MCP tools</a>.
-            </p>
-          )}
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="relative flex flex-col rounded-2xl border border-slate-800/70 bg-slate-900/60 p-8 ring-1 ring-white/5 backdrop-blur-md">
-              <h3 className="text-xl font-semibold text-white">{c.name}</h3>
-              <p className="mt-1 text-sm text-slate-400">{c.competitorTagline}</p>
-              <ul className="mt-6 space-y-3 text-sm text-slate-300">
-                {c.competitorBullets.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CompetitorBulletIcon className={competitorBulletClass} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="relative flex flex-col rounded-2xl border border-slate-800/70 bg-slate-900/60 p-8 ring-1 ring-white/5 backdrop-blur-md">
-              <h3 className="text-xl font-semibold text-white">NodeTool</h3>
-              <p className="mt-1 text-sm text-slate-400">{c.nodetoolTagline}</p>
-              <ul className="mt-6 space-y-3 text-sm text-slate-300">
-                {c.nodetoolBullets.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* Feature table: NodeTool vs the tool people are leaving */}
-        <section aria-label="Compare" className="mx-auto mt-16 max-w-5xl px-6">
-          <h2 className="mb-6 text-center text-2xl font-semibold tracking-tight text-white">
-            NodeTool vs {c.name}, feature by feature
-          </h2>
-          <div className="overflow-hidden rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="bg-slate-900/60 text-sm">
-                  <th className="px-5 py-4 font-medium text-slate-400">Feature</th>
-                  <th className="px-5 py-4 text-center font-semibold text-white">{c.name}</th>
-                  <th className="px-5 py-4 text-center font-semibold text-white">NodeTool</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr
-                    key={row.label}
-                    className={i % 2 ? "bg-slate-950/40" : "bg-slate-900/20"}
-                  >
-                    <td className="px-5 py-4 text-sm text-slate-300">{row.label}</td>
-                    <td className="px-5 py-4 text-center"><Cell value={row.competitor} /></td>
-                    <td className="px-5 py-4 text-center"><Cell value={row.nodetool} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {c.sources && (
-            <p className="mt-6 text-center text-sm leading-relaxed text-slate-400">
-              Check current capabilities and plan terms: {c.sources.map((source, index) => (
-                <React.Fragment key={source.href}>
-                  {index > 0 ? " · " : ""}
-                  <a href={source.href} className="text-blue-300 underline underline-offset-2 hover:text-blue-200 focus-ring">{source.title}</a>
-                </React.Fragment>
-              ))}
-            </p>
-          )}
-        </section>
-
-        {/* Explainer — also ported from the retired /vs page. */}
-        <section aria-labelledby="explainer-title" className="mx-auto mt-16 max-w-3xl px-6">
-          <div className="rounded-2xl border border-slate-800/70 bg-slate-950/40 p-8 md:p-10">
-            <h2
-              id="explainer-title"
-              className="text-2xl font-semibold tracking-tight text-white"
-            >
-              {c.explainerHeading}
-            </h2>
-            <p className="mt-4 leading-relaxed text-slate-300">
-              {c.explainerParagraph}
-            </p>
-          </div>
         </section>
 
         {/* Visible FAQ — and the FAQPage schema, built from these same rows. */}

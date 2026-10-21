@@ -1,0 +1,26 @@
+planned-clean ok
+planned-syntax-error its code does not parse: Unexpected token (1:6)
+planned-output-in-for it calls output() once per item, but output() can be set only once per run — call await emit(name, item) per item, or collect the items and call output() once after the loop
+planned-output-in-callback it calls output() once per item, but output() can be set only once per run — call await emit(name, item) per item, or collect the items and call output() once after the loop
+planned-output-in-function-expression it calls output() once per item, but output() can be set only once per run — call await emit(name, item) per item, or collect the items and call output() once after the loop
+planned-output-after-callback ok
+planned-callee-not-output ok
+planned-member-callee ok
+planned-unwired-one-none it reads inputs.ghost, but the only connected inputs are none
+planned-unwired-one-wired it reads inputs.ghost, but the only connected input is inputs.text
+planned-unwired-many-wired-many it reads inputs.p, inputs.q, but the only connected inputs are inputs.text, inputs.flag
+planned-own-property-read ok
+planned-unread-one inputs.flag is connected, but the body never reads it
+planned-unread-many inputs.text, inputs.flag, inputs.items are connected, but the body never reads them
+planned-opaque-inputs ok
+planned-whole-inputs ok
+planned-stream-reads ok
+planned-stream-dynamic it reads inputs.k, but the only connected inputs are inputs.items, inputs.text
+planned-stream-any ok
+planned-unawaited-global it assigns getSecret(), fetch(), sleep() without await, so the variable holds a Promise
+planned-unawaited-member it assigns workspace.read(), media.fetch() without await, so the variable holds a Promise
+planned-unawaited-unknown-object ok
+planned-model-host it calls the model API at api.openai.com itself; put the model call in its own step with a model_role
+planned-model-host-last it calls the model API at api.deepseek.com itself; put the model call in its own step with a model_role
+planned-no-output it never sets "n", so the next step receives nothing
+planned-wrong-output it sets "a", "b", but the next step reads "n"

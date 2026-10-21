@@ -180,6 +180,8 @@
     "openAssetAsTabTooltip": "Open this asset in a new editor tab",
     "sendToWorkflow": "Send to workflow",
     "sendMediaToWorkflowTooltip": "Add the selected media to a workflow canvas as constant nodes",
+    "transformWithWorkflow": "Transform with workflow…",
+    "transformWithWorkflowTooltip": "Run this file through one of your workflows",
     "useAsEntity": "Use as entity…",
     "useAsEntityTooltip": "Tag this image as a character, location, style, or prop to reuse it across shots",
     "editTimeline": "Edit timeline",
@@ -1893,6 +1895,8 @@
       "webPlayerDescription": "Static site, published revision (.zip)",
       "desktopApp": "Desktop app",
       "desktopAppDescription": "Tauri project for Windows, macOS and Linux (.zip)",
+      "mobileApp": "Mobile app",
+      "mobileAppDescription": "Expo project for iOS and Android (.zip)",
       "desktopExecutable": "Desktop executable",
       "desktopExecutableDescription": "Compile on this computer with cargo, output in the Console"
     },
@@ -1974,6 +1978,7 @@
         "publish": "Publish game",
         "exportWeb": "Export web player",
         "exportDesktop": "Export desktop app",
+        "exportMobile": "Export mobile app",
         "buildExecutable": "Build desktop executable"
       },
       "edit": {
@@ -2060,6 +2065,7 @@
     "shell": {
       "contextMenuLabel": "Game",
       "buildingDesktop": "Building the desktop app project from the published revision",
+      "buildingMobile": "Building the mobile app project from the published revision",
       "buildingWeb": "Building the web player from the published revision",
       "exportFailed": "Export failed: {{error}}",
       "exportFailedSummary": "Game export failed",
@@ -4434,8 +4440,6 @@
         "count_other": "{{count}} games",
         "makeGame": "Make a game",
         "description": "Play a game directly, or install a copy to change its art, levels and rules.",
-        "closeGame": "Close game",
-        "loadingGame": "Loading game",
         "loading": "Loading games",
         "loadErrorTitle": "Couldn't load games",
         "loadErrorDescription": "Try again in a moment.",
@@ -11133,7 +11137,9 @@
         "undo": "Undo",
         "undoNamed": "Undo {{label}}",
         "redo": "Redo",
-        "redoNamed": "Redo {{label}}"
+        "redoNamed": "Redo {{label}}",
+        "renderBlender": "Render with Blender",
+        "hideBlenderRender": "Hide Blender render"
       },
       "tools": {
         "move": "Move",
@@ -11203,7 +11209,9 @@
         "import": "Import {{name}}",
         "parent": "Parent {{name}}",
         "transform": "{{verb}} {{name}}"
-      }
+      },
+      "resizeBlenderPanel": "Resize Blender render panel",
+      "blenderDescription": "Render the scene with Blender at full quality"
     },
     "outliner": {
       "objectLabel": "{{name}} ({{type}})",
@@ -11274,7 +11282,93 @@
       "modelRequired": "Choose an image model that can edit images.",
       "earlierRenders": "Earlier renders",
       "showRender": "Show render: {{caption}}",
-      "failed": "Failed"
+      "failed": "Failed",
+      "shot": {
+        "title": "Shot",
+        "frame": "Frame",
+        "aspectViewport": "Whole viewport",
+        "lens": "Lens",
+        "lensFree": "Free",
+        "lensFreeHint": "Free lens, the editor's own view",
+        "lensMm": "{{mm}} mm",
+        "views": {
+          "front": "Front",
+          "right": "Side",
+          "top": "Top"
+        },
+        "frameAll": "Frame all",
+        "save": "Save shot",
+        "savedName": "Shot {{index}}",
+        "restore": "Go to {{name}}"
+      }
+    },
+    "blenderRender": {
+      "emptyTitle": "No Blender renders yet",
+      "emptyDescription": "Set up the shot and the render settings, then render the scene with Blender.",
+      "rendering": "Blender is rendering the scene…",
+      "cancel": "Cancel render",
+      "renderAlt": "Blender render: {{caption}}",
+      "caption": "{{engine}} · {{width}} × {{height}} · {{samples}} samples",
+      "sections": {
+        "render": "Render",
+        "output": "Output",
+        "camera": "Camera",
+        "lighting": "Lighting",
+        "advanced": "Advanced"
+      },
+      "fields": {
+        "engine": "Engine",
+        "samples": "Samples",
+        "denoise": "Denoise",
+        "width": "Width",
+        "height": "Height",
+        "resolutionPercentage": "Scale %",
+        "transparent": "Transparent background",
+        "backgroundColor": "Background",
+        "azimuth": "Azimuth",
+        "elevation": "Elevation",
+        "fov": "Field of view",
+        "zoom": "Zoom",
+        "lighting": "Preset",
+        "lightIntensity": "Intensity",
+        "timeout": "Timeout (s)"
+      },
+      "engines": {
+        "eevee": "EEVEE",
+        "cycles": "Cycles"
+      },
+      "engineHints": {
+        "eevee": "Fast, real-time quality",
+        "cycles": "Path traced, slower and more realistic"
+      },
+      "cameras": {
+        "view": "This view",
+        "scene": "Scene camera",
+        "orbit": "Orbit"
+      },
+      "cameraHints": {
+        "view": "Render from the viewport camera as you see it now",
+        "scene": "Render from the first camera in the scene",
+        "orbit": "Frame the whole scene from the angle set below"
+      },
+      "lighting": {
+        "studio": "Studio",
+        "soft": "Soft",
+        "flat": "Flat"
+      },
+      "lightingHint": "Blender uses the preset only when the scene has no lights of its own.",
+      "matchView": "Match view aspect",
+      "formatHint": "Renders are saved as PNG images in your assets.",
+      "render": "Render with Blender",
+      "requirement": "Needs Blender 5.2 or newer on the machine that runs NodeTool.",
+      "earlierRenders": "Earlier renders",
+      "showRender": "Show render: {{caption}}",
+      "failed": "Failed",
+      "errors": {
+        "export": "The scene could not be exported.",
+        "render": "The Blender render failed.",
+        "context": "Blender rendering of the 3D editor scene failed"
+      }
     },
     "properties": {
       "change": "Change {{label}}",
@@ -18429,6 +18523,65 @@
         "waitingToStart": "Waiting to start…",
         "buildingGraph": "Building graph…"
       }
+    }
+  },
+  "transformWithWorkflow": {
+    "title": "Transform with workflow",
+    "sourceKind": "Source: {{kind}}",
+    "pickDescription": "Pick a workflow that takes this {{kind}}. Its other inputs keep their saved values.",
+    "searchPlaceholder": "Search workflows by name",
+    "searchLabel": "Workflows",
+    "loadFailed": "Could not load your workflows.",
+    "noWorkflowsTitle": "No matching workflows",
+    "noWorkflowsDescription": "A workflow shows up here once it has an input node for this {{kind}}.",
+    "noSearchResults": "No workflows match \"{{query}}\".",
+    "chooseInput": "This workflow has several matching inputs. Choose the one that gets the file.",
+    "unsupportedTitle": "Nothing to transform",
+    "unsupportedDescription": "Folders cannot run through a workflow.",
+    "run": "Run",
+    "cancel": "Cancel",
+    "close": "Close",
+    "cancelRun": "Stop run",
+    "chooseAnother": "Choose another workflow",
+    "runAgain": "Run again",
+    "done": "Done",
+    "progress": "Progress",
+    "runningNode": "Running {{node}}",
+    "nodeProgress": "Current step",
+    "updates": "Updates",
+    "outputs": "Outputs",
+    "noOutputs": "The workflow finished without outputs.",
+    "transformOutput": "Transform",
+    "saveToAssets": "Save to assets",
+    "inAssets": "In assets",
+    "saveFailed": "Could not save the output to your assets.",
+    "status": {
+      "idle": "Ready",
+      "running": "Running",
+      "completed": "Done",
+      "failed": "Failed",
+      "cancelled": "Stopped"
+    },
+    "kind": {
+      "image": "image",
+      "video": "video",
+      "audio": "audio",
+      "model3d": "3D model",
+      "document": "document"
+    },
+    "open": "Transform with workflow…",
+    "openStill": "Transform still with workflow…",
+    "openClip": "Transform clip with workflow…",
+    "applyFailed": "Could not use the output here.",
+    "sketchName": "Sketch",
+    "sceneName": "3D scene",
+    "clipName": "Clip",
+    "apply": {
+      "addToScene": "Add to scene",
+      "addAsLayer": "Add as layer",
+      "replaceAudio": "Replace audio",
+      "replaceClip": "Replace clip",
+      "addAsTake": "Add as take"
     }
   }
 }

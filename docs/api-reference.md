@@ -1852,6 +1852,54 @@ for a game the caller does not own, and `422` when the workspace is not on this
 machine's disk. All games share one cargo target directory, so only the first
 build compiles Tauri itself.
 
+### Playing a Game from a Play Link
+
+`GET /api/game-play/{token}/{path}` serves one file of a game's web build to a
+player that holds a play token. The mobile app loads a game in a WebView
+through it, so the page never carries the user's own credentials.
+
+Mint a token with the `games.playSession` tRPC mutation. It builds the web
+target of the game's current revision, or of `revision` when you pass one, and
+returns the entry URL:
+
+```bash
+curl -X POST "http://localhost:7777/trpc/games.playSession" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "<game_id>"}'
+```
+
+```json
+{"result": {"data": {
+  "gameId": "<game_id>",
+  "name": "My Game",
+  "revision": "<32-character hex revision id>",
+  "dimension": "2d",
+  "orientation": "landscape",
+  "path": "/api/game-play/<token>/index.html",
+  "expiresAt": "2026-10-21T12:15:00.000Z"
+}}}
+```
+
+`orientation` is `null` when the document does not fix one. Load `path`
+against the server origin. Every file the player then requests resolves under
+the same `/api/game-play/<token>/` prefix. An empty `{path}` serves
+`index.html`.
+
+```bash
+curl "http://localhost:7777/api/game-play/<token>/index.html"
+```
+
+The token in the URL is the only credential, so the route needs no
+`Authorization` header. Only `GET` and `HEAD` skip session auth. A token names
+one user, one game and one build, expires 15 minutes after it is minted, and is
+signed with a key derived from the server's master key. Each request also
+checks that the user still owns the game. An expired, forged or revoked link
+and a missing file both answer `404`, with `{"detail": "Play link expired or
+not found"}` or `{"detail": "Game file not found"}`. Responses carry
+`cache-control: private, no-store` and a content security policy that blocks
+framing.
+
 ### What This Server Supports
 
 `GET /api/sdk/v1/capabilities` is the handshake an SDK client makes before

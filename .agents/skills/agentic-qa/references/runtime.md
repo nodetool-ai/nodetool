@@ -147,7 +147,7 @@ overhead, not human think time.
 
 ```bash
 cd web
-npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|other-provider|working-run|seeded-demo] \
+npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|other-provider|working-run|unwired-run|seeded-demo] \
   [--backend-port 7790] [--web-port 3010]
 ```
 
@@ -172,6 +172,7 @@ Choose the data state per campaign and label it in the report:
 | `failing-run` | The empty account plus one workflow, "Trip summary", whose Agent node has no model, so a run stops on validation | As `empty` | The `run-failure` journey |
 | `other-provider` | The empty account plus one workflow, "Packing list", whose Agent uses the Anthropic test model, so a run with only an OpenAI key stops at the credential check | As `empty` | A run error that the canvas does not show before the run |
 | `working-run` | The empty account plus the same "Packing list" workflow on the OpenAI test model, which runs as left | OpenAI connected | Changing a working graph on the canvas |
+| `unwired-run` | The `working-run` account and workflow without the wire from "Trip notes" to the Agent's prompt, so a run writes a list that never reads the notes | OpenAI connected | Reading and repairing a graph's wires |
 | `seeded-demo` (default) | Example workflows, threads, assets, and seven provider keys | Every provider connected | Returning-user or feature sessions |
 
 Nothing seeds the browser in either state, so onboarding, the model picker,

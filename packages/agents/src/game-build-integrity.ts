@@ -48,7 +48,9 @@ export async function verifiedGameBuildCache(workspace: Workspace, buildPath: st
   if (!manifest) { return false; }
   if (manifest.fingerprint !== fingerprint || manifest.entry !== entry || manifest.files.length + 1 > limits.files) { return false; }
   const paths = new Set(manifest.files.map(file => file.path));
-  const game = entry === "index.html" ? "game.json" : "dist/game.json";
+  // Each target carries the game in its own place: the web player beside its entry, the desktop app in dist/, the
+  // mobile app inside its single page.
+  const game = entry === "index.html" ? "game.json" : entry === "app.json" ? "assets/game/game.html" : "dist/game.json";
   if (paths.size !== manifest.files.length || paths.has(GAME_BUILD_INTEGRITY_FILE) || !paths.has(entry) || !paths.has(game)) { return false; }
   let bytes = manifest.manifestBytes;
   for (const file of manifest.files) {

@@ -576,6 +576,29 @@ export function requiresMediaInput(
   return n.fields?.some((f) => required(f.type.toLowerCase(), f.required)) ?? false;
 }
 
+/** True when a manifest entry lists its inputs under any convention. */
+function declaresInputs(n: ManifestNode): boolean {
+  return (
+    (n.inputFields?.length ?? 0) > 0 ||
+    (n.fields?.length ?? 0) > 0 ||
+    (n.uploads?.length ?? 0) > 0
+  );
+}
+
+/** True when a media input named like a reference is declared required. */
+function hasRequiredReference(entry: ManifestNode): boolean {
+  return manifestEntryMediaInputs(entry).some(
+    (field) =>
+      /reference|refers|subject/i.test(`${field.name} ${field.apiName}`) &&
+      ((entry.inputFields ?? []).some(
+        (f) => (f.apiParamName ?? f.name) === field.apiName && f.required === true
+      ) ||
+        (entry.fields ?? []).some(
+          (f) => f.name === field.apiName && f.required === true
+        ))
+  );
+}
+
 /**
  * Drop the generation tasks an entry's own declared inputs rule out, and fall
  * back to the transform task when that leaves nothing.
@@ -588,38 +611,24 @@ export function requiresMediaInput(
  *
  * Only ever subtracts. Explicit `supportedTasks` never reach this.
  */
-/** True when a manifest entry lists its inputs under any convention. */
-function declaresInputs(n: ManifestNode): boolean {
-  return (
-    (n.inputFields?.length ?? 0) > 0 ||
-    (n.fields?.length ?? 0) > 0 ||
-    (n.uploads?.length ?? 0) > 0
-  );
-}
-
 export function narrowTasksByRequiredInputs(
   tasks: string[],
   n: ManifestNode,
   kind: "image" | "video"
 ): string[] {
-  const generationTask = kind === "image" ? "text_to_image" : "text_to_video";
-  const transformTask = kind === "image" ? "image_to_image" : "video_to_video";
-  const drop = new Set<string>();
-  const hasRequiredReference = (entry: ManifestNode): boolean =>
-    manifestEntryMediaInputs(entry).some(
-      (field) => /reference|refers|subject/i.test(`${field.name} ${field.apiName}`) &&
-        ((entry.inputFields ?? []).some((f) => (f.apiParamName ?? f.name) === field.apiName && f.required === true) ||
-          (entry.fields ?? []).some((f) => f.name === field.apiName && f.required === true))
-    );
-  if (kind === "video" && !tasks.includes("video_to_video") &&
-      !hasRequiredSourceMedia(n) && hasRequiredReference(n)) {
-    drop.add("text_to_video");
-    drop.add("image_to_video");
+  if (
+    kind === "video" &&
+    !tasks.includes("video_to_video") &&
+    !hasRequiredSourceMedia(n) &&
+    hasRequiredReference(n)
+  ) {
     const referenceTasks = tasks.filter((task) => task === "reference_to_video");
-    if (referenceTasks.length > 0) return referenceTasks;
-    return ["reference_to_video"];
+    return referenceTasks.length > 0 ? referenceTasks : ["reference_to_video"];
   }
-  if (requiresMediaInput(n, "image")) drop.add(generationTask);
+  const drop = new Set<string>();
+  if (requiresMediaInput(n, "image")) {
+    drop.add(kind === "image" ? "text_to_image" : "text_to_video");
+  }
   // The other direction: an entry that declares its inputs and none of them
   // is an image has nothing to edit, so it cannot answer an editing picker.
   // An entry that declares no inputs at all keeps what inference said.
@@ -637,7 +646,7 @@ export function narrowTasksByRequiredInputs(
   }
   if (drop.size === 0) return tasks;
   const kept = tasks.filter((t) => !drop.has(t));
-  return kept.length > 0 ? kept : [transformTask];
+  return kept.length > 0 ? kept : [kind === "image" ? "image_to_image" : "video_to_video"];
 }
 
 /**

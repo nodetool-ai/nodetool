@@ -40,8 +40,9 @@ Rotation is radians in 2D and the committed world quaternion `[x, y, z, w]` in 3
 Use `setProp {key, value}` and `removeProp {key}` to change the caller's
 runtime properties. Setting `null` keeps that key. Removal deletes it. The
 runtime checks every property command in a tick before it changes any state,
-and an error names the entity and tick. Each entity's props count once toward
-the 64 KiB script input limit. Runtime properties survive snapshot restore and
+and an error names the entity and tick. The props of each entity that runs a
+script count once toward the 64 KiB script input limit. Other entities' props
+travel with the world only when a script reads `input.world`. Runtime properties survive snapshot restore and
 remain independent of the authored document and other prefab instances.
 Mutating an input object does not change runtime state.
 
@@ -79,6 +80,8 @@ in runtime entity order. Both read the same immutable tick-start snapshot,
 before movement behaviors or script commands run. Returned values are private
 copies. Queries cover every active entity. Legacy `input.world` keeps its
 existing shape and population, including only collider or camera entities in 2D.
+The engine serializes `input.world` only when a script reads it, with a 1 MiB
+limit, so prefer `world.get` and `world.query` with `near` and `radius`.
 The 2D query record is `{id, source, x, y, velocityX, velocityY, grounded}`.
 The 3D record is `{id, source, position, velocity, grounded}`, with XYZ vectors.
 3D records and schema 4 2D records add `tags`, `props`, `rotation` and `active`.
@@ -669,6 +672,15 @@ near shadows stay sharp and far shadows stay continuous. `split` (0 to 1,
 default 0.5) gives nearby cascades more resolution as it rises. `extent` is
 ignored while cascades are on. Only one directional light can cast shadows.
 
+Every mesh with `castShadow` (true by default on primitives and models) draws
+again into each cascade it reaches. The nearest cascade re-renders every frame,
+the second every other frame, and the rest every fourth frame or when the view
+moves past their drift limit. Use 2 or 3 cascades, set `maxDistance` to how far
+the player can judge a shadow, and set `castShadow: false` on terrain and
+ground, which still receive shadows. Validation warns with
+`large_shadow_caster` when a casting mesh 100 units or wider sits in a scene
+with cascades. Each 2048 map holds 16 MiB of depth.
+
 Point and spot lights cast shadows when their `light3d.castShadow` is `true`.
 At most 4 of them may cast per scene. Validation rejects a fifth. If spawned
 prefabs push a frame over the budget, the extra lights render unshadowed and
@@ -688,7 +700,9 @@ it, the sun follows the scene's first directional light. Rotate that light to
 move the sun. `turbidity` (1 to 20, default 10) adds haze. `rayleigh` (0 to 4,
 default 2) deepens blue and sunset tones. `groundColor` fills the lower
 hemisphere. `intensity` (0 to 8, default 1) scales both the sky background and
-its reflections. Metal and glossy materials reflect the sky. Ambient light
+its reflections. Each change of sun direction re-renders the sky cube and its
+environment map, so a sun that turns every tick rebuilds them every tick. Keep
+the sun still, or turn it in rare steps. Metal and glossy materials reflect the sky. Ambient light
 still adds on top, so lower `ambient.intensity` when the sky lights the scene.
 HDRI skies are not available yet: an HDRI asset cannot be installed.
 
@@ -713,7 +727,8 @@ and renders as if they were absent. The fields are:
 The passes run in this order: bloom, exposure and tone mapping, vignette,
 antialiasing. Exposure and tone mapping alone cost nothing extra. Bloom,
 vignette, or an `antialias` other than `msaa` renders through extra full-screen
-passes, and the background color then passes through tone mapping too. SSAO,
+passes, and the background color then passes through tone mapping too. Bloom
+adds a bright pass and a chain of five blur levels, the costliest effect. SSAO,
 depth of field, LUT grading and chromatic aberration are not available in 3D.
 
 ## Input bindings
@@ -779,7 +794,11 @@ node, so `{x: 1, y: 0}` is the top-right corner. `pivot` is the node's own point
 placed there and defaults to `anchor`. `offset` moves the node in HUD pixels.
 The 2D HUD rectangle is the camera view at `pixelsPerUnit` pixels per unit, so
 a 16 by 9 camera at 32 pixels per unit gives 512 by 288. The 3D HUD rectangle
-is `presentation.hudWidth` by `hudHeight`, stretched over the viewport. With
+is `presentation.hudWidth` by `hudHeight`, stretched over the viewport. The
+exported 3D player also renders the scene at `hudWidth` by
+`hudWidth / aspectRatio`, so `hudWidth` sets the render resolution and the cost
+of every full-screen pass. A HUD value that changes repaints the whole HUD and
+uploads it as a texture. With
 `safeArea` (default true) root anchors stay inside the device's safe-area
 insets.
 
@@ -823,7 +842,9 @@ Both are presentation only. They never change simulation, snapshots or replay.
 
 - `set_performance {performance}` replaces document `performance`. `null`
   removes it. `cullLayers` maps a layer name to `{maxDistance}` (at most 32
-  layers). `budgets` sets `drawCalls`, `triangles`, `particles` and `voices`.
+  layers). `budgets` sets `drawCalls`, `triangles`, `particles` and `voices`,
+  and the time budgets `tickMs` (tick p95, default 4) and `frameMs` (frame p95,
+  default 16.6).
 - `update_entity` with `set: {renderCulling: {layer?, maxDistance?}}` hides
   that entity and its children when the game camera is farther than the
   distance from the entity's origin. The nearest setting in the parent chain
@@ -839,6 +860,10 @@ Both are presentation only. They never change simulation, snapshots or replay.
   browser console once each time a budget is exceeded. The standalone players
   and 3D capture count live particles. The 2D player uses the default particle
   budget because 2D documents have no `performance`.
+- `nodetool game bench`, `nodetool game capture` and `nodetool game perf` check
+  these budgets and exit 1 on an overrun with `--fail-on-budget`. Load
+  `native-game-performance` for the targets, the budgets per game type and the
+  measure-fix loop.
 
 ## Editor panels the user can open
 

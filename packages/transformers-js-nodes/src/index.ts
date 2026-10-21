@@ -54,6 +54,7 @@ export {
   TJS_MODEL_TYPES,
   defaultRepoFor,
   recommendedFor,
+  textGenerationTaskFor,
   type TjsModelRef
 } from "./recommended-models.js";
 

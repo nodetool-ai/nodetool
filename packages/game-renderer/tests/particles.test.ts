@@ -8,6 +8,7 @@ import {
   ParticleSimulator,
   evaluateParticleCurve,
   evaluateParticleGradient,
+  parseParticleColor,
   particleSeed,
   particleSourcesFromFrame,
   sampleParticleRange,
@@ -266,5 +267,25 @@ describe("particles from a session", () => {
     expect(emitter.position).toEqual({ x: 1, y: 2, z: 0 });
     expect(emitter.rotation[2]).toBeCloseTo(1, 9);
     expect(emitter.rotation[3]).toBeCloseTo(0, 9);
+  });
+});
+
+describe("particle colour gradients", () => {
+  it("matches parsing the keys on every call", () => {
+    const keys = [{ t: 0, color: "#ff8800" }, { t: 0.3, color: "#10a0f0" }, { t: 0.3, color: "#000000" }, { t: 0.9, color: "#ffffff" }];
+    const reference = (t: number) => {
+      if (t <= keys[0].t) { return parseParticleColor(keys[0].color); }
+      for (let index = 1; index < keys.length; index++) {
+        const next = keys[index]; const previous = keys[index - 1];
+        if (t <= next.t) {
+          const span = next.t - previous.t; const mix = span <= 0 ? 1 : (t - previous.t) / span;
+          const from = parseParticleColor(previous.color); const to = parseParticleColor(next.color);
+          return { r: from.r + (to.r - from.r) * mix, g: from.g + (to.g - from.g) * mix, b: from.b + (to.b - from.b) * mix };
+        }
+      }
+      return parseParticleColor(keys[keys.length - 1].color);
+    };
+    for (let step = -2; step <= 22; step++) { const t = step / 20; expect(evaluateParticleGradient(keys, t)).toEqual(reference(t)); }
+    expect(evaluateParticleGradient(keys, Number.NaN)).toEqual(reference(Number.NaN));
   });
 });

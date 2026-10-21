@@ -64,10 +64,10 @@ export default function StudioPage() {
           </header>
           <div className="mx-auto max-w-5xl">
             <HeroDemoPlayer
-              mediaBase="/conversation-project"
+              mediaBase="/hero-flow"
               priority={false}
-              alt="A conversation becomes a storyboard, generated shots, an editable cut, and a saved project"
-              caption="Recorded in NodeTool: a brief becomes a storyboard and an editable cut inside the saved project."
+              alt="NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut"
+              caption="In NodeTool, one sentence becomes a storyboard and an editable cut inside the saved project."
             />
           </div>
         </div>

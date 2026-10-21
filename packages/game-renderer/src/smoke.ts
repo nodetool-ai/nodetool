@@ -1,11 +1,9 @@
-import { createServer } from "node:http";
 import { readFile, realpath } from "node:fs/promises";
-import { extname, join, sep } from "node:path";
-import type { Browser, BrowserType, LaunchOptions } from "playwright";
-import { importOptionalModule } from "@nodetool-ai/config";
-import { missingRuntimePackageError } from "@nodetool-ai/protocol";
+import { join } from "node:path";
+import type { Browser, LaunchOptions } from "playwright";
 import { z } from "zod";
 import type { GameInputFrame3D } from "@nodetool-ai/protocol";
+import { launchStandaloneChromium, serveStandaloneDirectory, type StandaloneServer } from "./static-server.js";
 
 export interface GameSmokeOptions {
   readonly frames?: number;
@@ -20,12 +18,6 @@ export interface GameSmokeReport {
   readonly errors: readonly string[];
 }
 
-const TYPES: Readonly<Record<string, string>> = {
-  ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json",
-  ".wasm": "application/wasm", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp",
-  ".glb": "model/gltf-binary", ".wav": "audio/wav", ".mp3": "audio/mpeg", ".ogg": "audio/ogg",
-  ".ttf": "font/ttf", ".otf": "font/otf"
-};
 const renderedFrame = z.object({ tick: z.number().int().nonnegative(), frameNumber: z.number().int().positive() });
 const smokeDocument = z.object({ schemaVersion: z.number(), inputActions: z.array(z.string()) });
 
@@ -42,17 +34,7 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
   let ticks = 0;
   let rendered = 0;
   let browser: Browser | undefined;
-  const server = createServer((request, response) => {
-    void (async () => {
-      const pathname = decodeURIComponent(new URL(request.url ?? "/", "http://127.0.0.1").pathname);
-      if (pathname === "/favicon.ico") { response.writeHead(204); response.end(); return; }
-      const path = await realpath(join(root, pathname === "/" ? "index.html" : pathname.slice(1)));
-      if (!path.startsWith(`${root}${sep}`)) { response.writeHead(403); response.end(); return; } // key-boundary-ok: node:path sep anchors containment after realpath.
-      const bytes = await readFile(path);
-      response.setHeader("content-type", TYPES[extname(path)] ?? "application/octet-stream");
-      response.end(bytes);
-    })().catch(() => { response.writeHead(404); response.end(); });
-  });
+  let server: StandaloneServer | undefined;
   const controller = new AbortController();
   const abort = (): void => controller.abort(options.signal?.reason);
   const closeBrowser = (): void => { void browser?.close(); };
@@ -60,18 +42,12 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
   controller.signal.addEventListener("abort", closeBrowser, { once: true });
   const timeout = setTimeout(() => controller.abort(new Error(`Smoke timed out after ${timeoutMs}ms`)), timeoutMs);
   try {
-    await new Promise<void>((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
-    const address = server.address();
-    if (!address || typeof address === "string") { throw new Error("Smoke static server did not bind"); }
-    const origin = `http://127.0.0.1:${address.port}`;
+    server = await serveStandaloneDirectory(root);
+    const origin = server.origin;
     const launchOptions: LaunchOptions = { headless: true, chromiumSandbox: true,
       args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] };
     if (options.executablePath) { launchOptions.executablePath = options.executablePath; }
-    // Playwright may live in the optional-node root (`nodetool runtime add playwright`).
-    let playwright: { readonly chromium: BrowserType };
-    try { playwright = await importOptionalModule<{ readonly chromium: BrowserType }>("playwright", { commonJs: true }); }
-    catch (error) { throw missingRuntimePackageError("playwright", "playwright", error); }
-    browser = await playwright.chromium.launch(launchOptions);
+    browser = await launchStandaloneChromium(launchOptions);
     controller.signal.throwIfAborted();
     const context = await browser.newContext({ serviceWorkers: "block" });
     await context.route("**/*", route => {
@@ -139,7 +115,7 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
     options.signal?.removeEventListener("abort", abort);
     controller.signal.removeEventListener("abort", closeBrowser);
     await browser?.close();
-    await new Promise<void>(resolve => server.close(() => resolve()));
+    await server?.close();
   }
   return { ok: errors.size === 0 && rendered === frames && ticks === frames, frames: rendered, ticks, errors: [...errors] };
 }

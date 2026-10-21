@@ -174,11 +174,10 @@ describe("combineMasks", () => {
       expect(result.data[3 * 4 + 3]).toBe(0);
     });
 
-    it("with null base returns clone of overlay", () => {
+    it("with null base selects nothing", () => {
       const overlay = makeMask(4, 4, [[2, 2]]);
       const result = combineMasks(null, overlay, "subtract");
-      // null base → treat as clone of overlay per code
-      expect(result.data[2 * 4 + 2]).toBe(255);
+      expect(result.data[2 * 4 + 2]).toBe(0);
     });
   });
 
@@ -193,10 +192,10 @@ describe("combineMasks", () => {
       expect(result.data[2 * 4 + 2]).toBe(0);
     });
 
-    it("with null base returns clone of overlay", () => {
+    it("with null base selects nothing", () => {
       const overlay = makeMask(4, 4, [[1, 1]]);
       const result = combineMasks(null, overlay, "intersect");
-      expect(result.data[1 * 4 + 1]).toBe(255);
+      expect(result.data[1 * 4 + 1]).toBe(0);
     });
   });
 

@@ -18,6 +18,7 @@ import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -34,6 +35,7 @@ import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboar
 import AssetInfoPanel from "./AssetInfoPanel";
 import { SendToWorkflowMenu } from "../workflows/SendToWorkflowMenu";
 import type { WorkflowMediaItem } from "../../hooks/handlers/useGenerationToCanvas";
+import { transformKindOfAsset } from "../assets/transformWorkflow";
 import { useShallow } from "zustand/react/shallow";
 
 const AssetItemContextMenu = () => {
@@ -48,7 +50,8 @@ const AssetItemContextMenu = () => {
     selectedAssetIds,
     selectedAssets,
     openCompareView,
-    setCreateFolderDialogOpen
+    setCreateFolderDialogOpen,
+    openTransformDialog
   } = useAssetGridStore(
     useShallow((state) => ({
       setRenameDialogOpen: state.setRenameDialogOpen,
@@ -57,7 +60,8 @@ const AssetItemContextMenu = () => {
       selectedAssetIds: state.selectedAssetIds,
       selectedAssets: state.selectedAssets,
       openCompareView: state.openCompareView,
-      setCreateFolderDialogOpen: state.setCreateFolderDialogOpen
+      setCreateFolderDialogOpen: state.setCreateFolderDialogOpen,
+      openTransformDialog: state.openTransformDialog
     }))
   );
 
@@ -250,6 +254,16 @@ const AssetItemContextMenu = () => {
     }
   });
 
+  // Any single file can run through a workflow that has an input of its kind.
+  const transformCandidate =
+    singleAsset && transformKindOfAsset(singleAsset) ? singleAsset : null;
+
+  const handleTransform = withMenuClose(() => {
+    if (transformCandidate) {
+      openTransformDialog(transformCandidate);
+    }
+  });
+
   if (!menuPosition) {return null;}
   if (sendingToWorkflow) {
     return (
@@ -310,6 +324,14 @@ const AssetItemContextMenu = () => {
             label={t("screen_editor.sendToWorkflow")}
             IconComponent={<AccountTreeOutlinedIcon />}
             tooltip={t("screen_editor.sendMediaToWorkflowTooltip")}
+          />
+        )}
+        {transformCandidate && (
+          <ContextMenuItem
+            onClick={handleTransform}
+            label={t("screen_editor.transformWithWorkflow")}
+            IconComponent={<AutoFixHighOutlinedIcon />}
+            tooltip={t("screen_editor.transformWithWorkflowTooltip")}
           />
         )}
         {entityCandidate && (

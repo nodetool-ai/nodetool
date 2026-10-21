@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { z } from "zod";
 import { gameDocument3D, resolveGameInputBindings, gameAssetBinding, gameSnapshot3D, type GameDocument3D, type GameInspection3D, type GameInputFrame3D, type GameRenderFrame3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, gameScriptLogsOf, type GamePlayerSaves, type GameSession3D, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
-import { attachGameTouchInput, attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, gameParticleFieldFromSamples3D, gameParticleSamples3D, GameInput3D, GameParticles3D, type GameParticleField, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
+import { attachGameTouchInput, attachGameUiPointer, browserGameUiMeasure, browserGamepads, FixedTickClock, gameAudioVoiceCount, GameInput3D, GameParticles3D, GameParticleSnapshot3D, GameUiController, gameUiViewport3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer, gameAudioSpatialView3D } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { useGameDraft } from "../../stores/game/GameDraftStore";
@@ -84,7 +84,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const [renderDocument, setRenderDocument] = useState(document);
   const committedRef = useRef<GameInspection3D | null>(null);
   const lastFrameRef = useRef<GameRenderFrame3D | null>(null);
-  const displayQueueRef = useRef<{ renderer: GameRenderer3D; busy: boolean; latest: { frame: GameRenderFrame3D; alpha: number; particles: GameParticleField | null } | null } | null>(null);
+  const displayQueueRef = useRef<{ renderer: GameRenderer3D; busy: boolean; latest: { frame: GameRenderFrame3D; alpha: number; particles: GameParticleSnapshot3D | null } | null;
+    free: GameParticleSnapshot3D[] } | null>(null);
   const playingRef = useRef(playing);
   playingRef.current = playing && active;
 
@@ -104,10 +105,13 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     const renderer = rendererRef.current;
     if (!renderer) { return; }
     audioRef.current?.updateSpatial(gameAudioSpatialView3D(current, alpha));
-    if (displayQueueRef.current?.renderer !== renderer) { displayQueueRef.current = { renderer, busy: false, latest: null }; }
+    if (displayQueueRef.current?.renderer !== renderer) { displayQueueRef.current = { renderer, busy: false, latest: null, free: [] }; }
     const queue = displayQueueRef.current;
     const particles = particlesRef.current;
-    queue.latest = { frame: current, alpha, particles: particles ? gameParticleFieldFromSamples3D(gameParticleSamples3D(particles, alpha), current) : null };
+    // A queued frame keeps the particles of its own tick. An undrawn frame's snapshot is overwritten in place, and a
+    // drawn frame returns its snapshot to the free list, so a steady stream of frames allocates nothing.
+    const snapshot = particles ? queue.latest?.particles ?? queue.free.pop() ?? new GameParticleSnapshot3D() : null;
+    queue.latest = { frame: current, alpha, particles: snapshot && particles ? snapshot.capture(particles, alpha) : null };
     if (queue.busy) { return; }
     queue.busy = true;
     const drain = async (): Promise<void> => {
@@ -117,8 +121,10 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
           queue.latest = null;
           const hud = hudRef.current;
           hud?.update(next.frame.ui, gameUiViewport3D(next.frame));
-          const stats = await renderer.render(hud ? hud.annotate(next.frame) : next.frame, next.alpha, next.particles ?? undefined);
-          profiler.recordRender(stats);
+          try {
+            const stats = await renderer.render(hud ? hud.annotate(next.frame) : next.frame, next.alpha, next.particles ?? undefined);
+            profiler.recordRender(stats);
+          } finally { if (next.particles) { queue.free.push(next.particles); } }
         }
       } catch (cause) {
         if (rendererRef.current === renderer) {
@@ -149,7 +155,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       });
       const state = session.inspect();
       committedRef.current = state;
-      audioRef.current?.sync(session.snapshot());
+      audioRef.current?.sync(session.audioState());
       for (const event of result.events) { audioRef.current?.handle(event); }
       if (profiler.recording()) {
         profiler.recordStep({ tick: result.tick, timings: result.timings, scriptStats: result.scriptStats, physics: result.physics,
@@ -243,7 +249,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       const initialFrame = session.frame();
       lastFrameRef.current = initialFrame;
       setFrame(initialFrame);
-      audio.reset(session.snapshot());
+      audio.reset(session.audioState());
       const { createGameRenderer3D, createGameEditorPasses3D } = await import("@nodetool-ai/game-renderer/browser3d");
       rendererPromiseRef.current ??= createGameRenderer3D({ canvas, signal: rendererControllerRef.current.signal,
         editorPasses: createGameEditorPasses3D,
@@ -428,7 +434,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       setFrame(lastFrameRef.current);
       setPlaying(false);
       setError(null);
-      audioRef.current?.reset(restored.snapshot());
+      audioRef.current?.reset(restored.audioState());
       display(restored.frame(), 1);
     } catch (cause) {
       if (restoreGeneration !== null && generationRef.current !== restoreGeneration) { return; }
@@ -465,7 +471,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       setFrame(lastFrameRef.current);
       setPlaying(false);
       setError(null);
-      audioRef.current?.reset(restored.snapshot());
+      audioRef.current?.reset(restored.audioState());
       display(restored.frame(), 1);
     } catch (cause) {
       if (restoreGeneration !== null && generationRef.current !== restoreGeneration) { return; }

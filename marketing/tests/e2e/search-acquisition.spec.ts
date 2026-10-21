@@ -54,7 +54,7 @@ async function recordEvents(page: Page): Promise<RecordedEvent[]> {
 }
 
 for (const journey of journeys) {
-  test(`${journey.path} serves a relevant starter before the comparison or explanation`, async ({ request }) => {
+  test(`${journey.path} serves a relevant starter`, async ({ request }) => {
     const response = await request.get(journey.path);
     expect(response.ok()).toBe(true);
     const html = await response.text();
@@ -111,7 +111,7 @@ test("demo visibility is not engagement and manual playback is", async ({ page }
   const events = await recordEvents(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/cloud");
-  const demo = page.getByRole("figure").filter({ hasText: "Recorded NodeTool project demonstration:" });
+  const demo = page.getByRole("figure").filter({ hasText: "NodeTool project demonstration:" });
   await demo.scrollIntoViewIfNeeded();
   await demo.locator("video").evaluate((video: HTMLVideoElement) => {
     Object.defineProperty(video, "play", { value: () => Promise.resolve() });
@@ -131,7 +131,7 @@ test("demo autoplay does not emit a manual engagement goal", async ({ page }) =>
     };
   });
   await page.goto("/cloud");
-  const demo = page.getByRole("figure").filter({ hasText: "Recorded NodeTool project demonstration:" });
+  const demo = page.getByRole("figure").filter({ hasText: "NodeTool project demonstration:" });
   await demo.scrollIntoViewIfNeeded();
   await expect(demo.locator("video")).toHaveClass(/opacity-100/);
   expect(events.some((e) => e.event === "View Demo")).toBe(false);

@@ -52,6 +52,24 @@ describe("Transformers.js pipeline nodes", () => {
     expect(dtypes).toEqual(["q4", "fp16", undefined]);
   });
 
+  it("loads Teapot through text-to-text for both node runs and downloads", async () => {
+    const pipeline = vi.fn(async () => [{ generated_text: "330 meters." }]);
+    const factory = vi.fn(async () => pipeline);
+    __setTransformersModuleForTesting({ pipeline: factory });
+    const node = new TextGenerationNode();
+    node.model = { type: "tjs.text_generation", repo_id: "teapotai/teapotllm" };
+    node.prompt = "The Eiffel Tower is 330 meters tall. How tall is it?";
+    expect(await node.process()).toEqual({ text: "330 meters." });
+    const { downloadTransformersJsModel } = await import("../src/tjs-downloader.js");
+    await downloadTransformersJsModel("teapotai/teapotllm", { modelType: "tjs.text_generation" });
+    expect(factory).toHaveBeenCalledOnce();
+    expect(factory).toHaveBeenCalledWith(
+      "text2text-generation",
+      "teapotai/teapotllm",
+      expect.objectContaining({ dtype: "q8" })
+    );
+  });
+
   it("falls back to CPU for devices onnxruntime-node does not offer", async () => {
     expect(resolveDevice("webgpu", "linux", "x64")).toBeUndefined();
     expect(resolveDevice("wasm", "win32", "x64")).toBeUndefined();

@@ -5,11 +5,26 @@ import type { CachedModel } from "../types.js";
 import type { CreateGameRenderer3DOptions } from "../index.js";
 import { releaseModel } from "./dispose.js";
 
+function applyAnisotropy(root: THREE.Object3D, anisotropy: number): void {
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) { return; }
+    const materials: THREE.Material[] = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of materials) {
+      if (!(material instanceof THREE.MeshStandardMaterial)) { continue; }
+      for (const texture of [material.map, material.normalMap, material.roughnessMap, material.metalnessMap, material.emissiveMap, material.aoMap]) {
+        if (texture) { texture.anisotropy = anisotropy; }
+      }
+    }
+  });
+}
+
 export class GameModelCache3D {
   private readonly models = new Map<string, Promise<CachedModel>>();
   readonly loadedModels = new Set<CachedModel>();
   modelLoadMs = 0;
-  constructor(private readonly options: CreateGameRenderer3DOptions, private readonly controller: AbortController) {}
+  /** `maxAnisotropy` is the renderer's limit. Terrain and runways seen at grazing angles blur without it. */
+  constructor(private readonly options: CreateGameRenderer3DOptions, private readonly controller: AbortController,
+    private readonly maxAnisotropy = 1) {}
   async get(id: string): Promise<CachedModel> {
     let pending = this.models.get(id);
     if (!pending) {
@@ -33,6 +48,7 @@ export class GameModelCache3D {
             return node;
           } }));
         const gltf = await loader.parseAsync(new Uint8Array(checked.model.bytes).buffer, "");
+        if (this.maxAnisotropy > 1) { applyAnisotropy(gltf.scene, this.maxAnisotropy); }
         const cached = { prepared: checked.model, gltf };
         if (this.controller.signal.aborted) { releaseModel(cached); this.controller.signal.throwIfAborted(); }
         this.loadedModels.add(cached);

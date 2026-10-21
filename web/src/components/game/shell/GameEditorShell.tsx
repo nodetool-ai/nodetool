@@ -21,11 +21,15 @@ import { createGameCommandRegistry, GameCommandContext } from "./useGameCommands
 import { gamePanelRegistry, type GameDimension, type GamePanelRegistry } from "./panelRegistry";
 import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
 import { useGameExport } from "./useGameExport";
+import type { GameExportTarget } from "../../../utils/gameExportZip";
 import { useGameExecutableBuild } from "./useGameExecutableBuild";
 import { isElectron, isLocalhost } from "../../../lib/env";
 
 /** Compiling runs cargo on the server's machine, which is this computer only in the desktop app or a local server. */
 const CAN_BUILD_EXECUTABLE = isElectron || isLocalhost;
+const EXPORT_STATUS_KEYS: Readonly<Record<GameExportTarget, string>> = {
+  web: "screen_game.shell.buildingWeb", tauri: "screen_game.shell.buildingDesktop", expo: "screen_game.shell.buildingMobile"
+};
 
 export type GamePanelView = DockPanelView;
 interface GameEditorShellProps {
@@ -72,6 +76,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
     "editor.publish": { run: toolbar.onPublish, enabled: !toolbar.saving && toolbar.saveStatus !== "saving" },
     "editor.exportWeb": { run: () => exporter.run("web"), enabled: exportEnabled },
     "editor.exportDesktop": { run: () => exporter.run("tauri"), enabled: exportEnabled },
+    "editor.exportMobile": { run: () => exporter.run("expo"), enabled: exportEnabled },
     "editor.buildExecutable": { run: executable.run, enabled: canBuildExecutable && !executable.building },
     "edit.undo": toolbar.onUndo ? { run: toolbar.onUndo, enabled: toolbar.canUndo !== false } : undefined,
     "edit.redo": toolbar.onRedo ? { run: toolbar.onRedo, enabled: toolbar.canRedo !== false } : undefined,
@@ -111,7 +116,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       onBuildExecutable={canBuildExecutable && !executable.building ? executable.run : undefined}
       layoutMenu={<DockLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />} />
     {exporter.exporting && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>
-      {exporter.exporting === "tauri" ? t("screen_game.shell.buildingDesktop") : t("screen_game.shell.buildingWeb")}
+      {t(EXPORT_STATUS_KEYS[exporter.exporting])}
     </Caption>}
     {exporter.error && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
       <Caption color="error" role="alert">{t("screen_game.shell.exportFailed", { error: exporter.error })}</Caption>

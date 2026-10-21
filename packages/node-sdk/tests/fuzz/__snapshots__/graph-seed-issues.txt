@@ -10,6 +10,26 @@ code-node sink error property Property "image" requires a image (asset, uri, or 
 model-reference prompt error property Property "image" requires a image (asset, uri, or inline data)
 model-reference llm error property Property "image" requires a image (asset, uri, or inline data)
 model-reference answer error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults c1 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults c2 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults c3 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults tail error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults d1 error property Required property "a" is not set
+cycle-faults d1 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults d2 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults d3 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults d4 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults self error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults ctl1 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults ctl2 error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults loop error property Required property "a" is not set
+cycle-faults loop error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults body error property Property "image" requires a image (asset, uri, or inline data)
+cycle-faults self error cycle Node "self" is connected to itself by edge "self-1"; self-loop edges are not supported and deadlock the run
+cycle-faults c1 error cycle Cycle detected in graph; a cycle may only close on the "next" or "condition" input of a Loop node. Involved nodes: c1, c2, c3, tail
+cycle-faults - error dangling_edge Edge "ghost-self" source node "nowhere" does not exist
+cycle-faults - error dangling_edge Edge "ghost-self" target node "nowhere" does not exist
+cycle-faults - error dangling_edge Edge "ghost-edge" target node "nowhere" does not exist
 wiring-faults - error missing_id Node of type "nodetool.output.StringOutput" has no id
 wiring-faults src error property Property "image" requires a image (asset, uri, or inline data)
 wiring-faults src2 error property Property "image" requires a image (asset, uri, or inline data)

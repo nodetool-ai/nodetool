@@ -254,3 +254,74 @@ describe("StableDiffusionCppProvider", () => {
     30000
   );
 });
+
+/** A safetensors file whose header names the given tensors, with no weights. */
+async function writeSafetensors(file: string, tensors: string[]): Promise<void> {
+  const header = Buffer.from(
+    JSON.stringify(
+      Object.fromEntries(tensors.map((name) => [name, { dtype: "F16", shape: [1], data_offsets: [0, 2] }]))
+    )
+  );
+  const length = Buffer.alloc(8);
+  length.writeBigUInt64LE(BigInt(header.length));
+  await writeFile(file, Buffer.concat([length, header, Buffer.alloc(2)]));
+}
+
+describe("StableDiffusionCppProvider model folders", () => {
+  it.skipIf(process.platform === "win32")(
+    "lists single-file checkpoints from the folders and loads one with --model",
+    async () => {
+      const comfy = join(root, "ComfyUI", "models");
+      await mkdir(join(comfy, "checkpoints", "xl"), { recursive: true });
+      await mkdir(join(comfy, "loras"), { recursive: true });
+      await mkdir(join(comfy, "diffusion_models"), { recursive: true });
+      const sd15 = join(comfy, "checkpoints", "dreamshaper.safetensors");
+      const sdxl = join(comfy, "checkpoints", "xl", "juggernaut.safetensors");
+      await writeSafetensors(sd15, [
+        "model.diffusion_model.input_blocks.0.0.weight",
+        "first_stage_model.decoder.conv_in.weight",
+        "cond_stage_model.transformer.text_model.embeddings.position_ids"
+      ]);
+      await writeSafetensors(sdxl, [
+        "model.diffusion_model.input_blocks.0.0.weight",
+        "first_stage_model.decoder.conv_in.weight",
+        "conditioner.embedders.0.transformer.text_model.embeddings.position_ids",
+        "conditioner.embedders.1.model.ln_final.weight"
+      ]);
+      // A LoRA and a diffusion model without encoders are not checkpoints.
+      await writeSafetensors(join(comfy, "loras", "style.safetensors"), ["lora_unet_down_blocks_0.alpha"]);
+      await writeSafetensors(join(comfy, "diffusion_models", "flux1-dev.safetensors"), [
+        "double_blocks.0.img_attn.proj.weight"
+      ]);
+
+      const provider = new StableDiffusionCppProvider({ SD_CPP_SERVER_PATH: FAKE_SERVER, MODEL_FOLDERS: comfy });
+      const models = await provider.getAvailableImageModels();
+      const local = models.filter((m) => m.id.startsWith(comfy));
+      expect(local.map((m) => m.id)).toEqual([sd15, sdxl]);
+      expect(local[0]).toMatchObject({
+        name: "dreamshaper (0 GB)",
+        supportedTasks: ["text_to_image", "image_to_image"],
+        adapter: { state: "installed", filesPresent: true }
+      });
+      expect(local[0]!.adapter?.artifactRef).toBeUndefined();
+
+      await provider.textToImage({ model: { id: sdxl, name: "xl", provider: "stable_diffusion_cpp" }, prompt: "a fox" });
+      const entries = await logEntries();
+      const argv = entries.filter((e) => e.argv).at(-1)!.argv!;
+      expect(argv.slice(0, 2)).toEqual(["--model", sdxl]);
+      expect(entries.filter((e) => e.request).at(-1)!.request).toMatchObject({
+        width: 1024,
+        height: 1024,
+        sample_params: { sample_steps: 25, guidance: { txt_cfg: 7 } }
+      });
+
+      await expect(
+        provider.textToImage({
+          model: { id: join(comfy, "loras", "style.safetensors"), name: "lora", provider: "stable_diffusion_cpp" },
+          prompt: "x"
+        })
+      ).rejects.toThrow(/Unknown stable-diffusion.cpp model/);
+    },
+    30000
+  );
+});

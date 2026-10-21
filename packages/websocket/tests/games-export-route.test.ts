@@ -83,6 +83,25 @@ describe("game export download", () => {
     }
   });
 
+  it("streams the published revision as an Expo mobile project", async () => {
+    const created = await createCaller(makeCtx(USER_ID)).games.create({ projectId: PROJECT_ID, name: "Cave Run" });
+    const app = await buildServer(USER_ID);
+    try {
+      const response = await app.inject({ method: "GET", url: `/api/games/${created.game.id}/export-zip?target=expo` });
+      expect(response.statusCode).toBe(200);
+      expect(response.headers["content-disposition"]).toBe(`attachment; filename="game-${created.game.id.slice(0, 12)}-mobile.zip"`);
+      const files = unzipSync(new Uint8Array(response.rawPayload));
+      expect(Object.keys(files)).toEqual(expect.arrayContaining(["mobile/package.json", "mobile/app.json", "mobile/App.js",
+        "mobile/metro.config.js", "mobile/assets/icon.png", "mobile/assets/game/game.html"]));
+      const config = JSON.parse(strFromU8(files["mobile/app.json"]!)) as { expo: { name: string; android: { package: string } } };
+      expect(config.expo.name).toBe("Cave Run");
+      expect(config.expo.android.package).toBe("ai.nodetool.game.caverun");
+      expect(strFromU8(files["mobile/assets/game/game.html"]!)).toContain(`"game.json":"`);
+    } finally {
+      await app.close();
+    }
+  });
+
   it("streams the web player, and hides another owner's game", async () => {
     const created = await createCaller(makeCtx(USER_ID)).games.create({ projectId: PROJECT_ID, name: "Cave Run" });
     const owner = await buildServer(USER_ID);

@@ -180,6 +180,8 @@
     "openAssetAsTabTooltip": "Dieses Asset in einem neuen Editor-Tab öffnen",
     "sendToWorkflow": "An Workflow senden",
     "sendMediaToWorkflowTooltip": "Ausgewählte Medien als Konstanten-Knoten zu einer Workflow-Leinwand hinzufügen",
+    "transformWithWorkflow": "Mit Workflow umwandeln…",
+    "transformWithWorkflowTooltip": "Diese Datei durch einen deiner Workflows laufen lassen",
     "useAsEntity": "Als Entität verwenden …",
     "useAsEntityTooltip": "Markiere dieses Bild als Figur, Ort, Stil oder Requisite, um es in mehreren Einstellungen wiederzuverwenden",
     "editTimeline": "Timeline bearbeiten",
@@ -1893,6 +1895,8 @@
       "webPlayerDescription": "Statische Website, veröffentlichte Revision (.zip)",
       "desktopApp": "Desktop-App",
       "desktopAppDescription": "Tauri-Projekt für Windows, macOS und Linux (.zip)",
+      "mobileApp": "Mobile App",
+      "mobileAppDescription": "Expo-Projekt für iOS und Android (.zip)",
       "desktopExecutable": "Desktop-Programmdatei",
       "desktopExecutableDescription": "Auf diesem Computer mit cargo kompilieren, Ausgabe in der Konsole"
     },
@@ -1974,6 +1978,7 @@
         "publish": "Spiel veröffentlichen",
         "exportWeb": "Webplayer exportieren",
         "exportDesktop": "Desktop-App exportieren",
+        "exportMobile": "Mobile App exportieren",
         "buildExecutable": "Desktop-Programmdatei erstellen"
       },
       "edit": {
@@ -2060,6 +2065,7 @@
     "shell": {
       "contextMenuLabel": "Spiel",
       "buildingDesktop": "Desktop-App-Projekt aus der veröffentlichten Revision wird erstellt",
+      "buildingMobile": "Mobile-App-Projekt aus der veröffentlichten Revision wird erstellt",
       "buildingWeb": "Webplayer aus der veröffentlichten Revision wird erstellt",
       "exportFailed": "Export fehlgeschlagen: {{error}}",
       "exportFailedSummary": "Spiel-Export fehlgeschlagen",
@@ -4434,8 +4440,6 @@
         "count_other": "{{count}} Spiele",
         "makeGame": "Spiel erstellen",
         "description": "Spiele direkt los oder installiere eine Kopie, um Grafik, Level und Regeln zu ändern.",
-        "closeGame": "Spiel schließen",
-        "loadingGame": "Spiel wird geladen",
         "loading": "Spiele werden geladen",
         "loadErrorTitle": "Spiele konnten nicht geladen werden",
         "loadErrorDescription": "Versuch es gleich noch einmal.",
@@ -11133,7 +11137,9 @@
         "undo": "Rückgängig",
         "undoNamed": "{{label}} rückgängig machen",
         "redo": "Wiederholen",
-        "redoNamed": "{{label}} wiederherstellen"
+        "redoNamed": "{{label}} wiederherstellen",
+        "renderBlender": "Mit Blender rendern",
+        "hideBlenderRender": "Blender-Rendering ausblenden"
       },
       "tools": {
         "move": "Verschieben",
@@ -11203,7 +11209,9 @@
         "import": "{{name}} importieren",
         "parent": "{{name}} als übergeordnetes Objekt festlegen",
         "transform": "{{verb}} {{name}}"
-      }
+      },
+      "resizeBlenderPanel": "Größe des Blender-Render-Bereichs ändern",
+      "blenderDescription": "Die Szene mit Blender in voller Qualität rendern"
     },
     "outliner": {
       "objectLabel": "{{name}} ({{type}})",
@@ -11274,7 +11282,93 @@
       "modelRequired": "Wähle ein Bildmodell, das Bilder bearbeiten kann.",
       "earlierRenders": "Frühere Renderings",
       "showRender": "Rendering anzeigen: {{caption}}",
-      "failed": "Fehlgeschlagen"
+      "failed": "Fehlgeschlagen",
+      "shot": {
+        "title": "Einstellung",
+        "frame": "Bildausschnitt",
+        "aspectViewport": "Ganzer Viewport",
+        "lens": "Objektiv",
+        "lensFree": "Frei",
+        "lensFreeHint": "Freies Objektiv, die eigene Ansicht des Editors",
+        "lensMm": "{{mm}} mm",
+        "views": {
+          "front": "Vorne",
+          "right": "Seite",
+          "top": "Oben"
+        },
+        "frameAll": "Alles zeigen",
+        "save": "Einstellung speichern",
+        "savedName": "Einstellung {{index}}",
+        "restore": "Zu {{name}} wechseln"
+      }
+    },
+    "blenderRender": {
+      "emptyTitle": "Noch keine Blender-Renderings",
+      "emptyDescription": "Richte die Einstellung und die Render-Optionen ein und rendere die Szene dann mit Blender.",
+      "rendering": "Blender rendert die Szene…",
+      "cancel": "Rendering abbrechen",
+      "renderAlt": "Blender-Rendering: {{caption}}",
+      "caption": "{{engine}} · {{width}} × {{height}} · {{samples}} Samples",
+      "sections": {
+        "render": "Rendern",
+        "output": "Ausgabe",
+        "camera": "Kamera",
+        "lighting": "Beleuchtung",
+        "advanced": "Erweitert"
+      },
+      "fields": {
+        "engine": "Engine",
+        "samples": "Samples",
+        "denoise": "Entrauschen",
+        "width": "Breite",
+        "height": "Höhe",
+        "resolutionPercentage": "Skalierung %",
+        "transparent": "Transparenter Hintergrund",
+        "backgroundColor": "Hintergrund",
+        "azimuth": "Azimut",
+        "elevation": "Elevation",
+        "fov": "Sichtfeld",
+        "zoom": "Zoom",
+        "lighting": "Vorgabe",
+        "lightIntensity": "Intensität",
+        "timeout": "Zeitlimit (s)"
+      },
+      "engines": {
+        "eevee": "EEVEE",
+        "cycles": "Cycles"
+      },
+      "engineHints": {
+        "eevee": "Schnell, Echtzeit-Qualität",
+        "cycles": "Pathtracing, langsamer und realistischer"
+      },
+      "cameras": {
+        "view": "Diese Ansicht",
+        "scene": "Szenenkamera",
+        "orbit": "Orbit"
+      },
+      "cameraHints": {
+        "view": "Aus der Viewport-Kamera rendern, wie du sie gerade siehst",
+        "scene": "Aus der ersten Kamera der Szene rendern",
+        "orbit": "Die ganze Szene aus dem unten eingestellten Winkel einrahmen"
+      },
+      "lighting": {
+        "studio": "Studio",
+        "soft": "Weich",
+        "flat": "Flach"
+      },
+      "lightingHint": "Blender nutzt die Vorgabe nur, wenn die Szene keine eigenen Lichter hat.",
+      "matchView": "Seitenverhältnis der Ansicht",
+      "formatHint": "Renderings werden als PNG-Bilder in deinen Assets gespeichert.",
+      "render": "Mit Blender rendern",
+      "requirement": "Benötigt Blender 5.2 oder neuer auf dem Rechner, auf dem NodeTool läuft.",
+      "earlierRenders": "Frühere Renderings",
+      "showRender": "Rendering anzeigen: {{caption}}",
+      "failed": "Fehlgeschlagen",
+      "errors": {
+        "export": "Die Szene konnte nicht exportiert werden.",
+        "render": "Das Blender-Rendering ist fehlgeschlagen.",
+        "context": "Blender-Rendering der Szene im 3D-Editor fehlgeschlagen"
+      }
     },
     "properties": {
       "change": "{{label}} ändern",
@@ -18429,6 +18523,65 @@
         "waitingToStart": "Warten auf Start…",
         "buildingGraph": "Graph wird erstellt…"
       }
+    }
+  },
+  "transformWithWorkflow": {
+    "title": "Mit Workflow umwandeln",
+    "sourceKind": "Quelle: {{kind}}",
+    "pickDescription": "Wähle einen Workflow mit einem Eingang für {{kind}}. Seine anderen Eingänge behalten ihre gespeicherten Werte.",
+    "searchPlaceholder": "Workflows nach Namen suchen",
+    "searchLabel": "Workflows",
+    "loadFailed": "Deine Workflows konnten nicht geladen werden.",
+    "noWorkflowsTitle": "Keine passenden Workflows",
+    "noWorkflowsDescription": "Füge einem Workflow einen Eingangsknoten für {{kind}} hinzu, um ihn hier zu verwenden.",
+    "noSearchResults": "Keine Workflows passen zu „{{query}}“.",
+    "chooseInput": "Dieser Workflow hat mehrere passende Eingänge. Wähle den Eingang für die Datei.",
+    "unsupportedTitle": "Nichts umzuwandeln",
+    "unsupportedDescription": "Ordner können nicht durch einen Workflow laufen.",
+    "run": "Ausführen",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "cancelRun": "Lauf stoppen",
+    "chooseAnother": "Anderen Workflow wählen",
+    "runAgain": "Erneut ausführen",
+    "done": "Fertig",
+    "progress": "Fortschritt",
+    "runningNode": "{{node}} läuft",
+    "nodeProgress": "Aktueller Schritt",
+    "updates": "Updates",
+    "outputs": "Ausgaben",
+    "noOutputs": "Der Workflow wurde ohne Ausgaben beendet.",
+    "transformOutput": "Umwandeln",
+    "saveToAssets": "In Assets speichern",
+    "inAssets": "In Assets",
+    "saveFailed": "Die Ausgabe konnte nicht in deinen Assets gespeichert werden.",
+    "status": {
+      "idle": "Bereit",
+      "running": "Läuft",
+      "completed": "Fertig",
+      "failed": "Fehlgeschlagen",
+      "cancelled": "Gestoppt"
+    },
+    "kind": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Audio",
+      "model3d": "3D-Modell",
+      "document": "Dokument"
+    },
+    "open": "Mit Workflow umwandeln…",
+    "openStill": "Standbild mit Workflow umwandeln…",
+    "openClip": "Clip mit Workflow umwandeln…",
+    "applyFailed": "Die Ausgabe konnte hier nicht verwendet werden.",
+    "sketchName": "Skizze",
+    "sceneName": "3D-Szene",
+    "clipName": "Clip",
+    "apply": {
+      "addToScene": "Zur Szene hinzufügen",
+      "addAsLayer": "Als Ebene hinzufügen",
+      "replaceAudio": "Audio ersetzen",
+      "replaceClip": "Clip ersetzen",
+      "addAsTake": "Als Take hinzufügen"
     }
   }
 }

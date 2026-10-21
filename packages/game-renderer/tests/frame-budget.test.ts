@@ -12,13 +12,25 @@ import {
   ParticleSimulator,
   gameAudioVoiceCount,
   gameFrameBudgetOverruns,
-  resolveGameFrameBudgets
+  gameTimeBudgetOverruns,
+  formatGameTimeBudgetOverrun,
+  resolveGameFrameBudgets,
+  resolveGameTimeBudgets
 } from "../src/index.js";
 
 describe("frame budgets", () => {
   it("fills budgets the document leaves out with the player defaults", () => {
     expect(resolveGameFrameBudgets({ drawCalls: 50 })).toEqual({ ...DEFAULT_GAME_FRAME_BUDGETS, drawCalls: 50 });
     expect(resolveGameFrameBudgets(undefined)).toEqual(DEFAULT_GAME_FRAME_BUDGETS);
+  });
+
+  it("keeps time budgets out of the count limits and resolves them on their own", () => {
+    expect(resolveGameFrameBudgets({ drawCalls: 50, tickMs: 2, frameMs: 8.3 })).toEqual({ ...DEFAULT_GAME_FRAME_BUDGETS, drawCalls: 50 });
+    expect(resolveGameTimeBudgets(undefined)).toEqual({ tickMs: 4, frameMs: 16.6 });
+    const limits = resolveGameTimeBudgets({ frameMs: 8.3 });
+    expect(gameTimeBudgetOverruns({ tickMs: 4, frameMs: 9 }, limits)).toEqual([{ metric: "frameMs", value: 9, budget: 8.3 }]);
+    expect(gameTimeBudgetOverruns({ tickMs: 4.01 }, limits)).toEqual([{ metric: "tickMs", value: 4.01, budget: 4 }]);
+    expect(formatGameTimeBudgetOverrun({ metric: "tickMs", value: 5.588, budget: 4 })).toBe("Time budget exceeded: tick p95 5.59 ms (budget 4 ms)");
   });
 
   it("reports only measured metrics that exceed their budget", () => {

@@ -102,4 +102,37 @@ describe("runInlineGraphJob", () => {
     // finish() drops the entry once the run settles.
     expect(getRunSignature("job-x", "n1")).toBeUndefined();
   });
+  it("runs under a caller-supplied job id and hands every run message to onMessage", async () => {
+    const graph = {
+      nodes: [{ id: "n1", type: "x.Y", data: {} }],
+      edges: []
+    } as never;
+    const seen: Array<Record<string, unknown>> = [];
+
+    const done = runInlineGraphJob({
+      graph,
+      workflowId: "wf",
+      jobId: "job-own",
+      onMessage: (message) => seen.push(message)
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ job_id: "job-own" })
+      })
+    );
+
+    const progress = { type: "node_progress", job_id: "job-own", node_id: "n1", progress: 1, total: 2 };
+    emit(progress);
+    // Another run's message is not this run's update.
+    emit({ type: "node_progress", job_id: "job-other", node_id: "n1", progress: 1, total: 2 });
+    emit({ type: "job_update", status: "completed", job_id: "job-own", workflow_id: "wf" });
+    const result = await done;
+
+    expect(result.success).toBe(true);
+    expect(seen[0]).toEqual(progress);
+    expect(seen.map((m) => m.job_id)).not.toContain("job-other");
+  });
 });

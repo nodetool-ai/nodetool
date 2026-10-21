@@ -3,21 +3,22 @@
  *
  * A Generate button that opens the text-to-image form, a visible assistant
  * toggle, and an overflow menu for fit / hide panels, the rulers / guides /
- * snap view toggles, plus any document actions the host surface contributes
- * via `menuItems`.
+ * snap view toggles, "Transform with workflow", plus any document actions the
+ * host surface contributes via `menuItems`.
  *
  * Editor-shell convention: narrow store selectors only; the fit computation
  * reads and writes through getState() so the cluster gains no subscriptions on
  * the document or viewport.
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 
 import {
   Divider,
@@ -32,6 +33,12 @@ import { useSketchStore, SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX } from "../state";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefStore";
 import { ConnectedGeneratePopover } from "./ConnectedGeneratePopover";
+import { getSketchAgentHandler } from "../sketchAgentBridge";
+import { TransformWithWorkflowView } from "../../assets/TransformWithWorkflowDialog";
+import type {
+  TransformApplyAction,
+  TransformSource
+} from "../../assets/transformWorkflow";
 import { displayCombo } from "../shortcuts";
 import type { SketchActionId } from "../shortcuts";
 
@@ -114,6 +121,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
 
   const documentId = useSketchSessionStore((s) => s.documentId);
   const fitViewToScreen = useSketchCanvasRefStore((s) => s.fitViewToScreen);
+  const canFlatten = useSketchCanvasRefStore((s) => s.flattenToDataUrl !== null);
 
   const generateAnchorRef = useRef<HTMLButtonElement>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -143,6 +151,38 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
     closeMenu();
     togglePanelsHidden();
   }, [closeMenu, togglePanelsHidden]);
+
+  // The visible composite goes to the workflow; an image it returns lands on
+  // a new layer, placed through the same path the agent's placeImage uses.
+  const [transformSource, setTransformSource] = useState<TransformSource | null>(null);
+  const handleTransform = useCallback(() => {
+    closeMenu();
+    const uri = useSketchCanvasRefStore.getState().flattenToDataUrl?.();
+    if (!uri) {
+      return;
+    }
+    setTransformSource({
+      kind: "image",
+      name: useSketchSessionStore.getState().name || t("transformWithWorkflow.sketchName"),
+      uri
+    });
+  }, [closeMenu, t]);
+  const transformApply = useMemo<TransformApplyAction | undefined>(
+    () =>
+      documentId
+        ? {
+            label: t("transformWithWorkflow.apply.addAsLayer"),
+            kinds: ["image"],
+            onApply: async (result) => {
+              await getSketchAgentHandler(documentId).placeImage({
+                image: result.uri,
+                name: result.name
+              });
+            }
+          }
+        : undefined,
+    [documentId, t]
+  );
 
   return (
     <FlexRow
@@ -276,9 +316,27 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
           data-testid="sketch-clear-guides"
         />
 
+        <Divider key="transform-divider" />
+        <MenuItemPrimitive
+          label={t("transformWithWorkflow.open")}
+          icon={<AutoFixHighOutlinedIcon fontSize="small" />}
+          onClick={handleTransform}
+          disabled={!canFlatten}
+          data-testid="sketch-transform-with-workflow"
+        />
+
         {menuItems ? <Divider key="host-divider" /> : null}
         {menuItems?.(closeMenu)}
       </EditorMenu>
+
+      {transformSource && (
+        <TransformWithWorkflowView
+          source={transformSource}
+          onClose={() => setTransformSource(null)}
+          apply={transformApply}
+          aboveFloating
+        />
+      )}
     </FlexRow>
   );
 });

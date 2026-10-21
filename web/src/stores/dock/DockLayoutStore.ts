@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { z } from "zod";
 
 import {
-  capitalizeLabel, dockGroupOfPanel, sameDockLayout,
+  sameDockLayout,
   type DockLayout, type DockLayoutAction, type DockLayoutModel, type DockPanelRegistration
 } from "./DockLayout";
 
@@ -58,7 +58,6 @@ export function dockLayoutStorageKey(model: Pick<DockLayoutModel, "persistKeyPre
 }
 
 export function createDockLayoutStore(model: DockLayoutModel, scope: DockLayoutScope, storage: DockLayoutStorage) {
-  const label = capitalizeLabel(model.editorLabel);
   const layoutName = z.string().trim().min(1, "Enter a layout name").max(80, "Layout names are limited to 80 characters")
     .refine((name) => !model.presets.some((preset) => preset === name), { message: "Built-in layouts cannot be replaced" });
   const savedLayout = z.object({ name: layoutName, layout: model.schema }).strict();

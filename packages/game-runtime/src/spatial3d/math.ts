@@ -3,6 +3,16 @@ import type { GameTransform3D, GameQuaternion3D, GameVector3 } from "@nodetool-a
 export const ZERO3: GameVector3 = { x: 0, y: 0, z: 0 };
 export const IDENTITY3: GameQuaternion3D = [0, 0, 0, 1];
 
+/**
+ * A deep copy of a transform. Ticks copy every entity transform several times, and structuredClone costs far more
+ * than these nine numbers. The key order matches the protocol schema.
+ */
+export function copyTransform3D(transform: GameTransform3D): GameTransform3D {
+  const { position, rotation, scale } = transform;
+  return { position: { x: position.x, y: position.y, z: position.z }, rotation: [rotation[0], rotation[1], rotation[2], rotation[3]],
+    scale: { x: scale.x, y: scale.y, z: scale.z } };
+}
+
 export function add3(a: GameVector3, b: GameVector3): GameVector3 {
   return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
 }

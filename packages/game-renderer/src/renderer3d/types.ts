@@ -7,8 +7,14 @@ export interface CachedModel {
 }
 export interface RenderInstance {
   modelAssetId?: string;
-  sampledAnimationKey?: string;
+  /** The model or primitive object `descriptor` was last checked against. A frame that reuses it skips the check. */
+  descriptorSource?: unknown;
+  /** The pose or clip state object of the last sample, and its fractional tick. */
+  sampledAnimationSource?: unknown;
+  sampledAnimationTick?: number;
   sampledAnimationMode?: "graph" | "clip";
+  /** Tick whose pose last set the skinned mesh bounds. */
+  boundsTick?: number;
   readonly descriptor: string;
   readonly object: THREE.Object3D;
   readonly materials: readonly THREE.Material[];

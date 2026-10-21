@@ -49,6 +49,7 @@ import { ClipContextMenu } from "./ClipContextMenu";
 import { SendToWorkflowMenu } from "../../workflows/SendToWorkflowMenu";
 import type { WorkflowMediaItem } from "../../../hooks/handlers/useGenerationToCanvas";
 import { ReplaceClipAssetDialog } from "./ReplaceClipAssetDialog";
+import { TransformClipDialog } from "./TransformClipDialog";
 import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 
 interface ClipProps {
@@ -289,6 +290,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const reportActionError = useAlertNotifier("error");
   const handleOpenReplace = useCallback(() => setReplaceOpen(true), []);
   const handleCloseReplace = useCallback(() => setReplaceOpen(false), []);
+  const [transformOpen, setTransformOpen] = useState(false);
+  const handleOpenTransform = useCallback(() => setTransformOpen(true), []);
+  const handleCloseTransform = useCallback(() => setTransformOpen(false), []);
   const handleUnlink = useCallback(
     () => unlinkClip(clipId),
     [unlinkClip, clipId]
@@ -410,6 +414,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
           onSendToWorkflow={handleSendToWorkflow}
           onClose={handleCloseContextMenu}
           onRequestReplace={handleOpenReplace}
+          onRequestTransform={handleOpenTransform}
           onError={reportActionError}
         />
       )}
@@ -435,6 +440,12 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         <ReplaceClipAssetDialog
           clipId={clipId}
           onClose={handleCloseReplace}
+        />
+      )}
+      {transformOpen && (
+        <TransformClipDialog
+          clipId={clipId}
+          onClose={handleCloseTransform}
         />
       )}
     </>

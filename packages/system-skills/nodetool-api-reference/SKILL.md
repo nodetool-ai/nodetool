@@ -125,7 +125,7 @@ curl -X POST http://localhost:7777/api/timelines/import-zip
 curl http://localhost:7777/api/storyboards/:id/export-zip
 curl -X POST http://localhost:7777/api/timelines/:id/isolate-subject
 
-# Native games: the published revision as a zip (target=web or tauri)
+# Native games: the published revision as a zip (target=web, tauri or expo)
 curl -o game.zip 'http://localhost:7777/api/games/:id/export-zip?target=tauri'
 # Compile the desktop executable on this machine; streams cargo output as NDJSON (refused on hosted servers)
 curl -N -X POST http://localhost:7777/api/games/:id/build-executable
