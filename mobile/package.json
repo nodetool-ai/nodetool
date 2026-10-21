@@ -63,6 +63,7 @@
     "react-native-screens": "4.28.0",
     "react-native-syntax-highlighter": "^2.1.0",
     "react-native-url-polyfill": "^2.0.0",
+    "react-native-webview": "13.16.1",
     "react-syntax-highlighter": "^16.1.1",
     "uuid": "14.0.2",
     "zod": "^4.4.3",

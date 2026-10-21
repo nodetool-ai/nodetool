@@ -4,7 +4,8 @@
  * The provider starts the `sd-server` binary from the `sd-cpp` runtime
  * package with the files of the model a generation asks for, then talks to
  * it over its `/sdcpp/v1` job API. Model files come from the Hugging Face
- * cache, where the model picker downloads them.
+ * cache, where the model picker downloads them, or are single-file
+ * checkpoints found in the `MODEL_FOLDERS` setting's folders.
  */
 import { z } from "zod";
 import {
@@ -27,6 +28,7 @@ import type {
 import {
   SD_CPP_COMPONENT_FLAGS,
   SD_CPP_MODELS,
+  localCheckpointSpec,
   sdCppModel,
   sdCppModelRepos,
   sdCppModelTasks,
@@ -36,6 +38,8 @@ import {
 } from "./sdcpp-models.js";
 import { withSdServer } from "./sdcpp-server.js";
 import { resolveHubFile } from "./hf-hub-file.js";
+import { cachedFileProbe, findModelFiles, modelFolders } from "./model-folders.js";
+import { readSafetensorsTensorNames } from "./safetensors-header.js";
 
 export const SD_CPP_PROVIDER_ID = "stable_diffusion_cpp";
 
@@ -58,13 +62,15 @@ export class StableDiffusionCppProvider extends BaseProvider {
   }
 
   private readonly serverPath?: string;
+  private readonly modelFolders?: string;
 
-  constructor(secrets: { SD_CPP_SERVER_PATH?: string } = {}) {
+  constructor(secrets: { SD_CPP_SERVER_PATH?: string; MODEL_FOLDERS?: string } = {}) {
     super(SD_CPP_PROVIDER_ID);
     this.serverPath =
       secrets.SD_CPP_SERVER_PATH?.trim() ||
       process.env.SD_CPP_SERVER_PATH?.trim() ||
       undefined;
+    this.modelFolders = secrets.MODEL_FOLDERS || process.env.MODEL_FOLDERS || undefined;
   }
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
@@ -86,8 +92,9 @@ export class StableDiffusionCppProvider extends BaseProvider {
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
     const binary = await this.findServer();
+    const models = [...SD_CPP_MODELS, ...(await this.localModels())];
     return Promise.all(
-      SD_CPP_MODELS.map(async (model) => ({
+      models.map(async (model) => ({
         id: model.id,
         name: `${model.name} (${model.sizeGb} GB)`,
         provider: SD_CPP_PROVIDER_ID,
@@ -98,7 +105,7 @@ export class StableDiffusionCppProvider extends BaseProvider {
   }
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
-    const model = this.spec(params.model.id);
+    const model = await this.spec(params.model.id);
     if (model.textToImage === false) {
       throw new Error(`${model.name} edits a source image. Use it for image-to-image.`);
     }
@@ -121,7 +128,7 @@ export class StableDiffusionCppProvider extends BaseProvider {
     if (!source?.length) {
       throw new Error("stable-diffusion.cpp image-to-image needs a source image");
     }
-    const model = this.spec(params.model.id);
+    const model = await this.spec(params.model.id);
     if (!model.imageInput) {
       throw new Error(`${model.name} generates from text only. Use it for text-to-image.`);
     }
@@ -152,14 +159,22 @@ export class StableDiffusionCppProvider extends BaseProvider {
     });
   }
 
-  private spec(id: string): SdCppModelSpec {
-    const model = sdCppModel(id);
+  private async spec(id: string): Promise<SdCppModelSpec> {
+    const model =
+      sdCppModel(id) ?? (await this.localModels()).find((local) => local.id === id) ?? null;
     if (!model) {
       throw new Error(
         `Unknown stable-diffusion.cpp model "${id}". Known: ${SD_CPP_MODELS.map((m) => m.id).join(", ")}.`
       );
     }
     return model;
+  }
+
+  /** The single-file checkpoints in the configured model folders. */
+  private async localModels(): Promise<SdCppModelSpec[]> {
+    const files = await findModelFiles(await modelFolders(this.modelFolders), [".safetensors"]);
+    const specs = await Promise.all(files.map((file) => probeCheckpoint(file)));
+    return specs.filter((spec): spec is SdCppModelSpec => spec !== null);
   }
 
   private async generate(
@@ -251,6 +266,14 @@ async function withUpdateHint(binary: string, error: unknown): Promise<unknown> 
   );
 }
 
+/** A model folder file as a checkpoint spec, or null when it is not one. */
+const probeCheckpoint = cachedFileProbe(async (file): Promise<SdCppModelSpec | null> => {
+  const fs = await importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises");
+  const stat = await fs?.stat(file).catch(() => null);
+  const names = await readSafetensorsTensorNames(file);
+  return stat && names ? localCheckpointSpec(file, names, stat.size) : null;
+});
+
 function adapterFor(
   model: SdCppModelSpec,
   serverInstalled: boolean,
@@ -282,7 +305,7 @@ async function missingFiles(model: SdCppModelSpec): Promise<SdCppFile[]> {
 
 /** The sd-server flags that load each file of a model from the HF cache. */
 async function modelArgs(model: SdCppModelSpec): Promise<string[]> {
-  const args: string[] = [];
+  const args: string[] = model.localPath ? [SD_CPP_COMPONENT_FLAGS.model, model.localPath] : [];
   const missing: string[] = [];
   for (const [component, file] of Object.entries(model.files) as [SdCppComponent, SdCppFile][]) {
     const resolved = await resolveHubFile(file.repoId, file.path);

@@ -496,8 +496,10 @@ jest.mock("../../../hooks/useHasConfiguredProvider", () => ({
 }));
 
 const openPageTab = jest.fn();
+const openExamplesTab = jest.fn();
 jest.mock("../../workspace/openPageTab", () => ({
-  openPageTab: (key: string) => openPageTab(key)
+  openPageTab: (key: string) => openPageTab(key),
+  openExamplesTab: (tab?: string) => openExamplesTab(tab)
 }));
 
 // The `@` picker's search fans out to the asset store and the entity library;
@@ -535,7 +537,6 @@ jest.mock("../../../hooks/useWorkflowActions", () => ({
 }));
 
 import NewProjectSurface from "../NewProjectSurface";
-import { OPTION_CARD_CLASS } from "../../setup/OptionCardGrid";
 import { clearChatTurn, peekChatTurn } from "../../chat/pendingChatTurn";
 import useOnboardingStore from "../../../stores/OnboardingStore";
 import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingStore";
@@ -547,6 +548,10 @@ const actualTabsStore: typeof import("../../../stores/WorkspaceTabsStore") =
   jest.requireActual("../../../stores/WorkspaceTabsStore");
 
 type FlowTab = { ref: string; setupTarget: NonNullable<import("../../../stores/WorkspaceTabsStore").WorkspaceTab["setupTarget"]> };
+
+/** A flow card by its kind: the four primary cards read "Create <kind>". */
+const flowCardName = (title: string): RegExp =>
+  new RegExp(`^(Create )?${title} `, "i");
 
 const renderSurface = (initialFlowTab: FlowTab | null = null, expandFormats = true) => {
   const client = new QueryClient();
@@ -576,7 +581,7 @@ const renderSurface = (initialFlowTab: FlowTab | null = null, expandFormats = tr
       )
     }
   );
-  const moreFormats = screen.queryByRole("button", { name: "More formats" });
+  const moreFormats = screen.queryByRole("button", { name: /^Explore all creation types/ });
   if (expandFormats && moreFormats) {
     fireEvent.click(moreFormats);
   }
@@ -632,9 +637,8 @@ describe("NewProjectSurface", () => {
   it("says the home box answers questions as well as making things", () => {
     renderSurface();
 
-    expect(screen.getByPlaceholderText(/^Ask a question/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Ask a question and get an answer/)
+      screen.getByText(/Ask a question, or describe what to make/)
     ).toBeInTheDocument();
   });
 
@@ -653,7 +657,7 @@ describe("NewProjectSurface", () => {
   // record of what the agent is handed.
   it("writes the picked starter into the prompt, and says what it does", async () => {
     renderSurface();
-    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     expect(
       screen.getByText(/Pick a skill to start from/)
     ).toBeInTheDocument();
@@ -680,7 +684,7 @@ describe("NewProjectSurface", () => {
 
   it("swaps one starter for another in place", async () => {
     renderSurface();
-    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await userEvent.click(
       screen.getByRole("button", { name: "Launch commercial" })
     );
@@ -698,7 +702,7 @@ describe("NewProjectSurface", () => {
   // was deleted from the prompt, and a hand-typed one never counted at all.
   it("lights the pill for a hand-typed command and clears it when deleted", async () => {
     renderSurface();
-    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await userEvent.type(prompt, "/house-style{Escape} our lamp");
     expect(
       screen.getByRole("button", { name: "House style" })
@@ -731,7 +735,7 @@ describe("NewProjectSurface", () => {
 
     // Typed from `/`, a hidden starter is shown lit rather than left folded.
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "/skill-l{Escape} our lamp"
     );
     expect(
@@ -763,7 +767,7 @@ describe("NewProjectSurface", () => {
     renderSurface();
     expect(screen.getByRole("button", { name: "Send to chat" })).toBeDisabled();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     expect(screen.getByRole("button", { name: "Send to chat" })).toBeEnabled();
@@ -776,7 +780,7 @@ describe("NewProjectSurface", () => {
       screen.getByRole("button", { name: "Launch commercial" })
     );
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Entities · none" }));
@@ -825,7 +829,7 @@ describe("NewProjectSurface", () => {
     });
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "Make a lamp ad"
     );
     await userEvent.upload(
@@ -897,15 +901,15 @@ describe("NewProjectSurface", () => {
     });
 
     expect(
-      within(cards).getByRole("button", { name: /^Image / })
+      within(cards).getByRole("button", { name: /^Create image / })
     ).toHaveAttribute("aria-disabled", "true");
-    await userEvent.click(within(cards).getByRole("button", { name: /^Image / }));
+    await userEvent.click(within(cards).getByRole("button", { name: /^Create image / }));
     expect(startImageFlowMock).not.toHaveBeenCalled();
 
     finishUpload?.();
     await waitFor(() =>
       expect(
-        within(cards).getByRole("button", { name: /^Image / })
+        within(cards).getByRole("button", { name: /^Create image / })
       ).not.toHaveAttribute("aria-disabled", "true")
     );
   });
@@ -929,7 +933,7 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await userEvent.click(within(cards).getByRole("button", { name: /^Image / }));
+    await userEvent.click(within(cards).getByRole("button", { name: /^Create image / }));
 
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
@@ -953,7 +957,7 @@ describe("NewProjectSurface", () => {
     );
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "Make a lamp ad"
     );
     await userEvent.upload(
@@ -971,7 +975,7 @@ describe("NewProjectSurface", () => {
 
   it("starts on Ctrl+Enter, and keeps Enter for a new line", async () => {
     renderSurface();
-    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await userEvent.type(prompt, "A spot for our desk lamp{Enter}warm");
     expect(createNewThread).not.toHaveBeenCalled();
     expect(prompt).toHaveValue("A spot for our desk lamp\nwarm");
@@ -983,7 +987,7 @@ describe("NewProjectSurface", () => {
   it("starts with no starter, and then sends the prompt alone", async () => {
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1001,12 +1005,12 @@ describe("NewProjectSurface", () => {
     expect(createWorkflow).toHaveBeenCalled();
   });
 
-  it("starts Game from the Home action with the current project's brief", async () => {
+  it("starts Game from its card with the current project's brief", async () => {
     actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "project-current" });
-    renderSurface(null, false);
+    renderSurface();
     await userEvent.type(screen.getByRole("textbox", { name: "Chat prompt" }), "A fox collects acorns");
-    const actions = screen.getByRole("group", { name: "Create a game or 3D model" });
-    const game = within(actions).getByRole("button", { name: "Game" });
+    const cards = screen.getByRole("group", { name: "Start with a guided flow" });
+    const game = within(cards).getByRole("button", { name: /^Game / });
     game.focus();
     await userEvent.keyboard("{Enter}");
 
@@ -1022,9 +1026,9 @@ describe("NewProjectSurface", () => {
 
   it("opens a blank 3D model from Home without a provider or a prompt", async () => {
     hasConfiguredProvider = false;
-    renderSurface(null, false);
-    const actions = screen.getByRole("group", { name: "Create a game or 3D model" });
-    const model = within(actions).getByRole("button", { name: "New 3D model" });
+    renderSurface();
+    const cards = screen.getByRole("group", { name: "Start with a guided flow" });
+    const model = within(cards).getByRole("button", { name: /^3D model / });
     model.focus();
     await userEvent.keyboard("{Enter}");
 
@@ -1040,27 +1044,30 @@ describe("NewProjectSurface", () => {
     createModelDocument.mockImplementationOnce(() => new Promise<undefined>((resolve) => {
       finishCreation = () => resolve(undefined);
     }));
-    renderSurface(null, false);
+    renderSurface();
     await userEvent.type(screen.getByRole("textbox", { name: "Chat prompt" }), "A new game");
-    const actions = screen.getByRole("group", { name: "Create a game or 3D model" });
-    const model = within(actions).getByRole("button", { name: "New 3D model" });
+    const cards = screen.getByRole("group", { name: "Start with a guided flow" });
+    const model = within(cards).getByRole("button", { name: /^3D model / });
     await userEvent.dblClick(model);
 
     expect(createModelDocument).toHaveBeenCalledTimes(1);
-    expect(model).toBeDisabled();
-    expect(within(actions).getByRole("button", { name: "Game" })).toBeDisabled();
+    // A card that turns off gains a tooltip, which remounts it: query again.
+    const modelCard = (): HTMLElement =>
+      within(cards).getByRole("button", { name: /^3D model / });
+    expect(modelCard()).toHaveAttribute("aria-disabled", "true");
+    const game = within(cards).getByRole("button", { name: /^Game / });
+    expect(game).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("button", { name: "Send to chat" })).toBeDisabled();
-    const cards = screen.getByRole("group", { name: "Start with a guided flow" });
-    await userEvent.click(within(cards).getByRole("button", { name: /^Game / }));
+    await userEvent.click(game);
     expect(managerCreateWorkflow).not.toHaveBeenCalled();
     finishCreation();
-    await waitFor(() => expect(model).toBeEnabled());
+    await waitFor(() => expect(modelCard()).not.toHaveAttribute("aria-disabled"));
   });
 
   it("does not complete describe-idea when chat merely starts", async () => {
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1110,7 +1117,7 @@ describe("NewProjectSurface", () => {
     await user.click(
       screen.getByRole("button", { name: "Describe what you want to make" })
     );
-    expect(screen.getByPlaceholderText(/30-second launch spot/)).toHaveFocus();
+    expect(screen.getByPlaceholderText(/Describe what you want to create/)).toHaveFocus();
     await user.click(
       screen.getByRole("button", { name: "Open an example or a blank doc" })
     );
@@ -1143,28 +1150,29 @@ describe("NewProjectSurface", () => {
     expect(openPageTab).toHaveBeenCalledWith("tutorials");
   });
 
-  it("offers every example type on the start screen", async () => {
+  it("opens the Examples page on the kind a card names", async () => {
     const user = userEvent.setup();
     renderSurface();
 
-    const examples = screen.getByRole("region", { name: "Examples" });
-    expect(within(examples).getByRole("tab", { name: "Apps" })).toBeInTheDocument();
-    for (const [tab, content] of [
-      ["Workflows", "Workflow examples"],
-      ["Storyboards", "Storyboard examples"],
-      ["Timelines", "Timeline examples"],
-      ["Games", "Game examples"]
-    ]) {
-      await user.click(within(examples).getByRole("tab", { name: tab }));
-      expect(await within(examples).findByText(content)).toBeInTheDocument();
+    const examples = screen.getByRole("group", { name: "Explore examples" });
+    for (const [name, tab] of [
+      [/^Image gallery/, "sketches"],
+      [/^Video examples/, "timelines"],
+      [/^App examples/, "apps"],
+      [/^Workflow examples/, "workflows"]
+    ] as const) {
+      await user.click(within(examples).getByRole("button", { name }));
+      expect(openExamplesTab).toHaveBeenLastCalledWith(tab);
     }
+    await user.click(screen.getByRole("button", { name: "View all examples" }));
+    expect(openExamplesTab).toHaveBeenLastCalledWith(undefined);
   });
 
   it("parks a start on provider onboarding and resumes once connected", async () => {
     hasConfiguredProvider = false;
     const { refresh } = renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1184,7 +1192,7 @@ describe("NewProjectSurface", () => {
     selectedModel = { provider: "empty", id: "gpt-4o" };
     const { refresh } = renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1203,7 +1211,7 @@ describe("NewProjectSurface", () => {
     selectedModel = { provider: "empty", id: "gpt-4o" };
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1229,7 +1237,7 @@ describe("NewProjectSurface", () => {
     });
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1246,23 +1254,18 @@ describe("NewProjectSurface", () => {
     );
   });
 
-  it("shows the guided flows before the documents when the project has none", () => {
-    mockDocumentTotal = 0;
+  // Recent projects and examples follow the creation cards, as in the start
+  // page mockup; the open project's own documents come after them.
+  it("puts the project's documents after the cards and examples", () => {
     renderSurface();
     const flows = document.getElementById("guided-flows") as HTMLElement;
+    const examples = screen.getByRole("region", { name: "Explore examples" });
     const docs = screen.getByTestId("current-project-documents");
     expect(
-      flows.compareDocumentPosition(docs) & 4 /* DOCUMENT_POSITION_FOLLOWING */
+      flows.compareDocumentPosition(examples) & 4 /* DOCUMENT_POSITION_FOLLOWING */
     ).toBeTruthy();
-  });
-
-  it("keeps the documents before the guided flows when the project has some", () => {
-    mockDocumentTotal = 2;
-    renderSurface();
-    const flows = document.getElementById("guided-flows") as HTMLElement;
-    const docs = screen.getByTestId("current-project-documents");
     expect(
-      docs.compareDocumentPosition(flows) & 4 /* DOCUMENT_POSITION_FOLLOWING */
+      examples.compareDocumentPosition(docs) & 4 /* DOCUMENT_POSITION_FOLLOWING */
     ).toBeTruthy();
   });
 
@@ -1272,7 +1275,7 @@ describe("NewProjectSurface", () => {
     selectedModel = { provider: "empty", id: "gpt-4o" };
     const { refresh } = renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1302,7 +1305,7 @@ describe("NewProjectSurface", () => {
     ).toBeInTheDocument();
 
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1348,7 +1351,7 @@ describe("NewProjectSurface", () => {
     createNewThread.mockRejectedValueOnce(new Error("offline"));
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
@@ -1358,7 +1361,7 @@ describe("NewProjectSurface", () => {
     expect(peekChatTurn("chat-1")).toBeNull();
     // The prompt is still on the screen, so Start can be pressed again.
     expect(
-      screen.getByPlaceholderText(/30-second launch spot/)
+      screen.getByPlaceholderText(/Describe what you want to create/)
     ).toHaveValue("A spot for our desk lamp");
   });
   // The prompt box is the project's composer, so it carries the composer's own
@@ -1366,7 +1369,7 @@ describe("NewProjectSurface", () => {
   it("completes a skill from `/` and starts the project on it", async () => {
     const user = userEvent.setup();
     renderSurface(null, false);
-    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await user.type(prompt, "/launch");
 
     await user.click(
@@ -1401,7 +1404,7 @@ describe("NewProjectSurface", () => {
       } as Asset
     ];
     renderSurface(null, false);
-    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await user.click(prompt);
     await user.paste("When is the next meeting? ");
     await user.type(prompt, "@meet");
@@ -1417,7 +1420,7 @@ describe("NewProjectSurface", () => {
 
   it("writes an entity picked from `@` into the prompt as its token", async () => {
     renderSurface();
-    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await userEvent.type(prompt, "A spot lit by @auro");
 
     const menu = await screen.findByRole("listbox", { name: "Entities" });
@@ -1436,7 +1439,7 @@ describe("NewProjectSurface", () => {
   ) => {
     const user = userEvent.setup();
     renderSurface();
-    await user.click(screen.getByPlaceholderText(/30-second launch spot/));
+    await user.click(screen.getByPlaceholderText(/Describe what you want to create/));
     await user.paste(promptText);
     await user.click(screen.getByRole("button", { name: "Send to chat" }));
 
@@ -1461,12 +1464,12 @@ describe("NewProjectSurface", () => {
       { wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> }
     );
 
+    await userEvent.click(screen.getByRole("button", { name: /^Explore all creation types/ }));
     await userEvent.click(screen.getByRole("button", { name: /^Storyboard From a sentence/ }));
 
     await waitFor(() => expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "guided-flow", setupTarget: expect.objectContaining({ kind: "storyboard" }) })));
 
-    await userEvent.click(screen.getByRole("button", { name: "More formats" }));
-    await userEvent.click(await screen.findByRole("button", { name: /^Video From a sentence/ }));
+    await userEvent.click(await screen.findByRole("button", { name: /^Create video Turn ideas/ }));
 
     await waitFor(() => expect(openTab.mock.calls.filter(([input]) => input.type === "guided-flow")).toHaveLength(2));
 
@@ -1490,7 +1493,7 @@ describe("NewProjectSurface", () => {
   // idea field and its tab name. The flow takes the ask, not the command.
   it("leaves a starter's command out of the idea a guided card carries", async () => {
     renderSurface();
-    const prompt = screen.getByPlaceholderText(/30-second launch spot/);
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
     await userEvent.type(prompt, "A spot for our desk lamp");
     await userEvent.click(
       screen.getByRole("button", { name: "Launch commercial" })
@@ -1514,7 +1517,7 @@ describe("NewProjectSurface", () => {
   it("opens the storyboard flow on the card, carrying the typed prompt", async () => {
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(
@@ -1604,41 +1607,9 @@ describe("NewProjectSurface", () => {
       "App"
     ]) {
       expect(
-        within(cards).getByRole("button", {
-          name: new RegExp(`^${title} `)
-        })
+        within(cards).getByRole("button", { name: flowCardName(title) })
       ).not.toHaveAttribute("aria-disabled");
     }
-  });
-
-  // The guided section paints its flow cards black. The rule used to select
-  // every button in the section, so More formats, the game dimension select
-  // and a card's expand control turned black too.
-  it("paints only the flow cards black, not the section's other buttons", () => {
-    renderSurface();
-    const section = screen.getByRole("region", {
-      name: "Start with a guided flow"
-    });
-    const card = within(
-      within(section).getByRole("group", { name: "Start with a guided flow" })
-    ).getByRole("button", { name: /^Video / });
-    const more = within(section).getByRole("button", { name: /formats$/ });
-    expect(card).toHaveClass(OPTION_CARD_CLASS);
-    expect(more).not.toHaveClass(OPTION_CARD_CLASS);
-
-    // jsdom does not resolve this cascade, so read the section's own rules.
-    const sectionClass = Array.from(section.classList).find((name) =>
-      name.startsWith("css-")
-    );
-    const selectors = Array.from(document.styleSheets)
-      .flatMap((sheet) => Array.from(sheet.cssRules))
-      .map((rule) => (rule as CSSStyleRule).selectorText ?? "")
-      .filter((selector) => selector.startsWith(`.${sectionClass} `));
-    expect(selectors.length).toBeGreaterThan(0);
-    expect(selectors.some((selector) => / button/.test(selector))).toBe(false);
-    expect(
-      selectors.some((selector) => selector.includes(`.${OPTION_CARD_CLASS}`))
-    ).toBe(true);
   });
 
   // The create seeds the `timeline.get` cache with a sequence that has no
@@ -1652,7 +1623,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
 
-    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
 
     await waitFor(() =>
@@ -1671,7 +1642,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
 
-    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await waitFor(() =>
       expect(deleteTimeline).toHaveBeenCalledWith({ id: "seq-1" })
@@ -1694,7 +1665,7 @@ describe("NewProjectSurface", () => {
     });
 
     await user.click(
-      within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
+      within(cards).getByRole("button", { name: flowCardName(title) })
     );
 
 
@@ -1705,7 +1676,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     await user.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A red fox in a blue coat"
     );
 
@@ -1726,7 +1697,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     await user.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A fox collects acorns"
     );
     const cards = screen.getByRole("group", {
@@ -1759,13 +1730,13 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface(null, false);
     await user.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A page that writes a product blurb"
     );
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await user.click(within(cards).getByRole("button", { name: /^App / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create app / }));
 
     expect(await screen.findByTestId("app-setup-flow")).toHaveTextContent(
       "A page that writes a product blurb"
@@ -1782,20 +1753,19 @@ describe("NewProjectSurface", () => {
     );
   });
 
-  // Study 6 (I6): people looking for the game maker tried the Games examples
-  // tab and missed the Game card behind "More formats".
-  it("shows the Game card on the first screen and starts it from the Games tab", async () => {
+  // Study 6 (I6): people looking for the game maker missed the Game card
+  // behind "More formats". The bar that folds it away names games, and opens
+  // onto the card.
+  it("names games on the creation-types bar and starts Game from it", async () => {
     const user = userEvent.setup();
     renderSurface(null, false);
-    const cards = screen.getByRole("group", {
-      name: "Start with a guided flow"
+    const more = screen.getByRole("button", {
+      name: /^Explore all creation types .*games/
     });
-    expect(
-      within(cards).getByRole("button", { name: /^Game / })
-    ).toBeInTheDocument();
+    expect(more).toHaveAttribute("aria-expanded", "false");
 
-    await user.click(screen.getByRole("tab", { name: "Games" }));
-    await user.click(await screen.findByRole("button", { name: "Make a game" }));
+    await user.click(more);
+    await user.click(screen.getByRole("button", { name: /^Game / }));
 
     expect(await screen.findByTestId("game-setup-flow")).toHaveTextContent(
       "wf-new"
@@ -1815,7 +1785,7 @@ describe("NewProjectSurface", () => {
       });
 
       await user.click(
-        within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
+        within(cards).getByRole("button", { name: flowCardName(title) })
       );
 
 
@@ -1836,7 +1806,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
 
-    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await screen.findByTestId("setup-flow");
     await user.click(
@@ -1866,7 +1836,7 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await screen.findByTestId("setup-flow");
     await user.click(
@@ -1903,7 +1873,7 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await screen.findByTestId("setup-flow");
     await user.click(
@@ -1950,11 +1920,11 @@ describe("NewProjectSurface", () => {
       within(cards).getByRole("button", { name: /^Script / })
     ).toHaveAttribute("aria-disabled", "true");
     expect(
-      within(cards).getByRole("button", { name: /^Video / })
+      within(cards).getByRole("button", { name: /^Create video / })
     ).toHaveAttribute("aria-disabled", "true");
 
     // A competing card is inert while the first flow is in flight.
-    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
     expect(createTimeline).not.toHaveBeenCalled();
 
     release({ id: "script-1" });
@@ -1972,7 +1942,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
 
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create workflow / }));
 
     await screen.findByTestId("setup-flow");
     managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
@@ -2000,7 +1970,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
 
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create workflow / }));
 
     await screen.findByTestId("setup-flow");
     // The copy is a second create, and it lands in its own row.
@@ -2037,7 +2007,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
 
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create workflow / }));
 
     await screen.findByTestId("setup-flow");
     managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
@@ -2059,7 +2029,7 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create workflow / }));
     await screen.findByTestId("setup-flow");
     const guidedTab = mockActiveTabId;
     mockActiveTabId = "chat:elsewhere";
@@ -2091,7 +2061,7 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create workflow / }));
     await screen.findByTestId("setup-flow");
     const guidedTab = mockActiveTabId;
     mockActiveTabId = "workflow:wf-new";
@@ -2114,7 +2084,7 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create workflow / }));
     await screen.findByTestId("setup-flow");
     actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
 
@@ -2145,7 +2115,7 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create workflow / }));
     await screen.findByTestId("setup-flow");
     actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
 
@@ -2167,7 +2137,7 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
-    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create workflow / }));
     await screen.findByTestId("setup-flow");
     actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
 
@@ -2192,7 +2162,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
 
-    await user.click(within(cards).getByRole("button", { name: /^Image / }));
+    await user.click(within(cards).getByRole("button", { name: /^Create image / }));
 
 
     await waitFor(() =>
@@ -2225,7 +2195,7 @@ describe("NewProjectSurface", () => {
     expect(
       await screen.findByRole("group", { name: "Start with a guided flow" })
     ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/30-second launch spot/)).toHaveValue(
+    expect(screen.getByPlaceholderText(/Describe what you want to create/)).toHaveValue(
       "A board I did not want"
     );
   });
@@ -2316,7 +2286,7 @@ describe("NewProjectSurface", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: /^Video From a sentence to a cut on the timeline/
+        name: /^Create video /
       })
     );
 
@@ -2350,7 +2320,7 @@ describe("NewProjectSurface", () => {
     });
     renderSurface();
     await userEvent.type(
-      screen.getByPlaceholderText(/30-second launch spot/),
+      screen.getByPlaceholderText(/Describe what you want to create/),
       "A spot for our desk lamp"
     );
     await userEvent.click(
@@ -2388,16 +2358,22 @@ describe("NewProjectSurface", () => {
   });
 });
 
-it("starts with six formats and reveals other formats on request", async () => {
+it("leads with four creation types and reveals the others on request", async () => {
     renderSurface(null, false);
     const cards = screen.getByRole("group", { name: "Start with a guided flow" });
-    expect(within(cards).getAllByRole("button")).toHaveLength(6);
-    expect(
-      within(cards).getByRole("button", { name: /Read aloud/ })
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "More formats" }));
-    expect(within(cards).getAllByRole("button")).toHaveLength(9);
+    for (const title of ["image", "video", "app", "workflow"]) {
+      expect(
+        within(cards).getByRole("button", { name: new RegExp(`^Create ${title} `) })
+      ).toBeInTheDocument();
+    }
+    expect(within(cards).queryByRole("button", { name: /^Read aloud/ })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^Explore all creation types/ }));
+    for (const title of ["Storyboard", "Script", "Read aloud", "Game", "Entity", "3D model"]) {
+      expect(
+        within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
+      ).toBeInTheDocument();
+    }
     await userEvent.click(screen.getByRole("combobox", { name: "Game dimension" }));
     await userEvent.click(screen.getByRole("option", { name: "3D exploration" }));
     expect(within(cards).getByRole("button", { name: /Game Start with a playable 3D exploration scene/ })).toBeInTheDocument();
- });
+  });

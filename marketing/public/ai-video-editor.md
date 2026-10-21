@@ -90,6 +90,7 @@ No. NodeTool covers generation, assembly, and a capable multi-track edit for sho
 ## Read more
 
 - [Storyboards made in NodeTool](https://nodetool.ai/storyboards)
+- [AI image editor](https://nodetool.ai/ai-image-editor)
 - [Recipe: storyboard to trailer](https://nodetool.ai/recipes/storyboard-to-trailer)
 - [Video Editor guide](https://docs.nodetool.ai/video-editor)
 - [Storyboard Editor guide](https://docs.nodetool.ai/storyboard-editor)

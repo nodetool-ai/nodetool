@@ -26,6 +26,7 @@ import AssetGridContextMenu from "../context_menus/AssetGridContextMenu";
 import AssetMoveToFolderConfirmation from "./AssetMoveToFolderConfirmation";
 import ImageCompareDialog from "./ImageCompareDialog";
 import AssetRenameConfirmation from "./AssetRenameConfirmation";
+import TransformWithWorkflowDialog from "./TransformWithWorkflowDialog";
 import AssetUploadOverlay from "./AssetUploadOverlay";
 import Dropzone from "./Dropzone";
 //  panels and styles
@@ -409,6 +410,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       <AssetRenameConfirmation assets={selectedAssetIds} />
       <AssetMoveToFolderConfirmation assets={selectedAssetIds} />
       <ImageCompareDialog />
+      <TransformWithWorkflowDialog />
       {isUploading && <AssetUploadOverlay />}
     </Box>
   );

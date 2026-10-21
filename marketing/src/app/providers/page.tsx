@@ -5,6 +5,7 @@ import { ArrowRight, KeyRound } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import ReadMoreLinks from "@/components/ReadMoreLinks";
 import {
   providerEntries,
   providersByCategory,
@@ -33,6 +34,13 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
+
+const READ_MORE = [
+  { label: "Every supported model", href: "/models" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "Provider reference", href: "https://docs.nodetool.ai/providers" },
+  { label: "Custom providers", href: "https://docs.nodetool.ai/custom-providers" },
+];
 
 export default function ProvidersHubPage() {
   const aggregatorModels = providersByCategory("aggregator").reduce(
@@ -97,6 +105,8 @@ export default function ProvidersHubPage() {
             </section>
           );
         })}
+
+        <ReadMoreLinks id="providers-links" links={READ_MORE} className="mx-auto mt-16 max-w-5xl px-6" />
 
         <div className="h-24" />
       </div>

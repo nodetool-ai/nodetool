@@ -72,6 +72,7 @@ interface BuildOptions {
   identifier?: string;
   appVersion?: string;
   icon?: string;
+  orientation?: string;
   compile?: boolean;
   json?: boolean;
 }
@@ -492,14 +493,15 @@ export function registerGameCommands(program: Command): void {
 
   game
     .command("build <game_file>")
-    .description("Build a standalone web player, or a Tauri desktop app project, with local, content-addressed assets")
+    .description("Build a standalone web player, a Tauri desktop app project or an Expo mobile app project, with local, content-addressed assets")
     .requiredOption("--out <directory>", "Build output directory")
     .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>")
-    .option("--target <target>", "web for a static web player, tauri for a desktop app project", "web")
-    .option("--name <name>", "Desktop app name (tauri target)")
-    .option("--identifier <identifier>", "Reverse-DNS desktop app identifier (tauri target)")
-    .option("--app-version <version>", "Desktop app version MAJOR.MINOR.PATCH (tauri target)")
-    .option("--icon <file>", "PNG, JPEG or WebP image for the desktop app icon (tauri target)")
+    .option("--target <target>", "web for a static web player, tauri for a desktop app project, expo for an iOS and Android app project", "web")
+    .option("--name <name>", "App name (tauri and expo targets)")
+    .option("--identifier <identifier>", "Reverse-DNS app identifier (tauri and expo targets)")
+    .option("--app-version <version>", "App version MAJOR.MINOR.PATCH (tauri and expo targets)")
+    .option("--icon <file>", "PNG, JPEG or WebP image for the app icon (tauri and expo targets)")
+    .option("--orientation <orientation>", "default, portrait or landscape screen lock (expo target)")
     .option("--compile", "Also compile a release executable with cargo (tauri target)")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: BuildOptions) => {
@@ -508,11 +510,32 @@ export function registerGameCommands(program: Command): void {
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
-        if (options.target !== "web" && options.target !== "tauri") {
-          throw new Error("--target must be web or tauri");
+        if (options.target !== "web" && options.target !== "tauri" && options.target !== "expo") {
+          throw new Error("--target must be web, tauri or expo");
         }
-        if (options.target === "web" && (options.name || options.identifier || options.appVersion || options.icon || options.compile)) {
-          throw new Error("--name, --identifier, --app-version, --icon and --compile apply to --target tauri");
+        if (options.target === "web" && (options.name || options.identifier || options.appVersion || options.icon || options.orientation || options.compile)) {
+          throw new Error("--name, --identifier, --app-version, --icon, --orientation and --compile apply to --target tauri or expo");
+        }
+        if (options.compile && options.target !== "tauri") {
+          throw new Error("--compile applies to --target tauri");
+        }
+        if (options.orientation && options.target !== "expo") {
+          throw new Error("--orientation applies to --target expo");
+        }
+        if (options.target === "expo") {
+          const orientation = options.orientation;
+          if (orientation !== undefined && orientation !== "default" && orientation !== "portrait" && orientation !== "landscape") {
+            throw new Error("--orientation must be default, portrait or landscape");
+          }
+          const { buildExpoGameProject } = await importPack<typeof import("@nodetool-ai/game-renderer/build-expo")>("game", "@nodetool-ai/game-renderer/build-expo");
+          const project = await buildExpoGameProject({
+            document: validated.document, outputDir: resolve(options.out), resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId),
+            app: { name: options.name, identifier: options.identifier, version: options.appVersion, orientation,
+              icon: options.icon ? await readFile(options.icon) : undefined }
+          });
+          process.stdout.write(options.json ? `${JSON.stringify(project)}\n`
+            : `Built mobile app project in ${project.outputDir}\nRun npm install && npx expo start there to play it on a phone.\n`);
+          return;
         }
         if (options.target === "tauri") {
           const { buildTauriGameProject, compileTauriGameProject } = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");

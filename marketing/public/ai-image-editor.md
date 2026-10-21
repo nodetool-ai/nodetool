@@ -63,6 +63,7 @@ Save the product as a prop entity with a reference image. The agent passes that 
 
 - [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor)
 - [AI video editor](https://nodetool.ai/ai-video-editor)
+- [Storyboards made in NodeTool](https://nodetool.ai/storyboards)
 - [AI for advertising](https://nodetool.ai/marketing)
 - [MCP server for coding agents](https://nodetool.ai/mcp)
 - [Every supported model](https://nodetool.ai/models)

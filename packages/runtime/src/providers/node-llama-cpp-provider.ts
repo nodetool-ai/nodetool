@@ -8,6 +8,7 @@ import {
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { ggufFileIsLanguageModel } from "./gguf-header.js";
 import { resolveHubFile } from "./hf-hub-file.js";
+import { cachedFileProbe, findModelFiles, modelFolders } from "./model-folders.js";
 import {
   listedChatGgufs,
   RECOMMENDED_EMBEDDING_GGUFS,
@@ -282,6 +283,10 @@ async function walkGgufFiles(
   return out;
 }
 
+/** {@link ggufFileIsLanguageModel}, remembered per file version: a model
+ * folder can hold many large GGUFs. */
+const probeLanguageModel = cachedFileProbe(ggufFileIsLanguageModel);
+
 function asText(content: Message["content"]): string {
   if (isString(content)) return content;
   if (!content) return "";
@@ -321,12 +326,14 @@ export class NodeLlamaCppProvider extends BaseProvider {
   }
 
   private readonly modelsDir?: string;
+  private readonly modelFolders?: string;
   private readonly gpuBackend?: GpuBackend;
 
   constructor(
     secrets: {
       NODE_LLAMA_CPP_MODELS_DIR?: string;
       NODE_LLAMA_CPP_GPU_BACKEND?: string;
+      MODEL_FOLDERS?: string;
     } = {}
   ) {
     super("node_llama_cpp");
@@ -334,6 +341,8 @@ export class NodeLlamaCppProvider extends BaseProvider {
       secrets.NODE_LLAMA_CPP_MODELS_DIR ||
       process.env.NODE_LLAMA_CPP_MODELS_DIR ||
       undefined;
+    this.modelFolders =
+      secrets.MODEL_FOLDERS || process.env.MODEL_FOLDERS || undefined;
     const backend = (
       secrets.NODE_LLAMA_CPP_GPU_BACKEND ||
       process.env.NODE_LLAMA_CPP_GPU_BACKEND ||
@@ -722,15 +731,17 @@ export class NodeLlamaCppProvider extends BaseProvider {
   }
 
   /**
-   * List the GGUF models available locally, from both places they land:
-   * the flat llama.cpp cache (or `NODE_LLAMA_CPP_MODELS_DIR`), and the
-   * HuggingFace hub cache that the app's model downloader writes to. Without
-   * the latter, a GGUF pulled from a HuggingFace repo was never selectable.
+   * List the GGUF models available locally: the flat llama.cpp cache (or
+   * `NODE_LLAMA_CPP_MODELS_DIR`), the HuggingFace hub cache that the app's
+   * model downloader writes to, and the `MODEL_FOLDERS` setting's folders.
+   * Without the hub cache, a GGUF pulled from a HuggingFace repo was never
+   * selectable.
    */
   private async scanGgufFiles(): Promise<LocalGgufModel[]> {
     const models = [
       ...(await this.scanModelsDir()),
-      ...(await this.scanHfHubCache())
+      ...(await this.scanHfHubCache()),
+      ...(await this.scanModelFolders())
     ];
     // A models directory pointed at the hub cache would surface both views.
     const seen = new Set<string>();
@@ -803,6 +814,28 @@ export class NodeLlamaCppProvider extends BaseProvider {
           name: `${path.basename(file)} (${label})`
         });
       }
+    }
+    return out;
+  }
+
+  /**
+   * GGUFs anywhere under the configured model folders, such as a ComfyUI
+   * `models` folder. Ids are absolute paths. The name carries the parent
+   * folder, which tells apart same-named files in different subfolders.
+   */
+  private async scanModelFolders(): Promise<LocalGgufModel[]> {
+    const path = await importNodeBuiltin<typeof import("node:path")>(
+      "node:path"
+    );
+    if (!path) return [];
+    const folders = await modelFolders(this.modelFolders);
+    const out: LocalGgufModel[] = [];
+    for (const file of await findModelFiles(folders, [".gguf"])) {
+      if ((await probeLanguageModel(file)) === false) continue;
+      out.push({
+        id: file,
+        name: `${path.basename(file)} (${path.basename(path.dirname(file))})`
+      });
     }
     return out;
   }

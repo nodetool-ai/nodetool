@@ -11,6 +11,7 @@ import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
 import { loadCanvas, type Workspace as RunWorkspace, type StorageAdapter } from "@nodetool-ai/runtime";
 import type { TauriAppMetadata } from "@nodetool-ai/game-renderer/build-tauri";
+import type { ExpoAppMetadata } from "@nodetool-ai/game-renderer/build-expo";
 import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
 import { gameOutline3D, inputFrames3D, playtestGame3D, captureFrames3D, colliderBinding3D, stageModelGameAsset3D } from "./game3d.js";
 import type { PublishNativeGameRequest } from "./GamePublishRequest.js";
@@ -22,7 +23,7 @@ import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
 import { gameDocumentDigest } from "../game-code-bake.js";
 import { previewGameAuthoringSpec, applyGameAuthoringSpec, browseGameAssetsSpec } from "./game.specs.js";
 import { browseGameAssets } from "./game-asset-browser.js";
-import { GAME_BUILD_INTEGRITY_FILE, gameBuildIntegrityManifest, verifiedGameBuildCache } from "../game-build-integrity.js";
+import { GAME_BUILD_INTEGRITY_FILE, gameBuildIntegrityManifest, readGameBuildManifest, verifiedGameBuildCache } from "../game-build-integrity.js";
 
 const log = createLogger("capabilities.game");
 
@@ -1008,7 +1009,7 @@ const generateAsset: CapabilityExport = {
   }
 };
 
-export type NativeGameBuildTarget = "web" | "tauri";
+export type NativeGameBuildTarget = "web" | "tauri" | "expo";
 
 export interface NativeGameBuildRequest {
   readonly userId: string;
@@ -1023,14 +1024,19 @@ export type NativeGameBuildResult =
   | { readonly error: string }
   | { readonly game_id: string; readonly revision: string; readonly target: NativeGameBuildTarget; readonly build_path: string;
     readonly entry_path: string; readonly cached: boolean; readonly workspace: RunWorkspace;
-    /** The desktop app's name, identifier and binary name for a `tauri` build, else null. */
-    readonly app: TauriAppMetadata | null };
+    /** The desktop app's name, identifier and binary name for a `tauri` build, the mobile app's for an `expo` build, else null. */
+    readonly app: TauriAppMetadata | ExpoAppMetadata | null };
 
 const BUILD_CONTENT_TYPES: Readonly<Record<string, string>> = {
   js: "text/javascript", css: "text/css", json: "application/json", html: "text/html", png: "image/png", jpg: "image/jpeg",
   webp: "image/webp", wav: "audio/wav", ogg: "audio/ogg", mp3: "audio/mpeg", ttf: "font/ttf", otf: "font/otf",
   glb: "model/gltf-binary", wasm: "application/wasm", md: "text/markdown", toml: "text/plain", rs: "text/plain",
   ico: "image/vnd.microsoft.icon", icns: "image/icns"
+};
+
+/** The file whose presence marks a finished build of each target. It is written last. */
+const BUILD_ENTRY_FILES: Readonly<Record<NativeGameBuildTarget, string>> = {
+  web: "index.html", tauri: "src-tauri/tauri.conf.json", expo: "app.json"
 };
 
 /**
@@ -1062,7 +1068,8 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
     return { error: "One source asset has conflicting digests in this revision" };
   }
   let tauriApp: { name: string } | undefined;
-  let metadata: TauriAppMetadata | undefined;
+  let expoApp: { name: string } | undefined;
+  let metadata: TauriAppMetadata | ExpoAppMetadata | undefined;
   let fingerprint: string;
   try {
     request.signal?.throwIfAborted();
@@ -1071,6 +1078,11 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
       const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
       metadata = renderer.tauriAppMetadata(document, tauriApp);
       fingerprint = await renderer.tauriGameRuntimeFingerprint(document, tauriApp);
+    } else if (target === "expo") {
+      expoApp = { name: game.name };
+      const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build-expo")>("game", "@nodetool-ai/game-renderer/build-expo");
+      metadata = renderer.expoAppMetadata(document, expoApp);
+      fingerprint = await renderer.expoGameRuntimeFingerprint(document, expoApp);
     } else if (document.schemaVersion === 3) {
       const renderer = await importPack<typeof import("@nodetool-ai/game-renderer/build3d")>("game", "@nodetool-ai/game-renderer/build3d");
       fingerprint = await renderer.standaloneGame3DRuntimeFingerprint();
@@ -1083,7 +1095,7 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
     return { error: error instanceof Error ? error.message : String(error) };
   }
   const buildPath = `game-builds/${game.id}/${revision}-${target}-${fingerprint}`;
-  const entryFile = target === "web" ? "index.html" : "src-tauri/tauri.conf.json";
+  const entryFile = BUILD_ENTRY_FILES[target];
   const entryPath = `${buildPath}/${entryFile}`;
   const done = { game_id: game.id, revision, target, build_path: buildPath, entry_path: entryPath, workspace, app: metadata ?? null };
   try {
@@ -1132,6 +1144,9 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
     if (tauriApp) {
       const { buildTauriGameProject } = await importPack<typeof import("@nodetool-ai/game-renderer/build-tauri")>("game", "@nodetool-ai/game-renderer/build-tauri");
       await buildTauriGameProject({ document, outputDir: output, resolveAsset, app: tauriApp, signal: request.signal });
+    } else if (expoApp) {
+      const { buildExpoGameProject } = await importPack<typeof import("@nodetool-ai/game-renderer/build-expo")>("game", "@nodetool-ai/game-renderer/build-expo");
+      await buildExpoGameProject({ document, outputDir: output, resolveAsset, app: expoApp, signal: request.signal });
     } else if (document.schemaVersion === 3) {
       const { buildStandaloneGame3D } = await importPack<typeof import("@nodetool-ai/game-renderer/build3d")>("game", "@nodetool-ai/game-renderer/build3d");
       await buildStandaloneGame3D({ document, outputDir: output, resolveAsset, signal: request.signal });
@@ -1179,6 +1194,34 @@ export async function buildOwnedNativeGame(request: NativeGameBuildRequest): Pro
   }
 }
 
+export interface NativeGameBuildFileRequest {
+  readonly userId: string;
+  readonly gameId: string;
+  /** A `build_path` that `buildOwnedNativeGame` returned for this game. */
+  readonly buildPath: string;
+  /** A path relative to the build, as its integrity manifest lists it. */
+  readonly path: string;
+  readonly signal?: AbortSignal;
+}
+
+/**
+ * One file of an owned game's finished web build. It answers null unless the caller still owns the game, the build
+ * belongs to it, the integrity manifest lists the path, and the stored bytes match the manifest's digest. A path the
+ * manifest does not list is never read, so no request reaches another file in the workspace.
+ */
+export async function readOwnedNativeGameBuildFile(request: NativeGameBuildFileRequest): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  const game = await ownedGame(request.userId, request.gameId);
+  if (!game || !request.buildPath.startsWith(`game-builds/${game.id}/`)) return null;
+  const workspace = await workspaceOf(request.userId, game);
+  if (!workspace) return null;
+  const manifest = await readGameBuildManifest(workspace, request.buildPath, request.signal);
+  const file = manifest?.files.find((entry) => entry.path === request.path);
+  if (!file) return null;
+  const bytes = await workspace.read(`${request.buildPath}/${file.path}`);
+  if (!bytes || bytes.byteLength !== file.byteLength || createHash("sha256").update(bytes).digest("hex") !== file.digest) return null;
+  return { bytes, contentType: BUILD_CONTENT_TYPES[file.path.slice(file.path.lastIndexOf(".") + 1)] ?? "application/octet-stream" };
+}
+
 const buildGame: CapabilityExport = {
   spec: gameSpecs[5],
   impl: async (run, args) => {
@@ -1186,16 +1229,20 @@ const buildGame: CapabilityExport = {
     const id = args["game_id"];
     if (!user || typeof id !== "string") return { error: "game_id is required in a user session" };
     const target = args["target"] ?? "web";
-    if (target !== "web" && target !== "tauri") return { error: "target must be web or tauri" };
+    if (target !== "web" && target !== "tauri" && target !== "expo") return { error: "target must be web, tauri or expo" };
     const revision = args["revision"];
     const result = await buildOwnedNativeGame({ userId: user, gameId: id, revision: typeof revision === "string" ? revision : undefined,
       target, storage: run.context.assetStorage, signal: run.context.signal });
     if ("error" in result) return { error: result.error };
     const report = { game_id: result.game_id, revision: result.revision, target: result.target, build_path: result.build_path,
       entry_path: result.entry_path, cached: result.cached };
-    return target === "tauri"
-      ? { ...report, next: "The project builds desktop installers with `npm install && npm run build` in a checkout that has Rust and the Tauri prerequisites." }
-      : report;
+    if (target === "tauri") {
+      return { ...report, next: "The project builds desktop installers with `npm install && npm run build` in a checkout that has Rust and the Tauri prerequisites." };
+    }
+    if (target === "expo") {
+      return { ...report, next: "Run `npm install && npx expo start` in the project to play it in Expo Go, or `eas build` to make store apps." };
+    }
+    return report;
   }
 };
 

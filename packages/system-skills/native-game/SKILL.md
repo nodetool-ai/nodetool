@@ -72,7 +72,9 @@ animation graphs, input bindings, the HUD tree or performance fields. Load
    player for an owned revision under the project workspace and returns its
    path, only when the user asks. `target: "tauri"` writes a Tauri desktop app
    project instead, named after the game. It compiles to installers with
-   `npm run build` where Rust is installed. On a touch screen the 2D player adds a floating stick for
+   `npm run build` where Rust is installed. `target: "expo"` writes an Expo
+   project for iOS and Android that plays the game offline in a WebView. It
+   runs with `npm install && npx expo start`. On a touch screen the 2D player adds a floating stick for
    `left`/`right`/`up`/`down` and one button per other input action, labeled
    with the action name. Installed media must still exist, match its recorded
    digest, and use a supported format.

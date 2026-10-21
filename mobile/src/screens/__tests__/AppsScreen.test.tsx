@@ -58,6 +58,28 @@ describe('AppsScreen', () => {
     expect(navigate).toHaveBeenLastCalledWith('Settings');
   });
 
+  it('opens the games list from the header', async () => {
+    const navigate = jest.fn();
+    let headerRight: HeaderRight | undefined;
+    const navigation = {
+      navigate,
+      setOptions: (options: { headerRight?: HeaderRight }) => {
+        headerRight = options.headerRight;
+      },
+    };
+
+    render(
+      <AppsScreen
+        navigation={navigation as unknown as React.ComponentProps<typeof AppsScreen>['navigation']}
+      />
+    );
+    render(headerRight!());
+
+    const user = userEvent.setup();
+    await user.press(screen.getByLabelText('Open games'));
+    expect(navigate).toHaveBeenLastCalledWith('Games');
+  });
+
   it('gives each app a monogram tile and counts the list', () => {
     mockApplications = {
       data: [

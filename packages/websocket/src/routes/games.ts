@@ -4,7 +4,12 @@
  * `GET /api/games/:id/export-zip` builds the game's published revision with
  * the same path as the `build_native_game` capability, into the project
  * workspace, and streams that build as a zip: `target=web` is the static web
- * player, `target=tauri` the desktop app project.
+ * player, `target=tauri` the desktop app project, `target=expo` the mobile app project.
+ *
+ * `GET /api/game-play/:token/*` serves one file of a published web build to a
+ * player that holds a play token from `games.playSession`, and nothing else.
+ * It is exempt from session auth (`isPublicGamePlayRequest`): the token in the
+ * path is the credential, so the mobile WebView never holds the user's own.
  *
  * `POST /api/games/:id/build-executable` builds the desktop app project and
  * compiles it with cargo on this machine, streaming cargo's output as
@@ -21,6 +26,7 @@ import { CLOUD_PROFILE_ENV, NODE_ENV_VAR, isCloudProfileActive, missingRuntimePa
 import { bridge, streamedResponse } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import { getAssetAdapter } from "../lib/storage.js";
+import { verifyGamePlayToken } from "../lib/game-play-token.js";
 import { streamZip } from "../lib/zip-stream.js";
 
 interface RouteOptions {
@@ -33,7 +39,23 @@ function jsonError(status: number, detail: string, extra: Record<string, string>
   return new Response(JSON.stringify({ detail, ...extra }), { status, headers: { "content-type": "application/json" } });
 }
 
+/** Top-level folder in each export zip. */
+const EXPORT_FOLDERS = { web: "web", tauri: "desktop", expo: "mobile" } as const;
+
 const GAME_ID_PARAMS = { type: "object", properties: { id: { type: "string", minLength: 1 } }, required: ["id"] } as const;
+
+/**
+ * Headers on every play file. The build's own meta CSP limits what the player loads; this one forbids framing, base
+ * and form targets, which a meta policy cannot. The token is in the path, so no referrer leaves the page.
+ */
+const GAME_PLAY_HEADERS = {
+  "content-security-policy": "frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'",
+  "referrer-policy": "no-referrer",
+  "x-content-type-options": "nosniff",
+  "cross-origin-resource-policy": "same-origin",
+  "cross-origin-opener-policy": "same-origin",
+  "cache-control": "private, no-store"
+} as const;
 
 /** One line of the build-executable stream. */
 export type GameExecutableBuildEvent =
@@ -51,7 +73,7 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       querystring: {
         type: "object",
         properties: {
-          target: { type: "string", enum: ["web", "tauri"] },
+          target: { type: "string", enum: ["web", "tauri", "expo"] },
           revision: { type: "string", pattern: "^[a-f0-9]{32}$" }
         },
         additionalProperties: false
@@ -59,7 +81,7 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     }
   }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const query = req.query as { target?: "web" | "tauri"; revision?: string };
+    const query = req.query as { target?: "web" | "tauri" | "expo"; revision?: string };
     await bridge(req, reply, async (request) => {
       const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
       const target = query.target ?? "web";
@@ -75,7 +97,7 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         .filter((entry) => !entry.isDirectory)
         .sort((a, b) => a.path.localeCompare(b.path));
       const prefix = `${buildPath}/`;
-      const folder = target === "tauri" ? "desktop" : "web";
+      const folder = EXPORT_FOLDERS[target];
       const body = streamZip(async (writer) => {
         for (const entry of entries) {
           const relative = entry.path.startsWith(prefix) ? entry.path.slice(prefix.length) : entry.path;
@@ -96,6 +118,29 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     });
     // A streamed body is still being sent when bridge returns.
     return reply;
+  });
+
+  app.get("/api/game-play/:token/*", {
+    schema: {
+      params: {
+        type: "object",
+        properties: { token: { type: "string", minLength: 1, maxLength: 2048 }, "*": { type: "string", maxLength: 512 } },
+        required: ["token"]
+      }
+    }
+  }, async (req, reply) => {
+    const params = req.params as { token: string; "*"?: string };
+    const grant = verifyGamePlayToken(params.token);
+    if (!grant) {
+      return reply.code(404).headers(GAME_PLAY_HEADERS).send({ detail: "Play link expired or not found" });
+    }
+    const path = params["*"] || "index.html";
+    const { readOwnedNativeGameBuildFile } = await import("@nodetool-ai/agents/game-build");
+    const file = await readOwnedNativeGameBuildFile({ userId: grant.userId, gameId: grant.gameId, buildPath: grant.buildPath, path });
+    if (!file) {
+      return reply.code(404).headers(GAME_PLAY_HEADERS).send({ detail: "Game file not found" });
+    }
+    return reply.code(200).headers(GAME_PLAY_HEADERS).header("content-type", file.contentType).send(Buffer.from(file.bytes));
   });
 
   app.post("/api/games/:id/build-executable", { schema: { params: GAME_ID_PARAMS } }, async (req, reply) => {
@@ -119,10 +164,10 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         return jsonError(built.error === "Game not found" || built.error === "Game revision not found" ? 404 : 422, built.error);
       }
       const localDir = built.workspace.localDir;
-      if (!localDir || !built.app) {
+      const app = built.app;
+      if (!localDir || !app || !("crateName" in app)) {
         return jsonError(422, "Building an executable needs a project workspace on this machine's disk.");
       }
-      const app = built.app;
       const projectDir = join(localDir, built.build_path);
       const out = new PassThrough();
       const send = (event: GameExecutableBuildEvent): void => { out.write(`${JSON.stringify(event)}\n`); };

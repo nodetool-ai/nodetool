@@ -21,6 +21,9 @@ import { usePanelStore } from "../stores/PanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 
+/** Half a typical node, so a node added from the toolbar menu is centred. */
+const NEW_NODE_SCREEN_OFFSET = { x: 140, y: 70 };
+
 interface FloatingToolbarActions {
   handleRun: () => Promise<void>;
   handleStop: () => void;
@@ -397,7 +400,16 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
           FALLBACK_MENU_HEIGHT / 2 +
           CURSOR_ANCHOR_OFFSET_Y
       );
-      openNodeMenu({ x, y });
+      // A node picked from the menu lands in the middle of the window, not
+      // at the menu's top-left corner under the tab bar.
+      openNodeMenu({
+        x,
+        y,
+        dropPosition: {
+          x: Math.floor(window.innerWidth / 2 - NEW_NODE_SCREEN_OFFSET.x),
+          y: Math.floor(window.innerHeight / 2 - NEW_NODE_SCREEN_OFFSET.y)
+        }
+      });
     }
   }, [isMenuOpen, openNodeMenu, closeNodeMenu]);
 

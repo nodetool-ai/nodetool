@@ -995,6 +995,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "games.list": {
     gap: "The agent can read a known game but cannot list a project's games yet."
   },
+  "games.listAll": {
+    gap: "The agent can read a known game but cannot list the user's games across projects yet."
+  },
+  "games.playSession": {
+    withheld:
+      "Mints a signed play link that serves the build without a session; anyone holding it can load the game until it expires, so a run may not hand one out."
+  },
   "games.publish": { capability: "publish_native_game" },
   "games.restore": {
     elsewhere: "get_native_game reads an earlier revision and publish_native_game publishes it as a new revision."

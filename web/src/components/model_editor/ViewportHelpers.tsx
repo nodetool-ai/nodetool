@@ -14,7 +14,14 @@ import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import FlashlightOnIcon from "@mui/icons-material/FlashlightOn";
 
 import { BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
-import { depthRange, type CapturePass } from "./aiRender";
+import {
+  cameraFovForLens,
+  depthRange,
+  frameRect,
+  type CapturePass,
+  type FrameRect,
+  type ShotSettings
+} from "./aiRender";
 import { fitDistance, followPosition, isOutOfView } from "./cameraFollow";
 
 export type ViewPreset = "front" | "back" | "right" | "left" | "top" | "bottom";
@@ -25,7 +32,9 @@ export type CameraRequestInput =
   // Re-target on an object that left the view, keeping the viewing direction
   // and, when the object fits, the distance.
   | { kind: "follow"; uuid: string }
-  | { kind: "view"; view: ViewPreset };
+  | { kind: "view"; view: ViewPreset }
+  // Return to a saved shot.
+  | { kind: "pose"; position: THREE.Vector3Tuple; target: THREE.Vector3Tuple };
 
 /** A camera move; `nonce` makes a repeated request run again. */
 export type CameraRequest = CameraRequestInput & { nonce: number };
@@ -93,6 +102,23 @@ export const CameraRig = memo(({ root, request }: CameraRigProps) => {
 
   useEffect(() => {
     if (!request || !(camera instanceof THREE.PerspectiveCamera)) {
+      return;
+    }
+    if (request.kind === "pose") {
+      const toPosition = new THREE.Vector3(...request.position);
+      const toTarget = new THREE.Vector3(...request.target);
+      const distance = toPosition.distanceTo(toTarget);
+      camera.near = Math.max(distance / 1000, 0.01);
+      camera.far = Math.max(distance * 100, 1000);
+      camera.updateProjectionMatrix();
+      transition.current = {
+        fromPosition: camera.position.clone(),
+        toPosition,
+        fromTarget: isOrbitControlsLike(controls) ? controls.target.clone() : toTarget.clone(),
+        toTarget,
+        start: performance.now()
+      };
+      invalidate();
       return;
     }
     let sphere: THREE.Sphere;
@@ -597,6 +623,33 @@ export const StudioEnvironment = memo(() => (
 ));
 StudioEnvironment.displayName = "StudioEnvironment";
 
+interface ShotLensRigProps {
+  shot: ShotSettings;
+}
+
+/**
+ * Sets the camera's field of view so the shot frame shows the chosen lens,
+ * and recomputes it when the viewport is resized. A free lens restores the
+ * editor's own field of view.
+ */
+export const ShotLensRig = memo(({ shot }: ShotLensRigProps) => {
+  const { camera, size, invalidate } = useThree();
+  useEffect(() => {
+    if (!(camera instanceof THREE.PerspectiveCamera)) {
+      return;
+    }
+    const frame = frameRect(size.width, size.height, shot.aspect);
+    const fov = cameraFovForLens(shot.lens, size.height > 0 ? frame.height / size.height : 1);
+    if (Math.abs(camera.fov - fov) > 1e-6) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+      invalidate();
+    }
+  }, [camera, size.width, size.height, shot.aspect, shot.lens, invalidate]);
+  return null;
+});
+ShotLensRig.displayName = "ShotLensRig";
+
 export interface CaptureHandles {
   gl: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -629,12 +682,15 @@ export const CaptureBridge = ({ targetRef }: CaptureBridgeProps) => {
  * `depth` and `normal` swap every material for a depth or normal material
  * for that one frame. Depth is drawn with near and far planes fitted to the
  * scene, nearer surfaces brighter, on a black background.
+ *
+ * `crop`, in drawing-buffer pixels, returns only that part of the frame.
  */
 export const captureModelOnly = (
   handles: CaptureHandles,
   root: THREE.Object3D,
   background: THREE.Color,
-  pass: CapturePass = "shaded"
+  pass: CapturePass = "shaded",
+  crop?: FrameRect
 ): string => {
   const { gl, scene, camera } = handles;
   const hidden: THREE.Object3D[] = [];
@@ -671,7 +727,19 @@ export const captureModelOnly = (
   scene.overrideMaterial = override;
   try {
     gl.render(scene, camera);
-    return gl.domElement.toDataURL("image/png");
+    const canvas = gl.domElement;
+    if (!crop || (crop.width === canvas.width && crop.height === canvas.height)) {
+      return canvas.toDataURL("image/png");
+    }
+    const cropped = document.createElement("canvas");
+    cropped.width = crop.width;
+    cropped.height = crop.height;
+    const context = cropped.getContext("2d");
+    if (!context) {
+      throw new Error("The viewport capture could not be cropped.");
+    }
+    context.drawImage(canvas, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+    return cropped.toDataURL("image/png");
   } finally {
     scene.overrideMaterial = previousOverride;
     override?.dispose();

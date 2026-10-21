@@ -54,7 +54,7 @@ async function recordEvents(page: Page): Promise<RecordedEvent[]> {
 }
 
 for (const journey of journeys) {
-  test(`${journey.path} serves a relevant starter before the comparison or explanation`, async ({ request }) => {
+  test(`${journey.path} serves a relevant starter`, async ({ request }) => {
     const response = await request.get(journey.path);
     expect(response.ok()).toBe(true);
     const html = await response.text();

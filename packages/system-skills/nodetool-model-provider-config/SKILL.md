@@ -233,6 +233,12 @@ is installed from Package Manager → Engines & tools. `llama_cpp` calls a
 `llama-server` the user runs, at `LLAMA_CPP_URL`. Best for CPU inference and
 quantized models.
 
+`MODEL_FOLDERS` (Settings → Folders) adds folders, such as a ComfyUI `models`
+folder, that `node_llama_cpp` and `stable_diffusion_cpp` search with their
+subfolders. llama.cpp lists the GGUF language models in them.
+stable-diffusion.cpp lists `.safetensors` checkpoints that bundle their VAE and
+text encoders. Separate folders with `;`.
+
 ## whisper.cpp and Transformers.js
 
 whisper.cpp is speech recognition only (see above). Transformers.js runs small

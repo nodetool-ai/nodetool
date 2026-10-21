@@ -84,6 +84,8 @@ Yes. Besides MCP, the nodetool CLI runs workflows and generations from a termina
 ## Read more
 
 - [MCP server guide](https://docs.nodetool.ai/mcp-server)
+- [Agents: the open-source creative harness](https://nodetool.ai/agents)
+- [Node-based workflows](https://nodetool.ai/node-based-workflows)
 - [Developer page: CLI, REST, and self-hosting](https://nodetool.ai/developers)
 - [Build games from Claude Code](https://nodetool.ai/gamedev)
 - [AI video editor](https://nodetool.ai/ai-video-editor)

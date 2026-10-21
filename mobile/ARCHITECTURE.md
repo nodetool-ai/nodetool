@@ -68,6 +68,8 @@ mobile/
 │   │   ├── AssetViewerScreen.tsx       # Single-asset viewer
 │   │   ├── JobsScreen.tsx              # Job history
 │   │   ├── JobDetailScreen.tsx         # One job
+│   │   ├── GamesScreen.tsx             # The user's games, from the Apps header
+│   │   ├── GamePlayerScreen.tsx        # One published game in a web view
 │   │   ├── SettingsScreen.tsx          # Server configuration
 │   │   └── LoginScreen.tsx             # Supabase / Google sign-in
 │   │

@@ -180,6 +180,8 @@
     "openAssetAsTabTooltip": "在新的编辑器标签页中打开此素材",
     "sendToWorkflow": "发送到工作流",
     "sendMediaToWorkflowTooltip": "将所选媒体作为常量节点添加到工作流画布",
+    "transformWithWorkflow": "用工作流转换…",
+    "transformWithWorkflowTooltip": "用你的某个工作流处理此文件",
     "useAsEntity": "用作实体…",
     "useAsEntityTooltip": "将此图像标记为角色、地点、风格或道具，以便在不同镜头中重复使用",
     "editTimeline": "编辑时间线",
@@ -1893,6 +1895,8 @@
       "webPlayerDescription": "静态网站，已发布版本（.zip）",
       "desktopApp": "桌面应用",
       "desktopAppDescription": "适用于 Windows、macOS 和 Linux 的 Tauri 项目（.zip）",
+      "mobileApp": "移动应用",
+      "mobileAppDescription": "适用于 iOS 和 Android 的 Expo 项目（.zip）",
       "desktopExecutable": "桌面可执行文件",
       "desktopExecutableDescription": "在此计算机上使用 cargo 编译，输出位于控制台"
     },
@@ -1974,6 +1978,7 @@
         "publish": "发布游戏",
         "exportWeb": "导出网页播放器",
         "exportDesktop": "导出桌面应用",
+        "exportMobile": "导出移动应用",
         "buildExecutable": "构建桌面可执行文件"
       },
       "edit": {
@@ -2060,6 +2065,7 @@
     "shell": {
       "contextMenuLabel": "游戏",
       "buildingDesktop": "正在根据已发布版本构建桌面应用项目",
+      "buildingMobile": "正在根据已发布版本构建移动应用项目",
       "buildingWeb": "正在根据已发布版本构建网页播放器",
       "exportFailed": "导出失败：{{error}}",
       "exportFailedSummary": "游戏导出失败",
@@ -6195,14 +6201,10 @@
         "guidedFlowOpenFailure": "无法打开引导式{{kind}}流程的项目",
         "openDocument": "打开你的{{kind}}",
         "describeRegion": "描述你想制作的内容",
-        "heading": "你想制作什么？",
-        "intro": "你可以提问并获取答案，也可以描述想制作的内容。智能体会规划并构建内容，你可以随时查看，而且所有生成内容都可以继续编辑。",
-        "quickCreateGroup": "创建游戏或 3D 模型",
-        "game": "游戏",
-        "newModel": "新建 3D 模型",
-        "newModelTooltip": "打开空白 3D 模型并手动编辑。无需 AI 提供商。",
+        "heading": "你想创建什么？",
+        "intro": "把想法变成图像、视频、应用和工作流。提出问题，或描述要做的东西。",
         "chatPromptLabel": "聊天提示",
-        "promptPlaceholder": "提出问题或描述要制作的内容，例如为我们的台灯制作一段 30 秒的发布短片。输入 / 选择技能，输入 @ 选择文件或实体。",
+        "promptPlaceholder": "描述你想创建的内容。输入 / 选择技能，输入 @ 选择文件或实体。",
         "removeReference": "移除 {{name}}",
         "referenceImages": "参考图片",
         "referenceImageCountShort_one": "参考图片 · {{count}}",
@@ -6218,14 +6220,9 @@
         "moreStarters_other": "更多 {{count}} 项",
         "pickSkillOrDescribe": "选择一个技能开始，或直接描述你想要的内容。",
         "guidedFlowsRegion": "从引导式流程开始",
-        "guidedFlowsHeading": "从引导式流程开始",
-        "guidedFlowsDescription": "只需几个简短步骤，每一步都会生成可继续编辑的文档。",
-        "gameStartsAs": "游戏卡片的初始类型",
         "gameDimension": "游戏维度",
         "game2d": "2D 游戏",
         "game3d": "3D 探索",
-        "fewerFormats": "收起格式",
-        "moreFormats": "更多格式",
         "blankDocument": "空白文档",
         "blankDocumentDescription": "— 将作为独立标签页打开，不属于任何项目",
         "browseExamples": "浏览示例",
@@ -6257,7 +6254,59 @@
           "txt": "纯文本 (.txt)"
         },
         "unsupportedReferenceFiles_one": "参考图片只能使用图片文件。未添加 {{files}}。",
-        "unsupportedReferenceFiles_other": "参考图片只能使用图片文件。未添加 {{files}}。"
+        "unsupportedReferenceFiles_other": "参考图片只能使用图片文件。未添加 {{files}}。",
+        "createCards": {
+          "image": {
+            "title": "创建图像",
+            "description": "从一句简单的提示开始"
+          },
+          "video": {
+            "title": "创建视频",
+            "description": "把想法变成片段"
+          },
+          "app": {
+            "title": "创建应用",
+            "description": "做一个他人可用的页面"
+          },
+          "workflow": {
+            "title": "创建工作流",
+            "description": "自动化并组合步骤"
+          },
+          "model3d": {
+            "title": "3D 模型",
+            "description": "一个空白 3D 模型，手动编辑。无需 AI 提供商。"
+          }
+        },
+        "allTypes": {
+          "title": "浏览所有创建类型",
+          "description": "故事板、3D、游戏、脚本、朗读等"
+        },
+        "recentProjects": {
+          "heading": "最近的项目",
+          "viewAll": "查看所有项目",
+          "edited": "编辑于{{time}}"
+        },
+        "exploreExamples": {
+          "heading": "浏览示例",
+          "intro": "获取灵感，从现成的示例开始。",
+          "viewAll": "查看所有示例",
+          "images": {
+            "title": "图像库",
+            "description": "草图、艺术和插画"
+          },
+          "videos": {
+            "title": "视频示例",
+            "description": "预告片、广告和剪辑"
+          },
+          "apps": {
+            "title": "应用示例",
+            "description": "Web 应用和工具"
+          },
+          "workflows": {
+            "title": "工作流示例",
+            "description": "自动化、多步骤"
+          }
+        }
       }
     }
   },
@@ -11090,7 +11139,9 @@
         "undo": "撤销",
         "undoNamed": "撤销：{{label}}",
         "redo": "重做",
-        "redoNamed": "重做：{{label}}"
+        "redoNamed": "重做：{{label}}",
+        "renderBlender": "用 Blender 渲染",
+        "hideBlenderRender": "隐藏 Blender 渲染"
       },
       "tools": {
         "move": "移动",
@@ -11160,7 +11211,9 @@
         "import": "导入{{name}}",
         "parent": "将{{name}}设为子对象",
         "transform": "{{verb}}{{name}}"
-      }
+      },
+      "resizeBlenderPanel": "调整 Blender 渲染面板大小",
+      "blenderDescription": "用 Blender 以完整质量渲染场景"
     },
     "outliner": {
       "objectLabel": "{{name}}（{{type}}）",
@@ -11231,7 +11284,93 @@
       "modelRequired": "请选择支持图像编辑的图像模型。",
       "earlierRenders": "之前的渲染结果",
       "showRender": "显示渲染结果：{{caption}}",
-      "failed": "失败"
+      "failed": "失败",
+      "shot": {
+        "title": "镜头",
+        "frame": "画幅",
+        "aspectViewport": "整个视口",
+        "lens": "焦距",
+        "lensFree": "自由",
+        "lensFreeHint": "自由焦距，使用编辑器自身的视角",
+        "lensMm": "{{mm}} 毫米",
+        "views": {
+          "front": "前视",
+          "right": "侧视",
+          "top": "顶视"
+        },
+        "frameAll": "显示全部",
+        "save": "保存镜头",
+        "savedName": "镜头 {{index}}",
+        "restore": "切换到 {{name}}"
+      }
+    },
+    "blenderRender": {
+      "emptyTitle": "还没有 Blender 渲染",
+      "emptyDescription": "设置好镜头和渲染参数，然后用 Blender 渲染场景。",
+      "rendering": "Blender 正在渲染场景…",
+      "cancel": "取消渲染",
+      "renderAlt": "Blender 渲染：{{caption}}",
+      "caption": "{{engine}} · {{width}} × {{height}} · {{samples}} 采样",
+      "sections": {
+        "render": "渲染",
+        "output": "输出",
+        "camera": "相机",
+        "lighting": "灯光",
+        "advanced": "高级"
+      },
+      "fields": {
+        "engine": "引擎",
+        "samples": "采样数",
+        "denoise": "降噪",
+        "width": "宽度",
+        "height": "高度",
+        "resolutionPercentage": "缩放 %",
+        "transparent": "透明背景",
+        "backgroundColor": "背景",
+        "azimuth": "方位角",
+        "elevation": "仰角",
+        "fov": "视野",
+        "zoom": "缩放",
+        "lighting": "预设",
+        "lightIntensity": "强度",
+        "timeout": "超时（秒）"
+      },
+      "engines": {
+        "eevee": "EEVEE",
+        "cycles": "Cycles"
+      },
+      "engineHints": {
+        "eevee": "快速，实时画质",
+        "cycles": "路径追踪，更慢但更真实"
+      },
+      "cameras": {
+        "view": "当前视图",
+        "scene": "场景相机",
+        "orbit": "环绕"
+      },
+      "cameraHints": {
+        "view": "从你现在看到的视口相机渲染",
+        "scene": "从场景中的第一个相机渲染",
+        "orbit": "按下方设置的角度框住整个场景"
+      },
+      "lighting": {
+        "studio": "影棚",
+        "soft": "柔和",
+        "flat": "平光"
+      },
+      "lightingHint": "仅当场景没有自己的灯光时，Blender 才使用预设。",
+      "matchView": "匹配视图宽高比",
+      "formatHint": "渲染结果会以 PNG 图像保存到你的资源中。",
+      "render": "用 Blender 渲染",
+      "requirement": "运行 NodeTool 的机器上需要 Blender 5.2 或更高版本。",
+      "earlierRenders": "之前的渲染",
+      "showRender": "显示渲染：{{caption}}",
+      "failed": "失败",
+      "errors": {
+        "export": "无法导出场景。",
+        "render": "Blender 渲染失败。",
+        "context": "3D 编辑器场景的 Blender 渲染失败"
+      }
     },
     "properties": {
       "change": "更改{{label}}",
@@ -18386,6 +18525,51 @@
         "waitingToStart": "等待开始…",
         "buildingGraph": "正在构建图…"
       }
+    }
+  },
+  "transformWithWorkflow": {
+    "title": "用工作流转换",
+    "sourceKind": "来源：{{kind}}",
+    "pickDescription": "选择一个带有{{kind}}输入的工作流。其他输入保持已保存的值。",
+    "searchPlaceholder": "按名称搜索工作流",
+    "searchLabel": "工作流",
+    "loadFailed": "无法加载你的工作流。",
+    "noWorkflowsTitle": "没有匹配的工作流",
+    "noWorkflowsDescription": "在工作流中添加{{kind}}输入节点后即可在此使用。",
+    "noSearchResults": "没有与“{{query}}”匹配的工作流。",
+    "chooseInput": "此工作流有多个匹配的输入。请选择接收该文件的输入。",
+    "unsupportedTitle": "没有可转换的内容",
+    "unsupportedDescription": "文件夹不能通过工作流处理。",
+    "run": "运行",
+    "cancel": "取消",
+    "close": "关闭",
+    "cancelRun": "停止运行",
+    "chooseAnother": "选择其他工作流",
+    "runAgain": "再次运行",
+    "done": "完成",
+    "progress": "进度",
+    "runningNode": "正在运行 {{node}}",
+    "nodeProgress": "当前步骤",
+    "updates": "更新",
+    "outputs": "输出",
+    "noOutputs": "工作流已完成，但没有输出。",
+    "transformOutput": "转换",
+    "saveToAssets": "保存到素材",
+    "inAssets": "已在素材中",
+    "saveFailed": "无法将输出保存到你的素材。",
+    "status": {
+      "idle": "就绪",
+      "running": "运行中",
+      "completed": "完成",
+      "failed": "失败",
+      "cancelled": "已停止"
+    },
+    "kind": {
+      "image": "图像",
+      "video": "视频",
+      "audio": "音频",
+      "model3d": "3D 模型",
+      "document": "文档"
     }
   }
 }

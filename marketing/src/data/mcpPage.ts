@@ -111,6 +111,8 @@ export const MCP_FAQ: QaPair[] = [
 
 export const MCP_LINKS: { label: string; href: string }[] = [
   { label: "MCP server guide", href: "https://docs.nodetool.ai/mcp-server" },
+  { label: "Agents: the open-source creative harness", href: "/agents" },
+  { label: "Node-based workflows", href: "/node-based-workflows" },
   { label: "Developer page: CLI, REST, and self-hosting", href: "/developers" },
   { label: "Build games from Claude Code", href: "/gamedev" },
   { label: "AI video editor", href: "/ai-video-editor" },

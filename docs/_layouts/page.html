@@ -5,7 +5,13 @@ layout: default
 <div class="doc-layout">
 <article class="doc-page" data-source-path="{{ page.path }}">
   <div class="page-header">
-    {% if nav_section %}<p class="page-section-label">{{ nav_section | escape }}</p>{% endif %}
+    {% if nav_section %}
+    <nav class="page-breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ '/' | relative_url }}">Docs</a>
+      <span class="page-breadcrumb-sep" aria-hidden="true">/</span>
+      {% if nav_section_url == nav_key %}<span class="page-section-label">{{ nav_section | escape }}</span>{% else %}<a class="page-section-label" href="{{ nav_section_url | relative_url }}">{{ nav_section | escape }}</a>{% endif %}
+    </nav>
+    {% endif %}
     <h1 class="page-title">{{ page.title | default: "Documentation" }}</h1>
     {% if page.description %}
     <p class="page-description">{{ page.description }}</p>
@@ -19,6 +25,14 @@ layout: default
   <div class="page-content">
     {{ content }}
   </div>
+
+  {% assign product_page = site.data.product_pages[nav_key] %}
+  {% if product_page %}
+  <p class="page-product-link">
+    <span class="page-product-link-label">On nodetool.ai</span>
+    <a href="{{ product_page.url }}" rel="noopener">{{ product_page.title | escape }} &rarr;</a>
+  </p>
+  {% endif %}
 
   {% if nav_prev or nav_next %}
   <nav class="page-pager" aria-label="Previous and next pages">

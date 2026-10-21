@@ -127,6 +127,7 @@ export const VIDEO_FAQ: QaPair[] = [
 
 export const VIDEO_LINKS: { label: string; href: string }[] = [
   { label: "Storyboards made in NodeTool", href: "/storyboards" },
+  { label: "AI image editor", href: "/ai-image-editor" },
   { label: "Recipe: storyboard to trailer", href: "/recipes/storyboard-to-trailer" },
   { label: "Video Editor guide", href: "https://docs.nodetool.ai/video-editor" },
   { label: "Storyboard Editor guide", href: "https://docs.nodetool.ai/storyboard-editor" },

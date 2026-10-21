@@ -1,4 +1,4 @@
-import { getPipeline, loadTransformers } from "@nodetool-ai/transformers-js-nodes";
+import { getPipeline, loadTransformers, textGenerationTaskFor } from "@nodetool-ai/transformers-js-nodes";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   Message,
@@ -100,6 +100,14 @@ interface PreparedInput {
  */
 function prepareInput(args: ChatArgs, pipeline: ChatPipelineFn): PreparedInput {
   const tools = args.tools ?? [];
+  if (textGenerationTaskFor(args.model) === "text2text-generation") {
+    if (tools.length > 0) {
+      throw new Error("Text-to-text models do not support chat tool calls.");
+    }
+    // Teapot expects context followed by the question, without chat tokens.
+    const input = normalizeMessages(args.messages).map((message) => message.content).join("\n\n");
+    return { input, rendered: false, withTools: false };
+  }
   // SAFETY: the pipeline instance carries `.tokenizer`, which the SDK's
   // pipeline type does not declare.
   const tokenizer = (pipeline as TokenizerHolder).tokenizer as ChatTokenizer | undefined;
