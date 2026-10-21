@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import type { RenderContext3D, RenderPipeline3D } from "../renderer3d/pipeline.js";
-import { PARTICLE_INSTANCE_STRIDE_3D, packParticleBatches3D, type ParticleBatch3D, type ParticleBatchShape3D } from "./particles3d.js";
+import { PARTICLE_INSTANCE_STRIDE_3D, packParticleBatches3D, type ParticleBatch3D, type ParticleBatchShape3D, type ParticleBounds3D } from "./particles3d.js";
 import type { GameParticleField } from "./render2d.js";
 import { ParticleTransparency3D } from "./transparency3d.js";
 
@@ -140,6 +140,10 @@ export class GameParticlePass3D {
   private readonly depthMaterials = new Map<THREE.Material, THREE.MeshBasicMaterial>();
   private readonly depthSeen = new Set<THREE.Material>();
   private readonly swapped: Array<[THREE.Mesh, THREE.Material | THREE.Material[]]> = [];
+  /** Stands in for meshes that cannot affect a soft fade. Invisible materials are never drawn. */
+  private readonly skippedDepth = new THREE.MeshBasicMaterial({ visible: false });
+  private readonly softBoxes: THREE.Box3[] = [];
+  private readonly sphere = new THREE.Sphere();
   private depthTarget: THREE.WebGLRenderTarget | null = null;
   private frame = 0;
   private readonly size = new THREE.Vector2();
@@ -176,6 +180,7 @@ export class GameParticlePass3D {
     this.quadGeometry.dispose();
     for (const material of this.depthMaterials.values()) { material.dispose(); }
     this.depthMaterials.clear();
+    this.skippedDepth.dispose();
     this.depthTarget?.dispose();
     this.depthTarget = null;
   }
@@ -195,7 +200,7 @@ export class GameParticlePass3D {
       ? packParticleBatches3D(field, { x: this.cameraPosition.x, y: this.cameraPosition.y, z: this.cameraPosition.z,
         forwardX: this.cameraForward.x, forwardY: this.cameraForward.y, forwardZ: this.cameraForward.z }, this.batches, interpolation,
       () => this.transparency.depths(scene, camera, this.group))
-      : { batches: [], drawn: 0, soft: false };
+      : { batches: [], drawn: 0, soft: false, softBounds: [] };
     this.batches = packed.batches;
     this.drawn = packed.drawn;
     this.frame += 1;
@@ -208,7 +213,7 @@ export class GameParticlePass3D {
     for (const [key, draw] of this.draws) {
       if (draw.frame !== this.frame) { this.release(draw); this.draws.delete(key); }
     }
-    const depth = packed.soft ? this.renderDepth(renderer, scene, camera) : null;
+    const depth = packed.soft ? this.renderDepth(renderer, scene, camera, packed.softBounds) : null;
     for (const draw of this.draws.values()) {
       if (draw.kind !== "quad") { continue; }
       const uniforms = draw.mesh.material.uniforms;
@@ -224,10 +229,11 @@ export class GameParticlePass3D {
   /**
    * Renders the scene's depth without particles into a texture, keeping every renderer and scene setting it changes.
    * Each mesh draws with a depth-only copy of its material, so alpha-tested cut-outs keep their holes, and transparent
-   * or non-depth-writing materials are skipped as they write no depth in the scene pass either. Its submitted work
-   * remains in the renderer counters so frame stats and budgets include this pass.
+   * or non-depth-writing materials are skipped as they write no depth in the scene pass either. Plain meshes whose bounds
+   * miss every box in `bounds` are skipped too, as they cannot change a soft fade. Its submitted work remains in the
+   * renderer counters so frame stats and budgets include this pass.
    */
-  private renderDepth(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera): THREE.DepthTexture {
+  private renderDepth(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, bounds: readonly ParticleBounds3D[]): THREE.DepthTexture {
     const size = renderer.getDrawingBufferSize(this.size);
     if (!this.depthTarget) {
       this.depthTarget = new THREE.WebGLRenderTarget(size.x, size.y, { depthBuffer: true, depthTexture: new THREE.DepthTexture(size.x, size.y) });
@@ -242,7 +248,7 @@ export class GameParticlePass3D {
       renderer.shadowMap.autoUpdate = false;
       this.group.visible = false;
       scene.background = null;
-      this.swapDepthMaterials(scene);
+      this.swapDepthMaterials(scene, bounds);
       renderer.setRenderTarget(this.depthTarget);
       renderer.clear();
       renderer.render(scene, camera);
@@ -259,17 +265,35 @@ export class GameParticlePass3D {
     return depth;
   }
 
-  private swapDepthMaterials(scene: THREE.Scene): void {
+  private swapDepthMaterials(scene: THREE.Scene, bounds: readonly ParticleBounds3D[]): void {
     this.depthSeen.clear();
+    this.softBoxes.length = 0;
+    for (const box of bounds) { this.softBoxes.push(new THREE.Box3(new THREE.Vector3().copy(box.min), new THREE.Vector3().copy(box.max))); }
     scene.traverse((object) => {
       if (object === this.group || !(object instanceof THREE.Mesh)) { return; }
       const material: THREE.Material | THREE.Material[] = object.material;
       this.swapped.push([object, material]);
+      if (this.outsideSoftBounds(object)) {
+        // Swapping the material, not hiding the mesh, keeps any child meshes inside the bounds in the pass.
+        for (const entry of Array.isArray(material) ? material : [material]) { this.depthSeen.add(entry); }
+        object.material = this.skippedDepth;
+        return;
+      }
       object.material = Array.isArray(material) ? material.map((entry) => this.depthVariant(entry)) : this.depthVariant(material);
     });
     for (const [material, variant] of this.depthMaterials) {
       if (!this.depthSeen.has(material)) { variant.dispose(); this.depthMaterials.delete(material); }
     }
+  }
+
+  /** Plain meshes only: instanced, skinned and unculled meshes can draw outside their geometry's bounds. */
+  private outsideSoftBounds(mesh: THREE.Mesh): boolean {
+    if (mesh instanceof THREE.InstancedMesh || mesh instanceof THREE.SkinnedMesh || !mesh.frustumCulled) { return false; }
+    const geometry = mesh.geometry;
+    if (!geometry.boundingSphere) { geometry.computeBoundingSphere(); }
+    if (!geometry.boundingSphere) { return false; }
+    this.sphere.copy(geometry.boundingSphere).applyMatrix4(mesh.matrixWorld);
+    return !this.softBoxes.some((box) => box.intersectsSphere(this.sphere));
   }
 
   private depthVariant(material: THREE.Material): THREE.MeshBasicMaterial {

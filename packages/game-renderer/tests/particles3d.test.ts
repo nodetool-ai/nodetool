@@ -120,6 +120,16 @@ describe("3D particles beside a session", () => {
     expect(packed.batches.filter(batch => batch.shape === "quad").reduce((sum, batch) => sum + batch.count, 0)).toBe(first.samples.length - 4);
     expect(packed.batches.filter(batch => batch.shape === "box").reduce((sum, batch) => sum + batch.count, 0)).toBe(4);
     expect(packed.soft).toBe(true);
+    // Each soft emitter's box holds its quads, grown by size and softness.
+    expect(packed.softBounds.length).toBeGreaterThan(0);
+    const boxes = packed.softBounds;
+    for (const batch of packed.batches.filter((entry) => entry.shape === "quad")) {
+      for (let index = 0; index < batch.count; index++) {
+        const [x, y, z] = particle(batch.data, index);
+        if (particle(batch.data, index)[14] === 0) { continue; }
+        expect(boxes.some((box) => x! >= box.min.x && x! <= box.max.x && y! >= box.min.y && y! <= box.max.y && z! >= box.min.z && z! <= box.max.z)).toBe(true);
+      }
+    }
     const burst = packed.batches.find(batch => batch.shape === "box");
     if (!burst) { throw new Error("Burst mesh batch missing"); }
     expect(particle(burst.data, 0).slice(0, 3)).toEqual([1, 2, 3]);

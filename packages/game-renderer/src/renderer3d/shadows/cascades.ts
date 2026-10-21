@@ -11,6 +11,18 @@ const up = new THREE.Vector3(0, 1, 0);
 // @types/three declares CSMShader as an interface, but the module exports the chunk object.
 const CSMShader = (csmShaderModule as { readonly CSMShader: { readonly lights_fragment_begin: string; readonly lights_pars_begin: string } }).CSMShader;
 const origin = new THREE.Vector3();
+/** A cascade whose map would move by more than this share of its width re-renders this frame, regardless of its schedule. */
+const CASCADE_DRIFT = 0.05;
+
+/**
+ * Whether cascade `index` re-renders its map on frame `frame`. The nearest cascade renders every frame, the second
+ * every other frame, and the third and fourth alternate every fourth frame, so at most two cascades render per frame.
+ */
+export function gameCascadeDue3D(index: number, frame: number): boolean {
+  if (index === 0) { return true; }
+  if (index === 1) { return frame % 2 === 0; }
+  return frame % 4 === (index === 2 ? 1 : 3);
+}
 
 /** Splits [near, far] into `count` ranges, blending even and logarithmic splits by `lambda`. Returns each split's end as a fraction of far. */
 export function gameCascadeBreaks3D(count: number, near: number, far: number, lambda: number): number[] {
@@ -53,6 +65,10 @@ export class GameCascadedShadows3D {
   private readonly uniforms = { CSM_cascades: { value: [] as THREE.Vector2[] }, cameraNear: { value: 0 }, shadowFar: { value: 0 } };
   private breaks: number[] = [];
   private frustumKey = "";
+  /** Light-space centre each cascade map was last rendered at, or null before its first render. */
+  private placed: (THREE.Vector3 | null)[] = [];
+  private readonly direction = new THREE.Vector3();
+  private frame = 0;
   private count = 0;
   private margin = 0;
   private readonly compile = (shader: THREE.WebGLProgramParametersWithUniforms): void => {
@@ -97,6 +113,7 @@ export class GameCascadedShadows3D {
       this.uniforms.cameraNear.value = near;
       this.uniforms.shadowFar.value = far;
       this.uniforms.CSM_cascades.value = this.breaks.map((end, index) => new THREE.Vector2(this.breaks[index - 1] ?? 0, end));
+      this.placed.fill(null);
     }
     this.place(source, camera);
     this.setupMaterials(scene);
@@ -109,6 +126,7 @@ export class GameCascadedShadows3D {
     this.group.removeFromParent();
     this.count = 0;
     this.frustumKey = "";
+    this.placed = [];
   }
 
   /** Includes materials created by presentation passes after the light update. */
@@ -121,12 +139,15 @@ export class GameCascadedShadows3D {
     for (let index = 0; index < count; index++) {
       const light = new THREE.DirectionalLight();
       light.castShadow = true;
+      // place() decides each frame whether this cascade's map re-renders.
+      light.shadow.autoUpdate = false;
       light.name = `game-shadow-cascade-${index}`;
       this.group.add(light, light.target);
       this.lights.push(light);
     }
     this.count = count;
     this.frustumKey = "";
+    this.placed = this.lights.map(() => null);
     for (const material of this.materials) { releaseMaterial(material); }
     this.materials.clear();
   }
@@ -156,14 +177,20 @@ export class GameCascadedShadows3D {
     }
   }
 
-  /** Centers each cascade's shadow camera on its slice of the view, snapped to the texel grid. */
+  /**
+   * Centers each cascade's shadow camera on its slice of the view, snapped to the texel grid. Far cascades re-render on
+   * a schedule (`gameCascadeDue3D`) and keep their last map and placement in between, unless the light turned or the
+   * map would move by more than `CASCADE_DRIFT` of its width, so a cut or a teleport never shows a stale map.
+   */
   private place(source: THREE.DirectionalLight, camera: THREE.Camera): void {
     const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(source.quaternion).normalize();
+    if (!direction.equals(this.direction)) { this.direction.copy(direction); this.placed.fill(null); }
     const orientation = new THREE.Matrix4().lookAt(origin, direction, Math.abs(direction.y) > 0.999 ? new THREE.Vector3(0, 0, 1) : up);
     const inverse = orientation.clone().invert();
     const cameraToLight = new THREE.Matrix4().multiplyMatrices(inverse, camera.matrixWorld);
     const box = new THREE.Box3();
     const center = new THREE.Vector3();
+    const frame = this.frame++;
     for (const [index, frustum] of this.frustums.entries()) {
       const light = this.lights[index];
       if (!light) { continue; }
@@ -177,6 +204,14 @@ export class GameCascadedShadows3D {
       center.z = box.max.z + this.margin;
       center.x = Math.floor(center.x / texelWidth) * texelWidth;
       center.y = Math.floor(center.y / texelHeight) * texelHeight;
+      const placed = this.placed[index];
+      const drift = (shadowCamera.right - shadowCamera.left) * CASCADE_DRIFT;
+      if (placed && light.shadow.map && !gameCascadeDue3D(index, frame) && placed.distanceToSquared(center) <= drift * drift) {
+        light.shadow.needsUpdate = false;
+        continue;
+      }
+      this.placed[index] = (placed ?? new THREE.Vector3()).copy(center);
+      light.shadow.needsUpdate = true;
       center.applyMatrix4(orientation);
       light.position.copy(center);
       light.target.position.copy(center).add(direction);

@@ -8,7 +8,7 @@ vi.mock("@nodetool-ai/game-runtime", () => ({
   decodePreparedGameCollider3D: vi.fn(),
   createGameSession3D: async () => {
     const frame = blockoutFrame();
-    return { frame: () => frame, snapshot: () => ({}), inspect: () => ({}), dispose() {}, takePresentationEvents: () => [],
+    return { frame: () => frame, snapshot: () => ({}), audioState: () => ({ tick: 0, sceneId: "scene", music: null }), inspect: () => ({}), dispose() {}, takePresentationEvents: () => [],
       step: (input: GameInputFrame3D) => { observed.inputs.push(structuredClone(input)); return { frame, events: [] }; } };
   },
   GamePlayerSaves: class {
