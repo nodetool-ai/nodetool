@@ -44,6 +44,7 @@ import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import CameraEnhanceOutlinedIcon from "@mui/icons-material/CameraEnhanceOutlined";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 
 import {
   AlertBanner,
@@ -72,7 +73,13 @@ import {
 } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import { deserializeDragData, DRAG_DATA_MIME } from "../../lib/dragdrop/serialization";
-import { resolveStaticMediaUri } from "../../utils/resolveMediaUri";
+import { resolveMediaUri, resolveStaticMediaUri } from "../../utils/resolveMediaUri";
+import { TransformWithWorkflowView } from "../assets/TransformWithWorkflowDialog";
+import {
+  blobToDataUri,
+  type TransformApplyAction,
+  type TransformSource
+} from "../assets/transformWorkflow";
 import SceneOutliner, { type OutlinerAction } from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
@@ -1262,6 +1269,48 @@ const Model3DEditor = ({
     },
     [root, name, animationClips, stopPreview, canSave, selectedObject, t]
   );
+  // --- Transform with workflow ---------------------------------------------
+  // The scene as it is on screen, unsaved edits included, goes to the
+  // workflow; a 3D model it returns is added to the scene.
+
+  const [transformSource, setTransformSource] = useState<TransformSource | null>(null);
+  const handleTransform = useCallback(async () => {
+    if (!canSave) {
+      return;
+    }
+    setIsExporting(true);
+    setExportError(null);
+    stopPreview();
+    try {
+      const blob = await exportSceneToGlb(root, animationClips);
+      setTransformSource({
+        kind: "model3d",
+        name: name || t("transformWithWorkflow.sceneName"),
+        uri: await blobToDataUri(blob)
+      });
+    } catch (error) {
+      console.error("[Model3DEditor] Export for transform failed:", error);
+      setExportError(error instanceof Error ? error.message : t("i18n-cont-model-editor-11.modelEditor.errors.exportModel"));
+    } finally {
+      setIsExporting(false);
+    }
+  }, [root, name, animationClips, stopPreview, canSave, t]);
+  const transformApply = useMemo<TransformApplyAction>(
+    () => ({
+      label: t("transformWithWorkflow.apply.addToScene"),
+      kinds: ["model3d"],
+      onApply: async (result) => {
+        const url = await resolveMediaUri(result.uri);
+        if (!url) {
+          throw new Error(t("i18n-cont-model-editor-11.modelEditor.errors.readModel"));
+        }
+        const fileName = isModelFileName(result.name) ? result.name : `${result.name}.glb`;
+        void runImport([() => importModelUrl(url, fileName)]);
+      }
+    }),
+    [runImport, t]
+  );
+
   const exportErrorContext = useMemo(
     () => ({
       source: "operation-failure" as const,
@@ -1625,6 +1674,14 @@ const Model3DEditor = ({
             onClick={toggleAssistant}
             active={showAssistant}
             size="small"
+          />
+          <ToolbarIconButton
+            icon={<AutoFixHighOutlinedIcon fontSize="small" />}
+            tooltip={t("transformWithWorkflow.open")}
+            onClick={() => void handleTransform()}
+            disabled={isExporting || !canSave}
+            size="small"
+            ariaLabel={t("transformWithWorkflow.open")}
           />
           <MenuButton
             label={t("i18n-cont-model-editor-11.modelEditor.actions.export")}
@@ -2014,6 +2071,13 @@ const Model3DEditor = ({
         onDelete={handleDelete}
       />
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      {transformSource && (
+        <TransformWithWorkflowView
+          source={transformSource}
+          onClose={() => setTransformSource(null)}
+          apply={transformApply}
+        />
+      )}
       <ConfirmDialog
         open={confirmCloseOpen}
         onClose={() => setConfirmCloseOpen(false)}

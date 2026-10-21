@@ -449,6 +449,7 @@ from `packages/agents/src/tools/mcp-tools.ts` over shell commands.
 | [Run and inspect a workflow](docs/harnesses.md#nodetool-debug-workflow-debug-harness) | `nodetool debug <id\|file>` / `debug_workflow` |
 | [Recheck a file on save](docs/harnesses.md#nodetool-debug-workflow-debug-harness) | `nodetool debug file.ts --watch` |
 | [Inspect a browser-specific failure](docs/harnesses.md#nodetool-debug-workflow-debug-harness) | `nodetool debug <id> --browser --trace --stages` |
+| [Measure a native game's tick and frame cost](docs/harnesses.md#native-game-performance-game-bench-game-capture-game-perf) | `nodetool game perf <file> --inputs route.json --fail-on-budget` |
 | [Build and verify a mini app](docs/harnesses.md#nodetool-app-build-mini-app-build-harness) | `nodetool app build "<prompt>" -p <provider> -m <model>` / `debug_app` |
 | [Execute a workflow](docs/harnesses.md#nodetool-run-dsl-workflows) | `nodetool run <file>` / `run_workflow` / `start_background_job` |
 | [Inspect changed workspaces](docs/harnesses.md#nodetool-affected-changed-file--workspace-mapping) | `nodetool affected` |

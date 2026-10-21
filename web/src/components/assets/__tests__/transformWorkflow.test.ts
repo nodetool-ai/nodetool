@@ -7,6 +7,7 @@ import {
   transformParams,
   transformProgress,
   transformSourceFromAsset,
+  transformSourceFromRef,
   type TransformRunState
 } from "../transformWorkflow";
 
@@ -124,6 +125,31 @@ describe("transformParams", () => {
     expect(transformParams(source!, candidate.inputs[1])).toEqual({
       references: [{ type: "image", uri: "asset://a1b2c3", asset_id: "a1b2c3" }]
     });
+  });
+});
+
+describe("transformSourceFromRef", () => {
+  it("uses the asset behind a stored ref", () => {
+    expect(
+      transformSourceFromRef({ uri: "asset://k1.png", asset_id: "k1" }, "image", "Still")
+    ).toEqual({ kind: "image", name: "Still", uri: "asset://k1", assetId: "k1" });
+  });
+
+  it("keeps the URI of media without an asset, and feeds it without an asset id", () => {
+    const source = transformSourceFromRef(
+      { uri: "data:image/png;base64,AAAA" },
+      "image",
+      "Sketch"
+    );
+    expect(source).toEqual({ kind: "image", name: "Sketch", uri: "data:image/png;base64,AAAA" });
+    const [candidate] = transformCandidates(workflows, "image", "upscale");
+    expect(transformParams(source!, candidate.inputs[0])).toEqual({
+      image: { type: "image", uri: "data:image/png;base64,AAAA" }
+    });
+  });
+
+  it("is null for a ref without media", () => {
+    expect(transformSourceFromRef({}, "video", "Clip")).toBeNull();
   });
 });
 

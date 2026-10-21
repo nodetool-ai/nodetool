@@ -63,6 +63,25 @@ describe("RIDGELINE flight", () => {
     }
   }, 60_000);
 
+  it("keeps the nose wheel on the runway when the stick is pushed forward on the takeoff roll", async () => {
+    const session = await createGameSession3D(await ridgeline(), 1, undefined, { resolveCollider });
+    const full = gameInputFrame3D.parse({ pressed: [], axes: { throttle: 1 } });
+    const pushed = gameInputFrame3D.parse({ pressed: [], axes: { throttle: 1, pitch: -1, roll: -0.5, yaw: -1 } });
+    try {
+      // Pushing at rotation speed once drove the nose gear through the runway. The jet tumbled and its
+      // torque command passed the 1e6 limit, which stopped the game.
+      for (let tick = 0; tick < 760; tick++) {
+        const result = session.step(tick < 30 ? idle : tick < 400 ? full : pushed);
+        expect(result.events.some((event) => event.kind === "trigger" && event.event === "crash")).toBe(false);
+      }
+      const jet = session.inspect({ entityId: "jet" }).entities.find((entity) => entity.id === "jet");
+      if (!jet) { throw new Error("The jet is missing"); }
+      expect(Math.hypot(jet.velocity.x, jet.velocity.y, jet.velocity.z)).toBeGreaterThan(60);
+    } finally {
+      session.dispose();
+    }
+  }, 120_000);
+
   it("crashes into the sea and respawns at the last checkpoint", async () => {
     const document = await ridgeline();
     const jet = document.scenes[0].entities.find((entity) => entity.id === "jet");

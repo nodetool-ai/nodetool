@@ -25,7 +25,39 @@ const METRICS: readonly GameFrameBudgetMetric[] = ["drawCalls", "triangles", "pa
 const LABELS: Readonly<Record<GameFrameBudgetMetric, string>> = { drawCalls: "draw calls", triangles: "triangles", particles: "particles", voices: "audio voices" };
 
 export function resolveGameFrameBudgets(budgets?: GameFrameBudgets): GameFrameBudgetLimits {
-  return { ...DEFAULT_GAME_FRAME_BUDGETS, ...Object.fromEntries(Object.entries(budgets ?? {}).filter(([, value]) => value !== undefined)) };
+  return Object.fromEntries(METRICS.map((metric) => [metric, budgets?.[metric] ?? DEFAULT_GAME_FRAME_BUDGETS[metric]])) as GameFrameBudgetLimits;
+}
+
+export type GameTimeBudgetMetric = "tickMs" | "frameMs";
+
+export type GameTimeBudgetLimits = Readonly<Record<GameTimeBudgetMetric, number>>;
+
+/**
+ * Time targets for the p95 of a measured run. A 60 Hz tick leaves 16.6 ms per frame, and the 4 ms tick
+ * leaves the rest of that frame to rendering. A 120 Hz display needs a document `frameMs` of 8.3.
+ */
+export const DEFAULT_GAME_TIME_BUDGETS: GameTimeBudgetLimits = Object.freeze({ tickMs: 4, frameMs: 16.6 });
+
+export function resolveGameTimeBudgets(budgets?: GameFrameBudgets): GameTimeBudgetLimits {
+  return { tickMs: budgets?.tickMs ?? DEFAULT_GAME_TIME_BUDGETS.tickMs, frameMs: budgets?.frameMs ?? DEFAULT_GAME_TIME_BUDGETS.frameMs };
+}
+
+export interface GameTimeBudgetOverrun {
+  readonly metric: GameTimeBudgetMetric;
+  readonly value: number;
+  readonly budget: number;
+}
+
+/** Overruns of the measured p95 values against the time budgets. A host leaves out what it does not measure. */
+export function gameTimeBudgetOverruns(sample: Partial<Record<GameTimeBudgetMetric, number>>, limits: GameTimeBudgetLimits): GameTimeBudgetOverrun[] {
+  return (["tickMs", "frameMs"] as const).flatMap((metric) => {
+    const value = sample[metric];
+    return value !== undefined && value > limits[metric] ? [{ metric, value, budget: limits[metric] }] : [];
+  });
+}
+
+export function formatGameTimeBudgetOverrun(overrun: GameTimeBudgetOverrun): string {
+  return `Time budget exceeded: ${overrun.metric === "tickMs" ? "tick" : "frame"} p95 ${overrun.value.toFixed(2)} ms (budget ${overrun.budget} ms)`;
 }
 
 export function gameFrameBudgetOverruns(sample: GameFrameBudgetSample, limits: GameFrameBudgetLimits): GameFrameBudgetOverrun[] {

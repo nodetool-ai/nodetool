@@ -14,6 +14,8 @@ export { scriptSourceKey } from "./script-source.js";
 
 const encoder = new TextEncoder();
 const MAX_SCRIPT_CALL_MS = 20;
+/** The world JSON a script receives when it reads `input.world`. The rest of the tick input keeps the 64 KiB limit. */
+const MAX_SCRIPT_WORLD_BYTES = 1024 * 1024;
 const finite = z.number().finite();
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const gameScriptCommand = z.discriminatedUnion("kind", [
@@ -248,6 +250,9 @@ interface ScriptRealm {
   readonly queryJson: QuickJSHandle;
   readonly worldGetter: QuickJSHandle;
   setWorldReader(reader: (() => QuickJSHandle) | undefined): void;
+  /** Returns the call's world as JSON text. Non-persistent realms parse it on the first read of `world`. */
+  readonly worldText: QuickJSHandle;
+  setWorldText(reader: (() => string) | undefined): void;
   /** Reused realms read the call's `world` through a frozen global accessor bound to this object. */
   readonly worldBinding?: ScriptWorldBinding;
 }
@@ -257,8 +262,10 @@ type RealmShell = Omit<ScriptRealm, "sourceKey">;
 
 function disposeRealm(realm: RealmShell): void {
   realm.setWorldReader(undefined);
+  realm.setWorldText(undefined);
   realm.worldBinding?.dispose();
   realm.worldGetter.dispose();
+  realm.worldText.dispose();
   realm.queryJson.dispose();
   realm.defineData.dispose();
   realm.invoke.dispose();
@@ -405,6 +412,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
     let queryJson: QuickJSHandle | undefined;
     let worldGetter: QuickJSHandle | undefined;
     let worldReader: (() => QuickJSHandle) | undefined;
+    let worldText: QuickJSHandle | undefined;
+    let worldTextReader: (() => string) | undefined;
     let worldBinding: ScriptWorldBinding | undefined;
     try {
       worldBinding = reusable ? createScriptWorldBinding(context) : undefined;
@@ -416,6 +425,11 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         if (!binding.world) { throw new Error("world read outside an active script call"); }
         return binding.world.dup();
       }) : context.undefined.dup();
+      // The host serializes the world only when a script reads it.
+      worldText = persistent ? context.undefined.dup() : context.newFunction("worldText", () => {
+        if (!worldTextReader) { throw new Error("world read outside an active script call"); }
+        return context.newString(worldTextReader());
+      });
       // Capture pristine helpers together, without introducing bindings visible to user source.
       const helpers = initializeContext(context, seed, `[
       ((define) => (object, key, value) => {
@@ -426,28 +440,29 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         if (typeof json !== "string" || json.length > 4096) { throw new Error("world query arguments exceed 4096 characters or are not JSON"); }
         return json;
       })(JSON.stringify),
-      ((defineProperty, synchronousResult${hooks ? ", dispatch" : ""}) => (data, getWorld, rngState, worldJson) => {
+      ((defineProperty, parse, synchronousResult${hooks ? ", dispatch" : ""}) => (data, getWorld, rngState, worldText) => {
         ${persistent ? "" : "data = JSON.parse(data);"}${reusable ? "reseed(rngState);" : ""}
         const payload = ${payloadExpression};
         ${persistent ? `defineProperty(payload, "world", {
           enumerable: true, configurable: true, get: getWorld,
           set(value) { defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); }
-        });` : ""}${reusable ? `defineProperty(payload, "world", {
+        });` : `if (payload.world === undefined) defineProperty(payload, "world", {
           enumerable: true, configurable: true,
-          get() { const value = JSON.parse(worldJson); defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); return value; },
+          get() { const value = parse(worldText()); defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); return value; },
           set(value) { defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); }
-        });` : ""}
+        });`}
         const value = synchronousResult(${hooks ? "dispatch(__gameScript, payload, data.call.steps)" : "__gameScript(payload)"}, "Game script");
         return JSON.stringify({ value, rngState: ${persistent ? "rngState" : "__gameRandom.state"} });
-      })(Object.defineProperty, ${SCRIPT_SYNCHRONOUS_RESULT}${hooks ? `, ${SCRIPT_LIFECYCLE_DISPATCH}` : ""})]`);
+      })(Object.defineProperty, JSON.parse, ${SCRIPT_SYNCHRONOUS_RESULT}${hooks ? `, ${SCRIPT_LIFECYCLE_DISPATCH}` : ""})]`);
       try {
         defineData = context.getProp(helpers, 0);
         queryJson = context.getProp(helpers, 1);
         invoke = context.getProp(helpers, 2);
       } finally { helpers.dispose(); }
-      return { context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; }, worldBinding };
+      return { context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; },
+        worldText, setWorldText: (reader) => { worldTextReader = reader; }, worldBinding };
     } catch (error) {
-      worldBinding?.dispose(); worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
+      worldBinding?.dispose(); worldText?.dispose(); worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
     }
   };
   /** Evaluates user source in the shell, which this takes ownership of. A reusable realm is then frozen. */
@@ -545,7 +560,12 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         paramsTable += `${counted.size > 0 ? "," : ""}${JSON.stringify(call.sourceKey)}:${params}`;
         counted.add(call.sourceKey);
       }
-      const logical = JSON.stringify({ calls, input, rngState });
+      // The world, and the props of entities without a call, are left out: scripts receive them only when they read
+      // the world, and its own limit applies then.
+      const table = input.props;
+      const callerProps = table === undefined ? undefined
+        : Object.fromEntries(calls.flatMap((call) => Object.hasOwn(table, call.entityId) ? [[call.entityId, table[call.entityId]]] : []));
+      const logical = JSON.stringify({ calls, input: { ...input, world: undefined, props: callerProps }, rngState });
       const serialized = counted.size === 0 ? logical : `${logical.slice(0, -1)},"params":{${paramsTable}}}`;
       const inputBytes = encoder.encode(serialized).byteLength;
       if (inputBytes > 64 * 1024) {
@@ -556,16 +576,17 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       const { props: propsTable, ...scriptInput } = input;
       // Scripts read props on each world entry. The copies exist only in this guest-facing JSON.
       let worldJson: string | undefined;
-      const scriptWorldJson = (): string => worldJson ??= JSON.stringify(propsTable === undefined ? scriptInput.world
-        : scriptInput.world.map((entity) => ({ ...entity, props: propsOf(propsTable, entity.id) })));
-      let fullInputJson: string | undefined;
-      const inputJson = (): string => {
-        if (fullInputJson === undefined) {
-          const { world: _world, ...withoutWorld } = scriptInput;
-          const rest = JSON.stringify(withoutWorld);
-          fullInputJson = `${rest.slice(0, -1)}${rest.length > 2 ? "," : ""}"world":${scriptWorldJson()}}`;
+      const scriptWorldJson = (): string => {
+        if (worldJson === undefined) {
+          const json = JSON.stringify(propsTable === undefined ? scriptInput.world
+            : scriptInput.world.map((entity) => ({ ...entity, props: propsOf(propsTable, entity.id) })));
+          const bytes = encoder.encode(json).byteLength;
+          if (bytes > MAX_SCRIPT_WORLD_BYTES) {
+            throw new Error(`Game script world exceeds ${MAX_SCRIPT_WORLD_BYTES / 1024 / 1024} MiB (${bytes} bytes, ${scriptInput.world.length} entities, tick ${input.tick})`);
+          }
+          worldJson = json;
         }
-        return fullInputJson;
+        return worldJson;
       };
       let persistentInputJson: string | undefined;
       const inputJsonWithoutWorld = (): string => {
@@ -659,30 +680,30 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             // The shared input is serialized once per tick; only the call is serialized per call.
             const params = paramsJson.get(call.sourceKey);
             plan = hooks ? planScriptHooks(call.state, call.lifecycle, input.tick) : undefined;
-            // A reused realm parses the world entries only when the script reads `input.world`.
-            const data = `{"call":${callJson(call, plan)},"input":${persistent || reusable ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}${params === undefined ? "" : `,"params":${params}`}}`;
+            // A realm receives the world entries only when the script reads `input.world`.
+            const data = `{"call":${callJson(call, plan)},"input":${inputJsonWithoutWorld()},"rngState":${JSON.stringify(nextRngState)}${params === undefined ? "" : `,"params":${params}`}}`;
             checkCallDeadline();
             const normalized: unknown = persistent ? JSON.parse(data) : data;
             let argument: QuickJSHandle | undefined;
             let seed: QuickJSHandle | undefined;
-            let worldJson: QuickJSHandle | undefined;
             let output: unknown;
             try {
               argument = gameScriptValue(context, normalized, defineData, persistent);
               seed = context.newNumber(nextRngState);
-              worldJson = reusable ? context.newString(scriptWorldJson()) : context.undefined.dup();
+              active.setWorldText(() => { checkCallDeadline(); return scriptWorldJson(); });
               active.setWorldReader(() => {
                 checkCallDeadline();
                 worldHandle ??= gameScriptValue(context, readLegacyWorld(), defineData, true);
                 checkCallDeadline();
                 return worldHandle.dup();
               });
-              const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed, worldJson));
+              const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed, active.worldText));
               try { output = context.dump(value); } finally { value.dispose(); }
               worldCall?.assertWithinLimit();
             } finally {
               active.setWorldReader(undefined);
-              argument?.dispose(); seed?.dispose(); worldJson?.dispose();
+              active.setWorldText(undefined);
+              argument?.dispose(); seed?.dispose();
             }
             return output;
           } catch (error) {

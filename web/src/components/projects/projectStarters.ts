@@ -128,6 +128,7 @@ const ENGINEERING_SKILLS: ReadonlySet<string> = new Set([
   "nodetool-skill-author",
   "nodetool-rag-indexing",
   "native-game-reference",
+  "native-game-performance",
   "manimgx"
 ]);
 

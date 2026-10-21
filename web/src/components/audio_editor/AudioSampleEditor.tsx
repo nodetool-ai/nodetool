@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -16,6 +16,13 @@ import { BASE_URL } from "../../stores/BASE_URL";
 import type { Asset } from "../../stores/ApiTypes";
 import { useSaveAudioToAsset } from "../../hooks/audio/useSaveAudioToAsset";
 import ReportBugButton from "../support/ReportBugButton";
+import { TransformWithWorkflowView } from "../assets/TransformWithWorkflowDialog";
+import {
+  transformSourceFromAsset,
+  type TransformApplyAction,
+  type TransformSource
+} from "../assets/transformWorkflow";
+import { resolveMediaUri } from "../../utils/resolveMediaUri";
 import WaveformView, { type Selection } from "./WaveformView";
 import AudioEditorToolbar from "./AudioEditorToolbar";
 import AudioTransportBar from "./AudioTransportBar";
@@ -32,7 +39,9 @@ import { useEditHistory } from "./useEditHistory";
 import { createPlayheadStore } from "./playheadStore";
 import {
   applyGain,
+  arrayBufferToBase64,
   audioBufferToSample,
+  encodeWav,
   cropToRange,
   deleteRange,
   fade,
@@ -461,6 +470,45 @@ const AudioSampleEditor = ({
     [history]
   );
 
+  // An unedited sample runs as the asset itself; an edited one as the WAV the
+  // editor would save. A returned clip replaces the sample as one undo step.
+  const [transformSource, setTransformSource] = useState<TransformSource | null>(null);
+  const handleTransform = useCallback(() => {
+    const current = sampleRef.current;
+    if (!current) return;
+    const fromAsset = transformSourceFromAsset(asset);
+    if (!fromAsset) return;
+    setTransformSource(
+      current === savedSample
+        ? fromAsset
+        : {
+            ...fromAsset,
+            assetId: undefined,
+            uri: `data:audio/wav;base64,${arrayBufferToBase64(encodeWav(current))}`
+          }
+    );
+  }, [asset, savedSample]);
+  const transformApply = useMemo<TransformApplyAction>(
+    () => ({
+      label: t("transformWithWorkflow.apply.replaceAudio"),
+      kinds: ["audio"],
+      onApply: async (result) => {
+        const url = await resolveMediaUri(result.uri);
+        if (!url) {
+          throw new Error(t("batch2_16.audio.noUrl"));
+        }
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(t("batch2_16.audio.fetchFailed", { status: response.status }));
+        }
+        const decoded = await getCtx().decodeAudioData(await response.arrayBuffer());
+        history.commit(audioBufferToSample(decoded));
+        setSelection(null);
+      }
+    }),
+    [getCtx, history, t]
+  );
+
   const handleApplyEffect = useCallback(
     async (effect: AudioEffect, params: EffectParams) => {
       setEffectParams((prev) => ({ ...prev, [effect.id]: params }));
@@ -574,6 +622,7 @@ const AudioSampleEditor = ({
         onQuieten={handleQuieten}
         onReverse={handleReverse}
         onEffect={handleEffect}
+        onTransform={handleTransform}
         onUndo={history.undo}
         onRedo={history.redo}
         onSave={handleSave}
@@ -624,6 +673,14 @@ const AudioSampleEditor = ({
           getAudioContext={getCtx}
           onApply={handleApplyEffect}
           onClose={closeEffect}
+        />
+      )}
+
+      {transformSource && (
+        <TransformWithWorkflowView
+          source={transformSource}
+          onClose={() => setTransformSource(null)}
+          apply={transformApply}
         />
       )}
     </FlexColumn>

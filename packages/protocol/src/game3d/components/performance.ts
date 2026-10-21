@@ -25,8 +25,10 @@ export const gameFrameBudgets = z.strictObject({
   drawCalls: budget(100_000).optional().describe("Draw calls per rendered frame."),
   triangles: budget(100_000_000).optional().describe("Triangles per rendered frame."),
   particles: budget(1_000_000).optional().describe("Live particles in the scene, as the 3D standalone player and 3D capture count them."),
-  voices: budget(1024).optional().describe("Playing audio voices.")
-}).describe("Per-frame budgets. Players warn in the console when a frame exceeds one. Omitted budgets use the player defaults.");
+  voices: budget(1024).optional().describe("Playing audio voices."),
+  tickMs: z.number().positive().max(1000).optional().describe("Simulation tick p95 in milliseconds, as `nodetool game bench` measures it. Default 4."),
+  frameMs: z.number().positive().max(1000).optional().describe("Rendered frame p95 in milliseconds, as `nodetool game perf` measures it in the exported player. Default 16.6.")
+}).describe("Per-frame and per-tick budgets. Players warn in the console when a frame exceeds a count budget. `game bench`, `game capture` and `game perf` exit non-zero on an overrun with --fail-on-budget. Omitted budgets use the defaults.");
 
 export type GameFrameBudgets = z.infer<typeof gameFrameBudgets>;
 

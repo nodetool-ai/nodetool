@@ -5,7 +5,8 @@
  * (an image input for an image, a video input for a video), searchable by
  * name. Running one shows the run's progress and node updates in place, and
  * each output can be saved to the asset library or transformed again with
- * another workflow.
+ * another workflow. An editor that opens the dialog can also take an output
+ * back, for example as a new sketch layer or as a clip's media.
  */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import CheckIcon from "@mui/icons-material/Check";
+import InputIcon from "@mui/icons-material/Input";
 
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -48,6 +50,8 @@ import {
   transformCandidates,
   transformProgress,
   transformSourceFromAsset,
+  transformSourceFromAssetId,
+  type TransformApplyAction,
   type TransformCandidate,
   type TransformKind,
   type TransformOutput,
@@ -93,7 +97,7 @@ const SourceSummary: React.FC<{ source: TransformSource }> = memo(({ source }) =
     <FlexRow align="center" gap={SPACING.sm}>
       <Box sx={{ width: 56, flexShrink: 0 }}>
         <MediaThumbnail
-          locator={assetLocator(source.assetId)}
+          locator={source.uri}
           kind={THUMBNAIL_KIND[source.kind]}
           alt={source.name}
         />
@@ -139,12 +143,15 @@ interface OutputCardProps {
   output: TransformOutput;
   savedAssetId?: string;
   busy: boolean;
+  /** The host editor's action label, when it can take this output. */
+  applyLabel?: string;
   onSave: (output: TransformOutput) => void;
   onTransform: (output: TransformOutput) => void;
+  onApply: (output: TransformOutput) => void;
 }
 
 const OutputCard: React.FC<OutputCardProps> = memo(
-  ({ output, savedAssetId, busy, onSave, onTransform }) => {
+  ({ output, savedAssetId, busy, applyLabel, onSave, onTransform, onApply }) => {
     const { t } = useTranslation();
     const stored = output.assetId ?? savedAssetId;
     return (
@@ -155,6 +162,17 @@ const OutputCard: React.FC<OutputCardProps> = memo(
         <OutputValue output={output} />
         {output.kind && (
           <FlexRow gap={SPACING.xs} wrap>
+            {applyLabel && (
+              <EditorButton
+                size="small"
+                variant="contained"
+                startIcon={<InputIcon />}
+                disabled={busy}
+                onClick={() => onApply(output)}
+              >
+                {applyLabel}
+              </EditorButton>
+            )}
             <EditorButton
               size="small"
               variant="outlined"
@@ -190,18 +208,32 @@ const OutputCard: React.FC<OutputCardProps> = memo(
 );
 OutputCard.displayName = "OutputCard";
 
-const TransformWithWorkflowBody: React.FC<{
-  asset: Asset;
+export interface TransformWithWorkflowViewProps {
+  /** What to transform; null shows that nothing can run. */
+  source: TransformSource | null;
   onClose: () => void;
-}> = ({ asset, onClose }) => {
+  /** How the editor that opened the dialog takes an output back. */
+  apply?: TransformApplyAction;
+  /** Stack above floating surfaces, such as the full-screen asset viewer. */
+  aboveFloating?: boolean;
+}
+
+/**
+ * The dialog itself. Editors mount it with their current media as `source`;
+ * the asset grid mounts it through the store-driven default export.
+ */
+export const TransformWithWorkflowView: React.FC<TransformWithWorkflowViewProps> = ({
+  source: initialSource,
+  onClose,
+  apply,
+  aboveFloating = false
+}) => {
   const { t, i18n } = useTranslation();
   const kindLabel = useKindLabel();
   const autoFocusEnabled = useAutoFocusEnabled();
   const createAsset = useAssetStore((state) => state.createAsset);
 
-  const [source, setSource] = useState<TransformSource | null>(() =>
-    transformSourceFromAsset(asset)
-  );
+  const [source, setSource] = useState<TransformSource | null>(initialSource);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inputName, setInputName] = useState<string | null>(null);
@@ -324,9 +356,11 @@ const TransformWithWorkflowBody: React.FC<{
         }
         const assetId = isString(stored) ? stored : stored.id;
         setSource({
-          assetId,
-          kind: output.kind,
-          name: isString(stored) ? output.nodeName : stored.name,
+          ...transformSourceFromAssetId(
+            assetId,
+            output.kind,
+            isString(stored) ? output.nodeName : stored.name
+          ),
           parentId: source?.parentId,
           projectId: source?.projectId
         });
@@ -349,6 +383,38 @@ const TransformWithWorkflowBody: React.FC<{
     run.cancel();
     onClose();
   }, [onClose, run]);
+
+  /** Store the output, hand it to the host editor, and close. */
+  const applyOutput = useCallback(
+    async (output: TransformOutput) => {
+      if (!apply || !output.kind) {
+        return;
+      }
+      setBusyOutput(output.key);
+      setActionError(null);
+      try {
+        const stored = await ensureAsset(output);
+        if (!stored) {
+          setActionError(t("transformWithWorkflow.saveFailed"));
+          return;
+        }
+        const assetId = isString(stored) ? stored : stored.id;
+        await apply.onApply({
+          assetId,
+          kind: output.kind,
+          name: isString(stored) ? output.nodeName : stored.name,
+          uri: assetLocator(assetId)
+        });
+        handleClose();
+      } catch (error) {
+        console.error("Transform with workflow: applying output failed", error);
+        setActionError(t("transformWithWorkflow.applyFailed"));
+      } finally {
+        setBusyOutput(null);
+      }
+    },
+    [apply, ensureAsset, handleClose, t]
+  );
 
   const { state } = run;
   const running = state.status === "running";
@@ -443,8 +509,14 @@ const TransformWithWorkflowBody: React.FC<{
                   output={output}
                   savedAssetId={savedAssets[output.key]}
                   busy={busyOutput !== null}
+                  applyLabel={
+                    apply && output.kind && apply.kinds.includes(output.kind)
+                      ? apply.label
+                      : undefined
+                  }
                   onSave={(o) => void saveOutput(o)}
                   onTransform={(o) => void transformOutput(o)}
+                  onApply={(o) => void applyOutput(o)}
                 />
               ))}
             </Box>
@@ -584,6 +656,7 @@ const TransformWithWorkflowBody: React.FC<{
       maxWidth="md"
       fullWidth
       actions={actions}
+      sx={aboveFloating ? { zIndex: (theme) => theme.zIndex.floatingPanel } : undefined}
     >
       {content}
     </Dialog>
@@ -597,7 +670,13 @@ const TransformWithWorkflowDialog: React.FC = () => {
   if (!asset) {
     return null;
   }
-  return <TransformWithWorkflowBody key={asset.id} asset={asset} onClose={close} />;
+  return (
+    <TransformWithWorkflowView
+      key={asset.id}
+      source={transformSourceFromAsset(asset)}
+      onClose={close}
+    />
+  );
 };
 
 export default memo(TransformWithWorkflowDialog);

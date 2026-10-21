@@ -28,7 +28,9 @@ import {
   freeIdentifiers,
   inferredCodeInputNames,
   inferredCodeOutputNames,
-  parseCodeBody
+  migrateCodeBodyToInputs,
+  parseCodeBody,
+  plannedCodeStepProblems
 } from "../../src/code-analysis.js";
 import { validateCodeNodeBody } from "../../src/code-node-validation.js";
 import {
@@ -37,7 +39,12 @@ import {
   seedCatalog,
   seedRegistry
 } from "./corpus.js";
-import { SEED_CODE_BODIES, SEED_GRAPHS } from "./seeds.js";
+import {
+  SEED_CODE_BODIES,
+  SEED_GRAPHS,
+  SEED_MIGRATION_BODIES,
+  SEED_PLANNED_STEPS
+} from "./seeds.js";
 
 /** The corpus the mutation run scores against, and the one the snapshots pin. */
 const PINNED_SEED = 20260817;
@@ -205,6 +212,8 @@ it.each(codeMutants.map((m) => [m.id, m.mutation, m] as const))(
     }
     inferredCodeInputNames(mutant.code);
     inferredCodeOutputNames(mutant.code);
+    plannedCodeStepProblems(mutant.code, { inputs: ["text"], output: "n" });
+    migrateCodeBodyToInputs(mutant.code, ["a", "text", "flag", "items"]);
 
     const issues = validateCodeNodeBody({
       code: mutant.code,
@@ -256,6 +265,28 @@ it(`${CODE} reports the same issues, messages included, for every seed body`, as
   );
   expect(lines.length).toBeGreaterThan(0);
   await expectPinned(lines.join("\n"), "code-seed-issues.txt");
+});
+
+it(`${CODE} reports the same planner problems for every planned step`, async () => {
+  const lines = SEED_PLANNED_STEPS.flatMap((seed) => {
+    const problems = plannedCodeStepProblems(seed.code, {
+      inputs: seed.inputs,
+      output: seed.output
+    });
+    return problems.length === 0
+      ? [`${seed.id} ok`]
+      : problems.map((problem) => `${seed.id} ${problem}`);
+  });
+  await expectPinned(lines.join("\n"), "planned-step-problems.txt");
+});
+
+it(`${CODE} rewrites input reads the same way for every seed body`, async () => {
+  const names = ["a", "text", "flag", "items"];
+  const lines = [...SEED_CODE_BODIES, ...SEED_MIGRATION_BODIES].map((seed) => {
+    const result = migrateCodeBodyToInputs(seed.code, names);
+    return `${seed.id} changed=${result.changed} [${result.rewritten.join(",")}] ${JSON.stringify(result.code)}`;
+  });
+  await expectPinned(lines.join("\n"), "migrate-inputs.txt");
 });
 
 it.each([null, undefined, 42, [], {}, true])(

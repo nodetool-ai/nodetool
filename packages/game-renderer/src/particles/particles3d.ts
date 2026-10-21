@@ -102,6 +102,70 @@ export function gameParticleFieldFromSamples3D(samples: readonly GameParticleSam
   };
 }
 
+const SNAPSHOT_STRIDE = 13;
+
+/**
+ * A reusable copy of a particle field at one interpolation. A renderer reads it after the field moves on, so a frame
+ * draws the particles of its own tick. `capture` writes into arrays it keeps between frames, so it allocates only when
+ * the particle count grows. The emitter and ids are kept by reference.
+ */
+export class GameParticleSnapshot3D implements GameParticleField {
+  private values = new Float64Array(0);
+  private readonly entityIds: string[] = [];
+  private readonly emitterIds: string[] = [];
+  private readonly emitters: GameParticleEmitter[] = [];
+  private length = 0;
+
+  /** Particles in the last capture. */
+  get count(): number { return this.length; }
+
+  capture(field: GameParticleField, interpolation = 1): this {
+    this.length = 0;
+    field.forEachParticle((particle) => {
+      const index = this.length;
+      if ((index + 1) * SNAPSHOT_STRIDE > this.values.length) {
+        const grown = new Float64Array(Math.max(64, (index + 1) * 2) * SNAPSHOT_STRIDE);
+        grown.set(this.values);
+        this.values = grown;
+      }
+      const values = this.values;
+      const base = index * SNAPSHOT_STRIDE;
+      values[base] = particle.x; values[base + 1] = particle.y; values[base + 2] = particle.z;
+      values[base + 3] = particle.vx; values[base + 4] = particle.vy; values[base + 5] = particle.vz;
+      values[base + 6] = particle.size; values[base + 7] = particle.rotation;
+      values[base + 8] = particle.r; values[base + 9] = particle.g; values[base + 10] = particle.b;
+      values[base + 11] = particle.opacity; values[base + 12] = particle.life;
+      this.entityIds[index] = particle.entityId;
+      this.emitterIds[index] = particle.emitterId;
+      this.emitters[index] = particle.emitter;
+      this.length = index + 1;
+    }, interpolation);
+    // Drop references past the live count, so removed emitters can be collected.
+    this.entityIds.length = this.length;
+    this.emitterIds.length = this.length;
+    this.emitters.length = this.length;
+    return this;
+  }
+
+  /** Visits the captured particles through one view per call. A visitor copies what it keeps. */
+  forEachParticle(visit: (particle: Readonly<ParticleView>) => void): void {
+    if (this.length === 0) { return; }
+    const values = this.values;
+    const view: ParticleView = { entityId: this.entityIds[0], emitterId: this.emitterIds[0], emitter: this.emitters[0],
+      x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, size: 0, rotation: 0, r: 0, g: 0, b: 0, opacity: 0, life: 0 };
+    for (let index = 0; index < this.length; index++) {
+      const base = index * SNAPSHOT_STRIDE;
+      view.entityId = this.entityIds[index]; view.emitterId = this.emitterIds[index]; view.emitter = this.emitters[index];
+      view.x = values[base]; view.y = values[base + 1]; view.z = values[base + 2];
+      view.vx = values[base + 3]; view.vy = values[base + 4]; view.vz = values[base + 5];
+      view.size = values[base + 6]; view.rotation = values[base + 7];
+      view.r = values[base + 8]; view.g = values[base + 9]; view.b = values[base + 10];
+      view.opacity = values[base + 11]; view.life = values[base + 12];
+      visit(view);
+    }
+  }
+}
+
 /** What a 3D particle batch draws: a camera-facing quad or one of the mesh shapes. */
 export type ParticleBatchShape3D = "quad" | "box" | "sphere" | "tetrahedron" | "octahedron";
 

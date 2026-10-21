@@ -4440,8 +4440,6 @@
         "count_other": "{{count}} 个游戏",
         "makeGame": "制作游戏",
         "description": "直接游玩，也可以安装副本并修改美术、关卡和规则。",
-        "closeGame": "关闭游戏",
-        "loadingGame": "正在加载游戏",
         "loading": "正在加载游戏",
         "loadErrorTitle": "无法加载游戏",
         "loadErrorDescription": "请稍后重试。",
@@ -18570,6 +18568,20 @@
       "audio": "音频",
       "model3d": "3D 模型",
       "document": "文档"
+    },
+    "open": "用工作流转换…",
+    "openStill": "用工作流转换静帧…",
+    "openClip": "用工作流转换片段…",
+    "applyFailed": "无法在此处使用该输出。",
+    "sketchName": "草图",
+    "sceneName": "3D 场景",
+    "clipName": "片段",
+    "apply": {
+      "addToScene": "添加到场景",
+      "addAsLayer": "添加为图层",
+      "replaceAudio": "替换音频",
+      "replaceClip": "替换片段",
+      "addAsTake": "添加为新版本"
     }
   }
 }

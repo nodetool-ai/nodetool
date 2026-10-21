@@ -4440,8 +4440,6 @@
         "count_other": "{{count}} games",
         "makeGame": "Make a game",
         "description": "Play a game directly, or install a copy to change its art, levels and rules.",
-        "closeGame": "Close game",
-        "loadingGame": "Loading game",
         "loading": "Loading games",
         "loadErrorTitle": "Couldn't load games",
         "loadErrorDescription": "Try again in a moment.",
@@ -18570,6 +18568,20 @@
       "audio": "audio",
       "model3d": "3D model",
       "document": "document"
+    },
+    "open": "Transform with workflow…",
+    "openStill": "Transform still with workflow…",
+    "openClip": "Transform clip with workflow…",
+    "applyFailed": "Could not use the output here.",
+    "sketchName": "Sketch",
+    "sceneName": "3D scene",
+    "clipName": "Clip",
+    "apply": {
+      "addToScene": "Add to scene",
+      "addAsLayer": "Add as layer",
+      "replaceAudio": "Replace audio",
+      "replaceClip": "Replace clip",
+      "addAsTake": "Add as take"
     }
   }
 }

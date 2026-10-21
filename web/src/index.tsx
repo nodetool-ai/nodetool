@@ -131,6 +131,9 @@ const TutorialsPage = React.lazy(
 const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
 );
+const ExampleGamePlayView = React.lazy(
+  () => import("./components/portal/ExampleGamePlayView")
+);
 const GamePlayerPage = React.lazy(
   () => import("./components/game/GamePlayerPage")
 );
@@ -505,6 +508,17 @@ function getRoutes() {
         </ProtectedRoute>
       )
     })),
+    {
+      // Shipped example games, opened in a new tab from the Examples page.
+      path: "/game/example/:slug",
+      element: (
+        <ProtectedRoute>
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <ExampleGamePlayView />
+          </React.Suspense>
+        </ProtectedRoute>
+      )
+    },
     {
       path: "/game/:gameId",
       element: (

@@ -125,6 +125,15 @@ const WORKFLOW_PLAN_SUITES =
   "npm run test --workspace=packages/agents -- app-build-workflow-plan && " +
   "npm run test --workspace=web -- src/components/setup/workflow src/hooks/workflow src/lib/tools/builtin/__tests__/workflowSetupTools";
 
+/**
+ * Native game performance commands: the tick bench on real games, the capture
+ * and tick budgets, and the exported-play frame benchmark. The perf suite plays
+ * a deliberately slow player that each `--fail-on-budget` overrun must catch.
+ */
+const GAME_PERF_SUITES =
+  "npm run test --workspace=packages/cli -- game-command-bench-cli game-command-benchmark game-command-capture-budget game-command-perf && " +
+  "npm run test --workspace=packages/game-renderer -- perf frame-budget";
+
 /** Native game schemas, simulation, renderer, graph, and persistence checks. */
 const GAME_FLOW_SUITES =
   "npm run test --workspace=packages/protocol -- game && " +
@@ -900,6 +909,15 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: { command: GAME_FLOW_SUITES, cost: "cheap" }
   },
   {
+    id: "game-perf",
+    title: "Native game performance (tick bench, frame counters, exported frame time)",
+    command: "nodetool game perf <game_file> --inputs <route.json> --fail-on-budget",
+    kind: "execution",
+    capabilities: ["json", "browser", "no-db"],
+    docs: "docs/harnesses.md § Native game performance",
+    selfcheck: { command: GAME_PERF_SUITES, cost: "cheap" }
+  },
+  {
     id: "capability-suites",
     title: "Agent capability suites (per-capability contract tests)",
     // No CLI command owns a capability: the surface is the wire name a guest
@@ -1369,7 +1387,7 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "game-creation-flow",
     title: "Native game creation and editing",
-    harnesses: ["game-flow", "capability-suites", "validate"],
+    harnesses: ["game-flow", "game-perf", "capability-suites", "validate"],
     paths: [
       "packages/cli/src/commands/game.ts",
       "packages/protocol/src/game.ts",
