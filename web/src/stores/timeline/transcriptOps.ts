@@ -97,7 +97,7 @@ export interface TranscriptDoc {
 
 interface ReflowedClips {
   clips: TimelineClip[];
-  /** Total timeline length after laying generated beats end-to-end. */
+  /** Total timeline length after the edit. */
   durationMs: number;
 }
 
@@ -273,53 +273,103 @@ function beatLength(clip: TimelineClip): number {
   return clip.durationMs > 0 ? clip.durationMs : PLACEHOLDER_BEAT_MS;
 }
 
+/** Length a transcript clip takes in the layout: a beat's placeholder until voiced. */
+function layoutLength(clip: TimelineClip): number {
+  return isVoiceoverBeat(clip) ? beatLength(clip) : clip.durationMs;
+}
+
+/** End of the last transcript clip — where the next paragraph is appended. */
+export function transcriptEndMs(clips: TimelineClip[]): number {
+  return maxEnd(clips.filter(isTranscriptClip));
+}
+
 /**
- * Lay the generated voiceover beats (text-to-audio clips) end-to-end starting
- * at 0, in `orderedBeatIds` order when given, otherwise in current timeline
- * order. This keeps the authored voiceover gap-free as beats are added,
- * voiced (their real duration probed), deleted, or reordered. Words are
- * clip-local so they need no rewrite. Clips that are not voiceover beats
- * (imported media, B-roll) keep their positions.
+ * The audio track a new voiceover paragraph lands on: the track already
+ * carrying the voiceover (its last transcript audio clip), else an audio track
+ * named "Voiceover", else the first audio track. A linked cut puts its shot
+ * audio on the first audio track, so "first audio track" alone would drop a
+ * recording or a new line among the shots' sound.
+ */
+export function voiceoverTrackId(
+  clips: TimelineClip[],
+  tracks: ReadonlyArray<{ id: string; type: string; name?: string }>
+): string | undefined {
+  const audioTracks = tracks.filter((t) => t.type === "audio");
+  const audioIds = new Set(audioTracks.map((t) => t.id));
+  const voiced = clips
+    .filter((c) => isTranscriptClip(c) && audioIds.has(c.trackId))
+    .sort(byTimeline);
+  return (
+    voiced[voiced.length - 1]?.trackId ??
+    audioTracks.find((t) => t.name === "Voiceover")?.id ??
+    audioTracks[0]?.id
+  );
+}
+
+/**
+ * Re-lay the transcript after a beat changed length or the paragraphs were
+ * reordered. Transcript clips (voiceover beats and imported recordings with
+ * captions) form one sequence in timeline order, or in `orderedClipIds` order
+ * when given. Each clip keeps the offset it has from the end of the clip
+ * before it, so pauses, a recording placed between two beats, and lines parked
+ * inside their shots all stay where they are; when a clip grows or shrinks,
+ * everything after it moves by the difference. A draft beat with no length
+ * takes `PLACEHOLDER_BEAT_MS`. Words are clip-local so they need no rewrite.
+ * Clips outside the transcript (B-roll, music, shots) keep their positions.
+ *
+ * `previousDurations` gives the length a clip had when the current offsets
+ * were laid out, for a caller that already wrote the new length (voicing
+ * probes the real duration before it re-lays the beats).
  *
  * `durationMs` is the end of the last clip of *any* kind, so imported media
  * extending past the voiceover still counts toward the sequence length.
  */
 export function reflowGenerated(
   clips: TimelineClip[],
-  orderedBeatIds?: string[]
+  orderedClipIds?: string[],
+  previousDurations?: ReadonlyMap<string, number>
 ): ReflowedClips {
-  const beats = clips.filter(isVoiceoverBeat);
+  const timeOrder = clips.filter(isTranscriptClip).sort(byTimeline);
+
+  const offsets = new Map<string, number>();
+  let previousEnd = 0;
+  for (const clip of timeOrder) {
+    offsets.set(clip.id, clip.startMs - previousEnd);
+    previousEnd =
+      clip.startMs + (previousDurations?.get(clip.id) ?? clip.durationMs);
+  }
 
   let ordered: TimelineClip[];
-  if (orderedBeatIds) {
-    const byId = new Map(beats.map((c) => [c.id, c]));
-    ordered = orderedBeatIds
+  if (orderedClipIds) {
+    const byId = new Map(timeOrder.map((c) => [c.id, c]));
+    ordered = orderedClipIds
       .map((id) => byId.get(id))
       .filter((c): c is TimelineClip => c !== undefined);
-    const orderedSet = new Set(orderedBeatIds);
-    for (const beat of beats) if (!orderedSet.has(beat.id)) ordered.push(beat);
+    const orderedSet = new Set(orderedClipIds);
+    for (const clip of timeOrder) {
+      if (!orderedSet.has(clip.id)) ordered.push(clip);
+    }
   } else {
-    ordered = [...beats].sort(byTimeline);
+    ordered = timeOrder;
   }
 
   const patched = new Map<string, TimelineClip>();
   let cursor = 0;
-  for (const beat of ordered) {
-    const durationMs = beatLength(beat);
-    if (beat.startMs !== cursor || beat.durationMs !== durationMs) {
-      patched.set(beat.id, { ...beat, startMs: cursor, durationMs });
+  let lastStart = 0;
+  for (const clip of ordered) {
+    const startMs = Math.max(0, lastStart, cursor + (offsets.get(clip.id) ?? 0));
+    const durationMs = layoutLength(clip);
+    if (clip.startMs !== startMs || clip.durationMs !== durationMs) {
+      patched.set(clip.id, { ...clip, startMs, durationMs });
     }
-    cursor += durationMs;
+    lastStart = startMs;
+    cursor = startMs + durationMs;
   }
 
   const nextClips = patched.size
     ? clips.map((c) => patched.get(c.id) ?? c)
     : clips;
-  const durationMs = nextClips.reduce(
-    (max, c) => Math.max(max, c.startMs + c.durationMs),
-    0
-  );
-  return { clips: nextClips, durationMs };
+  return { clips: nextClips, durationMs: maxEnd(nextClips) };
 }
 
 // ── Word-level editing ops ───────────────────────────────────────────────────
@@ -703,7 +753,7 @@ function removeDraftBeats(
  * Apply a whole freeform edit to the clips in one transform: reconcile voiced
  * words (relabel + ripple-cut), update existing draft prompts, drop drafts
  * whose text was deleted (closing only their gaps), and append draft beats for
- * newly-typed lines after the last clip. Beats the edit did not add or remove
+ * newly-typed lines after the last paragraph. Beats the edit did not add or remove
  * keep their starts and the gaps between them. Returns the same array when
  * nothing changed. With `seeded`, only words and drafts the editor was seeded
  * with can be cut or removed.
@@ -754,7 +804,7 @@ export function applyEditorEdits(
         paragraphId: id,
         name: trimmed.slice(0, 40),
         trackId: audioTrackId,
-        startMs: maxEnd(next),
+        startMs: transcriptEndMs(next),
         durationMs: PLACEHOLDER_BEAT_MS,
         mediaType: "audio",
         sourceType: "generated",

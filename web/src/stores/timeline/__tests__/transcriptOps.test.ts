@@ -24,7 +24,8 @@ import {
   removeFillers,
   resolveSelectionRange,
   rippleDeleteRange,
-  snapshotSeededTranscript
+  snapshotSeededTranscript,
+  voiceoverTrackId
 } from "../transcriptOps";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -221,9 +222,92 @@ describe("reflowGenerated", () => {
     expect(out.clips.find((c) => c.id === "stray")!.startMs).toBe(5000);
     expect(out.durationMs).toBe(5500);
   });
+
+  // A pre-recorded voiceover imported through the transcript panel: captioned,
+  // but not a text-to-audio beat.
+  const recording = (id: string, startMs: number, durationMs: number) =>
+    makeClip({
+      id,
+      paragraphId: id,
+      trackId: "audio",
+      mediaType: "audio",
+      sourceType: "imported",
+      startMs,
+      durationMs,
+      currentAssetId: `${id}-asset`,
+      caption: { words: words(["hello", 0, 400]) }
+    });
+  const startOf = (clips: TimelineClip[], id: string) =>
+    clips.find((c) => c.id === id)!.startMs;
+
+  it("keeps a new beat after an imported recording instead of on top of it", () => {
+    const rec = recording("rec", 0, 5000);
+    const draft = beat("draft", { startMs: 5000, durationMs: PLACEHOLDER_BEAT_MS });
+    const out = reflowGenerated([rec, draft]);
+    expect(startOf(out.clips, "rec")).toBe(0);
+    expect(startOf(out.clips, "draft")).toBe(5000);
+  });
+
+  it("keeps a recording between two beats in its place", () => {
+    const a = beat("a", { startMs: 0, durationMs: 1000 });
+    const rec = recording("rec", 1000, 4000);
+    const b = beat("b", { startMs: 5000, durationMs: 2000 });
+    const out = reflowGenerated([a, rec, b]);
+    expect(out.clips).toEqual([a, rec, b]);
+  });
+
+  it("keeps the pauses an assembled script put between its lines", () => {
+    const a = beat("a", { startMs: 0, durationMs: 1000 });
+    const b = beat("b", { startMs: 1500, durationMs: 1000 });
+    const out = reflowGenerated([a, b]);
+    expect(startOf(out.clips, "b")).toBe(1500);
+  });
+
+  it("moves a recording after a beat by the beat's change in length", () => {
+    const a = beat("a", { startMs: 0, durationMs: 4200 });
+    const rec = recording("rec", 3500, 4000);
+    const out = reflowGenerated(
+      [a, rec],
+      undefined,
+      new Map([["a", PLACEHOLDER_BEAT_MS]])
+    );
+    expect(startOf(out.clips, "a")).toBe(0);
+    expect(startOf(out.clips, "rec")).toBe(4700);
+    expect(out.durationMs).toBe(8700);
+  });
+
+  it("reorders a recording along with the beats", () => {
+    const a = beat("a", { startMs: 0, durationMs: 1000 });
+    const rec = recording("rec", 1000, 4000);
+    const out = reflowGenerated([a, rec], ["rec", "a"]);
+    expect(startOf(out.clips, "rec")).toBe(0);
+    expect(startOf(out.clips, "a")).toBe(4000);
+  });
 });
 
 // ── Ripple delete ────────────────────────────────────────────────────────────
+
+describe("voiceoverTrackId", () => {
+  const tracks = [
+    { id: "shots", type: "video", name: "Shots" },
+    { id: "shot-audio", type: "audio", name: "Shot audio" },
+    { id: "vo", type: "audio", name: "Voiceover" }
+  ];
+
+  it("picks the track the voiceover already sits on", () => {
+    const line = { ...beat("a", { durationMs: 1000 }), trackId: "shot-audio" };
+    expect(voiceoverTrackId([line], tracks)).toBe("shot-audio");
+  });
+
+  it("picks the Voiceover track over a linked cut's shot audio", () => {
+    expect(voiceoverTrackId([], tracks)).toBe("vo");
+  });
+
+  it("falls back to the first audio track, and to none without one", () => {
+    expect(voiceoverTrackId([], [{ id: "m", type: "audio", name: "Music" }])).toBe("m");
+    expect(voiceoverTrackId([], [{ id: "v", type: "video", name: "Video" }])).toBeUndefined();
+  });
+});
 
 describe("rippleDeleteRange", () => {
   it("excises an interior span, splitting the clip and rebasing the tail words", () => {
@@ -426,6 +510,24 @@ describe("applyEditorEdits", () => {
       .segments.flatMap((s) => s.tokens)
       .map((t) => t.text);
     expect(texts).toEqual(["a"]);
+  });
+
+  it("appends a typed line after the last paragraph, not after a music bed", () => {
+    const v = beat("v", { startMs: 0, durationMs: 2000, words: words(["hi", 0, 300]) });
+    const music = makeClip({
+      id: "music",
+      trackId: "music",
+      mediaType: "audio",
+      sourceType: "imported",
+      startMs: 0,
+      durationMs: 60000
+    });
+    const out = applyEditorEdits(
+      [v, music],
+      { survivors: [{ clipId: "v", wordIndex: 0, text: "hi" }], draftUpdates: [], newDraftTexts: ["next"] },
+      "audio"
+    );
+    expect(out.clips.find((c) => c.prompt === "next")?.startMs).toBe(2000);
   });
 
   describe("keeps the layout of beats the edit did not add or remove (S1)", () => {
