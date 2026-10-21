@@ -110,4 +110,18 @@ describe("selection masks", () => {
     const cleared = combineSelections(poly, poly, "subtract");
     expect(hasSelectionPixels(cleared)).toBe(false);
   });
+
+  it.each([
+    ["no selection", null],
+    [
+      "an invalid selection",
+      { width: 2, height: 2, data: new Uint8ClampedArray(3) }
+    ]
+  ])("treats %s as empty for every combine mode", (_label, base) => {
+    const overlay = rectSelection(8, 8, 2, 2, 4, 4);
+    expect(hasSelectionPixels(combineSelections(base, overlay, "replace"))).toBe(true);
+    expect(hasSelectionPixels(combineSelections(base, overlay, "add"))).toBe(true);
+    expect(hasSelectionPixels(combineSelections(base, overlay, "subtract"))).toBe(false);
+    expect(hasSelectionPixels(combineSelections(base, overlay, "intersect"))).toBe(false);
+  });
 });

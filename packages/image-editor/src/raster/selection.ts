@@ -196,8 +196,16 @@ export function combineSelections(
   overlay: RasterSelection,
   mode: SelectionCombineMode
 ): RasterSelection {
-  if (mode === "replace" || !base || !isValidSelection(base)) {
+  if (mode === "replace") {
     return cloneSelection(overlay);
+  }
+  if (!base || !isValidSelection(base)) {
+    if (mode === "add") {
+      return cloneSelection(overlay);
+    }
+    const empty = cloneSelection(overlay);
+    empty.data.fill(0);
+    return empty;
   }
 
   const oox = overlay.originX ?? 0;
