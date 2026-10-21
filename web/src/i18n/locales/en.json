@@ -180,6 +180,8 @@
     "openAssetAsTabTooltip": "Open this asset in a new editor tab",
     "sendToWorkflow": "Send to workflow",
     "sendMediaToWorkflowTooltip": "Add the selected media to a workflow canvas as constant nodes",
+    "transformWithWorkflow": "Transform with workflow…",
+    "transformWithWorkflowTooltip": "Run this file through one of your workflows",
     "useAsEntity": "Use as entity…",
     "useAsEntityTooltip": "Tag this image as a character, location, style, or prop to reuse it across shots",
     "editTimeline": "Edit timeline",
@@ -18501,6 +18503,51 @@
         "waitingToStart": "Waiting to start…",
         "buildingGraph": "Building graph…"
       }
+    }
+  },
+  "transformWithWorkflow": {
+    "title": "Transform with workflow",
+    "sourceKind": "Source: {{kind}}",
+    "pickDescription": "Pick a workflow that takes this {{kind}}. Its other inputs keep their saved values.",
+    "searchPlaceholder": "Search workflows by name",
+    "searchLabel": "Workflows",
+    "loadFailed": "Could not load your workflows.",
+    "noWorkflowsTitle": "No matching workflows",
+    "noWorkflowsDescription": "A workflow shows up here once it has an input node for this {{kind}}.",
+    "noSearchResults": "No workflows match \"{{query}}\".",
+    "chooseInput": "This workflow has several matching inputs. Choose the one that gets the file.",
+    "unsupportedTitle": "Nothing to transform",
+    "unsupportedDescription": "Folders cannot run through a workflow.",
+    "run": "Run",
+    "cancel": "Cancel",
+    "close": "Close",
+    "cancelRun": "Stop run",
+    "chooseAnother": "Choose another workflow",
+    "runAgain": "Run again",
+    "done": "Done",
+    "progress": "Progress",
+    "runningNode": "Running {{node}}",
+    "nodeProgress": "Current step",
+    "updates": "Updates",
+    "outputs": "Outputs",
+    "noOutputs": "The workflow finished without outputs.",
+    "transformOutput": "Transform",
+    "saveToAssets": "Save to assets",
+    "inAssets": "In assets",
+    "saveFailed": "Could not save the output to your assets.",
+    "status": {
+      "idle": "Ready",
+      "running": "Running",
+      "completed": "Done",
+      "failed": "Failed",
+      "cancelled": "Stopped"
+    },
+    "kind": {
+      "image": "image",
+      "video": "video",
+      "audio": "audio",
+      "model3d": "3D model",
+      "document": "document"
     }
   }
 }
