@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "artificialanalysis.ai",
-  "generatedAt": "2026-10-17T08:08:22.207Z",
+  "generatedAt": "2026-10-21T08:58:19.958Z",
   "models": {
     "atlascloud:alibaba/happyhorse-1.1/image-to-video": {
       "canonical": "happyhorse-1-1",
@@ -23,9 +23,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1040,
-          "normalized": 0.7333,
-          "rank": 9,
-          "of": 31
+          "normalized": 0.7097,
+          "rank": 10,
+          "of": 32
         }
       }
     },
@@ -36,9 +36,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1045,
-          "normalized": 0.5429,
-          "rank": 33,
-          "of": 71
+          "normalized": 0.5342,
+          "rank": 35,
+          "of": 74
         }
       }
     },
@@ -62,9 +62,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1014,
-          "normalized": 0.6238,
-          "rank": 39,
-          "of": 102
+          "normalized": 0.625,
+          "rank": 40,
+          "of": 105
         }
       }
     },
@@ -75,9 +75,9 @@
       "tasks": {
         "text_to_image": {
           "score": 979,
-          "normalized": 0.4158,
-          "rank": 60,
-          "of": 102
+          "normalized": 0.4231,
+          "rank": 61,
+          "of": 105
         }
       }
     },
@@ -100,10 +100,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 985,
-          "normalized": 0.4653,
-          "rank": 55,
-          "of": 102
+          "score": 986,
+          "normalized": 0.4712,
+          "rank": 56,
+          "of": 105
         }
       }
     },
@@ -127,9 +127,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1135,
-          "normalized": 1,
-          "rank": 1,
-          "of": 31
+          "normalized": 0.9677,
+          "rank": 2,
+          "of": 32
         }
       }
     },
@@ -140,9 +140,9 @@
       "tasks": {
         "image_to_image": {
           "score": 999,
-          "normalized": 0.3857,
-          "rank": 44,
-          "of": 71
+          "normalized": 0.3836,
+          "rank": 46,
+          "of": 74
         }
       }
     },
@@ -153,9 +153,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7525,
-          "rank": 26,
-          "of": 102
+          "normalized": 0.7404,
+          "rank": 28,
+          "of": 105
         }
       }
     },
@@ -166,9 +166,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1013,
-          "normalized": 0.4429,
-          "rank": 40,
-          "of": 71
+          "normalized": 0.4247,
+          "rank": 43,
+          "of": 74
         }
       }
     },
@@ -179,9 +179,22 @@
       "tasks": {
         "text_to_image": {
           "score": 1003,
-          "normalized": 0.5941,
-          "rank": 42,
-          "of": 102
+          "normalized": 0.5962,
+          "rank": 43,
+          "of": 105
+        }
+      }
+    },
+    "atlascloud:black-forest-labs/flux-dev": {
+      "canonical": "flux-1-dev",
+      "name": "FLUX.1 [dev]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 823,
+          "normalized": 0.0577,
+          "rank": 99,
+          "of": 105
         }
       }
     },
@@ -192,9 +205,9 @@
       "tasks": {
         "image_to_image": {
           "score": 884,
-          "normalized": 0.0857,
-          "rank": 65,
-          "of": 71
+          "normalized": 0.0822,
+          "rank": 68,
+          "of": 74
         }
       }
     },
@@ -205,9 +218,9 @@
       "tasks": {
         "text_to_image": {
           "score": 740,
-          "normalized": 0.0198,
-          "rank": 100,
-          "of": 102
+          "normalized": 0.0192,
+          "rank": 103,
+          "of": 105
         }
       }
     },
@@ -244,9 +257,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7327,
-          "rank": 28,
-          "of": 102
+          "normalized": 0.7115,
+          "rank": 31,
+          "of": 105
         }
       }
     },
@@ -256,10 +269,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1045,
-          "normalized": 0.5571,
-          "rank": 32,
-          "of": 71
+          "score": 1043,
+          "normalized": 0.5068,
+          "rank": 37,
+          "of": 74
         }
       }
     },
@@ -269,10 +282,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "text_to_image": {
-          "score": 1016,
-          "normalized": 0.6337,
+          "score": 1017,
+          "normalized": 0.6442,
           "rank": 38,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -282,10 +295,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1062,
-          "normalized": 0.6286,
-          "rank": 27,
-          "of": 71
+          "score": 1061,
+          "normalized": 0.6027,
+          "rank": 30,
+          "of": 74
         }
       }
     },
@@ -295,10 +308,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1133,
-          "normalized": 0.9143,
-          "rank": 7,
-          "of": 71
+          "score": 1132,
+          "normalized": 0.9041,
+          "rank": 8,
+          "of": 74
         }
       }
     },
@@ -309,9 +322,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1100,
-          "normalized": 0.8515,
+          "normalized": 0.8558,
           "rank": 16,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -321,10 +334,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_speech": {
-          "score": 1147,
-          "normalized": 0.7292,
-          "rank": 27,
-          "of": 97
+          "score": 1150,
+          "normalized": 0.7113,
+          "rank": 29,
+          "of": 98
         }
       }
     },
@@ -335,9 +348,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1213,
-          "normalized": 0.8542,
-          "rank": 15,
-          "of": 97
+          "normalized": 0.8454,
+          "rank": 16,
+          "of": 98
         }
       }
     },
@@ -360,10 +373,10 @@
       "creator": "Google",
       "tasks": {
         "image_to_image": {
-          "score": 1055,
-          "normalized": 0.6,
-          "rank": 29,
-          "of": 71
+          "score": 1054,
+          "normalized": 0.5753,
+          "rank": 32,
+          "of": 74
         }
       }
     },
@@ -373,10 +386,10 @@
       "creator": "Google",
       "tasks": {
         "text_to_image": {
-          "score": 1106,
-          "normalized": 0.8614,
+          "score": 1107,
+          "normalized": 0.8654,
           "rank": 15,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -387,9 +400,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1124,
-          "normalized": 0.8714,
-          "rank": 10,
-          "of": 71
+          "normalized": 0.8493,
+          "rank": 12,
+          "of": 74
         }
       }
     },
@@ -400,9 +413,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1140,
-          "normalized": 0.9406,
+          "normalized": 0.9423,
           "rank": 7,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -426,9 +439,9 @@
       "tasks": {
         "text_to_video": {
           "score": 960,
-          "normalized": 0.4,
-          "rank": 19,
-          "of": 31
+          "normalized": 0.3871,
+          "rank": 20,
+          "of": 32
         }
       }
     },
@@ -452,9 +465,9 @@
       "tasks": {
         "text_to_video": {
           "score": 944,
-          "normalized": 0.3667,
-          "rank": 20,
-          "of": 31
+          "normalized": 0.3548,
+          "rank": 21,
+          "of": 32
         }
       }
     },
@@ -478,9 +491,9 @@
       "tasks": {
         "text_to_video": {
           "score": 961,
-          "normalized": 0.4333,
-          "rank": 18,
-          "of": 31
+          "normalized": 0.4194,
+          "rank": 19,
+          "of": 32
         }
       }
     },
@@ -491,9 +504,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7426,
-          "rank": 27,
-          "of": 102
+          "normalized": 0.7308,
+          "rank": 29,
+          "of": 105
         }
       }
     },
@@ -517,9 +530,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1000,
-          "normalized": 0.5667,
-          "rank": 14,
-          "of": 31
+          "normalized": 0.5484,
+          "rank": 15,
+          "of": 32
         }
       }
     },
@@ -530,9 +543,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1093,
-          "normalized": 0.7714,
-          "rank": 17,
-          "of": 71
+          "normalized": 0.7534,
+          "rank": 19,
+          "of": 74
         }
       }
     },
@@ -542,10 +555,10 @@
       "creator": "Microsoft AI",
       "tasks": {
         "text_to_image": {
-          "score": 1027,
-          "normalized": 0.7624,
+          "score": 1029,
+          "normalized": 0.7692,
           "rank": 25,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -556,9 +569,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1128,
-          "normalized": 0.8857,
-          "rank": 9,
-          "of": 71
+          "normalized": 0.8767,
+          "rank": 10,
+          "of": 74
         }
       }
     },
@@ -568,10 +581,10 @@
       "creator": "Microsoft AI",
       "tasks": {
         "text_to_image": {
-          "score": 1116,
-          "normalized": 0.8911,
-          "rank": 12,
-          "of": 102
+          "score": 1118,
+          "normalized": 0.9038,
+          "rank": 11,
+          "of": 105
         }
       }
     },
@@ -582,9 +595,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1119,
-          "normalized": 0.9333,
-          "rank": 3,
-          "of": 31
+          "normalized": 0.9032,
+          "rank": 4,
+          "of": 32
         }
       }
     },
@@ -607,10 +620,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1129,
-          "normalized": 0.6875,
-          "rank": 31,
-          "of": 97
+          "score": 1131,
+          "normalized": 0.6701,
+          "rank": 33,
+          "of": 98
         }
       }
     },
@@ -620,10 +633,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1123,
-          "normalized": 0.6667,
-          "rank": 33,
-          "of": 97
+          "score": 1120,
+          "normalized": 0.6392,
+          "rank": 36,
+          "of": 98
         }
       }
     },
@@ -634,9 +647,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1119,
-          "normalized": 0.8429,
-          "rank": 12,
-          "of": 71
+          "normalized": 0.8219,
+          "rank": 14,
+          "of": 74
         }
       }
     },
@@ -647,9 +660,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1123,
-          "normalized": 0.9208,
+          "normalized": 0.9231,
           "rank": 9,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -659,10 +672,10 @@
       "creator": "OpenAI",
       "tasks": {
         "image_to_image": {
-          "score": 1138,
-          "normalized": 0.9286,
-          "rank": 6,
-          "of": 71
+          "score": 1136,
+          "normalized": 0.9178,
+          "rank": 7,
+          "of": 74
         }
       }
     },
@@ -673,9 +686,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1186,
-          "normalized": 0.9802,
+          "normalized": 0.9808,
           "rank": 3,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -699,9 +712,9 @@
       "tasks": {
         "text_to_video": {
           "score": 999,
-          "normalized": 0.5333,
-          "rank": 15,
-          "of": 31
+          "normalized": 0.5161,
+          "rank": 16,
+          "of": 32
         }
       }
     },
@@ -711,10 +724,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 1091,
-          "normalized": 0.7571,
-          "rank": 18,
-          "of": 71
+          "score": 1090,
+          "normalized": 0.7397,
+          "rank": 20,
+          "of": 74
         }
       }
     },
@@ -724,10 +737,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 1094,
-          "normalized": 0.8416,
+          "score": 1095,
+          "normalized": 0.8462,
           "rank": 17,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -737,10 +750,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 1069,
-          "normalized": 0.6714,
-          "rank": 24,
-          "of": 71
+          "score": 1067,
+          "normalized": 0.6438,
+          "rank": 27,
+          "of": 74
         }
       }
     },
@@ -750,10 +763,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 1071,
-          "normalized": 0.8317,
+          "score": 1070,
+          "normalized": 0.8365,
           "rank": 18,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -777,9 +790,9 @@
       "tasks": {
         "text_to_video": {
           "score": 899,
-          "normalized": 0.2,
-          "rank": 25,
-          "of": 31
+          "normalized": 0.1935,
+          "rank": 26,
+          "of": 32
         }
       }
     },
@@ -789,10 +802,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "image_to_image": {
-          "score": 1118,
-          "normalized": 0.8286,
-          "rank": 13,
-          "of": 71
+          "score": 1117,
+          "normalized": 0.8082,
+          "rank": 15,
+          "of": 74
         }
       }
     },
@@ -802,10 +815,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1167,
-          "normalized": 0.9604,
+          "score": 1166,
+          "normalized": 0.9615,
           "rank": 5,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -815,10 +828,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "image_to_image": {
-          "score": 1096,
-          "normalized": 0.8,
-          "rank": 15,
-          "of": 71
+          "score": 1095,
+          "normalized": 0.7808,
+          "rank": 17,
+          "of": 74
         }
       }
     },
@@ -828,10 +841,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1048,
-          "normalized": 0.8119,
+          "score": 1049,
+          "normalized": 0.8173,
           "rank": 20,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -841,10 +854,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "image_to_image": {
-          "score": 1074,
-          "normalized": 0.7143,
-          "rank": 21,
-          "of": 71
+          "score": 1073,
+          "normalized": 0.6849,
+          "rank": 24,
+          "of": 74
         }
       }
     },
@@ -854,10 +867,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1021,
-          "normalized": 0.6931,
-          "rank": 32,
-          "of": 102
+          "score": 1022,
+          "normalized": 0.6923,
+          "rank": 33,
+          "of": 105
         }
       }
     },
@@ -881,9 +894,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1037,
-          "normalized": 0.7,
-          "rank": 10,
-          "of": 31
+          "normalized": 0.6774,
+          "rank": 11,
+          "of": 32
         }
       }
     },
@@ -894,9 +907,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1090,
-          "normalized": 0.5625,
-          "rank": 43,
-          "of": 97
+          "normalized": 0.5258,
+          "rank": 47,
+          "of": 98
         }
       }
     },
@@ -906,10 +919,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 934,
-          "normalized": 0.3168,
-          "rank": 70,
-          "of": 102
+          "score": 936,
+          "normalized": 0.3269,
+          "rank": 71,
+          "of": 105
         }
       }
     },
@@ -919,10 +932,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1078,
-          "normalized": 0.4896,
+          "score": 1077,
+          "normalized": 0.4948,
           "rank": 50,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -932,10 +945,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1095,
-          "normalized": 0.5729,
-          "rank": 42,
-          "of": 97
+          "score": 1096,
+          "normalized": 0.567,
+          "rank": 43,
+          "of": 98
         }
       }
     },
@@ -945,10 +958,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1097,
-          "normalized": 0.5833,
-          "rank": 41,
-          "of": 97
+          "score": 1098,
+          "normalized": 0.5773,
+          "rank": 42,
+          "of": 98
         }
       }
     },
@@ -958,10 +971,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1178,
-          "normalized": 0.8021,
-          "rank": 20,
-          "of": 97
+          "score": 1183,
+          "normalized": 0.7938,
+          "rank": 21,
+          "of": 98
         }
       }
     },
@@ -971,10 +984,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 1069,
-          "normalized": 0.6714,
-          "rank": 24,
-          "of": 71
+          "score": 1067,
+          "normalized": 0.6438,
+          "rank": 27,
+          "of": 74
         }
       }
     },
@@ -984,10 +997,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 1071,
-          "normalized": 0.8317,
+          "score": 1070,
+          "normalized": 0.8365,
           "rank": 18,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -1011,9 +1024,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1135,
-          "normalized": 1,
-          "rank": 1,
-          "of": 31
+          "normalized": 0.9677,
+          "rank": 2,
+          "of": 32
         }
       }
     },
@@ -1024,9 +1037,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1094,
-          "normalized": 0.8667,
-          "rank": 5,
-          "of": 31
+          "normalized": 0.8387,
+          "rank": 6,
+          "of": 32
         }
       }
     },
@@ -1036,16 +1049,16 @@
       "creator": "Bria",
       "tasks": {
         "text_to_image": {
-          "score": 847,
-          "normalized": 0.1089,
-          "rank": 91,
-          "of": 102
+          "score": 849,
+          "normalized": 0.1154,
+          "rank": 93,
+          "of": 105
         },
         "image_to_image": {
-          "score": 915,
-          "normalized": 0.1429,
-          "rank": 61,
-          "of": 71
+          "score": 913,
+          "normalized": 0.137,
+          "rank": 64,
+          "of": 74
         }
       }
     },
@@ -1056,9 +1069,9 @@
       "tasks": {
         "text_to_image": {
           "score": 813,
-          "normalized": 0.0495,
-          "rank": 97,
-          "of": 102
+          "normalized": 0.0481,
+          "rank": 100,
+          "of": 105
         }
       }
     },
@@ -1068,16 +1081,16 @@
       "creator": "Bria",
       "tasks": {
         "text_to_image": {
-          "score": 847,
-          "normalized": 0.1089,
-          "rank": 91,
-          "of": 102
+          "score": 849,
+          "normalized": 0.1154,
+          "rank": 93,
+          "of": 105
         },
         "image_to_image": {
-          "score": 915,
-          "normalized": 0.1429,
-          "rank": 61,
-          "of": 71
+          "score": 913,
+          "normalized": 0.137,
+          "rank": 64,
+          "of": 74
         }
       }
     },
@@ -1100,10 +1113,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1062,
-          "normalized": 0.6286,
-          "rank": 27,
-          "of": 71
+          "score": 1061,
+          "normalized": 0.6027,
+          "rank": 30,
+          "of": 74
         }
       }
     },
@@ -1113,10 +1126,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "text_to_image": {
-          "score": 1016,
-          "normalized": 0.6337,
+          "score": 1017,
+          "normalized": 0.6442,
           "rank": 38,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -1126,10 +1139,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1133,
-          "normalized": 0.9143,
-          "rank": 7,
-          "of": 71
+          "score": 1132,
+          "normalized": 0.9041,
+          "rank": 8,
+          "of": 74
         }
       }
     },
@@ -1140,9 +1153,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1100,
-          "normalized": 0.8515,
+          "normalized": 0.8558,
           "rank": 16,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -1153,9 +1166,9 @@
       "tasks": {
         "text_to_video": {
           "score": 822,
-          "normalized": 0.0333,
-          "rank": 30,
-          "of": 31
+          "normalized": 0.0323,
+          "rank": 31,
+          "of": 32
         }
       }
     },
@@ -1166,9 +1179,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1329,
-          "normalized": 0.9896,
+          "normalized": 0.9897,
           "rank": 2,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -1178,10 +1191,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1330,
+          "score": 1335,
           "normalized": 1,
           "rank": 1,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -1191,10 +1204,10 @@
       "creator": "Bytedance",
       "tasks": {
         "text_to_image": {
-          "score": 586,
+          "score": 594,
           "normalized": 0,
-          "rank": 102,
-          "of": 102
+          "rank": 105,
+          "of": 105
         }
       }
     },
@@ -1204,10 +1217,10 @@
       "creator": "Bytedance",
       "tasks": {
         "image_to_image": {
-          "score": 793,
-          "normalized": 0.0429,
-          "rank": 68,
-          "of": 71
+          "score": 795,
+          "normalized": 0.0411,
+          "rank": 71,
+          "of": 74
         }
       }
     },
@@ -1217,10 +1230,10 @@
       "creator": "Bytedance",
       "tasks": {
         "text_to_image": {
-          "score": 928,
-          "normalized": 0.2772,
-          "rank": 74,
-          "of": 102
+          "score": 931,
+          "normalized": 0.3077,
+          "rank": 73,
+          "of": 105
         }
       }
     },
@@ -1243,10 +1256,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1045,
-          "normalized": 0.5571,
-          "rank": 32,
-          "of": 71
+          "score": 1043,
+          "normalized": 0.5068,
+          "rank": 37,
+          "of": 74
         }
       }
     },
@@ -1257,9 +1270,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7327,
-          "rank": 28,
-          "of": 102
+          "normalized": 0.7115,
+          "rank": 31,
+          "of": 105
         }
       }
     },
@@ -1269,10 +1282,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1062,
-          "normalized": 0.6286,
-          "rank": 27,
-          "of": 71
+          "score": 1061,
+          "normalized": 0.6027,
+          "rank": 30,
+          "of": 74
         }
       }
     },
@@ -1282,10 +1295,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1178,
-          "normalized": 0.8021,
-          "rank": 20,
-          "of": 97
+          "score": 1183,
+          "normalized": 0.7938,
+          "rank": 21,
+          "of": 98
         }
       }
     },
@@ -1295,10 +1308,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1178,
-          "normalized": 0.8021,
-          "rank": 20,
-          "of": 97
+          "score": 1183,
+          "normalized": 0.7938,
+          "rank": 21,
+          "of": 98
         }
       }
     },
@@ -1308,10 +1321,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1095,
-          "normalized": 0.5729,
-          "rank": 42,
-          "of": 97
+          "score": 1096,
+          "normalized": 0.567,
+          "rank": 43,
+          "of": 98
         }
       }
     },
@@ -1321,10 +1334,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1097,
-          "normalized": 0.5833,
-          "rank": 41,
-          "of": 97
+          "score": 1098,
+          "normalized": 0.5773,
+          "rank": 42,
+          "of": 98
         }
       }
     },
@@ -1335,9 +1348,9 @@
       "tasks": {
         "text_to_image": {
           "score": 907,
-          "normalized": 0.2277,
-          "rank": 79,
-          "of": 102
+          "normalized": 0.2308,
+          "rank": 81,
+          "of": 105
         }
       }
     },
@@ -1348,9 +1361,22 @@
       "tasks": {
         "text_to_image": {
           "score": 914,
-          "normalized": 0.2475,
-          "rank": 77,
-          "of": 102
+          "normalized": 0.2596,
+          "rank": 78,
+          "of": 105
+        }
+      }
+    },
+    "fal_ai:fal-ai/flux-1/dev": {
+      "canonical": "flux-1-dev",
+      "name": "FLUX.1 [dev]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 823,
+          "normalized": 0.0577,
+          "rank": 99,
+          "of": 105
         }
       }
     },
@@ -1361,9 +1387,9 @@
       "tasks": {
         "text_to_image": {
           "score": 740,
-          "normalized": 0.0198,
-          "rank": 100,
-          "of": 102
+          "normalized": 0.0192,
+          "rank": 103,
+          "of": 105
         }
       }
     },
@@ -1373,10 +1399,10 @@
       "creator": "Tencent",
       "tasks": {
         "text_to_image": {
-          "score": 822,
-          "normalized": 0.0594,
-          "rank": 96,
-          "of": 102
+          "score": 826,
+          "normalized": 0.0673,
+          "rank": 98,
+          "of": 105
         }
       }
     },
@@ -1387,9 +1413,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7525,
-          "rank": 26,
-          "of": 102
+          "normalized": 0.7404,
+          "rank": 28,
+          "of": 105
         }
       }
     },
@@ -1400,9 +1426,9 @@
       "tasks": {
         "image_to_image": {
           "score": 999,
-          "normalized": 0.3857,
-          "rank": 44,
-          "of": 71
+          "normalized": 0.3836,
+          "rank": 46,
+          "of": 74
         }
       }
     },
@@ -1412,10 +1438,10 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_image": {
-          "score": 1020,
-          "normalized": 0.6832,
-          "rank": 33,
-          "of": 102
+          "score": 1021,
+          "normalized": 0.6827,
+          "rank": 34,
+          "of": 105
         }
       }
     },
@@ -1425,10 +1451,10 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "image_to_image": {
-          "score": 1001,
-          "normalized": 0.4143,
-          "rank": 42,
-          "of": 71
+          "score": 999,
+          "normalized": 0.3699,
+          "rank": 47,
+          "of": 74
         }
       }
     },
@@ -1439,9 +1465,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1003,
-          "normalized": 0.5941,
-          "rank": 42,
-          "of": 102
+          "normalized": 0.5962,
+          "rank": 43,
+          "of": 105
         }
       }
     },
@@ -1452,9 +1478,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1013,
-          "normalized": 0.4429,
-          "rank": 40,
-          "of": 71
+          "normalized": 0.4247,
+          "rank": 43,
+          "of": 74
         }
       }
     },
@@ -1464,10 +1490,10 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_image": {
-          "score": 838,
-          "normalized": 0.0891,
-          "rank": 93,
-          "of": 102
+          "score": 837,
+          "normalized": 0.0962,
+          "rank": 95,
+          "of": 105
         }
       }
     },
@@ -1477,10 +1503,10 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "image_to_image": {
-          "score": 940,
-          "normalized": 0.2,
-          "rank": 57,
-          "of": 71
+          "score": 937,
+          "normalized": 0.1918,
+          "rank": 60,
+          "of": 74
         }
       }
     },
@@ -1490,10 +1516,10 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_image": {
-          "score": 931,
-          "normalized": 0.297,
-          "rank": 72,
-          "of": 102
+          "score": 929,
+          "normalized": 0.2885,
+          "rank": 75,
+          "of": 105
         }
       }
     },
@@ -1504,9 +1530,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1015,
-          "normalized": 0.4714,
-          "rank": 38,
-          "of": 71
+          "normalized": 0.4521,
+          "rank": 41,
+          "of": 74
         }
       }
     },
@@ -1516,10 +1542,10 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "image_to_image": {
-          "score": 916,
-          "normalized": 0.1571,
-          "rank": 60,
-          "of": 71
+          "score": 918,
+          "normalized": 0.1507,
+          "rank": 63,
+          "of": 74
         }
       }
     },
@@ -1529,10 +1555,23 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_image": {
-          "score": 869,
-          "normalized": 0.1485,
-          "rank": 87,
-          "of": 102
+          "score": 870,
+          "normalized": 0.1538,
+          "rank": 89,
+          "of": 105
+        }
+      }
+    },
+    "fal_ai:fal-ai/flux/dev": {
+      "canonical": "flux-1-dev",
+      "name": "FLUX.1 [dev]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 823,
+          "normalized": 0.0577,
+          "rank": 99,
+          "of": 105
         }
       }
     },
@@ -1543,9 +1582,9 @@
       "tasks": {
         "text_to_image": {
           "score": 740,
-          "normalized": 0.0198,
-          "rank": 100,
-          "of": 102
+          "normalized": 0.0192,
+          "rank": 103,
+          "of": 105
         }
       }
     },
@@ -1555,10 +1594,10 @@
       "creator": "Tencent",
       "tasks": {
         "text_to_image": {
-          "score": 822,
-          "normalized": 0.0594,
-          "rank": 96,
-          "of": 102
+          "score": 826,
+          "normalized": 0.0673,
+          "rank": 98,
+          "of": 105
         }
       }
     },
@@ -1569,9 +1608,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1213,
-          "normalized": 0.8542,
-          "rank": 15,
-          "of": 97
+          "normalized": 0.8454,
+          "rank": 16,
+          "of": 98
         }
       }
     },
@@ -1581,10 +1620,10 @@
       "creator": "Z AI",
       "tasks": {
         "text_to_image": {
-          "score": 888,
-          "normalized": 0.1683,
-          "rank": 85,
-          "of": 102
+          "score": 885,
+          "normalized": 0.1731,
+          "rank": 87,
+          "of": 105
         }
       }
     },
@@ -1595,9 +1634,9 @@
       "tasks": {
         "image_to_image": {
           "score": 824,
-          "normalized": 0.0571,
-          "rank": 67,
-          "of": 71
+          "normalized": 0.0548,
+          "rank": 70,
+          "of": 74
         }
       }
     },
@@ -1607,10 +1646,10 @@
       "creator": "HiDream",
       "tasks": {
         "image_to_image": {
-          "score": 772,
-          "normalized": 0.0143,
-          "rank": 70,
-          "of": 71
+          "score": 774,
+          "normalized": 0.0137,
+          "rank": 73,
+          "of": 74
         }
       }
     },
@@ -1620,16 +1659,16 @@
       "creator": "HiDream",
       "tasks": {
         "text_to_image": {
-          "score": 974,
-          "normalized": 0.4059,
-          "rank": 61,
-          "of": 102
+          "score": 975,
+          "normalized": 0.4135,
+          "rank": 62,
+          "of": 105
         },
         "image_to_image": {
           "score": 956,
-          "normalized": 0.2571,
-          "rank": 53,
-          "of": 71
+          "normalized": 0.2466,
+          "rank": 56,
+          "of": 74
         }
       }
     },
@@ -1639,16 +1678,16 @@
       "creator": "HiDream",
       "tasks": {
         "text_to_image": {
-          "score": 809,
-          "normalized": 0.0396,
-          "rank": 98,
-          "of": 102
+          "score": 810,
+          "normalized": 0.0385,
+          "rank": 101,
+          "of": 105
         },
         "image_to_image": {
-          "score": 881,
-          "normalized": 0.0714,
-          "rank": 66,
-          "of": 71
+          "score": 882,
+          "normalized": 0.0685,
+          "rank": 69,
+          "of": 74
         }
       }
     },
@@ -1658,10 +1697,10 @@
       "creator": "HiDream",
       "tasks": {
         "image_to_image": {
-          "score": 881,
-          "normalized": 0.0714,
-          "rank": 66,
-          "of": 71
+          "score": 882,
+          "normalized": 0.0685,
+          "rank": 69,
+          "of": 74
         }
       }
     },
@@ -1672,9 +1711,9 @@
       "tasks": {
         "image_to_image": {
           "score": 956,
-          "normalized": 0.2571,
-          "rank": 53,
-          "of": 71
+          "normalized": 0.2466,
+          "rank": 56,
+          "of": 74
         }
       }
     },
@@ -1684,10 +1723,10 @@
       "creator": "Ideogram",
       "tasks": {
         "text_to_image": {
-          "score": 912,
-          "normalized": 0.2376,
-          "rank": 78,
-          "of": 102
+          "score": 911,
+          "normalized": 0.25,
+          "rank": 79,
+          "of": 105
         }
       }
     },
@@ -1697,10 +1736,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_speech": {
-          "score": 1147,
-          "normalized": 0.7292,
-          "rank": 27,
-          "of": 97
+          "score": 1150,
+          "normalized": 0.7113,
+          "rank": 29,
+          "of": 98
         }
       }
     },
@@ -1711,9 +1750,9 @@
       "tasks": {
         "image_to_image": {
           "score": 946,
-          "normalized": 0.2143,
-          "rank": 56,
-          "of": 71
+          "normalized": 0.2055,
+          "rank": 59,
+          "of": 74
         }
       }
     },
@@ -1723,10 +1762,10 @@
       "creator": "Meituan",
       "tasks": {
         "text_to_image": {
-          "score": 858,
-          "normalized": 0.1386,
-          "rank": 88,
-          "of": 102
+          "score": 856,
+          "normalized": 0.1346,
+          "rank": 91,
+          "of": 105
         }
       }
     },
@@ -1736,10 +1775,10 @@
       "creator": "Meituan",
       "tasks": {
         "image_to_image": {
-          "score": 899,
-          "normalized": 0.1143,
-          "rank": 63,
-          "of": 71
+          "score": 900,
+          "normalized": 0.1096,
+          "rank": 66,
+          "of": 74
         }
       }
     },
@@ -1749,10 +1788,10 @@
       "creator": "Luma Labs",
       "tasks": {
         "text_to_image": {
-          "score": 841,
-          "normalized": 0.099,
-          "rank": 92,
-          "of": 102
+          "score": 843,
+          "normalized": 0.1058,
+          "rank": 94,
+          "of": 105
         }
       }
     },
@@ -1763,9 +1802,9 @@
       "tasks": {
         "text_to_image": {
           "score": 769,
-          "normalized": 0.0297,
-          "rank": 99,
-          "of": 102
+          "normalized": 0.0288,
+          "rank": 102,
+          "of": 105
         }
       }
     },
@@ -1776,8 +1815,8 @@
       "tasks": {
         "image_to_video": {
           "score": 1207,
-          "normalized": 0.4133,
-          "rank": 45,
+          "normalized": 0.4267,
+          "rank": 44,
           "of": 76
         }
       }
@@ -1801,10 +1840,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1112,
-          "normalized": 0.6354,
-          "rank": 36,
-          "of": 97
+          "score": 1111,
+          "normalized": 0.6186,
+          "rank": 38,
+          "of": 98
         }
       }
     },
@@ -1814,10 +1853,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1088,
-          "normalized": 0.5521,
-          "rank": 44,
-          "of": 97
+          "score": 1091,
+          "normalized": 0.5464,
+          "rank": 45,
+          "of": 98
         }
       }
     },
@@ -1827,10 +1866,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1129,
-          "normalized": 0.6875,
-          "rank": 31,
-          "of": 97
+          "score": 1131,
+          "normalized": 0.6701,
+          "rank": 33,
+          "of": 98
         }
       }
     },
@@ -1840,10 +1879,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1123,
-          "normalized": 0.6667,
-          "rank": 33,
-          "of": 97
+          "score": 1120,
+          "normalized": 0.6392,
+          "rank": 36,
+          "of": 98
         }
       }
     },
@@ -1853,10 +1892,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1173,
-          "normalized": 0.7813,
-          "rank": 22,
-          "of": 97
+          "score": 1174,
+          "normalized": 0.7629,
+          "rank": 24,
+          "of": 98
         }
       }
     },
@@ -1866,10 +1905,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1151,
-          "normalized": 0.7396,
-          "rank": 26,
-          "of": 97
+          "score": 1155,
+          "normalized": 0.732,
+          "rank": 27,
+          "of": 98
         }
       }
     },
@@ -1880,9 +1919,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1140,
-          "normalized": 0.9406,
+          "normalized": 0.9423,
           "rank": 7,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -1893,15 +1932,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1140,
-          "normalized": 0.9406,
+          "normalized": 0.9423,
           "rank": 7,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
           "score": 1124,
-          "normalized": 0.8714,
-          "rank": 10,
-          "of": 71
+          "normalized": 0.8493,
+          "rank": 12,
+          "of": 74
         }
       }
     },
@@ -1911,16 +1950,16 @@
       "creator": "VectorSpaceLab",
       "tasks": {
         "text_to_image": {
-          "score": 720,
-          "normalized": 0.0099,
-          "rank": 101,
-          "of": 102
+          "score": 717,
+          "normalized": 0.0096,
+          "rank": 104,
+          "of": 105
         },
         "image_to_image": {
-          "score": 787,
-          "normalized": 0.0286,
-          "rank": 69,
-          "of": 71
+          "score": 790,
+          "normalized": 0.0274,
+          "rank": 72,
+          "of": 74
         }
       }
     },
@@ -1969,7 +2008,7 @@
       "creator": "PixVerse",
       "tasks": {
         "image_to_video": {
-          "score": 1277,
+          "score": 1276,
           "normalized": 0.7867,
           "rank": 17,
           "of": 76
@@ -1996,9 +2035,9 @@
       "tasks": {
         "text_to_video": {
           "score": 999,
-          "normalized": 0.5333,
-          "rank": 15,
-          "of": 31
+          "normalized": 0.5161,
+          "rank": 16,
+          "of": 32
         }
       }
     },
@@ -2008,10 +2047,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 902,
-          "normalized": 0.2079,
-          "rank": 81,
-          "of": 102
+          "score": 903,
+          "normalized": 0.2212,
+          "rank": 82,
+          "of": 105
         }
       }
     },
@@ -2021,10 +2060,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 889,
-          "normalized": 0.1,
-          "rank": 64,
-          "of": 71
+          "score": 890,
+          "normalized": 0.0959,
+          "rank": 67,
+          "of": 74
         }
       }
     },
@@ -2034,10 +2073,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 889,
-          "normalized": 0.1,
-          "rank": 64,
-          "of": 71
+          "score": 890,
+          "normalized": 0.0959,
+          "rank": 67,
+          "of": 74
         }
       }
     },
@@ -2047,10 +2086,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 889,
-          "normalized": 0.1,
-          "rank": 64,
-          "of": 71
+          "score": 890,
+          "normalized": 0.0959,
+          "rank": 67,
+          "of": 74
         }
       }
     },
@@ -2061,9 +2100,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1017,
-          "normalized": 0.6535,
-          "rank": 36,
-          "of": 102
+          "normalized": 0.6538,
+          "rank": 37,
+          "of": 105
         }
       }
     },
@@ -2073,10 +2112,10 @@
       "creator": "Recraft",
       "tasks": {
         "text_to_image": {
-          "score": 1025,
-          "normalized": 0.7129,
+          "score": 1026,
+          "normalized": 0.7212,
           "rank": 30,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -2086,10 +2125,10 @@
       "creator": "StepFun",
       "tasks": {
         "image_to_image": {
-          "score": 600,
+          "score": 607,
           "normalized": 0,
-          "rank": 71,
-          "of": 71
+          "rank": 74,
+          "of": 74
         }
       }
     },
@@ -2099,10 +2138,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_speech": {
-          "score": 1147,
-          "normalized": 0.7292,
-          "rank": 27,
-          "of": 97
+          "score": 1150,
+          "normalized": 0.7113,
+          "rank": 29,
+          "of": 98
         }
       }
     },
@@ -2112,10 +2151,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_speech": {
-          "score": 1147,
-          "normalized": 0.7292,
-          "rank": 27,
-          "of": 97
+          "score": 1150,
+          "normalized": 0.7113,
+          "rank": 29,
+          "of": 98
         }
       }
     },
@@ -2125,7 +2164,7 @@
       "creator": "Google",
       "tasks": {
         "image_to_video": {
-          "score": 1100,
+          "score": 1099,
           "normalized": 0.16,
           "rank": 64,
           "of": 76
@@ -2139,9 +2178,9 @@
       "tasks": {
         "text_to_video": {
           "score": 961,
-          "normalized": 0.4333,
-          "rank": 18,
-          "of": 31
+          "normalized": 0.4194,
+          "rank": 19,
+          "of": 32
         },
         "image_to_video": {
           "score": 1253,
@@ -2158,9 +2197,9 @@
       "tasks": {
         "text_to_video": {
           "score": 960,
-          "normalized": 0.4,
-          "rank": 19,
-          "of": 31
+          "normalized": 0.3871,
+          "rank": 20,
+          "of": 32
         },
         "image_to_video": {
           "score": 1259,
@@ -2203,9 +2242,9 @@
       "tasks": {
         "text_to_video": {
           "score": 944,
-          "normalized": 0.3667,
-          "rank": 20,
-          "of": 31
+          "normalized": 0.3548,
+          "rank": 21,
+          "of": 32
         },
         "image_to_video": {
           "score": 1242,
@@ -2260,10 +2299,10 @@
       "creator": "Vidu",
       "tasks": {
         "text_to_image": {
-          "score": 895,
-          "normalized": 0.1881,
-          "rank": 83,
-          "of": 102
+          "score": 896,
+          "normalized": 0.1923,
+          "rank": 85,
+          "of": 105
         }
       }
     },
@@ -2299,10 +2338,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 1043,
-          "normalized": 0.5143,
-          "rank": 35,
-          "of": 71
+          "score": 1042,
+          "normalized": 0.4932,
+          "rank": 38,
+          "of": 74
         }
       }
     },
@@ -2326,9 +2365,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1049,
-          "normalized": 0.5857,
-          "rank": 30,
-          "of": 71
+          "normalized": 0.5616,
+          "rank": 33,
+          "of": 74
         }
       }
     },
@@ -2339,9 +2378,9 @@
       "tasks": {
         "text_to_image": {
           "score": 979,
-          "normalized": 0.4158,
-          "rank": 60,
-          "of": 102
+          "normalized": 0.4231,
+          "rank": 61,
+          "of": 105
         }
       }
     },
@@ -2351,10 +2390,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 985,
-          "normalized": 0.4653,
-          "rank": 55,
-          "of": 102
+          "score": 986,
+          "normalized": 0.4712,
+          "rank": 56,
+          "of": 105
         }
       }
     },
@@ -2365,9 +2404,9 @@
       "tasks": {
         "text_to_image": {
           "score": 891,
-          "normalized": 0.1782,
-          "rank": 84,
-          "of": 102
+          "normalized": 0.1827,
+          "rank": 86,
+          "of": 105
         }
       }
     },
@@ -2377,10 +2416,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 934,
-          "normalized": 0.3168,
-          "rank": 70,
-          "of": 102
+          "score": 936,
+          "normalized": 0.3269,
+          "rank": 71,
+          "of": 105
         }
       }
     },
@@ -2390,10 +2429,10 @@
       "creator": "Google",
       "tasks": {
         "text_to_speech": {
-          "score": 1248,
-          "normalized": 0.9271,
+          "score": 1251,
+          "normalized": 0.9278,
           "rank": 8,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -2403,10 +2442,10 @@
       "creator": "Google",
       "tasks": {
         "text_to_speech": {
-          "score": 1275,
-          "normalized": 0.9583,
+          "score": 1278,
+          "normalized": 0.9588,
           "rank": 5,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -2443,9 +2482,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1073,
-          "normalized": 0.8,
-          "rank": 7,
-          "of": 31
+          "normalized": 0.7742,
+          "rank": 8,
+          "of": 32
         }
       }
     },
@@ -2455,10 +2494,10 @@
       "creator": "Ideogram",
       "tasks": {
         "text_to_image": {
-          "score": 1001,
-          "normalized": 0.5842,
-          "rank": 43,
-          "of": 102
+          "score": 1002,
+          "normalized": 0.5865,
+          "rank": 44,
+          "of": 105
         }
       }
     },
@@ -2468,10 +2507,10 @@
       "creator": "Fal",
       "tasks": {
         "text_to_image": {
-          "score": 962,
-          "normalized": 0.3663,
-          "rank": 65,
-          "of": 102
+          "score": 963,
+          "normalized": 0.375,
+          "rank": 66,
+          "of": 105
         }
       }
     },
@@ -2481,10 +2520,10 @@
       "creator": "Fal",
       "tasks": {
         "text_to_image": {
-          "score": 980,
-          "normalized": 0.4257,
-          "rank": 59,
-          "of": 102
+          "score": 981,
+          "normalized": 0.4327,
+          "rank": 60,
+          "of": 105
         }
       }
     },
@@ -2495,9 +2534,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1034,
-          "normalized": 0.7921,
-          "rank": 22,
-          "of": 102
+          "normalized": 0.7885,
+          "rank": 23,
+          "of": 105
         }
       }
     },
@@ -2508,9 +2547,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1012,
-          "normalized": 0.604,
-          "rank": 41,
-          "of": 102
+          "normalized": 0.6058,
+          "rank": 42,
+          "of": 105
         }
       }
     },
@@ -2520,10 +2559,10 @@
       "creator": "Krea",
       "tasks": {
         "text_to_image": {
-          "score": 1019,
-          "normalized": 0.6733,
-          "rank": 34,
-          "of": 102
+          "score": 1020,
+          "normalized": 0.6731,
+          "rank": 35,
+          "of": 105
         }
       }
     },
@@ -2533,10 +2572,10 @@
       "creator": "Meta",
       "tasks": {
         "image_to_image": {
-          "score": 1131,
-          "normalized": 0.9,
-          "rank": 8,
-          "of": 71
+          "score": 1129,
+          "normalized": 0.8904,
+          "rank": 9,
+          "of": 74
         }
       }
     },
@@ -2547,9 +2586,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1127,
-          "normalized": 0.9307,
+          "normalized": 0.9327,
           "rank": 8,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -2559,10 +2598,10 @@
       "creator": "Microsoft AI",
       "tasks": {
         "text_to_image": {
-          "score": 1116,
-          "normalized": 0.8911,
-          "rank": 12,
-          "of": 102
+          "score": 1118,
+          "normalized": 0.9038,
+          "rank": 11,
+          "of": 105
         }
       }
     },
@@ -2572,10 +2611,10 @@
       "creator": "Microsoft AI",
       "tasks": {
         "text_to_image": {
-          "score": 1113,
-          "normalized": 0.8713,
+          "score": 1114,
+          "normalized": 0.875,
           "rank": 14,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -2585,16 +2624,16 @@
       "creator": "Microsoft AI",
       "tasks": {
         "text_to_image": {
-          "score": 1113,
-          "normalized": 0.8713,
+          "score": 1114,
+          "normalized": 0.875,
           "rank": 14,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1123,
-          "normalized": 0.8571,
-          "rank": 11,
-          "of": 71
+          "score": 1122,
+          "normalized": 0.8356,
+          "rank": 13,
+          "of": 74
         }
       }
     },
@@ -2605,9 +2644,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1128,
-          "normalized": 0.8857,
-          "rank": 9,
-          "of": 71
+          "normalized": 0.8767,
+          "rank": 10,
+          "of": 74
         }
       }
     },
@@ -2618,9 +2657,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1119,
-          "normalized": 0.9333,
-          "rank": 3,
-          "of": 31
+          "normalized": 0.9032,
+          "rank": 4,
+          "of": 32
         }
       }
     },
@@ -2643,10 +2682,10 @@
       "creator": "Recraft",
       "tasks": {
         "text_to_image": {
-          "score": 950,
-          "normalized": 0.3366,
-          "rank": 68,
-          "of": 102
+          "score": 949,
+          "normalized": 0.3462,
+          "rank": 69,
+          "of": 105
         }
       }
     },
@@ -2656,10 +2695,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_speech": {
-          "score": 1147,
-          "normalized": 0.7292,
-          "rank": 27,
-          "of": 97
+          "score": 1150,
+          "normalized": 0.7113,
+          "rank": 29,
+          "of": 98
         }
       }
     },
@@ -2683,9 +2722,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1014,
-          "normalized": 0.6238,
-          "rank": 39,
-          "of": 102
+          "normalized": 0.625,
+          "rank": 40,
+          "of": 105
         }
       }
     },
@@ -2695,10 +2734,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1021,
-          "normalized": 0.6931,
-          "rank": 32,
-          "of": 102
+          "score": 1022,
+          "normalized": 0.6923,
+          "rank": 33,
+          "of": 105
         }
       }
     },
@@ -2708,16 +2747,16 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1021,
-          "normalized": 0.6931,
-          "rank": 32,
-          "of": 102
+          "score": 1022,
+          "normalized": 0.6923,
+          "rank": 33,
+          "of": 105
         },
         "image_to_image": {
-          "score": 1074,
-          "normalized": 0.7143,
-          "rank": 21,
-          "of": 71
+          "score": 1073,
+          "normalized": 0.6849,
+          "rank": 24,
+          "of": 74
         }
       }
     },
@@ -2727,16 +2766,16 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1048,
-          "normalized": 0.8119,
+          "score": 1049,
+          "normalized": 0.8173,
           "rank": 20,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1096,
-          "normalized": 0.8,
-          "rank": 15,
-          "of": 71
+          "score": 1095,
+          "normalized": 0.7808,
+          "rank": 17,
+          "of": 74
         }
       }
     },
@@ -2746,10 +2785,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1048,
-          "normalized": 0.8119,
+          "score": 1049,
+          "normalized": 0.8173,
           "rank": 20,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -2759,16 +2798,16 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1167,
-          "normalized": 0.9604,
+          "score": 1166,
+          "normalized": 0.9615,
           "rank": 5,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1118,
-          "normalized": 0.8286,
-          "rank": 13,
-          "of": 71
+          "score": 1117,
+          "normalized": 0.8082,
+          "rank": 15,
+          "of": 74
         }
       }
     },
@@ -2778,10 +2817,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1167,
-          "normalized": 0.9604,
+          "score": 1166,
+          "normalized": 0.9615,
           "rank": 5,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -2818,9 +2857,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1037,
-          "normalized": 0.7,
-          "rank": 10,
-          "of": 31
+          "normalized": 0.6774,
+          "rank": 11,
+          "of": 32
         }
       }
     },
@@ -2831,9 +2870,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1090,
-          "normalized": 0.5625,
-          "rank": 43,
-          "of": 97
+          "normalized": 0.5258,
+          "rank": 47,
+          "of": 98
         }
       }
     },
@@ -2843,16 +2882,16 @@
       "creator": "Google",
       "tasks": {
         "text_to_image": {
-          "score": 1106,
-          "normalized": 0.8614,
+          "score": 1107,
+          "normalized": 0.8654,
           "rank": 15,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1055,
-          "normalized": 0.6,
-          "rank": 29,
-          "of": 71
+          "score": 1054,
+          "normalized": 0.5753,
+          "rank": 32,
+          "of": 74
         }
       }
     },
@@ -2863,9 +2902,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1213,
-          "normalized": 0.8542,
-          "rank": 15,
-          "of": 97
+          "normalized": 0.8454,
+          "rank": 16,
+          "of": 98
         }
       }
     },
@@ -2875,10 +2914,10 @@
       "creator": "Google",
       "tasks": {
         "text_to_speech": {
-          "score": 1248,
-          "normalized": 0.9271,
+          "score": 1251,
+          "normalized": 0.9278,
           "rank": 8,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -2888,10 +2927,10 @@
       "creator": "Google",
       "tasks": {
         "text_to_speech": {
-          "score": 1275,
-          "normalized": 0.9583,
+          "score": 1278,
+          "normalized": 0.9588,
           "rank": 5,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -2915,9 +2954,9 @@
       "tasks": {
         "text_to_video": {
           "score": 960,
-          "normalized": 0.4,
-          "rank": 19,
-          "of": 31
+          "normalized": 0.3871,
+          "rank": 20,
+          "of": 32
         },
         "image_to_video": {
           "score": 1259,
@@ -2934,9 +2973,9 @@
       "tasks": {
         "text_to_video": {
           "score": 961,
-          "normalized": 0.4333,
-          "rank": 18,
-          "of": 31
+          "normalized": 0.4194,
+          "rank": 19,
+          "of": 32
         },
         "image_to_video": {
           "score": 1253,
@@ -2953,9 +2992,9 @@
       "tasks": {
         "text_to_video": {
           "score": 944,
-          "normalized": 0.3667,
-          "rank": 20,
-          "of": 31
+          "normalized": 0.3548,
+          "rank": 21,
+          "of": 32
         },
         "image_to_video": {
           "score": 1242,
@@ -2998,9 +3037,9 @@
       "tasks": {
         "image_to_image": {
           "score": 999,
-          "normalized": 0.3857,
-          "rank": 44,
-          "of": 71
+          "normalized": 0.3836,
+          "rank": 46,
+          "of": 74
         }
       }
     },
@@ -3011,9 +3050,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7525,
-          "rank": 26,
-          "of": 102
+          "normalized": 0.7404,
+          "rank": 28,
+          "of": 105
         }
       }
     },
@@ -3024,9 +3063,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1013,
-          "normalized": 0.4429,
-          "rank": 40,
-          "of": 71
+          "normalized": 0.4247,
+          "rank": 43,
+          "of": 74
         }
       }
     },
@@ -3037,9 +3076,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1003,
-          "normalized": 0.5941,
-          "rank": 42,
-          "of": 102
+          "normalized": 0.5962,
+          "rank": 43,
+          "of": 105
         }
       }
     },
@@ -3050,9 +3089,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1213,
-          "normalized": 0.8542,
-          "rank": 15,
-          "of": 97
+          "normalized": 0.8454,
+          "rank": 16,
+          "of": 98
         }
       }
     },
@@ -3063,9 +3102,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1073,
-          "normalized": 0.8,
-          "rank": 7,
-          "of": 31
+          "normalized": 0.7742,
+          "rank": 8,
+          "of": 32
         }
       }
     },
@@ -3075,10 +3114,10 @@
       "creator": "OpenAI",
       "tasks": {
         "image_to_image": {
-          "score": 1138,
-          "normalized": 0.9286,
-          "rank": 6,
-          "of": 71
+          "score": 1136,
+          "normalized": 0.9178,
+          "rank": 7,
+          "of": 74
         }
       }
     },
@@ -3089,9 +3128,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1186,
-          "normalized": 0.9802,
+          "normalized": 0.9808,
           "rank": 3,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -3102,9 +3141,9 @@
       "tasks": {
         "image_to_image": {
           "score": 1119,
-          "normalized": 0.8429,
-          "rank": 12,
-          "of": 71
+          "normalized": 0.8219,
+          "rank": 14,
+          "of": 74
         }
       }
     },
@@ -3115,9 +3154,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1123,
-          "normalized": 0.9208,
+          "normalized": 0.9231,
           "rank": 9,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -3127,10 +3166,10 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1167,
-          "normalized": 0.9604,
+          "score": 1166,
+          "normalized": 0.9615,
           "rank": 5,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -3141,9 +3180,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1037,
-          "normalized": 0.7,
-          "rank": 10,
-          "of": 31
+          "normalized": 0.6774,
+          "rank": 11,
+          "of": 32
         },
         "image_to_video": {
           "score": 1331,
@@ -3173,9 +3212,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1040,
-          "normalized": 0.7333,
-          "rank": 9,
-          "of": 31
+          "normalized": 0.7097,
+          "rank": 10,
+          "of": 32
         }
       }
     },
@@ -3185,9 +3224,9 @@
       "creator": "KlingAI",
       "tasks": {
         "image_to_video": {
-          "score": 1208,
-          "normalized": 0.4267,
-          "rank": 44,
+          "score": 1207,
+          "normalized": 0.4133,
+          "rank": 45,
           "of": 76
         }
       }
@@ -3238,15 +3277,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1140,
-          "normalized": 0.9406,
+          "normalized": 0.9423,
           "rank": 7,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
           "score": 1124,
-          "normalized": 0.8714,
-          "rank": 10,
-          "of": 71
+          "normalized": 0.8493,
+          "rank": 12,
+          "of": 74
         }
       }
     },
@@ -3256,16 +3295,16 @@
       "creator": "Google",
       "tasks": {
         "text_to_image": {
-          "score": 1106,
-          "normalized": 0.8614,
+          "score": 1107,
+          "normalized": 0.8654,
           "rank": 15,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1055,
-          "normalized": 0.6,
-          "rank": 29,
-          "of": 71
+          "score": 1054,
+          "normalized": 0.5753,
+          "rank": 32,
+          "of": 74
         }
       }
     },
@@ -3289,9 +3328,9 @@
       "tasks": {
         "text_to_video": {
           "score": 999,
-          "normalized": 0.5333,
-          "rank": 15,
-          "of": 31
+          "normalized": 0.5161,
+          "rank": 16,
+          "of": 32
         }
       }
     },
@@ -3301,10 +3340,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 889,
-          "normalized": 0.1,
-          "rank": 64,
-          "of": 71
+          "score": 890,
+          "normalized": 0.0959,
+          "rank": 67,
+          "of": 74
         }
       }
     },
@@ -3314,10 +3353,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1045,
-          "normalized": 0.5571,
-          "rank": 32,
-          "of": 71
+          "score": 1043,
+          "normalized": 0.5068,
+          "rank": 37,
+          "of": 74
         }
       }
     },
@@ -3328,9 +3367,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7327,
-          "rank": 28,
-          "of": 102
+          "normalized": 0.7115,
+          "rank": 31,
+          "of": 105
         }
       }
     },
@@ -3340,10 +3379,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1062,
-          "normalized": 0.6286,
-          "rank": 27,
-          "of": 71
+          "score": 1061,
+          "normalized": 0.6027,
+          "rank": 30,
+          "of": 74
         }
       }
     },
@@ -3353,10 +3392,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "text_to_image": {
-          "score": 1016,
-          "normalized": 0.6337,
+          "score": 1017,
+          "normalized": 0.6442,
           "rank": 38,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -3366,10 +3405,10 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "image_to_image": {
-          "score": 1133,
-          "normalized": 0.9143,
-          "rank": 7,
-          "of": 71
+          "score": 1132,
+          "normalized": 0.9041,
+          "rank": 8,
+          "of": 74
         }
       }
     },
@@ -3380,9 +3419,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1100,
-          "normalized": 0.8515,
+          "normalized": 0.8558,
           "rank": 16,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -3393,9 +3432,9 @@
       "tasks": {
         "text_to_video": {
           "score": 961,
-          "normalized": 0.4333,
-          "rank": 18,
-          "of": 31
+          "normalized": 0.4194,
+          "rank": 19,
+          "of": 32
         },
         "image_to_video": {
           "score": 1253,
@@ -3463,7 +3502,7 @@
       "creator": "MiniMax",
       "tasks": {
         "image_to_video": {
-          "score": 1257,
+          "score": 1256,
           "normalized": 0.6533,
           "rank": 27,
           "of": 76
@@ -3476,10 +3515,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1112,
-          "normalized": 0.6354,
-          "rank": 36,
-          "of": 97
+          "score": 1111,
+          "normalized": 0.6186,
+          "rank": 38,
+          "of": 98
         }
       }
     },
@@ -3489,10 +3528,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1088,
-          "normalized": 0.5521,
-          "rank": 44,
-          "of": 97
+          "score": 1091,
+          "normalized": 0.5464,
+          "rank": 45,
+          "of": 98
         }
       }
     },
@@ -3502,10 +3541,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1129,
-          "normalized": 0.6875,
-          "rank": 31,
-          "of": 97
+          "score": 1131,
+          "normalized": 0.6701,
+          "rank": 33,
+          "of": 98
         }
       }
     },
@@ -3515,10 +3554,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1123,
-          "normalized": 0.6667,
-          "rank": 33,
-          "of": 97
+          "score": 1120,
+          "normalized": 0.6392,
+          "rank": 36,
+          "of": 98
         }
       }
     },
@@ -3528,10 +3567,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1173,
-          "normalized": 0.7813,
-          "rank": 22,
-          "of": 97
+          "score": 1174,
+          "normalized": 0.7629,
+          "rank": 24,
+          "of": 98
         }
       }
     },
@@ -3541,10 +3580,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1151,
-          "normalized": 0.7396,
-          "rank": 26,
-          "of": 97
+          "score": 1155,
+          "normalized": 0.732,
+          "rank": 27,
+          "of": 98
         }
       }
     },
@@ -3555,15 +3594,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1123,
-          "normalized": 0.9208,
+          "normalized": 0.9231,
           "rank": 9,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
           "score": 1119,
-          "normalized": 0.8429,
-          "rank": 12,
-          "of": 71
+          "normalized": 0.8219,
+          "rank": 14,
+          "of": 74
         }
       }
     },
@@ -3574,15 +3613,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1186,
-          "normalized": 0.9802,
+          "normalized": 0.9808,
           "rank": 3,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1138,
-          "normalized": 0.9286,
-          "rank": 6,
-          "of": 71
+          "score": 1136,
+          "normalized": 0.9178,
+          "rank": 7,
+          "of": 74
         }
       }
     },
@@ -3593,9 +3632,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1090,
-          "normalized": 0.5625,
-          "rank": 43,
-          "of": 97
+          "normalized": 0.5258,
+          "rank": 47,
+          "of": 98
         }
       }
     },
@@ -3606,9 +3645,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1103,
-          "normalized": 0.6146,
-          "rank": 38,
-          "of": 97
+          "normalized": 0.5979,
+          "rank": 40,
+          "of": 98
         }
       }
     },
@@ -3619,9 +3658,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1036,
-          "normalized": 0.6667,
-          "rank": 11,
-          "of": 31
+          "normalized": 0.6452,
+          "rank": 12,
+          "of": 32
         },
         "image_to_video": {
           "score": 1294,
@@ -3638,9 +3677,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1040,
-          "normalized": 0.7333,
-          "rank": 9,
-          "of": 31
+          "normalized": 0.7097,
+          "rank": 10,
+          "of": 32
         },
         "image_to_video": {
           "score": 1314,
@@ -3656,16 +3695,16 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 1071,
-          "normalized": 0.8317,
+          "score": 1070,
+          "normalized": 0.8365,
           "rank": 18,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1069,
-          "normalized": 0.6714,
-          "rank": 24,
-          "of": 71
+          "score": 1067,
+          "normalized": 0.6438,
+          "rank": 27,
+          "of": 74
         }
       }
     },
@@ -3675,16 +3714,16 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 1094,
-          "normalized": 0.8416,
+          "score": 1095,
+          "normalized": 0.8462,
           "rank": 17,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1091,
-          "normalized": 0.7571,
-          "rank": 18,
-          "of": 71
+          "score": 1090,
+          "normalized": 0.7397,
+          "rank": 20,
+          "of": 74
         }
       }
     },
@@ -3695,9 +3734,9 @@
       "tasks": {
         "text_to_video": {
           "score": 1135,
-          "normalized": 1,
-          "rank": 1,
-          "of": 31
+          "normalized": 0.9677,
+          "rank": 2,
+          "of": 32
         },
         "image_to_video": {
           "score": 1362,
@@ -3714,9 +3753,9 @@
       "tasks": {
         "text_to_image": {
           "score": 855,
-          "normalized": 0.1188,
-          "rank": 90,
-          "of": 102
+          "normalized": 0.125,
+          "rank": 92,
+          "of": 105
         }
       }
     },
@@ -3727,15 +3766,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1000,
-          "normalized": 0.5743,
-          "rank": 44,
-          "of": 102
+          "normalized": 0.5769,
+          "rank": 45,
+          "of": 105
         },
         "image_to_image": {
           "score": 1000,
-          "normalized": 0.4,
-          "rank": 43,
-          "of": 71
+          "normalized": 0.3973,
+          "rank": 45,
+          "of": 74
         }
       }
     },
@@ -3746,15 +3785,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7525,
-          "rank": 26,
-          "of": 102
+          "normalized": 0.7404,
+          "rank": 28,
+          "of": 105
         },
         "image_to_image": {
           "score": 999,
-          "normalized": 0.3857,
-          "rank": 44,
-          "of": 71
+          "normalized": 0.3836,
+          "rank": 46,
+          "of": 74
         }
       }
     },
@@ -3764,16 +3803,16 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_image": {
-          "score": 838,
-          "normalized": 0.0891,
-          "rank": 93,
-          "of": 102
+          "score": 837,
+          "normalized": 0.0962,
+          "rank": 95,
+          "of": 105
         },
         "image_to_image": {
-          "score": 940,
-          "normalized": 0.2,
-          "rank": 57,
-          "of": 71
+          "score": 937,
+          "normalized": 0.1918,
+          "rank": 60,
+          "of": 74
         }
       }
     },
@@ -3783,16 +3822,16 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_image": {
-          "score": 931,
-          "normalized": 0.297,
-          "rank": 72,
-          "of": 102
+          "score": 929,
+          "normalized": 0.2885,
+          "rank": 75,
+          "of": 105
         },
         "image_to_image": {
           "score": 1015,
-          "normalized": 0.4714,
-          "rank": 38,
-          "of": 71
+          "normalized": 0.4521,
+          "rank": 41,
+          "of": 74
         }
       }
     },
@@ -3802,16 +3841,16 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_image": {
-          "score": 1020,
-          "normalized": 0.6832,
-          "rank": 33,
-          "of": 102
+          "score": 1021,
+          "normalized": 0.6827,
+          "rank": 34,
+          "of": 105
         },
         "image_to_image": {
-          "score": 1001,
-          "normalized": 0.4143,
-          "rank": 42,
-          "of": 71
+          "score": 999,
+          "normalized": 0.3699,
+          "rank": 47,
+          "of": 74
         }
       }
     },
@@ -3822,15 +3861,28 @@
       "tasks": {
         "text_to_image": {
           "score": 1003,
-          "normalized": 0.5941,
-          "rank": 42,
-          "of": 102
+          "normalized": 0.5962,
+          "rank": 43,
+          "of": 105
         },
         "image_to_image": {
           "score": 1013,
-          "normalized": 0.4429,
-          "rank": 40,
-          "of": 71
+          "normalized": 0.4247,
+          "rank": 43,
+          "of": 74
+        }
+      }
+    },
+    "replicate:black-forest-labs/flux-dev": {
+      "canonical": "flux-1-dev",
+      "name": "FLUX.1 [dev]",
+      "creator": "Black Forest Labs",
+      "tasks": {
+        "text_to_image": {
+          "score": 823,
+          "normalized": 0.0577,
+          "rank": 99,
+          "of": 105
         }
       }
     },
@@ -3841,15 +3893,15 @@
       "tasks": {
         "text_to_image": {
           "score": 917,
-          "normalized": 0.2574,
-          "rank": 76,
-          "of": 102
+          "normalized": 0.2692,
+          "rank": 77,
+          "of": 105
         },
         "image_to_image": {
-          "score": 916,
-          "normalized": 0.1571,
-          "rank": 60,
-          "of": 71
+          "score": 918,
+          "normalized": 0.1507,
+          "rank": 63,
+          "of": 74
         }
       }
     },
@@ -3860,9 +3912,9 @@
       "tasks": {
         "text_to_image": {
           "score": 740,
-          "normalized": 0.0198,
-          "rank": 100,
-          "of": 102
+          "normalized": 0.0192,
+          "rank": 103,
+          "of": 105
         }
       }
     },
@@ -3872,16 +3924,16 @@
       "creator": "Bria",
       "tasks": {
         "text_to_image": {
-          "score": 847,
-          "normalized": 0.1089,
-          "rank": 91,
-          "of": 102
+          "score": 849,
+          "normalized": 0.1154,
+          "rank": 93,
+          "of": 105
         },
         "image_to_image": {
-          "score": 915,
-          "normalized": 0.1429,
-          "rank": 61,
-          "of": 71
+          "score": 913,
+          "normalized": 0.137,
+          "rank": 64,
+          "of": 74
         }
       }
     },
@@ -3891,16 +3943,16 @@
       "creator": "Bria",
       "tasks": {
         "text_to_image": {
-          "score": 847,
-          "normalized": 0.1089,
-          "rank": 91,
-          "of": 102
+          "score": 849,
+          "normalized": 0.1154,
+          "rank": 93,
+          "of": 105
         },
         "image_to_image": {
-          "score": 915,
-          "normalized": 0.1429,
-          "rank": 61,
-          "of": 71
+          "score": 913,
+          "normalized": 0.137,
+          "rank": 64,
+          "of": 74
         }
       }
     },
@@ -3910,16 +3962,16 @@
       "creator": "Bytedance",
       "tasks": {
         "text_to_image": {
-          "score": 586,
+          "score": 594,
           "normalized": 0,
-          "rank": 102,
-          "of": 102
+          "rank": 105,
+          "of": 105
         },
         "image_to_image": {
-          "score": 793,
-          "normalized": 0.0429,
-          "rank": 68,
-          "of": 71
+          "score": 795,
+          "normalized": 0.0411,
+          "rank": 71,
+          "of": 74
         }
       }
     },
@@ -3929,10 +3981,10 @@
       "creator": "Bytedance",
       "tasks": {
         "text_to_image": {
-          "score": 928,
-          "normalized": 0.2772,
-          "rank": 74,
-          "of": 102
+          "score": 931,
+          "normalized": 0.3077,
+          "rank": 73,
+          "of": 105
         }
       }
     },
@@ -3969,15 +4021,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7327,
-          "rank": 28,
-          "of": 102
+          "normalized": 0.7115,
+          "rank": 31,
+          "of": 105
         },
         "image_to_image": {
-          "score": 1045,
-          "normalized": 0.5571,
-          "rank": 32,
-          "of": 71
+          "score": 1043,
+          "normalized": 0.5068,
+          "rank": 37,
+          "of": 74
         }
       }
     },
@@ -3987,16 +4039,16 @@
       "creator": "ByteDance Seed",
       "tasks": {
         "text_to_image": {
-          "score": 1016,
-          "normalized": 0.6337,
+          "score": 1017,
+          "normalized": 0.6442,
           "rank": 38,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1062,
-          "normalized": 0.6286,
-          "rank": 27,
-          "of": 71
+          "score": 1061,
+          "normalized": 0.6027,
+          "rank": 30,
+          "of": 74
         }
       }
     },
@@ -4007,15 +4059,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1100,
-          "normalized": 0.8515,
+          "normalized": 0.8558,
           "rank": 16,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1133,
-          "normalized": 0.9143,
-          "rank": 7,
-          "of": 71
+          "score": 1132,
+          "normalized": 0.9041,
+          "rank": 8,
+          "of": 74
         }
       }
     },
@@ -4025,10 +4077,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1078,
-          "normalized": 0.4896,
+          "score": 1077,
+          "normalized": 0.4948,
           "rank": 50,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -4038,10 +4090,10 @@
       "creator": "ElevenLabs",
       "tasks": {
         "text_to_speech": {
-          "score": 1097,
-          "normalized": 0.5833,
-          "rank": 41,
-          "of": 97
+          "score": 1098,
+          "normalized": 0.5773,
+          "rank": 42,
+          "of": 98
         }
       }
     },
@@ -4052,9 +4104,9 @@
       "tasks": {
         "text_to_speech": {
           "score": 1213,
-          "normalized": 0.8542,
-          "rank": 15,
-          "of": 97
+          "normalized": 0.8454,
+          "rank": 16,
+          "of": 98
         }
       }
     },
@@ -4065,15 +4117,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1140,
-          "normalized": 0.9406,
+          "normalized": 0.9423,
           "rank": 7,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
           "score": 1124,
-          "normalized": 0.8714,
-          "rank": 10,
-          "of": 71
+          "normalized": 0.8493,
+          "rank": 12,
+          "of": 74
         }
       }
     },
@@ -4083,7 +4135,7 @@
       "creator": "Google",
       "tasks": {
         "image_to_video": {
-          "score": 1100,
+          "score": 1099,
           "normalized": 0.16,
           "rank": 64,
           "of": 76
@@ -4110,9 +4162,9 @@
       "tasks": {
         "text_to_video": {
           "score": 961,
-          "normalized": 0.4333,
-          "rank": 18,
-          "of": 31
+          "normalized": 0.4194,
+          "rank": 19,
+          "of": 32
         },
         "image_to_video": {
           "score": 1253,
@@ -4129,9 +4181,9 @@
       "tasks": {
         "text_to_video": {
           "score": 960,
-          "normalized": 0.4,
-          "rank": 19,
-          "of": 31
+          "normalized": 0.3871,
+          "rank": 20,
+          "of": 32
         },
         "image_to_video": {
           "score": 1259,
@@ -4148,9 +4200,9 @@
       "tasks": {
         "text_to_video": {
           "score": 944,
-          "normalized": 0.3667,
-          "rank": 20,
-          "of": 31
+          "normalized": 0.3548,
+          "rank": 21,
+          "of": 32
         },
         "image_to_video": {
           "score": 1242,
@@ -4166,10 +4218,10 @@
       "creator": "Ideogram",
       "tasks": {
         "text_to_image": {
-          "score": 912,
-          "normalized": 0.2376,
-          "rank": 78,
-          "of": 102
+          "score": 911,
+          "normalized": 0.25,
+          "rank": 79,
+          "of": 105
         }
       }
     },
@@ -4180,9 +4232,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7426,
-          "rank": 27,
-          "of": 102
+          "normalized": 0.7308,
+          "rank": 29,
+          "of": 105
         }
       }
     },
@@ -4192,10 +4244,10 @@
       "creator": "Inworld",
       "tasks": {
         "text_to_speech": {
-          "score": 1262,
-          "normalized": 0.9375,
-          "rank": 7,
-          "of": 97
+          "score": 1267,
+          "normalized": 0.9485,
+          "rank": 6,
+          "of": 98
         }
       }
     },
@@ -4206,9 +4258,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1034,
-          "normalized": 0.7921,
-          "rank": 22,
-          "of": 102
+          "normalized": 0.7885,
+          "rank": 23,
+          "of": 105
         }
       }
     },
@@ -4219,9 +4271,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1012,
-          "normalized": 0.604,
-          "rank": 41,
-          "of": 102
+          "normalized": 0.6058,
+          "rank": 42,
+          "of": 105
         }
       }
     },
@@ -4257,9 +4309,9 @@
       "creator": "KlingAI",
       "tasks": {
         "image_to_video": {
-          "score": 1208,
-          "normalized": 0.4267,
-          "rank": 44,
+          "score": 1207,
+          "normalized": 0.4133,
+          "rank": 45,
           "of": 76
         }
       }
@@ -4310,9 +4362,9 @@
       "tasks": {
         "text_to_video": {
           "score": 845,
-          "normalized": 0.1333,
-          "rank": 27,
-          "of": 31
+          "normalized": 0.129,
+          "rank": 28,
+          "of": 32
         },
         "image_to_video": {
           "score": 1150,
@@ -4329,12 +4381,12 @@
       "tasks": {
         "text_to_video": {
           "score": 840,
-          "normalized": 0.1,
-          "rank": 28,
-          "of": 31
+          "normalized": 0.0968,
+          "rank": 29,
+          "of": 32
         },
         "image_to_video": {
-          "score": 1158,
+          "score": 1157,
           "normalized": 0.28,
           "rank": 55,
           "of": 76
@@ -4347,10 +4399,10 @@
       "creator": "VectorSpaceLab",
       "tasks": {
         "image_to_image": {
-          "score": 787,
-          "normalized": 0.0286,
-          "rank": 69,
-          "of": 71
+          "score": 790,
+          "normalized": 0.0274,
+          "rank": 72,
+          "of": 74
         }
       }
     },
@@ -4361,9 +4413,9 @@
       "tasks": {
         "text_to_image": {
           "score": 769,
-          "normalized": 0.0297,
-          "rank": 99,
-          "of": 102
+          "normalized": 0.0288,
+          "rank": 102,
+          "of": 105
         }
       }
     },
@@ -4374,8 +4426,8 @@
       "tasks": {
         "image_to_video": {
           "score": 1207,
-          "normalized": 0.4133,
-          "rank": 45,
+          "normalized": 0.4267,
+          "rank": 44,
           "of": 76
         }
       }
@@ -4399,7 +4451,7 @@
       "creator": "MiniMax",
       "tasks": {
         "image_to_video": {
-          "score": 1257,
+          "score": 1256,
           "normalized": 0.6533,
           "rank": 27,
           "of": 76
@@ -4412,10 +4464,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1129,
-          "normalized": 0.6875,
-          "rank": 31,
-          "of": 97
+          "score": 1131,
+          "normalized": 0.6701,
+          "rank": 33,
+          "of": 98
         }
       }
     },
@@ -4425,10 +4477,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1123,
-          "normalized": 0.6667,
-          "rank": 33,
-          "of": 97
+          "score": 1120,
+          "normalized": 0.6392,
+          "rank": 36,
+          "of": 98
         }
       }
     },
@@ -4438,10 +4490,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1173,
-          "normalized": 0.7813,
-          "rank": 22,
-          "of": 97
+          "score": 1174,
+          "normalized": 0.7629,
+          "rank": 24,
+          "of": 98
         }
       }
     },
@@ -4451,10 +4503,10 @@
       "creator": "MiniMax",
       "tasks": {
         "text_to_speech": {
-          "score": 1151,
-          "normalized": 0.7396,
-          "rank": 26,
-          "of": 97
+          "score": 1155,
+          "normalized": 0.732,
+          "rank": 27,
+          "of": 98
         }
       }
     },
@@ -4464,7 +4516,7 @@
       "creator": "PixVerse",
       "tasks": {
         "image_to_video": {
-          "score": 1153,
+          "score": 1152,
           "normalized": 0.2667,
           "rank": 56,
           "of": 76
@@ -4477,7 +4529,7 @@
       "creator": "PixVerse",
       "tasks": {
         "image_to_video": {
-          "score": 1277,
+          "score": 1276,
           "normalized": 0.7867,
           "rank": 17,
           "of": 76
@@ -4504,9 +4556,9 @@
       "tasks": {
         "text_to_video": {
           "score": 999,
-          "normalized": 0.5333,
-          "rank": 15,
-          "of": 31
+          "normalized": 0.5161,
+          "rank": 16,
+          "of": 32
         },
         "image_to_video": {
           "score": 1339,
@@ -4522,10 +4574,10 @@
       "creator": "Pruna AI",
       "tasks": {
         "text_to_image": {
-          "score": 898,
-          "normalized": 0.198,
-          "rank": 82,
-          "of": 102
+          "score": 900,
+          "normalized": 0.2115,
+          "rank": 83,
+          "of": 105
         }
       }
     },
@@ -4535,16 +4587,16 @@
       "creator": "Pruna AI",
       "tasks": {
         "text_to_image": {
-          "score": 898,
-          "normalized": 0.198,
-          "rank": 82,
-          "of": 102
+          "score": 900,
+          "normalized": 0.2115,
+          "rank": 83,
+          "of": 105
         },
         "image_to_image": {
-          "score": 986,
-          "normalized": 0.3286,
-          "rank": 48,
-          "of": 71
+          "score": 985,
+          "normalized": 0.3288,
+          "rank": 50,
+          "of": 74
         }
       }
     },
@@ -4556,8 +4608,8 @@
         "text_to_video": {
           "score": 804,
           "normalized": 0,
-          "rank": 31,
-          "of": 31
+          "rank": 32,
+          "of": 32
         },
         "image_to_video": {
           "score": 1130,
@@ -4573,10 +4625,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 934,
-          "normalized": 0.3168,
-          "rank": 70,
-          "of": 102
+          "score": 936,
+          "normalized": 0.3269,
+          "rank": 71,
+          "of": 105
         }
       }
     },
@@ -4586,16 +4638,16 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 902,
-          "normalized": 0.2079,
-          "rank": 81,
-          "of": 102
+          "score": 903,
+          "normalized": 0.2212,
+          "rank": 82,
+          "of": 105
         },
         "image_to_image": {
-          "score": 889,
-          "normalized": 0.1,
-          "rank": 64,
-          "of": 71
+          "score": 890,
+          "normalized": 0.0959,
+          "rank": 67,
+          "of": 74
         }
       }
     },
@@ -4605,10 +4657,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 889,
-          "normalized": 0.1,
-          "rank": 64,
-          "of": 71
+          "score": 890,
+          "normalized": 0.0959,
+          "rank": 67,
+          "of": 74
         }
       }
     },
@@ -4618,10 +4670,10 @@
       "creator": "Alibaba",
       "tasks": {
         "image_to_image": {
-          "score": 990,
-          "normalized": 0.3571,
-          "rank": 46,
-          "of": 71
+          "score": 991,
+          "normalized": 0.3425,
+          "rank": 49,
+          "of": 74
         }
       }
     },
@@ -4631,10 +4683,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_speech": {
-          "score": 932,
-          "normalized": 0.1042,
+          "score": 930,
+          "normalized": 0.1134,
           "rank": 87,
-          "of": 97
+          "of": 98
         }
       }
     },
@@ -4644,10 +4696,10 @@
       "creator": "Recraft",
       "tasks": {
         "text_to_image": {
-          "score": 1025,
-          "normalized": 0.7129,
+          "score": 1026,
+          "normalized": 0.7212,
           "rank": 30,
-          "of": 102
+          "of": 105
         }
       }
     },
@@ -4658,9 +4710,9 @@
       "tasks": {
         "text_to_image": {
           "score": 1017,
-          "normalized": 0.6535,
-          "rank": 36,
-          "of": 102
+          "normalized": 0.6538,
+          "rank": 37,
+          "of": 105
         }
       }
     },
@@ -4670,10 +4722,10 @@
       "creator": "Resemble AI",
       "tasks": {
         "text_to_speech": {
-          "score": 1025,
-          "normalized": 0.2188,
-          "rank": 76,
-          "of": 97
+          "score": 1024,
+          "normalized": 0.2062,
+          "rank": 78,
+          "of": 98
         }
       }
     },
@@ -4684,9 +4736,9 @@
       "tasks": {
         "text_to_video": {
           "score": 899,
-          "normalized": 0.2,
-          "rank": 25,
-          "of": 31
+          "normalized": 0.1935,
+          "rank": 26,
+          "of": 32
         },
         "image_to_video": {
           "score": 1290,
@@ -4703,9 +4755,9 @@
       "tasks": {
         "text_to_video": {
           "score": 901,
-          "normalized": 0.2333,
-          "rank": 24,
-          "of": 31
+          "normalized": 0.2258,
+          "rank": 25,
+          "of": 32
         },
         "image_to_video": {
           "score": 1230,
@@ -4734,10 +4786,10 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_image": {
-          "score": 902,
-          "normalized": 0.2079,
-          "rank": 81,
-          "of": 102
+          "score": 903,
+          "normalized": 0.2212,
+          "rank": 82,
+          "of": 105
         }
       }
     },
@@ -4747,16 +4799,16 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1021,
-          "normalized": 0.6931,
-          "rank": 32,
-          "of": 102
+          "score": 1022,
+          "normalized": 0.6923,
+          "rank": 33,
+          "of": 105
         },
         "image_to_image": {
-          "score": 1074,
-          "normalized": 0.7143,
-          "rank": 21,
-          "of": 71
+          "score": 1073,
+          "normalized": 0.6849,
+          "rank": 24,
+          "of": 74
         }
       }
     },
@@ -4766,16 +4818,16 @@
       "creator": "SpaceXAI",
       "tasks": {
         "text_to_image": {
-          "score": 1048,
-          "normalized": 0.8119,
+          "score": 1049,
+          "normalized": 0.8173,
           "rank": 20,
-          "of": 102
+          "of": 105
         },
         "image_to_image": {
-          "score": 1096,
-          "normalized": 0.8,
-          "rank": 15,
-          "of": 71
+          "score": 1095,
+          "normalized": 0.7808,
+          "rank": 17,
+          "of": 74
         }
       }
     },
@@ -4811,10 +4863,10 @@
       "creator": "StepFun",
       "tasks": {
         "image_to_image": {
-          "score": 600,
+          "score": 607,
           "normalized": 0,
-          "rank": 71,
-          "of": 71
+          "rank": 74,
+          "of": 74
         }
       }
     },
@@ -4825,15 +4877,15 @@
       "tasks": {
         "text_to_image": {
           "score": 929,
-          "normalized": 0.2871,
-          "rank": 73,
-          "of": 102
+          "normalized": 0.2981,
+          "rank": 74,
+          "of": 105
         },
         "image_to_image": {
-          "score": 928,
-          "normalized": 0.1714,
-          "rank": 59,
-          "of": 71
+          "score": 924,
+          "normalized": 0.1644,
+          "rank": 62,
+          "of": 74
         }
       }
     },
@@ -4844,15 +4896,15 @@
       "tasks": {
         "text_to_image": {
           "score": 917,
-          "normalized": 0.2574,
-          "rank": 76,
-          "of": 102
+          "normalized": 0.2692,
+          "rank": 77,
+          "of": 105
         },
         "image_to_image": {
-          "score": 916,
-          "normalized": 0.1571,
-          "rank": 60,
-          "of": 71
+          "score": 918,
+          "normalized": 0.1507,
+          "rank": 63,
+          "of": 74
         }
       }
     },
@@ -4862,10 +4914,10 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_image": {
-          "score": 869,
-          "normalized": 0.1485,
-          "rank": 87,
-          "of": 102
+          "score": 870,
+          "normalized": 0.1538,
+          "rank": 89,
+          "of": 105
         }
       }
     },
@@ -4876,15 +4928,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1000,
-          "normalized": 0.5743,
-          "rank": 44,
-          "of": 102
+          "normalized": 0.5769,
+          "rank": 45,
+          "of": 105
         },
         "image_to_image": {
           "score": 1000,
-          "normalized": 0.4,
-          "rank": 43,
-          "of": 71
+          "normalized": 0.3973,
+          "rank": 45,
+          "of": 74
         }
       }
     },
@@ -4895,15 +4947,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1026,
-          "normalized": 0.7525,
-          "rank": 26,
-          "of": 102
+          "normalized": 0.7404,
+          "rank": 28,
+          "of": 105
         },
         "image_to_image": {
           "score": 999,
-          "normalized": 0.3857,
-          "rank": 44,
-          "of": 71
+          "normalized": 0.3836,
+          "rank": 46,
+          "of": 74
         }
       }
     },
@@ -4914,15 +4966,15 @@
       "tasks": {
         "text_to_image": {
           "score": 1003,
-          "normalized": 0.5941,
-          "rank": 42,
-          "of": 102
+          "normalized": 0.5962,
+          "rank": 43,
+          "of": 105
         },
         "image_to_image": {
           "score": 1013,
-          "normalized": 0.4429,
-          "rank": 40,
-          "of": 71
+          "normalized": 0.4247,
+          "rank": 43,
+          "of": 74
         }
       }
     },
@@ -4932,7 +4984,7 @@
       "creator": "Google",
       "tasks": {
         "image_to_video": {
-          "score": 1100,
+          "score": 1099,
           "normalized": 0.16,
           "rank": 64,
           "of": 76
@@ -4958,9 +5010,9 @@
       "creator": "KlingAI",
       "tasks": {
         "image_to_video": {
-          "score": 1208,
-          "normalized": 0.4267,
-          "rank": 44,
+          "score": 1207,
+          "normalized": 0.4133,
+          "rank": 45,
           "of": 76
         }
       }
@@ -4997,7 +5049,7 @@
       "creator": "PixVerse",
       "tasks": {
         "image_to_video": {
-          "score": 1277,
+          "score": 1276,
           "normalized": 0.7867,
           "rank": 17,
           "of": 76
