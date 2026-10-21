@@ -70,7 +70,7 @@
     "index.html": "67962daf62362df47d020ec404db5b7b21ebc10eb480db1ff732199b56fa974c",
     "style.css": "c5202a89913613e738727186347e7491139defb2b1f87a5e6de7f36ecbd765f5",
     "game.json": "e7e93211b9d22aea070b6ce80afce4cb5ed63e6ebde62e5b1ae701c0c9fc5467",
-    "game3d-player.js": "6c62828eb6fd8d14cdf3d0f57ea6e7f10a3bab2d8d2ae720a6732303451661ed",
+    "game3d-player.js": "863617a86d26eac4fef8d86c530b06c9c64005ed6479a2c98a1225978b309cf2",
     "emscripten-module.wasm": "a5920bb5789c1ad1236c54b0146a2b3a2eb262050e2baea0388bce574a2632bb"
   }
 }

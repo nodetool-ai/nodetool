@@ -4,9 +4,15 @@ import { gameFontFamily } from "../../fonts.js";
 import { paintGameUi } from "../../ui/paint.js";
 import { gameUiViewport3D } from "../../ui/hud3d.js";
 
+/** What each HUD canvas last painted, so an unchanged HUD skips the repaint and the texture upload. */
+const painted = new WeakMap<HTMLCanvasElement, string>();
+
 /** Paints the 3D HUD at one canvas pixel per HUD pixel: the widget tree, then the `hud` labels above it. */
 export function paintGameHud(canvas: HTMLCanvasElement, texture: THREE.CanvasTexture, frame: GameRenderFrame3D): void {
   const { hudWidth, hudHeight } = frame.presentation;
+  const key = JSON.stringify([frame.gameId, hudWidth, hudHeight, frame.ui, frame.hud]);
+  if (painted.get(canvas) === key && canvas.width === Math.round(hudWidth) && canvas.height === Math.round(hudHeight)) { return; }
+  painted.set(canvas, key);
   if (canvas.width !== Math.round(hudWidth) || canvas.height !== Math.round(hudHeight)) {
     canvas.width = Math.round(hudWidth);
     canvas.height = Math.round(hudHeight);

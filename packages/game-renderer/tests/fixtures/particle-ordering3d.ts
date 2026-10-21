@@ -10,6 +10,7 @@ import { blockoutFrame } from "./game3d.js";
 export async function compareParticleOrder(): Promise<{
   comparisons: { mode: string; reverse: boolean; cameraSide: number; differences: number; referenceLitPixels: number; calls: number }[];
   soft: { calls: number; triangles: number };
+  distant: { calls: number; triangles: number };
   backend: { userAgent: string; renderer: string };
 }> {
   const canvas = document.createElement("canvas");
@@ -100,14 +101,22 @@ export async function compareParticleOrder(): Promise<{
     opaque.position.z = -4;
     scene.add(opaque);
     const pipeline = new RenderPipeline3D();
-    const softParticle = { ...sample(2, "billboards"), emitter: gameParticleEmitter.parse({ id: "soft", softness: 0.5 }) };
+    // The box sits within the particle's reach plus softness, so the depth pass draws it.
+    const softParticle = { ...sample(2, "billboards"), emitter: gameParticleEmitter.parse({ id: "soft", softness: 3 }) };
     const pass = new GameParticlePass3D(pipeline, { scene, particles: () => ({ forEachParticle: visit => visit(softParticle) }) });
     try {
       renderer.info.reset();
       await pipeline.render({ renderer, scene, camera, hudScene, hudCamera, postProcessor });
+      const soft = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+      // Beyond that reach the box cannot change the fade, so the depth pass skips it.
+      opaque.position.z = -20;
+      opaque.updateMatrixWorld();
+      renderer.info.reset();
+      await pipeline.render({ renderer, scene, camera, hudScene, hudCamera, postProcessor });
+      const distant = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
       const gl = renderer.getContext();
       const debug = gl.getExtension("WEBGL_debug_renderer_info");
-      return { comparisons, soft: { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles },
+      return { comparisons, soft, distant,
         backend: { userAgent: navigator.userAgent, renderer: String(gl.getParameter(debug?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER)) } };
     } finally { pass.dispose(); geometry.dispose(); material.dispose(); }
   } finally { referencePostProcessor.dispose(); postProcessor.dispose(); renderer.dispose(); }

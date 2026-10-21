@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { gameRenderFrame3D, type GameLight3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
 import type { CreateGameRenderer3DOptions, GameRenderer3D } from "../src/browser3d.js";
 import { GameShadows3D, planGameShadows3D } from "../src/renderer3d/shadows/index.js";
-import { GameCascadedShadows3D, gameCascadeBreaks3D } from "../src/renderer3d/shadows/cascades.js";
+import { GameCascadedShadows3D, gameCascadeBreaks3D, gameCascadeDue3D } from "../src/renderer3d/shadows/cascades.js";
 import { compareGameCaptures } from "../src/imageDiff.js";
 
 declare global { interface Window { shadowHarness: { readonly factory: (options: CreateGameRenderer3DOptions) => Promise<GameRenderer3D> } } }
@@ -75,6 +75,40 @@ describe("shadow planning", () => {
     expect(disabled.casting.size).toBe(0);
     expect(disabled.diagnostics).toEqual([]);
   });
+  it("renders the near cascade every frame and at most two cascades per frame", () => {
+    for (let frame = 0; frame < 8; frame++) {
+      const due = [0, 1, 2, 3].filter((index) => gameCascadeDue3D(index, frame));
+      expect(due[0]).toBe(0);
+      expect(due.length).toBe(2);
+    }
+    for (const index of [1, 2, 3]) {
+      expect([0, 1, 2, 3].some((frame) => gameCascadeDue3D(index, frame))).toBe(true);
+    }
+  });
+
+  it("re-renders a skipped cascade when the view moves past its drift limit", () => {
+    const scene = new THREE.Scene();
+    const sunLight = new THREE.DirectionalLight();
+    sunLight.quaternion.setFromEuler(new THREE.Euler(-1, 0.3, 0));
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400);
+    camera.updateMatrixWorld(true);
+    const cascades = new GameCascadedShadows3D();
+    const definition = { kind: "directional", color: "#ffffff", intensity: 1, castShadow: true } as const;
+    const settings = { count: 4, split: 0.5, maxDistance: 300 };
+    const lights = () => scene.getObjectByName("game-shadow-cascades")!.children.filter((child): child is THREE.DirectionalLight => child instanceof THREE.DirectionalLight);
+    const fakeMaps = () => { for (const light of lights()) { light.shadow.map = new THREE.WebGLRenderTarget(1, 1); } };
+    cascades.update(scene, sunLight, definition, settings, 512, camera);
+    expect(lights().map((light) => light.shadow.needsUpdate)).toEqual([true, true, true, true]);
+    fakeMaps();
+    cascades.update(scene, sunLight, definition, settings, 512, camera);
+    expect(lights().map((light) => light.shadow.needsUpdate)).toEqual([true, false, true, false]);
+    camera.position.set(5000, 0, 0);
+    camera.updateMatrixWorld(true);
+    cascades.update(scene, sunLight, definition, settings, 512, camera);
+    expect(lights().map((light) => light.shadow.needsUpdate)).toEqual([true, true, true, true]);
+    cascades.detach();
+  });
+
   it("splits cascades between even and logarithmic ranges", () => {
     expect(gameCascadeBreaks3D(4, 1, 100, 0)).toEqual([0.2575, 0.505, 0.7525, 1]);
     const logarithmic = gameCascadeBreaks3D(2, 1, 100, 1);
