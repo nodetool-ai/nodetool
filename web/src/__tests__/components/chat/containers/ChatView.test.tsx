@@ -67,7 +67,6 @@ jest.mock("../../../../components/chat/thread/ChatThreadView", () => ({
       <div data-testid="chat-thread-view">
         <div>Messages: {messages?.length || 0}</div>
         <div>Status: {status}</div>
-        <div>Composer thread: {String(threadId)}</div>
         {messages?.map((msg, index: number) => (
           <div key={index} data-testid={`message-${index}`}>
             <div data-testid={`message-role-${index}`}>{msg.role}</div>
