@@ -183,13 +183,24 @@ type ChatViewProps = {
   /**
    * Bind thread-scoped store reads (todos) to this thread instead of the
    * store's current one. Pass it when the surface renders a specific thread
-   * (e.g. a workspace chat tab) that may not be `currentThreadId`.
+   * (e.g. a workspace chat tab) that may not be `currentThreadId`. `null`
+   * means the surface has no thread yet; leave it out to follow the current one.
    */
   threadId?: string | null;
   focusMessage?: { messageId: string; requestId: number } | null;
   /** A deterministic replay owns thread scrolling. */
   externalScroll?: boolean;
 };
+
+/**
+ * Only a surface that names no thread follows the store's current one. `null`
+ * is a thread not created yet: an isolated agent panel falling through to the
+ * current thread would take a chat tab's composer seeds and show its todos.
+ */
+const resolveThreadId = (
+  threadId: string | null | undefined,
+  currentThreadId: string | null
+): string | null => (threadId === undefined ? currentThreadId : threadId);
 
 // Stable empty-array sentinel so the Zustand selector below returns the same
 // reference across renders when the current thread has no todos — returning a
@@ -283,8 +294,8 @@ const ChatView = ({
     (state) => state.addNotification
   );
 
-  const effectiveThreadId = useGlobalChatStore(
-    (state) => threadId ?? state.currentThreadId
+  const effectiveThreadId = useGlobalChatStore((state) =>
+    resolveThreadId(threadId, state.currentThreadId)
   );
   const [failedSubmission, setFailedSubmission] = useState<{
     threadId: string | null;
@@ -316,14 +327,14 @@ const ChatView = ({
   );
 
   const todos = useGlobalChatStore((state) => {
-    const id = threadId ?? state.currentThreadId;
+    const id = resolveThreadId(threadId, state.currentThreadId);
     return (id && state.todosByThread[id]) || NO_TODOS;
   });
   // The thread's own error, plus the top-level one when this surface renders
   // the current thread — a protocol error that arrives without a thread id
   // lands there and nowhere else.
   const chatError = useGlobalChatStore((state) => {
-    const id = threadId ?? state.currentThreadId;
+    const id = resolveThreadId(threadId, state.currentThreadId);
     return (
       getThreadRuntime(state, id).error ??
       (id === state.currentThreadId ? state.error : null)
