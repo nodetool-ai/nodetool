@@ -12779,6 +12779,14 @@
       "utility": "Utility"
     }
   },
+  "missingKeyNodes": {
+    "hidden_one": "{{count}} node needs an API key you have not added.",
+    "hidden_other": "{{count}} nodes need an API key you have not added.",
+    "shown_one": "Showing {{count}} node that needs an API key.",
+    "shown_other": "Showing {{count}} nodes that need an API key.",
+    "show": "Show them",
+    "hide": "Hide them"
+  },
   "namespaceList": {
     "nothingInNamespace": "Nothing found in this namespace for \"{{searchTerm}}\"",
     "nothingFound": "Nothing found for \"{{searchTerm}}\"",

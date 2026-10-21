@@ -60,6 +60,12 @@ export type NodeMenuStore = {
   setSelectedOutputType: (outputType: TypeName) => void;
   selectedProviderType: ProviderFilterType;
   setSelectedProviderType: (providerType: ProviderFilterType) => void;
+  /**
+   * Leaves nodes out of every search, such as those whose provider has no API
+   * key (see useNodeProviderFilter). Null offers every node.
+   */
+  nodeFilter: ((node: NodeMetadata) => boolean) | null;
+  setNodeFilter: (filter: ((node: NodeMetadata) => boolean) | null) => void;
   selectedPath: string[];
   setSelectedPath: (path: string[]) => void;
   searchResults: NodeMetadata[];
@@ -124,13 +130,18 @@ export const createNodeMenuStore = () =>
     // A fresh `Object.values` per keystroke also missed the array-keyed index
     // cache downstream in `computeSearchResults`. `setMetadata` replaces the
     // record wholesale, so its identity is a sound cache key.
+    // The node filter is part of the key for the same reason.
     let metadataSource: Record<string, NodeMetadata> | null = null;
+    let filterSource: NodeMenuStore["nodeFilter"] = null;
     let metadataValues: NodeMetadata[] = [];
     const getFilteredMetadata = () => {
       const metadata = useMetadataStore.getState().metadata;
-      if (metadata !== metadataSource) {
+      const nodeFilter = get().nodeFilter;
+      if (metadata !== metadataSource || nodeFilter !== filterSource) {
         metadataSource = metadata;
-        metadataValues = Object.values(metadata);
+        filterSource = nodeFilter;
+        const values = Object.values(metadata);
+        metadataValues = nodeFilter ? values.filter(nodeFilter) : values;
       }
       return metadataValues;
     };
@@ -202,6 +213,17 @@ export const createNodeMenuStore = () =>
         const current = get().selectedProviderType;
         if (current !== providerType) {
           set({ selectedProviderType: providerType });
+          scheduleSearch(get().searchTerm);
+        }
+      },
+
+      nodeFilter: null,
+      setNodeFilter: (nodeFilter) => {
+        if (get().nodeFilter === nodeFilter) {
+          return;
+        }
+        set({ nodeFilter, searchResultsCache: {} });
+        if (get().isMenuOpen) {
           scheduleSearch(get().searchTerm);
         }
       },

@@ -12779,6 +12779,14 @@
       "utility": "实用工具"
     }
   },
+  "missingKeyNodes": {
+    "hidden_one": "{{count}} 个节点需要你尚未添加的 API 密钥。",
+    "hidden_other": "{{count}} 个节点需要你尚未添加的 API 密钥。",
+    "shown_one": "正在显示 {{count}} 个需要 API 密钥的节点。",
+    "shown_other": "正在显示 {{count}} 个需要 API 密钥的节点。",
+    "show": "显示",
+    "hide": "隐藏"
+  },
   "namespaceList": {
     "nothingInNamespace": "在此命名空间中找不到“{{searchTerm}}”",
     "nothingFound": "找不到“{{searchTerm}}”",

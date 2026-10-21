@@ -15,6 +15,7 @@ import useNodeMenuStore, {
 import { useDraggable } from "../../hooks/useDraggable";
 import { useResizable, useResizableEdges } from "../../hooks/useResizable";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
+import { useNodeProviderFilter } from "../../hooks/useNodeProviderFilter";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
@@ -201,6 +202,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   const edgeResize = useResizableEdges(nodeRef, resizeOptions);
 
   const namespaceTree = useNamespaceTree();
+  const { needsMissingKey, showNodesWithoutKey } = useNodeProviderFilter();
+  const setNodeFilter = useNodeMenuStore((state) => state.setNodeFilter);
   const theme = useTheme();
   const memoizedStyles = useMemo(() => treeStyles(theme), [theme]);
 
@@ -224,6 +227,14 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   }, [getSelectedNode, handleCreateNode]);
 
   useCombo(["Escape"], closeNodeMenu);
+
+  // Search offers the same nodes as the namespace tree: none whose provider
+  // has no API key, unless the user chose to see them.
+  useEffect(() => {
+    setNodeFilter(
+      showNodesWithoutKey ? null : (node) => !needsMissingKey(node)
+    );
+  }, [setNodeFilter, showNodesWithoutKey, needsMissingKey]);
 
   // Ensure search is performed after menu opens with a preset term
   useEffect(() => {

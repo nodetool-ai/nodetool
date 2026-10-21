@@ -20,6 +20,7 @@ import {
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
+import MissingKeyNodesNotice from "./MissingKeyNodesNotice";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
 import NodeInfo from "./NodeInfo";
@@ -54,6 +55,10 @@ const namespaceStyles = (theme: Theme) =>
       flex: "0 0 auto",
       alignSelf: "flex-end",
       margin: `0 ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`
+    },
+    ".missing-key-notice": {
+      justifyContent: "flex-end",
+      marginTop: getSpacingPx(SPACING.xs)
     },
     ".node-packs-info": {
       textAlign: "right",
@@ -397,6 +402,7 @@ const InfoBox = memo(function InfoBox({
       <Text size="small" className="result-info">
         {buildContextMessage()}
       </Text>
+      <MissingKeyNodesNotice className="missing-key-notice" />
     </Box>
   );
 });
@@ -495,7 +501,11 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         )}
       </Box>
       {/* The toolbar already shows the total node count on the home view. */}
-      {!isHomeLayout && (
+      {isHomeLayout ? (
+        <Box className="info-box">
+          <MissingKeyNodesNotice className="missing-key-notice" />
+        </Box>
+      ) : (
         <InfoBox
           searchTerm={searchTerm}
           minSearchTermLength={minSearchTermLength}
