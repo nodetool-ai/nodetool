@@ -31,6 +31,7 @@ it("matches individually sorted WebGL particle draws and counts submitted soft d
       expect(comparison.calls).toBe(comparison.mode === "billboards" ? 1 : 3);
     }
     expect(result.soft).toEqual({ calls: 3, triangles: 26 });
+    expect(result.distant).toEqual({ calls: 2, triangles: 14 });
     expect(await page.evaluate(() => window.checkSubmittedParticles())).toEqual({ differences: 0, triangles: 4, alphas: [0.5] });
     expect(errors).toEqual([]);
   } finally { await browser.close(); }

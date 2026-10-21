@@ -73,6 +73,8 @@ export interface GameSession3D {
   frame(): GameRenderFrame3D;
   inspect(query?: GameInspectionQuery3D): GameInspection3D;
   snapshot(): GameSnapshot3D;
+  /** The tick, scene and music an audio player follows. Cheap to call every tick, unlike `snapshot`, which serializes the physics world. */
+  audioState(): Pick<GameSnapshot3D, "tick" | "sceneId" | "music">;
   /** Replaces existing script sources atomically, preserving tick and state and returning the document for saves. */
   reloadScripts(candidate: GameDocument3D, signal?: AbortSignal): Promise<GameScriptReloadResult<GameDocument3D>>;
   dispose(): void;
@@ -716,6 +718,10 @@ export async function createGameSession3D(
         };
       },
       snapshot,
+      audioState() {
+        assertAvailable();
+        return { tick, sceneId: currentScene().id, music: structuredClone(music) };
+      },
       reloadScripts,
       dispose(): void {
         if (disposed) return;

@@ -22,11 +22,16 @@ export type AlternativeStage = {
 export type AlternativeVisualSet = {
   headline: string;
   subline: string;
-  /** Hero reel: `<base>.webm`, `.mp4`, `-poster.webp`, and `-poster-960.webp` in `public/`. */
-  heroReel: { base: string; alt: string; caption: string };
   stagesHeading: string;
   stagesIntro: string;
   stages: [AlternativeStage, AlternativeStage, AlternativeStage];
+};
+
+/** Every page's hero plays the landing page reel (`public/hero-flow.*`). */
+export const HERO_REEL = {
+  base: "/hero-flow",
+  alt: "NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut",
+  caption: "One sentence becomes a short film. The agent outlines the story, designs the characters, draws a storyboard, generates the clips, and edits them together.",
 };
 
 const NODES_CLIP: AlternativeMedia = {
@@ -78,12 +83,6 @@ const FILM_STAGES: AlternativeVisualSet["stages"] = [
   },
 ];
 
-const FILM_REEL = {
-  base: "/conversation-project",
-  alt: "An agent turns a one-line brief into a six-shot storyboard, the shots land on a timeline, and the project stays open for editing",
-  caption: "One brief becomes a storyboard and a cut. The workflow, the shots, and the timeline stay editable.",
-};
-
 const AUTOMATION_STAGES: AlternativeVisualSet["stages"] = [
   {
     label: "1. Build",
@@ -111,17 +110,10 @@ const AUTOMATION_STAGES: AlternativeVisualSet["stages"] = [
   },
 ];
 
-const NODES_REEL = {
-  base: "/hero-nodes",
-  alt: "A node-based workflow runs: a list of five shots feeds Text To Image and Image To Video, and each node shows its output",
-  caption: "A workflow is a graph you can read. Each node shows what it produced, and the same graph runs again tomorrow.",
-};
-
 const VISUALS: Record<string, AlternativeVisualSet> = {
   "Node editor": {
     headline: "Beyond the node graph.",
     subline: "Create with AI agents, refine with visual editors, and finish in an editable production workspace.",
-    heroReel: FILM_REEL,
     stagesHeading: "From node graph to finished project",
     stagesIntro: "The workflow canvas is one editor of several. The storyboard and timeline work on the same project.",
     stages: FILM_STAGES,
@@ -129,7 +121,6 @@ const VISUALS: Record<string, AlternativeVisualSet> = {
   "AI filmmaking": {
     headline: "From brief to editable cut.",
     subline: "An agent plans the storyboard and renders the shots. You keep the workflow, the storyboard, and the timeline, and can change any of them.",
-    heroReel: FILM_REEL,
     stagesHeading: "From brief to finished film, in one project",
     stagesIntro: "Each stage has its own editor, and the agent works in the same editors you do.",
     stages: FILM_STAGES,
@@ -137,7 +128,6 @@ const VISUALS: Record<string, AlternativeVisualSet> = {
   "Video studio": {
     headline: "Every shot stays editable.",
     subline: "Generate with the video model you choose, then arrange, trim, and re-render single shots on a multi-track timeline in the same project.",
-    heroReel: FILM_REEL,
     stagesHeading: "From generation to a cut you can change",
     stagesIntro: "Each stage has its own editor, and the agent works in the same editors you do.",
     stages: FILM_STAGES,
@@ -145,11 +135,6 @@ const VISUALS: Record<string, AlternativeVisualSet> = {
   "Creative canvas": {
     headline: "Keep the prompt, the layers, and the workflow.",
     subline: "Generate with models from the providers you connect, repaint one layer without touching the others, and rerun the workflow behind every image.",
-    heroReel: {
-      base: "/hero-project",
-      alt: "From a one-line brief to a product campaign: a product image goes through a saved workflow, the generated assets are reviewed, and the timeline is edited",
-      caption: "One brief, one product image, one saved workflow. The generated assets and the edit stay in the project.",
-    },
     stagesHeading: "From prompt to finished asset",
     stagesIntro: "The image is not the end of the project. The workflow and the layers behind it stay editable.",
     stages: [
@@ -176,7 +161,6 @@ const VISUALS: Record<string, AlternativeVisualSet> = {
   "Workflow automation": {
     headline: "Automation that makes media.",
     subline: "Agents, document search, and native image, video, and music generation nodes on one canvas. Describe the pipeline and an agent builds and runs it.",
-    heroReel: NODES_REEL,
     stagesHeading: "From description to running workflow",
     stagesIntro: "The agent builds a graph you can read, run, and change by hand.",
     stages: AUTOMATION_STAGES,
@@ -184,7 +168,6 @@ const VISUALS: Record<string, AlternativeVisualSet> = {
   "Chatbot & agent builder": {
     headline: "Agents with a creative canvas.",
     subline: "Chat, document search, and agents on the same canvas as native image, video, and music generation.",
-    heroReel: NODES_REEL,
     stagesHeading: "From description to running workflow",
     stagesIntro: "The agent builds a graph you can read, run, and change by hand.",
     stages: AUTOMATION_STAGES,
@@ -192,7 +175,6 @@ const VISUALS: Record<string, AlternativeVisualSet> = {
   "Agent automation": {
     headline: "Agents you can open and inspect.",
     subline: "Describe the job and an agent builds a workflow you can see, run step by step, and edit.",
-    heroReel: NODES_REEL,
     stagesHeading: "From description to running workflow",
     stagesIntro: "The agent builds a graph you can read, run, and change by hand.",
     stages: AUTOMATION_STAGES,
@@ -200,7 +182,6 @@ const VISUALS: Record<string, AlternativeVisualSet> = {
   "Local language model runtime": {
     headline: "Local models, beyond chat.",
     subline: "Run models through Ollama, MLX, or llama.cpp, then use them in agents, document search, and image, video, and music workflows.",
-    heroReel: NODES_REEL,
     stagesHeading: "From a local model to a workflow",
     stagesIntro: "Chat is one way in. The same models can run inside agents and multi-step workflows.",
     stages: [

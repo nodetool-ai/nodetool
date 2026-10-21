@@ -329,7 +329,6 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.renderer.info.reset();
     const fog = frame.environment.fog;
     this.heightFog.configure(this.scene, activeCamera, fog && "kind" in fog ? fog : undefined);
-    this.renderer.compile(this.scene, activeCamera);
     this.controller.signal.throwIfAborted();
     this.renderingFrame = frame;
     this.renderingParticles = particles;

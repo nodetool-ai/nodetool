@@ -84,7 +84,7 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
   const audio = new GameAudioPlayer({ assets: game.assets, scenes: game.scenes, tickRate: game.tickRate,
     resolveAsset: (binding) => verifiedAssets.bindingUrl(binding),
     status, mixer: game.audio?.mixer });
-  audio.preload(); audio.sync(session.snapshot());
+  audio.preload(); audio.sync(session.audioState());
   const budget = new GameFrameBudgetMonitor(game.performance?.budgets);
   const particles = new GameParticles3D(game.tickRate);
   for (const event of ["pointerdown", "keydown"] as const) { window.addEventListener(event, () => { void audio.unlock(); }, { signal: controller.signal, capture: true }); }
@@ -95,7 +95,7 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
     if (!replay) { saves.handle(result.saveRequests, () => session.snapshot()); }
     particles.tick(result.frame, session.takePresentationEvents());
     for (const event of result.events) { audio.handle(event); }
-    audio.sync(session.snapshot());
+    audio.sync(session.audioState());
   };
   const input = new GameInput3D();
   // HUD buttons press their input actions on the same input, by pointer, touch or gamepad focus.
@@ -264,7 +264,7 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
           try { await rendering; } catch { /* Reset can recover from an earlier failed render. */ }
         }
         if (signal.aborted || disposed) { restored.dispose(); requireCurrent(signal); }
-        session.dispose(); session = restored; saves.clear(); audio.reset(session.snapshot());
+        session.dispose(); session = restored; saves.clear(); audio.reset(session.audioState());
         frame = session.frame(); particles.clear(); release(); clock.reset();
         return renderExplicit(signal);
       });

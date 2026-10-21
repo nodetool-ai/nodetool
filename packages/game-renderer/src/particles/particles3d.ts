@@ -141,6 +141,17 @@ export interface PackedParticles3D {
   readonly drawn: number;
   /** True when a packed quad has a softness distance, so the renderer needs scene depth. */
   readonly soft: boolean;
+  /**
+   * One world box per soft emitter around its quads, grown by their drawn extent and softness. Geometry outside every
+   * box never changes a soft fade: it is either in front of the particle, which the depth test hides, or more than the
+   * softness distance behind it.
+   */
+  readonly softBounds: readonly ParticleBounds3D[];
+}
+
+export interface ParticleBounds3D {
+  readonly min: { x: number; y: number; z: number };
+  readonly max: { x: number; y: number; z: number };
 }
 
 /** Converts an sRGB channel in [0, 1] to linear light, which is the colour space three.js shades in. */
@@ -171,6 +182,7 @@ export function packParticleBatches3D(field: GameParticleField, viewer: Particle
   const emitterKinds = new Map<GameParticleEmitter, ReturnType<typeof batchKey>>();
   let drawn = 0;
   let soft = false;
+  const softBounds = new Map<GameParticleEmitter, ParticleBounds3D>();
   field.forEachParticle((particle) => {
     if (!(particle.size > 0) || !(particle.opacity > 0)) {
       return;
@@ -206,7 +218,21 @@ export function packParticleBatches3D(field: GameParticleField, viewer: Particle
     sortDepths[drawn] = (particle.x - viewer.x) * viewer.forwardX + (particle.y - viewer.y) * viewer.forwardY + (particle.z - viewer.z) * viewer.forwardZ;
     sortOrder[drawn] = drawn;
     drawn += 1;
-    soft ||= softness > 0;
+    if (softness > 0) {
+      soft = true;
+      // A quad corner lies at most `size` from its centre, or half the stretched length along the velocity.
+      const stretched = data[base + 15] === 1
+        ? particle.size * data[base + 12]! + Math.hypot(particle.vx, particle.vy, particle.vz) * data[base + 13]! : 0;
+      const reach = softness + Math.max(particle.size, stretched);
+      let box = softBounds.get(emitter);
+      if (!box) {
+        box = { min: { x: Infinity, y: Infinity, z: Infinity }, max: { x: -Infinity, y: -Infinity, z: -Infinity } };
+        softBounds.set(emitter, box);
+      }
+      box.min.x = Math.min(box.min.x, particle.x - reach); box.max.x = Math.max(box.max.x, particle.x + reach);
+      box.min.y = Math.min(box.min.y, particle.y - reach); box.max.y = Math.max(box.max.y, particle.y + reach);
+      box.min.z = Math.min(box.min.z, particle.z - reach); box.max.z = Math.max(box.max.z, particle.z + reach);
+    }
   }, interpolation);
   const order = sortOrder.subarray(0, drawn).sort((first, second) => sortDepths[second] - sortDepths[first] || first - second);
   const reusable = new Map(previous.map(batch => [batch.key, batch]));
@@ -238,7 +264,7 @@ export function packParticleBatches3D(field: GameParticleField, viewer: Particle
     batches.push(batch);
     start = end;
   }
-  return { batches, drawn, soft };
+  return { batches, drawn, soft, softBounds: [...softBounds.values()] };
 }
 
 /** Packing is synchronous. Shared scratch copies views before a field reuses its mutable particle object. */

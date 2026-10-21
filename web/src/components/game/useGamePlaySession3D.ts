@@ -149,7 +149,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       });
       const state = session.inspect();
       committedRef.current = state;
-      audioRef.current?.sync(session.snapshot());
+      audioRef.current?.sync(session.audioState());
       for (const event of result.events) { audioRef.current?.handle(event); }
       if (profiler.recording()) {
         profiler.recordStep({ tick: result.tick, timings: result.timings, scriptStats: result.scriptStats, physics: result.physics,
@@ -243,7 +243,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       const initialFrame = session.frame();
       lastFrameRef.current = initialFrame;
       setFrame(initialFrame);
-      audio.reset(session.snapshot());
+      audio.reset(session.audioState());
       const { createGameRenderer3D, createGameEditorPasses3D } = await import("@nodetool-ai/game-renderer/browser3d");
       rendererPromiseRef.current ??= createGameRenderer3D({ canvas, signal: rendererControllerRef.current.signal,
         editorPasses: createGameEditorPasses3D,
@@ -428,7 +428,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       setFrame(lastFrameRef.current);
       setPlaying(false);
       setError(null);
-      audioRef.current?.reset(restored.snapshot());
+      audioRef.current?.reset(restored.audioState());
       display(restored.frame(), 1);
     } catch (cause) {
       if (restoreGeneration !== null && generationRef.current !== restoreGeneration) { return; }
@@ -465,7 +465,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       setFrame(lastFrameRef.current);
       setPlaying(false);
       setError(null);
-      audioRef.current?.reset(restored.snapshot());
+      audioRef.current?.reset(restored.audioState());
       display(restored.frame(), 1);
     } catch (cause) {
       if (restoreGeneration !== null && generationRef.current !== restoreGeneration) { return; }
