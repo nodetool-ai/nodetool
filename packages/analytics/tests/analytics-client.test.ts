@@ -19,6 +19,8 @@ const RUN: AnalyticsEvent = {
   properties: { executionMode: "local", nodeCountBucket: "6-20" }
 };
 
+type UntypedEvent = { event: string; properties: Record<string, string> };
+
 function recordingTransport(accept = true): AnalyticsTransport & {
   batches: AnalyticsBatch[];
 } {
@@ -153,15 +155,19 @@ describe("schema enforcement at runtime", () => {
       onDrop: (r) => drops.push(r)
     });
     await client.ready;
-    client.track({ event: "page_view", properties: {} } as unknown as AnalyticsEvent);
-    client.track({
+    const missingProperties: UntypedEvent = { event: "page_view", properties: {} };
+    const extraProperty: UntypedEvent = {
       event: "workflow_run",
       properties: {
         executionMode: "local",
         nodeCountBucket: "6-20",
         workflowName: "My secret plan"
       }
-    } as unknown as AnalyticsEvent);
+    };
+    // SAFETY: deliberately invalid events, proving runtime validation drops what the types would reject.
+    client.track(missingProperties as AnalyticsEvent);
+    // SAFETY: same, with a property the schema does not allow.
+    client.track(extraProperty as AnalyticsEvent);
     await client.flush({ force: true });
     expect(transport.batches).toEqual([]);
     expect(drops).toEqual(["event_unknown", "properties_keys_mismatch"]);
