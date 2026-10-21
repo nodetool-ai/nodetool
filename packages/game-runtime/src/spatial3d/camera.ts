@@ -1,5 +1,5 @@
 import type { GameCameraState3D, GameInputFrame3D, GameQuaternion3D } from "@nodetool-ai/protocol";
-import { add3, multiplyQuaternion, quantizeSpatial3D, rotate3, scale3 } from "./math.js";
+import { add3, copyTransform3D, multiplyQuaternion, quantizeSpatial3D, rotate3, scale3 } from "./math.js";
 import type { EntityState3D } from "./state.js";
 import type { SpatialWorld3D } from "./world.js";
 
@@ -58,7 +58,7 @@ export function resolveCamera3D(camera: GameCameraState3D, entity: EntityState3D
   const behavior = entity.definition.camera3d?.behavior;
   if (behavior?.kind !== "follow") {
     updateFixedCameraAngles3D(camera, entity);
-    camera.transform = structuredClone(entity.transform);
+    camera.transform = copyTransform3D(entity.transform);
     return;
   }
   const target = states.find((state) => state.definition.id === behavior.targetId && state.active);
