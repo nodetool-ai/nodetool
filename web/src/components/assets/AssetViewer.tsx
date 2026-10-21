@@ -28,6 +28,7 @@ import {
   SPACING,
   Z_INDEX,
   getSpacingPx,
+  OverlayLayerProvider,
   SHADOW
 } from "../ui_primitives";
 //icons
@@ -356,6 +357,14 @@ type AssetViewerProps = {
    * edit and info actions are hidden for them.
    */
   detachedIds?: ReadonlySet<string>;
+  /**
+   * The actions the caller's own surface offers on the asset on screen, shown
+   * at the start of the toolbar. A gallery opened from a storyboard shot puts
+   * the shot's toolbar here, so the viewer offers what the shot card offers
+   * rather than only what any asset has. Called again as the creator pages
+   * through, and may return nothing for an asset it has no actions for.
+   */
+  renderActions?: (asset: Asset) => React.ReactNode;
   onClose: () => void;
 };
 
@@ -373,6 +382,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     contentType,
     captions,
     detachedIds,
+    renderActions,
     onClose: handleClose
   } = props;
 
@@ -742,6 +752,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           align="center"
           sx={{ zIndex: Z_INDEX.tooltip }}
         >
+          {renderActions && currentAsset && !compareMode && (
+            // Menus and dialogs these actions open have to stack above the
+            // fullscreen viewer, not under it at the modal layer.
+            <OverlayLayerProvider value={theme.zIndex.floating}>
+              {renderActions(currentAsset)}
+            </OverlayLayerProvider>
+          )}
           <DownloadButton
             onClick={handleDownload}
             className="button download"

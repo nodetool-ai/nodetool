@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import React from "react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 
 import type { Asset } from "../../../stores/ApiTypes";
@@ -27,11 +28,13 @@ jest.mock("../../assets/AssetViewer", () => ({
   default: ({
     asset,
     sortedAssets,
-    captions
+    captions,
+    renderActions
   }: {
     asset?: Asset;
     sortedAssets?: Asset[];
     captions?: Record<string, string>;
+    renderActions?: (asset: Asset) => React.ReactNode;
   }) => (
     <div
       data-testid="asset-viewer"
@@ -39,6 +42,39 @@ jest.mock("../../assets/AssetViewer", () => ({
       data-caption={asset ? captions?.[asset.id] : undefined}
     >
       {(sortedAssets ?? []).map((item) => item.id).join(",")}
+      {asset && renderActions?.(asset)}
+    </div>
+  )
+}));
+
+// The shot's toolbar is the card's own; here only which shot it is for, and
+// what its edit and delete do to the viewer, matter.
+jest.mock("../ShotActions", () => ({
+  __esModule: true,
+  default: ({
+    shot,
+    readOnly,
+    onEdit,
+    onDeleted
+  }: {
+    shot: { id: string };
+    readOnly?: boolean;
+    onEdit?: (shotId: string, focus: "fields" | "dialogue") => void;
+    onDeleted?: () => void;
+  }) => (
+    <div
+      data-testid="shot-actions"
+      data-shot={shot.id}
+      data-read-only={readOnly ? "true" : undefined}
+    >
+      {onEdit && (
+        <button type="button" onClick={() => onEdit(shot.id, "fields")}>
+          edit
+        </button>
+      )}
+      <button type="button" onClick={onDeleted}>
+        deleted
+      </button>
     </div>
   )
 }));
@@ -138,5 +174,54 @@ describe("ShotMediaViewer", () => {
     expect(screen.getByTestId("asset-viewer")).not.toHaveTextContent(
       "A boat leaves the harbour"
     );
+  });
+
+  it("shows the toolbar of the shot whose media is on screen", () => {
+    render(
+      <ShotMediaViewer
+        boardId="board-1"
+        media={image("still-b")}
+        readOnly
+        onClose={jest.fn()}
+      />
+    );
+
+    const actions = screen.getByTestId("shot-actions");
+    expect(actions).toHaveAttribute("data-shot", "shot-1");
+    expect(actions).toHaveAttribute("data-read-only", "true");
+  });
+
+  it("closes the viewer before opening the shot's editor", () => {
+    const onClose = jest.fn();
+    const onEdit = jest.fn();
+    render(
+      <ShotMediaViewer
+        boardId="board-1"
+        media={image("still-a1")}
+        onEdit={onEdit}
+        onClose={onClose}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "edit" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith("shot-0", "fields");
+  });
+
+  it("offers no edit without an editor and closes once the shot is deleted", () => {
+    const onClose = jest.fn();
+    render(
+      <ShotMediaViewer
+        boardId="board-1"
+        media={video("clip-b")}
+        onClose={onClose}
+      />
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "edit" })
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "deleted" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

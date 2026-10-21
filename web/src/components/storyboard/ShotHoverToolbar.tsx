@@ -9,6 +9,8 @@
  * swallows clicks and keys before they reach the card and the board grid:
  * the card's click selects the shot, and the grid's arrow keys move between
  * shots, which would otherwise hijack the menu's own keyboard navigation.
+ * The fullscreen viewer shows the same row `inline`, always visible, for the
+ * shot on screen.
  */
 
 import React, { useCallback, useState } from "react";
@@ -37,6 +39,11 @@ import {
 import type { WorkflowMediaItem } from "../../hooks/handlers/useGenerationToCanvas";
 
 interface ShotHoverToolbarProps {
+  /**
+   * Lays the row out in place and keeps it visible, for a toolbar that is
+   * always on screen (the fullscreen viewer's) rather than a card's hover row.
+   */
+  inline?: boolean;
   /** Shown when the card is draggable; the card itself carries the drag. */
   showDragHandle?: boolean;
   /** Opens the fullscreen viewer. Omitted when the shot has no media yet. */
@@ -78,6 +85,9 @@ const rowSx = {
 /** A menu anchored to the row must not lose its anchor when the pointer leaves. */
 const pinnedRowSx = { ...rowSx, opacity: 1 } as const;
 
+/** In a toolbar that is always visible there is nothing to hover. */
+const inlineRowSx = { flexShrink: 0 } as const;
+
 const iconSx = { fontSize: "1em" } as const;
 
 /** Selecting the shot is the card's click. These are their own actions. */
@@ -86,6 +96,7 @@ const swallowEvent = (event: React.SyntheticEvent): void => {
 };
 
 export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
+  inline,
   showDragHandle,
   onFullscreen,
   fullscreenLabel,
@@ -144,7 +155,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
       onClick={swallowEvent}
       onKeyDown={swallowEvent}
       data-testid="shot-hover-toolbar"
-      sx={menuOpen || sendOpen ? pinnedRowSx : rowSx}
+      sx={inline ? inlineRowSx : menuOpen || sendOpen ? pinnedRowSx : rowSx}
     >
       {showDragHandle && (
         // A grip, not a control: the drag lives on the card, so a button here
