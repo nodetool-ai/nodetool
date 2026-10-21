@@ -346,18 +346,13 @@ export const mergeNodeUpdateProperties = ({
 }) => {
   const nextStatic = { ...existingStatic };
 
-  for (const key in updateProperties) {
-    if (
-      !Object.prototype.hasOwnProperty.call(updateProperties, key) ||
-      Object.prototype.hasOwnProperty.call(existingDynamic, key) ||
-      Object.prototype.hasOwnProperty.call(existingStatic, key)
-    ) {
-      continue;
+  for (const [key, value] of Object.entries(updateProperties)) {
+    const alreadyHeld =
+      Object.hasOwn(existingDynamic, key) || Object.hasOwn(existingStatic, key);
+    const undeclared = declaredStatic !== undefined && !declaredStatic.has(key);
+    if (!alreadyHeld && !undeclared) {
+      nextStatic[key] = value;
     }
-    if (declaredStatic && !declaredStatic.has(key)) {
-      continue;
-    }
-    nextStatic[key] = updateProperties[key];
   }
 
   return {
