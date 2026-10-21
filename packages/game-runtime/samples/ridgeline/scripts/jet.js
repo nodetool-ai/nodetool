@@ -15,6 +15,8 @@
   const len = (a) => Math.sqrt(dot(a, a));
   const norm = (a) => { const l = len(a); return l > 1e-9 ? mul(a, 1 / l) : [0, 0, 0]; };
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  // Physics commands accept at most 1e6 on each world axis. Capping the vector's length keeps every axis inside it.
+  const cap = (a, max) => { const l = len(a); return l > max ? mul(a, max / l) : a; };
   const rot = (v) => {
     const x = q[0], y = q[1], z = q[2], w = q[3];
     const ix = w * v[0] + y * v[2] - z * v[1], iy = w * v[1] + z * v[0] - x * v[2];
@@ -87,7 +89,7 @@
   const legs = [[0, -0.42, -4.7], [-1.25, -0.5, 1.15], [1.25, -0.5, 1.15]];
   const springs = [[90000, 14000], [230000, 32000], [230000, 32000]];
   const REST = 1.44;
-  let onGround = false, load = 0;
+  let onGround = false, load = 0, noseLoad = 0;
   if (s.gear) {
     const hits = {};
     for (const result of input.queries || []) hits[result.queryId] = result;
@@ -110,9 +112,10 @@
         const fSide = -clamp(vSide / 0.6, -1, 1) * 0.9 * n;
         const fAhead = -clamp(vAhead / 0.5, -1, 1) * (brake && k > 0 ? 0.55 : 0.018) * n;
         const total = add(mul(N, n), add(mul(side, fSide), mul(ahead, fAhead)));
-        cmds.push({ kind: "addForceAtPoint", force: obj(total), point: obj(point) });
+        cmds.push({ kind: "addForceAtPoint", force: obj(cap(total, 9e5)), point: obj(point) });
         onGround = true;
         load += n;
+        if (k === 0) noseLoad = n;
       }
       if (!s.ground && compression > 0.02 && s.comp[k] === 0 && k > 0) cmds.push({ kind: "emit", event: "touchdown" });
       s.comp[k] = compression;
@@ -134,13 +137,16 @@
     if (s.stall % 45 === 1) cmds.push({ kind: "emit", event: "stall" });
   } else s.stall = 0;
   if (onGround) pCmd = 0;
+  // The elevator cannot push the loaded nose wheel through the runway, which would slam the fuselage into it.
+  if (noseLoad > 0) qCmd = Math.max(qCmd, 0);
   const k = onGround ? 2.5 : 5;
   const tPitch = clamp(I[0] * k * (qCmd - pitchRate), -9e5, 9e5);
   const tYaw = clamp(I[1] * k * (rCmd - yawRate), -9e5, 9e5);
   const tRoll = clamp(I[2] * k * (pCmd - rollRate), -9e5, 9e5);
   const torque = add(add(mul(R, tPitch), mul(U, -tYaw)), mul(F, tRoll));
-  cmds.push({ kind: "addForce", force: obj(force) });
-  cmds.push({ kind: "addTorque", torque: obj(torque) });
+  // Each body axis is clamped above, but three saturated axes add up to 1.56e6 on a world axis.
+  cmds.push({ kind: "addForce", force: obj(cap(force, 9e5)) });
+  cmds.push({ kind: "addTorque", torque: obj(cap(torque, 9e5)) });
   cmds.push({ kind: "setAnimParam", name: "roll", value: roll });
   cmds.push({ kind: "setAnimParam", name: "pitch", value: pitch });
   cmds.push({ kind: "setAnimParam", name: "yaw", value: yaw });
