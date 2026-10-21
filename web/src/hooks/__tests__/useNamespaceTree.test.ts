@@ -3,6 +3,7 @@ import { asMock } from "../../test-utils/doubles";
 import { isProduction } from "../../lib/env";
 import useMetadataStore from "../../stores/MetadataStore";
 import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { useSecrets } from "../useSecrets";
 import useNamespaceTree from "../useNamespaceTree";
 
@@ -138,6 +139,27 @@ describe("useNamespaceTree", () => {
       expect(result.current["openai"]).toBeDefined();
       expect(result.current["anthropic"]).toBeUndefined();
       expect(result.current["replicate"]).toBeUndefined();
+    });
+
+    it("lists keyed providers without a key when the user asks to see them", () => {
+      (useSecrets as jest.Mock).mockReturnValue({
+        isApiKeySet: jest.fn(() => false)
+      });
+      act(() => {
+        useSettingsStore.getState().updateSettings({ showNodesWithoutKey: true });
+      });
+
+      try {
+        const { result } = renderHook(() => useNamespaceTree());
+
+        expect(result.current["anthropic"]).toBeDefined();
+        expect(result.current["anthropic"].disabled).toBe(true);
+        expect(result.current["replicate"]).toBeDefined();
+      } finally {
+        act(() => {
+          useSettingsStore.getState().updateSettings({ showNodesWithoutKey: false });
+        });
+      }
     });
 
     it("never gates locally-run namespaces (e.g. huggingface)", () => {

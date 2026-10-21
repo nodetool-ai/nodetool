@@ -32,11 +32,13 @@ import {
 } from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
+import MissingKeyNodesNotice from "./MissingKeyNodesNotice";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
+import { useNodeProviderFilter } from "../../hooks/useNodeProviderFilter";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { rankSearchNodes } from "../../utils/nodeSearch";
@@ -135,6 +137,15 @@ const styles = (theme: Theme, isMobile: boolean) =>
       fontWeight: FONT_WEIGHT.semibold,
       lineHeight: 1,
       flexShrink: 0
+    },
+
+    ".nl-missing-key": {
+      margin: theme.spacing(
+        SPACING.none,
+        isMobile ? SPACING.xs : SPACING.lg,
+        SPACING.xs,
+        isMobile ? SPACING.xs : SPACING.lg
+      )
     },
 
     ".nl-body": {
@@ -313,6 +324,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
     const clearDrag = useDragDropStore((s) => s.clearDrag);
     const recentNodes = useRecentNodesStore((s) => s.recentNodes);
+    const { needsMissingKey, showNodesWithoutKey } = useNodeProviderFilter();
 
     // Skipped on touch, where the virtual keyboard would cover the library.
     useEffect(() => {
@@ -322,10 +334,16 @@ const NodeLibrary = memo<NodeLibraryProps>(
     }, [autoFocusEnabled]);
 
     // Hidden nodes stay runnable but never appear in the palette, so the
-    // rail counts must leave them out to match the listed rows.
+    // rail counts must leave them out to match the listed rows. Nodes whose
+    // provider has no API key are left out the same way unless the user
+    // chose to see them.
     const allNodes = useMemo(
-      () => Object.values(metadataRecord).filter((node) => !node.hidden),
-      [metadataRecord]
+      () =>
+        Object.values(metadataRecord).filter(
+          (node) =>
+            !node.hidden && (showNodesWithoutKey || !needsMissingKey(node))
+        ),
+      [metadataRecord, showNodesWithoutKey, needsMissingKey]
     );
 
     const counts = useMemo(() => {
@@ -458,6 +476,8 @@ const NodeLibrary = memo<NodeLibraryProps>(
             </button>
           )}
         </div>
+
+        <MissingKeyNodesNotice className="nl-missing-key" />
 
         <div className="nl-body">
           <div className="nl-browse">

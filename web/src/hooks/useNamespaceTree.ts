@@ -4,7 +4,8 @@ import useMetadataStore from "../stores/MetadataStore";
 import useOptionalNodePacksStore from "../stores/OptionalNodePacksStore";
 import { useSecrets } from "./useSecrets";
 import { isNamespaceHiddenByOptionalPacks } from "../config/optionalNodePacks";
-import { getKeyGateForNamespace } from "../utils/providerPacks";
+import { namespaceNeedsMissingKey } from "../utils/providerPacks";
+import { useSettingsStore } from "../stores/SettingsStore";
 import {
   getProviderKindForNamespace,
   getRequiredSecretKeyForNamespace,
@@ -28,7 +29,8 @@ export interface NamespaceTree {
 /**
  * Builds a hierarchical namespace tree from node metadata. Namespaces from
  * optional packs the user hasn't enabled are excluded; key-gated provider
- * namespaces are hidden until their API key is set, and sorted enabled-first.
+ * namespaces are hidden until their API key is set, unless the user chose to
+ * see nodes that need a key. Namespaces are sorted enabled-first.
  */
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
@@ -36,6 +38,9 @@ const useNamespaceTree = (): NamespaceTree => {
     (state) => state.enabledPackIds
   );
   const { isApiKeySet } = useSecrets();
+  const showNodesWithoutKey = useSettingsStore(
+    (state) => state.settings.showNodesWithoutKey
+  );
 
   // Namespaces belonging to optional packs the user hasn't turned on are kept
   // out of the browsable tree. Search and direct node usage are unaffected.
@@ -75,8 +80,10 @@ const useNamespaceTree = (): NamespaceTree => {
       }
       // API key is the source of truth for providers: hide a key-gated
       // namespace until its key is set. Locally-run packs are never gated.
-      const requiredKey = getKeyGateForNamespace(namespace);
-      if (requiredKey !== null && !isApiKeySet(requiredKey)) {
+      if (
+        !showNodesWithoutKey &&
+        namespaceNeedsMissingKey(namespace, isApiKeySet)
+      ) {
         continue;
       }
       namespaces.push(namespace);
@@ -90,7 +97,13 @@ const useNamespaceTree = (): NamespaceTree => {
       }
       return aDisabled ? 1 : -1;
     });
-  }, [metadata, isNamespaceDisabled, isApiKeySet, enabledPacks]);
+  }, [
+    metadata,
+    isNamespaceDisabled,
+    isApiKeySet,
+    enabledPacks,
+    showNodesWithoutKey
+  ]);
 
   return useMemo(() => {
     const tree: NamespaceTree = {};

@@ -12779,6 +12779,14 @@
       "utility": "Dienstprogramm"
     }
   },
+  "missingKeyNodes": {
+    "hidden_one": "{{count}} Knoten braucht einen API-Schlüssel, den du nicht hinzugefügt hast.",
+    "hidden_other": "{{count}} Knoten brauchen einen API-Schlüssel, den du nicht hinzugefügt hast.",
+    "shown_one": "{{count}} Knoten, der einen API-Schlüssel braucht, wird angezeigt.",
+    "shown_other": "{{count}} Knoten, die einen API-Schlüssel brauchen, werden angezeigt.",
+    "show": "Anzeigen",
+    "hide": "Ausblenden"
+  },
   "namespaceList": {
     "nothingInNamespace": "In diesem Namensraum wurde nichts für „{{searchTerm}}“ gefunden",
     "nothingFound": "Für „{{searchTerm}}“ wurde nichts gefunden",

@@ -1,7 +1,8 @@
 import {
   isNamespaceKeyGated,
   getKeyGateForNamespace,
-  getRequiredKeyForBuiltinPack
+  getRequiredKeyForBuiltinPack,
+  namespaceNeedsMissingKey
 } from "../providerPacks";
 
 describe("providerPacks", () => {
@@ -28,7 +29,29 @@ describe("providerPacks", () => {
     });
   });
 
-  describe("getRequiredKeyForBuiltinPack", () => {
+  describe("namespaceNeedsMissingKey", () => {
+    const onlyOpenAi = (key: string) => key === "OPENAI_API_KEY";
+
+    it("flags API providers whose key is not set", () => {
+      expect(namespaceNeedsMissingKey("fal.image", onlyOpenAi)).toBe(true);
+      expect(namespaceNeedsMissingKey("replicate.image", onlyOpenAi)).toBe(
+        true
+      );
+    });
+
+    it("does not flag a provider whose key is set", () => {
+      expect(namespaceNeedsMissingKey("openai.chat", onlyOpenAi)).toBe(false);
+    });
+
+    it("never flags local or keyless namespaces", () => {
+      expect(namespaceNeedsMissingKey("nodetool.text", onlyOpenAi)).toBe(false);
+      expect(namespaceNeedsMissingKey("huggingface.text", onlyOpenAi)).toBe(
+        false
+      );
+    });
+  });
+
+    describe("getRequiredKeyForBuiltinPack", () => {
     it("maps keyed provider packs to their secret", () => {
       expect(getRequiredKeyForBuiltinPack("elevenlabs")).toBe(
         "ELEVENLABS_API_KEY"
