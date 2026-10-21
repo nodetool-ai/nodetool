@@ -2,11 +2,11 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-10-20T08:47:13.566Z",
-  "catalogGeneratedAt": "2026-10-20T08:47:12.111Z",
+  "updatedAt": "2026-10-21T08:48:17.657Z",
+  "catalogGeneratedAt": "2026-10-21T08:48:16.079Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
-  "catalogModels": 165,
-  "catalogOfferings": 563,
+  "catalogModels": 166,
+  "catalogOfferings": 566,
   "providers": [
     "atlascloud",
     "elevenlabs",
@@ -2255,6 +2255,15 @@
       "live": true,
       "source_url": "https://fal.ai/models/alibaba/wan-3.0/reference-to-video",
       "clip_seconds": null
+    },
+    "fal_ai:blackforestlabs/flux-3/edit-image": {
+      "unit_price": 0.048,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-3-image",
+      "match": "receipt",
+      "live": true,
+      "source_url": "https://fal.ai/models/blackforestlabs/flux-3/edit-image"
     },
     "fal_ai:blackforestlabs/flux-3/text-to-video/llms.txt": {
       "unit_price": 0.17,
@@ -7470,22 +7479,6 @@
           10
         ],
         "max": 10
-      }
-    },
-    "replicate:luma/ray-2-720p": {
-      "unit_price": 0.18,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "luma-ray-2",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://replicate.com/luma/ray-2-720p",
-      "clip_seconds": {
-        "set": [
-          5,
-          9
-        ],
-        "max": 9
       }
     },
     "replicate:minimax/hailuo-02": {
