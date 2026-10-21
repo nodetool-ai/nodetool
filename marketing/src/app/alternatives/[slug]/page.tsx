@@ -10,7 +10,7 @@ import FaqSection from "../../../components/FaqSection";
 import SearchStarter from "../../../components/SearchStarter";
 import HeroDemoPlayer from "../../../components/HeroDemoPlayer";
 import AlternativeMedia from "../../../components/AlternativeMedia";
-import { alternativeVisuals } from "../../../data/alternativesVisuals";
+import { alternativeVisuals, HERO_REEL } from "../../../data/alternativesVisuals";
 import { breadcrumbSchema, itemListSchema } from "../../../lib/jsonld";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import {
@@ -158,9 +158,9 @@ export default async function AlternativesPage({
           </div>
           <div className="mx-auto mt-12 max-w-5xl rounded-2xl border border-slate-800/70 bg-slate-900/40 p-2 shadow-2xl ring-1 ring-white/5">
             <HeroDemoPlayer
-              mediaBase={visuals.heroReel.base}
-              alt={visuals.heroReel.alt}
-              caption={visuals.heroReel.caption}
+              mediaBase={HERO_REEL.base}
+              alt={HERO_REEL.alt}
+              caption={HERO_REEL.caption}
             />
           </div>
         </section>
