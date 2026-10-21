@@ -61,6 +61,16 @@ const GAMES = [
     backend: "webgl2"
   },
   {
+    slug: "ridgeline",
+    name: "RIDGELINE",
+    description: "Fly a light jet from the island airfield, thread 13 gates through a river canyon and over the ridges at golden hour, and finish with a low pass over the runway.",
+    controls: "W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle · G gear · C camera · R reset · Drag to look",
+    sourceDir: path.join(ROOT, "packages/game-runtime/samples/ridgeline"),
+    posterTick: 1500,
+    inputs: "completion.inputs.json",
+    backend: "webgl2"
+  },
+  {
     slug: "kindle",
     name: "Kindle",
     description:

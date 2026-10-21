@@ -18,7 +18,7 @@ export default function GameShowcase() {
         <h2 id="example-games-title" className="text-2xl font-semibold text-slate-100">Pick a world. Press play.</h2>
         <p className="text-sm text-slate-300">Real games made in NodeTool.</p>
       </div>
-      <div role="group" aria-label="Example games" className="mb-6 grid grid-cols-3 gap-3">
+      <div role="group" aria-label="Example games" className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {gameExamples.map((game) => (
           <button key={game.slug} type="button" aria-pressed={selected.slug === game.slug} aria-controls="game-preview" onClick={() => {
             if (game.slug !== selected.slug) {
@@ -26,7 +26,7 @@ export default function GameShowcase() {
               setPlaying(false);
             }
           }} className={`focus-ring overflow-hidden rounded-lg border text-left transition-colors motion-reduce:transition-none ${selected.slug === game.slug ? "border-cyan-300 bg-slate-800" : "border-slate-700 bg-slate-950 hover:border-slate-400"}`}>
-            <Image src={`/games/${game.slug}/poster.jpg`} alt="" width={1280} height={720} sizes="(min-width: 1024px) 400px, 33vw" className="aspect-video w-full object-cover" />
+            <Image src={`/games/${game.slug}/poster.jpg`} alt="" width={1280} height={720} sizes="(min-width: 1024px) 300px, (min-width: 640px) 25vw, 50vw" className="aspect-video w-full object-cover" />
             <span className="block px-3 py-3 text-sm font-medium text-slate-100 sm:text-lg">{game.name}</span>
           </button>
         ))}
@@ -46,7 +46,7 @@ export default function GameShowcase() {
             )}
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-slate-300">{playing ? "Click inside the game, then press Space to start." : "The game loads when you press play."}</p>
+            <p className="text-sm text-slate-300">{playing ? selected.startHint : "The game loads when you press play."}</p>
             {playing && <button type="button" onClick={() => setPlaying(false)} className="focus-ring inline-flex items-center gap-2 rounded text-sm text-slate-100 hover:text-cyan-200"><Square className="h-4 w-4" aria-hidden="true" /> Stop game</button>}
           </div>
         </div>

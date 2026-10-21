@@ -152,7 +152,7 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly onAbort = (): void => this.dispose();
 
   constructor(private readonly renderer: THREE.WebGLRenderer, private readonly options: CreateGameRenderer3DOptions) {
-    this.modelCache = new GameModelCache3D(options, this.controller);
+    this.modelCache = new GameModelCache3D(options, this.controller, renderer.capabilities.getMaxAnisotropy());
     this.fonts = new GameFonts3D(options, this.controller, this.diagnostics);
     this.decals = new GameDecals3D(this.scene, options, this.controller.signal, this.diagnostics, options.onDiagnostic);
     this.sky = new GameSkyRenderer3D(renderer, options, this.controller.signal, this.diagnostics);

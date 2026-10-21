@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 
+interface NativeGame3DWindow extends Window {
+  readonly nativeGame3DPlayer: { readonly snapshot: () => { readonly sceneId: string } };
+}
+
 interface NativeGameWindow extends Window {
   readonly nativeGamePlayer: {
     readonly snapshot: () => { readonly sceneId: string };
@@ -22,7 +26,7 @@ for (const game of games) {
     await expect(page).toHaveTitle(/Open-Source AI Game Engine/);
     await expect(page.locator("h1")).toHaveCount(1);
     const section = page.locator("#example-games");
-    expect(await section.getByRole("group", { name: "Example games" }).getByRole("button").allTextContents()).toEqual(games.map((example) => example.name));
+    expect(await section.getByRole("group", { name: "Example games" }).getByRole("button").allTextContents()).toEqual([...games.map((example) => example.name), "RIDGELINE"]);
     await expect(section.locator("iframe")).toHaveCount(0);
     await section.getByRole("button", { name: game.name, exact: true }).click();
     await expect(section.locator("iframe")).toHaveCount(0);
@@ -55,6 +59,29 @@ for (const game of games) {
     await expect(section.locator("iframe")).toHaveCount(0);
   });
 }
+
+test("RIDGELINE loads only on request and starts its 3D scene", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/gamedev");
+  const section = page.locator("#example-games");
+  await section.getByRole("button", { name: "RIDGELINE", exact: true }).click();
+  await expect(section.locator("iframe")).toHaveCount(0);
+  await section.getByRole("button", { name: "Play RIDGELINE here", exact: true }).click();
+  const player = section.frameLocator("iframe");
+  await expect(player.locator("#status")).toContainText("Ready", { timeout: 60_000 });
+  await expect(section.getByText("hold Shift to open the throttle")).toBeVisible();
+  await player.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect(player.getByRole("button", { name: "Resume", exact: true })).toBeVisible();
+  const scene = await player.locator("canvas").evaluate((element) => {
+    // The 3D player exposes its public API on the frame window.
+    const view = element.ownerDocument.defaultView as unknown as NativeGame3DWindow;
+    return view.nativeGame3DPlayer.snapshot().sceneId;
+  });
+  expect(scene).toBe("island");
+  await expect(section.getByRole("link", { name: "Open full game" })).toHaveAttribute("href", "/games/ridgeline/index.html");
+  await section.getByRole("button", { name: "Stop game", exact: true }).click();
+  await expect(section.locator("iframe")).toHaveCount(0);
+});
 
 test("changing games removes the running player and works by keyboard", async ({ page }) => {
   await page.goto("/gamedev");

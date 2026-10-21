@@ -8,7 +8,7 @@ import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } fr
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, SCRIPT_SYNCHRONOUS_RESULT, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript, canReuseGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
-import { ScriptWorldSnapshot, type ScriptWorldEntity } from "./script-world.js";
+import { createScriptWorldBinding, ScriptWorldSnapshot, type ScriptWorldBinding, type ScriptWorldEntity } from "./script-world.js";
 import { prefabScriptSourceKey, sceneScriptSourceKey, scriptSourceKey } from "./script-source.js";
 export { scriptSourceKey } from "./script-source.js";
 
@@ -248,8 +248,8 @@ interface ScriptRealm {
   readonly queryJson: QuickJSHandle;
   readonly worldGetter: QuickJSHandle;
   setWorldReader(reader: (() => QuickJSHandle) | undefined): void;
-  /** Reused realms read the call's `world` through a frozen global accessor. Other realms ignore this. */
-  setGlobalWorld(world: QuickJSHandle | undefined): void;
+  /** Reused realms read the call's `world` through a frozen global accessor bound to this object. */
+  readonly worldBinding?: ScriptWorldBinding;
 }
 
 /** A context with the transport helpers installed and no user source evaluated yet. */
@@ -257,7 +257,7 @@ type RealmShell = Omit<ScriptRealm, "sourceKey">;
 
 function disposeRealm(realm: RealmShell): void {
   realm.setWorldReader(undefined);
-  realm.setGlobalWorld(undefined);
+  realm.worldBinding?.dispose();
   realm.worldGetter.dispose();
   realm.queryJson.dispose();
   realm.defineData.dispose();
@@ -405,15 +405,16 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
     let queryJson: QuickJSHandle | undefined;
     let worldGetter: QuickJSHandle | undefined;
     let worldReader: (() => QuickJSHandle) | undefined;
-    let globalWorld: QuickJSHandle | undefined;
-    const setGlobalWorld = (world: QuickJSHandle | undefined): void => { globalWorld?.dispose(); globalWorld = world; };
+    let worldBinding: ScriptWorldBinding | undefined;
     try {
+      worldBinding = reusable ? createScriptWorldBinding(context) : undefined;
+      const binding = worldBinding;
       worldGetter = persistent ? context.newFunction("legacyWorld", () => {
         if (!worldReader) { throw new Error("Legacy world read outside an active script call"); }
         return worldReader();
-      }) : reusable ? context.newFunction("world", () => {
-        if (!globalWorld) { throw new Error("world read outside an active script call"); }
-        return globalWorld.dup();
+      }) : binding ? context.newFunction("world", () => {
+        if (!binding.world) { throw new Error("world read outside an active script call"); }
+        return binding.world.dup();
       }) : context.undefined.dup();
       // Capture pristine helpers together, without introducing bindings visible to user source.
       const helpers = initializeContext(context, seed, `[
@@ -444,9 +445,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         queryJson = context.getProp(helpers, 1);
         invoke = context.getProp(helpers, 2);
       } finally { helpers.dispose(); }
-      return { context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; }, setGlobalWorld };
+      return { context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; }, worldBinding };
     } catch (error) {
-      setGlobalWorld(undefined); worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
+      worldBinding?.dispose(); worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
     }
   };
   /** Evaluates user source in the shell, which this takes ownership of. A reusable realm is then frozen. */
@@ -652,7 +653,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             const { context, invoke, defineData, worldGetter } = active;
             if (!persistent) {
               worldCall = getHostWorld().install(context, checkCallDeadline, active.defineData, active.queryJson,
-                reusable ? (world) => { active.setGlobalWorld(world.dup()); } : undefined);
+                reusable ? active.worldBinding : undefined);
             }
             checkCallDeadline();
             // The shared input is serialized once per tick; only the call is serialized per call.
@@ -694,7 +695,6 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           } finally {
             worldCall?.end();
             worldHandle?.dispose();
-            realm?.setGlobalWorld(undefined);
             if (!persistent && !reusable && realm) { disposeRealm(realm); }
           }
         };
@@ -704,7 +704,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             output = guestCall(false);
           } else {
             try { output = guestCall(true); } catch (error) {
-              if (performance.now() >= batchDeadline || callExceeded()) { throw error; }
+              // A frozen Error.prototype strips the message from a host function's error, so a budget that ran out
+              // inside one is named here.
+              if (performance.now() >= batchDeadline || callExceeded()) { checkCallDeadline(); throw error; }
               // Strict mode or a frozen built-in rejected the call. A fresh realm runs it as written, so this source
               // keeps using fresh realms. Either way the call sees only its own input.
               reusableSources.delete(call.sourceKey);
