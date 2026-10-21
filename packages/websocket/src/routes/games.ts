@@ -4,7 +4,7 @@
  * `GET /api/games/:id/export-zip` builds the game's published revision with
  * the same path as the `build_native_game` capability, into the project
  * workspace, and streams that build as a zip: `target=web` is the static web
- * player, `target=tauri` the desktop app project.
+ * player, `target=tauri` the desktop app project, `target=expo` the mobile app project.
  *
  * `GET /api/game-play/:token/*` serves one file of a published web build to a
  * player that holds a play token from `games.playSession`, and nothing else.
@@ -39,6 +39,9 @@ function jsonError(status: number, detail: string, extra: Record<string, string>
   return new Response(JSON.stringify({ detail, ...extra }), { status, headers: { "content-type": "application/json" } });
 }
 
+/** Top-level folder in each export zip. */
+const EXPORT_FOLDERS = { web: "web", tauri: "desktop", expo: "mobile" } as const;
+
 const GAME_ID_PARAMS = { type: "object", properties: { id: { type: "string", minLength: 1 } }, required: ["id"] } as const;
 
 /**
@@ -70,7 +73,7 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       querystring: {
         type: "object",
         properties: {
-          target: { type: "string", enum: ["web", "tauri"] },
+          target: { type: "string", enum: ["web", "tauri", "expo"] },
           revision: { type: "string", pattern: "^[a-f0-9]{32}$" }
         },
         additionalProperties: false
@@ -78,7 +81,7 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     }
   }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const query = req.query as { target?: "web" | "tauri"; revision?: string };
+    const query = req.query as { target?: "web" | "tauri" | "expo"; revision?: string };
     await bridge(req, reply, async (request) => {
       const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
       const target = query.target ?? "web";
@@ -94,7 +97,7 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         .filter((entry) => !entry.isDirectory)
         .sort((a, b) => a.path.localeCompare(b.path));
       const prefix = `${buildPath}/`;
-      const folder = target === "tauri" ? "desktop" : "web";
+      const folder = EXPORT_FOLDERS[target];
       const body = streamZip(async (writer) => {
         for (const entry of entries) {
           const relative = entry.path.startsWith(prefix) ? entry.path.slice(prefix.length) : entry.path;
@@ -161,10 +164,10 @@ const gamesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         return jsonError(built.error === "Game not found" || built.error === "Game revision not found" ? 404 : 422, built.error);
       }
       const localDir = built.workspace.localDir;
-      if (!localDir || !built.app) {
+      const app = built.app;
+      if (!localDir || !app || !("crateName" in app)) {
         return jsonError(422, "Building an executable needs a project workspace on this machine's disk.");
       }
-      const app = built.app;
       const projectDir = join(localDir, built.build_path);
       const out = new PassThrough();
       const send = (event: GameExecutableBuildEvent): void => { out.write(`${JSON.stringify(event)}\n`); };

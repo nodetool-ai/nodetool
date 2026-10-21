@@ -123,13 +123,14 @@ function drawDefaultIcon(context: SKRSContext2D, size: number): void {
   context.fill();
 }
 
-interface RenderedIcon {
+export interface RenderedIcon {
   readonly size: number;
   readonly png: Uint8Array;
   readonly rgba: Uint8ClampedArray;
 }
 
-async function renderIcons(sizes: readonly number[], source?: Uint8Array): Promise<Map<number, RenderedIcon>> {
+/** Square app icons at each size, cropped from `source` or drawn as the default NodeTool game icon. */
+export async function renderIcons(sizes: readonly number[], source?: Uint8Array): Promise<Map<number, RenderedIcon>> {
   const image = source ? await loadImage(Buffer.from(source)) : null;
   if (image && (image.width < 1 || image.height < 1)) { throw new Error("App icon image is empty"); }
   const icons = new Map<number, RenderedIcon>();

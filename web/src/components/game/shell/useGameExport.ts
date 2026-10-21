@@ -9,7 +9,7 @@ export interface GameExportState {
   readonly dismiss: () => void;
 }
 
-/** Downloads the game's published revision as a web player or a Tauri desktop project, one export at a time. */
+/** Downloads the game's published revision as a web player, a Tauri desktop project or an Expo mobile project, one export at a time. */
 export function useGameExport(game: { readonly id: string; readonly name: string } | undefined): GameExportState {
   const [exporting, setExporting] = useState<GameExportTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
