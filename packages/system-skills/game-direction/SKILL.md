@@ -21,6 +21,7 @@ the brief asks for a change. `native-game` owns the tool and schema contracts.
 | Pacing sheet | Ordered teaching beats, their safe practice area, challenge, recovery, and finish |
 | Asset plan | Hero poses, aligned frames, terrain edge variants, effects, sound cues, music, and fonts |
 | Proof route | Start scene, required targets, win signal, expected duration, and captures at the teaching beat and hardest section |
+| Performance budget | Game type, slowest target machine and display rate (60 or 120 Hz), then the draw call, triangle, cascade, particle and script budgets that follow from them |
 
 For a small prototype, keep each row to one sentence and use only the layers
 and assets the brief needs. The jump, coyote and layer rows assume a side-view
@@ -34,6 +35,17 @@ A showcase needs a visible depth plan and a finished art pass. Load
 fields, and `list_example_games` and `get_example_game` for shipped references. Study Kindle for a platformer
 with animated poses, terrain edges, parallax, lights, sound cues, and a grade.
 Use its decisions as a benchmark for the brief, without copying its theme.
+
+## Performance budget
+
+Decide the budget with the look, because the look spends it. Pick the game type
+row in `native-game-performance`, name the slowest Mac the game must run on,
+and choose 60 Hz (`frameMs` 16.6) or 120 Hz (`frameMs` 8.3). Then plan the
+scene inside that row: how many shadow cascades and how far they reach, which
+meshes cast, which props merge into one model, how many particles and soft
+emitters the busiest moment shows, and how many scripts drive it. A sweeping
+vista, dense forest or particle storm is a budget decision, not only an art one.
+Record the budget with `set_performance` before the art pass.
 
 ## One style string
 
@@ -91,7 +103,8 @@ assert the win as `native-game` § Build and revise describes. For a custom
 scripted goal, assert the game's own victory signal, not only a target contact.
 
 Capture the start, a representative play section, the busiest frame, and the
-finish using the proof route. Captures return image refs, so call
+finish using the proof route. Run the performance gate in `native-game` on the
+same route, and report the measured frame and tick p95 beside the visual checks. Captures return image refs, so call
 `view_image` on each frame before judging it. Inspect the images against the
 locked layer plan, silhouette contrast, terrain joins, foot alignment, HUD, lighting, and grade.
 Schema validation proves structure. An executed route proves that route can

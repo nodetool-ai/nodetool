@@ -35,7 +35,8 @@ surface. Of the motion skills, only `motion-graphics`, `caption-titles` and
 `video-audio-continuity` are featured: `motion-graphics` loads the craft skills
 it needs, so their catalog lines would buy no routing. The model guides are
 reached through `find_model`, and the brief shapes, `api-*` references and
-`native-game-reference` through the skills and prompt lines that point at them.
+`native-game-reference` and `native-game-performance` through the skills and
+prompt lines that point at them.
 
 ## The object-model references
 
@@ -90,6 +91,7 @@ one working on this repository alike.
 | `storyboard-core` | Storyboards, entity casting, rendering, timeline assembly — the contract the job and board skills quote |
 | `native-game` | Built-in games, generated asset installation, and playtests |
 | `native-game-reference` | The game document in detail: schema versions, scripts, visuals, physics, audio, input, HUD |
+| `native-game-performance` | Frame and tick targets, budgets per game type, cost rules, and the bench, capture and perf loop |
 | `game-direction` | Game feel, teaching beats, layered art, and completion evidence |
 
 The job skills that sit on `storyboard-core`, each one a brief shape rather

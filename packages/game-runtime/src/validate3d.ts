@@ -23,6 +23,22 @@ export interface GameValidationResult3D {
 }
 
 /** Structural and semantic validation happens before preparing assets or physics. */
+/** Horizontal size, in world units, from which a casting mesh is treated as terrain or ground. */
+const LARGE_SHADOW_CASTER_3D = 100;
+
+/** The larger horizontal extent of an entity's casting mesh, or undefined when it casts no shadow. */
+function shadowCasterFootprint3D(document: GameDocument3D, entity: GameEntity3D): number | undefined {
+  if (entity.templateOnly) { return undefined; }
+  const scale = entity.transform3d.scale;
+  if (entity.primitive?.castShadow) {
+    const { x, z } = entity.primitive.dimensions;
+    return Math.max(x * scale.x, z * scale.z);
+  }
+  const asset = entity.model?.castShadow ? document.assets[entity.model.assetId] : undefined;
+  if (asset?.mediaKind !== "model") { return undefined; }
+  return Math.max((asset.bounds.max.x - asset.bounds.min.x) * scale.x, (asset.bounds.max.z - asset.bounds.min.z) * scale.z);
+}
+
 export function validateGame3D(value: unknown): GameValidationResult3D {
   const parsed = gameDocument3D.safeParse(value);
   const diagnostics: GameDiagnostic[] = [];
@@ -243,6 +259,15 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         if (!sun || sun.templateOnly || sun.light3d?.kind !== "directional") { add("invalid_sky_sun", [...path, "environment", "sky", "sunEntityId"], "Procedural sky sun must select a directional light in the scene"); }
       }
       if (scene.music && document.assets[scene.music.assetId]?.mediaKind !== "audio") { add("missing_asset", [...path, "music", "assetId"], "Scene music requires an audio binding"); }
+      const sunCasts = scene.entities.some((entity) => !entity.templateOnly && entity.light3d?.kind === "directional" && entity.light3d.castShadow);
+      if (scene.environment.shadows.enabled && scene.environment.shadows.cascades && sunCasts) {
+        for (const [entityIndex, entity] of scene.entities.entries()) {
+          const footprint = shadowCasterFootprint3D(document, entity);
+          if (footprint === undefined || footprint < LARGE_SHADOW_CASTER_3D) { continue; }
+          warnings.push({ code: "large_shadow_caster", path: [...path, "entities", entityIndex, entity.model ? "model" : "primitive", "castShadow"],
+            message: `${entity.id} is ${Math.round(footprint)} units across and casts into every shadow cascade. Set castShadow false on terrain and ground, which still receive shadows. Split props that must cast into chunks the cascades can cull` });
+        }
+      }
     }
     for (const [prefabId, prefab] of Object.entries(document.prefabs)) {
       const path = ["prefabs", prefabId];

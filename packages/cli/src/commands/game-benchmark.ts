@@ -1,8 +1,9 @@
 import { Session } from "node:inspector/promises";
 import { performance } from "node:perf_hooks";
 import { arch, cpus, platform } from "node:os";
-import { createGameSession3D, createScriptedGameSession, validateAnyGame } from "@nodetool-ai/game-runtime";
-import type { AnyGameDocument } from "@nodetool-ai/protocol";
+import { createGameSession3D, createScriptedGameSession, validateAnyGame, type GameSession3DOptions } from "@nodetool-ai/game-runtime";
+import type { AnyGameDocument, GameInputFrame3D } from "@nodetool-ai/protocol";
+import type { GameInputFrame } from "@nodetool-ai/protocol/game.js";
 
 export interface GameBenchmarkPercentiles {
   readonly p50: number;
@@ -22,6 +23,8 @@ export interface GameBenchmarkReport {
   readonly seed: number;
   readonly ticks: number;
   readonly warmupTicks: number;
+  /** Ticks driven by the recorded route. Later ticks receive empty input. */
+  readonly inputTicks: number;
   readonly tickMs: GameBenchmarkPercentiles;
   readonly scriptMs: GameBenchmarkPercentiles;
   readonly scriptCalls: number;
@@ -33,21 +36,32 @@ export interface GameBenchmarkReport {
   readonly machine: { readonly platform: string; readonly architecture: string; readonly cpu: string; readonly node: string };
 }
 
+export interface GameBenchmarkOptions {
+  /** Tick-indexed input frames from tick 0, which includes the warmup. A route measures play instead of an idle game. */
+  readonly inputs?: readonly (GameInputFrame | GameInputFrame3D)[];
+  /** Loads the prepared collider assets of a 3D game. */
+  readonly resolveCollider?: GameSession3DOptions["resolveCollider"];
+}
+
 /** Measure the fixed simulation tick, including rendering-frame construction. */
-export async function benchmarkNativeGame(document: AnyGameDocument, ticks = 1200, warmupTicks = 300, seed = 1): Promise<GameBenchmarkReport> {
+export async function benchmarkNativeGame(document: AnyGameDocument, ticks = 1200, warmupTicks = 300, seed = 1, options: GameBenchmarkOptions = {}): Promise<GameBenchmarkReport> {
   if (![ticks, warmupTicks, seed].every(Number.isSafeInteger) || ticks < 1 || ticks > 100_000 || warmupTicks < 0 || warmupTicks > 100_000 || seed < 0 || seed > 0xffffffff) { throw new Error("Invalid benchmark tick count, warmup or seed"); }
   const validation = validateAnyGame(document);
   if (!validation.valid) { throw new Error(validation.diagnostics.map((issue) => issue.message).join(", ")); }
   const session = document.schemaVersion === 3
-    ? await createGameSession3D(document, seed, undefined, { recordTimings: true })
+    ? await createGameSession3D(document, seed, undefined, { recordTimings: true, resolveCollider: options.resolveCollider })
     : await createScriptedGameSession(document, seed, undefined, undefined, { recordTimings: true });
-  const input = { pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 } };
+  const idle = { pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 } };
+  const inputs = options.inputs ?? [];
+  let tick = 0;
+  // The caller parses the route with the schema of the document's dimension, so each frame suits this session.
+  const nextInput = () => (inputs[tick++] ?? idle) as GameInputFrame & GameInputFrame3D;
   const profiler = new Session();
   const samplingIntervalBytes = 32768;
   let connected = false;
   let sampling = false;
   try {
-    for (let index = 0; index < warmupTicks; index++) { session.step(input); }
+    for (let index = 0; index < warmupTicks; index++) { session.step(nextInput()); }
     const heapBefore = process.memoryUsage().heapUsed;
     const tickSamples: number[] = [];
     const scriptSamples: number[] = [];
@@ -56,6 +70,7 @@ export async function benchmarkNativeGame(document: AnyGameDocument, ticks = 120
     const contactSamples: number[] = [];
     let scriptCalls = 0;
     for (let index = 0; index < ticks; index++) {
+      const input = nextInput();
       const start = performance.now();
       const result = session.step(input);
       tickSamples.push(performance.now() - start);
@@ -85,7 +100,7 @@ export async function benchmarkNativeGame(document: AnyGameDocument, ticks = 120
     await profiler.post("HeapProfiler.startSampling", samplingOptions);
     sampling = true;
     const allocationTicks = Math.min(ticks, 10);
-    for (let index = 0; index < allocationTicks; index++) { session.step(input); }
+    for (let index = 0; index < allocationTicks; index++) { session.step(nextInput()); }
     const { profile } = await profiler.post("HeapProfiler.stopSampling");
     sampling = false;
     let sampledBytes = 0;
@@ -94,7 +109,7 @@ export async function benchmarkNativeGame(document: AnyGameDocument, ticks = 120
       sampledBytes += nodes[index].selfSize;
       nodes.push(...nodes[index].children);
     }
-    return { documentId: document.id, seed, ticks, warmupTicks, tickMs: gameBenchmarkPercentiles(tickSamples), scriptMs: gameBenchmarkPercentiles(scriptSamples), scriptCalls,
+    return { documentId: document.id, seed, ticks, warmupTicks, inputTicks: Math.min(inputs.length, warmupTicks + ticks), tickMs: gameBenchmarkPercentiles(tickSamples), scriptMs: gameBenchmarkPercentiles(scriptSamples), scriptCalls,
       perSystemMs: Object.fromEntries([...systemSamples].map(([name, samples]) => [name, gameBenchmarkPercentiles(samples)])), perSystemUnavailableReason: null, heapDeltaBytes,
       physicsCounts: { bodies: gameBenchmarkPercentiles(bodySamples), contacts: gameBenchmarkPercentiles(contactSamples) },
       allocations: { sampledBytes, ticks: allocationTicks, samplingIntervalBytes, method: "V8 sampling heap profiler with collected allocations included. Statistical byte estimate, excludes WASM allocations" },

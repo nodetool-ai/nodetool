@@ -13,6 +13,7 @@ import { projectGameplayHud } from "../gameplay/lifecycle.js";
 import { type EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { animationPose3D } from "./animation-graph3d.js";
+import { copyTransform3D } from "../spatial3d/math.js";
 type PresentationContext3D = Readonly<Pick<GameSystemContext3D, "tick" | "events" | "frame" | "scriptStats" | "scriptLogs" | "scriptSaves" | "queues">> &
   Pick<GameSystemContext3D, "presentationEvents" | "result">;
 export function stepPresentation3D(context: PresentationContext3D): void {
@@ -56,6 +57,43 @@ function cullDistanceResolver3D(document: GameDocument3D, states: readonly Entit
   };
 }
 
+/** The frame parts that depend only on the document. A session's document does not change, so each is built once. */
+interface DocumentFrameParts3D {
+  readonly fonts: GameRenderFrame3D["fonts"];
+  readonly materials: GameRenderFrame3D["materials"];
+  readonly images: GameRenderFrame3D["images"];
+  readonly collectibles: boolean;
+}
+
+const documentFrameParts = new WeakMap<GameDocument3D, DocumentFrameParts3D>();
+
+/** Freezes a copy that every frame shares, so a consumer that writes to it fails instead of changing later frames. */
+function deepFreeze<Value>(value: Value): Value {
+  if (value instanceof Object && !Object.isFrozen(value)) {
+    for (const entry of Object.values(value)) { deepFreeze(entry); }
+    Object.freeze(value);
+  }
+  return value;
+}
+
+function documentFrameParts3D(document: GameDocument3D): DocumentFrameParts3D {
+  let parts = documentFrameParts.get(document);
+  if (!parts) {
+    const images = Object.fromEntries(Object.entries(document.assets)
+      .flatMap(([slot, binding]) => binding.mediaKind === "image" ? [[slot, structuredClone(binding)]] : []));
+    parts = {
+      // The container is shared and frozen. Its bindings are the document's own, as before.
+      fonts: Object.freeze(Object.fromEntries(Object.entries(document.assets).flatMap(([slot, binding]) => (binding.mediaKind === "font" ? [[slot, binding]] : [])))),
+      materials: document.materials === undefined ? undefined : deepFreeze(structuredClone(document.materials)),
+      images: Object.keys(images).length > 0 ? deepFreeze(images) : undefined,
+      collectibles: document.scenes.some((candidate) => candidate.entities.some((entity) =>
+        entity.behaviors.some((behavior) => behavior.kind === "collectible" || behavior.kind === "winWhenCollected")))
+    };
+    documentFrameParts.set(document, parts);
+  }
+  return parts;
+}
+
 export function frame3D(
   document: GameDocument3D,
   scene: GameScene3D,
@@ -73,19 +111,18 @@ export function frame3D(
   if (!cameraDefinition) {
     throw new Error(`Missing active camera ${camera.entityId}`);
   }
+  const parts = documentFrameParts3D(document);
   const frame: GameRenderFrame3D = {
     dimension: "3d",
     gameId: document.id,
     sceneId: scene.id,
     tick,
     presentation: document.presentation,
-    fonts: Object.fromEntries(
-      Object.entries(document.assets).flatMap(([slot, binding]) => (binding.mediaKind === "font" ? [[slot, binding]] : []))
-    ),
+    fonts: parts.fonts,
     camera: {
       entityId: camera.entityId,
-      transform: structuredClone(camera.transform),
-      previousTransform: structuredClone(previousCamera),
+      transform: copyTransform3D(camera.transform),
+      previousTransform: copyTransform3D(previousCamera),
       projection: cameraDefinition.projection
     },
     entities: states
@@ -93,8 +130,8 @@ export function frame3D(
       .map((state) => {
         const lifetime = state.definition.behaviors.find((behavior) => behavior.kind === "lifetime");
         const progress = lifetime?.kind === "lifetime" ? Math.max(0, Math.min(1, (tick - state.spawnTick) / lifetime.ticks)) : 0;
-        const transform = structuredClone(state.transform);
-        const previousTransform = structuredClone(state.previousTransform);
+        const transform = copyTransform3D(state.transform);
+        const previousTransform = copyTransform3D(state.previousTransform);
         if (lifetime?.kind === "lifetime") {
           const scale = 1 + (lifetime.endScale - 1) * progress;
           const previousScale = 1 + (lifetime.endScale - 1) * Math.max(0, (tick - state.spawnTick - 1) / lifetime.ticks);
@@ -143,20 +180,11 @@ export function frame3D(
       .filter((state) => state.active && state.definition.light3d)
       .map((state) => ({
         entityId: state.definition.id,
-        transform: structuredClone(state.transform),
+        transform: copyTransform3D(state.transform),
         light: state.definition.light3d!
       })),
     environment: scene.environment,
-    hud: projectGameplayHud(
-      document.scenes.some((candidate) =>
-        candidate.entities.some((entity) =>
-          entity.behaviors.some((behavior) => behavior.kind === "collectible" || behavior.kind === "winWhenCollected")
-        )
-      ),
-      score,
-      won,
-      hud
-    )
+    hud: projectGameplayHud(parts.collectibles, score, won, hud)
   };
   const uiFrame = resolveGameUiFrame(document.ui, scene.ui, ui, (entityId) => {
     const state = states.find((candidate) => candidate.definition.id === entityId);
@@ -167,9 +195,8 @@ export function frame3D(
   if (uiFrame) {
     frame.ui = uiFrame;
   }
-  if (document.materials !== undefined) { frame.materials = structuredClone(document.materials); }
-  const images = Object.fromEntries(Object.entries(document.assets)
-    .flatMap(([slot, binding]) => binding.mediaKind === "image" ? [[slot, structuredClone(binding)]] : []));
-  if (Object.keys(images).length > 0) { frame.images = images; }
+  // Frames share these frozen document copies.
+  if (parts.materials !== undefined) { frame.materials = parts.materials; }
+  if (parts.images !== undefined) { frame.images = parts.images; }
   return frame;
 }
