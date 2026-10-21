@@ -10,6 +10,13 @@ interface UndoGroup {
   begin: () => void;
   /** Finish the edit. Safe to call when no edit is open. */
   end: () => void;
+  /**
+   * Start an edit that ends at `end` or, at the latest, when the pointer is
+   * released. For gestures whose end callback only fires after movement, such
+   * as React Flow's resizer: a click without a drag would otherwise leave
+   * history paused, and every later edit would be missing from undo.
+   */
+  beginGesture: () => void;
 }
 
 /**
@@ -42,7 +49,23 @@ export function useUndoGroup(): UndoGroup {
     openRef.current = endGroup;
   }, [beginGroup, endGroup]);
 
+  const beginGesture = useCallback((): void => {
+    if (openRef.current) {
+      return;
+    }
+    begin();
+    const release = (): void => {
+      window.removeEventListener("pointerup", release, true);
+      window.removeEventListener("pointercancel", release, true);
+      // Let the gesture's own end callback, which fires on the mouseup
+      // after this pointerup, close the edit first.
+      setTimeout(end, 0);
+    };
+    window.addEventListener("pointerup", release, true);
+    window.addEventListener("pointercancel", release, true);
+  }, [begin, end]);
+
   useEffect(() => end, [end]);
 
-  return { begin, end };
+  return { begin, end, beginGesture };
 }

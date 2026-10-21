@@ -112,7 +112,7 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
         minWidth={minWidth}
         minHeight={minHeight}
         onResize={onResize}
-        onResizeStart={resizeUndoGroup.begin}
+        onResizeStart={resizeUndoGroup.beginGesture}
         onResizeEnd={resizeUndoGroup.end}
         keepAspectRatio={keepAspectRatio}
         // The handle box clips the control, so inverse-zoom scaling only crops

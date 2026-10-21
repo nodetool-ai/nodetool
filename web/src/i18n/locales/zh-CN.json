@@ -12548,7 +12548,7 @@
     "groupNode": {
       "defaultTitle": "分组",
       "selectGroup": "选择分组节点：",
-      "selectInstructions": "按住 CTRL 或 ⌘ 键并点击",
+      "selectInstructions": "点击标签。按住 Shift 或 CTRL | ⌘ 点击可加入选择",
       "editTitle": "编辑分组标题：",
       "editInstructions": "双击标签",
       "headlineLabel": "分组标题",
