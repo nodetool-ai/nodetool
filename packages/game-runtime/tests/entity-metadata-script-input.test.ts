@@ -60,13 +60,26 @@ describe("script input carries each entity's props once", () => {
   });
 
   it("still rejects a logical input above 64 KiB", async () => {
+    // Only the props of entities that run a call count. Other props travel with the world when a script reads it.
     const document = document2D({
       player: { props: { blob }, behaviors: [script("() => ({state:null,commands:[]})")] },
-      gem: { props: { blob } }
+      gem: { props: { blob }, behaviors: [script("() => ({state:null,commands:[]})")] }
     });
     const session = await createScriptedGameSession(document, 1);
     try { expect(() => session.step(input)).toThrow(/Game script input exceeds 64 KiB/); }
     finally { session.dispose(); }
+  });
+
+  it("leaves the props of entities without a call out of the 64 KiB input", async () => {
+    const document = document2D({
+      player: { props: { blob }, behaviors: [script("({world}) => ({state:world.find(item=>item.id==='gem').props.blob.length,commands:[]})")] },
+      gem: { props: { blob } }
+    });
+    const session = await createScriptedGameSession(document, 1);
+    try {
+      session.step(input);
+      expect(Object.values(session.snapshot().scriptState)).toContainEqual(40_000);
+    } finally { session.dispose(); }
   });
 });
 
