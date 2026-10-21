@@ -20,16 +20,7 @@ import type {
  * drag-to-canvas remain for adding them again or placing them by hand.
  * Generation routes through the normal chat pipeline.
  */
-interface CanvasMediaComposerProps {
-  /** The workflow toolbar (Run button + menu) rendered as the composer's
-   *  last row. Supplied by FloatingToolBar; kept here so the canvas composer
-   *  stays a thin wrapper over MediaChatComposer. */
-  trailingActions?: React.ReactNode;
-}
-
-const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
-  trailingActions
-}) => {
+const CanvasMediaComposer: React.FC = () => {
   const {
     status,
     sendMessage,
@@ -120,7 +111,6 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
       autoFocus={false}
-      trailingActions={trailingActions}
     />
   );
 };

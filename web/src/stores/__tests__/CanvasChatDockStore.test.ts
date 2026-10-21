@@ -1,18 +1,18 @@
 import useCanvasChatDockStore, {
-  DEFAULT_OVERLAY_HEIGHT,
-  MAX_DOCK_WIDTH,
-  MAX_OVERLAY_HEIGHT,
-  MIN_DOCK_WIDTH,
-  MIN_OVERLAY_HEIGHT,
-  defaultComposerCollapsed
+  DEFAULT_WINDOW_HEIGHT,
+  DEFAULT_WINDOW_WIDTH,
+  MAX_WINDOW_HEIGHT,
+  MAX_WINDOW_WIDTH,
+  MIN_WINDOW_HEIGHT,
+  MIN_WINDOW_WIDTH,
+  defaultConversationCollapsed
 } from "../CanvasChatDockStore";
 
 const reset = () =>
   useCanvasChatDockStore.setState({
     position: { x: 0, y: 0 },
-    overlayHeight: DEFAULT_OVERLAY_HEIGHT,
-    dockWidth: null,
-    composerCollapsed: false,
+    windowWidth: DEFAULT_WINDOW_WIDTH,
+    windowHeight: DEFAULT_WINDOW_HEIGHT,
     conversationCollapsed: true,
     threadsOpen: false
   });
@@ -20,55 +20,66 @@ const reset = () =>
 describe("CanvasChatDockStore", () => {
   beforeEach(reset);
 
-  describe("default composer state", () => {
-    const initialHeight = window.innerHeight;
+  describe("default open state", () => {
+    const initialWidth = window.innerWidth;
     afterEach(() => {
-      Object.defineProperty(window, "innerHeight", {
+      Object.defineProperty(window, "innerWidth", {
         configurable: true,
-        value: initialHeight
+        value: initialWidth
       });
     });
-    const setHeight = (height: number) =>
-      Object.defineProperty(window, "innerHeight", {
+    const setWidth = (width: number) =>
+      Object.defineProperty(window, "innerWidth", {
         configurable: true,
-        value: height
+        value: width
       });
 
-    it("starts collapsed in a 1280x720 window so the graph stays visible", () => {
-      setHeight(720);
-      expect(defaultComposerCollapsed()).toBe(true);
+    it("starts closed in a 1024px wide window so the graph stays visible", () => {
+      setWidth(1024);
+      expect(defaultConversationCollapsed()).toBe(true);
     });
 
-    it("starts expanded in a 1440x900 window", () => {
-      setHeight(900);
-      expect(defaultComposerCollapsed()).toBe(false);
+    it("starts open in a 1440px wide window", () => {
+      setWidth(1440);
+      expect(defaultConversationCollapsed()).toBe(false);
     });
   });
 
-  it("starts collapsed with the responsive default width", () => {
+  it("persists the open state, position and size", () => {
     const s = useCanvasChatDockStore.getState();
-    expect(s.conversationCollapsed).toBe(true);
-    expect(s.threadsOpen).toBe(false);
-    expect(s.dockWidth).toBeNull();
-    expect(s.overlayHeight).toBe(DEFAULT_OVERLAY_HEIGHT);
-  });
-
-  it("collapses the composer and persists that choice", () => {
-    expect(useCanvasChatDockStore.getState().composerCollapsed).toBe(false);
-    useCanvasChatDockStore.getState().setComposerCollapsed(true);
-    expect(useCanvasChatDockStore.getState().composerCollapsed).toBe(true);
+    s.setConversationCollapsed(false);
+    s.setPosition({ x: -40, y: 20 });
+    s.setWindowWidth(500);
+    s.setWindowHeight(700);
     const persisted = JSON.parse(
       localStorage.getItem("canvas-chat-dock") ?? "{}"
     );
-    expect(persisted.state.composerCollapsed).toBe(true);
+    expect(persisted.state).toEqual({
+      position: { x: -40, y: 20 },
+      windowWidth: 500,
+      windowHeight: 700,
+      conversationCollapsed: false
+    });
   });
 
-  it("expands a collapsed composer when the conversation is toggled", () => {
-    useCanvasChatDockStore.getState().setComposerCollapsed(true);
-    useCanvasChatDockStore.getState().toggleConversation();
+  it("drops a v1 dock layout instead of applying it to the window", async () => {
+    localStorage.setItem(
+      "canvas-chat-dock",
+      JSON.stringify({
+        state: {
+          position: { x: 300, y: -200 },
+          overlayHeight: 900,
+          dockWidth: 1100,
+          composerCollapsed: true
+        },
+        version: 1
+      })
+    );
+    await useCanvasChatDockStore.persist.rehydrate();
     const s = useCanvasChatDockStore.getState();
-    expect(s.composerCollapsed).toBe(false);
-    expect(s.conversationCollapsed).toBe(false);
+    expect(s.position).toEqual({ x: 0, y: 0 });
+    expect(s.windowWidth).toBe(DEFAULT_WINDOW_WIDTH);
+    expect(s.windowHeight).toBe(DEFAULT_WINDOW_HEIGHT);
   });
 
   it("stores and resets the drag position", () => {
@@ -81,30 +92,32 @@ describe("CanvasChatDockStore", () => {
     expect(useCanvasChatDockStore.getState().position).toEqual({ x: 0, y: 0 });
   });
 
-  it("clamps the overlay height into range", () => {
-    const { setOverlayHeight } = useCanvasChatDockStore.getState();
-    setOverlayHeight(10);
-    expect(useCanvasChatDockStore.getState().overlayHeight).toBe(
-      MIN_OVERLAY_HEIGHT
+  it("clamps the window height into range", () => {
+    const { setWindowHeight } = useCanvasChatDockStore.getState();
+    setWindowHeight(10);
+    expect(useCanvasChatDockStore.getState().windowHeight).toBe(
+      MIN_WINDOW_HEIGHT
     );
-    setOverlayHeight(99999);
-    expect(useCanvasChatDockStore.getState().overlayHeight).toBe(
-      MAX_OVERLAY_HEIGHT
+    setWindowHeight(99999);
+    expect(useCanvasChatDockStore.getState().windowHeight).toBe(
+      MAX_WINDOW_HEIGHT
     );
-    setOverlayHeight(500);
-    expect(useCanvasChatDockStore.getState().overlayHeight).toBe(500);
+    setWindowHeight(500);
+    expect(useCanvasChatDockStore.getState().windowHeight).toBe(500);
   });
 
-  it("clamps the dock width and allows null for the default", () => {
-    const { setDockWidth } = useCanvasChatDockStore.getState();
-    setDockWidth(10);
-    expect(useCanvasChatDockStore.getState().dockWidth).toBe(MIN_DOCK_WIDTH);
-    setDockWidth(99999);
-    expect(useCanvasChatDockStore.getState().dockWidth).toBe(MAX_DOCK_WIDTH);
-    setDockWidth(640);
-    expect(useCanvasChatDockStore.getState().dockWidth).toBe(640);
-    setDockWidth(null);
-    expect(useCanvasChatDockStore.getState().dockWidth).toBeNull();
+  it("clamps the window width into range", () => {
+    const { setWindowWidth } = useCanvasChatDockStore.getState();
+    setWindowWidth(10);
+    expect(useCanvasChatDockStore.getState().windowWidth).toBe(
+      MIN_WINDOW_WIDTH
+    );
+    setWindowWidth(99999);
+    expect(useCanvasChatDockStore.getState().windowWidth).toBe(
+      MAX_WINDOW_WIDTH
+    );
+    setWindowWidth(640);
+    expect(useCanvasChatDockStore.getState().windowWidth).toBe(640);
   });
 
   it("toggles the conversation and threads flags", () => {

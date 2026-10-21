@@ -1,39 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import useCanvasChatDockStore, {
-  MAX_DOCK_WIDTH,
-  MAX_OVERLAY_HEIGHT,
-  MIN_DOCK_WIDTH,
-  MIN_OVERLAY_HEIGHT,
-  clampDockWidth,
-  clampOverlayHeight
+  MAX_WINDOW_HEIGHT,
+  MAX_WINDOW_WIDTH,
+  MIN_WINDOW_HEIGHT,
+  MIN_WINDOW_WIDTH,
+  clampWindowHeight,
+  clampWindowWidth
 } from "../../stores/CanvasChatDockStore";
 
 /**
- * Which edge/corner of the conversation overlay a resize gesture grabs.
- *  - `top` adjusts the overlay height (it grows upward from the composer).
- *  - `left`/`right` adjust the whole dock width. The dock is centre-anchored,
- *    so a side handle has to move the width by twice the pointer delta to keep
- *    that edge under the cursor.
- *  - corners adjust both at once.
+ * Which edge/corner of the canvas chat window a resize gesture grabs. The
+ * window is anchored at its top-right corner, so only the left edge, the
+ * bottom edge and the corner between them resize it:
+ *  - `left` grows the width as the pointer moves left.
+ *  - `bottom` grows the height as the pointer moves down.
+ *  - `bottom-left` does both.
  */
-export type DockResizeEdge =
-  | "top"
-  | "left"
-  | "right"
-  | "top-left"
-  | "top-right";
+export type DockResizeEdge = "left" | "bottom" | "bottom-left";
 
 /**
- * Mouse-driven resize for the canvas chat dock. Measures the live size from
- * `overlayRef` on grab so it works whether the stored width is an explicit px
- * value or the responsive default, then writes clamped values to the dock
- * store as the pointer moves.
+ * Mouse-driven corner resize for the canvas chat window. Measures the live
+ * size from `windowRef` on grab, then writes clamped values to the dock store
+ * as the pointer moves.
  */
 export const useCanvasDockResize = (
-  overlayRef: React.RefObject<HTMLElement | null>
+  windowRef: React.RefObject<HTMLElement | null>
 ) => {
-  const setOverlayHeight = useCanvasChatDockStore((s) => s.setOverlayHeight);
-  const setDockWidth = useCanvasChatDockStore((s) => s.setDockWidth);
+  const setWindowHeight = useCanvasChatDockStore((s) => s.setWindowHeight);
+  const setWindowWidth = useCanvasChatDockStore((s) => s.setWindowWidth);
 
   const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -41,7 +35,7 @@ export const useCanvasDockResize = (
     (edge: DockResizeEdge) => (event: React.MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
-      const el = overlayRef.current;
+      const el = windowRef.current;
       if (!el) {
         return;
       }
@@ -49,38 +43,26 @@ export const useCanvasDockResize = (
       const startY = event.clientY;
       const startWidth = el.offsetWidth;
       const startHeight = el.offsetHeight;
-
-      const affectsHeight =
-        edge === "top" || edge === "top-left" || edge === "top-right";
-      const widthSign =
-        edge === "right" || edge === "top-right"
-          ? 1
-          : edge === "left" || edge === "top-left"
-            ? -1
-            : 0;
+      const affectsWidth = edge !== "bottom";
+      const affectsHeight = edge !== "left";
 
       const prevCursor = document.body.style.cursor;
       const prevUserSelect = document.body.style.userSelect;
-      const cursor =
-        widthSign !== 0 && affectsHeight
-          ? widthSign > 0
-            ? "nesw-resize"
-            : "nwse-resize"
-          : widthSign !== 0
+      document.body.style.cursor =
+        affectsWidth && affectsHeight
+          ? "nesw-resize"
+          : affectsWidth
             ? "ew-resize"
             : "ns-resize";
-      document.body.style.cursor = cursor;
       document.body.style.userSelect = "none";
 
       const handleMove = (e: MouseEvent) => {
-        if (affectsHeight) {
-          // Dragging up (clientY decreases) makes the overlay taller.
-          setOverlayHeight(clampOverlayHeight(startHeight - (e.clientY - startY)));
+        if (affectsWidth) {
+          // Dragging left (clientX decreases) makes the window wider.
+          setWindowWidth(clampWindowWidth(startWidth - (e.clientX - startX)));
         }
-        if (widthSign !== 0) {
-          setDockWidth(
-            clampDockWidth(startWidth + widthSign * 2 * (e.clientX - startX))
-          );
+        if (affectsHeight) {
+          setWindowHeight(clampWindowHeight(startHeight + (e.clientY - startY)));
         }
       };
 
@@ -96,7 +78,7 @@ export const useCanvasDockResize = (
       document.addEventListener("mousemove", handleMove);
       document.addEventListener("mouseup", handleUp);
     },
-    [overlayRef, setOverlayHeight, setDockWidth]
+    [windowRef, setWindowHeight, setWindowWidth]
   );
 
   useEffect(() => () => cleanupRef.current?.(), []);
@@ -104,7 +86,7 @@ export const useCanvasDockResize = (
   return startResize;
 };
 
-/** Props one edge `ResizeHandle` of the conversation overlay takes. */
+/** Props one edge `ResizeHandle` of the chat window takes. */
 interface DockEdgeHandleProps {
   getValue: () => number;
   min: number;
@@ -115,31 +97,45 @@ interface DockEdgeHandleProps {
 }
 
 /**
- * `ResizeHandle` props for the overlay's top and side edges. Sizes are
- * measured from `overlayRef` on grab, like {@link useCanvasDockResize}, and
+ * `ResizeHandle` props for the window's left and bottom edges. Sizes are
+ * measured from `windowRef` on grab, like {@link useCanvasDockResize}, and
  * summed from the start so a drag past a clamp has no slack to undo.
- *
- * The dock is centre-anchored, so a side edge changes the width by twice the
- * pointer delta. Its handle therefore works in half-widths: the bounds it
- * clamps to are half the dock bounds.
  */
 export const useCanvasDockEdgeResize = (
-  overlayRef: React.RefObject<HTMLElement | null>
-): { top: DockEdgeHandleProps; side: DockEdgeHandleProps } => {
-  const setOverlayHeight = useCanvasChatDockStore((s) => s.setOverlayHeight);
-  const setDockWidth = useCanvasChatDockStore((s) => s.setDockWidth);
+  windowRef: React.RefObject<HTMLElement | null>
+): { left: DockEdgeHandleProps; bottom: DockEdgeHandleProps } => {
+  const setWindowHeight = useCanvasChatDockStore((s) => s.setWindowHeight);
+  const setWindowWidth = useCanvasChatDockStore((s) => s.setWindowWidth);
   // Size at grab plus the deltas since. Null outside a drag (keyboard steps).
   const heightRef = useRef<number | null>(null);
   const widthRef = useRef<number | null>(null);
 
   return useMemo(() => {
-    const measureHeight = () => overlayRef.current?.offsetHeight ?? 0;
-    const measureWidth = () => overlayRef.current?.offsetWidth ?? 0;
+    const measureHeight = () => windowRef.current?.offsetHeight ?? 0;
+    const measureWidth = () => windowRef.current?.offsetWidth ?? 0;
     return {
-      top: {
+      left: {
+        getValue: measureWidth,
+        min: MIN_WINDOW_WIDTH,
+        max: MAX_WINDOW_WIDTH,
+        onResizeStart: () => {
+          widthRef.current = measureWidth();
+        },
+        onResize: (delta: number) => {
+          const next = (widthRef.current ?? measureWidth()) + delta;
+          if (widthRef.current !== null) {
+            widthRef.current = next;
+          }
+          setWindowWidth(clampWindowWidth(next));
+        },
+        onResizeEnd: () => {
+          widthRef.current = null;
+        }
+      },
+      bottom: {
         getValue: measureHeight,
-        min: MIN_OVERLAY_HEIGHT,
-        max: MAX_OVERLAY_HEIGHT,
+        min: MIN_WINDOW_HEIGHT,
+        max: MAX_WINDOW_HEIGHT,
         onResizeStart: () => {
           heightRef.current = measureHeight();
         },
@@ -148,32 +144,14 @@ export const useCanvasDockEdgeResize = (
           if (heightRef.current !== null) {
             heightRef.current = next;
           }
-          setOverlayHeight(clampOverlayHeight(next));
+          setWindowHeight(clampWindowHeight(next));
         },
         onResizeEnd: () => {
           heightRef.current = null;
         }
-      },
-      side: {
-        getValue: () => measureWidth() / 2,
-        min: MIN_DOCK_WIDTH / 2,
-        max: MAX_DOCK_WIDTH / 2,
-        onResizeStart: () => {
-          widthRef.current = measureWidth();
-        },
-        onResize: (delta: number) => {
-          const next = (widthRef.current ?? measureWidth()) + 2 * delta;
-          if (widthRef.current !== null) {
-            widthRef.current = next;
-          }
-          setDockWidth(clampDockWidth(next));
-        },
-        onResizeEnd: () => {
-          widthRef.current = null;
-        }
       }
     };
-  }, [overlayRef, setOverlayHeight, setDockWidth]);
+  }, [windowRef, setWindowHeight, setWindowWidth]);
 };
 
 export default useCanvasDockResize;

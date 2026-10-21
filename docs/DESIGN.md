@@ -864,7 +864,7 @@ reports deltas through `onResize` and the caller keeps the size.
 | `invert` | Set when the pane's handle is on its leading edge (right dock, bottom dock), so dragging toward the handle's start grows it |
 | `thickness` | A `SPACING` step. Default `SPACING.sm` (6px). Use `SPACING.md` for window edges and `SPACING.xxl` for a phone touch target |
 | `grip` | Draws a centred pill so a horizontal strip reads as a control at rest. Use it on bottom docks, modal bottoms and phone splits |
-| `invisible` | Hit area only, no hover fill. Use it on floating windows with rounded corners (node menu, conversation overlay) |
+| `invisible` | Hit area only, no hover fill. Use it on floating windows with rounded corners (node menu, canvas chat window) |
 | `getValue` | Measure the size on grab when it comes from the DOM instead of state |
 
 One look: transparent at rest, `primary.main` while hovered or dragged,

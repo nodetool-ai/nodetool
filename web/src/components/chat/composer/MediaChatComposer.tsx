@@ -98,9 +98,6 @@ interface MediaChatComposerProps {
   requireToolSupport?: boolean;
   /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
   autoFocus?: boolean;
-  /** Extra content after the footer chip row (the canvas workflow toolbar).
-   *  Empty in the chat panel. */
-  trailingActions?: React.ReactNode;
   /** Override the auto-generated, mode-aware textarea placeholder. */
   placeholder?: string;
   /** Pure chat panel: hide the mode picker and force "chat" mode. Used by the
@@ -145,7 +142,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   allowedProviders,
   requireToolSupport,
   autoFocus = true,
-  trailingActions,
   placeholder: placeholderOverride,
   hideModePicker = false,
   hideModelPicker = false,
@@ -896,9 +892,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div
-          className={`media-chip-row${trailingActions ? " has-trailing" : ""}${
-            isCompact ? " narrow" : ""
-          }`}
+          className={`media-chip-row${isCompact ? " narrow" : ""}`}
         >
           {/* Chip cluster: mode/model chips. */}
           <div className="media-chip-main">
@@ -992,10 +986,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               </Tooltip>
             )}
           </div>
-
-          {/* Host-supplied actions after the chips (the canvas workflow
-              toolbar). Empty in the chat panel. */}
-          {trailingActions}
         </div>
       </div>
     </div>
