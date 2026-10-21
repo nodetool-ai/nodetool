@@ -1,4 +1,4 @@
-import { PROVIDER_META } from "./providerCatalog";
+import { isProviderAvailable, PROVIDER_META } from "./providerCatalog";
 import type { SettingsSection } from "../../stores/SettingsPageStore";
 
 export const SETTINGS_TAB_ITEMS: ReadonlyArray<{
@@ -99,9 +99,10 @@ export function tabHasMatches(tab: SettingsSection, search: string): boolean {
     case "providers":
       return PROVIDER_META.some(
         (provider) =>
-          provider.name.toLowerCase().includes(query) ||
+          isProviderAvailable(provider) &&
+          (provider.name.toLowerCase().includes(query) ||
           provider.description.toLowerCase().includes(query) ||
-          provider.key.toLowerCase().includes(query)
+          provider.key.toLowerCase().includes(query))
       );
     case "integrations":
       return INTEGRATION_KEYWORDS.some((keywords) => keywords.includes(query));

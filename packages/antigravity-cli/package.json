@@ -1,0 +1,38 @@
+{
+  "name": "@nodetool-ai/antigravity-cli",
+  "version": "0.8.4",
+  "description": "Managed Antigravity CLI installation for NodeTool",
+  "type": "module",
+  "engines": {
+    "node": "24.18.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit",
+    "install:cli": "node dist/install.js"
+  },
+  "dependencies": {
+    "@nodetool-ai/config": "*",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  }
+}

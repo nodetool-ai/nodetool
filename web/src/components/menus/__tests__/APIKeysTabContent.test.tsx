@@ -98,6 +98,10 @@ describe("APIKeysTabContent on a hosted deployment", () => {
       screen.queryByRole("button", { name: /sign in with claude/i })
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Codex")).not.toBeInTheDocument();
+    expect(screen.queryByText("Antigravity")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /install antigravity/i })
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Anthropic")).toBeInTheDocument();
     expect(screen.getAllByText("OpenAI")).toHaveLength(1);
     expect(

@@ -79,7 +79,8 @@
     "examples/chat_app",
     "examples/nextjs-vercel",
     "examples/nextjs-cloudflare",
-    "packages/whisper-cpp"
+    "packages/whisper-cpp",
+    "packages/antigravity-cli"
   ],
   "scripts": {
     "postinstall": "node electron/scripts/rebuild-native.mjs",

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure } from "./index.js";
+import { antigravityRouter } from "./routers/antigravity.js";
 import { assetsRouter } from "./routers/assets.js";
 import { codeGenRouter } from "./routers/code-gen.js";
 import { segmentationRouter } from "./routers/segmentation.js";
@@ -49,6 +50,7 @@ import { workspaceRouter } from "./routers/workspace.js";
 const healthzProcedure = publicProcedure.output(z.object({ ok: z.literal(true) })).query(() => ({ ok: true as const }));
 type AppRouterRecord = {
   healthz: typeof healthzProcedure;
+  antigravity: typeof antigravityRouter;
   assets: typeof assetsRouter;
   codeGen: typeof codeGenRouter;
   segmentation: typeof segmentationRouter;
@@ -98,6 +100,7 @@ type AppRouterRecord = {
 
 export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   healthz: healthzProcedure,
+  antigravity: antigravityRouter,
   assets: assetsRouter,
   codeGen: codeGenRouter,
   segmentation: segmentationRouter,

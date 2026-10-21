@@ -40,6 +40,7 @@ import {
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives";
 import { ConfirmDialog } from "../ui_primitives";
+import AntigravityCard from "./AntigravityCard";
 import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
 import { CustomProvidersSection } from "./CustomProvidersSection";
 
@@ -88,7 +89,10 @@ interface ProviderCardProps {
   onDelete: (secret: SecretResponse) => void;
 }
 
-export const ProviderCard = memo(function ProviderCard({
+export const ProviderCard = (props: ProviderCardProps) =>
+  props.meta.providerId === "antigravity" ? <AntigravityCard /> : <ApiKeyProviderCard {...props} />;
+
+const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
   secret,
   meta,
   onConnect,
@@ -255,13 +259,13 @@ export const ProviderCard = memo(function ProviderCard({
         wrap
         sx={{ justifyContent: "space-between" }}
       >
-        <FlexColumn gap={1} sx={{ minWidth: 0, flex: "1 1 160px" }}>
+        <FlexColumn gap={SPACING.xs} sx={{ minWidth: 0, flex: `1 1 ${getSpacingPx(40)}` }}>
           <FlexRow
             align="center"
             gap={SPACING.md}
             wrap
             sx={{
-              minHeight: 28
+              minHeight: getSpacingPx(7)
             }}
           >
             <span
@@ -296,7 +300,7 @@ export const ProviderCard = memo(function ProviderCard({
           {oauth.isConnected && !meta.oauthOnly && (
             <FlexRow
               align="center"
-              gap={1}
+              gap={SPACING.xs}
               sx={{
                 minWidth: 0
               }}
@@ -1035,12 +1039,12 @@ export const SecurityNotice = memo(function SecurityNotice() {
         backgroundColor: `rgba(${theme.vars.palette.success.mainChannel} / 0.06)`
       }}
     >
-      <FlexRow align="flex-start" gap={1}>
+      <FlexRow align="flex-start" gap={SPACING.xs}>
         <ShieldIcon
           sx={{
             fontSize: "1.2em",
             color: theme.vars.palette.success.main,
-            marginTop: theme.spacing(0.5),
+            marginTop: theme.spacing(SPACING.micro),
             flexShrink: 0
           }}
         />
@@ -1048,7 +1052,7 @@ export const SecurityNotice = memo(function SecurityNotice() {
           <Text size="small">{t("i18n-cont-settings-01.apiKeys.secretsSafe")}</Text>
           <Caption
             size="smaller"
-            sx={{ lineHeight: 1.4, marginTop: theme.spacing(0.5) }}
+            sx={{ lineHeight: 1.4, marginTop: theme.spacing(SPACING.micro) }}
           >
             {t("i18n-cont-settings-01.apiKeys.secretsSafeDescription")}
           </Caption>
@@ -1064,7 +1068,7 @@ export const SecurityNotice = memo(function SecurityNotice() {
                 "noopener,noreferrer"
               )
             }
-            sx={{ alignSelf: "flex-start", marginTop: theme.spacing(1) }}
+            sx={{ alignSelf: "flex-start", marginTop: theme.spacing(SPACING.xs) }}
           >
           {t("i18n-cont-settings-01.apiKeys.learnMore")}
           </EditorButton>
@@ -1106,10 +1110,10 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
   return (
     <FlexColumn
       sx={{
-        width: 280,
-        minWidth: 280,
-        padding: theme.spacing(6, 4),
-        gap: theme.spacing(4),
+        width: getSpacingPx(70),
+        minWidth: getSpacingPx(70),
+        padding: theme.spacing(SPACING.xxl, SPACING.xl),
+        gap: theme.spacing(SPACING.xl),
         overflowY: "auto",
         overflowX: "hidden"
       }}
@@ -1123,10 +1127,10 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
           border: `1px solid ${theme.vars.palette.divider}`
         }}
       >
-        <Text size="small" sx={{ marginBottom: theme.spacing(3) }}>
+        <Text size="small" sx={{ marginBottom: theme.spacing(SPACING.lg) }}>
           {t("i18n-cont-settings-01.apiKeys.quickLinks")}
         </Text>
-        <FlexColumn sx={{ gap: theme.spacing(0.5) }}>
+        <FlexColumn sx={{ gap: theme.spacing(SPACING.micro) }}>
           {quickLinks.map((link) => (
             // A real link, so Tab reaches it, Enter opens it and the
             // browser's own open-in-new-tab gestures work.
@@ -1139,43 +1143,43 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
                 : {})}
               sx={{
                 ...selectableRowStyles(theme),
-                display: "flex",
-                alignItems: "center",
-                gap: getSpacingPx(SPACING.md),
-                padding: theme.spacing(2, 2),
+                display: "block",
+                padding: theme.spacing(SPACING.md),
                 color: "inherit",
                 textDecoration: "none"
               }}
             >
-              <FlexRow
-                align="center"
-                justify="center"
-                sx={{
-                  color: theme.vars.palette.primary.main,
-                  fontSize: "1.2em",
-                  width: 22,
-                  flexShrink: 0
-                }}
-              >
-                {link.icon}
-              </FlexRow>
-              <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-                <Text size="small">{link.title}</Text>
-                <Caption
-                  sx={{ fontSize: theme.fontSizeSmaller, lineHeight: 1.3 }}
+              <FlexRow align="center" gap={SPACING.md}>
+                <FlexRow
+                  align="center"
+                  justify="center"
+                  sx={{
+                    color: theme.vars.palette.primary.main,
+                    fontSize: "1.2em",
+                    width: getSpacingPx(SPACING.xxl),
+                    flexShrink: 0
+                  }}
                 >
-                  {link.subtitle}
-                </Caption>
-              </FlexColumn>
-              <Text
-                sx={{
-                  color: theme.vars.palette.text.secondary,
-                  flexShrink: 0,
-                  marginLeft: theme.spacing(1)
-                }}
-              >
-                ›
-              </Text>
+                  {link.icon}
+                </FlexRow>
+                <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+                  <Text size="small">{link.title}</Text>
+                  <Caption
+                    sx={{ fontSize: theme.fontSizeSmaller, lineHeight: 1.3 }}
+                  >
+                    {link.subtitle}
+                  </Caption>
+                </FlexColumn>
+                <Text
+                  sx={{
+                    color: theme.vars.palette.text.secondary,
+                    flexShrink: 0,
+                    marginLeft: theme.spacing(SPACING.xs)
+                  }}
+                >
+                  ›
+                </Text>
+              </FlexRow>
             </Box>
           ))}
         </FlexColumn>
@@ -1191,13 +1195,13 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
           background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.mainChannel} / 0.08) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.02) 100%)`
         }}
       >
-        <FlexRow align="center" gap={1} sx={{ marginBottom: theme.spacing(2) }}>
+        <FlexRow align="center" gap={SPACING.xs} sx={{ marginBottom: theme.spacing(SPACING.md) }}>
           <CardGiftcardIcon
             sx={{ color: theme.vars.palette.primary.main, fontSize: "1.2em" }}
           />
           <Text size="small">{t("i18n-cont-settings-01.apiKeys.needApiCredits")}</Text>
         </FlexRow>
-        <Caption sx={{ lineHeight: 1.5, marginBottom: theme.spacing(3) }}>
+        <Caption sx={{ lineHeight: 1.5, marginBottom: theme.spacing(SPACING.lg) }}>
           {t("i18n-cont-settings-01.apiKeys.partnerCreditsDescription")}
         </Caption>
         <EditorButton

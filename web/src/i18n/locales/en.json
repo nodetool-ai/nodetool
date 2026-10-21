@@ -18583,5 +18583,17 @@
       "replaceClip": "Replace clip",
       "addAsTake": "Add as take"
     }
+  },
+  "antigravity": {
+    "install": "Install Antigravity",
+    "installing": "Installing Antigravity…",
+    "installed": "Installed",
+    "notInstalled": "Not installed",
+    "checking": "Checking installation…",
+    "description": "Use your Google Antigravity account for language models. No API key needed.",
+    "installDescription": "Downloads Antigravity from Google into NodeTool’s application data. This can take a few minutes.",
+    "signIn": "To sign in, copy this command into a terminal on this computer. Complete the Google sign-in, then refresh models.",
+    "refreshModels": "Refresh models",
+    "statusUnavailable": "Status unavailable"
   }
 }
