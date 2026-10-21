@@ -144,7 +144,8 @@ export function validateEnvelope(
   const propertyError = validateProperties(definition, value["properties"]);
   if (propertyError) return fail(propertyError);
 
-  return { ok: true, value: value as unknown as AnalyticsEnvelope };
+  // SAFETY: every envelope key was checked above against the schema and event table.
+  return { ok: true, value: value as typeof value & AnalyticsEnvelope };
 }
 
 /** Check a whole batch. One invalid event rejects the batch. */
@@ -168,7 +169,8 @@ export function validateBatch(
     const result = validateEnvelope(event, options);
     if (!result.ok) return fail(`event_${index}:${result.reason}`);
   }
-  return { ok: true, value: value as unknown as AnalyticsBatch };
+  // SAFETY: the batch keys, schema version and every event were validated above.
+  return { ok: true, value: value as typeof value & AnalyticsBatch };
 }
 
 /**
