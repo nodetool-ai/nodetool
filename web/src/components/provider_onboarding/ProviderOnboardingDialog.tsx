@@ -15,7 +15,7 @@ import { isElectron, isLocalhost } from "../../lib/env";
 import { openSettingsTab } from "../workspace/openPageTab";
 import ollamaIcon from "../../icons/providers/ollama.svg";
 import ProviderOnboardingCard from "./ProviderOnboardingCard";
-import { CAPABILITY_LABELS, providersForCapability } from "./providerOnboardingCatalog";
+import { providersForCapability } from "./providerOnboardingCatalog";
 
 const ProviderOnboardingDialog: React.FC = () => {
   const { t } = useTranslation();

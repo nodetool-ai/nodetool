@@ -377,7 +377,6 @@ export const HeadingWidget: React.FC<
     subtitle?: string;
   }
 > = (props) => {
-  const { t } = useTranslation();
   const { value } = useBinding(props, "read");
   const text =
     props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
@@ -1062,7 +1061,6 @@ export const StatWidget: React.FC<
     placeholder?: string;
   }
 > = (props) => {
-  const { t } = useTranslation();
   const { value } = useBinding(props, "read");
   const shown =
     props.formattedValue ?? (value != null && value !== "" ? str(value) : "");

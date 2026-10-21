@@ -13,7 +13,6 @@ import {
   EditorButton,
   FlexColumn,
   LoadingSpinner,
-  Text,
   SPACING
 } from "../ui_primitives";
 import { useAcceptShare } from "../../serverState/useWorkflowSharing";
