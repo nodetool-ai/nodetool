@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
@@ -75,7 +75,9 @@ it("measures live play of a real 3D export after its route, with no player error
   expect(report.drawCalls.p95).toBeGreaterThan(0);
   expect(report.frameMs.p95).toBeGreaterThan(0);
   expect(report.profile).toMatchObject({ path: profile, readableNames: true });
-  expect(report.profile?.top.some((entry) => entry.functionName === "renderBufferDirect" || entry.functionName.includes("render"))).toBe(true);
+  // The top list of a one-second sample varies between runs, so look for the renderer anywhere in the recorded profile.
+  const recorded = JSON.parse(await readFile(profile, "utf8")) as { nodes: { callFrame: { functionName: string } }[] };
+  expect(recorded.nodes.some((node) => node.callFrame.functionName === "WebGLRenderer.renderBufferDirect")).toBe(true);
 }, 120_000);
 
 it("reports frame time, draw call and program growth overruns of a deliberately slow player", async () => {
