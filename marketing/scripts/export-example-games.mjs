@@ -7,10 +7,12 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
+const startHint = "Click inside the game, then press Space to start.";
 const games = [
-  { slug: "kindle", genre: "Platform adventure" },
-  { slug: "lumen", genre: "Forest exploration" },
-  { slug: "neon-drift", genre: "Arena shooter" }
+  { slug: "kindle", genre: "Platform adventure", startHint },
+  { slug: "lumen", genre: "Forest exploration", startHint },
+  { slug: "neon-drift", genre: "Arena shooter", startHint },
+  { slug: "ridgeline", genre: "Flight simulator", startHint: "Click inside the game, then hold Shift to open the throttle." }
 ];
 const scratch = await mkdtemp(join(tmpdir(), "nodetool-marketing-games-"));
 const entries = [];
@@ -38,8 +40,10 @@ try {
     const htmlPath = join(output, "index.html");
     const html = await readFile(htmlPath, "utf8");
     const title = example.name.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-    await writeFile(htmlPath, html.replace("<title>NodeTool Game</title>", `<meta name="robots" content="noindex"><title>${title} | NodeTool Game</title>`));
-    const playerPath = join(output, "player-v1.js");
+    // The 2D and 3D builds ship different players with different default titles.
+    const player3d = /<title>NodeTool 3D Game<\/title>/.test(html);
+    await writeFile(htmlPath, html.replace(/<title>NodeTool (?:3D )?Game<\/title>/, `<meta name="robots" content="noindex"><title>${title} | NodeTool Game</title>`));
+    const playerPath = join(output, player3d ? "game3d-player.js" : "player-v1.js");
     const player = await readFile(playerPath, "utf8");
     await writeFile(playerPath, player.replace(/^[ \t]+$/gm, ""));
     entries.push({ ...game, name: example.name, description: example.description, controls: example.controls });
