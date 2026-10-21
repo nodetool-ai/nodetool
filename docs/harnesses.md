@@ -1453,6 +1453,34 @@ assets, and tick progress. The `game-flow` selfcheck includes the smoke suite.
 A legacy export node reports a migration
 diagnostic; external-engine scene behavior requires manual reconstruction.
 
+### Native game performance (`game bench`, `game capture`, `game perf`)
+
+Three commands give an agent a pass or fail number for a game's cost. Each
+takes `--fail-on-budget` and exits 1 on an overrun of the document's
+`performance.budgets`, with defaults for any budget left out. Full flags are in
+[`nodetool game`](cli.md#nodetool-game).
+
+| Command | Measures | Budget it enforces |
+|---|---|---|
+| `nodetool game bench <file> --inputs route.json` | Headless tick time, script time, per-system time, allocations | `tickMs` p95 (default 4 ms) |
+| `nodetool game capture <file> --ticks N --json` | One 3D frame's draw calls, triangles, particles, programs | `drawCalls`, `triangles`, `particles` |
+| `nodetool game perf <file> --inputs route.json --seconds 10` | Exported play in Chromium on the GPU: frame time, fps, draw calls, triangles, program growth | `frameMs` p95 (default 16.6 ms), counts, zero program growth |
+
+A route is a JSON array of input frames. `bench` feeds it from tick 0. `perf`
+replays it with the player's `advance`, then resumes live play, so the measured
+window is the state the route reached and not the idle start screen.
+`packages/game-runtime/bench/ridgeline-route.json` is a take-off and climb for
+RIDGELINE. `perf` runs uncapped frames by default. Its `frameMs` is the time
+between rendered frames, and steady play must add no shader programs: growth
+means a material changes its program variant each frame. `--software` lets the
+command run without a GPU, but its times say nothing about real hardware.
+
+The engine audit and the three.js rules behind these budgets are in
+[the engine audit](research/native-game-engine-perf-audit.md) and
+[the three.js rules](research/threejs-game-performance.md). The `game-perf`
+selfcheck runs the bench, capture budget and perf suites, which include a
+deliberately slow player that each failing exit must catch.
+
 ### Game flow (guided design and asset graph)
 
 The Game entry opens a guided flow: idea, design, review, look, then build.
