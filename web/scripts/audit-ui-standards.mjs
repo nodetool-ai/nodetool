@@ -533,6 +533,12 @@ function audit() {
 const args = process.argv.slice(2);
 const { files, hits } = audit();
 
+// A scan that reads nothing reports a clean tree; fail instead.
+if (files < 500) {
+  console.error(`audit-ui-standards: scanned only ${files} files under ${SRC}`);
+  process.exit(1);
+}
+
 if (args.includes("--json")) {
   const out = RULES.map(({ id, element, finds, fix }) => ({ id, element, finds, fix, count: hits[id].length, hits: hits[id] }));
   process.stdout.write(JSON.stringify({ scanned: files, rules: out }, null, 2) + "\n");
