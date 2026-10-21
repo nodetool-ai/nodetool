@@ -60,6 +60,7 @@ interface BenchOptions {
   seed: string;
   inputs?: string;
   assetsDir?: string;
+  failOnBudget?: boolean;
   json?: boolean;
 }
 
@@ -71,6 +72,7 @@ interface CaptureOptions {
   scale: string;
   backend: string;
   assetsDir?: string;
+  failOnBudget?: boolean;
   json?: boolean;
 }
 
@@ -333,6 +335,7 @@ export function registerGameCommands(program: Command): void {
     .option("--seed <integer>", "Random seed", "1")
     .option("--inputs <file>", "JSON array of tick-indexed input frames from tick 0 (warmup included), so the bench measures play")
     .option("--assets-dir <directory>", "Prepared 3D collider files named <full-asset-id>.json. Shipped package:// assets resolve without it")
+    .option("--fail-on-budget", "Exit 1 when the tick p95 exceeds performance.budgets.tickMs (default 4 ms)")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: BenchOptions) => {
       try {
@@ -342,7 +345,12 @@ export function registerGameCommands(program: Command): void {
         const inputs = document.schemaVersion === 3 ? await readInputs(options.inputs, gameInputFrame3D) : await readInputs(options.inputs, gameInputFrame);
         const report = await benchmarkNativeGame(document, Number(options.ticks), Number(options.warmup), Number(options.seed),
           { inputs, resolveCollider: sessionAssetOptions3D(options.assetsDir).resolveCollider });
-        process.stdout.write(`${JSON.stringify(report, null, options.json ? undefined : 2)}\n`);
+        const { formatGameTimeBudgetOverrun, gameTimeBudgetOverruns, resolveGameTimeBudgets } = await importPack<typeof import("@nodetool-ai/game-renderer")>("game", "@nodetool-ai/game-renderer");
+        const limits = resolveGameTimeBudgets(document.schemaVersion === 3 ? document.performance?.budgets : undefined);
+        const overruns = gameTimeBudgetOverruns({ tickMs: report.tickMs.p95 }, limits);
+        process.stdout.write(`${JSON.stringify({ ...report, budget: { limits: { tickMs: limits.tickMs }, overruns } }, null, options.json ? undefined : 2)}\n`);
+        if (!options.json) { for (const overrun of overruns) { process.stderr.write(`${formatGameTimeBudgetOverrun(overrun)}\n`); } }
+        if (options.failOnBudget && overruns.length > 0) { process.exitCode = 1; }
       } catch (error) { process.exitCode = printCommandError(error, options.json); }
     });
 
@@ -472,6 +480,7 @@ export function registerGameCommands(program: Command): void {
     .option("--scale <factor>", "Output scale", "1")
     .option("--backend <canvas2d|webgpu|webgl2>", "Capture backend. Defaults to WebGL2 for 3D", "canvas2d")
     .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>")
+    .option("--fail-on-budget", "3D only. Exit 1 when the frame exceeds a performance.budgets count (draw calls, triangles, particles)")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: CaptureOptions, command: Command) => {
       try {
@@ -483,6 +492,7 @@ export function registerGameCommands(program: Command): void {
           const backend = command.getOptionValueSource("backend") === "default" ? "webgl2" : options.backend;
           await captureGame3D(validated.document, { ...options, backend }); return;
         }
+        if (options.failOnBudget) { throw new Error("--fail-on-budget applies to 3D games. 2D capture reports no frame counters"); }
         const ticks = nonnegativeInteger(options.ticks, "ticks");
         if (ticks === 0) throw new Error("ticks must be at least 1 for capture");
         const seed = nonnegativeInteger(options.seed, "seed");
@@ -748,5 +758,6 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
       capabilities: captured.capabilities, stats: captured.stats, budget: { limits, overruns }, projected_bounds: captured.projectedBounds, diagnostics: [] };
     process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n`);
     if (!options.json) { for (const overrun of overruns) { process.stderr.write(`${formatGameFrameBudgetOverrun(overrun)}\n`); } }
+    if (options.failOnBudget && overruns.length > 0) { process.exitCode = 1; }
   } finally { session.dispose(); }
 }

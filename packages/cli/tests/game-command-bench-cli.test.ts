@@ -87,4 +87,26 @@ describe("game bench on real game files", () => {
     await writeFile(gamePath, JSON.stringify(document));
     expect(await bench(gamePath)).toMatchObject({ error: expect.stringContaining("escapes the asset directory") });
   });
+
+  it("exits 1 with --fail-on-budget only when the tick p95 exceeds performance.budgets.tickMs", async () => {
+    const base = createNative3DGame("d".repeat(32));
+    const gamePath = join(directory, "game.json");
+    await writeFile(gamePath, JSON.stringify({ ...base, performance: { budgets: { tickMs: 0.000001 } } }));
+    const slow = await bench(gamePath, "--fail-on-budget");
+    expect(slow).toMatchObject({ budget: { limits: { tickMs: 0.000001 }, overruns: [{ metric: "tickMs", budget: 0.000001 }] } });
+    expect(process.exitCode).toBe(1);
+    process.exitCode = undefined;
+    await writeFile(gamePath, JSON.stringify({ ...base, performance: { budgets: { tickMs: 1000 } } }));
+    expect(await bench(gamePath, "--fail-on-budget")).toMatchObject({ budget: { limits: { tickMs: 1000 }, overruns: [] } });
+    expect(process.exitCode).toBeUndefined();
+    await writeFile(gamePath, JSON.stringify({ ...base, performance: { budgets: { tickMs: 0.000001 } } }));
+    await bench(gamePath);
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("uses the 4 ms default tick budget when the document sets none", async () => {
+    const gamePath = join(directory, "game.json");
+    await writeFile(gamePath, JSON.stringify(createNative3DGame("e".repeat(32))));
+    expect(await bench(gamePath)).toMatchObject({ budget: { limits: { tickMs: 4 } } });
+  });
 });
