@@ -56,6 +56,7 @@ first, then the overlay for the package you are touching.
 - [`data-nodes`](data-nodes/AGENTS.md) — dataframes, filtering, feeds & charts
 - [`fal-codegen`](fal-codegen/AGENTS.md) — FAL manifest generator
 - [`game-nodes`](game-nodes/AGENTS.md) — native templates, slot prompts, asset staging
+- [`game-renderer`](game-renderer/AGENTS.md) — native game rendering, capture, export, and the three.js performance rules
 - [`fal-nodes`](fal-nodes/AGENTS.md) — FAL node factory
 - [`image-nodes`](image-nodes/AGENTS.md) — image processing & shaders
 - [`kie-codegen`](kie-codegen/AGENTS.md) — KIE config & manifest generator
