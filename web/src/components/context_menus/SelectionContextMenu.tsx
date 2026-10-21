@@ -15,6 +15,7 @@ import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
 import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import { useToggleCollapse } from "../../hooks/nodes/useToggleCollapse";
 import { useSelectConnected } from "../../hooks/useSelectConnected";
+import { useChatAboutNodesOnMenuClose } from "../../hooks/nodes/useChatAboutNodes";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
@@ -29,6 +30,7 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import { useNodes } from "../../contexts/NodeContext";
 import isEqual from "../../utils/isEqual";
 import { shallow } from "zustand/shallow";
@@ -171,6 +173,12 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     closeContextMenu();
   }, [toggleCollapse, selectedNodes, closeContextMenu]);
 
+  const chatAboutNodes = useChatAboutNodesOnMenuClose();
+  const handleChatAboutSelection = useCallback(() => {
+    chatAboutNodes(selectedNodes.map((node) => node.id));
+    closeContextMenu();
+  }, [chatAboutNodes, selectedNodes, closeContextMenu]);
+
   const handleAlignNodesFalse = useCallback(() => {
     handleAlignNodes(false);
   }, [handleAlignNodes]);
@@ -192,6 +200,14 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       position={menuPosition}
     >
       <ListSubheader>{t("screen_editor.selection")}</ListSubheader>
+
+      <ContextMenuItem
+        onClick={handleChatAboutSelection}
+        label={t("screen_editor.nodeChat.chatAboutSelection")}
+        IconComponent={<ForumOutlinedIcon />}
+        tooltip={t("screen_editor.nodeChat.chatAboutSelectionTooltip")}
+      />
+      <Divider />
 
       <ContextMenuItem
         onClick={handleDuplicateNodes}
