@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, ToolbarIconButton, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { ToolbarIconButton, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,32 +53,28 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
     }
   }, [isWorkflowRunning, onClick]);
 
+  const label = isWorkflowRunning
+    ? t("i18n-next36.nodeEditor.runGroup.groupRunning")
+    : t("i18n-next36.nodeEditor.runGroup.runGroup");
+
+  // ToolbarIconButton renders its own tooltip; wrapping it in another one
+  // makes MUI warn about a `title` on the child of a Tooltip.
   return (
-    <Tooltip
-      title={isWorkflowRunning
-        ? t("i18n-next36.nodeEditor.runGroup.groupRunning")
-        : t("i18n-next36.nodeEditor.runGroup.runGroup")}
+    <ToolbarIconButton
+      tooltip={label}
+      aria-label={label}
+      size="small"
+      tabIndex={-1}
+      css={cssStyles}
+      className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
+      onClick={handleClick}
     >
-      <ToolbarIconButton
-        title={isWorkflowRunning
-          ? t("i18n-next36.nodeEditor.runGroup.groupRunning")
-          : t("i18n-next36.nodeEditor.runGroup.runGroup")}
-        aria-label={isWorkflowRunning
-          ? t("i18n-next36.nodeEditor.runGroup.groupRunning")
-          : t("i18n-next36.nodeEditor.runGroup.runGroup")}
-        size="small"
-        tabIndex={-1}
-        css={cssStyles}
-        className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
-        onClick={handleClick}
-      >
-        {isRunning ? (
-          <LoadingSpinner inline size={16} color="inherit" />
-        ) : (
-          <PlayArrow />
-        )}
-      </ToolbarIconButton>
-    </Tooltip>
+      {isRunning ? (
+        <LoadingSpinner inline size={16} color="inherit" />
+      ) : (
+        <PlayArrow />
+      )}
+    </ToolbarIconButton>
   );
 };
 

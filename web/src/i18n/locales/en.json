@@ -12548,7 +12548,7 @@
     "groupNode": {
       "defaultTitle": "Group",
       "selectGroup": "SELECT GROUP NODE:",
-      "selectInstructions": "Hold CTRL or ⌘ key + click",
+      "selectInstructions": "Click the label. Shift or CTRL | ⌘ + click adds it to the selection",
       "editTitle": "EDIT GROUP TITLE:",
       "editInstructions": "Double click the label",
       "headlineLabel": "Group headline",

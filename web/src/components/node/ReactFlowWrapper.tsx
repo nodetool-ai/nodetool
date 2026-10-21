@@ -145,6 +145,9 @@ const EDGE_TYPES = {
 };
 
 const IS_APPLE_PLATFORM = /Mac|iPhone|iPad/.test(navigator.platform);
+// Shift+click adds to the selection like Ctrl/⌘+click, as a Shift+click on a
+// link already does.
+const MULTI_SELECTION_KEYS = ["Shift", IS_APPLE_PLATFORM ? "Meta" : "Control"];
 
 /** Local, worker, and Cloud ComfyUI runners all render the same node body. */
 const comfyNodeTypes = Object.fromEntries(
@@ -713,14 +716,51 @@ const ReactFlowWrapper = ({
     setSuppressNodeDrivenEdgeSelection
   });
 
-  const handleNodeClick = useCallback(
-    (event: ReactMouseEvent, _node: Node) => {
-      setSuppressNodeDrivenEdgeSelection(false);
-      if (!event.shiftKey && !event.metaKey && !event.ctrlKey) {
-        setLinkSelection([]);
+  // React Flow cannot select a group: its body lets clicks through to the
+  // canvas and the nodes inside. A click on the group's label selects it, and
+  // a modifier adds it to the selection or removes it, as for any node.
+  const selectGroupFromLabel = useCallback(
+    (groupId: string, additive: boolean) => {
+      const { nodes, edges, setSelectedNodes } = nodeStore.getState();
+      const group = nodes.find((n) => n.id === groupId);
+      if (!group) {
+        return;
+      }
+      const others = additive
+        ? nodes.filter((n) => n.selected && n.id !== groupId)
+        : [];
+      setSelectedNodes(
+        additive && group.selected ? others : [...others, group]
+      );
+      if (!additive) {
+        setEdgeSelectionState(
+          Object.fromEntries(
+            edges.filter((e) => e.selected).map((e) => [e.id, false])
+          )
+        );
       }
     },
-    [setLinkSelection]
+    [nodeStore, setEdgeSelectionState]
+  );
+
+  const handleNodeClick = useCallback(
+    (event: ReactMouseEvent, node: Node) => {
+      setSuppressNodeDrivenEdgeSelection(false);
+      const additive = event.shiftKey || event.metaKey || event.ctrlKey;
+      if (!additive) {
+        setLinkSelection([]);
+      }
+      const target = event.target as Element;
+      if (
+        node.type === GROUP_NODE_TYPE &&
+        node.selectable === false &&
+        target.closest(".group-label") &&
+        !target.closest("input")
+      ) {
+        selectGroupFromLabel(node.id, additive);
+      }
+    },
+    [setLinkSelection, selectGroupFromLabel]
   );
 
   const handleNodeDoubleClick = useCallback(
@@ -1096,6 +1136,7 @@ const ReactFlowWrapper = ({
         proOptions={proOptions}
         panActivationKeyCode=""
         deleteKeyCode={null}
+        multiSelectionKeyCode={MULTI_SELECTION_KEYS}
         // Arrow-key nudge and Shift+Arrow align are editor shortcuts. React
         // Flow's own keyboard handling on a focused node or selection box
         // would move the selection a second time.

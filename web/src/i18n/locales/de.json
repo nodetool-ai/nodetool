@@ -12548,7 +12548,7 @@
     "groupNode": {
       "defaultTitle": "Gruppieren",
       "selectGroup": "GRUPPENKNOTEN AUSWÄHLEN:",
-      "selectInstructions": "Halte die STRG- oder ⌘-Taste gedrückt und klicke",
+      "selectInstructions": "Klicke auf die Beschriftung. Mit Umschalt oder STRG | ⌘ fügst du sie der Auswahl hinzu",
       "editTitle": "GRUPPENTITEL BEARBEITEN:",
       "editInstructions": "Doppelklicke auf das Label",
       "headlineLabel": "Gruppenüberschrift",
