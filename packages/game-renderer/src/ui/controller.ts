@@ -26,12 +26,17 @@ export class GameUiController {
   private readonly held = new Map<string | number, string>();
   private readonly padButtons = new Set<number>();
   private insets: GameUiInsets | undefined;
+  private viewport: GameUiViewport | undefined;
+  private annotated: { readonly source: GameUiFrame; readonly focusId: string | undefined; readonly insets: GameUiInsets | undefined; readonly ui: GameUiFrame } | undefined;
 
   constructor(private readonly sink: GameUiActionSink, private readonly measure: GameUiMeasureText) {}
 
   /** Lays out the frame's HUD tree in the HUD rectangle, for hit tests and focus moves until the next frame. */
   update(ui: GameUiFrame | undefined, viewport: GameUiViewport, insets?: GameUiInsets): void {
+    // Frames between ticks share the tick's HUD tree, so the layout and its text measurement run once per tick.
+    if (ui === this.ui && viewport === this.viewport && insets === this.insets) { return; }
     this.ui = ui;
+    this.viewport = viewport;
     this.insets = insets;
     this.boxes = ui ? layoutGameUi(ui, viewport, this.measure, insets) : [];
     if (this.focusId !== undefined && !this.boxes.some((box) => box.node.kind === "button" && box.node.id === this.focusId)) {
@@ -42,9 +47,13 @@ export class GameUiController {
   /** The frame's HUD tree with the focused button and safe-area insets, for the renderer. */
   annotate<F extends { ui?: GameUiFrame }>(frame: F): F {
     if (!frame.ui || (this.focusId === undefined && this.insets === undefined)) { return frame; }
+    const cached = this.annotated;
+    // The same tree, focus and insets give the same object, so the HUD painter can skip an unchanged HUD.
+    if (cached && cached.source === frame.ui && cached.focusId === this.focusId && cached.insets === this.insets) { return { ...frame, ui: cached.ui }; }
     const ui: GameUiFrame = { ...frame.ui };
     if (this.focusId !== undefined) { ui.focusId = this.focusId; }
     if (this.insets !== undefined) { ui.insets = this.insets; }
+    this.annotated = { source: frame.ui, focusId: this.focusId, insets: this.insets, ui };
     return { ...frame, ui };
   }
 

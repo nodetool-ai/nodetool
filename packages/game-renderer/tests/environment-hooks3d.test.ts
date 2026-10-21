@@ -20,7 +20,7 @@ function fixture() {
     const configureFog = (): void => fog.configure(scene, camera, height ? fogSettings : undefined);
     const configureShadows = (): void => {
       if (count === 0) { cascades.detach(); }
-      else { cascades.update(scene, sun, sunSettings, { count, split: 0.5, maxDistance: 60 }, 512, camera); }
+      else { cascades.update(scene, sun, sunSettings, { count, split: 0.5, maxDistance: 60 }, 512, camera); cascades.bindMaterials(scene); }
     };
     if (fogFirst) { configureFog(); configureShadows(); } else { configureShadows(); configureFog(); }
   };

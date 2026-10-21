@@ -329,9 +329,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     paintGameHud(this.hudCanvas, this.hudTexture, frame);
     this.renderer.info.autoReset = false;
     this.renderer.info.reset();
-    const fog = frame.environment.fog;
-    this.heightFog.configure(this.scene, activeCamera, fog && "kind" in fog ? fog : undefined);
-    this.controller.signal.throwIfAborted();
+    // The environment-materials pass binds cascades and height fog once, after particle materials exist.
     this.renderingFrame = frame;
     this.renderingParticles = particles;
     await this.pipeline.render({ renderer: this.renderer, scene: this.scene, camera: activeCamera, interpolation,
