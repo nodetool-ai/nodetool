@@ -687,3 +687,214 @@ export const SEED_CODE_BODIES: readonly CodeSeed[] = [
     code: "await output('n', 1);\nawait output('out', 1);\nawait output('doc', 1);\nreturn inputs;"
   }
 ];
+
+/** A Code step as the workflow planner writes it: the body and the handles it is wired to. */
+export interface PlannedStepSeed {
+  id: string;
+  code: string;
+  inputs: readonly string[];
+  output: string;
+}
+
+/** Bodies `plannedCodeStepProblems` has to judge, one planner mistake each. */
+export const SEED_PLANNED_STEPS: readonly PlannedStepSeed[] = [
+  {
+    id: "planned-clean",
+    inputs: ["text"],
+    output: "n",
+    code: "await output('n', inputs.text);"
+  },
+  {
+    id: "planned-syntax-error",
+    inputs: ["text"],
+    output: "n",
+    code: "const = ;"
+  },
+  {
+    id: "planned-output-in-for",
+    inputs: ["items"],
+    output: "n",
+    code: "for (const x of inputs.items) {\n  await output('n', x);\n}"
+  },
+  {
+    id: "planned-output-in-callback",
+    inputs: ["items"],
+    output: "n",
+    code: "inputs.items.forEach(async (x) => {\n  await output('n', x);\n});"
+  },
+  {
+    id: "planned-output-in-function-expression",
+    inputs: ["items"],
+    output: "n",
+    code: "inputs.items.map(function (x) {\n  return output('n', x);\n});"
+  },
+  {
+    id: "planned-output-after-callback",
+    inputs: ["items"],
+    output: "n",
+    code: "const k = inputs.items.map((x) => x);\nawait output('n', k);"
+  },
+  {
+    id: "planned-callee-not-output",
+    inputs: ["items"],
+    output: "n",
+    code: "for (const x of inputs.items) {\n  await emit('n', x);\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-member-callee",
+    inputs: ["items"],
+    output: "n",
+    code: "for (const x of inputs.items) {\n  api.output('n', x);\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-unwired-one-none",
+    inputs: [],
+    output: "n",
+    code: "await output('n', inputs.ghost);"
+  },
+  {
+    id: "planned-unwired-one-wired",
+    inputs: ["text"],
+    output: "n",
+    code: "await output('n', inputs.text + inputs.ghost);"
+  },
+  {
+    id: "planned-unwired-many-wired-many",
+    inputs: ["text", "flag"],
+    output: "n",
+    code: "await output('n', inputs.text + inputs.flag + inputs.p + inputs.q);"
+  },
+  {
+    id: "planned-own-property-read",
+    inputs: ["text"],
+    output: "n",
+    code: "await output('n', inputs.text + inputs.code);"
+  },
+  {
+    id: "planned-unread-one",
+    inputs: ["text", "flag"],
+    output: "n",
+    code: "await output('n', inputs.text);"
+  },
+  {
+    id: "planned-unread-many",
+    inputs: ["text", "flag", "items"],
+    output: "n",
+    code: "await output('n', 1);"
+  },
+  {
+    id: "planned-opaque-inputs",
+    inputs: ["text", "flag"],
+    output: "n",
+    code: "const k = 'text';\nawait output('n', inputs[k]);"
+  },
+  {
+    id: "planned-whole-inputs",
+    inputs: ["text", "flag"],
+    output: "n",
+    code: "await output('n', { ...inputs });"
+  },
+  {
+    id: "planned-stream-reads",
+    inputs: ["items"],
+    output: "n",
+    code: "for await (const x of stream('items')) {\n  total += x;\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-stream-dynamic",
+    inputs: ["items", "text"],
+    output: "n",
+    code: "for await (const x of stream(inputs.k)) {\n  total += x;\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-stream-any",
+    inputs: ["items", "text"],
+    output: "n",
+    code: "for await (const x of stream.any()) {\n  total += x;\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-unawaited-global",
+    inputs: ["text"],
+    output: "n",
+    code: "const k = getSecret('K');\nconst r = fetch(inputs.text);\nconst s = sleep(5);\nawait output('n', 1);"
+  },
+  {
+    id: "planned-unawaited-member",
+    inputs: ["text"],
+    output: "n",
+    code: "const f = workspace.read(inputs.text);\nconst m = media.fetch(inputs.text);\nawait output('n', 1);"
+  },
+  {
+    id: "planned-unawaited-unknown-object",
+    inputs: ["text"],
+    output: "n",
+    code: "const f = other.read(inputs.text);\nconst g = workspace[inputs.text]();\nconst h = unknownFn(inputs.text);\nconst i = 5;\nconst j = await fetch(inputs.text);\nawait output('n', 1);"
+  },
+  {
+    id: "planned-model-host",
+    inputs: ["text"],
+    output: "n",
+    code: "const r = await fetch('https://api.openai.com/v1/chat');\nawait output('n', inputs.text);"
+  },
+  {
+    id: "planned-model-host-last",
+    inputs: ["text"],
+    output: "n",
+    code: "const r = await fetch('https://api.deepseek.com/x');\nawait output('n', inputs.text);"
+  },
+  {
+    id: "planned-no-output",
+    inputs: ["text"],
+    output: "n",
+    code: "const k = inputs.text;"
+  },
+  {
+    id: "planned-wrong-output",
+    inputs: ["text"],
+    output: "n",
+    code: "await output('a', inputs.text);\nawait output('b', 1);"
+  }
+];
+
+/** Pre-`inputs` bodies that read an input as a global of its own name. */
+export const SEED_MIGRATION_BODIES: readonly { id: string; code: string }[] = [
+  {
+    id: "migrate-global-read",
+    code: "return { n: a + text, out: flag, doc: items };"
+  },
+  { id: "migrate-shorthand", code: "return { a, text };" },
+  {
+    id: "migrate-string-and-comment",
+    code: "// a text\nconst s = 'a text';\nreturn { n: s };"
+  },
+  { id: "migrate-object-key", code: "return { a: 1, text: 2 };" },
+  {
+    id: "migrate-member-property",
+    code: "const o = {};\nreturn o.a + o.text;"
+  },
+  {
+    id: "migrate-shadowed-const",
+    code: "const a = 1;\nreturn { n: a + text };"
+  },
+  {
+    id: "migrate-shadowed-param",
+    code: "const f = (text) => text + a;\nreturn { n: f(1) };"
+  },
+  {
+    id: "migrate-shadowed-function",
+    code: "function flag() { return 1; }\nreturn { n: flag() + a };"
+  },
+  { id: "migrate-binds-inputs", code: "const inputs = {};\nreturn { n: a };" },
+  { id: "migrate-already-inputs", code: "return { n: inputs.a };" },
+  { id: "migrate-syntax-error", code: "const = a;" },
+  { id: "migrate-no-reads", code: "return { n: 1 };" },
+  {
+    id: "migrate-call-and-template",
+    code: "return { n: `${a}-${text}`, out: flag(items) };"
+  },
+  {
+    id: "migrate-destructure-default",
+    code: "const { x = a } = {};\nconst [y = text] = [];\nreturn { x, y };"
+  },
+  { id: "migrate-unknown-global", code: "return { n: ghost + a };" }
+];
