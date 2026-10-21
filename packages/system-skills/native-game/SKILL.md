@@ -17,7 +17,9 @@ parameters, and pacing sheet, then keep later edits and asset prompts
 consistent with that spec. Load `native-game-reference` when an edit needs
 script hooks, events, lighting, effects, particles, 3D rendering, the audio mix,
 animation graphs, input bindings, the HUD tree or performance fields. Load
-`api-games` before calling `nodetool.games` from a code action.
+`native-game-performance` before building a 3D game and before reporting any
+game as done. Load `api-games` before calling `nodetool.games` from a code
+action.
 
 ## Build and revise
 
@@ -63,21 +65,29 @@ animation graphs, input bindings, the HUD tree or performance fields. Load
    `sheet: true` returns one contact sheet. Captures report `cancelled`,
    `wall_time_limited`, and `route_complete`. An interrupted capture returns
    only frames rendered before interruption.
-7. Generate assets (see Assets). Confirm scope before spending.
-8. `publish_native_game {game_id, base_revision}` publishes the current draft
+7. Pass the performance gate before you report the game as done, and again at
+   each milestone: blockout, art pass, effects pass. With a shell, run
+   `nodetool game bench`, `nodetool game capture --fail-on-budget` and
+   `nodetool game perf --fail-on-budget` on a route through the busiest part of
+   the game, as `native-game-performance` describes. The game passes when all
+   three exit 0. Report the measured tick p95, frame p95, draw calls and
+   triangles. Without a shell, apply that skill's budgets and authoring rules
+   and give the user the `nodetool game perf` command.
+8. Generate assets (see Assets). Confirm scope before spending.
+9. `publish_native_game {game_id, base_revision}` publishes the current draft
    only when the user asks. For an explicit `document`, pass the paired
    `draft_updated_at` returned by `get_native_game` as `base_updated_at`. On a
    conflict, read the draft and reconcile edits.
-9. `build_native_game {game_id, revision?, target?}` writes a standalone web
-   player for an owned revision under the project workspace and returns its
-   path, only when the user asks. `target: "tauri"` writes a Tauri desktop app
-   project instead, named after the game. It compiles to installers with
-   `npm run build` where Rust is installed. `target: "expo"` writes an Expo
-   project for iOS and Android that plays the game offline in a WebView. It
-   runs with `npm install && npx expo start`. On a touch screen the 2D player adds a floating stick for
-   `left`/`right`/`up`/`down` and one button per other input action, labeled
-   with the action name. Installed media must still exist, match its recorded
-   digest, and use a supported format.
+10. `build_native_game {game_id, revision?, target?}` writes a standalone web
+    player for an owned revision under the project workspace and returns its
+    path, only when the user asks. `target: "tauri"` writes a Tauri desktop app
+    project instead, named after the game. It compiles to installers with
+    `npm run build` where Rust is installed. `target: "expo"` writes an Expo
+    project for iOS and Android that plays the game offline in a WebView. It
+    runs with `npm install && npx expo start`. On a touch screen the 2D player adds a floating stick for
+    `left`/`right`/`up`/`down` and one button per other input action, labeled
+    with the action name. Installed media must still exist, match its recorded
+    digest, and use a supported format.
 
 ## Build a complete document
 
