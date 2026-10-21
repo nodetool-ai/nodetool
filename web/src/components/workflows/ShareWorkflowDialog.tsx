@@ -12,7 +12,6 @@ import {
   Dialog,
   FlexColumn,
   FlexRow,
-  Text,
   Caption,
   SectionHeader,
   Chip,

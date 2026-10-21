@@ -304,7 +304,6 @@ const ToolButton: React.FC<ToolButtonProps> = ({
   onClick,
   children
 }) => {
-  const { t } = useTranslation();
   const theme = useTheme();
   const heading = shortcut ? `${label} (${shortcut})` : label;
   return (

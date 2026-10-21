@@ -16,7 +16,6 @@ import {
 export type AnimationGraphCommit = (edit: (graph: GameAnimationGraph3D) => GameAnimationGraph3D, label: string) => boolean;
 
 const PARAMETER_KINDS = ["float", "bool", "trigger"] as const;
-const CONDITION_OPS = ["gt", "gte", "lt", "lte", "eq", "neq", "true", "false", "set"] as const;
 const MOTION_KINDS = ["clip", "blend1d", "blend2d"] as const;
 
 function finiteNumber(raw: string): number | null {

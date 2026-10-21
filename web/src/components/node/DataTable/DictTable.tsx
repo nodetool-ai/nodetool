@@ -5,7 +5,6 @@ import isEqual from "../../../utils/isEqual";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
-  Formatter,
   ColumnDefinitionAlign,
   StandardValidatorType,
   RowComponent

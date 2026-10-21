@@ -30,7 +30,6 @@ import { useTranslation } from "react-i18next";
 import {
   AlertBanner,
   BORDER_RADIUS,
-  Box,
   Caption,
   Chip,
   DropZone,

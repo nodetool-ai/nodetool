@@ -435,7 +435,6 @@ const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
   alt,
   ...props
 }) => {
-  const { t } = useTranslation();
   const href = src != null ? src : "";
   const { resolvedSrc, thumbSrc, contentType, pending } = useChatAsset(
     href || undefined
