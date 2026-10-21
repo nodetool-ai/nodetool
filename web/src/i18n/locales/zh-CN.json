@@ -11284,7 +11284,25 @@
       "modelRequired": "请选择支持图像编辑的图像模型。",
       "earlierRenders": "之前的渲染结果",
       "showRender": "显示渲染结果：{{caption}}",
-      "failed": "失败"
+      "failed": "失败",
+      "shot": {
+        "title": "镜头",
+        "frame": "画幅",
+        "aspectViewport": "整个视口",
+        "lens": "焦距",
+        "lensFree": "自由",
+        "lensFreeHint": "自由焦距，使用编辑器自身的视角",
+        "lensMm": "{{mm}} 毫米",
+        "views": {
+          "front": "前视",
+          "right": "侧视",
+          "top": "顶视"
+        },
+        "frameAll": "显示全部",
+        "save": "保存镜头",
+        "savedName": "镜头 {{index}}",
+        "restore": "切换到 {{name}}"
+      }
     },
     "blenderRender": {
       "emptyTitle": "还没有 Blender 渲染",

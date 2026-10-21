@@ -76,10 +76,17 @@ import { resolveStaticMediaUri } from "../../utils/resolveMediaUri";
 import SceneOutliner, { type OutlinerAction } from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
-import AiRenderPanel, { type ViewportCapture } from "./AiRenderPanel";
+import AiRenderPanel, { type ShotCamera, type ViewportCapture } from "./AiRenderPanel";
+import ShotFrameOverlay from "./ShotFrameOverlay";
+import {
+  DEFAULT_SHOT,
+  frameRect,
+  parseShotSettings,
+  type CapturePass,
+  type ShotSettings
+} from "./aiRender";
 import BlenderRenderPanel from "./BlenderRenderPanel";
 import { makeViewCamera, type BlenderCameraMode } from "./blenderRender";
-import type { CapturePass } from "./aiRender";
 import EditorStatusBar from "./EditorStatusBar";
 import ViewportContextMenu from "./ViewportContextMenu";
 import AnimationBar from "./AnimationBar";
@@ -149,6 +156,7 @@ import {
   LightGizmos,
   SelectionBounds,
   StudioEnvironment,
+  ShotLensRig,
   WireframeOverlay,
   captureModelOnly,
   isVisibleInTree,
@@ -187,6 +195,16 @@ const readAiRenderOpen = (): boolean => {
     return localStorage.getItem(AI_RENDER_OPEN_KEY) === "true";
   } catch {
     return false;
+  }
+};
+
+const AI_RENDER_SHOT_KEY = "model3d.aiRender.shot";
+const readShot = (): ShotSettings => {
+  try {
+    const raw = localStorage.getItem(AI_RENDER_SHOT_KEY);
+    return raw ? parseShotSettings(JSON.parse(raw)) : DEFAULT_SHOT;
+  } catch {
+    return DEFAULT_SHOT;
   }
 };
 
@@ -469,6 +487,7 @@ const Model3DEditor = ({
   const [cameraRequest, setCameraRequest] = useState<CameraRequest | null>(null);
   const [showAssistant, setShowAssistant] = useState<boolean>(readAssistantOpen);
   const [showAiRender, setShowAiRender] = useState<boolean>(readAiRenderOpen);
+  const [shot, setShot] = useState<ShotSettings>(readShot);
   const [showBlenderRender, setShowBlenderRender] = useState<boolean>(readBlenderRenderOpen);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -501,6 +520,22 @@ const Model3DEditor = ({
       }
       return next;
     });
+  }, []);
+
+  const shotLabel = [
+    shot.aspect === "viewport" ? t("i18n-cont-model-editor-11.aiRender.shot.aspectViewport") : shot.aspect,
+    shot.lens === "free"
+      ? t("i18n-cont-model-editor-11.aiRender.shot.lensFree")
+      : t("i18n-cont-model-editor-11.aiRender.shot.lensMm", { mm: shot.lens })
+  ].join(" · ");
+
+  const changeShot = useCallback((next: ShotSettings) => {
+    setShot(next);
+    try {
+      localStorage.setItem(AI_RENDER_SHOT_KEY, JSON.stringify(next));
+    } catch {
+      // Persistence is best-effort; ignore storage failures.
+    }
   }, []);
 
   const toggleBlenderRender = useCallback(() => {
@@ -620,11 +655,22 @@ const Model3DEditor = ({
   );
   const captureForAi = useCallback(
     (pass: CapturePass): ViewportCapture => {
-      const image = captureView(pass);
-      const canvas = captureRef.current?.gl.domElement;
-      return { image, width: canvas?.width ?? 1024, height: canvas?.height ?? 1024 };
+      const capture = captureRef.current;
+      if (!capture) {
+        throw new Error(t("i18n-cont-model-editor-11.modelEditor.errors.captureNotReady"));
+      }
+      const canvas = capture.gl.domElement;
+      const crop = frameRect(canvas.width, canvas.height, shot.aspect);
+      const image = captureModelOnly(
+        capture,
+        root,
+        new THREE.Color(theme.palette.grey[900]),
+        pass,
+        crop
+      );
+      return { image, width: crop.width, height: crop.height };
     },
-    [captureView]
+    [root, theme, t, shot.aspect]
   );
   const viewAspect = useCallback((): number => {
     const canvas = captureRef.current?.gl.domElement;
@@ -1052,6 +1098,26 @@ const Model3DEditor = ({
   const setView = useCallback(
     (view: ViewPreset) => requestCamera({ kind: "view", view }),
     [requestCamera]
+  );
+  const shotCamera = useMemo<ShotCamera>(
+    () => ({
+      view: setView,
+      frameAll,
+      current: () => {
+        const camera = captureRef.current?.camera;
+        const target = orbitTargetRef.current;
+        if (!camera || !target) {
+          return null;
+        }
+        const { position } = camera;
+        return {
+          position: [position.x, position.y, position.z],
+          target: [target.x, target.y, target.z]
+        };
+      },
+      restore: (pose) => requestCamera({ kind: "pose", ...pose })
+    }),
+    [setView, frameAll, requestCamera]
   );
 
   // --- Gizmo -------------------------------------------------------------------
@@ -1779,6 +1845,7 @@ const Model3DEditor = ({
                   <OrbitControls makeDefault enableDamping={false} />
                   <OrbitTargetBridge targetRef={orbitTargetRef} />
                   <CameraRig root={root} request={cameraRequest} />
+                  <ShotLensRig shot={showAiRender ? shot : DEFAULT_SHOT} />
                   {interactive && (
                     <FollowSelection
                       object={selectedObject}
@@ -1796,6 +1863,9 @@ const Model3DEditor = ({
               )}
               <CaptureBridge targetRef={captureRef} />
             </Canvas>
+          )}
+          {interactive && showAiRender && !loadError && (
+            <ShotFrameOverlay shot={shot} label={shotLabel} />
           )}
           {!loadError && !isLoading && animationClips.length > 0 && (
             <AnimationBar
@@ -1870,7 +1940,12 @@ const Model3DEditor = ({
               closeLabel={t("i18n-cont-model-editor-11.modelEditor.actions.hideAiRender")}
             />
             <div className="panel-body">
-              <AiRenderPanel capture={captureForAi} />
+              <AiRenderPanel
+                capture={captureForAi}
+                shot={shot}
+                onShotChange={changeShot}
+                camera={shotCamera}
+              />
             </div>
           </ResizableSideDock>
         </div>

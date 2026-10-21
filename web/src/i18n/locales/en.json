@@ -11284,7 +11284,25 @@
       "modelRequired": "Choose an image model that can edit images.",
       "earlierRenders": "Earlier renders",
       "showRender": "Show render: {{caption}}",
-      "failed": "Failed"
+      "failed": "Failed",
+      "shot": {
+        "title": "Shot",
+        "frame": "Frame",
+        "aspectViewport": "Whole viewport",
+        "lens": "Lens",
+        "lensFree": "Free",
+        "lensFreeHint": "Free lens, the editor's own view",
+        "lensMm": "{{mm}} mm",
+        "views": {
+          "front": "Front",
+          "right": "Side",
+          "top": "Top"
+        },
+        "frameAll": "Frame all",
+        "save": "Save shot",
+        "savedName": "Shot {{index}}",
+        "restore": "Go to {{name}}"
+      }
     },
     "blenderRender": {
       "emptyTitle": "No Blender renders yet",

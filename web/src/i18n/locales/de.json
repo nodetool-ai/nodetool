@@ -11284,7 +11284,25 @@
       "modelRequired": "Wähle ein Bildmodell, das Bilder bearbeiten kann.",
       "earlierRenders": "Frühere Renderings",
       "showRender": "Rendering anzeigen: {{caption}}",
-      "failed": "Fehlgeschlagen"
+      "failed": "Fehlgeschlagen",
+      "shot": {
+        "title": "Einstellung",
+        "frame": "Bildausschnitt",
+        "aspectViewport": "Ganzer Viewport",
+        "lens": "Objektiv",
+        "lensFree": "Frei",
+        "lensFreeHint": "Freies Objektiv, die eigene Ansicht des Editors",
+        "lensMm": "{{mm}} mm",
+        "views": {
+          "front": "Vorne",
+          "right": "Seite",
+          "top": "Oben"
+        },
+        "frameAll": "Alles zeigen",
+        "save": "Einstellung speichern",
+        "savedName": "Einstellung {{index}}",
+        "restore": "Zu {{name}} wechseln"
+      }
     },
     "blenderRender": {
       "emptyTitle": "Noch keine Blender-Renderings",
