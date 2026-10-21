@@ -52,7 +52,7 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 //utils
 import useAssets from "../../serverState/useAssets";
 import { useTheme } from "@mui/material/styles";
-import type { SxProps, Theme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
@@ -74,7 +74,9 @@ import {
   ToolbarIconButton,
   CloseButton,
   DownloadButton,
-  FlexRow
+  FlexRow,
+  FloatingToolbar,
+  ToolbarDivider
 } from "../ui_primitives";
 
 const containerStyles = css({
@@ -132,21 +134,10 @@ const styles = (theme: Theme) =>
       top: "1em",
       right: "2em"
     },
-    ".actions .button": {
-      width: "2em",
-      height: "2em",
-      backgroundColor: theme.vars.palette.background.paper,
-      color: theme.vars.palette.text.primary,
-      border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-      borderRadius: BORDER_RADIUS.circle,
-      padding: getSpacingPx(SPACING.xs)
-    },
+    // One size for every icon in the bar, the caller's actions included, so
+    // the bar reads as one set of controls.
     ".actions button svg": {
-      fontSize: "1.2em"
-    },
-    ".actions .button:hover": {
-      backgroundColor: theme.vars.palette.action.hover,
-      color: theme.vars.palette.primary.main
+      fontSize: theme.fontSizeBig
     },
     // -------------------
     ".asset-navigation": {
@@ -438,26 +429,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
   const canCompare = media.isImage && imageAssets.length >= 2;
 
-  const viewerActionButtonSx = useMemo<SxProps<Theme>>(
-    () => ({
-      width: theme.spacing(4),
-      height: theme.spacing(4),
-      backgroundColor: theme.vars.palette.background.paper,
-      color: theme.vars.palette.text.primary,
-      border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-      borderRadius: BORDER_RADIUS.circle,
-      padding: theme.spacing(0.5),
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
-        color: theme.vars.palette.primary.main
-      },
-      "& svg": {
-        fontSize: theme.fontSizeBig
-      }
-    }),
-    [theme]
-  );
-
   // Compare mode handlers
   const startCompareMode = useCallback(() => {
     if (currentAsset) {
@@ -607,6 +578,10 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     onChangeIndex: handleChangeAsset
   });
   const caption = currentAsset ? captions?.[currentAsset.id] : undefined;
+  const callerActions =
+    renderActions && currentAsset && !compareMode
+      ? renderActions(currentAsset)
+      : null;
   const inLibrary = !(currentAsset && detachedIds?.has(currentAsset.id));
 
   const { component: assetViewer } = useAssetDisplay({
@@ -746,24 +721,23 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           receives hit targets) on top; ImageViewer is a full-area interactive layer
           and would otherwise take precedence for equal/ambiguous stacking.
         */}
-        <FlexRow
+        <FloatingToolbar
           className="actions"
-          gap={SPACING.sm}
-          align="center"
+          aria-label={t("assetViewer.label")}
           sx={{ zIndex: Z_INDEX.tooltip }}
         >
-          {renderActions && currentAsset && !compareMode && (
+          {callerActions != null && callerActions !== false && (
             // Menus and dialogs these actions open have to stack above the
             // fullscreen viewer, not under it at the modal layer.
             <OverlayLayerProvider value={theme.zIndex.floating}>
-              {renderActions(currentAsset)}
+              {callerActions}
+              <ToolbarDivider />
             </OverlayLayerProvider>
           )}
           <DownloadButton
             onClick={handleDownload}
             className="button download"
             nodrag={false}
-            sx={viewerActionButtonSx}
           />
           {editAction && !compareMode && inLibrary && (
             <ToolbarIconButton
@@ -772,7 +746,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onClick={handleEdit}
               className="button edit"
               nodrag={false}
-              sx={viewerActionButtonSx}
             />
           )}
           {transformSource && !compareMode && inLibrary && (
@@ -782,7 +755,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onClick={handleTransform}
               className="button transform"
               nodrag={false}
-              sx={viewerActionButtonSx}
             />
           )}
           {currentAsset?.workflow_id && !compareMode && inLibrary && (
@@ -792,7 +764,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onClick={handleOpenWorkflow}
               className="button open-workflow"
               nodrag={false}
-              sx={viewerActionButtonSx}
             />
           )}
           {isElectron &&
@@ -804,8 +775,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                 onClick={handleCopyToClipboard}
                 className="button copy"
                 nodrag={false}
-                sx={viewerActionButtonSx}
-              />
+                />
             )}
           {canCompare && !compareMode && !compareAssetB && (
             <ToolbarIconButton
@@ -814,7 +784,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onClick={startCompareMode}
               className="button compare"
               nodrag={false}
-              sx={viewerActionButtonSx}
             />
           )}
           {currentAsset && !compareMode && inLibrary && (
@@ -824,7 +793,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onClick={toggleInfo}
               className="button info"
               nodrag={false}
-              sx={viewerActionButtonSx}
             />
           )}
           <CloseButton
@@ -832,9 +800,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             tooltip={t("assetViewer.close")}
             className="button close"
             nodrag={false}
-            sx={viewerActionButtonSx}
           />
-        </FlexRow>
+        </FloatingToolbar>
       </Dialog>
       {transformAsset && (
         <TransformWithWorkflowView

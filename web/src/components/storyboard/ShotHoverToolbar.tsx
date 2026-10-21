@@ -9,8 +9,8 @@
  * swallows clicks and keys before they reach the card and the board grid:
  * the card's click selects the shot, and the grid's arrow keys move between
  * shots, which would otherwise hijack the menu's own keyboard navigation.
- * The fullscreen viewer shows the same row `inline`, always visible, for the
- * shot on screen.
+ * The fullscreen viewer shows the same controls `inline`, as a group in its
+ * own toolbar, for the shot on screen.
  */
 
 import React, { useCallback, useState } from "react";
@@ -40,8 +40,9 @@ import type { WorkflowMediaItem } from "../../hooks/handlers/useGenerationToCanv
 
 interface ShotHoverToolbarProps {
   /**
-   * Lays the row out in place and keeps it visible, for a toolbar that is
-   * always on screen (the fullscreen viewer's) rather than a card's hover row.
+   * Renders the controls as a group inside a toolbar that is always on screen
+   * (the fullscreen viewer's), without a surface of its own, rather than as a
+   * card's hover row.
    */
   inline?: boolean;
   /** Shown when the card is draggable; the card itself carries the drag. */
@@ -84,9 +85,6 @@ const rowSx = {
 
 /** A menu anchored to the row must not lose its anchor when the pointer leaves. */
 const pinnedRowSx = { ...rowSx, opacity: 1 } as const;
-
-/** In a toolbar that is always visible there is nothing to hover. */
-const inlineRowSx = { flexShrink: 0 } as const;
 
 const iconSx = { fontSize: "1em" } as const;
 
@@ -150,13 +148,13 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
     : fullscreenLabel?.toLowerCase().includes("still")
       ? t("screens4_17.storyboard.shotHoverToolbar.viewStillFullscreen")
       : fullscreenLabel;
-  return (
-    <FloatingToolbar
-      onClick={swallowEvent}
-      onKeyDown={swallowEvent}
-      data-testid="shot-hover-toolbar"
-      sx={inline ? inlineRowSx : menuOpen || sendOpen ? pinnedRowSx : rowSx}
-    >
+  const rowProps = {
+    onClick: swallowEvent,
+    onKeyDown: swallowEvent,
+    "data-testid": "shot-hover-toolbar"
+  };
+  const content = (
+    <>
       {showDragHandle && (
         // A grip, not a control: the drag lives on the card, so a button here
         // would be a tab stop that does nothing.
@@ -272,6 +270,27 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
           onClose={closeSend}
         />
       )}
+    </>
+  );
+  // The viewer's toolbar is the surface; a second one inside it would read as
+  // a separate bar.
+  return inline ? (
+    <FlexRow
+      {...rowProps}
+      role="group"
+      aria-label={t("screens4_17.storyboard.shotHoverToolbar.actions")}
+      align="center"
+      gap={SPACING.xs}
+      sx={{ flexShrink: 0 }}
+    >
+      {content}
+    </FlexRow>
+  ) : (
+    <FloatingToolbar
+      {...rowProps}
+      sx={menuOpen || sendOpen ? pinnedRowSx : rowSx}
+    >
+      {content}
     </FloatingToolbar>
   );
 };
