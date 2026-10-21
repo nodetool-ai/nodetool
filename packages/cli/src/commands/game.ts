@@ -1,14 +1,16 @@
 import { importPack } from "@nodetool-ai/node-catalog";
-import { readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { extname, join, resolve, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import type { Command } from "commander";
 import { z } from "zod";
 import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol/game.js";
-import { gameEvent3D, gameInputFrame3D, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
+import { gameEvent3D, gameInputFrame3D, parsePackageAssetUri, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createMemoryGameSaveStorage, createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, GamePlayerSaves, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { benchmarkNativeGame } from "./game-benchmark.js";
 import { printCommandError } from "../command-errors.js";
+import { checkoutPackageAssetsDir } from "../package-assets.js";
 import { registerGameSmokeCommand } from "./game-smoke.js";
 
 interface SimulateOptions {
@@ -53,6 +55,29 @@ interface AssertionFailure {
   readonly actual: unknown;
 }
 
+interface BenchOptions {
+  ticks: string;
+  warmup: string;
+  seed: string;
+  inputs?: string;
+  assetsDir?: string;
+  failOnBudget?: boolean;
+  json?: boolean;
+}
+
+interface PerfOptions {
+  inputs?: string;
+  seconds: string;
+  warmup: string;
+  assetsDir?: string;
+  software?: boolean;
+  vsync?: boolean;
+  keepBuild?: string;
+  profile?: string;
+  failOnBudget?: boolean;
+  json?: boolean;
+}
+
 interface CaptureOptions {
   ticks: string;
   seed: string;
@@ -61,6 +86,7 @@ interface CaptureOptions {
   scale: string;
   backend: string;
   assetsDir?: string;
+  failOnBudget?: boolean;
   json?: boolean;
 }
 
@@ -90,8 +116,22 @@ const MEDIA_TYPES: Readonly<Record<string, string>> = {
   json: "application/json"
 };
 
+/** Reads a shipped `package://` asset from the package asset directory of this checkout or of NODETOOL_PACKAGE_ASSETS_DIR. */
+async function readPackageAsset(uri: string): Promise<{ bytes: Uint8Array; mimeType: string } | null> {
+  const ref = parsePackageAssetUri(uri);
+  const root = process.env.NODETOOL_PACKAGE_ASSETS_DIR || checkoutPackageAssetsDir();
+  if (!ref || !root) return null;
+  const base = await realpath(root);
+  let path: string;
+  try { path = await realpath(join(base, ref.packageName, ref.path)); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
+  if (!path.startsWith(`${base}${sep}`)) { throw new Error(`Package asset escapes the asset directory: ${uri}`); } // key-boundary-ok: node:path sep anchors containment after realpath.
+  return { bytes: await readFile(path), mimeType: MEDIA_TYPES[extname(path).slice(1).toLowerCase()] ?? "application/octet-stream" };
+}
+
 async function readBuildAsset(directory: string | undefined, sourceAssetId: string): Promise<{ bytes: Uint8Array; mimeType: string } | null> {
   if (sourceAssetId.startsWith("builtin:")) return null;
+  if (sourceAssetId.startsWith("package://")) return readPackageAsset(sourceAssetId);
   if (!directory) return null;
   if (!/^[a-f0-9]{32}$/.test(sourceAssetId)) {
     throw new Error(`Asset ID must be a full 32-character resource ID: ${sourceAssetId}`);
@@ -116,6 +156,16 @@ function nonnegativeInteger(value: string, name: string): number {
 
 async function readDocument(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8")) as unknown;
+}
+
+/** A shipped example file. A game document never has `name` and `document` without `schemaVersion`. */
+const exampleWrapper = z.object({ name: z.string(), document: z.record(z.string(), z.unknown()), schemaVersion: z.never().optional() });
+
+/** Reads a game document, or the `document` of a shipped example file `{name, document, …}`. */
+async function readGameDocument(path: string): Promise<unknown> {
+  const raw = await readDocument(path);
+  const wrapped = exampleWrapper.safeParse(raw);
+  return wrapped.success ? wrapped.data.document : raw;
 }
 
 async function readInputs<Schema extends z.ZodType>(path: string | undefined, schema: Schema): Promise<z.output<Schema>[]> {
@@ -275,7 +325,7 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: { json?: boolean }) => {
       try {
-        const report = validateCliDocument(await readDocument(path));
+        const report = validateCliDocument(await readGameDocument(path));
         if (options.json) {
           process.stdout.write(`${JSON.stringify(report)}\n`);
         } else {
@@ -297,13 +347,24 @@ export function registerGameCommands(program: Command): void {
     .option("--ticks <count>", "Measured ticks", "1200")
     .option("--warmup <count>", "Warmup ticks", "300")
     .option("--seed <integer>", "Random seed", "1")
+    .option("--inputs <file>", "JSON array of tick-indexed input frames from tick 0 (warmup included), so the bench measures play")
+    .option("--assets-dir <directory>", "Prepared 3D collider files named <full-asset-id>.json. Shipped package:// assets resolve without it")
+    .option("--fail-on-budget", "Exit 1 when the tick p95 exceeds performance.budgets.tickMs (default 4 ms)")
     .option("--json", "Print a machine-readable report")
-    .action(async (path: string, options: { ticks: string; warmup: string; seed: string; json?: boolean }) => {
+    .action(async (path: string, options: BenchOptions) => {
       try {
-        const validated = validateCliDocument(await readDocument(path));
+        const validated = validateCliDocument(await readGameDocument(path));
         if (!validated.valid || !validated.document) { throw new Error(validated.errors.join("\n")); }
-        const report = await benchmarkNativeGame(validated.document, Number(options.ticks), Number(options.warmup), Number(options.seed));
-        process.stdout.write(`${JSON.stringify(report, null, options.json ? undefined : 2)}\n`);
+        const document = validated.document;
+        const inputs = document.schemaVersion === 3 ? await readInputs(options.inputs, gameInputFrame3D) : await readInputs(options.inputs, gameInputFrame);
+        const report = await benchmarkNativeGame(document, Number(options.ticks), Number(options.warmup), Number(options.seed),
+          { inputs, resolveCollider: sessionAssetOptions3D(options.assetsDir).resolveCollider });
+        const { formatGameTimeBudgetOverrun, gameTimeBudgetOverruns, resolveGameTimeBudgets } = await importPack<typeof import("@nodetool-ai/game-renderer")>("game", "@nodetool-ai/game-renderer");
+        const limits = resolveGameTimeBudgets(document.schemaVersion === 3 ? document.performance?.budgets : undefined);
+        const overruns = gameTimeBudgetOverruns({ tickMs: report.tickMs.p95 }, limits);
+        process.stdout.write(`${JSON.stringify({ ...report, budget: { limits: { tickMs: limits.tickMs }, overruns } }, null, options.json ? undefined : 2)}\n`);
+        if (!options.json) { for (const overrun of overruns) { process.stderr.write(`${formatGameTimeBudgetOverrun(overrun)}\n`); } }
+        if (options.failOnBudget && overruns.length > 0) { process.exitCode = 1; }
       } catch (error) { process.exitCode = printCommandError(error, options.json); }
     });
 
@@ -322,7 +383,7 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: SimulateOptions) => {
       try {
-        const validated = validateCliDocument(await readDocument(path));
+        const validated = validateCliDocument(await readGameDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
@@ -433,10 +494,11 @@ export function registerGameCommands(program: Command): void {
     .option("--scale <factor>", "Output scale", "1")
     .option("--backend <canvas2d|webgpu|webgl2>", "Capture backend. Defaults to WebGL2 for 3D", "canvas2d")
     .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>")
+    .option("--fail-on-budget", "3D only. Exit 1 when the frame exceeds a performance.budgets count (draw calls, triangles, particles)")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: CaptureOptions, command: Command) => {
       try {
-        const validated = validateCliDocument(await readDocument(path));
+        const validated = validateCliDocument(await readGameDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
@@ -444,6 +506,7 @@ export function registerGameCommands(program: Command): void {
           const backend = command.getOptionValueSource("backend") === "default" ? "webgl2" : options.backend;
           await captureGame3D(validated.document, { ...options, backend }); return;
         }
+        if (options.failOnBudget) { throw new Error("--fail-on-budget applies to 3D games. 2D capture reports no frame counters"); }
         const ticks = nonnegativeInteger(options.ticks, "ticks");
         if (ticks === 0) throw new Error("ticks must be at least 1 for capture");
         const seed = nonnegativeInteger(options.seed, "seed");
@@ -491,6 +554,58 @@ export function registerGameCommands(program: Command): void {
       }
     });
 
+  game.command("perf <game_file>")
+    .description("Export a 3D game, play it in Chromium on the machine GPU and measure frame time, draw calls, triangles and shader program growth")
+    .option("--inputs <file>", "JSON array of input frames replayed with advance before live play")
+    .option("--seconds <seconds>", "Measured seconds of live play", "10")
+    .option("--warmup <seconds>", "Seconds of live play before the measurement", "2")
+    .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>. Shipped package:// assets resolve without it")
+    .option("--software", "Use SwiftShader instead of the machine GPU. Frame times then say nothing about real hardware")
+    .option("--vsync", "Keep vsync and Chromium's frame rate limit. By default frames are uncapped, so frame time shows the real cost")
+    .option("--keep-build <directory>", "Export into this directory and keep it, instead of a temporary directory")
+    .option("--profile <file>", "Write a Chrome CPU profile of the measured window and list its hottest functions. A source checkout keeps readable names")
+    .option("--fail-on-budget", "Exit 1 when frame p95 exceeds performance.budgets.frameMs (default 16.6), draw calls or triangles exceed their budgets, or shader programs grow during play")
+    .option("--json", "Print a machine-readable report")
+    .action(async (path: string, options: PerfOptions) => {
+      let temporary: string | undefined;
+      try {
+        const validated = validateCliDocument(await readGameDocument(path));
+        if (!validated.valid || !validated.document) { throw new Error(validated.errors.join("\n")); }
+        const document = validated.document;
+        if (document.schemaVersion !== 3) { throw new Error("game perf measures 3D games. Use game bench for 2D tick cost"); }
+        const inputs = await readInputs(options.inputs, gameInputFrame3D);
+        const outputDir = options.keepBuild ? resolve(options.keepBuild) : (temporary = await mkdtemp(join(tmpdir(), "nodetool-game-perf-")));
+        const { buildStandaloneGame3D } = await importPack<typeof import("@nodetool-ai/game-renderer/build3d")>("game", "@nodetool-ai/game-renderer/build3d");
+        await buildStandaloneGame3D({ document, outputDir, resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId) });
+        const { measureStandaloneGame3D, formatGamePerfOverrun } = await importPack<typeof import("@nodetool-ai/game-renderer/perf")>("game", "@nodetool-ai/game-renderer/perf");
+        // A recorded route never carries save loads, so the frames go to the page without them.
+        const report = await measureStandaloneGame3D(outputDir, { inputs: inputs.map(({ loaded: _loaded, ...frame }) => frame),
+          seconds: Number(options.seconds), warmupSeconds: Number(options.warmup), software: options.software, vsync: options.vsync,
+          profile: options.profile ? resolve(options.profile) : undefined });
+        if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); }
+        else {
+          const round = (value: number) => Math.round(value * 100) / 100;
+          process.stdout.write([
+            `GPU ${report.gpu.renderer} (${report.gpu.adapterType}), canvas ${report.canvas.width}x${report.canvas.height}, ${report.vsync ? "vsync" : "uncapped"}`,
+            `${report.renderedFrames} frames in ${report.seconds} s: ${round(report.fps)} fps`,
+            `Frame ms p50 ${round(report.frameMs.p50)}, p95 ${round(report.frameMs.p95)}, p99 ${round(report.frameMs.p99)}, max ${round(report.frameMs.max)}`,
+            `Draw calls p95 ${report.drawCalls.p95}, triangles p95 ${report.triangles.p95}`,
+            `Shader programs ${report.programs.start} -> ${report.programs.end} (growth ${report.programs.growth})`,
+            ...report.profile ? [`Profile ${report.profile.path}, ${round(report.profile.sampledMs)} ms sampled. Hottest self time:`,
+              ...report.profile.top.slice(0, 10).map((entry) => `  ${entry.percent}% ${entry.functionName} ${entry.url}:${entry.line}`),
+              ...report.profile.suspects.map((entry) => `Suspect in steady play: ${entry.functionName} ${entry.percent}%`)] : [],
+            ...report.warnings, ...report.errors
+          ].join("\n") + "\n");
+          for (const overrun of report.budget.overruns) { process.stderr.write(`${formatGamePerfOverrun(overrun)}\n`); }
+        }
+        if (!report.ok || (options.failOnBudget && report.budget.overruns.length > 0)) { process.exitCode = 1; }
+      } catch (error) {
+        process.exitCode = printCommandError(error, options.json);
+      } finally {
+        if (temporary) { await rm(temporary, { recursive: true, force: true }); }
+      }
+    });
+
   game
     .command("build <game_file>")
     .description("Build a standalone web player, a Tauri desktop app project or an Expo mobile app project, with local, content-addressed assets")
@@ -506,7 +621,7 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: BuildOptions) => {
       try {
-        const validated = validateCliDocument(await readDocument(path));
+        const validated = validateCliDocument(await readGameDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
@@ -709,5 +824,6 @@ async function captureGame3D(document: GameDocument3D, options: CaptureOptions):
       capabilities: captured.capabilities, stats: captured.stats, budget: { limits, overruns }, projected_bounds: captured.projectedBounds, diagnostics: [] };
     process.stdout.write(options.json ? `${JSON.stringify(report)}\n` : `Captured tick ${report.tick} to ${report.path}\n`);
     if (!options.json) { for (const overrun of overruns) { process.stderr.write(`${formatGameFrameBudgetOverrun(overrun)}\n`); } }
+    if (options.failOnBudget && overruns.length > 0) { process.exitCode = 1; }
   } finally { session.dispose(); }
 }

@@ -47,8 +47,11 @@ describe("named 3D material authoring", () => {
       const frame = session.frame();
       expect(frame.materials).toEqual(document.materials);
       if (!frame.materials) { throw new Error("Expected projected materials"); }
-      frame.materials.paint.color = "#000000";
+      const paint = frame.materials.paint;
+      // Frames share one frozen copy, so a write fails and never reaches the document or a later frame.
+      expect(() => { paint.color = "#000000"; }).toThrow(TypeError);
       expect(session.frame().materials?.paint.color).toBe("#ff0000");
+      expect(document.materials?.paint.color).toBe("#ff0000");
       expect(baseline.frame()).not.toHaveProperty("materials");
     } finally { session.dispose(); baseline.dispose(); }
   });
@@ -117,8 +120,10 @@ describe("named 3D material authoring", () => {
       const frame = session.frame();
       expect(frame.images?.paint).toEqual(document.assets.paint);
       if (!frame.images) { throw new Error("Expected image bindings"); }
-      frame.images.paint.digest = "changed";
+      const binding = frame.images.paint;
+      expect(() => { binding.digest = "changed"; }).toThrow(TypeError);
       expect(session.frame().images?.paint.digest).toBe("prepared-digest");
+      expect(document.assets.paint.digest).toBe("prepared-digest");
     } finally { session.dispose(); }
   });
   it("clears primitive and model material references through JSON patches without losing inline settings", () => {

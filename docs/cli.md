@@ -1292,7 +1292,9 @@ nodetool jsscript versions restore <js_script_id> 3
 
 ### `nodetool game`
 
-Validate, replay, capture, and export a native game document from a JSON file.
+Validate, replay, capture, measure, and export a native game document from a
+JSON file. Each command also accepts a shipped example file
+(`{name, document, …}`) and reads its `package://` assets from the checkout.
 Simulation advances exactly the requested number of 60 Hz ticks. The input
 recording is a JSON array of `{ "pressed": ["right"] }` frames, one per tick.
 
@@ -1306,15 +1308,19 @@ nodetool game build game.json --out game-build --assets-dir game-assets
 nodetool game build game.json --out game-desktop --assets-dir game-assets --target tauri --name "Cave Run" --compile
 nodetool game build game.json --out game-mobile --assets-dir game-assets --target expo --name "Cave Run"
 nodetool game smoke game-build --json
+nodetool game bench game.json --inputs route.json --warmup 600 --ticks 600 --fail-on-budget
+nodetool game perf game.json --inputs route.json --seconds 10 --fail-on-budget
 ```
 
 **Subcommands and options:**
 
 - `game validate <game_file>` — `--json`.
 - `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--saves <file>`, `--json`.
-- `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
+- `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--fail-on-budget` (3D only: exit 1 when the frame exceeds a draw call, triangle or particle budget), `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
 - `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--target <web|tauri|expo>` (default `web`), `--json`. `--target tauri` writes a [Tauri](https://tauri.app) desktop app project: the web player in `dist/` and a native shell in `src-tauri/`. It accepts `--name <name>`, `--identifier <reverse-dns>`, `--app-version <MAJOR.MINOR.PATCH>`, `--icon <png|jpeg|webp>`, and `--compile`, which runs `cargo build --release` and reports the executable path. Run `npm install && npm run build` in the project for installers. `--target expo` writes an [Expo](https://expo.dev) project for iOS and Android that shows the game in a WebView, with the whole game in one offline page at `assets/game/game.html`. It accepts `--name`, `--identifier`, `--app-version`, `--icon`, and `--orientation <default|portrait|landscape>`. Run `npm install && npx expo start` in the project to play it in Expo Go.
 - `game smoke <directory>` — `--json`. Serves an exported build in headless Chromium with outside network access blocked, renders 300 scripted frames, and checks tick progress. Console errors, page errors, failed requests, and stalled ticks return a nonzero exit status. Install Chromium with `npx playwright install chromium`.
+- `game bench <game_file>` — `--ticks <count>` (default `1200`), `--warmup <count>` (default `300`), `--seed <integer>`, `--inputs <file>` (a route from tick 0, warmup included, so the bench measures play instead of an idle game), `--assets-dir <directory>`, `--fail-on-budget`, `--json`. Runs the simulation headless and reports p50/p95/p99 of `tickMs`, `scriptMs` and each system, physics counts, and sampled allocation bytes. `budget.limits.tickMs` is `performance.budgets.tickMs` (default 4 ms). `--fail-on-budget` exits 1 when the tick p95 exceeds it.
+- `game perf <game_file>` — `--inputs <file>`, `--seconds <seconds>` (default `10`), `--warmup <seconds>` (default `2`), `--assets-dir <directory>`, `--software`, `--vsync`, `--keep-build <directory>`, `--profile <file>`, `--fail-on-budget`, `--json`. 3D only. Exports the game, serves it, and plays it in headless Chromium on the machine GPU (ANGLE Metal on macOS). It replays the route with `nativeGame3DPlayer.advance`, resumes live play, waits for the warmup, then measures. The report has frame time p50/p95/p99/max between rendered frames, `fps`, draw calls and triangles per frame (shadow and depth passes included), and shader programs at the start and end of the window. Frames are uncapped unless `--vsync` is set, so frame time shows the real cost of a frame. `--software` uses SwiftShader, whose times do not describe real hardware. Player errors exit 1. `--fail-on-budget` also exits 1 when frame p95 exceeds `performance.budgets.frameMs` (default 16.6 ms), when draw call or triangle p95 exceeds its budget, or when the program count grows during the window. `--profile` writes a Chrome CPU profile of the measured window and lists the functions with the most self time. It flags suspects that should not be hot in steady play, such as `getProgram`, `traverse`, `stringify`, `structuredClone` and `takeSnapshot`. In a source checkout the profiled player keeps readable function names.
 
 Schema version 2 adds sprite `visualAnimation` tracks and scene `backgrounds`.
 Tracks use scene or spawn age in ticks and animate rotation, scale, opacity, and
@@ -1337,7 +1343,9 @@ adapter.
 A 3D capture checks the frame against the document's `performance.budgets`,
 with player defaults for any budget left out. The JSON report has
 `budget.limits` and `budget.overruns`, and `stats.culledEntities` counts the
-entities that distance culling hid. Text mode prints each overrun to stderr.
+entities that distance culling hid. `stats.programs` is the shader program
+count. Text mode prints each overrun to stderr. `stats.renderMs` is CPU
+submission time for one frame. Use `game perf` for frame time on the GPU.
 
 `--assertions` checks selected ticks. Tick 0 is the initial state; tick 1 is
 after the first input frame. Each listed tick may check `sceneId`, entity

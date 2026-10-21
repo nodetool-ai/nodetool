@@ -7,6 +7,7 @@ import { scriptCall3D } from "./scripts3d.js";
 import { initialCamera3D } from "../spatial3d/camera.js";
 import { type EntityState3D } from "../spatial3d/state.js";
 import { SpatialWorld3D } from "../spatial3d/world.js";
+import { copyTransform3D } from "../spatial3d/math.js";
 export function stepGameplay3D(context: GameSystemContext3D): void {
   context.won = finalizeGameplayEntities(
     context.states,
@@ -127,7 +128,7 @@ export function stepGameplay3D(context: GameSystemContext3D): void {
     }
     updateVisualHierarchy3D(spawned);
     for (const state of spawned) {
-      state.previousTransform = structuredClone(state.transform);
+      state.previousTransform = copyTransform3D(state.transform);
       context.currentSpatial().add(state);
     }
     context.states.push(...spawned);

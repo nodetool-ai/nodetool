@@ -139,6 +139,7 @@ describe("cascade material hooks", () => {
     camera.updateMatrixWorld();
     const cascades = new GameCascadedShadows3D();
     cascades.update(scene, sunLight, { kind: "directional", color: "#ffffff", intensity: 1, castShadow: true }, { count: 2, split: 0.5, maxDistance: 100 }, 512, camera);
+    cascades.bindMaterials(scene);
     const shader = {
       uniforms: {} as Record<string, THREE.IUniform>,
       vertexShader: "#include <lights_pars_begin>",

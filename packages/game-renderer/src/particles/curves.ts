@@ -33,26 +33,47 @@ export function parseParticleColor(hex: string, out: ParticleColor = { r: 0, g: 
   return out;
 }
 
+/** Channels of each gradient key, three per key. An emitter's gradient is evaluated per particle per frame, so it is parsed once. */
+const gradientChannels = new WeakMap<GameParticleGradient, Float64Array>();
+
+function channelsOf(keys: GameParticleGradient): Float64Array {
+  let channels = gradientChannels.get(keys);
+  if (!channels) {
+    channels = new Float64Array(keys.length * 3);
+    const color: ParticleColor = { r: 0, g: 0, b: 0 };
+    for (const [index, key] of keys.entries()) {
+      parseParticleColor(key.color, color);
+      channels[index * 3] = color.r; channels[index * 3 + 1] = color.g; channels[index * 3 + 2] = color.b;
+    }
+    gradientChannels.set(keys, channels);
+  }
+  return channels;
+}
+
 /** Evaluates a colour gradient at normalized age `t` with the same rules as {@link evaluateParticleCurve}. */
 export function evaluateParticleGradient(keys: GameParticleGradient, t: number, out: ParticleColor = { r: 0, g: 0, b: 0 }): ParticleColor {
+  const channels = channelsOf(keys);
+  let at = keys.length - 1;
   if (t <= keys[0].t) {
-    return parseParticleColor(keys[0].color, out);
-  }
-  for (let index = 1; index < keys.length; index += 1) {
-    const next = keys[index];
-    if (t <= next.t) {
-      const previous = keys[index - 1];
-      const span = next.t - previous.t;
-      const mix = span <= 0 ? 1 : (t - previous.t) / span;
-      const from = parseParticleColor(previous.color);
-      const to = parseParticleColor(next.color);
-      out.r = from.r + (to.r - from.r) * mix;
-      out.g = from.g + (to.g - from.g) * mix;
-      out.b = from.b + (to.b - from.b) * mix;
-      return out;
+    at = 0;
+  } else {
+    for (let index = 1; index < keys.length; index += 1) {
+      const next = keys[index];
+      if (t <= next.t) {
+        const previous = keys[index - 1];
+        const span = next.t - previous.t;
+        const mix = span <= 0 ? 1 : (t - previous.t) / span;
+        const from = (index - 1) * 3;
+        const to = index * 3;
+        out.r = channels[from] + (channels[to] - channels[from]) * mix;
+        out.g = channels[from + 1] + (channels[to + 1] - channels[from + 1]) * mix;
+        out.b = channels[from + 2] + (channels[to + 2] - channels[from + 2]) * mix;
+        return out;
+      }
     }
   }
-  return parseParticleColor(keys[keys.length - 1].color, out);
+  out.r = channels[at * 3]; out.g = channels[at * 3 + 1]; out.b = channels[at * 3 + 2];
+  return out;
 }
 
 /** A fixed value, or a uniform sample between `min` and `max`. A fixed value consumes no random number. */

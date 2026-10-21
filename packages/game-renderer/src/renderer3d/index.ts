@@ -16,8 +16,8 @@ import { GamePostProcessor3D } from "./passes/post-processing.js";
 import type { GameEditorPasses3D, GameEditorPassesFactory3D, GameEditorView3D } from "./passes/editor.js";
 import { GameShadows3D } from "./shadows/index.js";
 import { GameParticlePass3D } from "../particles/pass3d.js";
-import { gameParticleFieldFromSamples3D, gameParticleSamples3D } from "../particles/particles3d.js";
 import type { GameParticleField } from "../particles/render2d.js";
+import { GameParticleSnapshot3D } from "../particles/particles3d.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
 export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
 import * as THREE from "three";
@@ -57,6 +57,8 @@ export interface GameRendererStats3D {
   readonly renderMs: number;
   /** Entities hidden by distance culling in this frame. */
   readonly culledEntities: number;
+  /** Shader programs the renderer holds. Growth during steady play means a new program variant each frame. */
+  readonly programs: number;
 }
 export interface GameModelSource3D {
   readonly bytes: Uint8Array;
@@ -84,7 +86,11 @@ export interface GameRenderer3D {
   readonly backend: "webgl2";
   readonly canvas: HTMLCanvasElement;
   readonly capabilities: GameRendererCapabilities3D;
-  /** Draws the frame, with `particles` (such as a `GameParticles3D` run beside the session) when given. */
+  /**
+   * Draws the frame, with `particles` (such as a `GameParticles3D` run beside the session) when given. A live field is
+   * captured when `render` is called. A `GameParticleSnapshot3D` is read when the frame draws, so its owner keeps it
+   * unchanged until the returned promise settles.
+   */
   render(frame: GameRenderFrame3D, interpolation?: number, particles?: GameParticleField): Promise<GameRendererStats3D>;
   resize(width: number, height: number): void;
   invalidateAsset(slot: string): void;
@@ -121,6 +127,8 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly particlePass: GameParticlePass3D;
   private renderingFrame: GameRenderFrame3D | null = null;
   private renderingParticles: GameParticleField | null = null;
+  /** Snapshots free for the next `render`. One is in use per pending render. */
+  private readonly particleSnapshots: GameParticleSnapshot3D[] = [];
   private readonly hudCanvas = document.createElement("canvas");
   private readonly hudScene = new THREE.Scene();
   private readonly hudCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
@@ -258,8 +266,19 @@ class ThreeGameRenderer implements GameRenderer3D {
     return null;
   }
   render(frame: GameRenderFrame3D, interpolation = 1, particles?: GameParticleField): Promise<GameRendererStats3D> {
-    const submitted = particles ? gameParticleFieldFromSamples3D(gameParticleSamples3D(particles, interpolation), frame) : null;
+    // The field can move on before this frame draws, so its particles are captured now, into a reused snapshot.
+    // A caller that passes its own snapshot keeps it unchanged until the returned promise settles.
+    let submitted: GameParticleField | null = particles ?? null;
+    let pooled: GameParticleSnapshot3D | undefined;
+    if (particles && !(particles instanceof GameParticleSnapshot3D)) {
+      pooled = this.particleSnapshots.pop() ?? new GameParticleSnapshot3D();
+      submitted = pooled.capture(particles, interpolation);
+    }
     const promise = this.renderTail.then(() => this.renderFrame(frame, interpolation, submitted));
+    if (pooled) {
+      const snapshot = pooled;
+      void promise.finally(() => { this.particleSnapshots.push(snapshot); }).catch(() => undefined);
+    }
     this.renderTail = promise.then(() => undefined, () => undefined);
     return promise;
   }
@@ -327,9 +346,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     paintGameHud(this.hudCanvas, this.hudTexture, frame);
     this.renderer.info.autoReset = false;
     this.renderer.info.reset();
-    const fog = frame.environment.fog;
-    this.heightFog.configure(this.scene, activeCamera, fog && "kind" in fog ? fog : undefined);
-    this.controller.signal.throwIfAborted();
+    // The environment-materials pass binds cascades and height fog once, after particle materials exist.
     this.renderingFrame = frame;
     this.renderingParticles = particles;
     await this.pipeline.render({ renderer: this.renderer, scene: this.scene, camera: activeCamera, interpolation,
@@ -351,7 +368,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     for (const model of this.modelCache.loadedModels) { geometryBytes += model.prepared.geometryBytes; textureBytes += model.prepared.textureBytes; }
     return { backend: this.backend, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
       geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, geometryBytes, textureBytes,
-      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8 + this.postProcessor.targetBytes + this.particlePass.targetBytes, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
+      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8 + this.postProcessor.targetBytes + this.particlePass.targetBytes, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities,
+      programs: this.renderer.info.programs?.length ?? 0 };
   }
   dispose(): void {
     if (this.status === "disposed") { return; }

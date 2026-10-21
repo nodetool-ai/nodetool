@@ -1303,9 +1303,9 @@
      "mapSize": 2048,
      "extent": 400,
      "cascades": {
-      "count": 4,
+      "count": 3,
       "split": 0.82,
-      "maxDistance": 4500
+      "maxDistance": 2000
      }
     },
     "sky": {
@@ -1403,7 +1403,7 @@
      },
      "model": {
       "assetId": "terrain-0",
-      "castShadow": true
+      "castShadow": false
      }
     },
     {
@@ -1418,7 +1418,7 @@
      },
      "model": {
       "assetId": "terrain-1",
-      "castShadow": true
+      "castShadow": false
      }
     },
     {
@@ -1433,7 +1433,7 @@
      },
      "model": {
       "assetId": "terrain-2",
-      "castShadow": true
+      "castShadow": false
      }
     },
     {
@@ -1448,7 +1448,7 @@
      },
      "model": {
       "assetId": "terrain-3",
-      "castShadow": true
+      "castShadow": false
      }
     },
     {
@@ -9437,10 +9437,12 @@
  },
  "performance": {
   "budgets": {
-   "drawCalls": 1000,
-   "triangles": 5000000,
+   "drawCalls": 600,
+   "triangles": 3000000,
    "particles": 4096,
-   "voices": 24
+   "voices": 24,
+   "tickMs": 4,
+   "frameMs": 8.3
   }
  }
 }

@@ -253,7 +253,7 @@ const entities = [
     light3d: { kind: "directional", color: "#ffd6a8", intensity: 3.4, castShadow: true, shadowNormalBias: 0.04, shadowBias: -0.0004 } },
   { id: "sky-fill", transform3d: { position: { x: 0, y: 1000, z: 0 }, rotation: lookRotation([0.5, -0.6, -0.6]) },
     light3d: { kind: "directional", color: "#9fb8de", intensity: 0.35, castShadow: false } },
-  ...[0, 1, 2, 3].map((k) => ({ id: `terrain-${k}`, name: "Terrain", transform3d: { position: { x: 0, y: 0, z: 0 } }, model: { assetId: `terrain-${k}`, castShadow: true } })),
+  ...[0, 1, 2, 3].map((k) => ({ id: `terrain-${k}`, name: "Terrain", transform3d: { position: { x: 0, y: 0, z: 0 } }, model: { assetId: `terrain-${k}`, castShadow: false } })),
   ...[0, 1, 2, 3].map((k) => ({ id: `forest-${k}`, name: "Forest", transform3d: { position: { x: 0, y: 0, z: 0 } }, model: { assetId: `forest-${k}`, castShadow: true, receiveShadow: true } })),
   { id: "ground", name: "Terrain collider", transform3d: { position: { x: 0, y: 0, z: 0 } }, body3d: { type: "static" },
     collider3d: { kind: "triangleMesh", assetId: "terrain-collider", layer: "world", physicsMaterial: "runway" } },
@@ -353,7 +353,7 @@ const document = {
     environment: {
       background: "#9fb6cf", ambient: { color: "#b7c8e0", intensity: 0.15 },
       fog: { kind: "height", color: "#b9c4cf", density: 0.000025, baseHeight: 0, heightFalloff: 0.0009, maxOpacity: 0.6 },
-      shadows: { enabled: true, mapSize: 2048, extent: 400, cascades: { count: 4, split: 0.82, maxDistance: 4500 } },
+      shadows: { enabled: true, mapSize: 2048, extent: 400, cascades: { count: 3, split: 0.82, maxDistance: 2000 } },
       sky: { kind: "procedural", sunEntityId: "sun", turbidity: 3.5, rayleigh: 2.2, groundColor: "#5d6a72", intensity: 0.85 },
       postProcessing: { enabled: true, exposure: 0.75, toneMapping: "aces", bloom: { threshold: 3, softness: 0.2, radius: 0.12, intensity: 0.35 },
         vignette: { intensity: 0.32, radius: 0.5, softness: 0.6 }, antialias: "smaa" }
@@ -370,7 +370,9 @@ const document = {
     transitions: [{ on: { kind: "trigger", event: "victory" }, snapshot: "finish", fadeTicks: 120 }]
   } },
   ui,
-  performance: { budgets: { drawCalls: 1000, triangles: 5000000, particles: 4096, voices: 24 } }
+  // The flight budgets of the native-game-performance skill. Terrain only receives shadows, and three cascades
+  // reach as far as the player can judge a shadow.
+  performance: { budgets: { drawCalls: 600, triangles: 3000000, particles: 4096, voices: 24, tickMs: 4, frameMs: 8.3 } }
 };
 
 const parsed = gameDocument3D.safeParse(document);
