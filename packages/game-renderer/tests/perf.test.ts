@@ -5,7 +5,7 @@ import { afterEach, expect, it } from "vitest";
 import { createNative3DGame } from "@nodetool-ai/game-runtime";
 
 import { buildStandaloneGame3D } from "../src/build3d.js";
-import { gamePerfPercentiles, measureStandaloneGame3D } from "../src/perf.js";
+import { gamePerfPercentiles, measureStandaloneGame3D, summarizeGameCpuProfile } from "../src/perf.js";
 
 const directories: string[] = [];
 afterEach(async () => { await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true, force: true }))); });
@@ -41,6 +41,20 @@ it("uses nearest-rank percentiles and reports zero for an empty window", () => {
   expect(gamePerfPercentiles([])).toEqual({ p50: 0, p95: 0, p99: 0, max: 0 });
 });
 
+it("summarizes self time per function without idle time and flags steady-play suspects", () => {
+  const frame = (functionName: string, lineNumber: number) => ({ functionName, url: "http://127.0.0.1:5000/game3d-player.js", lineNumber, columnNumber: 0, scriptId: "1" });
+  const summary = summarizeGameCpuProfile({
+    nodes: [{ id: 1, callFrame: frame("(idle)", -1) }, { id: 2, callFrame: frame("getProgram", 9) }, { id: 3, callFrame: frame("renderBufferDirect", 19) }],
+    samples: [1, 2, 3, 3, 2], timeDeltas: [0, 5000, 1000, 1000, 1000]
+  });
+  expect(summary.sampledMs).toBe(3);
+  expect(summary.top).toEqual([
+    { functionName: "renderBufferDirect", url: "game3d-player.js", line: 20, selfMs: 2, percent: 66.7 },
+    { functionName: "getProgram", url: "game3d-player.js", line: 10, selfMs: 1, percent: 33.3 }
+  ]);
+  expect(summary.suspects.map((entry) => entry.functionName)).toEqual(["getProgram"]);
+});
+
 it("measures live play of a real 3D export after its route, with no player errors", async () => {
   const path = await directory();
   const document = createNative3DGame("perf");
@@ -50,7 +64,8 @@ it("measures live play of a real 3D export after its route, with no player error
   }
   await buildStandaloneGame3D({ document, outputDir: path, resolveAsset: async () => null });
   const inputs = Array.from({ length: 30 }, () => ({ pressed: [], justPressed: [], axes: { moveX: 1 }, look: { x: 0, y: 0 } }));
-  const report = await measureStandaloneGame3D(path, { inputs, seconds: 1, warmupSeconds: 0.5, software: true });
+  const profile = join(path, "play.cpuprofile");
+  const report = await measureStandaloneGame3D(path, { inputs, seconds: 1, warmupSeconds: 0.5, software: true, profile });
   // SMAA loads its lookup textures from data: URLs, which the export CSP must allow.
   expect(report.errors).toEqual([]);
   expect(report).toMatchObject({ ok: true, routeTicks: 30, vsync: false, gpu: { adapterType: "software" } });
@@ -59,6 +74,8 @@ it("measures live play of a real 3D export after its route, with no player error
   expect(report.renderedFrames).toBeGreaterThan(1);
   expect(report.drawCalls.p95).toBeGreaterThan(0);
   expect(report.frameMs.p95).toBeGreaterThan(0);
+  expect(report.profile).toMatchObject({ path: profile, readableNames: true });
+  expect(report.profile?.top.some((entry) => entry.functionName === "renderBufferDirect" || entry.functionName.includes("render"))).toBe(true);
 }, 120_000);
 
 it("reports frame time, draw call and program growth overruns of a deliberately slow player", async () => {

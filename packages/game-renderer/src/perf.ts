@@ -1,5 +1,6 @@
-import { readFile, realpath } from "node:fs/promises";
-import { join } from "node:path";
+import { access, readFile, realpath, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Browser, LaunchOptions } from "playwright";
 import { z } from "zod";
 import { gameFrameBudgets, type GameInputFrame3D } from "@nodetool-ai/protocol";
@@ -19,6 +20,27 @@ export interface GamePerfOptions {
   readonly vsync?: boolean;
   readonly executablePath?: string;
   readonly signal?: AbortSignal;
+  /** Writes a Chrome CPU profile of the measured window to this path and summarizes its hottest functions. */
+  readonly profile?: string;
+}
+
+export interface GamePerfProfileEntry {
+  readonly functionName: string;
+  readonly url: string;
+  readonly line: number;
+  readonly selfMs: number;
+  /** Share of the sampled time outside idle. */
+  readonly percent: number;
+}
+
+export interface GamePerfProfile {
+  readonly path: string;
+  /** False when the player kept its minified names, which happens outside a source checkout. */
+  readonly readableNames: boolean;
+  readonly sampledMs: number;
+  readonly top: readonly GamePerfProfileEntry[];
+  /** Hot functions that should not run in steady play: program builds, scene walks, serializers and snapshots. */
+  readonly suspects: readonly GamePerfProfileEntry[];
 }
 
 export interface GamePerfPercentiles {
@@ -57,6 +79,7 @@ export interface GamePerfReport {
   readonly ticks: { readonly start: number; readonly end: number };
   readonly budget: { readonly limits: Readonly<Record<GamePerfMetric, number>>; readonly overruns: readonly GamePerfOverrun[] };
   readonly status: string;
+  readonly profile?: GamePerfProfile;
   readonly warnings: readonly string[];
   readonly errors: readonly string[];
 }
@@ -69,6 +92,50 @@ const measured = z.object({
 });
 
 const ROUTE_CHUNK = 10_000;
+
+/** Function names that should not be hot in steady play. Each one marks repeated per-frame or per-tick work. */
+const SUSPECT_FUNCTIONS = /^(getProgram|getParameters|getProgramCacheKey|compile|traverse|takeSnapshot|restoreSnapshot|stringify|parse|structuredClone|computeBoundingBox|setupMaterials|updateMatrixWorld)$/;
+
+const cpuProfile = z.object({
+  nodes: z.array(z.object({ id: z.number(), callFrame: z.object({ functionName: z.string(), url: z.string(), lineNumber: z.number() }) })),
+  samples: z.array(z.number()).default([]),
+  timeDeltas: z.array(z.number()).default([])
+});
+
+/** Self time per function of a Chrome CPU profile, hottest first. */
+export function summarizeGameCpuProfile(value: unknown, limit = 20): { sampledMs: number; top: GamePerfProfileEntry[]; suspects: GamePerfProfileEntry[] } {
+  const profile = cpuProfile.parse(value);
+  const frames = new Map(profile.nodes.map((node) => [node.id, node.callFrame]));
+  const selfMicros = new Map<string, { functionName: string; url: string; line: number; micros: number }>();
+  let total = 0;
+  for (let index = 0; index < profile.samples.length; index++) {
+    const frame = frames.get(profile.samples[index]);
+    const micros = profile.timeDeltas[index + 1] ?? 0;
+    if (!frame || frame.functionName === "(idle)") { continue; }
+    total += micros;
+    const key = `${frame.functionName}\u0000${frame.url}\u0000${frame.lineNumber}`;
+    const entry = selfMicros.get(key) ?? { functionName: frame.functionName || "(anonymous)", url: frame.url, line: frame.lineNumber + 1, micros: 0 };
+    entry.micros += micros;
+    selfMicros.set(key, entry);
+  }
+  const entries = [...selfMicros.values()].sort((left, right) => right.micros - left.micros).map((entry) => ({
+    functionName: entry.functionName, url: entry.url.replace(/^https?:\/\/[^/]+\//, ""), line: entry.line,
+    selfMs: Math.round(entry.micros) / 1000, percent: total > 0 ? Math.round(entry.micros / total * 1000) / 10 : 0 }));
+  return { sampledMs: Math.round(total) / 1000, top: entries.slice(0, limit), suspects: entries.filter((entry) => SUSPECT_FUNCTIONS.test(entry.functionName) && entry.percent >= 0.5) };
+}
+
+/**
+ * Replaces the exported player with a bundle that keeps function names, so a CPU profile is readable. It needs
+ * the package source, which only a checkout has. Returns false when the source is missing.
+ */
+async function bundleReadablePlayer(directory: string): Promise<boolean> {
+  const source = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "standalone-player3d.ts");
+  try { await access(source); } catch { return false; }
+  const { build } = await import("esbuild");
+  await build({ entryPoints: [source], outfile: join(directory, "game3d-player.js"), bundle: true, platform: "browser", target: "es2022", format: "esm",
+    conditions: ["nodetool-dev"], logLevel: "warning", allowOverwrite: true });
+  return true;
+}
 
 /** Nearest-rank percentiles, the same method `game bench` uses. */
 export function gamePerfPercentiles(samples: readonly number[]): GamePerfPercentiles {
@@ -108,6 +175,8 @@ export async function measureStandaloneGame3D(directory: string, options: GamePe
   const closeBrowser = (): void => { void browser?.close(); };
   options.signal?.addEventListener("abort", closeBrowser, { once: true });
   try {
+    const readableNames = options.profile ? await bundleReadablePlayer(root) : false;
+    if (options.profile && !readableNames) { warnings.push("The profile keeps the shipped player's minified function names. Run game perf from a source checkout for readable names."); }
     server = await serveStandaloneDirectory(root);
     const origin = server.origin;
     const launchOptions: LaunchOptions = { headless: true, args: chromiumArgs(options) };
@@ -140,10 +209,18 @@ export async function measureStandaloneGame3D(directory: string, options: GamePe
       options.signal?.throwIfAborted();
       await page.evaluate(async (chunk) => { await window.nativeGame3DPlayer.advance(chunk); }, inputs.slice(index, index + ROUTE_CHUNK));
     }
-    const raw = await page.evaluate(async ({ warmupMs, measureMs }) => {
-      const player = window.nativeGame3DPlayer;
-      player.resume();
+    await page.evaluate(async (warmupMs) => {
+      window.nativeGame3DPlayer.resume();
       await new Promise<void>((resolve) => { setTimeout(resolve, warmupMs); });
+    }, warmupSeconds * 1000);
+    const cdp = options.profile ? await context.newCDPSession(page) : undefined;
+    if (cdp) {
+      await cdp.send("Profiler.enable");
+      await cdp.send("Profiler.setSamplingInterval", { interval: 200 });
+      await cdp.send("Profiler.start");
+    }
+    const raw = await page.evaluate(async (measureMs) => {
+      const player = window.nativeGame3DPlayer;
       const start = player.stats();
       const intervals: number[] = [];
       const drawCalls: number[] = [];
@@ -168,7 +245,13 @@ export async function measureStandaloneGame3D(directory: string, options: GamePe
         requestAnimationFrame(sample);
       });
       return { intervals, drawCalls, triangles, start, end: player.stats(), elapsedMs: now - began };
-    }, { warmupMs: warmupSeconds * 1000, measureMs: seconds * 1000 });
+    }, seconds * 1000);
+    let profile: GamePerfProfile | undefined;
+    if (cdp && options.profile) {
+      const { profile: recorded } = await cdp.send("Profiler.stop");
+      await writeFile(options.profile, JSON.stringify(recorded));
+      profile = { path: options.profile, readableNames, ...summarizeGameCpuProfile(recorded) };
+    }
     const result = measured.parse(raw);
     const canvas = await page.evaluate(() => {
       const element = window.document.getElementById("game");
@@ -188,7 +271,7 @@ export async function measureStandaloneGame3D(directory: string, options: GamePe
     return { ok: errors.size === 0, gpu: { renderer: gpu, adapterType }, canvas, vsync: options.vsync === true, routeTicks: inputs.length, seconds,
       renderedFrames, fps: result.elapsedMs > 0 ? renderedFrames * 1000 / result.elapsedMs : 0, frameMs, drawCalls, triangles,
       programs: { start: result.start.programs, end: result.end.programs, growth }, ticks: { start: result.start.tick, end: result.end.tick },
-      budget: { limits, overruns }, status, warnings, errors: [...errors] };
+      budget: { limits, overruns }, status, profile, warnings, errors: [...errors] };
   } finally {
     options.signal?.removeEventListener("abort", closeBrowser);
     await browser?.close();

@@ -73,6 +73,7 @@ interface PerfOptions {
   software?: boolean;
   vsync?: boolean;
   keepBuild?: string;
+  profile?: string;
   failOnBudget?: boolean;
   json?: boolean;
 }
@@ -562,6 +563,7 @@ export function registerGameCommands(program: Command): void {
     .option("--software", "Use SwiftShader instead of the machine GPU. Frame times then say nothing about real hardware")
     .option("--vsync", "Keep vsync and Chromium's frame rate limit. By default frames are uncapped, so frame time shows the real cost")
     .option("--keep-build <directory>", "Export into this directory and keep it, instead of a temporary directory")
+    .option("--profile <file>", "Write a Chrome CPU profile of the measured window and list its hottest functions. A source checkout keeps readable names")
     .option("--fail-on-budget", "Exit 1 when frame p95 exceeds performance.budgets.frameMs (default 16.6), draw calls or triangles exceed their budgets, or shader programs grow during play")
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: PerfOptions) => {
@@ -578,7 +580,8 @@ export function registerGameCommands(program: Command): void {
         const { measureStandaloneGame3D, formatGamePerfOverrun } = await importPack<typeof import("@nodetool-ai/game-renderer/perf")>("game", "@nodetool-ai/game-renderer/perf");
         // A recorded route never carries save loads, so the frames go to the page without them.
         const report = await measureStandaloneGame3D(outputDir, { inputs: inputs.map(({ loaded: _loaded, ...frame }) => frame),
-          seconds: Number(options.seconds), warmupSeconds: Number(options.warmup), software: options.software, vsync: options.vsync });
+          seconds: Number(options.seconds), warmupSeconds: Number(options.warmup), software: options.software, vsync: options.vsync,
+          profile: options.profile ? resolve(options.profile) : undefined });
         if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); }
         else {
           const round = (value: number) => Math.round(value * 100) / 100;
@@ -588,6 +591,9 @@ export function registerGameCommands(program: Command): void {
             `Frame ms p50 ${round(report.frameMs.p50)}, p95 ${round(report.frameMs.p95)}, p99 ${round(report.frameMs.p99)}, max ${round(report.frameMs.max)}`,
             `Draw calls p95 ${report.drawCalls.p95}, triangles p95 ${report.triangles.p95}`,
             `Shader programs ${report.programs.start} -> ${report.programs.end} (growth ${report.programs.growth})`,
+            ...report.profile ? [`Profile ${report.profile.path}, ${round(report.profile.sampledMs)} ms sampled. Hottest self time:`,
+              ...report.profile.top.slice(0, 10).map((entry) => `  ${entry.percent}% ${entry.functionName} ${entry.url}:${entry.line}`),
+              ...report.profile.suspects.map((entry) => `Suspect in steady play: ${entry.functionName} ${entry.percent}%`)] : [],
             ...report.warnings, ...report.errors
           ].join("\n") + "\n");
           for (const overrun of report.budget.overruns) { process.stderr.write(`${formatGamePerfOverrun(overrun)}\n`); }
