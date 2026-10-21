@@ -25,6 +25,7 @@ export {
 } from "./render2d.js";
 export {
   GameParticles3D,
+  GameParticleSnapshot3D,
   PARTICLE_INSTANCE_STRIDE_3D,
   gameParticleFieldFromSamples3D,
   gameParticleSamples3D,

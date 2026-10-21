@@ -16,8 +16,8 @@ import { GamePostProcessor3D } from "./passes/post-processing.js";
 import type { GameEditorPasses3D, GameEditorPassesFactory3D, GameEditorView3D } from "./passes/editor.js";
 import { GameShadows3D } from "./shadows/index.js";
 import { GameParticlePass3D } from "../particles/pass3d.js";
-import { gameParticleFieldFromSamples3D, gameParticleSamples3D } from "../particles/particles3d.js";
 import type { GameParticleField } from "../particles/render2d.js";
+import { GameParticleSnapshot3D } from "../particles/particles3d.js";
 export { interpolateGameTransform3D } from "./scene-sync.js";
 export { sampleGameAnimation3D, sampleGameAnimationPose3D } from "./animation/index.js";
 import * as THREE from "three";
@@ -86,7 +86,11 @@ export interface GameRenderer3D {
   readonly backend: "webgl2";
   readonly canvas: HTMLCanvasElement;
   readonly capabilities: GameRendererCapabilities3D;
-  /** Draws the frame, with `particles` (such as a `GameParticles3D` run beside the session) when given. */
+  /**
+   * Draws the frame, with `particles` (such as a `GameParticles3D` run beside the session) when given. A live field is
+   * captured when `render` is called. A `GameParticleSnapshot3D` is read when the frame draws, so its owner keeps it
+   * unchanged until the returned promise settles.
+   */
   render(frame: GameRenderFrame3D, interpolation?: number, particles?: GameParticleField): Promise<GameRendererStats3D>;
   resize(width: number, height: number): void;
   invalidateAsset(slot: string): void;
@@ -123,6 +127,8 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly particlePass: GameParticlePass3D;
   private renderingFrame: GameRenderFrame3D | null = null;
   private renderingParticles: GameParticleField | null = null;
+  /** Snapshots free for the next `render`. One is in use per pending render. */
+  private readonly particleSnapshots: GameParticleSnapshot3D[] = [];
   private readonly hudCanvas = document.createElement("canvas");
   private readonly hudScene = new THREE.Scene();
   private readonly hudCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
@@ -260,8 +266,19 @@ class ThreeGameRenderer implements GameRenderer3D {
     return null;
   }
   render(frame: GameRenderFrame3D, interpolation = 1, particles?: GameParticleField): Promise<GameRendererStats3D> {
-    const submitted = particles ? gameParticleFieldFromSamples3D(gameParticleSamples3D(particles, interpolation), frame) : null;
+    // The field can move on before this frame draws, so its particles are captured now, into a reused snapshot.
+    // A caller that passes its own snapshot keeps it unchanged until the returned promise settles.
+    let submitted: GameParticleField | null = particles ?? null;
+    let pooled: GameParticleSnapshot3D | undefined;
+    if (particles && !(particles instanceof GameParticleSnapshot3D)) {
+      pooled = this.particleSnapshots.pop() ?? new GameParticleSnapshot3D();
+      submitted = pooled.capture(particles, interpolation);
+    }
     const promise = this.renderTail.then(() => this.renderFrame(frame, interpolation, submitted));
+    if (pooled) {
+      const snapshot = pooled;
+      void promise.finally(() => { this.particleSnapshots.push(snapshot); }).catch(() => undefined);
+    }
     this.renderTail = promise.then(() => undefined, () => undefined);
     return promise;
   }
