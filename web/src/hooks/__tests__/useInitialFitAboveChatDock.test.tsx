@@ -45,6 +45,13 @@ describe("chatDockFitPadding", () => {
     });
   });
 
+  it("reserves the part of the canvas the open chat window covers", () => {
+    const canvas = { bottom: 870, right: 1440 };
+    expect(chatDockFitPadding(canvas, null, { left: 1004 }).right).toBe(
+      "460px"
+    );
+  });
+
   it("keeps the normal margin when there is no chat bar", () => {
     expect(chatDockFitPadding(rect(40, 870), null).bottom).toBe("24px");
   });

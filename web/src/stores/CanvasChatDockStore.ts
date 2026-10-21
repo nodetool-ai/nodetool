@@ -2,62 +2,58 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 /**
- * State for the floating, draggable chat dock on the node editor canvas
- * (the composer + conversation overlay rendered by `FloatingToolBar`).
+ * State for the floating chat window on the node editor canvas
+ * (`CanvasChatWindow`, mounted by `FloatingToolBar`).
  *
- * Persisted across sessions so the dock keeps its position and size:
- *  - `position`  — drag offset (px) from the default bottom-centre anchor.
- *  - `overlayHeight` — height (px) of the conversation overlay.
- *  - `dockWidth` — width (px) of the whole dock, or `null` for the responsive
- *                  default (`min(820px, 100vw - 32px)`).
- *  - `composerCollapsed` — the prompt is hidden and only the workflow toolbar
- *                  row (Run, canvas tools) stays on the canvas. Starts
- *                  collapsed on a short window, where the full composer
- *                  would cover the bottom third of the graph.
+ * The window is anchored to the top-right corner of the canvas. Persisted
+ * across sessions so it keeps its place, size and open state:
+ *  - `position`  — drag offset (px) from the default top-right anchor.
+ *  - `windowWidth` / `windowHeight` — size (px) of the window.
+ *  - `conversationCollapsed` — the window is closed. Starts closed on a
+ *                  narrow viewport, where it would cover most of the graph.
  *
- * Transient view flags (`conversationCollapsed`, `threadsOpen`) are kept here
- * too so the keyboard shortcut and command menu can drive them, but they are
- * intentionally not persisted — each session starts with the overlay closed.
+ * `threadsOpen` (the inline thread list) is transient so the keyboard
+ * shortcut and command menu can drive it, but it is not persisted.
  */
 export interface DockPosition {
   x: number;
   y: number;
 }
 
-export const DEFAULT_OVERLAY_HEIGHT = 420;
-export const MIN_OVERLAY_HEIGHT = 160;
-export const MAX_OVERLAY_HEIGHT = 2000;
-export const MIN_DOCK_WIDTH = 360;
-export const MAX_DOCK_WIDTH = 1200;
+export const DEFAULT_WINDOW_WIDTH = 420;
+export const MIN_WINDOW_WIDTH = 320;
+export const MAX_WINDOW_WIDTH = 960;
+export const MIN_WINDOW_HEIGHT = 280;
+export const MAX_WINDOW_HEIGHT = 2000;
+/** By default the window runs down to the workflow toolbar. */
+export const DEFAULT_WINDOW_HEIGHT = MAX_WINDOW_HEIGHT;
 
 const DEFAULT_POSITION: DockPosition = { x: 0, y: 0 };
 
-/** Windows at most this tall (px) start with the composer collapsed. */
-export const SHORT_VIEWPORT_MAX_HEIGHT = 800;
+/** Viewports narrower than this (px) start with the chat window closed. */
+export const NARROW_VIEWPORT_MAX_WIDTH = 1200;
 
-export const defaultComposerCollapsed = (): boolean =>
+export const defaultConversationCollapsed = (): boolean =>
   typeof window !== "undefined" &&
-  window.innerHeight <= SHORT_VIEWPORT_MAX_HEIGHT;
+  window.innerWidth < NARROW_VIEWPORT_MAX_WIDTH;
 
-export const clampOverlayHeight = (h: number): number =>
-  Math.max(MIN_OVERLAY_HEIGHT, Math.min(h, MAX_OVERLAY_HEIGHT));
+export const clampWindowHeight = (h: number): number =>
+  Math.max(MIN_WINDOW_HEIGHT, Math.min(h, MAX_WINDOW_HEIGHT));
 
-export const clampDockWidth = (w: number): number =>
-  Math.max(MIN_DOCK_WIDTH, Math.min(w, MAX_DOCK_WIDTH));
+export const clampWindowWidth = (w: number): number =>
+  Math.max(MIN_WINDOW_WIDTH, Math.min(w, MAX_WINDOW_WIDTH));
 
 interface CanvasChatDockState {
   position: DockPosition;
-  overlayHeight: number;
-  dockWidth: number | null;
-  composerCollapsed: boolean;
+  windowWidth: number;
+  windowHeight: number;
   conversationCollapsed: boolean;
   threadsOpen: boolean;
 
   setPosition: (pos: DockPosition) => void;
   resetPosition: () => void;
-  setOverlayHeight: (height: number) => void;
-  setDockWidth: (width: number | null) => void;
-  setComposerCollapsed: (collapsed: boolean) => void;
+  setWindowWidth: (width: number) => void;
+  setWindowHeight: (height: number) => void;
   setConversationCollapsed: (collapsed: boolean) => void;
   toggleConversation: () => void;
   setThreadsOpen: (open: boolean) => void;
@@ -68,41 +64,37 @@ export const useCanvasChatDockStore = create<CanvasChatDockState>()(
   persist(
     (set) => ({
       position: DEFAULT_POSITION,
-      overlayHeight: DEFAULT_OVERLAY_HEIGHT,
-      dockWidth: null,
-      composerCollapsed: defaultComposerCollapsed(),
-      conversationCollapsed: true,
+      windowWidth: DEFAULT_WINDOW_WIDTH,
+      windowHeight: DEFAULT_WINDOW_HEIGHT,
+      conversationCollapsed: defaultConversationCollapsed(),
       threadsOpen: false,
 
       setPosition: (position) => set({ position }),
       resetPosition: () => set({ position: DEFAULT_POSITION }),
-      setOverlayHeight: (height) =>
-        set({ overlayHeight: clampOverlayHeight(height) }),
-      setDockWidth: (width) =>
-        set({ dockWidth: width === null ? null : clampDockWidth(width) }),
-      setComposerCollapsed: (composerCollapsed) => set({ composerCollapsed }),
+      setWindowWidth: (width) => set({ windowWidth: clampWindowWidth(width) }),
+      setWindowHeight: (height) =>
+        set({ windowHeight: clampWindowHeight(height) }),
       setConversationCollapsed: (conversationCollapsed) =>
         set({ conversationCollapsed }),
-      // The overlay is hidden while the composer is collapsed, so toggling
-      // it then expands the composer and opens the conversation.
       toggleConversation: () =>
-        set((state) =>
-          state.composerCollapsed
-            ? { composerCollapsed: false, conversationCollapsed: false }
-            : { conversationCollapsed: !state.conversationCollapsed }
-        ),
+        set((state) => ({
+          conversationCollapsed: !state.conversationCollapsed
+        })),
       setThreadsOpen: (threadsOpen) => set({ threadsOpen }),
       toggleThreads: () =>
         set((state) => ({ threadsOpen: !state.threadsOpen }))
     }),
     {
       name: "canvas-chat-dock",
-      version: 1,
+      // v2: the chat moved from a bottom-centre dock to a top-right window,
+      // so a v1 drag offset and size mean nothing to it. Start fresh.
+      version: 2,
+      migrate: () => ({}),
       partialize: (state) => ({
         position: state.position,
-        overlayHeight: state.overlayHeight,
-        dockWidth: state.dockWidth,
-        composerCollapsed: state.composerCollapsed
+        windowWidth: state.windowWidth,
+        windowHeight: state.windowHeight,
+        conversationCollapsed: state.conversationCollapsed
       })
     }
   )
