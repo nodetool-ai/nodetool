@@ -18570,6 +18570,20 @@
       "audio": "audio",
       "model3d": "3D model",
       "document": "document"
+    },
+    "open": "Transform with workflow…",
+    "openStill": "Transform still with workflow…",
+    "openClip": "Transform clip with workflow…",
+    "applyFailed": "Could not use the output here.",
+    "sketchName": "Sketch",
+    "sceneName": "3D scene",
+    "clipName": "Clip",
+    "apply": {
+      "addToScene": "Add to scene",
+      "addAsLayer": "Add as layer",
+      "replaceAudio": "Replace audio",
+      "replaceClip": "Replace clip",
+      "addAsTake": "Add as take"
     }
   }
 }
