@@ -57,6 +57,8 @@ export interface GameRendererStats3D {
   readonly renderMs: number;
   /** Entities hidden by distance culling in this frame. */
   readonly culledEntities: number;
+  /** Shader programs the renderer holds. Growth during steady play means a new program variant each frame. */
+  readonly programs: number;
 }
 export interface GameModelSource3D {
   readonly bytes: Uint8Array;
@@ -351,7 +353,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     for (const model of this.modelCache.loadedModels) { geometryBytes += model.prepared.geometryBytes; textureBytes += model.prepared.textureBytes; }
     return { backend: this.backend, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles,
       geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures, geometryBytes, textureBytes,
-      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8 + this.postProcessor.targetBytes + this.particlePass.targetBytes, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities };
+      modelLoadMs: this.modelCache.modelLoadMs, targetBytes: this.canvas.width * this.canvas.height * 8 + this.postProcessor.targetBytes + this.particlePass.targetBytes, diagnostics: [...this.diagnostics], renderMs: performance.now() - started, culledEntities,
+      programs: this.renderer.info.programs?.length ?? 0 };
   }
   dispose(): void {
     if (this.status === "disposed") { return; }

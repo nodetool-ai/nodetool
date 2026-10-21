@@ -1,5 +1,6 @@
 import { importPack } from "@nodetool-ai/node-catalog";
-import { readFile, realpath, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import type { Command } from "commander";
@@ -60,6 +61,18 @@ interface BenchOptions {
   seed: string;
   inputs?: string;
   assetsDir?: string;
+  failOnBudget?: boolean;
+  json?: boolean;
+}
+
+interface PerfOptions {
+  inputs?: string;
+  seconds: string;
+  warmup: string;
+  assetsDir?: string;
+  software?: boolean;
+  vsync?: boolean;
+  keepBuild?: string;
   failOnBudget?: boolean;
   json?: boolean;
 }
@@ -537,6 +550,53 @@ export function registerGameCommands(program: Command): void {
         }
       } catch (error) {
         process.exitCode = printCommandError(error, options.json);
+      }
+    });
+
+  game.command("perf <game_file>")
+    .description("Export a 3D game, play it in Chromium on the machine GPU and measure frame time, draw calls, triangles and shader program growth")
+    .option("--inputs <file>", "JSON array of input frames replayed with advance before live play")
+    .option("--seconds <seconds>", "Measured seconds of live play", "10")
+    .option("--warmup <seconds>", "Seconds of live play before the measurement", "2")
+    .option("--assets-dir <directory>", "Local media files named <full-asset-id>.<extension>. Shipped package:// assets resolve without it")
+    .option("--software", "Use SwiftShader instead of the machine GPU. Frame times then say nothing about real hardware")
+    .option("--vsync", "Keep vsync and Chromium's frame rate limit. By default frames are uncapped, so frame time shows the real cost")
+    .option("--keep-build <directory>", "Export into this directory and keep it, instead of a temporary directory")
+    .option("--fail-on-budget", "Exit 1 when frame p95 exceeds performance.budgets.frameMs (default 16.6), draw calls or triangles exceed their budgets, or shader programs grow during play")
+    .option("--json", "Print a machine-readable report")
+    .action(async (path: string, options: PerfOptions) => {
+      let temporary: string | undefined;
+      try {
+        const validated = validateCliDocument(await readGameDocument(path));
+        if (!validated.valid || !validated.document) { throw new Error(validated.errors.join("\n")); }
+        const document = validated.document;
+        if (document.schemaVersion !== 3) { throw new Error("game perf measures 3D games. Use game bench for 2D tick cost"); }
+        const inputs = await readInputs(options.inputs, gameInputFrame3D);
+        const outputDir = options.keepBuild ? resolve(options.keepBuild) : (temporary = await mkdtemp(join(tmpdir(), "nodetool-game-perf-")));
+        const { buildStandaloneGame3D } = await importPack<typeof import("@nodetool-ai/game-renderer/build3d")>("game", "@nodetool-ai/game-renderer/build3d");
+        await buildStandaloneGame3D({ document, outputDir, resolveAsset: (assetId) => readBuildAsset(options.assetsDir, assetId) });
+        const { measureStandaloneGame3D, formatGamePerfOverrun } = await importPack<typeof import("@nodetool-ai/game-renderer/perf")>("game", "@nodetool-ai/game-renderer/perf");
+        // A recorded route never carries save loads, so the frames go to the page without them.
+        const report = await measureStandaloneGame3D(outputDir, { inputs: inputs.map(({ loaded: _loaded, ...frame }) => frame),
+          seconds: Number(options.seconds), warmupSeconds: Number(options.warmup), software: options.software, vsync: options.vsync });
+        if (options.json) { process.stdout.write(`${JSON.stringify(report)}\n`); }
+        else {
+          const round = (value: number) => Math.round(value * 100) / 100;
+          process.stdout.write([
+            `GPU ${report.gpu.renderer} (${report.gpu.adapterType}), canvas ${report.canvas.width}x${report.canvas.height}, ${report.vsync ? "vsync" : "uncapped"}`,
+            `${report.renderedFrames} frames in ${report.seconds} s: ${round(report.fps)} fps`,
+            `Frame ms p50 ${round(report.frameMs.p50)}, p95 ${round(report.frameMs.p95)}, p99 ${round(report.frameMs.p99)}, max ${round(report.frameMs.max)}`,
+            `Draw calls p95 ${report.drawCalls.p95}, triangles p95 ${report.triangles.p95}`,
+            `Shader programs ${report.programs.start} -> ${report.programs.end} (growth ${report.programs.growth})`,
+            ...report.warnings, ...report.errors
+          ].join("\n") + "\n");
+          for (const overrun of report.budget.overruns) { process.stderr.write(`${formatGamePerfOverrun(overrun)}\n`); }
+        }
+        if (!report.ok || (options.failOnBudget && report.budget.overruns.length > 0)) { process.exitCode = 1; }
+      } catch (error) {
+        process.exitCode = printCommandError(error, options.json);
+      } finally {
+        if (temporary) { await rm(temporary, { recursive: true, force: true }); }
       }
     });
 
