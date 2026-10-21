@@ -88,11 +88,14 @@ describe("native game tools in 3D", () => {
       ops: [{ op: "update_entity", entity_id: "crate", set: { renderCulling: { layer: "props" } } }] }));
     expect(JSON.stringify(missingLayer)).toContain("Cull layer props is not declared");
     const edited = replyDocument(await run.invoke("edit_native_game", { game_id: created.document.id, ops: [
-      { op: "set_performance", performance: { cullLayers: { props: { maxDistance: 40 } }, budgets: { drawCalls: 300 } } },
+      { op: "set_performance", performance: { cullLayers: { props: { maxDistance: 40 } }, budgets: { drawCalls: 300, tickMs: 3, frameMs: 8.3 } } },
       { op: "update_entity", entity_id: "crate", set: { renderCulling: { layer: "props" } } }
     ] }));
     if (edited.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
-    expect(edited.document.performance).toEqual({ cullLayers: { props: { maxDistance: 40 } }, budgets: { drawCalls: 300 } });
+    expect(edited.document.performance).toEqual({ cullLayers: { props: { maxDistance: 40 } }, budgets: { drawCalls: 300, tickMs: 3, frameMs: 8.3 } });
+    const zeroBudget = readRecord(await run.invoke("edit_native_game", { game_id: created.document.id,
+      ops: [{ op: "set_performance", performance: { budgets: { frameMs: 0 } } }] }));
+    expect(zeroBudget).toMatchObject({ error: "Invalid game ops", issues: [{ op_index: 0, path: [0, "performance", "budgets", "frameMs"] }] });
     expect(edited.document.scenes[0].entities.find((entity) => entity.id === "crate")?.renderCulling).toEqual({ layer: "props" });
   });
 
