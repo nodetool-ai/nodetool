@@ -1,138 +1,22 @@
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import { Node, NodeProps } from "@xyflow/react";
-import { useTheme } from "@mui/material/styles";
-import { FlexColumn, Box } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
-import { NodeHeader } from "../NodeHeader";
-import { NodeErrors } from "../NodeErrors";
-import NodeStatus from "../NodeStatus";
-import NodeResizeHandle from "../NodeResizeHandle";
-import NodeSelectionToolbar from "../NodeSelectionToolbar";
-import NodeExecutionTime from "../NodeExecutionTime";
-import useMetadataStore from "../../../stores/MetadataStore";
-import { useNodeStatus, useNodeResultValue } from "../../../hooks/nodes/useNodeExecState";
-import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
+import { DynamicSchemaNodeShell } from "../DynamicSchemaNodeShell";
 import { DynamicKieSchemaContent } from "./DynamicKieSchemaContent";
 import { KieSchemaLoader } from "./KieSchemaLoader";
 
 const KIE_HEADER_COLOR = "#E55C20";
 
-const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
-  const theme = useTheme();
-  const { id, type, data, selected, parentId, dragging } = props;
-  const { workflow_id } = data;
-  const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
-  const hasParent = Boolean(parentId);
-
-  const metadata = useMetadataStore((state) => state.getMetadata(type));
-  const statusRaw = useNodeStatus(workflow_id, id);
-  const statusValue =
-    statusRaw && typeof statusRaw !== "object"
-      ? statusRaw
-      : undefined;
-  const result = useNodeResultValue(workflow_id, id);
-
-  const nodeType = useMemo(
-    () => ({
-      isConstantNode: type.startsWith("nodetool.constant"),
-      isOutputNode: false
-    }),
-    [type]
-  );
-
-  const headerTitle = useMemo(() => {
-    if (!metadata) {
-      return "Kie AI";
-    }
-    const base = metadata.title || "Kie AI";
-    const modelId = data.model_id;
-    return modelId ? `${base} · ${modelId}` : base;
-  }, [metadata, data.model_id]);
-
-  if (!metadata) {
-    return null;
-  }
-
-  return (
-    <FlexColumn
-      className="dynamic-kie-schema-node"
-      fullHeight
-      sx={{
-        minHeight: 100,
-        padding: "0 !important",
-        border: `1px solid ${KIE_HEADER_COLOR}40`,
-        borderRadius: theme.rounded.node,
-        backgroundColor: theme.vars.palette.c_node_bg,
-        boxShadow: selected
-          ? `0 0 0 2px ${KIE_HEADER_COLOR}, 0 1px 10px rgba(0,0,0,0.5)`
-          : isFocused
-            ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-            : "none",
-        outline: isFocused
-          ? `2px dashed ${theme.vars.palette.warning.main}`
-          : "none",
-        outlineOffset: "-2px",
-        "--node-primary-color": KIE_HEADER_COLOR
-      }}
-    >
-      {selected && (
-        <NodeSelectionToolbar
-          id={id}
-          selected={selected}
-          dragging={dragging}
-        />
-      )}
-      <NodeResizeHandle
-        minWidth={150}
-        minHeight={150}
-        nodeId={id}
-        contentAware
-      />
-      <Box sx={{ position: "relative" }}>
-        <NodeHeader
-          id={id}
-          selected={selected}
-          data={data}
-          backgroundColor={KIE_HEADER_COLOR}
-          metadataTitle={headerTitle}
-          hasParent={hasParent}
-          iconType={metadata?.outputs?.[0]?.type?.type}
-          iconBaseColor={KIE_HEADER_COLOR}
-          workflowId={workflow_id}
-        />
-        <Box sx={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }}>
-          <KieSchemaLoader nodeId={id} data={data} />
-        </Box>
-      </Box>
-      <NodeErrors id={id} workflow_id={workflow_id} />
-      <NodeStatus status={statusValue} />
-      <NodeExecutionTime
-        nodeId={id}
-        workflowId={workflow_id}
-        status={statusValue}
-      />
-      <FlexColumn
-        className="node-content-container"
-        fullWidth
-        sx={{
-          flex: "1 1 auto",
-          minHeight: 120
-        }}
-      >
-        <DynamicKieSchemaContent
-          id={id}
-          nodeType={type}
-          nodeMetadata={metadata}
-          isConstantNode={nodeType.isConstantNode}
-          isOutputNode={nodeType.isOutputNode}
-          data={data}
-          status={statusValue}
-          workflowId={workflow_id}
-          result={result}
-        />
-      </FlexColumn>
-    </FlexColumn>
-  );
-};
+const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => (
+  <DynamicSchemaNodeShell
+    nodeProps={props}
+    className="dynamic-kie-schema-node"
+    accentColor={KIE_HEADER_COLOR}
+    fallbackTitle="Kie AI"
+    titleDetail={props.data.model_id}
+    Loader={KieSchemaLoader}
+    Content={DynamicKieSchemaContent}
+  />
+);
 
 export default memo(DynamicKieSchemaNode);
