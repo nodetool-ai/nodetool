@@ -1,14 +1,15 @@
 import { importPack } from "@nodetool-ai/node-catalog";
-import { readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { readFile, realpath, writeFile } from "node:fs/promises";
+import { extname, join, resolve, sep } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import type { Command } from "commander";
 import { z } from "zod";
 import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol/game.js";
-import { gameEvent3D, gameInputFrame3D, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
+import { gameEvent3D, gameInputFrame3D, parsePackageAssetUri, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createMemoryGameSaveStorage, createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, GamePlayerSaves, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { benchmarkNativeGame } from "./game-benchmark.js";
 import { printCommandError } from "../command-errors.js";
+import { checkoutPackageAssetsDir } from "../package-assets.js";
 import { registerGameSmokeCommand } from "./game-smoke.js";
 
 interface SimulateOptions {
@@ -53,6 +54,15 @@ interface AssertionFailure {
   readonly actual: unknown;
 }
 
+interface BenchOptions {
+  ticks: string;
+  warmup: string;
+  seed: string;
+  inputs?: string;
+  assetsDir?: string;
+  json?: boolean;
+}
+
 interface CaptureOptions {
   ticks: string;
   seed: string;
@@ -90,8 +100,22 @@ const MEDIA_TYPES: Readonly<Record<string, string>> = {
   json: "application/json"
 };
 
+/** Reads a shipped `package://` asset from the package asset directory of this checkout or of NODETOOL_PACKAGE_ASSETS_DIR. */
+async function readPackageAsset(uri: string): Promise<{ bytes: Uint8Array; mimeType: string } | null> {
+  const ref = parsePackageAssetUri(uri);
+  const root = process.env.NODETOOL_PACKAGE_ASSETS_DIR || checkoutPackageAssetsDir();
+  if (!ref || !root) return null;
+  const base = await realpath(root);
+  let path: string;
+  try { path = await realpath(join(base, ref.packageName, ref.path)); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
+  if (!path.startsWith(`${base}${sep}`)) { throw new Error(`Package asset escapes the asset directory: ${uri}`); } // key-boundary-ok: node:path sep anchors containment after realpath.
+  return { bytes: await readFile(path), mimeType: MEDIA_TYPES[extname(path).slice(1).toLowerCase()] ?? "application/octet-stream" };
+}
+
 async function readBuildAsset(directory: string | undefined, sourceAssetId: string): Promise<{ bytes: Uint8Array; mimeType: string } | null> {
   if (sourceAssetId.startsWith("builtin:")) return null;
+  if (sourceAssetId.startsWith("package://")) return readPackageAsset(sourceAssetId);
   if (!directory) return null;
   if (!/^[a-f0-9]{32}$/.test(sourceAssetId)) {
     throw new Error(`Asset ID must be a full 32-character resource ID: ${sourceAssetId}`);
@@ -116,6 +140,16 @@ function nonnegativeInteger(value: string, name: string): number {
 
 async function readDocument(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8")) as unknown;
+}
+
+/** A shipped example file. A game document never has `name` and `document` without `schemaVersion`. */
+const exampleWrapper = z.object({ name: z.string(), document: z.record(z.string(), z.unknown()), schemaVersion: z.never().optional() });
+
+/** Reads a game document, or the `document` of a shipped example file `{name, document, …}`. */
+async function readGameDocument(path: string): Promise<unknown> {
+  const raw = await readDocument(path);
+  const wrapped = exampleWrapper.safeParse(raw);
+  return wrapped.success ? wrapped.data.document : raw;
 }
 
 async function readInputs<Schema extends z.ZodType>(path: string | undefined, schema: Schema): Promise<z.output<Schema>[]> {
@@ -275,7 +309,7 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: { json?: boolean }) => {
       try {
-        const report = validateCliDocument(await readDocument(path));
+        const report = validateCliDocument(await readGameDocument(path));
         if (options.json) {
           process.stdout.write(`${JSON.stringify(report)}\n`);
         } else {
@@ -297,12 +331,17 @@ export function registerGameCommands(program: Command): void {
     .option("--ticks <count>", "Measured ticks", "1200")
     .option("--warmup <count>", "Warmup ticks", "300")
     .option("--seed <integer>", "Random seed", "1")
+    .option("--inputs <file>", "JSON array of tick-indexed input frames from tick 0 (warmup included), so the bench measures play")
+    .option("--assets-dir <directory>", "Prepared 3D collider files named <full-asset-id>.json. Shipped package:// assets resolve without it")
     .option("--json", "Print a machine-readable report")
-    .action(async (path: string, options: { ticks: string; warmup: string; seed: string; json?: boolean }) => {
+    .action(async (path: string, options: BenchOptions) => {
       try {
-        const validated = validateCliDocument(await readDocument(path));
+        const validated = validateCliDocument(await readGameDocument(path));
         if (!validated.valid || !validated.document) { throw new Error(validated.errors.join("\n")); }
-        const report = await benchmarkNativeGame(validated.document, Number(options.ticks), Number(options.warmup), Number(options.seed));
+        const document = validated.document;
+        const inputs = document.schemaVersion === 3 ? await readInputs(options.inputs, gameInputFrame3D) : await readInputs(options.inputs, gameInputFrame);
+        const report = await benchmarkNativeGame(document, Number(options.ticks), Number(options.warmup), Number(options.seed),
+          { inputs, resolveCollider: sessionAssetOptions3D(options.assetsDir).resolveCollider });
         process.stdout.write(`${JSON.stringify(report, null, options.json ? undefined : 2)}\n`);
       } catch (error) { process.exitCode = printCommandError(error, options.json); }
     });
@@ -322,7 +361,7 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: SimulateOptions) => {
       try {
-        const validated = validateCliDocument(await readDocument(path));
+        const validated = validateCliDocument(await readGameDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
@@ -436,7 +475,7 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: CaptureOptions, command: Command) => {
       try {
-        const validated = validateCliDocument(await readDocument(path));
+        const validated = validateCliDocument(await readGameDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
@@ -506,7 +545,7 @@ export function registerGameCommands(program: Command): void {
     .option("--json", "Print a machine-readable report")
     .action(async (path: string, options: BuildOptions) => {
       try {
-        const validated = validateCliDocument(await readDocument(path));
+        const validated = validateCliDocument(await readGameDocument(path));
         if (!validated.valid || !validated.document) {
           throw new Error(validated.errors.join("\n"));
         }
