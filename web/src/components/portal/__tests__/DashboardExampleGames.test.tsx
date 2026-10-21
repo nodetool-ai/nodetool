@@ -6,8 +6,6 @@ import mockTheme from "../../../__mocks__/themeMock";
 import DashboardExampleGames from "../DashboardExampleGames";
 import useOnboardingStore from "../../../stores/OnboardingStore";
 
-jest.mock("../ExampleGamePlayView", () => ({ __esModule: true, default: ({ slug }: { slug: string }) => <div>Playing {slug}</div> }));
-
 const openTab = jest.fn();
 const navigate = jest.fn();
 const mutate = jest.fn();
@@ -61,12 +59,16 @@ it("shows a loading skeleton while a poster loads, not a black card", () => {
   expect(screen.getByAltText("Kindle gameplay")).toHaveAttribute("data-skeleton", "true");
 });
 
-it("plays a shipped game without installing it", async () => {
+it("opens a shipped game full page in a new tab without installing it", async () => {
   mutate.mockClear();
   useOnboardingStore.setState({ completedSteps: [] });
+  const open = jest.spyOn(window, "open").mockReturnValue(null);
   render(<MemoryRouter><ThemeProvider theme={mockTheme}><DashboardExampleGames /></ThemeProvider></MemoryRouter>);
   await userEvent.click(screen.getByRole("button", { name: "Play" }));
-  expect(await screen.findByText("Playing kindle")).toBeInTheDocument();
+  expect(open).toHaveBeenCalledWith("/game/example/kindle", "_blank", "noopener,noreferrer");
+  open.mockRestore();
+  // The cards stay on the page; nothing is embedded in place of them.
+  expect(screen.getByText("Kindle")).toBeInTheDocument();
   expect(mutate).not.toHaveBeenCalled();
   // Playing an example ticks the checklist's examples step.
   expect(useOnboardingStore.getState().completedSteps).toContain(

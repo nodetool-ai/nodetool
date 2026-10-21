@@ -4440,8 +4440,6 @@
         "count_other": "{{count}} 个游戏",
         "makeGame": "制作游戏",
         "description": "直接游玩，也可以安装副本并修改美术、关卡和规则。",
-        "closeGame": "关闭游戏",
-        "loadingGame": "正在加载游戏",
         "loading": "正在加载游戏",
         "loadErrorTitle": "无法加载游戏",
         "loadErrorDescription": "请稍后重试。",

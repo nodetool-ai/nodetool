@@ -216,6 +216,12 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
     void window.nativeGame3DPlayer.reset().then(() => setPaused(false))
       .catch((error: unknown) => status(error instanceof Error ? error.message : "Reset failed"));
   }, { signal: controller.signal });
+  const fullscreen = document.getElementById("fullscreen");
+  if (fullscreen && !document.fullscreenEnabled) { fullscreen.hidden = true; }
+  fullscreen?.addEventListener("click", () => {
+    const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen({ navigationUI: "hide" });
+    void request.catch(() => status("Fullscreen is unavailable"));
+  }, { signal: controller.signal });
   window.addEventListener("beforeunload", () => {
     disposed = true;
     replacement.abort();

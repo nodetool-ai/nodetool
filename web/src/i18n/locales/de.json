@@ -4440,8 +4440,6 @@
         "count_other": "{{count}} Spiele",
         "makeGame": "Spiel erstellen",
         "description": "Spiele direkt los oder installiere eine Kopie, um Grafik, Level und Regeln zu ändern.",
-        "closeGame": "Spiel schließen",
-        "loadingGame": "Spiel wird geladen",
         "loading": "Spiele werden geladen",
         "loadErrorTitle": "Spiele konnten nicht geladen werden",
         "loadErrorDescription": "Versuch es gleich noch einmal.",

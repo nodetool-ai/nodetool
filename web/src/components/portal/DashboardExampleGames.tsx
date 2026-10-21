@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
-import { lazy, memo, Suspense, useCallback, useState } from "react";
+import { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { ExampleGameSummary } from "@nodetool-ai/protocol/game.js";
@@ -17,7 +17,6 @@ import {
 import useOnboardingStore from "../../stores/OnboardingStore";
 import {
   AutoGrid,
-  Box,
   FlexRow,
   BORDER_RADIUS,
   Caption,
@@ -35,8 +34,6 @@ import {
 import { NO_EXAMPLE_NEEDS } from "../../utils/exampleNeeds";
 import { DashboardSectionHeader, useSectionWrap } from "./dashboardChrome";
 import ExampleNeedsPill from "./ExampleNeedsPill";
-
-const ExampleGamePlayView = lazy(() => import("./ExampleGamePlayView"));
 
 const styles = (theme: Theme) =>
   css({
@@ -120,11 +117,14 @@ interface DashboardExampleGamesProps {
 
 const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
   const { t } = useTranslation();
-  const [playingGame, setPlayingGame] = useState<ExampleGameSummary | null>(
-    null
-  );
+  // The game opens full page in its own browser tab, so it gets the whole
+  // window and keyboard focus instead of a small embed under the cards.
   const handlePlay = useCallback((game: ExampleGameSummary) => {
-    setPlayingGame(game);
+    window.open(
+      `/game/example/${encodeURIComponent(game.slug)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
     useOnboardingStore.getState().markStep("keep-creating");
   }, []);
   const theme = useTheme();
@@ -197,33 +197,7 @@ const DashboardExampleGames = ({ onMakeGame }: DashboardExampleGamesProps) => {
         >
           {t("pass3_16.portal.games.description")}
         </Caption>
-        {playingGame && (
-          <FlexColumn gap={SPACING.md} sx={{ mb: SPACING.xl }}>
-            <EditorButton
-              onClick={() => setPlayingGame(null)}
-              sx={{ alignSelf: "flex-end" }}
-            >
-              {t("pass3_16.portal.games.closeGame")}
-            </EditorButton>
-            <Box sx={{ aspectRatio: "16 / 9", position: "relative" }}>
-              <Box sx={{ position: "absolute", inset: 0 }}>
-                <Suspense
-                  fallback={
-                    <LoadingSpinner
-                      text={t("pass3_16.portal.games.loadingGame")}
-                    />
-                  }
-                >
-                  <ExampleGamePlayView
-                    key={playingGame.slug}
-                    slug={playingGame.slug}
-                  />
-                </Suspense>
-              </Box>
-            </Box>
-          </FlexColumn>
-        )}
-        {playingGame ? null : isLoading ? (
+        {isLoading ? (
           <FlexColumn align="center" padding={PADDING.spacious}>
             <LoadingSpinner
               size="medium"

@@ -4440,8 +4440,6 @@
         "count_other": "{{count}} games",
         "makeGame": "Make a game",
         "description": "Play a game directly, or install a copy to change its art, levels and rules.",
-        "closeGame": "Close game",
-        "loadingGame": "Loading game",
         "loading": "Loading games",
         "loadErrorTitle": "Couldn't load games",
         "loadErrorDescription": "Try again in a moment.",
