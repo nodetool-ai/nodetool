@@ -26,55 +26,6 @@ export interface MarketingEdit {
 
 export const MARKETING_EDITS: readonly MarketingEdit[] = [
   {
-    slug: "conversation-project",
-    category: "ONE CONVERSATION. ONE PROJECT.",
-    posterFrame: 700,
-    shots: [
-      {
-        title: "Pitch the impossible.",
-        detail: "Describe the film you want to make.",
-        start: 0,
-        end: 5,
-        crop: [100, 390, 1730, 300]
-      },
-      {
-        title: "Watch it take shape.",
-        detail: "The agent turns your brief into a storyboard.",
-        start: 5,
-        end: 9,
-        crop: [180, 275, 1500, 420]
-      },
-      {
-        title: "One idea. Six shots.",
-        detail: "Review the images as they arrive.",
-        start: 9,
-        end: 13,
-        crop: [70, 270, 1780, 730]
-      },
-      {
-        title: "Open your storyboard.",
-        detail: "Keep every shot available to edit.",
-        start: 13,
-        end: 17,
-        crop: [70, 300, 1780, 520]
-      },
-      {
-        title: "Own the cut.",
-        detail: "Arrange the shots on your timeline.",
-        start: 17,
-        end: 21,
-        crop: [140, 375, 1640, 300]
-      },
-      {
-        title: "Keep the whole project.",
-        detail: "The board, the assets, and the edit stay yours.",
-        start: 21,
-        end: 26,
-        crop: [340, 275, 1260, 670]
-      }
-    ]
-  },
-  {
     slug: "hero-project",
     category: "FROM BRIEF TO CAMPAIGN",
     posterFrame: 1070,
