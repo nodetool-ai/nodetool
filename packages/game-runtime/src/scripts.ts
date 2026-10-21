@@ -704,7 +704,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             output = guestCall(false);
           } else {
             try { output = guestCall(true); } catch (error) {
-              if (performance.now() >= batchDeadline || callExceeded()) { throw error; }
+              // A frozen Error.prototype strips the message from a host function's error, so a budget that ran out
+              // inside one is named here.
+              if (performance.now() >= batchDeadline || callExceeded()) { checkCallDeadline(); throw error; }
               // Strict mode or a frozen built-in rejected the call. A fresh realm runs it as written, so this source
               // keeps using fresh realms. Either way the call sees only its own input.
               reusableSources.delete(call.sourceKey);

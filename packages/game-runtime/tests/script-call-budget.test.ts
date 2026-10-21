@@ -148,6 +148,28 @@ describe("per-call script clock", () => {
     } finally { runner.dispose(); }
   });
 
+  it("names the call budget when a reused realm overruns it inside world.get", async () => {
+    // A reused realm freezes Error.prototype, so an error thrown by a host function reaches the guest without its message.
+    const base = fixture();
+    const reading = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) =>
+      entity.id === "worker" ? { ...entity, behaviors: [{ kind: "script", source: "() => ({ state: world.get(\"sleeper\") ? 1 : 0, commands: [] })", maxTickMs: 1, maxCommands: 8 }] } : entity) })) });
+    // The call clock jumps once world.get serializes the entity, so the budget expires inside the host function.
+    let expired = false;
+    const runner = await prepareGameScripts(reading, { callClock: { kind: "wall", now: () => (expired ? 1000 : 0) } });
+    const encode = TextEncoder.prototype.encode;
+    vi.spyOn(TextEncoder.prototype, "encode").mockImplementation(function (this: TextEncoder, text?: string) {
+      if (text?.startsWith("{\"id\":\"sleeper\"")) {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+        expired = true;
+      }
+      return encode.call(this, text);
+    });
+    const world = [{ id: "sleeper", source: "sleeper", x: 0, y: 0, velocityX: 0, velocityY: 0 }];
+    try {
+      expect(() => runner.run([{ ...call, maxTickMs: 1 }], input(0), 1, world)).toThrow(/interrupted: call 1 ms for worker at tick 0/);
+    } finally { runner.dispose(); }
+  });
+
   it.each([1, 20])("interrupts a CPU-bound loop at a %i ms call limit", async (limit) => {
     const base = fixture();
     const looping = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) =>
