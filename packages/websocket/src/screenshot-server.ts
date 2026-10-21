@@ -1859,6 +1859,29 @@ const WORKING_RUN_WORKFLOW = makeWorkflow(
   })
 );
 
+/**
+ * The one document of the `unwired-run` state: the `working-run` workflow
+ * without the wire from "Trip notes" to the Agent's prompt, so a run writes a
+ * list that never reads the notes. UX research's `reconnect` task starts here.
+ */
+const UNWIRED_RUN_WORKFLOW = (() => {
+  const graph = packingListGraph({
+    type: "language_model",
+    provider: "openai",
+    id: "test-chat-model",
+    name: "Test Chat Model"
+  });
+  return makeWorkflow(
+    "wf-packing-list",
+    "Packing list",
+    "Turns trip notes into a packing list",
+    [],
+    "2026-01-05T09:00:00Z",
+    "private",
+    { ...graph, edges: graph.edges.filter((edge) => edge.id !== "edge-notes") }
+  );
+})();
+
 async function seedOpenAiKey(): Promise<void> {
   const now = new Date().toISOString();
   await getPortableDb()
@@ -1884,13 +1907,15 @@ async function seedOpenAiKey(): Promise<void> {
 // `failing-run` is that account plus one workflow that fails until fixed.
 // `other-provider` is that account plus one workflow whose run fails because
 // it uses a provider the account has not connected. `working-run` is that
-// account plus a working workflow and a stored OpenAI key.
+// account plus a working workflow and a stored OpenAI key. `unwired-run` is
+// the same with the notes input left unconnected.
 const QA_STATE = process.env.NODETOOL_QA_STATE;
 const EMPTY_ACCOUNT =
   QA_STATE === "empty" ||
   QA_STATE === "failing-run" ||
   QA_STATE === "other-provider" ||
-  QA_STATE === "working-run";
+  QA_STATE === "working-run" ||
+  QA_STATE === "unwired-run";
 
 async function seedForState(): Promise<void> {
   if (QA_STATE === "failing-run") {
@@ -1910,6 +1935,14 @@ async function seedForState(): Promise<void> {
     await seedOpenAiKey();
     console.log(
       "[screenshot-server] Empty account with one working workflow and an OpenAI key"
+    );
+    return;
+  }
+  if (QA_STATE === "unwired-run") {
+    await Workflow.create(UNWIRED_RUN_WORKFLOW);
+    await seedOpenAiKey();
+    console.log(
+      "[screenshot-server] Empty account with one workflow missing its input wire and an OpenAI key"
     );
     return;
   }

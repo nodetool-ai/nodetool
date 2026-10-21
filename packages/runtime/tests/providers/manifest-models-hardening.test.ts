@@ -567,6 +567,104 @@ describe("narrowTasksByRequiredInputs", () => {
     ).toEqual(["video_to_video"]);
   });
 
+  describe("required reference inputs on video endpoints", () => {
+    const referenceOnly = {
+      outputType: "video",
+      inputFields: [
+        { name: "prompt", propType: "str", required: true },
+        { name: "reference_images", propType: "list[image]", required: true }
+      ]
+    };
+
+    it("narrows to reference_to_video, keeping it when already tagged", () => {
+      expect(
+        narrowTasksByRequiredInputs(
+          ["text_to_video", "image_to_video", "reference_to_video"],
+          referenceOnly,
+          "video"
+        )
+      ).toEqual(["reference_to_video"]);
+    });
+
+    it("adds reference_to_video when the tags lack it", () => {
+      expect(
+        narrowTasksByRequiredInputs(
+          ["text_to_video", "image_to_video"],
+          referenceOnly,
+          "video"
+        )
+      ).toEqual(["reference_to_video"]);
+    });
+
+    it("matches the required reference through fields by API name", () => {
+      expect(
+        narrowTasksByRequiredInputs(
+          ["text_to_video"],
+          {
+            outputType: "video",
+            fields: [
+              { name: "prompt", type: "str", required: true },
+              { name: "subject_images", type: "list[image]", required: true }
+            ]
+          },
+          "video"
+        )
+      ).toEqual(["reference_to_video"]);
+    });
+
+    it("ignores an optional reference input", () => {
+      const tasks = ["text_to_video", "image_to_video"];
+      expect(
+        narrowTasksByRequiredInputs(
+          tasks,
+          {
+            outputType: "video",
+            inputFields: [
+              { name: "reference_images", propType: "list[image]", required: false }
+            ]
+          },
+          "video"
+        )
+      ).toBe(tasks);
+    });
+
+    it("does not narrow when a non-reference source media is also required", () => {
+      expect(
+        narrowTasksByRequiredInputs(
+          ["text_to_video", "image_to_video"],
+          {
+            outputType: "video",
+            inputFields: [
+              { name: "image", propType: "image", required: true },
+              { name: "reference_images", propType: "list[image]", required: true }
+            ]
+          },
+          "video"
+        )
+      ).toEqual(["image_to_video"]);
+    });
+
+    it("takes the generic path when video_to_video is tagged", () => {
+      expect(
+        narrowTasksByRequiredInputs(
+          ["video_to_video", "text_to_video"],
+          referenceOnly,
+          "video"
+        )
+      ).toEqual(["video_to_video"]);
+    });
+
+    it("never applies to image endpoints", () => {
+      expect(
+        narrowTasksByRequiredInputs(
+          ["text_to_image", "image_to_image"],
+          referenceOnly,
+          "image"
+        )
+      ).toEqual(["image_to_image"]);
+    });
+  });
+
   it("leaves an endpoint that requires nothing alone", () => {
     const tasks = ["text_to_image", "image_to_image"];
     expect(

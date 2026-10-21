@@ -31,6 +31,8 @@ interface OpenNodeMenuParams {
   searchTerm?: string;
   selectedPath?: string[];
   centerOnScreen?: boolean;
+  /** Screen point where a node picked from the menu lands. Defaults to `x`, `y`. */
+  dropPosition?: { x: number; y: number };
 }
 
 type ProviderFilterType = "all" | "api" | "local";
@@ -485,7 +487,7 @@ export const createNodeMenuStore = () =>
         }
       },
       openNodeMenu: (params: OpenNodeMenuParams) => {
-        set({ clickPosition: { x: params.x, y: params.y } });
+        set({ clickPosition: params.dropPosition ?? { x: params.x, y: params.y } });
         const { menuWidth, menuHeight } = get();
 
         // --- Configuration ---

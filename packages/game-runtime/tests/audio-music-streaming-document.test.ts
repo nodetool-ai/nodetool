@@ -55,6 +55,8 @@ describe("streaming music is presentation configuration", () => {
       for (let tick = 0; tick < 120; tick++) {
         const result = session.step(input3D);
         expect(result.events).toEqual(regular.step(input3D).events);
+        const { tick: stateTick, sceneId, music: stateMusic } = session.snapshot();
+        expect(session.audioState()).toEqual({ tick: stateTick, sceneId, music: stateMusic });
         if (tick === 0) {
           expect(result.events.some((event) => event.kind === "sceneTransition")).toBe(true);
           expect(session.snapshot().music).toEqual({ ...music, voiceId: "scene:next:music", startTick: 1 });

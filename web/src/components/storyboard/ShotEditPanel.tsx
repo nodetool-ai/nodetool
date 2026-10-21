@@ -66,6 +66,13 @@ import ShotScriptPanel from "./ShotScriptPanel";
 import ShotCostLine from "./ShotCostLine";
 import ShotPromptPreview from "./ShotPromptPreview";
 import ShotRenderDialog from "./ShotRenderDialog";
+import { TransformWithWorkflowView } from "../assets/TransformWithWorkflowDialog";
+import {
+  transformSourceFromRef,
+  type TransformApplyAction,
+  type TransformSource
+} from "../assets/transformWorkflow";
+import { mediaRefFromAsset } from "../../utils/mediaRef";
 import {
   changedDraftKeys,
   conflictingDraftKeys,
@@ -480,6 +487,52 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
       startRender("clip", saved);
     }
   }, [commit, startRender]);
+
+  // "Transform with workflow" on the shot's still or clip. A returned image
+  // or video joins the takes as the selected still or clip, the way a
+  // finished render does; the earlier take stays in the gallery.
+  const setShotKeyframe = useStoryboardStore((state) => state.setShotKeyframe);
+  const setShotClip = useStoryboardStore((state) => state.setShotClip);
+  const [transformSource, setTransformSource] = useState<TransformSource | null>(null);
+  const shotMediaName = useCallback(
+    (part: "still" | "clip") =>
+      `${t("screens4_16.shotEditPanel.title", {
+        scene: numbering.scene ? numberFormat.format(numbering.scene) : "—",
+        shot: numbering.shot ? numberFormat.format(numbering.shot) : "—"
+      })} ${t(`transformWithWorkflow.kind.${part === "still" ? "image" : "video"}`)}`,
+    [numbering.scene, numbering.shot, numberFormat, t]
+  );
+  const stillSource = useMemo(
+    () =>
+      shot?.keyframe
+        ? transformSourceFromRef(shot.keyframe, "image", shotMediaName("still"))
+        : null,
+    [shot?.keyframe, shotMediaName]
+  );
+  const shotClip = shot?.clip ?? shot?.clip_versions?.at(-1);
+  const clipSource = useMemo(
+    () =>
+      shotClip ? transformSourceFromRef(shotClip, "video", shotMediaName("clip")) : null,
+    [shotClip, shotMediaName]
+  );
+  const openTransform = useCallback((source: TransformSource | null) => {
+    setMenuAnchor(null);
+    setTransformSource(source);
+  }, []);
+  const transformApply = useMemo<TransformApplyAction>(
+    () => ({
+      label: t("transformWithWorkflow.apply.addAsTake"),
+      kinds: ["image", "video"],
+      onApply: (result) => {
+        if (result.kind === "image") {
+          setShotKeyframe(boardId, shotId, mediaRefFromAsset({ id: result.assetId }, "image"));
+        } else {
+          setShotClip(boardId, shotId, mediaRefFromAsset({ id: result.assetId }, "video"));
+        }
+      }
+    }),
+    [boardId, shotId, setShotClip, setShotKeyframe, t]
+  );
 
   const completeLeave = useCallback(
     (
@@ -940,7 +993,26 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           onClick={() => handleNudge("down")}
           disabled={numbering.shot >= shotsInScene}
         />
+        <MenuItemPrimitive
+          label={t("transformWithWorkflow.openStill")}
+          dividerBefore
+          disabled={!stillSource}
+          onClick={() => openTransform(stillSource)}
+        />
+        <MenuItemPrimitive
+          label={t("transformWithWorkflow.openClip")}
+          disabled={!clipSource}
+          onClick={() => openTransform(clipSource)}
+        />
       </EditorMenu>
+
+      {transformSource && (
+        <TransformWithWorkflowView
+          source={transformSource}
+          onClose={() => setTransformSource(null)}
+          apply={transformApply}
+        />
+      )}
 
       {stillRenderShot && (
         <ShotRenderDialog

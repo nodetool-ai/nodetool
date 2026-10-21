@@ -17,6 +17,7 @@ import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import QueueMusicOutlinedIcon from "@mui/icons-material/QueueMusicOutlined";
 import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 import { canClipFade } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -25,6 +26,7 @@ import { useInStudio } from "../../../studio/StudioContext";
 import type { WorkflowMediaItem } from "../../../hooks/handlers/useGenerationToCanvas";
 import { clipWorkflowMedia } from "../clipWorkflowMedia";
 import { clipEnabledPatch, isClipDisabled } from "./clipEnabled";
+import { canTransformClip } from "./TransformClipDialog";
 
 import { ContextMenu, MenuItemPrimitive } from "../../ui_primitives";
 import {
@@ -43,6 +45,8 @@ interface ClipContextMenuProps extends ClipMenuActionCallbacks {
     items: WorkflowMediaItem[],
     position: { x: number; y: number }
   ) => void;
+  /** Opens "Transform with workflow" on this clip's media. */
+  onRequestTransform: () => void;
   onClose: () => void;
 }
 
@@ -61,6 +65,7 @@ export function ClipContextMenu({
   onSendToWorkflow,
   onClose,
   onRequestReplace,
+  onRequestTransform,
   onError
 }: ClipContextMenuProps) {
   const { t } = useTranslation();
@@ -78,6 +83,9 @@ export function ClipContextMenu({
     const clip = findClipById(s.clips, clipId);
     return ((clip?.fadeInMs ?? 0) || (clip?.fadeOutMs ?? 0)) > 0;
   });
+  const canTransform = useTimelineStore((s) =>
+    canTransformClip(findClipById(s.clips, clipId))
+  );
   const disabled = useTimelineStore((s) => {
     const clip = findClipById(s.clips, clipId);
     return clip ? isClipDisabled(clip) : false;
@@ -197,6 +205,13 @@ export function ClipContextMenu({
           label={t("i18n-next59.clipMenu.replaceClip")}
           icon={<ImageIcon fontSize="small" />}
           onClick={run(actions.openReplace)}
+        />
+      )}
+      {canTransform && (
+        <MenuItemPrimitive
+          label={t("transformWithWorkflow.open")}
+          icon={<AutoFixHighOutlinedIcon fontSize="small" />}
+          onClick={run(onRequestTransform)}
         />
       )}
       {!inStudio && workflowMedia.length > 0 && (

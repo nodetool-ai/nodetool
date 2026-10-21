@@ -1,0 +1,15 @@
+{
+  "tolerance": 0.05,
+  "ticks": [
+    {
+      "tick": 7942,
+      "events": [
+        {
+          "kind": "trigger",
+          "event": "victory",
+          "entityId": "jet"
+        }
+      ]
+    }
+  ]
+}

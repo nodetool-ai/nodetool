@@ -32,6 +32,10 @@ interface InlineGraphJobOptions {
    * over the full graph because the submitted `graph` is a pruned subgraph.
    */
   inputSignatures?: Record<string, string>;
+  /** Run id to use. Defaults to a fresh UUID. */
+  jobId?: string;
+  /** Called with every message of this run, before it is folded into the result. */
+  onMessage?: (message: Record<string, unknown>) => void;
 }
 
 /**
@@ -86,7 +90,22 @@ export async function runInlineGraphJob(
   // falls through to the WebSocket path below unchanged — the sync check adds
   // no latency to the server path.
   if (canRunGraphInBrowserSync(graph)) {
-    return runBrowserGraphJob({ graph, params, signal, workflowId });
+    const browserJobId = options.jobId ?? crypto.randomUUID();
+    const onMessage = options.onMessage;
+    const unsubscribe = onMessage
+      ? globalWebSocketManager.subscribe(browserJobId, onMessage)
+      : undefined;
+    try {
+      return await runBrowserGraphJob({
+        graph,
+        params,
+        signal,
+        workflowId,
+        jobId: browserJobId
+      });
+    } finally {
+      unsubscribe?.();
+    }
   }
 
   await globalWebSocketManager.ensureConnection();
@@ -100,7 +119,7 @@ export async function runInlineGraphJob(
     unknown
   >;
 
-  const jobId = crypto.randomUUID();
+  const jobId = options.jobId ?? crypto.randomUUID();
 
   // Stamp registry (spec §3.4): record the dispatch-time signatures under this
   // run's jobId so handleUpdate can tag the generations it produces. This path
@@ -162,6 +181,8 @@ export async function runInlineGraphJob(
     if (msgJob != null && msgJob.length > 0 && msgJob !== jobId) {
       return;
     }
+
+    options.onMessage?.(message);
 
     const type = str(message.type);
 

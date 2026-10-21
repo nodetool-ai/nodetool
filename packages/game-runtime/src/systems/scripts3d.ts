@@ -8,6 +8,7 @@ import { planScriptProps } from "../script-props.js";
 import type { GameScriptCall3D } from "../scripts3d.js";
 import { parseScriptSourceKey, prefabScriptSourceKey, sceneScriptSourceKey, scriptSourceKey } from "../script-source.js";
 import { playAnimationGraphState3D, setAnimationParameter3D } from "./animation-graph3d.js";
+import { copyTransform3D } from "../spatial3d/math.js";
 
 const NO_TAGS: readonly string[] = Object.freeze([]);
 /** Fields of a removed instance's last call that its onDestroy hook reads. */
@@ -225,7 +226,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
               state.localTransform.scale = command.scale;
             }
             if (!state.definition.parentId) {
-              state.transform = structuredClone(state.localTransform);
+              state.transform = copyTransform3D(state.localTransform);
             }
             if (command.opacity !== undefined) {
               state.opacity = command.opacity;

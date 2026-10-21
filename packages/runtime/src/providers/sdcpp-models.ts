@@ -44,6 +44,11 @@ export interface SdCppModelSpec {
   id: string;
   name: string;
   files: Partial<Record<SdCppComponent, SdCppFile>>;
+  /**
+   * A single-file checkpoint on disk, from a model folder. Set instead of
+   * `files`, which is then empty.
+   */
+  localPath?: string;
   /** Download size in GB, rounded, counting every file. */
   sizeGb: number;
   /**
@@ -488,4 +493,48 @@ export function sdCppModelTasks(model: SdCppModelSpec): ("text_to_image" | "imag
   if (model.textToImage !== false) tasks.push("text_to_image");
   if (model.imageInput) tasks.push("image_to_image");
   return tasks;
+}
+
+const TEXT_ENCODER_PREFIXES = ["cond_stage_model.", "conditioner.embedders.", "text_encoders."];
+
+/**
+ * The spec for a single-file checkpoint from a model folder, read from its
+ * tensor names: the diffusion model, the VAE and the text encoders in one
+ * file, as a ComfyUI `checkpoints` folder holds them. Null for anything
+ * else, such as a LoRA, a VAE or a diffusion model that needs separate
+ * encoders.
+ */
+export function localCheckpointSpec(
+  path: string,
+  tensorNames: readonly string[],
+  sizeBytes: number
+): SdCppModelSpec | null {
+  const has = (prefix: string) => tensorNames.some((name) => name.startsWith(prefix));
+  if (!has("model.diffusion_model.") || !has("first_stage_model.")) return null;
+  if (!TEXT_ENCODER_PREFIXES.some(has)) return null;
+  let defaults: SdCppModelSpec["defaults"];
+  if (has("model.diffusion_model.double_blocks.")) {
+    // FLUX.1 dev has a guidance embedding, schnell does not and needs few steps.
+    defaults = has("model.diffusion_model.guidance_in.")
+      ? { steps: 20, cfgScale: 1, sampler: "euler", size: 1024 }
+      : { steps: 4, cfgScale: 1, sampler: "euler", size: 1024 };
+  } else if (has("model.diffusion_model.joint_blocks.")) {
+    defaults = { steps: 28, cfgScale: 4.5, sampler: "euler", size: 1024 };
+  } else if (has("conditioner.embedders.1.")) {
+    defaults = { steps: 25, cfgScale: 7, size: 1024 };
+  } else if (has("cond_stage_model.")) {
+    defaults = { steps: 20, cfgScale: 7, size: 512 };
+  } else {
+    return null;
+  }
+  const file = path.split(/[\\/]/).pop() ?? path;
+  return {
+    id: path,
+    name: file.replace(/\.safetensors$/i, ""),
+    files: {},
+    localPath: path,
+    sizeGb: Math.round((sizeBytes / 1e9) * 10) / 10,
+    imageInput: "init",
+    defaults
+  };
 }

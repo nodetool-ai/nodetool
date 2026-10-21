@@ -6,6 +6,7 @@ import { createGameSession3D } from "@nodetool-ai/game-runtime";
 
 import {
   GameParticles3D,
+  GameParticleSnapshot3D,
   PARTICLE_INSTANCE_STRIDE_3D,
   ParticleSimulator,
   gameParticleFieldFromSamples3D,
@@ -120,6 +121,16 @@ describe("3D particles beside a session", () => {
     expect(packed.batches.filter(batch => batch.shape === "quad").reduce((sum, batch) => sum + batch.count, 0)).toBe(first.samples.length - 4);
     expect(packed.batches.filter(batch => batch.shape === "box").reduce((sum, batch) => sum + batch.count, 0)).toBe(4);
     expect(packed.soft).toBe(true);
+    // Each soft emitter's box holds its quads, grown by size and softness.
+    expect(packed.softBounds.length).toBeGreaterThan(0);
+    const boxes = packed.softBounds;
+    for (const batch of packed.batches.filter((entry) => entry.shape === "quad")) {
+      for (let index = 0; index < batch.count; index++) {
+        const [x, y, z] = particle(batch.data, index);
+        if (particle(batch.data, index)[14] === 0) { continue; }
+        expect(boxes.some((box) => x! >= box.min.x && x! <= box.max.x && y! >= box.min.y && y! <= box.max.y && z! >= box.min.z && z! <= box.max.z)).toBe(true);
+      }
+    }
     const burst = packed.batches.find(batch => batch.shape === "box");
     if (!burst) { throw new Error("Burst mesh batch missing"); }
     expect(particle(burst.data, 0).slice(0, 3)).toEqual([1, 2, 3]);
@@ -146,6 +157,39 @@ describe("3D particles beside a session", () => {
     gameParticleFieldFromSamples3D([sample, { ...sample, emitterId: "gone" }, { ...sample, entityId: "gone" }], frame).forEachParticle((value) => seen.push(value));
     expect(seen).toHaveLength(1);
     expect(seen[0]).toMatchObject({ ...sample, emitter: { id: "fx" } });
+  });
+});
+
+describe("3D particle snapshots", () => {
+  it("keeps the captured tick while the field moves on, and matches a sample copy", async () => {
+    const document = torchDocument();
+    const session = await createGameSession3D(document, 1);
+    try {
+      const particles = new GameParticles3D(document.tickRate);
+      const input = gameInputFrame3D.parse({ pressed: [] });
+      for (let tick = 0; tick < 20; tick += 1) { const step = session.step(input); particles.tick(step.frame, session.takePresentationEvents()); }
+      const snapshot = new GameParticleSnapshot3D().capture(particles, 0.5);
+      const expected = gameParticleSamples3D(particles, 0.5);
+      expect(snapshot.count).toBe(expected.length);
+      expect(gameParticleSamples3D(snapshot)).toEqual(expected);
+      for (let tick = 0; tick < 10; tick += 1) { const step = session.step(input); particles.tick(step.frame, session.takePresentationEvents()); }
+      expect(gameParticleSamples3D(snapshot)).toEqual(expected);
+      expect(gameParticleSamples3D(snapshot.capture(particles))).toEqual(gameParticleSamples3D(particles));
+    } finally { session.dispose(); }
+  });
+
+  it("shrinks to a smaller field and drops the references it no longer holds", () => {
+    const definition = emitter({});
+    const snapshot = new GameParticleSnapshot3D();
+    snapshot.capture(field([view(definition, { x: 1 }), view(definition, { x: 2 }), view(definition, { x: 3 })]));
+    expect(snapshot.count).toBe(3);
+    snapshot.capture(field([view(definition, { x: 9 })]));
+    const seen: number[] = [];
+    snapshot.forEachParticle((particle) => seen.push(particle.x));
+    expect(seen).toEqual([9]);
+    snapshot.capture(field([]));
+    expect(snapshot.count).toBe(0);
+    snapshot.forEachParticle(() => { throw new Error("An empty snapshot visits nothing"); });
   });
 });
 

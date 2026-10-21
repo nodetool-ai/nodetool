@@ -352,8 +352,8 @@ entries. When one is renamed, update it here and on the page.
 
 ## Published marketing demos (`demo/src/marketing/`)
 
-The homepage serves the conversation demo from
-`marketing/public/`. Their finishing compositions live in
+The projector campaign demo (`hero-project`) is served from
+`marketing/public/`. Its finishing composition lives in
 [`src/marketing/`](src/marketing/catalog.ts). The accepted footage is pinned
 under `public/casts/marketing/` so repeated renders never process their own
 previous export. The projector campaign's original editable composition was

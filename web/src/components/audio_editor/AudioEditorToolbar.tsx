@@ -46,6 +46,8 @@ interface AudioEditorToolbarProps {
   onReverse: () => void;
   /** Open (or, for one-click effects, apply) an effect from the catalogue. */
   onEffect: (effectId: string) => void;
+  /** Open "Transform with workflow" on the current sample. */
+  onTransform?: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
@@ -73,6 +75,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
   onQuieten,
   onReverse,
   onEffect,
+  onTransform,
   onUndo,
   onRedo,
   onSave,
@@ -223,6 +226,19 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
           )
         ])}
       </EditorMenu>
+
+      {onTransform && (
+        <EditorButton
+          variant="text"
+          color="inherit"
+          density="compact"
+          startIcon={<AutoFixHighOutlinedIcon />}
+          onClick={onTransform}
+          disabled={!canSave}
+        >
+          {t("transformWithWorkflow.open")}
+        </EditorButton>
+      )}
 
       <Box sx={{ flexGrow: 1 }} />
 

@@ -104,7 +104,13 @@ it.each(["2D", "3D"])("plays exported %s streaming music after a gesture and loo
     await page.waitForFunction((is3D) => Boolean(is3D ? window.nativeGame3DPlayer : window.nativeGamePlayer), dimension === "3D");
     expect(await page.evaluate(() => window.streamingTestMedia.every(media => media.paused))).toBe(true);
     const canvas = page.locator("canvas").first();
-    await canvas.click({ position: { x: 10, y: 10 } });
+    // Press the HUD start button in the top-left of the rendered image, which the
+    // exported page letterboxes inside the canvas element with object-fit: contain.
+    const imageOrigin = await canvas.evaluate((element: HTMLCanvasElement) => {
+      const scale = Math.min(element.clientWidth / element.width, element.clientHeight / element.height);
+      return { x: (element.clientWidth - element.width * scale) / 2, y: (element.clientHeight - element.height * scale) / 2 };
+    });
+    await canvas.click({ position: { x: imageOrigin.x + 10, y: imageOrigin.y + 10 } });
     await page.waitForFunction(() => window.streamingTestMedia.length === 1 && !window.streamingTestMedia[0].paused && window.streamingTestMedia[0].currentTime > 0);
     const startup = await page.evaluate(() => ({ decodes: window.streamingTestDecodes, encodedFetches: window.streamingTestAudioFetches,
       mediaSources: window.streamingTestMediaSources, mediaUrl: window.streamingTestMedia[0].src, duration: window.streamingTestMedia[0].duration }));

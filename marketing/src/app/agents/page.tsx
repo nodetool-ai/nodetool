@@ -130,10 +130,10 @@ export default function AgentsPage() {
           <div className="mt-12 grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-7">
               <HeroDemoPlayer
-                mediaBase="/conversation-project"
+                mediaBase="/hero-flow"
                 priority={false}
-                alt="An agent builds a storyboard and an editable project from a brief"
-                caption="One brief becomes a storyboard and a cut. Both stay open for revision."
+                alt="NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut"
+                caption="One sentence becomes a short film. The storyboard and the cut stay open for revision."
               />
             </div>
             <ol className="relative lg:col-span-5">

@@ -63,6 +63,11 @@
       "types": "./dist/smoke.d.ts",
       "import": "./dist/smoke.js"
     },
+    "./perf": {
+      "nodetool-dev": "./src/perf.ts",
+      "types": "./dist/perf.d.ts",
+      "import": "./dist/perf.js"
+    },
     "./build": {
       "nodetool-dev": "./src/build.ts",
       "types": "./dist/build.d.ts",
@@ -87,6 +92,11 @@
       "nodetool-dev": "./src/build-tauri.ts",
       "types": "./dist/build-tauri.d.ts",
       "import": "./dist/build-tauri.js"
+    },
+    "./build-expo": {
+      "nodetool-dev": "./src/build-expo.ts",
+      "types": "./dist/build-expo.d.ts",
+      "import": "./dist/build-expo.js"
     },
     "./preparation3d": {
       "nodetool-dev": "./src/preparation3d.ts",

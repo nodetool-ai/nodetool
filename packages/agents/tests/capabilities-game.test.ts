@@ -323,16 +323,34 @@ describe("native game capabilities", () => {
     expect(builtDocument.revision).toBe(created.game.revision);
     expect((await readFile(join(directory, result.build_path, "src-tauri", "icons", "icon.ico"))).subarray(0, 4)).toEqual(Buffer.from([0, 0, 1, 0]));
     expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "tauri" })).toMatchObject({ cached: true, build_path: result.build_path });
-    expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "electron" })).toEqual({ error: "target must be web or tauri" });
+    expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "electron" })).toEqual({ error: "target must be web, tauri or expo" });
   });
 
-  it.each(["web", "tauri"] as const)("repairs missing and changed required files in a cached %s export", async (target) => {
+  it("builds an Expo mobile project named after the game with the game as one page", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Room: Escape" }) as GameReply;
+    const result = await agent.invoke("build_native_game", { game_id: created.game.id, target: "expo" }) as
+      { target: string; build_path: string; entry_path: string; cached: boolean; next: string };
+    expect(result).toMatchObject({ target: "expo", cached: false });
+    expect(result.next).toContain("npx expo start");
+    expect(result.build_path).toMatch(new RegExp(`^game-builds/${created.game.id}/${created.game.revision}-expo-[a-f0-9]{64}$`));
+    expect(result.entry_path).toBe(`${result.build_path}/app.json`);
+    const config = JSON.parse(await readFile(join(directory, result.entry_path), "utf8")) as { expo: { name: string; ios: { bundleIdentifier: string } } };
+    expect(config.expo).toMatchObject({ name: "Room: Escape", ios: { bundleIdentifier: "ai.nodetool.game.roomescape" } });
+    const page = await readFile(join(directory, result.build_path, "assets", "game", "game.html"), "utf8");
+    const embedded = /<script type="application\/json" id="nodetool-game-files">(.*?)<\/script>/.exec(page)?.[1] ?? "{}";
+    const files = JSON.parse(embedded) as Record<string, string>;
+    expect((JSON.parse(Buffer.from(files["game.json"] ?? "", "base64").toString("utf8")) as GameDocument).revision).toBe(created.game.revision);
+    expect(await agent.invoke("build_native_game", { game_id: created.game.id, target: "expo" })).toMatchObject({ cached: true, build_path: result.build_path });
+  });
+
+  it.each(["web", "tauri", "expo"] as const)("repairs missing and changed required files in a cached %s export", async (target) => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Cache integrity" }) as GameReply;
     const args = { game_id: created.game.id, target };
     const built = await agent.invoke("build_native_game", args) as { build_path: string; entry_path: string };
     expect(built.build_path).toBeTypeOf("string");
-    const relative = target === "web" ? "emscripten-module.wasm" : "src-tauri/Cargo.toml";
+    const relative = { web: "emscripten-module.wasm", tauri: "src-tauri/Cargo.toml", expo: "assets/game/game.html" }[target];
     const file = join(directory, built.build_path, relative);
     const original = await readFile(file);
     await rm(file);

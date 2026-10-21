@@ -89,6 +89,19 @@ describe("reused script realms", () => {
     } finally { runner.dispose(); }
   });
 
+  it("creates no host functions per call, because a context keeps each one until it is disposed", async () => {
+    const source = "(input) => ({ state: [world.get('crate').x, world.query({ tag: 'loot' }).length, input.tick], commands: [] })";
+    expect(canReuseGameScript(source)).toBe(true);
+    const runner = await prepareGameScripts(fixture(source));
+    const newFunction = vi.spyOn(QuickJSContext.prototype, "newFunction");
+    try {
+      for (let tick = 0; tick < 5; tick += 1) {
+        expect(runner.run([call], inputAt(tick), 1).results[0].state).toEqual([4, 1, tick]);
+      }
+      expect(newFunction).not.toHaveBeenCalled();
+    } finally { runner.dispose(); }
+  });
+
   it("matches fresh realms for random numbers, the world API, params and state", async () => {
     const source = `(input) => {
       const near = world.query({ tag: "loot", limit: 4 });
@@ -115,6 +128,8 @@ describe("reused script realms", () => {
     ["the script's own function", "function tick(input) { tick.leak = (tick.leak || 0) + 1; return { state: tick.leak, commands: [] }; }"],
     ["the script's prototype object", "function tick(input) { tick.prototype.leak = (tick.prototype.leak || 0) + 1; return { state: tick.prototype.leak, commands: [] }; }"],
     ["a redefined built-in", "(input) => { const before = String(Math.max(1, 2)); Math.max = () => 9; return { state: before, commands: [] }; }"],
+    ["the world object", "(input) => { world.leak = (world.leak || 0) + 1; return { state: world.leak, commands: [] }; }"],
+    ["world.get", "(input) => { world.get.leak = (world.get.leak || 0) + 1; return { state: world.get.leak, commands: [] }; }"],
     ["an error's inherited name", "(input) => { const error = new Error('x'); error.name = 'Custom' + input.tick; return { state: error.name, commands: [] }; }"]
   ])("keeps no state written to %s", async (name, source) => {
     expect(canReuseGameScript(source)).toBe(true);

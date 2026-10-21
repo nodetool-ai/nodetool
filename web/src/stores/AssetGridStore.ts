@@ -71,6 +71,11 @@ interface AssetGridState {
   openCompareView: (a: Asset, b: Asset) => void;
   closeCompareView: () => void;
 
+  // "Transform with workflow" dialog
+  transformAsset: Asset | null;
+  openTransformDialog: (asset: Asset) => void;
+  closeTransformDialog: () => void;
+
   // Global search properties
   globalSearchResults: AssetWithPath[];
   isGlobalSearchActive: boolean;
@@ -226,6 +231,10 @@ const createAssetGridStore = (
   compareAssets: null,
   openCompareView: (a, b) => set({ compareAssets: [a, b] }),
   closeCompareView: () => set({ compareAssets: null }),
+
+  transformAsset: null,
+  openTransformDialog: (asset) => set({ transformAsset: asset }),
+  closeTransformDialog: () => set({ transformAsset: null }),
 
   // Global search initial state
   globalSearchResults: [],

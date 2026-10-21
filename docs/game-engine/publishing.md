@@ -49,6 +49,17 @@ The Tauri project includes the web player and native shell. Compile on the targe
 
 System web views differ in graphics support. Check the packaged application rather than assuming desktop export matches Chrome. See the [desktop export instructions](/game-editor#build-a-desktop-app) for prerequisites and output locations.
 
+## Build a mobile application
+
+Select the mobile target or run:
+
+```bash
+nodetool game build game.json --out game-mobile --assets-dir game-assets \
+  --target expo --name "My Game"
+```
+
+The Expo project shows the game full screen in a WebView. The whole game is one offline page that serves its own files, so the app needs no server. Try it in Expo Go with `npx expo start`, and build store apps with EAS. See the [mobile export instructions](/game-editor#build-a-mobile-app).
+
 ## Play on a phone
 
 The NodeTool mobile app plays a game's published revision from the same web build, served under a short-lived signed link. See [Play on a phone](/game-engine/mobile-player).

@@ -182,6 +182,11 @@ worked, at about 7 actions each (`study-6-I9`). The default name
 was not selected, so replacing it cost 2 more actions. After a create, the
 new item is on screen with its name selected.
 
+The same holds on the canvas. Nodes added from the toolbar's menu all landed
+at the window's top left, under the tab bar and on the node before, and 2 of
+3 spent up to 10 actions moving them apart (`study-9-I1`). A new node lands
+in view and clear of the nodes already there.
+
 ### 3.5 Confirm a save or export where the person is looking
 
 A dot on the bell was the only confirmation for 2 of 2 who pressed "Save to
@@ -201,7 +206,8 @@ White ink on a white canvas cost 3 of 3 one or two actions before the first
 stroke
 (`study-5-I4`). Choose defaults so the first try shows something:
 ink that contrasts with the canvas, a camera that keeps the selection in view
-after a move (`study-7-I4`).
+after a move (`study-7-I4`), and a node that starts with the inputs it needs
+(a new Concat showed no inputs to 3 of 3, `study-9-I2`).
 
 ## 4. Empty states, outcomes and errors
 
@@ -339,6 +345,8 @@ Studies confirmed these. Keep them when changing the surrounding UI.
 | The Chats list for finding and continuing an old conversation by meaning | `study-5-I6`, `study-6-I8` |
 | "Project" as the place to keep a client's work apart | `study-5-I7`, 3 of 3 |
 | The Game flow from idea to a playable game | `study-6-I7` |
+| Clicking a node to open its settings in the side panel | `study-9-I5`, 3 of 3 in 9 actions |
+| Dragging from dot to dot to connect, and the status bar's edge count as confirmation | `study-9-I6`, 5 of 5 |
 
 ## 9. Open questions
 
@@ -356,6 +364,7 @@ records the decision.
 | How to make building from parts in 3D take fewer actions | study-7-I4 |
 | One search across chats, documents and files | study-7-I5 |
 | How side panels behave below about 1100 px | study-5-I8, study-6-I10 |
+| Which port names the canvas shows without hovering | study-9-I4 |
 
 ## 10. Checklist for a UI change
 

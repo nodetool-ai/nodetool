@@ -22,7 +22,7 @@ const PRESSES: readonly (readonly [string, string])[] = [
   ...Object.entries(US_KEYS), ["KeyY", "z"], ["KeyZ", "y"], ["Equal", "+"], ["Equal", "="], ["Numpad1", "1"], ["Numpad5", "5"], ["KeyQ", "Q"], ["KeyQ", "a"], ["KeyW", "z"]
 ];
 
-/** Legacy defaults plus the physical key and mouse bindings authored by shipped 3D examples. */
+/** Legacy defaults plus the physical key, mouse and key-axis bindings authored by shipped 3D examples. */
 function expectedFrame3D(document: GameDocument3D, keys: ReadonlySet<string>, newlyPressed: ReadonlySet<string>, look: { x: number; y: number }): GameInputFrame3D {
   const defaultActionKeys = (action: string): readonly string[] => action === "fire" ? ["Mouse0", "KeyF"]
     : action === "jump" ? ["Space"] : action === "respawn" ? ["KeyR"] : [`Key${action.toUpperCase()}`, action];
@@ -34,8 +34,18 @@ function expectedFrame3D(document: GameDocument3D, keys: ReadonlySet<string>, ne
   const actions = (held: ReadonlySet<string>): string[] => document.inputActions.filter((action) => actionKeys(action).some((code) => held.has(code)));
   const x = Number(keys.has("KeyD") || keys.has("ArrowRight")) - Number(keys.has("KeyA") || keys.has("ArrowLeft"));
   const z = Number(keys.has("KeyS") || keys.has("ArrowDown")) - Number(keys.has("KeyW") || keys.has("ArrowUp"));
+  // An authored axis takes its strongest key pair, as a flight stick's W/S and arrow keys both drive pitch.
+  const authoredAxis = (axis: string): number | undefined => {
+    const authored = document.inputBindings?.axes[axis];
+    if (!authored) { return undefined; }
+    return authored.reduce((strongest, binding) => {
+      const value = binding.kind === "keys"
+        ? Number(binding.positive.some((code) => keys.has(code))) - Number(binding.negative.some((code) => keys.has(code))) : 0;
+      return Math.abs(value) > Math.abs(strongest) ? value : strongest;
+    }, 0);
+  };
   return { pressed: actions(keys), justPressed: actions(newlyPressed),
-    axes: Object.fromEntries(document.inputAxes.map((axis) => [axis, axis === "moveX" ? x : axis === "moveZ" ? z : 0])), look };
+    axes: Object.fromEntries(document.inputAxes.map((axis) => [axis, authoredAxis(axis) ?? (axis === "moveX" ? x : axis === "moveZ" ? z : 0)])), look };
 }
 
 function random(seed: number): () => number {

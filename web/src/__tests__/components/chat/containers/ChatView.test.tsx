@@ -96,9 +96,11 @@ jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
   __esModule: true,
   default: function MockChatInputSection({
     status,
-    onSendMessage
+    onSendMessage,
+    threadId
   }: {
     status?: string;
+    threadId?: string | null;
     onSendMessage: (
       content: MessageContent[],
       prompt: string
@@ -107,6 +109,7 @@ jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
     return (
       <div data-testid="chat-input-section">
         <div>Status: {status}</div>
+        <div>Composer thread: {String(threadId)}</div>
         <button
           data-testid="send-message-btn"
           onClick={() =>
@@ -205,6 +208,31 @@ describe("ChatView", () => {
 
       expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
       expect(screen.getByText("Status: connected")).toBeInTheDocument();
+    });
+  });
+
+  describe("Composer Thread", () => {
+    it("follows the current thread when the host names none", () => {
+      act(() => {
+        useGlobalChatStore.setState({ currentThreadId: "chat-tab-thread" });
+      });
+      renderWithProviders(<ChatView {...baseProps} />);
+
+      expect(
+        screen.getByText("Composer thread: chat-tab-thread")
+      ).toBeInTheDocument();
+    });
+
+    // An agent panel in a background tab has no thread until its first send.
+    // Bound to the current thread instead, its composer took the welcome
+    // starter a chat tab parked for its own composer.
+    it("keeps a host without a thread off the current thread", () => {
+      act(() => {
+        useGlobalChatStore.setState({ currentThreadId: "chat-tab-thread" });
+      });
+      renderWithProviders(<ChatView {...baseProps} threadId={null} />);
+
+      expect(screen.getByText("Composer thread: null")).toBeInTheDocument();
     });
   });
 

@@ -16,11 +16,26 @@ import { gameUiViewport3D } from "./ui/hud3d.js";
 
 import { VerifiedStandaloneAssets } from "./standalone-assets.js";
 import type { GamePlayerRenderedFrame } from "./standalone-frame.js";
+import type { GameRendererStats3D } from "./renderer3d/index.js";
+
+/** Counters of the last rendered frame, for `nodetool game perf`. */
+export interface GamePlayerFrameStats3D {
+  readonly frameNumber: number;
+  readonly tick: number;
+  readonly drawCalls: number;
+  readonly triangles: number;
+  readonly programs: number;
+  readonly renderMs: number;
+}
 
 declare global {
   interface Window {
     nativeGame3DPlayer: {
       readonly pause: () => void;
+      /** Resumes live play after `pause`, `step` or `advance`. */
+      readonly resume: () => void;
+      /** Counters of the last rendered frame. */
+      readonly stats: () => GamePlayerFrameStats3D;
       readonly step: (input: GameInputFrame3D) => Promise<GamePlayerRenderedFrame>;
       readonly reset: () => Promise<GamePlayerRenderedFrame>;
       readonly advance: (inputs: readonly GameInputFrame3D[]) => Promise<GamePlayerRenderedFrame>;
@@ -84,7 +99,7 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
   const audio = new GameAudioPlayer({ assets: game.assets, scenes: game.scenes, tickRate: game.tickRate,
     resolveAsset: (binding) => verifiedAssets.bindingUrl(binding),
     status, mixer: game.audio?.mixer });
-  audio.preload(); audio.sync(session.snapshot());
+  audio.preload(); audio.sync(session.audioState());
   const budget = new GameFrameBudgetMonitor(game.performance?.budgets);
   const particles = new GameParticles3D(game.tickRate);
   for (const event of ["pointerdown", "keydown"] as const) { window.addEventListener(event, () => { void audio.unlock(); }, { signal: controller.signal, capture: true }); }
@@ -95,7 +110,7 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
     if (!replay) { saves.handle(result.saveRequests, () => session.snapshot()); }
     particles.tick(result.frame, session.takePresentationEvents());
     for (const event of result.events) { audio.handle(event); }
-    audio.sync(session.snapshot());
+    audio.sync(session.audioState());
   };
   const input = new GameInput3D();
   // HUD buttons press their input actions on the same input, by pointer, touch or gamepad focus.
@@ -152,6 +167,12 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
   let rendering: Promise<unknown> | undefined;
   let disposed = false;
   let frameNumber = 0;
+  let lastStats: GamePlayerFrameStats3D = { frameNumber: 0, tick: 0, drawCalls: 0, triangles: 0, programs: 0, renderMs: 0 };
+  const observe = (stats: GameRendererStats3D, tick: number): void => {
+    frameNumber += 1;
+    lastStats = { frameNumber, tick, drawCalls: stats.drawCalls, triangles: stats.triangles, programs: stats.programs, renderMs: stats.renderMs };
+    budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
+  };
   let replacement = new AbortController();
   let commands = Promise.resolve();
   function requireCurrent(signal: AbortSignal): void {
@@ -173,8 +194,7 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
     try {
       const stats = await pending;
       requireCurrent(signal);
-      frameNumber += 1;
-      budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
+      observe(stats, renderedFrame.tick);
       return { tick: renderedFrame.tick, frameNumber };
     } finally {
       if (rendering === pending) { rendering = undefined; }
@@ -184,11 +204,11 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
     if (rendering || disposed) { return; }
     audio.updateSpatial(gameAudioSpatialView3D(frame, interpolation));
     hud.update(frame.ui, hudViewport, hudInsets);
+    const renderedTick = frame.tick;
     const pending = renderer.render(hud.annotate(frame), interpolation, particles)
       .then((stats) => {
         if (disposed) { return; }
-        frameNumber += 1;
-        budget.observe({ drawCalls: stats.drawCalls, triangles: stats.triangles, particles: particles.count, voices: gameAudioVoiceCount(audio.mixerState()) });
+        observe(stats, renderedTick);
       }).catch((error: unknown) => {
         if (!disposed) {
           if (renderer.capabilities.deviceStatus !== "lost") { setPaused(true); }
@@ -216,6 +236,12 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
     void window.nativeGame3DPlayer.reset().then(() => setPaused(false))
       .catch((error: unknown) => status(error instanceof Error ? error.message : "Reset failed"));
   }, { signal: controller.signal });
+  const fullscreen = document.getElementById("fullscreen");
+  if (fullscreen && !document.fullscreenEnabled) { fullscreen.hidden = true; }
+  fullscreen?.addEventListener("click", () => {
+    const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen({ navigationUI: "hide" });
+    void request.catch(() => status("Fullscreen is unavailable"));
+  }, { signal: controller.signal });
   window.addEventListener("beforeunload", () => {
     disposed = true;
     replacement.abort();
@@ -231,6 +257,8 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
   }, { once: true });
   window.nativeGame3DPlayer = Object.freeze({
     pause: () => setPaused(true),
+    resume: () => { if (!disposed) { setPaused(false); } },
+    stats: () => lastStats,
     step: async (nextInput: GameInputFrame3D) => {
       const parsed = gameInputFrame3D.parse(nextInput);
       const signal = replacement.signal;
@@ -258,7 +286,7 @@ async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, cont
           try { await rendering; } catch { /* Reset can recover from an earlier failed render. */ }
         }
         if (signal.aborted || disposed) { restored.dispose(); requireCurrent(signal); }
-        session.dispose(); session = restored; saves.clear(); audio.reset(session.snapshot());
+        session.dispose(); session = restored; saves.clear(); audio.reset(session.audioState());
         frame = session.frame(); particles.clear(); release(); clock.reset();
         return renderExplicit(signal);
       });

@@ -76,7 +76,7 @@ describe("example games", () => {
   it("finds the shipped games, their posters, and every bound media file", () => {
     expect(resolveExampleGamesDir(options)).toBe(nodePath.join(baseNodes, "examples", "games"));
     const games = listExampleGames(options);
-    expect(games.map((game) => game.slug)).toEqual(["aether", "blacksite", "kindle", "lumen", "neon-drift", "signal-forge"]);
+    expect(games.map((game) => game.slug)).toEqual(["aether", "blacksite", "kindle", "lumen", "neon-drift", "ridgeline", "signal-forge"]);
     let checked = 0;
     for (const game of games) {
       const poster = parsePackageAssetUri(game.posterUri);

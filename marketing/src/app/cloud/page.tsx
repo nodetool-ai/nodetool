@@ -108,10 +108,10 @@ export default function CloudPage() {
           </header>
           <div className="mx-auto max-w-5xl">
             <HeroDemoPlayer
-              mediaBase="/conversation-project"
+              mediaBase="/hero-flow"
               priority={false}
-              alt="A conversation becomes a storyboard, generated shots, an editable cut, and a saved project"
-              caption="Recorded NodeTool project demonstration: the agent builds a storyboard and cut that remain open for revision."
+              alt="NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut"
+              caption="NodeTool project demonstration: the agent outlines the story, designs the characters, draws a storyboard, and edits the clips into a cut that remains open for revision."
             />
           </div>
         </div>
