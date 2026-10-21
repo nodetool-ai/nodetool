@@ -165,6 +165,200 @@ export const SEED_GRAPHS: readonly SeedGraph[] = [
     }
   },
   {
+    id: "cycle-faults",
+    graph: {
+      nodes: [
+        {
+          id: "c1",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "c2",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "c3",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "tail",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "d1",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "d2",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "d3",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "d4",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "self",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "ctl1",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "ctl2",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "loop",
+          type: "nodetool.control.Loop",
+          properties: { a: "", b: "" }
+        },
+        {
+          id: "body",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "" }
+        }
+      ],
+      edges: [
+        {
+          id: "c-12",
+          source: "c1",
+          sourceHandle: "output",
+          target: "c2",
+          targetHandle: "a"
+        },
+        {
+          id: "c-23",
+          source: "c2",
+          sourceHandle: "output",
+          target: "c3",
+          targetHandle: "a"
+        },
+        {
+          id: "c-31",
+          source: "c3",
+          sourceHandle: "output",
+          target: "c1",
+          targetHandle: "a"
+        },
+        {
+          id: "c-3t",
+          source: "c3",
+          sourceHandle: "output",
+          target: "tail",
+          targetHandle: "a"
+        },
+        {
+          id: "d-12",
+          source: "d1",
+          sourceHandle: "output",
+          target: "d2",
+          targetHandle: "a"
+        },
+        {
+          id: "d-13",
+          source: "d1",
+          sourceHandle: "output",
+          target: "d3",
+          targetHandle: "a"
+        },
+        {
+          id: "d-24",
+          source: "d2",
+          sourceHandle: "output",
+          target: "d4",
+          targetHandle: "a"
+        },
+        {
+          id: "d-34",
+          source: "d3",
+          sourceHandle: "output",
+          target: "d4",
+          targetHandle: "b"
+        },
+        {
+          id: "self-1",
+          source: "self",
+          sourceHandle: "output",
+          target: "self",
+          targetHandle: "a"
+        },
+        {
+          id: "self-2",
+          source: "self",
+          sourceHandle: "output",
+          target: "self",
+          targetHandle: "b"
+        },
+        {
+          id: "ghost-self",
+          source: "nowhere",
+          sourceHandle: "output",
+          target: "nowhere",
+          targetHandle: "a"
+        },
+        {
+          id: "ghost-edge",
+          source: "c1",
+          sourceHandle: "output",
+          target: "nowhere",
+          targetHandle: "a"
+        },
+        {
+          id: "ctl-12",
+          source: "ctl1",
+          sourceHandle: "output",
+          target: "ctl2",
+          targetHandle: "a",
+          edge_type: "control"
+        },
+        {
+          id: "ctl-21",
+          source: "ctl2",
+          sourceHandle: "output",
+          target: "ctl1",
+          targetHandle: "a"
+        },
+        {
+          id: "loop-body",
+          source: "loop",
+          sourceHandle: "output",
+          target: "body",
+          targetHandle: "a"
+        },
+        {
+          id: "loop-back",
+          source: "body",
+          sourceHandle: "output",
+          target: "loop",
+          targetHandle: "next"
+        },
+        {
+          id: "loop-cond",
+          source: "body",
+          sourceHandle: "output",
+          target: "loop",
+          targetHandle: "condition"
+        }
+      ]
+    }
+  },
+  {
     id: "wiring-faults",
     graph: {
       nodes: [
@@ -686,4 +880,215 @@ export const SEED_CODE_BODIES: readonly CodeSeed[] = [
     id: "emit-return-identifier",
     code: "await output('n', 1);\nawait output('out', 1);\nawait output('doc', 1);\nreturn inputs;"
   }
+];
+
+/** A Code step as the workflow planner writes it: the body and the handles it is wired to. */
+export interface PlannedStepSeed {
+  id: string;
+  code: string;
+  inputs: readonly string[];
+  output: string;
+}
+
+/** Bodies `plannedCodeStepProblems` has to judge, one planner mistake each. */
+export const SEED_PLANNED_STEPS: readonly PlannedStepSeed[] = [
+  {
+    id: "planned-clean",
+    inputs: ["text"],
+    output: "n",
+    code: "await output('n', inputs.text);"
+  },
+  {
+    id: "planned-syntax-error",
+    inputs: ["text"],
+    output: "n",
+    code: "const = ;"
+  },
+  {
+    id: "planned-output-in-for",
+    inputs: ["items"],
+    output: "n",
+    code: "for (const x of inputs.items) {\n  await output('n', x);\n}"
+  },
+  {
+    id: "planned-output-in-callback",
+    inputs: ["items"],
+    output: "n",
+    code: "inputs.items.forEach(async (x) => {\n  await output('n', x);\n});"
+  },
+  {
+    id: "planned-output-in-function-expression",
+    inputs: ["items"],
+    output: "n",
+    code: "inputs.items.map(function (x) {\n  return output('n', x);\n});"
+  },
+  {
+    id: "planned-output-after-callback",
+    inputs: ["items"],
+    output: "n",
+    code: "const k = inputs.items.map((x) => x);\nawait output('n', k);"
+  },
+  {
+    id: "planned-callee-not-output",
+    inputs: ["items"],
+    output: "n",
+    code: "for (const x of inputs.items) {\n  await emit('n', x);\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-member-callee",
+    inputs: ["items"],
+    output: "n",
+    code: "for (const x of inputs.items) {\n  api.output('n', x);\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-unwired-one-none",
+    inputs: [],
+    output: "n",
+    code: "await output('n', inputs.ghost);"
+  },
+  {
+    id: "planned-unwired-one-wired",
+    inputs: ["text"],
+    output: "n",
+    code: "await output('n', inputs.text + inputs.ghost);"
+  },
+  {
+    id: "planned-unwired-many-wired-many",
+    inputs: ["text", "flag"],
+    output: "n",
+    code: "await output('n', inputs.text + inputs.flag + inputs.p + inputs.q);"
+  },
+  {
+    id: "planned-own-property-read",
+    inputs: ["text"],
+    output: "n",
+    code: "await output('n', inputs.text + inputs.code);"
+  },
+  {
+    id: "planned-unread-one",
+    inputs: ["text", "flag"],
+    output: "n",
+    code: "await output('n', inputs.text);"
+  },
+  {
+    id: "planned-unread-many",
+    inputs: ["text", "flag", "items"],
+    output: "n",
+    code: "await output('n', 1);"
+  },
+  {
+    id: "planned-opaque-inputs",
+    inputs: ["text", "flag"],
+    output: "n",
+    code: "const k = 'text';\nawait output('n', inputs[k]);"
+  },
+  {
+    id: "planned-whole-inputs",
+    inputs: ["text", "flag"],
+    output: "n",
+    code: "await output('n', { ...inputs });"
+  },
+  {
+    id: "planned-stream-reads",
+    inputs: ["items"],
+    output: "n",
+    code: "for await (const x of stream('items')) {\n  total += x;\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-stream-dynamic",
+    inputs: ["items", "text"],
+    output: "n",
+    code: "for await (const x of stream(inputs.k)) {\n  total += x;\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-stream-any",
+    inputs: ["items", "text"],
+    output: "n",
+    code: "for await (const x of stream.any()) {\n  total += x;\n}\nawait output('n', 1);"
+  },
+  {
+    id: "planned-unawaited-global",
+    inputs: ["text"],
+    output: "n",
+    code: "const k = getSecret('K');\nconst r = fetch(inputs.text);\nconst s = sleep(5);\nawait output('n', 1);"
+  },
+  {
+    id: "planned-unawaited-member",
+    inputs: ["text"],
+    output: "n",
+    code: "const f = workspace.read(inputs.text);\nconst m = media.fetch(inputs.text);\nawait output('n', 1);"
+  },
+  {
+    id: "planned-unawaited-unknown-object",
+    inputs: ["text"],
+    output: "n",
+    code: "const f = other.read(inputs.text);\nconst g = workspace[inputs.text]();\nconst h = unknownFn(inputs.text);\nconst i = 5;\nconst j = await fetch(inputs.text);\nawait output('n', 1);"
+  },
+  {
+    id: "planned-model-host",
+    inputs: ["text"],
+    output: "n",
+    code: "const r = await fetch('https://api.openai.com/v1/chat');\nawait output('n', inputs.text);"
+  },
+  {
+    id: "planned-model-host-last",
+    inputs: ["text"],
+    output: "n",
+    code: "const r = await fetch('https://api.deepseek.com/x');\nawait output('n', inputs.text);"
+  },
+  {
+    id: "planned-no-output",
+    inputs: ["text"],
+    output: "n",
+    code: "const k = inputs.text;"
+  },
+  {
+    id: "planned-wrong-output",
+    inputs: ["text"],
+    output: "n",
+    code: "await output('a', inputs.text);\nawait output('b', 1);"
+  }
+];
+
+/** Pre-`inputs` bodies that read an input as a global of its own name. */
+export const SEED_MIGRATION_BODIES: readonly { id: string; code: string }[] = [
+  {
+    id: "migrate-global-read",
+    code: "return { n: a + text, out: flag, doc: items };"
+  },
+  { id: "migrate-shorthand", code: "return { a, text };" },
+  {
+    id: "migrate-string-and-comment",
+    code: "// a text\nconst s = 'a text';\nreturn { n: s };"
+  },
+  { id: "migrate-object-key", code: "return { a: 1, text: 2 };" },
+  {
+    id: "migrate-member-property",
+    code: "const o = {};\nreturn o.a + o.text;"
+  },
+  {
+    id: "migrate-shadowed-const",
+    code: "const a = 1;\nreturn { n: a + text };"
+  },
+  {
+    id: "migrate-shadowed-param",
+    code: "const f = (text) => text + a;\nreturn { n: f(1) };"
+  },
+  {
+    id: "migrate-shadowed-function",
+    code: "function flag() { return 1; }\nreturn { n: flag() + a };"
+  },
+  { id: "migrate-binds-inputs", code: "const inputs = {};\nreturn { n: a };" },
+  { id: "migrate-already-inputs", code: "return { n: inputs.a };" },
+  { id: "migrate-syntax-error", code: "const = a;" },
+  { id: "migrate-no-reads", code: "return { n: 1 };" },
+  {
+    id: "migrate-call-and-template",
+    code: "return { n: `${a}-${text}`, out: flag(items) };"
+  },
+  {
+    id: "migrate-destructure-default",
+    code: "const { x = a } = {};\nconst [y = text] = [];\nreturn { x, y };"
+  },
+  { id: "migrate-unknown-global", code: "return { n: ghost + a };" }
 ];
