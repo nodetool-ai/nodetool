@@ -53,7 +53,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "better-sqlite3": "^12.11.1",
     "bufferutil": "^4.1.0",
-    "electron": "41.10.6",
+    "electron": "42.11.3",
     "electron-builder": "26.16.1",
     "eslint": "^9.39.4",
     "jest": "^29.7.0",
