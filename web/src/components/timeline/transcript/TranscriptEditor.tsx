@@ -66,6 +66,7 @@ import {
   buildTranscriptDoc,
   isTranscriptClip,
   snapshotSeededTranscript,
+  voiceoverTrackId,
   type EditorEdits,
   type SeededTranscript
 } from "../../../stores/timeline/transcriptOps";
@@ -449,8 +450,7 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
 
       // A brand-new line needs a voiceover track to land on.
       let audioTrackId =
-        docApi.getState().tracks.find((t) => t.type === "audio")?.id ??
-        "";
+        voiceoverTrackId(base, docApi.getState().tracks) ?? "";
       if (!audioTrackId && edits.newDraftTexts.some((t) => t.trim())) {
         docApi.getState().addTrack("audio", t("batch2_24.transcript.voiceoverTrack"));
         audioTrackId =
