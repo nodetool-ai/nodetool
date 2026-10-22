@@ -126,6 +126,14 @@ the limit counts wall time. The 50 ms script budget for a whole tick and the
 every host. A session's first scripted tick has 1,000 ms instead of 50 ms,
 because it runs each script for the first time. A script that loops forever still ends at its limit.
 
+What an overrun does depends on the host. The editor's play mode and the
+standalone players skip the call: the entity keeps its script state, issues no
+commands that tick, and the editor console shows a warning naming the call. A tick
+past its 50 ms budget skips its remaining calls the same way. Headless runs,
+replays, the CLI and agent playtests stop with a `Game script interrupted`
+error, so a slow script fails verification. A skipped call depends on timing,
+so a play session that skipped one may not replay identically.
+
 ### Script parameters
 
 Declare a script's tunables as `params` on its script behavior instead of

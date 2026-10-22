@@ -39,6 +39,11 @@ export interface GameSessionOptions {
    * profiler can turn reporting on and off without a new session. Reporting never changes simulation results.
    */
   readonly recordTimings?: boolean | (() => boolean);
+  /**
+   * `skip` keeps the game running when a script call overruns its time budget: the call's work is discarded and a
+   * warning appears in the script logs. The default, `fail`, stops the step with an error. See `GameScriptOptions.overrun`.
+   */
+  readonly scriptOverrun?: "fail" | "skip";
 }
 
 /** Physics counts for one tick, reported only with `recordTimings`. They never enter snapshots, events or replay state. */
@@ -664,7 +669,7 @@ export async function createScriptedGameSession(
   const validation = validateGame(document);
   if (!validation.valid || !validation.document) throw new Error(`Invalid game: ${validation.errors.join("; ")}`);
   if (!hasGameScripts(validation.document)) return createGameSession(validation.document, seed, savedSnapshot, eventSink, options);
-  const runner = await prepareGameScripts(validation.document);
+  const runner = await prepareGameScripts(validation.document, { overrun: options.scriptOverrun });
   try {
     return createGameSessionWithRunner(validation.document, seed, savedSnapshot, eventSink, runner, options);
   } catch (error) {

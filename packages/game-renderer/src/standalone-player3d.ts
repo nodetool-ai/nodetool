@@ -70,7 +70,7 @@ async function start(): Promise<void> {
 async function startPlayer(game: GameDocument3D, canvas: HTMLCanvasElement, controller: AbortController,
   verifiedAssets: VerifiedStandaloneAssets): Promise<void> {
   for (const logicalId of Object.keys(game.assets)) { await verifiedAssets.verify(logicalId); }
-  const open = () => createGameSession3D(game, 1, undefined, { signal: controller.signal,
+  const open = () => createGameSession3D(game, 1, undefined, { signal: controller.signal, scriptOverrun: "skip",
     resolveCollider: async (binding) => {
       const bytes = await verifiedAssets.bytes(Object.entries(game.assets).find(([, entry]) => entry.assetId === binding.assetId)?.[0] ?? "");
       if (!bytes) { throw new Error("Export collider is missing"); }
