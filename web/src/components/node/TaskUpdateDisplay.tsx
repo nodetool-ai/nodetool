@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, BORDER_RADIUS, MOTION, reducedMotion, getSpacingPx, SPACING } from "../ui_primitives";
+import { Text, Box, BORDER_RADIUS, MOTION, reducedMotion, getSpacingPx, SPACING, EYEBROW } from "../ui_primitives";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -37,11 +37,7 @@ const styles = (theme: Theme) =>
     ".task-animated-heading": {
       animation: `aiColorShift ${MOTION.pulse} infinite`,
       ...reducedMotion({ animation: "none" }),
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
-      letterSpacing: "0.5px",
-      textTransform: "uppercase",
+      ...EYEBROW,
       flex: 1
     },
 
@@ -97,11 +93,8 @@ const styles = (theme: Theme) =>
     },
 
     ".steps-header": {
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.grey[500],
-      letterSpacing: "1px",
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.md),

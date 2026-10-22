@@ -122,12 +122,9 @@ const listStyles = (theme: Theme) =>
     },
     ".date": {
       width: "100%",
-      fontWeight: 400,
-      lineHeight: 1.1,
+      ...EYEBROW,
       userSelect: "none",
       textAlign: "left",
-      letterSpacing: "0.02em",
-      textTransform: "uppercase",
       whiteSpace: "nowrap"
     },
     ".duplicate-button svg": {

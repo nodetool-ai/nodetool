@@ -22,7 +22,8 @@ import {
   focusRing,
   selectableRowStyles,
   selectedRowStyles,
-  EmptyState
+  EmptyState,
+  EYEBROW
 } from "../ui_primitives";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -70,10 +71,7 @@ const styles = (theme: Theme) =>
     },
     ".root-row .root-label": {
       flex: 1,
-      fontSize: theme.fontSizeSmall,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      fontWeight: 500,
+      ...EYEBROW,
       color: theme.vars.palette.grey[400]
     },
     ".root-row .expand-icon": {

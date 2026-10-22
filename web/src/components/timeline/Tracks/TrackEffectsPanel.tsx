@@ -64,7 +64,8 @@ import {
   BORDER_RADIUS,
   BatchedColorInput,
   FONT_WEIGHT,
-  FONT_SIZE_SANS
+  FONT_SIZE_SANS,
+  EYEBROW
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import {
@@ -982,9 +983,7 @@ const compTileStyles = (theme: Theme, accent?: string) =>
 
 const compTileLabelStyles = (theme: Theme) =>
   css({
-    fontSize: theme.fontSizeSmaller,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
+    ...EYEBROW,
     color: theme.vars.palette.text.secondary
   });
 

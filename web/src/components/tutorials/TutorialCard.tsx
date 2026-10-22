@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import { Card, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW } from "../ui_primitives";
+import { Card, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW, EYEBROW } from "../ui_primitives";
 import type { Tutorial } from "./tutorialsData";
 
 const styles = (
@@ -103,10 +103,7 @@ const styles = (
       gap: theme.spacing(SPACING.xs)
     },
     ".level": {
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      letterSpacing: "0.04em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: accent
     },
     ".meta .duration-inline": {

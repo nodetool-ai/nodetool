@@ -19,7 +19,8 @@ import {
   SPACING,
   Text,
   VideoPlayer,
-  SHADOW
+  SHADOW,
+  EYEBROW
 } from "../ui_primitives";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -80,10 +81,7 @@ const styles = (theme: Theme) =>
     // squeezing them until the titles disappear.
     ".tut-sidebar > *": { flexShrink: 0 },
     ".tut-sidebar .sidebar-label": {
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      letterSpacing: "0.06em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.text.disabled,
       [theme.breakpoints.down("md")]: { gridColumn: "1 / -1" }
     },
@@ -139,10 +137,7 @@ const styles = (theme: Theme) =>
       [theme.breakpoints.down("md")]: { marginTop: getSpacingPx(SPACING.lg) }
     },
     ".tut-meta .pill": {
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      letterSpacing: "0.04em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       padding: `${getSpacingPx(0.5)} ${getSpacingPx(2)}`,
       borderRadius: BORDER_RADIUS.pill,
       color: theme.vars.palette.common.white

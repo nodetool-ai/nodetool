@@ -7,7 +7,8 @@ import {
   MOTION,
   SPACING,
   Z_INDEX,
-  getSpacingPx
+  getSpacingPx,
+  EYEBROW
 } from "../ui_primitives";
 
 /**
@@ -374,11 +375,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     margin: `${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xs)}`,
     padding: `0 ${getSpacingPx(SPACING.xl)}`,
     color: theme.vars.palette.text.secondary,
-    fontSize: theme.fontSizeSmaller,
-    lineHeight: 1.35,
-    fontWeight: 600,
-    letterSpacing: "0.04em",
-    textTransform: "uppercase",
+    ...EYEBROW,
     ".settings-sidebar-category-label": {
       display: "block"
     }

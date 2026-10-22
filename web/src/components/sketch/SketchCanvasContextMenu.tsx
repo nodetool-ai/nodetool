@@ -15,7 +15,8 @@ import {
   ButtonBase,
   Popover,
   FONT_SIZE_SANS,
-  ICON_SIZE
+  ICON_SIZE,
+  EYEBROW
 } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -56,10 +57,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <Text
       sx={{
         mb: 1,
-        fontSize: FONT_SIZE_SANS.label,
-        fontWeight: 600,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
+        ...EYEBROW,
         color: "text.secondary"
       }}
     >

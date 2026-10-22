@@ -19,7 +19,8 @@ import {
   reducedMotion,
   ResponsiveImage,
   SPACING,
-  Tooltip
+  Tooltip,
+  EYEBROW
 } from "../../../ui_primitives";
 import { ENTITY_KIND_COLOR, ENTITY_KIND_ICON } from "../../../entities/entityKind";
 
@@ -75,10 +76,7 @@ const styles = (theme: Theme) =>
     },
     ".entity-kind": {
       flex: "0 0 auto",
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em"
+      ...EYEBROW,
     }
   });
 

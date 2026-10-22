@@ -43,7 +43,8 @@ import {
   CheckerDropzone,
   NodeSlider,
   SPACING,
-  ToolbarIconButton
+  ToolbarIconButton,
+  EYEBROW
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import NumberInput from "../../inputs/NumberInput";
@@ -178,11 +179,8 @@ const styles = (theme: Theme) =>
       minWidth: 0
     },
     ".field-label": {
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
+      ...EYEBROW,
       color: theme.vars.palette.grey[400],
-      textTransform: "uppercase",
-      letterSpacing: 0.4
     },
     ".frame-field": {
       width: 76
