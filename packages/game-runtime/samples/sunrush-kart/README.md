@@ -71,9 +71,10 @@ use separate color and fade curves for clear racing feedback.
 
 [music.timeline.json](music.timeline.json) is the editable soundtrack source.
 It contains twelve bars at 132 BPM, with MIDI tracks for DR-1 drums, BL-1
-rounded bass, and WT-1 muted chords, rounded pluck melody, and glass mallets. Each track
-stores its instrument settings, notes, velocity, fader, and stereo position.
-The snare uses a short filtered-noise patch. The melody uses a short reverb and the mallets use a beat-synced echo.
+rounded bass, and WT-1 muted chords, rounded pluck melody, and glass mallets.
+Each track stores its instrument settings, notes, velocity, fader, and stereo
+position. The snare uses a short filtered-noise patch. The melody uses a short
+reverb and the mallets use a beat-synced echo.
 
 The game builder reads that document and calls NodeTool's timeline MIDI
 renderer and mixer through [tools/music.mjs](tools/music.mjs). It renders
