@@ -292,7 +292,7 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
     </DockPanelHeader>
     {error && <ErrorBanner sx={{ mx: SPACING.md, my: SPACING.xs }}
       report={{ source: "operation-failure", summary: graphId, errorText: error }}>{error}</ErrorBanner>}
-    {notice && <AlertBanner severity="warning" compact sx={{ mx: SPACING.md, my: SPACING.xs }}>{notice}</AlertBanner>}
+    {notice && <AlertBanner severity="warning" role="note" compact sx={{ mx: SPACING.md, my: SPACING.xs }}>{notice}</AlertBanner>}
     <FlexRow sx={{ flex: 1, minHeight: 0 }}>
       <ScrollArea role="region" aria-label={t("i18n-cont-game-06.animation.parametersRegion")} sx={{ width: SIDE_COLUMN_WIDTH, flexShrink: 0, borderRight: 1, borderColor: "divider", p: SPACING.sm }}>
         <Label sx={{ mb: SPACING.xs }}>{t("i18n-cont-game-06.animation.parameters")}</Label>
@@ -317,7 +317,7 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
       <ScrollArea role="region" aria-label={t("i18n-cont-game-06.animation.inspectorRegion")} sx={{ width: SIDE_COLUMN_WIDTH, flexShrink: 0, borderLeft: 1, borderColor: "divider", p: SPACING.sm }}>
         <FlexColumn gap={SPACING.sm}>
           {inspector}
-          {diagnostics.length > 0 && <AlertBanner severity="error" compact>
+          {diagnostics.length > 0 && <AlertBanner severity="error" role="group" compact>
             <FlexColumn gap={SPACING.micro} role="list" aria-label={t("i18n-cont-game-06.animation.graphProblems")}>
               {diagnostics.map((message) => <Caption key={message} role="listitem">{message}</Caption>)}
             </FlexColumn>
