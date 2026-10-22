@@ -38,13 +38,20 @@ const rowStyles = (theme: Theme) =>
         outlineOffset: "-2px"
       }
     },
-    ".nl-row-title": {
+    ".nl-row-text": {
       flex: 1,
       minWidth: 0,
+      display: "flex",
+      flexDirection: "column"
+    },
+    ".nl-row-title, .nl-row-namespace": {
       whiteSpace: "nowrap",
       overflow: "hidden",
-      textOverflow: "ellipsis",
+      textOverflow: "ellipsis"
+    },
+    ".nl-row-title": {
       fontSize: "var(--fontSizeSmall)",
+      lineHeight: 1.3,
       color: theme.vars.palette.text.primary
     },
     ".nl-fav": {
@@ -77,8 +84,9 @@ interface NodeLibraryRowProps {
 
 /**
  * A single node row in the Node Library: a type-tinted icon tile, the node
- * title, and a favorite star that stays hidden until hover (always shown when
- * the node is already favorited).
+ * title with its namespace below it (so same-named nodes from different
+ * providers can be told apart), and a favorite star that stays hidden until
+ * hover (always shown when the node is already favorited).
  */
 const NodeLibraryRow = memo<NodeLibraryRowProps>(
   ({ node, onDragStart, onDragEnd, onClick, onHover }) => {
@@ -181,14 +189,21 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
           bgStyle={bgStyleMemo}
           svgProps={NODE_ROW_SVG_PROPS}
         />
-        <Text className="nl-row-title" component="div">
-          {node.title}
-          {node.deprecated && (
-            <Caption component="span" sx={{ marginLeft: getSpacingPx(SPACING.sm), color: "warning.main" }}>
-              {t("i18n-next50-node-menu.library.deprecated")}
+        <div className="nl-row-text">
+          <Text className="nl-row-title" component="div">
+            {node.title}
+            {node.deprecated && (
+              <Caption component="span" sx={{ marginLeft: getSpacingPx(SPACING.sm), color: "warning.main" }}>
+                {t("i18n-next50-node-menu.library.deprecated")}
+              </Caption>
+            )}
+          </Text>
+          {node.namespace && (
+            <Caption className="nl-row-namespace" component="div">
+              {node.namespace}
             </Caption>
           )}
-        </Text>
+        </div>
         <span className="nl-fav">
           <FavoriteButton
             isFavorite={isFavorite}
