@@ -58,7 +58,7 @@ jest.mock("@mui/material/Box", () => ({
   )
 }));
 
-// Mock the ToolbarIconButton and NodeTextField components
+// Mock the ToolbarIconButton and TextInput components
 jest.mock("../../ui_primitives", () => ({
   ...jest.requireActual("../../ui_primitives/tokens"),
   ...jest.requireActual("../../ui_primitives/spacing"),
@@ -95,7 +95,7 @@ jest.mock("../../ui_primitives", () => ({
       {icon}
     </button>
   ),
-  NodeTextField: ({
+  TextInput: ({
     value,
     onChange,
     onKeyDown,

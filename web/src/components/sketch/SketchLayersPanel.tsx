@@ -30,6 +30,7 @@ import {
   FlexColumn,
   FlexRow,
   Box,
+  InspectorSelect,
   Tooltip,
   Divider,
   Text,
@@ -47,9 +48,7 @@ import {
   ListItemIcon,
   ListItemText,
   Slider,
-  Select,
   MenuItem,
-  FormControl,
   DeleteButton,
   ToolbarIconButton
 } from "../ui_primitives";
@@ -1300,47 +1299,24 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }).format(activeLayer.opacity)}
             </Text>
           </Box>
-          <FormControl
+          <Box
             data-focus-id="sketch-layer-blend-mode"
             className="sketch-layers-panel__blend-mode"
-            size="small"
-            sx={{ px: SPACING.none }}
+            onKeyDownCapture={handleBlendModeQuickCycleKeyDownCapture}
+            onWheelCapture={handleBlendModeQuickCycleWheelCapture}
           >
-            <Select
-              aria-label={t("i18n-cont-sketch-03.layers.blendMode")}
+            <InspectorSelect
+              label={t("i18n-cont-sketch-03.layers.blendMode")}
               value={coerceBlendMode(activeLayer.blendMode)}
-              onChange={(e) =>
-                onLayerBlendModeChange(
-                  activeLayerId,
-                  e.target.value
-                )
+              onChange={(value) =>
+                onLayerBlendModeChange(activeLayerId, coerceBlendMode(value))
               }
-              onKeyDownCapture={handleBlendModeQuickCycleKeyDownCapture}
-              onWheelCapture={handleBlendModeQuickCycleWheelCapture}
-              sx={{ ...sketchFieldSx, fontSize: FONT_SIZE_SANS.label, height: "28px" }}
-            >
-              {(
-                [
-                  "normal",
-                  "multiply",
-                  "screen",
-                  "overlay",
-                  "darken",
-                  "lighten",
-                  "color-dodge",
-                  "color-burn",
-                  "hard-light",
-                  "soft-light",
-                  "difference",
-                  "exclusion"
-                ] as const
-              ).map((mode) => (
-                <MenuItem key={mode} value={mode}>
-                  {t(`i18n-cont-sketch-03.layers.blendModes.${mode}`)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              options={QUICK_CYCLE_BLEND_MODES.map((mode) => ({
+                value: mode,
+                label: t(`i18n-cont-sketch-03.layers.blendModes.${mode}`)
+              }))}
+            />
+          </Box>
           {activeLayer.imageReference ? (
             <Box
               className="sketch-layers-panel__active-layer-ref"
