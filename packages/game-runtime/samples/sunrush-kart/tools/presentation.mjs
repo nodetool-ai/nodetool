@@ -239,5 +239,5 @@ export async function createPresentation({ assetsDir }) {
       transitions: [{ on: { kind: "trigger", event: "finish" }, snapshot: "finish", fadeTicks: 45 }, { on: { kind: "trigger", event: "start" }, snapshot: "base", fadeTicks: 30 }]
     }
   };
-  return { assets, entities, ui, audio, viewport: GAME_VIEWPORT, music: { assetId: "score", volume: 0.7, fadeInTicks: 90, fadeOutTicks: 90, streaming: { loopStartSeconds: 0, loopEndSeconds: score.durationSeconds } } };
+  return { assets, entities, ui, audio, viewport: GAME_VIEWPORT, music: { assetId: "score", volume: 0.7, fadeInTicks: 90, fadeOutTicks: 90 } };
 }

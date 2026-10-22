@@ -775,11 +775,7 @@
         "assetId": "score",
         "volume": 0.7,
         "fadeInTicks": 90,
-        "fadeOutTicks": 90,
-        "streaming": {
-          "loopStartSeconds": 0,
-          "loopEndSeconds": 21.8181875
-        }
+        "fadeOutTicks": 90
       },
       "entities": [
         {

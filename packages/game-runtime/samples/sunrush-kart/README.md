@@ -84,7 +84,8 @@ AudioWorklet instruments and effects used by the editor. It renders
 three cycles and extracts the middle cycle so instrument and effect tails
 carry across the loop boundary. A 5 ms raised-cosine splice blends the end
 into the pre-roll immediately before the start, retaining the effect tails
-without a fade to silence. The loop endpoint uses the WAV's exact sample count.
+without a fade to silence. The game uses decoded AudioBuffer playback, looping
+at the WAV's exact sample count instead of seeking a streaming media element.
 The resulting 48 kHz stereo WAV is bundled
 with the game. Edit the timeline, then run the build commands above to update
 the soundtrack. Rendering requires the repository web sources and Playwright
