@@ -68,7 +68,8 @@ export const extractPdfTablesSpec: CapabilitySpec = {
     },
     required: ["path", "output_file"]
   },
-  category: "read",
+  // Writes output_file, so it is gated like write_file, not like a read.
+  category: "write",
   userMessage: (params) => {
     const path = params["path"] ?? "a PDF";
     const output = params["output_file"] ?? "output";
@@ -106,7 +107,8 @@ export const convertPdfToMarkdownSpec: CapabilitySpec = {
     },
     required: ["input_file", "output_file"]
   },
-  category: "read",
+  // Writes output_file, so it is gated like write_file, not like a read.
+  category: "write",
   userMessage: (params) => {
     const inputFile = params["input_file"] ?? "a PDF";
     const outputFile = params["output_file"] ?? "Markdown";

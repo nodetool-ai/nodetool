@@ -92,35 +92,77 @@ interface HfTreeEntry {
 // Pattern matching helpers (fnmatch-style)
 // ---------------------------------------------------------------------------
 
-/**
- * Convert a simple glob pattern to a RegExp.
- * Supports `*` (any chars except `/`) and `**` (any chars including `/`).
- */
-function globToRegex(pattern: string): RegExp {
-  let re = "";
+type GlobToken = "*" | "**" | "?" | { literal: string };
+
+function tokenizeGlob(pattern: string): GlobToken[] {
+  const tokens: GlobToken[] = [];
   let i = 0;
   while (i < pattern.length) {
     const c = pattern[i];
     if (c === "*") {
+      let token: GlobToken = "*";
       if (pattern[i + 1] === "*") {
-        re += ".*";
+        token = "**";
         i += 2;
         if (pattern[i] === "/") {
           i++; // skip separator after **
         }
-        continue;
+      } else {
+        i++;
       }
-      re += "[^/]*";
-    } else if (c === "?") {
-      re += "[^/]";
-    } else if (".+^${}()|[]\\".includes(c)) {
-      re += "\\" + c;
-    } else {
-      re += c;
+      // Adjacent stars collapse: `**` absorbs `*`, so runs cost one token.
+      const last = tokens[tokens.length - 1];
+      if (last === "*" || last === "**") {
+        if (token === "**") tokens[tokens.length - 1] = "**";
+      } else {
+        tokens.push(token);
+      }
+      continue;
     }
+    tokens.push(c === "?" ? "?" : { literal: c });
     i++;
   }
-  return new RegExp(`^${re}$`);
+  return tokens;
+}
+
+/**
+ * Match a simple glob against a path: `*` (any chars except `/`), `**` (any
+ * chars including `/`, plus a following `/`), `?` (one char except `/`).
+ *
+ * Patterns come from API callers, so this runs in O(pattern × path) time
+ * instead of compiling to a backtracking RegExp, where a short pattern like
+ * `*?*?*?…X` takes exponential time on the event loop.
+ */
+export function matchesGlob(pattern: string, filepath: string): boolean {
+  const n = filepath.length;
+  // reach[j]: the tokens consumed so far can match filepath[0, j).
+  let reach = new Uint8Array(n + 1);
+  reach[0] = 1;
+  for (const token of tokenizeGlob(pattern)) {
+    const next = new Uint8Array(n + 1);
+    if (token === "*" || token === "**") {
+      for (let j = 0; j <= n; j++) {
+        if (reach[j]) {
+          next[j] = 1;
+        } else if (
+          j > 0 &&
+          next[j - 1] &&
+          (token === "**" || filepath[j - 1] !== "/")
+        ) {
+          next[j] = 1;
+        }
+      }
+    } else {
+      for (let j = 1; j <= n; j++) {
+        if (!reach[j - 1]) continue;
+        const ch = filepath[j - 1];
+        next[j] =
+          token === "?" ? (ch !== "/" ? 1 : 0) : ch === token.literal ? 1 : 0;
+      }
+    }
+    reach = next;
+  }
+  return reach[n] === 1;
 }
 
 function matchesAnyPattern(
@@ -128,7 +170,7 @@ function matchesAnyPattern(
   patterns: readonly string[] | null | undefined
 ): boolean {
   if (!patterns || patterns.length === 0) return false;
-  return patterns.some((p) => globToRegex(p).test(filepath));
+  return patterns.some((p) => matchesGlob(p, filepath));
 }
 
 /**

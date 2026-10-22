@@ -6,12 +6,9 @@ import {
 
 describe("SDK v1 route policy", () => {
   it.each([
-    ["GET", "/api/sdk/v1/workflows"],
     ["GET", "/api/sdk/v1/capabilities"],
     ["GET", "/api/sdk/v1/models"],
-    ["POST", "/api/sdk/v1/workflow-interfaces"],
-    ["GET", "/api/sdk/v1/node-types"],
-    ["GET", "/api/workflows/workflow-1/interface"]
+    ["GET", "/api/sdk/v1/node-types"]
   ])("recognizes %s %s as SDK discovery", (method, pathname) => {
     expect(isSdkV1DiscoveryRequest(pathname, method)).toBe(true);
   });
@@ -24,7 +21,13 @@ describe("SDK v1 route policy", () => {
     ["POST", "/api/sdk/v1/model-downloads/cancel"],
     ["GET", "/api/sdk/v1/workflow-interfaces"],
     ["GET", "/api/workflows/workflow-1"],
-    ["GET", "/api/nodes/metadata"]
+    ["GET", "/api/nodes/metadata"],
+    // Library reads answer for user "1", so they always need session auth.
+    ["GET", "/api/sdk/v1/workflows"],
+    ["POST", "/api/sdk/v1/workflow-interfaces"],
+    ["GET", "/api/sdk/v1/workflows/workflow-1/interface"],
+    ["GET", "/api/workflows/workflow-1/interface"],
+    ["GET", "/api/workflows/workflow-1#/interface"]
   ])("does not broaden SDK discovery to %s %s", (method, pathname) => {
     expect(isSdkV1DiscoveryRequest(pathname, method)).toBe(false);
   });

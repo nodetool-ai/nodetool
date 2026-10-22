@@ -214,6 +214,14 @@ describe("routedPathname", () => {
   it("returns null for malformed escapes", () => {
     expect(routedPathname("/api/storage/%E0%A4%A")).toBeNull();
   });
+
+  it("returns null for a raw '#', so a suffix cannot select an exemption", () => {
+    expect(routedPathname("/api/workflows/abc#/interface")).toBeNull();
+    // The encoded form stays encoded and is still classified.
+    expect(routedPathname("/api/workflows/abc%23/interface")).toBe(
+      "/api/workflows/abc%23/interface"
+    );
+  });
 });
 
 describe("isStaticAppRequest", () => {

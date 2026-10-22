@@ -18,6 +18,19 @@ describe("loadMediaRefBytes", () => {
       .toEqual(new Uint8Array([1]));
   });
 
+  it("denies local paths by default under the cloud profile", async () => {
+    vi.stubEnv("NODETOOL_NODE_PROFILE", "cloud");
+    try {
+      const retrieve = vi.fn().mockResolvedValue(new Uint8Array([1]));
+      for (const uri of ["file:///proc/self/environ", "/proc/self/environ"]) {
+        expect(await loadMediaRefBytes({ uri }, { storage: { retrieve } })).toBeNull();
+      }
+      expect(retrieve).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("loads inline base64 data", async () => {
     const payload = Buffer.from([1, 2, 3]).toString("base64");
     const bytes = await loadMediaRefBytes({

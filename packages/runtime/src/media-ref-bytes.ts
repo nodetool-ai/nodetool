@@ -1,4 +1,10 @@
-import { isPackageAssetUri, isRawRgbaImage } from "@nodetool-ai/protocol";
+import {
+  CLOUD_PROFILE_ENV,
+  NODE_ENV_VAR,
+  isCloudProfileActive,
+  isPackageAssetUri,
+  isRawRgbaImage
+} from "@nodetool-ai/protocol";
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import { fetchExternalMedia } from "./external-media-fetch.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
@@ -77,8 +83,13 @@ export interface MediaRefContext {
   ) => Promise<{ bytes: Uint8Array | null }>;
 }
 
-/** Caller-specific access and HTTP error behavior. Defaults retain runtime behavior. */
+/** Caller-specific access and HTTP error behavior. */
 export interface MediaRefByteOptions {
+  /**
+   * Read `file://` URIs and absolute paths from the host. Defaults to true,
+   * except under the cloud profile, where the server filesystem belongs to the
+   * operator and never to the tenant whose graph supplied the ref.
+   */
   allowLocalFile?: boolean;
   /** Must enforce media URL and redirect policy, as fetchExternalMedia does. */
   fetchHttp?: (uri: string) => Promise<Uint8Array | null>;
@@ -90,6 +101,14 @@ const ASSET_ID_EXTENSION_CANDIDATES: Record<string, string[]> = {
   video: ["mp4", "webm", "mov", "avi", "mpeg", "mkv"],
   model3d: ["glb", "gltf", "obj", "fbx"]
 };
+
+function isCloudProfileOn(): boolean {
+  if (typeof process === "undefined") return false;
+  return isCloudProfileActive(
+    process.env[CLOUD_PROFILE_ENV],
+    process.env[NODE_ENV_VAR]
+  );
+}
 
 export function isAbsoluteFilePath(uri: string): boolean {
   return (
@@ -183,6 +202,7 @@ export async function loadMediaRefBytes(
   context?: MediaRefContext,
   options: MediaRefByteOptions = {}
 ): Promise<Uint8Array | null> {
+  const allowLocalFile = options.allowLocalFile ?? !isCloudProfileOn();
   if (isRawRgbaImage(value)) {
     return encodeRawRgbaToPng(value.data, value.width, value.height);
   }
@@ -221,7 +241,7 @@ export async function loadMediaRefBytes(
 
   // A storage adapter may read local paths itself. Reject before consulting it.
   if (
-    uri && options.allowLocalFile === false &&
+    uri && !allowLocalFile &&
     (uri.startsWith("file://") ||
       (isAbsoluteFilePath(uri) &&
         !/^\/api\/storage\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(uri)))
@@ -255,7 +275,7 @@ export async function loadMediaRefBytes(
     return null;
   }
 
-  const fromUri = options.allowLocalFile === false && !uri.startsWith("data:")
+  const fromUri = !allowLocalFile && !uri.startsWith("data:")
     ? null
     : await readUriBytes(uri);
   if (fromUri !== null) {
