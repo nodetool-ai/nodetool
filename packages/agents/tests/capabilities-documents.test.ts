@@ -100,6 +100,14 @@ describe("documents capability module", () => {
       ]);
     }
   });
+
+  it("labels the PDF tools that write their output file as write", () => {
+    // Both write `output_file`, so a read-only belt that
+    // admits `read` capabilities must not admit them.
+    for (const name of ["extract_pdf_tables", "convert_pdf_to_markdown"]) {
+      expect(byName(name).spec.category).toBe("write");
+    }
+  });
 });
 
 describe("wire compatibility: a Tool built from the spec", () => {
