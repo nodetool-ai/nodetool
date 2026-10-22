@@ -106,6 +106,7 @@ jest.mock("../../properties/VideoModelSelect", () => ({
 
 import ShotCard from "../ShotCard";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
+import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 
 const BOARD = "board-render-dialog";
 
@@ -174,6 +175,28 @@ describe("ShotCard render dialog", () => {
       expect.objectContaining({ id: "imagen", provider: "gemini" })
     );
     expect(mockGenerateClip).not.toHaveBeenCalled();
+  });
+
+  // Study 11: on an installed example board the dialog opened with no model,
+  // and three of three people had to pick one before the button woke up.
+  it("opens on the saved image default when the shot and board have none", async () => {
+    useModelPreferencesStore.setState((state) => ({
+      defaults: {
+        ...state.defaults,
+        image_model: { id: "imagen", provider: "gemini", name: "Imagen" }
+      }
+    }));
+    renderCard(seedShot());
+
+    await openMenuItem("Render still…");
+    expect(screen.getByTestId("image-model-select")).toHaveAttribute(
+      "data-value",
+      "imagen"
+    );
+    useModelPreferencesStore.setState((state) => {
+      const { image_model: _removed, ...rest } = state.defaults;
+      return { defaults: rest };
+    });
   });
 
   it("renders a clip with the shot's remembered clip model", async () => {

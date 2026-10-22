@@ -2,7 +2,7 @@
  * The start page's recent projects: the newest four, newest first, each
  * opening its project, and nothing at all before the first project exists.
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -16,6 +16,7 @@ const summary = (id: string, name: string, updatedAt: string) => ({
 let summaries: { data: unknown } = { data: [] };
 const openProject = jest.fn();
 const openTab = jest.fn();
+let activeTabId: string | null = null;
 
 jest.mock("../../../hooks/useProjects", () => ({
   useProjectSummaries: () => summaries,
@@ -24,8 +25,11 @@ jest.mock("../../../hooks/useProjects", () => ({
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   PROJECT_LIST_REF: "projects",
-  useWorkspaceTabsStore: (selector: (state: { openTab: jest.Mock }) => unknown) =>
-    selector({ openTab })
+  useWorkspaceTabsStore: Object.assign(
+    (selector: (state: { openTab: jest.Mock }) => unknown) =>
+      selector({ openTab }),
+    { getState: () => ({ activeTabId }) }
+  )
 }));
 
 jest.mock("../ProjectLifecycleActions", () => ({
@@ -44,6 +48,8 @@ const renderRecent = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  openProject.mockResolvedValue(true);
+  activeTabId = null;
 });
 
 describe("RecentProjects", () => {
@@ -88,5 +94,34 @@ describe("RecentProjects", () => {
     expect(openTab).toHaveBeenCalledWith(
       expect.objectContaining({ type: "project-list", ref: "projects" })
     );
+  });
+
+  // Study 11: six of six people clicked the open project's card to find its
+  // board, and the page did not move, because the project opens onto it.
+  it("scrolls to the project's documents when the project opens onto this page", async () => {
+    summaries = { data: [summary("a", "Aurora", "2026-10-19T00:00:00.000Z")] };
+    const documents = document.createElement("div");
+    documents.id = "project-documents";
+    documents.scrollIntoView = jest.fn();
+    document.body.appendChild(documents);
+    renderRecent();
+    await userEvent.click(screen.getByRole("button", { name: "Aurora" }));
+    await waitFor(() => expect(documents.scrollIntoView).toHaveBeenCalled());
+    documents.remove();
+  });
+
+  it("leaves the page alone when the project reopens a document", async () => {
+    summaries = { data: [summary("a", "Aurora", "2026-10-19T00:00:00.000Z")] };
+    activeTabId = "storyboard:sb-1";
+    const documents = document.createElement("div");
+    documents.id = "project-documents";
+    documents.scrollIntoView = jest.fn();
+    document.body.appendChild(documents);
+    renderRecent();
+    await userEvent.click(screen.getByRole("button", { name: "Aurora" }));
+    await waitFor(() => expect(openProject).toHaveBeenCalled());
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(documents.scrollIntoView).not.toHaveBeenCalled();
+    documents.remove();
   });
 });

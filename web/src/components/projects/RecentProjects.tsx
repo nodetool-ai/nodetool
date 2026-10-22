@@ -14,6 +14,7 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { useOpenProject, useProjectSummaries } from "../../hooks/useProjects";
 import ProjectLifecycleActions from "./ProjectLifecycleActions";
+import { PROJECT_DOCUMENTS_ID } from "./projectDocumentsAnchor";
 import {
   Box,
   Caption,
@@ -127,9 +128,20 @@ const RecentProjects = () => {
     [summaries.data]
   );
 
+  // A project with no open tabs opens onto this same start page, so the card
+  // would look dead. Its documents sit further down the page: scroll to them.
   const handleOpen = useCallback(
     (project: ProjectDetail["project"]) => {
-      void openProject(project);
+      void openProject(project).then((opened) => {
+        if (!opened || useWorkspaceTabsStore.getState().activeTabId !== null) {
+          return;
+        }
+        requestAnimationFrame(() => {
+          document
+            .getElementById(PROJECT_DOCUMENTS_ID)
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
     },
     [openProject]
   );

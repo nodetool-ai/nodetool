@@ -51,7 +51,7 @@ import {
 } from "./fake-runtime.js";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -1882,6 +1882,36 @@ const UNWIRED_RUN_WORKFLOW = (() => {
   );
 })();
 
+/**
+ * The one document of the `storyboard` state: the "Cold Brew Pour" example
+ * board, installed as the example route installs it, so its four shots show
+ * their stills. UX research's storyboard editing and output tasks start here.
+ */
+async function seedStoryboardState(): Promise<void> {
+  const bundlePath = resolve(
+    __dirname,
+    "..",
+    "..",
+    "base-nodes",
+    "nodetool",
+    "examples",
+    "storyboards",
+    "cold-brew-pour.storyboard.json"
+  );
+  const bundle = JSON.parse(readFileSync(bundlePath, "utf8")) as {
+    document: unknown;
+  };
+  await new Storyboard({
+    id: "sb-cold-brew-ad",
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Cold brew ad",
+    document: JSON.stringify(bundle.document),
+    created_at: "2026-01-05T09:00:00Z",
+    updated_at: "2026-01-05T09:00:00Z"
+  }).save();
+}
+
 async function seedOpenAiKey(): Promise<void> {
   const now = new Date().toISOString();
   await getPortableDb()
@@ -1908,14 +1938,16 @@ async function seedOpenAiKey(): Promise<void> {
 // `other-provider` is that account plus one workflow whose run fails because
 // it uses a provider the account has not connected. `working-run` is that
 // account plus a working workflow and a stored OpenAI key. `unwired-run` is
-// the same with the notes input left unconnected.
+// the same with the notes input left unconnected. `storyboard` is that account
+// plus one storyboard with a still on every shot and a stored OpenAI key.
 const QA_STATE = process.env.NODETOOL_QA_STATE;
 const EMPTY_ACCOUNT =
   QA_STATE === "empty" ||
   QA_STATE === "failing-run" ||
   QA_STATE === "other-provider" ||
   QA_STATE === "working-run" ||
-  QA_STATE === "unwired-run";
+  QA_STATE === "unwired-run" ||
+  QA_STATE === "storyboard";
 
 async function seedForState(): Promise<void> {
   if (QA_STATE === "failing-run") {
@@ -1943,6 +1975,14 @@ async function seedForState(): Promise<void> {
     await seedOpenAiKey();
     console.log(
       "[screenshot-server] Empty account with one workflow missing its input wire and an OpenAI key"
+    );
+    return;
+  }
+  if (QA_STATE === "storyboard") {
+    await seedStoryboardState();
+    await seedOpenAiKey();
+    console.log(
+      "[screenshot-server] Empty account with one storyboard and an OpenAI key"
     );
     return;
   }

@@ -14,10 +14,12 @@
  * one workflow whose run fails because it uses a provider that is not
  * connected. `--state working-run` is the empty account plus one workflow that
  * runs as left, on a stored OpenAI key. `--state unwired-run` is that workflow
- * with its notes input left unconnected. Reset any of them between sessions with `POST /api/test/reset` on the backend port.
+ * with its notes input left unconnected. `--state storyboard` is the empty
+ * account plus one storyboard with a still on every shot and an OpenAI key.
+ * Reset any of them between sessions with `POST /api/test/reset` on the backend port.
  *
  * Usage (from web/):
- *   npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|other-provider|working-run|unwired-run|seeded-demo]
+ *   npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|other-provider|working-run|unwired-run|storyboard|seeded-demo]
  *     [--backend-port 7790] [--web-port 3010]
  * Stop with Ctrl+C.
  */
@@ -79,9 +81,9 @@ async function main(): Promise<void> {
     }
   });
   const state = values.state ?? "seeded-demo";
-  if (!["seeded-demo", "empty", "failing-run", "other-provider", "working-run", "unwired-run"].includes(state)) {
+  if (!["seeded-demo", "empty", "failing-run", "other-provider", "working-run", "unwired-run", "storyboard"].includes(state)) {
     throw new Error(
-      `Unknown --state ${state}. Use empty, failing-run, other-provider, working-run, unwired-run, or seeded-demo.`
+      `Unknown --state ${state}. Use empty, failing-run, other-provider, working-run, unwired-run, storyboard, or seeded-demo.`
     );
   }
   const backendPort = Number(values["backend-port"]);

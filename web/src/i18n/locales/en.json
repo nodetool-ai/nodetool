@@ -7987,6 +7987,8 @@
         "download": "Download {{media}}",
         "sendToWorkflow": "Send to workflow…",
         "duplicateShot": "Duplicate shot",
+        "moveEarlier": "Move earlier",
+        "moveLater": "Move later",
         "deleteShot": "Delete shot"
       },
       "shotInsertPoint": {

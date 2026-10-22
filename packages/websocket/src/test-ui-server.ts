@@ -33,7 +33,9 @@ import { appRouter } from "./trpc/router.js";
 import { createContextFactory } from "./trpc/context.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
+import { Readable } from "node:stream";
 import { createTestUiRunRoutes } from "./lib/test-ui-run-routes.js";
+import { storyboardZipResponse } from "./routes/storyboards.js";
 import { initDb, initPostgresDb, migrateSqliteDb } from "@nodetool-ai/models";
 import {
   isNonEmptyString,
@@ -1463,6 +1465,35 @@ export async function createTestUiServer(options: TestUiServerOptions = {}) {
               detail: error instanceof Error ? error.message : String(error)
             })
           );
+        });
+      return;
+    }
+    const storyboardZip = /^\/api\/storyboards\/([^/]+)\/export-zip$/.exec(
+      url.pathname
+    );
+    if (storyboardZip && req.method === "GET") {
+      // The real server's archive, so a download in a journey or a study
+      // gets the zip a user would.
+      void storyboardZipResponse(
+        decodeURIComponent(storyboardZip[1]),
+        "1",
+        options.packageAssetsRoots ?? []
+      )
+        .then(async (response) => {
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => res.setHeader(key, value));
+          if (!response.body) {
+            res.end();
+            return;
+          }
+          Readable.fromWeb(
+            response.body as unknown as Parameters<typeof Readable.fromWeb>[0]
+          ).pipe(res);
+        })
+        .catch((error: unknown) => {
+          log.error("Storyboard zip failed", error);
+          if (!res.headersSent) { res.statusCode = 500; }
+          res.end();
         });
       return;
     }

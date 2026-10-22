@@ -508,6 +508,24 @@ describe("StoryboardBoard preview", () => {
     expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
   });
 
+  // Study 11: an installed example board's stills are shipped files with no
+  // asset id, and the button stayed disabled on a board full of pictures.
+  it("enables on an example board whose stills are shipped files", () => {
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        keyframe: {
+          type: "image",
+          asset_id: null,
+          uri: "package://nodetool-base/storyboards/cold-brew-pour/ice-drop.jpg"
+        }
+      }
+    ];
+    renderBoard(jest.fn());
+
+    expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
+  });
+
   it("toggles the preview panel", async () => {
     mockShots = [
       {

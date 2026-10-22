@@ -138,6 +138,33 @@ describe("ShotCard hover toolbar (criterion 11)", () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  // Study 11: two of three people looked in this menu for a reorder before
+  // they found the drag grip, and one never saw the grip on a tall card.
+  it("moves the shot one place later, and not earlier from the start", async () => {
+    const shot = seedShot();
+    seedShot({ id: "shot-2", index: 1, slug: "Second" });
+    renderCard(shot);
+
+    await openShotActions();
+    expect(
+      screen.getByRole("menuitem", { name: "Move earlier" })
+    ).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(screen.getByRole("menuitem", { name: "Move later" }));
+
+    expect(
+      [...shotsOnBoard()].sort((a, b) => a.index - b.index).map((s) => s.id)
+    ).toEqual(["shot-2", "shot-1"]);
+  });
+
+  it("offers no move on a board with one shot", async () => {
+    renderCard(seedShot());
+
+    await openShotActions();
+    expect(
+      screen.queryByRole("menuitem", { name: "Move later" })
+    ).not.toBeInTheDocument();
+  });
+
   it("asks once before deleting, and removes the shot on that one confirm", async () => {
     const shot = seedShot();
     renderCard(shot);

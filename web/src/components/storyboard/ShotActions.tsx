@@ -14,6 +14,7 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
 import type { Shot, VideoRef } from "@nodetool-ai/protocol";
 import {
   resolveEffectiveProductionRequirement,
@@ -36,6 +37,7 @@ import { isShotGenerating } from "./ShotStatusPill";
 import { downloadResolvedMedia, shotDownloadName } from "./shotMediaDownload";
 import { shotWorkflowMedia } from "./shotWorkflowMedia";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import { sceneOrder } from "../../lib/storyboard/sceneOrder";
 import { useBoardImageModel } from "../../hooks/storyboard/useShotCostEstimate";
 import { priceRenderStep } from "../../hooks/storyboard/shotCostPricing";
 import { STILL_RESOLUTION } from "../../hooks/storyboard/renderSpec";
@@ -127,6 +129,21 @@ const ShotActionsInner: React.FC<ShotActionsProps> = ({
     [shot.still_model, boardImageModel]
   );
   const duplicateShot = useStoryboardStore((state) => state.duplicateShot);
+  const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
+  // Where the shot sits in its scene, for the menu's move items.
+  const placeInScene = useStoryboardStore(
+    useShallow((state) => {
+      const shots = state.boards[boardId]?.shots ?? [];
+      const group = sceneOrder(shots).find((g) =>
+        g.shots.some((s) => s.id === shot.id)
+      );
+      const at = group ? group.shots.findIndex((s) => s.id === shot.id) : -1;
+      return {
+        first: at <= 0,
+        last: !group || at === group.shots.length - 1
+      };
+    })
+  );
   const removeShot = useStoryboardStore((state) => state.removeShot);
   const setShotKeyframe = useStoryboardStore((state) => state.setShotKeyframe);
   const setShotStatus = useStoryboardStore((state) => state.setShotStatus);
@@ -299,6 +316,16 @@ const ShotActionsInner: React.FC<ShotActionsProps> = ({
               }
         }
         onDuplicate={readOnly ? undefined : handleDuplicate}
+        move={
+          readOnly || (placeInScene.first && placeInScene.last)
+            ? undefined
+            : {
+                earlierDisabled: placeInScene.first,
+                laterDisabled: placeInScene.last,
+                onEarlier: () => nudgeShot(boardId, shot.id, "up"),
+                onLater: () => nudgeShot(boardId, shot.id, "down")
+              }
+        }
         onDelete={readOnly ? undefined : handleOpenDeleteConfirm}
       >
         {!readOnly && (
