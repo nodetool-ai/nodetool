@@ -157,7 +157,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
               color: theme.vars.palette.primary.contrastText
             },
             "&.Mui-disabled": {
-              backgroundColor: theme.vars.palette.grey[800],
+              backgroundColor: theme.vars.palette.background.paper,
               color: theme.vars.palette.grey[500]
             }
           }}

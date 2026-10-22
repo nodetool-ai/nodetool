@@ -70,7 +70,8 @@ last column over `web/src` and prints a count per element.
 `npm run audit:ui -- --rule <id>` lists every hit of one check. The token rules
 (spacing, colour, radius, font size, z-index, motion) are not repeated here,
 because `npm run lint:design` enforces them. A check moves into that lint once
-its count reaches zero. Rows without a check are reviewed by eye against the
+its count reaches zero: `lint:design` runs `audit-ui-standards.mjs --check`,
+which fails on any hit of a rule in its `ENFORCED` list. Rows without a check are reviewed by eye against the
 linked section and the `Patterns/*` Storybook stories.
 
 **Scope:** product UI under `web/src`. The primitives themselves

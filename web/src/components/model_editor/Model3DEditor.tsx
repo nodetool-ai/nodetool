@@ -230,7 +230,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       minHeight: 0,
-      backgroundColor: theme.vars.palette.grey[900]
+      backgroundColor: theme.vars.palette.background.default
     },
     ".editor-toolbar": {
       padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
@@ -275,7 +275,7 @@ const styles = (theme: Theme) =>
       minWidth: 0,
       position: "relative",
       overflow: "hidden",
-      background: `radial-gradient(ellipse at 50% 35%, ${theme.vars.palette.grey[800]} 0%, ${theme.vars.palette.grey[900]} 75%)`
+      background: `radial-gradient(ellipse at 50% 35%, ${theme.vars.palette.background.paper} 0%, ${theme.vars.palette.background.default} 75%)`
     },
     ".viewport-hud": {
       position: "absolute",

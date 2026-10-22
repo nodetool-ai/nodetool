@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     position: "relative",
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
     overflow: "hidden"
   });
 

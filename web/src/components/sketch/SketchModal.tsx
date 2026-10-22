@@ -75,7 +75,7 @@ const styles = (theme: Theme) =>
     zIndex: SKETCH_Z_INDEX.modal,
     display: "flex",
     flexDirection: "column",
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
     "& .sketch-modal-header": {
       display: "flex",
       alignItems: "center",
@@ -83,8 +83,8 @@ const styles = (theme: Theme) =>
       rowGap: getSpacingPx(SPACING.sm),
       columnGap: getSpacingPx(SPACING.md),
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
-      backgroundColor: theme.vars.palette.grey[800],
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.background.paper,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       minHeight: "36px",
       "& .MuiIconButton-root": {
         padding: getSpacingPx(SPACING.xs),
@@ -295,7 +295,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   py: 0.5,
                   pl: 1,
                   ml: 0.5,
-                  borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
+                  borderLeft: `1px solid ${theme.vars.palette.divider}`,
                   minWidth: 0
                 }}
               >
@@ -481,8 +481,8 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 maxHeight: "80vh",
                 zIndex: SKETCH_Z_INDEX.popover,
                 borderRadius: BORDER_RADIUS.xs,
-                border: `1px solid ${theme.vars.palette.grey[700]}`,
-                backgroundColor: theme.vars.palette.grey[800],
+                border: `1px solid ${theme.vars.palette.divider}`,
+                backgroundColor: theme.vars.palette.background.paper,
                 boxShadow: theme.shadows[12],
                 overflow: "hidden"
               }}
@@ -494,7 +494,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 sx={{
                   px: getSpacingPx(SPACING.sm),
                   py: getSpacingPx(SPACING.xs),
-                  borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+                  borderBottom: `1px solid ${theme.vars.palette.divider}`,
                   flexShrink: 0
                 }}
               >
@@ -530,7 +530,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                     flexShrink: 0,
                     px: getSpacingPx(SPACING.sm),
                     pt: getSpacingPx(SPACING.xs),
-                    borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+                    borderBottom: `1px solid ${theme.vars.palette.divider}`
                   }}
                 />
                 <FlexColumn

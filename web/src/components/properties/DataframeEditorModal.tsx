@@ -310,7 +310,7 @@ const styles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.background.paper
       },
       "& .tabulator-row:hover": {
-        backgroundColor: theme.vars.palette.grey[700]
+        backgroundColor: theme.vars.palette.action.hover
       }
     },
     ".search-bar": {
@@ -346,7 +346,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       fontWeight: 500,
       wordSpacing: "-0.1em",
-      backgroundColor: theme.vars.palette.grey[700],
+      backgroundColor: theme.vars.palette.action.selected,
       border: 0,
       color: theme.vars.palette.grey[100] + " !important",
       display: "flex",

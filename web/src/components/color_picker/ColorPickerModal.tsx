@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
     ".modal-content": {
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.xl,
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: SHADOW(theme).xl,
       width: "90%",
       maxWidth: "720px",
@@ -61,8 +61,8 @@ const styles = (theme: Theme) =>
     ".modal-header": {
       justifyContent: "space-between",
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
-      backgroundColor: theme.vars.palette.grey[900]
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.default
     },
     ".modal-title": {
       fontSize: "var(--fontSizeNormal)",
@@ -80,7 +80,7 @@ const styles = (theme: Theme) =>
       flex: "0 0 320px",
       padding: getSpacingPx(SPACING.xl),
       gap: getSpacingPx(SPACING.xl),
-      borderRight: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
       overflow: "auto"
     },
     ".tabs-section": {
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       flex: 1,
       height: "48px",
       borderRadius: BORDER_RADIUS.lg,
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
       position: "relative",
       overflow: "hidden"
@@ -149,8 +149,8 @@ const styles = (theme: Theme) =>
     ".modal-footer": {
       justifyContent: "space-between",
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
-      backgroundColor: theme.vars.palette.grey[900]
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.default
     },
     ".footer-actions": {
       gap: getSpacingPx(SPACING.md)
@@ -172,7 +172,7 @@ const styles = (theme: Theme) =>
         flex: "0 0 auto",
         width: "100%",
         borderRight: "none",
-        borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+        borderBottom: `1px solid ${theme.vars.palette.divider}`,
         padding: getSpacingPx(SPACING.lg),
         overflow: "visible"
       },

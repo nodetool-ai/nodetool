@@ -263,7 +263,7 @@ const NodeItem = memo(function NodeItem({
 
   const iconForTypeBgStyle = useMemo(
     () => ({
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       margin: "0",
       padding: getSpacingPx(SPACING.micro), // was 1px
       borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,

@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
     height: "100%",
     display: "flex",
     flexDirection: "column",
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
     color: theme.vars.palette.common.white,
     ".editor-toolbar-row": {
       ".editor-toolbar": {

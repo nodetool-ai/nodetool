@@ -50,7 +50,7 @@ const styles = (theme: Theme) =>
   css({
     width: "240px",
     padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
-    borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
+    borderLeft: `1px solid ${theme.vars.palette.divider}`,
     "& .info-row": {
       display: "flex",
       gap: getSpacingPx(SPACING.md),
@@ -76,10 +76,10 @@ const styles = (theme: Theme) =>
       objectFit: "contain",
       borderRadius: BORDER_RADIUS.sm,
       marginBottom: getSpacingPx(SPACING.md),
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     "& .info-section": {
-      borderTop: `1px solid ${theme.vars.palette.grey[700]}`,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       marginTop: getSpacingPx(SPACING.sm),
       paddingTop: getSpacingPx(SPACING.sm)
     },

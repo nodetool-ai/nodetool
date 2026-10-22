@@ -25,7 +25,7 @@ const toolCallStyles = (theme: Theme) =>
       margin: `${getSpacingPx(SPACING.xs)} 0`,
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       fontFamily: theme.fontFamily2,
       fontSize: theme.vars.fontSizeSmaller,
       lineHeight: 1.4,

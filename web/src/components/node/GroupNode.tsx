@@ -201,7 +201,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       color: "var(--palette-grey-50)",
       backgroundColor: "var(--palette-grey-900)",
       boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}33`,
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderRadius: BORDER_RADIUS.sm,
       fontSize: theme.fontSizeSmall,

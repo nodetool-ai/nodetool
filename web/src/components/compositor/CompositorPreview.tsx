@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
       display: "block",
       maxWidth: "100%",
       objectFit: "contain",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       backgroundImage: `linear-gradient(45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%), linear-gradient(-45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%), linear-gradient(45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%), linear-gradient(-45deg, transparent 75%, ${theme.vars.palette.grey[800]} 75%)`,
       backgroundSize: "16px 16px",
       backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0"

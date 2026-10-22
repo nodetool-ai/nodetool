@@ -105,7 +105,7 @@ const styles = (theme: Theme) =>
       height: THUMB_HEIGHT,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      background: theme.vars.palette.grey[800],
+      background: theme.vars.palette.background.paper,
       // Hairline inset so dark-bordered images don't bleed into the tile.
       boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`,
       display: "flex",
@@ -129,7 +129,7 @@ const styles = (theme: Theme) =>
       width: 40,
       height: 40,
       borderRadius: BORDER_RADIUS.circle,
-      background: theme.vars.palette.grey[700],
+      background: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary
     },
     ".media-icon svg": { fontSize: 20 },

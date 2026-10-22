@@ -145,7 +145,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
       ...selectableRowStyles(theme),
       "&.selected": selectedRowStyles(theme)
@@ -175,7 +175,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       display: "flex",
       alignItems: "center",

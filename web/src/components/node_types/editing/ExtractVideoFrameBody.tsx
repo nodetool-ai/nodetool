@@ -194,7 +194,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     ".outputs-row": {
       flex: "0 0 auto"

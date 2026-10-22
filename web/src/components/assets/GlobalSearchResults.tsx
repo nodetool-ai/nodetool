@@ -50,7 +50,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "space-between",
       padding: `${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`,
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     ".search-results-title": {
       fontSize: theme.fontSizeNormal,
@@ -72,11 +72,11 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       cursor: "grab",
       transition: MOTION.background,
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&.selected": {
         backgroundColor: `${theme.vars.palette.primary.main}22`,
@@ -107,7 +107,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       display: "flex",
       alignItems: "center",

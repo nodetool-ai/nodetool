@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "60px",
       borderRadius: BORDER_RADIUS.lg,
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       position: "relative",
       overflow: "hidden"
     },
@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       width: "100%",
       height: "24px",
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.sm,
       marginTop: getSpacingPx(SPACING.md)
     },
@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
     ".css-output": {
       marginTop: getSpacingPx(SPACING.lg),
       padding: getSpacingPx(SPACING.md),
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
       fontFamily: "var(--fontFamily2)",

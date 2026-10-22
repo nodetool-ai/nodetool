@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       height: "3em",
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       marginBottom: getSpacingPx(SPACING.xl),
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       "&:hover": { backgroundColor: theme.vars.palette.grey[600] }
     }
   });

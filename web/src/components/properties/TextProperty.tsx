@@ -13,7 +13,7 @@ const styles = (theme: Theme) =>
   css({
     ".text": {
       outline: "none",
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       border: "none",
       borderRadius: "0",
       fontFamily: theme.fontFamily1,

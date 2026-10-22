@@ -45,7 +45,7 @@ export const assetGridStyles = (theme: Theme) => {
       zIndex: Z_INDEX.overlay,
       padding: getSpacingPx(SPACING.md),
       borderTop: `2px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     ".controls .zoom": {
       maxWidth: "200px",

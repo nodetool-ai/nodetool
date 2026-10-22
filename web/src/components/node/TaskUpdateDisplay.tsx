@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
       marginBottom: getSpacingPx(SPACING.lg),
       padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.lg,
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       border: `1px solid ${theme.vars.palette.primary.dark}`,
       borderLeft: `3px solid ${theme.vars.palette.primary.main}`
     },
@@ -78,19 +78,19 @@ const styles = (theme: Theme) =>
       lineHeight: "1.5",
       color: theme.vars.palette.grey[400],
       paddingLeft: getSpacingPx(SPACING.md),
-      borderLeft: `2px solid ${theme.vars.palette.grey[700]}`
+      borderLeft: `2px solid ${theme.vars.palette.divider}`
     },
 
     ".step-wrapper": {
       marginTop: getSpacingPx(SPACING.lg),
       paddingTop: getSpacingPx(SPACING.lg),
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`
+      borderTop: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".steps-section": {
       marginTop: getSpacingPx(SPACING.lg),
       paddingTop: getSpacingPx(SPACING.lg),
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       display: "flex",
       flexDirection: "column",
       gap: getSpacingPx(SPACING.lg)
@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
         content: '""',
         flex: 1,
         height: "1px",
-        backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: theme.vars.palette.background.paper
       }
     }
   });

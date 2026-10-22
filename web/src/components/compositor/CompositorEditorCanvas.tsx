@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
-      background: theme.vars.palette.grey[900],
+      background: theme.vars.palette.background.default,
       "--checker": theme.vars.palette.grey[800]
     },
     ".stage-box": {
