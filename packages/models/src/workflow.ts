@@ -18,6 +18,7 @@ import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { workflows } from "./schema/workflows.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { WorkflowShare } from "./workflow-share.js";
+import { WorkflowVersion } from "./workflow-version.js";
 import { TriggerRegistration } from "./trigger-registration.js";
 import type { GraphLink } from "@nodetool-ai/protocol";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
@@ -286,6 +287,9 @@ export class Workflow extends DBModel {
     // No foreign key ties registrations to the workflow, so a deleted
     // workflow's webhook kept accepting events and its file watch kept firing.
     await TriggerRegistration.deleteByWorkflow(wf.id);
+    // Version rows hold full graph snapshots; left behind they kept the
+    // deleted workflow's content (and any secrets typed into it) on disk.
+    await WorkflowVersion.deleteForWorkflow(wf.id);
     return true;
   }
 

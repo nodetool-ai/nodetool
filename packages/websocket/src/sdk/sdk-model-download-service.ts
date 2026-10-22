@@ -43,6 +43,12 @@ export interface SdkV1ModelDownloadService {
 
 interface CreateSdkV1ModelDownloadServiceOptions {
   now?: () => Date;
+  /**
+   * False refuses every start. The production server passes false, as it
+   * leaves `/ws/download` unregistered and the tRPC Hugging Face procedures
+   * empty: a download writes gigabytes to the server's shared cache.
+   */
+  enabled?: boolean;
   startHuggingFaceDownload?: (
     userId: string,
     request: SdkV1ModelDownloadStartRequest,
@@ -192,6 +198,13 @@ export function createSdkV1ModelDownloadService(
 
   const service: SdkV1ModelDownloadService = {
     start: ({ userId, request }) => {
+      if (options.enabled === false) {
+        throw new SdkModelDownloadServiceError(
+          501,
+          "MODEL_DOWNLOAD_UNAVAILABLE",
+          "Model downloads are not available through this server."
+        );
+      }
       if (request.scope === "worker" && !startWorkerDownload) {
         throw new SdkModelDownloadServiceError(
           501,

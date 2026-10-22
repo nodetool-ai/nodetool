@@ -11,7 +11,12 @@
  */
 
 import { toGuestBytes } from "../sandbox-bytes.js";
-import { requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  MAX_UNZIP_TOTAL_BYTES,
+  boundedUnzipFilter,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import {
   isFunction,
   isObjectLike,
@@ -19,10 +24,13 @@ import {
 } from "../utils/type-guards.js";
 
 /** Total uncompressed size `unzip` will inflate before refusing. */
-export const MAX_UNZIP_TOTAL_BYTES = 50 * 1024 * 1024;
+export { MAX_UNZIP_TOTAL_BYTES };
 
 interface FflateLike {
-  unzipSync: (data: Uint8Array) => Record<string, Uint8Array>;
+  unzipSync: (
+    data: Uint8Array,
+    options?: { filter?: (file: { originalSize: number }) => boolean }
+  ) => Record<string, Uint8Array>;
   zipSync: (data: Record<string, Uint8Array>) => Uint8Array;
 }
 
@@ -40,14 +48,16 @@ async function loadFflate(where: string): Promise<FflateLike> {
  * Extract a zip archive to a map of entry path to content bytes.
  *
  * Refuses an archive whose entries inflate past
- * {@link MAX_UNZIP_TOTAL_BYTES} — checked as the entries are walked, so a bomb
- * is stopped part way rather than after it has been materialized.
+ * {@link MAX_UNZIP_TOTAL_BYTES} — checked against each entry's declared size
+ * before it is inflated, so a bomb is refused before it is materialized.
  */
 export async function unzip(bytes: unknown): Promise<Record<string, unknown>> {
   const where = "zip.unzip";
   const archive = requireBytes(where, bytes);
   const fflate = await loadFflate(where);
-  const entries = fflate.unzipSync(archive);
+  const entries = fflate.unzipSync(archive, {
+    filter: boundedUnzipFilter(where)
+  });
   let total = 0;
   const out: Record<string, unknown> = {};
   for (const [name, content] of Object.entries(entries)) {

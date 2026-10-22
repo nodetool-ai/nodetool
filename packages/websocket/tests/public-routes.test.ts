@@ -230,6 +230,17 @@ describe("isStaticAppRequest", () => {
     expect(isStaticAppRequest("/assets/index.js", "GET")).toBe(true);
   });
 
+  it("keeps absolute-form and doubled-slash targets behind auth", () => {
+    for (const url of [
+      "http://localhost:7777/api/workflows",
+      "https://example.com/ws",
+      "//api/workflows",
+      "api/workflows"
+    ]) {
+      expect(isStaticAppRequest(routedPathname(url), "GET")).toBe(false);
+    }
+  });
+
   it("keeps percent-encoded API and WebSocket paths behind auth", () => {
     for (const url of [
       "/%61pi/workflows",

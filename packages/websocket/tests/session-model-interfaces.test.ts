@@ -13,6 +13,7 @@ import {
   ModelObserver,
   Script,
   Storyboard,
+  Thread,
   TimelineSequence
 } from "@nodetool-ai/models";
 import { ENTITY_METADATA_KEY, readEntityMarker } from "@nodetool-ai/protocol";
@@ -81,6 +82,26 @@ describe("createMessage / getMessages", () => {
     expect(stored?.content).toEqual([{ type: "text", text: "hi" }]);
     expect(stored?.tool_calls).toEqual([{ id: "c1", name: "tool", args: { x: 1 } }]);
     expect(stored?.workflow_id).toBe("wf-1");
+  });
+
+  it("refuses to write into a thread another user owns", async () => {
+    await Thread.create({ id: "theirs", user_id: OTHER, title: "" });
+    await expect(
+      ifaces.createMessage!({
+        userId: USER,
+        req: { thread_id: "theirs", role: "user", content: "injected" }
+      })
+    ).rejects.toThrow("Thread not found");
+    const [rows] = await Message.paginate("theirs", { limit: 10 });
+    expect(rows).toHaveLength(0);
+  });
+
+  it("writes into the caller's own thread", async () => {
+    await Thread.create({ id: "mine", user_id: USER, title: "" });
+    const row = fields(
+      await ifaces.createMessage!({ userId: USER, req: { thread_id: "mine", role: "user" } })
+    );
+    expect(row.thread_id).toBe("mine");
   });
 
   it("scopes a thread's messages to the requesting user", async () => {
