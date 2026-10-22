@@ -11,10 +11,8 @@ const HUD_SCALE = GAME_VIEWPORT.hudWidth / 1280;
 const SAMPLE = fileURLToPath(new URL("../", import.meta.url));
 const COLORS = { ink: "#102B3B", panel: "#16394B", muted: "#A4BDC4", cream: "#FFF5DA", coral: "#FF6844", aqua: "#67DCCB", gold: "#FFD052" };
 const RATE = 32000;
-const BEAT = 60 / 132;
-const SCORE_SECONDS = BEAT * 48;
 
-function synthesizer(duration, loop = false) {
+function cueSynthesizer(duration) {
   const length = Math.round(duration * RATE);
   const left = new Float64Array(length);
   const right = new Float64Array(length);
@@ -33,7 +31,7 @@ function synthesizer(duration, loop = false) {
     let previousNoise = 0;
     for (let i = 0; i < frames; i += 1) {
       const index = offset + i;
-      if (!loop && index >= length) { break; }
+      if (index >= length) { break; }
       const t = i / RATE;
       const fade = Math.min(1, t / 0.004) * Math.min(1, (seconds - t) / 0.018);
       phase += 2 * Math.PI * frequency / RATE;
@@ -61,11 +59,6 @@ function synthesizer(duration, loop = false) {
       const target = index % length;
       left[target] += sample * fade * leftGain;
       right[target] += sample * fade * rightGain;
-      if (loop && (timbre === "bell" || timbre === "brass")) {
-        const echo = (target + Math.round(BEAT * 0.75 * RATE)) % length;
-        left[echo] += sample * fade * rightGain * 0.18;
-        right[echo] += sample * fade * leftGain * 0.18;
-      }
     }
   };
   const wav = () => {
@@ -93,37 +86,9 @@ function synthesizer(duration, loop = false) {
   return { add, wav };
 }
 
-function score() {
-  const sound = synthesizer(SCORE_SECONDS, true);
-  const chords = [[48, 64, 67, 71], [45, 60, 64, 67], [50, 65, 69, 72], [43, 62, 65, 69], [48, 64, 67, 71], [45, 60, 64, 67], [53, 65, 69, 72], [43, 62, 65, 71], [48, 64, 67, 72], [45, 60, 64, 67], [50, 65, 69, 72], [43, 62, 65, 71]];
-  const melody = [[76, 79, 81, 79, 76, 74], [72, 76, 79, 76, 72, 71], [74, 77, 81, 84, 81, 77], [79, 77, 74, 71, 74, 79]];
-  for (let bar = 0; bar < 12; bar += 1) {
-    const chord = chords[bar];
-    const start = bar * BEAT * 4;
-    for (let beat = 0; beat < 4; beat += 1) {
-      const at = start + beat * BEAT;
-      sound.add(at, 0.3, 36, 0.55, "kick");
-      sound.add(at, BEAT * 0.72, chord[0] - 12 + (beat === 3 ? 7 : 0), 0.32, "bass");
-      if (beat % 2 === 1) { sound.add(at, 0.2, 60, 0.28, "snare"); }
-      sound.add(at, 0.05, 60, 0.045, "hat", -0.4);
-      sound.add(at + BEAT / 2, 0.09, 60, 0.1, "hat", 0.4);
-      for (const note of chord.slice(1)) { sound.add(at + BEAT / 2, 0.24, note, 0.065, "pluck", -0.35); }
-    }
-    const rhythm = [0, 0.75, 1.5, 2, 2.75, 3.5];
-    melody[bar % 4].forEach((note, index) => {
-      sound.add(start + rhythm[index] * BEAT, BEAT * (index === 3 ? 0.65 : 0.45), note, 0.16, "brass", 0.2);
-      if (bar >= 4) { sound.add(start + rhythm[index] * BEAT + BEAT / 4, BEAT * 0.55, note + 12, 0.035, "bell", -0.5); }
-    });
-    if (bar % 4 === 3) {
-      for (let fill = 0; fill < 3; fill += 1) { sound.add(start + (3.25 + fill * 0.25) * BEAT, 0.11, 60, 0.08, "snare", fill / 3 - 0.3); }
-    }
-  }
-  return sound.wav();
-}
-
 function cue(name) {
   const durations = { start: 0.6, countdown: 0.25, go: 0.65, drift: 0.45, boost: 0.85, pickup: 0.7, item: 0.55, hit: 0.55, lap: 1.1, finish: 2.4 };
-  const sound = synthesizer(durations[name]);
+  const sound = cueSynthesizer(durations[name]);
   if (name === "boost" || name === "item") {
     sound.add(0, durations[name], name === "boost" ? 53 : 65, 0.6, "sweep");
     sound.add(0, 0.3, 36, 0.45, "kick");
@@ -246,7 +211,9 @@ export async function createPresentation({ assetsDir }) {
     await writeFile(path.join(assetsDir, `${assetId}.${extension}`), bytes);
     assets[slot] = { mediaKind, assetId, digest, required: true, ...extra };
   };
-  await bind("score", score(), "audio", "wav");
+  const { renderScore } = await import("./music.mjs");
+  const score = await renderScore();
+  await bind("score", score.bytes, "audio", "wav");
   for (const event of ["start", "countdown", "go", "drift", "boost", "pickup", "item", "hit", "lap", "finish"]) {
     await bind(`sfx-${event}`, cue(event), "audio", "wav");
   }
@@ -272,5 +239,5 @@ export async function createPresentation({ assetsDir }) {
       transitions: [{ on: { kind: "trigger", event: "finish" }, snapshot: "finish", fadeTicks: 45 }, { on: { kind: "trigger", event: "start" }, snapshot: "base", fadeTicks: 30 }]
     }
   };
-  return { assets, entities, ui, audio, viewport: GAME_VIEWPORT, music: { assetId: "score", volume: 0.7, fadeInTicks: 90, fadeOutTicks: 90, streaming: { loopStartSeconds: 0, loopEndSeconds: SCORE_SECONDS } } };
+  return { assets, entities, ui, audio, viewport: GAME_VIEWPORT, music: { assetId: "score", volume: 0.7, fadeInTicks: 90, fadeOutTicks: 90, streaming: { loopStartSeconds: 0, loopEndSeconds: score.durationSeconds } } };
 }

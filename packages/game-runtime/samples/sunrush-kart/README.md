@@ -42,7 +42,7 @@ Keep an earlier build by renaming its directory before exporting again.
 | Depth | Open sky and islands behind a seaside village, with palms and a lighthouse framing the road and distinct kart silhouettes in front. |
 | Handling | 37 m/s top speed, 15 m/s² acceleration, 34 m/s² braking, 49 m/s boost, free steering and lateral drift on a 14-meter road. |
 | Pacing | Wide start straight, harbor bends, elevated bridge, tight return bends, and finish straight. |
-| Assets | Original merged track and scenery meshes, detailed karts and drivers, textured coastal water, synthesized music and event cues, and OFL display/UI fonts. |
+| Assets | Original merged track and scenery meshes, detailed karts and drivers, textured coastal water, timeline MIDI music, synthesized event cues, and OFL display/UI fonts. |
 | Proof | A recorded input route starts the race, drives three laps, and emits a finish event. The same route feeds capture and performance checks. |
 | Performance | 60 Hz simulation, 4 ms tick p95 and 16.6 ms frame p95 targets, 500 draws and 3 million triangles per frame. Base M1-class hardware is the intended minimum, not a certified target. |
 
@@ -66,6 +66,28 @@ animation clip. Each loop moves a sheet by whole texture tiles, so the loop
 is seamless. Warm sunlight, cascaded shadows, and neutral
 tone mapping preserve the coastal palette. Drift sparks and boost particles
 use separate color and fade curves for clear racing feedback.
+
+## Music
+
+[music.timeline.json](music.timeline.json) is the editable soundtrack source.
+It contains twelve bars at 132 BPM, with MIDI tracks for DR-1 drums, BL-1
+rounded bass, and WT-1 muted chords, rounded pluck melody, and glass mallets. Each track
+stores its instrument settings, notes, velocity, fader, and stereo position.
+The snare uses a short filtered-noise patch. The melody uses a short reverb and the mallets use a beat-synced echo.
+
+The game builder reads that document and calls NodeTool's timeline MIDI
+renderer and mixer through [tools/music.mjs](tools/music.mjs). It renders
+three cycles and extracts the middle cycle so instrument and effect tails
+carry across the loop boundary. The resulting 48 kHz stereo WAV is bundled
+with the game. Edit the timeline, then run the build commands above to update
+the soundtrack. Rendering requires FFmpeg and FFprobe. The short gameplay
+sound effects remain separate event cues in `tools/presentation.mjs`.
+
+Validate the editable source with:
+
+```bash
+npm run dev:nodetool -- timeline validate packages/game-runtime/samples/sunrush-kart/music.timeline.json
+```
 
 ## Verification
 
