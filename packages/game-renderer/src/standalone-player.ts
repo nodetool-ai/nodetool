@@ -28,6 +28,8 @@ declare global {
 }
 
 const PLAYER_VERSIONS: readonly string[] = ["1", "3"];
+/** A browser can stall a script past its time budget, so the player skips that call instead of stopping the game. */
+const PLAYER_SESSION_OPTIONS = { scriptOverrun: "skip" } as const;
 
 function element(id: string): HTMLElement {
   const found = document.getElementById(id);
@@ -111,7 +113,7 @@ async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandalon
       effectNotice = "GPU effect omitted on this device";
     }
   }
-  let session = await createScriptedGameSession(game, 1);
+  let session = await createScriptedGameSession(game, 1, undefined, undefined, PLAYER_SESSION_OPTIONS);
   audio.sync(session.snapshot());
   let latest: GameRenderFrame = session.frame();
   renderer.resize(latest.width * latest.pixelsPerUnit, latest.height * latest.pixelsPerUnit);
@@ -177,7 +179,7 @@ async function startPlayer(game: GameDocument, verifiedAssets: VerifiedStandalon
     if (replacing === signal) { replacing = undefined; }
   }
   async function replaceSession(signal: AbortSignal, snapshot?: GameSnapshot): Promise<boolean> {
-    const restored = await createScriptedGameSession(game, 1, snapshot);
+    const restored = await createScriptedGameSession(game, 1, snapshot, undefined, PLAYER_SESSION_OPTIONS);
     if (signal.aborted || disposed) { restored.dispose(); return false; }
     while (rendering) {
       try { await rendering; } catch { /* A reset can recover from an earlier failed render. */ }

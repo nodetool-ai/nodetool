@@ -52,6 +52,11 @@ export interface GameSession3DOptions {
    * profiler can turn reporting on and off without a new session. Reporting never changes simulation results.
    */
   readonly recordTimings?: boolean | (() => boolean);
+  /**
+   * `skip` keeps the game running when a script call overruns its time budget: the call's work is discarded and a
+   * warning appears in the script logs. The default, `fail`, stops the step with an error. See `GameScriptOptions.overrun`.
+   */
+  readonly scriptOverrun?: "fail" | "skip";
   readonly signal?: AbortSignal;
   readonly eventSink?: (event: GameEvent3D) => void;
   readonly resolveCollider?: (
@@ -254,7 +259,7 @@ export async function createGameSession3D(
         prefab.entities.some((entity) => entity.behaviors.some((behavior) => behavior.kind === "script"))
       )
     ) {
-      runner = await prepareGameScripts3D(document);
+      runner = await prepareGameScripts3D(document, { overrun: options.scriptOverrun });
     }
     options.signal?.throwIfAborted();
     if (saved?.pendingCommands.length) throw new Error("Committed snapshots cannot contain unapplied commands");

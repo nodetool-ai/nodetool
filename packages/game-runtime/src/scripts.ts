@@ -192,6 +192,14 @@ export interface GameScriptOptions {
    * reports it (Node), otherwise wall time. The batch budget and preparation limits use wall time.
    */
   readonly callClock?: ScriptCallClock;
+  /**
+   * What a call that runs past its call or batch time budget does. `fail` (the default) fails the batch, so headless runs,
+   * replays and tests report the overrun. `skip` discards that call's work: its entity keeps its state, gets no commands
+   * and draws no random numbers this tick, a warning log line names the call, and a batch past its budget skips its
+   * remaining calls. Players use `skip` because browsers stall scripts for reasons outside the game. A skipped call's
+   * outcome depends on timing, so a session that skipped one may not replay identically.
+   */
+  readonly overrun?: "fail" | "skip";
 }
 
 /** Only proven input-only functions may retain their context between calls. */
@@ -359,6 +367,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   options: GameScriptOptions = {}
 ): Promise<IsolatedScriptRunner<Call, Input, Command>> {
   const callClock = options.callClock ?? defaultScriptCallClock;
+  const skipOverruns = options.overrun === "skip";
   let envelope = envelopeSchemas.get(commandSchema);
   if (envelope === undefined) {
     envelope = z.object({ value: z.strictObject({ state: z.json(), commands: z.array(commandSchema) }), rngState: z.number().int().nonnegative() });
@@ -618,8 +627,14 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       let commandCount = 0;
       const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
       const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
-      for (const call of calls) {
+      for (const [index, call] of calls.entries()) {
         const callBudgetMs = Number.isFinite(call.maxTickMs) ? Math.min(MAX_SCRIPT_CALL_MS, call.maxTickMs) : MAX_SCRIPT_CALL_MS;
+        if (skipOverruns && performance.now() >= batchDeadline) {
+          const skipped = calls.slice(index);
+          for (const rest of skipped) { results.push({ entityId: rest.entityId, state: rest.state, commands: [] }); }
+          logs.warn(undefined, `${skipped.length} game script ${skipped.length === 1 ? "call" : "calls"} skipped at tick ${input.tick}: ${batchBudget} budget exceeded`);
+          break;
+        }
         assertBeforeDeadline(batchDeadline, batchBudget);
         const source = sources.get(call.sourceKey);
         if (source === undefined) {
@@ -767,15 +782,26 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           nextRngState = envelope.rngState;
           results.push({ entityId: call.entityId, state: value.state, commands: value.commands });
         } catch (error) {
-          // A failed batch cannot retain partially evaluated realms.
-          disposeRealms();
-          throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
+          const batchOverrun = performance.now() >= batchDeadline;
+          if (skipOverruns && (batchOverrun || callExceeded())) {
+            // The interrupted call may have changed its retained realm, so the next call starts a fresh one.
+            const realm = realms.get(call.stateKey);
+            if (realm) { disposeRealm(realm); realms.delete(call.stateKey); }
+            results.push({ entityId: call.entityId, state: call.state, commands: [] });
+            const budget = batchOverrun ? batchBudget : `call ${callBudgetMs} ms`;
+            logs.warn(call.entityId, `Game script ${call.sourceKey} for ${call.entityId} skipped at tick ${input.tick}: ${budget} budget exceeded`);
+          } else {
+            // A failed batch cannot retain partially evaluated realms.
+            disposeRealms();
+            throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
+          }
         }
-        checkCallDeadline();
+        // With skipping, a batch that ran out of time after this call skips the remaining calls on the next pass.
+        if (!skipOverruns) { checkCallDeadline(); }
         const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
         byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
       }
-      assertBeforeDeadline(batchDeadline, batchBudget);
+      if (!skipOverruns) { assertBeforeDeadline(batchDeadline, batchBudget); }
       const stats = { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity };
       const lines = logs.entries();
       const requests = saves.entries();

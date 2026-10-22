@@ -70,7 +70,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const [scriptLogs] = useState(createGameScriptLogChannel);
   const [profiler] = useState(() => createGameProfiler());
   // Steps report system timings and physics counts only while the profiler records. Neither enters snapshots or replay.
-  const [sessionOptions] = useState(() => ({ recordTimings: profiler.recording }));
+  const [sessionOptions] = useState(() => ({ recordTimings: profiler.recording, scriptOverrun: "skip" as const }));
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument | null>(null);
   const blockedEntities = useMemo(() => new Set(Object.keys(behaviorStructureVersions).filter((key) =>
