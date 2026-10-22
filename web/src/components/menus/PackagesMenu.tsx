@@ -332,6 +332,7 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
                     density="compact"
                     onClick={() => void handleTrust(pack.name)}
                     disabled={busy !== null}
+                    loading={busy === pack.name}
                     sx={{ flexShrink: 0 }}
                   >
                     {busy === pack.name ? t("screens4_5.packages.verifying") : t("screens4_5.packages.trustAndRebuild")}
@@ -434,7 +435,8 @@ const InstallPanel = memo(function InstallPanel({
         <EditorButton
           variant="contained"
           onClick={handleInstall}
-          disabled={!spec.trim() || status.kind === "installing"}
+          disabled={!spec.trim()}
+          loading={status.kind === "installing"}
         >
           {status.kind === "installing" ? t("screens4_5.packages.installing") : t("screens4_5.packages.install")}
         </EditorButton>
@@ -546,7 +548,7 @@ function PackagesMenu() {
               variant="outlined"
               density="compact"
               onClick={() => void reload()}
-              disabled={isLoading}
+              loading={isLoading}
             >
               {isLoading ? t("screens4_5.packages.reloading") : t("screens4_5.packages.reload")}
             </EditorButton>

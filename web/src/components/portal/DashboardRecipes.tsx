@@ -285,7 +285,7 @@ const RecipeAppRow = memo(function RecipeAppRow({
       <EditorButton
         variant="outlined"
         className="rcp-add"
-        disabled={installing}
+        loading={installing}
         onClick={() => onInstall(app.slug)}
       >
         {installing ? t("pass3_17.recipes.installing") : t("pass3_17.recipes.installApp")}
@@ -343,7 +343,7 @@ const RecipeCard = memo(function RecipeCard({
           <EditorButton
             variant="outlined"
             className="rcp-add"
-            disabled={installingPrimary}
+            loading={installingPrimary}
             onClick={() => void installApp(primaryApp.slug)}
           >
             {installingPrimary ? t("pass3_17.recipes.installing") : t("pass3_17.recipes.installNamedApp", { name: primaryApp.name })}

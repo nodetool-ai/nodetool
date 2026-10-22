@@ -56,7 +56,6 @@ import {
   SPACING,
   SPACING_PX,
   Text,
-  ThinkingIndicator,
   ToolbarIconButton,
   TYPOGRAPHY
 } from "../../ui_primitives";
@@ -715,18 +714,15 @@ export const EntitiesStep = ({
                             : undefined
                         }
                         disabled={
-                          readOnly ||
-                          (!existing && !board?.imageModel?.id) ||
-                          creating
+                          readOnly || (!existing && !board?.imageModel?.id)
                         }
+                        loading={creating}
                         onClick={() => void createSuggestion(suggestion)}
                       >
                         {creating ? (
-                          <ThinkingIndicator
-                            label={t("pass3_10.storyboard.entities.creatingEntity", {
-                              name: suggestion.name
-                            })}
-                          />
+                          t("pass3_10.storyboard.entities.creatingEntity", {
+                            name: suggestion.name
+                          })
                         ) : existing ? (
                           t("pass3_10.storyboard.entities.useEntity", {
                             name: suggestion.name

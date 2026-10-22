@@ -8,7 +8,6 @@ import {
   FormField,
   FlexRow,
   FlexColumn,
-  LoadingSpinner,
   TextInput,
   EditorButton,
   MOTION,
@@ -145,13 +144,8 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
           disabled={isSubmitDisabled}
           disableElevation
           sx={{ alignSelf: "flex-end", mb: 0.5 }}
-          startIcon={
-            createMutation.isPending ? (
-              <LoadingSpinner size="small" color="inherit" />
-            ) : (
-              <AddCircleOutlineIcon />
-            )
-          }
+          loading={createMutation.isPending}
+          startIcon={<AddCircleOutlineIcon />}
         >
           {createMutation.isPending ? t("screen_assets.collections.creating") : t("screen_assets.collections.create")}
         </EditorButton>

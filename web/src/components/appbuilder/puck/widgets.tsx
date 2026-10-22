@@ -27,7 +27,6 @@ import {
   Card,
   DataTable,
   Divider,
-  LoadingSpinner,
   ProgressBar,
   MagicGenerationFill,
   Caption,
@@ -1751,7 +1750,8 @@ export const ButtonWidget: React.FC<
       density="normal"
       size="medium"
       fullWidth={fullWidth}
-      disabled={Boolean(props.disabled) || showRunning}
+      disabled={Boolean(props.disabled)}
+      loading={showRunning}
       onClick={() => emit("click")}
       sx={{
         fontSize: TYPOGRAPHY.sans.body.fontSize,
@@ -1763,9 +1763,6 @@ export const ButtonWidget: React.FC<
         // Keep the run state vivid rather than dimmed-out while it works.
         ...(showRunning && { "&.Mui-disabled": { opacity: 1 } })
       }}
-      startIcon={
-        showRunning ? <LoadingSpinner inline size={16} color="inherit" /> : undefined
-      }
     >
       {showRunning ? t("i18n-next53.appBuilder.status.running") : (props.label ?? t("i18n-next53.appBuilder.actions.button"))}
     </EditorButton>

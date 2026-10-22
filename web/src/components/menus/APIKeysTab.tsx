@@ -389,7 +389,7 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
                 size="small"
                 startIcon={<LoginIcon />}
                 onClick={oauth.connect}
-                disabled={oauth.isConnecting}
+                loading={oauth.isConnecting}
               >
                 {oauth.isConnecting
                   ? t("i18n-cont-settings-01.apiKeys.connecting")
@@ -404,7 +404,7 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
                 variant="text"
                 size="small"
                 onClick={handleTest}
-                disabled={testing}
+                loading={testing}
               >
                 {testing ? t("i18n-cont-settings-01.apiKeys.testing") : t("i18n-cont-settings-01.apiKeys.test")}
               </EditorButton>

@@ -95,7 +95,7 @@ const GameCard = memo(function GameCard({
           <EditorButton
             variant="outlined"
             density="compact"
-            disabled={installing}
+            loading={installing}
             onClick={handleClick}
             sx={{ alignSelf: "flex-start" }}
           >

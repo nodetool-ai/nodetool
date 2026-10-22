@@ -75,7 +75,7 @@ describe("DialogActionButtons", () => {
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
   });
 
-  it("shows loading spinner when isLoading is true", () => {
+  it("shows the button spinner beside the confirm label when isLoading is true", () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <DialogActionButtons
@@ -86,8 +86,10 @@ describe("DialogActionButtons", () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId("loading-spinner")).toBeInTheDocument();
-    expect(screen.queryByText("Confirm")).not.toBeInTheDocument();
+    const confirm = screen.getByRole("button", { name: "Confirm" });
+    expect(confirm).toContainElement(screen.getByTestId("loading-spinner"));
+    expect(confirm).toBeDisabled();
+    expect(confirm).toHaveAttribute("aria-busy", "true");
   });
 
   it("disables buttons when isLoading is true", () => {

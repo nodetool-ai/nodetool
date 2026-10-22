@@ -304,7 +304,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
         <ToolbarIconButton
           ariaLabel={t("i18n-next65.timeline.listPanel.newTimeline")}
           onClick={() => void handleCreate()}
-          disabled={createTimeline.isPending}
+          loading={createTimeline.isPending}
           tabIndex={-1}
           icon={<AddIcon />}
         />
@@ -316,7 +316,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
         <ToolbarIconButton
           ariaLabel={t("i18n-next65.timeline.listPanel.importTimeline")}
           onClick={handleImportClick}
-          disabled={isImporting}
+          loading={isImporting}
           tabIndex={-1}
           icon={<UploadFileOutlinedIcon />}
         />

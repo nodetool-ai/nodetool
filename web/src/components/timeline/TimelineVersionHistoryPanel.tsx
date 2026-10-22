@@ -267,7 +267,8 @@ export const TimelineVersionHistoryPanel: React.FC<
         density="compact"
         variant="contained"
         onClick={openSaveDialog}
-        disabled={!sequenceId || isCreatingVersion}
+        disabled={!sequenceId}
+        loading={isCreatingVersion}
       >
         {isCreatingVersion ? t("i18n-next3.timeline.history.saving") : t("i18n-next3.timeline.history.saveVersion")}
       </EditorButton>

@@ -559,7 +559,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               {olderCursor && (
                 <EditorButton
                   onClick={loadOlderMessages}
-                  disabled={loadingHistoryThread === visibleThreadId}
+                  loading={loadingHistoryThread === visibleThreadId}
                 >
                   {loadingHistoryThread === visibleThreadId
                     ? "Loading older messages…"

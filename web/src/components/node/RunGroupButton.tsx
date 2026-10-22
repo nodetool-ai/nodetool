@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ToolbarIconButton, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -68,12 +68,9 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
       css={cssStyles}
       className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
       onClick={handleClick}
+      loading={isRunning}
     >
-      {isRunning ? (
-        <LoadingSpinner inline size={16} color="inherit" />
-      ) : (
-        <PlayArrow />
-      )}
+      <PlayArrow />
     </ToolbarIconButton>
   );
 };

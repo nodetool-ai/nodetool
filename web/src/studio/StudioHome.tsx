@@ -146,7 +146,7 @@ const BlankStart = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <EditorButton variant="text" startIcon={icon} onClick={onStart} disabled={disabled}>
+    <EditorButton variant="text" startIcon={icon} onClick={onStart} disabled={disabled} loading={busy}>
       {busy ? t("screen_remaining.studio.creating") : label}
     </EditorButton>
   );

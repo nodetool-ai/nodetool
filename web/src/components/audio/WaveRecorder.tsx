@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { EditorButton, Text, Box, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,
@@ -133,10 +133,9 @@ const WaveRecorder = (props: WaveRecorderProps) => {
         className={`record-button nodrag ${isRecording ? " recording" : ""}`}
         variant="text"
         density="compact"
-        disabled={isLoading}
+        loading={isLoading}
       >
         {isRecording ? t("batch2_15.audio.stop") : t("batch2_15.audio.record")}
-        {isLoading && <LoadingSpinner size="small" />}
       </EditorButton>
 
       <EditorButton

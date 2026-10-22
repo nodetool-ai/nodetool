@@ -27,7 +27,6 @@ import {
   Caption,
   EditorButton,
   ToolbarIconButton,
-  LoadingSpinner,
   SPACING,
   ICON_SIZE
 } from "../ui_primitives";
@@ -163,30 +162,18 @@ export const TranscriptPanel: React.FC = memo(() => {
               </EditorButton>
             ) : null}
             <ToolbarIconButton
-              icon={
-                importing ? (
-                  <LoadingSpinner inline size={14} />
-                ) : (
-                  <UploadFileIcon fontSize="small" />
-                )
-              }
+              icon={<UploadFileIcon fontSize="small" />}
               tooltip={t("i18n-next65.timeline.transcript.importTooltip")}
               aria-label={t("i18n-next65.timeline.transcript.importLabel")}
-              disabled={importing}
+              loading={importing}
               onClick={() => fileInputRef.current?.click()}
             />
             {sequenceId && segments.length > 0 ? (
               <ToolbarIconButton
-                icon={
-                  extracting ? (
-                    <LoadingSpinner inline size={14} />
-                  ) : (
-                    <EditNoteIcon fontSize="small" />
-                  )
-                }
+                icon={<EditNoteIcon fontSize="small" />}
                 tooltip={t("i18n-next65.timeline.transcript.extractTooltip")}
                 aria-label={t("i18n-next65.timeline.transcript.extractLabel")}
-                disabled={extracting}
+                loading={extracting}
                 onClick={() => void onExtractScript()}
               />
             ) : null}

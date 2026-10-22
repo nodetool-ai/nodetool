@@ -127,6 +127,7 @@ const TrackingSection: React.FC<ClipTrackingProps> = ({ clip }) => {
             variant="contained"
             color="primary"
             disabled={!canTrack}
+            loading={status === "pending"}
             onClick={() => void start()}
             data-testid="track-object"
           >

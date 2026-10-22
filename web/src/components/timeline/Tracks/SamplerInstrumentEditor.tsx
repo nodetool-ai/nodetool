@@ -153,7 +153,8 @@ export default function SamplerInstrumentEditor({
           {t("i18n-cont-music-09.sampler.addSample")}
         </Button>
         <Button
-          disabled={uploading || instrument.zones.length >= 32}
+          disabled={instrument.zones.length >= 32}
+          loading={uploading}
           onClick={() => fileInput.current?.click()}
         >
           {uploading ? t("i18n-cont-music-09.sampler.uploading") : t("i18n-cont-music-09.sampler.uploadAudio")}

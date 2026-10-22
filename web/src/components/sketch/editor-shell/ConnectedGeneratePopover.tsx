@@ -33,7 +33,6 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  LoadingSpinner,
   Popover,
   TextArea,
   SPACING,
@@ -353,13 +352,8 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
             size="medium"
             disabled={actionDisabled}
             onClick={() => void handleGenerate()}
-            startIcon={
-              generating ? (
-                <LoadingSpinner inline size={14} color="inherit" />
-              ) : (
-                <AutoAwesomeIcon />
-              )
-            }
+            loading={generating}
+            startIcon={<AutoAwesomeIcon />}
             data-testid="sketch-gen-submit"
             sx={{ alignSelf: "flex-end" }}
           >

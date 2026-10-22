@@ -181,4 +181,22 @@ describe("ToolbarIconButton", () => {
     fireEvent.mouseOver(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.getByRole("tooltip")).toHaveTextContent("Save"));
   });
+  it("shows the button spinner in place of the icon while loading", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton
+          icon={<SaveIcon />}
+          tooltip="Save"
+          loading
+          onClick={mockOnClick}
+        />
+      </ThemeProvider>
+    );
+
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(screen.queryByTestId("SaveIcon")).not.toBeInTheDocument();
+    expect(button.querySelector(".MuiCircularProgress-root")).not.toBeNull();
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+  });
 });

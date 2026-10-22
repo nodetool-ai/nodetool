@@ -101,7 +101,7 @@ const DerivedShotSectionInner = ({ clipId }: DerivedShotSectionProps) => {
         fullWidth
         variant="outlined"
         onClick={() => void handleDerive()}
-        disabled={working}
+        loading={working}
         data-testid="derived-shot-create"
       >
         {working

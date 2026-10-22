@@ -129,6 +129,7 @@ const DashboardExampleSketches = () => {
               <ExampleNeedsPill needs={NO_EXAMPLE_NEEDS} />
               <EditorButton
                 disabled={install.isPending}
+                loading={install.isPending && install.variables?.slug === example.slug}
                 aria-label={t("pass3_16.portal.sketches.openNamed", {
                   name: example.name
                 })}

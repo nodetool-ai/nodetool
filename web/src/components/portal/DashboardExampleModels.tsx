@@ -151,6 +151,7 @@ const DashboardExampleModels = () => {
                   </Caption>
                   <EditorButton
                     disabled={install.isPending}
+                    loading={opening}
                     aria-label={t("pass3_16.portal.models.openNamed", {
                       name: model.name
                     })}

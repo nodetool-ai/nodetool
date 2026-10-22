@@ -236,7 +236,8 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             size="small"
             startIcon={allDownloaded ? <CheckCircleIcon /> : <DownloadIcon />}
             onClick={handleDownloadAll}
-            disabled={allDownloaded || isDownloading}
+            disabled={allDownloaded}
+            loading={isDownloading}
             sx={{
               textTransform: "none",
               fontWeight: 600

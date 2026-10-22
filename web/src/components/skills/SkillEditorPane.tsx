@@ -459,7 +459,8 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
             variant="contained"
             size="small"
             startIcon={<SaveIcon />}
-            disabled={!isDirty || updateMutation.isPending || readOnly}
+            disabled={!isDirty || readOnly}
+            loading={updateMutation.isPending}
             onClick={handleManualSave}
           >
             {updateMutation.isPending ? t("screen_remaining.skills.saving") : t("common.save")}

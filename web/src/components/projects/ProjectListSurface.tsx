@@ -320,7 +320,7 @@ const ProjectListSurface = () => {
         <EditorButton
           variant="outlined"
           onClick={chooseImportFile}
-          disabled={importProject.isPending}
+          loading={importProject.isPending}
           sx={{ whiteSpace: "nowrap" }}
         >
           {importProject.isPending

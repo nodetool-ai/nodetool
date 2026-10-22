@@ -104,7 +104,8 @@ export default function AntigravityCard() {
             {status.data.command}
           </CodeBlock>
           <EditorButton
-            disabled={status.isFetching || busy}
+            disabled={busy}
+            loading={status.isFetching}
             onClick={() => {
               void refresh();
             }}
@@ -117,7 +118,8 @@ export default function AntigravityCard() {
           <Caption>{t("antigravity.installDescription")}</Caption>
           <EditorButton
             variant="contained"
-            disabled={!status.data?.available || busy || status.isLoading}
+            disabled={!status.data?.available || status.isLoading}
+            loading={busy}
             onClick={() => install.mutate()}
           >
             {t(

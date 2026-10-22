@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Dialog, LoadingSpinner, Text } from "../../ui_primitives";
+import { Button, Dialog, Text } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   isFileExplorerAvailable,
@@ -187,14 +187,10 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
             variant="contained"
             color="error"
             onClick={handleConfirmDelete}
-            disabled={isDeleting}
+            loading={isDeleting}
             aria-label={t("i18n-next29.delete.confirm")}
           >
-            {isDeleting ? (
-              <LoadingSpinner inline size="small" color="inherit" />
-            ) : (
-              t("i18n-next29.delete.confirm")
-            )}
+            {t("i18n-next29.delete.confirm")}
           </Button>
         </>
       }

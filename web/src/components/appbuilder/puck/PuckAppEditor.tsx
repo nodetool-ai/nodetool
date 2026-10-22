@@ -79,7 +79,7 @@ const SaveButton: React.FC<{ onSave: (data: Data) => void; saving?: boolean }> =
       color="primary"
       startIcon={<SaveIcon />}
       onClick={handleClick}
-      disabled={saving}
+      loading={saving}
     >
       {saving ? "Saving…" : "Save"}
     </EditorButton>

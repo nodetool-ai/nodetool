@@ -75,7 +75,7 @@ const TimelineCard = memo(function TimelineCard({ timeline, installing, onInstal
         <EditorButton
           variant="contained"
           density="compact"
-          disabled={installing}
+          loading={installing}
           onClick={() => onInstall(timeline)}
           sx={{ alignSelf: "flex-start" }}
         >

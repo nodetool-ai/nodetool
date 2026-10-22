@@ -184,7 +184,7 @@ const ProviderRow = memo(function ProviderRow({
           variant="text"
           size="small"
           onClick={handleTest}
-          disabled={testing}
+          loading={testing}
         >
           {testing ? t("i18n-cont-settings-01.customProviders.testing") : t("i18n-cont-settings-01.customProviders.test")}
         </EditorButton>

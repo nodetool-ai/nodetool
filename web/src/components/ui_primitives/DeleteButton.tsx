@@ -70,6 +70,11 @@ export interface DeleteButtonProps {
    */
   disabled?: boolean;
   /**
+   * The delete is waiting on a response: the icon becomes the button
+   * spinner and the button is disabled until it settles.
+   */
+  loading?: boolean;
+  /**
    * Additional class name
    */
   className?: string;
@@ -99,6 +104,7 @@ export const DeleteButton = memo(
         iconVariant = "delete",
         nodrag = true,
         disabled = false,
+        loading = false,
         className,
         sx,
         tabIndex = 0,
@@ -166,6 +172,7 @@ export const DeleteButton = memo(
             )}
             onClick={handleClick}
             disabled={disabled}
+            loading={loading}
             size={buttonSize}
             sx={buttonSx}
           >

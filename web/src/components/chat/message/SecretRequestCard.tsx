@@ -191,6 +191,7 @@ const SecretRequestCard: React.FC<SecretRequestCardProps> = ({
             color="primary"
             density="normal"
             disabled={!canSave}
+            loading={saving}
             onClick={handleSave}
             startIcon={<KeyRoundedIcon />}
           >

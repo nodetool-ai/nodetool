@@ -243,7 +243,8 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
               aria-label={t("screen_chat.textAssist.sendInstruction")}
               variant="primary"
               size="small"
-              disabled={running || !instruction.trim()}
+              disabled={!instruction.trim()}
+              loading={running}
               onClick={() => submit(instruction)}
             />
           </FlexRow>

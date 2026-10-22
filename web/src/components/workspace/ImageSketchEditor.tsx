@@ -53,7 +53,7 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
           variant="contained"
           size="small"
           onClick={save}
-          disabled={saving}
+          loading={saving}
         >
           {saving ? t("i18n-next51.imageSketch.saving") : t("i18n-next51.imageSketch.saveToImage")}
         </EditorButton>

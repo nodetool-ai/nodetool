@@ -128,7 +128,8 @@ const LineDeliveryPanel: React.FC<LineDeliveryPanelProps> = ({ clipId }) => {
         <EditorButton
           fullWidth
           variant={pending ? "outlined" : "contained"}
-          disabled={pending || !voice}
+          disabled={!voice}
+          loading={pending}
           onClick={() => void handleSubmit()}
           startIcon={<AutoAwesomeOutlinedIcon />}
         >

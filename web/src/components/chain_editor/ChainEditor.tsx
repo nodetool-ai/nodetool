@@ -121,7 +121,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
           ariaLabel={t("pass3_0.chainEditor.saveWorkflow")}
           tooltip={t("pass3_0.chainEditor.saveWorkflow")}
           onClick={handleSave}
-          disabled={saving}
+          loading={saving}
           icon={<SaveOutlinedIcon sx={{ fontSize: ICON_SIZE.lg }} />}
           sx={{ color: theme.vars.palette.text.secondary }}
         />

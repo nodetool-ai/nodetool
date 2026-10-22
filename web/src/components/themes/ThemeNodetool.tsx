@@ -10,11 +10,20 @@ import {
   type TextSize
 } from "./textSizes";
 import { DEFAULT_THEME_CONTRAST, type ThemeContrast } from "./themeContrasts";
-import { CONTROL, MOTION } from "../ui_primitives";
+import { ButtonSpinner, CONTROL, MOTION } from "../ui_primitives";
 import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
+
+/** Palette colours a button can take, whose colours it keeps while busy. */
+type BusyTone =
+  | "primary"
+  | "secondary"
+  | "success"
+  | "warning"
+  | "error"
+  | "info";
 
 const CHIP_TONES = [
   "primary",
@@ -259,19 +268,51 @@ const nodetoolThemeOptions: ThemeOptions = {
         })
       }
     },
+    // A button waiting on a response shows the button spinner where its
+    // start icon sits; the label stays. EditorButton and ToolbarIconButton
+    // draw the same spinner through their own `loading` prop. The button is
+    // disabled while it waits but keeps its colours, so the one that is
+    // working stands apart from the ones that are merely off.
     MuiButton: {
+      defaultProps: {
+        loadingPosition: "start",
+        loadingIndicator: <ButtonSpinner />
+      },
       styleOverrides: {
-        root: ({ theme }) => ({
-          minWidth: 36,
-          textTransform: "none",
-          fontWeight: 500,
-          letterSpacing: "0.005em",
-          borderRadius: theme.rounded.buttonLarge,
-          boxShadow: "none",
-          "&:hover": {
-            boxShadow: "none"
-          }
-        }),
+        root: ({ theme, ownerState }) => {
+          const tone =
+            ownerState.color && ownerState.color !== "inherit"
+              ? theme.vars.palette[ownerState.color as BusyTone]
+              : undefined;
+          const busy =
+            ownerState.variant === "contained"
+              ? {
+                  color: tone ? tone.contrastText : "inherit",
+                  backgroundColor: tone
+                    ? tone.main
+                    : theme.vars.palette.action.selected
+                }
+              : ownerState.variant === "outlined"
+                ? {
+                    color: tone ? tone.main : "inherit",
+                    borderColor: tone
+                      ? `rgba(${tone.mainChannel} / 0.5)`
+                      : theme.vars.palette.divider
+                  }
+                : { color: tone ? tone.main : "inherit" };
+          return {
+            minWidth: 36,
+            textTransform: "none",
+            fontWeight: 500,
+            letterSpacing: "0.005em",
+            borderRadius: theme.rounded.buttonLarge,
+            boxShadow: "none",
+            "&:hover": {
+              boxShadow: "none"
+            },
+            '&.Mui-disabled[aria-busy="true"], &.MuiButton-loading': busy
+          };
+        },
         // MUI's small size is 0.8125rem at a 1.75 line height: text between
         // the 13px and 15px tokens in a 31px box. Small buttons sit beside
         // small controls, so they take the same text size and height.
@@ -285,6 +326,17 @@ const nodetoolThemeOptions: ThemeOptions = {
         iconSizeSmall: { "& > *:nth-of-type(1)": { fontSize: 16 } },
         iconSizeMedium: { "& > *:nth-of-type(1)": { fontSize: 18 } },
         iconSizeLarge: { "& > *:nth-of-type(1)": { fontSize: 20 } }
+      }
+    },
+    MuiIconButton: {
+      defaultProps: {
+        loadingIndicator: <ButtonSpinner />
+      },
+      styleOverrides: {
+        root: ({ theme }) => ({
+          '&.Mui-disabled[aria-busy="true"], & .MuiIconButton-loadingIndicator':
+            { color: theme.vars.palette.text.secondary }
+        })
       }
     },
     MuiFormLabel: {

@@ -274,7 +274,7 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
             </EditorButton>
             <EditorButton
               onClick={handleRegenerate}
-              disabled={isGenerating}
+              loading={isGenerating}
               sx={quietActionSx}
               tooltip={t(
                 "i18n-cont-storyboard-04.storyboard.shotInspector.regenerateTooltip"

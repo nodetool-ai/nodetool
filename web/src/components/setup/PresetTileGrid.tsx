@@ -208,7 +208,8 @@ const VoiceSample: React.FC<{ preset: PresetTile; autoPlay: boolean }> = ({
       <EditorButton
         variant="outlined"
         onClick={handlePlay}
-        disabled={preset.samplePending === true || preset.disabled === true}
+        disabled={preset.disabled === true}
+        loading={preset.samplePending === true}
       >
         {preset.samplePending === true
           ? t("pass3_3.setup.presetTileGrid.generatingSample")

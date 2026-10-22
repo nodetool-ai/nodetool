@@ -81,6 +81,14 @@ const RULES = [
     fix: "pass the bare icon; the theme sizes it",
     line: /(startIcon|endIcon)=\{<\w+Icon[^>]*fontSize=/
   },
+  {
+    id: "button/hand-rolled-loading",
+    element: "Buttons",
+    finds: "spinner passed as a button's icon while it waits",
+    fix: "loading prop (the button spinner)",
+    tag: ["Button", "EditorButton", "IconButton", "ToolbarIconButton"],
+    test: /\b(startIcon|endIcon|icon)=\{[\s\S]*<(LoadingSpinner|CircularProgress|ThinkingIndicator)\b/
+  },
   // Tooltips
   {
     id: "tooltip/native-title",
@@ -538,6 +546,7 @@ function audit() {
 // Rules whose count has reached zero. A new hit fails `npm run lint:design`.
 const ENFORCED = [
   "button/raw-icon-button",
+  "button/hand-rolled-loading",
   "tooltip/shortcut-in-text",
   "dialog/restyled-paper",
   "menu/raw-menu",

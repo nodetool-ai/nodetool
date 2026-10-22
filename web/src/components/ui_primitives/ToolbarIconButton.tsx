@@ -21,6 +21,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { Tooltip, tooltipWithShortcut } from "./Tooltip";
 import { isString } from "../../utils/typePredicates";
+import { ButtonSpinner } from "./ButtonSpinner";
 
 export interface ToolbarIconButtonProps
   extends Omit<IconButtonProps, "children" | "title"> {
@@ -96,6 +97,11 @@ export interface ToolbarIconButtonProps
    */
   disabledReason?: React.ReactNode;
   /**
+   * The action this button started is waiting on a response. The icon
+   * becomes the button spinner and the button is disabled until it settles.
+   */
+  loading?: boolean;
+  /**
    * Render as an anchor element. When provided, `href`, `target`, and `rel` are forwarded.
    */
   component?: React.ElementType;
@@ -130,14 +136,20 @@ export const ToolbarIconButton = memo(
         tabIndex = 0,
         ariaLabel,
         disabledReason,
-        disabled,
+        disabled: disabledProp,
+        loading = false,
         ...props
       },
       ref
     ) => {
       const theme = useTheme();
       const resolvedTooltip = tooltip ?? title ?? "";
-      const resolvedIcon = icon ?? children;
+      const disabled = disabledProp || loading;
+      const resolvedIcon = loading ? (
+        <ButtonSpinner size={size} />
+      ) : (
+        icon ?? children
+      );
 
       const variantStyles = useMemo(() => {
         switch (variant) {
@@ -169,7 +181,7 @@ export const ToolbarIconButton = memo(
       }, [variant, theme]);
 
       const tooltipContent =
-        disabled && disabledReason
+        disabledProp && !loading && disabledReason
           ? disabledReason
           : tooltipWithShortcut(resolvedTooltip, shortcut);
 
@@ -188,6 +200,7 @@ export const ToolbarIconButton = memo(
           size={size}
           tabIndex={tabIndex}
           disabled={disabled}
+          aria-busy={loading || undefined}
           sx={{
             ...variantStyles,
             ...(active && {

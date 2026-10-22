@@ -78,7 +78,7 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
       <ToolbarIconButton
         ariaLabel={t("i18n-cont-storyboard-04.storyboard.listPanel.newStoryboard")}
         onClick={() => void handleCreate()}
-        disabled={createStoryboard.isPending}
+        loading={createStoryboard.isPending}
         icon={<AddIcon />}
       />
     </Tooltip>

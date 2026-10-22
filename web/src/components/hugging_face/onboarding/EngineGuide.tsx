@@ -12,7 +12,6 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  LoadingSpinner,
   Text,
   TextLink,
   BORDER_RADIUS,
@@ -154,15 +153,9 @@ const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
           variant="outlined"
           density="compact"
           size="small"
-          disabled={isBusy}
+          loading={isBusy}
           onClick={handleInstall}
-          startIcon={
-            isBusy ? (
-              <LoadingSpinner inline size={14} />
-            ) : (
-              <ExtensionOutlinedIcon />
-            )
-          }
+          startIcon={<ExtensionOutlinedIcon />}
           sx={{ flexShrink: 0 }}
         >
           {available

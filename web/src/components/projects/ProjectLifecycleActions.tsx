@@ -205,7 +205,7 @@ const ProjectLifecycleActions = ({
           density="compact"
           variant="text"
           onClick={handleExport}
-          disabled={exportProject.isPending}
+          loading={exportProject.isPending}
         >
           {exportProject.isPending
             ? t("pass3_33.projects.lifecycle.exporting")

@@ -607,7 +607,8 @@ const AiRenderPanel = ({ capture, shot, onShotChange, camera }: AiRenderPanelPro
 
         <EditorButton
           variant="contained"
-          startIcon={rendering ? <LoadingSpinner inline size={14} color="inherit" /> : <PhotoCameraOutlinedIcon />}
+          loading={rendering}
+          startIcon={<PhotoCameraOutlinedIcon />}
           onClick={() => void handleRender()}
           disabled={!canRender}
           fullWidth

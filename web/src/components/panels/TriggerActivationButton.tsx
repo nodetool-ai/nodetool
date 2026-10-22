@@ -431,7 +431,8 @@ const TriggerActivationButton: React.FC = () => {
                   <FlexRow justify="flex-end">
                     <EditorButton
                       size="small"
-                      disabled={!reg?.enabled || fireTrigger.isPending}
+                      disabled={!reg?.enabled}
+                      loading={fireTrigger.isPending}
                       onClick={() => reg && handleFire(reg.id)}
                     >
                       {t("i18n-next5.triggers.fireNow")}
