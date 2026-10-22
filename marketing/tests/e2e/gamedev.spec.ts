@@ -107,7 +107,9 @@ test("the game page fits on a phone and offers the full touch player", async ({ 
 
 
 test("Sunrush Kart opens from its poster and starts a coastal race", async ({ page }) => {
-  test.setTimeout(90_000);
+  // CI renders with SwiftShader at about 2 s per frame, so the budget covers
+  // the sum of the waits below.
+  test.setTimeout(150_000);
   await page.goto("/gamedev");
   const section = page.locator("#example-games");
   await section.getByRole("button", { name: "Sunrush Kart", exact: true }).click();
@@ -125,7 +127,8 @@ test("Sunrush Kart opens from its poster and starts a coastal race", async ({ pa
     const game = (window as unknown as NativeGame3DWindow).nativeGame3DPlayer;
     return game.inspect().entities.find((entity) => entity.id === "racer-0")?.props?.race?.phase;
   }), { timeout: 30_000 }).toBe("title");
-  await player.locator("canvas").click();
+  // The player reads keys on window. A canvas click waits for stable frames
+  // and costs about 20 s under software rendering.
   await player.keyboard.press("Enter");
   await expect.poll(() => player.evaluate(() => {
     const game = (window as unknown as NativeGame3DWindow).nativeGame3DPlayer;
