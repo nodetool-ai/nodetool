@@ -507,7 +507,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                 ) : null}
                 <EditorButton
                   variant="text"
-                  disabled={tile.pending}
+                  loading={tile.pending}
                   onClick={() => regenerate(tile.layerId, tile.failed)}
                 >
                   {tile.failed
@@ -561,7 +561,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
       <FlexRow gap={GAP.normal} wrap>
         <EditorButton
           variant="outlined"
-          disabled={makeMorePending}
+          loading={makeMorePending}
           onClick={onMakeMore}
         >
           {makeMorePending

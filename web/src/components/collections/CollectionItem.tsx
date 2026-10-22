@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, TYPOGRAPHY, DropZoneOverlay, getSpacingPx } from "../ui_primitives";
+import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, TYPOGRAPHY, DropZoneOverlay, getSpacingPx } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import WorkflowSelect from "./WorkflowSelect";
@@ -174,17 +174,14 @@ const CollectionItem = ({
           top: getSpacingPx(SPACING.md),
           right: getSpacingPx(SPACING.md)
         }}>
-        {deletingCollection === collection.name ? (
-          <LoadingSpinner size="small" inline />
-        ) : (
-          <DeleteButton
-            onClick={handleDeleteClick}
-            tooltip={t("i18n-next30.collections.deleteTooltip")}
-            disabled={isDeleting}
-            sx={{ mt: -10 }}
-            nodrag={false}
-          />
-        )}
+        <DeleteButton
+          onClick={handleDeleteClick}
+          tooltip={t("i18n-next30.collections.deleteTooltip")}
+          disabled={isDeleting}
+          loading={deletingCollection === collection.name}
+          sx={{ mt: -10 }}
+          nodrag={false}
+        />
       </FlexRow>
       {dragOverCollection === collection.name && <DropZoneOverlay />}
       <FlexRow align="center" gap={SPACING.lg} fullWidth>

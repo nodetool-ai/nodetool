@@ -118,7 +118,7 @@ const IntegrationLinkPage = () => {
                 <EditorButton
                   variant="outlined"
                   color="primary"
-                  disabled={confirm.isPending}
+                  loading={confirm.isPending}
                   onClick={handleConfirm}
                 >
                   {t("screens4_0.settings.integrationLink.confirm")}

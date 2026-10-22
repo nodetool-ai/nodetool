@@ -529,7 +529,7 @@ it("creates suggested references in parallel with a generating mark on each acti
     await screen.findByRole("button", { name: "Create The Lantern" })
   );
   expect(
-    screen.getByRole("button", { name: "Creating The Lantern" })
+    screen.getByRole("button", { name: "Creating The Lantern…" })
   ).toBeDisabled();
   expect(
     screen.getByRole("button", { name: "Create Night Platform" })
@@ -539,9 +539,11 @@ it("creates suggested references in parallel with a generating mark on each acti
   );
 
   expect(rpcRequest).toHaveBeenCalledTimes(3);
-  expect(screen.getAllByTestId("thinking-mark")).toHaveLength(2);
   expect(
-    screen.getByRole("button", { name: "Creating Night Platform" })
+    screen.getAllByRole("button").filter((b) => b.getAttribute("aria-busy") === "true")
+  ).toHaveLength(2);
+  expect(
+    screen.getByRole("button", { name: "Creating Night Platform…" })
   ).toBeDisabled();
 
   finishStation({ asset_ids: ["platform-asset"] });
@@ -551,7 +553,7 @@ it("creates suggested references in parallel with a generating mark on each acti
     )
   );
   expect(
-    screen.getByRole("button", { name: "Creating The Lantern" })
+    screen.getByRole("button", { name: "Creating The Lantern…" })
   ).toBeDisabled();
 
   finishLantern({ asset_ids: ["lantern-asset"] });
@@ -560,7 +562,9 @@ it("creates suggested references in parallel with a generating mark on each acti
       ["platform-asset", "lantern-asset"]
     )
   );
-  expect(screen.queryAllByTestId("thinking-mark")).toHaveLength(0);
+  expect(
+    screen.getAllByRole("button").filter((b) => b.getAttribute("aria-busy") === "true")
+  ).toHaveLength(0);
 });
 
 // F9: the entity is saved and paid for, so it joins the board even when the

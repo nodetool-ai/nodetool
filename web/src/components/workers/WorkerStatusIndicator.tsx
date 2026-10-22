@@ -49,7 +49,7 @@ const WorkerStatusIndicator: React.FC = () => {
         ariaLabel={t("screens4_8.workers.status.stopAttached")}
         tooltip={t("screens4_8.workers.status.stopAttached")}
         onClick={handleStop}
-        disabled={stopping}
+        loading={stopping}
       >
         <StopCircleIcon fontSize="small" />
       </ToolbarIconButton>

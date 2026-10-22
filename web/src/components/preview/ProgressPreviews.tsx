@@ -6,14 +6,22 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import SaveIcon from "@mui/icons-material/Save";
+import StopIcon from "@mui/icons-material/Stop";
 import {
+  Button,
   Caption,
+  DeleteButton,
+  EditorButton,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
   ProgressBar,
   Surface,
-  SPACING
+  SPACING,
+  ToolbarIconButton
 } from "../ui_primitives";
 import ExecutionTree from "../execution/ExecutionTree";
 import { TodoSidebar } from "../chat/sidebar/TodoSidebar";
@@ -184,6 +192,28 @@ const PreviewProgressStates: React.FC = () => {
           />
         </Section>
       </FlexRow>
+      <Section title={t("buttonsWaiting")}>
+        <FlexRow gap={SPACING.lg} align="center" wrap data-preview="buttons-waiting">
+          <EditorButton variant="contained" size="small" loading startIcon={<SaveIcon />}>
+            {t("saving")}
+          </EditorButton>
+          <EditorButton variant="contained" size="medium" loading startIcon={<AutoAwesomeIcon />}>
+            {t("generate")}
+          </EditorButton>
+          <EditorButton variant="contained" density="compact" size="small" loading>
+            {t("connect")}
+          </EditorButton>
+          <EditorButton size="small" loading>
+            {t("loadMore")}
+          </EditorButton>
+          <Button variant="contained" color="error" loading>
+            {t("delete")}
+          </Button>
+          <ToolbarIconButton loading icon={<RefreshIcon />} tooltip={t("reload")} />
+          <ToolbarIconButton loading icon={<StopIcon fontSize="small" />} tooltip={t("stopJob")} />
+          <DeleteButton loading onClick={() => undefined} />
+        </FlexRow>
+      </Section>
       <Section title={t("modelDownloads")}>
         {seeded && <DownloadProgress name={DOWNLOAD_ID} />}
         {seeded && <DownloadProgress name={PENDING_ID} />}

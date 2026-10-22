@@ -53,7 +53,7 @@ export const CreateJsScriptButton = memo(function CreateJsScriptButton() {
       <ToolbarIconButton
         ariaLabel={t("list.newScript")}
         onClick={() => void handleCreate()}
-        disabled={createJsScript.isPending}
+        loading={createJsScript.isPending}
         tabIndex={-1}
         icon={<AddIcon />}
       />

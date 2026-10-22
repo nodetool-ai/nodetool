@@ -281,7 +281,7 @@ export function StoredRunActivity({ runId }: { runId: string }): React.ReactElem
       ? <ToolRow key={key} entry={entry} runId={runId} spanId={spanId} connected={activity[index + 1]?.entry.kind === "tool"} />
       : <MarkdownBlock key={key} text={entry.text} />)}
     {pages.some((page) => page.limited || page.truncated) ? <Caption>{t("i18n-next69.appBuilder.agentActivity.recordingLimited")}</Caption> : null}
-    {logs.hasNextPage && !unavailable ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>{t("i18n-next69.appBuilder.agentActivity.loadMore")}</EditorButton> : null}
+    {logs.hasNextPage && !unavailable ? <EditorButton loading={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>{t("i18n-next69.appBuilder.agentActivity.loadMore")}</EditorButton> : null}
   </FlexColumn>;
 }
 
@@ -362,7 +362,7 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
       {pages.some((page) => page.truncated || page.limited) ? <Caption>{t("i18n-next69.appBuilder.agentActivity.recordingLimited")}</Caption> : null}
       {traceIncomplete ? <Caption>{t("i18n-next69.appBuilder.agentActivity.browserActivityMissing")}</Caption> : null}
       {!traceIncomplete && pages.some((page) => page.incomplete) ? <Caption>{t("i18n-next69.appBuilder.agentActivity.recordingIncomplete")}</Caption> : null}
-      {logs.hasNextPage && !expired && !excluded ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>{t("i18n-next69.appBuilder.agentActivity.loadMore")}</EditorButton> : null}
+      {logs.hasNextPage && !expired && !excluded ? <EditorButton loading={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>{t("i18n-next69.appBuilder.agentActivity.loadMore")}</EditorButton> : null}
     </FlexColumn>
   );
 };

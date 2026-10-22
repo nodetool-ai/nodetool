@@ -251,7 +251,7 @@ export default function AppInstanceManager({
           <EditorButton
             variant="outlined"
             color="inherit"
-            disabled={list.isFetchingNextPage}
+            loading={list.isFetchingNextPage}
             onClick={() => void older()}
           >
             {t("i18n-cont-appbuilder-10.instances.olderInstances")}

@@ -387,9 +387,8 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
               fullWidth
               variant="contained"
               startIcon={<MovieFilterOutlinedIcon />}
-              disabled={
-                submitting || !prompt.trim() || !selectedModel || !imageSize
-              }
+              disabled={!prompt.trim() || !selectedModel || !imageSize}
+              loading={submitting}
               onClick={() => void handleGenerate()}
               data-testid="image-to-video-submit"
             >

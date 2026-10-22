@@ -7,6 +7,7 @@
  *
  * Accepts semantic props for state-based styling:
  * - `density`: Controls compact vs normal sizing
+ * - `loading`: The button's action is waiting on a response
  */
 
 import { memo, type ReactNode, type Ref } from "react";
@@ -16,6 +17,7 @@ import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
 import { editorClassNames, cn } from "./editorUtils";
 
+import { ButtonSpinner } from "../ui_primitives/ButtonSpinner";
 import {
   BORDER_RADIUS,
   CONTROL,
@@ -54,6 +56,13 @@ export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
    * so the user learns what to do instead of seeing nothing.
    */
   disabledReason?: ReactNode;
+  /**
+   * The action this button started is waiting on a response. The start icon
+   * becomes the button spinner, the label stays, and the button is disabled
+   * until it settles. Pass a busy label ("Saving…") as children if the label
+   * should change too.
+   */
+  loading?: boolean;
 }
 
 /**
@@ -80,10 +89,13 @@ export function EditorButton({
   tooltip: tooltipProp,
   shortcut,
   disabledReason,
+  loading = false,
+  startIcon,
+  disabled,
   ...props
 }: EditorButtonProps) {
   const { t } = useTranslation();
-  const showReason = Boolean(props.disabled && disabledReason);
+  const showReason = Boolean(disabled && !loading && disabledReason);
   const tooltip = showReason ? disabledReason : tooltipProp;
   const theme = useTheme();
   const scope = useEditorScope();
@@ -125,6 +137,9 @@ export function EditorButton({
         ...(Array.isArray(sx) ? sx : [sx])
       ]}
       {...props}
+      startIcon={loading ? <ButtonSpinner size={size ?? "small"} /> : startIcon}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       aria-label={
         props["aria-label"] ??
         (!props.children

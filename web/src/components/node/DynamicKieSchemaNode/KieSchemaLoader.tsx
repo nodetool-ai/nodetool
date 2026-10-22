@@ -1,6 +1,6 @@
 import React, { useCallback, useState, memo } from "react";
 import { useTranslation } from "react-i18next";
-import { Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx, ICON_SIZE } from "../../ui_primitives";
+import { Caption, ToolbarIconButton, Box, SPACING, getSpacingPx, ICON_SIZE } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -171,7 +171,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
         <ToolbarIconButton
           title={t("i18n-next39.nodeEditor.schemaLoader.reloadSchema")}
           size="small"
-          disabled={loading}
+          loading={loading}
           onClick={() => void handleLoad(true)}
           sx={{
             padding: getSpacingPx(SPACING.xs),
@@ -182,11 +182,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
             }
           }}
         >
-          {loading ? (
-            <LoadingSpinner size="small" />
-          ) : (
-            <RefreshIcon sx={{ fontSize: ICON_SIZE.sm }} />
-          )}
+          <RefreshIcon sx={{ fontSize: ICON_SIZE.sm }} />
         </ToolbarIconButton>
         {error && (
           <Caption

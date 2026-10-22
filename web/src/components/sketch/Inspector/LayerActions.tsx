@@ -309,7 +309,8 @@ export const LayerActions: React.FC<LayerActionsProps> = memo(
             icon={<ContentCopyIcon fontSize="small" />}
             tooltip={t("screens4_26.sketch.layerActions.duplicateTooltip")}
             onClick={() => void handleDuplicate()}
-            disabled={duplicateBusy || !documentId}
+            disabled={!documentId}
+            loading={duplicateBusy}
             aria-label={t("screens4_26.sketch.layerActions.duplicateLayer")}
             data-testid="layer-action-duplicate"
           />

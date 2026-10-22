@@ -375,7 +375,7 @@ function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactE
             ><TruncatedText component="span" variant="inherit">{logText(log).slice(0, 200)}</TruncatedText></EditorButton>
           </Box>} />
       </FlexColumn>}
-      {logs.hasNextPage && <EditorButton size="small" disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>{t("i18n-cont-panels-12.trace.loadMoreLogs")}</EditorButton>}
+      {logs.hasNextPage && <EditorButton size="small" loading={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>{t("i18n-cont-panels-12.trace.loadMoreLogs")}</EditorButton>}
     </SplitView>
   </FlexColumn>;
 }

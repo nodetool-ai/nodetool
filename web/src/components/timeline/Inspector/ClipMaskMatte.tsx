@@ -731,7 +731,7 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
                     fullWidth
                     variant="outlined"
                     startIcon={<RestartAltOutlinedIcon />}
-                    disabled={generating}
+                    loading={generating}
                     onClick={handleRegenerate}
                     data-testid="regenerate-subject-matte"
                   >

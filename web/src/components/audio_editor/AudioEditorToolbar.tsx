@@ -256,7 +256,8 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
           density="compact"
           disableElevation
           onClick={onSave}
-          disabled={saving || !canSave}
+          disabled={!canSave}
+          loading={saving}
           disabledReason={canSave ? undefined : t("batch2_16.toolbar.saveUnavailable")}
         >
           {saving ? t("batch2_16.toolbar.saving") : t("batch2_16.toolbar.save")}

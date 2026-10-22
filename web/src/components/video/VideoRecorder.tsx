@@ -8,7 +8,6 @@ import type { Theme } from "@mui/material/styles";
 import {
   EditorButton,
   Text,
-  LoadingSpinner,
   Box,
   BORDER_RADIUS,
   SPACING,
@@ -170,10 +169,9 @@ const VideoRecorder = ({
           className="preview-button nodrag"
           variant="text"
           density="compact"
-          disabled={isLoading}
+          loading={isLoading}
         >
           {t("screen_timeline.video.startCamera")}
-          {isLoading && <LoadingSpinner size="small" />}
         </EditorButton>
       ) : (
         <>
@@ -182,12 +180,11 @@ const VideoRecorder = ({
             className={`record-button nodrag ${isRecording ? " recording" : ""}`}
             variant="text"
             density="compact"
-            disabled={isLoading}
+            loading={isLoading}
           >
             {isRecording
               ? t("screen_timeline.video.stop")
               : t("screen_timeline.video.record")}
-            {isLoading && <LoadingSpinner size="small" />}
           </EditorButton>
           {!isRecording && (
             <EditorButton

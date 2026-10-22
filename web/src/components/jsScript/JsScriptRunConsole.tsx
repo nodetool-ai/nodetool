@@ -139,7 +139,8 @@ const JsScriptRunConsole = ({
           density="compact"
           variant="contained"
           startIcon={<PlayArrowIcon />}
-          disabled={running || readOnly}
+          disabled={readOnly}
+          loading={running}
           onClick={() => setDialogOpen(true)}
         >
           {t("actions.run")}

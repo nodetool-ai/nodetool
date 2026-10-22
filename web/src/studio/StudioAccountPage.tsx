@@ -90,7 +90,7 @@ const StudioAccountPage = () => {
                 {status.testTopupEnabled && (
                   <EditorButton
                     variant="outlined"
-                    disabled={topup.isPending}
+                    loading={topup.isPending}
                     onClick={() => topup.mutate({ credits: TOPUP_CREDITS })}
                   >
                     {topup.isPending
@@ -157,6 +157,7 @@ const StudioAccountPage = () => {
                         <EditorButton
                           variant={current ? "outlined" : "contained"}
                           disabled={current || setPlan.isPending}
+                          loading={setPlan.isPending && setPlan.variables?.planId === plan.id}
                           onClick={() => setPlan.mutate({ planId: plan.id })}
                         >
                           {current ? t("screen_remaining.studio.selected") : t("screen_remaining.studio.switchTo", { plan: plan.name })}

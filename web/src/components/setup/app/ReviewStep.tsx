@@ -152,6 +152,7 @@ const ReviewStepInternal: React.FC<AppReviewStepProps> = ({
             size="small"
             onClick={onRedesign}
             disabled={locked}
+            loading={redesignPending}
           >
             {redesignPending ? "Re-designing" : "Re-design"}
           </EditorButton>

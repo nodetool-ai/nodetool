@@ -704,7 +704,8 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
               variant="contained"
               color="primary"
               onClick={() => void handleSaveAdjustment()}
-              disabled={!adjusted || busy || !stillUrl}
+              disabled={!adjusted || !stillUrl}
+              loading={busy}
               tooltip={t("screens4_19.storyboard.shotStillModify.saveAdjustmentTooltip")}
             >
               {t("screens4_19.storyboard.shotStillModify.saveAsNewTake")}

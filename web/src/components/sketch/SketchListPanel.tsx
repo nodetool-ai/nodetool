@@ -205,7 +205,7 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
       <ToolbarIconButton
         ariaLabel={t("i18n-next52.sketch.list.new")}
         onClick={() => void handleCreate()}
-        disabled={createSketch.isPending}
+        loading={createSketch.isPending}
         tabIndex={-1}
         icon={<AddIcon />}
       />

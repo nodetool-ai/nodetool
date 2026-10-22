@@ -146,7 +146,7 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
                 icon={<RestoreIcon fontSize="small" />}
                 tooltip={t("i18n-next52.sketch.versions.restore")}
                 onClick={handleRestoreClick}
-                disabled={isRestoring}
+                loading={isRestoring}
                 aria-label={t("i18n-next52.sketch.versions.restoreLabel")}
               />
             )}
@@ -154,7 +154,7 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
               icon={<DeleteIcon fontSize="small" />}
               tooltip={t("i18n-next52.sketch.versions.delete")}
               onClick={handleDeleteClick}
-              disabled={isDeleting}
+              loading={isDeleting}
               aria-label={t("i18n-next52.sketch.versions.deleteLabel")}
             />
           </HoverActionGroup>

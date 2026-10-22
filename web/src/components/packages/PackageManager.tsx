@@ -139,7 +139,7 @@ const RowActions = ({ row }: { row: PMRow }) => {
         <EditorButton
           variant="contained"
           density="compact"
-          disabled={busy}
+          loading={busy}
           onClick={onInstall}
         >
           {busy ? t("i18n-next31.packages.installing") : t("i18n-next31.packages.install")}
@@ -314,7 +314,7 @@ function PackageManager() {
                   <EditorButton
                     variant="contained"
                     density="compact"
-                    disabled={model.bulkUpdate.busy}
+                    loading={model.bulkUpdate.busy}
                     onClick={model.bulkUpdate.onUpdateAll}
                   >
                     {model.bulkUpdate.busy

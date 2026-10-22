@@ -41,7 +41,7 @@ const ExampleAppSurface = ({ slug, title }: ExampleAppSurfaceProps) => {
       <FlexRow justify="flex-end" sx={{ paddingY: SPACING.sm }}>
         <EditorButton
           density="compact"
-          disabled={installing}
+          loading={installing}
           onClick={() => install.mutate({ slug, name: title })}
         >
           {installing ? "Installing…" : "Edit app"}

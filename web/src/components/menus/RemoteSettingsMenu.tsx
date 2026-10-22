@@ -604,7 +604,7 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                   onClick={handleSave}
                   className="save-button"
                   startIcon={<SaveIcon />}
-                  disabled={updateSettingsMutation.isPending}
+                  loading={updateSettingsMutation.isPending}
                 >
                   {updateSettingsMutation.isPending ? t("screens4_5.remoteSettings.saving") : t("screens4_5.remoteSettings.saveChanges")}
                 </EditorButton>

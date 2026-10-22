@@ -436,7 +436,8 @@ const TextDocumentEditor = ({
                   variant="contained"
                   size="small"
                   startIcon={<SaveIcon />}
-                  disabled={!isDirty || isSaving}
+                  disabled={!isDirty}
+                  loading={isSaving}
                   onClick={handleSave}
                 >
                   {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
@@ -490,7 +491,8 @@ const TextDocumentEditor = ({
               variant="contained"
               size="small"
               startIcon={<SaveIcon />}
-              disabled={!isDirty || isSaving}
+              disabled={!isDirty}
+              loading={isSaving}
               onClick={handleSave}
             >
               {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}

@@ -16,7 +16,6 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  LoadingSpinner,
   Text,
   TextInput,
   BORDER_RADIUS,
@@ -302,7 +301,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                   variant="text"
                   size="small"
                   onClick={handleRecheck}
-                  disabled={rechecking}
+                  loading={rechecking}
                 >
                   {rechecking ? t("i18n-next33.provider.checking") : t("i18n-next33.provider.recheck")}
                 </EditorButton>
@@ -338,7 +337,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                       )
                     }
                     onClick={oauth.connect}
-                    disabled={oauth.isConnecting}
+                    loading={oauth.isConnecting}
                   >
                     {oauth.isConnecting ? t("i18n-next33.provider.waiting") : t("i18n-next33.provider.signIn")}
                   </EditorButton>
@@ -404,15 +403,12 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                 density="compact"
                 size="small"
                 onClick={handleSaveKey}
-                disabled={saving || !keyValue.trim()}
+                disabled={!keyValue.trim()}
+                loading={saving}
               >
-                {saving ? (
-                  <LoadingSpinner size="small" inline />
-                ) : replacing ? (
-                  t("i18n-next33.provider.replace")
-                ) : (
-                  t("i18n-next33.provider.connect")
-                )}
+                {replacing
+                  ? t("i18n-next33.provider.replace")
+                  : t("i18n-next33.provider.connect")}
               </EditorButton>
             </FlexRow>
             <FlexRow

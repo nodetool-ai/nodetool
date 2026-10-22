@@ -422,6 +422,7 @@ export const ChatComposerWidget: React.FC<ChatComposerWidgetProps> = ({
           variant="contained"
           size="small"
           disabled={disabled || !canSend}
+          loading={isRunning}
           onClick={send}
         >
           {isRunning ? t("i18n-next53.appBuilder.chat.sending") : sendLabel || t("i18n-next53.appBuilder.chat.send")}

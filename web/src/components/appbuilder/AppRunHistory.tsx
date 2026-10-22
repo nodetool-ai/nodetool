@@ -203,7 +203,7 @@ export default function AppRunHistory({
         ) : null}
         {history.hasNextPage || history.data?.pages[pageIndex + 1] ? (
           <EditorButton
-            disabled={history.isFetchingNextPage}
+            loading={history.isFetchingNextPage}
             onClick={() => void older()}
           >
             {t("i18n-cont-appbuilder-10.history.olderRuns")}

@@ -288,12 +288,8 @@ const ExtendClipPanel: React.FC<{ clipId: string }> = ({ clipId }) => {
                   variant="contained"
                   startIcon={<MoreTimeOutlinedIcon />}
                   onClick={submit}
-                  disabled={
-                    pending ||
-                    !intent.trim() ||
-                    !sequenceId ||
-                    !(Number(selectedDuration) > 0)
-                  }
+                  disabled={!intent.trim() || !sequenceId || !(Number(selectedDuration) > 0)}
+                  loading={pending}
                 >
                   {pending
                     ? t("i18n-cont-inspector-02.extendClip.extending")

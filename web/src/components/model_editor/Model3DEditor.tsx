@@ -1713,7 +1713,8 @@ const Model3DEditor = ({
                 variant={isDirty ? "contained" : "outlined"}
                 startIcon={<SaveIcon />}
                 onClick={() => void handleSave()}
-                disabled={isSaving || !canSave}
+                disabled={!canSave}
+                loading={isSaving}
               >
                 {isSaving ? t("i18n-cont-model-editor-11.modelEditor.loading.saving") : t("i18n-cont-model-editor-11.modelEditor.actions.save")}
               </EditorButton>

@@ -209,7 +209,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {onSave && (
           <ToolbarIconButton
             onClick={onSave}
-            disabled={isSaving}
+            loading={isSaving}
             tooltip={isSaving ? t("i18n-next6.topBar.saving") : t("i18n-next6.common.save")}
             aria-label={isSaving ? t("i18n-next6.topBar.saving") : t("i18n-next6.common.save")}
           >
@@ -219,7 +219,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {onExportVideo && (
           <ToolbarIconButton
             onClick={onExportVideo}
-            disabled={isExporting}
+            loading={isExporting}
             tooltip={isExporting ? t("i18n-next6.topBar.exporting") : t("i18n-next6.topBar.exportVideo")}
             aria-label={isExporting ? t("i18n-next6.topBar.exporting") : t("i18n-next6.topBar.exportVideo")}
           >

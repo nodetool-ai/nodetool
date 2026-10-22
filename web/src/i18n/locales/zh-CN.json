@@ -1017,7 +1017,15 @@
       "modelDownloads": "模型下载",
       "taskCollectImages": "收集参考图像",
       "taskWriteShotList": "编写镜头列表",
-      "taskRenderStoryboard": "渲染分镜"
+      "taskRenderStoryboard": "渲染分镜",
+      "buttonsWaiting": "等待响应的按钮",
+      "saving": "正在保存…",
+      "generate": "生成",
+      "connect": "连接",
+      "loadMore": "加载更多",
+      "delete": "删除",
+      "reload": "重新加载架构",
+      "stopJob": "停止任务"
     },
     "modelPicker": {
       "apiReason": "输入将发送给提供方。提供方会收取相应费用。",
@@ -3580,7 +3588,7 @@
         "findFailureSummary": "分镜板实体推荐失败",
         "createFailureSummary": "分镜板实体创建失败",
         "referenceImageModel": "参考图片模型",
-        "creatingEntity": "正在创建{{name}}",
+        "creatingEntity": "正在创建{{name}}…",
         "useEntity": "使用{{name}}",
         "createEntity": "创建{{name}}",
         "libraryTitle": "你的实体库",

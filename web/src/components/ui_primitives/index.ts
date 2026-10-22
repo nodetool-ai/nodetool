@@ -114,6 +114,8 @@ export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps, EmptyStateVariant } from "./EmptyState";
 
 export { LoadingSpinner } from "./LoadingSpinner";
+export { ButtonSpinner, BUTTON_SPINNER_SIZE } from "./ButtonSpinner";
+export type { ButtonSpinnerProps, ButtonSpinnerSize } from "./ButtonSpinner";
 export type { LoadingSpinnerProps } from "./LoadingSpinner";
 
 export { default as MagicGenerationFill } from "./MagicGenerationFill";

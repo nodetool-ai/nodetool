@@ -18,7 +18,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { Button } from "@mui/material";
-import { LoadingSpinner } from "./LoadingSpinner";
+import { ButtonSpinner } from "./ButtonSpinner";
 import { BORDER_RADIUS, MOTION } from "./tokens";
 import { SPACING, getSpacingPx } from "./spacing";
 
@@ -93,13 +93,8 @@ const RunModelButtonInner = forwardRef<
       className={`run-model-button nodrag ${isRunning ? "running" : ""} ${className ?? ""}`}
       onClick={handleClick}
       disabled={disabled}
-      startIcon={
-        isRunning ? (
-          <LoadingSpinner inline size={14} color="inherit" />
-        ) : (
-          <PlayArrowIcon />
-        )
-      }
+      aria-busy={isRunning || undefined}
+      startIcon={isRunning ? <ButtonSpinner /> : <PlayArrowIcon />}
       aria-label={resolvedLabel}
       size="small"
     >

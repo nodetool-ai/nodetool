@@ -119,7 +119,7 @@ around it is not exempt.
 
 | Element | Use | Look | Check | Detail |
 |---|---|---|---|---|
-| Button | `EditorButton`; `ToolbarIconButton` for icon-only; `CloseButton`, `DeleteButton`, `CopyButton` and the other semantic buttons | `contained` for the one primary action, `outlined` secondary, `text` tertiary. 24/28/32/36px from `density` or `size` | `button/raw-icon-button`, `button/restyled`, `button/icon-fontsize`, `button/native-no-type` | [Buttons](#buttons) |
+| Button | `EditorButton`; `ToolbarIconButton` for icon-only; `CloseButton`, `DeleteButton`, `CopyButton` and the other semantic buttons | `contained` for the one primary action, `outlined` secondary, `text` tertiary. 24/28/32/36px from `density` or `size`. Waiting on a response: `loading`, the button spinner in the icon slot | `button/raw-icon-button`, `button/restyled`, `button/icon-fontsize`, `button/native-no-type`, `button/hand-rolled-loading` | [Buttons](#buttons) |
 | Toggle group | `ToggleGroup` (`segmented` in toolbars, `quiet` in node bodies) | Segmented: one 32px pill, `action.selected` when picked | — | [Toggle groups](#toggle-groups) |
 | Tabs | `TabGroup` + `TabPanel`; `DockTabStrip` for closable panels | Sentence-case labels, count after the label | `tabs/raw-tabs`, `tabs/hand-tablist` | [Empty, loading and tabs](#empty-loading-and-tabs) |
 | Chip | `Chip` | Outlined pill, 28px or 24px `compact`, tone tint at 12% | `chip/restyled`, `chip/hand-pill` | [Chips and pills](#chips-and-pills) |
@@ -1573,6 +1573,7 @@ import { CloseButton, EditorButton } from "../ui_primitives";
 
 <EditorButton variant="contained" onClick={install}>Install</EditorButton>
 <EditorButton variant="outlined" startIcon={<AddIcon />} onClick={add}>Add</EditorButton>
+<EditorButton variant="contained" loading={saving} onClick={save}>{saving ? "Saving…" : "Save"}</EditorButton>
 <EditorButton variant="text" color="inherit" onClick={dismiss}>Dismiss</EditorButton>
 <CloseButton onClick={onClose} tooltip="Close documentation" />
 ```
@@ -1583,6 +1584,7 @@ import { CloseButton, EditorButton } from "../ui_primitives";
 | Size | `density` (24px compact, 28px normal) or `size` (28, 32, 36px). Never set `height`, `padding`, `borderRadius` or `fontSize` on a button |
 | Icons | `startIcon` and `endIcon` take a bare icon. The theme sizes it at 16, 18 or 20px for small, medium and large, so never pass `fontSize` to the icon |
 | Tooltip | Pass `tooltip` to the button instead of wrapping it in `Tooltip` |
+| Waiting | A button whose action waits on a response (a save, a fetch, a generation, an install) passes `loading` while it waits. Every button primitive draws the same mark: `ButtonSpinner` takes the place of the start icon (or of the icon of an icon-only button), sized like that icon (16, 18 or 20px), in the label colour, and the button is disabled until the wait ends. The label stays; it may change to a busy label ending in "…" ("Saving…"). Only the button that started the wait spins. Buttons that share its lock stay `disabled` |
 | Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
 | Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
 
@@ -1655,9 +1657,10 @@ import {
 } from "../ui_primitives";
 
 <LoadingSpinner size="small" text="Loading versions" />
-<EditorButton startIcon={busy ? <LoadingSpinner inline size={16} color="inherit" /> : <SaveIcon />}>
+<EditorButton loading={busy} startIcon={<SaveIcon />}>
   {busy ? "Saving…" : "Save"}
 </EditorButton>
+<ToolbarIconButton loading={importing} icon={<UploadFileIcon />} tooltip="Import" />
 <ProgressBar value={percent} label={file.name} size="small" />
 <ProgressBar value={0} progressVariant="indeterminate" showValue={false} size="small" accent={CLIP_COLOR} aria-label="Rendering clip" />
 <ThinkingIndicator label="Editing video" announce />
@@ -1675,7 +1678,7 @@ import {
 
 | Part | Rule |
 |---|---|
-| Inline spinner | A spinner that stands in for an icon passes `inline` and that icon's size: 14 beside caption text, in a chip or a step badge, 16 in a button. Inside a button or chip it passes `color="inherit"`. Never set `thickness` or restyle `.MuiCircularProgress-root` |
+| Inline spinner | A spinner that stands in for an icon passes `inline` and that icon's size: 14 beside caption text, in a chip or a step badge. Inside a chip it passes `color="inherit"`. A button never places a spinner itself: it passes `loading` (see [Buttons](#buttons)). Never set `thickness` or restyle `.MuiCircularProgress-root` |
 | Step in progress | A running step in a plan, todo or timeline shows an inline `LoadingSpinner`, not a rotating `Autorenew` icon |
 | Bar size | `ProgressBar` is 6px on its own line and `size="small"` (4px) on a card edge or in a dense row. Never set its `height`, track colour or bar colour through `sx` |
 | Bar colour | Primary by default. A surface's own colour (a clip, a node namespace) goes in `accent`. A stalled transfer passes `color="warning"`. One colour per bar, no gradients |

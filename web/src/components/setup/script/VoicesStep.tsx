@@ -335,11 +335,8 @@ const SpeakerVoiceRow: React.FC<SpeakerVoiceRowProps> = ({
             variant="outlined"
             // A view-mode tab replays a sample already made but pays for
             // no new one.
-            disabled={
-              !selectedVoice ||
-              sample?.pending ||
-              (readOnly && !sample?.assetId)
-            }
+            disabled={!selectedVoice || (readOnly && !sample?.assetId)}
+            loading={Boolean(sample?.pending)}
             aria-label={
               selectedVoice
                 ? t("pass3_9.voices.hearVoiceFor", {

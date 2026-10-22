@@ -434,16 +434,10 @@ const JobItem = ({ job }: { job: Job }) => {
         <ToolbarIconButton
           size="small"
           onClick={handleStop}
-          disabled={cancelling}
+          loading={cancelling}
           ariaLabel={t("i18n-next58.jobs.stopJob")}
           tooltip={t("i18n-next58.jobs.stopJob")}
-          icon={
-            cancelling ? (
-              <LoadingSpinner size="small" />
-            ) : (
-              <StopIcon fontSize="small" />
-            )
-          }
+          icon={<StopIcon fontSize="small" />}
           sx={{
             flex: "0 0 auto",
             color: "text.secondary",

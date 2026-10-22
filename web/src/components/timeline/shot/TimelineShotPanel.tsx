@@ -222,7 +222,7 @@ const ShotContent = memo(({ clip, boardId, shot }: ShotContentProps) => {
               fullWidth
               variant="contained"
               onClick={openRender}
-              disabled={generating}
+              loading={generating}
               data-testid="timeline-shot-new-take"
               tooltip={
                 needsStill

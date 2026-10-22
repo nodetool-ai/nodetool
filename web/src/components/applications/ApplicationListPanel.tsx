@@ -86,7 +86,7 @@ export const CreateApplicationButton = memo(function CreateApplicationButton() {
       <ToolbarIconButton
         ariaLabel={t("i18n-next30.applications.newApp")}
         onClick={() => void handleCreate()}
-        disabled={createApplication.isPending}
+        loading={createApplication.isPending}
         tabIndex={-1}
         icon={<AddIcon />}
       />

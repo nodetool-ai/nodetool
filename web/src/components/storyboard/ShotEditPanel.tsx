@@ -848,7 +848,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
               />
               <EditorButton
                 onClick={handleRegenerate}
-                disabled={generating || durationInvalid}
+                disabled={durationInvalid}
+                loading={generating}
                 tooltip={
                   generating ? t("screens4_16.shotEditPanel.renderingAlready") : undefined
                 }

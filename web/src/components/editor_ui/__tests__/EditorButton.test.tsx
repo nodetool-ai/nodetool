@@ -311,4 +311,50 @@ describe("EditorButton", () => {
       expect(await screen.findByRole("tooltip")).toHaveTextContent("Save the file");
     });
   });
+
+  describe("loading", () => {
+    it("puts the button spinner in place of the start icon and keeps the label", () => {
+      renderWithThemeProvider(
+        <EditorButton loading startIcon={<span data-testid="save-icon" />}>
+          Save
+        </EditorButton>
+      );
+      const button = screen.getByRole("button", { name: "Save" });
+      expect(screen.queryByTestId("save-icon")).not.toBeInTheDocument();
+      expect(button.querySelector(".MuiCircularProgress-root")).not.toBeNull();
+      expect(button).toBeDisabled();
+      expect(button).toHaveAttribute("aria-busy", "true");
+    });
+
+    it("shows the start icon again once the wait ends", () => {
+      const { rerender } = renderWithThemeProvider(
+        <EditorButton loading startIcon={<span data-testid="save-icon" />}>
+          Save
+        </EditorButton>
+      );
+      rerender(
+        <ThemeProvider theme={mockTheme}>
+          <EditorUiProvider>
+            <EditorButton loading={false} startIcon={<span data-testid="save-icon" />}>
+              Save
+            </EditorButton>
+          </EditorUiProvider>
+        </ThemeProvider>
+      );
+      const button = screen.getByRole("button", { name: "Save" });
+      expect(screen.getByTestId("save-icon")).toBeInTheDocument();
+      expect(button).toBeEnabled();
+      expect(button).not.toHaveAttribute("aria-busy");
+    });
+
+    it("keeps the tooltip instead of the disabled reason while it waits", async () => {
+      renderWithThemeProvider(
+        <EditorButton loading disabled tooltip="Save the file" disabledReason="No unsaved changes">
+          Save
+        </EditorButton>
+      );
+      await userEvent.hover(screen.getByRole("button", { name: "Save" }).parentElement as HTMLElement);
+      expect(await screen.findByRole("tooltip")).toHaveTextContent("Save the file");
+    });
+  });
 });

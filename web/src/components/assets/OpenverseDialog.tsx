@@ -387,7 +387,8 @@ const OpenverseDialog: React.FC<OpenverseDialogProps> = ({ open, onClose }) => {
       </EditorButton>
       <EditorButton
         variant="contained"
-        disabled={selected.size === 0 || busy}
+        disabled={selected.size === 0}
+        loading={busy}
         onClick={handleImport}
       >
         {busy

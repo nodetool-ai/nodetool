@@ -509,13 +509,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                   density="compact"
                   variant="contained"
                   onClick={() => handleRestore(selectedVersion)}
-                  disabled={isRestoringVersion}
+                  loading={isRestoringVersion}
                 >
-                  {isRestoringVersion ? (
-                    <LoadingSpinner size="small" />
-                  ) : (
-                    t("versionHistory.restore")
-                  )}
+                  {t("versionHistory.restore")}
                 </EditorButton>
                 <EditorButton
                   density="compact"

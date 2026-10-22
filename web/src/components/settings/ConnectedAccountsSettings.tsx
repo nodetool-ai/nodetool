@@ -145,7 +145,7 @@ const ConnectedAccountsSettings = () => {
                 <EditorButton
                   color="error"
                   variant="outlined"
-                  disabled={unlink.isPending}
+                  loading={unlink.isPending}
                   onClick={handleDisconnect}
                 >
                   {t("screens4_0.settings.connectedAccounts.disconnect")}
@@ -187,7 +187,7 @@ const ConnectedAccountsSettings = () => {
               <EditorButton
                 variant="outlined"
                 startIcon={<TelegramIcon />}
-                disabled={createCode.isPending}
+                loading={createCode.isPending}
                 onClick={handleConnect}
               >
                 {t("screens4_0.settings.connectedAccounts.connectProvider", {

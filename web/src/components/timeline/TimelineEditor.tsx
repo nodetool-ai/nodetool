@@ -320,7 +320,7 @@ const PreviewRegion: React.FC<{
                 variant="contained"
                 size="small"
                 onClick={onCreateNewSequence}
-                disabled={createSequencePending}
+                loading={createSequencePending}
                 aria-label={t("i18n-next25.timeline.createNewSequence")}
               >
                 {createSequencePending ? t("i18n-next25.timeline.creating") : t("i18n-next25.timeline.newSequence")}

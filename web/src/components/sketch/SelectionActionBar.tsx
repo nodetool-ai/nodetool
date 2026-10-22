@@ -34,7 +34,6 @@ import {
   EditorButton,
   FlexRow,
   FloatingToolbar,
-  LoadingSpinner,
   MagicGenerationFill,
   MOTION,
   reducedMotion,
@@ -490,13 +489,8 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               size="small"
               onClick={() => void handleGenerate()}
               disabled={generateDisabled}
-              startIcon={
-                isBusy ? (
-                  <LoadingSpinner inline size={14} color="inherit" />
-                ) : (
-                  <AutoAwesomeIcon />
-                )
-              }
+              loading={isBusy}
+              startIcon={<AutoAwesomeIcon />}
               data-testid="sketch-selection-generate"
             >
               {mode === "inpaint" ? t("i18n-next52.sketch.selection.inpaint") : t("i18n-next52.sketch.selection.edit")}

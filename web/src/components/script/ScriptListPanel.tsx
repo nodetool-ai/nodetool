@@ -64,7 +64,7 @@ export const CreateScriptButton = memo(function CreateScriptButton() {
       <ToolbarIconButton
         ariaLabel={t("i18n-next62.scriptListPanel.newScript")}
         onClick={() => void handleCreate()}
-        disabled={createScript.isPending}
+        loading={createScript.isPending}
         tabIndex={-1}
         icon={<AddIcon />}
       />

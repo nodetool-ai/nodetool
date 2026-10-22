@@ -1017,7 +1017,15 @@
       "modelDownloads": "Modelle werden heruntergeladen",
       "taskCollectImages": "Referenzbilder sammeln",
       "taskWriteShotList": "Einstellungsliste schreiben",
-      "taskRenderStoryboard": "Storyboard rendern"
+      "taskRenderStoryboard": "Storyboard rendern",
+      "buttonsWaiting": "Schaltflächen, die auf eine Antwort warten",
+      "saving": "Speichern…",
+      "generate": "Generieren",
+      "connect": "Verbinden",
+      "loadMore": "Mehr laden",
+      "delete": "Löschen",
+      "reload": "Schema neu laden",
+      "stopJob": "Job stoppen"
     },
     "modelPicker": {
       "apiReason": "Die Eingabe wird an den Anbieter gesendet. Es fallen Anbietergebühren an.",
@@ -3580,7 +3588,7 @@
         "findFailureSummary": "Vorschläge für Storyboard-Entitäten fehlgeschlagen",
         "createFailureSummary": "Erstellen von Storyboard-Entitäten fehlgeschlagen",
         "referenceImageModel": "Modell für Referenzbilder",
-        "creatingEntity": "{{name}} wird erstellt",
+        "creatingEntity": "{{name}} wird erstellt…",
         "useEntity": "{{name}} verwenden",
         "createEntity": "{{name}} erstellen",
         "libraryTitle": "Deine Entitätenbibliothek",

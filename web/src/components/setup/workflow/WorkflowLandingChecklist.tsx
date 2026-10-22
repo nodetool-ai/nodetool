@@ -308,7 +308,7 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
           <EditorButton
             variant="contained"
             onClick={() => void onNextStep()}
-            disabled={nextStepPending}
+            loading={nextStepPending}
           >
             {t(`pass3_15.landingChecklist.${next.labelKey}`)}
           </EditorButton>

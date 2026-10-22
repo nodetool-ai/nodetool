@@ -237,7 +237,7 @@ const AudioEffectDialog = ({
             size="small"
             variant="contained"
             onClick={handleApply}
-            disabled={applying}
+            loading={applying}
           >
             {applying ? t("batch2_16.effectDialog.applying") : t("batch2_16.effectDialog.apply")}
           </EditorButton>

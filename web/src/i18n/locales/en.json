@@ -1017,7 +1017,15 @@
       "modelDownloads": "Model downloads",
       "taskCollectImages": "Collect reference images",
       "taskWriteShotList": "Write the shot list",
-      "taskRenderStoryboard": "Render the storyboard"
+      "taskRenderStoryboard": "Render the storyboard",
+      "buttonsWaiting": "Buttons waiting on a response",
+      "saving": "Saving…",
+      "generate": "Generate",
+      "connect": "Connect",
+      "loadMore": "Load more",
+      "delete": "Delete",
+      "reload": "Reload schema",
+      "stopJob": "Stop job"
     },
     "modelPicker": {
       "apiReason": "Input is sent to the provider. Provider billing applies.",
@@ -3580,7 +3588,7 @@
         "findFailureSummary": "Storyboard entity suggestions failed",
         "createFailureSummary": "Storyboard entity creation failed",
         "referenceImageModel": "Reference image model",
-        "creatingEntity": "Creating {{name}}",
+        "creatingEntity": "Creating {{name}}…",
         "useEntity": "Use {{name}}",
         "createEntity": "Create {{name}}",
         "libraryTitle": "Your entity library",

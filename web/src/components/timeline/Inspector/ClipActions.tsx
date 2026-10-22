@@ -153,7 +153,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
               "pass3_22.timeline.inspector.clipActions.duplicateTooltip"
             )}
             onClick={() => void handleDuplicate()}
-            disabled={duplicateBusy}
+            loading={duplicateBusy}
             aria-label={t("pass3_22.timeline.inspector.clipActions.duplicate")}
             data-testid="clip-action-duplicate"
           />

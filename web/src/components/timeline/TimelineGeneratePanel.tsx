@@ -38,7 +38,6 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  LoadingSpinner,
   TextArea,
   SPACING
 } from "../ui_primitives";
@@ -378,19 +377,14 @@ export const TimelineGeneratePanel: React.FC<TimelineGeneratePanelProps> = memo(
     <EditorButton
       variant="contained"
       disabled={!canSubmit}
+      loading={busy}
       onClick={() => void handleSubmit()}
-      startIcon={
-        busy ? (
-          <LoadingSpinner inline size={14} color="inherit" />
-        ) : (
-          <AutoAwesomeIcon />
-        )
-      }
+      startIcon={<AutoAwesomeIcon />}
       data-testid="topbar-generate"
       aria-label={t("timeline.generate.generateMode", { mode: t(`timeline.generate.mode.${mode}`) })}
       // Native tooltip still fires on a disabled button: say why it is off.
       tooltip={
-        canSubmit ? undefined : t("timeline.generate.disabledTooltip")
+        canSubmit || busy ? undefined : t("timeline.generate.disabledTooltip")
       }
       sx={{ flexShrink: 0 }}
     >

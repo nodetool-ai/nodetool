@@ -31,11 +31,11 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import ErrorBanner from "../../support/ErrorBanner";
 import {
   Button,
+  ButtonSpinner,
   Caption,
   Chip,
   CollapsibleSection,
   FlexColumn,
-  LoadingSpinner,
   SPACING,
   BatchedColorInput
 } from "../../ui_primitives";
@@ -320,9 +320,8 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
                   size="small"
                   variant="outlined"
                   onClick={baking ? bake.cancel : handleBake}
-                  startIcon={
-                    baking ? <LoadingSpinner inline size={14} /> : undefined
-                  }
+                  // Baking turns the button into Cancel, so it stays enabled.
+                  startIcon={baking ? <ButtonSpinner /> : undefined}
                 >
                   {baking
                     ? !bake.state.progress || bake.state.progress.total <= 0

@@ -676,7 +676,7 @@ const PlanReviewInternal: React.FC<PlanReviewProps> = ({
           <EditorButton
             variant="outlined"
             onClick={onReplan}
-            disabled={replanPending}
+            loading={replanPending}
           >
             {replanLabel}
           </EditorButton>

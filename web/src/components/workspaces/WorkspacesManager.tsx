@@ -315,7 +315,7 @@ const WorkspacesManager: React.FC = () => {
                 startIcon={<AddIcon />}
                 onClick={handleAddWorkspace}
                 fullWidth
-                disabled={createMutation.isPending}
+                loading={createMutation.isPending}
               >
                 {createMutation.isPending ? t("batch2_1.manager.adding") : t("batch2_1.manager.addWorkspace")}
               </EditorButton>

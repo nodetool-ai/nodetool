@@ -137,7 +137,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
         <EditorButton
           variant="contained"
           onClick={handleInstall}
-          disabled={installing}
+          loading={installing}
           sx={{ alignSelf: "flex-start", mt: SPACING.micro }}
         >
           {installing ? "Installing…" : `Install ${runtimeNames}`}

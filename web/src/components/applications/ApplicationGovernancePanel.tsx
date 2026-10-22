@@ -261,7 +261,8 @@ const BudgetSection = memo(function BudgetSection({
         <Button
           variant="contained"
           size="small"
-          disabled={setBudget.isPending || !canSave}
+          disabled={!canSave}
+          loading={setBudget.isPending}
           onClick={handleSave}
         >
           {t("i18n-cont-appbuilder-10.governance.saveBudget")}
@@ -398,7 +399,7 @@ const DeploySection = memo(function DeploySection({
               <Button
                 variant="outlined"
                 size="small"
-                disabled={undeploy.isPending}
+                loading={undeploy.isPending}
                 onClick={handleUndeploy}
               >
                 {t("i18n-cont-appbuilder-10.governance.withdrawLink")}
@@ -407,7 +408,7 @@ const DeploySection = memo(function DeploySection({
               <Button
                 variant="contained"
                 size="small"
-                disabled={deploy.isPending}
+                loading={deploy.isPending}
                 onClick={handleDeploy}
               >
                 {t("i18n-cont-appbuilder-10.governance.createPublicLink")}
@@ -636,7 +637,7 @@ const ApplicationGovernancePanel = ({
         <Button
           variant="contained"
           size="small"
-          disabled={publish.isPending || savingBeforePublish}
+          loading={publish.isPending || savingBeforePublish}
           onClick={handlePublish}
         >
           {t("i18n-cont-appbuilder-10.governance.publishVersion")}

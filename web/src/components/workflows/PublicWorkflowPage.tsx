@@ -110,7 +110,8 @@ const PublicWorkflowPage = () => {
         actions={
           <EditorButton
             variant="contained"
-            disabled={duplicate.isPending || authState === "loading"}
+            disabled={authState === "loading"}
+            loading={duplicate.isPending}
             onClick={() => void handleDuplicate()}
           >
             {signedIn

@@ -311,7 +311,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
           <EditorButton
             variant="outlined"
             onClick={onReplan}
-            disabled={replanPending}
+            loading={replanPending}
             sx={{ flexShrink: 0 }}
           >
             {t("pass3_14.workflowSetup.review.replan")}
@@ -358,7 +358,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
               <EditorButton
                 variant="text"
                 onClick={onReplan}
-                disabled={replanPending}
+                loading={replanPending}
               >
                 {t("pass3_14.workflowSetup.review.replan")}
               </EditorButton>

@@ -17,7 +17,7 @@
 import { forwardRef, useCallback, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, ButtonProps } from "@mui/material";
-import { LoadingSpinner } from "./LoadingSpinner";
+import { ButtonSpinner } from "./ButtonSpinner";
 import DialogActions from "@mui/material/DialogActions";
 import { MOTION } from "./tokens";
 
@@ -134,13 +134,17 @@ export const DialogActionButtons = memo(
             variant="contained"
             autoFocus
             sx={{ transition: MOTION.all }}
+            aria-busy={isLoading || undefined}
             {...confirmButtonProps}
+            startIcon={
+              isLoading ? (
+                <ButtonSpinner size={confirmButtonProps?.size ?? "medium"} />
+              ) : (
+                confirmButtonProps?.startIcon
+              )
+            }
           >
-            {isLoading ? (
-              <LoadingSpinner inline size={20} color="inherit" />
-            ) : (
-              resolvedConfirmText
-            )}
+            {resolvedConfirmText}
           </Button>
         </DialogActions>
       );

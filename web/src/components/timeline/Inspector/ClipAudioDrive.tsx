@@ -37,7 +37,6 @@ import {
   CollapsibleSection,
   FlexColumn,
   FlexRow,
-  LoadingSpinner,
   SPACING,
   ToggleGroup,
   ToggleOption
@@ -499,12 +498,8 @@ export const ClipAudioDrive: React.FC<ClipAudioDriveProps> = memo(
                     size="small"
                     variant="outlined"
                     onClick={handleBake}
-                    disabled={pending || audioClipId === ""}
-                    startIcon={
-                      pending ? (
-                        <LoadingSpinner inline size={16} color="inherit" />
-                      ) : undefined
-                    }
+                    disabled={audioClipId === ""}
+                    loading={pending}
                   >
                     {existing
                       ? t("pass3_23.audioDrive.rebake")
