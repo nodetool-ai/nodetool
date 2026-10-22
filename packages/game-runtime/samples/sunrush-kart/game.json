@@ -634,8 +634,8 @@
     },
     "score": {
       "mediaKind": "audio",
-      "assetId": "5a90ce847d5a7843e9a90e99609d63ca",
-      "digest": "5a90ce847d5a7843e9a90e99609d63ca5bdbed93140e477bcf2be8c33f783c97",
+      "assetId": "2ffbdb9a897e4ec7b9d405b865de562b",
+      "digest": "2ffbdb9a897e4ec7b9d405b865de562b7b411b36ffd725de0d5f9d43eb78744d",
       "required": true
     },
     "sfx-start": {
@@ -778,7 +778,7 @@
         "fadeOutTicks": 90,
         "streaming": {
           "loopStartSeconds": 0,
-          "loopEndSeconds": 21.818181818181817
+          "loopEndSeconds": 21.81818181818182
         }
       },
       "entities": [
