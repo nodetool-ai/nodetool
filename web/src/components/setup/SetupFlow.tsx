@@ -828,7 +828,6 @@ export function SetupFlow<Stage extends string>({
                 size="large"
                 onClick={handleBack}
                 disabled={currentIndex === 0 || locked || step.holdNavigation}
-                sx={{ fontSize: FONT_SIZE_SANS.body }}
               >
                 {t("pass3_4.setupFlow.actions.back")}
               </EditorButton>
@@ -842,7 +841,6 @@ export function SetupFlow<Stage extends string>({
                   size="large"
                   onClick={() => setConfirmingChange(true)}
                   disabled={locked || step.holdNavigation}
-                  sx={{ fontSize: FONT_SIZE_SANS.body }}
                 >
                   {t("pass3_4.setupFlow.actions.changeFlow")}
                 </EditorButton>
@@ -853,7 +851,6 @@ export function SetupFlow<Stage extends string>({
                   size="large"
                   onClick={() => void handleSkip()}
                   disabled={locked}
-                  sx={{ fontSize: FONT_SIZE_SANS.body }}
                 >
                   {step.skipLabel ?? t("pass3_4.setupFlow.actions.skip")}
                 </EditorButton>
@@ -874,7 +871,6 @@ export function SetupFlow<Stage extends string>({
                     variant="text"
                     size="large"
                     onClick={handleCancel}
-                    sx={{ fontSize: FONT_SIZE_SANS.body }}
                   >
                     {t("pass3_4.setupFlow.actions.cancel")}
                   </EditorButton>
@@ -898,7 +894,6 @@ export function SetupFlow<Stage extends string>({
                     }
                   )}
                   sx={{
-                    fontSize: FONT_SIZE_SANS.body,
                     paddingX: narrow ? SPACING.xl : SPACING.xxl,
                     whiteSpace: "nowrap"
                   }}
