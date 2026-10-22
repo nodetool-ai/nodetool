@@ -74,7 +74,7 @@ beforeEach(() => {
 it("New Workflow opens one editable unsaved tab without requesting its server row", async () => {
   mockCreateNew.mockResolvedValue({ id: "unsaved", name: "New workflow" });
   renderMenu();
-  await userEvent.click(await screen.findByRole("option", { name: "New Workflow" }));
+  await userEvent.click(await screen.findByRole("option", { name: "New workflow" }));
   await waitFor(() => expect(useWorkspaceTabsStore.getState().activeTabId).toBe("workflow:unsaved"));
   expect(mockCreateNew).toHaveBeenCalledWith("a");
   expect(useWorkspaceTabsStore.getState().tabs.filter((tab) => tab.ref === "unsaved")).toEqual([
@@ -89,7 +89,7 @@ it("Close Workflow removes its actual tab and exposes the neighboring document",
   store.openTab({ type: "text", ref: "note", title: "Note", projectId: "a" });
   store.setActiveTab("workflow:existing");
   renderMenu();
-  await userEvent.click(await screen.findByRole("option", { name: "Close Workflow" }));
+  await userEvent.click(await screen.findByRole("option", { name: "Close workflow" }));
   await waitFor(() => expect(useWorkspaceTabsStore.getState().activeTabId).toBe("text:note"));
   expect(useWorkspaceTabsStore.getState().tabs.some((tab) => tab.ref === "existing")).toBe(false);
   expect(mockRemoveWorkflow).toHaveBeenCalledWith("existing");
@@ -99,7 +99,7 @@ it("Close Workflow removes its actual tab and exposes the neighboring document",
 
 it("Close Workflow removes the last workflow and keeps the project usable", async () => {
   renderMenu();
-  await userEvent.click(await screen.findByRole("option", { name: "Close Workflow" }));
+  await userEvent.click(await screen.findByRole("option", { name: "Close workflow" }));
   expect(useWorkspaceTabsStore.getState()).toMatchObject({ tabs: [], activeTabId: null, activeProjectId: "a" });
   expect(mockRemoveWorkflow).toHaveBeenCalledWith("existing");
   expect(trpcClient.workflows.get.query).not.toHaveBeenCalled();
@@ -108,7 +108,7 @@ it("Close Workflow removes the last workflow and keeps the project usable", asyn
 it.each([false, true])("Close Workflow honors unsaved discard choice %s", async (discard) => {
   mockManager.unsavedWorkflowIds = { existing: true };
   renderMenu();
-  await userEvent.click(await screen.findByRole("option", { name: "Close Workflow" }));
+  await userEvent.click(await screen.findByRole("option", { name: "Close workflow" }));
   expect(useConfirmStore.getState().pending?.request.content).toBe('Unsaved changes or saves in progress may be lost. Close “Existing”?');
   await act(async () => useConfirmStore.getState().settle(discard));
   expect(useWorkspaceTabsStore.getState().tabs.some((tab) => tab.ref === "existing")).toBe(!discard);
