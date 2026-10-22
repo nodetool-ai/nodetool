@@ -164,23 +164,15 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       left: "50%",
       transform: "translateX(-50%)",
       padding: getSpacingPx(SPACING.md),
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.lg,
       zIndex: Z_INDEX.overlay,
       gap: getSpacingPx(SPACING.md),
       alignItems: "center"
     },
     ".controls-select": {
-      minWidth: "100px",
-      "& .MuiSelect-select": {
-        color: theme.vars.palette.grey[100]
-      },
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.action.disabled
-      },
-      "& .MuiSvgIcon-root": {
-        color: theme.vars.palette.grey[100]
-      }
+      minWidth: "100px"
     },
     ".error-overlay": {
       position: "absolute",
@@ -190,7 +182,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       zIndex: Z_INDEX.dropdown,
       padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}`,
       maxWidth: "90%",
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.lg
     },
     ".fullscreen-close-button": {
@@ -198,11 +190,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       top: "1em",
       right: "1em",
       zIndex: Z_INDEX.modal,
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
-      color: theme.vars.palette.grey[100],
-      "&:hover": {
-        backgroundColor: "rgba(0, 0, 0, 0.9)"
-      }
+      backgroundColor: theme.vars.palette.background.paper
     }
   });
 

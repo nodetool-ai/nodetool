@@ -1,8 +1,9 @@
 /**
  * Popover Component
  *
- * A semantic wrapper around MUI Popover with simplified positioning
- * and built-in paper styling defaults.
+ * A semantic wrapper around MUI Popover with simplified positioning. Its
+ * paper is the menu surface (`menuPaperStyles`), so a popover and a menu
+ * look the same. Callers set size and overflow only.
  */
 
 import React, { memo } from "react";
@@ -11,7 +12,7 @@ import MuiPopover, {
 } from "@mui/material/Popover";
 import { useTheme } from "@mui/material/styles";
 import { SxProps, Theme } from "@mui/material";
-import { isNumber } from "../../utils/typePredicates";
+import { menuPaperStyles } from "./menuStyles";
 import { sxEntries } from "./tokens";
 import { OverlayLayerProvider, useOverlayLayer } from "./OverlayLayer";
 
@@ -115,12 +116,6 @@ const PopoverInternal: React.FC<PopoverProps> = ({
   const rootSlot = slotProps?.root;
   const rootSlotObject = typeof rootSlot === "object" ? rootSlot : undefined;
 
-  // Compute border radius with type guard since borderRadius can be string | number
-  const borderRadiusValue =
-    isNumber(theme.shape.borderRadius)
-      ? theme.shape.borderRadius / 4
-      : undefined;
-
   // Preserve any sx the caller passed on the paper slot instead of clobbering
   // it. Compose as an array (MUI flattens these) so the primitive's defaults
   // sit underneath both the caller's slot sx and the `paperSx` convenience prop.
@@ -150,8 +145,8 @@ const PopoverInternal: React.FC<PopoverProps> = ({
         paper: {
           ...paperSlotObject,
           sx: [
+            menuPaperStyles(theme),
             {
-              borderRadius: borderRadiusValue,
               maxWidth,
               maxHeight,
               overflow: maxHeight ? "auto" : undefined

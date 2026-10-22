@@ -31,7 +31,8 @@
     "openai": "^6.35.0",
     "replicate": "^1.4.0",
     "ws": "^8.19.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@nodetool-ai/antigravity-cli": "*"
   },
   "devDependencies": {
     "js-tiktoken": "^1.0.21",

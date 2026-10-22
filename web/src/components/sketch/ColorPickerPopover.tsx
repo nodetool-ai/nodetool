@@ -18,7 +18,6 @@ import {
   Box,
   Text,
   EditorButton,
-  Tooltip,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
@@ -27,12 +26,10 @@ import {
   TextField,
   NumberField,
   Slider,
-  IconButton,
   Popover,
   FONT_SIZE_SANS,
-  ICON_SIZE
+  CloseButton
 } from "../ui_primitives";
-import CloseIcon from "@mui/icons-material/CloseOutlined";
 import {
   ColorMode,
   parseColorToRgba,
@@ -213,10 +210,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       slotProps={{
         paper: {
           sx: {
-            bgcolor: SKETCH_COLORS.bgPrimary,
-            border: "1px solid",
-            borderColor: SKETCH_COLORS.border,
-            borderRadius: BORDER_RADIUS.sm,
             p: getSpacingPx(SPACING.sm),
             display: "flex",
             flexDirection: "column",
@@ -228,16 +221,11 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       }}
     >
       <FlexRow className="color-picker__header" align="center" justify="flex-end" sx={{ minHeight: "22px", mt: `-${getSpacingPx(SPACING.sm)}`, mr: `-${getSpacingPx(SPACING.sm)}`, mb: getSpacingPx(SPACING.micro) }}>
-        <Tooltip title={t("screens4_24.sketch.colorPicker.cancelTooltip")}>
-          <IconButton
-            size="small"
-            onClick={handleCancel}
-            aria-label={t("screens4_24.sketch.colorPicker.cancel")}
-            sx={{ p: getSpacingPx(SPACING.micro), color: SKETCH_COLORS.textSecondary, "&:hover": { color: SKETCH_COLORS.textPrimary, bgcolor: "rgba(255,255,255,0.06)" } }}
-          >
-            <CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />
-          </IconButton>
-        </Tooltip>
+        <CloseButton
+          tooltip={t("screens4_24.sketch.colorPicker.cancelTooltip")}
+          onClick={handleCancel}
+          nodrag={false}
+        />
       </FlexRow>
 
       <Box

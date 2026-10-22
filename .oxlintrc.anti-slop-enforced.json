@@ -15,6 +15,7 @@
     {
       "files": [
         "packages/analytics/src/**",
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/app-runtime/src/**",
         "packages/atlascloud-nodes/src/**",
@@ -83,6 +84,7 @@
     {
       "files": [
         "packages/analytics/src/**",
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
@@ -142,6 +144,7 @@
     },
     {
       "files": [
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
@@ -190,6 +193,7 @@
       "files": [
         "packages/agents/src/**",
         "packages/analytics/src/**",
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/app-runtime/src/**",
         "packages/atlascloud-nodes/src/**",
@@ -267,6 +271,7 @@
     {
       "files": [
         "electron/src/**",
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/app-runtime/src/**",
         "packages/atlascloud-nodes/src/**",
@@ -323,6 +328,7 @@
     },
     {
       "files": [
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
@@ -368,6 +374,7 @@
       "files": [
         "electron/src/**",
         "packages/analytics/src/**",
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
@@ -429,6 +436,7 @@
     },
     {
       "files": [
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",
@@ -473,6 +481,7 @@
     },
     {
       "files": [
+        "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",
         "packages/auth/src/**",

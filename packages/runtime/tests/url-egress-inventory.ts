@@ -139,6 +139,18 @@ const fixedHost = (
 });
 
 export const URL_EGRESS_INVENTORY: EgressEntry[] = [
+  {
+    file: "packages/antigravity-cli/src/index.ts",
+    owner: "Antigravity CLI installer",
+    inputSource: "provider-response",
+    schemes: ["https"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "deployment-egress",
+    policy: "fixed-host",
+    guardedBy: [],
+    note: "Fixed Google manifest endpoint; downloads require the official storage.googleapis.com bucket path, reject redirects, and verify the manifest SHA-512."
+  },
   // ---------------------------------------------------------------- screening
   {
     file: "packages/runtime/src/providers/safe-url.ts",

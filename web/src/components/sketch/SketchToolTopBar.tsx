@@ -15,13 +15,12 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {
   FlexRow,
-  IconButton,
   Text,
   Toolbar,
-  Tooltip,
   SPACING,
   TYPOGRAPHY,
-  getSpacingPx
+  getSpacingPx,
+  ToolbarIconButton
 } from "../ui_primitives";
 import {
   SketchTool,
@@ -234,27 +233,16 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
           {t(`i18n-next52.sketch.tools.${activeTool}`)}
         </Text>
         {onToggleSettingsCollapsed && (
-          <Tooltip
-            title={
+          <ToolbarIconButton
+            icon={settingsCollapsed ? <ExpandMoreIcon /> : <ExpandLessIcon />}
+            tooltip={
               settingsCollapsed ? t("i18n-next52.sketch.toolBar.showSettings") : t("i18n-next52.sketch.toolBar.hideSettings")
             }
-          >
-            <IconButton
-              size="small"
-              onClick={onToggleSettingsCollapsed}
-              aria-expanded={!settingsCollapsed}
-              aria-label={
-                settingsCollapsed ? t("i18n-next52.sketch.toolBar.showSettings") : t("i18n-next52.sketch.toolBar.hideSettings")
-              }
-              data-testid="sketch-toggle-tool-settings"
-            >
-              {settingsCollapsed ? (
-                <ExpandMoreIcon fontSize="small" />
-              ) : (
-                <ExpandLessIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
+            onClick={onToggleSettingsCollapsed}
+            aria-expanded={!settingsCollapsed}
+            data-testid="sketch-toggle-tool-settings"
+            nodrag={false}
+          />
         )}
       </FlexRow>
 

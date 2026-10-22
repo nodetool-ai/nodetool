@@ -40,9 +40,6 @@ import {
 
 const log = createLogger("nodetool.runtime.providers.antigravity");
 
-/** The executable name the official installer puts on PATH. */
-const DEFAULT_COMMAND = "agy";
-
 /** Where the official installer places `agy` on macOS and Linux. */
 const INSTALLER_BIN_DIR = [".local", "bin"];
 
@@ -608,7 +605,8 @@ const spawnAgy: AntigravityCliRunner = async (args, options) => {
     ...process.env,
     PATH: [process.env["PATH"], installerBin].filter(Boolean).join(path.delimiter)
   };
-  const child = cp.spawn(DEFAULT_COMMAND, args, {
+  const { resolveAntigravityCommand } = await import("@nodetool-ai/antigravity-cli");
+  const child = cp.spawn(await resolveAntigravityCommand(), args, {
     cwd: options.cwd ?? undefined,
     env,
     stdio: ["pipe", "pipe", "pipe"],

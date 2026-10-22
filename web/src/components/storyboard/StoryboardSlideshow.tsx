@@ -49,7 +49,8 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
-  Z_INDEX
+  Z_INDEX,
+  Tooltip
 } from "../ui_primitives";
 import { useBoard } from "../../stores/storyboard/StoryboardStore";
 import { sceneOrder } from "../../lib/storyboard/sceneOrder";
@@ -422,30 +423,30 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
             {slides.map((entry, entryIndex) => {
               const active = entryIndex === index;
               return (
-                <Box
-                  key={entry.shot.id}
-                  component="button"
-                  type="button"
-                  ref={active ? activeThumbRef : undefined}
-                  aria-current={active ? "true" : undefined}
-                  aria-label={entry.caption}
-                  title={entry.caption}
-                  onClick={() => setShotId(entry.shot.id)}
-                  sx={{ ...thumbSx, aspectRatio: thumbAspect }}
-                >
-                  {entry.shot.keyframe ? (
-                    <ResponsiveImage
-                      locator={entry.shot.keyframe}
-                      alt=""
-                      fit="cover"
-                      preferThumbnail
-                    />
-                  ) : (
-                  <Caption color="muted">
-                    {numberFormat.format(entryIndex + 1)}
-                  </Caption>
-                  )}
-                </Box>
+                <Tooltip key={entry.shot.id} title={entry.caption}>
+                  <Box
+                    component="button"
+                    type="button"
+                    ref={active ? activeThumbRef : undefined}
+                    aria-current={active ? "true" : undefined}
+                    aria-label={entry.caption}
+                    onClick={() => setShotId(entry.shot.id)}
+                    sx={{ ...thumbSx, aspectRatio: thumbAspect }}
+                  >
+                    {entry.shot.keyframe ? (
+                      <ResponsiveImage
+                        locator={entry.shot.keyframe}
+                        alt=""
+                        fit="cover"
+                        preferThumbnail
+                      />
+                    ) : (
+                    <Caption color="muted">
+                      {numberFormat.format(entryIndex + 1)}
+                    </Caption>
+                    )}
+                  </Box>
+                </Tooltip>
               );
             })}
           </FlexRow>

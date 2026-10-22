@@ -123,6 +123,16 @@ export const parseHiggsfieldCredential = (
 
 export const PROVIDER_META: ProviderMeta[] = [
   {
+    key: "ANTIGRAVITY_CLI",
+    providerId: PROVIDER_IDS.ANTIGRAVITY,
+    name: "Antigravity",
+    description: "Use your Google Antigravity account for language models. No API key needed.",
+    section: "language",
+    docsUrl: "https://antigravity.google/docs/cli/install/",
+    icon: googleColorIcon,
+    localOnly: true
+  },
+  {
     key: "OPENAI_API_KEY",
     providerId: PROVIDER_IDS.OPENAI,
     name: "OpenAI",

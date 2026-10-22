@@ -64,7 +64,7 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
 
   return <>
     <EditorButton ref={button} size="small" data-dock-layout-menu aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(true)}
-      startIcon={<DashboardOutlinedIcon fontSize="small" />} endIcon={<ArrowDropDownIcon fontSize="small" />}
+      startIcon={<DashboardOutlinedIcon />} endIcon={<ArrowDropDownIcon />}
       sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
       {current ?? t("batch2_2.layout.layout")}
     </EditorButton>

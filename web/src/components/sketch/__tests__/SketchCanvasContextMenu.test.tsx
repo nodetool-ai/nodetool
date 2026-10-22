@@ -28,12 +28,13 @@ jest.mock("../ToolSettingsPanels", () => ({
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import SketchCanvasContextMenu from "../SketchCanvasContextMenu";
 import { useSketchStore } from "../state/useSketchStore";
 
 function renderContextMenu(overrides: Record<string, unknown> = {}) {
-  const theme = createTheme({ cssVariables: true });
+  const theme = mockTheme;
   const onClose = jest.fn();
   const onStrokeSelectionWithForeground = jest.fn();
   const onFillSelectionWithForeground = jest.fn();

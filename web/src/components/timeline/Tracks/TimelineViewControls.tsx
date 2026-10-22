@@ -180,11 +180,6 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
           anchorEl={anchorEl}
           onClose={() => setAnchorEl(null)}
           placement="bottom-right"
-          paperSx={{
-            border: `1px solid ${theme.vars.palette.divider}`,
-            boxShadow: theme.shadows[8],
-            borderRadius: BORDER_RADIUS.md
-          }}
         >
           <div
             id="timeline-view-controls"

@@ -1,3 +1,8 @@
+jest.mock("../../../lib/env", () => ({
+  isLocalhost: false,
+  isElectron: false
+}));
+
 import {
   matchesSearch,
   otherMatchingTabs,
@@ -19,6 +24,11 @@ describe("matchesSearch", () => {
 });
 
 describe("tabHasMatches", () => {
+  it("does not suggest Antigravity on hosted deployments", () => {
+    expect(tabHasMatches("providers", "antigravity")).toBe(false);
+    expect(otherMatchingTabs("general", "antigravity")).toEqual([]);
+  });
+
   it("routes provider names to Providers", () => {
     expect(tabHasMatches("providers", "openai")).toBe(true);
     expect(tabHasMatches("general", "openai")).toBe(false);

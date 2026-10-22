@@ -25,12 +25,12 @@ import {
 } from "./sketchStyles";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import type { SystemStyleObject } from "@mui/system";
 
 import {
   FlexColumn,
   FlexRow,
   Box,
+  InspectorSelect,
   Tooltip,
   Divider,
   Text,
@@ -48,11 +48,9 @@ import {
   ListItemIcon,
   ListItemText,
   Slider,
-  Select,
   MenuItem,
-  FormControl,
   DeleteButton,
-  ICON_SIZE
+  ToolbarIconButton
 } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -178,32 +176,6 @@ function quickCycleDirectionForArrowKey(key: string): -1 | 1 | null {
   return null;
 }
 
-/**
- * Bottom layer-ops toolbar icon: thin, muted, evenly spaced with a soft rounded
- * hover — the same language as the left tool rail, no heavy dividers. Active
- * role toggles (mask / alpha-lock) override `color` through their own sx.
- */
-const OPS_ICON_SX = {
-  width: 30,
-  height: 30,
-  padding: getSpacingPx(SPACING.xs),
-  borderRadius: BORDER_RADIUS.lg,
-  color: "grey.400",
-  transition: `${MOTION.background}, color ${MOTION.fast}`,
-  ...reducedMotion({ transition: MOTION.none }),
-  "&:hover": { backgroundColor: "grey.800", color: "grey.100" },
-  "&.Mui-disabled": { color: "grey.700" }
-};
-
-const OPS_DELETE_SX = {
-  ...OPS_ICON_SX,
-  "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.md }
-};
-/** The shared op-icon styling, tinted when the op it drives is on. */
-const opsIconSx = (activeColor: string | null): SystemStyleObject<Theme> => {
-  return activeColor ? { ...OPS_ICON_SX, color: activeColor } : OPS_ICON_SX;
-};
-
 /** Labeled layer-creation actions share a quiet row above the layer list. */
 const GENERATE_ACTION_SX = {
   flex: 1,
@@ -240,18 +212,6 @@ const NEW_LAYER_ACTION_SX = {
   justifyContent: "flex-start",
   backgroundColor: "grey.800",
   "&:hover": { backgroundColor: "grey.700" }
-};
-
-/** Opens the menu with every other way to add a layer. */
-const ADD_ACTION_ICON_SX = {
-  width: 32,
-  height: 32,
-  padding: 0,
-  borderRadius: BORDER_RADIUS.lg,
-  color: "grey.400",
-  transition: `${MOTION.background}, color ${MOTION.fast}`,
-  ...reducedMotion({ transition: MOTION.none }),
-  "&:hover": { backgroundColor: "grey.800", color: "grey.100" }
 };
 
 const ADD_MENU_SWATCH_SX = {
@@ -1093,19 +1053,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               {t("i18n-cont-sketch-03.layers.newLayer")}
             </Button>
           </Tooltip>
-          <Tooltip title={t("i18n-cont-sketch-03.layers.moreWaysToAdd")}>
-            <IconButton
-              aria-label={t("i18n-cont-sketch-03.layers.moreWaysToAdd")}
-              aria-haspopup="menu"
-              aria-expanded={addMenuAnchor !== null}
-              size="small"
-              onClick={(e) => setAddMenuAnchor(e.currentTarget)}
-              data-testid="layers-panel-add-menu"
-              sx={ADD_ACTION_ICON_SX}
-            >
-              <ExpandMoreIcon sx={{ fontSize: ICON_SIZE.md }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<ExpandMoreIcon />}
+            tooltip={t("i18n-cont-sketch-03.layers.moreWaysToAdd")}
+            aria-haspopup="menu"
+            aria-expanded={addMenuAnchor !== null}
+            onClick={(e) => setAddMenuAnchor(e.currentTarget)}
+            data-testid="layers-panel-add-menu"
+            nodrag={false}
+          />
         </FlexRow>
         <ContextMenu
           className="sketch-layers-panel__add-menu"
@@ -1238,82 +1194,50 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         gap={0.5}
         sx={{ rowGap: 0.5, minHeight: 30, py: 0.5 }}
       >
-        <Tooltip
-          title={t(
+        <ToolbarIconButton
+          icon={<MaskIcon style={{ width: "1.125rem", height: "1.125rem" }} />}
+          tooltip={t(
             maskLayerId === activeLayerId
               ? "i18n-cont-sketch-03.layers.removeMaskDesignation"
               : "i18n-cont-sketch-03.layers.setMaskLayer"
           )}
-        >
-          <IconButton
-            aria-label={
-              t(
-                maskLayerId === activeLayerId
-                  ? "i18n-cont-sketch-03.layers.removeMaskDesignation"
-                  : "i18n-cont-sketch-03.layers.setMaskLayer"
-              )
-            }
-            size="small"
-            onClick={() =>
-              onSetMaskLayer(
-                maskLayerId === activeLayerId ? null : activeLayerId
-              )
-            }
-            sx={opsIconSx(
-              maskLayerId === activeLayerId ? "warning.main" : null
-            )}
-          >
-            <MaskIcon style={{ width: "1.125rem", height: "1.125rem" }} />
-          </IconButton>
-        </Tooltip>
+          active={maskLayerId === activeLayerId}
+          onClick={() =>
+            onSetMaskLayer(
+              maskLayerId === activeLayerId ? null : activeLayerId
+            )
+          }
+          nodrag={false}
+        />
 
-        <Tooltip
-          title={t(
+        <ToolbarIconButton
+          icon={<LockIcon />}
+          tooltip={t(
             activeLayer?.alphaLock
               ? "i18n-cont-sketch-03.layers.unlockTransparency"
               : "i18n-cont-sketch-03.layers.lockTransparency"
           )}
-        >
-          <IconButton
-            aria-label={t(
-              activeLayer?.alphaLock
-                ? "i18n-cont-sketch-03.layers.unlockTransparency"
-                : "i18n-cont-sketch-03.layers.lockTransparency"
-            )}
-            size="small"
-            onClick={() => onToggleAlphaLock(activeLayerId)}
-            sx={opsIconSx(activeLayer?.alphaLock ? "info.main" : null)}
-          >
-            <LockIcon sx={{ fontSize: ICON_SIZE.md }} />
-          </IconButton>
-        </Tooltip>
+          active={Boolean(activeLayer?.alphaLock)}
+          onClick={() => onToggleAlphaLock(activeLayerId)}
+          nodrag={false}
+        />
 
-        <Tooltip title={t("i18n-cont-sketch-03.layers.groupSelectedLayers")}>
-          <span>
-            <IconButton
-              aria-label={t("i18n-cont-sketch-03.layers.groupSelectedLayers")}
-              size="small"
-              onClick={onGroupSelectedLayers}
-              disabled={!hasMultiLayerSelection}
-              sx={OPS_ICON_SX}
-            >
-              <CreateNewFolderIcon sx={{ fontSize: ICON_SIZE.md }} />
-            </IconButton>
-          </span>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<CreateNewFolderIcon />}
+          tooltip={t("i18n-cont-sketch-03.layers.groupSelectedLayers")}
+          onClick={onGroupSelectedLayers}
+          disabled={!hasMultiLayerSelection}
+          nodrag={false}
+        />
 
         {/* Lifecycle, right-aligned: Duplicate · Delete */}
         <FlexRow align="center" gap={0.5} sx={{ ml: "auto" }}>
-          <Tooltip title={t("i18n-cont-sketch-03.layers.duplicateLayer")}>
-            <IconButton
-              aria-label={t("i18n-cont-sketch-03.layers.duplicateLayer")}
-              size="small"
-              onClick={() => onDuplicateLayer(activeLayerId)}
-              sx={OPS_ICON_SX}
-            >
-              <ContentCopyIcon sx={{ fontSize: ICON_SIZE.md }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<ContentCopyIcon />}
+            tooltip={t("i18n-cont-sketch-03.layers.duplicateLayer")}
+            onClick={() => onDuplicateLayer(activeLayerId)}
+            nodrag={false}
+          />
           <DeleteButton
             iconVariant="outline"
             tooltip={
@@ -1328,7 +1252,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 : onRemoveLayer(activeLayerId)
             }
             disabled={!canDeleteToolbarLayer}
-            sx={OPS_DELETE_SX}
           />
         </FlexRow>
       </FlexRow>
@@ -1376,47 +1299,24 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }).format(activeLayer.opacity)}
             </Text>
           </Box>
-          <FormControl
+          <Box
             data-focus-id="sketch-layer-blend-mode"
             className="sketch-layers-panel__blend-mode"
-            size="small"
-            sx={{ px: SPACING.none }}
+            onKeyDownCapture={handleBlendModeQuickCycleKeyDownCapture}
+            onWheelCapture={handleBlendModeQuickCycleWheelCapture}
           >
-            <Select
-              aria-label={t("i18n-cont-sketch-03.layers.blendMode")}
+            <InspectorSelect
+              label={t("i18n-cont-sketch-03.layers.blendMode")}
               value={coerceBlendMode(activeLayer.blendMode)}
-              onChange={(e) =>
-                onLayerBlendModeChange(
-                  activeLayerId,
-                  e.target.value
-                )
+              onChange={(value) =>
+                onLayerBlendModeChange(activeLayerId, coerceBlendMode(value))
               }
-              onKeyDownCapture={handleBlendModeQuickCycleKeyDownCapture}
-              onWheelCapture={handleBlendModeQuickCycleWheelCapture}
-              sx={{ ...sketchFieldSx, fontSize: FONT_SIZE_SANS.label, height: "28px" }}
-            >
-              {(
-                [
-                  "normal",
-                  "multiply",
-                  "screen",
-                  "overlay",
-                  "darken",
-                  "lighten",
-                  "color-dodge",
-                  "color-burn",
-                  "hard-light",
-                  "soft-light",
-                  "difference",
-                  "exclusion"
-                ] as const
-              ).map((mode) => (
-                <MenuItem key={mode} value={mode}>
-                  {t(`i18n-cont-sketch-03.layers.blendModes.${mode}`)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              options={QUICK_CYCLE_BLEND_MODES.map((mode) => ({
+                value: mode,
+                label: t(`i18n-cont-sketch-03.layers.blendModes.${mode}`)
+              }))}
+            />
+          </Box>
           {activeLayer.imageReference ? (
             <Box
               className="sketch-layers-panel__active-layer-ref"

@@ -1,12 +1,11 @@
 import { render, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import SketchToolbar from "../SketchToolbar";
 
 function renderToolbar() {
-  const theme = createTheme({
-    cssVariables: true
-  });
+  const theme = mockTheme;
 
   return render(
     <ThemeProvider theme={theme}>

@@ -22,6 +22,9 @@
     },
     {
       "path": "../browser"
+    },
+    {
+      "path": "../antigravity-cli"
     }
   ]
 }

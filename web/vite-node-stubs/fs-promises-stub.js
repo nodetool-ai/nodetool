@@ -25,6 +25,7 @@ export const chmod = makeThrower("chmod");
 export const lstat = makeThrower("lstat");
 export const realpath = makeThrower("realpath");
 export const symlink = makeThrower("symlink");
+export const link = makeThrower("link");
 export const readlink = makeThrower("readlink");
 export const utimes = makeThrower("utimes");
 export const truncate = makeThrower("truncate");
@@ -47,6 +48,7 @@ export default {
   lstat,
   realpath,
   symlink,
+  link,
   readlink,
   utimes,
   truncate,

@@ -142,6 +142,9 @@
     },
     {
       "path": "../whisper-cpp"
+    },
+    {
+      "path": "../antigravity-cli"
     }
   ]
 }
