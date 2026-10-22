@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
-import type { EntityKind } from "@nodetool-ai/protocol";
+import type { EntityKind, GenerateMediaRequest } from "@nodetool-ai/protocol";
 
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import { estimateGenerationCost } from "../../utils/generationCostEstimate";
@@ -195,21 +195,22 @@ export const GenerateReferenceDialog = ({
     controllerRef.current = controller;
     setGenerating(true);
     setError(null);
+    const request: GenerateMediaRequest = {
+      mode: editing ? "image_edit" : "image",
+      provider: model.provider,
+      model: model.id,
+      prompt: trimmedPrompt,
+      aspect_ratio: aspectRatio,
+      resolution: "1K",
+      variations: takeCount
+    };
+    if (editing && currentAssetId) {
+      request.source_asset_id = currentAssetId;
+    }
     try {
       const answer = await rpcRequest(
         "generate_media",
-        {
-          mode: editing ? "image_edit" : "image",
-          provider: model.provider,
-          model: model.id,
-          prompt: trimmedPrompt,
-          ...(editing && currentAssetId
-            ? { source_asset_id: currentAssetId }
-            : {}),
-          aspect_ratio: aspectRatio,
-          resolution: "1K",
-          variations: takeCount
-        },
+        request,
         REFERENCE_TIMEOUT_MS,
         controller.signal
       );
