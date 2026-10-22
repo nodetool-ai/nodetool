@@ -26,7 +26,7 @@
     try {
       // Resolve relative URLs like "/getting-started" against the current origin
       const url = new URL(path, window.location.origin);
-      return url.pathname.replace(/\/index\.html?$/, '/').replace(/\/$/, '') || '/';
+      return url.pathname.replace(/\/index\.html?$/, '/').replace(/\.html?$/, '').replace(/\/$/, '') || '/';
     } catch (err) {
       return path;
     }

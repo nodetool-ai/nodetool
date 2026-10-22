@@ -8,7 +8,7 @@ This plan targets four separate costs: browser frame scheduling, decoder readine
 
 ## Delivery rules
 
-- Start each task from the current branch and read [`AGENTS.md`](../../AGENTS.md), the relevant area overlays, and [`docs/DEVELOPMENT_STANDARDS.md`](https://github.com/nodetool-ai/nodetool/blob/main/docs/DEVELOPMENT_STANDARDS.md). This plan describes work, not an exception to those rules.
+- Start each task from the current branch and read [`AGENTS.md`](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md), the relevant area overlays, and [`docs/DEVELOPMENT_STANDARDS.md`](https://github.com/nodetool-ai/nodetool/blob/main/docs/DEVELOPMENT_STANDARDS.md). This plan describes work, not an exception to those rules.
 - Use one agent per task and one small PR per task. Agents may work concurrently only when the ownership table gives them disjoint files. Integrate in dependency order, rebase, and rerun checks on the integrated branch.
 - Before fixing an observed bug, make the reproduction fail. Before enforcing a new metric check, prove it fails on invalid input. Use the canonical playback or export path to confirm a harness finding, as required by [`docs/HARNESS_FIRST.md`](../HARNESS_FIRST.md#the-rules).
 - Every code PR runs `npm run test:affected`, `npm run typecheck`, `npm run lint`, and `npm run dev:nodetool -- harness gate --base origin/main`. Add the focused render parity or browser scenario named in its task. Attach before and after measurements from the same machine, fixture, browser, resolution, and cache state.
