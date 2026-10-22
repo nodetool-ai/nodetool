@@ -4,13 +4,14 @@ import { Euler, Quaternion } from "three";
 import { ZodError } from "zod";
 import { GameOpError, gameDocumentOp3D, trackGameAuthoringEdits, validateGame3D, type GameDocumentOp3D } from "@nodetool-ai/game-runtime";
 import { gameScene3D, gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import CodeIcon from "@mui/icons-material/Code";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import { diffGameDocuments3D } from "../../../../stores/game/diffGameDocuments3D";
 import { Box, Caption, CONTROL, FieldDensityContext, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorSection, InspectorValueInput, Label, SPACING, Text, TextInput, ToolbarIconButton } from "../../../ui_primitives";
+import ErrorBanner from "../../../support/ErrorBanner";
 import ReportBugButton from "../../../support/ReportBugButton";
 import SchemaFields from "../../inspector/SchemaFields";
 import { GAME_COMPONENT_EDITORS } from "../../inspector/componentEditors";
@@ -84,10 +85,13 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
       <InspectorSection title={t("i18n-next2.gameInspector3d.physicsMaterials")}>
         <PhysicsMaterialsEditor document={document} onDocument={applyDocument} />
       </InspectorSection>
-      {validation.diagnostics.map((issue, index) => <Caption key={`${issue.code}:${index}`} color="error">{issue.path.join(".")}: {issue.message}</Caption>)}
-      {validation.diagnostics.length > 0 && <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-next2.gameInspector3d.validationFailed"),
+      {validation.diagnostics.length > 0 && <ErrorBanner report={{ source: "panel-crash", summary: t("i18n-next2.gameInspector3d.validationFailed"),
         errorText: validation.diagnostics.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("\n"),
-        nodeDetail: `Game: ${document.id}\nScene: ${sceneId}` }} />}
+        nodeDetail: `Game: ${document.id}\nScene: ${sceneId}` }}>
+        <FlexColumn gap={SPACING.micro}>
+          {validation.diagnostics.map((issue, index) => <Caption key={`${issue.code}:${index}`}>{issue.path.join(".")}: {issue.message}</Caption>)}
+        </FlexColumn>
+      </ErrorBanner>}
     </FlexColumn>;
   }
   const position = entity.transform3d.position;

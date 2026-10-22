@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { gameScriptParamValueOf, type AnyGameDocument, type GameScriptParam, type GameScriptParamValue } from "@nodetool-ai/protocol";
 import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import { Caption, FlexColumn, InspectorFieldRow, InspectorSelect, SPACING } from "../../../ui_primitives";
+import { Caption, FieldError, FlexColumn, InspectorFieldRow, InspectorSelect, SPACING } from "../../../ui_primitives";
 import SchemaFields from "../SchemaFields";
 import type { FieldSchema } from "../schemaForm";
 
@@ -74,7 +74,7 @@ function ScriptParamsEditor({ params, values, assets, entities, issuePath = [], 
         field = <FlexColumn gap={SPACING.xs} sx={{ width: "100%", minWidth: 0 }}>
           <InspectorFieldRow label={paramLabel(name)}><InspectorSelect grow label={paramLabel(name)} value={current}
             options={[{ value: "", label: t("game.inspector.none") }, ...options]} onChange={(next) => onValues(scriptParamEdit(param, name, next))} /></InspectorFieldRow>
-          {error && <Caption color="error">{error}</Caption>}
+          {error && <FieldError>{error}</FieldError>}
         </FlexColumn>;
       } else {
         field = <SchemaFields schema={scriptParamFieldSchema(param)} value={value} path={name} issuePath={valuePath} issues={issues}

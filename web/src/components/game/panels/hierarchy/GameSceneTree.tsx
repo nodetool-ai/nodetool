@@ -1,7 +1,7 @@
 import { useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CropSquareIcon from "@mui/icons-material/CropSquare";

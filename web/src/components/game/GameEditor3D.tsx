@@ -14,6 +14,7 @@ import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, Label, LoadingSpinner, SPACING, Text, TextInput } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import { publishGameDraft } from "./gamePublish";
@@ -298,10 +299,12 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
         hint: selected ? t("i18n-next26.game.selected", { name: selected.name || selected.id }) : t("i18n-next26.game.entitiesInScene", { count: scene?.entities.length ?? 0, scene: scene?.name ?? t("i18n-next26.game.scene") }) }}
     notices={<>
     {notice && <FlexColumn gap={SPACING.xs} sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
-      {(host.error || draftError || operationError) && <FlexRow gap={SPACING.xs} align="center"><Caption color="error" role="alert" sx={{ flex: 1, minWidth: 0 }}>{host.error ?? draftError ?? operationError}</Caption>
-        {host.error && <EditorButton onClick={() => void host.replayBeforeError()}>{t("i18n-next26.game.replayBeforeError")}</EditorButton>}
-        <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-next26.game.editorFailed"), errorText: host.error ?? draftError ?? operationError ?? "",
-          nodeDetail: `Game: ${refId}\nScene: ${activeSceneId}\nEntity: ${selected?.id ?? "none"}\nTick: ${host.inspection?.tick ?? 0}` }} /></FlexRow>}
+      {(host.error || draftError || operationError) && <ErrorBanner
+        onRetry={host.error ? () => void host.replayBeforeError() : undefined} retryLabel={t("i18n-next26.game.replayBeforeError")}
+        report={{ source: "panel-crash", summary: t("i18n-next26.game.editorFailed"), errorText: host.error ?? draftError ?? operationError ?? "",
+          nodeDetail: `Game: ${refId}\nScene: ${activeSceneId}\nEntity: ${selected?.id ?? "none"}\nTick: ${host.inspection?.tick ?? 0}` }}>
+        {host.error ?? draftError ?? operationError}
+      </ErrorBanner>}
       {restart && <Caption role="status">{t("i18n-next26.game.draftChangedRestart")}</Caption>}
     </FlexColumn>}
     <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flush} onHighlight={setHighlightedIds} />

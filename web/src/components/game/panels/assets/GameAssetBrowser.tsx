@@ -11,10 +11,8 @@ import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { trpc, trpcClient } from "../../../../trpc/client";
 import ReportBugButton from "../../../support/ReportBugButton";
-import { AutoGrid, BORDER_RADIUS, Box, Caption, Chip, CONTROL, Dialog, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow,
-  InspectorFieldRow, InspectorSection, LoadingSpinner, ScrollArea, SearchInput, SelectField, SPACING, Text, TextArea,
-  ToggleGroup, ToggleOption, ToolbarIconButton, TruncatedText, TYPOGRAPHY, getSpacingPx, selectableRowStyles,
-  selectableTileStyles } from "../../../ui_primitives";
+import { AutoGrid, BORDER_RADIUS, Box, Caption, Chip, CONTROL, Dialog, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow, getSpacingPx, InspectorFieldRow, InspectorSection, LoadingSpinner, ScrollArea, SearchInput, selectableRowStyles, selectableTileStyles, SelectField, SPACING, Text, TextArea, ToggleGroup, ToggleOption, ToolbarIconButton, TruncatedText, TYPOGRAPHY } from "../../../ui_primitives";
+import ErrorBanner from "../../../support/ErrorBanner";
 import GameAssetThumbnail from "./GameAssetThumbnail";
 import { GAME_ASSET_KIND_FILTERS, candidatesForSlot, panelGenerationKind, shortDigest, type GameAssetBrowserTab,
   type GameAssetPanelGenerationKind, type GameAssetSource } from "./gameAssetBrowserModel";
@@ -229,9 +227,9 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
         </FlexColumn>
         {!entry.siblingOf && <FlexRow gap={SPACING.xs}>
           {generationKind
-            ? <EditorButton variant="outlined" size="small" startIcon={<AutoAwesomeOutlinedIcon fontSize="small" />} disabled={busy} onClick={() => setGeneration({ slot: entry.slot, kind: generationKind,
+            ? <EditorButton variant="outlined" size="small" startIcon={<AutoAwesomeOutlinedIcon />} disabled={busy} onClick={() => setGeneration({ slot: entry.slot, kind: generationKind,
               prompt: request?.prompt ?? "", preparation: request?.preparation })}>{verb}</EditorButton>
-            : <EditorButton variant="outlined" size="small" startIcon={<AutoAwesomeOutlinedIcon fontSize="small" />} disabled={busy} onClick={() => onAskAssistant(t("i18n-cont-game-06.assets.assistantGeneratePrompt", { kind: request?.kind ?? entry.mediaKind, slot: entry.slot, prompt: request?.prompt ? t("i18n-cont-game-06.assets.promptSuffix", { prompt: request.prompt }) : "" }))}>
+            : <EditorButton variant="outlined" size="small" startIcon={<AutoAwesomeOutlinedIcon />} disabled={busy} onClick={() => onAskAssistant(t("i18n-cont-game-06.assets.assistantGeneratePrompt", { kind: request?.kind ?? entry.mediaKind, slot: entry.slot, prompt: request?.prompt ? t("i18n-cont-game-06.assets.promptSuffix", { prompt: request.prompt }) : "" }))}>
               {t("i18n-cont-game-06.assets.askAssistantToGenerate")}
             </EditorButton>}
         </FlexRow>}
@@ -345,10 +343,10 @@ export default function GameAssetBrowser({ gameId, document, runServerEdit, onOp
             active={view === "grid"} disabled={tab !== "assets"} onClick={() => setView("grid")} />
         </FlexRow>
       </FlexRow>
-      {error && <FlexRow gap={SPACING.sm} align="center" sx={{ flexShrink: 0, px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-        <Caption color="error" role="alert" sx={{ flex: 1, minWidth: 0 }}>{error}</Caption>
-        <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-cont-game-06.assets.actionFailedSummary"), errorText: error }} />
-      </FlexRow>}
+      {error && <ErrorBanner sx={{ flexShrink: 0, mx: SPACING.md, my: SPACING.xs }}
+        report={{ source: "panel-crash", summary: t("i18n-cont-game-06.assets.actionFailedSummary"), errorText: error }}>
+        {error}
+      </ErrorBanner>}
       <FlexRow sx={{ flex: 1, minHeight: 0, alignItems: "stretch", [STACKED]: { flexDirection: "column" } }}>
         <ScrollArea thin aria-label={t("i18n-cont-game-06.assets.listAria", { tab: tabLabels[tab] })} sx={{ flex: 1, minWidth: 0, minHeight: 0, p: SPACING.xs }}>
           {items.length === 0

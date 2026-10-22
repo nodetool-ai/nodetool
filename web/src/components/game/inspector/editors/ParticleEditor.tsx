@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { GAME_PARTICLE_PRESET_IDS, gameParticleEmitter, gameParticleIssues, gameParticles, getGameParticlePreset, type GameParticleEmitter } from "@nodetool-ai/protocol";
 
 import { Caption, CurveEditor, EditorButton, FlexColumn, FlexRow, GradientEditor, InspectorFieldRow, InspectorSection, InspectorSelect, SPACING } from "../../../ui_primitives";
+import ErrorBanner from "../../../support/ErrorBanner";
 import ReportBugButton from "../../../support/ReportBugButton";
 import SchemaFields from "../SchemaFields";
 import type { GameComponentEditorProps } from "../componentEditors";
@@ -90,9 +91,6 @@ export default function ParticleEditor({ value, onChange, schema, assets, dimens
         <EditorButton onClick={() => { const next = { ...emitter }; delete next.colorOverLifetime; replaceEmitter(next); }}>{t("i18n-next2.particleEditor.removeColorOverLifetime")}</EditorButton>
       </> : <EditorButton onClick={() => change({ colorOverLifetime: [{ t: 0, color: IDENTITY_GRADIENT_COLOR }] })}>{t("i18n-next2.particleEditor.addColorOverLifetime")}</EditorButton>}
     </InspectorSection>
-    {error && <>
-      <Caption color="error" role="alert">{error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-next2.particleEditor.invalidSettings"), errorText: error }} />
-    </>}
+    {error && <ErrorBanner report={{ source: "panel-crash", summary: t("i18n-next2.particleEditor.invalidSettings"), errorText: error }}>{error}</ErrorBanner>}
   </FlexColumn>;
 }

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { GAME_MAX_PHYSICS_MATERIALS_3D, gamePhysicsMaterial3D, type GameDocument3D, type GameEntity3D, type GamePhysicsMaterial3D } from "@nodetool-ai/protocol";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-import { Caption, FlexColumn, InspectorFieldRow, InspectorValueInput, SPACING } from "../../../ui_primitives";
+import { Caption, FieldError, FlexColumn, InspectorFieldRow, InspectorValueInput, SPACING } from "../../../ui_primitives";
 import { AddButton, FieldGroup, RowAction } from "../InspectorParts";
 import SchemaFields from "../SchemaFields";
 import { gameSchemaFields } from "../schemaForm";
@@ -70,7 +70,7 @@ function PhysicsMaterialsEditor({ document, onDocument }: PhysicsMaterialsEditor
       <InspectorFieldRow label={t("game.physics.fields.name")}><InspectorValueInput grow ariaLabel={t("game.physics.accessibility.materialName", { name })} value={name} onCommit={(raw) => rename(name, raw)} /></InspectorFieldRow>
       <SchemaFields schema={MATERIAL_FIELDS} value={material} path={`physicsMaterials.${name}`} onChange={(value) => change(name, value)} />
     </FieldGroup>)}
-    {renameError && <Caption color="error" role="alert">{renameError}</Caption>}
+    {renameError && <FieldError alert>{renameError}</FieldError>}
     <AddButton disabled={names.length >= GAME_MAX_PHYSICS_MATERIALS_3D} onClick={addMaterial}>{t("game.physics.actions.addMaterialButton")}</AddButton>
   </FlexColumn>;
 }

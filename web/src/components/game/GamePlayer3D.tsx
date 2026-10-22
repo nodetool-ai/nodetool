@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameDocument3D } from "@nodetool-ai/protocol";
 import { Caption, EditorButton, FlexColumn, FlexRow, SPACING, Text } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
 import ReportBugButton from "../support/ReportBugButton";
 import GameViewport3D from "./viewport3d/GameViewport3D";
 import { useGamePlaySession3D } from "./useGamePlaySession3D";
@@ -37,9 +38,10 @@ export default function GamePlayer3D({ gameId, name, document, active = true, au
       <EditorButton onClick={host.stop} disabled={!host.playDocument}>{t("screen_game.player.stop")}</EditorButton>
       <Caption>{t("screen_game.player.score", { score: numberFormat.format(host.inspection?.score ?? 0) })} · {status} · {host.backend}</Caption>
     </FlexRow>
-    {host.error && <FlexRow gap={SPACING.xs}><Caption color="error" role="alert">{host.error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: t("screen_game.player.failed3d"), errorText: host.error,
-        nodeDetail: `${t("screen_game.player.gameDetail", { id: gameId })}\n${t("screen_game.player.sceneDetail", { scene: host.inspection?.sceneId ?? document.entrySceneId })}\n${t("screen_game.player.tickDetail", { tick: host.inspection?.tick ?? 0 })}` }} /></FlexRow>}
+    {host.error && <ErrorBanner report={{ source: "panel-crash", summary: t("screen_game.player.failed3d"), errorText: host.error,
+      nodeDetail: `${t("screen_game.player.gameDetail", { id: gameId })}\n${t("screen_game.player.sceneDetail", { scene: host.inspection?.sceneId ?? document.entrySceneId })}\n${t("screen_game.player.tickDetail", { tick: host.inspection?.tick ?? 0 })}` }}>
+      {host.error}
+    </ErrorBanner>}
     <GameViewport3D document={document} host={host} sceneId={document.entrySceneId} playerOnly />
   </FlexColumn>;
 }

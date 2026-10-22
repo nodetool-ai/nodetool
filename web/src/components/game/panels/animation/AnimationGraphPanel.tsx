@@ -4,16 +4,15 @@ import {
   Background, BackgroundVariant, ReactFlow, type Connection, type Edge, type EdgeChange, type NodeChange, type NodeTypes
 } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import type { GameAnimationGraph3D, GameDiagnostic, GameDocument3D, GameEntity3D, GameInspection3D } from "@nodetool-ai/protocol";
 import type { GameDocumentOp3D } from "@nodetool-ai/game-runtime";
 
 import DockPanelHeader from "../../../dock/DockPanelHeader";
-import {
-  Box, Caption, Divider, EditorButton, EmptyState, FlexColumn, FlexRow, InspectorSelect, Label, ScrollArea, SPACING, ToolbarIconButton
-} from "../../../ui_primitives";
+import { AlertBanner, Box, Caption, Divider, EditorButton, EmptyState, FlexColumn, FlexRow, InspectorSelect, Label, ScrollArea, SPACING, ToolbarIconButton } from "../../../ui_primitives";
+import ErrorBanner from "../../../support/ErrorBanner";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import AnimationStateNode from "./AnimationStateNode";
 import {
@@ -230,7 +229,7 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
     return <FlexColumn sx={{ height: "100%", minHeight: 0 }} align="center" justify="center">
       <EmptyState size="small" title={t("i18n-cont-game-06.animation.noGraphs")} description={t("i18n-cont-game-06.animation.noGraphsDescription")}
         actionText={t("i18n-cont-game-06.animation.newGraph")} onAction={newGraph} />
-      {error && <Caption color="error" role="alert">{error}</Caption>}
+      {error && <ErrorBanner report={{ source: "operation-failure", summary: t("i18n-cont-game-06.animation.newGraph"), errorText: error }}>{error}</ErrorBanner>}
     </FlexColumn>;
   }
 
@@ -291,8 +290,9 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
         {live ? t("i18n-cont-game-06.animation.liveState", { entity: liveEntityName, state: liveCurrent ?? t("i18n-cont-game-06.common.none"), previous: livePrevious ? ` ${t("i18n-cont-game-06.animation.fromPrevious", { state: livePrevious })}` : "" }) : t("i18n-cont-game-06.animation.playToSeeState")}
       </Caption>
     </DockPanelHeader>
-    {error && <Caption color="error" role="alert" sx={{ px: SPACING.md, py: SPACING.xs }}>{error}</Caption>}
-    {notice && <Caption color="warning" role="note" sx={{ px: SPACING.md, py: SPACING.xs }}>{notice}</Caption>}
+    {error && <ErrorBanner sx={{ mx: SPACING.md, my: SPACING.xs }}
+      report={{ source: "operation-failure", summary: graphId, errorText: error }}>{error}</ErrorBanner>}
+    {notice && <AlertBanner severity="warning" compact sx={{ mx: SPACING.md, my: SPACING.xs }}>{notice}</AlertBanner>}
     <FlexRow sx={{ flex: 1, minHeight: 0 }}>
       <ScrollArea role="region" aria-label={t("i18n-cont-game-06.animation.parametersRegion")} sx={{ width: SIDE_COLUMN_WIDTH, flexShrink: 0, borderRight: 1, borderColor: "divider", p: SPACING.sm }}>
         <Label sx={{ mb: SPACING.xs }}>{t("i18n-cont-game-06.animation.parameters")}</Label>
@@ -317,9 +317,11 @@ export default function AnimationGraphPanel({ document, diagnostics: documentDia
       <ScrollArea role="region" aria-label={t("i18n-cont-game-06.animation.inspectorRegion")} sx={{ width: SIDE_COLUMN_WIDTH, flexShrink: 0, borderLeft: 1, borderColor: "divider", p: SPACING.sm }}>
         <FlexColumn gap={SPACING.sm}>
           {inspector}
-          {diagnostics.length > 0 && <FlexColumn gap={SPACING.micro} role="list" aria-label={t("i18n-cont-game-06.animation.graphProblems")}>
-            {diagnostics.map((message) => <Caption key={message} role="listitem" color="error">{message}</Caption>)}
-          </FlexColumn>}
+          {diagnostics.length > 0 && <AlertBanner severity="error" compact>
+            <FlexColumn gap={SPACING.micro} role="list" aria-label={t("i18n-cont-game-06.animation.graphProblems")}>
+              {diagnostics.map((message) => <Caption key={message} role="listitem">{message}</Caption>)}
+            </FlexColumn>
+          </AlertBanner>}
         </FlexColumn>
       </ScrollArea>
     </FlexRow>

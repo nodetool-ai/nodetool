@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import { GAME_MAX_DECALS_3D, gameDecal3D, type GameDecal3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import { gameDocumentOp3D, type GameDocumentOp3D } from "@nodetool-ai/game-runtime";
 import { Caption, EditorButton, FlexColumn, InspectorFieldRow, InspectorSection, InspectorSelect, SPACING } from "../../../ui_primitives";

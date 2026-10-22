@@ -4,13 +4,13 @@ import { gameAssetBinding, gameBehavior, gameDocument, gameEntity, gameRenderEff
 import { gameParticles } from "@nodetool-ai/protocol";
 import { validateGame, type GameDocumentOp, type GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import CodeIcon from "@mui/icons-material/Code";
 
-import { Caption, Divider, FieldDensityContext, FlexColumn, InspectorFieldRow, InspectorSection, InspectorSelect, SPACING, TabGroup, Text, TextInput } from "../../../ui_primitives";
+import { Caption, Divider, FieldDensityContext, FieldError, FlexColumn, InspectorFieldRow, InspectorSection, InspectorSelect, SPACING, TabGroup, Text, TextInput } from "../../../ui_primitives";
 import SchemaFields from "../../inspector/SchemaFields";
 import { GAME_COMPONENT_EDITORS } from "../../inspector/componentEditors";
 import InspectorAddMenu from "../../inspector/InspectorAddMenu";
@@ -169,7 +169,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
         issuePath={["pixelsPerUnit"]} issues={issues} onChange={(value) => onOps([{ op: "set_game", pixels_per_unit: Number(value) }])} />
       <InspectorFieldRow label={t("i18n-cont-game-06.inspector.entryScene")}><InspectorSelect grow label={t("i18n-cont-game-06.inspector.entryScene")} value={document.entrySceneId} options={document.scenes.map((item) => ({ value: item.id, label: item.name }))}
         onChange={(value) => onOps([{ op: "set_game", entry_scene_id: value }])} /></InspectorFieldRow>
-      {issueAt(issues, ["entrySceneId"]) && <Caption color="error">{issueAt(issues, ["entrySceneId"])}</Caption>}
+      {issueAt(issues, ["entrySceneId"]) && <FieldError>{issueAt(issues, ["entrySceneId"])}</FieldError>}
       <InspectorSection title={t("i18n-cont-game-06.inspector.inputActions")}>
         <SchemaFields schema={DOCUMENT_SCHEMA.properties?.inputActions ?? { type: "array", items: { type: "string" } }} value={document.inputActions}
           path="inputActions" issuePath={["inputActions"]} issues={issues}
@@ -222,7 +222,7 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
       <InspectorFieldRow label={t("i18n-cont-game-06.inspector.parent")}><InspectorSelect grow label={t("i18n-cont-game-06.inspector.parent")} value={entity.parentId ?? ""}
         options={[{ value: "", label: t("i18n-cont-game-06.common.none") }, ...parentCandidates(scene, entity.id).map((entry) => ({ value: entry.id, label: entry.name || entry.id }))]}
         onChange={(value) => update({ parentId: value || null, transform2d: reparentTransform(scene, entity.id, value || undefined) })} /></InspectorFieldRow>
-      {issueAt(issues, [...entityPath, "parentId"]) && <Caption color="error">{issueAt(issues, [...entityPath, "parentId"])}</Caption>}
+      {issueAt(issues, [...entityPath, "parentId"]) && <FieldError>{issueAt(issues, [...entityPath, "parentId"])}</FieldError>}
       <SchemaFields schema={ENTITY_SCHEMA.properties?.templateOnly ?? { type: "boolean" }} value={entity.templateOnly} path={t("i18n-cont-game-06.inspector.prefabOnly")}
         issuePath={[...entityPath, "templateOnly"]} issues={issues} onChange={(value) => update({ templateOnly: Boolean(value) })} />
       <InspectorSection title={t("i18n-cont-game-06.inspector.transform")}>
