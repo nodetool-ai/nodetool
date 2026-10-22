@@ -19,6 +19,7 @@
     { "path": "packages/huggingface" },
     { "path": "packages/huggingface-nodes" },
     { "path": "packages/vectorstore" },
+    { "path": "packages/antigravity-cli" },
     { "path": "packages/runtime" },
     { "path": "packages/kernel" },
     { "path": "packages/models" },
