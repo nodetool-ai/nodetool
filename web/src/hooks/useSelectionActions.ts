@@ -1,6 +1,8 @@
 import { useCallback } from "react";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
+import { useDuplicateNodes } from "./useDuplicate";
+import { runAsOneUndoEntry } from "../utils/runAsOneUndoEntry";
 import {
   applyAbsolutePositions,
   layoutSelection
@@ -46,7 +48,6 @@ export const useSelectionActions = (): SelectionActionsReturn => {
   // Use store ref to avoid subscribing to entire nodes/edges arrays
   // Only subscribe to the functions we need
   const setNodes = useNodes((state) => state.setNodes);
-  const setEdges = useNodes((state) => state.setEdges);
   const getSelectedNodes = useNodes((state) => state.getSelectedNodes);
   const deleteNodes = useNodes((state) => state.deleteNodes);
   const deleteEdges = useNodes((state) => state.deleteEdges);
@@ -292,94 +293,19 @@ export const useSelectionActions = (): SelectionActionsReturn => {
   }, [getLayoutNodes, applyPositions]);
 
   const deleteSelected = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
-    deleteNodes(selectedNodes.map((node) => node.id));
-
     const { edges, selectedLinkIds } = store.getState();
     const selectedEdgeIds = edges
       .filter((edge) => edge.selected)
       .map((edge) => edge.id);
-    deleteEdges([...selectedEdgeIds, ...selectedLinkIds]);
+    // Nodes, wires and links go in one undo step.
+    runAsOneUndoEntry(store, () => {
+      deleteNodes(getSelectedNodes().map((node) => node.id));
+      deleteEdges([...selectedEdgeIds, ...selectedLinkIds]);
+    });
   }, [getSelectedNodes, deleteNodes, store, deleteEdges]);
 
-  const duplicateSelected = useCallback(() => {
-    const selectedNodes = getSelectedNodes();
-    if (selectedNodes.length === 0) {
-      return;
-    }
-
-    const offset = 50;
-
-    const nodeIdMap: Record<string, string> = {};
-    for (const node of selectedNodes) {
-      nodeIdMap[node.id] = crypto.randomUUID();
-    }
-
-    const newNodes = selectedNodes.map((node) => {
-      const newId = nodeIdMap[node.id];
-      const isParentDuplicated = node.parentId
-        ? Object.prototype.hasOwnProperty.call(nodeIdMap, node.parentId)
-        : false;
-      const positionOffset = isParentDuplicated ? 0 : offset;
-
-      return {
-        ...node,
-        id: newId,
-        parentId: isParentDuplicated
-          ? nodeIdMap[node.parentId as string]
-          : node.parentId,
-        position: {
-          x: node.position.x + positionOffset,
-          y: node.position.y + positionOffset
-        },
-        selected: true,
-        data: { ...node.data }
-      };
-    });
-
-    const { nodes, edges, links, setLinks } = store.getState();
-
-    // Only duplicate edges where both endpoints are among the duplicated nodes.
-    const selectedNodeIds = selectedNodes.map((n) => n.id);
-    const selectedNodeIdsSet = new Set(selectedNodeIds);
-    const newEdges = edges
-      .filter(
-        (edge) =>
-          selectedNodeIdsSet.has(edge.source) &&
-          selectedNodeIdsSet.has(edge.target)
-      )
-      .map((edge) => ({
-        ...edge,
-        id: crypto.randomUUID(),
-        source: nodeIdMap[edge.source],
-        target: nodeIdMap[edge.target],
-        selected: true
-      }));
-
-    const updatedNodes = nodes.map((node) => ({
-      ...node,
-      selected: false
-    }));
-
-    const newLinks = links
-      .filter(
-        (link) =>
-          selectedNodeIdsSet.has(link.source) &&
-          selectedNodeIdsSet.has(link.target)
-      )
-      .map((link) => ({
-        ...link,
-        id: crypto.randomUUID().replace(/-/g, ""),
-        source: nodeIdMap[link.source],
-        target: nodeIdMap[link.target]
-      }));
-
-    setNodes([...updatedNodes, ...newNodes]);
-    setEdges([...edges, ...newEdges]);
-    if (newLinks.length > 0) {
-      setLinks([...links, ...newLinks]);
-    }
-  }, [getSelectedNodes, setNodes, setEdges, store]);
+  // The toolbar's Duplicate is the same action as Ctrl+D.
+  const duplicateSelected = useDuplicateNodes();
 
   const groupSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();

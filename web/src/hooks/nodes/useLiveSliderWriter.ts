@@ -38,6 +38,7 @@ import {
   buildDownstreamRunGraph
 } from "./buildDownstreamRunGraph";
 import { useNodeAutoRun } from "./useInputNodeAutoRun";
+import { useIdleUndoGroup } from "../useUndoGroup";
 
 interface UseLiveSliderWriterOptions {
   nodeId: string;
@@ -217,8 +218,12 @@ export const useLiveSliderWriter = ({
     }
   }, [incomingEdgeSignature, runBrowserPreview, onPropertyChange]);
 
+  // A slider drag writes on every move; it undoes as one step.
+  const undoGroup = useIdleUndoGroup();
+
   const setProperty = useCallback(
     (name: string, value: unknown) => {
+      undoGroup.touch();
       updateNodeProperties(nodeId, { [name]: value });
       // Freeze per-run edge/node animations while scrubbing — pure noise. Flag
       // it regardless of which path runs, so the suppression applies to the
@@ -233,12 +238,14 @@ export const useLiveSliderWriter = ({
       updateNodeProperties,
       runBrowserPreview,
       notifyScrubActivity,
-      onPropertyChange
+      onPropertyChange,
+      undoGroup
     ]
   );
 
   const setProperties = useCallback(
     (updates: Record<string, unknown>) => {
+      undoGroup.touch();
       updateNodeProperties(nodeId, updates);
       notifyScrubActivity();
       if (!runBrowserPreview()) {
@@ -250,18 +257,25 @@ export const useLiveSliderWriter = ({
       updateNodeProperties,
       runBrowserPreview,
       notifyScrubActivity,
-      onPropertyChange
+      onPropertyChange,
+      undoGroup
     ]
   );
 
   const setPropertyComplete = useCallback(() => {
+    undoGroup.end();
     // The final value is already in the store (onChange fired before commit);
     // render it once more in the browser, or hand off to the server run.
     notifyScrubActivity();
     if (!runBrowserPreview()) {
       onPropertyChangeComplete();
     }
-  }, [runBrowserPreview, notifyScrubActivity, onPropertyChangeComplete]);
+  }, [
+    runBrowserPreview,
+    notifyScrubActivity,
+    onPropertyChangeComplete,
+    undoGroup
+  ]);
 
   return { setProperty, setProperties, setPropertyComplete };
 };

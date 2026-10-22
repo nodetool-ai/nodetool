@@ -1,16 +1,20 @@
 /** Hook for copy/paste functionality of nodes and edges in the flow editor. */
 
 import { getMousePosition } from "../../utils/MousePosition";
-import { useReactFlow, Edge, Node } from "@xyflow/react";
+import { useReactFlow, useStoreApi, Edge, Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "./useClipboardContentPaste";
 import { isTextInputActive } from "../../utils/browser";
 import { absoluteNodePosition } from "../../utils/absoluteNodePosition";
+import { withGroupContents } from "../../utils/withGroupContents";
 import { insertGraphFragment, type GraphFragment } from "./insertGraphFragment";
+
+/** Flow units between a paste and the one before it at the same spot. */
+const PASTE_OFFSET = 40;
 
 /** Lineage links are absent in older clipboard data. */
 type ClipboardData = GraphFragment;
@@ -31,6 +35,39 @@ const isClipboardData = (value: unknown): value is ClipboardData =>
   value.nodes.every(isValidNode) &&
   value.edges.every(isValidEdge);
 
+/**
+ * Text from the system clipboard, or `unreadable` when the browser gives no
+ * access: no Clipboard API (a page served over plain http on a LAN address)
+ * or a denied read permission.
+ */
+const readSystemClipboardText = async (): Promise<
+  { readable: true; text: string | null } | { readable: false }
+> => {
+  try {
+    if (window.api?.clipboard?.readText) {
+      return { readable: true, text: await window.api.clipboard.readText() };
+    }
+    if (navigator.clipboard?.readText) {
+      return { readable: true, text: await navigator.clipboard.readText() };
+    }
+  } catch (error) {
+    console.debug("Clipboard read failed:", error);
+  }
+  return { readable: false };
+};
+
+const parseClipboardData = (text: string | null | undefined): ClipboardData | null => {
+  if (!text) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return isClipboardData(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
 interface UseCopyPasteResult {
   handleCopy: (nodeId?: string) => Promise<{ nodesToCopy: Node<NodeData>[]; connectedEdges: Edge[] }>;
   handleCut: (nodeId?: string) => Promise<void>;
@@ -40,6 +77,7 @@ interface UseCopyPasteResult {
 
 export const useCopyPaste = (): UseCopyPasteResult => {
   const reactFlow = useReactFlow();
+  const flowStore = useStoreApi();
   // Use the live store ref so all callbacks always read the latest state,
   // avoiding stale-closure bugs when the user acts faster than React's
   // async effect scheduling (e.g. rubber-band select then immediately Ctrl+C).
@@ -51,8 +89,52 @@ export const useCopyPaste = (): UseCopyPasteResult => {
     }))
   );
 
-  const { handleContentPaste, readClipboardContent, readClipboardText } =
+  const { handleContentPaste, readClipboardContent } =
     useClipboardContentPaste();
+
+  // The last paste's anchor, so pasting again without moving the pointer
+  // offsets the copy instead of stacking it exactly on the previous one.
+  const lastPasteRef = useRef<{ x: number; y: number } | null>(null);
+
+  /**
+   * Flow position for a paste: `at`, else the pointer when it is over this
+   * canvas, else the canvas centre. Repeated pastes at one spot step down and
+   * to the right.
+   */
+  const pastePosition = useCallback(
+    (at?: { x: number; y: number }): { x: number; y: number } | null => {
+      let screen = at ?? getMousePosition();
+      const rect = flowStore.getState().domNode?.getBoundingClientRect();
+      if (
+        rect &&
+        (!screen ||
+          screen.x < rect.left ||
+          screen.x > rect.right ||
+          screen.y < rect.top ||
+          screen.y > rect.bottom)
+      ) {
+        screen = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        };
+      }
+      if (!screen) {
+        return null;
+      }
+      let position = reactFlow.screenToFlowPosition(screen);
+      const last = lastPasteRef.current;
+      if (
+        last &&
+        Math.abs(last.x - position.x) < PASTE_OFFSET &&
+        Math.abs(last.y - position.y) < PASTE_OFFSET
+      ) {
+        position = { x: last.x + PASTE_OFFSET, y: last.y + PASTE_OFFSET };
+      }
+      lastPasteRef.current = position;
+      return position;
+    },
+    [flowStore, reactFlow]
+  );
 
   const handleCopy = useCallback(
     async (nodeId?: string) => {
@@ -70,13 +152,11 @@ export const useCopyPaste = (): UseCopyPasteResult => {
         return { nodesToCopy: [], connectedEdges: [] };
       }
 
-      let nodesToCopy: Node<NodeData>[];
-      if (nodeId && nodeId !== "") {
-        const node = nodes.find((node) => node.id === nodeId);
-        nodesToCopy = node ? [node] : [];
-      } else {
-        nodesToCopy = selectedNodes;
-      }
+      // A group is copied with everything inside it.
+      const nodesToCopy = withGroupContents(
+        nodeId ? [nodeId] : selectedNodes.map((node) => node.id),
+        nodes
+      );
       if (nodesToCopy.length === 0) {
         return { nodesToCopy: [], connectedEdges: [] };
       }
@@ -162,21 +242,19 @@ export const useCopyPaste = (): UseCopyPasteResult => {
     //    This must happen before readClipboardContent() because that function
     //    prioritizes image/HTML formats which can intercept node JSON text
     //    (e.g. some environments wrap clipboard text in HTML tags).
-    let clipboardData: string | null = null;
-    const clipboardText = await readClipboardText();
-    if (clipboardText) {
-      try {
-        const parsed: unknown = JSON.parse(clipboardText);
-        if (isClipboardData(parsed)) {
-          clipboardData = clipboardText;
-        }
-      } catch {
-        // Not JSON, continue to other checks
-      }
-    }
+    //    When the system clipboard cannot be read, the copy kept in session
+    //    state is the only one there is.
+    const systemClipboard = await readSystemClipboardText();
+    const parsedData = systemClipboard.readable
+      ? parseClipboardData(systemClipboard.text)
+      : parseClipboardData(useSessionStateStore.getState().clipboardData);
 
     // 2. If clipboard text is not valid node data, check for images/files/other content
-    if (!clipboardData) {
+    if (!parsedData) {
+      if (!systemClipboard.readable) {
+        console.debug("Clipboard not readable and no nodes were copied");
+        return;
+      }
       const clipboardContent = await readClipboardContent();
 
       if (
@@ -202,40 +280,14 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       return;
     }
 
-    let parsedData: unknown;
-    try {
-      parsedData = JSON.parse(clipboardData);
-    } catch {
-      return;
-    }
-
-    if (!isClipboardData(parsedData)) {
-      return;
-    }
-
-    const mousePosition = at ?? getMousePosition();
-    if (!mousePosition) {
-      console.warn("Mouse position not available");
-      return;
-    }
-
-    const flowPosition = reactFlow.screenToFlowPosition({
-      x: mousePosition.x,
-      y: mousePosition.y
-    });
+    const flowPosition = pastePosition(at);
     if (!flowPosition) {
       console.warn("Failed to calculate paste position");
       return;
     }
 
     insertGraphFragment(nodeStore, parsedData, flowPosition);
-  }, [
-    nodeStore,
-    reactFlow,
-    handleContentPaste,
-    readClipboardContent,
-    readClipboardText
-  ]);
+  }, [nodeStore, pastePosition, handleContentPaste, readClipboardContent]);
 
   return { handleCopy, handleCut, handlePaste };
 };

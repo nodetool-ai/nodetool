@@ -541,8 +541,10 @@ export const useNodeEditorShortcuts = (
       string,
       { callback: () => void; preventDefault?: boolean; active?: boolean }
     > = {
-      copy: { callback: handleCopy, preventDefault: false },
-      cut: { callback: handleCut },
+      // The combo passes its KeyboardEvent, which copy and cut would read as
+      // the id of the one node to act on.
+      copy: { callback: () => void handleCopy(), preventDefault: false },
+      cut: { callback: () => void handleCut() },
       paste: { callback: () => handlePaste(), preventDefault: false },
       // The combo passes its KeyboardEvent, which undo/redo would read as a
       // step count and unwind the whole history.

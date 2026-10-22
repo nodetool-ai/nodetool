@@ -5,6 +5,7 @@ import { DUPLICATE_SPACING } from "../config/constants";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 import { runAsOneUndoEntry } from "../utils/runAsOneUndoEntry";
+import { withGroupContents } from "../utils/withGroupContents";
 
 /**
  * Hook for duplicating selected nodes and their connected edges.
@@ -38,7 +39,11 @@ export const useDuplicateNodes = (
   return useCallback(() => {
     const getNodesBounds = reactFlow.getNodesBounds;
     const { nodes, edges } = nodeStore.getState();
-    const selectedNodes = getSelectedNodes();
+    // A group is duplicated with everything inside it.
+    const selectedNodes = withGroupContents(
+      getSelectedNodes().map((node) => node.id),
+      nodes
+    );
 
     if (selectedNodes.length === 0) {
       return;

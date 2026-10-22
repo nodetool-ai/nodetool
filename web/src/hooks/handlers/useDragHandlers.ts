@@ -39,10 +39,10 @@ export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
-  const controlKeyPressed = useKeyPressed((state) =>
-    state.isKeyPressed("control")
-  );
-  const metaKeyPressed = useKeyPressed((state) => state.isKeyPressed("meta"));
+  // Alt (Option) pulls dragged nodes out of their group. Ctrl and Cmd add to
+  // the selection, so holding them from a multi-select click into the drag
+  // must not ungroup.
+  const ungroupKeyPressed = useKeyPressed((state) => state.isKeyPressed("alt"));
   const reactFlow = useReactFlow();
   // Drag bookkeeping, never read during render: state here re-renders the
   // whole canvas on every drag start/stop.
@@ -97,8 +97,8 @@ export default function useDragHandlers() {
       }
 
       let wasUngroupedByControlKey = false;
-      // Control-key or Meta-key based ungrouping
-      if (node.parentId && (controlKeyPressed || metaKeyPressed)) {
+      // Alt-key ungrouping
+      if (node.parentId && ungroupKeyPressed) {
         removeFromGroup(dragged.filter((n) => n.parentId));
         wasUngroupedByControlKey = true;
       }
@@ -140,8 +140,7 @@ export default function useDragHandlers() {
     },
     [
       pause,
-      controlKeyPressed,
-      metaKeyPressed,
+      ungroupKeyPressed,
       removeFromGroup,
       reactFlow,
       setHoveredNodes,
@@ -211,11 +210,8 @@ export default function useDragHandlers() {
 
       let wasUngroupedByControlKey = false;
 
-      // Control-key or Meta-key based ungrouping for selection
-      if (
-        parentedNodesForSpeedCheck.length > 0 &&
-        (controlKeyPressed || metaKeyPressed)
-      ) {
+      // Alt-key ungrouping for selection
+      if (parentedNodesForSpeedCheck.length > 0 && ungroupKeyPressed) {
         removeFromGroup(parentedNodesForSpeedCheck); // removeFromGroup is idempotent
         wasUngroupedByControlKey = true;
       }
@@ -264,8 +260,7 @@ export default function useDragHandlers() {
       setHoveredNodes,
       isGroup,
       findNode,
-      controlKeyPressed,
-      metaKeyPressed,
+      ungroupKeyPressed,
       removeFromGroup
     ]
   );

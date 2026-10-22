@@ -52,7 +52,18 @@ export function useAddToGroup(): (nodesToAdd: Node<NodeData>[], parentNode?: Nod
             group.height ?? group.measured?.height ?? 0
           );
           if (width !== group.width || height !== group.height) {
-            updateNode(parentNode.id, { width, height });
+            // The growth belongs to the drop's undo step, which already holds
+            // the group at its old size, so it records none of its own.
+            const history = nodeContext.temporal.getState();
+            const wasTracking = history.isTracking;
+            history.pause();
+            try {
+              updateNode(parentNode.id, { width, height });
+            } finally {
+              if (wasTracking) {
+                history.resume();
+              }
+            }
           }
         }
       }, 10);

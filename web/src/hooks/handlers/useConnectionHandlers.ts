@@ -12,7 +12,8 @@ import {
 } from "../../utils/handleUtils";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
+import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 import {
   ConnectionMatchMenuPayload,
   ConnectionMatchOption
@@ -84,6 +85,16 @@ export default function useConnectionHandlers() {
   );
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const { openContextMenu } = useContextMenu();
+  const nodeStore = useNodeStoreRef();
+  const hasEdgeInto = useCallback(
+    (nodeId: string, handle: string): boolean =>
+      nodeStore
+        .getState()
+        .edges.some(
+          (edge) => edge.target === nodeId && edge.targetHandle === handle
+        ),
+    [nodeStore]
+  );
 
   const onConnectStart: OnConnectStart = useCallback(
     (_event, { nodeId, handleId, handleType }) => {
@@ -391,17 +402,27 @@ export default function useConnectionHandlers() {
             counter++;
           }
 
-          updateNodeData(
-            nodeId,
-            dynamicInputSlotPatch(node.data ?? {}, propertyName, connectType)
-          );
-
-          // handleOnConnect derives the edge className from the source handle.
-          handleOnConnect({
-            source: connectNodeId || "",
-            sourceHandle: connectHandleId || "",
-            target: nodeId,
-            targetHandle: propertyName
+          // The slot and its wire are one undo step, and a wire the graph
+          // rejects (a cycle, a type mismatch) takes its new slot with it.
+          const previousSlots = {
+            dynamic_properties: node.data?.dynamic_properties,
+            dynamic_inputs: node.data?.dynamic_inputs
+          };
+          runAsOneUndoEntry(nodeStore, () => {
+            updateNodeData(
+              nodeId,
+              dynamicInputSlotPatch(node.data ?? {}, propertyName, connectType)
+            );
+            // handleOnConnect derives the edge className from the source handle.
+            handleOnConnect({
+              source: connectNodeId || "",
+              sourceHandle: connectHandleId || "",
+              target: nodeId,
+              targetHandle: propertyName
+            });
+            if (!hasEdgeInto(nodeId, propertyName)) {
+              updateNodeData(nodeId, previousSlots, { quiet: true });
+            }
           });
         };
 
@@ -441,12 +462,6 @@ export default function useConnectionHandlers() {
             type_args: [],
             type_name: ""
           };
-          updateNodeData(nodeId, {
-            dynamic_outputs: {
-              ...dynamicOutputs,
-              [sourceHandle]: dynamicOutput
-            }
-          });
           const newConnection = {
             source: nodeId,
             sourceHandle: sourceHandle,
@@ -454,7 +469,31 @@ export default function useConnectionHandlers() {
             targetHandle: connectHandleId || "",
             className: Slugify(connectType?.type || "")
           };
-          onConnect(newConnection);
+          // As for a new input: one undo step, and no orphan output when the
+          // wire is rejected.
+          const previousOutputs = node.data?.dynamic_outputs;
+          runAsOneUndoEntry(nodeStore, () => {
+            updateNodeData(nodeId, {
+              dynamic_outputs: {
+                ...dynamicOutputs,
+                [sourceHandle]: dynamicOutput
+              }
+            });
+            onConnect(newConnection);
+            const connected = nodeStore
+              .getState()
+              .edges.some(
+                (edge) =>
+                  edge.source === nodeId && edge.sourceHandle === sourceHandle
+              );
+            if (!connected) {
+              updateNodeData(
+                nodeId,
+                { dynamic_outputs: previousOutputs },
+                { quiet: true }
+              );
+            }
+          });
           endConnecting();
           return;
         }
@@ -679,7 +718,9 @@ export default function useConnectionHandlers() {
       updateNodeData,
       onConnect,
       openHandleSelectionMenu,
-      addNotification
+      addNotification,
+      nodeStore,
+      hasEdgeInto
     ]
   );
 

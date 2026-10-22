@@ -34,7 +34,8 @@ const getBounds = (placed: PlacedNode[]) =>
 /**
  * Wrap the selected nodes in a group node, computing group bounds from their
  * canvas positions and reparenting each child relative to the group. Group
- * nodes are left out, since a group cannot sit inside a group. The change is
+ * nodes, and nodes whose group is also selected, are left out, since a group
+ * cannot sit inside a group. The change is
  * a single store write, so it records one undo step.
  */
 export const useSurroundWithGroup = (): ((options: SurroundWithGroupOptions) => void) => {
@@ -52,8 +53,14 @@ export const useSurroundWithGroup = (): ((options: SurroundWithGroupOptions) => 
       const nodeById = new Map(
         nodeStore.getState().nodes.map((n) => [n.id, n] as const)
       );
+      // A node whose group is selected too stays in that group: groups
+      // cannot nest, and pulling it out would leave the group empty.
+      const selectedIds = new Set(
+        selectedNodes.flatMap((n) => (n ? [n.id] : []))
+      );
       const placed: PlacedNode[] = selectedNodes
         .filter((n): n is Node<NodeData> => !!n && n.type !== GROUP_NODE_TYPE)
+        .filter((n) => !n.parentId || !selectedIds.has(n.parentId))
         .map((n) => nodeById.get(n.id) ?? n)
         .map((node) => ({ node, position: absoluteNodePosition(node, nodeById) }));
       if (placed.length === 0) { return; }

@@ -262,7 +262,8 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     keyCombo: ["Control", "Shift", "Z"],
     category: "editor",
     description: "Redo last undone action",
-    registerCombo: true
+    registerCombo: true,
+    altKeyCombos: [["Control", "Y"]]
   },
   {
     title: "Select all",

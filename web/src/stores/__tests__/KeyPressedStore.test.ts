@@ -419,6 +419,55 @@ describe("KeyPressedStore", () => {
       }
     );
 
+    it.each([
+      ["control+z", "page", { key: "z", ctrlKey: true }],
+      ["delete", "editor", { key: "Delete", ctrlKey: false }]
+    ] as const)(
+      "lets the canvas %s shortcut through a focused %s button",
+      (combo, where, init) => {
+        const callback = jest.fn();
+        const dispose = registerComboCallback(combo, {
+          callback,
+          scope: "canvas"
+        });
+        const releaseListeners = initKeyListeners();
+        const host = document.createElement("div");
+        if (where === "editor") {
+          host.className = "node-editor";
+        }
+        const button = document.createElement("button");
+        button.setAttribute("aria-label", "Duplicate");
+        host.appendChild(button);
+        document.body.appendChild(host);
+        button.focus();
+
+        act(() => {
+          if (init.ctrlKey) {
+            window.dispatchEvent(
+              new KeyboardEvent("keydown", { key: "Control", ctrlKey: true, bubbles: true })
+            );
+          }
+          window.dispatchEvent(
+            new KeyboardEvent("keydown", { ...init, bubbles: true })
+          );
+        });
+
+        expect(callback).toHaveBeenCalledTimes(1);
+
+        act(() => {
+          window.dispatchEvent(
+            new KeyboardEvent("keyup", { ...init, bubbles: true })
+          );
+          window.dispatchEvent(
+            new KeyboardEvent("keyup", { key: "Control", bubbles: true })
+          );
+        });
+        host.remove();
+        releaseListeners();
+        dispose();
+      }
+    );
+
     it("lets a component-local Escape handler close its focused widget", () => {
       const callback = jest.fn();
       const canvasCallback = jest.fn();

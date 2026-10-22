@@ -8,6 +8,8 @@ const mockOnPropertyChange = jest.fn();
 const mockOnPropertyChangeComplete = jest.fn();
 const mockRunBrowserGraphJob = jest.fn();
 const mockNotifyScrubActivity = jest.fn();
+const mockBeginGroup = jest.fn();
+const mockEndGroup = jest.fn();
 
 const storeState = {
   nodes: [],
@@ -27,7 +29,10 @@ jest.mock("../../../contexts/NodeContext", () => ({
       updateNodeProperties: mockUpdateNodeProperties,
       edges: storeState.edges
     }),
-  useNodeStoreRef: () => ({ getState: () => storeState })
+  useNodeStoreRef: () => ({ getState: () => storeState }),
+  useOptionalTemporalNodes: <T,>(
+    selector: (s: { beginGroup: jest.Mock; endGroup: jest.Mock }) => T
+  ) => selector({ beginGroup: mockBeginGroup, endGroup: mockEndGroup })
 }));
 
 jest.mock("../../../stores/SettingsStore", () => ({
@@ -114,6 +119,17 @@ describe("useLiveSliderWriter", () => {
     expect(mockOnPropertyChange).not.toHaveBeenCalled();
     // Animations are frozen while scrubbing.
     expect(mockNotifyScrubActivity).toHaveBeenCalled();
+  });
+
+  it("records a drag as one undo step that ends at release", () => {
+    const { result } = render();
+    act(() => result.current.setProperty("stops", 0.1));
+    act(() => result.current.setProperty("stops", 0.2));
+    expect(mockBeginGroup).toHaveBeenCalledTimes(1);
+    expect(mockEndGroup).not.toHaveBeenCalled();
+
+    act(() => result.current.setPropertyComplete());
+    expect(mockEndGroup).toHaveBeenCalledTimes(1);
   });
 
   it("falls back to the server auto-run when not browser-eligible", () => {

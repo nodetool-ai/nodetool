@@ -13,8 +13,13 @@ const mockUseNodeAutoRun = useNodeAutoRun as jest.MockedFunction<
 >;
 
 const mockUpdateNodePropertiesFn = jest.fn();
+const mockBeginGroup = jest.fn();
+const mockEndGroup = jest.fn();
 const { renderHook } = nodeStoreRenderers(
-  makeNodeStore({ updateNodeProperties: mockUpdateNodePropertiesFn })
+  makeNodeStore(
+    { updateNodeProperties: mockUpdateNodePropertiesFn },
+    { beginGroup: mockBeginGroup, endGroup: mockEndGroup }
+  )
 );
 
 describe("useBespokePropertyWriter", () => {
@@ -42,6 +47,24 @@ describe("useBespokePropertyWriter", () => {
       nodeType,
       propertyName: "bespoke"
     });
+  });
+
+  it("records a run of writes and its commit as one undo step", () => {
+    const { result } = renderHook(() =>
+      useBespokePropertyWriter({ nodeId, nodeType })
+    );
+
+    act(() => {
+      result.current.setProperty("width", 512);
+      result.current.setProperty("width", 640);
+    });
+    expect(mockBeginGroup).toHaveBeenCalledTimes(1);
+    expect(mockEndGroup).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.setPropertyComplete();
+    });
+    expect(mockEndGroup).toHaveBeenCalledTimes(1);
   });
 
   it("setProperty calls updateNodeProperties with correct nodeId and property", () => {

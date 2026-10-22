@@ -5,7 +5,7 @@ import useConnectionHandlers from "../useConnectionHandlers";
 import useConnectionStore from "../../../stores/ConnectionStore";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { NodeMetadata } from "../../../stores/ApiTypes";
 import { NodeData } from "../../../stores/NodeData";
 
@@ -201,6 +201,7 @@ describe("useConnectionHandlers", () => {
   const mockAddNotification = jest.fn();
   const mockSetConnectionAttempted = jest.fn();
   const mockUpdateNodeData = jest.fn();
+  let connectedEdges: Connection[] = [];
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -228,6 +229,18 @@ describe("useConnectionHandlers", () => {
       edges: [],
       setConnectionAttempted: mockSetConnectionAttempted,
       updateNodeData: mockUpdateNodeData
+    });
+
+    // The store sees each wire that onConnect accepts.
+    connectedEdges = [];
+    mockOnConnect.mockImplementation((connection: Connection) => {
+      connectedEdges.push(connection);
+    });
+    asMock(useNodeStoreRef).mockReturnValue({
+      getState: () => ({ edges: connectedEdges }),
+      temporal: {
+        getState: () => ({ beginGroup: jest.fn(), endGroup: jest.fn() })
+      }
     });
 
     // Mock isConnectable to return true by default (override in specific tests)
@@ -1411,6 +1424,92 @@ describe("useConnectionHandlers", () => {
       // No auto-binding to an existing input — a fresh variable is created.
       expect(mockOpenContextMenu).not.toHaveBeenCalled();
       expect(mockEndConnecting).toHaveBeenCalled();
+    });
+
+    it("removes the new dynamic input again when the wire is rejected", () => {
+      const mockedConnectionStore = asMockStore(useConnectionStore);
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "source",
+        connectNodeId: "sourceNode",
+        connectHandleId: "output",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      sourceNode.data.title = "My Text";
+      const dynamicNode = createMockNode("dynamicNode", "test.dynamic");
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "sourceNode") {
+          return sourceNode;
+        }
+        if (id === "dynamicNode") {
+          return dynamicNode;
+        }
+        return undefined;
+      });
+
+      // updateNodeData writes to the store synchronously in the real app, so the
+      // subsequent handleOnConnect sees the new dynamic property. Mirror that.
+      mockUpdateNodeData.mockImplementation((id: string, update: Partial<NodeData>) => {
+        if (id === "dynamicNode" && update.dynamic_properties) {
+          dynamicNode.data.dynamic_properties = update.dynamic_properties;
+        }
+      });
+
+      mockGetMetadata.mockImplementation((type: string) =>
+        type === "test.dynamic" ? mockDynamicNodeMetadata : mockNodeMetadata
+      );
+
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: mockNodeMetadata.outputs[0].type,
+        stream: false,
+        isDynamic: false
+      });
+      // Dynamic property has no static input handle.
+      mockFindInputHandle.mockReturnValue(undefined);
+
+      const mockNodeElement = { dataset: { id: "dynamicNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) => {
+            if (selector === ".react-flow__node") {
+              return mockNodeElement;
+            }
+            if (selector === ".dynamic-input-button") {
+              return { className: "dynamic-input-button" };
+            }
+            return null;
+          }),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      // onConnect refuses the wire, e.g. because it would close a cycle.
+      mockOnConnect.mockImplementation(() => undefined);
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any, {} as any);
+
+      expect(mockOnConnect).toHaveBeenCalled();
+      expect(mockUpdateNodeData).toHaveBeenLastCalledWith(
+        "dynamicNode",
+        { dynamic_properties: {}, dynamic_inputs: undefined },
+        { quiet: true }
+      );
     });
 
     it("reports a drop on a handle that isValidConnection rejected", () => {

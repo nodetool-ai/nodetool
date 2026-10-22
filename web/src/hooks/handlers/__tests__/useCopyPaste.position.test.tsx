@@ -10,7 +10,8 @@ import type { NodeData } from "../../../stores/NodeData";
 jest.mock("@xyflow/react", () => ({
   useReactFlow: jest.fn(() => ({
     screenToFlowPosition: jest.fn(() => ({ x: 1000, y: 1000 }))
-  }))
+  })),
+  useStoreApi: jest.fn(() => ({ getState: () => ({ domNode: null }) }))
 }));
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/SessionStateStore");
@@ -60,7 +61,8 @@ describe("useCopyPaste positions of group children", () => {
           Array.from({ length: count }, (_, i) => `new-${i}`),
         setNodes,
         setEdges
-      })
+      }),
+      temporal: { getState: () => ({ beginGroup: jest.fn(), endGroup: jest.fn() }) }
     });
     asMock(useSessionStateStore).mockImplementation(
       <T,>(
@@ -83,7 +85,8 @@ describe("useCopyPaste positions of group children", () => {
       value: {
         writeText: jest.fn(async (text: string) => {
           clipboardText = text;
-        })
+        }),
+        readText: jest.fn(async () => clipboardText)
       },
       configurable: true
     });
@@ -123,5 +126,56 @@ describe("useCopyPaste positions of group children", () => {
     expect(pastedGroup?.position).toEqual({ x: 1000, y: 1000 });
     expect(pastedChild?.parentId).toBe(pastedGroup?.id);
     expect(pastedChild?.position).toEqual({ x: 10, y: 20 });
+  });
+
+  it("offsets a second paste at the same spot", async () => {
+    selected = [other];
+    const { result } = renderHook(() => useCopyPaste());
+    await act(async () => {
+      await result.current.handleCopy();
+    });
+    await act(async () => {
+      await result.current.handlePaste();
+    });
+    await act(async () => {
+      await result.current.handlePaste();
+    });
+
+    const pastedAt = (call: number) =>
+      (setNodes.mock.calls[call][0] as Node<NodeData>[]).filter((n) =>
+        n.id.startsWith("new-")
+      )[0].position;
+    expect(pastedAt(0)).toEqual({ x: 1000, y: 1000 });
+    expect(pastedAt(1)).toEqual({ x: 1040, y: 1040 });
+  });
+
+  it("pastes the in-app copy when the system clipboard is unavailable", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true
+    });
+    let sessionClipboard: string | null = null;
+    asMock(useSessionStateStore).mockImplementation(
+      <T,>(
+        selector: (state: {
+          setClipboardData: (data: string | null) => void;
+          setIsClipboardValid: jest.Mock;
+        }) => T
+      ) =>
+        selector({
+          setClipboardData: (data) => {
+            sessionClipboard = data;
+          },
+          setIsClipboardValid: jest.fn()
+        })
+    );
+    Object.assign(useSessionStateStore, {
+      getState: () => ({ clipboardData: sessionClipboard })
+    });
+    selected = [other];
+
+    const pasted = await copyAndPaste();
+
+    expect(pasted).toHaveLength(1);
   });
 });

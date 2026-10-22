@@ -23,6 +23,20 @@ jest.mock("../../contexts/NodeContext", () => ({
   }))
 }));
 
+const mockDuplicateNodes = jest.fn();
+const mockRunAsOneUndoEntry = jest.fn(
+  (_store: unknown, fn: () => unknown) => fn()
+);
+
+jest.mock("../useDuplicate", () => ({
+  useDuplicateNodes: jest.fn(() => mockDuplicateNodes)
+}));
+
+jest.mock("../../utils/runAsOneUndoEntry", () => ({
+  runAsOneUndoEntry: (store: unknown, fn: () => unknown) =>
+    mockRunAsOneUndoEntry(store, fn)
+}));
+
 jest.mock("../nodes/useSurroundWithGroup", () => ({
   useSurroundWithGroup: jest.fn(() => mockSurroundWithGroup)
 }));
@@ -449,45 +463,10 @@ describe("useSelectionActions", () => {
   });
 
   describe("duplicateSelected", () => {
-    it("duplicates nodes with offset and deselects originals", () => {
-      const testNodes = [
-        { id: "1", position: { x: 0, y: 0 }, selected: true, data: {} }
-      ];
-      asMock(useNodes).mockImplementation(
-        selectorOver({
-          nodes: testNodes,
-          edges: [],
-          setNodes: mockSetNodes,
-          setEdges: mockSetEdges,
-          getSelectedNodes: () => testNodes
-        })
-      );
-      
-      // Update the store mock for this test
-      asMock(useNodeStoreRef).mockReturnValue({
-        getState: () => ({
-          links: [],
-          selectedLinkIds: [],
-          nodes: testNodes,
-          edges: []
-        })
-      });
-
+    it("uses the same duplicate as Ctrl+D", () => {
       const { result } = renderHook(() => useSelectionActions());
       result.current.duplicateSelected();
-      expect(mockSetNodes).toHaveBeenCalled();
-
-      // Get the nodes array passed to setNodes
-      const updatedNodes = mockSetNodes.mock.calls[0][0];
-
-      // Should have original + duplicate
-      expect(updatedNodes.length).toBe(2);
-      // Original should be deselected
-      expect(updatedNodes[0].selected).toBe(false);
-      // Duplicate should be selected with 50px offset
-      expect(updatedNodes[1].selected).toBe(true);
-      expect(updatedNodes[1].position.x).toBe(50);
-      expect(updatedNodes[1].position.y).toBe(50);
+      expect(mockDuplicateNodes).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -524,6 +503,7 @@ describe("useSelectionActions", () => {
       expect(mockDeleteNodes).toHaveBeenCalledTimes(1);
       expect(mockDeleteNodes).toHaveBeenCalledWith(["1", "2"]);
       expect(mockDeleteEdges).toHaveBeenCalledWith([]);
+      expect(mockRunAsOneUndoEntry).toHaveBeenCalledTimes(1);
     });
 
     it("deletes selected edges when no nodes are selected", () => {

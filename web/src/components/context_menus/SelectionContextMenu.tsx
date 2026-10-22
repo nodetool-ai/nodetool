@@ -15,6 +15,7 @@ import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
 import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import { useToggleCollapse } from "../../hooks/nodes/useToggleCollapse";
 import { useSelectConnected } from "../../hooks/useSelectConnected";
+import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { useChatAboutNodesOnMenuClose } from "../../hooks/nodes/useChatAboutNodes";
 //icons
 import QueueIcon from "@mui/icons-material/Queue";
@@ -33,7 +34,6 @@ import CallSplitIcon from "@mui/icons-material/CallSplit";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import { useNodes } from "../../contexts/NodeContext";
 import isEqual from "../../utils/isEqual";
-import { shallow } from "zustand/shallow";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -43,10 +43,10 @@ interface SelectionContextMenuProps {
 const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { t } = useTranslation();
   const { handleCopy, handleCut } = useCopyPaste();
-  const { deleteNodes, toggleBypassSelected } = useNodes((state) => ({
-    deleteNodes: state.deleteNodes,
-    toggleBypassSelected: state.toggleBypassSelected
-  }), shallow);
+  const toggleBypassSelected = useNodes(
+    (state) => state.toggleBypassSelected
+  );
+  const { deleteSelected } = useSelectionActions();
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();
@@ -103,13 +103,11 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     closeContextMenu();
   }, [duplicateNodes, closeContextMenu]);
 
+  // Same as the Delete key: selected wires and links go too.
   const handleDelete = useCallback(() => {
-    if (selectedNodes?.length) {
-      // [PERF] Use batch deletion (deleteNodes) instead of iterating deleteNode(node.id) to avoid O(N) re-renders
-      deleteNodes(selectedNodes.map((node) => node.id));
-    }
+    deleteSelected();
     closeContextMenu();
-  }, [closeContextMenu, deleteNodes, selectedNodes]);
+  }, [closeContextMenu, deleteSelected]);
 
   const handleSelectConnectedAll = useCallback(() => {
     selectConnectedAll.selectConnected();

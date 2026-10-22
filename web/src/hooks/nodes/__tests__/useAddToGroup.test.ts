@@ -5,6 +5,15 @@ import { Node } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
 
 const mockGetState = jest.fn();
+const mockHistory = {
+  isTracking: true,
+  pause: jest.fn(() => {
+    mockHistory.isTracking = false;
+  }),
+  resume: jest.fn(() => {
+    mockHistory.isTracking = true;
+  })
+};
 
 // Mock dependencies
 jest.mock("../../../contexts/NodeContext", () => ({
@@ -18,7 +27,8 @@ jest.mock('react', () => {
   return {
     ...originalReact,
     useContext: () => ({
-      getState: () => mockGetState()
+      getState: () => mockGetState(),
+      temporal: { getState: () => mockHistory }
     })
   };
 });
@@ -198,6 +208,32 @@ describe("useAddToGroup", () => {
     });
 
     expect(mockGetGroupBounds).toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it("grows the group without recording an undo step of its own", () => {
+    jest.useFakeTimers();
+    mockGetState.mockReturnValue({
+      nodes: [],
+      findNode: (id: string) => ({ id, width: 100, height: 100 })
+    });
+    const { result } = renderHook(() => useAddToGroup());
+    const parentNode = createMockNode("parent-1", "nodetool.group.Loop", { x: 0, y: 0 });
+
+    act(() => {
+      result.current([createMockNode("node-1", "custom", { x: 100, y: 100 })], parentNode);
+    });
+    let trackingDuringGrowth: boolean | undefined;
+    mockUpdateNode.mockImplementation(() => {
+      trackingDuringGrowth = mockHistory.isTracking;
+    });
+    act(() => {
+      jest.advanceTimersByTime(20);
+    });
+
+    expect(mockUpdateNode).toHaveBeenCalledWith("parent-1", { width: 300, height: 200 });
+    expect(trackingDuringGrowth).toBe(false);
+    expect(mockHistory.isTracking).toBe(true);
     jest.useRealTimers();
   });
 

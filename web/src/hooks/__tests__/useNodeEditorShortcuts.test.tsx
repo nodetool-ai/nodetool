@@ -141,11 +141,13 @@ jest.mock("react-router-dom", () => ({
 }));
 
 const mockHandlePaste = jest.fn();
+const mockHandleCopy = jest.fn();
+const mockHandleCut = jest.fn();
 jest.mock("../handlers/useCopyPaste", () => ({
   useCopyPaste: () => ({
-    handleCopy: jest.fn(),
+    handleCopy: mockHandleCopy,
     handlePaste: mockHandlePaste,
-    handleCut: jest.fn()
+    handleCut: mockHandleCut
   })
 }));
 
@@ -268,6 +270,26 @@ describe("useNodeEditorShortcuts", () => {
       .mocked(registerComboCallback)
       .mock.calls.map(([combo]) => combo);
     expect(combos).toEqual(expect.arrayContaining(["c+control", "control+x", "control+v"]));
+  });
+
+  it("copies and cuts the selection, not a node named by the key event", () => {
+    renderHook(() => useNodeEditorShortcuts(true));
+
+    const registration = (combo: string) => {
+      const call = jest
+        .mocked(registerComboCallback)
+        .mock.calls.find(([registered]) => registered === combo);
+      if (!call?.[1]?.callback) {
+        throw new Error(`No callback registered for ${combo}`);
+      }
+      return call[1].callback;
+    };
+    const event = new KeyboardEvent("keydown", { key: "c", ctrlKey: true });
+    registration("c+control")(event);
+    registration("control+x")(event);
+
+    expect(mockHandleCopy).toHaveBeenCalledWith();
+    expect(mockHandleCut).toHaveBeenCalledWith();
   });
 
   it("ignores canvas menu events while its editor is hidden", () => {
