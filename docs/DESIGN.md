@@ -1717,7 +1717,7 @@ what failed and offers a way on.
 
 | Situation | Use |
 |---|---|
-| A field value is wrong | The field's `errorMessage` or `error`, under the field |
+| A field value is wrong | The field's `errorMessage` or `error`, under the field. A control outside `TextInput`/`FormField` puts `FieldError` under it |
 | A load or an operation failed inside a panel, dialog or page | `ErrorBanner` from `components/support/`: `AlertBanner severity="error"` with the Report control and an optional retry |
 | The content of a surface could not load at all | `EmptyState variant="error"` in place of the content, with a retry action, plus the Report control |
 | A user action failed and the surface is fine | `useAlertNotifier("error")` |
