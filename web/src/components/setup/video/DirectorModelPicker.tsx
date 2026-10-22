@@ -10,9 +10,9 @@
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Caption, EditorButton, FlexRow, GAP } from "../../ui_primitives";
+import { Caption } from "../../ui_primitives";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
-import ReportBugButton from "../../support/ReportBugButton";
+import ErrorBanner from "../../support/ErrorBanner";
 import { SetupFooterField } from "../SetupFooterField";
 import { directorModelKey, useDirectorModel } from "./directorModel";
 
@@ -23,25 +23,19 @@ const DirectorModelPickerInternal: React.FC<{ readOnly?: boolean }> = ({
   const { model, options, select, loading, error, noProvider, refetch } =
     useDirectorModel();
 
-  // The footer has one line to spare, so a list that cannot be offered says
-  // why in that line rather than in a banner.
   if (error) {
     return (
-      <FlexRow gap={GAP.tight} align="center" wrap>
-        <Caption color="error" role="alert">
-          {t("pass3_12.video.director.modelListError", { error })}
-        </Caption>
-        <EditorButton size="small" variant="text" onClick={refetch}>
-          {t("pass3_12.video.director.tryAgain")}
-        </EditorButton>
-        <ReportBugButton
-          context={{
-            source: "provider-call",
-            summary: t("pass3_12.video.director.reportSummary"),
-            errorText: error
-          }}
-        />
-      </FlexRow>
+      <ErrorBanner
+        onRetry={() => void refetch()}
+        retryLabel={t("pass3_12.video.director.tryAgain")}
+        report={{
+          source: "provider-call",
+          summary: t("pass3_12.video.director.reportSummary"),
+          errorText: error
+        }}
+      >
+        {t("pass3_12.video.director.modelListError", { error })}
+      </ErrorBanner>
     );
   }
   if (noProvider) {

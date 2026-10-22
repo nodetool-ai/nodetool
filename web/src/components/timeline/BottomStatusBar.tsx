@@ -95,10 +95,11 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
           )}
 
           {failedCount > 0 && (
-            <FlexRow gap={0.5} align="center">
-              <StatusDot tone="error" />
-              <Caption color="error">{t("timeline.status.failed", { count: failedCount })}</Caption>
-            </FlexRow>
+            <StatusIndicator
+              status="error"
+              size="small"
+              label={t("timeline.status.failed", { count: failedCount })}
+            />
           )}
 
           <CostEstimateLine

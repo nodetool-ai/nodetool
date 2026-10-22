@@ -79,9 +79,9 @@ const CaseReport = ({ report }: { report: JsScriptTestCaseReport }) => {
       </Text>
     </FlexRow>
     {report.error && (
-      <Text size="small" color="error">
+      <AlertBanner severity="error" compact>
         {report.error}
-      </Text>
+      </AlertBanner>
     )}
     {report.mismatches.map((mismatch, index) => (
       <Mono key={index}>

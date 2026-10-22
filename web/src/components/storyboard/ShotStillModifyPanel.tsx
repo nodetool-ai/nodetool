@@ -39,7 +39,8 @@ import {
   ToggleGroup,
   ToggleOption,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  AlertBanner
 } from "../ui_primitives";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import ShotMaskPainter, { maskFileFromStrokes } from "./ShotMaskPainter";
@@ -541,13 +542,13 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
             />
           )}
           {editModel && !editModelFits && (
-            <Caption color="error">
+            <AlertBanner severity="warning" compact>
               {strokes
                 ? t("screens4_19.storyboard.shotStillModify.modelCannotInpaint")
                 : supports(editModel, "inpainting")
                   ? t("screens4_19.storyboard.shotStillModify.modelRequiresPaintedArea")
                   : t("screens4_19.storyboard.shotStillModify.modelCannotEdit")}
-            </Caption>
+            </AlertBanner>
           )}
           <EditorButton
             variant="contained"

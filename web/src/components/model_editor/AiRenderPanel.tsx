@@ -47,7 +47,8 @@ import {
   SelectField,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  StatusPill
 } from "../ui_primitives";
 import { useMediaOptions } from "../../hooks/useModelsByProvider";
 import { useSceneAiRender } from "../../hooks/model3d/useSceneAiRender";
@@ -656,7 +657,7 @@ const AiRenderPanel = ({ capture, shot, onShotChange, camera }: AiRenderPanelPro
                         {entry.status === "rendering" ? (
                           <LoadingSpinner inline size={14} />
                         ) : (
-                          <Caption color="error">{t("i18n-cont-model-editor-11.aiRender.failed")}</Caption>
+                          <StatusPill tone="failed">{t("i18n-cont-model-editor-11.aiRender.failed")}</StatusPill>
                         )}
                       </FlexRow>
                     )}

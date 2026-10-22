@@ -33,7 +33,8 @@ import {
   CopyButton,
   SPACING,
   BORDER_RADIUS,
-  getSpacingPx
+  getSpacingPx,
+  AlertBanner
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
 import BoltIcon from "@mui/icons-material/Bolt";
@@ -404,9 +405,9 @@ const TriggerActivationButton: React.FC = () => {
                     </Caption>
                   )}
                   {stoppedBecause && (
-                    <Caption color="error">
+                    <AlertBanner severity="warning" compact>
                       {t("i18n-next5.triggers.stoppedRetry", { reason: stoppedBecause })}
-                    </Caption>
+                    </AlertBanner>
                   )}
                   {reg?.last_error && (
                     <ErrorBanner

@@ -13,8 +13,9 @@ import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined
 
 import type { DockLayoutState } from "../../stores/dock/DockLayoutStore";
 import { capitalizeLabel, type DockPanelRegistration } from "../../stores/dock/DockLayout";
-import { Caption, ContextMenu, Dialog, EditorButton, FlexColumn, FlexRow, ListSubheader, MenuItemPrimitive, SPACING, TextInput } from "../ui_primitives";
-import ReportBugButton from "../support/ReportBugButton";
+import { ContextMenu, Dialog, EditorButton, FlexColumn, ListSubheader, MenuItemPrimitive, SPACING, TextInput } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
+import { useAlertNotifier } from "../../hooks/useAlertNotifier";
 
 interface DockLayoutMenuProps {
   readonly store: StoreApi<DockLayoutState>;
@@ -35,11 +36,17 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
   const [dialog, setDialog] = useState<NameDialog>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const reportError = useAlertNotifier("error");
   useEffect(() => { setDialog(null); setError(null); }, [store]);
   const custom = customLayouts.some((entry) => entry.name === current);
   const act = (action: () => void): boolean => {
     try { action(); setError(null); return true; }
-    catch { setError(t("batch2_2.layout.changeError")); return false; }
+    catch {
+      // Inside the name dialog the error stays there. From the menu, the
+      // surface is fine, so the failure goes to the notification stack.
+      if (dialog === null) { reportError(t("batch2_2.layout.changeError")); } else { setError(t("batch2_2.layout.changeError")); }
+      return false;
+    }
   };
   const close = (): void => setOpen(false);
   const openDialog = (next: NonNullable<NameDialog>): void => {
@@ -90,11 +97,8 @@ export function DockLayoutMenu({ store, panels }: DockLayoutMenuProps): ReactNod
       <FlexColumn gap={SPACING.md}>
         <TextInput label={t("batch2_2.layout.nameLabel")} autoFocus value={name} onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter" && name.trim()) { event.preventDefault(); confirmName(); } }} />
-        {error && <FlexRow gap={SPACING.xs} align="center"><Caption role="alert" color="error">{error}</Caption>
-          <ReportBugButton context={{ source: "panel-crash", summary: t("batch2_2.layout.reportSummary", { editor: capitalizeLabel(model.editorLabel) }), errorText: error }} />
-        </FlexRow>}
+        {error && <ErrorBanner report={{ source: "panel-crash", summary: t("batch2_2.layout.reportSummary", { editor: capitalizeLabel(model.editorLabel) }), errorText: error }}>{error}</ErrorBanner>}
       </FlexColumn>
     </Dialog>
-    {error && dialog === null && <Caption role="alert" color="error" sx={{ whiteSpace: "nowrap" }}>{error}</Caption>}
   </>;
 }
