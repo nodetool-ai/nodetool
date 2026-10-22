@@ -1376,7 +1376,6 @@ export function validateGraph(
 
   // ── Nodes: ids, types, properties ────────────────────────────────────────
   const byId = new Map<string, GraphValidationNode>();
-  const seenIds = new Set<string>();
   for (const node of nodes) {
     const id = String(node.id ?? "");
     const type = String(node.type ?? "");
@@ -1390,7 +1389,7 @@ export function validateGraph(
         message: `Node of type "${type || "(no type)"}" has no id`
       });
     }
-    if (id && seenIds.has(id)) {
+    if (id && byId.has(id)) {
       issues.push({
         severity: "error",
         code: "duplicate_id",
@@ -1399,7 +1398,6 @@ export function validateGraph(
         message: `Duplicate node id "${id}"`
       });
     } else if (id) {
-      seenIds.add(id);
       byId.set(id, node);
     }
     if (!type) {
