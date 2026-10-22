@@ -15,7 +15,7 @@ const mockAsset = {
   duration: null
 };
 
-jest.mock("@mui/material/styles", () => ({ useTheme: () => ({ vars: { palette: { text: { primary: "#fff" }, c_scrim: "#000" } }, shape: { borderRadius: 4 } }) }));
+jest.mock("@mui/material/styles", () => ({ useTheme: () => ({ vars: { palette: { text: { primary: "#fff" }, background: { default: "#000" } } }, shape: { borderRadius: 4 } }) }));
 jest.mock("../../stores/PanelStore", () => ({ usePanelStore: (selector: (state: unknown) => unknown) => selector({ panel: { activeView: "assets" } }) }));
 jest.mock("../../stores/AssetGridStore", () => ({
   useAssetsSelectedAsset: () => mockAsset,
