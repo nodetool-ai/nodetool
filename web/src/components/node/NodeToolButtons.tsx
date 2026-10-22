@@ -23,6 +23,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import EditIcon from "@mui/icons-material/EditOutlined";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
 import { useNodes } from "../../contexts/NodeContext";
@@ -31,6 +32,7 @@ import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { isMac } from "../../utils/platform";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
+import { useChatAboutNodes } from "../../hooks/nodes/useChatAboutNodes";
 import { openPageTab } from "../workspace/openPageTab";
 
 interface NodeToolbarProps {
@@ -119,6 +121,13 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
     }
   }, [node?.type]);
 
+  const chatAboutNodes = useChatAboutNodes();
+  const handleChatAboutNode = useCallback(() => {
+    if (nodeId !== null) {
+      void chatAboutNodes([nodeId]);
+    }
+  }, [nodeId, chatAboutNodes]);
+
   const handleOpenDropdown = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   }, []);
@@ -197,6 +206,18 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           sx={BUTTON_BOX}
         >
           <CopyAllIcon sx={ICON_SX} />
+        </ToolbarIconButton>
+
+        <ToolbarIconButton
+          title={t("screen_editor.nodeChat.chatAboutNode")}
+          ariaLabel={t("screen_editor.nodeChat.chatAboutNode")}
+          className="nodrag"
+          onClick={handleChatAboutNode}
+          tabIndex={-1}
+          size="small"
+          sx={BUTTON_BOX}
+        >
+          <ForumOutlinedIcon sx={ICON_SX} />
         </ToolbarIconButton>
 
         <ToolbarIconButton

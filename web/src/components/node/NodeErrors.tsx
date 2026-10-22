@@ -6,6 +6,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import ListAltIcon from "@mui/icons-material/ListAlt";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import {
   nodeErrorToDisplayString,
   hasNodeError,
@@ -15,6 +16,7 @@ import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import { useRunInspection } from "../../hooks/useRunInspection";
+import { useChatAboutNodes } from "../../hooks/nodes/useChatAboutNodes";
 import isEqual from "../../utils/isEqual";
 import { CopyButton, ExternalLink, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, EditorButton } from "../ui_primitives";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
@@ -151,6 +153,11 @@ const NodeErrorsImpl: React.FC<{
     });
   }, [errorDisplay, logs, nodeType, nodeStore, id, workflow_id]);
 
+  const chatAboutNodes = useChatAboutNodes();
+  const handleAskChat = useCallback(() => {
+    void chatAboutNodes([id], { error: errorDisplay });
+  }, [chatAboutNodes, id, errorDisplay]);
+
   const kieTaskId = useMemo(
     () => extractKieTaskId(errorDisplay),
     [errorDisplay]
@@ -186,6 +193,17 @@ const NodeErrorsImpl: React.FC<{
   return (
     <div css={memoizedErrorStyles} className="node-error nodrag nowheel">
       <div className="error-actions">
+        <EditorButton
+          variant="outlined"
+          color="inherit"
+          startIcon={<ForumOutlinedIcon />}
+          className="nodrag"
+          onClick={handleAskChat}
+          tooltip={t("screen_editor.nodeChat.askChatTooltip")}
+          aria-label={t("screen_editor.nodeChat.askChat")}
+        >
+          {t("screen_editor.nodeChat.askChat")}
+        </EditorButton>
         <EditorButton
           variant="outlined"
           color="inherit"
