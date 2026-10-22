@@ -14,6 +14,11 @@
  * Each item is captioned with its shot number. The description stays in the
  * selected-shot inspector.
  *
+ * The toolbar leads with the shot's own actions ({@link ShotActions}), the
+ * same ones its card shows, for whichever shot is on screen: paging to the
+ * next shot's still brings that shot's actions. Editing or deleting the shot
+ * closes the viewer, since what it was showing has moved or gone.
+ *
  * A board holds its media as `asset://` locators, so the records come from the
  * asset store; the viewer itself is {@link AssetViewer}, which is what gives
  * the shot media a download, copy, compare, and info panel for free. Its
@@ -23,11 +28,14 @@
  * missing context.
  */
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 
 import AssetViewer from "../assets/AssetViewer";
+import { Box } from "../ui_primitives";
+import ShotActions from "./ShotActions";
+import type { Asset } from "../../stores/ApiTypes";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useBoard } from "../../stores/storyboard/StoryboardStore";
 import { useAssetsForLocators } from "../../hooks/assets/useAssetsForLocators";
@@ -39,14 +47,25 @@ interface ShotMediaViewerProps {
   boardId: string;
   /** The still or clip to open on, or nothing when the viewer is closed. */
   media: ImageRef | VideoRef | null | undefined;
+  /** Hides the shot actions that change the board. */
+  readOnly?: boolean;
+  /** Opens a shot's editor. Without it the toolbar has no edit action. */
+  onEdit?: (shotId: string, focus: "fields" | "dialogue") => void;
   onClose: () => void;
 }
 
-interface ShotMediaGalleryProps {
-  boardId: string;
+interface ShotMediaGalleryProps extends ShotMediaViewerProps {
   media: ImageRef | VideoRef;
-  onClose: () => void;
 }
+
+/**
+ * The viewer portals out of the DOM but not out of the React tree, which runs
+ * through the shot card. A click in it would reach the card, select the shot,
+ * and open the board's slideshow behind the viewer.
+ */
+const swallowEvent = (event: React.SyntheticEvent): void => {
+  event.stopPropagation();
+};
 
 /** A shot's takes of one kind, in the order they were made. */
 const shotMedia = (shot: Shot, kind: "image" | "video"): (ImageRef | VideoRef)[] =>
@@ -61,6 +80,8 @@ const shotMedia = (shot: Shot, kind: "image" | "video"): (ImageRef | VideoRef)[]
 const ShotMediaGallery: React.FC<ShotMediaGalleryProps> = ({
   boardId,
   media,
+  readOnly,
+  onEdit,
   onClose
 }) => {
   const { i18n } = useTranslation();
@@ -99,6 +120,43 @@ const ShotMediaGallery: React.FC<ShotMediaGalleryProps> = ({
     });
     return byAssetId;
   }, [boardAssets, entries, locale]);
+  const shotIdByAssetId = useMemo(() => {
+    const byAssetId = new Map<string, string>();
+    boardAssets.forEach((asset, index) => {
+      if (asset) {
+        byAssetId.set(asset.id, entries[index].shot.id);
+      }
+    });
+    return byAssetId;
+  }, [boardAssets, entries]);
+
+  const handleEdit = useCallback(
+    (shotId: string, focus: "fields" | "dialogue") => {
+      onClose();
+      onEdit?.(shotId, focus);
+    },
+    [onClose, onEdit]
+  );
+  const renderShotActions = useCallback(
+    (asset: Asset) => {
+      const shotId = shotIdByAssetId.get(asset.id);
+      const shot = shots.find((candidate) => candidate.id === shotId);
+      return shot ? (
+        <ShotActions
+          // A fresh row per shot, so a dialog opened for one shot does not
+          // stay open over the next one.
+          key={shot.id}
+          boardId={boardId}
+          shot={shot}
+          readOnly={readOnly}
+          placement="inline"
+          onEdit={onEdit ? handleEdit : undefined}
+          onDeleted={onClose}
+        />
+      ) : null;
+    },
+    [shotIdByAssetId, shots, boardId, readOnly, onEdit, handleEdit, onClose]
+  );
 
   const activeId = assetIdOf(media);
   const activeAsset = useMemo(
@@ -117,31 +175,34 @@ const ShotMediaGallery: React.FC<ShotMediaGalleryProps> = ({
   return (
     // The board mounts no context menus, so opening one is a no-op here.
     <ContextMenuProvider active={false}>
-      <AssetViewer
-        asset={activeAsset}
-        sortedAssets={galleryAssets}
-        captions={captions}
-        url={activeAsset ? undefined : url}
-        contentType={
-          activeAsset
-            ? undefined
-            : (contentType ?? (media.type === "video" ? "video/*" : "image/*"))
-        }
-        open
-        onClose={onClose}
-      />
+      <Box
+        onClick={swallowEvent}
+        onDoubleClick={swallowEvent}
+        sx={{ display: "contents" }}
+      >
+        <AssetViewer
+          asset={activeAsset}
+          sortedAssets={galleryAssets}
+          captions={captions}
+          renderActions={renderShotActions}
+          url={activeAsset ? undefined : url}
+          contentType={
+            activeAsset
+              ? undefined
+              : (contentType ?? (media.type === "video" ? "video/*" : "image/*"))
+          }
+          open
+          onClose={onClose}
+        />
+      </Box>
     </ContextMenuProvider>
   );
 };
 
 const ShotMediaViewerInner: React.FC<ShotMediaViewerProps> = ({
-  boardId,
   media,
-  onClose
-}) =>
-  media ? (
-    <ShotMediaGallery boardId={boardId} media={media} onClose={onClose} />
-  ) : null;
+  ...props
+}) => (media ? <ShotMediaGallery media={media} {...props} /> : null);
 
 export const ShotMediaViewer = memo(ShotMediaViewerInner);
 ShotMediaViewer.displayName = "ShotMediaViewer";

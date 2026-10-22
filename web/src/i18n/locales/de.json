@@ -13268,7 +13268,9 @@
       "compareImage": "Mit einem anderen Bild vergleichen",
       "hideInfo": "Infos ausblenden",
       "showInfo": "Infos anzeigen",
-      "close": "Schließen"
+      "close": "Schließen",
+      "download": "Herunterladen",
+      "moreActions": "Weitere Aktionen"
     },
     "assetRename": {
       "specialCharacter": "Der Name darf nicht mit einem Sonderzeichen beginnen.",

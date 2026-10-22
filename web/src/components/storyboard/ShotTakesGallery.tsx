@@ -481,6 +481,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
       <ShotMediaViewer
         boardId={boardId}
         media={viewerMedia}
+        readOnly={readOnly}
         onClose={handleCloseViewer}
       />
     </FlexColumn>
