@@ -105,6 +105,45 @@ const activeWidgetOwnsFocus = (node: Element | null | undefined): boolean => {
   );
 };
 
+// Keys a focused button or link acts on itself.
+const WIDGET_ACTIVATION_KEYS = new Set([
+  " ",
+  "space",
+  "enter",
+  "arrowup",
+  "arrowdown",
+  "arrowleft",
+  "arrowright"
+]);
+
+/**
+ * Whether the focused widget, not the canvas, should get `combo`. A dialog,
+ * menu or list box keeps every key. A plain button or link keeps only plain
+ * keys, so Ctrl+Z, Ctrl+C and the like still reach the canvas after a toolbar
+ * click, and a button on the editor or its toolbars keeps only its activation
+ * keys, so Delete still deletes the selection.
+ */
+const activeWidgetOwnsCombo = (
+  node: Element | null | undefined,
+  combo: string
+): boolean => {
+  if (!activeWidgetOwnsFocus(node)) {
+    return false;
+  }
+  if (node?.closest('[role="dialog"], [role="menu"], [role="listbox"]')) {
+    return true;
+  }
+  const keys = combo.split("+");
+  if (keys.some((key) => key === "control" || key === "meta" || key === "alt")) {
+    return false;
+  }
+  // The canvas and the toolbars floating over it.
+  if (isWorkflowEditorElement(node) || node?.closest(".node-editor")) {
+    return keys.some((key) => WIDGET_ACTIVATION_KEYS.has(key));
+  }
+  return true;
+};
+
 /**
  * Registers a combo handler and returns a disposer that removes exactly that
  * handler (by identity), regardless of what else registered the same combo in
@@ -254,7 +293,7 @@ const resolveComboRegistration = (
     }
     if (
       registration.scope === "canvas" &&
-      activeWidgetOwnsFocus(activeElement)
+      activeWidgetOwnsCombo(activeElement, combo)
     ) {
       continue;
     }

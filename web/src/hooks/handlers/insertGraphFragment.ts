@@ -2,6 +2,7 @@ import type { Edge, Node, XYPosition } from "@xyflow/react";
 import type { GraphLink } from "@nodetool-ai/protocol";
 import type { NodeData } from "../../stores/NodeData";
 import type { NodeStore } from "../../stores/NodeStore";
+import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 
 /** Nodes, edges and lineage links to copy into the open graph. */
 export interface GraphFragment {
@@ -13,7 +14,7 @@ export interface GraphFragment {
 /**
  * Add a copy of `fragment` to the graph with fresh ids, its first top-level
  * node placed at `at` (a flow position). The copies are selected and every
- * other node and edge is deselected.
+ * other node and edge is deselected. The insert is one undo step.
  */
 export const insertGraphFragment = (
   nodeStore: NodeStore,
@@ -132,9 +133,11 @@ export const insertGraphFragment = (
     }
   }
 
-  setNodes([...deselectedNodes, ...newNodes]);
-  setEdges([...deselectedEdges, ...newEdges]);
-  if (newLinks.length > 0) {
-    setLinks([...links, ...newLinks]);
-  }
+  runAsOneUndoEntry(nodeStore, () => {
+    setNodes([...deselectedNodes, ...newNodes]);
+    setEdges([...deselectedEdges, ...newEdges]);
+    if (newLinks.length > 0) {
+      setLinks([...links, ...newLinks]);
+    }
+  });
 };

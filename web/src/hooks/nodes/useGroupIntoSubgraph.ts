@@ -7,6 +7,7 @@ import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode"
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { SUBGRAPH_NODE_TYPE } from "../../constants/nodeTypes";
 import { extractDynamicIO } from "../../components/node/WorkflowNode/WorkflowLoader.helpers";
+import { withGroupContents } from "../../utils/withGroupContents";
 import { runAsOneUndoEntry } from "../../utils/runAsOneUndoEntry";
 import type { NodeData } from "../../stores/NodeData";
 import type {
@@ -193,8 +194,9 @@ export function useGroupIntoSubgraph(): (selectedIds: string[]) => { subgraphNod
         return null;
       }
 
-      const idSet = new Set(selectedIds);
-      const selectedNodes = nodes.filter((n) => idSet.has(n.id));
+      // A selected group takes its contents into the subgraph with it.
+      const selectedNodes = withGroupContents(selectedIds, nodes);
+      const idSet = new Set(selectedNodes.map((n) => n.id));
       if (selectedNodes.length === 0) return null;
 
       const center = computeCentroid(selectedNodes);
@@ -235,7 +237,7 @@ export function useGroupIntoSubgraph(): (selectedIds: string[]) => { subgraphNod
       runAsOneUndoEntry(nodeStore, () => {
         addNode(subgraphNode);
         deleteEdges(plan.outerEdgesToRemove);
-        deleteNodes(selectedIds);
+        deleteNodes([...idSet]);
         for (const edge of plan.outerEdgesToAdd) {
           addEdge(edge);
         }

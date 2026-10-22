@@ -60,6 +60,8 @@ describe("useDuplicateNodes", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseNodesReturn.nodes = [];
+    mockUseNodesReturn.edges = [];
     (useNodes as jest.Mock).mockImplementation((selector) => {
       if (mockIsFunction(selector)) {
         return selector(mockUseNodesReturn);
@@ -69,7 +71,14 @@ describe("useDuplicateNodes", () => {
     // The hook reads nodes/edges lazily; keep the getter live so tests that
     // reassign `mockUseNodesReturn.edges` still take effect.
     (useNodeStoreRef as jest.Mock).mockReturnValue({
-      getState: () => mockUseNodesReturn,
+      // Most tests only stub the selection; the graph holds those nodes.
+      getState: () => ({
+        ...mockUseNodesReturn,
+        nodes:
+          mockUseNodesReturn.nodes.length > 0
+            ? mockUseNodesReturn.nodes
+            : (mockGetSelectedNodes() ?? [])
+      }),
       temporal: {
         getState: () => ({
           beginGroup: mockBeginGroup,
@@ -451,5 +460,32 @@ describe("useDuplicateNodes", () => {
     const newNode = mustFind(setNodesCall, (n) => n.id === "new-node-0");
     expect(newNode.parentId).toBe("parent-node");
     expect(newNode.position.x).toBe(150 + 50 + 20);
+  });
+
+  it("duplicates a selected group with the nodes inside it", () => {
+    const group = { id: "group", position: { x: 0, y: 0 }, data: {}, selected: true };
+    const child = {
+      id: "child",
+      position: { x: 10, y: 20 },
+      data: {},
+      parentId: "group"
+    };
+    mockUseNodesReturn.nodes = [group, child];
+    mockGetSelectedNodes.mockReturnValue([group]);
+    mockGetNodesBounds.mockReturnValue({ width: 100, height: 100, x: 0, y: 0 });
+
+    const { result } = renderHook(() => useDuplicateNodes(false));
+    act(() => {
+      result.current();
+    });
+
+    const created = mockSetNodes.mock.calls[0][0].filter((n) =>
+      n.id.startsWith("new-node-")
+    );
+    expect(created).toHaveLength(2);
+    const newGroup = mustFind(created, (n) => n.parentId === undefined);
+    const newChild = mustFind(created, (n) => n.parentId !== undefined);
+    expect(newChild.parentId).toBe(newGroup.id);
+    expect(newChild.position).toEqual({ x: 10, y: 20 });
   });
 });

@@ -16,6 +16,7 @@
  * the auto-run hook debounces.
  */
 import { useCallback } from "react";
+import { useIdleUndoGroup } from "../useUndoGroup";
 import { useNodes } from "../../contexts/NodeContext";
 import { useNodeAutoRun } from "./useInputNodeAutoRun";
 
@@ -44,27 +45,33 @@ export const useBespokePropertyWriter = ({
     propertyName: "bespoke"
   });
 
+  // A slider drag writes on every move; it undoes as one step.
+  const undoGroup = useIdleUndoGroup();
+
   const setProperty = useCallback(
     (name: string, value: unknown) => {
+      undoGroup.touch();
       updateNodeProperties(nodeId, { [name]: value });
       onPropertyChange();
     },
-    [nodeId, onPropertyChange, updateNodeProperties]
+    [nodeId, onPropertyChange, updateNodeProperties, undoGroup]
   );
 
   const setProperties = useCallback(
     (updates: Record<string, unknown>) => {
+      undoGroup.touch();
       updateNodeProperties(nodeId, updates);
       onPropertyChange();
     },
-    [nodeId, onPropertyChange, updateNodeProperties]
+    [nodeId, onPropertyChange, updateNodeProperties, undoGroup]
   );
 
-  return {
-    setProperty,
-    setProperties,
-    setPropertyComplete: onPropertyChangeComplete
-  };
+  const setPropertyComplete = useCallback(() => {
+    undoGroup.end();
+    onPropertyChangeComplete();
+  }, [onPropertyChangeComplete, undoGroup]);
+
+  return { setProperty, setProperties, setPropertyComplete };
 };
 
 export default useBespokePropertyWriter;

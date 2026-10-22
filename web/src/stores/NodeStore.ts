@@ -55,6 +55,7 @@ import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
+import { withGroupContents } from "../utils/withGroupContents";
 import { COMMENT_NODE_TYPE, PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeNodeSizes";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
@@ -349,6 +350,16 @@ export const createNodeStore = (
             }
           }
         };
+        // Apply several writes as one undo entry.
+        const asOneUndoEntry = (apply: () => void): void => {
+          const temporalApi = getTemporalApi();
+          temporalApi?.getState().beginGroup();
+          try {
+            apply();
+          } finally {
+            temporalApi?.getState().endGroup();
+          }
+        };
         // Write the row's concurrency tokens into every undo and redo
         // snapshot, so restoring one keeps the tokens the server holds now.
         const rebaseHistoryTokens = (token: ConcurrencyToken): void => {
@@ -368,6 +379,143 @@ export const createNodeStore = (
             pastStates: rebase(pastStates),
             futureStates: rebase(futureStates)
           });
+        };
+
+        const connectEdge = (connection: Connection): void => {
+          const { source, target, sourceHandle, targetHandle } = connection;
+          if (!targetHandle) {
+            return;
+          }
+          const srcNode = get().findNode(source);
+          const targetNode = get().findNode(target);
+          if (!srcNode || !targetNode) {
+            return;
+          }
+
+          const isControlEdge =
+            targetHandle === CONTROL_HANDLE_ID ||
+            sourceHandle === CONTROL_HANDLE_ID;
+
+          const isDynamicProperty =
+            targetNode.data.dynamic_properties[targetHandle] !== undefined;
+          // A *typed* dynamic slot is gated like a static handle; only
+          // undeclared (legacy) slots keep the promiscuous bypass.
+          const isUntypedDynamicProperty =
+            isDynamicProperty &&
+            !isTypedSlot(targetNode.data.dynamic_inputs?.[targetHandle]);
+
+          if (
+            !isUntypedDynamicProperty &&
+            !isControlEdge &&
+            !get().validateConnection(connection, srcNode, targetNode)
+          ) {
+            return;
+          }
+          // Control edges skip `validateConnection`, so their own gate — the
+          // source has to be an Agent node — is checked here.
+          if (isControlEdge && !isAgentNodeType(srcNode.type)) {
+            return;
+          }
+
+          const targetMetadata = useMetadataStore
+            .getState()
+            .getMetadata(targetNode.type || "");
+
+          // A "collect" handle (list[T]) takes more than one incoming edge.
+          // Every other handle keeps only the newest, so the edges already
+          // landing on it are dropped.
+          const targetInput =
+            targetMetadata && !isControlEdge
+              ? findInputHandle(targetNode, targetHandle, targetMetadata)
+              : undefined;
+          const isCollectHandle =
+            !!targetInput && isCollectType(targetInput.type);
+
+          const filteredEdges = isCollectHandle
+            ? get().edges
+            : get().edges.filter(
+                (edge) =>
+                  !(
+                    edge.target === target &&
+                    edge.targetHandle === targetHandle
+                  )
+              );
+
+          if (
+            wouldCreateCycle(filteredEdges, source, target, {
+              targetHandle,
+              nodeTypeOf: nodeTypeLookup(get().nodes)
+            })
+          ) {
+            return;
+          }
+
+          const newEdge: Edge = {
+            ...connection,
+            id: get().generateEdgeId(),
+            sourceHandle: sourceHandle || null,
+            targetHandle
+          };
+          if (isControlEdge) {
+            newEdge.type = "control";
+            newEdge.data = { edge_type: "control" };
+          }
+
+          // Edge comparison and serialization expect null, not undefined.
+          const normalizedEdges = filteredEdges.map((edge) => ({
+            ...edge,
+            sourceHandle: edge.sourceHandle || null,
+            targetHandle: edge.targetHandle || null
+          }));
+
+          set({
+            edges: addEdge(newEdge, normalizedEdges)
+          });
+
+          // Connect-time type inference: an undeclared dynamic slot adopts
+          // the source output's type, so most slots end up typed with no
+          // user effort. Slots that already carry a declaration are left be.
+          if (isUntypedDynamicProperty && !isControlEdge && sourceHandle) {
+            const srcMetadata = useMetadataStore
+              .getState()
+              .getMetadata(srcNode.type || "");
+            const srcHandle = srcMetadata
+              ? findOutputHandle(srcNode, sourceHandle, srcMetadata)
+              : undefined;
+            if (srcHandle && srcHandle.type.type !== "any") {
+              get().updateNodeData(targetNode.id, {
+                dynamic_inputs: {
+                  ...normalizeDynamicSlots(targetNode.data.dynamic_inputs),
+                  [targetHandle]: { type: srcHandle.type }
+                }
+              });
+            }
+          }
+
+          // Persist the target as an exposed input so its handle survives
+          // disconnection. Skipped for dynamic props and control edges
+          // (those have their own surfaces) and for properties already
+          // declared as a handle by metadata (`input_fields` / inline rows
+          // render their own handle).
+          const isMetadataHandle =
+            (targetMetadata?.inline_fields ?? []).includes(targetHandle) ||
+            (targetMetadata?.input_fields ?? []).includes(targetHandle);
+          if (
+            !isDynamicProperty &&
+            !isControlEdge &&
+            targetMetadata &&
+            !isMetadataHandle
+          ) {
+            const next = addExposedInput(
+              targetNode.data.exposedInputs,
+              targetHandle
+            );
+            if (next !== targetNode.data.exposedInputs) {
+              get().updateNodeData(targetNode.id, { exposedInputs: next });
+            }
+          }
+
+          get().setWorkflowDirty(true);
         };
 
         const metadata = useMetadataStore.getState().metadata;
@@ -839,141 +987,10 @@ export const createNodeStore = (
               }
             }
           },
+          // The wire, the slot's inferred type and the exposed input are one
+          // undo step.
           onConnect: (connection: Connection): void => {
-            const { source, target, sourceHandle, targetHandle } = connection;
-            if (!targetHandle) {
-              return;
-            }
-            const srcNode = get().findNode(source);
-            const targetNode = get().findNode(target);
-            if (!srcNode || !targetNode) {
-              return;
-            }
-
-            const isControlEdge =
-              targetHandle === CONTROL_HANDLE_ID ||
-              sourceHandle === CONTROL_HANDLE_ID;
-
-            const isDynamicProperty =
-              targetNode.data.dynamic_properties[targetHandle] !== undefined;
-            // A *typed* dynamic slot is gated like a static handle; only
-            // undeclared (legacy) slots keep the promiscuous bypass.
-            const isUntypedDynamicProperty =
-              isDynamicProperty &&
-              !isTypedSlot(targetNode.data.dynamic_inputs?.[targetHandle]);
-
-            if (
-              !isUntypedDynamicProperty &&
-              !isControlEdge &&
-              !get().validateConnection(connection, srcNode, targetNode)
-            ) {
-              return;
-            }
-            // Control edges skip `validateConnection`, so their own gate — the
-            // source has to be an Agent node — is checked here.
-            if (isControlEdge && !isAgentNodeType(srcNode.type)) {
-              return;
-            }
-
-            const targetMetadata = useMetadataStore
-              .getState()
-              .getMetadata(targetNode.type || "");
-
-            // A "collect" handle (list[T]) takes more than one incoming edge.
-            // Every other handle keeps only the newest, so the edges already
-            // landing on it are dropped.
-            const targetInput =
-              targetMetadata && !isControlEdge
-                ? findInputHandle(targetNode, targetHandle, targetMetadata)
-                : undefined;
-            const isCollectHandle =
-              !!targetInput && isCollectType(targetInput.type);
-
-            const filteredEdges = isCollectHandle
-              ? get().edges
-              : get().edges.filter(
-                  (edge) =>
-                    !(
-                      edge.target === target &&
-                      edge.targetHandle === targetHandle
-                    )
-                );
-
-            if (
-              wouldCreateCycle(filteredEdges, source, target, {
-                targetHandle,
-                nodeTypeOf: nodeTypeLookup(get().nodes)
-              })
-            ) {
-              return;
-            }
-
-            const newEdge: Edge = {
-              ...connection,
-              id: get().generateEdgeId(),
-              sourceHandle: sourceHandle || null,
-              targetHandle
-            };
-            if (isControlEdge) {
-              newEdge.type = "control";
-              newEdge.data = { edge_type: "control" };
-            }
-
-            // Edge comparison and serialization expect null, not undefined.
-            const normalizedEdges = filteredEdges.map((edge) => ({
-              ...edge,
-              sourceHandle: edge.sourceHandle || null,
-              targetHandle: edge.targetHandle || null
-            }));
-
-            set({
-              edges: addEdge(newEdge, normalizedEdges)
-            });
-
-            // Connect-time type inference: an undeclared dynamic slot adopts
-            // the source output's type, so most slots end up typed with no
-            // user effort. Slots that already carry a declaration are left be.
-            if (isUntypedDynamicProperty && !isControlEdge && sourceHandle) {
-              const srcMetadata = useMetadataStore
-                .getState()
-                .getMetadata(srcNode.type || "");
-              const srcHandle = srcMetadata
-                ? findOutputHandle(srcNode, sourceHandle, srcMetadata)
-                : undefined;
-              if (srcHandle && srcHandle.type.type !== "any") {
-                get().updateNodeData(targetNode.id, {
-                  dynamic_inputs: {
-                    ...normalizeDynamicSlots(targetNode.data.dynamic_inputs),
-                    [targetHandle]: { type: srcHandle.type }
-                  }
-                });
-              }
-            }
-
-            // Persist the target as an exposed input so its handle survives
-            // disconnection. Skipped for dynamic props and control edges
-            // (those have their own surfaces) and for properties already
-            // declared as a handle by metadata (`input_fields` / inline rows
-            // render their own handle).
-            const isMetadataHandle =
-              (targetMetadata?.inline_fields ?? []).includes(targetHandle) ||
-              (targetMetadata?.input_fields ?? []).includes(targetHandle);
-            if (
-              !isDynamicProperty &&
-              !isControlEdge &&
-              targetMetadata &&
-              !isMetadataHandle
-            ) {
-              const next = addExposedInput(
-                targetNode.data.exposedInputs,
-                targetHandle
-              );
-              if (next !== targetNode.data.exposedInputs) {
-                get().updateNodeData(targetNode.id, { exposedInputs: next });
-              }
-            }
-
-            get().setWorkflowDirty(true);
+            asOneUndoEntry(() => connectEdge(connection));
           },
           findNode: (id: string): Node<NodeData> | undefined => {
             const nodes = get().nodes;
@@ -1171,11 +1188,11 @@ export const createNodeStore = (
               return;
             }
 
-            const idsToDelete = new Set(ids);
             const existingNodes = get().nodes;
-            const foundIds = existingNodes
-              .filter((node) => idsToDelete.has(node.id))
-              .map((node) => node.id);
+            // A group goes with everything inside it.
+            const foundIds = withGroupContents(ids, existingNodes).map(
+              (node) => node.id
+            );
 
             if (foundIds.length === 0) {
               console.warn(`Node(s) not found: ${ids.join(", ")}`);
@@ -1187,35 +1204,15 @@ export const createNodeStore = (
             // editable element is focused), so programmatic callers (ui tools,
             // context menus, grouping) always work here.
             const foundIdSet = new Set(foundIds);
-            const deletedById = new Map(
-              existingNodes
-                .filter((n) => foundIdSet.has(n.id))
-                .map((n) => [n.id, n] as const)
+            const nodes = existingNodes.filter(
+              (node) => !foundIdSet.has(node.id)
             );
-            const nodes: Node<NodeData>[] = [];
 
-            for (const node of existingNodes) {
-              if (!foundIdSet.has(node.id)) {
-                if (node.parentId && foundIdSet.has(node.parentId)) {
-                  const parent = deletedById.get(node.parentId);
-                  nodes.push({
-                    ...node,
-                    parentId: undefined,
-                    position: {
-                      x: (parent?.position?.x ?? 0) + (node.position?.x ?? 0),
-                      y: (parent?.position?.y ?? 0) + (node.position?.y ?? 0)
-                    }
-                  });
-                } else {
-                  nodes.push(node);
-                }
-              }
-            }
-
-            const workflowId = get().workflow.id;
-            const idSetForClear = new Set(foundIds);
-            useErrorStore.getState().clearErrors(workflowId, idSetForClear);
-            useResultsStore.getState().clearResults(workflowId, idSetForClear);
+            // Results stay: undoing the delete brings the node back with its
+            // output. Node ids are never reused, so nothing else reads them.
+            useErrorStore
+              .getState()
+              .clearErrors(get().workflow.id, new Set(foundIds));
 
             const remainingIds = new Set(nodes.map((node) => node.id));
             set({

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { useOptionalTemporalNodes } from "../contexts/NodeContext";
 
@@ -68,4 +68,44 @@ export function useUndoGroup(): UndoGroup {
   useEffect(() => end, [end]);
 
   return { begin, end, beginGesture };
+}
+
+/** Quiet time after which a run of writes counts as finished. */
+const IDLE_UNDO_GROUP_MS = 800;
+
+interface IdleUndoGroup {
+  /** Record a write: opens the edit, or keeps the open one going. */
+  touch: () => void;
+  /** Finish the edit now, as at a slider's release. */
+  end: () => void;
+}
+
+/**
+ * One undo entry for a run of writes whose end is not always signalled, such
+ * as a node-body slider: the edit ends at `end` or after a short pause in
+ * writes, so history is never left paused.
+ */
+export function useIdleUndoGroup(): IdleUndoGroup {
+  const { begin, end: endGroup } = useUndoGroup();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const end = useCallback((): void => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    endGroup();
+  }, [endGroup]);
+
+  const touch = useCallback((): void => {
+    begin();
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+    }
+    timerRef.current = setTimeout(end, IDLE_UNDO_GROUP_MS);
+  }, [begin, end]);
+
+  useEffect(() => end, [end]);
+
+  return useMemo(() => ({ touch, end }), [touch, end]);
 }

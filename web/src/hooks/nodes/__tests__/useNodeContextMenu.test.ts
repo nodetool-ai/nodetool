@@ -50,8 +50,15 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   })
 }));
 
+const mockCopyNodes = jest.fn();
+const mockCutNodes = jest.fn();
+jest.mock("../../handlers/useCopyPaste", () => ({
+  useCopyPaste: () => ({ handleCopy: mockCopyNodes, handleCut: mockCutNodes })
+}));
+
 jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn()
+  useReactFlow: jest.fn(),
+  useStoreApi: jest.fn(() => ({ getState: () => ({ domNode: null }) }))
 }));
 
 import { renderHook, act } from "@testing-library/react";
@@ -369,6 +376,37 @@ describe("useNodeContextMenu", () => {
 
       expect(mockDeleteNodes).toHaveBeenCalledWith(["node-1", "node-2"]);
       expect(mockCloseContextMenu).toHaveBeenCalled();
+    });
+  });
+
+  describe("handleCopy and handleCut", () => {
+    it("act on the clicked node when it is not part of a selection", () => {
+      mockGetSelectedNodes.mockReturnValue([]);
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleCopy();
+        result.current.handlers.handleCut();
+      });
+
+      expect(mockCopyNodes).toHaveBeenCalledWith("node-1");
+      expect(mockCutNodes).toHaveBeenCalledWith("node-1");
+    });
+
+    it("act on the whole selection when the clicked node is part of it", () => {
+      mockGetSelectedNodes.mockReturnValue([
+        { id: "node-1", data: {} },
+        { id: "node-2", data: {} }
+      ]);
+      const { result } = renderHook(() => useNodeContextMenu());
+
+      act(() => {
+        result.current.handlers.handleCopy();
+        result.current.handlers.handleCut();
+      });
+
+      expect(mockCopyNodes).toHaveBeenCalledWith(undefined);
+      expect(mockCutNodes).toHaveBeenCalledWith(undefined);
     });
   });
 

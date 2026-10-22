@@ -9,7 +9,8 @@ import { isTextInputActive } from "../../../utils/browser";
 import type { NodeData } from "../../../stores/NodeData";
 
 jest.mock("@xyflow/react", () => ({
-  useReactFlow: jest.fn(() => ({ screenToFlowPosition: jest.fn() }))
+  useReactFlow: jest.fn(() => ({ screenToFlowPosition: jest.fn() })),
+  useStoreApi: jest.fn(() => ({ getState: () => ({ domNode: null }) }))
 }));
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/SessionStateStore");
@@ -84,16 +85,20 @@ describe("useCopyPaste handleCut", () => {
     });
   });
 
-  it("deletes cut nodes through deleteNodes so group children are re-parented", async () => {
+  it("cuts a group together with the nodes inside it", async () => {
     const { result } = renderHook(() => useCopyPaste());
 
     await act(async () => {
       await result.current.handleCut();
     });
 
-    expect(deleteNodes).toHaveBeenCalledWith(["group-1"]);
-    // A raw setNodes/setEdges filter would bypass the orphan re-parenting and
-    // error/result clearing that deleteNodes performs.
+    expect(deleteNodes).toHaveBeenCalledWith(["group-1", "child-1"]);
+    const copied = JSON.parse(
+      jest.mocked(navigator.clipboard.writeText).mock.calls[0][0]
+    ) as { nodes: Node<NodeData>[] };
+    expect(copied.nodes.map((node) => node.id)).toEqual(["group-1", "child-1"]);
+    // deleteNodes, not a raw setNodes/setEdges filter, so the cut is one
+    // undo step and clears the nodes' errors.
     expect(setNodes).not.toHaveBeenCalled();
     expect(setEdges).not.toHaveBeenCalled();
   });

@@ -36,7 +36,7 @@ This page lists the shortcuts in each part of NodeTool. In the app, press `Ctrl 
 |---------------|-----|--------|
 | `Ctrl + C` / `X` / `V` | `⌘ + C` / `X` / `V` | Copy, cut, paste nodes |
 | `Ctrl + Z` | `⌘ + Z` | Undo |
-| `Ctrl + Shift + Z` | `⌘ + Shift + Z` | Redo |
+| `Ctrl + Shift + Z` or `Ctrl + Y` | `⌘ + Shift + Z` or `⌘ + Y` | Redo |
 | `Ctrl + A` | `⌘ + A` | Select all nodes |
 | `Ctrl + D` | `⌘ + D` | Duplicate selected nodes |
 | `Ctrl + Shift + D` | `⌘ + Shift + D` | Duplicate selected nodes vertically |

@@ -172,15 +172,27 @@ describe("NodeStore node management", () => {
     store.getState().deleteNode("a");
     expect(store.getState().findNode("a")).toBeUndefined();
     expect(store.getState().edges).toHaveLength(0);
-    // deleteNode now correctly clears errors/results scoped to the
-    // current workflow id with the deleted node IDs as the second arg.
+    // Errors of the deleted node go; its results stay, so undoing the
+    // delete brings the node back with its output.
     const workflowId = store.getState().workflow.id;
     expect(
       useErrorStore.getState().clearErrors as jest.Mock
     ).toHaveBeenCalledWith(workflowId, new Set(["a"]));
     expect(
       useResultsStore.getState().clearResults as jest.Mock
-    ).toHaveBeenCalledWith(workflowId, new Set(["a"]));
+    ).not.toHaveBeenCalled();
+  });
+
+  test("deleting a group deletes the nodes inside it", () => {
+    const workflowId = store.getState().workflow.id;
+    const group = makeNode("g", workflowId);
+    const child = { ...makeNode("c", workflowId), parentId: "g" };
+    const outside = makeNode("o", workflowId);
+    store.getState().setNodes([group, child, outside]);
+
+    store.getState().deleteNode("g");
+
+    expect(store.getState().nodes.map((node) => node.id)).toEqual(["o"]);
   });
 
   test("undo and redo revert node changes", () => {
@@ -394,6 +406,25 @@ describe("Edge Validation", () => {
     expect(store.getState().edges).toHaveLength(1);
     const target = store.getState().findNode("b");
     expect(target?.data.exposedInputs).toEqual(["input1"]);
+  });
+
+  test("onConnect records the wire and the exposed input as one undo step", () => {
+    restoreAddEdge();
+    store.getState().addNode(makeNode("a", store.getState().workflow.id, "test"));
+    store.getState().addNode(makeNode("b", store.getState().workflow.id, "test"));
+    const before = store.temporal.getState().pastStates.length;
+
+    store.getState().onConnect({
+      source: "a",
+      target: "b",
+      sourceHandle: "output1",
+      targetHandle: "input1"
+    });
+
+    expect(store.temporal.getState().pastStates).toHaveLength(before + 1);
+    store.temporal.getState().undo();
+    expect(store.getState().edges).toHaveLength(0);
+    expect(store.getState().findNode("b")?.data.exposedInputs).toBeUndefined();
   });
 
   test("onConnect allows multiple edges into a list[image] collect handle (fal node)", () => {

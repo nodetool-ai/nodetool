@@ -248,19 +248,25 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   const { handleCopy: copyNodes, handleCut: cutNodes } = useCopyPaste();
   const toggleCollapse = useToggleCollapse();
 
+  // Like Delete: the whole selection when the clicked node is part of it.
+  const actsOnSelection =
+    !!nodeId &&
+    selectedNodes.length > 1 &&
+    selectedNodes.some((n) => n.id === nodeId);
+
   const handleCopy = useCallback(() => {
     if (nodeId) {
-      void copyNodes(nodeId);
+      void copyNodes(actsOnSelection ? undefined : nodeId);
     }
     closeContextMenu();
-  }, [copyNodes, nodeId, closeContextMenu]);
+  }, [copyNodes, nodeId, actsOnSelection, closeContextMenu]);
 
   const handleCut = useCallback(() => {
     if (nodeId) {
-      void cutNodes(nodeId);
+      void cutNodes(actsOnSelection ? undefined : nodeId);
     }
     closeContextMenu();
-  }, [cutNodes, nodeId, closeContextMenu]);
+  }, [cutNodes, nodeId, actsOnSelection, closeContextMenu]);
 
   const handleToggleCollapsed = useCallback(() => {
     if (nodeId) {

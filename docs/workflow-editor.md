@@ -221,7 +221,7 @@ Click the **Auto Layout** button in the composer bar to arrange your nodes in a 
 
 ### Grouping Nodes
 
-Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep related nodes together and move as a unit. Click a group's label to select the group. A click on the group's body reaches the canvas, so a selection box can start inside a group. Deleting a selected group removes the frame and keeps its nodes. The node context menu also offers **Group into Subgraph**, and the canvas context menu offers **Add Group**, **Add Comment**, **Add Subgraph**, **Add Workflow**, and **Add App**. An App node runs a mini app's workflow: the app's inputs become the node's inputs, its outputs become the node's outputs, and an output the app streams reaches downstream nodes one value at a time.
+Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep related nodes together and move as a unit. Click a group's label to select the group. A click on the group's body reaches the canvas, so a selection box can start inside a group. Copy, cut, duplicate and delete act on a selected group together with the nodes inside it. To take nodes out of a group, hold `Alt` (`Option` on macOS) while you drag them. The node context menu also offers **Group into Subgraph**, and the canvas context menu offers **Add Group**, **Add Comment**, **Add Subgraph**, **Add Workflow**, and **Add App**. An App node runs a mini app's workflow: the app's inputs become the node's inputs, its outputs become the node's outputs, and an output the app streams reaches downstream nodes one value at a time.
 
 ### Aligning Nodes
 
