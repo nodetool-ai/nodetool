@@ -224,4 +224,20 @@ describe("ShotMediaViewer", () => {
     fireEvent.click(screen.getByRole("button", { name: "deleted" }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps its clicks from reaching the shot card it opened from", () => {
+    const onCardClick = jest.fn();
+    render(
+      <div onClick={onCardClick}>
+        <ShotMediaViewer
+          boardId="board-1"
+          media={image("still-b")}
+          onClose={jest.fn()}
+        />
+      </div>
+    );
+
+    fireEvent.click(screen.getByTestId("asset-viewer"));
+    expect(onCardClick).not.toHaveBeenCalled();
+  });
 });

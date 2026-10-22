@@ -13256,7 +13256,9 @@
       "compareImage": "Compare with another image",
       "hideInfo": "Hide info",
       "showInfo": "Show info",
-      "close": "Close"
+      "close": "Close",
+      "download": "Download",
+      "moreActions": "More actions"
     },
     "assetRename": {
       "specialCharacter": "Name cannot start with a special character.",

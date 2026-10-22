@@ -155,6 +155,28 @@ describe("AssetViewer", () => {
     expect(screen.queryByTestId("info-panel")).not.toBeInTheDocument();
   });
 
+  it("folds its own actions into one menu after a caller's actions", () => {
+    const { onClose } = renderViewer({
+      renderActions: (current) => (
+        <button type="button">{`Shot action for ${current.id}`}</button>
+      )
+    });
+    expect(
+      screen.getByRole("button", { name: "Shot action for a1" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Edit image" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Edit image" }));
+    expect(mockOpenTab).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "image", ref: "a1" })
+    );
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it("shows the caller's caption for the current asset", () => {
     renderViewer({ captions: { a1: "Shot 2" } });
     expect(screen.getByText("Shot 2")).toBeInTheDocument();

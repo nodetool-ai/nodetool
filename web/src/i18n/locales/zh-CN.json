@@ -13256,7 +13256,9 @@
       "compareImage": "与另一张图片比较",
       "hideInfo": "隐藏信息",
       "showInfo": "显示信息",
-      "close": "关闭"
+      "close": "关闭",
+      "download": "下载",
+      "moreActions": "更多操作"
     },
     "assetRename": {
       "specialCharacter": "名称不能以特殊字符开头。",

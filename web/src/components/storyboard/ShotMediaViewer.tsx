@@ -33,6 +33,7 @@ import { useTranslation } from "react-i18next";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
 
 import AssetViewer from "../assets/AssetViewer";
+import { Box } from "../ui_primitives";
 import ShotActions from "./ShotActions";
 import type { Asset } from "../../stores/ApiTypes";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -56,6 +57,15 @@ interface ShotMediaViewerProps {
 interface ShotMediaGalleryProps extends ShotMediaViewerProps {
   media: ImageRef | VideoRef;
 }
+
+/**
+ * The viewer portals out of the DOM but not out of the React tree, which runs
+ * through the shot card. A click in it would reach the card, select the shot,
+ * and open the board's slideshow behind the viewer.
+ */
+const swallowEvent = (event: React.SyntheticEvent): void => {
+  event.stopPropagation();
+};
 
 /** A shot's takes of one kind, in the order they were made. */
 const shotMedia = (shot: Shot, kind: "image" | "video"): (ImageRef | VideoRef)[] =>
@@ -165,20 +175,26 @@ const ShotMediaGallery: React.FC<ShotMediaGalleryProps> = ({
   return (
     // The board mounts no context menus, so opening one is a no-op here.
     <ContextMenuProvider active={false}>
-      <AssetViewer
-        asset={activeAsset}
-        sortedAssets={galleryAssets}
-        captions={captions}
-        renderActions={renderShotActions}
-        url={activeAsset ? undefined : url}
-        contentType={
-          activeAsset
-            ? undefined
-            : (contentType ?? (media.type === "video" ? "video/*" : "image/*"))
-        }
-        open
-        onClose={onClose}
-      />
+      <Box
+        onClick={swallowEvent}
+        onDoubleClick={swallowEvent}
+        sx={{ display: "contents" }}
+      >
+        <AssetViewer
+          asset={activeAsset}
+          sortedAssets={galleryAssets}
+          captions={captions}
+          renderActions={renderShotActions}
+          url={activeAsset ? undefined : url}
+          contentType={
+            activeAsset
+              ? undefined
+              : (contentType ?? (media.type === "video" ? "video/*" : "image/*"))
+          }
+          open
+          onClose={onClose}
+        />
+      </Box>
     </ContextMenuProvider>
   );
 };

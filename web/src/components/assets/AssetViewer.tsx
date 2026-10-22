@@ -39,6 +39,8 @@ import EditIcon from "@mui/icons-material/EditOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
+import DownloadIcon from "@mui/icons-material/Download";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import AssetFilmstrip from "./AssetFilmstrip";
 import { TransformWithWorkflowView } from "./TransformWithWorkflowDialog";
 import { transformSourceFromAsset } from "./transformWorkflow";
@@ -75,7 +77,9 @@ import {
   CloseButton,
   DownloadButton,
   FlexRow,
+  EditorMenu,
   FloatingToolbar,
+  MenuItemPrimitive,
   ToolbarDivider
 } from "../ui_primitives";
 
@@ -359,11 +363,23 @@ type AssetViewerProps = {
   onClose: () => void;
 };
 
+/** One of the viewer's own actions, shown as a button or a menu item. */
+interface ViewerAction {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  menuIcon: React.ReactNode;
+  onClick: () => void;
+}
+
 /** Thumbnails shown on each side of the current asset. */
 const FILMSTRIP_NEIGHBOURS = 5;
 
 const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const { t } = useTranslation("translation", { keyPrefix: "i18n-next27" });
+  // The transform action's label is shared with the editors, outside this
+  // viewer's key prefix.
+  const { t: tShared } = useTranslation();
   const theme = useTheme();
   const {
     asset,
@@ -577,6 +593,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     prevNextAmount: FILMSTRIP_NEIGHBOURS,
     onChangeIndex: handleChangeAsset
   });
+  const [moreButton, setMoreButton] = useState<HTMLButtonElement | null>(
+    null
+  );
+  const [moreOpen, setMoreOpen] = useState(false);
+  const openMore = useCallback(() => setMoreOpen(true), []);
+  const closeMore = useCallback(() => setMoreOpen(false), []);
   const caption = currentAsset ? captions?.[currentAsset.id] : undefined;
   const callerActions =
     renderActions && currentAsset && !compareMode
@@ -641,6 +663,76 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       onThumbnail={handleThumbnailClick}
     />
   ) : null;
+
+  // The viewer's own actions on the asset on screen. They are buttons on
+  // their own, and one menu after a caller's actions.
+  const viewerActions: ViewerAction[] = [
+    {
+      key: "download",
+      label: t("assetViewer.download"),
+      icon: <DownloadIcon />,
+      menuIcon: <DownloadIcon fontSize="small" />,
+      onClick: handleDownload
+    }
+  ];
+  if (editAction && !compareMode && inLibrary) {
+    viewerActions.push({
+      key: "edit",
+      label: editAction.tooltip,
+      icon: <EditIcon />,
+      menuIcon: <EditIcon fontSize="small" />,
+      onClick: handleEdit
+    });
+  }
+  if (transformSource && !compareMode && inLibrary) {
+    viewerActions.push({
+      key: "transform",
+      label: tShared("transformWithWorkflow.open"),
+      icon: <AutoFixHighOutlinedIcon />,
+      menuIcon: <AutoFixHighOutlinedIcon fontSize="small" />,
+      onClick: handleTransform
+    });
+  }
+  if (currentAsset?.workflow_id && !compareMode && inLibrary) {
+    viewerActions.push({
+      key: "open-workflow",
+      label: t("assetViewer.openWorkflow"),
+      icon: <AccountTreeIcon />,
+      menuIcon: <AccountTreeIcon fontSize="small" />,
+      onClick: handleOpenWorkflow
+    });
+  }
+  if (
+    isElectron &&
+    currentAsset?.content_type &&
+    isClipboardSupported(currentAsset.content_type)
+  ) {
+    viewerActions.push({
+      key: "copy",
+      label: copyTooltip(currentAsset.content_type, copied),
+      icon: copied ? <CheckIcon /> : <ContentCopyIcon />,
+      menuIcon: <ContentCopyIcon fontSize="small" />,
+      onClick: () => void handleCopyToClipboard()
+    });
+  }
+  if (canCompare && !compareMode && !compareAssetB) {
+    viewerActions.push({
+      key: "compare",
+      label: t("assetViewer.compareImage"),
+      icon: <CompareIcon />,
+      menuIcon: <CompareIcon fontSize="small" />,
+      onClick: startCompareMode
+    });
+  }
+  if (currentAsset && !compareMode && inLibrary) {
+    viewerActions.push({
+      key: "info",
+      label: showInfo ? t("assetViewer.hideInfo") : t("assetViewer.showInfo"),
+      icon: <InfoOutlinedIcon />,
+      menuIcon: <InfoOutlinedIcon fontSize="small" />,
+      onClick: toggleInfo
+    });
+  }
 
   if (!open) {
     return null;
@@ -734,66 +826,64 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               <ToolbarDivider />
             </OverlayLayerProvider>
           )}
-          <DownloadButton
-            onClick={handleDownload}
-            className="button download"
-            nodrag={false}
-          />
-          {editAction && !compareMode && inLibrary && (
-            <ToolbarIconButton
-              icon={<EditIcon />}
-              tooltip={editAction.tooltip}
-              onClick={handleEdit}
-              className="button edit"
-              nodrag={false}
-            />
-          )}
-          {transformSource && !compareMode && inLibrary && (
-            <ToolbarIconButton
-              icon={<AutoFixHighOutlinedIcon />}
-              tooltip={t("transformWithWorkflow.open")}
-              onClick={handleTransform}
-              className="button transform"
-              nodrag={false}
-            />
-          )}
-          {currentAsset?.workflow_id && !compareMode && inLibrary && (
-            <ToolbarIconButton
-              icon={<AccountTreeIcon />}
-              tooltip={t("assetViewer.openWorkflow")}
-              onClick={handleOpenWorkflow}
-              className="button open-workflow"
-              nodrag={false}
-            />
-          )}
-          {isElectron &&
-            currentAsset?.content_type &&
-            isClipboardSupported(currentAsset.content_type) && (
+          {callerActions != null && callerActions !== false ? (
+            // The caller's actions lead, so the viewer's own fold into one
+            // menu rather than doubling the row.
+            <>
               <ToolbarIconButton
-                icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
-                tooltip={copyTooltip(currentAsset.content_type, copied)}
-                onClick={handleCopyToClipboard}
-                className="button copy"
+                ref={setMoreButton}
+                icon={<MoreHorizIcon />}
+                tooltip={t("assetViewer.moreActions")}
+                ariaLabel={t("assetViewer.moreActions")}
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                onClick={openMore}
+                className="button more"
                 nodrag={false}
+              />
+              <EditorMenu
+                anchorEl={moreButton}
+                open={moreOpen}
+                onClose={closeMore}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                slotProps={{
+                  list: { "aria-label": t("assetViewer.moreActions") }
+                }}
+              >
+                {viewerActions.map((action) => (
+                  <MenuItemPrimitive
+                    key={action.key}
+                    label={action.label}
+                    icon={action.menuIcon}
+                    onClick={() => {
+                      closeMore();
+                      action.onClick();
+                    }}
+                  />
+                ))}
+              </EditorMenu>
+            </>
+          ) : (
+            viewerActions.map((action) =>
+              action.key === "download" ? (
+                <DownloadButton
+                  key={action.key}
+                  onClick={action.onClick}
+                  className="button download"
+                  nodrag={false}
                 />
-            )}
-          {canCompare && !compareMode && !compareAssetB && (
-            <ToolbarIconButton
-              icon={<CompareIcon />}
-              tooltip={t("assetViewer.compareImage")}
-              onClick={startCompareMode}
-              className="button compare"
-              nodrag={false}
-            />
-          )}
-          {currentAsset && !compareMode && inLibrary && (
-            <ToolbarIconButton
-              icon={<InfoOutlinedIcon />}
-              tooltip={showInfo ? t("assetViewer.hideInfo") : t("assetViewer.showInfo")}
-              onClick={toggleInfo}
-              className="button info"
-              nodrag={false}
-            />
+              ) : (
+                <ToolbarIconButton
+                  key={action.key}
+                  icon={action.icon}
+                  tooltip={action.label}
+                  onClick={action.onClick}
+                  className={`button ${action.key}`}
+                  nodrag={false}
+                />
+              )
+            )
           )}
           <CloseButton
             onClick={compareAssetB ? exitCompareView : handleClose}
