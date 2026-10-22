@@ -115,6 +115,18 @@ describe("edit_sketch set_setup", () => {
     expect(data.sketch.setup?.variations).toBe(2);
   });
 
+  it("accepts the everyday scene use case", async () => {
+    const sketch = await makeSketch();
+    await run(ctx()).invoke("edit_sketch", {
+      image_document_id: sketch.id,
+      ops: [{ op: "set_setup", use_case: "scene" }]
+    });
+    const data = await reload(sketch.id);
+    expect(data.sketch.setup?.use_case).toBe("scene");
+    expect(data.sketch.canvas).toMatchObject({ width: 1536, height: 1024 });
+    expect(data.sketch.setup?.variations).toBe(4);
+  });
+
   it("refuses a use case and a stage the flow does not have", async () => {
     const sketch = await makeSketch();
     const result = (await run(ctx()).invoke("edit_sketch", {
