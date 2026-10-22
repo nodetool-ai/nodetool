@@ -77,6 +77,26 @@ jest.mock("../../../properties/ImageModelSelect", () => ({
 }));
 jest.mock("../../../entities/EntityAssetPickerDialog", () => () => null);
 jest.mock("../../../entities/EntityEditorDialog", () => () => null);
+// The dialog's own behavior is covered by its test. What the step decides is
+// which picture a retake starts from and what it saves.
+jest.mock("../../../entities/GenerateReferenceDialog", () => ({
+  __esModule: true,
+  default: ({
+    name,
+    currentAssetId,
+    onPick
+  }: {
+    name: string;
+    currentAssetId?: string;
+    onPick: (assetId: string) => void;
+  }) => (
+    <div role="dialog" aria-label={`Retake ${name} from ${currentAssetId}`}>
+      <button type="button" onClick={() => onPick("retake-1")}>
+        Use retake
+      </button>
+    </div>
+  )
+}));
 // The gallery's viewer needs the router and the asset explorer; what the step
 // decides is which media it opens on and what it pages through.
 jest.mock("../../../assets/AssetViewer", () => ({
@@ -1009,4 +1029,33 @@ it("drops a leading shot number from a slug that repeats it", () => {
   expect(shotTitle("12. Finale", 12)).toBe("Finale");
   expect(shotTitle("03 — Elsewhere", 2)).toBe("03 — Elsewhere");
   expect(shotTitle("1984", 1)).toBe("1984");
+});
+
+it("retakes an entity's picture and keeps the entity it is cast as", async () => {
+  const user = userEvent.setup();
+  renderStep();
+
+  await user.click(
+    await screen.findByRole("button", { name: "New picture of Mara" })
+  );
+  expect(
+    screen.getByRole("dialog", { name: "Retake Mara from mara" })
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Use retake" }));
+
+  await waitFor(() =>
+    expect(updateAsset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "mara",
+        metadata: {
+          nodetool_entity: expect.objectContaining({
+            kind: "character",
+            name: "Mara",
+            descriptor: "Mara wears a red raincoat",
+            reference_asset_id: "retake-1"
+          })
+        }
+      })
+    )
+  );
 });

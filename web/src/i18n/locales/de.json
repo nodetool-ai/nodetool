@@ -3107,7 +3107,14 @@
           "viewLabel": "Anzeigen",
           "promptLabel": "Prompt",
           "modelLabel": "Bildmodell",
-          "progress": "Dein Referenzbild wird erstellt…"
+          "progress": "Dein Referenzbild wird erstellt…",
+          "retakeTitle": "Neues Bild von {{name}}",
+          "useTake": "Diese Variante verwenden",
+          "chooseTake": "Wähle die Variante, die du verwenden willst. Ein Doppelklick übernimmt sie sofort.",
+          "takesLabel": "Varianten",
+          "takeLabel": "Variante {{number}}",
+          "keepLook": "Aktuelles Aussehen beibehalten",
+          "keepLookDescription": "Bearbeitet das aktuelle Bild, statt nur aus dem Prompt zu zeichnen, damit dieselbe Person oder derselbe Ort erkennbar bleibt."
         },
         "modelHelper": {
           "choose": "Wähle ein Bildmodell, um die Referenz zu generieren.",
@@ -3610,7 +3617,8 @@
           "location": "Ort",
           "prop": "Requisite",
           "style": "Stil"
-        }
+        },
+        "retakeImage": "Neues Bild von {{name}}"
       },
       "genre": {
         "shotCount_one": "{{count}} Einstellung",
@@ -8341,7 +8349,8 @@
       "addEntity": "Entität hinzufügen",
       "backToEntities": "Zurück zu den Entitäten",
       "entitiesLabel": "Entitäten",
-      "librarySubtitle": "Wiederverwendbare Figuren, Orte, Stile und Requisiten"
+      "librarySubtitle": "Wiederverwendbare Figuren, Orte, Stile und Requisiten",
+      "retakeImage": "Neu generieren"
     }
   },
   "screens4_23": {

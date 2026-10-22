@@ -16,6 +16,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import type { Entity } from "@nodetool-ai/protocol";
 
@@ -30,6 +31,7 @@ import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import { priceRenderStep } from "../../../hooks/storyboard/shotCostPricing";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import EntityEditorDialog from "../../entities/EntityEditorDialog";
+import GenerateReferenceDialog from "../../entities/GenerateReferenceDialog";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import ReportBugButton from "../../support/ReportBugButton";
 import { GallerySource, useMediaGallery } from "../MediaGallery";
@@ -55,6 +57,7 @@ import {
   SPACING_PX,
   Text,
   ThinkingIndicator,
+  ToolbarIconButton,
   TYPOGRAPHY
 } from "../../ui_primitives";
 import { ENTITY_KIND_ICON } from "../../entities/entityKind";
@@ -193,6 +196,7 @@ export const EntitiesStep = ({
   const [pickerOpen, setPickerOpen] = useState(false);
   const openGallery = useMediaGallery();
   const [newAssetId, setNewAssetId] = useState<string | null>(null);
+  const [retakeEntity, setRetakeEntity] = useState<Entity | null>(null);
   const [search, setSearch] = useState("");
   const [onlySelected, setOnlySelected] = useState(false);
   const [createdEntities, setCreatedEntities] = useState<Entity[]>([]);
@@ -462,6 +466,37 @@ export const EntitiesStep = ({
           return next;
         });
       }
+    }
+  };
+
+  // A retake points the entity at the new picture. It keeps its id, so every
+  // board and shot that casts it shows the new look.
+  const retakeReference = async (
+    entity: Entity,
+    assetId: string
+  ): Promise<void> => {
+    setAssistError(null);
+    try {
+      await saveEntity.mutateAsync({
+        assetId: entity.id,
+        projectId: entity.project_id,
+        kind: entity.kind,
+        name: entity.name,
+        descriptor: entity.descriptor,
+        description: entity.description,
+        voice_id: entity.voice_id,
+        tags: entity.tags,
+        lora: entity.lora,
+        palette: entity.palette,
+        reference_asset_id: assetId
+      });
+    } catch (error) {
+      setAssistFailure("create");
+      setAssistError(
+        error instanceof Error
+          ? error.message
+          : t("pass3_10.storyboard.entities.entitySaveFailed")
+      );
     }
   };
 
@@ -992,6 +1027,17 @@ export const EntitiesStep = ({
                                 </FlexColumn>
                               }
                             />
+                            {readOnly ? null : (
+                              <ToolbarIconButton
+                                icon={<AutoAwesomeOutlinedIcon />}
+                                tooltip={t(
+                                  "pass3_10.storyboard.entities.retakeImage",
+                                  { name: entity.name }
+                                )}
+                                onClick={() => setRetakeEntity(entity)}
+                                sx={{ flexShrink: 0 }}
+                              />
+                            )}
                           </FlexRow>
                         ))}
                       </FlexColumn>
@@ -1111,6 +1157,17 @@ export const EntitiesStep = ({
           setNewAssetId(assetId);
         }}
       />
+      {retakeEntity ? (
+        <GenerateReferenceDialog
+          open
+          name={retakeEntity.name}
+          kind={retakeEntity.kind}
+          descriptor={retakeEntity.descriptor}
+          currentAssetId={retakeEntity.reference_images?.[0]?.asset_id}
+          onClose={() => setRetakeEntity(null)}
+          onPick={(assetId) => void retakeReference(retakeEntity, assetId)}
+        />
+      ) : null}
       {newAssetId ? (
         <EntityEditorDialog
           open
