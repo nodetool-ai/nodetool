@@ -53,6 +53,12 @@ export class GameScriptLogCollector {
     return rest;
   }
 
+  /** Records a warning from the host, such as a skipped call. It shares the per-tick line limit with script lines. */
+  warn(entityId: string | undefined, message: string): void {
+    if (this.lines.length >= GAME_SCRIPT_LOG_LIMIT) { this.dropped += 1; return; }
+    this.lines.push({ tick: this.tick, ...(entityId === undefined ? undefined : { entityId }), level: "warning", message });
+  }
+
   entries(): readonly GameScriptLogEntry[] {
     if (this.dropped === 0) { return this.lines; }
     return [...this.lines, { tick: this.tick, level: "warning",

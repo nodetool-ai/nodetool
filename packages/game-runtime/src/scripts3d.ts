@@ -1,5 +1,5 @@
 import { gameScriptCommand3D, type GameDocument3D, type GameEntityProps, type GameEvent3D, type GameInputFrame3D, type GameQueryResult3D, type GameScriptCommand3D, type GameVector3 } from "@nodetool-ai/protocol";
-import { prepareIsolatedGameScripts, type IsolatedScriptCall, type IsolatedScriptRunner } from "./scripts.js";
+import { prepareIsolatedGameScripts, type GameScriptOptions, type IsolatedScriptCall, type IsolatedScriptRunner } from "./scripts.js";
 
 export interface GameScriptCall3D extends IsolatedScriptCall {
   readonly position: GameVector3;
@@ -22,7 +22,7 @@ export interface GameScriptInput3D extends GameInputFrame3D {
 
 export type GameScriptRunner3D = IsolatedScriptRunner<GameScriptCall3D, GameScriptInput3D, GameScriptCommand3D>;
 
-export function prepareGameScripts3D(document: GameDocument3D): Promise<GameScriptRunner3D> {
+export function prepareGameScripts3D(document: GameDocument3D, options?: GameScriptOptions): Promise<GameScriptRunner3D> {
   return prepareIsolatedGameScripts<GameScriptCall3D, GameScriptInput3D, GameScriptCommand3D>({ ...document, scenes: [
     ...document.scenes.map(scene => ({ ...scene, sourceScope: "scene" as const })),
     ...Object.entries(document.prefabs).map(([prefabId, prefab]) => ({ id: prefabId, sourceScope: "prefab" as const, entities: prefab.entities }))
@@ -35,5 +35,5 @@ export function prepareGameScripts3D(document: GameDocument3D): Promise<GameScri
       tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active },
     ...(data.input.loaded === undefined ? undefined : { loaded: data.input.loaded }),
     ...(data.params === undefined ? undefined : { params: data.params })
-  }`);
+  }`, options);
 }
