@@ -8,6 +8,7 @@ type CascadeMaterial = THREE.MeshStandardMaterial | THREE.MeshLambertMaterial | 
 
 const cascadeDefines = ["USE_CSM", "CSM_CASCADES"] as const;
 const up = new THREE.Vector3(0, 1, 0);
+const forward = new THREE.Vector3(0, 0, 1);
 // @types/three declares CSMShader as an interface, but the module exports the chunk object.
 const CSMShader = (csmShaderModule as { readonly CSMShader: { readonly lights_fragment_begin: string; readonly lights_pars_begin: string } }).CSMShader;
 const origin = new THREE.Vector3();
@@ -68,6 +69,14 @@ export class GameCascadedShadows3D {
   /** Light-space centre each cascade map was last rendered at, or null before its first render. */
   private placed: (THREE.Vector3 | null)[] = [];
   private readonly direction = new THREE.Vector3();
+  // Scratch objects for place(), which runs every frame.
+  private readonly scratchDirection = new THREE.Vector3();
+  private readonly orientation = new THREE.Matrix4();
+  private readonly inverse = new THREE.Matrix4();
+  private readonly cameraToLight = new THREE.Matrix4();
+  private readonly box = new THREE.Box3();
+  private readonly center = new THREE.Vector3();
+  private readonly seen = new Set<CascadeMaterial>();
   private frame = 0;
   private count = 0;
   private margin = 0;
@@ -116,7 +125,6 @@ export class GameCascadedShadows3D {
       this.placed.fill(null);
     }
     this.place(source, camera);
-    this.setupMaterials(scene);
   }
 
   detach(): void {
@@ -129,7 +137,10 @@ export class GameCascadedShadows3D {
     this.placed = [];
   }
 
-  /** Includes materials created by presentation passes after the light update. */
+  /**
+   * Patches the scene's lit materials for the cascades. The renderer calls it once per frame, after presentation passes
+   * create their materials and before the scene pass. `update` does not walk the scene.
+   */
   bindMaterials(scene: THREE.Scene): void {
     if (this.count > 0) { this.setupMaterials(scene); }
   }
@@ -183,13 +194,13 @@ export class GameCascadedShadows3D {
    * map would move by more than `CASCADE_DRIFT` of its width, so a cut or a teleport never shows a stale map.
    */
   private place(source: THREE.DirectionalLight, camera: THREE.Camera): void {
-    const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(source.quaternion).normalize();
+    const direction = this.scratchDirection.set(0, 0, -1).applyQuaternion(source.quaternion).normalize();
     if (!direction.equals(this.direction)) { this.direction.copy(direction); this.placed.fill(null); }
-    const orientation = new THREE.Matrix4().lookAt(origin, direction, Math.abs(direction.y) > 0.999 ? new THREE.Vector3(0, 0, 1) : up);
-    const inverse = orientation.clone().invert();
-    const cameraToLight = new THREE.Matrix4().multiplyMatrices(inverse, camera.matrixWorld);
-    const box = new THREE.Box3();
-    const center = new THREE.Vector3();
+    const orientation = this.orientation.lookAt(origin, direction, Math.abs(direction.y) > 0.999 ? forward : up);
+    const inverse = this.inverse.copy(orientation).invert();
+    const cameraToLight = this.cameraToLight.multiplyMatrices(inverse, camera.matrixWorld);
+    const box = this.box;
+    const center = this.center;
     const frame = this.frame++;
     for (const [index, frustum] of this.frustums.entries()) {
       const light = this.lights[index];
@@ -199,7 +210,8 @@ export class GameCascadedShadows3D {
       const texelHeight = (shadowCamera.top - shadowCamera.bottom) / light.shadow.mapSize.y;
       frustum.toSpace(cameraToLight, this.lightSpaceFrustum);
       box.makeEmpty();
-      for (const vertex of [...this.lightSpaceFrustum.vertices.near, ...this.lightSpaceFrustum.vertices.far]) { box.expandByPoint(vertex); }
+      for (const vertex of this.lightSpaceFrustum.vertices.near) { box.expandByPoint(vertex); }
+      for (const vertex of this.lightSpaceFrustum.vertices.far) { box.expandByPoint(vertex); }
       box.getCenter(center);
       center.z = box.max.z + this.margin;
       center.x = Math.floor(center.x / texelWidth) * texelWidth;
@@ -221,7 +233,8 @@ export class GameCascadedShadows3D {
   }
 
   private setupMaterials(scene: THREE.Scene): void {
-    const seen = new Set<CascadeMaterial>();
+    const seen = this.seen;
+    seen.clear();
     scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) { return; }
       const materials: THREE.Material[] = Array.isArray(object.material) ? object.material : [object.material];

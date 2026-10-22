@@ -24,6 +24,7 @@ import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useNodeProviderFilter } from "../../hooks/useNodeProviderFilter";
 import { useShallow } from "zustand/react/shallow";
 
 interface TypeFilterChipsProps {
@@ -265,9 +266,12 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
     );
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
     const metadata = useMetadataStore((state) => state.metadata);
+    const { missingKeyCount, showNodesWithoutKey } = useNodeProviderFilter();
     const totalNodeCount = useMemo(
-      () => Object.keys(metadata).length,
-      [metadata]
+      () =>
+        Object.keys(metadata).length -
+        (showNodesWithoutKey ? 0 : missingKeyCount),
+      [metadata, missingKeyCount, showNodesWithoutKey]
     );
 
     const allTypeOptions = useMemo<TypeOption[]>(() => {

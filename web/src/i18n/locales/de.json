@@ -433,6 +433,18 @@
       "lastRun": "Letzter Run",
       "viewPricing": "Preise auf kie.ai ansehen",
       "topUp": "Guthaben aufladen"
+    },
+    "nodeChat": {
+      "chatAboutNode": "Im Chat zu diesem Knoten fragen",
+      "chatAboutNodeTooltip": "Öffnet den Chat mit diesem Knoten im Prompt",
+      "chatAboutSelection": "Im Chat zur Auswahl fragen",
+      "chatAboutSelectionTooltip": "Öffnet den Chat mit den ausgewählten Knoten im Prompt",
+      "askChat": "Im Chat fragen",
+      "askChatTooltip": "Öffnet den Chat mit diesem Fehler im Prompt",
+      "draftNode": "Zum Knoten „{{title}}“ (ID {{id}}): ",
+      "draftNodes": "Zu diesen Knoten: {{nodes}}. ",
+      "draftNodeItem": "„{{title}}“ (ID {{id}})",
+      "draftError": "Der Knoten „{{title}}“ (ID {{id}}) ist mit diesem Fehler fehlgeschlagen:\n\n{{error}}\n\nWarum ist er fehlgeschlagen, und wie behebe ich das?"
     }
   },
   "screen_properties": {
@@ -10500,8 +10512,6 @@
       "makeApp": "App erstellen",
       "openWorkflowApp": "Die App öffnen, die diesen Workflow ausführt",
       "makeWorkflowApp": "Aus diesem Workflow eine App mit einem Feld für jede Eingabe erstellen",
-      "dragToMoveReset": "Ziehen zum Verschieben • Doppelklick zum Zurücksetzen",
-      "moveChatDock": "Chat-Fenster verschieben",
       "stoppingWorkflow": "Workflow wird gestoppt",
       "retryWorkflow": "{{detail}}. Klicke, um den gesamten Workflow erneut auszuführen.",
       "workflowFailedToStart": "Workflow konnte nicht gestartet werden",
@@ -10512,15 +10522,13 @@
       "retryEntireWorkflow": "{{label}}. Gesamten Workflow erneut ausführen",
       "queueAnotherEntireRun": "{{label}}. Einen weiteren vollständigen Workflow-Lauf einplanen",
       "addNode": "Knoten hinzufügen",
-      "hideConversation": "Unterhaltung ausblenden",
-      "showConversation": "Unterhaltung anzeigen",
+      "hideConversation": "Chat schließen",
+      "showConversation": "Chat öffnen",
       "toggleConversation": "Unterhaltung umschalten",
       "autoLayout": "Automatisches Layout",
       "save": "Speichern",
       "saveWorkflow": "Workflow speichern",
       "stopWorkflow": "Workflow stoppen",
-      "showPrompt": "Prompt anzeigen",
-      "hidePrompt": "Prompt ausblenden",
       "workflowActions": "Workflow-Aktionen",
       "chainView": "Kettenansicht",
       "graphView": "Diagrammansicht",
@@ -11720,13 +11728,12 @@
       "deleteFailed": "Unterhaltung konnte nicht gelöscht werden. Bitte versuche es erneut.",
       "emptyPreview": "Leere Unterhaltung",
       "resizeHeight": "Höhe der Unterhaltung ändern",
-      "resizeWidthLeft": "Breite der Unterhaltung von links ändern",
-      "resizeWidthRight": "Breite der Unterhaltung von rechts ändern",
-      "title": "Unterhaltung",
+      "resizeWidth": "Chatbreite ändern",
+      "title": "Chat",
       "showThreads": "Threads anzeigen",
       "openWorkspaceTab": "In einem Arbeitsbereich-Tab öffnen",
       "newConversation": "Neue Unterhaltung",
-      "hideConversation": "Unterhaltung ausblenden",
+      "close": "Chat schließen",
       "startPrompt": "Unterhaltung starten",
       "startDescription": "Frage zu diesem Workflow oder gib @ ein, um ein Asset zu referenzieren.",
       "searchThreads": "Threads durchsuchen",
@@ -12548,7 +12555,7 @@
     "groupNode": {
       "defaultTitle": "Gruppieren",
       "selectGroup": "GRUPPENKNOTEN AUSWÄHLEN:",
-      "selectInstructions": "Halte die STRG- oder ⌘-Taste gedrückt und klicke",
+      "selectInstructions": "Klicke auf die Beschriftung. Mit Umschalt oder STRG | ⌘ fügst du sie der Auswahl hinzu",
       "editTitle": "GRUPPENTITEL BEARBEITEN:",
       "editInstructions": "Doppelklicke auf das Label",
       "headlineLabel": "Gruppenüberschrift",
@@ -12778,6 +12785,14 @@
       "data": "Daten",
       "utility": "Dienstprogramm"
     }
+  },
+  "missingKeyNodes": {
+    "hidden_one": "{{count}} Knoten braucht einen API-Schlüssel, den du nicht hinzugefügt hast.",
+    "hidden_other": "{{count}} Knoten brauchen einen API-Schlüssel, den du nicht hinzugefügt hast.",
+    "shown_one": "{{count}} Knoten, der einen API-Schlüssel braucht, wird angezeigt.",
+    "shown_other": "{{count}} Knoten, die einen API-Schlüssel brauchen, werden angezeigt.",
+    "show": "Anzeigen",
+    "hide": "Ausblenden"
   },
   "namespaceList": {
     "nothingInNamespace": "In diesem Namensraum wurde nichts für „{{searchTerm}}“ gefunden",
@@ -13253,7 +13268,9 @@
       "compareImage": "Mit einem anderen Bild vergleichen",
       "hideInfo": "Infos ausblenden",
       "showInfo": "Infos anzeigen",
-      "close": "Schließen"
+      "close": "Schließen",
+      "download": "Herunterladen",
+      "moreActions": "Weitere Aktionen"
     },
     "assetRename": {
       "specialCharacter": "Der Name darf nicht mit einem Sonderzeichen beginnen.",

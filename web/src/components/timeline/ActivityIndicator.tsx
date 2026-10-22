@@ -252,10 +252,8 @@ export const ActivityIndicator: React.FC = memo(() => {
             <StatusIndicator
               status="error"
               size="small"
+              label={t("timeline.activity.failed", { count: failedCount })}
             />
-            <Caption color="error">
-              {t("timeline.activity.failed", { count: failedCount })}
-            </Caption>
           </button>
 
           {failedPopoverEl && (

@@ -264,7 +264,7 @@ const ProjectLifecycleActions = ({
               projectName: project.name
             })}
           </Text>
-          <Text size="small" color="error">
+          <Text size="small">
             {t("pass3_33.projects.lifecycle.deleteIrreversible")}
           </Text>
         </FlexColumn>

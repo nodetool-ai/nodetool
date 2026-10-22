@@ -14,6 +14,7 @@
   "overrides": [
     {
       "files": [
+        "packages/analytics/src/**",
         "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/app-runtime/src/**",
@@ -372,6 +373,7 @@
     {
       "files": [
         "electron/src/**",
+        "packages/analytics/src/**",
         "packages/antigravity-cli/src/**",
         "packages/app-export/src/**",
         "packages/atlascloud-nodes/src/**",

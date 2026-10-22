@@ -7,10 +7,13 @@ import {
   useCanvasDockEdgeResize
 } from "../useCanvasDockResize";
 import useCanvasChatDockStore, {
-  DEFAULT_OVERLAY_HEIGHT
+  DEFAULT_WINDOW_HEIGHT,
+  DEFAULT_WINDOW_WIDTH,
+  MAX_WINDOW_WIDTH,
+  MIN_WINDOW_WIDTH
 } from "../../../stores/CanvasChatDockStore";
 
-const makeOverlay = (width: number, height: number) => {
+const makeWindow = (width: number, height: number) => {
   const el = document.createElement("div");
   Object.defineProperty(el, "offsetWidth", { value: width, configurable: true });
   Object.defineProperty(el, "offsetHeight", {
@@ -28,50 +31,54 @@ const mouseEvent = (clientX: number, clientY: number) =>
     stopPropagation: jest.fn()
   });
 
-describe("useCanvasDockResize", () => {
-  beforeEach(() => {
-    useCanvasChatDockStore.setState({
-      overlayHeight: DEFAULT_OVERLAY_HEIGHT,
-      dockWidth: null
-    });
+const resetSize = () =>
+  useCanvasChatDockStore.setState({
+    windowWidth: DEFAULT_WINDOW_WIDTH,
+    windowHeight: DEFAULT_WINDOW_HEIGHT
   });
 
-  it("grows the overlay height when dragging the top edge up", () => {
-    const ref = { current: makeOverlay(600, 400) };
+describe("useCanvasDockResize", () => {
+  beforeEach(resetSize);
+
+  it("grows both axes when dragging the bottom-left corner out", () => {
+    const ref = { current: makeWindow(400, 500) };
     const { result } = renderHook(() => useCanvasDockResize(ref));
 
     act(() => {
-      result.current("top")(mouseEvent(0, 300));
+      result.current("bottom-left")(mouseEvent(100, 300));
     });
     act(() => {
       document.dispatchEvent(
-        new MouseEvent("mousemove", { clientX: 0, clientY: 250 })
+        new MouseEvent("mousemove", { clientX: 70, clientY: 350 })
       );
     });
 
-    // Dragging up by 50px makes the bottom-anchored overlay 50px taller.
-    expect(useCanvasChatDockStore.getState().overlayHeight).toBe(450);
+    // Top-right anchored: moving left 30px widens, moving down 50px heightens.
+    expect(useCanvasChatDockStore.getState().windowWidth).toBe(430);
+    expect(useCanvasChatDockStore.getState().windowHeight).toBe(550);
 
     act(() => {
       document.dispatchEvent(new MouseEvent("mouseup"));
     });
   });
 
-  it("widens the dock by twice the pointer delta from a side edge", () => {
-    const ref = { current: makeOverlay(600, 400) };
+  it("changes only the width from the left edge", () => {
+    const ref = { current: makeWindow(400, 500) };
     const { result } = renderHook(() => useCanvasDockResize(ref));
 
     act(() => {
-      result.current("right")(mouseEvent(100, 0));
+      result.current("left")(mouseEvent(100, 0));
     });
     act(() => {
       document.dispatchEvent(
-        new MouseEvent("mousemove", { clientX: 130, clientY: 0 })
+        new MouseEvent("mousemove", { clientX: 140, clientY: 90 })
       );
     });
 
-    // Centre-anchored: the width grows by 2× the 30px the cursor moved.
-    expect(useCanvasChatDockStore.getState().dockWidth).toBe(660);
+    expect(useCanvasChatDockStore.getState().windowWidth).toBe(360);
+    expect(useCanvasChatDockStore.getState().windowHeight).toBe(
+      DEFAULT_WINDOW_HEIGHT
+    );
 
     act(() => {
       document.dispatchEvent(new MouseEvent("mouseup"));
@@ -80,41 +87,36 @@ describe("useCanvasDockResize", () => {
 });
 
 describe("useCanvasDockEdgeResize", () => {
-  beforeEach(() => {
-    useCanvasChatDockStore.setState({
-      overlayHeight: DEFAULT_OVERLAY_HEIGHT,
-      dockWidth: null
-    });
-  });
+  beforeEach(resetSize);
 
   it("grows the height by the reported delta from the measured start", () => {
-    const ref = { current: makeOverlay(600, 400) };
+    const ref = { current: makeWindow(400, 500) };
     const { result } = renderHook(() => useCanvasDockEdgeResize(ref));
 
     act(() => {
-      result.current.top.onResizeStart();
-      result.current.top.onResize(30);
-      result.current.top.onResize(20);
-      result.current.top.onResizeEnd();
+      result.current.bottom.onResizeStart();
+      result.current.bottom.onResize(30);
+      result.current.bottom.onResize(20);
+      result.current.bottom.onResizeEnd();
     });
 
-    expect(useCanvasChatDockStore.getState().overlayHeight).toBe(450);
+    expect(useCanvasChatDockStore.getState().windowHeight).toBe(550);
   });
 
-  it("changes the width by twice the delta and works in half-widths", () => {
-    const ref = { current: makeOverlay(600, 400) };
+  it("grows the width by the delta from the left edge", () => {
+    const ref = { current: makeWindow(400, 500) };
     const { result } = renderHook(() => useCanvasDockEdgeResize(ref));
 
-    expect(result.current.side.getValue()).toBe(300);
-    expect(result.current.side.min).toBe(180);
-    expect(result.current.side.max).toBe(600);
+    expect(result.current.left.getValue()).toBe(400);
+    expect(result.current.left.min).toBe(MIN_WINDOW_WIDTH);
+    expect(result.current.left.max).toBe(MAX_WINDOW_WIDTH);
 
     act(() => {
-      result.current.side.onResizeStart();
-      result.current.side.onResize(30);
-      result.current.side.onResizeEnd();
+      result.current.left.onResizeStart();
+      result.current.left.onResize(60);
+      result.current.left.onResizeEnd();
     });
 
-    expect(useCanvasChatDockStore.getState().dockWidth).toBe(660);
+    expect(useCanvasChatDockStore.getState().windowWidth).toBe(460);
   });
 });

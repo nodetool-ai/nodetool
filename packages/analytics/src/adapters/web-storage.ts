@@ -32,10 +32,20 @@ export function analyticsStorageKeys(clientType: AnalyticsClientType): {
   };
 }
 
-const readJson = (storage: KeyValueStorage, key: string): unknown => {
+/** A value decoded from storage, before the consent or identity parser checks its shape. */
+type StoredJson =
+  | string
+  | number
+  | boolean
+  | null
+  | StoredJson[]
+  | { [key: string]: StoredJson };
+
+const readJson = (storage: KeyValueStorage, key: string): StoredJson => {
   try {
     const raw = storage.getItem(key);
-    return raw === null ? null : (JSON.parse(raw) as unknown);
+    // SAFETY: JSON.parse only produces JSON values, which is what StoredJson spells out.
+    return raw === null ? null : (JSON.parse(raw) as StoredJson);
   } catch {
     return null;
   }

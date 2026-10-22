@@ -433,6 +433,18 @@
       "lastRun": "上次运行",
       "viewPricing": "在 kie.ai 查看价格",
       "topUp": "充值积分"
+    },
+    "nodeChat": {
+      "chatAboutNode": "就此节点聊天",
+      "chatAboutNodeTooltip": "打开聊天，并在提示中引用此节点",
+      "chatAboutSelection": "就所选节点聊天",
+      "chatAboutSelectionTooltip": "打开聊天，并在提示中引用所选节点",
+      "askChat": "问聊天",
+      "askChatTooltip": "打开聊天，并在提示中附上此错误",
+      "draftNode": "关于节点“{{title}}”（ID {{id}}）：",
+      "draftNodes": "关于这些节点：{{nodes}}。",
+      "draftNodeItem": "“{{title}}”（ID {{id}}）",
+      "draftError": "节点“{{title}}”（ID {{id}}）运行失败，错误如下：\n\n{{error}}\n\n为什么会失败？我该如何修复？"
     }
   },
   "screen_properties": {
@@ -10500,8 +10512,6 @@
       "makeApp": "创建应用",
       "openWorkflowApp": "打开运行此工作流的应用",
       "makeWorkflowApp": "根据此工作流创建应用，并为每个输入添加一个字段",
-      "dragToMoveReset": "拖动以移动，双击以重置",
-      "moveChatDock": "移动聊天停靠栏",
       "stoppingWorkflow": "正在停止工作流",
       "retryWorkflow": "{{detail}}。点击以重试整个工作流。",
       "workflowFailedToStart": "工作流启动失败",
@@ -10512,15 +10522,13 @@
       "retryEntireWorkflow": "{{label}}。重试整个工作流",
       "queueAnotherEntireRun": "{{label}}。将整个工作流再次排队",
       "addNode": "添加节点",
-      "hideConversation": "隐藏对话",
-      "showConversation": "显示对话",
+      "hideConversation": "关闭聊天",
+      "showConversation": "打开聊天",
       "toggleConversation": "切换对话",
       "autoLayout": "自动布局",
       "save": "保存",
       "saveWorkflow": "保存工作流",
       "stopWorkflow": "停止工作流",
-      "showPrompt": "显示提示词",
-      "hidePrompt": "隐藏提示词",
       "workflowActions": "工作流操作",
       "chainView": "链视图",
       "graphView": "图视图",
@@ -11720,13 +11728,12 @@
       "deleteFailed": "无法删除对话，请重试。",
       "emptyPreview": "空对话",
       "resizeHeight": "调整对话高度",
-      "resizeWidthLeft": "从左侧调整对话宽度",
-      "resizeWidthRight": "从右侧调整对话宽度",
-      "title": "对话",
+      "resizeWidth": "调整聊天宽度",
+      "title": "聊天",
       "showThreads": "显示对话列表",
       "openWorkspaceTab": "在工作区标签页中打开",
       "newConversation": "新建对话",
-      "hideConversation": "隐藏对话",
+      "close": "关闭聊天",
       "startPrompt": "开始对话",
       "startDescription": "询问有关此工作流的问题，或输入 @ 来引用资源。",
       "searchThreads": "搜索对话",
@@ -12548,7 +12555,7 @@
     "groupNode": {
       "defaultTitle": "分组",
       "selectGroup": "选择分组节点：",
-      "selectInstructions": "按住 CTRL 或 ⌘ 键并点击",
+      "selectInstructions": "点击标签。按住 Shift 或 CTRL | ⌘ 点击可加入选择",
       "editTitle": "编辑分组标题：",
       "editInstructions": "双击标签",
       "headlineLabel": "分组标题",
@@ -12778,6 +12785,14 @@
       "data": "数据",
       "utility": "实用工具"
     }
+  },
+  "missingKeyNodes": {
+    "hidden_one": "{{count}} 个节点需要你尚未添加的 API 密钥。",
+    "hidden_other": "{{count}} 个节点需要你尚未添加的 API 密钥。",
+    "shown_one": "正在显示 {{count}} 个需要 API 密钥的节点。",
+    "shown_other": "正在显示 {{count}} 个需要 API 密钥的节点。",
+    "show": "显示",
+    "hide": "隐藏"
   },
   "namespaceList": {
     "nothingInNamespace": "在此命名空间中找不到“{{searchTerm}}”",
@@ -13253,7 +13268,9 @@
       "compareImage": "与另一张图片比较",
       "hideInfo": "隐藏信息",
       "showInfo": "显示信息",
-      "close": "关闭"
+      "close": "关闭",
+      "download": "下载",
+      "moreActions": "更多操作"
     },
     "assetRename": {
       "specialCharacter": "名称不能以特殊字符开头。",

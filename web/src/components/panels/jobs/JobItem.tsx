@@ -400,7 +400,7 @@ const JobItem = ({ job }: { job: Job }) => {
         </FlexRow>
         {isError ? (
           <Tooltip title={metaText}>
-            <Text size="smaller" color="error" truncate>
+            <Text size="smaller" color="secondary" truncate>
               {metaText}
             </Text>
           </Tooltip>

@@ -144,11 +144,12 @@ function pinActiveTimelineStore(): PinnedTimelineStore {
 /** Find-or-create the voiceover (audio) track and return its id. */
 function ensureVoiceoverTrack(): string {
   const store = useTimelineStore.getState();
-  let track = store.tracks.find((t) => t.type === "audio");
-  if (!track) {
-    store.addTrack("audio", "Voiceover");
-    track = useTimelineStore.getState().tracks.find((t) => t.type === "audio");
-  }
+  const existing = ops.voiceoverTrackId(store.clips, store.tracks);
+  if (existing) return existing;
+  store.addTrack("audio", "Voiceover");
+  const track = useTimelineStore
+    .getState()
+    .tracks.find((t) => t.type === "audio");
   if (!track) throw new Error("Failed to create the voiceover track");
   return track.id;
 }
@@ -165,11 +166,9 @@ function ensureVideoTrack(): string {
   return track.id;
 }
 
-/** End of the last clip on the timeline — where the next beat is appended. */
-function timelineEndMs(): number {
-  return useTimelineStore
-    .getState()
-    .clips.reduce((max, c) => Math.max(max, c.startMs + c.durationMs), 0);
+/** End of the last transcript clip — where the next beat or recording lands. */
+function transcriptEndMs(): number {
+  return ops.transcriptEndMs(useTimelineStore.getState().clips);
 }
 
 // ── Store ────────────────────────────────────────────────────────────────────
@@ -249,7 +248,7 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
           paragraphId: id,
           name: text.slice(0, 30).trim() || "Voiceover",
           trackId: audioTrackId,
-          startMs: timelineEndMs(),
+          startMs: transcriptEndMs(),
           durationMs: ops.PLACEHOLDER_BEAT_MS,
           mediaType: "audio",
           sourceType: "generated",
@@ -416,7 +415,9 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
             versions: [...(existing?.versions ?? []), version]
           });
 
-          // 2. Probe the real audio duration → beat length.
+          // 2. Probe the real audio duration → beat length. The length it had
+          //    before is what the clips after it were laid out against.
+          const previousDurationMs = existing?.durationMs ?? 0;
           const url = await resolveAssetUrl(audioAssetId);
           if (url) {
             const durationMs = await probeAudioDurationMs(url);
@@ -442,7 +443,7 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
           }
           patchClip(clipId, { caption: { words } });
 
-          // 4. Re-flow so the real durations lay the beats out end-to-end.
+          // 4. Re-flow so the clips after the beat move by its change in length.
           //    Bail if the clip was deleted while generation was in flight —
           //    re-flowing then would reshuffle unrelated clips for nothing.
           const after = timeline.getState();
@@ -450,7 +451,13 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
             setClipStatus(clipId, "idle");
             return;
           }
-          after.setTranscriptAndClips(ops.reflowGenerated(after.clips));
+          after.setTranscriptAndClips(
+            ops.reflowGenerated(
+              after.clips,
+              undefined,
+              new Map([[clipId, previousDurationMs]])
+            )
+          );
 
           setClipStatus(clipId, "idle");
         } catch (err) {
@@ -476,7 +483,7 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
 
           // An empty caption marks the clip as a (recorded) transcript clip up
           // front, so it shows a "transcribing…" paragraph before words arrive.
-          const base = assetToClip(asset, trackId, timelineEndMs());
+          const base = assetToClip(asset, trackId, transcriptEndMs());
           const clip = {
             ...base,
             paragraphId: base.id,

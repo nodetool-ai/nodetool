@@ -89,6 +89,11 @@ export interface Settings {
    * ready proxy decodes with WebCodecs under both values.
    */
   timelinePreviewDecoder: "element" | "webcodecs";
+  /**
+   * Offer nodes whose provider needs an API key that is not set. Off by
+   * default, so the node menu and library list only nodes that can run.
+   */
+  showNodesWithoutKey: boolean;
   autosave: AutosaveSettings;
 }
 
@@ -144,6 +149,7 @@ export const defaultSettings: Settings = {
   audioBufferMs: 100,
   timelineKeyboardPreset: "nodetool",
   timelinePreviewDecoder: "element",
+  showNodesWithoutKey: false,
   autosave: { ...defaultAutosaveSettings }
 };
 

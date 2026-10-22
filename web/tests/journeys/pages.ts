@@ -49,6 +49,68 @@ export class EditorPage {
     return this.page.getByTestId(`rf__node-${nodeId}`);
   }
 
+  /** Nodes React Flow marks as selected. */
+  selectedNodes(): Locator {
+    return this.page.locator(".react-flow__node.selected");
+  }
+
+  /** Group nodes (ReactFlow internals expose no role; class is the only hook). */
+  groups(): Locator {
+    return this.page.locator(
+      ".react-flow__node-nodetool\\.workflows\\.base_node\\.Group"
+    );
+  }
+
+  /** Click a node's header, optionally with modifier keys held. */
+  async clickNode(
+    nodeId: string,
+    modifiers: Array<"Shift" | "ControlOrMeta"> = []
+  ): Promise<void> {
+    await this.page
+      .locator(`[data-id="${nodeId}"] .node-header`)
+      .first()
+      .click({ modifiers });
+  }
+
+  /** Click empty canvas, away from the fixture's nodes. */
+  async clickPane(): Promise<void> {
+    await this.page
+      .locator(".react-flow__pane")
+      .click({ position: { x: 650, y: 700 } });
+  }
+
+  /**
+   * Click a node's right resize edge without dragging it. The edge is
+   * transparent until hovered, so the click is forced.
+   */
+  async clickResizeEdge(node: Locator): Promise<void> {
+    await node
+      .locator(".react-flow__resize-control.line.right")
+      .first()
+      .click({ force: true });
+  }
+
+  /** Click the label above the only group on the canvas. */
+  async clickGroupLabel(
+    modifiers: Array<"Shift" | "ControlOrMeta"> = []
+  ): Promise<void> {
+    const label = await this.groups().locator(".group-label").boundingBox();
+    if (!label) {
+      throw new Error("the group has no label to click");
+    }
+    // The label's text input is hidden from the pointer until it is edited,
+    // so click a point on the label rather than the input element.
+    await this.page.mouse.move(label.x + 8, label.y + label.height / 2);
+    for (const key of modifiers) {
+      await this.page.keyboard.down(key);
+    }
+    await this.page.mouse.down();
+    await this.page.mouse.up();
+    for (const key of modifiers) {
+      await this.page.keyboard.up(key);
+    }
+  }
+
   /**
    * Add the first node matching `query` via the node menu.
    *

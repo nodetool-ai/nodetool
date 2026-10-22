@@ -54,4 +54,54 @@ describe("useUndoGroup", () => {
     store.getState().updateNodeProperties("n1", { value: 8 });
     expect(store.temporal.getState().pastStates).toHaveLength(2);
   });
+
+  // React Flow's resizer calls onResizeStart on pointer down but onResizeEnd
+  // only after the node actually resized, so a click on a resize handle never
+  // ended the edit and left every later change out of undo.
+  it("ends a gesture on pointer release when no end callback came", () => {
+    jest.useFakeTimers();
+    try {
+      const store = createNodeStore(undefined, { nodes: [node], edges: [] });
+      const { renderHook } = nodeStoreRenderers(store);
+      const { result } = renderHook(() => useUndoGroup());
+
+      act(() => result.current.beginGesture());
+      expect(store.temporal.getState().isTracking).toBe(false);
+      act(() => {
+        window.dispatchEvent(new Event("pointerup"));
+        jest.runAllTimers();
+      });
+
+      expect(store.temporal.getState().isTracking).toBe(true);
+      store.getState().updateNodeProperties("n1", { value: 9 });
+      expect(store.temporal.getState().pastStates).toHaveLength(1);
+      store.temporal.getState().undo();
+      expect(valueOf(store)).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("records a gesture that ended normally as one undo step", () => {
+    jest.useFakeTimers();
+    try {
+      const store = createNodeStore(undefined, { nodes: [node], edges: [] });
+      const { renderHook } = nodeStoreRenderers(store);
+      const { result } = renderHook(() => useUndoGroup());
+
+      act(() => result.current.beginGesture());
+      store.getState().updateNodeProperties("n1", { value: 2 });
+      store.getState().updateNodeProperties("n1", { value: 3 });
+      act(() => {
+        result.current.end();
+        window.dispatchEvent(new Event("pointerup"));
+        jest.runAllTimers();
+      });
+
+      expect(store.temporal.getState().isTracking).toBe(true);
+      expect(store.temporal.getState().pastStates).toHaveLength(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

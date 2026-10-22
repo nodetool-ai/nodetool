@@ -29,7 +29,8 @@ import {
   FlexColumn,
   FlexRow,
   SPACING,
-  Text
+  Text,
+  AlertBanner
 } from "../../ui_primitives";
 import {
   InspectorPillInput,
@@ -438,9 +439,9 @@ export const ClipCustomCurves: React.FC<ClipCustomCurvesProps> = memo(
           {t("pass3_24.timeline.customCurves.easingOptions", { options: EASING_HINT })}
         </Caption>
         {curvesError && (
-          <Caption color="error" role="alert">
+          <AlertBanner severity="warning" compact>
             {t("pass3_24.timeline.customCurves.curvesWillNotPlay", { error: curvesError })}
-          </Caption>
+          </AlertBanner>
         )}
         <Button
           size="small"

@@ -9,7 +9,7 @@ description: "NodeTool design system reference — typography, spacing, color, b
 
 **Navigation**: [Root AGENTS.md](../AGENTS.md) | [UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)
 
-Single reference for every design token and visual rule in NodeTool. All frontend work must follow these rules. When touching any UI file, scan for violations in the sections below and fix them in the same PR.
+Single reference for every design token and visual rule in NodeTool. All frontend work must follow these rules. Start at [Element standards](#element-standards): one row per kind of UI element, with the primitive to use and the check that finds deviations. When touching any UI file, scan for violations in the sections below and fix them in the same PR.
 
 **Authoritative source files:**
 - Tokens: [`web/src/components/ui_primitives/tokens.ts`](../web/src/components/ui_primitives/tokens.ts)
@@ -46,6 +46,125 @@ excludes `fill`/`stroke` (SVG/canvas) and `boxShadow`. Genuinely literal
 color-as-data modules (syntax-highlight themes, color pickers, sketch swatch
 tools, 3D/canvas/terminal color config, provider brand colors) are listed in
 `designTokenIgnores`.
+
+---
+
+## Element standards
+
+This table is the standard for every kind of UI element. Each row says which
+primitive draws the element, how it looks, and how to check a screen against
+it. The numbered sections below hold the detail for each row. When a row and a
+section disagree, fix the one that is wrong in the same PR.
+
+A screen meets the standard when:
+
+1. Every element on it is drawn by the primitive its row names.
+2. Call sites pass props and layout only (margin, width, flex, grid
+   placement). Height, padding, radius, font, colour and border come from the
+   primitive or the theme.
+3. Its copy follows [Copy](#copy).
+4. It reads correctly in the light and the dark theme.
+
+**Check:** `npm run audit:ui` (in `web/`) runs the pattern checks named in the
+last column over `web/src` and prints a count per element.
+`npm run audit:ui -- --rule <id>` lists every hit of one check. The token rules
+(spacing, colour, radius, font size, z-index, motion) are not repeated here,
+because `npm run lint:design` enforces them. A check moves into that lint once
+its count reaches zero. Rows without a check are reviewed by eye against the
+linked section and the `Patterns/*` Storybook stories.
+
+**Scope:** product UI under `web/src`. The primitives themselves
+(`ui_primitives/`, `editor_ui/`) and the theme implement the standard and are
+not checked against it. The vendored FableSynth device faces
+(`timeline/daw/fablesynth/`) keep their hardware skin so they stay diffable
+against upstream. Canvas content that is the user's work (node graph, sketch
+layers, 3D scene, timeline clips) is drawn by its editor, but the chrome
+around it is not exempt.
+
+### Text and icons
+
+| Element | Use | Look | Check | Detail |
+|---|---|---|---|---|
+| Text | `Text`, `Label`, `Caption`, `Code`; `TruncatedText` for one-line or clamped text | One of the eight type styles. 15px body, 13px label, 11px caption, 18px title. Weights 400, 500, 600 | `text/raw-typography`, `text/hand-truncation` | [Typography](#1-typography) |
+| Icons | `@mui/icons-material`, Outlined variant | Sized by the host primitive, otherwise `fontSize="small"\|"inherit"` or `ICON_SIZE` (14, 16, 18, 20) | `icon/hand-size`, `icon/variant` | [Icons](#icons) |
+| Copy | Every visible string | Sentence case, one "…", Delete destroys and Remove detaches, one label per action | `copy/title-case`, `copy/three-dots` | [Copy](#copy) |
+
+### Structure
+
+| Element | Use | Look | Check | Detail |
+|---|---|---|---|---|
+| Page | `PageLayout`, or `PageHeader` at the top of a page with its own body | `h1` hero strip with icon, subtitle and actions | `text/raw-heading` | [Page layout](#page-layout) |
+| Section header | `SectionHeader size="small"` in lists and panels, `FormSection` in forms, `InspectorSection` in properties panels | `EYEBROW`: 11px, uppercase, `0.06em`, `text.secondary` | `text/hand-eyebrow` | [Panels](#10-panels) |
+| Panel | `PanelHeader` over a body inset by `SPACING.lg` | 36px title strip, 13px/500 title, 1px `divider` below, `ToolbarIconButton` actions | — | [Panels](#10-panels) |
+| Docked panel group | `DockTabStrip` | 28px tab strip, active tab on `background.paper` with a 2px accent | — | [Docked panel groups](#docked-panel-groups) |
+| Toolbar, status bar | `Toolbar`, `ToolbarGroup`, `ToolbarDivider`, `StatusBar`, `FloatingToolbar`, `SaveState` | 40px or 28px on `background.paper` with a `divider` rule. Floating bars use the menu paper | `surface/grey-chrome` | [Toolbars and status bars](#toolbars-and-status-bars) |
+| Surface | `Surface`, `Card`, `Panel` | `background.paper` or `background.default`, `divider` border. Never `grey[700-900]` | `layout/raw-paper`, `surface/grey-chrome` | [Color](#3-color) |
+| Resize handle | `ResizeHandle` | Transparent at rest, `primary.main` while hovered or dragged | — | [Resize handles](#resize-handles) |
+| Scroll area | `ScrollArea`, or `scrollbarStyles` / `thinScrollbarStyles` | 10px or 6px scrollbar in `c_scroll_*` | — | [Scrollbars](#9-scrollbars) |
+| Collapsible section | `CollapsibleSection`, or `InspectorSection` in a properties panel | Chevron and muted title. Never a filled bar | `layout/raw-accordion` | [Collapsible sections](#collapsible-sections) |
+
+### Overlays
+
+| Element | Use | Look | Check | Detail |
+|---|---|---|---|---|
+| Dialog | `Dialog`, `ConfirmDialog`, `requestConfirm` | Paper, `divider` frame, `theme.rounded.dialog`, 18px/600 sentence-case title, verb in the confirm button | `dialog/raw-parts`, `dialog/restyled-paper`, `dialog/browser-dialog` | [Dialogs](#dialogs) |
+| Menu | `ContextMenu`, `MenuItemPrimitive`, `EditorMenu` | Overlay paper, `BORDER_RADIUS.lg`, `SHADOW.lg`, 180px minimum. 28px rows in 13px/500 | `menu/raw-menu`, `menu/raw-menu-item` | [Menus](#menus) |
+| Popover | `Popover` for content that is not a list of choices | Menu paper, `placement`, `maxWidth`, padded `SPACING.lg` | — | [Popovers and sheets](#popovers-and-sheets) |
+| Sheet | `MobileBottomSheet` below `md` | Rounded top corners, grip, optional title row | `layout/raw-drawer` | [Popovers and sheets](#popovers-and-sheets) |
+| Tooltip | `tooltip` prop of a button primitive, or `Tooltip` | Scrim, `divider` frame, 13px, 300px max, 500ms delay, shortcut as `ShortcutHint` | `tooltip/native-title`, `tooltip/custom-delay`, `tooltip/shortcut-in-text` | [Tooltips](#tooltips) |
+| Notification | `addNotification`, `useAlertNotifier` | `AlertBanner` rows in the top-right stack | `notification/snackbar` | [Notifications](#notifications) |
+
+### Controls
+
+| Element | Use | Look | Check | Detail |
+|---|---|---|---|---|
+| Button | `EditorButton`; `ToolbarIconButton` for icon-only; `CloseButton`, `DeleteButton`, `CopyButton` and the other semantic buttons | `contained` for the one primary action, `outlined` secondary, `text` tertiary. 24/28/32/36px from `density` or `size` | `button/raw-icon-button`, `button/restyled`, `button/icon-fontsize`, `button/native-no-type` | [Buttons](#buttons) |
+| Toggle group | `ToggleGroup` (`segmented` in toolbars, `quiet` in node bodies) | Segmented: one 32px pill, `action.selected` when picked | — | [Toggle groups](#toggle-groups) |
+| Tabs | `TabGroup` + `TabPanel`; `DockTabStrip` for closable panels | Sentence-case labels, count after the label | `tabs/raw-tabs`, `tabs/hand-tablist` | [Empty, loading and tabs](#empty-loading-and-tabs) |
+| Chip | `Chip` | Outlined pill, 28px or 24px `compact`, tone tint at 12% | `chip/restyled`, `chip/hand-pill` | [Chips and pills](#chips-and-pills) |
+| Badge, dot, media label | `CountBadge`, `StatusDot`, `MediaLabel` | 16px count pill, 6/8px dot, mono caption on `c_scrim` | — | [Badges, dots and media labels](#badges-dots-and-media-labels) |
+| Status | `StatusIndicator` in rows, `StatusPill` on media, `StatusDot` as a bullet, via `GENERATION_STATUS` | In flight `primary`, queued `neutral`, done `success`, stale `warning`, failed `error` | — | [Status](#status) |
+| Link | `TextLink`; `ExternalLink` for an off-site URL | `primary.main`, underline on hover | `link/raw-anchor` | [Links and breadcrumbs](#links-and-breadcrumbs) |
+| Breadcrumbs | `Breadcrumbs` | 13px, chevron separators, collapses past `maxItems` | — | [Links and breadcrumbs](#links-and-breadcrumbs) |
+
+### Inputs
+
+| Element | Use | Look | Check | Detail |
+|---|---|---|---|---|
+| Form | `FormSection`, `FormField` | Label 13px `text.secondary` 4px above the field, fields 12px apart, hint in `helperText` | — | [Forms](#13-forms) |
+| Text field | `TextInput`, `TextArea`; `NodeTextField` in node bodies | Outlined, height from the field density | `form/raw-text-field`, `form/raw-input`, `form/field-chrome-override` | [Forms](#13-forms) |
+| Number field | `NumberField`; `InspectorValueInput` in properties panels | No spinner buttons, unit in mono, optional scrub | `form/number-input` | [Number fields](#number-fields) |
+| Select | `SelectField`, `InspectorSelect`, `NodeSelect`; `inputs/Select` for a searchable node property; `Autocomplete` to type ahead | Outlined field, the menu row style below it | `form/raw-select`, `form/native-select` | [Forms](#13-forms) |
+| Search field | `SearchInput` | 36px or 28px, search icon, clear button, Escape clears | — | [Search fields](#search-fields) |
+| Switch, checkbox, radio | `LabeledSwitch`, `InspectorToggleRow`, `NodeSwitch`; `Checkbox`; `Radio` in a `RadioSet` | 28×16 switch track, 24×12 in node bodies | `form/raw-switch` | [Switches, checkboxes and radios](#switches-checkboxes-and-radios) |
+| Slider | `Slider`, `NodeSlider`, `InspectorSliderRow` | Pill rail (6px, 4px compact), primary fill, ring thumb | `form/range-input` | [Sliders](#sliders) |
+| Tag input | `TagInput`, `AutocompleteTagInput` | Field with `Chip compact` tags | — | [Forms](#13-forms) |
+| Inline rename | `InlineEditableText` | The text's own style, transparent input while editing | — | [Lists and grids](#12-lists-and-grids) |
+| Model field | `ModelSelectButton` opening `ModelMenuDialogBase` | Outlined field with the name and its provider | — | [Model picker](#model-picker) |
+| Properties panel | `InspectorSection`, `InspectorFieldRow`, `InspectorValueInput`, `InspectorSelect`, `InspectorToggleRow` | 28px rows, label left in 13px, one field density | — | [Properties panels](#11-properties-panels) |
+| Drop zone | `DropZone`, or `dropZoneSurfaceStyle` | Idle `1px dashed divider`, over `2px dashed primary` with `action.selected` fill | — | [Drop zones](#drop-zones) |
+
+### Collections and media
+
+| Element | Use | Look | Check | Detail |
+|---|---|---|---|---|
+| List | `selectableRowStyles`, `ListPanelItem`, `VirtualList` for long lists, `HoverActionGroup` for row actions | Hover `action.hover`, picked `action.selected`, inner 2px focus ring, 13px/500 title, caption second line | `list/raw-list` | [Lists and grids](#12-lists-and-grids) |
+| Tree | `TreeRow` | 13px row indented `SPACING.md` per level, list row states | — | [Trees and tables](#trees-and-tables) |
+| Grid | `AutoGrid` with `selectableTileStyles` | 1px `divider` frame, picked `primary.main` frame and ring, outer focus ring | — | [Lists and grids](#12-lists-and-grids) |
+| Card | `Card`, `StatCard` | `background.paper`, `divider` border, `BORDER_RADIUS.md` | `card/hand-built` | [Cards](#cards) |
+| Table | `DataTable` | 13px cells, sticky header, `action.hover` on clickable rows | `table/raw-table` | [Trees and tables](#trees-and-tables) |
+| Media thumbnail | `MediaThumbnail`, `ResponsiveImage` | Fixed aspect ratio, cover or contain, type-icon fallback | `media/raw-img` | [Media thumbnails](#media-thumbnails) |
+| Viewer | `Dialog variant="fullscreen"` or a panel, with a `Toolbar`, `ZoomControls`, `VideoPlayer`, `AudioPlayback` | One stage colour, controls in a `Toolbar`, Escape closes | `media/raw-video`, `media/raw-audio` | [Viewers](#viewers) |
+
+### States
+
+| Element | Use | Look | Check | Detail |
+|---|---|---|---|---|
+| Empty | `EmptyState` (`variant="no-results"` for a search) | Icon, a short title that names what is missing, an optional next step | — | [Empty, loading and tabs](#empty-loading-and-tabs) |
+| Loading | `LoadingSpinner`; `Skeleton` where the layout is known | Small in a row, medium in a panel, large on a page | `state/raw-spinner`, `state/loading-text` | [Progress and generation status](#progress-and-generation-status) |
+| Progress | `ProgressBar`, `ThinkingIndicator`, `MagicGenerationFill` | 6px bar, 4px `small` | `state/raw-linear-progress` | [Progress and generation status](#progress-and-generation-status) |
+| Error, banner | `ErrorBanner` for a failure in a surface, `AlertBanner` for a warning or note, `EmptyState variant="error"` in place of content, `useAlertNotifier` for a failed action | Severity tint, `BORDER_RADIUS.lg`, a Report control on every failure | `state/error-text`, `banner/raw-alert` | [Errors and banners](#errors-and-banners) |
+| Disabled | The control's `disabled`, plus `disabledReason` or a hint | `text.disabled`; the reason in the tooltip | — | [Tooltips](#tooltips) |
 
 ---
 
@@ -864,7 +983,7 @@ reports deltas through `onResize` and the caller keeps the size.
 | `invert` | Set when the pane's handle is on its leading edge (right dock, bottom dock), so dragging toward the handle's start grows it |
 | `thickness` | A `SPACING` step. Default `SPACING.sm` (6px). Use `SPACING.md` for window edges and `SPACING.xxl` for a phone touch target |
 | `grip` | Draws a centred pill so a horizontal strip reads as a control at rest. Use it on bottom docks, modal bottoms and phone splits |
-| `invisible` | Hit area only, no hover fill. Use it on floating windows with rounded corners (node menu, conversation overlay) |
+| `invisible` | Hit area only, no hover fill. Use it on floating windows with rounded corners (node menu, canvas chat window) |
 | `getValue` | Measure the size on grab when it comes from the DOM instead of state |
 
 One look: transparent at rest, `primary.main` while hovered or dragged,
@@ -955,6 +1074,44 @@ import { ContextMenu, MenuItemPrimitive } from "../ui_primitives";
 Do not wrap a row in a `div` (it breaks arrow-key navigation), build a row
 from a button inside a `MenuItem`, or tint the hover with a raw color.
 
+### Popovers and sheets
+
+A popover holds content that is not a list of choices: a colour picker, a
+small form, a preview, a settings cluster. A list of actions or options is a
+[menu](#menus), even when it opens from a button.
+
+| Part | Rule |
+|---|---|
+| Primitive | `Popover` with `placement` (default `bottom-left`). It stacks above an enclosing overlay by itself, so pass no `zIndex` |
+| Surface | The menu paper: `paperSx={menuPaperStyles(theme)}` until `Popover` applies it by default. Overlay paper, 1px `divider` frame, `BORDER_RADIUS.lg`, `SHADOW.lg` |
+| Size | `maxWidth` and `maxHeight` props, or a `width` in `paperSx`. `paperSx` sets size and overflow only |
+| Inset | Content pads `SPACING.lg` (12px). A popover that holds a form uses the [form](#13-forms) rhythm and a compact field density |
+| Title | Optional. When present, `TYPOGRAPHY.sans.label` in `text.primary` on the first row, with a small `CloseButton` at its end only when the popover has no other way out |
+| Dismiss | Click outside and Escape close it. Focus returns to the anchor |
+
+Below `md`, a side panel or a large popover becomes a `MobileBottomSheet`:
+rounded top corners, a grip, an optional `title` row with a close button, and
+a scrolling body. Do not open a MUI `Drawer` or `SwipeableDrawer` of your own.
+
+### Viewers
+
+A viewer shows one media item large: the asset viewer, a node's result
+history, a shot or source viewer, an image compare, a PDF, a 3D model or a
+text file. All of them share one shell, so moving between them does not
+change where the controls are.
+
+| Part | Rule |
+|---|---|
+| Container | Full screen: `Dialog variant="fullscreen"`. Docked: a panel with a `PanelHeader` or a dock tab. Do not restyle the dialog paper to change the stage colour |
+| Stage | `background.default` behind the media in both themes. Media with transparency sits on the alpha checker (`getAlphaSurfaceBg`). Never `grey[800]`, `grey[900]` or `c_scrim` as the stage |
+| Media | Images fit with `object-fit: contain` (`ResponsiveImage`). Video is `VideoPlayer`, audio `AudioPlayback`, 3D `Model3DViewer`, PDF `PDFViewer`, text `TextViewer`. Never a raw `<video>` or `<audio>` |
+| Controls | One `Toolbar` (top of a panel) or one `FloatingToolbar` (bottom centre of a full-screen stage). Actions are `ToolbarIconButton`s with tooltips. Order: navigation, zoom, view toggles, then item actions (download, open, delete), then `CloseButton` last |
+| Zoom | `ZoomControls` with fit and reset. Wheel and pinch zoom around the pointer. Never a second set of zoom buttons |
+| Navigation | Previous and next as `ToolbarIconButton`s, with Left and Right arrow keys. Show the position as `Caption` ("3 of 12") |
+| Info | Dimensions, duration and type as `MediaLabel` on the stage or `Caption` in the toolbar |
+| Keyboard | Escape closes, arrows move between items, `+` and `-` zoom, `0` fits |
+| States | `LoadingSpinner size="medium"` while the media loads. A file that cannot be shown is `EmptyState variant="error"` with a download action |
+
 ### Panel composition
 
 Tokens fix the parts. These rules fix how a panel puts them together. The
@@ -975,6 +1132,21 @@ render each rule at a docked width of 360px. Check a new panel against them.
 | One left edge | Labels, values, section titles and actions start on the content edge. A `CollapsibleSection` in a dense panel uses `iconPosition="end"`. |
 | Field rhythm | A label sits 4px above its field. Fields in a form are 12px apart (`gap={3}`), so each label reads with its own field. |
 | Tabs fit the panel | Small `TabGroup` tabs must all fit at 360px. Shorten the labels or drop the icons before the strip has to scroll. |
+
+### Collapsible sections
+
+A section the user can fold is `CollapsibleSection`. In a properties panel it
+is `InspectorSection`, which draws the same header.
+
+| Part | Rule |
+|---|---|
+| Header | Chevron and title on one row. The title is `EYEBROW` in `text.secondary` in a dense panel and `TYPOGRAPHY.sans.label` elsewhere. Never a filled bar, a bright `text.primary` title or wider letter spacing |
+| Chevron | `iconPosition="end"` in a dense panel so titles keep the content edge, `start` elsewhere. Points right when closed and down when open |
+| State | A section the user folds stays folded on that surface. A long or rare section starts closed |
+| Keyboard | The header is a button with `aria-expanded` |
+
+Do not use MUI `Accordion` for this. A disclosure button that shows more of a
+single item is `ExpandCollapseButton`.
 
 ### Page layout
 
@@ -1151,6 +1323,22 @@ Do not hand-build a media tile with an `<img>`, a `background-image` or a
 scrim `div`, and do not paste an `ImageRefPreview` with a `CheckerDropzone`
 placeholder into a node body.
 
+### Trees and tables
+
+A tree row (asset folders, the workspace explorer, a scene graph, layers) is
+`TreeRow`. It draws `TYPOGRAPHY.sans.label`, indents `SPACING.md` per level,
+and uses the list row states: `action.hover` on hover, `action.selected` when
+picked, a 2px `primary` focus ring. The editor owns expansion, selection and
+drag. The disclosure chevron is 16px in `text.secondary`, and leaf rows keep
+its space so names line up.
+
+Tabular data is `DataTable`. Column headers are `TYPOGRAPHY.sans.caption` in
+`text.secondary`, cells `TYPOGRAPHY.sans.label`, numbers right-aligned in
+`TYPOGRAPHY.mono.label`. `compact` in a panel, `stickyHeader` with a
+`maxHeight` when the table scrolls, and `onRowClick` turns on the row hover. A
+spreadsheet the user edits (the dataframe editor) is an editor, not a table,
+and keeps its own grid.
+
 ---
 
 ## 13. Forms
@@ -1211,6 +1399,20 @@ There is one slider: `Slider` from `ui_primitives`. It owns the rail, track and 
 | Bipolar | `origin={0}` for a range with a neutral point: the fill grows from it and a tick marks it. `resetValue` (or `origin`) gives double-click reset |
 | Behaviour | `onChange` for live updates, `onChangeCommitted` for the undo step. The primitive never changes either |
 | Forbidden | `type="range"` inputs, `sx` / `css` that restyle `.MuiSlider-rail`, `-track` or `-thumb`, a local `*SliderSx`, or a new slider wrapper. Sibling node bodies use the same slider |
+
+### Switches, checkboxes and radios
+
+| Choice | Use |
+|---|---|
+| A setting that takes effect at once | `LabeledSwitch` with the explanation in `description`. In a properties panel `InspectorToggleRow`, in a node body `NodeSwitch` |
+| An item picked for a later action (rows to delete, files to import) or a consent | `Checkbox` with `label` |
+| One of a few options that should all stay visible | `Radio` in a `RadioSet` |
+| One of a few options in a toolbar or a compact panel | `ToggleGroup segmented` (see [Toggle groups](#toggle-groups)) |
+| One of many options | `SelectField` |
+
+The control sits before its label for a checkbox or radio, and after it for a
+switch, so the label and description read as one column. A bare `Switch`
+next to a `Text` is a deviation.
 
 ---
 
@@ -1383,6 +1585,22 @@ import { CloseButton, EditorButton } from "../ui_primitives";
 | Native button | Only for a tile, card or swatch whose whole surface is the hit target. It keeps a visible focus ring and `type="button"` |
 | Not a button | A tag or filter is a `Chip`. A command stays a button even when it is pill-shaped |
 
+### Toggle groups
+
+A set of two to five mutually exclusive views or modes (grid or list, a
+scope filter, a tool mode) is `ToggleGroup` with `ToggleOption`s.
+
+| Context | Variant |
+|---|---|
+| Toolbar or page header | `segmented`: one bordered 32px pill, sentence-case 13px labels, `action.selected` on the picked option |
+| Node body or dense tool panel | `quiet`: no frame, 24px options, filled when picked |
+| Elsewhere | default, `compact` in a dense panel |
+
+An option shows a label, an icon with a tooltip, or both, and the same choice
+for every option in the group. A group that switches between whole views of a
+panel is a [tab strip](#empty-loading-and-tabs), not a toggle group. Do not
+rebuild one from `EditorButton`s with a selected style.
+
 ### Number fields
 
 Use `NumberField` (`ui_primitives/NumberField.tsx`) for every number a person types in a dialog, form or panel. It is a `TextInput type="number"` with `min`, `max` and `step`, a `unit` suffix (`%`, `px`, `ms`), optional `scrub` (drag the unfocused field sideways; Shift x10, Alt x0.1) and the field density of the surface (`FieldDensityContext`). One focus ring, no native spinner buttons (ArrowUp/ArrowDown still step), units in the mono label style.
@@ -1477,11 +1695,49 @@ new picker. Preview it at `/preview/model-picker`.
 | Model row | One line, 32px: the name in `TYPOGRAPHY.sans.label`, then the provider (or, for a file, its model) as `Caption`. Favorite and default pin show on hover, keyboard focus and touch. The execution state is a compact `Chip`: `info` for API, `success` for a ready local model, `warning` when files must download first |
 | Unavailable | The row stays listed in `text.disabled` and its tooltip says what is missing |
 
+### Links and breadcrumbs
+
+A link navigates; a button acts. Text that navigates is `TextLink`
+(`primary.main`, underline on hover, `external` adds the new-tab attributes).
+An off-site URL with an arrow glyph is `ExternalLink`. A docs link next to a
+heading is `DocsHelpLink` or the `docsTopic` prop of `PanelHeader` and
+`PageHeader`. Never a raw `<a href>` and never `window.open` from a row's
+`onClick`, because neither is keyboard reachable as a link. Rendered Markdown
+(chat, notes) styles its anchors through the Markdown stylesheet instead.
+
+A path through folders or nested graphs is `Breadcrumbs`: 13px, chevron
+separators, the last item in `text.primary` and not clickable, earlier items
+in `text.secondary`, collapsing to "…" past `maxItems`.
+
+### Errors and banners
+
+A message about the state of a surface is a banner. A failure always says
+what failed and offers a way on.
+
+| Situation | Use |
+|---|---|
+| A field value is wrong | The field's `errorMessage` or `error`, under the field |
+| A load or an operation failed inside a panel, dialog or page | `ErrorBanner` from `components/support/`: `AlertBanner severity="error"` with the Report control and an optional retry |
+| The content of a surface could not load at all | `EmptyState variant="error"` in place of the content, with a retry action, plus the Report control |
+| A user action failed and the surface is fine | `useAlertNotifier("error")` |
+| The user's own script or input produced the error (a script test run, a bad expression) | `AlertBanner severity="error"`, without Report, because it is not a NodeTool fault |
+| A run was cancelled, expired or will not work as set up | `AlertBanner severity="warning"`, `compact` in a dense panel |
+| A count of failed items in a status bar, or a failed tile | `StatusIndicator status="error"` with the count as `label`, or `StatusPill tone="failed"` on the tile |
+| A list row whose item failed | The row's status mark (`StatusIndicator`, a status tile) carries the failure. Its secondary line stays `text.secondary` |
+| A warning or an explanation that stays on the surface | `AlertBanner` with `severity="warning"` or `"info"`, `compact` in a dense panel |
+| A merge conflict in a document editor | `ConflictBanner` |
+| A crash | The error boundary (`PanelErrorBoundary`), which already carries Report |
+
+Banners sit at the top of the surface they describe, inset like the content,
+with `BORDER_RADIUS.lg`. Text is one or two sentences in sentence case: what
+happened, then what to do. Never show a failure as `Text` or `Caption` with
+`color="error"`, and never as a bare stack trace.
+
 ---
 
 ## 15. Migration Checklist
 
-When editing any UI file, scan for these violations and fix them in the same PR.
+When editing any UI file, scan for these violations and fix them in the same PR. For element-level deviations (a hand-built element where a primitive exists), run `npm run audit:ui -- --rule <id>` with the ids from [Element standards](#element-standards).
 
 | Found | Replace with |
 |---|---|

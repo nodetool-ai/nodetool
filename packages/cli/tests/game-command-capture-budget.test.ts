@@ -33,12 +33,12 @@ afterEach(async () => {
   await rm(directory, { recursive: true, force: true });
 });
 
-async function capture(document: unknown, json: boolean): Promise<void> {
+async function capture(document: unknown, json: boolean, ...args: string[]): Promise<void> {
   const gamePath = join(directory, "game.json");
   await writeFile(gamePath, JSON.stringify(document));
   const program = new Command();
   registerGameCommands(program);
-  await program.parseAsync(["node", "nodetool", "game", "capture", gamePath, "--ticks", "1", "--out", join(directory, "frame.png"), ...(json ? ["--json"] : [])]);
+  await program.parseAsync(["node", "nodetool", "game", "capture", gamePath, "--ticks", "1", "--out", join(directory, "frame.png"), ...(json ? ["--json"] : []), ...args]);
 }
 
 describe("3D capture frame budgets", () => {
@@ -78,5 +78,19 @@ describe("3D capture frame budgets", () => {
     expect(seen).toEqual(Array.from({ length: 12 }, () => "crate/burst"));
     const report = JSON.parse(stdout.trim()) as { budget: { overruns: unknown[] } };
     expect(report.budget.overruns).toContainEqual({ metric: "particles", value: 12, budget: 5 });
+  });
+
+  it("exits 1 with --fail-on-budget only when a count budget is exceeded", async () => {
+    const original = process.exitCode;
+    try {
+      const base = createNative3DGame("capture-fail-on-budget");
+      await capture({ ...base, performance: { budgets: { drawCalls: 400 } } }, true, "--fail-on-budget");
+      expect(process.exitCode).toBe(1);
+      process.exitCode = undefined;
+      await capture({ ...base, performance: { budgets: { drawCalls: 400 } } }, true);
+      expect(process.exitCode).toBeUndefined();
+      await capture({ ...base, performance: { budgets: { drawCalls: 500 } } }, true, "--fail-on-budget");
+      expect(process.exitCode).toBeUndefined();
+    } finally { process.exitCode = original; }
   });
 });

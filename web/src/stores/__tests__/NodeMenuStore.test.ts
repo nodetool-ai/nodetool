@@ -44,6 +44,7 @@ describe("NodeMenuStore", () => {
       closeBlockUntil: 0,
       clickPosition: { x: 0, y: 0 },
       documentationPosition: { x: 0, y: 0 },
+      nodeFilter: null,
     });
   });
 
@@ -364,5 +365,50 @@ describe("NodeMenuStore", () => {
       expect(useNodeMenuStore.getState().currentSearchId).toBe(5);
     });
 
+  });
+
+  describe("node filter", () => {
+    const upscalers = [
+      createMockNodeMetadata({
+        node_type: "nodetool.image.Upscale",
+        namespace: "nodetool.image",
+        title: "Upscale"
+      }),
+      createMockNodeMetadata({
+        node_type: "replicate.image.Upscale",
+        namespace: "replicate.image",
+        title: "Upscale"
+      })
+    ];
+
+    beforeEach(() => {
+      useMetadataStore.setState({
+        metadata: Object.fromEntries(upscalers.map((n) => [n.node_type, n]))
+      });
+    });
+
+    const searchTypes = () => {
+      useNodeMenuStore.getState().performSearch("upscale");
+      return useNodeMenuStore
+        .getState()
+        .searchResults.map((node) => node.node_type);
+    };
+
+    it("leaves filtered nodes out of search results", () => {
+      useNodeMenuStore
+        .getState()
+        .setNodeFilter((node) => !node.namespace.startsWith("replicate"));
+
+      expect(searchTypes()).toEqual(["nodetool.image.Upscale"]);
+    });
+
+    it("offers every node again when the filter is cleared", () => {
+      const store = useNodeMenuStore.getState();
+      store.setNodeFilter((node) => !node.namespace.startsWith("replicate"));
+      searchTypes();
+      store.setNodeFilter(null);
+
+      expect(searchTypes()).toHaveLength(2);
+    });
   });
 });

@@ -34,7 +34,8 @@ import {
   Tooltip,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  StatusPill
 } from "../ui_primitives";
 import { useSceneBlenderRender } from "../../hooks/model3d/useSceneBlenderRender";
 import { NumberRow, toOpaqueHex } from "./PropertiesPanel";
@@ -374,7 +375,7 @@ const BlenderRenderPanel = ({ exportScene, viewAspect, name }: BlenderRenderPane
                       {entry.status === "rendering" ? (
                         <LoadingSpinner inline size={14} />
                       ) : (
-                        <Caption color="error">{t(`${K}.failed`)}</Caption>
+                        <StatusPill tone="failed">{t(`${K}.failed`)}</StatusPill>
                       )}
                     </FlexRow>
                   )}

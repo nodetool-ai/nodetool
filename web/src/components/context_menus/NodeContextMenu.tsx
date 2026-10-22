@@ -20,11 +20,13 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import QueueIcon from "@mui/icons-material/Queue";
 import SouthIcon from "@mui/icons-material/South";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
 import { useNodes } from "../../contexts/NodeContext";
+import { useChatAboutNodesOnMenuClose } from "../../hooks/nodes/useChatAboutNodes";
 
 const NodeContextMenu: React.FC = () => {
   const { t } = useTranslation();
@@ -54,7 +56,22 @@ const NodeContextMenu: React.FC = () => {
     closeContextMenu();
   }, [groupIntoSubgraph, getSelectedNodes, node, closeContextMenu]);
 
+  const chatAboutNodes = useChatAboutNodesOnMenuClose();
+  const handleChatAboutNode = useCallback(() => {
+    if (!node) return;
+    chatAboutNodes([node.id]);
+    closeContextMenu();
+  }, [chatAboutNodes, node, closeContextMenu]);
+
   const menuItems = [
+    <ContextMenuItem
+      key="chat-about-node"
+      onClick={handleChatAboutNode}
+      label={t("screen_editor.nodeChat.chatAboutNode")}
+      IconComponent={<ForumOutlinedIcon />}
+      tooltip={t("screen_editor.nodeChat.chatAboutNodeTooltip")}
+    />,
+    <Divider key="divider-after-chat" />,
     conditions.isInGroup && (
       <ContextMenuItem
         key="remove-from-group"

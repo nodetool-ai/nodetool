@@ -2,22 +2,14 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState
-} from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
-import { CountBadge, Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, menuPaperStyles, reducedMotion } from "../ui_primitives";
+import { CountBadge, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, menuPaperStyles, reducedMotion } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import BoltIcon from "@mui/icons-material/Bolt";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import LayoutIcon from "@mui/icons-material/AutoFixHigh";
@@ -27,8 +19,6 @@ import DownloadIcon from "@mui/icons-material/Download";
 import LinearScaleIcon from "@mui/icons-material/LinearScale";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import TerminalIcon from "@mui/icons-material/Terminal";
@@ -45,7 +35,6 @@ import MobilePaneMenu from "../menus/MobilePaneMenu";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
 import { MenuItemPrimitive } from "../ui_primitives";
-import { useDraggable } from "../../hooks/useDraggable";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
@@ -55,17 +44,11 @@ import { useWorkflowScriptExport } from "../../hooks/useWorkflowScriptExport";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import ProviderFailureReportButton from "../support/ProviderFailureReportButton";
-import useCanvasChatDockStore, {
-  MAX_DOCK_WIDTH,
-  MIN_DOCK_WIDTH,
-  type DockPosition
-} from "../../stores/CanvasChatDockStore";
-import CanvasMediaComposer from "./CanvasMediaComposer";
-import ConversationOverlay from "./ConversationOverlay";
+import useCanvasChatDockStore from "../../stores/CanvasChatDockStore";
+import { HEADER_HEIGHT } from "../../config/constants";
+import CanvasChatWindow from "./CanvasChatWindow";
 import TriggerActivationButton from "./TriggerActivationButton";
 
-const MOBILE_DOCK_POSITION: DockPosition = { x: 0, y: 0 };
 const MOBILE_DOCK_LAYER_STYLE: React.CSSProperties = {
   bottom: "calc(8px + env(safe-area-inset-bottom, 0px))"
 };
@@ -95,11 +78,9 @@ const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
   }
 );
 
-// The chat dock is the media composer (+ optional conversation overlay above
-// it), floating over the canvas. The workflow controls live inside the
-// composer footer (Run button + a ⋮ menu). The dock is draggable and the
-// overlay resizable; this layer just centres it at the bottom by default and
-// lets clicks fall through to the canvas everywhere the dock isn't.
+// The workflow toolbar floats at the bottom centre of the canvas. This layer
+// centres it and lets clicks fall through to the canvas everywhere the
+// toolbar isn't. The chat lives in its own window (CanvasChatWindow).
 const dockLayerStyles = (theme: Theme) =>
   css({
     position: "fixed",
@@ -112,16 +93,6 @@ const dockLayerStyles = (theme: Theme) =>
     pointerEvents: "none"
   });
 
-// The parts of the composer that fold away when only the toolbar row shows.
-const FOLDABLE =
-  ".media-compose-card > :not(.media-chip-row), .media-compose-card textarea.media-compose-input, .media-chip-row > :not(.composer-workflow-actions)";
-
-// One duration and easing for the dock's width and height animation, so the
-// two stay in step. Slower than MOTION.slow: the width travels hundreds of px.
-const DOCK_RESIZE_MS = 500;
-const DOCK_RESIZE_EASING = "ease-in-out";
-const DOCK_RESIZE = `${DOCK_RESIZE_MS}ms ${DOCK_RESIZE_EASING}`;
-
 const shortcutTooltip = (label: string, shortcut: string): React.ReactElement => (
   <span>{label} · {getShortcutTooltip(shortcut, undefined, "combo")}</span>
 );
@@ -129,154 +100,33 @@ const shortcutTooltip = (label: string, shortcut: string): React.ReactElement =>
 const dockStyles = (theme: Theme) =>
   css({
     display: "flex",
-    flexDirection: "column",
-    alignItems: "stretch",
-    gap: `${theme.spacing(1)}`,
     pointerEvents: "auto",
     minWidth: 0,
     maxWidth: `calc(100% - ${getSpacingPx(SPACING.xl)})`,
-    containerType: "inline-size",
-    containerName: "canvas-dock",
-    // Lets the folding parts' height ease to and from `auto`.
-    interpolateSize: "allow-keywords",
-    "&.composer-expanding": { containerType: "normal" },
-    // Everything above the toolbar row folds to zero height instead of
-    // vanishing, so expanding grows the dock smoothly rather than jumping to
-    // full height before the width catches up.
-    [FOLDABLE]: {
-      overflow: "hidden",
-      transition: `height ${DOCK_RESIZE}, min-height ${DOCK_RESIZE}, padding ${DOCK_RESIZE}, margin ${DOCK_RESIZE}, opacity ${MOTION.normal}, visibility 0s`,
-      ...reducedMotion({ transition: MOTION.none })
-    },
-    ".media-compose-card.media-compose-card": {
-      transition: `${MOTION.border}, ${MOTION.shadow}, gap ${DOCK_RESIZE}`,
-      ...reducedMotion({ transition: MOTION.none })
-    },
-    ".media-chip-row.media-chip-row": {
-      transition: `row-gap ${DOCK_RESIZE}`,
-      ...reducedMotion({ transition: MOTION.none })
-    },
-
-    ".media-compose-card": {
-      // The floating-bar surface shared with FloatingToolbar and menus.
-      ...menuPaperStyles(theme),
-      backdropFilter: "none",
-      gap: theme.spacing(SPACING.xs),
-      "&:focus-within": {
-        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}`
-      }
-    },
-    ".media-compose-card textarea.media-compose-input": {
-      padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.md)}`
-    },
-    // Two rows under the prompt: the generation chips with their Generate
-    // button, then the workflow toolbar. The chips scroll sideways rather
-    // than wrap or overlap when the dock is narrow, so Generate keeps its
-    // place at the end of the first row.
-    ".media-chip-row.has-trailing": {
-      flexWrap: "wrap",
-      rowGap: theme.spacing(SPACING.xs),
-      padding: 0
-    },
-    ".media-chip-row.has-trailing .media-chip-main": {
-      flex: "1 1 0",
-      minWidth: 0,
-      flexWrap: "nowrap",
-      overflowX: "auto",
-      overflowY: "hidden",
-      scrollbarWidth: "none",
-      "&::-webkit-scrollbar": { display: "none" },
-      "> *": { flexShrink: 0 },
-      // The model chip is the one chip that gives up width, down to a
-      // readable name, before the row starts to scroll. Important because
-      // the phone touch-target rule in styles/mobile.css sets its own
-      // important minimum.
-      "> .media-control-chip-grow": {
-        flexShrink: 1,
-        minWidth: "112px !important"
-      }
-    },
-    "@container canvas-dock (max-width: 560px)": {
+    // The floating-bar surface shared with FloatingToolbar and menus.
+    ...menuPaperStyles(theme),
+    backdropFilter: "none",
+    padding: getSpacingPx(SPACING.xs),
+    [theme.breakpoints.down("sm")]: {
       ".composer-run-label": {
         display: "none"
-      },
-      ".media-cost-estimate": {
-        display: "none"
       }
-    },
-
-    // Collapsed composer: only the workflow toolbar row stays visible, so the
-    // dock shrinks to a slim bar that keeps Run reachable. Hidden with CSS
-    // rather than unmounted so a draft prompt and attachments survive.
-    "&.composer-collapsed": {
-      // Inline-size containment gives the dock no intrinsic width, so its
-      // `auto` width would resolve to 0 and leave an empty pill behind.
-      containerType: "normal",
-      [FOLDABLE]: {
-        height: "0 !important",
-        minHeight: "0 !important",
-        padding: "0 !important",
-        margin: "0 !important",
-        opacity: 0,
-        visibility: "hidden",
-        pointerEvents: "none",
-        // Hide from focus only once the fold has finished.
-        transition: `height ${DOCK_RESIZE}, min-height ${DOCK_RESIZE}, padding ${DOCK_RESIZE}, margin ${DOCK_RESIZE}, opacity ${MOTION.normal}, visibility 0s linear ${DOCK_RESIZE_MS}ms`,
-        ...reducedMotion({ transition: MOTION.none })
-      },
-      ".media-compose-card.media-compose-card": { gap: 0 },
-      ".media-chip-row.media-chip-row": { rowGap: 0 },
-      // Chips would otherwise keep the collapsed bar as wide as the full dock.
-      ".media-chip-row > :not(.composer-workflow-actions)": {
-        flex: "0 0 0 !important",
-        width: "0 !important",
-        minWidth: "0 !important",
-        maxWidth: "0 !important"
-      },
-      ".composer-workflow-actions": {
-        marginTop: 0,
-        paddingTop: 0,
-        borderTopColor: "transparent"
-      }
-    },
-
-    // Grab affordance the user drags to move the whole dock. Rendered as a
-    // span (not a button) so the drag hook's `cancel="button"` doesn't exclude
-    // it while still excluding the real action buttons around it.
-    ".composer-drag-handle": {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "28px",
-      height: "28px",
-      borderRadius: BORDER_RADIUS.pill,
-      color: theme.vars.palette.grey[500],
-      cursor: "grab",
-      transition: `${MOTION.background}, color ${MOTION.fast}`,
-      "& svg": { fontSize: "var(--fontSizeBig)" },
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800],
-        color: theme.vars.palette.grey[200]
-      },
-      "&:active": { cursor: "grabbing" }
     }
   });
 
-// The workflow toolbar row at the foot of the composer: canvas tools on the
-// left, then Stop (while running), Run, and the ⋮ menu on the right.
+// Gap (px) between the canvas edges, the chat window and the toolbar.
+const CHAT_WINDOW_GAP = 16;
+// Height (px) the toolbar takes, with the gap above it.
+const TOOLBAR_CLEARANCE = 64;
+
+// The workflow toolbar: canvas tools on the left, then Stop (while
+// running), Run, and the ⋮ menu on the right.
 const actionStyles = (theme: Theme) =>
   css({
-    flex: "1 0 100%",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: getSpacingPx(SPACING.sm),
-    marginTop: getSpacingPx(SPACING.xs),
-    paddingTop: getSpacingPx(SPACING.sm),
-    borderTop: `1px solid ${theme.vars.palette.divider}`,
-    // Folds with the rest of the composer, so the toolbar row does not pop.
-    transition: `margin-top ${DOCK_RESIZE}, padding-top ${DOCK_RESIZE}, border-color ${DOCK_RESIZE}`,
-    ...reducedMotion({ transition: MOTION.none }),
+    gap: getSpacingPx(SPACING.md),
 
     ".composer-tools, .composer-run-group": {
       display: "inline-flex",
@@ -468,12 +318,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const isRunningish = isWorkflowActive;
 
-  // Conversation overlay: floats above the composer, showing the active chat
-  // thread. It surfaces dynamically — auto-opening whenever a new message
-  // arrives or a generation starts — and can be collapsed back to a toggle.
-  // Only the canvas workflow thread counts: a side-panel assistant (code,
-  // sketch, …) streams on its own thread and must not open this overlay.
-  const { conversationCount, chatBusy, chatError, clearChatError } =
+  // Chat window: floats over the canvas, showing the active chat thread and
+  // the prompt. It opens whenever a message is sent or a generation starts,
+  // and closes back to the toolbar's chat button. Only the canvas workflow
+  // thread counts: a side-panel assistant (code, sketch, …) streams on its
+  // own thread and must not open this window.
+  const { conversationCount, chatBusy } =
     useGlobalChatStore(
       useShallow((state) => {
         const threadId =
@@ -485,9 +335,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             ? state.messageCache[threadId]?.length ?? 0
             : 0,
           chatBusy:
-            runtime?.status === "loading" || runtime?.status === "streaming",
-          chatError: state.error,
-          clearChatError: state.clearError
+            runtime?.status === "loading" || runtime?.status === "streaming"
         };
       })
     );
@@ -523,185 +371,40 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       useGlobalChatStore.setState({ workflowId: null });
     };
   }, []);
-  // Start collapsed so opening a workflow with existing conversation history
-  // doesn't pop the overlay. It auto-reveals only when chat becomes busy in
-  // this session (the user sent a message / a generation is streaming). The
-  // collapse flag lives in the dock store so the keyboard shortcut ("o") and
-  // command menu can toggle it too.
-  const {
-    conversationCollapsed,
-    setConversationCollapsed,
-    toggleConversation,
-    composerCollapsed,
-    setComposerCollapsed,
-    dockWidth,
-    storePosition,
-    setStorePosition,
-    resetPosition
-  } = useCanvasChatDockStore(
-    useShallow((state) => ({
-      conversationCollapsed: state.conversationCollapsed,
-      setConversationCollapsed: state.setConversationCollapsed,
-      toggleConversation: state.toggleConversation,
-      composerCollapsed: state.composerCollapsed,
-      setComposerCollapsed: state.setComposerCollapsed,
-      dockWidth: state.dockWidth,
-      storePosition: state.position,
-      setStorePosition: state.setPosition,
-      resetPosition: state.resetPosition
-    }))
-  );
+  // The open flag lives in the dock store so the keyboard shortcut ("o") and
+  // command menu can toggle the window too.
+  const { conversationCollapsed, setConversationCollapsed, toggleConversation } =
+    useCanvasChatDockStore(
+      useShallow((state) => ({
+        conversationCollapsed: state.conversationCollapsed,
+        setConversationCollapsed: state.setConversationCollapsed,
+        toggleConversation: state.toggleConversation
+      }))
+    );
   useEffect(() => {
     if (chatBusy) {
       setConversationCollapsed(false);
     }
   }, [chatBusy, setConversationCollapsed]);
-
-  // The composer is the canvas chat entry point now that the left chat panel
-  // is gone, so the conversation toggle is always available — opening the
-  // overlay reaches the thread (even empty), the thread list, and full chat.
-  // A collapsed composer also hides the overlay.
-  const conversationOpen = !conversationCollapsed && !composerCollapsed;
-
-  // The dock turns back into a size container only after the expand finishes.
-  // Mid-animation its width crosses the narrow-dock breakpoint, which would
-  // flip the Run label and make the toolbar jump.
-  const [expandSettled, setExpandSettled] = useState(!composerCollapsed);
-  useEffect(() => {
-    if (composerCollapsed) {
-      setExpandSettled(false);
-      return undefined;
-    }
-    const timer = window.setTimeout(
-      () => setExpandSettled(true),
-      DOCK_RESIZE_MS
-    );
-    return () => window.clearTimeout(timer);
-  }, [composerCollapsed]);
-
-  const handleToggleComposer = useCallback(() => {
-    setComposerCollapsed(!composerCollapsed);
-  }, [composerCollapsed, setComposerCollapsed]);
-
-  // Draggable dock. `useDraggable` owns the dock's transform; we persist the
-  // final (on-screen clamped) offset to the store on release so it survives
-  // reloads. The store value flows back in as the controlled `position`.
-  const clampToViewport = useCallback(
-    (node: HTMLElement | null, pos: DockPosition): DockPosition => {
-      if (!node || typeof window === "undefined") {
-        return pos;
-      }
-      const rect = node.getBoundingClientRect();
-      const margin = 8;
-      let { x, y } = pos;
-      if (rect.left < margin) x += margin - rect.left;
-      if (rect.right > window.innerWidth - margin)
-        x -= rect.right - (window.innerWidth - margin);
-      if (rect.top < margin) y += margin - rect.top;
-      if (rect.bottom > window.innerHeight - margin)
-        y -= rect.bottom - (window.innerHeight - margin);
-      return { x, y };
-    },
-    []
+  const conversationOpen = !conversationCollapsed;
+  const handleCloseConversation = useCallback(
+    () => setConversationCollapsed(true),
+    [setConversationCollapsed]
   );
 
-  // Mobile pins the dock to its default bottom-centre anchor: a drag offset
-  // persisted on desktop would push it off a phone screen.
-  const dockRef = useDraggable<HTMLDivElement>({
-    handle: ".dock-drag-handle",
-    cancel: "button, input, textarea, .dock-no-drag",
-    position: isMobile ? MOBILE_DOCK_POSITION : storePosition,
-    disabled: isMobile,
-    onStop: (pos) => setStorePosition(clampToViewport(dockRef.current, pos))
-  });
-
-  // Keep the dock on-screen when the viewport shrinks (e.g. window resize).
-  // Skipped on mobile: the dock is pinned there, and re-clamping against the
-  // phone viewport would overwrite the position persisted from desktop.
-  useEffect(() => {
-    if (typeof window === "undefined" || isMobile) {
-      return;
-    }
-    const onResize = () => {
-      setStorePosition(
-        clampToViewport(
-          dockRef.current,
-          useCanvasChatDockStore.getState().position
-        )
-      );
+  // The window hangs from the canvas's top-right corner, clear of an open
+  // inspector, and stops above the workflow toolbar.
+  const toolbarBottom = toolbarPosition.bottom;
+  const chatWindowAnchor = useMemo(() => {
+    const top = HEADER_HEIGHT + CHAT_WINDOW_GAP;
+    return {
+      top,
+      right: inspectorWidth + CHAT_WINDOW_GAP,
+      maxHeight: isMobile
+        ? `calc(100dvh - ${top + TOOLBAR_CLEARANCE + CHAT_WINDOW_GAP}px)`
+        : `calc(100vh - ${top}px - ${toolbarBottom ?? "0px"} - ${TOOLBAR_CLEARANCE}px)`
     };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [clampToViewport, setStorePosition, dockRef, isMobile]);
-
-  // The dock width animates from the width it had to the width it has now,
-  // both measured in px. A CSS transition from `auto` would start from the
-  // width of the new layout, so the width would barely move while the height
-  // grows. Both use DOCK_RESIZE, from the same commit.
-  const lastDockWidth = useRef<number | null>(null);
-  const lastCollapsed = useRef(composerCollapsed);
-  useLayoutEffect(() => {
-    const dock = dockRef.current;
-    if (!dock) {
-      return;
-    }
-    const toggled = lastCollapsed.current !== composerCollapsed;
-    lastCollapsed.current = composerCollapsed;
-    const running = dock.getAnimations();
-    // A render during the animation (the expand-settled state, a store
-    // update) must not record the width of a frame in flight.
-    if (running.length > 0 && !toggled) {
-      return;
-    }
-    // A toggle during an animation starts from the width on screen.
-    const previous =
-      running.length > 0
-        ? dock.getBoundingClientRect().width
-        : lastDockWidth.current;
-    running.forEach((animation) => animation.cancel());
-    const next = dock.getBoundingClientRect().width;
-    lastDockWidth.current = next;
-    if (
-      toggled &&
-      previous !== null &&
-      Math.abs(previous - next) > 1 &&
-      typeof dock.animate === "function" &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
-      dock.animate([{ width: `${previous}px` }, { width: `${next}px` }], {
-        duration: DOCK_RESIZE_MS,
-        easing: DOCK_RESIZE_EASING
-      });
-    }
-  });
-
-  // Mobile ignores the persisted (desktop) width and MIN_DOCK_WIDTH — a phone
-  // viewport can be narrower than both.
-  // A collapsed composer is only as wide as its toolbar row.
-  const dockWidthCss = composerCollapsed
-    ? "auto"
-    : isMobile
-    ? "calc(100vw - 16px)"
-    : dockWidth != null
-      ? `clamp(${MIN_DOCK_WIDTH}px, ${dockWidth}px, min(${MAX_DOCK_WIDTH}px, calc(100vw - 32px)))`
-      : "min(820px, calc(100vw - 32px))";
-
-  const dragHandle = (
-    <Tooltip
-      title={t("i18n-cont-panels-12.toolbar.dragToMoveReset")}
-      placement="top"
-    >
-      <span
-        role="button"
-        tabIndex={-1}
-        aria-label={t("i18n-cont-panels-12.toolbar.moveChatDock")}
-        className="dock-drag-handle composer-drag-handle"
-        onDoubleClick={resetPosition}
-      >
-        <DragIndicatorIcon />
-      </span>
-    </Tooltip>
-  );
+  }, [inspectorWidth, isMobile, toolbarBottom]);
 
   // Keyboard shortcuts: Ctrl/Cmd+Enter runs (queues while running), Escape stops.
   useCombo(["control", "enter"], handleRun, true, true, {
@@ -758,7 +461,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const workflowActions = (
     <div css={actionStyles(theme)} className="composer-workflow-actions">
       <span className="composer-tools">
-        {!isMobile && dragHandle}
         {editorViewMode === "graph" && (
           <Tooltip
             title={shortcutTooltip(t("i18n-cont-panels-12.toolbar.addNode"), "openNodeMenu")}
@@ -902,21 +604,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </Tooltip>
 
         <Tooltip
-          title={composerCollapsed ? t("i18n-cont-panels-12.toolbar.showPrompt") : t("i18n-cont-panels-12.toolbar.hidePrompt")}
-          placement="top"
-        >
-          <button
-            type="button"
-            className="composer-action composer-collapse"
-            onClick={handleToggleComposer}
-            aria-label={composerCollapsed ? t("i18n-cont-panels-12.toolbar.showPrompt") : t("i18n-cont-panels-12.toolbar.hidePrompt")}
-            aria-expanded={!composerCollapsed}
-          >
-            {composerCollapsed ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </button>
-        </Tooltip>
-
-        <Tooltip
           title={t("i18n-cont-panels-12.toolbar.workflowActions")}
           placement="top"
         >
@@ -945,37 +632,17 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           left: leftPanelWidth
         }}
       >
-        <div
-          ref={dockRef}
-          css={dockStyles(theme)}
-          className={cn(
-            "floating-toolbar canvas-chat-dock",
-            composerCollapsed && "composer-collapsed",
-            !composerCollapsed && !expandSettled && "composer-expanding"
-          )}
-          style={{ width: dockWidthCss }}
-        >
-          {conversationOpen && (
-            <ConversationOverlay
-              onCollapse={() => setConversationCollapsed(true)}
-            />
-          )}
-          {chatError && (
-            <AlertBanner
-              severity="error"
-              compact
-              onClose={() => clearChatError()}
-              sx={{ borderRadius: BORDER_RADIUS.xl }}
-            >
-              <FlexRow align="center" gap={SPACING.sm}>
-                <span>{chatError}</span>
-                <ProviderFailureReportButton errorText={chatError} />
-              </FlexRow>
-            </AlertBanner>
-          )}
-          <CanvasMediaComposer trailingActions={workflowActions} />
+        <div css={dockStyles(theme)} className="floating-toolbar canvas-chat-dock">
+          {workflowActions}
         </div>
       </div>
+
+      <CanvasChatWindow
+        open={conversationOpen}
+        onClose={handleCloseConversation}
+        anchor={chatWindowAnchor}
+        isMobile={isMobile}
+      />
 
       <EditorMenu
         anchorEl={actionsMenuAnchor}

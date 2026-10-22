@@ -136,7 +136,7 @@ const ResizeOverlay = memo(function ResizeOverlay({
           minWidth={200}
           maxWidth={MAX_NODE_WIDTH}
           minHeight={minHeight}
-          onResizeStart={resizeUndoGroup.begin}
+          onResizeStart={resizeUndoGroup.beginGesture}
           onResizeEnd={resizeUndoGroup.end}
         />
       </div>

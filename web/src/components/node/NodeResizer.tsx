@@ -46,7 +46,7 @@ const NodeResizer: React.FC<NodeResizerProps> = memo(function NodeResizer({ minW
       <ReactFlowNodeResizer
         minWidth={minWidth}
         minHeight={minHeight}
-        onResizeStart={resizeUndoGroup.begin}
+        onResizeStart={resizeUndoGroup.beginGesture}
         onResizeEnd={resizeUndoGroup.end}
       />
     </Box>

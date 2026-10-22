@@ -110,11 +110,12 @@ describe("params in the 64 KiB logical script input", () => {
       const resolved = JSON.stringify(values);
       const shared = { tick: 0, pressed: [], justPressed: [], events: [], world: [] };
       const paramsBytes = `,"params":{${JSON.stringify(sourceKey)}:${resolved}}`.length;
-      const empty = JSON.stringify({ calls, input: { ...shared, props: { player: { pad: "" } } }, rngState: 1 });
+      // The world is outside the logical input. Scripts receive it only when they read it.
+      const empty = JSON.stringify({ calls, input: { ...shared, world: undefined, props: { player: { pad: "" } } }, rngState: 1 });
       // Pad props so the logical input lands one byte past the limit only because params count once.
       const padding = 64 * 1024 + 1 - empty.length - paramsBytes;
       const props = { player: { pad: "x".repeat(padding) } };
-      const expected = JSON.stringify({ calls, input: { ...shared, props }, rngState: 1 }).length + paramsBytes;
+      const expected = JSON.stringify({ calls, input: { ...shared, world: undefined, props }, rngState: 1 }).length + paramsBytes;
       expect(expected).toBe(64 * 1024 + 1);
       expect(() => runner.run(calls, { ...shared, props }, 1)).toThrow(`Game script input exceeds 64 KiB (${expected} bytes, 2 calls, tick 0)`);
       const fitting = { player: { pad: "x".repeat(padding - 1) } };

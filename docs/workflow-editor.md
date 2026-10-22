@@ -98,7 +98,7 @@ Each node does one thing.
 | Do This | How |
 |---------|-----|
 | One | Click it |
-| Multiple | `Ctrl/⌘` + click, or draw a selection box (`Shift` + drag, or plain drag when **Left-Click Drag** is set to select) |
+| Multiple | `Shift` or `Ctrl/⌘` + click (again to remove), or draw a selection box (`Shift` + drag, or plain drag when **Left-Click Drag** is set to select) |
 | All | `Ctrl/⌘ + A` |
 | Connected nodes | `Shift + C` (inputs and outputs), `Shift + I` (inputs), `Shift + O` (outputs) |
 | None | Click canvas |
@@ -221,7 +221,7 @@ Click the **Auto Layout** button in the composer bar to arrange your nodes in a 
 
 ### Grouping Nodes
 
-Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep related nodes together and move as a unit. The node context menu also offers **Group into Subgraph**, and the canvas context menu offers **Add Group**, **Add Comment**, **Add Subgraph**, **Add Workflow**, and **Add App**. An App node runs a mini app's workflow: the app's inputs become the node's inputs, its outputs become the node's outputs, and an output the app streams reaches downstream nodes one value at a time.
+Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep related nodes together and move as a unit. Click a group's label to select the group. A click on the group's body reaches the canvas, so a selection box can start inside a group. Deleting a selected group removes the frame and keeps its nodes. The node context menu also offers **Group into Subgraph**, and the canvas context menu offers **Add Group**, **Add Comment**, **Add Subgraph**, **Add Workflow**, and **Add App**. An App node runs a mini app's workflow: the app's inputs become the node's inputs, its outputs become the node's outputs, and an output the app streams reaches downstream nodes one value at a time.
 
 ### Aligning Nodes
 

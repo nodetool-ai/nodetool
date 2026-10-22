@@ -433,6 +433,18 @@
       "lastRun": "Last run",
       "viewPricing": "View pricing on kie.ai",
       "topUp": "Top up credits"
+    },
+    "nodeChat": {
+      "chatAboutNode": "Chat about node",
+      "chatAboutNodeTooltip": "Open the chat with this node in the prompt",
+      "chatAboutSelection": "Chat about selection",
+      "chatAboutSelectionTooltip": "Open the chat with the selected nodes in the prompt",
+      "askChat": "Ask chat",
+      "askChatTooltip": "Open the chat with this error in the prompt",
+      "draftNode": "About the \"{{title}}\" node (id {{id}}): ",
+      "draftNodes": "About these nodes: {{nodes}}. ",
+      "draftNodeItem": "\"{{title}}\" (id {{id}})",
+      "draftError": "The \"{{title}}\" node (id {{id}}) failed with this error:\n\n{{error}}\n\nWhy did it fail, and how do I fix it?"
     }
   },
   "screen_properties": {
@@ -10500,8 +10512,6 @@
       "makeApp": "Make app",
       "openWorkflowApp": "Open the app that runs this workflow",
       "makeWorkflowApp": "Make an app from this workflow, with a field for each input",
-      "dragToMoveReset": "Drag to move • double-click to reset",
-      "moveChatDock": "Move chat dock",
       "stoppingWorkflow": "Stopping workflow",
       "retryWorkflow": "{{detail}}. Click to retry the entire workflow.",
       "workflowFailedToStart": "Workflow failed to start",
@@ -10512,15 +10522,13 @@
       "retryEntireWorkflow": "{{label}}. Retry the entire workflow",
       "queueAnotherEntireRun": "{{label}}. Queue another entire workflow run",
       "addNode": "Add node",
-      "hideConversation": "Hide conversation",
-      "showConversation": "Show conversation",
+      "hideConversation": "Close chat",
+      "showConversation": "Open chat",
       "toggleConversation": "Toggle conversation",
       "autoLayout": "Auto layout",
       "save": "Save",
       "saveWorkflow": "Save workflow",
       "stopWorkflow": "Stop workflow",
-      "showPrompt": "Show prompt",
-      "hidePrompt": "Hide prompt",
       "workflowActions": "Workflow actions",
       "chainView": "Chain view",
       "graphView": "Graph view",
@@ -11720,13 +11728,12 @@
       "deleteFailed": "Could not delete the conversation. Please try again.",
       "emptyPreview": "Empty conversation",
       "resizeHeight": "Resize conversation height",
-      "resizeWidthLeft": "Resize conversation width from the left",
-      "resizeWidthRight": "Resize conversation width from the right",
-      "title": "Conversation",
+      "resizeWidth": "Resize chat width",
+      "title": "Chat",
       "showThreads": "Show threads",
       "openWorkspaceTab": "Open in a workspace tab",
       "newConversation": "New conversation",
-      "hideConversation": "Hide conversation",
+      "close": "Close chat",
       "startPrompt": "Start a conversation",
       "startDescription": "Ask about this workflow, or type @ to reference an asset.",
       "searchThreads": "Search threads",
@@ -12548,7 +12555,7 @@
     "groupNode": {
       "defaultTitle": "Group",
       "selectGroup": "SELECT GROUP NODE:",
-      "selectInstructions": "Hold CTRL or ⌘ key + click",
+      "selectInstructions": "Click the label. Shift or CTRL | ⌘ + click adds it to the selection",
       "editTitle": "EDIT GROUP TITLE:",
       "editInstructions": "Double click the label",
       "headlineLabel": "Group headline",
@@ -12778,6 +12785,14 @@
       "data": "Data",
       "utility": "Utility"
     }
+  },
+  "missingKeyNodes": {
+    "hidden_one": "{{count}} node needs an API key you have not added.",
+    "hidden_other": "{{count}} nodes need an API key you have not added.",
+    "shown_one": "Showing {{count}} node that needs an API key.",
+    "shown_other": "Showing {{count}} nodes that need an API key.",
+    "show": "Show them",
+    "hide": "Hide them"
   },
   "namespaceList": {
     "nothingInNamespace": "Nothing found in this namespace for \"{{searchTerm}}\"",
@@ -13253,7 +13268,9 @@
       "compareImage": "Compare with another image",
       "hideInfo": "Hide info",
       "showInfo": "Show info",
-      "close": "Close"
+      "close": "Close",
+      "download": "Download",
+      "moreActions": "More actions"
     },
     "assetRename": {
       "specialCharacter": "Name cannot start with a special character.",

@@ -2,8 +2,9 @@
  * Provider packs — API-key-driven node availability.
  *
  * NodeTool treats the API key as the source of truth for provider nodes:
- *  - a provider namespace is shown in the node menu only when its key is set
- *    (see useNamespaceTree),
+ *  - a provider's nodes are offered in the node menu, its search and the node
+ *    library only when its key is set, unless the user turns on
+ *    "show nodes that need a key" (see useNodeProviderFilter),
  *  - setting a key enables the matching builtin pack so its nodes register, and
  *  - opening a workflow that uses a disabled pack enables that pack
  *    (see useAutoEnableNodePacks).
@@ -33,6 +34,19 @@ export const getKeyGateForNamespace = (namespace: string): string | null =>
   isNamespaceKeyGated(namespace)
     ? getRequiredSecretKeyForNamespace(namespace)
     : null;
+
+/**
+ * True when a namespace's nodes wait on an API key the user has not set. The
+ * node menu, its search and the node library leave these nodes out unless the
+ * user asks to see them.
+ */
+export const namespaceNeedsMissingKey = (
+  namespace: string,
+  isApiKeySet: (key: string) => boolean
+): boolean => {
+  const key = getKeyGateForNamespace(namespace);
+  return key !== null && !isApiKeySet(key);
+};
 
 const PACK_NAMESPACES = new Map<string, readonly string[]>(
   BUILTIN_NODE_PACKS.map((pack) => [pack.id, pack.namespaces])
