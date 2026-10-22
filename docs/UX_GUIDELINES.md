@@ -114,7 +114,8 @@ A connected key with nothing selected stopped every first request on a pick,
 on every surface (`study-3-I1`). After the language default
 shipped, the picture flow's image model stayed blank and failed a session
 (study 4, D1). The speech model stayed blank next (`study-5-I3`), then the
-Video flow's voice (study 10, D1).
+Video flow's voice (study 10, D1), then the storyboard's per-shot render
+dialog while its batch dialog was filled (`study-11-I4`).
 A new model kind, a new picker or a new flow reads the Settings default for
 its kind, and connecting a provider seeds that default.
 
@@ -252,6 +253,8 @@ run, an empty output reads "The last run sent nothing here".
 - The credential error worked because it named the provider, the key and the
   alternative: "switch the model to a provider you have configured"
   (`study-4-I2`).
+- A failed storyboard download showed `{"detail":"Not found"}`, and 3 of 3
+  could not tell what was missing (`study-11-I3`).
 
 An error message names the cause in the person's terms and the next action.
 It never shows encoder strings, stack traces, storage paths or model ids as
@@ -274,7 +277,8 @@ No-match text names its scope and where else to look.
 
 "Create" stayed grey with no reason until an unmarked field was filled
 (`study-7-I2`), and the Video flow's "Continue" did the same
-(study 6 defects). Mark required fields, and give a disabled primary action a
+(study 6 defects). A storyboard's grey "Preview" was pressed by 3 of 3, who
+could not tell it was off (`study-11-I2`). Mark required fields, and give a disabled primary action a
 reason the person can read without hovering.
 
 ## 5. Words on screen

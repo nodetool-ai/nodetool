@@ -70,6 +70,15 @@ field. None names the product or its features.
 | `retired` | You are retired and use a laptop for email, photos, and video calls with family. You have not used this product before. |
 | `small-business` | You run a small shop and do its marketing and paperwork yourself on a laptop. You have not used this product before. |
 | `teacher` | You teach at a primary school and prepare lessons and handouts on a laptop. You have not used this product before. |
+| `groomer` | You run a dog-grooming salon and post short clips of happy dogs on its social pages from your phone. You have not used this product before. |
+| `nonprofit` | You volunteer for a local animal shelter and make its newsletter and fundraising posts on a laptop. You have not used this product before. |
+| `nurse` | You work shifts as a nurse and use a laptop at home for email, photos and online shopping. You have not used this product before. |
+| `cafe-owner` | You own a small café and design its posters and menu boards yourself. You have not used this product before. |
+| `musician` | You play in a band and make its posters and music-video ideas yourself. You have not used this product before. |
+| `estate-agent` | You sell houses and put together photo listings and walk-through videos for them. You have not used this product before. |
+| `ad-junior` | You are a junior account manager at an advertising agency and present campaign ideas to clients in slide decks. You have not used this product before. |
+| `student` | You are a university student who edits short videos for a film club on a laptop. You have not used this product before. |
+| `event-planner` | You organise weddings and parties and keep every plan in shared spreadsheets and slide decks. You have not used this product before. |
 
 A persona changes how the participant reads the screen, not what it knows
 about NodeTool. Never put product knowledge in a persona.
