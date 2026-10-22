@@ -1,3 +1,5 @@
+planned-output-nested-call-argument ok
+planned-one-unawaited-call it assigns getSecret() without await, so the variable holds a Promise
 planned-clean ok
 planned-syntax-error its code does not parse: Unexpected token (1:6)
 planned-output-in-for it calls output() once per item, but output() can be set only once per run — call await emit(name, item) per item, or collect the items and call output() once after the loop

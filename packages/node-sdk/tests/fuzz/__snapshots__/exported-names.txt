@@ -1,0 +1,16 @@
+export-function ["a"]
+export-class ["B"]
+export-const-many ["c","d"]
+export-destructured ["e","g","h","i","j"]
+export-default ["default"]
+export-default-expr ["default"]
+export-specifiers ["k","m","n-o"]
+export-from ["p","r"]
+export-namespace ["ns"]
+export-namespace-string ["s-t"]
+export-star null
+export-star-last null
+export-none []
+export-bare-list []
+export-syntax-error null
+export-function-var ["x1","x2"]

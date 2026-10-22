@@ -893,6 +893,18 @@ export interface PlannedStepSeed {
 /** Bodies `plannedCodeStepProblems` has to judge, one planner mistake each. */
 export const SEED_PLANNED_STEPS: readonly PlannedStepSeed[] = [
   {
+    id: "planned-output-nested-call-argument",
+    inputs: ["text"],
+    output: "n",
+    code: "wrap(pass(await output('n', inputs.text)));"
+  },
+  {
+    id: "planned-one-unawaited-call",
+    inputs: ["text"],
+    output: "n",
+    code: "const key = getSecret('K');\nawait output('n', inputs.text + key);"
+  },
+  {
     id: "planned-clean",
     inputs: ["text"],
     output: "n",
@@ -1091,4 +1103,403 @@ export const SEED_MIGRATION_BODIES: readonly { id: string; code: string }[] = [
     code: "const { x = a } = {};\nconst [y = text] = [];\nreturn { x, y };"
   },
   { id: "migrate-unknown-global", code: "return { n: ghost + a };" }
+];
+
+/** Module sources for `exportedNames`: every export form it reads. */
+export const SEED_MODULE_SOURCES: readonly { id: string; source: string }[] = [
+  { id: "export-function", source: "export function a() {}" },
+  { id: "export-class", source: "export class B {}" },
+  { id: "export-const-many", source: "export const c = 1, d = 2;" },
+  {
+    id: "export-destructured",
+    source:
+      "export const { e, f: g, ...h } = {};\nexport const [i, , j = 1] = [];"
+  },
+  { id: "export-default", source: "export default function () {}" },
+  { id: "export-default-expr", source: "export default 1;" },
+  {
+    id: "export-specifiers",
+    source: "const k = 1, l = 2;\nexport { k, l as m, l as 'n-o' };"
+  },
+  { id: "export-from", source: "export { p, q as r } from './x.js';" },
+  { id: "export-namespace", source: "export * as ns from './x.js';" },
+  { id: "export-namespace-string", source: "export * as 's-t' from './x.js';" },
+  { id: "export-star", source: "export const u = 1;\nexport * from './x.js';" },
+  {
+    id: "export-star-last",
+    source: "export * from './x.js';\nexport const v = 1;"
+  },
+  { id: "export-none", source: "const w = 1;\nimport { z } from './x.js';" },
+  { id: "export-bare-list", source: "export {};" },
+  { id: "export-syntax-error", source: "export const = ;" },
+  { id: "export-function-var", source: "export var x1 = function () {}, x2;" }
+];
+
+/** Bodies that exercise one analyzer construct each; pinned by `analyzerFacts`. */
+export const SEED_ANALYZER_BODIES: readonly { id: string; code: string }[] = [
+  {
+    id: "flow-if-else-both-return",
+    code: "if (a) { return { n: 1 }; } else { return { n: 2 }; }"
+  },
+  {
+    id: "flow-if-else-one-return",
+    code: "if (a) { return { n: 1 }; } else { x(); }"
+  },
+  {
+    id: "flow-if-else-other-return",
+    code: "if (a) { x(); } else { return { n: 2 }; }"
+  },
+  { id: "flow-if-no-else", code: "if (a) { return { n: 1 }; }" },
+  { id: "flow-block-return", code: "{ x(); return { n: 1 }; }" },
+  { id: "flow-block-plain", code: "{ x(); }" },
+  { id: "flow-throw", code: "throw new Error('no');" },
+  { id: "flow-throw-after", code: "x(); throw new Error('no'); y();" },
+  {
+    id: "flow-try-return",
+    code: "try { return { n: 1 }; } catch (e) { return { n: 2 }; }"
+  },
+  {
+    id: "flow-try-return-catch-plain",
+    code: "try { return { n: 1 }; } catch (e) { x(); }"
+  },
+  {
+    id: "flow-try-plain-catch-return",
+    code: "try { x(); } catch (e) { return { n: 2 }; }"
+  },
+  {
+    id: "flow-try-return-no-handler",
+    code: "try { return { n: 1 }; } finally { x(); }"
+  },
+  { id: "flow-try-plain-no-handler", code: "try { x(); } finally { y(); }" },
+  {
+    id: "flow-try-finally-return",
+    code: "try { x(); } finally { return { n: 1 }; }"
+  },
+  {
+    id: "flow-try-finally-return-catch",
+    code: "try { x(); } catch (e) { y(); } finally { return { n: 1 }; }"
+  },
+  {
+    id: "flow-switch-no-default",
+    code: "switch (a) { case 1: return { n: 1 }; }"
+  },
+  {
+    id: "flow-switch-default-returns",
+    code: "switch (a) { case 1: return { n: 1 }; default: return { n: 2 }; }"
+  },
+  {
+    id: "flow-switch-break",
+    code: "switch (a) { case 1: x(); break; default: return { n: 2 }; }"
+  },
+  {
+    id: "flow-switch-last-plain",
+    code: "switch (a) { case 1: return { n: 1 }; default: x(); }"
+  },
+  {
+    id: "flow-switch-fallthrough",
+    code: "switch (a) { default: x(); case 1: return { n: 1 }; }"
+  },
+  {
+    id: "flow-switch-default-first-break-last",
+    code: "switch (a) { default: return { n: 1 }; case 1: x(); break; }"
+  },
+  { id: "flow-switch-empty", code: "switch (a) {}" },
+  { id: "flow-label-return", code: "outer: return { n: 1 };" },
+  { id: "flow-label-plain", code: "outer: x();" },
+  { id: "flow-loop-return", code: "while (a) { return { n: 1 }; }" },
+  {
+    id: "flow-return-then-statement",
+    code: "if (a) return { n: 1 }; return { n: 2 };"
+  },
+  {
+    id: "flow-nested-function-return",
+    code: "function f() { return 1; }\nconst g = () => { return 2; };\nconst h = function () { return 3; };\nreturn { n: f() + g() + h() };"
+  },
+  {
+    id: "flow-class-method-return",
+    code: "class K { m() { return 1; } }\nreturn { n: new K().m() };"
+  },
+  {
+    id: "flow-return-in-loop-nested",
+    code: "for (const x of a) { if (x) { return { n: x }; } }"
+  },
+  {
+    id: "flow-return-in-try-nested",
+    code: "try { if (a) { return { n: 1 }; } } catch (e) { return { n: 2 }; }"
+  },
+  { id: "shape-bare-return", code: "return;" },
+  { id: "shape-ternary", code: "return a ? { n: 1, out: 2 } : { n: 1 };" },
+  {
+    id: "shape-nested-ternary",
+    code: "return a ? (b ? { n: 1 } : 5) : { out: 2 };"
+  },
+  { id: "shape-array", code: "return [1, 2];" },
+  { id: "shape-template", code: "return `x`;" },
+  { id: "shape-function", code: "return function () {};" },
+  { id: "shape-arrow", code: "return () => 1;" },
+  { id: "shape-literal-null", code: "return null;" },
+  { id: "shape-literal-number", code: "return 5;" },
+  { id: "shape-identifier", code: "const r = {};\nreturn r;" },
+  { id: "shape-await", code: "return await f();" },
+  { id: "shape-spread", code: "return { n: 1, ...a };" },
+  { id: "shape-computed", code: "return { [a]: 1, n: 2 };" },
+  { id: "shape-computed-ident-key", code: "return { [n]: 1 };" },
+  { id: "shape-string-key", code: "return { 'n': 1, 'out': 2 };" },
+  { id: "shape-number-key", code: "return { 1: 1, n: 2 };" },
+  {
+    id: "shape-method-and-getter",
+    code: "return { m() {}, get g() { return 1; }, n: 1 };"
+  },
+  { id: "shape-shorthand", code: "const n = 1;\nreturn { n };" },
+  {
+    id: "shape-last-return-wins",
+    code: "if (a) { return { n: 1 }; }\nreturn { out: 2 };"
+  },
+  {
+    id: "shape-last-return-opaque",
+    code: "if (a) { return { n: 1 }; }\nreturn r;"
+  },
+  {
+    id: "shape-last-return-ternary",
+    code: "if (a) { return { n: 1 }; }\nreturn a ? { n: 1 } : { out: 2 };"
+  },
+  {
+    id: "shape-last-return-empty",
+    code: "if (a) { return { n: 1 }; }\nreturn {};"
+  },
+  {
+    id: "shape-hidden-handle",
+    code: "return { n: 1, _private: 2, 'x y': 3, out: 4 };"
+  },
+  {
+    id: "emit-only-literals",
+    code: "emit('n', 1); output('out', 2); emit('n', 3);"
+  },
+  { id: "emit-nonliteral", code: "emit(name, 1);" },
+  { id: "emit-no-args", code: "emit();" },
+  { id: "emit-number-first", code: "output(1, 2);" },
+  { id: "emit-template-first", code: "emit(`n`, 1);" },
+  { id: "emit-method", code: "x.emit('n', 1); x.output('out', 2);" },
+  { id: "emit-other-callee", code: "send('n', 1);" },
+  { id: "emit-in-function", code: "function f() { emit('n', 1); }\nf();" },
+  { id: "emit-and-return", code: "emit('n', 1);\nreturn { out: 2 };" },
+  { id: "emit-hidden-name", code: "emit('_hidden', 1); emit('out', 2);" },
+  { id: "stream-call", code: "for await (const x of stream('items')) {}" },
+  {
+    id: "stream-first-open",
+    code: "await stream.first('a'); stream.open('text');"
+  },
+  { id: "stream-other-member", code: "stream.close('a'); stream.map('b');" },
+  { id: "stream-any", code: "for await (const x of stream.any()) {}" },
+  { id: "stream-nonliteral", code: "stream(name); stream.first(name);" },
+  { id: "stream-no-args", code: "stream(); stream.first(); stream.open();" },
+  { id: "stream-number-arg", code: "stream(1); stream.first(2);" },
+  {
+    id: "stream-computed-member",
+    code: "stream['first']('a'); stream[any]();"
+  },
+  {
+    id: "stream-other-object",
+    code: "x.stream('a'); x.stream.first('b'); y.first('c');"
+  },
+  {
+    id: "stream-non-identifier-property",
+    code: "stream.first.call(null, 'a');"
+  },
+  {
+    id: "stream-bound-var",
+    code: "const stream = make();\nstream('a'); stream.any();"
+  },
+  {
+    id: "stream-bound-param",
+    code: "function f(stream) { return stream('a'); }\nf(x);"
+  },
+  {
+    id: "stream-and-inputs",
+    code: "const v = inputs.text;\nfor await (const x of stream('items')) {}"
+  },
+  { id: "inputs-member", code: "return { n: inputs.a + inputs.text };" },
+  { id: "inputs-string-key", code: "return { n: inputs['a'] };" },
+  { id: "inputs-dynamic-key", code: "return { n: inputs[key] };" },
+  { id: "inputs-number-key", code: "return { n: inputs[0] };" },
+  { id: "inputs-spread", code: "return { ...inputs };" },
+  { id: "inputs-call-arg", code: "return f(inputs);" },
+  { id: "inputs-property-name", code: "return opts.inputs;" },
+  { id: "inputs-computed-property", code: "return opts[inputs];" },
+  { id: "inputs-object-key", code: "return { inputs: 1 };" },
+  { id: "inputs-shorthand", code: "return { inputs };" },
+  { id: "inputs-computed-key", code: "return { [inputs]: 1 };" },
+  { id: "inputs-method-key", code: "return { inputs() {} };" },
+  { id: "inputs-optional-member", code: "return inputs?.a;" },
+  { id: "inputs-shadowed", code: "const inputs = { z: 1 };\nreturn inputs.a;" },
+  {
+    id: "inputs-shadowed-param",
+    code: "const f = (inputs) => inputs.a;\nreturn f({});"
+  },
+  { id: "inputs-hidden-name", code: "return inputs._hidden + inputs.a;" },
+  {
+    id: "inputs-reserved-name",
+    code: "return inputs.constructor + inputs.text;"
+  },
+  { id: "inputs-assign-target", code: "inputs.a = 1;" },
+  { id: "inputs-callee", code: "inputs.a();" },
+  {
+    id: "typeof-guard",
+    code: "if (typeof maybe !== 'undefined') { x(maybe); }"
+  },
+  { id: "typeof-member", code: "typeof a.b;" },
+  { id: "typeof-literal", code: "typeof 1;" },
+  { id: "unary-not-typeof", code: "void maybe; !other; -num;" },
+  { id: "typeof-call", code: "typeof f();" },
+  {
+    id: "bound-var-forms",
+    code: "var a1 = 1; let b1 = 2; const { c1, d1: e1, ...f1 } = {}; const [g1, , h1 = 1, ...i1] = [];"
+  },
+  {
+    id: "bound-function-forms",
+    code: "function fn(p1, { q1 }, [r1], s1 = 1, ...t1) {}\nconst fe = function named(u1) {};\nconst fa = (v1, w1) => v1;"
+  },
+  {
+    id: "bound-class-forms",
+    code: "class C1 {}\nconst C2 = class C3 {};\nconst C4 = class {};"
+  },
+  { id: "bound-catch", code: "try { x(); } catch (err) { y(err); }" },
+  {
+    id: "bound-catch-destructured",
+    code: "try { x(); } catch ({ message, code: c }) { y(message, c); }"
+  },
+  { id: "bound-catch-no-param", code: "try { x(); } catch { y(); }" },
+  {
+    id: "bound-import",
+    code: "import def, * as ns from 'mod';\nimport { a2, b2 as c2 } from 'mod2';"
+  },
+  {
+    id: "bound-assignment",
+    code: "g2 = 1; [h2, i2] = [1, 2]; ({ j2, k2: l2 } = {}); m2 += 1;"
+  },
+  { id: "bound-assignment-member", code: "obj.prop = 1; obj['k'] = 2;" },
+  {
+    id: "bound-pattern-rest-and-default",
+    code: "const { a3 = 1, b3: { c3 }, ...d3 } = {};\nconst [e3 = 2, [f3]] = [];"
+  },
+  {
+    id: "bound-assignment-pattern-default",
+    code: "({ a4 = 1 } = {}); [b4 = 2] = [];"
+  },
+  {
+    id: "bound-for-forms",
+    code: "for (const k1 of a) {}\nfor (let k2 in a) {}\nfor (var k3 = 0; k3 < 1; k3++) {}"
+  },
+  { id: "bound-function-decl-no-id", code: "export default function () {}" },
+  {
+    id: "free-reads",
+    code: "return { n: a + b, out: f(c), doc: `${d}`, [e]: 1 };"
+  },
+  { id: "free-property-names", code: "return o.p + o[q] + o.r.s;" },
+  {
+    id: "free-object-keys",
+    code: "return { k1: v1, 'k2': v2, [k3]: v3, k4 };"
+  },
+  {
+    id: "free-method-and-field",
+    code: "class K { m() { return z; } f = y; static s = 1; get g() { return 1; } [c]() {} }\nreturn new K();"
+  },
+  { id: "free-labels", code: "lbl: for (;;) { break lbl; continue lbl; }" },
+  { id: "free-meta-property", code: "new.target; import.meta;" },
+  {
+    id: "free-import-export-specifiers",
+    code: "import { a5 as b5 } from 'm';\nexport { b5 as c5 };\nexport { d5 };"
+  },
+  { id: "free-declarator-id", code: "const x6 = y6;" },
+  {
+    id: "free-function-id",
+    code: "function f6() { return g6; }\nconst h6 = function i6() { return j6; };"
+  },
+  {
+    id: "free-class-id",
+    code: "class C6 extends D6 {}\nconst E6 = class F6 extends G6 {};"
+  },
+  { id: "free-unary", code: "typeof u1; void u2; !u3; delete u4.p;" },
+  { id: "free-shorthand-twice", code: "return { s1, s2 };" },
+  { id: "free-shorthand-pattern", code: "const { p7 } = {};\nreturn p7;" },
+  { id: "free-member-chains", code: "a8.b8.c8(d8).e8;" },
+  { id: "free-optional-chain", code: "a9?.b9?.[c9]?.(d9);" },
+  { id: "free-computed-member-ident", code: "return arr[idx];" },
+  { id: "free-update-assign", code: "n1++; --n2; n3 += 1;" },
+  { id: "free-template-tag", code: "return tag`x${y1}`;" },
+  { id: "free-arrow-params-default", code: "const f = (p = dflt) => p;" },
+  {
+    id: "free-nested-shadow",
+    code: "const v = 1;\nconst f = () => { const w = v + u; return w; };\nreturn f();"
+  },
+  { id: "free-labeled-statement-ident", code: "ident: x();" },
+  { id: "walk-deep", code: "return { n: [1, [2, [3, { a: b }]]] };" },
+  { id: "walk-sequence-and-new", code: "(a, b); new C(d); c = e ? f : g;" },
+  { id: "dynamic-import", code: "const m = await import('x');" },
+  { id: "dynamic-require", code: "const m = require('x');" },
+  { id: "dynamic-require-method", code: "x.require('y'); const r = require;" },
+  { id: "dynamic-both", code: "require('a'); import('b');" },
+  { id: "dynamic-neither", code: "const importer = 1;" },
+  {
+    id: "import-forms",
+    code: "import a from 'a';\nimport * as b from 'b';\nimport { c, d as e } from 'c';\nimport { 'f-g' as h } from 'd';\nimport 'side';"
+  },
+  {
+    id: "import-and-export",
+    code: "import { a } from 'a';\nexport const b = a;"
+  },
+  { id: "export-only", code: "export default 1;" },
+  { id: "export-all", code: "export * from 'a';" },
+  { id: "export-named-from", code: "export { x as y } from 'a';" },
+  { id: "parse-wrapped-await", code: "const x = await f();\nreturn { n: x };" },
+  { id: "parse-wrapped-only", code: "return await f(), 1;" },
+  { id: "parse-error-line-3", code: "const a = 1;\nconst b = 2;\nconst = ;" },
+  { id: "parse-error-no-body", code: "}" },
+  { id: "parse-empty", code: "" },
+  { id: "parse-only-comments", code: "/* nothing */" },
+  { id: "parse-return-top", code: "return 1;" },
+  { id: "parse-await-top", code: "await x;" },
+  { id: "parse-strict-reserved", code: "const yield1 = 1; let await2 = 2;" },
+  { id: "parse-labeled-fn", code: "a: function f() {}" },
+  {
+    id: "inferred-hidden-and-valid",
+    code: "return { good: 1, _bad: 2, 'has space': 3 };"
+  },
+  {
+    id: "inferred-emit-wins-over-return",
+    code: "emit('e1', 1);\nreturn { r1: 1 };"
+  },
+  {
+    id: "inferred-last-two-returns",
+    code: "if (a) { return { first: 1 }; }\nreturn { second: 2 };"
+  },
+  {
+    id: "inferred-skip-empty-last",
+    code: "if (a) { return { first: 1 }; }\nreturn {};"
+  },
+  {
+    id: "inferred-skip-ternary-last",
+    code: "if (a) { return { first: 1 }; }\nreturn a ? { b: 1 } : { c: 2 };"
+  },
+  {
+    id: "inferred-skip-opaque-last",
+    code: "if (a) { return { first: 1 }; }\nreturn { ...a };"
+  },
+  {
+    id: "inferred-skip-non-object-last",
+    code: "if (a) { return { first: 1 }; }\nreturn 5;"
+  },
+  {
+    id: "inferred-skip-bare-last",
+    code: "if (a) { return { first: 1 }; }\nreturn;"
+  },
+  { id: "inferred-all-hidden", code: "return { _a: 1, _b: 2 };" },
+  {
+    id: "inferred-inputs-and-stream",
+    code: "inputs.i1; inputs._h; stream('s1'); stream.first('s1'); stream('_s');"
+  },
+  {
+    id: "inferred-stream-before-inputs",
+    code: "stream('s1'); inputs.i1; inputs.s1;"
+  }
 ];

@@ -25,12 +25,23 @@ import {
 } from "../../src/graph-validation.js";
 import {
   analyzeCodeBody,
+  collectBoundNames,
+  dynamicModuleAccess,
+  exportedNames,
   freeIdentifiers,
   inferredCodeInputNames,
   inferredCodeOutputNames,
+  inputsMemberReads,
   migrateCodeBodyToInputs,
+  moduleDeclarationKinds,
+  outputCallNames,
   parseCodeBody,
-  plannedCodeStepProblems
+  plannedCodeStepProblems,
+  returnShapes,
+  staticImportBindings,
+  staticImportSpecifiers,
+  streamCallNames,
+  typeofGuardedNames
 } from "../../src/code-analysis.js";
 import { validateCodeNodeBody } from "../../src/code-node-validation.js";
 import {
@@ -40,9 +51,11 @@ import {
   seedRegistry
 } from "./corpus.js";
 import {
+  SEED_ANALYZER_BODIES,
   SEED_CODE_BODIES,
   SEED_GRAPHS,
   SEED_MIGRATION_BODIES,
+  SEED_MODULE_SOURCES,
   SEED_PLANNED_STEPS
 } from "./seeds.js";
 
@@ -282,10 +295,18 @@ it(`${CODE} reports the same planner problems for every planned step`, async () 
 
 it(`${CODE} rewrites input reads the same way for every seed body`, async () => {
   const names = ["a", "text", "flag", "items"];
-  const lines = [...SEED_CODE_BODIES, ...SEED_MIGRATION_BODIES].map((seed) => {
+  const lines = [
+    ...SEED_CODE_BODIES,
+    ...SEED_MIGRATION_BODIES,
+    ...SEED_ANALYZER_BODIES
+  ].map((seed) => {
     const result = migrateCodeBodyToInputs(seed.code, names);
     return `${seed.id} changed=${result.changed} [${result.rewritten.join(",")}] ${JSON.stringify(result.code)}`;
   });
+  const single = migrateCodeBodyToInputs("return { n: a + text };", ["a"]);
+  lines.push(
+    `single-name changed=${single.changed} [${single.rewritten.join(",")}] ${JSON.stringify(single.code)}`
+  );
   await expectPinned(lines.join("\n"), "migrate-inputs.txt");
 });
 
@@ -301,3 +322,58 @@ it.each([null, undefined, 42, [], {}, true])(
     expect(Array.isArray(issues)).toBe(true);
   }
 );
+
+/** Every analyzer's direct answer for one body, as one line of JSON. */
+function analyzerFacts(code: string): string {
+  const parsed = parseCodeBody(code);
+  if ("error" in parsed) {
+    return JSON.stringify({
+      parse: parsed,
+      inputs: inferredCodeInputNames(code),
+      outputs: inferredCodeOutputNames(code),
+      bound: collectBoundNames(code)
+    });
+  }
+  const { statements } = parsed;
+  const { returns, fallsThrough } = analyzeCodeBody(statements);
+  return JSON.stringify({
+    statements: statements.map((statement) => statement.type),
+    kinds: moduleDeclarationKinds(statements),
+    specifiers: staticImportSpecifiers(statements),
+    bindings: staticImportBindings(statements),
+    dynamic: dynamicModuleAccess(statements),
+    returns: returns.map((statement) => statement.start),
+    fallsThrough,
+    shapes: returns.map((statement) =>
+      returnShapes(statement.argument).map((shape) => ({
+        keys: [...shape.keys],
+        opaque: shape.opaque,
+        notAnObject: shape.notAnObject
+      }))
+    ),
+    emitted: outputCallNames(statements),
+    streamed: streamCallNames(statements),
+    guarded: [...typeofGuardedNames(statements)],
+    inputReads: inputsMemberReads(statements),
+    free: freeIdentifiers(statements),
+    bound: collectBoundNames(code),
+    inputs: inferredCodeInputNames(code),
+    outputs: inferredCodeOutputNames(code)
+  });
+}
+
+it(`${CODE} reports the same analyzer facts for every seed body`, async () => {
+  const lines = [
+    ...SEED_CODE_BODIES,
+    ...SEED_MIGRATION_BODIES,
+    ...SEED_ANALYZER_BODIES
+  ].map((seed) => `${seed.id} ${analyzerFacts(seed.code)}`);
+  await expectPinned(lines.join("\n"), "analyzer-facts.txt");
+});
+
+it(`${CODE} lists the same exported names for every module source`, async () => {
+  const lines = SEED_MODULE_SOURCES.map(
+    (seed) => `${seed.id} ${JSON.stringify(exportedNames(seed.source))}`
+  );
+  await expectPinned(lines.join("\n"), "exported-names.txt");
+});
