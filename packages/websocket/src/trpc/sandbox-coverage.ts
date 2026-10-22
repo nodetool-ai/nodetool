@@ -96,6 +96,17 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Revoking a connected client's grant is denial of service against the " +
       "user's own tooling, same rule as revokeToken."
   },
+  "antigravity.install": {
+    withheld:
+      "Downloads an executable from a third party into the app data " +
+      "directory. Host setup the user asks for in the app, never something " +
+      "sandboxed code may do."
+  },
+  "antigravity.status": {
+    gap:
+      "Local CLI install state for the Settings card; nothing a headless " +
+      "run acts on."
+  },
   "appInstances.create": {
     gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
   },

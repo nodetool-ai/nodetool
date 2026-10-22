@@ -18600,5 +18600,17 @@
       "replaceClip": "Clip ersetzen",
       "addAsTake": "Als Take hinzufügen"
     }
+  },
+  "antigravity": {
+    "install": "Antigravity installieren",
+    "installing": "Antigravity wird installiert…",
+    "installed": "Installiert",
+    "notInstalled": "Nicht installiert",
+    "checking": "Installation wird geprüft…",
+    "description": "Nutze dein Google-Antigravity-Konto für Sprachmodelle. Kein API-Schlüssel nötig.",
+    "installDescription": "Lädt Antigravity von Google in die Anwendungsdaten von NodeTool herunter. Das kann einige Minuten dauern.",
+    "signIn": "Kopiere zum Anmelden diesen Befehl in ein Terminal auf diesem Computer. Schließe die Google-Anmeldung ab und aktualisiere dann die Modelle.",
+    "refreshModels": "Modelle aktualisieren",
+    "statusUnavailable": "Status nicht verfügbar"
   }
 }

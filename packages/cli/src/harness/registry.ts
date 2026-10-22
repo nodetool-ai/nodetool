@@ -818,6 +818,19 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "AGENTS.md § Common Pitfalls"
   },
   {
+    id: "antigravity-install",
+    title: "Managed Antigravity CLI download and provider discovery",
+    command: "npm run test --workspace=packages/antigravity-cli",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "packages/antigravity-cli/README.md",
+    selfcheck: {
+      command: "npm run test --workspace=packages/antigravity-cli",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
     id: "provider-contract",
     title:
       "Provider contract probes (raw response fixtures + one live request per provider)",
@@ -1328,6 +1341,12 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/agents/src/capabilities/browser.ts",
       "packages/agents/src/capabilities/browser.specs.ts"
     ]
+  },
+  {
+    id: "antigravity-install",
+    title: "Managed Antigravity CLI installation",
+    paths: ["packages/antigravity-cli/"],
+    harnesses: ["antigravity-install"]
   },
   {
     id: "provider-clients",

@@ -1,4 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { getAntigravityBinaryPath } from "@nodetool-ai/antigravity-cli";
+import { describe, it, expect, vi } from "vitest";
 import {
   AntigravityProvider,
   buildCliArgs,
@@ -361,4 +365,22 @@ describe("antigravity helpers", () => {
   it("buildFreshPrompt sends a lone user turn verbatim", () => {
     expect(buildFreshPrompt([user("hi")], "")).toBe("hi");
   });
+});
+
+it.skipIf(process.platform === "win32")("discovers models through the NodeTool-managed executable", async () => {
+  const root = await mkdtemp(join(tmpdir(), "nodetool-agy-provider-"));
+  vi.stubEnv("XDG_DATA_HOME", root);
+  try {
+    const binary = getAntigravityBinaryPath();
+    await mkdir(dirname(binary), { recursive: true });
+    await writeFile(binary, "#!/bin/sh\nprintf 'gemini-3.1-pro-high\\n'\n", { mode: 0o755 });
+    const provider = new AntigravityProvider();
+    expect(await provider.unavailableReason()).toBeNull();
+    expect(await provider.getAvailableLanguageModels()).toEqual([
+      { id: "gemini-3.1-pro-high", name: "Gemini 3.1 Pro High", provider: "antigravity" }
+    ]);
+  } finally {
+    vi.unstubAllEnvs();
+    await rm(root, { recursive: true, force: true });
+  }
 });
