@@ -22,14 +22,20 @@ import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
  * The variant package is CJS with a `default` export, so `ns.default` is the
  * variant at runtime.
  */
-// SAFETY: TypeScript's CJS interop synthesizes `default` as the whole module
-// object, contradicting the package's own `.d.ts`, which declares it as the
-// `QuickJSSyncVariant` this reads.
-const quickJsVariant = (
-  quickJsVariantModule as unknown as {
-    default: Parameters<typeof loadQuickJs>[0];
-  }
-).default;
+// TypeScript's CJS interop synthesizes `default` as the whole module object,
+// contradicting the package's own `.d.ts`, which declares it as the
+// `QuickJSSyncVariant` this reads. The predicate states the runtime shape.
+function hasVariantDefault(
+  ns: typeof quickJsVariantModule
+): ns is typeof quickJsVariantModule & {
+  default: Parameters<typeof loadQuickJs>[0];
+} {
+  return "default" in ns;
+}
+if (!hasVariantDefault(quickJsVariantModule)) {
+  throw new Error("QuickJS variant package has no default export");
+}
+const quickJsVariant = quickJsVariantModule.default;
 
 import {
   NPM_PROBE_MAX_LOG_CHARS,
