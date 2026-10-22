@@ -2558,7 +2558,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_sketch",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
-    contract: "a1f7cff4f07d",
+    contract: "7191db0810e1",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",
