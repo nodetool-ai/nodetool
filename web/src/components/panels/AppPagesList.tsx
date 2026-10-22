@@ -11,37 +11,22 @@ import {
   CONTROL,
   Divider,
   EmptyState,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
+  ListGroup,
+  ListItemRow,
   SectionHeader,
   SPACING,
-  TYPOGRAPHY,
-  focusRing,
-  getSpacingPx,
-  selectableRowStyles,
-  selectedRowStyles
+  getSpacingPx
 } from "../ui_primitives";
+
+const PAGE_ROW_SX = {
+  minHeight: CONTROL.height.xl,
+  gap: SPACING.md,
+  px: SPACING.xl
+} as const;
 
 const styles = (theme: Theme) =>
   css({
     paddingBottom: getSpacingPx(SPACING.xl),
-    "& .page-row": {
-      minHeight: CONTROL.height.xl,
-      gap: getSpacingPx(SPACING.md),
-      paddingLeft: getSpacingPx(SPACING.xl),
-      paddingRight: getSpacingPx(SPACING.xl),
-      ...selectableRowStyles(theme),
-      "&.Mui-selected": selectedRowStyles(theme),
-      // MUI tints a keyboard-focused button with action.focus; the shared
-      // ring replaces that tint.
-      "&.Mui-focusVisible": {
-        backgroundColor: "transparent",
-        ...focusRing(theme)
-      },
-      "& .MuiListItemText-primary": TYPOGRAPHY.sans.label
-    },
     "& .row-icon": {
       display: "flex",
       flexShrink: 0,
@@ -99,24 +84,27 @@ const AppPagesList: React.FC<AppPagesListProps> = ({
           size="small"
         />
       )}
-      <List dense disablePadding>
+      <ListGroup compact flush>
         {filteredActions.map((action) => (
           <React.Fragment key={action.key}>
-            <ListItem disablePadding>
-              <ListItemButton className="page-row" onClick={action.onClick}>
+            <ListItemRow
+              onClick={action.onClick}
+              buttonSx={PAGE_ROW_SX}
+              icon={
                 <span className="row-icon" aria-hidden>
                   {action.icon}
                 </span>
-                <ListItemText primary={action.label} />
-                {action.secondary && (
-                  <Caption color="secondary">{action.secondary}</Caption>
-                )}
-              </ListItemButton>
-            </ListItem>
+              }
+              primary={action.label}
+            >
+              {action.secondary && (
+                <Caption color="secondary">{action.secondary}</Caption>
+              )}
+            </ListItemRow>
             {action.dividerAfter && <Divider />}
           </React.Fragment>
         ))}
-      </List>
+      </ListGroup>
       {filteredActions.length === 0 && showEmptyState && (
         <EmptyState
           variant="no-results"

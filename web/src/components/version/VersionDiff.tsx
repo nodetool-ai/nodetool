@@ -14,10 +14,8 @@ import {
   Text,
   Box,
   BORDER_RADIUS,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
+  ListGroup,
+  ListItemRow,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -89,38 +87,28 @@ const NodeDiffItem: React.FC<{
 }> = memo(({ node, type }) => {
   const { t } = useTranslation("translation", { keyPrefix: "batch2_9" });
   return (
-  <ListItem
+  <ListItemRow
     sx={{
       bgcolor: type === "added" ? "rgba(46, 125, 50, 0.1)" : "rgba(211, 47, 47, 0.1)",
       borderRadius: BORDER_RADIUS.xs,
       mb: 0.5
     }}
-  >
-    <ListItemIcon sx={{ minWidth: 36 }}>
-      {type === "added" ? (
+    icon={
+      type === "added" ? (
         <AddIcon color="success" fontSize="small" />
       ) : (
         <RemoveIcon color="error" fontSize="small" />
-      )}
-    </ListItemIcon>
-    <ListItemText
-      primary={
-        <Text size="small">
-          {node.type?.split(".").pop() || t("versionDiff.genericNode")}
-        </Text>
-      }
-      secondary={
-        <Caption color="secondary">
-          {t("versionDiff.nodeId", { id: node.id.substring(0, 8) })}...
-        </Caption>
-      }
-    />
+      )
+    }
+    primary={node.type?.split(".").pop() || t("versionDiff.genericNode")}
+    secondary={`${t("versionDiff.nodeId", { id: node.id.substring(0, 8) })}...`}
+  >
     <Chip
       label={t(`versionDiff.status.${type}`)}
       compact
       color={type === "added" ? "success" : "error"}
     />
-  </ListItem>
+  </ListItemRow>
   );
 });
 
@@ -171,7 +159,7 @@ const EdgeDiffItem: React.FC<{
   edge: { source?: string; target?: string };
   type: "added" | "removed";
 }> = memo(({ edge, type }) => (
-  <ListItem
+  <ListItemRow
     sx={{
       bgcolor:
         type === "added"
@@ -181,22 +169,15 @@ const EdgeDiffItem: React.FC<{
       mb: 0.5,
       py: 0.5
     }}
-  >
-    <ListItemIcon sx={{ minWidth: 36 }}>
-      {type === "added" ? (
+    icon={
+      type === "added" ? (
         <TimelineIcon color="success" fontSize="small" />
       ) : (
         <LinkOffIcon color="error" fontSize="small" />
-      )}
-    </ListItemIcon>
-    <ListItemText
-      primary={
-        <Caption>
-          {edge.source?.substring(0, 8)}... → {edge.target?.substring(0, 8)}...
-        </Caption>
-      }
-    />
-  </ListItem>
+      )
+    }
+    secondary={`${edge.source?.substring(0, 8)}... → ${edge.target?.substring(0, 8)}...`}
+  />
 ));
 
 export const VersionDiff: React.FC<VersionDiffProps> = ({
@@ -227,11 +208,11 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
           >
             {t("versionDiff.addedNodes", { count: diff.addedNodes.length })}
           </Caption>
-          <List dense disablePadding>
+          <ListGroup compact flush>
             {diff.addedNodes.map((node) => (
               <NodeDiffItem key={node.id} node={node} type="added" />
             ))}
-          </List>
+          </ListGroup>
         </Box>
       )}
 
@@ -243,11 +224,11 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
           >
             {t("versionDiff.removedNodes", { count: diff.removedNodes.length })}
           </Caption>
-          <List dense disablePadding>
+          <ListGroup compact flush>
             {diff.removedNodes.map((node) => (
               <NodeDiffItem key={node.id} node={node} type="removed" />
             ))}
-          </List>
+          </ListGroup>
         </Box>
       )}
 
@@ -273,14 +254,14 @@ export const VersionDiff: React.FC<VersionDiffProps> = ({
           >
             {t("versionDiff.connectionChanges")}
           </Caption>
-          <List dense disablePadding>
+          <ListGroup compact flush>
             {diff.addedEdges.map((edge) => (
               <EdgeDiffItem key={`added-${edge.source}-${edge.target}`} edge={edge} type="added" />
             ))}
             {diff.removedEdges.map((edge) => (
               <EdgeDiffItem key={`removed-${edge.source}-${edge.target}`} edge={edge} type="removed" />
             ))}
-          </List>
+          </ListGroup>
         </>
       )}
     </Box>

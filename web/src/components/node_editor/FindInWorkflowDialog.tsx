@@ -15,8 +15,7 @@ import {
   MOTION,
   SPACING,
   getSpacingPx,
-  ListItem,
-  ListItemButton,
+  ListItemRow,
   Tooltip,
   EmptyState,
   SearchInput
@@ -26,6 +25,14 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { CloseButton, SHADOW } from "../ui_primitives";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+
+const RESULT_BUTTON_SX = {
+  px: 4,
+  py: 3,
+  minHeight: "44px",
+  borderBottom: 1,
+  borderColor: "divider"
+} as const;
 
 const styles = (theme: Theme) =>
   css({
@@ -77,20 +84,6 @@ const styles = (theme: Theme) =>
     "& .result-item": {
       padding: 0,
       margin: 0
-    },
-    "& .result-button": {
-      display: "flex",
-      alignItems: "center",
-      padding: `${theme.spacing(3)} ${theme.spacing(4)}`,
-      minHeight: "44px",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.selected
-      },
-      "&.selected": {
-        backgroundColor: theme.vars.palette.action.selected,
-        borderLeft: `3px solid ${theme.vars.palette.primary.main}`
-      }
     },
     "& .result-name": {
       fontSize: "var(--fontSizeNormal)",
@@ -236,8 +229,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
     useGlobalCombo("f+meta", () => undefined, inInputs);
 
     const handleResultClick = useCallback(
-      (event: React.MouseEvent<HTMLElement>) => {
-        const index = Number(event.currentTarget.dataset.index);
+      (index: number) => {
         activateResult(index);
         closeFind();
       },
@@ -333,35 +325,30 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         {results.length > 0 ? (
           <ListGroup className="results-list" ref={listRef}>
             {results.map((result, index) => (
-              <ListItem
+              <ListItemRow
                 key={result.node.id}
                 className="result-item"
                 disablePadding
+                selected={index === selectedIndex}
+                onClick={() => handleResultClick(index)}
+                buttonSx={RESULT_BUTTON_SX}
               >
-                <ListItemButton
-                  className={`result-button ${
-                    index === selectedIndex ? "selected" : ""
-                  }`}
-                  data-index={index}
-                  onClick={handleResultClick}
-                >
-                  <Box className="result-main">
-                    <Box className="result-heading">
-                      <Text className="result-name" size="small">
-                        {getNodeDisplayName(result.node)}
-                      </Text>
-                      <Caption className="result-type">
-                        {formatNodeType(result.node.type ?? "")}
-                      </Caption>
-                    </Box>
-                    {result.matchedField ? (
-                      <Caption className="result-snippet">
-                        {result.matchedField}: {result.matchSnippet}
-                      </Caption>
-                    ) : null}
+                <Box className="result-main">
+                  <Box className="result-heading">
+                    <Text className="result-name" size="small">
+                      {getNodeDisplayName(result.node)}
+                    </Text>
+                    <Caption className="result-type">
+                      {formatNodeType(result.node.type ?? "")}
+                    </Caption>
                   </Box>
-                </ListItemButton>
-              </ListItem>
+                  {result.matchedField ? (
+                    <Caption className="result-snippet">
+                      {result.matchedField}: {result.matchSnippet}
+                    </Caption>
+                  ) : null}
+                </Box>
+              </ListItemRow>
             ))}
           </ListGroup>
         ) : searchTerm ? (

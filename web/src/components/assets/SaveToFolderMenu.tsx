@@ -141,7 +141,7 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
         className="folder-menu-item"
         role="menuitem"
         tabIndex={0}
-        style={{ paddingLeft: SPACING_PX.md + depth * SPACING_PX.xl }}
+        style={{ paddingLeft: SPACING_PX.md + depth * SPACING_PX.md }}
         onClick={() => select(id)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {

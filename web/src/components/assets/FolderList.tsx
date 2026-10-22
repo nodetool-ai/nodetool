@@ -8,7 +8,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Z_INDEX, getSpacingPx, SPACING
+  Z_INDEX, getSpacingPx, SPACING, SPACING_PX
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
@@ -23,7 +23,6 @@ import type { Theme } from "@mui/material/styles";
 
 // Layout constants for folder tree
 const ROW_HEIGHT_REM = 1.5; // compact row height in em
-const INDENT_PER_LEVEL_REM = 1.25; // left indent per tree level
 const LIST_MIN_WIDTH = "100px"; // minimum width of the folder list
 const EXPAND_ICON_SIZE_PX = 25; // accordion expand icon size
 
@@ -345,7 +344,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
             <div
               className="row"
               style={{
-                paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem`
+                paddingLeft: level * SPACING_PX.md
               }}
               data-is-root={isRoot ? "true" : "false"}
               onDoubleClick={() => handleRowDoubleClick(folder.id, isRoot)}
@@ -395,7 +394,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         >
           <div
             className="row"
-            style={{ paddingLeft: `${level * INDENT_PER_LEVEL_REM}rem` }}
+            style={{ paddingLeft: level * SPACING_PX.md }}
           >
             <FolderItem
               folder={folder as Asset}

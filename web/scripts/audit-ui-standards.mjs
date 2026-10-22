@@ -313,7 +313,7 @@ const RULES = [
     id: "list/raw-list",
     element: "Lists",
     finds: "MUI List/ListItem at a call site",
-    fix: "VirtualList, selectableRowStyles, ListPanelItem, MenuItemPrimitive",
+    fix: "ListGroup + ListItemRow, VirtualList, selectableRowStyles, ListPanelItem, MenuItemPrimitive",
     line: /<(List|ListItem|ListItemButton)\b/
   },
   {
