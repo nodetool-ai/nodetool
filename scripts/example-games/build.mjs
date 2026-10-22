@@ -76,7 +76,7 @@ const GAMES = [
     description: "Race five rivals around a sunlit coastal circuit. Charge drift boosts, collect items, and chase first place through three laps of harbor bends and seaside bridges.",
     controls: "WASD or arrows to drive · Hold Shift to drift · Space or E to use an item · R to recover · P or Escape to pause",
     sourceDir: path.join(ROOT, "packages/game-runtime/samples/sunrush-kart"),
-    posterTick: 250,
+    posterTick: 700,
     inputs: "completion.inputs.json",
     backend: "webgl2",
     licenses: ["OFL-BebasNeue.txt", "OFL-Inter.txt"]

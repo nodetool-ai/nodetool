@@ -22,7 +22,43 @@
     const p = pose(progress, lane);
     Object.assign(s, { phase: "title", resume: "racing", countdown: 180, time: 0, speed: 0, yaw: p.yaw, direction: p.yaw,
       x: p.x, y: p.y, z: p.z, progress, gate: 1, lap: 0, drift: 0, drifting: false, boost: 0, shield: 0, stun: 0,
-      item: "", pickup: -1, hits: 0, bump: 0, finishTime: 0, finished: false, finalPosition: 1, results: [], lane, steer: 0, offroad: false });
+      item: "", pickup: -1, hits: 0, bump: 0, finishTime: 0, finished: false, finalPosition: 1, results: [], lane, steer: 0, offroad: false,
+      seen: [], jolt: 0, joltWait: 0, slide: 0, shove: 0, dodge: 0, dodgeTime: 0 });
+  };
+  // The rails stand 7.7 m from the center line and a kart is 2.5 m wide, so its center stops 1.3 m short of them.
+  const WALL = WIDTH - 0.6, CONTACT = 2.7;
+  // Pushes this kart out of every overlapping rival. Each racer reads the same snapshot, so both sides apply half the
+  // overlap and an equal and opposite velocity change. Rival velocity comes from its last two snapshot positions.
+  const contacts = (vx, vz) => {
+    const result = { px: 0, pz: 0, ix: 0, iz: 0, closing: 0, touching: false };
+    for (let index = 0; index < 6; index += 1) {
+      if (index === id) { continue; }
+      const other = rival(index);
+      if (!other) { continue; }
+      const ox = other.position.x, oz = other.position.z, last = s.seen[index];
+      s.seen[index] = [ox, oz];
+      if (other.props.finished) { continue; }
+      let dx = s.x - ox, dz = s.z - oz;
+      const d2 = dx * dx + dz * dz;
+      if (d2 >= CONTACT * CONTACT || Math.abs(s.y - other.position.y) > 2) { continue; }
+      const d = Math.sqrt(d2);
+      if (d < 0.01) { dx = id < index ? 1 : -1; dz = 0; } else { dx /= d; dz /= d; }
+      let ovx = last ? (ox - last[0]) / dt : 0, ovz = last ? (oz - last[1]) / dt : 0;
+      if (ovx * ovx + ovz * ovz > 4900) { ovx = 0; ovz = 0; }
+      const closing = (vx - ovx) * dx + (vz - ovz) * dz;
+      const impulse = closing < 0 ? -closing * 0.65 : 0;
+      result.px += dx * (CONTACT - d) / 2; result.pz += dz * (CONTACT - d) / 2;
+      result.ix += dx * impulse; result.iz += dz * impulse;
+      result.closing = Math.max(result.closing, -closing); result.touching = true;
+    }
+    return result;
+  };
+  // Converts a world velocity back into speed and travel direction. A reversing kart keeps its negative speed.
+  const setVelocity = (vx, vz) => {
+    const magnitude = Math.hypot(vx, vz);
+    if (magnitude < 0.05) { s.speed = 0; return; }
+    if (s.speed < 0) { s.direction = Math.atan2(vx, vz); s.speed = -magnitude; }
+    else { s.direction = Math.atan2(-vx, -vz); s.speed = magnitude; }
   };
   if (s.phase === undefined) { initialize(); }
   if (tapped("start") && (s.phase === "title" || s.phase === "finished")) {
@@ -45,11 +81,11 @@
   if (s.phase === "racing" && !s.finished) {
     s.time += dt;
     s.boost = Math.max(0, s.boost - 1); s.shield = Math.max(0, s.shield - 1);
-    s.stun = Math.max(0, s.stun - 1); s.bump = Math.max(0, s.bump - 1);
-    for (const event of input.events) {
-      if (event.kind === "trigger" && event.event === "pulse-hit" && s.shield === 0) {
-        s.stun = 75; s.speed *= 0.45; s.hits += 1; emit("hit");
-      }
+    s.stun = Math.max(0, s.stun - 1); s.bump = Math.max(0, s.bump - 1); s.joltWait = Math.max(0, s.joltWait - 1);
+    // Events reach every script, so a racer reacts only to a pulse aimed at it, once per tick.
+    const pulsed = input.events.some(event => event.kind === "trigger" && event.event === "pulse-hit" && event.target && event.target.entityId === input.entity.id);
+    if (pulsed && s.shield === 0 && s.stun === 0) {
+      s.stun = 75; s.speed *= 0.45; s.hits += 1; s.jolt += 1; emit("hit");
     }
     const oldProgress = s.progress;
     if (__PLAYER__) {
@@ -73,6 +109,14 @@
       s.yaw = angle(s.yaw - s.steer * turnRate * dt * clamp(s.speed / 6, -1, 1));
       s.direction = angle(s.direction + angle(s.yaw - s.direction) * (drifting ? 0.075 : 0.25));
       s.x -= Math.sin(s.direction) * s.speed * dt; s.z -= Math.cos(s.direction) * s.speed * dt;
+      const vx = -Math.sin(s.direction) * s.speed, vz = -Math.cos(s.direction) * s.speed, contact = contacts(vx, vz);
+      if (contact.touching) {
+        const absorb = s.shield ? 0.3 : 1;
+        s.x += contact.px; s.z += contact.pz;
+        setVelocity(vx + contact.ix * absorb, vz + contact.iz * absorb);
+        if (contact.closing > 2.5 && s.joltWait === 0) { s.jolt += 1; s.joltWait = 20; }
+        if (contact.closing > 5 && s.bump === 0) { emit("hit"); s.bump = 20; }
+      }
       let best = Infinity, projected = wrap(s.progress), road = pose(s.progress, 0), lane = 0;
       const center = Math.floor(wrap(s.progress) * COUNT);
       for (let offset = -7; offset <= 7; offset += 1) {
@@ -92,10 +136,21 @@
       s.lane = lane;
       s.offroad = Math.abs(lane) > WIDTH - 0.8;
       s.y = road.y;
-      if (Math.abs(lane) > WIDTH + 0.3) {
-        const p = pose(s.progress, clamp(lane, -WIDTH + 0.3, WIDTH - 0.3));
-        s.x = p.x; s.z = p.z; s.speed *= 0.72;
-        if (__PLAYER__ && s.bump === 0) { emit("hit"); s.hits += 1; s.bump = 45; }
+      if (Math.abs(lane) > WALL) {
+        // Push the kart back along the rail normal and cancel only the velocity that points into the rail.
+        // A glancing contact scrapes along the rail and keeps most of its speed. A head-on contact stops the kart.
+        const side = Math.sign(lane), nx = Math.cos(road.yaw) * side, nz = -Math.sin(road.yaw) * side, depth = Math.abs(lane) - WALL;
+        s.x -= nx * depth; s.z -= nz * depth; s.lane = side * WALL;
+        const wx = -Math.sin(s.direction) * s.speed, wz = -Math.cos(s.direction) * s.speed, into = wx * nx + wz * nz;
+        if (into > 0) {
+          // Rail friction removes speed in proportion to the impact, so a kart that stays on the rail does not stall.
+          const ax = wx - nx * into, az = wz - nz * into, along = Math.hypot(ax, az);
+          const keep = along > 0 ? Math.max(0, along - into * 0.35) / along : 0;
+          setVelocity(ax * keep - nx * into * 0.2, az * keep - nz * into * 0.2);
+          if (into > 3 && s.joltWait === 0) { s.jolt += 1; s.joltWait = 20; }
+          if (s.speed > 0) { s.yaw = angle(s.yaw + angle(s.direction - s.yaw) * 0.5); }
+          if (into > 6 && s.bump === 0) { emit("hit"); s.hits += 1; s.bump = 30; }
+        }
       }
       if (tapped("recover") || best > 400) {
         const p = pose(s.progress, 0);
@@ -105,23 +160,27 @@
     } else {
       const target = s.stun ? 15 : s.boost ? 42 : 29.5 + id * 0.65 + Math.sin(s.time * 0.7 + id) * 1.3;
       s.speed += clamp(target - s.speed, -20 * dt, 13 * dt);
-      s.progress += s.speed * dt / LENGTH;
-      s.lane = (id % 2 === 0 ? -2.5 : 2.5) + Math.sin(s.time * 0.6 + id) * 0.7;
+      // A rival works in its road frame: speed along the road, a lateral slide, and a shove off its racing line.
+      const yaw = pose(s.progress, 0).yaw, tx = -Math.sin(yaw), tz = -Math.cos(yaw), lx = -tz, lz = tx;
+      s.dodgeTime = Math.max(0, s.dodgeTime - 1);
+      if (s.dodgeTime === 0) { s.dodge = 0; }
+      for (let index = 0; index < 6; index += 1) {
+        const other = rival(index);
+        if (index === id || !other || other.props.finished) { continue; }
+        const rx = other.position.x - s.x, rz = other.position.z - s.z, ahead = rx * tx + rz * tz, across = rx * lx + rz * lz;
+        if (ahead > 0 && ahead < 10 && Math.abs(across) < 2.6) { s.dodge = across > 0 ? -3 : 3; s.dodgeTime = 50; }
+      }
+      const contact = contacts(tx * s.speed + lx * s.slide, tz * s.speed + lz * s.slide);
+      s.speed = clamp(s.speed + contact.ix * tx + contact.iz * tz, 0, 50);
+      s.slide += contact.ix * lx + contact.iz * lz;
+      s.progress += (s.speed * dt + contact.px * tx + contact.pz * tz) / LENGTH;
+      s.shove += s.slide * dt + contact.px * lx + contact.pz * lz + (s.dodge - s.shove) * 0.02;
+      s.slide *= 0.9;
+      const line = (id % 2 === 0 ? -2.5 : 2.5) + Math.sin(s.time * 0.6 + id) * 0.7;
+      s.lane = clamp(line + s.shove, -WALL, WALL);
+      if (s.lane !== line + s.shove) { s.shove = s.lane - line; s.slide = 0; }
       const p = pose(s.progress, s.lane);
       s.x = p.x; s.y = p.y; s.z = p.z; s.yaw = p.yaw; s.direction = p.yaw;
-    }
-    if (__PLAYER__ && s.bump === 0) {
-      for (let index = 0; index < 6; index += 1) {
-        if (index === id) { continue; }
-        const other = rival(index);
-        if (!other || other.props.finished) { continue; }
-        const dx = s.x - other.position.x, dz = s.z - other.position.z;
-        if (dx * dx + dz * dz < 2.9 && s.speed > 8) {
-          s.speed *= s.shield ? 0.96 : 0.78; s.bump = 45;
-          if (__PLAYER__) { const length = Math.max(Math.hypot(dx, dz), 0.1); s.x += dx / length * 0.3; s.z += dz / length * 0.3; emit("hit"); }
-          break;
-        }
-      }
     }
     const quarter = s.gate / 4;
     if (oldProgress < quarter && s.progress >= quarter) {
@@ -176,8 +235,23 @@
     if (s.drifting && s.drift >= 0.2 && input.tick % 5 === 0) { commands.push({ kind: "emitParticles", emitter: "sparks", count: 5 }); }
     if (s.boost > 0 && input.tick % 4 === 0) { commands.push({ kind: "emitParticles", emitter: "exhaust", count: 6 }); }
   }
-  const rotation = [0, Math.sin(s.yaw / 2), 0, Math.cos(s.yaw / 2)];
+  let rotation = [0, Math.sin(s.yaw / 2), 0, Math.cos(s.yaw / 2)];
+  if (!__PLAYER__) {
+    // Presentation only: a rival rolls into bends through its pose rotation, which no other script reads. The player's
+    // kart body script does the full job for racer-0. A rival keeps one filtered roll angle to stay cheap.
+    const turn = s.lastYaw === undefined || input.tick < 2 ? 0 : angle(s.yaw - s.lastYaw);
+    s.lastYaw = s.yaw;
+    s.lean = (s.lean || 0) * 0.85 + (Math.abs(turn) > 0.2 ? 0 : -0.1 * Math.tanh(turn * 60 * s.speed * 0.045)) * 0.15;
+    const a = Math.sin(s.yaw / 2), b = Math.cos(s.yaw / 2), c = Math.sin(s.lean / 2), d = Math.cos(s.lean / 2);
+    rotation = [a * c, a * d, b * c, b * d];
+  }
   commands.push({ kind: "setKinematicPose", position: { x: s.x, y: s.y, z: s.z }, rotation });
+  // Presentation only: the player's kart body script reads these to tilt, hop and squash.
+  if (__PLAYER__) {
+    const driftFx = s.drifting && s.phase === "racing";
+    if (!!input.entity.props.drifting !== driftFx) { commands.push({ kind: "setProp", key: "drifting", value: driftFx }); }
+    if ((input.entity.props.jolt || 0) !== s.jolt) { commands.push({ kind: "setProp", key: "jolt", value: s.jolt }); }
+  }
   if (input.tick % 6 === id || commands.some(command => command.kind === "emit") || tapped("pause") || tapped("start")) {
     if (input.entity.props.progress !== s.progress) { commands.push({ kind: "setProp", key: "progress", value: s.progress }); }
     if (input.entity.props.finished !== s.finished) { commands.push({ kind: "setProp", key: "finished", value: s.finished }); }
