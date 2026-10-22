@@ -287,11 +287,18 @@ export async function assetToFalUrl(
     }
 
     try {
-      // Resolve relative paths (e.g. /api/storage/...) against local server
-      const fetchUrl = uri.startsWith("/")
-        ? `http://localhost:${process.env.PORT ?? 7777}${uri}`
-        : uri;
-      const res = await fetch(fetchUrl);
+      // The uri is workflow data. Remote URLs go through the media-ref egress
+      // policy (a refusal throws into the catch below). Only a plain storage
+      // key path is resolved against the local server; any other relative or
+      // non-http uri is not fetched at all.
+      let res: Response;
+      if (uri.startsWith("https://") || uri.startsWith("http://")) {
+        res = await fetchExternalMedia(uri);
+      } else if (/^\/api\/storage\/[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(uri)) {
+        res = await fetch(`http://localhost:${process.env.PORT ?? 7777}${uri}`);
+      } else {
+        return null;
+      }
       if (res.ok) {
         const bytes = new Uint8Array(await res.arrayBuffer());
         const contentType =

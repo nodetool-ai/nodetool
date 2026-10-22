@@ -27,13 +27,63 @@ const convertStyleStringToObject = (
     }, {} as React.CSSProperties);
 };
 
+// SVGElement names and attributes come from node output, which a workflow
+// author controls. createElement would build any tag it is handed (an iframe
+// with srcdoc runs on the app's origin), so only drawing elements are built
+// and anything that can carry script or a navigation is dropped.
+const ALLOWED_SVG_ELEMENTS = new Set([
+  "svg", "g", "defs", "symbol", "use", "title", "desc",
+  "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
+  "text", "tspan", "textPath",
+  "linearGradient", "radialGradient", "stop", "pattern",
+  "clipPath", "mask", "marker", "image",
+  "filter", "feBlend", "feColorMatrix", "feComponentTransfer", "feComposite",
+  "feConvolveMatrix", "feDiffuseLighting", "feDisplacementMap",
+  "feDistantLight", "feDropShadow", "feFlood", "feFuncA", "feFuncB",
+  "feFuncG", "feFuncR", "feGaussianBlur", "feImage", "feMerge",
+  "feMergeNode", "feMorphology", "feOffset", "fePointLight",
+  "feSpecularLighting", "feSpotLight", "feTile", "feTurbulence"
+]);
+
+const URL_ATTRIBUTES = new Set(["href", "xlink:href", "xlinkhref", "src"]);
+
+const isSafeAttribute = (name: string, value: unknown): boolean => {
+  const key = name.toLowerCase();
+  if (key.startsWith("on")) {return false;}
+  if (key === "srcdoc" || key === "dangerouslysetinnerhtml") {return false;}
+  if (URL_ATTRIBUTES.has(key)) {
+    // Strip what browsers ignore before the scheme ("java\tscript:").
+    const url = Array.from(String(value))
+      .filter((ch) => ch.charCodeAt(0) > 0x20)
+      .join("")
+      .toLowerCase();
+    if (/^(javascript|data|vbscript):/.test(url) && !url.startsWith("data:image/")) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const safeAttributes = (
+  attributes: Record<string, string>
+): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries(attributes).filter(([name, value]) =>
+      isSafeAttribute(name, value)
+    )
+  );
+
 const renderSvgElement = (value: SVGElement): React.ReactElement => {
-  const attributes = value.attributes || {};
+  const name = value.name || "svg";
+  if (!ALLOWED_SVG_ELEMENTS.has(name)) {
+    return createElement("g");
+  }
+  const attributes = safeAttributes(value.attributes || {});
   const style = attributes.style
     ? convertStyleStringToObject(attributes.style)
     : undefined;
   const svgProps = {
-    ...value.attributes,
+    ...attributes,
     className: attributes.class,
     xmlSpace: (attributes as Record<string, unknown>)["xml:space"],
     xmlLang: (attributes as Record<string, unknown>)["xml:lang"],
@@ -53,7 +103,7 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
     )
   ].filter(Boolean);
 
-  return createElement(value.name || "svg", svgProps, ...children);
+  return createElement(name, svgProps, ...children);
 };
 
 export const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {

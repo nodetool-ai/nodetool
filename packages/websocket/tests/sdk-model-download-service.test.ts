@@ -31,6 +31,18 @@ function progress(
 }
 
 describe("SDK model download service", () => {
+  it("refuses every start when disabled, before any downloader runs", () => {
+    const start = vi.fn(async () => {});
+    const service = createSdkV1ModelDownloadService({
+      enabled: false,
+      startHuggingFaceDownload: start
+    });
+    expect(() => service.start({ userId: "u1", request })).toThrow(
+      SdkModelDownloadServiceError
+    );
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it("starts once, records progress, and isolates snapshots by user", async () => {
     let emit: ((update: DownloadUpdate) => void) | undefined;
     let finish: (() => void) | undefined;

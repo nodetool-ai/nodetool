@@ -13,6 +13,7 @@ import { initTestDb } from "../src/db.js";
 import { Workflow } from "../src/workflow.js";
 import { WorkflowCollaborator } from "../src/workflow-collaborator.js";
 import { WorkflowShare } from "../src/workflow-share.js";
+import { WorkflowVersion } from "../src/workflow-version.js";
 import { TriggerRegistration } from "../src/trigger-registration.js";
 import { TimelineSequence } from "../src/timeline-sequence.js";
 import { TimelineSequenceVersion } from "../src/timeline-sequence-version.js";
@@ -231,6 +232,39 @@ describe("deleteOwned cascades", () => {
     expect(await Workflow.deleteOwned(OWNER, wf.id)).toBe(true);
 
     expect(await TriggerRegistration.findByWorkflow(wf.id)).toEqual([]);
+  });
+
+  it("takes a workflow's version rows with it", async () => {
+    const wf = await Workflow.create<Workflow>({
+      user_id: OWNER,
+      name: "wf",
+      description: "",
+      tags: [],
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      run_mode: "workflow"
+    });
+    const keep = await Workflow.create<Workflow>({
+      user_id: OWNER,
+      name: "keep",
+      description: "",
+      tags: [],
+      access: "private",
+      graph: { nodes: [], edges: [] },
+      run_mode: "workflow"
+    });
+    for (const workflow_id of [wf.id, wf.id, keep.id]) {
+      await WorkflowVersion.create<WorkflowVersion>({
+        workflow_id,
+        user_id: OWNER,
+        version: await WorkflowVersion.nextVersion(workflow_id)
+      });
+    }
+
+    expect(await Workflow.deleteOwned(OWNER, wf.id)).toBe(true);
+
+    expect(await WorkflowVersion.listForWorkflow(wf.id)).toEqual([]);
+    expect(await WorkflowVersion.listForWorkflow(keep.id)).toHaveLength(1);
   });
 
   it("takes a timeline's version rows with it", async () => {
