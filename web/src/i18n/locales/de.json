@@ -7987,6 +7987,8 @@
         "download": "{{media}} herunterladen",
         "sendToWorkflow": "An Workflow senden…",
         "duplicateShot": "Einstellung duplizieren",
+        "moveEarlier": "Nach vorne verschieben",
+        "moveLater": "Nach hinten verschieben",
         "deleteShot": "Einstellung löschen"
       },
       "shotInsertPoint": {

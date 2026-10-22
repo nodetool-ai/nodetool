@@ -21,6 +21,8 @@ import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DownloadIcon from "@mui/icons-material/Download";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
@@ -66,6 +68,17 @@ interface ShotHoverToolbarProps {
   /** The still and clip a workflow can take. Empty or omitted hides the item. */
   sendToWorkflowItems?: readonly WorkflowMediaItem[];
   onDuplicate?: () => void;
+  /**
+   * Moves the shot one place within its scene. The menu is where people look
+   * for a reorder before they find the drag grip, which a tall card can hold
+   * above the window.
+   */
+  move?: {
+    earlierDisabled: boolean;
+    laterDisabled: boolean;
+    onEarlier: () => void;
+    onLater: () => void;
+  };
   onDelete?: () => void;
   /** The card's own actions, placed after the drag grip. */
   children?: React.ReactNode;
@@ -106,6 +119,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
   downloadLabel,
   sendToWorkflowItems,
   onDuplicate,
+  move,
   onDelete,
   children
 }) => {
@@ -131,7 +145,7 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
     !inStudio && sendToWorkflowItems?.length ? sendToWorkflowItems : null;
   const hasRender = Boolean(onRenderStill || onRenderClip || useLastFrame);
   const hasMenu = Boolean(
-    hasRender || onDownload || sendItems || onDuplicate || onDelete
+    hasRender || onDownload || sendItems || onDuplicate || move || onDelete
   );
   // A row with nothing in it would still catch the eye as a scrim on hover.
   if (!showDragHandle && !children && !onFullscreen && !hasMenu) {
@@ -251,11 +265,30 @@ export const ShotHoverToolbar: React.FC<ShotHoverToolbarProps> = ({
             onClick={runAndClose(onDuplicate)}
           />
         )}
+        {move && (
+          <MenuItemPrimitive
+            dividerBefore={
+              (hasRender || Boolean(onDownload || sendItems)) && !onDuplicate
+            }
+            label={t("screens4_17.storyboard.shotHoverToolbar.moveEarlier")}
+            icon={<ArrowBackIcon fontSize="small" />}
+            disabled={move.earlierDisabled}
+            onClick={runAndClose(move.onEarlier)}
+          />
+        )}
+        {move && (
+          <MenuItemPrimitive
+            label={t("screens4_17.storyboard.shotHoverToolbar.moveLater")}
+            icon={<ArrowForwardIcon fontSize="small" />}
+            disabled={move.laterDisabled}
+            onClick={runAndClose(move.onLater)}
+          />
+        )}
         {onDelete && (
           <MenuItemPrimitive
             color="error"
             dividerBefore={Boolean(
-              hasRender || onDownload || sendItems || onDuplicate
+              hasRender || onDownload || sendItems || onDuplicate || move
             )}
             label={t("screens4_17.storyboard.shotHoverToolbar.deleteShot")}
             icon={<DeleteOutlineIcon fontSize="small" />}

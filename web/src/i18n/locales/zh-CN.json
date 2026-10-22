@@ -7987,6 +7987,8 @@
         "download": "下载{{media}}",
         "sendToWorkflow": "发送到工作流…",
         "duplicateShot": "复制镜头",
+        "moveEarlier": "前移",
+        "moveLater": "后移",
         "deleteShot": "删除镜头"
       },
       "shotInsertPoint": {

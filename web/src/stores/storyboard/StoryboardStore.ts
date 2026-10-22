@@ -1560,20 +1560,26 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
     }
     const id = crypto.randomUUID();
     set((state) =>
-      withBoard(state, boardId, (b) => ({
-        ...b,
-        shots: [
-          ...b.shots,
-          {
-            type: "shot",
-            id,
-            index: b.shots.length,
-            action: "",
-            status: "planned"
-          }
-        ],
-        activeShotId: id
-      }))
+      withBoard(state, boardId, (b) => {
+        // The new shot ends the last scene. Without a scene of its own it
+        // opened a second, nameless "Scene 2" header under a scened board.
+        const last = b.shots.reduce<Shot | null>(
+          (latest, shot) =>
+            latest === null || shot.index >= latest.index ? shot : latest,
+          null
+        );
+        const shot: Shot = {
+          type: "shot",
+          id,
+          index: b.shots.length,
+          action: "",
+          status: "planned"
+        };
+        if (last?.scene_id) {
+          shot.scene_id = last.scene_id;
+        }
+        return { ...b, shots: [...b.shots, shot], activeShotId: id };
+      })
     );
     return id;
   },

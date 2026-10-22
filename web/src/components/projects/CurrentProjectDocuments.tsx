@@ -19,6 +19,7 @@ import {
 import { trpc } from "../../trpc/client";
 import { useRenameDocument } from "../../hooks/useRenameDocument";
 import ProjectDocumentCard from "./ProjectDocumentCard";
+import { PROJECT_DOCUMENTS_ID } from "./projectDocumentsAnchor";
 import ProjectSelector from "./ProjectSelector";
 import type { ProjectDocument } from "./projectStatus";
 
@@ -105,7 +106,11 @@ const CurrentProjectDocuments = () => {
   const documents = data?.documents ?? [];
   const firstDocument = page * DOCUMENTS_PER_PAGE;
   return (
-    <FlexColumn gap={SPACING.md} aria-label={t("pass3_32.projects.documents.regionLabel")}>
+    <FlexColumn
+      id={PROJECT_DOCUMENTS_ID}
+      gap={SPACING.md}
+      aria-label={t("pass3_32.projects.documents.regionLabel")}
+    >
       <FlexRow align="center" gap={SPACING.md} wrap>
         <ProjectSelector inline />
         <Caption color="muted">

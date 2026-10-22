@@ -287,6 +287,35 @@ describe("addShot", () => {
     expect(board?.activeShotId).toBe(id);
   });
 
+  // Study 11: on a board with scenes, "Add shot" opened a second, nameless
+  // "Scene 2" header for the blank shot.
+  it("ends the last scene on a board whose shots have scenes", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "a",
+      index: 0,
+      action: "first",
+      status: "planned",
+      scene_id: "scene-1"
+    });
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "b",
+      index: 1,
+      action: "second",
+      status: "planned",
+      scene_id: "scene-2"
+    });
+    const id = store.addShot(BOARD);
+
+    const added = useStoryboardStore
+      .getState()
+      .boards[BOARD]?.shots.find((s) => s.id === id);
+    expect(added?.scene_id).toBe("scene-2");
+  });
+
   it("returns null for a board the store does not carry", () => {
     expect(useStoryboardStore.getState().addShot("no-such-board")).toBeNull();
   });

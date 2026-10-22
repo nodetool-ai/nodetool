@@ -228,6 +228,30 @@ describe("buildStoryboardPreviewTimeline", () => {
     expect(result.tracks.map((t) => t.name)).toEqual(["Shots"]);
   });
 
+  // An installed example board keeps its shipped stills as `package://` URIs
+  // with no asset id. Study 11: the preview skipped every shot, so its button
+  // stayed disabled on the example board all three participants opened.
+  it("holds an example board's shipped still, which has no asset id", () => {
+    const uri = "package://nodetool-base/storyboards/cold-brew-pour/ice-drop.jpg";
+    const result = buildStoryboardPreviewTimeline({
+      boardId: "board-1",
+      shots: [
+        makeShot({
+          id: "a",
+          index: 0,
+          status: "keyframe_ready",
+          keyframe: { type: "image", uri, asset_id: null }
+        })
+      ]
+    });
+
+    expect(result.clips).toHaveLength(1);
+    expect(result.clips[0].mediaType).toBe("image");
+    expect(result.clips[0].currentAssetId).toBe(uri);
+    expect(result.stillShotIds).toEqual(["a"]);
+    expect(result.skippedShotIds).toEqual([]);
+  });
+
   it("twins the audio of every played clip, stills excluded", () => {
     const result = buildStoryboardPreviewTimeline({
       boardId: "board-1",

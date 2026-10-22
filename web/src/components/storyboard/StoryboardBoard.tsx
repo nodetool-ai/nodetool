@@ -34,6 +34,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  isPackageAssetUri,
   shotRenderMode,
   requiredVideoTasksForShots
 } from "@nodetool-ai/protocol";
@@ -117,6 +118,7 @@ import { useInStudio } from "../../studio/StudioContext";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { useEntities } from "../../serverState/useEntities";
 import { boardRenderContext } from "../../lib/storyboard/boardRenderContext";
 import { exportStoryboardZip } from "../../utils/storyboardZip";
@@ -465,6 +467,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   >({});
   const { models: imageModels } = useImageModelsByProvider();
   const { models: videoModels } = useVideoModelsByProvider();
+  const imageDefault = useModelPreferencesStore(
+    (state) => state.defaults["image_model"]
+  );
 
   // Which shot's editor is open, and which cell it opened on. The board holds
   // this rather than the card, because the overlay covers the whole board.
@@ -835,9 +840,17 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   }, [onAssemble]);
 
   // The preview plays clips and falls back to held keyframe stills, so any
-  // shot carrying either asset is enough to have something to watch.
+  // shot carrying either asset is enough to have something to watch. An
+  // installed example board's stills are shipped `package://` files with no
+  // asset id, and the player holds those too.
   const hasPlayableShot = useMemo(
-    () => shots.some((s) => !!s.clip?.asset_id || !!s.keyframe?.asset_id),
+    () =>
+      shots.some(
+        (s) =>
+          !!s.clip?.asset_id ||
+          !!s.keyframe?.asset_id ||
+          isPackageAssetUri(s.keyframe?.uri)
+      ),
     [shots]
   );
 
@@ -988,8 +1001,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         .reverse()
         .map((shot) => resolveImageModel(shot.still_model))
         .find((model): model is ImageModelValue => model !== null) ??
-      resolveImageModel(imageModel),
-    [findRememberedImageModel, shots, resolveImageModel, imageModel]
+      resolveImageModel(imageModel) ??
+      // The saved image default, which connecting a provider sets. An
+      // installed example board has no model of its own to fall back on.
+      resolveImageModel(imageDefault),
+    [findRememberedImageModel, shots, resolveImageModel, imageModel, imageDefault]
   );
 
   const defaultClipSelections = useMemo(() => {

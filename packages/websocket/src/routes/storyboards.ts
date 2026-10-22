@@ -12,6 +12,7 @@ import { Storyboard } from "@nodetool-ai/models";
 import type { Shot } from "@nodetool-ai/protocol";
 import { bridge, streamedResponse } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
+import { readPackageAssets } from "@nodetool-ai/app-export";
 import { resolveExportSource } from "../lib/asset-export.js";
 import {
   writeStoryboardZip,
@@ -34,8 +35,14 @@ interface RouteOptions {
  */
 async function resolveShotMedia(
   ref: string,
-  userId: string
+  userId: string,
+  packageAssetsRoots: readonly string[]
 ): Promise<ExportSource | null> {
+  // An installed example board keeps its shipped stills as `package://`
+  // files, read from the same roots the package asset route serves.
+  if (ref.startsWith("package://")) {
+    return readPackageAssets([ref], packageAssetsRoots)[0]?.bytes ?? null;
+  }
   if (ref.startsWith("data:")) {
     const comma = ref.indexOf(",");
     if (comma < 0) return null;
@@ -53,6 +60,71 @@ async function resolveShotMedia(
   return resolveExportSource(ref, userId);
 }
 
+/**
+ * The board as a streamed zip, or a 404 when the user has no such board. The
+ * test UI server answers the same route with this, so journeys and studies
+ * download what the real server sends.
+ */
+export async function storyboardZipResponse(
+  id: string,
+  userId: string,
+  packageAssetsRoots: readonly string[] = []
+): Promise<Response> {
+  const board = await Storyboard.findById(id);
+  // Boards are per-user, like sketches and timelines: another owner's
+  // board is an absence, not a refusal.
+  if (!board || board.user_id !== userId) {
+    return new Response(JSON.stringify({ detail: "Storyboard not found" }), {
+      status: 404,
+      headers: { "content-type": "application/json" }
+    });
+  }
+  const doc = board.toDocument();
+  const screenplay = doc.screenplay;
+  // The store keeps the shots in both places; a board written by an older
+  // path can carry them only on the screenplay.
+  const shots = (
+    doc.shots.length > 0 ? doc.shots : (screenplay?.shots ?? [])
+  ) as Shot[];
+  const input: StoryboardExportInput = {
+    name: board.name,
+    shots,
+    title: screenplay?.title || board.name,
+    brief: doc.brief,
+    style: doc.style,
+    aspectRatio: doc.aspectRatio
+  };
+  if (screenplay?.logline) input.logline = screenplay.logline;
+  if (screenplay?.narration) input.narration = screenplay.narration;
+  if (screenplay?.music_prompt) input.musicPrompt = screenplay.music_prompt;
+
+  // The archive streams as it is written; a clip read from a local file
+  // never sits in memory whole.
+  const body = streamZip(async (writer) => {
+    await writeStoryboardZip(
+      {
+        board: input,
+        fetchAssetSource: (ref) =>
+          resolveShotMedia(ref, userId, packageAssetsRoots)
+      },
+      writer
+    );
+  });
+  const safe =
+    (board.name || screenplay?.title || "storyboard").replace(
+      /[^A-Za-z0-9._-]+/g,
+      "_"
+    ) || "storyboard";
+  return streamedResponse(body, {
+    status: 200,
+    headers: {
+      "content-type": "application/zip",
+      "content-disposition": `attachment; filename="${safe}.zip"`,
+      "cache-control": "no-store"
+    }
+  });
+}
+
 const storyboardsRoutes: FastifyPluginAsync<RouteOptions> = async (
   app,
   opts
@@ -63,58 +135,11 @@ const storyboardsRoutes: FastifyPluginAsync<RouteOptions> = async (
     const { id } = req.params as { id: string };
     await bridge(req, reply, async (request) => {
       const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
-      const board = await Storyboard.findById(id);
-      // Boards are per-user, like sketches and timelines: another owner's
-      // board is an absence, not a refusal.
-      if (!board || board.user_id !== userId) {
-        return new Response(JSON.stringify({ detail: "Storyboard not found" }), {
-          status: 404,
-          headers: { "content-type": "application/json" }
-        });
-      }
-      const doc = board.toDocument();
-      const screenplay = doc.screenplay;
-      // The store keeps the shots in both places; a board written by an older
-      // path can carry them only on the screenplay.
-      const shots = (
-        doc.shots.length > 0 ? doc.shots : (screenplay?.shots ?? [])
-      ) as Shot[];
-      const input: StoryboardExportInput = {
-        name: board.name,
-        shots,
-        title: screenplay?.title || board.name,
-        brief: doc.brief,
-        style: doc.style,
-        aspectRatio: doc.aspectRatio
-      };
-      if (screenplay?.logline) input.logline = screenplay.logline;
-      if (screenplay?.narration) input.narration = screenplay.narration;
-      if (screenplay?.music_prompt) input.musicPrompt = screenplay.music_prompt;
-
-      // The archive streams as it is written; a clip read from a local file
-      // never sits in memory whole.
-      const body = streamZip(async (writer) => {
-        await writeStoryboardZip(
-          {
-            board: input,
-            fetchAssetSource: (ref) => resolveShotMedia(ref, userId)
-          },
-          writer
-        );
-      });
-      const safe =
-        (board.name || screenplay?.title || "storyboard").replace(
-          /[^A-Za-z0-9._-]+/g,
-          "_"
-        ) || "storyboard";
-      return streamedResponse(body, {
-        status: 200,
-        headers: {
-          "content-type": "application/zip",
-          "content-disposition": `attachment; filename="${safe}.zip"`,
-          "cache-control": "no-store"
-        }
-      });
+      return storyboardZipResponse(
+        id,
+        userId,
+        apiOptions.packageAssetsRoots ?? []
+      );
     });
     // A streamed body is still being sent when bridge returns.
     return reply;

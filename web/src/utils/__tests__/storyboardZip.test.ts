@@ -61,4 +61,16 @@ describe("exportStoryboardZip", () => {
       "Download failed (404)"
     );
   });
+
+  // Study 11: three of three people saw `{"detail":"Not found"}` in the toast.
+  it("throws the detail of a JSON error body, not the JSON", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => JSON.stringify({ detail: "Storyboard not found" })
+    });
+    await expect(exportStoryboardZip("id", "x")).rejects.toThrow(
+      /^Storyboard not found$/
+    );
+  });
 });

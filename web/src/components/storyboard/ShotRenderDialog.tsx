@@ -42,6 +42,7 @@ import {
 } from "../../hooks/useModelsByProvider";
 import { modelMatchesTask } from "../../hooks/modelTaskMatching";
 import { useRenderBatchCostEstimate } from "../../hooks/storyboard/useRenderBatchCostEstimate";
+import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import {
   getRememberedModel,
   getRememberedModelForTask
@@ -82,6 +83,9 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
   const boardVideoModel = useStoryboardStore(
     (state) => state.boards[boardId]?.videoModel ?? null
   );
+  const imageDefault = useModelPreferencesStore(
+    (state) => state.defaults["image_model"]
+  );
   const hasEntities = useStoryboardStore(
     (state) => (state.boards[boardId]?.entityIds.length ?? 0) > 0
   );
@@ -97,7 +101,11 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
     const candidates = [
       shot.still_model,
       boardImageModel,
-      rememberedRef(getRememberedModel("image"))
+      rememberedRef(getRememberedModel("image")),
+      // The saved image default, which connecting a provider sets: an
+      // installed example board has no model of its own, and the dialog
+      // opened empty on it.
+      imageDefault
     ];
     for (const ref of candidates) {
       if (
@@ -110,7 +118,7 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
       }
     }
     return null;
-  }, [shot.still_model, boardImageModel, imageModels]);
+  }, [shot.still_model, boardImageModel, imageModels, imageDefault]);
 
   const defaultClip = useMemo((): VideoModelValue | null => {
     const candidates = [

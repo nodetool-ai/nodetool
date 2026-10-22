@@ -19,7 +19,11 @@
  * player, where a board that is only half rendered still has to play.
  */
 
-import type { ProductionRequirement, Shot } from "@nodetool-ai/protocol";
+import {
+  isPackageAssetUri,
+  type ProductionRequirement,
+  type Shot
+} from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import type { TimelineClip, TimelineTrack } from "./types.js";
 
@@ -555,6 +559,22 @@ export interface StoryboardPreviewTimeline {
 }
 
 /**
+ * A shipped still an installed example board keeps as `package://` with no
+ * asset id. The player resolves that URI as it does an example timeline's
+ * clips, so the preview can hold it like any other still.
+ */
+function packageStillOf(
+  shot: Shot,
+  production: ProductionRequirement | undefined
+): string | undefined {
+  const strategy = shot.production?.media_strategy ?? production?.media_strategy;
+  const uri = shot.keyframe?.uri;
+  return strategy !== "generated_video" && isPackageAssetUri(uri)
+    ? uri
+    : undefined;
+}
+
+/**
  * Assemble a board into the cut an in-editor player scrubs.
  *
  * Unlike {@link buildStoryboardTimeline}, which only lays down finished shots,
@@ -593,7 +613,12 @@ export function buildStoryboardPreviewTimeline(
     }
     const source = resolved?.kind === "still" || (shot.production?.media_strategy ?? input.production?.media_strategy) === "still_motion_graphics" ? null : sources.get(shot.id) ?? null;
     const clipAssetId = source?.assetId;
-    const stillAssetId = resolved?.kind === "still" ? resolved.assetId : undefined;
+    const stillAssetId =
+      resolved?.kind === "still"
+        ? resolved.assetId
+        : resolved === null
+          ? packageStillOf(shot, input.production)
+          : undefined;
     const assetId = clipAssetId ?? stillAssetId;
     if (!assetId) {
       skippedShotIds.push(shot.id);

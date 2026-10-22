@@ -70,7 +70,7 @@ export function previewSignature(board: StoryboardBoard | undefined): string {
           s.id,
           previewClip(s)?.asset_id ?? "",
           previewClip(s)?.duration ?? "",
-          s.keyframe?.asset_id ?? "",
+          s.keyframe?.asset_id ?? s.keyframe?.uri ?? "",
           s.duration_seconds ?? "",
           JSON.stringify(s.covered_by ?? null),
           s.production?.media_strategy ?? "",
