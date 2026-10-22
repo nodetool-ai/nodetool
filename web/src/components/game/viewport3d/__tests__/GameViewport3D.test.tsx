@@ -1,7 +1,7 @@
 import { createRef } from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import { Box3, BoxGeometry, Group, Matrix4, Mesh, Object3D, OrthographicCamera, PerspectiveCamera, Quaternion, Scene, Vector3 } from "three";
 import { createGameSession3D, createNative3DGame, type AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { GameInput3D } from "@nodetool-ai/game-renderer";
@@ -115,7 +115,7 @@ async function mountViewport(useCommandStore = false, useShell = false) {
   const viewport = <GameViewport3D document={document} host={host}
     selectedIds={["player-visual"]} sceneId={document.entrySceneId} onOps={onOps}
     onGestureStart={onGestureStart} onGestureEnd={onGestureEnd} />;
-  const view = render(<ThemeProvider theme={useShell ? mockTheme : createTheme({ cssVariables: true })}>{useShell
+  const view = render(<ThemeProvider theme={mockTheme}>{useShell
     ? <GameEditorShell dimension="3d"
       toolbar={{ name: "Viewport undo", playing: false, playSession: false, loading: false, saving: false,
         saveStatus: "saved", assistantOpen: false, sceneTreeOpen: false, inspectorOpen: false, playHref: "/game/undo",
@@ -293,7 +293,7 @@ it("releases pointer lock when a running play session fails", async () => {
     backend: "webgl2", playing, playDocument: document, error, beginPlay: jest.fn(), restart: jest.fn(), stop: jest.fn(), step: jest.fn(),
     save: jest.fn(), load: jest.fn().mockResolvedValue(undefined), replayBeforeError: jest.fn().mockResolvedValue(undefined)
   });
-  const view = (playing: boolean, error: string | null) => <ThemeProvider theme={createTheme({ cssVariables: true })}>
+  const view = (playing: boolean, error: string | null) => <ThemeProvider theme={mockTheme}>
     <GameViewport3D document={document} host={host(playing, error)} sceneId={document.entrySceneId}
       onOps={jest.fn()} onGestureStart={jest.fn(() => 1)} onGestureEnd={jest.fn()} />
   </ThemeProvider>;
@@ -579,7 +579,7 @@ it.each(["missing", "void", "denied", "disabled-look"] as const)("delivers autho
     frame: null, inspection: null, backend: "webgl2", error: null, beginPlay: jest.fn(), restart: jest.fn(), stop: jest.fn(), step: jest.fn(),
     save: jest.fn(), load: jest.fn().mockResolvedValue(undefined), replayBeforeError: jest.fn().mockResolvedValue(undefined)
   };
-  const view = render(<ThemeProvider theme={createTheme({ cssVariables: true })}>
+  const view = render(<ThemeProvider theme={mockTheme}>
     <GameViewport3D document={document} host={host} sceneId={document.entrySceneId} playerOnly />
   </ThemeProvider>);
   try {

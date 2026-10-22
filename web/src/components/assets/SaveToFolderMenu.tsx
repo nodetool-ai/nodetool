@@ -17,7 +17,6 @@ import {
   menuGroupHeaderStyles,
   menuItemStyles,
   menuListStyles,
-  menuPaperStyles,
   MENU_ICON_SIZE
 } from "../ui_primitives";
 import { useFolderTree } from "../../serverState/useFolderTree";
@@ -184,7 +183,7 @@ const SaveToFolderMenu: React.FC<SaveToFolderMenuProps> = ({
       anchorEl={anchorEl}
       onClose={onClose}
       placement="bottom-right"
-      paperSx={[menuPaperStyles(theme), { minWidth: 240 }]}
+      paperSx={{ minWidth: 240 }}
     >
       <div css={cssStyles} role="menu">
         <span className="folder-menu-header">

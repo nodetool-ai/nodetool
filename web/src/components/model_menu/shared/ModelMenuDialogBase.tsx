@@ -19,8 +19,7 @@ import {
   EditorButton,
   EmptyState,
   ListItemButton,
-  SPACING,
-  menuPaperStyles
+  SPACING
 } from "../../ui_primitives";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import {
@@ -832,11 +831,11 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       transitionDuration={0}
       slotProps={{
         paper: {
-          // The picker is a menu with a search box: it shares the menu
-          // surface, frame and shadow.
+          // The picker is a menu with a search box, so it keeps the
+          // Popover's menu surface. Full screen on a phone drops the frame.
           sx: isMobile
-            ? { borderRadius: 0, backgroundImage: "none" }
-            : menuPaperStyles(theme),
+            ? { borderRadius: 0, border: 0, boxShadow: "none" }
+            : undefined,
           style: {
             width: isMobile ? "100vw" : `${POPOVER_WIDTH}px`,
             height: isMobile ? "100dvh" : `${POPOVER_HEIGHT}px`,

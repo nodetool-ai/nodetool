@@ -11,8 +11,7 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx,
-  menuPaperStyles
+  getSpacingPx
 } from "../../ui_primitives";
 import type { AspectRatioOption } from "../../../stores/MediaGenerationStore";
 
@@ -148,7 +147,6 @@ const MediaAspectRatioMenu: React.FC<MediaAspectRatioMenuProps> = ({
       anchorEl={anchorEl}
       onClose={onClose}
       placement="top-center"
-      paperSx={menuPaperStyles(theme)}
     >
       <div css={cssStyles} role="dialog" aria-label={t("i18n-next22.chat.composer.aspectRatio.title")}>
         <Caption className="aspect-header" size="small">
