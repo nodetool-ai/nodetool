@@ -54,7 +54,7 @@ const panelStyles = (theme: Theme) =>
 
 const mediaBoxStyles = (theme: Theme) =>
   css({
-    background: theme.vars.palette.c_scrim,
+    background: theme.vars.palette.background.default,
     borderRadius: theme.shape.borderRadius,
     overflow: "hidden",
     "& video": { width: "100%", display: "block" }

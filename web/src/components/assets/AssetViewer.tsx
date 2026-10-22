@@ -108,7 +108,6 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       height: "100vh",
       maxHeight: "100vh",
-      backgroundColor: theme.vars.palette.grey[900],
       width: "100vw",
       maxWidth: "100vw",
       zIndex: theme.zIndex.floating,
@@ -127,7 +126,8 @@ const styles = (theme: Theme) =>
       height: "100%",
       overflow: "hidden",
       position: "relative",
-      display: "block"
+      display: "block",
+      backgroundColor: theme.vars.palette.background.default
     },
     ".current-folder": {
       top: "20px"
@@ -149,7 +149,8 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "120px",
       padding: `0 0 ${getSpacingPx(SPACING.md)} 0`,
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       bottom: 0,
       zIndex: Z_INDEX.overlay
     },
@@ -160,7 +161,7 @@ const styles = (theme: Theme) =>
       height: "2em",
       zIndex: Z_INDEX.toast,
       cursor: "pointer",
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.text.primary,
       backgroundColor: theme.vars.palette.background.paper,
       border: `2px solid ${theme.vars.palette.action.disabledBackground}`,
       transition: `transform var(--motion-fast) ${EASE_OUT_QUINT}, ${MOTION.background}, ${MOTION.opacity}`
@@ -329,7 +330,7 @@ const styles = (theme: Theme) =>
       height: "calc(100% - 120px)",
       overflowY: "auto",
       zIndex: Z_INDEX.modal,
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.paper,
       boxShadow: SHADOW(theme).lg
     }
   });
@@ -748,17 +749,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         onClose={handleClose}
         aria-label={t("assetViewer.label")}
         variant="fullscreen"
-        slotProps={{
-          // Media sits on a dark surface rather than the paper color.
-          paper: {
-            style: { background: theme.vars.palette.grey[900] }
-          },
-          backdrop: {
-            style: {
-              backgroundColor: theme.vars.palette.grey[900]
-            }
-          }
-        }}
       >
         {/* Compare mode instruction bar */}
         {compareMode && !compareAssetB && (

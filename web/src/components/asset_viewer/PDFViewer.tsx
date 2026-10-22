@@ -106,7 +106,8 @@ const styles = (theme: Theme) =>
     ".page-controls": {
       position: "sticky",
       bottom: "1em",
-      background: theme.vars.palette.grey[600],
+      background: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderRadius: BORDER_RADIUS.sm,
       zIndex: Z_INDEX.sticky,
@@ -135,25 +136,9 @@ const styles = (theme: Theme) =>
       "& .MuiSlider-root": {
         height: "100%",
         width: ".2em",
-        "& .MuiSlider-track": {
-          backgroundColor: theme.vars.palette.grey[500]
-        },
-        "& .MuiSlider-rail": {
-          backgroundColor: theme.vars.palette.grey[800]
-        },
         "& .MuiSlider-thumb": {
-          backgroundColor: theme.vars.palette.grey[400],
           width: "16px",
-          height: "16px",
-          "&:hover, &.Mui-focusVisible": {
-            boxShadow: `0px 0px 0px 8px ${theme.vars.palette.grey[600]}40`
-          }
-        },
-        "& .MuiSlider-mark": {
-          backgroundColor: theme.vars.palette.grey[600],
-          borderRadius: "0",
-          width: "4px",
-          height: "4px"
+          height: "16px"
         }
       }
     }
@@ -242,7 +227,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
         >
           {pageComponent}
         </Document>
-        <FlexRow className="page-controls" align="center" gap={SPACING.xs} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`, borderRadius: BORDER_RADIUS.sm, zIndex: Z_INDEX.sticky, minWidth: "200px", userSelect: "none" }}>
+        <FlexRow className="page-controls" align="center" gap={SPACING.xs} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.background.paper, border: `1px solid ${theme.vars.palette.divider}`, padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`, borderRadius: BORDER_RADIUS.sm, zIndex: Z_INDEX.sticky, minWidth: "200px", userSelect: "none" }}>
           <ToolbarIconButton
             icon={<NavigateBefore />}
             tooltip={t("i18n-next35.pdfViewer.previousPage")}

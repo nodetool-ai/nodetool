@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import { Text, Box } from "../ui_primitives";
+import { Text, Box, VideoPlayer } from "../ui_primitives";
 import { useTranslation } from "react-i18next";
 interface VideoViewerProps {
   asset?: Asset;
@@ -21,13 +21,9 @@ const styles = () =>
       height: "80%",
       marginTop: "4em"
     },
-    video: {
-      margin: 0,
+    ".video-viewer-player": {
       width: "60%",
-      height: "auto",
-      maxHeight: "90%",
-      top: 0,
-      display: "block"
+      maxHeight: "90%"
     }
   });
 
@@ -35,15 +31,11 @@ const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asse
   const { t } = useTranslation();
   return (
     <Box className="video-viewer" css={styles()}>
-      <video
-        controls={true}
-        playsInline
-        preload="metadata"
-        src={asset?.get_url || url || ""}
-        aria-label={asset?.name || t("screen_assets.viewer.video")}
-      >
-        {t("screen_assets.viewer.videoUnsupported")}
-      </video>
+      <VideoPlayer
+        className="video-viewer-player"
+        locator={asset?.get_url || url || ""}
+        label={asset?.name || t("screen_assets.viewer.video")}
+      />
       <Text size="big" color="secondary">
         {asset?.name}
       </Text>

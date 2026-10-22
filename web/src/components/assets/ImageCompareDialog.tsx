@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { CloseButton, Dialog, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { CloseButton, Dialog, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -14,7 +14,8 @@ const styles = (theme: Theme) =>
     ".compare-container": {
       width: "100%",
       height: "100%",
-      position: "relative"
+      position: "relative",
+      backgroundColor: theme.vars.palette.background.default
     },
     ".actions": {
       zIndex: Z_INDEX.tooltip,
@@ -24,20 +25,6 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.xxl),
       top: "1em",
       right: "2em"
-    },
-    ".actions .button": {
-      width: "1.75em",
-      height: "1.75em",
-      backgroundColor: theme.vars.palette.c_overlay_strong,
-      color: theme.vars.palette.grey[900],
-      borderRadius: BORDER_RADIUS.sm,
-      padding: getSpacingPx(SPACING.micro)
-    },
-    ".actions button svg": {
-      fontSize: "1.5em"
-    },
-    ".actions .button:hover": {
-      backgroundColor: theme.vars.palette.grey[500]
     }
   });
 
@@ -63,10 +50,6 @@ const ImageCompareDialog: React.FC = () => {
     <Dialog
       css={styles(theme)}
       variant="fullscreen"
-      slotProps={{
-        // Media sits on a dark surface rather than the paper color.
-        paper: { style: { background: theme.vars.palette.grey[900] } }
-      }}
       open={compareAssets !== null}
       onClose={closeCompareView}
       aria-label={t("compare.compareImages")}
@@ -74,7 +57,6 @@ const ImageCompareDialog: React.FC = () => {
       <div className="compare-container">
         <div className="actions">
           <CloseButton
-            className="button close"
             onClick={closeCompareView}
             tooltip={t("compare.close")}
             nodrag={false}
