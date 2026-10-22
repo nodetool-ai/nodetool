@@ -68,11 +68,16 @@ never put it in a packet.
 | `find-thing` | Someone here worked on plans for releasing the next version of a product. You do not know whether it was a conversation, a document or something else. Find it and open it. | seeded-demo | 15 | Finding something by search |
 | `build-blank` | You want a small process here that takes two words you type and shows them as one line, the first word followed by the second. Build it yourself, step by step, without asking the app to build it for you. Then run it until you see the line. | empty | 40 | Building a graph on an empty canvas |
 | `change-instructions` | Someone left something here that turns trip notes into a packing list. You want every item on the list to say how many to pack. Change what it is told to do, then run it once. | working-run | 20 | Finding a step's hidden settings |
+| `groomer-board` | You run a dog-grooming salon and want a short video for its web page: a muddy dog arrives, gets washed, and leaves fluffy. Before anything is filmed, have the app lay it out as separate scenes with a picture for each, until you see every scene with its picture. | empty | 35 | Planning a video as pictures |
+| `change-scene` | Someone here planned a short drink advert as a series of scenes with a picture each. Change the second scene so that green matcha tea is poured instead of coffee, and get a new picture for that scene, until you see the new picture in its place. | storyboard | 20 | Editing one shot and its still |
+| `reorder-scenes` | The client now wants the advert to open on the person drinking. Make the last scene the first one, and keep the others in their order. | storyboard | 15 | Reordering shots |
+| `watch-plan` | Before paying for any video, you want to see this advert's plan play through from the first scene to the last, like a rough cut. Do that. | storyboard | 15 | Previewing a board |
+| `send-plan` | A client who does not use this app wants to look through this advert's plan on their own computer. Get the plan out of the app as something you could send them. | storyboard | 15 | Exporting a board |
 | `reconnect` | Someone left something here that should turn trip notes into a packing list, but the list it makes never uses the notes. Make it use them, then run it once. | unwired-run | 20 | Reading and repairing a graph's wires |
 
 `add-key`, `read-aloud`, `make-tool`, `make-game`, `keep-answer` and `same-character` need a test key in
 `credentials`. `add-photo` and `change-photo` need an image in `assets`, `photo-video` two
-photos of different scenes, `sort-photos` three photos of two trips, and `ask-file` a text file, and `same-character` one photo named for the cat. `switch-model` on `seeded-demo` has every provider connected, so it
+photos of different scenes, `sort-photos` three photos of two trips, and `ask-file` a text file, and `same-character` one photo named for the cat. The `storyboard` state seeds one example board and an OpenAI key for `change-scene`, `reorder-scenes`, `watch-plan` and `send-plan`. `switch-model` on `seeded-demo` has every provider connected, so it
 studies the choice and not the setup.
 
 ## End states and routes
@@ -120,6 +125,11 @@ studies the choice and not the setup.
 | `build-blank` | A workflow built on the canvas, without the assistant or a guided flow, that joins two typed texts, run with the joined line visible. | Where new nodes landed, how it found the joining node, and whether it wired or typed values in. | [automation](../../agentic-qa/references/protocols/workflows.md#automation) |
 | `change-instructions` | The Agent's system instruction asks for quantities, and a run after the change completed. | Whether it looked on the node before opening the side panel. | [automation](../../agentic-qa/references/protocols/workflows.md#automation) |
 | `reconnect` | A wire from "Trip notes" to the Agent's prompt, and a run after the change completed. | How it found the port's name (zoom, hover, selection, or position). | [automation](../../agentic-qa/references/protocols/workflows.md#automation) |
+| `groomer-board` | A storyboard with more than one shot and a still on each shot is visible. | Whether it took "Create storyboard" or "Create video", and whether it expected the pictures without "Render stills". | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
+| `change-scene` | Shot 2's description mentions matcha and shot 2 shows a newly rendered still. The other shots are unchanged. | How it reached the board, how it read "second scene" against the board's scenes and shots, and the model field in the render dialog. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
+| `reorder-scenes` | The shots read cold-sip, ice-drop, coffee-pour, cream-swirl. | Menu or drag, and whether the grip was on screen. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
+| `watch-plan` | The preview or slideshow plays, with a screenshot of shot 1 and a later shot. | Which control it pressed first: Preview, Slideshow or One Take. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
+| `send-plan` | The receipt says the browser downloaded a file of the board (a ZIP, or an exported timeline). | Where it looked for export, and what it expected the file to hold. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -182,6 +192,14 @@ the pictures. `make-tool` on the real-model server takes 24 or 25 actions and
 about 40 seconds of build. On that server the App flow's model reads "Claude
 Fable (subscription)" whatever key the participant added, and participants
 remark on it. That is the study setup.
+
+Study 11 found that `groomer-board` and `plan-video` take 19 to 29 actions on
+`empty`, 6 of them on the key, so give each 35. The fake planner returns one
+scene of six shots whatever the idea, which participants read as the product
+ignoring their beats. `change-scene` and `reorder-scenes` together need 35 at
+1280 × 720. `watch-plan` and `send-plan` together take about 12 on the fixed
+build. Before the study 11 PR the test server did not serve the board's ZIP
+export, so `send-plan` failed on every session there.
 
 ## Adding a task
 
