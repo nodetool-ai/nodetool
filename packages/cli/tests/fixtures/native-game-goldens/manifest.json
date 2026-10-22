@@ -13,7 +13,8 @@
     "lumen",
     "neon-drift",
     "ridgeline",
-    "signal-forge"
+    "signal-forge",
+    "sunrush-kart"
   ],
   "backends": {
     "2d": "webgpu",
