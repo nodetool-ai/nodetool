@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,12 +7,14 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 const root = fileURLToPath(new URL("../../", import.meta.url));
+const touchHint = "On a phone or tablet, touch controls appear on screen.";
 const startHint = "Click inside the game, then press Space to start.";
 const games = [
-  { slug: "kindle", genre: "Platform adventure", startHint },
-  { slug: "lumen", genre: "Forest exploration", startHint },
-  { slug: "neon-drift", genre: "Arena shooter", startHint },
-  { slug: "ridgeline", genre: "Flight simulator", startHint: "Click inside the game, then hold Shift to open the throttle." }
+  { slug: "kindle", genre: "Platform adventure", startHint, deviceHint: touchHint },
+  { slug: "lumen", genre: "Forest exploration", startHint, deviceHint: touchHint },
+  { slug: "neon-drift", genre: "Arena shooter", startHint, deviceHint: touchHint },
+  { slug: "ridgeline", genre: "Flight simulator", startHint: "Click inside the game, then hold Shift to open the throttle.", deviceHint: "Play on a desktop with a keyboard and mouse." },
+  { slug: "sunrush-kart", genre: "Coastal kart racing", startHint: "Click inside the game, then press Enter to start the race.", deviceHint: "Play on a desktop with a keyboard or gamepad." }
 ];
 const scratch = await mkdtemp(join(tmpdir(), "nodetool-marketing-games-"));
 const entries = [];
@@ -37,6 +39,12 @@ try {
     const result = await run(process.execPath, [join(root, "packages/cli/dist/nodetool.js"), "game", "build", documentPath, "--assets-dir", assetsDir, "--out", output]);
     process.stdout.write(result.stdout);
     await copyFile(join(root, `packages/base-nodes/nodetool/assets/nodetool-base/games/${game.slug}/poster.jpg`), join(output, "poster.jpg"));
+    const mediaDir = join(root, `packages/base-nodes/nodetool/assets/nodetool-base/games/${game.slug}`);
+    const licenses = (await readdir(mediaDir)).filter((name) => /^OFL-.*\.txt$/.test(name));
+    if (licenses.length) {
+      await mkdir(join(output, "licenses"));
+      for (const name of licenses) { await copyFile(join(mediaDir, name), join(output, "licenses", name)); }
+    }
     const htmlPath = join(output, "index.html");
     const html = await readFile(htmlPath, "utf8");
     const title = example.name.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -45,7 +53,7 @@ try {
     await writeFile(htmlPath, html.replace(/<title>NodeTool (?:3D )?Game<\/title>/, `<meta name="robots" content="noindex"><title>${title} | NodeTool Game</title>`));
     const playerPath = join(output, player3d ? "game3d-player.js" : "player-v1.js");
     const player = await readFile(playerPath, "utf8");
-    await writeFile(playerPath, player.replace(/^[ \t]+$/gm, ""));
+    await writeFile(playerPath, player.replace(/[ \t]+$/gm, "").replace(/^ +(?=\t)/gm, ""));
     entries.push({ ...game, name: example.name, description: example.description, controls: example.controls });
   }
   for (const game of games) {
