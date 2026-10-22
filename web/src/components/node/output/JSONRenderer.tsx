@@ -31,7 +31,7 @@ const jsonStyles = (theme: Theme) =>
       wordBreak: "break-word",
       padding: getSpacingPx(SPACING.md),
       borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       color: theme.vars.palette.grey[100]
     },
     ".actions": {

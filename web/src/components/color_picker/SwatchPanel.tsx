@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
     ".palette-section": {
       gap: getSpacingPx(SPACING.md),
       padding: getSpacingPx(SPACING.md),
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       borderRadius: BORDER_RADIUS.md
     },
     ".palette-header": {

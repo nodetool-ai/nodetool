@@ -82,7 +82,7 @@ const styles = (theme: Theme) =>
       flex: `0 0 ${PANEL_WIDTH}px`,
       width: PANEL_WIDTH,
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      background: theme.vars.palette.grey[800],
+      background: theme.vars.palette.background.paper,
       display: "flex",
       flexDirection: "column",
       minHeight: 0,

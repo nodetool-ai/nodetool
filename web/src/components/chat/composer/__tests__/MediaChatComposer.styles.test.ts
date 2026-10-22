@@ -13,7 +13,7 @@ describe("createMediaComposerStyles colour schemes", () => {
     const darkBlock = styles.slice(styles.indexOf(".dark"));
 
     expect(styles).toContain(".dark");
-    expect(darkBlock).toContain("var(--palette-grey-900");
+    expect(darkBlock).toContain("var(--palette-background-default");
     expect(darkBlock).toContain("var(--palette-divider");
   });
 });

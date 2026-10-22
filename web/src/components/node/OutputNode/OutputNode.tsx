@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
         maxWidth: "unset",
         minHeight: "150px",
         borderRadius: theme.rounded.node,
-        border: `1px solid ${theme.vars.palette.grey[700]}`
+        border: `1px solid ${theme.vars.palette.divider}`
       },
       // The body padding of every other node, so the header and the content
       // sit where they do on a base node. `.react-flow__node .node-body`

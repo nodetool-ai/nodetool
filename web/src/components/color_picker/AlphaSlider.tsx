@@ -22,7 +22,7 @@ const styles = (theme: Theme, orientation: "horizontal" | "vertical") =>
       borderRadius: BORDER_RADIUS.xl,
       cursor: "pointer",
       overflow: "hidden",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       // Checkered background for transparency visualization
       backgroundImage: checkerboardPattern,
       backgroundSize: "8px 8px",

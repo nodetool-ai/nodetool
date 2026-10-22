@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.045) 0%, rgb(${theme.vars.palette.common.blackChannel} / 0.18) 100%), ${theme.vars.palette.grey[800]}`,
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.045) 0%, rgb(${theme.vars.palette.common.blackChannel} / 0.18) 100%), ${theme.vars.palette.background.paper}`,
       borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
       contain: "layout style paint",
@@ -118,7 +118,7 @@ const styles = (theme: Theme) =>
     ".asset .image-aspect-ratio": {
       opacity: 0,
       backgroundSize: "contain",
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       willChange: "opacity"
     },
     "&:not(.selected):hover .asset::after": {
@@ -307,14 +307,14 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     "&.image img": {
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       width: "100%",
       height: "auto",
       fontSize: theme.fontSizeSmaller
     },
     "&.svg .asset .image, &.svg .asset .image-aspect-ratio": {
       backgroundSize: "contain",
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     // ITEM
     "&:after": {

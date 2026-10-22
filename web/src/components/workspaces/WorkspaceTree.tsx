@@ -48,7 +48,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       justifyContent: "space-between",
       alignItems: "center",
       paddingBottom: getSpacingPx(SPACING.xs),
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".workspace-header h6": {
@@ -76,10 +76,10 @@ const workspaceTreeStyles = (theme: Theme) =>
     ".file-tree-container": {
       flex: 1,
       overflowY: "auto",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
       padding: getSpacingPx(SPACING.md),
-      backgroundColor: theme.vars.palette.grey[900]
+      backgroundColor: theme.vars.palette.background.default
     },
 
     ".tree-actions": {
@@ -105,7 +105,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       whiteSpace: "nowrap"
@@ -150,7 +150,7 @@ const treeViewStyles = (theme: Theme) => ({
     color: theme.vars.palette.primary.light
   },
   ".MuiTreeItem-content:hover": {
-    backgroundColor: `${theme.vars.palette.grey[700]}66 !important`
+    backgroundColor: `${theme.vars.palette.action.hover} !important`
   },
   ".MuiTreeItem-content.Mui-selected:hover": {
     backgroundColor: `${theme.vars.palette.primary.main}66 !important`

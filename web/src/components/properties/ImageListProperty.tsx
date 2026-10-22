@@ -56,7 +56,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: MOTION.all,
       "&:hover": {
         borderColor: theme.vars.palette.grey[500],

@@ -127,7 +127,7 @@ const NotificationButton: React.FC = React.memo(() => {
                     borderRadius: BORDER_RADIUS.md,
                     maxHeight: "100px",
                     overflow: "auto",
-                    backgroundColor: `${theme.vars.palette.grey[800]}CC`,
+                    backgroundColor: theme.vars.palette.background.paper,
                     borderLeft: `3px solid ${
                       notification.type === "error"
                         ? theme.vars.palette.error.main
@@ -142,7 +142,7 @@ const NotificationButton: React.FC = React.memo(() => {
                     transition: MOTION.all,
                     position: "relative",
                     "&:hover": {
-                      backgroundColor: theme.vars.palette.grey[800]
+                      backgroundColor: theme.vars.palette.action.hover
                     }
                   }}
                 >

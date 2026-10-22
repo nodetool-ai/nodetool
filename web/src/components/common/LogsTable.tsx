@@ -66,7 +66,7 @@ const tableStyles = (theme: Theme) =>
       borderRadius: theme.rounded.md,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.background.paper,
-      border: `1px solid ${theme.vars.palette.grey[800]}`
+      border: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".header": {
@@ -75,8 +75,8 @@ const tableStyles = (theme: Theme) =>
       gap: 8,
       alignItems: "center",
       height: 32,
-      backgroundColor: theme.vars.palette.grey[900],
-      borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
+      backgroundColor: theme.vars.palette.background.default,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       padding: `0 ${getSpacingPx(SPACING.lg)}`,
       fontWeight: 500,
       color: theme.vars.palette.grey[400],
@@ -92,7 +92,7 @@ const tableStyles = (theme: Theme) =>
       alignItems: "center",
       height: 36,
       padding: `0 ${getSpacingPx(SPACING.lg)}`,
-      borderBottom: `1px solid ${theme.vars.palette.grey[850] || theme.vars.palette.grey[900]}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: "transparent",
       transition: MOTION.background,
       cursor: "pointer",
@@ -195,11 +195,11 @@ const tableStyles = (theme: Theme) =>
       bottom: 16,
       right: 16,
       zIndex: Z_INDEX.dropdown,
-      backgroundColor: theme.vars.palette.grey[800],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: SHADOW(theme).md,
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700]
+        backgroundColor: theme.vars.palette.action.hover
       }
     },
 

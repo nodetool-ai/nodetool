@@ -87,7 +87,7 @@ const SketchInspectorInner: React.FC = () => {
         // Recessed, darker well for the generate/inspect content so previews
         // and generated output read against a near-black surface (darker than
         // the surrounding `paper` panel).
-        backgroundColor: theme.vars.palette.grey[900],
+        backgroundColor: theme.vars.palette.background.default,
         borderTop: `1px solid ${theme.vars.palette.divider}`,
         borderLeft: `1px solid ${theme.vars.palette.divider}`
       }}

@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     minHeight: 0,
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
     ".panes": {
       flex: 1,
       minHeight: 0,

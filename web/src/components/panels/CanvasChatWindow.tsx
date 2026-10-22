@@ -93,8 +93,8 @@ const styles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.grey[600]}`,
     boxShadow: `0 1px 2px rgb(${theme.vars.palette.common.blackChannel} / 0.04), 0 12px 32px rgb(${theme.vars.palette.common.blackChannel} / 0.12)`,
     [theme.getColorSchemeSelector("dark")]: {
-      background: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      background: theme.vars.palette.background.default,
+      border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: `0 16px 48px rgb(${theme.vars.palette.common.blackChannel} / 0.55)`
     },
     // Closed windows stay mounted so a draft prompt, its attachments and the
@@ -168,7 +168,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.lg,
       [theme.getColorSchemeSelector("dark")]: {
         background: theme.vars.palette.grey[1000],
-        border: `1px solid ${theme.vars.palette.grey[800]}`
+        border: `1px solid ${theme.vars.palette.divider}`
       },
       "&:focus-within": {
         borderColor: theme.vars.palette.primary.main
@@ -205,7 +205,7 @@ const styles = (theme: Theme) =>
       transition: `${MOTION.background}, color ${MOTION.fast}`,
       "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover, &.active": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.grey[100]
       },
       "&:focus-visible": {
@@ -236,7 +236,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       background: theme.vars.palette.background.paper,
       [theme.getColorSchemeSelector("dark")]: {
-        background: theme.vars.palette.grey[900]
+        background: theme.vars.palette.background.default
       }
     },
     ".chat-window-threads-head": {

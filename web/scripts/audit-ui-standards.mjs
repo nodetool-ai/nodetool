@@ -10,13 +10,15 @@
  * see: an element built by hand where a primitive exists, a primitive
  * restyled at the call site, and copy that breaks the rules. Matches are
  * pattern-based, so counts are approximate and meant for ranking. A rule is a
- * candidate for the lint once its count reaches zero.
+ * candidate for the lint once its count reaches zero. Rules in ENFORCED have
+ * reached zero, and `--check` (run by `npm run lint:design`) fails on any hit.
  *
  * Usage:
  *   node scripts/audit-ui-standards.mjs            summary per element
  *   node scripts/audit-ui-standards.mjs --rule id  every hit of one rule
  *   node scripts/audit-ui-standards.mjs --all      every hit of every rule
  *   node scripts/audit-ui-standards.mjs --json     machine-readable output
+ *   node scripts/audit-ui-standards.mjs --check    fail on any hit of an ENFORCED rule
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
@@ -533,6 +535,24 @@ function audit() {
   return { files: files.length, hits };
 }
 
+// Rules whose count has reached zero. A new hit fails `npm run lint:design`.
+const ENFORCED = [
+  "button/raw-icon-button",
+  "tooltip/shortcut-in-text",
+  "dialog/restyled-paper",
+  "menu/raw-menu",
+  "notification/snackbar",
+  "tabs/raw-tabs",
+  "tabs/hand-tablist",
+  "state/raw-spinner",
+  "state/loading-text",
+  "state/raw-linear-progress",
+  "text/raw-typography",
+  "table/raw-table",
+  "layout/raw-paper",
+  "surface/grey-chrome"
+];
+
 const args = process.argv.slice(2);
 const { files, hits } = audit();
 
@@ -540,6 +560,22 @@ const { files, hits } = audit();
 if (files < 500) {
   console.error(`audit-ui-standards: scanned only ${files} files under ${SRC}`);
   process.exit(1);
+}
+
+if (args.includes("--check")) {
+  const unknown = ENFORCED.filter((id) => !hits[id]);
+  if (unknown.length) {
+    console.error(`audit-ui-standards: unknown enforced rule ${unknown.join(", ")}`);
+    process.exit(1);
+  }
+  const found = ENFORCED.flatMap((id) => hits[id].map((h) => ({ id, ...h })));
+  for (const h of found) console.error(`${h.file}:${h.line}  ${h.id}  ${h.text.slice(0, 140)}`);
+  if (found.length) {
+    console.error(`\n${found.length} hit(s) of enforced element standards. Fixes are in docs/DESIGN.md, Element standards.`);
+    process.exit(1);
+  }
+  console.log(`audit-ui-standards: ${ENFORCED.length} enforced rules clean across ${files} files`);
+  process.exit(0);
 }
 
 if (args.includes("--json")) {

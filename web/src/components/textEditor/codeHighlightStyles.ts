@@ -4,7 +4,7 @@ import { getSpacingPx, SPACING } from "../ui_primitives";
 // Returns CSS styles for Lexical code highlighting tokens using the provided theme.
 export const codeHighlightTokenStyles = (theme: Theme) => ({
   ".editor-code": {
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
     fontFamily: "JetBrains Mono, Consolas, 'Courier New', monospace",
     display: "block",
     padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,

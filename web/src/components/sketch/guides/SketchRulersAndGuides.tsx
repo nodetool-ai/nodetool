@@ -463,7 +463,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
   const rulerSx = {
     position: "absolute" as const,
     display: "block",
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
     color: theme.vars.palette.text.secondary,
     fontFamily: TYPOGRAPHY.mono.code.fontFamily,
     fontSize: FONT_SIZE_SANS.caption,
@@ -515,8 +515,8 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
             top: drag.pointer.y + 12,
             px: 0.5,
             borderRadius: BORDER_RADIUS.xs,
-            backgroundColor: theme.vars.palette.grey[900],
-            border: `1px solid ${theme.vars.palette.grey[700]}`,
+            backgroundColor: theme.vars.palette.background.default,
+            border: `1px solid ${theme.vars.palette.divider}`,
             color: theme.vars.palette.text.primary,
             fontFamily: TYPOGRAPHY.mono.code.fontFamily,
             fontSize: FONT_SIZE_SANS.caption,
@@ -581,7 +581,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
               left: RULER,
               width: `calc(100% - ${RULER}px)`,
               height: RULER,
-              borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+              borderBottom: `1px solid ${theme.vars.palette.divider}`,
               cursor: "row-resize"
             }}
           />
@@ -605,7 +605,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
               left: 0,
               width: RULER,
               height: `calc(100% - ${topInset + RULER}px)`,
-              borderRight: `1px solid ${theme.vars.palette.grey[700]}`,
+              borderRight: `1px solid ${theme.vars.palette.divider}`,
               cursor: "col-resize"
             }}
           />
@@ -616,8 +616,8 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
               left: 0,
               width: RULER,
               height: RULER,
-              borderRight: `1px solid ${theme.vars.palette.grey[700]}`,
-              borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+              borderRight: `1px solid ${theme.vars.palette.divider}`,
+              borderBottom: `1px solid ${theme.vars.palette.divider}`
             }}
           />
         </>

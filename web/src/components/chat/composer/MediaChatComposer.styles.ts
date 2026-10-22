@@ -29,7 +29,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       boxShadow: `0 1px 2px ${theme.vars.palette.c_scrim_soft}, 0 8px 24px ${theme.vars.palette.c_scrim_soft}`,
       [theme.getColorSchemeSelector("dark")]: {
-        background: theme.vars.palette.grey[900],
+        background: theme.vars.palette.background.default,
         border: `1px solid ${theme.vars.palette.divider}`,
         boxShadow: `0 10px 40px ${theme.vars.palette.c_scrim}`
       },
@@ -113,7 +113,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       width: 4,
       height: 4,
       borderRadius: BORDER_RADIUS.circle,
-      background: theme.vars.palette.grey[700],
+      background: theme.vars.palette.divider,
       margin: `0 ${theme.spacing(0.5)}`
     },
 
@@ -193,7 +193,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
         cursor: "not-allowed",
         transform: "none",
         boxShadow: "none",
-        background: theme.vars.palette.grey[800],
+        background: theme.vars.palette.background.paper,
         color: theme.vars.palette.grey[500]
       }
     },

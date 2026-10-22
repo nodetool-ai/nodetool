@@ -315,7 +315,7 @@ const SearchResultItem = memo(function SearchResultItem({
 
   const compactBgStyle = useMemo(
     () => ({
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       width: "18px",
       height: "18px",
       margin: 0,

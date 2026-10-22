@@ -375,7 +375,7 @@ const AiRenderPanel = ({ capture, shot, onShotChange, camera }: AiRenderPanelPro
             borderRadius: BORDER_RADIUS.md,
             border: `1px solid ${theme.vars.palette.divider}`,
             overflow: "hidden",
-            backgroundColor: theme.vars.palette.grey[900]
+            backgroundColor: theme.vars.palette.background.default
           }}
         >
           {!shown ? (
@@ -638,7 +638,7 @@ const AiRenderPanel = ({ capture, shot, onShotChange, camera }: AiRenderPanelPro
                       cursor: "pointer",
                       borderRadius: BORDER_RADIUS.sm,
                       overflow: "hidden",
-                      backgroundColor: theme.vars.palette.grey[900],
+                      backgroundColor: theme.vars.palette.background.default,
                       border: `1px solid ${
                         entry.id === shown?.id ? theme.vars.palette.primary.main : theme.vars.palette.divider
                       }`

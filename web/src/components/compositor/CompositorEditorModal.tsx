@@ -35,14 +35,14 @@ const styles = (theme: Theme) =>
     zIndex: COMPOSITOR_MODAL_Z_INDEX,
     display: "flex",
     flexDirection: "column",
-    background: theme.vars.palette.grey[900],
+    background: theme.vars.palette.background.default,
     ".compositor-modal-header": {
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
       padding: `${theme.spacing(0.5)} ${theme.spacing(1.5)}`,
-      background: theme.vars.palette.grey[800],
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      background: theme.vars.palette.background.paper,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
       minHeight: 40
     },
     ".compositor-modal-body": {

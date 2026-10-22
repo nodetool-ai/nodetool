@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
   css({
     width: "100%",
     height: "100%",
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
     ".filename": {
       color: theme.vars.palette.text.primary,
       fontWeight: 500

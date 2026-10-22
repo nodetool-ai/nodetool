@@ -1402,7 +1402,7 @@ const previewBoxStyles = (theme: Theme) =>
     borderRadius: BORDER_RADIUS.sm,
     overflow: "hidden",
     position: "relative",
-    background: `linear-gradient(135deg, ${theme.vars.palette.grey[800]} 0%, ${theme.vars.palette.grey[600]} 35%, ${theme.vars.palette.grey[400]} 100%)`
+    background: `linear-gradient(135deg, ${theme.vars.palette.background.paper} 0%, ${theme.vars.palette.grey[600]} 35%, ${theme.vars.palette.grey[400]} 100%)`
   });
 
 const VideoBlurEditor: React.FC<

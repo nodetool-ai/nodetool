@@ -15,7 +15,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.lg,
       cursor: "crosshair",
       overflow: "hidden",
-      border: `1px solid ${theme.vars.palette.grey[700]}`
+      border: `1px solid ${theme.vars.palette.divider}`
     },
     ".picker-canvas": {
       width: "100%",

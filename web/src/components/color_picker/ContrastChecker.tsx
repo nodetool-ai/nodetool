@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
     ".preview-box": {
       padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.lg,
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       display: "flex",
       flexDirection: "column",
       gap: getSpacingPx(SPACING.xs)
@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.sm),
       padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.grey[900]
+      backgroundColor: theme.vars.palette.background.default
     },
     ".compliance-label": {
       fontSize: "var(--fontSizeSmaller)",
@@ -91,7 +91,7 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.xs),
       padding: getSpacingPx(SPACING.md),
       borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.grey[900]
+      backgroundColor: theme.vars.palette.background.default
     },
     ".cb-label": {
       fontSize: "var(--fontSizeSmaller)",
@@ -107,7 +107,7 @@ const styles = (theme: Theme) =>
       width: "24px",
       height: "24px",
       borderRadius: BORDER_RADIUS.sm,
-      border: `1px solid ${theme.vars.palette.grey[700]}`
+      border: `1px solid ${theme.vars.palette.divider}`
     }
   });
 

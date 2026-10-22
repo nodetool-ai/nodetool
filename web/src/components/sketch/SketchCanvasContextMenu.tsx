@@ -447,7 +447,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           sx={{
             mt: 0,
             border: "1px solid",
-            borderColor: theme.vars.palette.grey[700],
+            borderColor: theme.vars.palette.divider,
             backgroundColor: surfaceSoft,
             p: 0.5,
             "&:hover": {
