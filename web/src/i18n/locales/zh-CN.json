@@ -18583,5 +18583,17 @@
       "replaceClip": "替换片段",
       "addAsTake": "添加为新版本"
     }
+  },
+  "antigravity": {
+    "install": "安装 Antigravity",
+    "installing": "正在安装 Antigravity…",
+    "installed": "已安装",
+    "notInstalled": "未安装",
+    "checking": "正在检查安装…",
+    "description": "使用你的 Google Antigravity 账户访问语言模型，无需 API 密钥。",
+    "installDescription": "从 Google 下载 Antigravity 到 NodeTool 的应用数据目录，可能需要几分钟。",
+    "signIn": "要登录，请将此命令复制到这台电脑的终端中运行。完成 Google 登录后，刷新模型。",
+    "refreshModels": "刷新模型",
+    "statusUnavailable": "状态不可用"
   }
 }
