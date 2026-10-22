@@ -13,7 +13,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { SPACING, ToggleGroup, ToggleOption, BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
+import { SPACING, ToggleGroup, ToggleOption, BORDER_RADIUS, FONT_WEIGHT, EYEBROW } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -97,11 +97,8 @@ const styles = (theme: Theme) =>
       pointerEvents: "none"
     },
     ".jack-label": {
-      fontSize: theme.fontSizeSmaller,
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.05em",
-      lineHeight: "18px",
       height: 18,
       marginBottom: theme.spacing(SPACING.md),
       "&:last-child": { marginBottom: 0 }

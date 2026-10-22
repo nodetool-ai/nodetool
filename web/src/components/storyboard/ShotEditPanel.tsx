@@ -54,7 +54,8 @@ import {
   Text,
   TextArea,
   ToolbarIconButton,
-  SPACING
+  SPACING,
+  EYEBROW
 } from "../ui_primitives";
 import ShotGraphicsEditor from "./ShotGraphicsEditor";
 import ShotEditViewer from "./ShotEditViewer";
@@ -191,9 +192,7 @@ const viewerColumnSx = {
 
 /** Matches the form's `Shot details` heading. */
 const sectionTitleSx = {
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  fontWeight: 500,
+  ...EYEBROW,
   color: "text.disabled"
 } as const;
 

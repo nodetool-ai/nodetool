@@ -6,7 +6,7 @@
 
 Six milestones. M1–M3 track the design's phases 1–3 and produce a bot worth shipping; M4–M6 are the deliberate follow-ons (groups, Discord, triggers). Each milestone lists its tasks with owning files and a **done-when** that is checkable, and closes with exit criteria — the milestone is not done until every one holds. Task ids (`T1.4`) are for PR references; one task is roughly one reviewable PR-sized change, and tasks inside a milestone are ordered by dependency.
 
-Verification baseline for every task, per [AGENTS.md](../AGENTS.md): `npm run typecheck`, `npm run lint`, `npm run test`, `npm run test:packages` (or the packages `nodetool affected` names), and any new check must be proven able to fail before it counts.
+Verification baseline for every task, per [AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md): `npm run typecheck`, `npm run lint`, `npm run test`, `npm run test:packages` (or the packages `nodetool affected` names), and any new check must be proven able to fail before it counts.
 
 ---
 

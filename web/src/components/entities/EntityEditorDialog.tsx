@@ -8,6 +8,7 @@
 import React, { memo, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 import {
   BORDER_RADIUS,
@@ -29,6 +30,7 @@ import { mediaRefFromAsset } from "../../utils/mediaRef";
 import { entityAssistContext } from "../../utils/textAssist";
 import ImageRefPreview from "../node/ImageRefPreview";
 import EntityAssetPickerDialog from "./EntityAssetPickerDialog";
+import GenerateReferenceDialog from "./GenerateReferenceDialog";
 
 interface EntityEditorDialogProps {
   open: boolean;
@@ -62,6 +64,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
   const theme = useTheme();
   const saveEntity = useSaveEntity();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [generatorOpen, setGeneratorOpen] = useState(false);
   const [referenceAssetId, setReferenceAssetId] = useState(assetId);
   const [kind, setKind] = useState<EntityKind>("character");
   const [name, setName] = useState("");
@@ -171,7 +174,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
         )}
 
         <FormField label={t("screens4_22.entities.image")}>
-          <FlexRow gap={SPACING.md} align="center">
+          <FlexRow gap={SPACING.md} align="center" wrap>
             <div
               style={{
                 width: PREVIEW_SIZE,
@@ -192,6 +195,13 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
               aria-label={t("screens4_22.entities.changeImage")}
             >
               {t("screens4_22.entities.changeImage")}
+            </EditorButton>
+            <EditorButton
+              variant="outlined"
+              startIcon={<AutoAwesomeOutlinedIcon />}
+              onClick={() => setGeneratorOpen(true)}
+            >
+              {t("screens4_22.entities.retakeImage")}
             </EditorButton>
           </FlexRow>
         </FormField>
@@ -258,6 +268,17 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
         onPick={handlePickImage}
         projectId={projectId}
       />
+      {generatorOpen ? (
+        <GenerateReferenceDialog
+          open
+          name={name.trim()}
+          kind={kind}
+          descriptor={descriptor}
+          currentAssetId={referenceAssetId}
+          onClose={() => setGeneratorOpen(false)}
+          onPick={setReferenceAssetId}
+        />
+      ) : null}
     </Dialog>
   );
 };

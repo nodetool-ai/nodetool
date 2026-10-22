@@ -48,13 +48,6 @@ import type { ProviderCapability } from "./base-provider.js";
 const log = createLogger("nodetool.runtime.codex");
 
 /**
- * Chat model that orchestrates the `image_generation` tool call. The Codex
- * backend has no images endpoint — images are produced by invoking the
- * Responses built-in `image_generation` tool from a normal chat model.
- */
-const CODEX_IMAGE_ORCHESTRATOR_MODEL = "gpt-5.5";
-
-/**
  * The models the Codex CLI lists in its picker, mirrored from its bundled
  * `models.json` (entries with `visibility: "list"`). Shown only when the live
  * `/models` listing is unavailable.
@@ -113,6 +106,8 @@ function codexDefaultHeaders(
 }
 
 export class CodexProvider extends OpenAIProvider {
+  private imageOrchestratorModel: Promise<string> | null = null;
+
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return [
       "text_to_image"
@@ -221,6 +216,18 @@ export class CodexProvider extends OpenAIProvider {
   }
 
   /**
+   * The chat model that calls the `image_generation` tool. The Codex backend
+   * has no images endpoint, and the models it serves change by account and
+   * over time, so use the first model of the live listing.
+   */
+  private resolveImageOrchestratorModel(): Promise<string> {
+    this.imageOrchestratorModel ??= this.getAvailableLanguageModels().then(
+      (models) => models[0]?.id ?? CODEX_FALLBACK_MODELS[0].id
+    );
+    return this.imageOrchestratorModel;
+  }
+
+  /**
    * Generate an image by asking a chat model to invoke the Responses built-in
    * `image_generation` tool, then extracting the PNG bytes from the
    * `image_generation_call` output item.
@@ -247,7 +254,7 @@ export class CodexProvider extends OpenAIProvider {
     if (params.quality) imageTool.quality = params.quality;
 
     const body = {
-      model: CODEX_IMAGE_ORCHESTRATOR_MODEL,
+      model: await this.resolveImageOrchestratorModel(),
       instructions:
         "Generate the image the user describes by calling the image_generation tool. Do not ask clarifying questions.",
       input: [

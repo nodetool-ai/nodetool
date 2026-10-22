@@ -1,4 +1,4 @@
-import { Asset, getSecret, Message, Setting } from "@nodetool-ai/models";
+import { Asset, getSecret, Message, Setting, Thread } from "@nodetool-ai/models";
 import {
   ProcessingContext as RuntimeProcessingContext,
   type ProcessingContextModelInterfaces,
@@ -39,6 +39,14 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
       // raw — the `content` column is a jsonText type that serializes them, so
       // stringifying here would double-encode and break the getMessages read
       // path (which feeds normalizeMessage, not a JSON-parsing response mapper).
+      // The graph author picks thread_id. A thread another user owns is
+      // refused, as ensureThreadExists does on the chat path: its history
+      // loads by thread_id alone, so a foreign row would reach that user's
+      // model context.
+      const thread = await Thread.get<Thread>(req.thread_id);
+      if (thread && thread.user_id !== userId) {
+        throw new Error("Thread not found");
+      }
       return Message.create<Message>({
         user_id: userId,
         thread_id: req.thread_id,

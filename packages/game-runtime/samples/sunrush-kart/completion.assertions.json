@@ -1,0 +1,93 @@
+{
+  "tolerance": 0.001,
+  "ticks": [
+    {
+      "tick": 600,
+      "sceneId": "coastline",
+      "entities": [
+        {
+          "id": "racer-0",
+          "x": 87.51446533203125,
+          "y": 6.446037292480469,
+          "z": -69.65211486816406
+        }
+      ]
+    },
+    {
+      "tick": 1800,
+      "sceneId": "coastline",
+      "entities": [
+        {
+          "id": "racer-0",
+          "x": 105.85462951660156,
+          "y": 7.810645580291748,
+          "z": -54.93611526489258
+        }
+      ]
+    },
+    {
+      "tick": 3000,
+      "sceneId": "coastline",
+      "entities": [
+        {
+          "id": "racer-0",
+          "x": 126.48576354980469,
+          "y": 11.26990032196045,
+          "z": -3.4246537685394287
+        }
+      ]
+    },
+    {
+      "tick": 3705,
+      "sceneId": "coastline",
+      "entities": [
+        {
+          "id": "racer-0",
+          "x": -0.5391033887863159,
+          "y": 1.9994447231292725,
+          "z": 35.13625717163086
+        }
+      ],
+      "events": [
+        {
+          "kind": "trigger",
+          "event": "lap",
+          "entityId": "racer-0",
+          "payload": {
+            "lap": 3
+          }
+        },
+        {
+          "kind": "trigger",
+          "event": "finish",
+          "entityId": "racer-0"
+        },
+        {
+          "kind": "trigger",
+          "event": "win",
+          "entityId": "racer-0"
+        },
+        {
+          "kind": "audio",
+          "action": "start",
+          "assetId": "sfx-lap",
+          "voiceId": "effect:coastline:sound-lap:3705:3",
+          "loop": false,
+          "volume": 0.6,
+          "fadeInTicks": 0,
+          "fadeOutTicks": 0
+        },
+        {
+          "kind": "audio",
+          "action": "start",
+          "assetId": "sfx-finish",
+          "voiceId": "effect:coastline:sound-finish:3705:4",
+          "loop": false,
+          "volume": 0.75,
+          "fadeInTicks": 0,
+          "fadeOutTicks": 0
+        }
+      ]
+    }
+  ]
+}

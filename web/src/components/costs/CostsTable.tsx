@@ -12,7 +12,8 @@ import {
   SPACING,
   getSpacingPx,
   ICON_SIZE,
-  EmptyState
+  EmptyState,
+  EYEBROW
 } from "../ui_primitives";
 import { CostNodeIcon } from "./CostNodeIcon";
 import {
@@ -47,8 +48,7 @@ const HeaderText: React.FC<
       size="smaller"
       weight={600}
       sx={{
-        letterSpacing: "0.07em",
-        textTransform: "uppercase",
+        ...EYEBROW,
         color: theme.vars.palette.text.disabled,
         textAlign: align,
         whiteSpace: "nowrap"

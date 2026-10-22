@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, TextLink, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx, VirtualList, SHADOW } from "../ui_primitives";
+import { Text, TextLink, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx, VirtualList, SHADOW, EYEBROW } from "../ui_primitives";
 import type { VirtualListHandle } from "../ui_primitives";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
@@ -78,11 +78,8 @@ const tableStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.default,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       padding: `0 ${getSpacingPx(SPACING.lg)}`,
-      fontWeight: 500,
+      ...EYEBROW,
       color: theme.vars.palette.grey[400],
-      fontSize: "var(--fontSizeSmaller)",
-      textTransform: "uppercase",
-      letterSpacing: "0.05em"
     },
 
     ".row": {

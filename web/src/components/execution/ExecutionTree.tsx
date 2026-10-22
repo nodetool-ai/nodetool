@@ -29,7 +29,8 @@ import {
   reducedMotion,
   SPACING,
   StatusDot,
-  Z_INDEX
+  Z_INDEX,
+  EYEBROW
 } from "../ui_primitives";
 import type {
   ExecutionTreeState,
@@ -332,10 +333,7 @@ const treeStyles = (theme: Theme) =>
 
     ".tl-inspector-label": {
       color: theme.vars.palette.text.secondary,
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
-      fontSize: "var(--fontSizeSmaller)"
+      ...EYEBROW,
     },
 
     ".tl-inspector-body": {

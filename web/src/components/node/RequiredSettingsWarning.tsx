@@ -48,12 +48,8 @@ const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.me
             className="required-settings-button"
             variant="text"
             color="warning"
-            size="small"
             onClick={handleOpenSettings}
-            sx={{
-              alignSelf: "flex-start",
-              minHeight: 24
-            }}
+            sx={{ alignSelf: "flex-start" }}
           >
             {t("i18n-next61.requiredSettingsWarning.configure")}
           </EditorButton>

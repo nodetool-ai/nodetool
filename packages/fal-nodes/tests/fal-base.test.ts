@@ -383,9 +383,10 @@ describe("assetToFalUrl", () => {
     expect(url).toBeNull();
   });
 
-  it("fetches and uploads non-HTTPS URI", async () => {
+  it("fetches and uploads a public HTTPS URI through the egress policy", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      status: 200,
       arrayBuffer: async () => new Uint8Array([10, 20]).buffer,
       headers: new Headers({ "content-type": "image/jpeg" })
     } as unknown as Response);
@@ -393,8 +394,25 @@ describe("assetToFalUrl", () => {
       "https://v3.fal.media/files/uploaded.jpg"
     );
 
-    const url = await assetToFalUrl(apiKey, { uri: "http://local/img.jpg" });
+    const url = await assetToFalUrl(apiKey, {
+      type: "video",
+      uri: "https://example.com/clip.mp4"
+    });
     expect(url).toBe("https://v3.fal.media/files/uploaded.jpg");
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ redirect: "manual" });
+  });
+
+  it.each([
+    "http://169.254.169.254/latest/meta-data/",
+    "http://127.0.0.1:7777/api/workflows",
+    "https://10.0.0.5/internal",
+    "/api/internal-route",
+    "/api/storage/../secret"
+  ])("does not fetch the workflow-supplied uri %s", async (uri) => {
+    const url = await assetToFalUrl(apiKey, { type: "video", uri });
+    expect(url).toBeNull();
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockStorageUpload).not.toHaveBeenCalled();
   });
 });
 

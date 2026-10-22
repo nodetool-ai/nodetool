@@ -189,16 +189,40 @@ describe("CodexProvider", () => {
       `data: ${JSON.stringify({ type: "response.image_generation_call.in_progress" })}\n\n` +
       `data: ${JSON.stringify({ type: "response.output_item.done", item: { type: "image_generation_call", result: b64 } })}\n\n` +
       `data: ${JSON.stringify({ type: "response.completed", response: {} })}\n\n`;
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(sse, {
-        status: 200,
-        headers: { "content-type": "text/event-stream" }
-      })
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(sse, {
+          status: 200,
+          headers: { "content-type": "text/event-stream" }
+        })
     );
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const [model] = await provider.getAvailableImageModels();
     const bytes = await provider.textToImage({ model, prompt: "a dot" });
     expect(Array.from(bytes)).toEqual(Array.from(png));
+  });
+
+  it("orchestrates image generation with the first live chat model", async () => {
+    const b64 = Buffer.from([1, 2, 3]).toString("base64");
+    const sse = `data: ${JSON.stringify({ type: "response.output_item.done", item: { type: "image_generation_call", result: b64 } })}\n\n`;
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) =>
+        String(input).includes("/models")
+          ? new Response(
+              JSON.stringify({ models: [{ slug: "gpt-6.1-sol" }] }),
+              { status: 200 }
+            )
+          : new Response(sse, { status: 200 })
+      );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    const [model] = await provider.getAvailableImageModels();
+    await provider.textToImage({ model, prompt: "a dot" });
+    const call = fetchSpy.mock.calls.find(([u]) =>
+      String(u).endsWith("/responses")
+    );
+    const sent = JSON.parse(String(call?.[1]?.body)) as { model: string };
+    expect(sent.model).toBe("gpt-6.1-sol");
   });
 
   it("classifies an expired sign-in as a credential failure", async () => {

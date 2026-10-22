@@ -16,6 +16,21 @@ const renderWithThemeProvider = (component: React.ReactElement, scope?: "node" |
 };
 
 describe("EditorButton", () => {
+  it("gives a large button body text and a small one the editor text size", () => {
+    renderWithThemeProvider(
+      <>
+        <EditorButton size="large">Large</EditorButton>
+        <EditorButton>Small</EditorButton>
+      </>
+    );
+    expect(getComputedStyle(screen.getByRole("button", { name: "Large" })).fontSize).toBe(
+      mockTheme.fontSizeNormal
+    );
+    expect(getComputedStyle(screen.getByRole("button", { name: "Small" })).fontSize).toBe(
+      mockTheme.fontSizeSmaller
+    );
+  });
+
   it("renders a button with text content", () => {
     renderWithThemeProvider(<EditorButton>Click me</EditorButton>);
     const button = screen.getByRole("button", { name: /click me/i });

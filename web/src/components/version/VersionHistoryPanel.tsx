@@ -322,7 +322,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 density="compact"
                 variant="text"
                 onClick={handleClearComparison}
-                sx={{ fontSize: "var(--fontSizeSmaller)", py: 0.5, px: 0.5, minWidth: 0 }}
+                sx={{ minWidth: 0 }}
               >
                 {t("versionHistory.clear")}
               </EditorButton>
@@ -333,9 +333,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 variant={isCompareMode ? "contained" : "text"}
                 onClick={handleToggleCompareMode}
                 sx={{
-                  fontSize: "var(--fontSizeSmaller)",
-                  py: 0.5,
-                  px: 1,
                   minWidth: 0,
                   color: isCompareMode ? undefined : "text.secondary"
                 }}

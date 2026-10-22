@@ -5,8 +5,11 @@
  * on a per-user unix socket so any local client (the backend, the CLI) reaches
  * the extension without a server in between. Access control is the filesystem:
  * the directory is 0700 and the socket 0600, so only the same OS user connects.
+ * The directory sits in a shared temp dir on Linux, so both ends also check it
+ * is ours: another user could create it first and plant a listener.
  */
 
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -36,4 +39,22 @@ export function bridgeSocketPath(pid: number): string {
   return process.platform === "win32"
     ? bridgePipeName()
     : path.join(bridgeSocketDir(), `${pid}.sock`);
+}
+
+/**
+ * Whether `target` is a real directory or socket (not a symlink), owned by the
+ * current user, with no group or other permission bits. POSIX only.
+ */
+export function isPrivateToCurrentUser(
+  target: string,
+  kind: "directory" | "socket"
+): boolean {
+  let stat: fs.Stats;
+  try {
+    stat = fs.lstatSync(target);
+  } catch {
+    return false;
+  }
+  const isKind = kind === "directory" ? stat.isDirectory() : stat.isSocket();
+  return isKind && stat.uid === process.getuid?.() && (stat.mode & 0o077) === 0;
 }

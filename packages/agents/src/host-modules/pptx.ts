@@ -8,6 +8,7 @@
  */
 
 import {
+  boundedUnzipFilter,
   importOptionalLibrary,
   requireBytes,
   unwrapLibrary
@@ -74,7 +75,7 @@ export async function extractSlides(bytes: unknown): Promise<PptxSlide[]> {
   const where = "pptx.extractSlides";
   const archive = requireBytes(where, bytes);
   const { unzipSync, strFromU8 } = await import("fflate");
-  const entries = unzipSync(archive);
+  const entries = unzipSync(archive, { filter: boundedUnzipFilter(where) });
   const slidePaths = Object.keys(entries)
     .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
     .sort((a, b) => {

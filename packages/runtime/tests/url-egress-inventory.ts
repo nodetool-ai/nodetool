@@ -245,7 +245,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   guardedMedia(
     "packages/fal-nodes/src/fal-base.ts",
     "FAL media upload",
-    "Turns a ref's https uri into a data uri for the FAL client."
+    "Turns a ref's http(s) uri into bytes or a data uri for the FAL client, through fetchExternalMedia."
   ),
   guardedMedia(
     "packages/replicate-nodes/src/replicate-base.ts",
@@ -896,7 +896,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "packages/fal-nodes/src/fal-base.ts",
     "FAL queue + upload",
     "FAL_API_KEY",
-    "fal.run / fal.ai endpoints; the media-ref read beside them is guarded."
+    "fal.run / fal.ai endpoints, plus a /api/storage/<key> read from the local server; workflow http(s) uris go through fetchExternalMedia."
   ),
   fixedHost(
     "packages/fal-nodes/src/fal-billing.ts",

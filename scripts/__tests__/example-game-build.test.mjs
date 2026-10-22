@@ -113,26 +113,26 @@ function catalogFixture() {
   const f = fixture();
   cpSync(path.join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/games"), path.join(f.base, "assets/nodetool-base/games"), { recursive: true });
   cpSync(path.join(ROOT, "packages/base-nodes/nodetool/examples/games"), path.join(f.base, "examples/games"), { recursive: true });
-  for (const slug of ["signal-forge", "aether", "blacksite", "ridgeline", "kindle"]) {
+  for (const slug of ["signal-forge", "aether", "blacksite", "ridgeline", "sunrush-kart", "kindle"]) {
     cpSync(path.join(ROOT, "packages/game-runtime/samples", slug), path.join(f.root, "packages/game-runtime/samples", slug), { recursive: true });
   }
   return f;
 }
 function catalogSnapshot(f) {
-  return ["signal-forge", "aether", "blacksite", "ridgeline", "kindle", "lumen", "neon-drift"].map((slug) => {
+  return ["signal-forge", "aether", "blacksite", "ridgeline", "sunrush-kart", "kindle", "lumen", "neon-drift"].map((slug) => {
     const media = path.join(f.base, "assets/nodetool-base/games", slug);
     return { slug, manifest: digest(readFileSync(path.join(f.base, "examples/games", `${slug}.game.json`))),
       media: readdirSync(media).sort().map((name) => [name, digest(readFileSync(path.join(media, name)))]) };
   });
 }
-it("reconstructs all seven unchanged bundles without private home projects", () => {
+it("reconstructs all unchanged bundles without private home projects", () => {
   const f = catalogFixture();
   const before = catalogSnapshot(f);
   const env = { ...process.env, HOME: path.join(f.root, "empty-home") };
   delete env.NODETOOL_GAMES_DIR;
   const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs"], { cwd: f.root, encoding: "utf8", env });
   expect(result.status, result.stderr).toBe(0);
-  expect(result.stdout.match(/ assets/g)).toHaveLength(7);
+  expect(result.stdout.match(/ assets/g)).toHaveLength(8);
   expect(catalogSnapshot(f)).toEqual(before);
 });
 it("preflights every selected game before publishing any generation", () => {

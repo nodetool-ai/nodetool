@@ -221,10 +221,14 @@ export function isPublicAuthExemptRoute(
  * the path before choosing a route, so `/%61pi/workflows` reaches the
  * `/api/workflows` handler. Every auth decision must test this decoded form,
  * never the raw `req.url`. Returns null for malformed escapes, which the
- * router refuses anyway.
+ * router refuses anyway, and for a raw `#`, so such a path never matches an
+ * auth exemption.
  */
 export function routedPathname(url: string): string | null {
   const raw = url.split("?")[0] ?? "/";
+  // A raw `#` is never valid in a request-target, and the router may stop at
+  // it while a suffix check here would not. Refuse to classify such a path.
+  if (raw.includes("#")) return null;
   try {
     return decodeURI(raw);
   } catch {
@@ -236,13 +240,17 @@ export function routedPathname(url: string): string | null {
  * GETs the bundled frontend serves without auth: anything outside the API,
  * WebSocket, OpenAI-compatible, tRPC and MCP prefixes. `GET /mcp` is the MCP
  * SSE stream, so it stays behind auth to bind the session's user. A path that
- * does not decode is never treated as a static asset.
+ * does not decode is never treated as a static asset, and neither is one in
+ * absolute form (`GET http://host/api/...`) or with a doubled leading slash:
+ * neither starts with a prefix below, yet the router can still resolve it
+ * to an API route.
  */
 export function isStaticAppRequest(
   pathname: string | null,
   method: string
 ): boolean {
   if (pathname === null || method !== "GET") return false;
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) return false;
   return !["/api", "/ws", "/v1", "/trpc", "/mcp"].some((prefix) =>
     pathname.startsWith(prefix)
   );

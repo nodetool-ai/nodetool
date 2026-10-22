@@ -134,7 +134,7 @@ export const GAMEDEV_FAQ: QaPair[] = [
   {
     question: "Can an AI agent build a playable game in NodeTool?",
     answer:
-      "Yes. The agent creates the game, edits it through checked operations, generates and installs the art and sound, and playtests it headlessly before you play it. The three games on this page are web builds of example games that ship with NodeTool.",
+      "Yes. The agent creates the game, edits it through checked operations, generates and installs the art and sound, and playtests it headlessly before you play it. The games on this page are web builds of example games that ship with NodeTool.",
   },
   {
     question: "Can Claude Code build a game in NodeTool?",

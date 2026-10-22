@@ -21,7 +21,8 @@ import {
   LoadingSpinner,
   ScrollArea,
   Text, Toolbar, getSpacingPx, SPACING,
-  EmptyState
+  EmptyState,
+  EYEBROW
 } from "../ui_primitives";
 
 interface TextPreviewProps {
@@ -43,8 +44,7 @@ const styles = (theme: Theme) =>
       fontWeight: 500
     },
     ".kind-tag": {
-      textTransform: "uppercase",
-      letterSpacing: "0.05em"
+      ...EYEBROW,
     },
     ".preview-body": {
       flex: 1,

@@ -14,7 +14,8 @@ import {
   MOTION,
   BORDER_RADIUS,
   Z_INDEX,
-  FONT_SIZE_SANS
+  FONT_SIZE_SANS,
+  EYEBROW
 } from "../ui_primitives";
 
 export interface SketchToolIconLabelProps {
@@ -130,12 +131,8 @@ function SketchToolIconLabel({
         component="span"
         className="sketch-tool-icon-label__label"
         sx={{
-          fontSize: compact ? FONT_SIZE_SANS.caption : FONT_SIZE_SANS.label,
-          fontWeight: 600,
+          ...EYEBROW,
           color: row ? "text.primary" : "text.secondary",
-          lineHeight: 1.15,
-          textTransform: "uppercase",
-          letterSpacing: row ? "0.08em" : "0.07em",
           textAlign: row ? "left" : "center",
           width: row ? undefined : "100%",
           minWidth: 0,

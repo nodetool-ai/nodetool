@@ -88,8 +88,14 @@ export function EditorButton({
   const theme = useTheme();
   const scope = useEditorScope();
 
+  // A large button is a page-level action (setup flow, error screens), so it
+  // carries body text. Smaller buttons follow the editor scope.
   const fontSize =
-    scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeSmaller;
+    size === "large"
+      ? theme.fontSizeNormal
+      : scope === "inspector"
+        ? theme.fontSizeSmall
+        : theme.fontSizeSmaller;
   const densityHeight =
     density === "compact" ? CONTROL.height.xs : CONTROL.height.sm;
   const sizeHeights = {

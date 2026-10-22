@@ -7,6 +7,7 @@
 # cleaner before the site is written, so a generator here silently produces
 # nothing (and every alternate link 404s).
 require "fileutils"
+require "pathname"
 require "json"
 
 module Jekyll
@@ -54,7 +55,7 @@ module Jekyll
 
     def self.standalone_markdown(site, page, canonical_path, markdown_path)
       source = File.read(page.path, encoding: "UTF-8")
-      body = source.sub(/\A---\s*\n.*?\n---\s*\n/m, "").strip
+      body = absolute_links(source.sub(/\A---\s*\n.*?\n---\s*\n/m, "").strip, page)
       title = page.data["title"] || page.name.sub(/\.md$/, "").tr("-", " ")
       description = page.data["description"] || site.config["description"]
       canonical = "#{site.config["url"]}#{canonical_path}"
@@ -75,6 +76,20 @@ module Jekyll
         body,
         "",
       ].join("\n")
+    end
+
+    # Relative links resolve against the source file's directory, but an
+    # index page's alternate is also written one level up (/nodes/gemini.md
+    # for nodes/gemini/index.md), where the same links point at pages that do
+    # not exist. Rewriting them as root-relative paths keeps both copies valid.
+    def self.absolute_links(body, page)
+      base = Pathname.new("/").join(File.dirname(page.path))
+      body.gsub(%r{\]\((?![a-z][a-z0-9+.-]*:|#|/)([^)\s]+)\)}i) do
+        target, fragment = Regexp.last_match(1).split("#", 2)
+        resolved = base.join(target).cleanpath.to_s
+        resolved += "/" if target.end_with?("/") && resolved != "/"
+        "](#{resolved}#{fragment ? "##{fragment}" : ""})"
+      end
     end
 
     def self.write(site, output_path, content)

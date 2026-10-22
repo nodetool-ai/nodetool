@@ -17,7 +17,9 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 import { SPACING,
   FlexRow,
-  StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
+  StateIconButton, BORDER_RADIUS,
+  EYEBROW
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImagePreview from "./ImagePreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -98,11 +100,8 @@ const styles = (theme: Theme) =>
       padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`
     },
     ".section-title": {
-      fontSize: theme.fontSizeSmaller,
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.06em",
-      lineHeight: 1
     },
     ".controls": {
       display: "grid",

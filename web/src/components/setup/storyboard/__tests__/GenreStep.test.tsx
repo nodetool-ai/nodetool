@@ -116,7 +116,7 @@ describe("GenreStep", () => {
     );
     expect(STORYBOARD_GENRES).toHaveLength(14);
     expect(
-      within(grid).getByRole("radio", { name: /Science Fiction/ })
+      within(grid).getByRole("radio", { name: /Science fiction/ })
     ).toBeInTheDocument();
   });
 

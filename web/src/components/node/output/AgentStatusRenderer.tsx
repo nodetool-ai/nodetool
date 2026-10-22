@@ -9,7 +9,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import ErrorIcon from "@mui/icons-material/ErrorOutline";
 import { Chunk } from "../../../stores/ApiTypes";
 
-import { BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx, EYEBROW } from "../../ui_primitives";
 type Props = {
   chunk: Chunk;
 };
@@ -109,10 +109,7 @@ export const AgentStatusRenderer: React.FC<Props> = memo(({ chunk }) => {
       <span
         style={{
           color,
-          fontWeight: 600,
-          textTransform: "uppercase",
-          fontSize: "0.7em",
-          letterSpacing: 0.5,
+          ...EYEBROW,
           flexShrink: 0,
           paddingTop: 2
         }}

@@ -550,6 +550,14 @@ describe("@nodetool-ai/sandbox-zip", () => {
     await expect(zip(files)).rejects.toThrow(/exceed the 52428800 byte limit/);
   });
 
+  it("refuses a bomb from its declared entry sizes", async () => {
+    const { unzip } = await import("../src/host-modules/zip.js");
+    const zeros = new Uint8Array(32 * 1024 * 1024);
+    const bomb = zipSync({ a: zeros, b: zeros }, { level: 9 });
+    expect(bomb.length).toBeLessThan(1024 * 1024);
+    await expect(unzip(bomb)).rejects.toThrow(/inflates past the 52428800 byte limit/);
+  });
+
   it("keeps the zip-bomb cap at 50 MB", () => {
     // Drift pin. Moving this is a policy change, not a refactor, and it belongs
     // in its own commit with its own reasoning.

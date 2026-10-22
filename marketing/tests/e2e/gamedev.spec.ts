@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
 
 interface NativeGame3DWindow extends Window {
-  readonly nativeGame3DPlayer: { readonly snapshot: () => { readonly sceneId: string } };
+  readonly nativeGame3DPlayer: {
+    readonly snapshot: () => { readonly sceneId: string };
+    readonly pause: () => void;
+    readonly advance: (inputs: readonly { pressed: readonly string[]; axes: { throttle: number } }[]) => Promise<unknown>;
+    readonly inspect: () => { readonly entities: readonly { id: string; props?: { race?: { phase: string; speed: number } } }[] };
+  };
 }
 
 interface NativeGameWindow extends Window {
@@ -26,7 +31,7 @@ for (const game of games) {
     await expect(page).toHaveTitle(/Open-Source AI Game Engine/);
     await expect(page.locator("h1")).toHaveCount(1);
     const section = page.locator("#example-games");
-    expect(await section.getByRole("group", { name: "Example games" }).getByRole("button").allTextContents()).toEqual([...games.map((example) => example.name), "RIDGELINE"]);
+    expect(await section.getByRole("group", { name: "Example games" }).getByRole("button").allTextContents()).toEqual([...games.map((example) => example.name), "RIDGELINE", "Sunrush Kart"]);
     await section.getByRole("button", { name: game.name, exact: true }).click();
     await expect(section.locator("iframe")).toHaveCount(0);
     const play = section.getByRole("link", { name: `Play ${game.name} in a new tab`, exact: true });
@@ -98,4 +103,42 @@ test("the game page fits on a phone and offers the full touch player", async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByRole("dialog", { name: "Site menu" }).getByRole("link", { name: "Game development", exact: true })).toBeVisible();
+});
+
+
+test("Sunrush Kart opens from its poster and starts a coastal race", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/gamedev");
+  const section = page.locator("#example-games");
+  await section.getByRole("button", { name: "Sunrush Kart", exact: true }).click();
+  const poster = section.getByRole("img", { name: "Sunrush Kart gameplay", exact: true });
+  await expect(poster).toBeVisible();
+  await expect.poll(() => poster.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  await expect(section.getByText("Play on a desktop with a keyboard or gamepad.", { exact: true })).toBeVisible();
+  const play = section.getByRole("link", { name: "Play Sunrush Kart in a new tab", exact: true });
+  await expect(play).toHaveAttribute("href", "/games/sunrush-kart/index.html");
+  const [player] = await Promise.all([page.context().waitForEvent("page"), play.click()]);
+  await player.bringToFront();
+  await expect(player).toHaveTitle("Sunrush Kart | NodeTool Game");
+  await expect(player.locator("#status")).toContainText("Ready", { timeout: 60_000 });
+  await expect.poll(() => player.evaluate(() => {
+    const game = (window as unknown as NativeGame3DWindow).nativeGame3DPlayer;
+    return game.inspect().entities.find((entity) => entity.id === "racer-0")?.props?.race?.phase;
+  }), { timeout: 30_000 }).toBe("title");
+  await player.locator("canvas").click();
+  await player.keyboard.press("Enter");
+  await expect.poll(() => player.evaluate(() => {
+    const game = (window as unknown as NativeGame3DWindow).nativeGame3DPlayer;
+    return game.inspect().entities.find((entity) => entity.id === "racer-0")?.props?.race?.phase;
+  }), { timeout: 15_000 }).toMatch(/countdown|racing/);
+  const race = await player.evaluate(async () => {
+    const game = (window as unknown as NativeGame3DWindow).nativeGame3DPlayer;
+    game.pause();
+    await game.advance(Array.from({ length: 240 }, () => ({ pressed: [], axes: { throttle: 1 } })));
+    return { scene: game.snapshot().sceneId, race: game.inspect().entities.find((entity) => entity.id === "racer-0")?.props?.race };
+  });
+  expect(race.scene).toBe("coastline");
+  expect(race.race?.phase).toBe("racing");
+  expect(race.race?.speed).toBeGreaterThan(0);
+  await player.close();
 });

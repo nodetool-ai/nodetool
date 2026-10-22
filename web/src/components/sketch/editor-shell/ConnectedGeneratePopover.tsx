@@ -350,7 +350,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
           {/* Primary action — full-frame text-to-image */}
           <EditorButton
             variant="contained"
-            size="small"
+            size="medium"
             disabled={actionDisabled}
             onClick={() => void handleGenerate()}
             startIcon={
@@ -361,7 +361,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
               )
             }
             data-testid="sketch-gen-submit"
-            sx={{ alignSelf: "flex-end", height: 34 }}
+            sx={{ alignSelf: "flex-end" }}
           >
             {t("i18n-next52.sketch.generate.generate")}
           </EditorButton>

@@ -241,7 +241,13 @@ async function approveNodePack(name: string): Promise<NodePackActionResult> {
     };
   }
 
-  const rebuildTargets = [name, ...(current.dependencies ?? []).map((entry) => entry.name)];
+  // npm rebuild selects every tree node whose folder name matches a bare name,
+  // including same-named copies another pack nests or aliases. Pass the exact
+  // directories that were just verified so no unchecked package runs scripts.
+  const rebuildTargets = [
+    current.artifact?.lockPath ?? `node_modules/${name}`,
+    ...(current.dependencies ?? []).map((entry) => entry.lockPath ?? `node_modules/${entry.name}`)
+  ].map((lockPath) => path.join(getNodePackInstallRoot(), ...lockPath.split("/")));
   await runNpm(["rebuild", ...rebuildTargets]);
 
   const approved: NodePackInstallRecord = {
@@ -333,19 +339,44 @@ function artifactDrift(
   if (recordedAll.length === 0) {
     return "no lockfile identity was recorded at install time";
   }
-  const currentAll = new Map(
-    [
-      ...(current.artifact === undefined ? [] : [current.artifact]),
-      ...(current.dependencies ?? [])
-    ].map((entry) => [entry.name, entry])
-  );
+  const currentAll = [
+    ...(current.artifact === undefined ? [] : [current.artifact]),
+    ...(current.dependencies ?? [])
+  ];
+  // Records written before lock paths were stored match by name only.
+  const counterpart = (
+    entry: NodePackArtifactIdentity,
+    pool: NodePackArtifactIdentity[]
+  ): NodePackArtifactIdentity | undefined =>
+    pool.find((other) =>
+      entry.lockPath !== undefined && other.lockPath !== undefined
+        ? other.lockPath === entry.lockPath
+        : other.name === entry.name
+    );
   for (const entry of recordedAll) {
-    const now = currentAll.get(entry.name);
+    const now = counterpart(entry, currentAll);
     if (now === undefined) return `${entry.name} is no longer in the lockfile`;
-    for (const field of ["version", "resolved", "integrity"] as const) {
-      if (entry[field] !== now[field]) {
-        return `${entry.name} ${field} changed from ${entry[field] ?? "none"} to ${now[field] ?? "none"}`;
-      }
+    const moved = identityChange(entry, now);
+    if (moved !== undefined) return moved;
+  }
+  // Every copy that will be rebuilt must have been recorded, including a second
+  // copy of a name that appeared since install.
+  for (const entry of currentAll) {
+    const then = counterpart(entry, recordedAll);
+    if (then === undefined) return `${entry.lockPath ?? entry.name} was not in the lockfile at install time`;
+    const moved = identityChange(then, entry);
+    if (moved !== undefined) return moved;
+  }
+  return undefined;
+}
+
+function identityChange(
+  then: NodePackArtifactIdentity,
+  now: NodePackArtifactIdentity
+): string | undefined {
+  for (const field of ["version", "resolved", "integrity"] as const) {
+    if (then[field] !== now[field]) {
+      return `${then.name} ${field} changed from ${then[field] ?? "none"} to ${now[field] ?? "none"}`;
     }
   }
   return undefined;
@@ -380,7 +411,7 @@ function artifactIdentity(
 ): NodePackArtifactIdentity | undefined {
   const entry = packages[lockPath];
   if (entry === undefined) return undefined;
-  const identity: NodePackArtifactIdentity = { name };
+  const identity: NodePackArtifactIdentity = { name, lockPath };
   if (entry.version !== undefined) {
     identity.version = entry.version;
   }
@@ -405,6 +436,7 @@ function dependencyClosure(
   const rootPath = `node_modules/${name}`;
   if (packages[rootPath] === undefined) return [];
   const seen = new Set<string>([rootPath]);
+  // Keyed by lock path: two copies of one name are two packages to verify.
   const found = new Map<string, NodePackArtifactIdentity>();
   const pending = [rootPath];
   for (let index = 0; index < pending.length; index += 1) {
@@ -419,10 +451,13 @@ function dependencyClosure(
       seen.add(resolved);
       pending.push(resolved);
       const identity = artifactIdentity(dep, packages, resolved);
-      if (identity !== undefined && !found.has(dep)) found.set(dep, identity);
+      if (identity !== undefined) found.set(resolved, identity);
     }
   }
-  return [...found.values()].sort((left, right) => left.name.localeCompare(right.name));
+  return [...found.values()].sort(
+    (left, right) =>
+      left.name.localeCompare(right.name) || (left.lockPath ?? "").localeCompare(right.lockPath ?? "")
+  );
 }
 
 /** Walk `<from>/node_modules/<dep>` outward, mirroring Node's resolution order. */

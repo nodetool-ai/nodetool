@@ -950,6 +950,8 @@ export class ReplicateProvider extends BaseProvider {
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.width) input.width = params.width;
     if (params.height) input.height = params.height;
+    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+    if (params.resolution) input.resolution = params.resolution;
     if (params.guidanceScale != null)
       input.guidance_scale = params.guidanceScale;
     if (params.numInferenceSteps != null)
@@ -958,8 +960,10 @@ export class ReplicateProvider extends BaseProvider {
     if (params.scheduler) input.scheduler = params.scheduler;
 
     log.debug("textToImage", { model: params.model.id });
-    const output = await this.runModel(params.model.id, input);
-    return this._fetchOutputBytes(output);
+    return this.runWithInput(
+      params.model.id,
+      this.pruneToDeclaredInputs(params.model.id, input)
+    );
   }
 
   async imageToImage(
@@ -978,10 +982,18 @@ export class ReplicateProvider extends BaseProvider {
       input.num_inference_steps = params.numInferenceSteps;
     if (params.strength != null) input.strength = params.strength;
     if (params.seed != null) input.seed = params.seed;
+    // Models such as nano-banana-2 default to match_input_image, so without
+    // the ratio the output copies the reference images' shape.
+    if (params.targetWidth) input.width = params.targetWidth;
+    if (params.targetHeight) input.height = params.targetHeight;
+    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+    if (params.resolution) input.resolution = params.resolution;
 
     log.debug("imageToImage", { model: params.model.id });
-    const output = await this.runModel(params.model.id, input);
-    return this._fetchOutputBytes(output);
+    return this.runWithInput(
+      params.model.id,
+      this.pruneToDeclaredInputs(params.model.id, input)
+    );
   }
 
   override async inpaint(

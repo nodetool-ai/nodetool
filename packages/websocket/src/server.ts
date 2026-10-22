@@ -1418,6 +1418,8 @@ function listRegistryRecommendedModels(): UnifiedModel[] {
 }
 
 const sdkModelDownloadService = createSdkV1ModelDownloadService({
+  // Production gates server-side downloads off on every transport.
+  enabled: !isProduction,
   startWorkerDownload: (userId, request, operationId, onProgress) =>
     relayWorkerDownload(
       {
@@ -1456,7 +1458,7 @@ const apiOptions: SdkV1RouteApiOptions = {
           execution: "available",
           preflight: "available",
           model_catalog: "available",
-          model_download: "available",
+          model_download: isProduction ? "disabled" : "available",
           temporary_asset_upload: "available"
         },
         authModes: enforceAuth ? ["bearer"] : ["trusted_local"],

@@ -71,6 +71,17 @@ const GAMES = [
     backend: "webgl2"
   },
   {
+    slug: "sunrush-kart",
+    name: "Sunrush Kart",
+    description: "Race five rivals around a sunlit coastal circuit. Charge drift boosts, collect items, and chase first place through three laps of harbor bends and seaside bridges.",
+    controls: "WASD or arrows to drive · Hold Shift to drift · Space or E to use an item · R to recover · P or Escape to pause",
+    sourceDir: path.join(ROOT, "packages/game-runtime/samples/sunrush-kart"),
+    posterTick: 700,
+    inputs: "completion.inputs.json",
+    backend: "webgl2",
+    licenses: ["OFL-BebasNeue.txt", "OFL-Inter.txt"]
+  },
+  {
     slug: "kindle",
     name: "Kindle",
     description:
@@ -158,7 +169,8 @@ const plans = GAMES.filter((game) => !slug || game.slug === slug).map((game) => 
     delete binding.sourceAssetId;
     return { source, target, digest: binding.digest };
   });
-  return { game, mediaDir, manifest, sourceDir, document: sourceDocument, assets,
+  const licenses = (game.licenses ?? []).map((name) => ({ name, bytes: readFileSync(path.join(sourceDir, "licenses", name)) }));
+  return { game, mediaDir, manifest, sourceDir, document: sourceDocument, assets, licenses,
     poster: existsSync(poster) && !POSTERS ? readFileSync(poster) : null };
 });
 
@@ -177,6 +189,7 @@ try {
         throw new Error(`${plan.game.slug}: source media changed during staging`);
       }
     }
+    for (const license of plan.licenses) { writeFileSync(path.join(directory, license.name), license.bytes); }
     if (plan.poster) writeFileSync(path.join(directory, "poster.jpg"), plan.poster);
     else await capturePoster(plan.game, plan.sourceDir, path.join(directory, "poster.jpg"));
     const bundle = { name: plan.game.name, description: plan.game.description, controls: plan.game.controls,

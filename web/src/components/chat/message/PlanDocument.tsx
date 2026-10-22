@@ -10,7 +10,8 @@ import {
   FlexRow,
   Text,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  EYEBROW
 } from "../../ui_primitives";
 import type { PlanDocumentModel } from "./parsePlanDocument";
 
@@ -37,8 +38,7 @@ const styles = (theme: Theme) =>
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".plan-document-kicker": {
-      textTransform: "uppercase",
-      letterSpacing: 1
+      ...EYEBROW,
     },
     ".plan-document-counts": {
       fontFamily: theme.fontFamily2,

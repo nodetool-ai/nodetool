@@ -56,6 +56,38 @@ export function requireBytes(
   return value;
 }
 
+/** Total uncompressed size a host module inflates from one zip before refusing. */
+export const MAX_UNZIP_TOTAL_BYTES = 50 * 1024 * 1024;
+
+/** Entry count a host module accepts from one zip before refusing. */
+export const MAX_UNZIP_ENTRIES = 10_000;
+
+/**
+ * An fflate `unzipSync` filter that refuses an archive before inflating it.
+ * fflate calls the filter with each entry's declared size before inflating
+ * that entry, and inflates into a buffer of that size, so the sum here bounds
+ * host memory. Checking sizes after `unzipSync` returns bounds nothing.
+ */
+export function boundedUnzipFilter(
+  where: string
+): (file: { originalSize: number }) => boolean {
+  let total = 0;
+  let entries = 0;
+  return (file) => {
+    entries += 1;
+    if (entries > MAX_UNZIP_ENTRIES) {
+      throw new Error(`${where}: archive has more than ${MAX_UNZIP_ENTRIES} entries`);
+    }
+    total += file.originalSize;
+    if (total > MAX_UNZIP_TOTAL_BYTES) {
+      throw new Error(
+        `${where}: archive inflates past the ${MAX_UNZIP_TOTAL_BYTES} byte limit`
+      );
+    }
+    return true;
+  };
+}
+
 /** An options bag argument, defaulted and type-checked in one place. */
 export function optionsOf(value: unknown): Record<string, unknown> {
   return isRecord(value)

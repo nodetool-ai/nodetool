@@ -128,11 +128,11 @@ const AudioProperty = (props: PropertyProps) => {
               }}
             />
             <EditorButton
-              size="small"
+              size="large"
               variant={isStreaming ? "contained" : "outlined"}
               color={isStreaming ? "error" : "primary"}
               onClick={toggle}
-              sx={{ flex: 1, minHeight: 36 }}
+              sx={{ flex: 1 }}
             >
               {isStreaming ? t("audio.stop") : t("audio.startMic")}
             </EditorButton>

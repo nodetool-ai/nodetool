@@ -1321,7 +1321,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "extract_pdf_tables",
     module: "documents",
     impl: "packages/agents/src/capabilities/documents.ts",
-    contract: "93a9a586177e",
+    contract: "0d944ee5e9a8",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-documents.test.ts",
@@ -1337,7 +1337,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "convert_pdf_to_markdown",
     module: "documents",
     impl: "packages/agents/src/capabilities/documents.ts",
-    contract: "062520f6ddaf",
+    contract: "307e69f736e9",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-documents.test.ts",

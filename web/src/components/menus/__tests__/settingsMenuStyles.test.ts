@@ -1,6 +1,7 @@
 import type { CSSObject } from "@emotion/react";
 import mockTheme from "../../../__mocks__/themeMock";
 import { settingsStyles } from "../settingsMenuStyles";
+import { EYEBROW } from "../../ui_primitives";
 
 describe("settingsStyles", () => {
   it("emits valid sidebar padding values", () => {
@@ -26,7 +27,7 @@ describe("settingsStyles", () => {
       mockTheme.fontSizeSmall
     );
     expect(styles[".settings-sidebar-category"].fontSize).toBe(
-      mockTheme.fontSizeSmaller
+      EYEBROW.fontSize
     );
     expect(styles[".settings-content"].margin).toBe(0);
   });

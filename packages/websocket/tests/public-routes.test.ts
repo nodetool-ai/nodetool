@@ -214,12 +214,31 @@ describe("routedPathname", () => {
   it("returns null for malformed escapes", () => {
     expect(routedPathname("/api/storage/%E0%A4%A")).toBeNull();
   });
+
+  it("returns null for a raw '#', so a suffix cannot select an exemption", () => {
+    expect(routedPathname("/api/workflows/abc#/interface")).toBeNull();
+    // The encoded form stays encoded and is still classified.
+    expect(routedPathname("/api/workflows/abc%23/interface")).toBe(
+      "/api/workflows/abc%23/interface"
+    );
+  });
 });
 
 describe("isStaticAppRequest", () => {
   it("serves frontend paths without auth", () => {
     expect(isStaticAppRequest("/", "GET")).toBe(true);
     expect(isStaticAppRequest("/assets/index.js", "GET")).toBe(true);
+  });
+
+  it("keeps absolute-form and doubled-slash targets behind auth", () => {
+    for (const url of [
+      "http://localhost:7777/api/workflows",
+      "https://example.com/ws",
+      "//api/workflows",
+      "api/workflows"
+    ]) {
+      expect(isStaticAppRequest(routedPathname(url), "GET")).toBe(false);
+    }
   });
 
   it("keeps percent-encoded API and WebSocket paths behind auth", () => {

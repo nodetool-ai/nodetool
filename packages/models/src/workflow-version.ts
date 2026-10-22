@@ -113,4 +113,12 @@ export class WorkflowVersion extends DBModel {
         .where(inArray(workflowVersions.id, chunk));
     }
   }
+
+  /** Delete every version row of a workflow, as its own delete does. */
+  static async deleteForWorkflow(workflowId: string): Promise<void> {
+    const db = getPortableDb();
+    await db
+      .delete(workflowVersions)
+      .where(eq(workflowVersions.workflow_id, workflowId));
+  }
 }

@@ -34,7 +34,8 @@ import {
   ExternalLink,
   MenuItemPrimitive,
   BORDER_RADIUS,
-  Z_INDEX
+  Z_INDEX,
+  EYEBROW
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -222,10 +223,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
         <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
           <Caption
             sx={{
-              fontWeight: 600,
+              ...EYEBROW,
               color: tier.main,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em"
             }}
           >
             {t("i18n-next66.node.falPricingFooter.falPricing")}
@@ -274,10 +273,8 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
         <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
           <Caption
             sx={{
-              fontWeight: 600,
+              ...EYEBROW,
               color: theme.vars.palette.text.secondary,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em"
             }}
           >
             {t("i18n-next66.node.falPricingFooter.accountCredits")}
