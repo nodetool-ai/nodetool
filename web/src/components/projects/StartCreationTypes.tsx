@@ -1,11 +1,11 @@
 /**
- * The start page's creation-type cards: four primary kinds in a row, and an
+ * The start page's creation-type cards: the primary kinds in a row, and an
  * "Explore all creation types" bar that unfolds the rest below them. Every
  * card routes somewhere (a guided flow, or a blank 3D model), so each is its
  * own tab stop and carries no selection state.
  */
 
-import { memo, type ReactNode } from "react";
+import { memo, useEffect, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -149,6 +149,19 @@ const StartCreationTypes = ({
   moreControls
 }: StartCreationTypesProps) => {
   const { t } = useTranslation();
+  const moreRef = useRef<HTMLDivElement>(null);
+  // The unfolded cards start below the fold on a laptop screen, where the
+  // only new thing in view was the game type control (study-10-I3).
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    moreRef.current?.scrollIntoView?.({
+      block: "nearest",
+      behavior: reduce ? "auto" : "smooth"
+    });
+  }, [expanded]);
   return (
     <FlexColumn
       role="group"
@@ -206,7 +219,11 @@ const StartCreationTypes = ({
         </FlexRow>
       </Box>
       {expanded && (
-        <FlexColumn id="start-more-creation-types" gap={GAP.comfortable}>
+        <FlexColumn
+          ref={moreRef}
+          id="start-more-creation-types"
+          gap={GAP.comfortable}
+        >
           {moreControls}
           <CardRow
             cards={more}

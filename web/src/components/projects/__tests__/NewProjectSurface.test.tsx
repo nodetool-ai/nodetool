@@ -1088,7 +1088,7 @@ describe("NewProjectSurface", () => {
       name: "Start with a guided flow"
     });
     await user.click(
-      within(cards).getByRole("button", { name: /^Storyboard / })
+      within(cards).getByRole("button", { name: /^Create storyboard / })
     );
 
 
@@ -1465,7 +1465,7 @@ describe("NewProjectSurface", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /^Explore all creation types/ }));
-    await userEvent.click(screen.getByRole("button", { name: /^Storyboard From a sentence/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Create storyboard Plan scenes/ }));
 
     await waitFor(() => expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "guided-flow", setupTarget: expect.objectContaining({ kind: "storyboard" }) })));
 
@@ -1482,7 +1482,7 @@ describe("NewProjectSurface", () => {
   it("starts a guided card in the current project without a destination dialog", async () => {
     renderSurface();
     await userEvent.click(
-      screen.getByRole("button", { name: /^Storyboard From a sentence/ })
+      screen.getByRole("button", { name: /^Create storyboard Plan scenes/ })
     );
     expect(screen.queryByText("Start Storyboard in…")).not.toBeInTheDocument();
     await waitFor(() => expect(createStoryboard).toHaveBeenCalled());
@@ -1501,7 +1501,7 @@ describe("NewProjectSurface", () => {
     expect(prompt).toHaveValue("/launch-commercial A spot for our desk lamp");
     await userEvent.click(
       screen.getByRole("button", {
-        name: /^Storyboard From a sentence to a rendered board/
+        name: /^Create storyboard Plan scenes/
       })
     );
 
@@ -1522,7 +1522,7 @@ describe("NewProjectSurface", () => {
     );
     await userEvent.click(
       screen.getByRole("button", {
-        name: /^Storyboard From a sentence to a rendered board/
+        name: /^Create storyboard Plan scenes/
       })
     );
 
@@ -1570,7 +1570,7 @@ describe("NewProjectSurface", () => {
     const first = renderSurface();
     await userEvent.click(
       screen.getByRole("button", {
-        name: /^Storyboard From a sentence to a rendered board/
+        name: /^Create storyboard Plan scenes/
       })
     );
 
@@ -2181,7 +2181,7 @@ describe("NewProjectSurface", () => {
     renderSurface();
     await user.click(
       screen.getByRole("button", {
-        name: /^Storyboard From a sentence to a rendered board/
+        name: /^Create storyboard Plan scenes/
       })
     );
 
@@ -2225,7 +2225,7 @@ describe("NewProjectSurface", () => {
     );
     await user.click(
       screen.getByRole("button", {
-        name: /^Storyboard From a sentence to a rendered board/
+        name: /^Create storyboard Plan scenes/
       })
     );
 
@@ -2258,7 +2258,7 @@ describe("NewProjectSurface", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: /^Storyboard From a sentence to a rendered board/
+        name: /^Create storyboard Plan scenes/
       })
     );
 
@@ -2325,7 +2325,7 @@ describe("NewProjectSurface", () => {
     );
     await userEvent.click(
       screen.getByRole("button", {
-        name: /^Storyboard From a sentence to a rendered board/
+        name: /^Create storyboard Plan scenes/
       })
     );
 
@@ -2358,22 +2358,22 @@ describe("NewProjectSurface", () => {
   });
 });
 
-it("leads with four creation types and reveals the others on request", async () => {
+it("leads with five creation types and reveals the others on request", async () => {
     renderSurface(null, false);
     const cards = screen.getByRole("group", { name: "Start with a guided flow" });
-    for (const title of ["image", "video", "app", "workflow"]) {
+    for (const title of ["image", "video", "storyboard", "app", "workflow"]) {
       expect(
         within(cards).getByRole("button", { name: new RegExp(`^Create ${title} `) })
       ).toBeInTheDocument();
     }
     expect(within(cards).queryByRole("button", { name: /^Read aloud/ })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: /^Explore all creation types/ }));
-    for (const title of ["Storyboard", "Script", "Read aloud", "Game", "Entity", "3D model"]) {
+    for (const title of ["Script", "Read aloud", "Game", "Entity", "3D model"]) {
       expect(
         within(cards).getByRole("button", { name: new RegExp(`^${title} `) })
       ).toBeInTheDocument();
     }
-    await userEvent.click(screen.getByRole("combobox", { name: "Game dimension" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "Game type" }));
     await userEvent.click(screen.getByRole("option", { name: "3D exploration" }));
     expect(within(cards).getByRole("button", { name: /Game Start with a playable 3D exploration scene/ })).toBeInTheDocument();
   });

@@ -60,6 +60,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  GAP,
   Label,
   InspectorSelect,
   MenuItemPrimitive,
@@ -185,17 +186,21 @@ import {
   VISIBLE_STARTERS
 } from "./projectStarters";
 import { useSkills } from "../../hooks/skills/useSkills";
-/** The four kinds the start page leads with, in the order shown. */
+/**
+ * The kinds the start page leads with, in the order shown. Storyboard is one
+ * of them because people who want a picture per scene took "Create video"
+ * while it sat behind the fold (study-10-I1).
+ */
 const PRIMARY_CREATION_IDS: readonly EntryFlowId[] = [
   "image",
   "video",
+  "storyboard",
   "app",
   "workflow"
 ];
 
 /** The rest, behind "Explore all creation types". */
 const MORE_CREATION_IDS: readonly EntryFlowId[] = [
-  "storyboard",
   "script",
   "speech",
   "game",
@@ -2542,7 +2547,10 @@ const NewProjectSurface = ({
                 onToggleExpanded={() => setShowMoreFlows((shown) => !shown)}
                 onSelect={handleCreationCard}
                 moreControls={
-                  <FlexRow justify="flex-end">
+                  <FlexRow justify="flex-end" align="center" gap={GAP.compact}>
+                    <Caption component="span" color="secondary">
+                      {t("pass3_32.projects.home.gameDimension")}
+                    </Caption>
                     <InspectorSelect
                       label={t("pass3_32.projects.home.gameDimension")}
                       value={gameDimension}

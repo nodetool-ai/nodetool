@@ -14,6 +14,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useLastModelStore } from "../../../../stores/lastModelStore";
+import useModelPreferencesStore from "../../../../stores/ModelPreferencesStore";
 import useProviderOnboardingStore from "../../../../stores/ProviderOnboardingStore";
 import { STUDIO_CLIP_MODELS, STUDIO_VOICES } from "../../../../studio/curatedModels";
 import {
@@ -152,6 +153,7 @@ const renderBody = (voiceOn = true) =>
 beforeEach(() => {
   useTimelineStore.getState().reset();
   useLastModelStore.setState({ byKind: {} });
+  useModelPreferencesStore.setState({ defaults: {} });
   useProviderOnboardingStore.getState().dismiss();
   mockEstimate = null;
   mockTtsPick = DEFAULT_TTS_PICK;
@@ -210,6 +212,31 @@ describe("useLookStep — the gate before the paid button", () => {
 
     expect(result.current.video?.model).toBe(CLIP_MODEL.id);
     expect(result.current.voice?.voice).toBe(VOICE.id);
+  });
+
+  it("starts the voice on the default speech model when none was picked before (study-10 D1)", async () => {
+    seedPlan();
+    voiceCatalog = { ...voiceCatalog, isLoading: true };
+    useModelPreferencesStore.setState({
+      defaults: {
+        tts_model: { provider: "nodetool", id: VOICE.modelId, name: "Voice" }
+      }
+    });
+    const { rerender } = renderHook(() => useDraftGenerationSettings());
+    // Nothing is stored while the voice list loads, so the draft does not
+    // settle on no voice before the default's voices are known.
+    expect(useTimelineStore.getState().setup?.generation_settings).toBeUndefined();
+
+    voiceCatalog = { ...voiceCatalog, isLoading: false };
+    rerender();
+
+    await waitFor(() =>
+      expect(
+        useTimelineStore.getState().setup?.generation_settings
+      ).toEqual({
+        voice: { provider: "nodetool", model: VOICE.modelId, voice: VOICE.id }
+      })
+    );
   });
 
   it("keeps document A choices after document B changes the global preference", () => {

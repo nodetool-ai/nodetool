@@ -6238,7 +6238,7 @@
         "moreStarters_other": "{{count}} weitere",
         "pickSkillOrDescribe": "Wähle einen Skill für den Einstieg oder beschreibe einfach, was du möchtest.",
         "guidedFlowsRegion": "Mit einem geführten Ablauf starten",
-        "gameDimension": "Spieldimension",
+        "gameDimension": "Spieltyp",
         "game2d": "2D-Spiel",
         "game3d": "3D-Erkundung",
         "blankDocument": "Leeres Dokument",
@@ -6282,6 +6282,10 @@
             "title": "Video erstellen",
             "description": "Ideen werden zu Clips"
           },
+          "storyboard": {
+            "title": "Storyboard erstellen",
+            "description": "Szenen planen, mit einem Bild pro Szene"
+          },
           "app": {
             "title": "App erstellen",
             "description": "Eine Seite, die andere nutzen können"
@@ -6297,7 +6301,7 @@
         },
         "allTypes": {
           "title": "Alle Erstellungsarten ansehen",
-          "description": "Storyboards, 3D, Spiele, Skripte, Vorlesen und mehr"
+          "description": "3D, Spiele, Skripte, Vorlesen und mehr"
         },
         "recentProjects": {
           "heading": "Zuletzt bearbeitete Projekte",
@@ -7230,6 +7234,10 @@
         "heading": "Wofür ist es gedacht?",
         "groupLabel": "Anwendungsfall",
         "cards": {
+          "scene": {
+            "title": "Szene",
+            "description": "Ein Bild, wie du es beschreibst"
+          },
           "product": {
             "title": "Produktfotografie",
             "description": "Ein Objekt vor sauberem Hintergrund, direkt einsetzbar"

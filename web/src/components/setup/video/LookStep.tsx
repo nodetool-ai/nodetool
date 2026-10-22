@@ -7,7 +7,8 @@
  * beside it and the generate action behind it — while the spend stays here with
  * the pickers it belongs to.
  *
- * A new draft seeds its model and voice once from `lastModelStore`, then owns
+ * A new draft seeds its model and voice once from `lastModelStore` (the voice
+ * falls back to the default speech model), then owns
  * those choices in `setup.generation_settings`. The global store remains the
  * default for the next draft, never the authority for one already in progress.
  *
@@ -41,6 +42,8 @@ import TTSModelSelect from "../../properties/TTSModelSelect";
 import type { TTSModelValue, VideoModelValue } from "../../../stores/ApiTypes";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useLastModelStore } from "../../../stores/lastModelStore";
+import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
+import { useTTSModelsByProvider } from "../../../hooks/useModelsByProvider";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import {
   STUDIO_CLIP_MODELS,
@@ -215,6 +218,54 @@ const isDraftGenerationSettings = (
       "voice" in value.voice &&
       typeof value.voice.voice === "string"));
 
+/**
+ * The voice a new draft starts with: the one last picked in this flow, else
+ * the first voice of the default speech model, which is set once a provider
+ * that reads aloud is connected (study-10 D1).
+ */
+const useSeedVoice = (): {
+  voice: DraftGenerationSettings["voice"];
+  pending: boolean;
+} => {
+  const rememberedVoice = useLastModelStore((state) => state.byKind.audio);
+  const ttsDefault = useModelPreferencesStore(
+    (state) => state.defaults["tts_model"]
+  );
+  const { models, isLoading } = useTTSModelsByProvider();
+  return useMemo(() => {
+    if (
+      rememberedVoice?.provider &&
+      rememberedVoice.model &&
+      rememberedVoice.voice
+    ) {
+      return {
+        voice: {
+          provider: rememberedVoice.provider,
+          model: rememberedVoice.model,
+          voice: rememberedVoice.voice
+        },
+        pending: false
+      };
+    }
+    if (!ttsDefault) {
+      return { voice: undefined, pending: false };
+    }
+    if (isLoading) {
+      return { voice: undefined, pending: true };
+    }
+    const model = models.find(
+      (m) => m.id === ttsDefault.id && m.provider === ttsDefault.provider
+    );
+    const voice = model?.voices?.[0];
+    return {
+      voice: voice
+        ? { provider: ttsDefault.provider, model: ttsDefault.id, voice }
+        : undefined,
+      pending: false
+    };
+  }, [isLoading, models, rememberedVoice, ttsDefault]);
+};
+
 /** Seed once from the global preference, then read only this document. */
 export function useDraftGenerationSettings(): DraftGenerationSettings {
   const setup = useTimelineStore((state) => state.setup);
@@ -224,56 +275,39 @@ export function useDraftGenerationSettings(): DraftGenerationSettings {
     : undefined;
   const setSetup = useTimelineStore((state) => state.setSetup);
   const rememberedVideo = useLastModelStore((state) => state.byKind.video);
-  const rememberedVoice = useLastModelStore((state) => state.byKind.audio);
+  const seedVoice = useSeedVoice();
 
-  useEffect(() => {
-    if (setup === null || setup.stage === "done" || stored !== undefined) {
-      return;
-    }
-    const seeded: DraftGenerationSettings = {};
+  const seeded = useMemo<DraftGenerationSettings>(() => {
+    const next: DraftGenerationSettings = {};
     if (rememberedVideo?.provider && rememberedVideo.model) {
-      seeded.video = {
+      next.video = {
         provider: rememberedVideo.provider,
         model: rememberedVideo.model
       };
     }
+    if (seedVoice.voice) {
+      next.voice = seedVoice.voice;
+    }
+    return next;
+  }, [rememberedVideo, seedVoice.voice]);
+
+  useEffect(() => {
     if (
-      rememberedVoice?.provider &&
-      rememberedVoice.model &&
-      rememberedVoice.voice
+      setup === null ||
+      setup.stage === "done" ||
+      stored !== undefined ||
+      seedVoice.pending
     ) {
-      seeded.voice = {
-        provider: rememberedVoice.provider,
-        model: rememberedVoice.model,
-        voice: rememberedVoice.voice
-      };
+      return;
     }
     setSetup({ generation_settings: seeded });
-  }, [rememberedVideo, rememberedVoice, setSetup, setup, stored]);
+  }, [seedVoice.pending, seeded, setSetup, setup, stored]);
 
   if (stored !== undefined) {
     return stored;
   }
   if (setup === null || setup.stage === "done") {
     return {};
-  }
-  const seeded: DraftGenerationSettings = {};
-  if (rememberedVideo?.provider && rememberedVideo.model) {
-    seeded.video = {
-      provider: rememberedVideo.provider,
-      model: rememberedVideo.model
-    };
-  }
-  if (
-    rememberedVoice?.provider &&
-    rememberedVoice.model &&
-    rememberedVoice.voice
-  ) {
-    seeded.voice = {
-      provider: rememberedVoice.provider,
-      model: rememberedVoice.model,
-      voice: rememberedVoice.voice
-    };
   }
   return seeded;
 }

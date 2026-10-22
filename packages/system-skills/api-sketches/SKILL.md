@@ -45,8 +45,8 @@ layers to keep is `nodetool.media.generateImage`, not a sketch.
   URL. The layer points at it and the editor draws it at its natural size from
   the top-left of `{x, y, width, height}`, which defaults to the whole canvas.
   Pass the dimensions of the image when you know them.
-- `use_case` is `product`, `portrait`, `key-art`, `social`, `logo`, `concept`
-  or `texture`, and it also sets the canvas size.
+- `use_case` is `scene`, `product`, `portrait`, `key-art`, `social`, `logo`,
+  `concept` or `texture`, and it also sets the canvas size.
 - Ops never paint. Painting and generation happen in an open editor or a
   workflow run. `render` is the one call that reads pixels, and it writes only
   the output asset.

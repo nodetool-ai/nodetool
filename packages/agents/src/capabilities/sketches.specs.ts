@@ -138,7 +138,7 @@ export const EDIT_SKETCH_SCHEMA: JsonSchema = {
         "you know them. Pass `image` to add_layer to place a picture on a new " +
         "layer in one op. " +
         "set_setup writes the guided image flow's state: the `brief`, the " +
-        "`use_case` (product, portrait, key-art, social, logo, concept, " +
+        "`use_case` (scene, product, portrait, key-art, social, logo, concept, " +
         "texture — which also sets the canvas size), how many `variations` to " +
         "render, and the `stage` the flow resumes at (idea, useCase, review, " +
         "look, or done for the plain editor). It renders nothing.",
