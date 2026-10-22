@@ -134,7 +134,7 @@ around it is not exempt.
 | Form | `FormSection`, `FormField` | Label 13px `text.secondary` 4px above the field, fields 12px apart, hint in `helperText` | — | [Forms](#13-forms) |
 | Text field | `TextInput`, `TextArea`; `NodeTextField` in node bodies | Outlined, height from the field density | `form/raw-text-field`, `form/raw-input`, `form/field-chrome-override` | [Forms](#13-forms) |
 | Number field | `NumberField`; `InspectorValueInput` in properties panels | No spinner buttons, unit in mono, optional scrub | `form/number-input` | [Number fields](#number-fields) |
-| Select | `SelectField`, `InspectorSelect`, `NodeSelect`; `Autocomplete` to type ahead | Outlined field, the menu row style below it | `form/raw-select`, `form/native-select` | [Forms](#13-forms) |
+| Select | `SelectField`, `InspectorSelect`, `NodeSelect`; `inputs/Select` for a searchable node property; `Autocomplete` to type ahead | Outlined field, the menu row style below it | `form/raw-select`, `form/native-select` | [Forms](#13-forms) |
 | Search field | `SearchInput` | 36px or 28px, search icon, clear button, Escape clears | — | [Search fields](#search-fields) |
 | Switch, checkbox, radio | `LabeledSwitch`, `InspectorToggleRow`, `NodeSwitch`; `Checkbox`; `Radio` in a `RadioSet` | 28×16 switch track, 24×12 in node bodies | `form/raw-switch` | [Switches, checkboxes and radios](#switches-checkboxes-and-radios) |
 | Slider | `Slider`, `NodeSlider`, `InspectorSliderRow` | Pill rail (6px, 4px compact), primary fill, ring thumb | `form/range-input` | [Sliders](#sliders) |
@@ -1720,6 +1720,10 @@ what failed and offers a way on.
 | A load or an operation failed inside a panel, dialog or page | `ErrorBanner` from `components/support/`: `AlertBanner severity="error"` with the Report control and an optional retry |
 | The content of a surface could not load at all | `EmptyState variant="error"` in place of the content, with a retry action, plus the Report control |
 | A user action failed and the surface is fine | `useAlertNotifier("error")` |
+| The user's own script or input produced the error (a script test run, a bad expression) | `AlertBanner severity="error"`, without Report, because it is not a NodeTool fault |
+| A run was cancelled, expired or will not work as set up | `AlertBanner severity="warning"`, `compact` in a dense panel |
+| A count of failed items in a status bar, or a failed tile | `StatusIndicator status="error"` with the count as `label`, or `StatusPill tone="failed"` on the tile |
+| A list row whose item failed | The row's status mark (`StatusIndicator`, a status tile) carries the failure. Its secondary line stays `text.secondary` |
 | A warning or an explanation that stays on the surface | `AlertBanner` with `severity="warning"` or `"info"`, `compact` in a dense panel |
 | A merge conflict in a document editor | `ConflictBanner` |
 | A crash | The error boundary (`PanelErrorBoundary`), which already carries Report |

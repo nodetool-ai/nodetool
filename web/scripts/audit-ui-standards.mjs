@@ -216,6 +216,8 @@ const RULES = [
     element: "Selects",
     finds: "MUI Select at a call site",
     fix: "SelectField, InspectorSelect, NodeSelect",
+    // inputs/Select (the searchable node-property select) is not MUI.
+    fileHas: /import \{[^}]*\bSelect\b[^}]*\} from "(@mui\/material|(\.\.\/)+ui_primitives)"/,
     line: /<Select\b(?!Field)/
   },
   {
@@ -482,6 +484,7 @@ function audit() {
     const isCss = file.endsWith(".css");
     for (const rule of RULES) {
       if (rule.files && !rule.files.test(file)) continue;
+      if (rule.fileHas && !rule.fileHas.test(text)) continue;
       if (isCss && !rule.line && !rule.block) continue;
       if (rule.line) {
         lines.forEach((l, i) => {
