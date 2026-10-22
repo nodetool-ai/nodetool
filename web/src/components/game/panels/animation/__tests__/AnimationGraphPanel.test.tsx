@@ -111,10 +111,10 @@ describe("AnimationGraphPanel", () => {
     const document = game();
     const { onOps } = renderPanel(document, null);
     await user.click(screen.getByRole("button", { name: "State" }));
-    expect(onOps).toHaveBeenLastCalledWith([expect.objectContaining({ op: "set_animation_graph", graph_id: "locomotion" })], "Add Animation State");
+    expect(onOps).toHaveBeenLastCalledWith([expect.objectContaining({ op: "set_animation_graph", graph_id: "locomotion" })], "Add animation state");
     expect(Object.keys(lastGraph(onOps).layers[0].states)).toEqual(["idle", "run", "state"]);
     await user.click(screen.getByRole("button", { name: "Connect run to idle" }));
-    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Add Animation Transition");
+    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Add animation transition");
     expect(lastGraph(onOps).layers[0].transitions[1]).toEqual({ from: "run", to: "idle", conditions: [{ parameter: "idle", op: "set" }], durationTicks: 6 });
   });
 
@@ -125,7 +125,7 @@ describe("AnimationGraphPanel", () => {
     await user.click(screen.getByRole("button", { name: "Open run" }));
     expect(screen.getByRole("textbox", { name: "State name" })).toHaveValue("run");
     fireEvent.keyDown(screen.getByRole("group", { name: "Animation state graph" }), { key: "Delete" });
-    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Remove Animation State");
+    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Remove animation state");
     expect(lastGraph(onOps).layers[0].transitions).toEqual([]);
     await user.click(screen.getByRole("button", { name: "Remove parameter speed" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Parameter speed is used by transition idle → run");
@@ -141,7 +141,7 @@ describe("AnimationGraphPanel", () => {
     const value = within(inspector).getByRole("textbox", { name: "Value" });
     await user.clear(value);
     await user.type(value, "0.25{Enter}");
-    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Change Animation Condition");
+    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Change animation condition");
     expect(lastGraph(onOps).layers[0].transitions[0].conditions).toEqual([{ parameter: "speed", op: "gt", value: 0.25 }]);
   });
 
@@ -151,7 +151,7 @@ describe("AnimationGraphPanel", () => {
     const { onOps } = renderPanel(document, null);
     await user.click(screen.getByRole("button", { name: "New graph" }));
     expect(onOps).toHaveBeenLastCalledWith([{ op: "set_animation_graph", graph_id: "locomotion", graph: expect.objectContaining({ layers: expect.any(Array) }) }],
-      "Add Animation Graph");
+      "Add animation graph");
   });
 
   it("keeps the selection and layout when a rename is refused, and notes scripts after a rename", async () => {
@@ -167,7 +167,7 @@ describe("AnimationGraphPanel", () => {
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
     await user.clear(screen.getByRole("textbox", { name: "State name" }));
     await user.type(screen.getByRole("textbox", { name: "State name" }), "sprint{Enter}");
-    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Rename Animation State");
+    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Rename animation state");
     expect(screen.getByRole("note")).toHaveTextContent('Scripts that call playAnimation("run") are not updated.');
   });
 
@@ -199,7 +199,7 @@ describe("AnimationGraphPanel", () => {
     await user.click(screen.getAllByRole("button", { name: "" })[0]);
     await user.type(within(screen.getByRole("region", { name: "Animation inspector" })).getByRole("textbox", { name: "Exit after ticks" }), "10{Enter}");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Change Animation Transition");
+    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Change animation transition");
     expect(lastGraph(onOps).layers[0].transitions[0]).toMatchObject({ from: "idle", to: "run", exitTicks: 10 });
     expect(store.getState().error).toBeNull();
     expect(store.getState().commandHistory.past).toHaveLength(1);
@@ -223,13 +223,13 @@ describe("AnimationGraphPanel", () => {
     await user.keyboard("{Enter}");
     expect(screen.getByRole("textbox", { name: "State name" })).toHaveValue("run");
     await user.click(screen.getByRole("button", { name: "Transition to idle" }));
-    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Add Animation Transition");
+    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Add animation transition");
     expect(lastGraph(onOps).layers[0].transitions[1]).toMatchObject({ from: "run", to: "idle" });
     screen.getByRole("button", { name: "speed > 0.1" }).focus();
     await user.keyboard("{Enter}");
     expect(screen.getByRole("combobox", { name: "From state" })).toBeInTheDocument();
     await user.keyboard("{Delete}");
-    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Remove Animation Transition");
+    expect(onOps).toHaveBeenLastCalledWith(expect.any(Array), "Remove animation transition");
   });
 
   it("clears initialClip in the same command when it assigns the graph to an entity", async () => {
@@ -242,7 +242,7 @@ describe("AnimationGraphPanel", () => {
     const { onOps } = renderPanel(document, null);
     await user.click(screen.getByRole("button", { name: "Use on player-visual" }));
     const ops = onOps.mock.calls.at(-1)?.[0] as GameDocumentOp3D[];
-    expect(onOps.mock.calls.at(-1)?.[1]).toBe("Use Animation Graph");
+    expect(onOps.mock.calls.at(-1)?.[1]).toBe("Use animation graph");
     const animator = applyGameOps3D(document, ops).scenes[0].entities.find((entity) => entity.id === "player-visual")?.animator3d;
     expect(animator).toEqual({ clips: { idle: "clip:0", run: "clip:1" }, playbackRate: 1, loop: true, transitionTicks: 6, graph: "locomotion" });
   });

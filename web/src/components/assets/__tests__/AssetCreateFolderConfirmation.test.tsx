@@ -63,7 +63,7 @@ describe("AssetCreateFolderConfirmation", () => {
 
     expect(screen.getByRole("dialog")).toHaveAccessibleName(/Create folder/);
     expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue(
-      "New Folder"
+      "New folder"
     );
     expect(screen.getByRole("button", { name: "Create" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
@@ -104,7 +104,7 @@ describe("AssetCreateFolderConfirmation", () => {
       }) as HTMLInputElement;
       expect(document.activeElement).toBe(input);
       expect(input.selectionStart).toBe(0);
-      expect(input.selectionEnd).toBe("New Folder".length);
+      expect(input.selectionEnd).toBe("New folder".length);
     } finally {
       jest.useRealTimers();
     }
