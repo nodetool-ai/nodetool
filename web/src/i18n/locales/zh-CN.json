@@ -9411,6 +9411,7 @@
     "support": {
       "report": "报告",
       "tryAgain": "重试",
+      "dismiss": "关闭",
       "bugReport": {
         "title": "报告错误",
         "reportSentTitle": "报告已发送",

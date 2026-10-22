@@ -1,5 +1,5 @@
 import type { KeyboardEvent, ReactNode } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 
 import { CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, Label, SPACING, ToolbarIconButton } from "../../ui_primitives";
 

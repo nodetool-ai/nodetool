@@ -9411,6 +9411,7 @@
     "support": {
       "report": "Melden",
       "tryAgain": "Erneut versuchen",
+      "dismiss": "Ausblenden",
       "bugReport": {
         "title": "Fehler melden",
         "reportSentTitle": "Meldung gesendet",

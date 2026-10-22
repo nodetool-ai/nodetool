@@ -13,6 +13,7 @@ import { diffAnyGameDocuments as diffGameDocuments } from "../../../../stores/ga
 import { getGameDraftStore } from "../../../../stores/game/GameDraftStore";
 import { acceptServerAnyGameUnit as acceptServerGameUnit, anyGameMergeAdapter as gameMergeAdapter } from "../../../../stores/game/anyMerge";
 import { Caption, CONTROL, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, SPACING, Text, ToolbarIconButton } from "../../../ui_primitives";
+import ErrorBanner from "../../../support/ErrorBanner";
 
 interface GameChangesProps {
   gameId: string;
@@ -80,7 +81,8 @@ export default function GameChanges({ gameId, document, onOps, onHover, onFocusM
       <Label component="span" sx={{ mb: 0, color: "text.secondary" }}>{t("screen_game.changes.title")}</Label>
       <Caption>{groups.length}</Caption>
     </FlexRow>
-    {error && <Caption color="error" role="alert" sx={{ px: SPACING.md, pb: SPACING.xs }}>{error}</Caption>}
+    {error && <ErrorBanner sx={{ mx: SPACING.md, mb: SPACING.xs }}
+      report={{ source: "operation-failure", summary: t("screen_game.changes.title"), errorText: error }}>{error}</ErrorBanner>}
     <FlexColumn role="list" aria-label={t("screen_game.changes.listLabel")} sx={{ minHeight: 0, overflowY: "auto", px: SPACING.xs, pb: SPACING.xs }}>
       {groups.map((group) => {
         const summary = group.summary.join("; ");

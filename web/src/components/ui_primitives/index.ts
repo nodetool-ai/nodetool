@@ -374,6 +374,8 @@ export { TabGroup, TabPanel } from "./TabGroup";
 export type { TabGroupProps, TabPanelProps, TabItem } from "./TabGroup";
 
 // Form composition
+export { FieldError } from "./FieldError";
+export type { FieldErrorProps } from "./FieldError";
 export { FormField } from "./FormField";
 export type { FormFieldProps } from "./FormField";
 

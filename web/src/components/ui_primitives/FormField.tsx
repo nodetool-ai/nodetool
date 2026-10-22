@@ -11,6 +11,7 @@ import React, { useId, useMemo } from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Label } from "./Label";
+import { FieldError } from "./FieldError";
 import {
   FormFieldContext,
   type FormFieldContextValue
@@ -91,7 +92,6 @@ export const FormField: React.FC<FormFieldProps> = ({
   );
 
   const isRow = direction === "row";
-  const bottomText = error || helperText;
 
   return (
     <Box
@@ -139,21 +139,21 @@ export const FormField: React.FC<FormFieldProps> = ({
         <FormFieldContext.Provider value={contextValue}>
           {children}
         </FormFieldContext.Provider>
-        {bottomText && (
+        {error ? (
+          <FieldError sx={{ marginTop: theme.spacing(1) }}>{error}</FieldError>
+        ) : helperText ? (
           <Typography
             variant="body2"
             sx={{
               fontSize: theme.fontSizeSmaller,
-              color: error
-                ? theme.vars.palette.error.main
-                : theme.vars.palette.text.secondary,
+              color: theme.vars.palette.text.secondary,
               marginTop: theme.spacing(1),
               lineHeight: 1.4,
             }}
           >
-            {bottomText}
+            {helperText}
           </Typography>
-        )}
+        ) : null}
       </Box>
     </Box>
   );

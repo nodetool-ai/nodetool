@@ -5,6 +5,7 @@ import type { GameDocument } from "@nodetool-ai/protocol/game.js";
 
 import { trpc } from "../../trpc/client";
 import { Box, Caption, EditorButton, EmptyState, FlexColumn, FlexRow, LoadingSpinner, SPACING, Text } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
 import ReportBugButton from "../support/ReportBugButton";
 import { useGamePlaySession } from "./useGamePlaySession";
 import { gamePlayStatus } from "./gamePlayStatus";
@@ -64,10 +65,7 @@ export function GamePlayer({ gameId, name, document, active = true, setsDocument
       <EditorButton onClick={stop} disabled={!playDocument}>{t("screen_game.player.stop")}</EditorButton>
       <Caption>{t("screen_game.player.score", { score: numberFormat.format(playState.score) })} · {status} · {backend}</Caption>
     </FlexRow>
-    {error && <FlexRow align="center" gap={SPACING.sm}>
-      <Caption color="error" role="alert">{error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: t("screen_game.player.failed"), errorText: error }} />
-    </FlexRow>}
+    {error && <ErrorBanner report={{ source: "panel-crash", summary: t("screen_game.player.failed"), errorText: error }}>{error}</ErrorBanner>}
     <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, bgcolor: "common.black" }}>
       <Box component="canvas" ref={canvasRef} width={512} height={288} aria-label={t("screen_game.player.gameCanvas", { name })} tabIndex={0}
         onKeyDown={onKeyDown}

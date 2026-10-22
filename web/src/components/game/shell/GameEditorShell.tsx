@@ -5,6 +5,7 @@ import { useStore, type StoreApi } from "zustand";
 import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutStore";
 import { useGameShortcutStore } from "../../../stores/game/GameShortcutStore";
 import { Caption, EditorButton, EditorUiProvider, FlexColumn, FlexRow, SPACING } from "../../ui_primitives";
+import ErrorBanner from "../../support/ErrorBanner";
 import ReportBugButton from "../../support/ReportBugButton";
 import GameToolbar from "./GameToolbar";
 import GameStatusBar from "./GameStatusBar";
@@ -118,11 +119,10 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
     {exporter.exporting && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>
       {t(EXPORT_STATUS_KEYS[exporter.exporting])}
     </Caption>}
-    {exporter.error && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-      <Caption color="error" role="alert">{t("screen_game.shell.exportFailed", { error: exporter.error })}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: t("screen_game.shell.exportFailedSummary"), errorText: exporter.error }} />
-      <EditorButton onClick={exporter.dismiss}>{t("screen_game.common.dismiss")}</EditorButton>
-    </FlexRow>}
+    {exporter.error && <ErrorBanner sx={{ mx: SPACING.md, my: SPACING.xs }} onDismiss={exporter.dismiss}
+      report={{ source: "panel-crash", summary: t("screen_game.shell.exportFailedSummary"), errorText: exporter.error }}>
+      {t("screen_game.shell.exportFailed", { error: exporter.error })}
+    </ErrorBanner>}
     {executable.building && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs }}>
       <Caption role="status">{t("screen_game.shell.compilingExecutable")}</Caption>
       <EditorButton onClick={executable.cancel}>{t("screen_game.common.cancel")}</EditorButton>
@@ -132,11 +132,10 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       {showBinary && <EditorButton onClick={() => { void showBinary(executable.binaryPath ?? ""); }}>{t("screen_game.shell.showInFolder")}</EditorButton>}
       <EditorButton onClick={executable.dismiss}>{t("screen_game.common.dismiss")}</EditorButton>
     </FlexRow>}
-    {executable.error && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-      <Caption color="error" role="alert">{t("screen_game.shell.buildFailed", { error: executable.error })}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: t("screen_game.shell.buildFailedSummary"), errorText: executable.error }} />
-      <EditorButton onClick={executable.dismiss}>{t("screen_game.common.dismiss")}</EditorButton>
-    </FlexRow>}
+    {executable.error && <ErrorBanner sx={{ mx: SPACING.md, my: SPACING.xs }} onDismiss={executable.dismiss}
+      report={{ source: "panel-crash", summary: t("screen_game.shell.buildFailedSummary"), errorText: executable.error }}>
+      {t("screen_game.shell.buildFailed", { error: executable.error })}
+    </ErrorBanner>}
     {notices}
     <DockCanvas presentation={presentation} store={layoutStore} />
     <GameStatusBar {...status} />

@@ -16,7 +16,8 @@ import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutSto
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
 import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, ConflictBanner, Dialog, EmptyState, FlexColumn, FlexRow, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, ConflictBanner, Dialog, EmptyState, FlexColumn, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput } from "../ui_primitives";
+import ErrorBanner from "../support/ErrorBanner";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import GameRevisions from "./panels/revisions/GameRevisions";
@@ -432,10 +433,10 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     }}
     status={{ tick: playState.tick, score: playState.score, won: playState.won, backend }}
     notices={<>
-      {(error || draftError) && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
-        <Caption color="error" role="alert">{error ?? draftError}</Caption>
-        <ReportBugButton context={{ source: "panel-crash", summary: t("game.editor.errors.editorFailed"), errorText: error ?? draftError ?? "" }} />
-      </FlexRow>}
+      {(error || draftError) && <ErrorBanner sx={{ mx: SPACING.md, my: SPACING.xs }}
+        report={{ source: "panel-crash", summary: t("game.editor.errors.editorFailed"), errorText: error ?? draftError ?? "" }}>
+        {error ?? draftError}
+      </ErrorBanner>}
       {conflicts.items.length > 0 && <ConflictBanner conflicts={conflicts.items} onAccept={conflicts.accept} onDiscard={conflicts.discard} />}
       {needsPlayRestart && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>{t("game.editor.draftChanged")}</Caption>}
       <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flushDraft} onHighlight={setHighlightedIds} />
