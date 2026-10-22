@@ -30,6 +30,16 @@ shipped (≈400 indexed www URLs, up from 13), so the work is no longer "add pag
 de-duplicating the families that now compete with each other and giving the one large non-branded
 cluster a page of its own.
 
+## 0.11 docs.nodetool.ai coverage export (2026-10-22)
+
+The coverage export (counts, no URL lists) showed 374 not-found pages, 52 redirects, 60 alternates,
+31 noindex pages, and 227 crawled or discovered but not indexed. Causes found in a local build:
+the sitemap listed redirect stubs and cross-domain mirrors, internal links used the extensionless
+form of `.html` canonicals, generated node pages shared one meta description, and moved node pages
+had no redirect. `_plugins/search_coverage.rb` fixes the first three at build time. Moved pages with
+a real successor are listed in `_data/moved_pages.yml`. Removed nodes without a successor keep
+returning 404. The 31 noindex pages are the planning docs from §0.10 finding 7 and stay excluded.
+
 ## 0.10 Second Search Console audit (2026-08-10)
 
 Export: 1,000-row page report (1,543 clicks / 74.1k impressions) and 1,000-row query report

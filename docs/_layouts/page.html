@@ -13,7 +13,7 @@ layout: default
     </nav>
     {% endif %}
     <h1 class="page-title">{{ page.title | default: "Documentation" }}</h1>
-    {% if page.description %}
+    {% if page.description and page.description_generated != true %}
     <p class="page-description">{{ page.description }}</p>
     {% endif %}
     <button class="copy-page-button" aria-label="Copy page as Markdown">
