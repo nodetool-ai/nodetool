@@ -13,7 +13,6 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useTheme } from "@mui/material/styles";
 
 import {
   EditorButton,
@@ -135,7 +134,6 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
   onConvertSelectionToBorder
 }: RefineSelectionPopoverProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [modifyPx, setModifyPx] = useState(1);
   const expandCurrentSelection = useSketchStore(
     (s) => s.expandCurrentSelection
@@ -212,8 +210,6 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
       disableScrollLock
       hideBackdrop
       paperSx={{
-        backgroundColor: theme.vars.palette.grey[900],
-        border: `1px solid ${theme.vars.palette.grey[700]}`,
         padding: 3,
         pointerEvents: "auto"
       }}

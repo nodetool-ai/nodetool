@@ -6,7 +6,7 @@ import { Popover, getSpacingPx, SPACING, EmptyState } from "../ui_primitives";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, Text, Caption, CountBadge, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SHADOW } from "../ui_primitives";
+import { CopyButton, Text, Caption, CountBadge, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 import ReportBugButton from "../support/ReportBugButton";
 import { useTranslation } from "react-i18next";
@@ -88,12 +88,6 @@ const NotificationButton: React.FC = React.memo(() => {
         anchorEl={notificationAnchor}
         onClose={handleNotificationClose}
         placement="bottom-right"
-        paperSx={{
-          backdropFilter: "blur(8px)",
-          backgroundColor: `${theme.vars.palette.grey[900]}E6`,
-          boxShadow: SHADOW(theme).xl,
-          border: `1px solid ${theme.vars.palette.grey[800]}`
-        }}
       >
         <Box
           className="notification-container"

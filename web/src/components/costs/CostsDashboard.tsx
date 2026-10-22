@@ -688,12 +688,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         onClose={() => setOpen(false)}
         placement="bottom-left"
         maxWidth={260}
-        paperSx={{
-          mt: 0.5,
-          backgroundColor: theme.vars.palette.background.paper,
-          border: `1px solid ${theme.vars.palette.divider}`,
-          backgroundImage: "none"
-        }}
+        paperSx={{ mt: 0.5 }}
       >
         <FlexColumn sx={{ padding: getSpacingPx(SPACING.md), minWidth: 200 }}>
           <FlexRow

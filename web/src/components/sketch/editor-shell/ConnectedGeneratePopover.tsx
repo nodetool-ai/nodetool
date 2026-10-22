@@ -24,7 +24,6 @@ import React, {
   useState
 } from "react";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import ResolutionIcon from "@mui/icons-material/Tv";
@@ -37,7 +36,6 @@ import {
   LoadingSpinner,
   Popover,
   TextArea,
-  BORDER_RADIUS,
   SPACING,
   getSpacingPx
 } from "../../ui_primitives";
@@ -93,7 +91,6 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
   anchorEl,
   onClose
 }) => {
-  const theme = useTheme();
   const { t } = useTranslation();
 
   const docW = useSketchStore((s) => s.document.canvas.width);
@@ -252,12 +249,7 @@ const ConnectedGeneratePopoverInner: React.FC<ConnectedGeneratePopoverProps> = (
         anchorEl={anchorEl}
         onClose={onClose}
         placement="bottom-right"
-        paperSx={{
-          width: 340,
-          backgroundColor: theme.vars.palette.grey[900],
-          border: `1px solid ${theme.vars.palette.grey[800]}`,
-          borderRadius: BORDER_RADIUS.sm
-        }}
+        paperSx={{ width: 340 }}
       >
         <FlexColumn
           className="sketch-generate-form"

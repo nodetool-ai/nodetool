@@ -213,10 +213,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       slotProps={{
         paper: {
           sx: {
-            bgcolor: SKETCH_COLORS.bgPrimary,
-            border: "1px solid",
-            borderColor: SKETCH_COLORS.border,
-            borderRadius: BORDER_RADIUS.sm,
             p: getSpacingPx(SPACING.sm),
             display: "flex",
             flexDirection: "column",
