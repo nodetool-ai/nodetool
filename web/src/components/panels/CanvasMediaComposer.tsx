@@ -26,9 +26,11 @@ const CanvasMediaComposer: React.FC = () => {
     sendMessage,
     stopGeneration,
     selectedModel,
-    setSelectedModel
+    setSelectedModel,
+    currentThreadId
   } = useGlobalChatStore(
     useShallow((state) => ({
+      currentThreadId: state.currentThreadId,
       status: state.status,
       sendMessage: state.sendMessage,
       stopGeneration: state.stopGeneration,
@@ -111,6 +113,7 @@ const CanvasMediaComposer: React.FC = () => {
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
       autoFocus={false}
+      threadId={currentThreadId}
     />
   );
 };

@@ -433,6 +433,18 @@
       "lastRun": "Letzter Run",
       "viewPricing": "Preise auf kie.ai ansehen",
       "topUp": "Guthaben aufladen"
+    },
+    "nodeChat": {
+      "chatAboutNode": "Im Chat zu diesem Knoten fragen",
+      "chatAboutNodeTooltip": "Öffnet den Chat mit diesem Knoten im Prompt",
+      "chatAboutSelection": "Im Chat zur Auswahl fragen",
+      "chatAboutSelectionTooltip": "Öffnet den Chat mit den ausgewählten Knoten im Prompt",
+      "askChat": "Im Chat fragen",
+      "askChatTooltip": "Öffnet den Chat mit diesem Fehler im Prompt",
+      "draftNode": "Zum Knoten „{{title}}“ (ID {{id}}): ",
+      "draftNodes": "Zu diesen Knoten: {{nodes}}. ",
+      "draftNodeItem": "„{{title}}“ (ID {{id}})",
+      "draftError": "Der Knoten „{{title}}“ (ID {{id}}) ist mit diesem Fehler fehlgeschlagen:\n\n{{error}}\n\nWarum ist er fehlgeschlagen, und wie behebe ich das?"
     }
   },
   "screen_properties": {

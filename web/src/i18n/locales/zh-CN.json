@@ -433,6 +433,18 @@
       "lastRun": "上次运行",
       "viewPricing": "在 kie.ai 查看价格",
       "topUp": "充值积分"
+    },
+    "nodeChat": {
+      "chatAboutNode": "就此节点聊天",
+      "chatAboutNodeTooltip": "打开聊天，并在提示中引用此节点",
+      "chatAboutSelection": "就所选节点聊天",
+      "chatAboutSelectionTooltip": "打开聊天，并在提示中引用所选节点",
+      "askChat": "问聊天",
+      "askChatTooltip": "打开聊天，并在提示中附上此错误",
+      "draftNode": "关于节点“{{title}}”（ID {{id}}）：",
+      "draftNodes": "关于这些节点：{{nodes}}。",
+      "draftNodeItem": "“{{title}}”（ID {{id}}）",
+      "draftError": "节点“{{title}}”（ID {{id}}）运行失败，错误如下：\n\n{{error}}\n\n为什么会失败？我该如何修复？"
     }
   },
   "screen_properties": {

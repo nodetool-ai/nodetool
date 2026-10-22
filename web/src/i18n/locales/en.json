@@ -433,6 +433,18 @@
       "lastRun": "Last run",
       "viewPricing": "View pricing on kie.ai",
       "topUp": "Top up credits"
+    },
+    "nodeChat": {
+      "chatAboutNode": "Chat about node",
+      "chatAboutNodeTooltip": "Open the chat with this node in the prompt",
+      "chatAboutSelection": "Chat about selection",
+      "chatAboutSelectionTooltip": "Open the chat with the selected nodes in the prompt",
+      "askChat": "Ask chat",
+      "askChatTooltip": "Open the chat with this error in the prompt",
+      "draftNode": "About the \"{{title}}\" node (id {{id}}): ",
+      "draftNodes": "About these nodes: {{nodes}}. ",
+      "draftNodeItem": "\"{{title}}\" (id {{id}})",
+      "draftError": "The \"{{title}}\" node (id {{id}}) failed with this error:\n\n{{error}}\n\nWhy did it fail, and how do I fix it?"
     }
   },
   "screen_properties": {

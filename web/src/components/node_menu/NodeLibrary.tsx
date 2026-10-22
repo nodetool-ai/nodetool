@@ -51,7 +51,7 @@ import {
 import type { NodeCategoryId } from "../../stores/PanelStore";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 
-const ROW_HEIGHT = 36;
+const ROW_HEIGHT = 40;
 
 const styles = (theme: Theme, isMobile: boolean) =>
   css({
