@@ -73,16 +73,24 @@ use separate color and fade curves for clear racing feedback.
 It contains twelve bars at 132 BPM, with MIDI tracks for DR-1 drums, BL-1
 rounded bass, and WT-1 muted chords, rounded pluck melody, and glass mallets.
 Each track stores its instrument settings, notes, velocity, fader, and stereo
-position. The snare uses a short filtered-noise patch. The melody uses a short
-reverb and the mallets use a beat-synced echo.
+position. The snare uses a short filtered-noise patch. The melody uses a light
+OTT insert, dotted-eighth tape delay, and small reverb. The drum track uses
+light OTT, and the mallets use the same delay division with a wider stereo
+image and reverb. All inserts are editable FableSynth devices.
 
 The game builder reads that document and calls NodeTool's timeline MIDI
-renderer and mixer through [tools/music.mjs](tools/music.mjs). It renders
+browser renderer through [tools/music.mjs](tools/music.mjs), including the
+AudioWorklet instruments and effects used by the editor. It renders
 three cycles and extracts the middle cycle so instrument and effect tails
-carry across the loop boundary. The resulting 48 kHz stereo WAV is bundled
+carry across the loop boundary. A 5 ms raised-cosine splice blends the end
+into the pre-roll immediately before the start, retaining the effect tails
+without a fade to silence. The loop endpoint uses the WAV's exact sample count.
+The resulting 48 kHz stereo WAV is bundled
 with the game. Edit the timeline, then run the build commands above to update
-the soundtrack. Rendering requires FFmpeg and FFprobe. The short gameplay
-sound effects remain separate event cues in `tools/presentation.mjs`.
+the soundtrack. Rendering requires the repository web sources and Playwright
+Chromium (`npx playwright install chromium`). The renderer rejects silent,
+non-finite, or clipped output. The short gameplay sound effects remain
+separate event cues in `tools/presentation.mjs`.
 
 Validate the editable source with:
 

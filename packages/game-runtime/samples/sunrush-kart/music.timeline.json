@@ -350,7 +350,21 @@
             }
           ],
           "gainDb": -6
-        }
+        },
+        "effects": [
+          {
+            "id": "drums-ott",
+            "type": "fable",
+            "enabled": true,
+            "kind": "ott",
+            "params": {
+              "fx.ott.depth": 0.12,
+              "fx.ott.time": 1.4,
+              "fx.ott.up": 0.45,
+              "fx.ott.down": 0.8
+            }
+          }
+        ]
       },
       {
         "id": "bass",
@@ -493,7 +507,49 @@
             "releaseMs": 80
           },
           "gainDb": -8
-        }
+        },
+        "effects": [
+          {
+            "id": "lead-ott",
+            "type": "fable",
+            "enabled": true,
+            "kind": "ott",
+            "params": {
+              "fx.ott.depth": 0.16,
+              "fx.ott.time": 1.2,
+              "fx.ott.up": 0.5,
+              "fx.ott.down": 0.8
+            }
+          },
+          {
+            "id": "lead-delay",
+            "type": "fable",
+            "enabled": true,
+            "kind": "echo",
+            "params": {
+              "fx.delay.sync": 1,
+              "fx.delay.div": 3,
+              "fx.delay.fb": 0.18,
+              "fx.delay.mix": 0.1,
+              "fx.delay.tone": 3200,
+              "fx.delay.wow": 0.03,
+              "fx.delay.flutter": 0.02,
+              "fx.delay.sat": 0.08,
+              "fx.delay.width": 0.65,
+              "fx.delay.mode": 0
+            }
+          },
+          {
+            "id": "lead-reverb",
+            "type": "fable",
+            "enabled": true,
+            "kind": "reverb",
+            "params": {
+              "fx.reverb.size": 0.24,
+              "fx.reverb.mix": 0.09
+            }
+          }
+        ]
       },
       {
         "id": "bells",
@@ -546,7 +602,37 @@
             "releaseMs": 250
           },
           "gainDb": -9
-        }
+        },
+        "effects": [
+          {
+            "id": "bells-delay",
+            "type": "fable",
+            "enabled": true,
+            "kind": "echo",
+            "params": {
+              "fx.delay.sync": 1,
+              "fx.delay.div": 3,
+              "fx.delay.fb": 0.22,
+              "fx.delay.mix": 0.16,
+              "fx.delay.tone": 4200,
+              "fx.delay.wow": 0.04,
+              "fx.delay.flutter": 0.02,
+              "fx.delay.sat": 0.08,
+              "fx.delay.width": 0.85,
+              "fx.delay.mode": 0
+            }
+          },
+          {
+            "id": "bells-reverb",
+            "type": "fable",
+            "enabled": true,
+            "kind": "reverb",
+            "params": {
+              "fx.reverb.size": 0.32,
+              "fx.reverb.mix": 0.12
+            }
+          }
+        ]
       }
     ],
     "clips": [
@@ -3691,15 +3777,6 @@
             "startTick": 45600,
             "durationTick": 432
           }
-        ],
-        "audioEffects": [
-          {
-            "id": "lead-room",
-            "type": "reverb",
-            "enabled": true,
-            "decaySec": 0.5,
-            "mix": 0.05
-          }
         ]
       },
       {
@@ -4050,16 +4127,6 @@
             "startTick": 45840,
             "durationTick": 336
           }
-        ],
-        "audioEffects": [
-          {
-            "id": "bell-echo",
-            "type": "echo",
-            "enabled": true,
-            "delayMs": 340.90909090909093,
-            "feedback": 0.2,
-            "mix": 0.15
-          }
         ]
       }
     ],
@@ -4081,7 +4148,7 @@
       }
     ],
     "master": {
-      "volumeDb": 5
+      "volumeDb": -1
     }
   }
 }
