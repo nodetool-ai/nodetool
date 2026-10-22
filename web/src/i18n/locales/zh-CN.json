@@ -3107,7 +3107,14 @@
           "viewLabel": "视图",
           "promptLabel": "提示词",
           "modelLabel": "图像模型",
-          "progress": "正在创建参考图像…"
+          "progress": "正在创建参考图像…",
+          "retakeTitle": "{{name}} 的新图片",
+          "useTake": "使用此版本",
+          "chooseTake": "选择要使用的版本。双击某个版本可直接使用。",
+          "takesLabel": "版本数",
+          "takeLabel": "版本 {{number}}",
+          "keepLook": "保留当前外观",
+          "keepLookDescription": "在当前图片基础上编辑，而不是仅根据提示词绘制，使同一人物或地点保持可辨认。"
         },
         "modelHelper": {
           "choose": "选择图像模型以生成参考图像。",
@@ -3610,7 +3617,8 @@
           "location": "地点",
           "prop": "道具",
           "style": "风格"
-        }
+        },
+        "retakeImage": "{{name}} 的新图片"
       },
       "genre": {
         "shotCount_one": "{{count}} 个镜头",
@@ -8341,7 +8349,8 @@
       "addEntity": "添加实体",
       "backToEntities": "返回实体列表",
       "entitiesLabel": "实体",
-      "librarySubtitle": "可重复使用的角色、地点、风格和道具"
+      "librarySubtitle": "可重复使用的角色、地点、风格和道具",
+      "retakeImage": "重新生成"
     }
   },
   "screens4_23": {

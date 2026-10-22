@@ -3107,7 +3107,14 @@
           "viewLabel": "View",
           "promptLabel": "Prompt",
           "modelLabel": "Image model",
-          "progress": "Creating your reference image…"
+          "progress": "Creating your reference image…",
+          "retakeTitle": "New picture of {{name}}",
+          "useTake": "Use this take",
+          "chooseTake": "Pick the take to use. Double-click a take to use it right away.",
+          "takesLabel": "Takes",
+          "takeLabel": "Take {{number}}",
+          "keepLook": "Keep the current look",
+          "keepLookDescription": "Edit the current picture instead of drawing from the prompt alone, so the same person or place stays recognizable."
         },
         "modelHelper": {
           "choose": "Pick an image model to generate the reference.",
@@ -3610,7 +3617,8 @@
           "location": "Location",
           "prop": "Prop",
           "style": "Style"
-        }
+        },
+        "retakeImage": "New picture of {{name}}"
       },
       "genre": {
         "shotCount_one": "{{count}} shot",
@@ -8341,7 +8349,8 @@
       "addEntity": "Add entity",
       "backToEntities": "Back to entities",
       "entitiesLabel": "Entities",
-      "librarySubtitle": "Reusable characters, locations, styles, and props"
+      "librarySubtitle": "Reusable characters, locations, styles, and props",
+      "retakeImage": "Generate new"
     }
   },
   "screens4_23": {
