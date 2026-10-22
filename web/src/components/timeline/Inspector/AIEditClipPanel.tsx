@@ -38,7 +38,8 @@ import {
   TextArea,
   ThinkingIndicator,
   ToggleGroup,
-  ToggleOption
+  ToggleOption,
+  AlertBanner
 } from "../../ui_primitives";
 import {
   INSPECTOR_FORM_SX,
@@ -518,7 +519,7 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
               />
             )}
             {settlementMessage && (
-              <Caption color="error">{settlementMessage}</Caption>
+              <AlertBanner severity="warning" compact>{settlementMessage}</AlertBanner>
             )}
             {failed && (
               <ErrorBanner

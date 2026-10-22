@@ -10,8 +10,6 @@ import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useApplication, useApplications } from "../../../hooks/useApplications";
 import {
-  Box,
-  Caption,
   FlexColumn,
   GAP,
   LoadingSpinner,
@@ -28,6 +26,7 @@ import {
   workflowOperations,
   type AppNodeMetadataLookup
 } from "./appNodeIO";
+import ErrorBanner from "../../support/ErrorBanner";
 
 interface AppOption {
   id: string;
@@ -336,9 +335,15 @@ export const AppLoader: React.FC<AppLoaderProps> = memo(({ nodeId, data }) => {
         />
       )}
       {message && (
-        <Box>
-          <Caption color="error">{message}</Caption>
-        </Box>
+        <ErrorBanner
+          report={{
+            source: "operation-failure",
+            summary: t("i18n-next37.appLoader.appLoadFailed"),
+            errorText: message
+          }}
+        >
+          {message}
+        </ErrorBanner>
       )}
     </FlexColumn>
   );

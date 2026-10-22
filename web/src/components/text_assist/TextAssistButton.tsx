@@ -17,7 +17,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
-import ReportBugButton from "../support/ReportBugButton";
+import ErrorBanner from "../support/ErrorBanner";
 import {
   BORDER_RADIUS,
   Box,
@@ -249,18 +249,15 @@ const TextAssistButtonInternal: React.FC<TextAssistButtonProps> = ({
           </FlexRow>
 
           {error && (
-            <FlexRow gap={GAP.tight} align="center" justify="space-between">
-              <Caption color="error" role="alert">
-                {error}
-              </Caption>
-              <ReportBugButton
-                context={{
-                  source: "provider-call",
-                  summary: t("screen_chat.textAssist.requestFailed"),
-                  errorText: error
-                }}
-              />
-            </FlexRow>
+            <ErrorBanner
+              report={{
+                source: "provider-call",
+                summary: t("screen_chat.textAssist.requestFailed"),
+                errorText: error
+              }}
+            >
+              {error}
+            </ErrorBanner>
           )}
 
           <FlexRow gap={GAP.normal} align="center" justify="space-between">
