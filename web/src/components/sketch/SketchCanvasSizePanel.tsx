@@ -22,8 +22,8 @@ import {
   StateIconButton,
   Text,
   Tooltip,
-  MenuItem,
-  Select,
+  SelectField,
+  Box,
   Switch,
   NumberField,
   FONT_SIZE_SANS,
@@ -231,50 +231,35 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
         </Tooltip>
       </FlexRow>
 
-      <Select
-        size="small"
-        displayEmpty
-        aria-label={t("i18n-next52.sketch.canvas.preset")}
-        value=""
-        onChange={(e) => {
-          const preset = CANVAS_PRESETS.find(
-            (p) => p.label === e.target.value
-          );
-          if (preset) {
-            onCanvasResize(preset.width, preset.height);
-          }
-        }}
+      <Box
+        sx={{ width: "100%", mt: 0.5 }}
         onKeyDownCapture={handleCanvasPresetQuickCycleKeyDownCapture}
         onWheelCapture={handleCanvasPresetQuickCycleWheelCapture}
-        sx={{
-          ...sketchFieldSx,
-          width: "100%",
-          marginTop: 0.5,
-          fontSize: FONT_SIZE_SANS.label,
-          "& .MuiSelect-select": { py: 1, px: 2 }
-        }}
-        renderValue={() => {
-          const match = CANVAS_PRESETS.find(
-            (p) => p.width === canvasWidth && p.height === canvasHeight
-          );
-          return (
-            <Text
-              sx={{
-                fontSize: FONT_SIZE_SANS.label,
-                color: match ? "grey.200" : SKETCH_COLORS.textFaint
-              }}
-            >
-              {match ? match.label : t("i18n-next52.sketch.canvas.presets")}
-            </Text>
-          );
-        }}
       >
-        {CANVAS_PRESETS.map((preset) => (
-          <MenuItem key={preset.label} value={preset.label}>
-            {preset.label} - {preset.width}×{preset.height}
-          </MenuItem>
-        ))}
-      </Select>
+        <SelectField
+          label={t("i18n-next52.sketch.canvas.preset")}
+          hideLabel
+          size="small"
+          value={
+            CANVAS_PRESETS.find(
+              (p) => p.width === canvasWidth && p.height === canvasHeight
+            )?.label ?? ""
+          }
+          options={[
+            { value: "", label: t("i18n-next52.sketch.canvas.presets"), disabled: true },
+            ...CANVAS_PRESETS.map((preset) => ({
+              value: preset.label,
+              label: `${preset.label} - ${preset.width}×${preset.height}`
+            }))
+          ]}
+          onChange={(value) => {
+            const preset = CANVAS_PRESETS.find((p) => p.label === value);
+            if (preset) {
+              onCanvasResize(preset.width, preset.height);
+            }
+          }}
+        />
+      </Box>
 
       <FlexColumn gap={0.5} sx={{ mt: 2 }}>
         <Text sx={{ fontSize: FONT_SIZE_SANS.label, color: SKETCH_COLORS.textMuted }}>
