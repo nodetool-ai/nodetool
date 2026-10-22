@@ -140,7 +140,7 @@ const styles = (theme: Theme) =>
       // the handle dots align with the card's outer edge (compensates for
       // the body's padding).
       overflow: "visible",
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -251,7 +251,7 @@ const styles = (theme: Theme) =>
       ".mask-on-checker": {
         width: "100%",
         height: "100%",
-        backgroundColor: theme.vars.palette.grey[900],
+        backgroundColor: theme.vars.palette.background.default,
         backgroundImage: `
           linear-gradient(45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),
           linear-gradient(-45deg, ${theme.vars.palette.grey[800]} 25%, transparent 25%),

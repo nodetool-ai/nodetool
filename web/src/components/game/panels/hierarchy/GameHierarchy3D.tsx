@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import CameraAltOutlinedIcon from "@mui/icons-material/CameraAltOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";

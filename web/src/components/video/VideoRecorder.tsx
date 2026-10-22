@@ -86,7 +86,7 @@ const VideoRecorder = ({
 
   const styles = (theme: Theme) =>
     css({
-      background: theme.vars.palette.grey[800],
+      background: theme.vars.palette.background.paper,
       minHeight: "50px",
       marginTop: getSpacingPx(SPACING.md),
       "& button": {
@@ -106,7 +106,7 @@ const VideoRecorder = ({
       ".video-preview": {
         width: "100%",
         maxHeight: "200px",
-        backgroundColor: theme.vars.palette.grey[900],
+        backgroundColor: theme.vars.palette.background.default,
         borderRadius: BORDER_RADIUS.sm,
         objectFit: "contain"
       },
@@ -122,7 +122,7 @@ const VideoRecorder = ({
           width: "100%"
         },
         "& .custom-select": {
-          backgroundColor: theme.vars.palette.grey[700],
+          backgroundColor: theme.vars.palette.action.selected,
           color: theme.vars.palette.grey[100],
           borderRadius: BORDER_RADIUS.sm,
           border: `1px solid ${theme.vars.palette.grey[600]}`

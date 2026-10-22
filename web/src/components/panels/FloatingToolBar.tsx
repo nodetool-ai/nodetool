@@ -161,7 +161,7 @@ const actionStyles = (theme: Theme) =>
       "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": { backgroundColor: theme.vars.palette.primary.light },
       "&.running": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.background.paper,
         color: theme.vars.palette.grey[100]
       }
     },
@@ -173,7 +173,7 @@ const actionStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.warning.main
       }
     },
@@ -185,11 +185,11 @@ const actionStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.grey[100]
       },
       "&.active": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.grey[100]
       }
     },
@@ -202,11 +202,11 @@ const actionStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.grey[100]
       },
       "&.active": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.grey[100]
       },
       ".convo-badge": {
@@ -220,7 +220,7 @@ const actionStyles = (theme: Theme) =>
         borderRadius: BORDER_RADIUS.pill,
         backgroundColor: theme.vars.palette.grey[600],
         color: theme.vars.palette.grey[50],
-        border: `2px solid ${theme.vars.palette.grey[900]}`,
+        border: `2px solid ${theme.vars.palette.divider}`,
         fontSize: "var(--fontSizeSmaller)",
         fontWeight: 600,
         display: "flex",

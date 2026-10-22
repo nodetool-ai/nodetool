@@ -24,13 +24,13 @@ const styles = (theme: Theme) =>
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.action.hover,
-      border: `1px solid ${theme.vars.palette.grey[800]}44`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: MOTION.all,
       position: "relative",
       overflow: "hidden",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.selected,
-        borderColor: theme.vars.palette.grey[700]
+        borderColor: theme.vars.palette.divider
       },
       "&.running": {
         backgroundColor: `rgba(25, 30, 40, 0.5)`,

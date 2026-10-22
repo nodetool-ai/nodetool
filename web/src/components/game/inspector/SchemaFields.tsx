@@ -4,11 +4,11 @@ import type { TFunction } from "i18next";
 import { Euler, Quaternion } from "three";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import { Box, Caption, Checkbox, CONTROL, FieldDensityContext, FlexColumn, FlexRow, InspectorFieldRow, InspectorSection, InspectorSelect, InspectorValueInput, Label, SPACING, TextInput } from "../../ui_primitives";
+import { Box, Caption, Checkbox, CONTROL, FieldDensityContext, FieldError, FlexColumn, FlexRow, InspectorFieldRow, InspectorSection, InspectorSelect, InspectorValueInput, Label, SPACING, TextInput } from "../../ui_primitives";
 import InspectorAddMenu from "./InspectorAddMenu";
 import { AddButton, FieldGroup, RowAction } from "./InspectorParts";
 import type { FieldSchema } from "./schemaForm";
@@ -115,7 +115,7 @@ function trackCurve(easing: string): string {
 function FieldRow({ label, htmlFor, error, trailing, children }: { label: ReactNode; htmlFor?: string; error?: string; trailing?: ReactNode; children: ReactNode }) {
   return <FlexColumn gap={SPACING.micro} sx={FIELD_WIDTH}>
     <InspectorFieldRow label={label} htmlFor={htmlFor}>{children}{trailing}</InspectorFieldRow>
-    {error && <Caption color="error">{error}</Caption>}
+    {error && <FieldError>{error}</FieldError>}
   </FlexColumn>;
 }
 
@@ -160,7 +160,7 @@ function NumberField({ label, value, schema, degrees, error, axis, trailing, onC
   }} />;
   const message = invalid ? t("game.inspector.errors.outOfRange") : error;
   if (axis) {
-    return <FlexColumn gap={SPACING.micro} sx={{ flex: 1, minWidth: 0 }}>{control}{message && <Caption color="error">{message}</Caption>}</FlexColumn>;
+    return <FlexColumn gap={SPACING.micro} sx={{ flex: 1, minWidth: 0 }}>{control}{message && <FieldError>{message}</FieldError>}</FlexColumn>;
   }
   return <FieldRow label={label} error={message} trailing={trailing}>{control}</FieldRow>;
 }
@@ -339,7 +339,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       {addOptions.length > 0 && (componentSections
         ? <Box sx={ADD_COMPONENT_ROW_SX}><InspectorAddMenu label={addLabel ?? t("game.inspector.actions.addComponent")} options={addOptions} onSelect={add} /></Box>
         : <InspectorAddMenu label={t("game.inspector.actions.addProperty")} options={addOptions} onSelect={add} />)}
-      {fieldError(issues, issuePath) && <Caption color="error">{fieldError(issues, issuePath)}</Caption>}
+      {fieldError(issues, issuePath) && <FieldError>{fieldError(issues, issuePath)}</FieldError>}
     </FlexColumn>;
   }
   const error = fieldError(issues, issuePath);
@@ -384,7 +384,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
       })}
       {!fixedLength && <AddButton disabled={items.length >= (schema.maxItems ?? Infinity)}
         onClick={() => onChange([...items, schemaDefault(schema.items ?? { type: "string" })])}>{t("game.inspector.actions.addItem")}</AddButton>}
-      {error && <Caption color="error">{error}</Caption>}
+      {error && <FieldError>{error}</FieldError>}
     </FlexColumn>;
   }
   if ((path.endsWith("collider2d.category") || path.endsWith("collider2d.mask") || path.endsWith("collider3d.category") || path.endsWith("collider3d.mask")) && typeof value === "number") {
@@ -398,7 +398,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
           checked={((value >>> bit) & 1) === 1} onChange={() => onChange(((value ^ (1 << bit)) >>> 0))}
           title={t("game.inspector.accessibility.bit", { bit: bit + 1 })} />)}
       </Box>
-      {error && <Caption color="error">{error}</Caption>}
+      {error && <FieldError>{error}</FieldError>}
     </FlexColumn>;
   }
   if (schema.enum) return <FieldRow label={localizedFieldLabel(path, t)} error={error} trailing={trailing}><InspectorSelect grow label={localizedFieldLabel(path, t)} value={String(value ?? "")}

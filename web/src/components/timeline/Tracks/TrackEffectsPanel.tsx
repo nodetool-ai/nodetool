@@ -64,7 +64,8 @@ import {
   BORDER_RADIUS,
   BatchedColorInput,
   FONT_WEIGHT,
-  FONT_SIZE_SANS
+  FONT_SIZE_SANS,
+  EYEBROW
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import {
@@ -982,9 +983,7 @@ const compTileStyles = (theme: Theme, accent?: string) =>
 
 const compTileLabelStyles = (theme: Theme) =>
   css({
-    fontSize: theme.fontSizeSmaller,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
+    ...EYEBROW,
     color: theme.vars.palette.text.secondary
   });
 
@@ -1402,7 +1401,7 @@ const previewBoxStyles = (theme: Theme) =>
     borderRadius: BORDER_RADIUS.sm,
     overflow: "hidden",
     position: "relative",
-    background: `linear-gradient(135deg, ${theme.vars.palette.grey[800]} 0%, ${theme.vars.palette.grey[600]} 35%, ${theme.vars.palette.grey[400]} 100%)`
+    background: `linear-gradient(135deg, ${theme.vars.palette.background.paper} 0%, ${theme.vars.palette.grey[600]} 35%, ${theme.vars.palette.grey[400]} 100%)`
   });
 
 const VideoBlurEditor: React.FC<

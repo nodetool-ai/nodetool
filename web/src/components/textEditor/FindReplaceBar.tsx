@@ -9,13 +9,12 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
 import {
   CloseButton,
-  NodeTextField,
+  TextInput,
   Toolbar,
   ToolbarGroup,
   ToolbarIconButton,
   SPACING,
-  TYPOGRAPHY,
-  getSpacingPx
+  TYPOGRAPHY
 } from "../ui_primitives";
 
 const MAX_SEARCH_LENGTH = 1000;
@@ -40,63 +39,11 @@ interface FindReplaceBarProps {
   isVisible?: boolean;
 }
 
+const FIELD_SX = { width: "16em" };
+
 const styles = (theme: Theme) =>
   // Only the fields inside: the bar's surface, rule and layout are Toolbar's.
   css({
-    ".search-input": {
-      "& .MuiInputBase-root": {
-        backgroundColor: theme.vars.palette.grey[600],
-        color: theme.vars.palette.grey[0],
-        fontSize: theme.fontSizeSmaller,
-        border: "none",
-        height: "2em",
-        "& input": {
-          padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`
-        }
-      },
-      "& .MuiInputBase-input::placeholder": {
-        color: theme.vars.palette.grey[200],
-        opacity: 1
-      },
-      "& .MuiOutlinedInput-root": {
-        "& .MuiOutlinedInput-notchedOutline": {
-          border: "none"
-        },
-        "&:hover ": {
-          opacity: 0.9
-        },
-        "&.Mui-focused": {
-          color: theme.vars.palette.grey[0],
-          backgroundColor: theme.vars.palette.grey[500]
-        }
-      }
-    },
-    ".replace-input": {
-      "& .MuiInputBase-root": {
-        backgroundColor: theme.vars.palette.grey[600],
-        color: theme.vars.palette.grey[0],
-        fontSize: theme.fontSizeSmaller,
-        height: "2em",
-        "& input": {
-          padding: getSpacingPx(SPACING.md)
-        }
-      },
-      "& .MuiInputBase-input::placeholder": {
-        color: theme.vars.palette.grey[400],
-        opacity: 1
-      },
-      "& .MuiOutlinedInput-root": {
-        "& .MuiOutlinedInput-notchedOutline": {
-          borderColor: theme.vars.palette.grey[500]
-        },
-        "&:hover .MuiOutlinedInput-notchedOutline": {
-          borderColor: theme.vars.palette.grey[400]
-        },
-        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-          borderColor: theme.vars.palette.grey[0]
-        }
-      }
-    },
     ".match-info": {
       ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.disabled,
@@ -196,8 +143,12 @@ const FindReplaceBar = ({
       sx={{ flexWrap: "wrap", py: SPACING.xs, pl: SPACING.xl }}
     >
       <ToolbarGroup className="search-group">
-        <NodeTextField
+        <TextInput
           className="search-input"
+          size="small"
+          compact
+          fullWidth={false}
+          sx={FIELD_SX}
           placeholder={t("screen_scripts_text.textEditor.find")}
           value={searchTerm}
           onChange={handleSearchChange}
@@ -241,8 +192,12 @@ const FindReplaceBar = ({
 
       {showReplace && (
         <ToolbarGroup className="search-group">
-          <NodeTextField
+          <TextInput
             className="replace-input"
+            size="small"
+            compact
+            fullWidth={false}
+            sx={FIELD_SX}
             placeholder={t("screen_scripts_text.textEditor.replaceWith")}
             value={replaceTerm}
             onChange={handleReplaceChange}

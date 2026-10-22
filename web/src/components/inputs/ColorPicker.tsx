@@ -53,7 +53,7 @@ const colorMatrixStyle = (theme: Theme) =>
     maxWidth: "300px",
     ".pick-color-button": {
       borderRadius: BORDER_RADIUS.circle,
-      border: `1px solid ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.75)"}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       minWidth: "unset",
       minHeight: "unset",
       width: PALETTE_BUTTON_SIZE,

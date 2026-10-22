@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
     },
     ".color-input": {
       "& .MuiInputBase-root": {
-        backgroundColor: theme.vars.palette.grey[900],
+        backgroundColor: theme.vars.palette.background.default,
         borderRadius: BORDER_RADIUS.sm,
         fontSize: "var(--fontSizeSmall)"
       },

@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameBehavior } from "@nodetool-ai/protocol/game.js";
 import { GAME_SCRIPT_LIFECYCLE_TYPES, GAME_SCRIPT_LIFECYCLE_TYPES_3D, GAME_SCRIPT_TYPES, GAME_SCRIPT_TYPES_3D, GAME_SCRIPT_WORLD_TYPES, GAME_SCRIPT_WORLD_TYPES_3D } from "@nodetool-ai/game-runtime";
 
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import CodeIcon from "@mui/icons-material/Code";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
 import { useMonacoEditor } from "../../../../hooks/editor/useMonacoEditor";
-import { Box, Caption, CONTROL, Divider, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, LoadingSpinner, SPACING, ToolbarIconButton } from "../../../ui_primitives";
+import { AlertBanner, Box, Caption, CONTROL, Divider, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, LoadingSpinner, SPACING, ToolbarIconButton } from "../../../ui_primitives";
+import ErrorBanner from "../../../support/ErrorBanner";
 import DockPanelHeader from "../../../dock/DockPanelHeader";
 
 interface GameScriptPaneProps {
@@ -28,11 +29,7 @@ interface GameScriptPaneProps {
   onClose: () => void;
 }
 
-/** A full-width notice strip between the toolbar and the editor. */
-function Notice({ tone, children }: { tone: "warning" | "error"; children: ReactNode }) {
-  return <FlexRow align="center" gap={SPACING.sm} wrap sx={{ flexShrink: 0, minHeight: CONTROL.height.md, px: SPACING.md, py: SPACING.xs,
-    borderBottom: 1, borderColor: "divider", bgcolor: `rgba(var(--palette-${tone}-mainChannel) / 0.08)` }}>{children}</FlexRow>;
-}
+const NOTICE_SX = { flexShrink: 0, mx: SPACING.md, my: SPACING.xs };
 
 export default function GameScriptPane({ dimension = "2d", entityId, entityName, behaviorIndex, behavior, error, onReplay, onAskAssistant, onRunTenSeconds,
   runningTenSeconds, runSummary, runEntityStats = [], onChange, onClose }: GameScriptPaneProps) {
@@ -66,21 +63,20 @@ export default function GameScriptPane({ dimension = "2d", entityId, entityName,
     <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0, height: "100%" }}>
       <DockPanelHeader title={t("i18n-next26.game.scripts")} label={t("i18n-next26.game.scriptLabel", { entity: entityName || entityId, number: behaviorIndex + 1 })}
         icon={<CodeIcon sx={{ fontSize: FONT_SIZE_SANS.body, color: "text.secondary" }} />}>
-        {onRunTenSeconds && <EditorButton startIcon={<PlayArrowIcon fontSize="small" />} disabled={runningTenSeconds}
+        {onRunTenSeconds && <EditorButton startIcon={<PlayArrowIcon />} disabled={runningTenSeconds}
           onClick={onRunTenSeconds}>{runningTenSeconds ? t("i18n-next26.game.running") : t("i18n-next26.game.runTenSeconds")}</EditorButton>}
         {onRunTenSeconds && <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />}
         <ToolbarIconButton icon={<CloseIcon fontSize="small" />} tooltip={t("i18n-next26.game.close")} onClick={onClose} />
       </DockPanelHeader>
-      {conflict && <Notice tone="warning">
-        <Caption role="alert" sx={{ flex: 1, minWidth: 0 }}>{t("i18n-next26.game.scriptConflict")}</Caption>
+      {conflict && <AlertBanner severity="warning" compact sx={NOTICE_SX} action={<FlexRow gap={SPACING.xs}>
         <EditorButton onClick={() => { sourceRef.current = behavior.source; setSource(behavior.source); setConflict(false); }}>{t("i18n-next26.game.useDraftVersion")}</EditorButton>
         <EditorButton onClick={() => { setConflict(false); onChange(sourceRef.current); }}>{t("i18n-next26.game.keepMyVersion")}</EditorButton>
-      </Notice>}
-      {error && <Notice tone="error">
-        <Caption color="error" role="alert" sx={{ flex: 1, minWidth: 0, fontFamily: "var(--fontFamily2)" }}>{t("i18n-next101.game.script.tickError", { tick: error.tick, message: error.message })}</Caption>
+      </FlexRow>}>{t("i18n-next26.game.scriptConflict")}</AlertBanner>}
+      {/* The user's own script failed: no Report, it is not a NodeTool fault. */}
+      {error && <AlertBanner severity="error" compact sx={NOTICE_SX} action={<FlexRow gap={SPACING.xs}>
         {onReplay && error.tick > 0 && <EditorButton onClick={onReplay}>{t("i18n-next26.game.replayToTick", { tick: error.tick - 1 })}</EditorButton>}
         {onAskAssistant && <EditorButton onClick={onAskAssistant}>{t("i18n-next26.game.askAssistant")}</EditorButton>}
-      </Notice>}
+      </FlexRow>}><Box component="span" sx={{ fontFamily: "var(--fontFamily2)" }}>{t("i18n-next101.game.script.tickError", { tick: error.tick, message: error.message })}</Box></AlertBanner>}
       <Box sx={{ position: "relative", flex: 1, minHeight: 0 }}>
         {MonacoEditor ? <MonacoEditor key={key} value={source} onChange={(value) => {
           const next = value ?? "";
@@ -105,7 +101,7 @@ export default function GameScriptPane({ dimension = "2d", entityId, entityName,
           }}
           language="javascript" theme="vs-dark" width="100%" height="100%" options={options} />
           : <FlexRow align="center" justify="center" sx={{ position: "absolute", inset: 0, p: SPACING.lg }}>
-            {monacoLoadError ? <Caption color="error" role="alert">{monacoLoadError}</Caption> : isMonacoLoading ? <LoadingSpinner size="small" /> : null}
+            {monacoLoadError ? <ErrorBanner report={{ source: "panel-crash", summary: t("i18n-next26.game.scripts"), errorText: monacoLoadError }}>{monacoLoadError}</ErrorBanner> : isMonacoLoading ? <LoadingSpinner size="small" /> : null}
           </FlexRow>}
       </Box>
       {runEntityStats.length > 0 && <FlexColumn component="ul" aria-label={t("i18n-next26.game.scriptTimeByEntity")} sx={{ flexShrink: 0, maxHeight: "25%", overflowY: "auto",

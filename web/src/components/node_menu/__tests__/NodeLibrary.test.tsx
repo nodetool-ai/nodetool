@@ -25,7 +25,8 @@ jest.mock("../NodeInfo", () => ({
 
 jest.mock("../../../hooks/useSecrets", () => ({
   useSecrets: () => ({
-    isApiKeySet: (key: string) => key === "OPENAI_API_KEY"
+    isApiKeySet: (key: string) =>
+      key === "OPENAI_API_KEY" || key === "KIE_API_KEY"
   })
 }));
 
@@ -103,5 +104,50 @@ describe("NodeLibrary nodes that need a missing API key", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Hide them" }));
     expect(screen.getByRole("tab", { name: /All/ })).toHaveTextContent("2");
+  });
+});
+
+describe("NodeLibrary provider filter", () => {
+  beforeEach(() => {
+    act(() => {
+      useSettingsStore.setState({ settings: { ...defaultSettings } });
+    });
+    const nodes = [
+      makeNode("nodetool.text.Concat"),
+      makeNode("nodetool.text.Split"),
+      makeNode("openai.text.Chat"),
+      makeNode("kie.image.Seedream"),
+      makeNode("fal.image.FluxDev")
+    ];
+    useMetadataStore.setState({
+      metadata: Object.fromEntries(nodes.map((n) => [n.node_type, n]))
+    });
+  });
+
+  it("lists local first, then providers with a key, and filters the library", () => {
+    renderLibrary();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter by provider: All providers" })
+    );
+    const options = screen
+      .getAllByRole("menuitemradio")
+      .map((item) => item.textContent);
+    expect(options).toEqual(["All providers4", "Local2", "Kie1", "OpenAI1"]);
+
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /Kie/ }));
+
+    expect(
+      screen.getByRole("button", { name: "Filter by provider: Kie" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /All/ })).toHaveTextContent("1");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter by provider: Kie" })
+    );
+    fireEvent.click(
+      screen.getByRole("menuitemradio", { name: /All providers/ })
+    );
+    expect(screen.getByRole("tab", { name: /All/ })).toHaveTextContent("4");
   });
 });

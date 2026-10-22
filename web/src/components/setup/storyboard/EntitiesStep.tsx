@@ -37,7 +37,9 @@ import {
   AlertBanner,
   BORDER_RADIUS,
   Caption,
+  Card,
   Checkbox,
+  Chip,
   EditorButton,
   EmptyState,
   FlexColumn,
@@ -52,8 +54,10 @@ import {
   SPACING,
   SPACING_PX,
   Text,
-  ThinkingIndicator
+  ThinkingIndicator,
+  TYPOGRAPHY
 } from "../../ui_primitives";
+import { ENTITY_KIND_ICON } from "../../entities/entityKind";
 import {
   buildEntitySuggestionsPrompt,
   ENTITY_SUGGESTIONS_SCHEMA,
@@ -120,6 +124,15 @@ const ENTITY_GROUPS = [
   { kind: "prop", labelKey: "props" },
   { kind: "style", labelKey: "styles" }
 ] as const;
+
+/**
+ * A shot's title without the number its card already shows. Director slugs
+ * often lead with it ("01 — Opening"), which read twice beside the badge.
+ */
+export const shotTitle = (title: string, number: number): string => {
+  const match = /^0*(\d+)\s*[—–\-.:]\s*(.+)$/u.exec(title.trim());
+  return match && Number(match[1]) === number ? match[2] : title;
+};
 
 const setIdSelected = (
   ids: readonly string[],
@@ -1001,97 +1014,92 @@ export const EntitiesStep = ({
               {t("pass3_10.storyboard.entities.assignDescription")}
             </Text>
           </FlexColumn>
-          <FlexColumn
-            gap={SPACING.lg}
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "minmax(0, 1fr)",
-                md: "repeat(2, minmax(0, 1fr))"
-              }
-            }}
-          >
+          {/* One framed list, a row per shot: the shots read as a sequence
+              and the chips line up, where a grid of cards wrapped them. */}
+          <Card variant="outlined" padding="none" sx={{ overflow: "hidden" }}>
             {(board?.shots ?? []).map((shot) => {
               const shotIds = new Set(shot.entity_ids ?? selectedIds);
+              const number = shot.index + 1;
+              const title = shot.slug ?? shot.action;
               return (
-                <FlexColumn
+                <FlexRow
                   key={shot.id}
                   component="section"
                   aria-label={t("pass3_10.storyboard.entities.shotNumber", {
-                    number: shot.index + 1
+                    number
                   })}
-                  gap={SPACING.xl}
-                  justify="space-between"
+                  gap={SPACING.lg}
+                  align="center"
                   sx={{
-                    p: SPACING.xl,
-                    minWidth: 0,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: BORDER_RADIUS.md,
-                    bgcolor: "background.paper"
+                    px: SPACING.lg,
+                    py: SPACING.md,
+                    flexDirection: { xs: "column", md: "row" },
+                    alignItems: { xs: "stretch", md: "center" },
+                    "& + &": { borderTop: 1, borderColor: "divider" }
                   }}
                 >
-                  <FlexColumn gap={SPACING.sm}>
-                    <Label component="h3">
-                      {t("pass3_10.storyboard.entities.shotNumber", {
-                        number: shot.index + 1
-                      })}
-                    </Label>
-                    <Text>{shot.slug ?? shot.action}</Text>
-                  </FlexColumn>
-                  <FlexRow gap={SPACING.md} wrap>
-                    {selectedEntities.map((entity) => (
-                      <Checkbox
-                        key={entity.id}
-                        label={
-                          <FlexRow gap={SPACING.sm} align="center">
-                            {entity.kind === "character" &&
-                            entity.reference_images?.[0] ? (
+                  {/* The number once, beside the shot's own title. */}
+                  <FlexRow
+                    gap={SPACING.sm}
+                    align="baseline"
+                    sx={{ flex: { md: "0 0 34%" }, minWidth: 0 }}
+                  >
+                    <Caption
+                      aria-hidden
+                      sx={{ ...TYPOGRAPHY.mono.caption, flexShrink: 0 }}
+                    >
+                      {String(number).padStart(2, "0")}
+                    </Caption>
+                    <Text
+                      component="h3"
+                      size="small"
+                      weight={500}
+                      truncate
+                      title={title}
+                      sx={{ m: SPACING.none, minWidth: 0 }}
+                    >
+                      {shotTitle(title, number)}
+                    </Text>
+                  </FlexRow>
+                  <FlexRow gap={SPACING.sm} wrap sx={{ flex: 1, minWidth: 0 }}>
+                    {selectedEntities.map((entity) => {
+                      const included = shotIds.has(entity.id);
+                      const KindIcon = ENTITY_KIND_ICON[entity.kind];
+                      const thumbnail =
+                        entity.kind === "character"
+                          ? entity.reference_images?.[0]
+                          : undefined;
+                      return (
+                        <Chip
+                          key={entity.id}
+                          label={entity.name}
+                          active={included}
+                          disabled={readOnly}
+                          onClick={() =>
+                            toggleShot(shot.id, entity.id, !included)
+                          }
+                          avatar={
+                            thumbnail ? (
                               <ResponsiveImage
-                                locator={entity.reference_images[0]}
+                                locator={thumbnail}
                                 preferThumbnail
                                 loading="lazy"
                                 alt=""
                                 aspectRatio="1/1"
-                                borderRadius={BORDER_RADIUS.sm}
-                                sx={{
-                                  width: SPACING_PX.xxxl,
-                                  height: SPACING_PX.xxxl,
-                                  flexShrink: 0
-                                }}
+                                borderRadius={BORDER_RADIUS.circle}
+                                sx={{ opacity: included ? 1 : 0.5 }}
                               />
-                            ) : null}
-                            <Text component="span">{entity.name}</Text>
-                          </FlexRow>
-                        }
-                        checked={shotIds.has(entity.id)}
-                        disabled={readOnly}
-                        onChange={(_, checked) => {
-                          if (!readOnly) {
-                            toggleShot(shot.id, entity.id, checked);
+                            ) : undefined
                           }
-                        }}
-                        labelProps={{
-                          sx: {
-                            m: SPACING.none,
-                            pr: SPACING.md,
-                            border: "1px solid",
-                            borderColor: shotIds.has(entity.id)
-                              ? "primary.main"
-                              : "divider",
-                            borderRadius: BORDER_RADIUS.sm,
-                            bgcolor: shotIds.has(entity.id)
-                              ? "action.selected"
-                              : "transparent"
-                          }
-                        }}
-                      />
-                    ))}
+                          icon={thumbnail ? undefined : <KindIcon />}
+                        />
+                      );
+                    })}
                   </FlexRow>
-                </FlexColumn>
+                </FlexRow>
               );
             })}
-          </FlexColumn>
+          </Card>
         </FlexColumn>
       ) : null}
 

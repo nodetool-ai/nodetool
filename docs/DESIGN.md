@@ -70,7 +70,8 @@ last column over `web/src` and prints a count per element.
 `npm run audit:ui -- --rule <id>` lists every hit of one check. The token rules
 (spacing, colour, radius, font size, z-index, motion) are not repeated here,
 because `npm run lint:design` enforces them. A check moves into that lint once
-its count reaches zero. Rows without a check are reviewed by eye against the
+its count reaches zero: `lint:design` runs `audit-ui-standards.mjs --check`,
+which fails on any hit of a rule in its `ENFORCED` list. Rows without a check are reviewed by eye against the
 linked section and the `Patterns/*` Storybook stories.
 
 **Scope:** product UI under `web/src`. The primitives themselves
@@ -1716,7 +1717,7 @@ what failed and offers a way on.
 
 | Situation | Use |
 |---|---|
-| A field value is wrong | The field's `errorMessage` or `error`, under the field |
+| A field value is wrong | The field's `errorMessage` or `error`, under the field. A control outside `TextInput`/`FormField` puts `FieldError` under it |
 | A load or an operation failed inside a panel, dialog or page | `ErrorBanner` from `components/support/`: `AlertBanner severity="error"` with the Report control and an optional retry |
 | The content of a surface could not load at all | `EmptyState variant="error"` in place of the content, with a retry action, plus the Report control |
 | A user action failed and the surface is fine | `useAlertNotifier("error")` |

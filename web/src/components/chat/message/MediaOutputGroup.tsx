@@ -141,7 +141,7 @@ const styles = (theme: Theme) =>
       height: THUMBNAIL_SIZE,
       borderRadius: BORDER_RADIUS.lg,
       overflow: "hidden",
-      background: theme.vars.palette.grey[900],
+      background: theme.vars.palette.background.default,
       cursor: "grab"
     },
 

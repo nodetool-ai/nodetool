@@ -42,7 +42,7 @@ const styles = (theme: Theme) =>
     height: "100%",
     overflowX: "auto",
     overflowY: "hidden",
-    backgroundColor: theme.vars.palette.grey[900],
+    backgroundColor: theme.vars.palette.background.default,
 
     "& .waveform-inner": {
       position: "relative",

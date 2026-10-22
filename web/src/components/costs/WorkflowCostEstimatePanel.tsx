@@ -17,7 +17,7 @@ import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Caption, CollapsibleSection, FlexRow, Label, SPACING } from "../ui_primitives";
+import { Box, Caption, CollapsibleSection, FlexRow, Label, SPACING, EYEBROW } from "../ui_primitives";
 import { useWorkflowCostEstimate } from "../../hooks/useWorkflowCostEstimate";
 import { CostEstimateSummary } from "./CostEstimateSummary";
 import { useCostEstimateSummary } from "./useCostEstimateSummary";
@@ -35,11 +35,7 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(0.5)
     },
     ".cost-title": {
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 400,
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary
     },
     ".cost-subtitle": {

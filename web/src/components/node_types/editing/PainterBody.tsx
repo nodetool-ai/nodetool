@@ -137,7 +137,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       // Solid letterbox around the canvas — distinguishes "outside the
       // paintable area" from the canvas itself, which carries the checker.
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

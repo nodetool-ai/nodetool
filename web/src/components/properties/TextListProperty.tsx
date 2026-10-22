@@ -73,7 +73,7 @@ const styles = (theme: Theme) =>
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
       borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: MOTION.all,
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       display: "flex",

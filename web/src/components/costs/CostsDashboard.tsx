@@ -32,7 +32,8 @@ import {
   getSpacingPx,
   SHADOW,
   EmptyState,
-  ICON_SIZE
+  ICON_SIZE,
+  EYEBROW
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -537,8 +538,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
             size="smaller"
             weight={600}
             sx={{
-              letterSpacing: "0.07em",
-              textTransform: "uppercase",
+              ...EYEBROW,
               color: theme.vars.palette.text.disabled
             }}
           >

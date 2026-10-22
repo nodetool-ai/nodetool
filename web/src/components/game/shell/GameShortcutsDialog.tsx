@@ -4,7 +4,7 @@ import { useStore } from "zustand";
 import type { StoreApi } from "zustand/vanilla";
 
 import type { GameShortcutState } from "../../../stores/game/GameShortcutStore";
-import { Caption, Dialog, EditorButton, FlexColumn, FlexRow, Label, ShortcutHint, SPACING, Text } from "../../ui_primitives";
+import { Caption, Dialog, EditorButton, FieldError, FlexColumn, FlexRow, Label, ShortcutHint, SPACING, Text } from "../../ui_primitives";
 import { isMac } from "../../../utils/platform";
 import { formatGameBinding, GAME_COMMANDS, gameBindingFromEvent, resolveGameBindings, type GameCommandCategory } from "./gameCommands";
 import type { GameDimension } from "./panelRegistry";
@@ -61,7 +61,7 @@ export default function GameShortcutsDialog({ open, dimension, store, onClose }:
           <EditorButton aria-label={t("screen_game.shortcuts.resetAria", { command: t(`screen_game.commandTitles.${entry.id}`) })} disabled={!(entry.id in overrides)}
             onClick={() => attempt(entry.id, () => store.getState().resetBindings(entry.id))}>{t("screen_game.common.reset")}</EditorButton>
         </FlexRow>
-        {message?.commandId === entry.id && <Caption color="error" role="alert">{message.text}</Caption>}
+        {message?.commandId === entry.id && <FieldError alert>{message.text}</FieldError>}
       </FlexColumn>;
     })}
   </FlexColumn>;

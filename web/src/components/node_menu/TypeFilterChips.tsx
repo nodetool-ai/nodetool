@@ -17,7 +17,8 @@ import {
   SPACING,
   getSpacingPx,
   TextField,
-  MuiAutocomplete as Autocomplete
+  MuiAutocomplete as Autocomplete,
+  EYEBROW
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -113,13 +114,9 @@ const typeFilterChipsStyles = (theme: Theme) =>
       color: "var(--palette-primary-main)"
     },
     ".quick-label": {
-      fontSize: theme.fontSizeSmaller,
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
       whiteSpace: "nowrap",
-      fontWeight: FONT_WEIGHT.medium,
-      lineHeight: 1,
       marginLeft: getSpacingPx(SPACING.xs)
     },
     ".filter-section": {
@@ -216,12 +213,9 @@ const typeFilterChipsStyles = (theme: Theme) =>
       marginBottom: getSpacingPx(SPACING.xs)
     },
     ".menu-section-title": {
-      fontSize: "var(--fontSizeSmall)",
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.55px",
       marginBottom: getSpacingPx(SPACING.md),
-      fontWeight: FONT_WEIGHT.semibold
     },
     ".filter-menu-content": {
       // Clamped to the viewport: a flat 390px overflows a phone screen.

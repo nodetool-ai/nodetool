@@ -10,13 +10,15 @@
  * see: an element built by hand where a primitive exists, a primitive
  * restyled at the call site, and copy that breaks the rules. Matches are
  * pattern-based, so counts are approximate and meant for ranking. A rule is a
- * candidate for the lint once its count reaches zero.
+ * candidate for the lint once its count reaches zero. Rules in ENFORCED have
+ * reached zero, and `--check` (run by `npm run lint:design`) fails on any hit.
  *
  * Usage:
  *   node scripts/audit-ui-standards.mjs            summary per element
  *   node scripts/audit-ui-standards.mjs --rule id  every hit of one rule
  *   node scripts/audit-ui-standards.mjs --all      every hit of every rule
  *   node scripts/audit-ui-standards.mjs --json     machine-readable output
+ *   node scripts/audit-ui-standards.mjs --check    fail on any hit of an ENFORCED rule
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
@@ -533,6 +535,24 @@ function audit() {
   return { files: files.length, hits };
 }
 
+// Rules whose count has reached zero. A new hit fails `npm run lint:design`.
+const ENFORCED = [
+  "button/raw-icon-button",
+  "tooltip/shortcut-in-text",
+  "dialog/restyled-paper",
+  "menu/raw-menu",
+  "notification/snackbar",
+  "tabs/raw-tabs",
+  "tabs/hand-tablist",
+  "state/raw-spinner",
+  "state/loading-text",
+  "state/raw-linear-progress",
+  "text/raw-typography",
+  "table/raw-table",
+  "layout/raw-paper",
+  "surface/grey-chrome"
+];
+
 const args = process.argv.slice(2);
 const { files, hits } = audit();
 
@@ -542,35 +562,46 @@ if (files < 500) {
   process.exit(1);
 }
 
-if (args.includes("--json")) {
-  const out = RULES.map(({ id, element, finds, fix }) => ({ id, element, finds, fix, count: hits[id].length, hits: hits[id] }));
-  process.stdout.write(JSON.stringify({ scanned: files, rules: out }, null, 2) + "\n");
+if (args.includes("--check")) {
+  const unknown = ENFORCED.filter((id) => !hits[id]);
+  if (unknown.length) {
+    console.error(`audit-ui-standards: unknown enforced rule ${unknown.join(", ")}`);
+    process.exit(1);
+  }
+  const found = ENFORCED.flatMap((id) => hits[id].map((h) => ({ id, ...h })));
+  for (const h of found) console.error(`${h.file}:${h.line}  ${h.id}  ${h.text.slice(0, 140)}`);
+  if (found.length) {
+    console.error(`\n${found.length} hit(s) of enforced element standards. Fixes are in docs/DESIGN.md, Element standards.`);
+    process.exit(1);
+  }
+  console.log(`audit-ui-standards: ${ENFORCED.length} enforced rules clean across ${files} files`);
   process.exit(0);
 }
 
-const only = args.includes("--rule") ? args[args.indexOf("--rule") + 1] : null;
-const all = args.includes("--all");
-
-if (only || all) {
+if (args.includes("--json")) {
+  const out = RULES.map(({ id, element, finds, fix }) => ({ id, element, finds, fix, count: hits[id].length, hits: hits[id] }));
+  // No process.exit here: it would cut piped output at the pipe buffer.
+  process.stdout.write(JSON.stringify({ scanned: files, rules: out }, null, 2) + "\n");
+} else if (args.includes("--rule") || args.includes("--all")) {
+  const only = args.includes("--rule") ? args[args.indexOf("--rule") + 1] : null;
   for (const r of RULES) {
     if (only && r.id !== only) continue;
     console.log(`\n## ${r.id} (${hits[r.id].length}) — ${r.finds} → ${r.fix}`);
     for (const h of hits[r.id]) console.log(`${h.file}:${h.line}  ${h.text.slice(0, 140)}`);
   }
-  process.exit(0);
+} else {
+  console.log(`Scanned ${files} files under web/src (primitives, themes, tests and stories excluded).\n`);
+  const elements = [...new Set(RULES.map((r) => r.element))];
+  for (const r of elements.flatMap((e) => RULES.filter((x) => x.element === e))) {
+    if (r === RULES.find((x) => x.element === r.element)) console.log(`\n${r.element}`);
+    const byFile = {};
+    for (const h of hits[r.id]) byFile[h.file] = (byFile[h.file] || 0) + 1;
+    const top = Object.entries(byFile)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([f, n]) => `${f.replace("src/components/", "")} (${n})`)
+      .join(", ");
+    console.log(`  ${String(hits[r.id].length).padStart(5)}  ${r.id.padEnd(30)} ${Object.keys(byFile).length} files  ${top}`);
+  }
+  console.log("\nList every hit of one rule with --rule <id>. Fixes are in docs/DESIGN.md, Element standards.");
 }
-
-console.log(`Scanned ${files} files under web/src (primitives, themes, tests and stories excluded).\n`);
-const elements = [...new Set(RULES.map((r) => r.element))];
-for (const r of elements.flatMap((e) => RULES.filter((x) => x.element === e))) {
-  if (r === RULES.find((x) => x.element === r.element)) console.log(`\n${r.element}`);
-  const byFile = {};
-  for (const h of hits[r.id]) byFile[h.file] = (byFile[h.file] || 0) + 1;
-  const top = Object.entries(byFile)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([f, n]) => `${f.replace("src/components/", "")} (${n})`)
-    .join(", ");
-  console.log(`  ${String(hits[r.id].length).padStart(5)}  ${r.id.padEnd(30)} ${Object.keys(byFile).length} files  ${top}`);
-}
-console.log("\nList every hit of one rule with --rule <id>. Fixes are in docs/DESIGN.md, Element standards.");

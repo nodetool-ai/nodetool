@@ -1,5 +1,5 @@
 import { memo, useState, type KeyboardEvent, type SyntheticEvent } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 import { CONTROL, EditorButton, EditorMenu, EditorMenuItem, SPACING, ToolbarIconButton } from "../../ui_primitives";

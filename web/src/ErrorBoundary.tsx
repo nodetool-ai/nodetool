@@ -85,7 +85,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       fontWeight: 500,
       borderRadius: BORDER_RADIUS.md,
       textTransform: "none",
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       color: theme.vars.palette.grey[100],
       "&:hover": {
         borderColor: theme.vars.palette.grey[500],
@@ -110,7 +110,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
       transition: MOTION.all,
       "&:hover": {
@@ -159,7 +159,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       width: "100%",
       boxSizing: "border-box",
       color: theme.vars.palette.grey[50],
-      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
       fontFamily: "var(--fontFamily2)",
       fontSize: "var(--fontSizeSmall)",

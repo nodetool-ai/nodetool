@@ -224,7 +224,7 @@ const styles = (theme: Theme, gap: number) =>
       justifyContent: "center",
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
-      background: theme.vars.palette.grey[900]
+      background: theme.vars.palette.background.default
     },
     ".tile.selected": selectedTileStyles(theme),
     ".tile-actions": {

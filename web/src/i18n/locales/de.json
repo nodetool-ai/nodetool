@@ -9411,6 +9411,7 @@
     "support": {
       "report": "Melden",
       "tryAgain": "Erneut versuchen",
+      "dismiss": "Ausblenden",
       "bugReport": {
         "title": "Fehler melden",
         "reportSentTitle": "Meldung gesendet",
@@ -12769,6 +12770,10 @@
     "title": "Knoten",
     "search": "Knoten suchen",
     "clearSearch": "Suche löschen",
+    "providers": "Anbieter",
+    "allProviders": "Alle Anbieter",
+    "localProvider": "Lokal",
+    "providerFilter": "Nach Anbieter filtern: {{provider}}",
     "categoriesLabel": "Knotenkategorien",
     "noMatches": "Keine passenden Knoten",
     "hoverHint": "Ziehe einen Knoten auf die Arbeitsfläche. Bewege den Mauszeiger darüber, um Details zu sehen.",

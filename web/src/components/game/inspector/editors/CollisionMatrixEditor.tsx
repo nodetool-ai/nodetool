@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { GameDocument3D, GameEntity3D } from "@nodetool-ai/protocol";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-import { Box, Caption, Checkbox, CONTROL, FlexColumn, FlexRow, InspectorValueInput, ScrollArea, SPACING, ToolbarIconButton, TruncatedText } from "../../../ui_primitives";
+import { Box, Caption, Checkbox, CONTROL, FieldError, FlexColumn, FlexRow, InspectorValueInput, ScrollArea, SPACING, ToolbarIconButton, TruncatedText } from "../../../ui_primitives";
 import { AddButton } from "../InspectorParts";
 
 const ACTION_SX = { width: CONTROL.height.xs, height: CONTROL.height.xs, p: SPACING.none, flexShrink: 0 } as const;
@@ -91,7 +91,7 @@ function CollisionMatrixEditor({ document, onDocument }: CollisionMatrixEditorPr
       <ToolbarIconButton icon={<DeleteOutlineIcon fontSize="small" />} tooltip={t("game.collision.actions.removeLayer", { name: layer })} sx={ACTION_SX}
         onClick={() => onDocument(removeCollisionLayer3D(document, layer), t("game.collision.actions.removeLayerLabel"))} />
     </FlexRow>)}
-    {renameError && <Caption color="error" role="alert">{renameError}</Caption>}
+    {renameError && <FieldError alert>{renameError}</FieldError>}
     <AddButton disabled={layers.length >= MAX_COLLISION_LAYERS_3D} onClick={addLayer}>{t("game.collision.actions.addLayerButton")}</AddButton>
     {layers.length > 0 && <ScrollArea direction="horizontal" thin>
       <Box role="group" aria-label={t("game.collision.accessibility.matrix")} sx={{ display: "grid", gridTemplateColumns: `minmax(0, max-content) repeat(${layers.length}, max-content)`,

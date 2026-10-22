@@ -17,7 +17,8 @@ import {
   focusRing,
   getSpacingPx,
   selectedRowStyles,
-  Tooltip
+  Tooltip,
+  EYEBROW
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -209,8 +210,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       ".io-label": {
         color: theme.vars.palette.text.secondary,
         minWidth: "45px",
-        textTransform: "uppercase",
-        letterSpacing: "0.3px"
+        ...EYEBROW,
       },
       ".io-items": {
         display: "flex",
@@ -315,7 +315,7 @@ const SearchResultItem = memo(function SearchResultItem({
 
   const compactBgStyle = useMemo(
     () => ({
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       width: "18px",
       height: "18px",
       margin: 0,

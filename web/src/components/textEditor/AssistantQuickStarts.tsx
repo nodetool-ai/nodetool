@@ -11,7 +11,7 @@ import NotesIcon from "@mui/icons-material/Notes";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useTranslation } from "react-i18next";
-import { MOTION, BORDER_RADIUS, getSpacingPx, SPACING } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, getSpacingPx, SPACING, EYEBROW } from "../ui_primitives";
 
 interface QuickStart {
   icon: React.ReactNode;
@@ -93,9 +93,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".quick-label": {
-      fontSize: "var(--fontSizeSmaller)",
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.text.disabled,
       paddingLeft: getSpacingPx(SPACING.xs)
     },

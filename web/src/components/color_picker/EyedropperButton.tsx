@@ -51,10 +51,10 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
       className="eyedropper-button"
       sx={(theme: Theme) => ({
         borderRadius: BORDER_RADIUS.sm,
-        backgroundColor: theme.vars.palette.grey[800],
-        border: `1px solid ${theme.vars.palette.grey[700]}`,
+        backgroundColor: theme.vars.palette.background.paper,
+        border: `1px solid ${theme.vars.palette.divider}`,
         "&:hover": {
-          backgroundColor: theme.vars.palette.grey[700],
+          backgroundColor: theme.vars.palette.action.hover,
           borderColor: theme.vars.palette.primary.main
         },
         "&.Mui-disabled": {

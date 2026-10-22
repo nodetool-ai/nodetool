@@ -11,7 +11,7 @@ import { memo, type MouseEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { SxProps, Theme } from "@mui/material/styles";
 import ReportBugButton from "./ReportBugButton";
-import { AlertBanner, EditorButton, FlexRow, GAP } from "../ui_primitives";
+import { AlertBanner, CloseButton, EditorButton, FlexRow, GAP } from "../ui_primitives";
 import type { BugReportContext } from "../../utils/bugReportBundle";
 
 interface ErrorBannerProps {
@@ -23,6 +23,10 @@ interface ErrorBannerProps {
   title?: string;
   onRetry?: (event: MouseEvent) => void;
   retryLabel?: string;
+  /** Further ways on (replay, open, ask), placed before Report. */
+  actions?: ReactNode;
+  /** Shows a close control that clears the failure. */
+  onDismiss?: () => void;
   /** Reduced padding, for inspectors, rows and menus. Defaults to true. */
   compact?: boolean;
   sx?: SxProps<Theme>;
@@ -36,6 +40,8 @@ const ErrorBanner = ({
   title,
   onRetry,
   retryLabel,
+  actions,
+  onDismiss,
   compact = true,
   sx,
   className,
@@ -52,12 +58,20 @@ const ErrorBanner = ({
       data-testid={testId}
       action={
         <FlexRow gap={GAP.tight} align="center">
+          {actions}
           {onRetry && (
             <EditorButton size="small" variant="text" onClick={onRetry}>
               {retryLabel ?? t("screens4_9.support.tryAgain")}
             </EditorButton>
           )}
           <ReportBugButton context={report} />
+          {onDismiss && (
+            <CloseButton
+              onClick={onDismiss}
+              tooltip={t("screens4_9.support.dismiss")}
+              nodrag={false}
+            />
+          )}
         </FlexRow>
       }
     >

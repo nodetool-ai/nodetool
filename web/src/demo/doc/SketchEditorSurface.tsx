@@ -130,7 +130,7 @@ export function SketchEditorSurface({
       minWidth: 0,
       display: "flex",
       padding: theme.spacing(1),
-      backgroundColor: theme.vars.palette.grey[900]
+      backgroundColor: theme.vars.palette.background.default
     }),
     [theme]
   );
@@ -147,7 +147,7 @@ export function SketchEditorSurface({
           width: "100%",
           height: "100%",
           overflow: "hidden",
-          backgroundColor: theme.vars.palette.grey[900]
+          backgroundColor: theme.vars.palette.background.default
         }}
       >
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>

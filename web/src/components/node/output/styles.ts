@@ -46,7 +46,7 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
     pre: {
       margin: "0",
       padding: getSpacingPx(SPACING.xs),
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       width: "100%",
       overflowX: "scroll"
     },

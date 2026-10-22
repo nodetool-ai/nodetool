@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, BORDER_RADIUS, MOTION, reducedMotion, getSpacingPx, SPACING } from "../ui_primitives";
+import { Text, Box, BORDER_RADIUS, MOTION, reducedMotion, getSpacingPx, SPACING, EYEBROW } from "../ui_primitives";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
       marginBottom: getSpacingPx(SPACING.lg),
       padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.lg,
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.default,
       border: `1px solid ${theme.vars.palette.primary.dark}`,
       borderLeft: `3px solid ${theme.vars.palette.primary.main}`
     },
@@ -37,11 +37,7 @@ const styles = (theme: Theme) =>
     ".task-animated-heading": {
       animation: `aiColorShift ${MOTION.pulse} infinite`,
       ...reducedMotion({ animation: "none" }),
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
-      letterSpacing: "0.5px",
-      textTransform: "uppercase",
+      ...EYEBROW,
       flex: 1
     },
 
@@ -78,30 +74,27 @@ const styles = (theme: Theme) =>
       lineHeight: "1.5",
       color: theme.vars.palette.grey[400],
       paddingLeft: getSpacingPx(SPACING.md),
-      borderLeft: `2px solid ${theme.vars.palette.grey[700]}`
+      borderLeft: `2px solid ${theme.vars.palette.divider}`
     },
 
     ".step-wrapper": {
       marginTop: getSpacingPx(SPACING.lg),
       paddingTop: getSpacingPx(SPACING.lg),
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`
+      borderTop: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".steps-section": {
       marginTop: getSpacingPx(SPACING.lg),
       paddingTop: getSpacingPx(SPACING.lg),
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       display: "flex",
       flexDirection: "column",
       gap: getSpacingPx(SPACING.lg)
     },
 
     ".steps-header": {
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.grey[500],
-      letterSpacing: "1px",
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.md),
@@ -109,7 +102,7 @@ const styles = (theme: Theme) =>
         content: '""',
         flex: 1,
         height: "1px",
-        backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: theme.vars.palette.background.paper
       }
     }
   });

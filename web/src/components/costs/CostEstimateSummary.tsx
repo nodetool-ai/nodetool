@@ -17,7 +17,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import type { WorkflowCostEstimateDetail } from "@nodetool-ai/node-sdk/cost-estimate";
-import { Box, Caption, ExternalLink, Tooltip } from "../ui_primitives";
+import { Box, Caption, ExternalLink, Tooltip, EYEBROW } from "../ui_primitives";
 import { genspendPricingCatalog } from "@nodetool-ai/model-pricing/genspend-catalog";
 import { useCostEstimateSummary } from "./useCostEstimateSummary";
 
@@ -52,11 +52,7 @@ const styles = (theme: Theme) =>
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".cost-col-head": {
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      letterSpacing: "0.04em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary
     },
     ".cost-cell-node": {

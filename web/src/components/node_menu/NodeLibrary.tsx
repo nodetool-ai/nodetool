@@ -33,6 +33,7 @@ import {
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import MissingKeyNodesNotice from "./MissingKeyNodesNotice";
+import NodeProviderFilter, { type NodeProviderOption } from "./NodeProviderFilter";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
@@ -42,6 +43,11 @@ import { useNodeProviderFilter } from "../../hooks/useNodeProviderFilter";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { rankSearchNodes } from "../../utils/nodeSearch";
+import {
+  LOCAL_PROVIDER_ID,
+  getNodeProviderId,
+  getNodeProviderName
+} from "../../utils/nodeProvider";
 import {
   filterNodesForCategory,
   NODE_SUBCATEGORIES,
@@ -310,6 +316,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const theme = useTheme();
     const cssStyles = useMemo(() => styles(theme, isMobile), [theme, isMobile]);
     const [query, setQuery] = useState("");
+    const [providerId, setProviderId] = useState<string | null>(null);
     const [hoveredType, setHoveredType] = useState<string | null>(null);
     const searchRef = useRef<HTMLInputElement>(null);
     const autoFocusEnabled = useAutoFocusEnabled();
@@ -346,12 +353,59 @@ const NodeLibrary = memo<NodeLibraryProps>(
       [metadataRecord, showNodesWithoutKey, needsMissingKey]
     );
 
+    // The provider list holds every provider with listed nodes, so it stays
+    // the same across categories. Counts are for the active category.
+    const unfilteredCategoryNodes = useMemo(
+      () => filterNodesForCategory(category, allNodes),
+      [category, allNodes]
+    );
+
+    const providerOptions = useMemo<NodeProviderOption[]>(() => {
+      const categoryCounts = new Map<string, number>();
+      for (const node of unfilteredCategoryNodes) {
+        const id = getNodeProviderId(node.namespace);
+        categoryCounts.set(id, (categoryCounts.get(id) ?? 0) + 1);
+      }
+      const ids = new Set(allNodes.map((node) => getNodeProviderId(node.namespace)));
+      const options = [...ids].map((id) => ({
+        id,
+        label:
+          id === LOCAL_PROVIDER_ID
+            ? t("nodeLibrary.localProvider")
+            : getNodeProviderName(id),
+        count: categoryCounts.get(id) ?? 0
+      }));
+      return options.sort((a, b) =>
+        a.id === LOCAL_PROVIDER_ID
+          ? -1
+          : b.id === LOCAL_PROVIDER_ID
+            ? 1
+            : a.label.localeCompare(b.label)
+      );
+    }, [allNodes, unfilteredCategoryNodes, t]);
+
+    // A provider whose nodes left the list (its key was removed) stops
+    // filtering instead of leaving an empty library.
+    const activeProviderId = providerOptions.some((o) => o.id === providerId)
+      ? providerId
+      : null;
+
+    const providerNodes = useMemo(
+      () =>
+        activeProviderId === null
+          ? allNodes
+          : allNodes.filter(
+              (node) => getNodeProviderId(node.namespace) === activeProviderId
+            ),
+      [allNodes, activeProviderId]
+    );
+
     const counts = useMemo(() => {
       const map = {} as Record<NodeCategoryId, number>;
       for (const sub of NODE_SUBCATEGORIES) {
         map[sub.id] = 0;
       }
-      for (const node of allNodes) {
+      for (const node of providerNodes) {
         for (const sub of NODE_SUBCATEGORIES) {
           if (sub.filter(node)) {
             map[sub.id]++;
@@ -359,7 +413,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
         }
       }
       return map;
-    }, [allNodes]);
+    }, [providerNodes]);
 
     const recentNodeTypes = useMemo(
       () => recentNodes.map((node) => node.nodeType),
@@ -367,8 +421,13 @@ const NodeLibrary = memo<NodeLibraryProps>(
     );
 
     const categoryNodes = useMemo(
-      () => filterNodesForCategory(category, allNodes),
-      [category, allNodes]
+      () =>
+        activeProviderId === null
+          ? unfilteredCategoryNodes
+          : unfilteredCategoryNodes.filter(
+              (node) => getNodeProviderId(node.namespace) === activeProviderId
+            ),
+      [activeProviderId, unfilteredCategoryNodes]
     );
 
     // Smart ranking (prefix + BM25 + fuzzy matching, with recency and
@@ -474,6 +533,14 @@ const NodeLibrary = memo<NodeLibraryProps>(
             >
               <ClearIcon />
             </button>
+          )}
+          {providerOptions.length > 1 && (
+            <NodeProviderFilter
+              options={providerOptions}
+              totalCount={unfilteredCategoryNodes.length}
+              value={activeProviderId}
+              onChange={setProviderId}
+            />
           )}
         </div>
 

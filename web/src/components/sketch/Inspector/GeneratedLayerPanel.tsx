@@ -43,13 +43,13 @@ interface GeneratedLayerPanelProps {
 const inputsSectionStyles = (theme: Theme) =>
   css({
     padding: theme.spacing(2, 1),
-    borderTop: `1px solid ${theme.vars.palette.grey[700]}`
+    borderTop: `1px solid ${theme.vars.palette.divider}`
   });
 
 const actionsSectionStyles = (theme: Theme) =>
   css({
     padding: theme.spacing(1, 0.5),
-    borderTop: `1px solid ${theme.vars.palette.grey[700]}`
+    borderTop: `1px solid ${theme.vars.palette.divider}`
   });
 
 const inputsContainerStyles = (theme: Theme) =>
@@ -195,7 +195,7 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
         sx={{
           width: "100%",
           overflow: "auto",
-          backgroundColor: theme.vars.palette.grey[800]
+          backgroundColor: theme.vars.palette.background.paper
         }}
       >
         <FlexColumn gap={0}>

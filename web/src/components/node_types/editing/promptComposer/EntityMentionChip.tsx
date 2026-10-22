@@ -70,7 +70,7 @@ const previewCardStyles = (theme: Theme) =>
       height: "auto",
       objectFit: "contain",
       borderRadius: BORDER_RADIUS.sm,
-      background: theme.vars.palette.grey[900]
+      background: theme.vars.palette.background.default
     },
     "& .preview-name": {
       fontFamily: theme.fontFamily1,

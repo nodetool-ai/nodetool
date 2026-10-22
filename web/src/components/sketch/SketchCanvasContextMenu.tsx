@@ -15,7 +15,8 @@ import {
   ButtonBase,
   Popover,
   FONT_SIZE_SANS,
-  ICON_SIZE
+  ICON_SIZE,
+  EYEBROW
 } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -56,10 +57,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <Text
       sx={{
         mb: 1,
-        fontSize: FONT_SIZE_SANS.label,
-        fontWeight: 600,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
+        ...EYEBROW,
         color: "text.secondary"
       }}
     >
@@ -447,7 +445,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           sx={{
             mt: 0,
             border: "1px solid",
-            borderColor: theme.vars.palette.grey[700],
+            borderColor: theme.vars.palette.divider,
             backgroundColor: surfaceSoft,
             p: 0.5,
             "&:hover": {

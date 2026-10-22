@@ -43,7 +43,8 @@ import {
   CheckerDropzone,
   NodeSlider,
   SPACING,
-  ToolbarIconButton
+  ToolbarIconButton,
+  EYEBROW
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import NumberInput from "../../inputs/NumberInput";
@@ -178,11 +179,8 @@ const styles = (theme: Theme) =>
       minWidth: 0
     },
     ".field-label": {
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
+      ...EYEBROW,
       color: theme.vars.palette.grey[400],
-      textTransform: "uppercase",
-      letterSpacing: 0.4
     },
     ".frame-field": {
       width: 76
@@ -194,7 +192,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       padding: `${theme.spacing(SPACING.micro)} ${theme.spacing(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     ".outputs-row": {
       flex: "0 0 auto"

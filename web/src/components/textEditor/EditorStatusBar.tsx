@@ -9,7 +9,8 @@ import {
   Chip,
   getSpacingPx,
   SPACING,
-  StatusBar
+  StatusBar,
+  EYEBROW
 } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 
@@ -39,9 +40,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.xs),
-      fontSize: theme.fontSizeSmaller,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
+      ...EYEBROW,
       ".label": {
         fontWeight: 400,
         opacity: 0.7

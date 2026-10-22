@@ -29,7 +29,7 @@ const styles = (theme: Theme) => {
     padding: SPACING_PX.xl,
     // A checkerboard, so transparent regions read as transparent rather than
     // as whatever the app theme happens to paint behind them.
-    backgroundColor: theme.vars.palette.grey[800],
+    backgroundColor: theme.vars.palette.background.paper,
     backgroundImage: [
       `linear-gradient(45deg, ${checker} 25%, transparent 25%, transparent 75%, ${checker} 75%)`,
       `linear-gradient(45deg, ${checker} 25%, transparent 25%, transparent 75%, ${checker} 75%)`

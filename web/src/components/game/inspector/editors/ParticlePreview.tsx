@@ -5,6 +5,7 @@ import { createGameParticlePreview, FixedTickClock, PARTICLE_PREVIEW_HEIGHT, PAR
 
 import { resolveMediaUri } from "../../../../utils/resolveMediaUri";
 import { BORDER_RADIUS, Box, Caption, EditorButton, FlexColumn, FlexRow, SPACING } from "../../../ui_primitives";
+import ErrorBanner from "../../../support/ErrorBanner";
 import ReportBugButton from "../../../support/ReportBugButton";
 
 interface ParticlePreviewProps {
@@ -119,9 +120,6 @@ export default function ParticlePreview({ particles, dimension, assets }: Partic
     <Caption>{dimension === "2d" ? "Canvas2D" : "WebGL2"} · {t("i18n-next101.game.particlePreview.status", { count: status.count, tick: status.tick })}</Caption>
     <Caption>{t("i18n-next101.game.particlePreview.isolatedDescription")}</Caption>
     {dimension === "3d" && <Caption>{t("i18n-next101.game.particlePreview.threeDDescription")}</Caption>}
-    {error && <>
-      <Caption color="error" role="alert">{error}</Caption>
-      <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-next101.game.particlePreview.failed"), errorText: error }} />
-    </>}
+    {error && <ErrorBanner report={{ source: "panel-crash", summary: t("i18n-next101.game.particlePreview.failed"), errorText: error }}>{error}</ErrorBanner>}
   </FlexColumn>;
 }

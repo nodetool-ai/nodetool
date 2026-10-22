@@ -91,7 +91,7 @@ const runButtonStyles = (theme: Theme) =>
     },
 
     "&.running": {
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: theme.vars.palette.background.paper,
       color: theme.vars.palette.grey[100],
       borderRadius: BORDER_RADIUS.circle,
       boxShadow: `0 2px 8px ${theme.vars.palette.common.black}30`,

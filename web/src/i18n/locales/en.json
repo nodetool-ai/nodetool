@@ -9411,6 +9411,7 @@
     "support": {
       "report": "Report",
       "tryAgain": "Try again",
+      "dismiss": "Dismiss",
       "bugReport": {
         "title": "Report a bug",
         "reportSentTitle": "Report sent",
@@ -12769,6 +12770,10 @@
     "title": "Nodes",
     "search": "Search nodes",
     "clearSearch": "Clear search",
+    "providers": "Providers",
+    "allProviders": "All providers",
+    "localProvider": "Local",
+    "providerFilter": "Filter by provider: {{provider}}",
     "categoriesLabel": "Node categories",
     "noMatches": "No matching nodes",
     "hoverHint": "Drag a node onto the canvas. Hover for details.",

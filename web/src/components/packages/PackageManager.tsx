@@ -35,7 +35,8 @@ import {
   ToggleGroup,
   ToggleOption,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  EYEBROW
 } from "../ui_primitives";
 import PackageRail from "./PackageRail";
 import PackageRow from "./PackageRow";
@@ -402,8 +403,7 @@ function PackageManager() {
                       color="secondary"
                       weight={600}
                       sx={{
-                        textTransform: "uppercase",
-                        letterSpacing: "0.09em",
+                        ...EYEBROW,
                         pt: index === 0 ? 0 : SPACING.md
                       }}
                     >

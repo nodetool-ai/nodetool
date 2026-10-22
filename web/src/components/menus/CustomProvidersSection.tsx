@@ -109,7 +109,7 @@ const ProviderRow = memo(function ProviderRow({
         borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
         transition: MOTION.border,
-        "&:hover": { borderColor: theme.vars.palette.grey[700] }
+        "&:hover": { borderColor: theme.vars.palette.divider }
       }}
     >
       <FlexRow align="center" gap={3} sx={{ flex: 1, minWidth: 0 }}>

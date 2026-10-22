@@ -260,6 +260,75 @@ describe("ReplicateProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  it("imageToImage sends the requested aspect ratio and resolution the model declares", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+
+    // nano-banana-2 defaults aspect_ratio to match_input_image, so square
+    // reference images would give a square still without the ratio.
+    await provider.imageToImage([new Uint8Array([1, 2, 3])], {
+      model: {
+        id: "google/nano-banana-2",
+        name: "Nano Banana 2",
+        provider: "replicate"
+      },
+      prompt: "a storyboard still",
+      aspectRatio: "16:9",
+      resolution: "1K",
+      targetWidth: 1820,
+      targetHeight: 1024
+    });
+
+    const input = runMock.mock.calls[0][1].input;
+    expect(input.aspect_ratio).toBe("16:9");
+    expect(input.resolution).toBe("1K");
+    expect(input.width).toBeUndefined();
+    expect(input.height).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("textToImage sends the requested aspect ratio the model declares", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+
+    await provider.textToImage({
+      model: {
+        id: "google/nano-banana-2",
+        name: "Nano Banana 2",
+        provider: "replicate"
+      },
+      prompt: "a storyboard still",
+      aspectRatio: "16:9",
+      resolution: "2K",
+      width: 1820,
+      height: 1024
+    });
+
+    const input = runMock.mock.calls[0][1].input;
+    expect(input.aspect_ratio).toBe("16:9");
+    expect(input.resolution).toBe("2K");
+    expect(input.width).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
   it("imageToImage falls back to `image` for models not in the manifest", async () => {
     const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
     vi.stubGlobal(
@@ -423,10 +492,11 @@ describe("ReplicateProvider", () => {
     const runMock = vi.fn().mockResolvedValue([fakeReadableStream]);
     const provider = createProvider({ run: runMock });
 
+    // An unlisted model has no declared inputs, so nothing is pruned.
     await provider.textToImage({
       model: {
-        id: "black-forest-labs/flux-schnell",
-        name: "FLUX",
+        id: "owner/unknown-model",
+        name: "Unknown",
         provider: "replicate"
       },
       prompt: "test",

@@ -58,7 +58,7 @@ const helpStyles = (theme: Theme) =>
         width: "8px"
       },
       "&::-webkit-scrollbar-track": {
-        background: theme.vars.palette.grey[800]
+        background: theme.vars.palette.background.paper
       },
       "&::-webkit-scrollbar-thumb": {
         background: theme.vars.palette.grey[500],

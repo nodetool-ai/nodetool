@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
-import { ConfirmDialog, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { ConfirmDialog, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, EYEBROW } from "../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import { NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -43,11 +43,8 @@ const tileStyles = (theme: Theme) =>
       padding: `0 ${getSpacingPx(SPACING.xs)}`,
       "& h5": {
         margin: 0,
-        fontSize: "var(--fontSizeNormal)",
-        fontWeight: 600,
+        ...EYEBROW,
         color: theme.vars.palette.text.secondary,
-        textTransform: "uppercase",
-        letterSpacing: "1px",
         opacity: 0.8,
         display: "flex",
         alignItems: "center",

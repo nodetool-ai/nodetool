@@ -6,7 +6,8 @@ import { applyAnyGameOps, type GameAuthoringConflict } from "@nodetool-ai/game-r
 import { trpc, trpcClient, type RouterOutputs } from "../../../../trpc/client";
 import { getGameDraftStore, useGameDraft } from "../../../../stores/game/GameDraftStore";
 import { rebaseGameAuthoringEdits } from "../../../../stores/game/authoringMerge";
-import { Caption, CollapsibleSection, Dialog, EditorButton, FlexColumn, FlexRow, SPACING, TextInput } from "../../../ui_primitives";
+import { AlertBanner, Caption, CollapsibleSection, Dialog, EditorButton, FlexColumn, FlexRow, SPACING, TextInput } from "../../../ui_primitives";
+import ErrorBanner from "../../../support/ErrorBanner";
 import SchemaFields from "../../inspector/SchemaFields";
 import type { FieldSchema } from "../../inspector/schemaForm";
 
@@ -95,7 +96,7 @@ export default function GameAuthoringPreview({ gameId, document, flush, onHighli
           <Caption>{conflict.sceneId}/{conflict.entityId}: {conflict.message}</Caption>
           {!conflict.entityId.startsWith("@") && <EditorButton onClick={() => keepDetached(conflict)}>{t("i18n-next2.gameAuthoringPreview.keepDetached", { entity: conflict.entityId })}</EditorButton>}
         </FlexColumn>)}
-        {error && <Caption role="alert" color="error">{error}</Caption>}
+        {error && <ErrorBanner report={{ source: "operation-failure", summary: t("i18n-next2.gameAuthoringPreview.previewRebuild"), errorText: error }}>{error}</ErrorBanner>}
         <EditorButton onClick={() => { setPendingRebase(null); setError(null); }}>{t("i18n-next2.gameAuthoringPreview.discardRebuildEdits")}</EditorButton>
       </FlexColumn>
     </Dialog>
@@ -123,14 +124,18 @@ export default function GameAuthoringPreview({ gameId, document, flush, onHighli
           }} />;
       })}
       <EditorButton disabled={busy} onClick={() => void buildPreview()}>{t("i18n-next2.gameAuthoringPreview.previewRebuild")}</EditorButton>
-      {error && <Caption color="error" role="alert">{error}</Caption>}
+      {error && <ErrorBanner report={{ source: "operation-failure", summary: t("i18n-next2.gameAuthoringPreview.previewRebuild"), errorText: error }}>{error}</ErrorBanner>}
       {preview && <>
         <Caption>{t("i18n-next2.gameAuthoringPreview.changedEntities", { entities: preview.affected_entities.join(", ") || t("i18n-next2.gameAuthoringPreview.none") })}</Caption>
         <Caption>{t("i18n-next2.gameAuthoringPreview.changedDependencies", { dependencies: preview.changed_dependencies.join(", ") || t("i18n-next2.gameAuthoringPreview.none") })}</Caption>
         <Caption>{preview.restart_required ? t("i18n-next2.gameAuthoringPreview.restartRequired") : t("i18n-next2.gameAuthoringPreview.playDefinitionUnchanged")}</Caption>
-        {preview.conflicts.map((conflict) => <Caption color="error" key={`${conflict.sceneId}:${conflict.entityId}:${conflict.code}`}>
-          {conflict.sceneId}/{conflict.entityId}: {conflict.message}
-        </Caption>)}
+        {preview.conflicts.length > 0 && <AlertBanner severity="warning" compact>
+          <FlexColumn gap={SPACING.micro}>
+            {preview.conflicts.map((conflict) => <Caption key={`${conflict.sceneId}:${conflict.entityId}:${conflict.code}`}>
+              {conflict.sceneId}/{conflict.entityId}: {conflict.message}
+            </Caption>)}
+          </FlexColumn>
+        </AlertBanner>}
         {stale && <Caption role="status">{t("i18n-next2.gameAuthoringPreview.draftChanged")}</Caption>}
         <FlexRow gap={SPACING.sm}>
           <EditorButton onClick={() => onHighlight(preview.affected_entities)}>{t("i18n-next2.gameAuthoringPreview.highlightChanges")}</EditorButton>

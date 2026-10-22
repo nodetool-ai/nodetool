@@ -12,7 +12,7 @@ export const tableStyles = (theme: Theme) =>
     ".dicttable, .datatable": {
       width: "100%",
       position: "relative",
-      border: `1px solid ${theme.vars.palette.grey[900]}`
+      border: `1px solid ${theme.vars.palette.divider}`
     },
 
     // Tabulator base - has fixed pixel height set in component
@@ -23,8 +23,8 @@ export const tableStyles = (theme: Theme) =>
     ".tabulator-tableholder": {
       overflow: "auto",
       paddingBottom: "4em",
-      backgroundColor: theme.vars.palette.grey[800],
-      borderTop: `1px solid ${theme.vars.palette.grey[900]}`,
+      backgroundColor: theme.vars.palette.background.paper,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       scrollbarWidth: "thin",
       scrollbarColor: `${theme.vars.palette.grey[600]} ${theme.vars.palette.grey[900]}`,
       "&::-webkit-scrollbar": {
@@ -32,7 +32,7 @@ export const tableStyles = (theme: Theme) =>
         height: "8px"
       },
       "&::-webkit-scrollbar-track": {
-        background: theme.vars.palette.grey[900]
+        background: theme.vars.palette.background.default
       },
       "&::-webkit-scrollbar-thumb": {
         background: theme.vars.palette.grey[600],
@@ -56,10 +56,10 @@ export const tableStyles = (theme: Theme) =>
       minHeight: "15px",
       minWidth: "20px",
       fontSize: theme.fontSizeSmall,
-      backgroundColor: theme.vars.palette.grey[900]
+      backgroundColor: theme.vars.palette.background.default
     },
     ".tabulator-row-even": {
-      backgroundColor: theme.vars.palette.grey[800]
+      backgroundColor: theme.vars.palette.background.paper
     },
     ".tabulator-row:hover": {
       backgroundColor: theme.vars.palette.grey[600]
@@ -72,11 +72,11 @@ export const tableStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.grey[200],
       fontWeight: 400,
-      borderBottom: `1px solid ${theme.vars.palette.grey[900]}`
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".tabulator .tabulator-header .tabulator-col": {
       minHeight: "2em",
-      borderRight: `1px solid ${theme.vars.palette.grey[900]}`
+      borderRight: `1px solid ${theme.vars.palette.divider}`
     },
     ".tabulator .tabulator-header .tabulator-col-title": {
       lineHeight: "1.1em"
@@ -95,11 +95,11 @@ export const tableStyles = (theme: Theme) =>
       },
 
     ".tabulator-row .tabulator-cell": {
-      borderColor: theme.vars.palette.grey[900]
+      borderColor: theme.vars.palette.divider
     },
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
       paddingLeft: `${getSpacingPx(SPACING.micro)} !important`,
-      borderRight: `1px solid ${theme.vars.palette.grey[900]}`
+      borderRight: `1px solid ${theme.vars.palette.divider}`
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
       padding: `${getSpacingPx(SPACING.sm)} 0 0 ${getSpacingPx(SPACING.micro)}`
@@ -114,8 +114,8 @@ export const tableStyles = (theme: Theme) =>
       justifyContent: "flex-start",
       alignItems: "center",
       minHeight: "2.5em",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
-      backgroundColor: theme.vars.palette.grey[900],
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.default,
       "& .disabled": {
         color: theme.vars.palette.action.disabled
       },

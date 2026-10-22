@@ -31,7 +31,8 @@ import {
   Z_INDEX,
   getSpacingPx,
   reducedMotion,
-  StatusDot
+  StatusDot,
+  EYEBROW
 } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import TheatersIcon from "@mui/icons-material/Theaters";
@@ -131,8 +132,7 @@ const KindTag = ({ kind }: { kind: ShotJobKind }) => {
       color="secondary"
       sx={{
         flex: "0 0 auto",
-        textTransform: "uppercase",
-        letterSpacing: "0.05em"
+        ...EYEBROW,
       }}
     >
       {t(`screens4_21.storyboardQueue.kind.${kind}`)}
@@ -209,8 +209,8 @@ const overlayStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     zIndex: Z_INDEX.overlay,
-    backgroundColor: theme.vars.palette.grey[900],
-    border: `1px solid ${theme.vars.palette.grey[800]}`,
+    backgroundColor: theme.vars.palette.background.default,
+    border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.xl,
     boxShadow: `0 8px 24px ${theme.vars.palette.c_scrim}, 0 0 0 1px ${theme.vars.palette.c_overlay_subtle}`,
     overflow: "hidden",
