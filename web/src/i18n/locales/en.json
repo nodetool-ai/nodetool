@@ -6230,7 +6230,7 @@
         "moreStarters_other": "{{count}} more",
         "pickSkillOrDescribe": "Pick a skill to start from, or just describe what you want.",
         "guidedFlowsRegion": "Start with a guided flow",
-        "gameDimension": "Game dimension",
+        "gameDimension": "Game type",
         "game2d": "2D game",
         "game3d": "3D exploration",
         "blankDocument": "Blank document",
@@ -6274,6 +6274,10 @@
             "title": "Create video",
             "description": "Turn ideas into clips"
           },
+          "storyboard": {
+            "title": "Create storyboard",
+            "description": "Plan scenes with a picture each"
+          },
           "app": {
             "title": "Create app",
             "description": "Build a page others can use"
@@ -6289,7 +6293,7 @@
         },
         "allTypes": {
           "title": "Explore all creation types",
-          "description": "Storyboards, 3D, games, scripts, read aloud and more"
+          "description": "3D, games, scripts, read aloud and more"
         },
         "recentProjects": {
           "heading": "Recent projects",
@@ -7222,6 +7226,10 @@
         "heading": "What is it for?",
         "groupLabel": "Use case",
         "cards": {
+          "scene": {
+            "title": "Scene",
+            "description": "A picture as you describe it"
+          },
           "product": {
             "title": "Product shot",
             "description": "One object, clean background, ready to place"

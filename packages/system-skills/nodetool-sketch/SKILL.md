@@ -42,8 +42,9 @@ tool that reads pixels: it composites the document and saves the result.
 | `set_setup` | The generation brief: `brief`, `use_case`, `variations` (1..8), `stage`. Renders nothing |
 
 `target` is a layer id, a layer name, or `"active"`. Layer index 0 is the
-bottom of the stack. `use_case` is one of `product`, `portrait`, `key-art`,
-`social`, `logo`, `concept`, `texture`, and it also sets the canvas size.
+bottom of the stack. `use_case` is one of `scene`, `product`, `portrait`,
+`key-art`, `social`, `logo`, `concept`, `texture`, and it also sets the canvas
+size.
 `stage` is where the guided flow resumes: `idea`, `useCase`, `review`, `look`,
 or `done` for the plain editor.
 

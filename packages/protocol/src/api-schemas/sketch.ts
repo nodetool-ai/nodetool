@@ -103,7 +103,9 @@ export interface ImageSize {
 }
 
 /**
- * One of the seven kinds of picture the image flow offers (PRD § 10.2).
+ * One of the kinds of picture the image flow offers (PRD § 10.2). Scene comes
+ * first: people asking for an everyday picture guessed Product shot when it
+ * was missing (study-3-I4).
  *
  * Three defaults and a line of composition guidance, not a branch: picking one
  * writes a size and a variation count and seasons the refinement prompt, and
@@ -133,6 +135,17 @@ export interface ImageUseCase {
 }
 
 export const IMAGE_USE_CASES: readonly ImageUseCase[] = [
+  {
+    id: "scene",
+    title: "Scene",
+    description: "A picture as you describe it",
+    defaultSize: { width: 1536, height: 1024 },
+    defaultAspectRatio: "3:2",
+    composition:
+      "Frame the scene the brief describes, with its setting in view, and " +
+      "add nothing the brief does not ask for.",
+    defaultVariations: 4
+  },
   {
     id: "product",
     title: "Product shot",

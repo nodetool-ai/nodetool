@@ -6230,7 +6230,7 @@
         "moreStarters_other": "更多 {{count}} 项",
         "pickSkillOrDescribe": "选择一个技能开始，或直接描述你想要的内容。",
         "guidedFlowsRegion": "从引导式流程开始",
-        "gameDimension": "游戏维度",
+        "gameDimension": "游戏类型",
         "game2d": "2D 游戏",
         "game3d": "3D 探索",
         "blankDocument": "空白文档",
@@ -6274,6 +6274,10 @@
             "title": "创建视频",
             "description": "把想法变成片段"
           },
+          "storyboard": {
+            "title": "创建故事板",
+            "description": "逐场景规划，每个场景一张图"
+          },
           "app": {
             "title": "创建应用",
             "description": "做一个他人可用的页面"
@@ -6289,7 +6293,7 @@
         },
         "allTypes": {
           "title": "浏览所有创建类型",
-          "description": "故事板、3D、游戏、脚本、朗读等"
+          "description": "3D、游戏、脚本、朗读等"
         },
         "recentProjects": {
           "heading": "最近的项目",
@@ -7222,6 +7226,10 @@
         "heading": "图片用途是什么？",
         "groupLabel": "用途",
         "cards": {
+          "scene": {
+            "title": "场景",
+            "description": "按你的描述生成画面"
+          },
           "product": {
             "title": "产品图",
             "description": "单个物体，干净背景，可直接使用"

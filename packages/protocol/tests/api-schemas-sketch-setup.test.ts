@@ -123,8 +123,9 @@ describe("sketch.layerWorkflowBinding seed", () => {
 });
 
 describe("image use cases", () => {
-  it("ships the seven the flow offers", () => {
+  it("ships the eight the flow offers, Scene first", () => {
     expect(IMAGE_USE_CASES.map((useCase) => useCase.id)).toEqual([
+      "scene",
       "product",
       "portrait",
       "key-art",

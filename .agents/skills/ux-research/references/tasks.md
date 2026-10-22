@@ -173,6 +173,16 @@ Study 9 found that `build-blank` takes 17 to 39 actions, so give it 40.
 their budget goes on the fixed reply, which every participant read as a stub.
 Judge both on mechanics.
 
+Study 10 found that `plan-video` on the fakes cannot finish through the
+Video flow: its render step needs a video model, and OpenAI's fake lists none.
+That wall is a fixture, but the Video flow makes clips and never pictures, so
+the end state is reachable only through the storyboard flow. `make-picture`
+still spends about 15 actions retyping the "fake" brief, so give it 35 to see
+the pictures. `make-tool` on the real-model server takes 24 or 25 actions and
+about 40 seconds of build. On that server the App flow's model reads "Claude
+Fable (subscription)" whatever key the participant added, and participants
+remark on it. That is the study setup.
+
 ## Adding a task
 
 Add a row to both tables in the same change as the study that first uses it.

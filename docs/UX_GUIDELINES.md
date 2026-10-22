@@ -66,6 +66,13 @@ first sessions. People ask the chat instead of scrolling.
 - "+ New" showed 4 of 12 blank documents at 1280 × 720 with no scroll cue
   (`study-1-I6`), and is still cut mid-row at 1280 × 800 (study 7
   defects).
+- A kind folded behind "Explore all creation types" is found when the bar's
+  subtitle names the person's word: "games" and "read aloud" were opened in
+  3 of 3 each (`study-10-I2`). It is missed when a first-screen card
+  matches better: 0 of 3 who wanted a picture per scene opened it, and all
+  took "Create video" (`study-10-I1`).
+- Unfolding a list scrolls what it reveals into view. At 1280 × 720 the only
+  new thing in view was an unlabelled control (`study-10-I3`).
 
 Check: screenshot the screen at 1280 × 720 with and without documents in the
 project. Every route the change adds must be visible or announced there.
@@ -106,7 +113,8 @@ that needs a model. Whether the first-run dialog stays is an open decision
 A connected key with nothing selected stopped every first request on a pick,
 on every surface (`study-3-I1`). After the language default
 shipped, the picture flow's image model stayed blank and failed a session
-(study 4, D1). The speech model stayed blank next (`study-5-I3`).
+(study 4, D1). The speech model stayed blank next (`study-5-I3`), then the
+Video flow's voice (study 10, D1).
 A new model kind, a new picker or a new flow reads the Settings default for
 its kind, and connecting a provider seeds that default.
 
@@ -344,7 +352,9 @@ Studies confirmed these. Keep them when changing the surrounding UI.
 | A separate "Render stills (6)" step with a visible count | `study-4-I6`, 3 of 3 |
 | The Chats list for finding and continuing an old conversation by meaning | `study-5-I6`, `study-6-I8` |
 | "Project" as the place to keep a client's work apart | `study-5-I7`, 3 of 3 |
-| The Game flow from idea to a playable game | `study-6-I7` |
+| The Game flow from idea to a playable game | `study-6-I7`, study 10 3 of 3 |
+| A step bar ("1. Idea · 2. … · 3. …") and example ideas in a guided flow | `study-10-I4`, 11 of 12 |
+| The App flow opening the built app in its run view, with the build's stages listed | `study-8-I2`, `study-8-I4`, study 10 3 of 3 |
 | Clicking a node to open its settings in the side panel | `study-9-I5`, 3 of 3 in 9 actions |
 | Dragging from dot to dot to connect, and the status bar's edge count as confirmation | `study-9-I6`, 5 of 5 |
 
@@ -358,7 +368,8 @@ records the decision.
 |---|---|
 | Keep the first-run connection dialog, move it to first use, or give the key route equal weight | study-1-I2 |
 | Rail labels, and whether developer terms belong in the status bar | study-1-I5 |
-| A shorter path from one sentence to a picture | study-3-I4 |
+| A shorter path from one sentence to a picture, and a use case for an everyday picture | study-3-I4 |
+| How a scene-by-scene plan with pictures is reached from home | study-10-I1 |
 | Whether chat should hand "make me a page" or "make me a game" to the matching flow | study-6-I2 |
 | How a newcomer writes and formats a note, and where it is listed | study-7-I3 |
 | How to make building from parts in 3D take fewer actions | study-7-I4 |

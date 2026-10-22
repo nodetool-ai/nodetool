@@ -1,5 +1,5 @@
 /**
- * The seven use-case cards of the image flow's step 2 (PRD § 10.2), as the
+ * The use-case cards of the image flow's step 2 (PRD § 10.2), as the
  * card grid renders them.
  *
  * The table itself lives in `@nodetool-ai/protocol` because three surfaces
