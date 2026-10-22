@@ -4,6 +4,20 @@ import { COURSE, COURSE_LENGTH, ROAD_HALF_WIDTH, RACER_NAMES, coursePose } from 
 
 const script = name => readFileSync(new URL(`../scripts/${name}.js`, import.meta.url), "utf8");
 
+const KART_LEVER = 12;
+const kartSource = lift => transformSync(`const f = ${script("kart").replace("__LIFT__", String(lift))}`, { minify: true }).code.replace(/^const f=/, "").replace(/;\s*$/, "");
+
+// The player's kart body is a lever entity R behind the racer plus the visual R ahead of the lever. Scripts set only a
+// child's rotation and scale, so the lever's rotation lifts the kart (hop, and the roll and pitch wheel clearance).
+// Rival karts stay rigid children because each script call costs tick time. Their racer pose carries the lean.
+export function createKartRig(index, visual) {
+  if (index !== 0) { return [{ id: `kart-${index}`, parentId: `racer-${index}`, transform3d: {}, ...visual }]; }
+  return [
+    { id: `hop-${index}`, parentId: `racer-${index}`, transform3d: { position: { x: 0, y: 0, z: -KART_LEVER } }, behaviors: [{ kind: "script", source: kartSource(true), maxTickMs: 20, maxCommands: 4 }] },
+    { id: `kart-${index}`, parentId: `hop-${index}`, transform3d: { position: { x: 0, y: 0, z: KART_LEVER } }, ...visual, behaviors: [{ kind: "script", source: kartSource(false), maxTickMs: 20, maxCommands: 4 }] }
+  ];
+}
+
 export function createGameplay() {
   const rawSource = script("racer")
     .replace("__LENGTH__", String(COURSE_LENGTH))

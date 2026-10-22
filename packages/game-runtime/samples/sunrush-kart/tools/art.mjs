@@ -587,13 +587,20 @@ export async function createArt({ assetsDir }) {
   for (const slot of ["coastal-circuit", "harbor-village", "island-landmarks"]) {
     entities.push({ id: `${slot}-art`, transform3d: {}, model: { assetId: slot, castShadow: slot === "harbor-village", receiveShadow: true } });
   }
-  entities.push({ id: "turquoise-ocean", transform3d: {}, model: { assetId: "coastal-water", castShadow: false, receiveShadow: false } });
-  entities.push({ id: "sun", transform3d: { rotation: new Quaternion(-0.42, -0.28, -0.1, 0.8574).normalize().toArray() }, light3d: { kind: "directional", color: "#fff0d5", intensity: 2.8, castShadow: true, shadowNormalBias: 0.025, shadowBias: -0.00015 } });
+  entities.push({ id: "turquoise-ocean", transform3d: {}, model: { assetId: "coastal-water", castShadow: false, receiveShadow: false },
+    animator3d: { clips: { ripples: "clip:0" }, initialClip: "ripples" } });
+  // Late-afternoon sun, about 28 degrees above the horizon, for long shadows and warm rim light.
+  const sunRotation = new Quaternion().setFromEuler(new Euler(-0.5, -0.68, 0, "YXZ")).toArray();
+  entities.push({ id: "sun", transform3d: { rotation: sunRotation }, light3d: { kind: "directional", color: "#ffc98a", intensity: 3.2, castShadow: true, shadowNormalBias: 0.025, shadowBias: -0.00015 } });
   return { assets, entities, environment: {
-    background: "#80c8e4", ambient: { color: "#edf3ff", intensity: 0.45 },
-    fog: { color: "#acd7df", near: 190, far: 680 },
+    background: "#80c8e4", ambient: { color: "#d2dcf2", intensity: 1.0 },
+    fog: { color: "#b8d6dc", near: 130, far: 560 },
     shadows: { enabled: true, mapSize: 2048, extent: 70, cascades: { count: 2, split: 0.8, maxDistance: 105 } },
     sky: { kind: "procedural", sunEntityId: "sun", turbidity: 2, rayleigh: 1.6, groundColor: "#b5d9dd", intensity: 0.12 },
-    postProcessing: { enabled: true, exposure: 1, toneMapping: "neutral", antialias: "msaa" }
+    postProcessing: {
+      enabled: true, exposure: 1, toneMapping: "neutral", antialias: "msaa",
+      bloom: { threshold: 1.6, softness: 0.1, radius: 0.4, intensity: 0.5 },
+      vignette: { intensity: 0.16, radius: 0.7, softness: 0.4 }
+    }
   } };
 }

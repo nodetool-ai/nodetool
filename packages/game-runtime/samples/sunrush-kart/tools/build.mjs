@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { gameDocument3D } from "@nodetool-ai/protocol";
 import { COURSE, ROAD_HALF_WIDTH, RACER_COLORS } from "./course.mjs";
-import { createGameplay } from "./gameplay.mjs";
+import { createGameplay, createKartRig } from "./gameplay.mjs";
 import { GAME_VIEWPORT } from "./presentation.mjs";
 
 const directory = fileURLToPath(new URL("../", import.meta.url));
@@ -30,10 +30,8 @@ if (blockout) {
   art = await createArt({ assetsDir });
   presentation = await createPresentation({ assetsDir });
 }
-const karts = RACER_COLORS.map((color, i) => ({
-  id: `kart-${i}`, parentId: `racer-${i}`, transform3d: {},
-  ...(blockout ? { primitive: { kind: "box", dimensions: { x: 1.5, y: 0.8, z: 2.4 }, material: { color } } } : { model: { assetId: `kart-${i}` } })
-}));
+const karts = RACER_COLORS.flatMap((color, i) => createKartRig(i,
+  blockout ? { primitive: { kind: "box", dimensions: { x: 1.5, y: 0.8, z: 2.4 }, material: { color } } } : { model: { assetId: `kart-${i}` } }));
 const document = gameDocument3D.parse({
   schemaVersion: 3, engineVersion: "2", dimension: "3d",
   id: "79c2a1f60709479b9ba6ff160efca185", revision: "sunrush-kart-2",

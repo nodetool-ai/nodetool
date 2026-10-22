@@ -5,6 +5,14 @@ import { COURSE, coursePose } from "./course.mjs";
 
 const WATER_LEVEL = -0.17;
 const TILE_METERS = 48;
+// Two transparent ripple sheets slide across the static sea. Each loop moves a sheet by whole texture tiles, so the
+// loop restarts on the same pattern. The sheets reach past the fog distance, so their edges are never visible.
+const RIPPLE_LOOP_SECONDS = 72;
+const RIPPLES = [
+  { name: "Wind ripples", tile: TILE_METERS, swap: false, shift: [TILE_METERS, TILE_METERS], opacity: 0.38 },
+  { name: "Cross ripples", tile: 30, swap: true, shift: [-60, 60], opacity: 0.3 }
+];
+const RIPPLE_EXTENT = 900;
 const TEXTURE_SIZE = 512;
 const CENTER = [30, 35];
 const TAU = Math.PI * 2;
@@ -119,6 +127,25 @@ function waterGeometry() {
   return { positions, normals, uvs, colors, indices, colorSize: 3 };
 }
 
+function rippleGeometry({ tile, swap }) {
+  const positions = [], normals = [], uvs = [], indices = [], count = 6;
+  for (let z = 0; z <= count; z += 1) {
+    for (let x = 0; x <= count; x += 1) {
+      const px = CENTER[0] - RIPPLE_EXTENT + x / count * RIPPLE_EXTENT * 2, pz = CENTER[1] - RIPPLE_EXTENT + z / count * RIPPLE_EXTENT * 2;
+      positions.push(px, WATER_LEVEL + 0.045, pz);
+      normals.push(0, 1, 0);
+      uvs.push(...(swap ? [pz / tile, px / tile] : [px / tile, -pz / tile]));
+    }
+  }
+  for (let z = 0; z < count; z += 1) {
+    for (let x = 0; x < count; x += 1) {
+      const a = z * (count + 1) + x, b = a + 1, c = a + count + 1, d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+  return { positions, normals, uvs, indices };
+}
+
 function foamGeometry() {
   const positions = [], normals = [], uvs = [], colors = [], indices = [];
   const bands = [0, 0.22, 0.72, 1.2];
@@ -155,7 +182,7 @@ function foamGeometry() {
   return { positions, normals, uvs, colors, indices, colorSize: 4 };
 }
 
-/** Creates a static coastal sea with world-tiled PBR ripples and soft beach foam. */
+/** Creates a coastal sea with soft beach foam and two looping ripple sheets in one animation clip. */
 export async function createOceanArt() {
   const doc = new Document();
   const scene = doc.createScene("Sunrush coastal water");
@@ -166,7 +193,7 @@ export async function createOceanArt() {
   const foam = doc.createTexture("Broken shoreline foam").setImage(image.foamMask).setMimeType("image/png");
   const waterMaterial = doc.createMaterial("Turquoise sea")
     .setBaseColorFactor([1, 1, 1, 1]).setBaseColorTexture(color)
-    .setNormalTexture(normal).setNormalScale(0.72).setRoughnessFactor(0.35).setMetallicFactor(0);
+    .setNormalTexture(normal).setNormalScale(0.3).setRoughnessFactor(0.35).setMetallicFactor(0);
   const foamMaterial = doc.createMaterial("Soft shoreline foam")
     .setBaseColorFactor([1, 1, 1, 0.78]).setBaseColorTexture(foam)
     .setAlphaMode("BLEND").setRoughnessFactor(0.8).setMetallicFactor(0);
@@ -176,12 +203,26 @@ export async function createOceanArt() {
   const mesh = (name, geometry, material) => {
     const primitive = doc.createPrimitive().setMaterial(material);
     for (const [semantic, values, type] of [["POSITION", geometry.positions, "VEC3"], ["NORMAL", geometry.normals, "VEC3"], ["TEXCOORD_0", geometry.uvs, "VEC2"], ["COLOR_0", geometry.colors, geometry.colorSize === 4 ? "VEC4" : "VEC3"]]) {
-      primitive.setAttribute(semantic, doc.createAccessor().setType(type).setArray(new Float32Array(values)).setBuffer(buffer));
+      if (values) { primitive.setAttribute(semantic, doc.createAccessor().setType(type).setArray(new Float32Array(values)).setBuffer(buffer)); }
     }
     primitive.setIndices(doc.createAccessor().setType("SCALAR").setArray(new Uint32Array(geometry.indices)).setBuffer(buffer));
-    scene.addChild(doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(primitive)));
+    const node = doc.createNode(name).setMesh(doc.createMesh(name).addPrimitive(primitive));
+    scene.addChild(node);
+    return node;
   };
   mesh("Ocean surface", waterGeometry(), waterMaterial);
   mesh("Beach foam", foamGeometry(), foamMaterial);
+  const animation = doc.createAnimation("Ripples");
+  const times = doc.createAccessor().setType("SCALAR").setArray(new Float32Array([0, RIPPLE_LOOP_SECONDS])).setBuffer(buffer);
+  for (const ripple of RIPPLES) {
+    const material = doc.createMaterial(ripple.name)
+      .setBaseColorFactor([0.09, 0.6, 0.65, ripple.opacity]).setAlphaMode("BLEND")
+      .setNormalTexture(normal).setNormalScale(1).setRoughnessFactor(0.12).setMetallicFactor(0);
+    material.getNormalTextureInfo().setWrapS(10497).setWrapT(10497).setMagFilter(9729).setMinFilter(9987);
+    const node = mesh(ripple.name, rippleGeometry(ripple), material);
+    const values = doc.createAccessor().setType("VEC3").setArray(new Float32Array([0, 0, 0, ripple.shift[0], 0, ripple.shift[1]])).setBuffer(buffer);
+    const sampler = doc.createAnimationSampler().setInput(times).setOutput(values).setInterpolation("LINEAR");
+    animation.addSampler(sampler).addChannel(doc.createAnimationChannel().setTargetNode(node).setTargetPath("translation").setSampler(sampler));
+  }
   return { bytes: () => new NodeIO().writeBinary(doc) };
 }

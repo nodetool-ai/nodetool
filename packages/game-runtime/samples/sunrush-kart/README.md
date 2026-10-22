@@ -6,7 +6,10 @@ The source game, models, music, and sound effects can be rebuilt locally.
 
 ## Play
 
-From the repository root, after `npm run build:packages`:
+Install Sunrush Kart from NodeTool's Examples page to copy the game, models,
+and audio into your project.
+
+To play a standalone export, run these commands from the repository root, after `npm run build:packages`:
 
 ```bash
 node packages/game-runtime/samples/sunrush-kart/tools/build.mjs
@@ -48,6 +51,8 @@ has its own script. A separate camera script and HUD script read compact
 runtime properties. Lap progress follows ordered course segments, not elapsed
 time. The geometry builder and controller use the same sampled course.
 
+The player's kart body reacts to driving through `scripts/kart.js`: roll into turns, pitch on acceleration and braking, a hop and held tilt while drifting, and a squash on hits. A script can set a child's rotation and scale but not its position, so a lever entity `hop-0` lifts the kart. Rivals roll through their racer pose in `racer.js`, because each extra script call costs tick time.
+
 The world and HUD render at 1024 × 576. `GAME_VIEWPORT` in
 `tools/presentation.mjs` controls that resolution and scales the UI from its
 1280 × 720 design coordinates. Race readouts update four times per second to
@@ -56,7 +61,9 @@ limit canvas texture uploads. Menu and countdown changes update immediately.
 `tools/art.mjs` builds the kart markings, mechanical details, textured asphalt,
 village architecture, and vegetation. `tools/ocean.mjs` builds the sea with
 depth-dependent colors, tiled ripple normals, and soft shoreline foam.
-The water surface is static. Warm sunlight, cascaded shadows, and neutral
+Two transparent ripple sheets slide across the sea in one 72-second glTF
+animation clip. Each loop moves a sheet by whole texture tiles, so the loop
+is seamless. Warm sunlight, cascaded shadows, and neutral
 tone mapping preserve the coastal palette. Drift sparks and boost particles
 use separate color and fade curves for clear racing feedback.
 
@@ -65,7 +72,7 @@ use separate color and fade curves for clear racing feedback.
 ```bash
 npm run dev:nodetool -- game validate packages/game-runtime/samples/sunrush-kart/game.json
 node packages/game-runtime/samples/sunrush-kart/tools/record_route.mjs
-npm run dev:nodetool -- game simulate packages/game-runtime/samples/sunrush-kart/game.json --ticks 4120 --inputs packages/game-runtime/samples/sunrush-kart/completion.inputs.json --assertions packages/game-runtime/samples/sunrush-kart/completion.assertions.json --verify-replay
+npm run dev:nodetool -- game simulate packages/game-runtime/samples/sunrush-kart/game.json --ticks 3717 --inputs packages/game-runtime/samples/sunrush-kart/completion.inputs.json --assertions packages/game-runtime/samples/sunrush-kart/completion.assertions.json --verify-replay
 npm run dev:nodetool -- game bench packages/game-runtime/samples/sunrush-kart/game.json --inputs packages/game-runtime/samples/sunrush-kart/completion.inputs.json --warmup 600 --ticks 600 --fail-on-budget
 npm run dev:nodetool -- game capture packages/game-runtime/samples/sunrush-kart/game.json --inputs packages/game-runtime/samples/sunrush-kart/completion.inputs.json --assets-dir packages/game-runtime/samples/sunrush-kart/assets --ticks 1200 --out dist/sunrush-race.png --fail-on-budget
 npm run dev:nodetool -- game perf packages/game-runtime/samples/sunrush-kart/game.json --inputs packages/game-runtime/samples/sunrush-kart/performance.inputs.json --assets-dir packages/game-runtime/samples/sunrush-kart/assets --seconds 10 --fail-on-budget
