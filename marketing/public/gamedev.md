@@ -83,7 +83,7 @@ For a commercial console or mobile release, a large open world, or an online gam
 
 ### Can an AI agent build a playable game in NodeTool?
 
-Yes. The agent creates the game, edits it through checked operations, generates and installs the art and sound, and playtests it headlessly before you play it. The three games on this page are web builds of example games that ship with NodeTool.
+Yes. The agent creates the game, edits it through checked operations, generates and installs the art and sound, and playtests it headlessly before you play it. The games on this page are web builds of example games that ship with NodeTool.
 
 ### Can Claude Code build a game in NodeTool?
 

@@ -4,6 +4,7 @@ export const gameExamples = [
     "slug": "kindle",
     "genre": "Platform adventure",
     "startHint": "Click inside the game, then press Space to start.",
+    "deviceHint": "On a phone or tablet, touch controls appear on screen.",
     "name": "Kindle",
     "description": "A jump-and-run through a drowned temple. Run, wall-jump and ride moving lifts to relight four braziers and gather the embers on the way.",
     "controls": "Arrows to run · Space to jump · Jump off walls"
@@ -12,6 +13,7 @@ export const gameExamples = [
     "slug": "lumen",
     "genre": "Forest exploration",
     "startHint": "Click inside the game, then press Space to start.",
+    "deviceHint": "On a phone or tablet, touch controls appear on screen.",
     "name": "Lumen",
     "description": "Fly a firefly through a night forest and gather the light it has lost. Shadow wisps drift between the trees and knock you away.",
     "controls": "Arrows to fly"
@@ -20,6 +22,7 @@ export const gameExamples = [
     "slug": "neon-drift",
     "genre": "Arena shooter",
     "startHint": "Click inside the game, then press Space to start.",
+    "deviceHint": "On a phone or tablet, touch controls appear on screen.",
     "name": "Neon Drift",
     "description": "A neon arena shooter. Every wave warps in with a ring of light. Keep the combo alive to push the score.",
     "controls": "Arrows to fly · Hold Space to fire"
@@ -28,8 +31,18 @@ export const gameExamples = [
     "slug": "ridgeline",
     "genre": "Flight simulator",
     "startHint": "Click inside the game, then hold Shift to open the throttle.",
+    "deviceHint": "Play on a desktop with a keyboard and mouse.",
     "name": "RIDGELINE",
     "description": "Fly a light jet from the island airfield, thread 13 gates through a river canyon and over the ridges at golden hour, and finish with a low pass over the runway.",
     "controls": "W/S pitch · A/D roll · Q/E rudder · Shift/Ctrl throttle · G gear · C camera · R reset · Drag to look"
+  },
+  {
+    "slug": "sunrush-kart",
+    "genre": "Coastal kart racing",
+    "startHint": "Click inside the game, then press Enter to start the race.",
+    "deviceHint": "Play on a desktop with a keyboard or gamepad.",
+    "name": "Sunrush Kart",
+    "description": "Race five rivals around a sunlit coastal circuit. Charge drift boosts, collect items, and chase first place through three laps of harbor bends and seaside bridges.",
+    "controls": "WASD or arrows to drive · Hold Shift to drift · Space or E to use an item · R to recover · P or Escape to pause"
   }
 ] as const;
