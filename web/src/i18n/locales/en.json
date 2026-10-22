@@ -716,7 +716,7 @@
       "emptyCanManage": "Add a workspace to allow agents to access local folders",
       "emptyManaged": "This deployment manages your workspace for you",
       "adding": "Adding…",
-      "addWorkspace": "Add Workspace",
+      "addWorkspace": "Add workspace",
       "removeTitle": "Remove this workspace?",
       "removeDescription": "The workspace will be removed from NodeTool. The folder itself will not be deleted."
     },
@@ -729,7 +729,7 @@
     "tree": {
       "loading": "Loading…",
       "accessDenied": "⚠️ Access denied",
-      "title": "Workspace Explorer",
+      "title": "Workspace explorer",
       "manage": "Manage workspaces",
       "goToRoot": "Go to workspace root",
       "openInFolder": "Open in folder",
@@ -869,31 +869,31 @@
   "batch2_14": {
     "entries": {
       "appHeader": {
-        "label": "App Header",
+        "label": "App header",
         "description": "The global navigation header bar"
       },
       "costs": {
-        "label": "Costs Dashboard",
+        "label": "Costs dashboard",
         "description": "Spend analytics: stat cards, stacked bar chart and table"
       },
       "models": {
-        "label": "Models Manager",
+        "label": "Models manager",
         "description": "Model list and download manager"
       },
       "modelOnboarding": {
-        "label": "Model Onboarding",
+        "label": "Model onboarding",
         "description": "Hardware-aware 'Get Started' guide for local models"
       },
       "assets": {
-        "label": "Asset Explorer",
+        "label": "Asset explorer",
         "description": "Asset browser and file manager"
       },
       "confirmDialog": {
-        "label": "Confirm Dialog",
+        "label": "Confirm dialog",
         "description": "Generic confirm prompt"
       },
       "colorPicker": {
-        "label": "Color Picker Modal",
+        "label": "Color picker modal",
         "description": "Rich color picker with harmony, swatches and gradient"
       },
       "textEditor": {
@@ -905,19 +905,19 @@
         "description": "Spreadsheet-style editor for tabular properties"
       },
       "imageCompare": {
-        "label": "Image Compare",
+        "label": "Image compare",
         "description": "Side-by-side comparison of two images"
       },
       "recommendedModels": {
-        "label": "Recommended Models",
+        "label": "Recommended models",
         "description": "Recommended-models picker shown for missing models"
       },
       "deleteModel": {
-        "label": "Delete Model Confirmation",
+        "label": "Delete model confirmation",
         "description": "Safety prompt before removing a model"
       },
       "downloadManager": {
-        "label": "Download Manager",
+        "label": "Download manager",
         "description": "Track, retry and pause model downloads"
       },
       "nodeReadme": {
@@ -925,27 +925,27 @@
         "description": "In-app documentation for a single node"
       },
       "workflowForm": {
-        "label": "Workflow Form",
+        "label": "Workflow form",
         "description": "Edit workflow metadata"
       },
       "workflowDelete": {
-        "label": "Workflow Delete Confirmation",
+        "label": "Workflow delete confirmation",
         "description": "Safe-delete prompt for workflows"
       },
       "providerOnboarding": {
-        "label": "Provider Onboarding",
+        "label": "Provider onboarding",
         "description": "Blocked-provider onboarding: OAuth sign-in, API keys, and cost guidance"
       },
       "progressStates": {
-        "label": "Progress States",
+        "label": "Progress states",
         "description": "Spinners, progress bars and running steps with sample data"
       },
       "modelPicker": {
-        "label": "Model Picker",
+        "label": "Model picker",
         "description": "Model picker opened under its select button with sample models"
       },
       "formControls": {
-        "label": "Form Controls",
+        "label": "Form controls",
         "description": "Text inputs and select controls at different sizes and variants"
       },
       "dialog": {
@@ -971,7 +971,7 @@
       "dialog-search-provider": "Search provider setup"
     },
     "index": {
-      "title": "Component Previews",
+      "title": "Component previews",
       "description": "Isolated component views for documentation screenshots. Navigate to",
       "routeHelp": "to render a component in isolation.",
       "playwrightUsage": "Playwright screenshot usage:"
@@ -985,7 +985,7 @@
       "cancel": "Cancel"
     },
     "recommendedModels": {
-      "title": "Recommended Models",
+      "title": "Recommended models",
       "description": "These models are recommended for the selected node."
     },
     "imageCompare": {
@@ -3662,7 +3662,7 @@
             "description": "Dark frames, withheld reveals, a camera slower than you want it."
           },
           "music-video": {
-            "title": "Music Video",
+            "title": "Music video",
             "description": "Cuts on the beat, saturated colour, performance over plot."
           },
           "mystery": {
@@ -3674,7 +3674,7 @@
             "description": "Warm light and two-shots, closeness measured in lens length."
           },
           "science-fiction": {
-            "title": "Science Fiction",
+            "title": "Science fiction",
             "description": "Hard surfaces and cold light, scale read against a human."
           },
           "thriller": {
@@ -4905,10 +4905,10 @@
             "overlay": "Overlay",
             "darken": "Darken",
             "lighten": "Lighten",
-            "color-dodge": "Color Dodge",
-            "color-burn": "Color Burn",
-            "hard-light": "Hard Light",
-            "soft-light": "Soft Light",
+            "color-dodge": "Color dodge",
+            "color-burn": "Color burn",
+            "hard-light": "Hard light",
+            "soft-light": "Soft light",
             "difference": "Difference",
             "exclusion": "Exclusion",
             "add": "Add"
@@ -7658,7 +7658,7 @@
             "description": "Dark frames, withheld reveals, a camera slower than you want it."
           },
           "music-video": {
-            "title": "Music Video",
+            "title": "Music video",
             "description": "Cuts on the beat, saturated colour, performance over plot."
           },
           "mystery": {
@@ -7670,7 +7670,7 @@
             "description": "Warm light and two-shots, closeness measured in lens length."
           },
           "science-fiction": {
-            "title": "Science Fiction",
+            "title": "Science fiction",
             "description": "Hard surfaces and cold light, scale read against a human."
           },
           "thriller": {
@@ -8155,53 +8155,53 @@
         "panels": "Panels"
       },
       "actions": {
-        "runEntireWorkflow": "Run Entire Workflow",
-        "saveWorkflow": "Save Workflow",
-        "newWorkflow": "New Workflow",
-        "closeWorkflow": "Close Workflow",
+        "runEntireWorkflow": "Run entire workflow",
+        "saveWorkflow": "Save workflow",
+        "newWorkflow": "New workflow",
+        "closeWorkflow": "Close workflow",
         "downloadWorkflowJson": "Download Workflow as JSON",
         "importWorkflowJson": "Import Workflow from JSON",
         "exportWorkflowBundle": "Export Workflow as Bundle (.nodetool)",
         "shareWorkflow": "Share Workflow…",
         "importWorkflowBundle": "Import Workflow from Bundle (.nodetool)",
         "copyWorkflowJson": "Copy Workflow as JSON",
-        "cancelWorkflow": "Cancel Workflow",
-        "autoLayout": "Auto Layout",
+        "cancelWorkflow": "Cancel workflow",
+        "autoLayout": "Auto layout",
         "undo": "Undo",
         "redo": "Redo",
         "copy": "Copy",
         "cut": "Cut",
         "paste": "Paste",
-        "selectAll": "Select All",
-        "deleteSelected": "Delete Selected",
+        "selectAll": "Select all",
+        "deleteSelected": "Delete selected",
         "duplicate": "Duplicate",
-        "duplicateVertical": "Duplicate Vertically",
-        "groupSelected": "Group Selected",
-        "disableSelectedNodes": "Disable Selected Nodes",
+        "duplicateVertical": "Duplicate vertically",
+        "groupSelected": "Group selected",
+        "disableSelectedNodes": "Disable selected nodes",
         "findInWorkflow": "Find in Workflow",
-        "alignNodes": "Align Nodes",
+        "alignNodes": "Align nodes",
         "alignNodesWithSpacing": "Align Nodes with Spacing",
-        "alignLeft": "Align Left",
-        "alignCenter": "Align Center",
-        "alignRight": "Align Right",
-        "alignTop": "Align Top",
-        "alignMiddle": "Align Middle",
-        "alignBottom": "Align Bottom",
-        "distributeHorizontally": "Distribute Horizontally",
+        "alignLeft": "Align left",
+        "alignCenter": "Align center",
+        "alignRight": "Align right",
+        "alignTop": "Align top",
+        "alignMiddle": "Align middle",
+        "alignBottom": "Align bottom",
+        "distributeHorizontally": "Distribute horizontally",
         "hideMiniMap": "Hide mini map",
         "showMiniMap": "Show mini map",
         "turnOffSnapToGrid": "Turn off snap to grid",
         "snapToGrid": "Snap to grid",
-        "fitView": "Fit View",
-        "zoomIn": "Zoom In",
-        "zoomOut": "Zoom Out",
+        "fitView": "Fit view",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
         "resetZoom": "Reset Zoom ({{percent}})",
         "zoomToPercent": "Zoom to {{percent}}",
-        "toggleInspector": "Toggle Inspector",
-        "toggleWorkflowSettings": "Toggle Workflow Settings",
-        "toggleConversation": "Toggle Conversation",
-        "toggleAssets": "Toggle Assets",
-        "toggleWorkflowsPanel": "Toggle Workflows Panel"
+        "toggleInspector": "Toggle inspector",
+        "toggleWorkflowSettings": "Toggle workflow settings",
+        "toggleConversation": "Toggle conversation",
+        "toggleAssets": "Toggle assets",
+        "toggleWorkflowsPanel": "Toggle workflows panel"
       },
       "accessibility": {
         "importWorkflowFile": "Import workflow file",
@@ -8694,7 +8694,7 @@
       "exportAppProject": "Export App as Standalone Project (.zip)",
       "importAppBundle": "Import App from Bundle (.app.json)",
       "help": "Help",
-      "keyboardShortcuts": "Keyboard Shortcuts",
+      "keyboardShortcuts": "Keyboard shortcuts",
       "reportBug": "Report a Bug",
       "openWorkflowValue": "Open workflow {{name}}",
       "workflows": "Workflows",
@@ -9999,8 +9999,8 @@
       "body2d": "Body 2D",
       "collider2d": "Collider 2D",
       "animator": "Animator",
-      "visualAnimation": "Visual Animation",
-      "audioSource": "Audio Source",
+      "visualAnimation": "Visual animation",
+      "audioSource": "Audio source",
       "light2d": "Light 2D",
       "particles": "Particles",
       "movement": "Movement",
@@ -10009,13 +10009,13 @@
       "health": "Health",
       "trigger": "Trigger",
       "spawn": "Spawn",
-      "sceneTransition": "Scene Transition",
-      "winWhenCollected": "Win When Collected",
+      "sceneTransition": "Scene transition",
+      "winWhenCollected": "Win when collected",
       "lifetime": "Lifetime",
       "script": "Script",
       "bloom": "Bloom",
       "lut": "LUT",
-      "brightnessContrast": "Brightness Contrast"
+      "brightnessContrast": "Brightness contrast"
     },
     "animation": {
       "addCondition": "Add condition",
@@ -10047,28 +10047,28 @@
       "conditionTest": "Condition {{number}} test",
       "conditions": "Conditions",
       "edits": {
-        "addGraph": "Add Animation Graph",
-        "addLayer": "Add Animation Layer",
-        "addParameter": "Add Animation Parameter",
-        "addState": "Add Animation State",
-        "addTransition": "Add Animation Transition",
-        "changeBlend": "Change Animation Blend",
-        "changeClip": "Change Animation Clip",
-        "changeCondition": "Change Animation Condition",
-        "changeLayer": "Change Animation Layer",
-        "changeMotion": "Change Animation Motion",
-        "changeParameter": "Change Animation Parameter",
-        "changeState": "Change Animation State",
-        "changeTransition": "Change Animation Transition",
-        "removeGraph": "Remove Animation Graph",
-        "removeLayer": "Remove Animation Layer",
-        "removeParameter": "Remove Animation Parameter",
-        "removeState": "Remove Animation State",
-        "removeTransition": "Remove Animation Transition",
-        "renameParameter": "Rename Animation Parameter",
-        "renameState": "Rename Animation State",
-        "setInitialState": "Set Initial Animation State",
-        "useGraph": "Use Animation Graph"
+        "addGraph": "Add animation graph",
+        "addLayer": "Add animation layer",
+        "addParameter": "Add animation parameter",
+        "addState": "Add animation state",
+        "addTransition": "Add animation transition",
+        "changeBlend": "Change animation blend",
+        "changeClip": "Change animation clip",
+        "changeCondition": "Change animation condition",
+        "changeLayer": "Change animation layer",
+        "changeMotion": "Change animation motion",
+        "changeParameter": "Change animation parameter",
+        "changeState": "Change animation state",
+        "changeTransition": "Change animation transition",
+        "removeGraph": "Remove animation graph",
+        "removeLayer": "Remove animation layer",
+        "removeParameter": "Remove animation parameter",
+        "removeState": "Remove animation state",
+        "removeTransition": "Remove animation transition",
+        "renameParameter": "Rename animation parameter",
+        "renameState": "Rename animation state",
+        "setInitialState": "Set initial animation state",
+        "useGraph": "Use animation graph"
       },
       "emptyParameters": "Scripts set parameters with setAnimParam. Transitions and blends read them.",
       "exitAfterTicks": "Exit after ticks",
@@ -10354,7 +10354,7 @@
       "hidePreview": "Hide preview",
       "preview": "Preview",
       "boardSettings": "Board settings",
-      "oneTake": "One Take",
+      "oneTake": "One take",
       "assistant": "Assistant",
       "closeBoardSettings": "Close board settings",
       "screenplay": "Screenplay",
@@ -10898,7 +10898,7 @@
         "drive": "Drive",
         "lab": "Lab",
         "chorus": "Chorus",
-        "echo": "Tape Echo",
+        "echo": "Tape echo",
         "reverb": "Reverb"
       },
       "parameters": {
@@ -11860,7 +11860,7 @@
       "sceneHelp": "Scene settings. Select an entity to edit it.",
       "environmentPreset": "Environment preset",
       "addSetting": "Add setting",
-      "changeSceneSettings": "Change Scene Settings",
+      "changeSceneSettings": "Change scene settings",
       "collisionLayers": "Collision layers",
       "physicsMaterials": "Physics materials",
       "validationFailed": "3D game validation failed",
@@ -11868,8 +11868,8 @@
       "id": "ID: {{id}}",
       "deleteEntity": "Delete entity",
       "transform": "Transform",
-      "changeLightIntensity": "Change Light Intensity",
-      "changeEntityComponents": "Change Entity Components",
+      "changeLightIntensity": "Change light intensity",
+      "changeEntityComponents": "Change entity components",
       "behaviors": "Behaviors",
       "noBehaviors": "No behaviors yet.",
       "editScript": "Edit script",
@@ -11877,7 +11877,7 @@
       "addScript": "Add script",
       "transformAxis": "{{kind}} {{axis}}",
       "rotateEntity": "Rotate {{entity}}",
-      "renameEntity": "Rename Entity",
+      "renameEntity": "Rename entity",
       "transformLabels": {
         "position": "Position",
         "rotation": "Rotation",
@@ -13294,7 +13294,7 @@
       "cancel": "Cancel"
     },
     "assetCreateFolder": {
-      "defaultName": "New Folder",
+      "defaultName": "New folder",
       "specialCharacter": "Name cannot start with a special character.",
       "nameRequired": "Name cannot be empty.",
       "maxLength": "Max folder name length is 100 characters.",
@@ -13696,7 +13696,7 @@
     },
     "runtimePackage": {
       "notInstalledTitle": "{{name}} is not installed",
-      "openPackageManager": "Open Package Manager",
+      "openPackageManager": "Open package manager",
       "close": "Close",
       "desktopOnlyDescription": "This needs {{name}}. Only the desktop app can install it. Install it in the Package Manager of the machine that runs NodeTool.",
       "installedTitle": "{{name}} is installed",
@@ -13886,10 +13886,10 @@
         "overlay": "Overlay",
         "darken": "Darken",
         "lighten": "Lighten",
-        "color-dodge": "Color Dodge",
-        "color-burn": "Color Burn",
-        "hard-light": "Hard Light",
-        "soft-light": "Soft Light",
+        "color-dodge": "Color dodge",
+        "color-burn": "Color burn",
+        "hard-light": "Hard light",
+        "soft-light": "Soft light",
         "difference": "Difference",
         "exclusion": "Exclusion",
         "add": "Add"
@@ -14044,7 +14044,7 @@
   },
   "i18n-next29": {
     "page": {
-      "title": "Model Manager",
+      "title": "Model manager",
       "subtitle": "Browse, download, and manage models"
     },
     "search": {
@@ -14063,7 +14063,7 @@
     },
     "source": {
       "ariaLabel": "Model source",
-      "getStarted": "Get Started",
+      "getStarted": "Get started",
       "installed": "Installed",
       "recommended": "Recommended",
       "hub": "Hub",
@@ -14550,7 +14550,7 @@
       "select": "Select collection…"
     },
     "folder": {
-      "newFolder": "New Folder",
+      "newFolder": "New folder",
       "created": "Created folder: {{name}}",
       "select": "Select a folder",
       "create": "Create folder",
@@ -15321,7 +15321,7 @@
       "dropzonePrompt": "Click or drop videos here"
     },
     "record": {
-      "addColumn": "Add Column"
+      "addColumn": "Add column"
     },
     "font": {
       "select": "Select a font",
@@ -17069,17 +17069,17 @@
         "embedding": "Embedding",
         "huggingFace": "Hugging Face",
         "select": "Select",
-        "radioGroup": "Radio Group",
-        "choiceCards": "Choice Cards",
-        "guidedSteps": "Guided Steps",
+        "radioGroup": "Radio group",
+        "choiceCards": "Choice cards",
+        "guidedSteps": "Guided steps",
         "approval": "Approval",
-        "checkboxGroup": "Checkbox Group",
-        "dateInput": "Date Input",
-        "resourcePicker": "Resource Picker",
-        "resourceGallery": "Resource Gallery",
-        "workflowInput": "Workflow Input",
-        "textInput": "Text Input",
-        "numberInput": "Number Input",
+        "checkboxGroup": "Checkbox group",
+        "dateInput": "Date input",
+        "resourcePicker": "Resource picker",
+        "resourceGallery": "Resource gallery",
+        "workflowInput": "Workflow input",
+        "textInput": "Text input",
+        "numberInput": "Number input",
         "slider": "Slider",
         "switch": "Switch",
         "button": "Button",
@@ -18447,7 +18447,7 @@
       "loading": "Loading",
       "loadingNodeTool": "Loading NodeTool…",
       "metadataError": "Error loading application metadata.",
-      "refreshPage": "Refresh Page",
+      "refreshPage": "Refresh page",
       "reportBug": "Report a bug",
       "preparingWorkspace": "Preparing workspace…"
     }
