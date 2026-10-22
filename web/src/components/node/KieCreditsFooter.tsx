@@ -28,6 +28,7 @@ import {
   MenuItemPrimitive,
   BORDER_RADIUS,
   Z_INDEX,
+  EYEBROW
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import type { NodeMetadata, ProviderCost } from "../../stores/ApiTypes";
@@ -229,10 +230,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
               <Caption
                 sx={{
-                  fontWeight: 600,
+                  ...EYEBROW,
                   color: tier.main,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                 }}
               >
                 {t("screen_editor.kieCredits.pricing")}
@@ -255,10 +254,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
               <Caption
                 sx={{
-                  fontWeight: 600,
+                  ...EYEBROW,
                   color: tier.main,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                 }}
               >
                 kie.ai
@@ -280,10 +277,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
         <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
           <Caption
             sx={{
-              fontWeight: 600,
+              ...EYEBROW,
               color: theme.vars.palette.text.secondary,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
             }}
           >
             {t("screen_editor.kieCredits.accountCredits")}
@@ -352,10 +347,8 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
               <Caption
                 sx={{
-                  fontWeight: 600,
+                  ...EYEBROW,
                   color: theme.vars.palette.text.secondary,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
                 }}
               >
                 {t("screen_editor.kieCredits.lastRun")}

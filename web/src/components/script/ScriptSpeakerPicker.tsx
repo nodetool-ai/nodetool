@@ -15,7 +15,8 @@ import {
   BORDER_RADIUS,
   TYPOGRAPHY,
   MOTION,
-  StatusDot
+  StatusDot,
+  EYEBROW
 } from "../ui_primitives";
 import {
   useScriptStore,
@@ -190,8 +191,7 @@ export const ScriptSpeakerPicker = ({
                   "&:hover:not(:disabled)": { color: "text.primary" }
                 }
               : {
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
+                  ...EYEBROW,
                   color: speaker
                     ? speaker.color ?? "text.primary"
                     : "text.disabled",

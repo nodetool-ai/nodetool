@@ -16,7 +16,8 @@ import {
   BORDER_RADIUS,
   getSpacingPx,
   SPACING,
-  EditorButton
+  EditorButton,
+  EYEBROW
 } from "../ui_primitives";
 import type { TemplateVariable, VariableSyntax } from "./templateVariables";
 
@@ -54,9 +55,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.md),
-      fontSize: "var(--fontSizeSmaller)",
-      letterSpacing: "0.06em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary,
       svg: { fontSize: "var(--fontSizeNormal)", opacity: 0.7 },
       ".count": {

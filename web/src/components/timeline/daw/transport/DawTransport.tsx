@@ -40,7 +40,8 @@ import {
   SPACING,
   Text,
   ToolbarIconButton,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  EYEBROW
 } from "../../../ui_primitives";
 import { formatTimecode } from "../../Inspector/InspectorPrimitives.helpers";
 import { defaultLoopRange, formatBarsBeatsTicks } from "./loopRange";
@@ -122,8 +123,7 @@ const stripStyles = (theme: Theme) =>
     ".daw-transport__master-label": {
       ...TYPOGRAPHY.mono.caption,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.06em",
+      ...EYEBROW,
       userSelect: "none"
     },
     // A phone gets two rows: the timecode repeats the bar position and the

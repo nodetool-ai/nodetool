@@ -6,7 +6,7 @@ import isEqual from "../../utils/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState } from "../ui_primitives";
+import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState, EYEBROW } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -52,10 +52,7 @@ const workspaceTreeStyles = (theme: Theme) =>
     },
 
     ".workspace-header h6": {
-      fontSize: "var(--fontSizeNormal)",
-      fontWeight: 600,
-      letterSpacing: "0.02em",
-      textTransform: "uppercase",
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary
     },
 

@@ -136,7 +136,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Z_INDEX
+  Z_INDEX,
+  EYEBROW
 } from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useTimelineIsMobile } from "../../../hooks/timeline/useTimelineIsMobile";
@@ -257,10 +258,7 @@ const tracksSectionHeaderStyles = (theme: Theme, compact: boolean) =>
     backgroundColor: theme.vars.palette.background.paper,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     color: theme.vars.palette.text.secondary,
-    fontSize: FONT_SIZE_MONO.caption,
-    fontWeight: FONT_WEIGHT.semibold,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
+    ...EYEBROW,
     userSelect: "none"
   });
 

@@ -8,7 +8,8 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Z_INDEX, getSpacingPx, SPACING
+  Z_INDEX, getSpacingPx, SPACING,
+  EYEBROW
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
@@ -141,10 +142,7 @@ const styles = (theme: Theme) =>
       width: "18px !important"
     },
     ".root-folder .folder-name": {
-      fontSize: theme.fontSizeSmall,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      fontWeight: 500,
+      ...EYEBROW,
       color: theme.vars.palette.grey[400]
     },
     // No resize handle styles

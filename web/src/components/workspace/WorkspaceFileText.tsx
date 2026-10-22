@@ -30,7 +30,8 @@ import {
   Text, getSpacingPx, SPACING,
   SaveState,
   Toolbar,
-  EmptyState
+  EmptyState,
+  EYEBROW
 } from "../ui_primitives";
 
 interface WorkspaceFileTextProps {
@@ -56,8 +57,7 @@ const styles = (theme: Theme) =>
       fontWeight: 500
     },
     ".kind-tag": {
-      textTransform: "uppercase",
-      letterSpacing: "0.05em"
+      ...EYEBROW,
     },
     ".file-body": {
       flex: 1,

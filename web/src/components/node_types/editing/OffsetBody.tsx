@@ -17,7 +17,8 @@ import {
   SPACING,
   getSpacingPx,
   ToggleOption,
-  ToggleGroup
+  ToggleGroup,
+  EYEBROW
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImagePreview from "./ImagePreview";
@@ -95,12 +96,8 @@ const styles = (theme: Theme) =>
       paddingTop: theme.spacing(SPACING.micro)
     },
     ".wrap-label": {
-      fontSize: theme.fontSizeSmaller,
-      fontWeight: 500,
+      ...EYEBROW,
       color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.045em",
-      lineHeight: 1,
       whiteSpace: "nowrap",
       minWidth: "minmax(52px, auto)"
     },
