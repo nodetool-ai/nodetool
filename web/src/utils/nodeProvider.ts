@@ -93,3 +93,30 @@ export const getProviderKindForNamespace = (namespace: string): ProviderKind => 
     ? "api"
     : "local";
 };
+
+/** The provider id of every node that runs on this machine. */
+export const LOCAL_PROVIDER_ID = "local";
+
+/**
+ * The provider a node belongs to in the node library's provider filter: the
+ * root namespace of an API-backed node ("fal", "kie", "openai"), or
+ * `LOCAL_PROVIDER_ID` for a node that runs locally.
+ */
+export const getNodeProviderId = (namespace: string): string =>
+  getProviderKindForNamespace(namespace) === "api"
+    ? getRootNamespace(namespace)
+    : LOCAL_PROVIDER_ID;
+
+/**
+ * The name the provider filter shows for a provider id from
+ * `getNodeProviderId`. It reuses the secret's display name without its
+ * "API Key" suffix, so "fal" reads "FAL" and "xai" reads "xAI".
+ */
+export const getNodeProviderName = (providerId: string): string => {
+  const secretKey = namespaceToSecretKey[providerId];
+  const secretName = secretKey ? secretKeyToDisplayName[secretKey] : undefined;
+  if (secretName) {
+    return secretName.replace(/\s+(API\s+)?(Key|Token)(\s+ID)?$/, "");
+  }
+  return providerId.charAt(0).toUpperCase() + providerId.slice(1);
+};

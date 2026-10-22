@@ -4,7 +4,10 @@
 import {
   getRequiredSecretKeyForNamespace,
   getSecretDisplayName,
-  getProviderKindForNamespace
+  getProviderKindForNamespace,
+  getNodeProviderId,
+  getNodeProviderName,
+  LOCAL_PROVIDER_ID
 } from "../nodeProvider";
 
 describe("nodeProvider", () => {
@@ -95,6 +98,37 @@ describe("nodeProvider", () => {
 
     it("works with dotted namespaces", () => {
       expect(getProviderKindForNamespace("openai.gpt4.turbo")).toBe("api");
+    });
+  });
+
+  describe("getNodeProviderId", () => {
+    it("uses the root namespace of API-backed nodes", () => {
+      expect(getNodeProviderId("fal.image_to_video")).toBe("fal");
+      expect(getNodeProviderId("kie.image")).toBe("kie");
+      expect(getNodeProviderId("messaging.slack")).toBe("messaging");
+    });
+
+    it("groups locally run nodes under local", () => {
+      expect(getNodeProviderId("nodetool.text")).toBe(LOCAL_PROVIDER_ID);
+      expect(getNodeProviderId("lib.image")).toBe(LOCAL_PROVIDER_ID);
+      expect(getNodeProviderId("huggingface.text_to_image")).toBe(
+        LOCAL_PROVIDER_ID
+      );
+    });
+  });
+
+  describe("getNodeProviderName", () => {
+    it("drops the key suffix from the secret's display name", () => {
+      expect(getNodeProviderName("fal")).toBe("FAL");
+      expect(getNodeProviderName("openai")).toBe("OpenAI");
+      expect(getNodeProviderName("xai")).toBe("xAI");
+      expect(getNodeProviderName("higgsfield")).toBe("Higgsfield");
+      expect(getNodeProviderName("search")).toBe("SerpAPI");
+      expect(getNodeProviderName("replicate")).toBe("Replicate");
+    });
+
+    it("capitalizes a provider without a key", () => {
+      expect(getNodeProviderName("messaging")).toBe("Messaging");
     });
   });
 });
