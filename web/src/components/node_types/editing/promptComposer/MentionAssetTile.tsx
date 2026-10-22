@@ -29,7 +29,7 @@ import FolderIcon from "@mui/icons-material/FolderOutlined";
 import EditIcon from "@mui/icons-material/EditOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
-import { BORDER_RADIUS, MOTION, reducedMotion, SPACING, getSpacingPx } from "../../../ui_primitives";
+import { BORDER_RADIUS, MOTION, reducedMotion, SPACING, Tooltip, getSpacingPx } from "../../../ui_primitives";
 import type { Asset } from "../../../../stores/ApiTypes";
 
 const TILE_WIDTH = 112;
@@ -368,17 +368,18 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = React.memo(({
             }}
           />
         ) : (
-          <span
-            className="name"
-            title={displayName}
-            onClick={(e) => e.stopPropagation()}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              startEditing();
-            }}
-          >
-            {displayName}
-          </span>
+          <Tooltip title={displayName}>
+            <span
+              className="name"
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                startEditing();
+              }}
+            >
+              {displayName}
+            </span>
+          </Tooltip>
         )}
       </div>
     </div>

@@ -12,14 +12,14 @@ import {
   ProgressBar,
   Text,
   ToolbarIconButton,
-  Tooltip,
   MOTION,
   reducedMotion,
   BORDER_RADIUS,
   StatusDot,
   SPACING,
   getSpacingPx,
-  ICON_SIZE
+  ICON_SIZE,
+  CloseButton
 } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import LayersIcon from "@mui/icons-material/Layers";
@@ -27,7 +27,6 @@ import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import CloseIcon from "@mui/icons-material/CloseOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useWorkflow } from "../../serverState/useWorkflow";
@@ -92,39 +91,6 @@ const cardSx: SxProps<Theme> = {
   px: 1.5,
   py: 1
 };
-
-const IconButton = ({
-  icon,
-  label,
-  onClick,
-  hoverColor = "text.primary"
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  hoverColor?: string;
-}) => (
-  <Tooltip title={label}>
-    <Box
-      component="button"
-      aria-label={label}
-      onClick={onClick}
-      sx={{
-        display: "flex",
-        flex: "0 0 auto",
-        border: "none",
-        background: "transparent",
-        color: "text.secondary",
-        cursor: "pointer",
-        p: 0.25,
-        borderRadius: BORDER_RADIUS.sm,
-        "&:hover": { color: hoverColor }
-      }}
-    >
-      {icon}
-    </Box>
-  </Tooltip>
-);
 
 const RunningCard = memo(function RunningCard({
   job,
@@ -195,11 +161,10 @@ const RunningCard = memo(function RunningCard({
           component="span"
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
-          <IconButton
-            icon={<CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-            label={t("i18n-cont-panels-12.queue.stopRun")}
+          <CloseButton
+            tooltip={t("i18n-cont-panels-12.queue.stopRun")}
             onClick={() => onCancel(job.id)}
-            hoverColor="error.main"
+            nodrag={false}
           />
         </Box>
       </FlexRow>
@@ -265,11 +230,10 @@ const EnqueuedCard = memo(function EnqueuedCard({
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {name}
         </Text>
-        <IconButton
-          icon={<CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />}
-          label={t("i18n-cont-panels-12.queue.removeFromQueue")}
+        <CloseButton
+          tooltip={t("i18n-cont-panels-12.queue.removeFromQueue")}
           onClick={() => onCancel(job.id)}
-          hoverColor="error.main"
+          nodrag={false}
         />
       </FlexRow>
     </Box>
@@ -490,10 +454,11 @@ const QueueOverlay = memo(function QueueOverlay() {
             {single && (
               <Text size="smaller" color="secondary" family="secondary">{formatClock(single.started_at, now)}</Text>
             )}
-            <IconButton
-              icon={<KeyboardArrowDownIcon sx={{ fontSize: ICON_SIZE.md }} />}
-              label={t("i18n-cont-panels-12.queue.expandQueue")}
+            <ToolbarIconButton
+              icon={<KeyboardArrowDownIcon />}
+              tooltip={t("i18n-cont-panels-12.queue.expandQueue")}
               onClick={() => setExpanded(true)}
+              nodrag={false}
             />
           </FlexRow>
           {running.length > 0 && <RunBar />}

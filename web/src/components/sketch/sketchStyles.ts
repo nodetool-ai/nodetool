@@ -47,10 +47,6 @@ export const SKETCH_SIZE = {
 /** Thickness (CSS px) of the top and left canvas rulers. */
 export const SKETCH_RULER_SIZE_PX = 20;
 
-// ─── Tooltip delay ───────────────────────────────────────────────────────────
-
-/** Centralised hover delay (ms) for all MUI Tooltips inside the sketch editor. */
-export const SKETCH_TOOLTIP_DELAY_MS = 500;
 
 // ─── Z-Index Scale ───────────────────────────────────────────────────────────
 

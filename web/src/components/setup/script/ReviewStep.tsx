@@ -394,7 +394,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = memo(
           <EditorButton
             variant="text"
             size="small"
-            startIcon={<AddIcon fontSize="small" />}
+            startIcon={<AddIcon />}
             disabled={locked}
             onClick={addLine}
             aria-label={t("pass3_9.review.addLineTo", { title })}
@@ -615,7 +615,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           <Box sx={{ paddingX: SPACING.md }}>
             <EditorButton
               variant="outlined"
-              startIcon={<AddIcon fontSize="small" />}
+              startIcon={<AddIcon />}
               disabled={locked}
               onClick={addFirstLine}
             >

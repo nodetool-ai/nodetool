@@ -25,9 +25,9 @@ import {
   EditorButton,
   EditorMenu,
   FlexRow,
-  IconButton,
   MenuItemPrimitive,
-  Tooltip
+  Tooltip,
+  ToolbarIconButton
 } from "../../ui_primitives";
 import { useSketchStore, SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX } from "../state";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
@@ -205,7 +205,7 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
                   setGenerateMounted(true);
                   setGenerateOpen(true);
                 }}
-                startIcon={<AutoAwesomeIcon fontSize="small" />}
+                startIcon={<AutoAwesomeIcon />}
                 aria-label={t("i18n-next13.sketch.editorActions.generateImage")}
                 sx={{
                   "@container sketch-workspace (max-width: 400px)": {
@@ -230,29 +230,24 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         </>
       )}
 
-      <Tooltip title={assistantPanelOpen ? t("i18n-next13.sketch.editorActions.hideAssistant") : t("i18n-next13.sketch.editorActions.showAssistant")}>
-        <IconButton
-          size="small"
-          onClick={handleAssistant}
-          aria-label={assistantPanelOpen ? t("i18n-next13.sketch.editorActions.hideAssistant") : t("i18n-next13.sketch.editorActions.showAssistant")}
-          aria-pressed={assistantPanelOpen}
-          data-testid="sketch-assistant-toggle"
-        >
-          <SmartToyOutlinedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <ToolbarIconButton
+        icon={<SmartToyOutlinedIcon />}
+        tooltip={assistantPanelOpen ? t("i18n-next13.sketch.editorActions.hideAssistant") : t("i18n-next13.sketch.editorActions.showAssistant")}
+        active={assistantPanelOpen}
+        onClick={handleAssistant}
+        aria-pressed={assistantPanelOpen}
+        data-testid="sketch-assistant-toggle"
+        nodrag={false}
+      />
 
-      <Tooltip title={t("i18n-next13.sketch.editorActions.editorActions")}>
-        <IconButton
-          size="small"
-          onClick={(e) => setMenuAnchor(e.currentTarget)}
-          aria-label={t("i18n-next13.sketch.editorActions.editorActions")}
-          aria-haspopup="menu"
-          data-testid="sketch-editor-menu"
-        >
-          <MoreVertIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+      <ToolbarIconButton
+        icon={<MoreVertIcon />}
+        tooltip={t("i18n-next13.sketch.editorActions.editorActions")}
+        onClick={(e) => setMenuAnchor(e.currentTarget)}
+        aria-haspopup="menu"
+        data-testid="sketch-editor-menu"
+        nodrag={false}
+      />
 
       <EditorMenu
         anchorEl={menuAnchor}

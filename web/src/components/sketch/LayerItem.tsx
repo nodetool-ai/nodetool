@@ -34,7 +34,7 @@ import {
   SPACING,
   FONT_SIZE_SANS,
   getSpacingPx,
-  IconButton,
+  ToolbarIconButton,
   InlineEditableText,
   MagicGenerationFill,
   ResponsiveImage,
@@ -44,14 +44,6 @@ import {
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
 import { isFunction } from "../../utils/typePredicates";
-
-/** Group rows: override MUI IconButton default min touch target so rows stay compact. */
-const GROUP_LAYER_ICON_BUTTON_SX = {
-  padding: getSpacingPx(SPACING.micro),
-  minWidth: 26,
-  minHeight: 26,
-  flexShrink: 0
-} as const;
 
 /** Where a dragged layer will be inserted relative to the drop target. */
 export type DropPosition = "before" | "after" | "into" | null;
@@ -251,21 +243,16 @@ const LayerItem: React.FC<LayerItemProps> = ({
       >
         {/* Group expand/collapse toggle */}
         {isGroup ? (
-          <IconButton
-            size="small"
-            aria-label={layer.collapsed ? t("i18n-next52.sketch.layer.expandGroup") : t("i18n-next52.sketch.layer.collapseGroup")}
+          <ToolbarIconButton
+            icon={layer.collapsed ? <ChevronRightIcon /> : <ExpandMoreIcon />}
+            tooltip={layer.collapsed ? t("i18n-next52.sketch.layer.expandGroup") : t("i18n-next52.sketch.layer.collapseGroup")}
             onClick={(e) => {
               e.stopPropagation();
               onToggleGroupCollapsed?.(layer.id);
             }}
-            sx={GROUP_LAYER_ICON_BUTTON_SX}
-          >
-            {layer.collapsed ? (
-              <ChevronRightIcon sx={{ fontSize: ICON_SIZE.sm }} />
-            ) : (
-              <ExpandMoreIcon sx={{ fontSize: ICON_SIZE.sm }} />
-            )}
-          </IconButton>
+            nodrag={false}
+            sx={{ flexShrink: 0 }}
+          />
         ) : null}
 
         {/* Thumbnail or group folder icon */}
@@ -324,31 +311,18 @@ const LayerItem: React.FC<LayerItemProps> = ({
         )}
 
         {!isGroup && (
-          <Tooltip
-            title={isIsolated ? t("i18n-next52.sketch.layer.showAll") : t("i18n-next52.sketch.layer.solo")}
-            placement="top"
-          >
-            <IconButton
-              size="small"
-              aria-label={isIsolated ? t("i18n-next52.sketch.layer.showAll") : t("i18n-next52.sketch.layer.solo")}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleIsolateLayer(layer.id);
-              }}
-              sx={{
-                padding: getSpacingPx(SPACING.xs),
-                flexShrink: 0,
-                color: isIsolated ? "warning.main" : "grey.500",
-                opacity: isIsolated ? 1 : 0.75,
-                "&:hover": {
-                  opacity: 1,
-                  color: isIsolated ? "warning.main" : "grey.300"
-                }
-              }}
-            >
-              <CenterFocusStrongIcon sx={{ fontSize: ICON_SIZE.md }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<CenterFocusStrongIcon />}
+            tooltip={isIsolated ? t("i18n-next52.sketch.layer.showAll") : t("i18n-next52.sketch.layer.solo")}
+            tooltipPlacement="top"
+            active={isIsolated}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleIsolateLayer(layer.id);
+            }}
+            nodrag={false}
+            sx={{ flexShrink: 0 }}
+          />
         )}
 
         {isEditing ? (
@@ -490,10 +464,12 @@ const LayerItem: React.FC<LayerItemProps> = ({
 
         {/* Discrete cell mirrors thumbnail column — see `.layer-visibility-cell` in panel styles */}
         <Box className="layer-visibility-cell">
-          <IconButton
-            size="small"
+          <ToolbarIconButton
+            icon={layer.visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
+            tooltip={layer.visible ? t("i18n-next52.sketch.layer.hide") : t("i18n-next52.sketch.layer.show")}
+            ariaLabel={`${layer.visible ? t("i18n-next52.sketch.layer.hide") : t("i18n-next52.sketch.layer.show")} ${layer.name}`}
             disableRipple
-            aria-label={`${layer.visible ? t("i18n-next52.sketch.layer.hide") : t("i18n-next52.sketch.layer.show")} ${layer.name}`}
+            nodrag={false}
             onPointerDown={(e) =>
               onVisibilityButtonMouseDown(e, layer.id)
             }
@@ -517,21 +493,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
               }
             }}
             onClick={(e) => onVisibilityButtonClick(e, layer.id)}
-            sx={isGroup ? GROUP_LAYER_ICON_BUTTON_SX : { flexShrink: 0 }}
-          >
-            {layer.visible ? (
-              <VisibilityIcon
-                sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem" }}
-              />
-            ) : (
-              <VisibilityOffIcon
-                sx={{
-                  fontSize: isGroup ? "0.9rem" : "1.125rem",
-                  opacity: 0.65
-                }}
-              />
-            )}
-          </IconButton>
+            sx={{ flexShrink: 0 }}
+          />
         </Box>
       </TreeRow>
     </Box>

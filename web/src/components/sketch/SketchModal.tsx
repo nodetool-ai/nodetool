@@ -38,7 +38,7 @@ import {
   DEFAULT_PEN_PRESSURE
 } from "./types";
 import type { SketchTool } from "./types";
-import { SKETCH_Z_INDEX, SKETCH_TOOLTIP_DELAY_MS, settingRowChildrenSx } from "./sketchStyles";
+import { SKETCH_Z_INDEX, settingRowChildrenSx } from "./sketchStyles";
 import { displayCombo } from "./shortcuts";
 import {
   Caption,
@@ -48,17 +48,17 @@ import {
   TabGroup,
   TabPanel,
   Text,
-  Tooltip,
   Box,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  IconButton,
   ContextMenu,
   MenuItemPrimitive,
   Slider,
   DeleteButton,
-  ICON_SIZE
+  ICON_SIZE,
+  ToolbarIconButton,
+  CloseButton
 } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
@@ -267,32 +267,23 @@ const SketchModal: React.FC<SketchModalProps> = ({
               rowGap: getSpacingPx(SPACING.xs)
             }}
           >
-            <Tooltip
-              title={
+            <ToolbarIconButton
+              icon={<DrawOutlinedIcon />}
+              tooltip={
                 headerPenPressureOn
                   ? t("i18n-next4.sketch.turnOffPenPressure")
                   : t("i18n-next4.sketch.turnOnPenPressure")
               }
-              enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-              enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-            >
-              <IconButton
-                size="small"
-                onClick={() =>
-                  setPenPressure({ pressureSensitivity: !headerPenPressureOn })
-                }
-                color={headerPenPressureOn ? "primary" : "default"}
-                aria-label={t("i18n-next4.sketch.togglePenPressure")}
-                aria-expanded={headerPenPressureOn}
-                aria-controls="sketch-modal-pen-pressure-panel"
-                sx={{
-                  color: headerPenPressureOn ? undefined : "grey.300",
-                  flexShrink: 0
-                }}
-              >
-                <DrawOutlinedIcon sx={{ fontSize: ICON_SIZE.md }} />
-              </IconButton>
-            </Tooltip>
+              ariaLabel={t("i18n-next4.sketch.togglePenPressure")}
+              active={headerPenPressureOn}
+              onClick={() =>
+                setPenPressure({ pressureSensitivity: !headerPenPressureOn })
+              }
+              aria-expanded={headerPenPressureOn}
+              aria-controls="sketch-modal-pen-pressure-panel"
+              nodrag={false}
+              sx={{ flexShrink: 0 }}
+            />
             {headerPenPressureOn ? (
               <FlexRow
                 id="sketch-modal-pen-pressure-panel"
@@ -320,47 +311,45 @@ const SketchModal: React.FC<SketchModalProps> = ({
         ) : null}
 
         <FlexRow align="center" sx={{ gap: getSpacingPx(SPACING.micro) }}>
-          <Tooltip title={t("i18n-next4.sketch.undoWithShortcut", { shortcut: displayCombo("undo") })} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <span style={{ display: 'inline-flex' }}>
-              <IconButton size="small" aria-label={t("i18n-next4.sketch.undo")} onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
-                <UndoIcon sx={{ fontSize: ICON_SIZE.md }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title={t("i18n-next4.sketch.redoWithShortcut", { shortcut: displayCombo("redo") })} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <span style={{ display: 'inline-flex' }}>
-              <IconButton size="small" aria-label={t("i18n-next4.sketch.redo")} onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
-                <RedoIcon sx={{ fontSize: ICON_SIZE.md }} />
-              </IconButton>
-            </span>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<UndoIcon />}
+            tooltip={t("i18n-next4.sketch.undo")}
+            shortcut={[displayCombo("undo")]}
+            onClick={() => editorRef.current?.undo()}
+            disabled={!canUndo}
+            nodrag={false}
+          />
+          <ToolbarIconButton
+            icon={<RedoIcon />}
+            tooltip={t("i18n-next4.sketch.redo")}
+            shortcut={[displayCombo("redo")]}
+            onClick={() => editorRef.current?.redo()}
+            disabled={!canRedo}
+            nodrag={false}
+          />
 
-          <Tooltip title={t("i18n-next4.sketch.keyboardShortcuts")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton
-              size="small"
-              onClick={() => setShortcutsPaneOpen((open) => !open)}
-              aria-label={shortcutsPaneOpen ? t("i18n-next4.sketch.hideKeyboardShortcuts") : t("i18n-next4.sketch.showKeyboardShortcuts")}
-              aria-expanded={shortcutsPaneOpen}
-              color={shortcutsPaneOpen ? "primary" : "default"}
-            >
-              <KeyboardOutlinedIcon sx={{ fontSize: ICON_SIZE.md }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<KeyboardOutlinedIcon />}
+            tooltip={t("i18n-next4.sketch.keyboardShortcuts")}
+            ariaLabel={shortcutsPaneOpen ? t("i18n-next4.sketch.hideKeyboardShortcuts") : t("i18n-next4.sketch.showKeyboardShortcuts")}
+            active={shortcutsPaneOpen}
+            onClick={() => setShortcutsPaneOpen((open) => !open)}
+            aria-expanded={shortcutsPaneOpen}
+            nodrag={false}
+          />
 
           <Divider orientation="vertical" flexItem sx={{ mx: getSpacingPx(SPACING.xs) }} />
 
-          <Tooltip title={t("i18n-next4.sketch.symmetry.tooltip", { mode: symmetryLabel })} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton
-              size="small"
-              aria-label={t("i18n-next4.sketch.symmetry.menu")}
-              aria-haspopup="true"
-              aria-expanded={Boolean(symmetryAnchorEl)}
-              onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
-              color={symmetryActive ? "primary" : "default"}
-            >
-              <FlipIcon sx={{ fontSize: ICON_SIZE.md }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<FlipIcon />}
+            tooltip={t("i18n-next4.sketch.symmetry.tooltip", { mode: symmetryLabel })}
+            ariaLabel={t("i18n-next4.sketch.symmetry.menu")}
+            active={symmetryActive}
+            onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
+            aria-haspopup="true"
+            aria-expanded={Boolean(symmetryAnchorEl)}
+            nodrag={false}
+          />
           <ContextMenu
             anchorEl={symmetryAnchorEl}
             open={Boolean(symmetryAnchorEl)}
@@ -409,30 +398,40 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}
                 sx={{ color: "error.main", "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.sm } }}
               />
-              <IconButton size="small" aria-label={t("i18n-next4.sketch.cancelDiscard")} autoFocus onClick={() => setConfirmDiscard(false)}>
-                <CloseIcon sx={{ fontSize: ICON_SIZE.sm }} />
-              </IconButton>
+              <ToolbarIconButton
+                icon={<CloseIcon />}
+                tooltip={t("i18n-next4.sketch.cancelDiscard")}
+                onClick={() => setConfirmDiscard(false)}
+                autoFocus
+                nodrag={false}
+              />
             </>
           ) : (
-            <Tooltip title={t("i18n-next4.sketch.discardAllAndClose")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-              <IconButton size="small" aria-label={t("i18n-next4.sketch.discardChanges")} onClick={() => setConfirmDiscard(true)} sx={{ color: "error.light" }}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={<CloseIcon />}
+              tooltip={t("i18n-next4.sketch.discardAllAndClose")}
+              ariaLabel={t("i18n-next4.sketch.discardChanges")}
+              variant="error"
+              onClick={() => setConfirmDiscard(true)}
+              nodrag={false}
+            />
           )}
 
-          <Tooltip title={t("i18n-next4.sketch.exportImage")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" aria-label={t("i18n-next4.sketch.exportImage")} onClick={() => editorRef.current?.exportPng()}>
-              <SaveAltIcon sx={{ fontSize: ICON_SIZE.md }} />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<SaveAltIcon />}
+            tooltip={t("i18n-next4.sketch.exportImage")}
+            onClick={() => editorRef.current?.exportPng()}
+            nodrag={false}
+          />
 
           {!confirmDiscard && (
-            <Tooltip title={t("i18n-next4.sketch.saveAndClose")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-              <IconButton size="small" aria-label={t("i18n-next4.sketch.saveAndClose")} onClick={handleRequestClose} sx={{ color: "success.light" }}>
-                <CheckIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={<CheckIcon />}
+              tooltip={t("i18n-next4.sketch.saveAndClose")}
+              variant="primary"
+              onClick={handleRequestClose}
+              nodrag={false}
+            />
           )}
         </FlexRow>
       </Box>
@@ -502,15 +501,11 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 <Text id="sketch-shortcuts-heading" sx={{ fontWeight: 600 }}>
                   {t("i18n-next4.sketch.keyboardShortcuts")}
                 </Text>
-                <Tooltip title={t("i18n-next4.sketch.close")} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                  <IconButton
-                    size="small"
-                    onClick={() => setShortcutsPaneOpen(false)}
-                    aria-label={t("i18n-next4.sketch.closeKeyboardShortcuts")}
-                  >
-                    <CloseIcon sx={{ fontSize: ICON_SIZE.md }} />
-                  </IconButton>
-                </Tooltip>
+                <CloseButton
+                  tooltip={t("i18n-next4.sketch.closeKeyboardShortcuts")}
+                  onClick={() => setShortcutsPaneOpen(false)}
+                  nodrag={false}
+                />
               </FlexRow>
               <FlexColumn
                 sx={{

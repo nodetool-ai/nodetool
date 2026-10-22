@@ -42,7 +42,7 @@ import type {
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
-import { EmptyState, FlexColumn } from "../../../ui_primitives";
+import { EmptyState, FlexColumn, Tooltip } from "../../../ui_primitives";
 import { ChordEditor } from "./ChordEditor";
 import { barTicks, chordHue } from "./chordGrid";
 import { CompBrowser, loadCompEntry } from "./CompBrowser";
@@ -67,9 +67,11 @@ function Segmented<T extends string | number>({
   return (
     <div className="arp-seg" role="group" aria-label={label}>
       {options.map(([v, text, title]) => (
-        <button key={String(v)} type="button" title={title} aria-pressed={v === value} onClick={() => onChange(v)}>
-          {text}
-        </button>
+        <Tooltip key={String(v)} title={title ?? ""}>
+          <button type="button" aria-pressed={v === value} onClick={() => onChange(v)}>
+            {text}
+          </button>
+        </Tooltip>
       ))}
     </div>
   );
