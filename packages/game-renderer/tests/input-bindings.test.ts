@@ -45,7 +45,8 @@ function expectedFrame3D(document: GameDocument3D, keys: ReadonlySet<string>, ne
     }, 0);
   };
   return { pressed: actions(keys), justPressed: actions(newlyPressed),
-    axes: Object.fromEntries(document.inputAxes.map((axis) => [axis, authoredAxis(axis) ?? (axis === "moveX" ? x : axis === "moveZ" ? z : 0)])), look };
+    axes: Object.fromEntries(document.inputAxes.map((axis) => [axis, authoredAxis(axis) ?? (axis === "moveX" ? x : axis === "moveZ" ? z : 0)])),
+    look: document.inputBindings?.look?.length === 0 ? { x: 0, y: 0 } : look };
 }
 
 function random(seed: number): () => number {
