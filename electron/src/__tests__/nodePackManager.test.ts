@@ -1,3 +1,4 @@
+import * as path from "path";
 import { EventEmitter } from "events";
 import * as config from "../config";
 
@@ -273,7 +274,8 @@ describe("nodePackManager", () => {
           name: "helper",
           version: "1.4.0",
           resolved: "https://registry.example/helper",
-          integrity: "sha512-helper"
+          integrity: "sha512-helper",
+          lockPath: "node_modules/helper"
         }
       ]);
     });
@@ -331,10 +333,83 @@ describe("nodePackManager", () => {
       });
       expect(spawn).toHaveBeenCalledWith(
         "npm",
-        expect.arrayContaining(["rebuild", "@scope/pkg", "helper"]),
+        expect.arrayContaining([
+          "rebuild",
+          path.join(ROOT, "node_modules", "@scope", "pkg"),
+          path.join(ROOT, "node_modules", "helper")
+        ]),
         expect.any(Object)
       );
       expect(spawn.mock.calls[0][1]).not.toContain("install");
+      expect(spawn.mock.calls[0][1]).not.toContain("helper");
+    });
+
+    it("rebuilds only the verified copy when another pack nests the same name", async () => {
+      const lockfile = {
+        "node_modules/@scope/pkg": {
+          version: "2.0.0",
+          resolved: "https://registry.example/@scope/pkg",
+          integrity: "sha512-pkg",
+          dependencies: { "shared-dep": "^1.0.0" }
+        },
+        "node_modules/shared-dep": {
+          version: "1.0.0",
+          resolved: "https://registry.example/shared-dep",
+          integrity: "sha512-shared"
+        },
+        "node_modules/sandbox-pack": {
+          version: "1.0.0",
+          dependencies: { "shared-dep": "npm:attacker-payload@9.9.9" }
+        },
+        "node_modules/sandbox-pack/node_modules/shared-dep": {
+          name: "attacker-payload",
+          version: "9.9.9",
+          resolved: "https://registry.example/attacker-payload",
+          integrity: "sha512-attacker"
+        }
+      };
+      await installRegisterPack(lockfile);
+
+      const result = await trustNodePack("@scope/pkg");
+
+      expect(result.success).toBe(true);
+      const args: string[] = spawn.mock.calls[0][1];
+      expect(args).toContain(path.join(ROOT, "node_modules", "shared-dep"));
+      expect(args).not.toContain("shared-dep");
+      expect(args.some((arg) => arg.includes("sandbox-pack"))).toBe(false);
+    });
+
+    it("refuses when a second copy of a dependency appeared since install", async () => {
+      const lockfile = {
+        "node_modules/@scope/pkg": {
+          version: "2.0.0",
+          resolved: "https://registry.example/@scope/pkg",
+          integrity: "sha512-pkg",
+          dependencies: { helper: "^1.0.0" }
+        },
+        "node_modules/helper": {
+          version: "1.4.0",
+          resolved: "https://registry.example/helper",
+          integrity: "sha512-helper"
+        }
+      };
+      await installRegisterPack(lockfile);
+      files[LOCKFILE] = JSON.stringify({
+        packages: {
+          ...lockfile,
+          "node_modules/@scope/pkg": {
+            ...lockfile["node_modules/@scope/pkg"],
+            dependencies: { helper: "^1.0.0", other: "^1.0.0" }
+          },
+          "node_modules/other": { version: "1.0.0", dependencies: { helper: "^2.0.0" } },
+          "node_modules/other/node_modules/helper": { version: "2.0.0", integrity: "sha512-new" }
+        }
+      });
+
+      const result = await trustNodePack("@scope/pkg");
+
+      expect(result.success).toBe(false);
+      expect(spawn).not.toHaveBeenCalled();
     });
 
     it("refuses when the artifact integrity changed since install", async () => {

@@ -73,6 +73,12 @@ export class NativeHost {
     if (process.platform !== "win32") {
       const dir = path.dirname(this.socketPath);
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+      const stat = fs.lstatSync(dir);
+      if (!stat.isDirectory() || stat.uid !== process.getuid?.()) {
+        throw new Error(
+          `Refusing to use ${dir}: it is not a directory owned by this user. Remove it, or set NODETOOL_BROWSER_BRIDGE_SOCKET to a private path.`
+        );
+      }
       fs.chmodSync(dir, 0o700);
       fs.rmSync(this.socketPath, { force: true });
     }

@@ -134,7 +134,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Health    | `/api/health`                     | `GET`             | none                                           | no                          | JSON: `{version, uptime}` |
 | Liveness  | `/ready`                          | `GET`             | none                                           | no                          | Always `200` with `{status:"ok"}` |
 
-> **Session auth** means the request must carry a credential unless Local mode trusts the caller. Rows marked `none` skip session auth. The server does not read an `AUTH_PROVIDER` variable. The mode comes from `SUPABASE_URL` and `SUPABASE_KEY`, as described in [Authentication](authentication.md). The SDK discovery routes (`capabilities`, `models`, `node-types`, `workflows`, `workflow-interfaces`) also skip session auth unless the server enforces auth or the SDK authentication flag is set.
+> **Session auth** means the request must carry a credential unless Local mode trusts the caller. Rows marked `none` skip session auth. The server does not read an `AUTH_PROVIDER` variable. The mode comes from `SUPABASE_URL` and `SUPABASE_KEY`, as described in [Authentication](authentication.md). The SDK discovery routes (`capabilities`, `models`, `node-types`) also skip session auth unless the server enforces auth or the SDK authentication flag is set. The workflow routes (`workflows`, `workflow-interfaces`) read the caller's library and always need session auth.
 
 ## Authentication and Headers
 

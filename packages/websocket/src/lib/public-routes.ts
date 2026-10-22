@@ -221,10 +221,14 @@ export function isPublicAuthExemptRoute(
  * the path before choosing a route, so `/%61pi/workflows` reaches the
  * `/api/workflows` handler. Every auth decision must test this decoded form,
  * never the raw `req.url`. Returns null for malformed escapes, which the
- * router refuses anyway.
+ * router refuses anyway, and for a raw `#`, so such a path never matches an
+ * auth exemption.
  */
 export function routedPathname(url: string): string | null {
   const raw = url.split("?")[0] ?? "/";
+  // A raw `#` is never valid in a request-target, and the router may stop at
+  // it while a suffix check here would not. Refuse to classify such a path.
+  if (raw.includes("#")) return null;
   try {
     return decodeURI(raw);
   } catch {

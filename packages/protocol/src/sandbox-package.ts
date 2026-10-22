@@ -668,7 +668,9 @@ export const NodePackArtifactIdentitySchema = z
     name: z.string().min(1),
     version: z.string().min(1).optional(),
     resolved: z.string().min(1).optional(),
-    integrity: z.string().min(1).optional()
+    integrity: z.string().min(1).optional(),
+    /** Lockfile key (`node_modules/a/node_modules/b`) of the copy that was checked. */
+    lockPath: z.string().min(1).optional()
   })
   .strict();
 export type NodePackArtifactIdentity = z.infer<

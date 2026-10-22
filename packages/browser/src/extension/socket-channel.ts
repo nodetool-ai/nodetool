@@ -7,7 +7,7 @@
 import net from "node:net";
 import fs from "node:fs";
 import path from "node:path";
-import { bridgeSocketDir, bridgePipeName } from "./bridge-paths.js";
+import { bridgeSocketDir, bridgePipeName, isPrivateToCurrentUser } from "./bridge-paths.js";
 import type { ExtensionChannel } from "./client.js";
 import { parseExtensionFrame, type ExtensionFrame, type ExtensionHostToExtFrame } from "./protocol.js";
 
@@ -24,6 +24,8 @@ export function listBridgeSockets(): string[] {
   if (explicit) return [explicit];
   if (process.platform === "win32") return [bridgePipeName()];
   const dir = bridgeSocketDir();
+  // A directory another user created (or opened up) may hold their listener.
+  if (!isPrivateToCurrentUser(dir, "directory")) return [];
   let names: string[];
   try {
     names = fs.readdirSync(dir).filter((name) => name.endsWith(".sock"));
@@ -32,7 +34,8 @@ export function listBridgeSockets(): string[] {
   }
   return names
     .map((name) => path.join(dir, name))
-    .map((file) => ({ file, mtime: fs.statSync(file).mtimeMs }))
+    .filter((file) => isPrivateToCurrentUser(file, "socket"))
+    .map((file) => ({ file, mtime: fs.lstatSync(file).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime)
     .map((entry) => entry.file);
 }
