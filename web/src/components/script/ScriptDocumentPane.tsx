@@ -481,7 +481,7 @@ const SectionBlockInner = ({
           <EditorButton
             size="small"
             variant="text"
-            startIcon={<AddIcon fontSize="small" />}
+            startIcon={<AddIcon />}
             onClick={() => addLine(scriptId, section.id)}
           >
             {t("i18n-next25.script.document.addLine")}
@@ -590,7 +590,7 @@ const VoiceAllButton = ({
       <EditorButton
         size="small"
         variant="contained"
-        startIcon={<GraphicEqIcon fontSize="small" />}
+        startIcon={<GraphicEqIcon />}
         onClick={onClick}
       >
         {priced ? t("i18n-next25.script.document.voiceAllPrice", { price: formatUsd(cost) }) : t("i18n-next25.script.document.voiceAll")}
@@ -1126,7 +1126,7 @@ const ScriptDocumentPane = ({
           <EditorButton
             size="small"
             variant="text"
-            startIcon={<StopIcon fontSize="small" />}
+            startIcon={<StopIcon />}
             onClick={stop}
           >
             {t("i18n-next25.script.document.stop")}
@@ -1143,7 +1143,7 @@ const ScriptDocumentPane = ({
               <EditorButton
                 size="small"
                 variant="text"
-                startIcon={<PlayArrowIcon fontSize="small" />}
+                startIcon={<PlayArrowIcon />}
                 onClick={play}
                 disabled={!hasVoicedLine}
               >
@@ -1165,7 +1165,7 @@ const ScriptDocumentPane = ({
           <EditorButton
             size="small"
             variant="text"
-            startIcon={<MovieIcon fontSize="small" />}
+            startIcon={<MovieIcon />}
             onClick={onSendToTimeline}
             disabled={assembling || !hasVoicedLine}
             tooltip={
@@ -1299,7 +1299,7 @@ const ScriptDocumentPane = ({
             <EditorButton
               size="small"
               variant="text"
-              startIcon={<AddIcon fontSize="small" />}
+              startIcon={<AddIcon />}
               onClick={() => addSection(scriptId)}
             >
               {t("i18n-next25.script.document.addSection")}

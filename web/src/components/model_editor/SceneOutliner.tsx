@@ -23,7 +23,7 @@ import {
   ContextMenu,
   FlexColumn,
   FlexRow,
-  IconButton,
+  ToolbarIconButton,
   InlineEditableText,
   MenuItemPrimitive,
   ScrollArea,
@@ -272,20 +272,18 @@ const OutlinerRow = memo(
             }}
           />
         </FlexRow>
-        <IconButton
+        <ToolbarIconButton
           className="outliner-eye"
-          size="small"
+          icon={node.visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
           // One tab stop per tree, not one per row: H toggles the selection.
           tabIndex={-1}
-          aria-label={t(node.visible ? "i18n-cont-model-editor-11.outliner.hideObject" : "i18n-cont-model-editor-11.outliner.showObject")}
+          tooltip={t(node.visible ? "i18n-cont-model-editor-11.outliner.hideObject" : "i18n-cont-model-editor-11.outliner.showObject")}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
             onToggleVisible(node.uuid);
           }}
-          sx={{ padding: SPACING.micro, "& svg": { fontSize: "var(--fontSizeNormal)" } }}
-        >
-          {node.visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
-        </IconButton>
+          nodrag={false}
+        />
       </TreeRow>
     );
   }

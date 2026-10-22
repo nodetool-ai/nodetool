@@ -97,7 +97,7 @@ const StudioShell = ({
           {showBack && (
             <EditorButton
               size="small"
-              startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+              startIcon={<ArrowBackRoundedIcon />}
               onClick={() => navigate("/workspace")}
             >
               {t("screen_remaining.studio.workspace")}

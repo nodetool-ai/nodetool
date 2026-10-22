@@ -101,7 +101,7 @@ const StudioScriptPage = () => {
         <EditorButton
           size="small"
           variant="contained"
-          startIcon={<MovieRoundedIcon fontSize="small" />}
+          startIcon={<MovieRoundedIcon />}
           disabled={assembling}
           onClick={() => {
             void assemble(scriptId)

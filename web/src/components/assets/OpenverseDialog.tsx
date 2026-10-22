@@ -28,6 +28,7 @@ import {
   TruncatedText,
   TYPOGRAPHY,
   selectableTileStyles,
+  Tooltip,
   type SelectOption
 } from "../ui_primitives";
 import { openverseLicenseLabel } from "../../utils/openverseLicense";
@@ -270,38 +271,38 @@ const OpenverseDialog: React.FC<OpenverseDialogProps> = ({ open, onClose }) => {
           {results.map((result) => {
             const isSelected = selected.has(result.id);
             return (
-              <FlexColumn
-                key={result.id}
-                component="button"
-                aria-pressed={isSelected}
-                aria-label={t("i18n-next1.openverse.resultLabel", {
-                  title: result.title || t("i18n-next1.openverse.untitled"),
-                  license: openverseLicenseLabel(result)
-                })}
-                title={result.attribution}
-                onClick={() => toggle(result.id)}
-                gap={SPACING.xs}
-                sx={(theme) => ({
-                  ...selectableTileStyles(theme, { selected: isSelected }),
-                  minWidth: 0,
-                  p: SPACING.xs,
-                  bgcolor: "transparent",
-                  color: "text.primary",
-                  font: "inherit",
-                  textAlign: "left",
-                  cursor: "pointer"
-                })}
-              >
-                <ResponsiveImage
-                  locator={result.thumbnail || result.url}
-                  alt={result.title || t("i18n-next1.openverse.imageAlt")}
-                  aspectRatio="4 / 3"
-                  fit="cover"
-                  loading="lazy"
-                  showErrorFallback
-                />
-                <ResultCredit result={result} />
-              </FlexColumn>
+              <Tooltip key={result.id} title={result.attribution}>
+                <FlexColumn
+                  component="button"
+                  aria-pressed={isSelected}
+                  aria-label={t("i18n-next1.openverse.resultLabel", {
+                    title: result.title || t("i18n-next1.openverse.untitled"),
+                    license: openverseLicenseLabel(result)
+                  })}
+                  onClick={() => toggle(result.id)}
+                  gap={SPACING.xs}
+                  sx={(theme) => ({
+                    ...selectableTileStyles(theme, { selected: isSelected }),
+                    minWidth: 0,
+                    p: SPACING.xs,
+                    bgcolor: "transparent",
+                    color: "text.primary",
+                    font: "inherit",
+                    textAlign: "left",
+                    cursor: "pointer"
+                  })}
+                >
+                  <ResponsiveImage
+                    locator={result.thumbnail || result.url}
+                    alt={result.title || t("i18n-next1.openverse.imageAlt")}
+                    aspectRatio="4 / 3"
+                    fit="cover"
+                    loading="lazy"
+                    showErrorFallback
+                  />
+                  <ResultCredit result={result} />
+                </FlexColumn>
+              </Tooltip>
             );
           })}
         </AutoGrid>

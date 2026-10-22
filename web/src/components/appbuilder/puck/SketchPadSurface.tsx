@@ -26,13 +26,14 @@ import {
   Caption,
   FlexColumn,
   FlexRow,
-  IconButton,
   Slider,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  ColorSwatch,
+  ToolbarIconButton
 } from "../../ui_primitives";
 import {
   SketchCanvasPane,
@@ -79,17 +80,6 @@ const FLATTEN_DELAY_MS = 200;
 
 const SWATCH_SIZE = 16;
 const SIZE_SLIDER_WIDTH = 96;
-
-const swatchStyles = (color: string, selected: boolean) => ({
-  width: SWATCH_SIZE,
-  height: SWATCH_SIZE,
-  padding: 0,
-  borderRadius: BORDER_RADIUS.circle,
-  backgroundColor: color,
-  border: "2px solid",
-  borderColor: selected ? "primary.main" : "divider",
-  "&:hover": { backgroundColor: color, borderColor: "primary.light" }
-});
 
 interface PadToolbarProps {
   onUndo: () => void;
@@ -165,11 +155,14 @@ const PadToolbar: React.FC<PadToolbarProps> = ({ onUndo, onRedo, onClear }) => {
 
       <FlexRow align="center" gap={SPACING.xs} sx={{ flexWrap: "wrap" }}>
         {SKETCH_PRESET_SWATCHES.map((color) => (
-          <IconButton
+          <ColorSwatch
             key={color}
+            color={color}
+            shape="circle"
+            size={SWATCH_SIZE}
+            selected={foregroundColor === color}
             aria-label={t("i18n-next53.appBuilder.sketch.color", { color })}
-            onClick={() => setColor(color)}
-            sx={swatchStyles(color, foregroundColor === color)}
+            onClick={setColor}
           />
         ))}
       </FlexRow>
@@ -190,35 +183,23 @@ const PadToolbar: React.FC<PadToolbarProps> = ({ onUndo, onRedo, onClear }) => {
       ) : null}
 
       <FlexRow align="center" gap={SPACING.xs} sx={{ marginLeft: "auto" }}>
-        <Tooltip title={t("i18n-next53.appBuilder.actions.undo")}>
-          <span>
-            <IconButton
-              size="small"
-              aria-label={t("i18n-next53.appBuilder.actions.undo")}
-              disabled={!canUndo}
-              onClick={onUndo}
-            >
-              <UndoIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title={t("i18n-next53.appBuilder.actions.redo")}>
-          <span>
-            <IconButton
-              size="small"
-              aria-label={t("i18n-next53.appBuilder.actions.redo")}
-              disabled={!canRedo}
-              onClick={onRedo}
-            >
-              <RedoIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title={t("i18n-next53.appBuilder.actions.clear")}>
-          <IconButton size="small" aria-label={t("i18n-next53.appBuilder.actions.clear")} onClick={onClear}>
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<UndoIcon />}
+          tooltip={t("i18n-next53.appBuilder.actions.undo")}
+          disabled={!canUndo}
+          onClick={onUndo}
+        />
+        <ToolbarIconButton
+          icon={<RedoIcon />}
+          tooltip={t("i18n-next53.appBuilder.actions.redo")}
+          disabled={!canRedo}
+          onClick={onRedo}
+        />
+        <ToolbarIconButton
+          icon={<DeleteOutlineIcon />}
+          tooltip={t("i18n-next53.appBuilder.actions.clear")}
+          onClick={onClear}
+        />
       </FlexRow>
     </FlexRow>
   );
