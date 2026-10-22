@@ -103,7 +103,7 @@ jest.mock("../../../assets/AssetViewer", () => ({
 }));
 
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
-import { EntitiesStep } from "../EntitiesStep";
+import { EntitiesStep, shotTitle } from "../EntitiesStep";
 import { MediaGalleryProvider } from "../../MediaGallery";
 import { clearSetupReports } from "../setupChoices";
 
@@ -203,15 +203,16 @@ it("assigns a selected entity to matching shots, then allows shot refinement", a
 
   const shotAssignments = [1, 2].map((number) =>
     within(screen.getByRole("region", { name: `Shot ${number}` })).getByRole(
-      "checkbox",
+      "button",
       { name: "Mara" }
     )
   );
   expect(shotAssignments).toHaveLength(2);
+  expect(
+    shotAssignments.map((chip) => chip.getAttribute("aria-pressed"))
+  ).toEqual(["true", "false"]);
   for (const assignment of shotAssignments) {
-    expect(
-      assignment.closest("label")?.querySelector("img")
-    ).toBeInTheDocument();
+    expect(assignment.querySelector("img")).toBeInTheDocument();
   }
   await user.click(shotAssignments[1]);
 
@@ -229,10 +230,11 @@ it("assigns a selected entity to matching shots, then allows shot refinement", a
     ["mara", "station"],
     ["mara", "station"]
   ]);
-  for (const assignment of screen.getAllByRole("checkbox", {
+  for (const assignment of screen.getAllByRole("button", {
     name: "Station"
   })) {
-    expect(assignment.closest("label")?.querySelector("img")).toBeNull();
+    expect(assignment).toHaveAttribute("aria-pressed", "true");
+    expect(assignment.querySelector("img")).toBeNull();
   }
 });
 
@@ -265,7 +267,10 @@ it("filters the library without losing selections or shot assignments", async ()
   expect(
     screen.queryByRole("checkbox", { name: "Station · Location" })
   ).not.toBeInTheDocument();
-  expect(screen.getAllByRole("checkbox", { name: "Mara" })[0]).toBeChecked();
+  expect(screen.getAllByRole("button", { name: "Mara" })[0]).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
 });
 
 it("opens a reference image fullscreen without selecting the entity", async () => {
@@ -997,4 +1002,11 @@ it("says when Find entities found nothing", async () => {
       "No recurring characters, places or props were found in your screenplay."
     )
   ).toBeInTheDocument();
+});
+
+it("drops a leading shot number from a slug that repeats it", () => {
+  expect(shotTitle("01 — Die Ausgangsfrage", 1)).toBe("Die Ausgangsfrage");
+  expect(shotTitle("12. Finale", 12)).toBe("Finale");
+  expect(shotTitle("03 — Elsewhere", 2)).toBe("03 — Elsewhere");
+  expect(shotTitle("1984", 1)).toBe("1984");
 });
