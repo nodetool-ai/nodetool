@@ -1,15 +1,33 @@
 /**
  * The start page's recent projects: the newest four, newest first, each
- * opening its project, and nothing at all before the first project exists.
+ * opening its project (or, with no saved tabs, its newest document), and
+ * nothing at all before the first project exists.
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
-const summary = (id: string, name: string, updatedAt: string) => ({
+const doc = (ref: string, name: string, updatedAt: string) => ({
+  type: "storyboard",
+  ref,
+  name,
+  updatedAt,
+  status: null,
+  spendUsd: 0,
+  unpricedCount: 0,
+  thumbnails: [],
+  preview: null
+});
+
+const summary = (
+  id: string,
+  name: string,
+  updatedAt: string,
+  documents: ReturnType<typeof doc>[] = []
+) => ({
   project: { id, name, kind: "spot", createdAt: updatedAt, updatedAt },
-  documents: [],
+  documents,
   spend: { totalUsd: 0, unpricedCount: 0, byCategory: [] }
 });
 
@@ -107,6 +125,33 @@ describe("RecentProjects", () => {
     renderRecent();
     await userEvent.click(screen.getByRole("button", { name: "Aurora" }));
     await waitFor(() => expect(documents.scrollIntoView).toHaveBeenCalled());
+    documents.remove();
+  });
+
+  it("opens the newest document when the project has no saved tabs", async () => {
+    summaries = {
+      data: [
+        summary("a", "Aurora", "2026-10-19T00:00:00.000Z", [
+          doc("sb-old", "Teaser", "2026-10-02T00:00:00.000Z"),
+          doc("sb-new", "Launch film", "2026-10-18T00:00:00.000Z")
+        ])
+      ]
+    };
+    const documents = document.createElement("div");
+    documents.id = "project-documents";
+    documents.scrollIntoView = jest.fn();
+    document.body.appendChild(documents);
+    renderRecent();
+    await userEvent.click(screen.getByRole("button", { name: "Aurora" }));
+    await waitFor(() =>
+      expect(openTab).toHaveBeenCalledWith({
+        type: "storyboard",
+        ref: "sb-new",
+        title: "Launch film",
+        projectId: "a"
+      })
+    );
+    expect(documents.scrollIntoView).not.toHaveBeenCalled();
     documents.remove();
   });
 

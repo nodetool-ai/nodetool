@@ -32,7 +32,7 @@ import {
 } from "../ui_primitives";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
-import type { ProjectDetail } from "./projectStatus";
+import type { ProjectDetail, ProjectDocument } from "./projectStatus";
 
 /** How many projects the row shows. */
 const RECENT_LIMIT = 4;
@@ -44,7 +44,7 @@ const RecentProjectCard = memo(
     onOpen
   }: {
     detail: ProjectDetail;
-    onOpen: (project: ProjectDetail["project"]) => void;
+    onOpen: (detail: ProjectDetail) => void;
   }) => {
     const { t } = useTranslation();
     const { project, documents } = detail;
@@ -57,7 +57,7 @@ const RecentProjectCard = memo(
         padding="none"
         radius="lg"
         clickable
-        onClick={() => onOpen(project)}
+        onClick={() => onOpen(detail)}
         aria-label={project.name}
         sx={{ overflow: "hidden", boxShadow: (theme) => SHADOW(theme).sm }}
       >
@@ -128,12 +128,28 @@ const RecentProjects = () => {
     [summaries.data]
   );
 
-  // A project with no open tabs opens onto this same start page, so the card
-  // would look dead. Its documents sit further down the page: scroll to them.
+  // A project with no saved tabs opens onto this same start page, so the card
+  // looked dead: the tab title changed and nothing else did. Open its most
+  // recently edited document instead. With no documents yet there is nothing
+  // to open, so show where they will appear further down this page.
   const handleOpen = useCallback(
-    (project: ProjectDetail["project"]) => {
+    ({ project, documents }: ProjectDetail) => {
       void openProject(project).then((opened) => {
         if (!opened || useWorkspaceTabsStore.getState().activeTabId !== null) {
+          return;
+        }
+        const latest = documents.reduce<ProjectDocument | undefined>(
+          (newest, doc) =>
+            !newest || doc.updatedAt > newest.updatedAt ? doc : newest,
+          undefined
+        );
+        if (latest) {
+          openTab({
+            type: latest.type,
+            ref: latest.ref,
+            title: latest.name,
+            projectId: project.id
+          });
           return;
         }
         requestAnimationFrame(() => {
@@ -143,7 +159,7 @@ const RecentProjects = () => {
         });
       });
     },
-    [openProject]
+    [openProject, openTab]
   );
 
   const handleViewAll = useCallback(() => {
