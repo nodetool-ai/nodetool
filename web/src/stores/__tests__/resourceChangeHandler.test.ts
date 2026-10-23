@@ -567,7 +567,8 @@ describe("handleResourceChange", () => {
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
       expect.objectContaining({
         predicate: expect.any(Function)
-      })
+      }),
+      NO_CANCEL
     );
     const predicateCall = (
       queryClient.invalidateQueries as jest.Mock
