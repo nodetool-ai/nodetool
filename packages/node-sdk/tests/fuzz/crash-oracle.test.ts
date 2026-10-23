@@ -43,6 +43,10 @@ import {
   streamCallNames,
   typeofGuardedNames
 } from "../../src/code-analysis.js";
+import {
+  formatValidationIssues,
+  validateNodeProperties
+} from "../../src/validation.js";
 import { validateCodeNodeBody } from "../../src/code-node-validation.js";
 import {
   codeCorpus,
@@ -56,6 +60,7 @@ import {
   SEED_GRAPHS,
   SEED_MIGRATION_BODIES,
   SEED_MODULE_SOURCES,
+  SEED_PROPERTY_CASES,
   SEED_PLANNED_STEPS
 } from "./seeds.js";
 
@@ -376,4 +381,35 @@ it(`${CODE} lists the same exported names for every module source`, async () => 
     (seed) => `${seed.id} ${JSON.stringify(exportedNames(seed.source))}`
   );
   await expectPinned(lines.join("\n"), "exported-names.txt");
+});
+
+it(`${GRAPH} reports the same property issues for every property case`, async () => {
+  const lines = SEED_PROPERTY_CASES.map((seed) => {
+    const issues = validateNodeProperties(
+      seed.declared.map(({ name, type, required }) => ({
+        name,
+        options: { type, required }
+      })) as never,
+      seed.properties,
+      {
+        connectedHandles: seed.connected,
+        dynamicSlots: seed.dynamicSlots as never,
+        dynamicValues: seed.dynamicValues
+      }
+    );
+    return `${seed.id} ${issues.map((issue) => `${issue.code}:${issue.property}`).join(",") || "ok"}`;
+  });
+  await expectPinned(lines.join("\n"), "property-issues.txt");
+});
+
+it(`${GRAPH} formats validation issues with and without node context`, async () => {
+  const issue = { code: "required", message: "Missing p" };
+  const lines = [
+    formatValidationIssues([]),
+    formatValidationIssues([issue]),
+    formatValidationIssues([{ ...issue, nodeType: "t.T" }]),
+    formatValidationIssues([{ ...issue, nodeId: "n1" }]),
+    formatValidationIssues([{ ...issue, nodeId: "n1", nodeType: "t.T" }, issue])
+  ];
+  await expectPinned(JSON.stringify(lines, null, 1), "format-issues.json");
 });
