@@ -2,9 +2,8 @@
 import React, { memo } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Text,
-  FlexRow,
   Box,
+  StatusPill,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
@@ -39,26 +38,16 @@ const formatDuration = (ms: number): string => {
   return `${minutes}m ${remainderSeconds}s`;
 };
 
-const DURATION_SPAN_SX = {
-  fontFamily: "var(--fontFamily2)",
-  fontWeight: 600,
-  marginLeft: getSpacingPx(SPACING.xs)
-};
-
-const ROW_SX_BASE = {
+// The pill tint is translucent, so it sits on the node surface to stay
+// readable over canvas grid lines and edges.
+const ROW_SX = {
   position: "absolute" as const,
-  top: -20,
-  right: 4,
-  padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-  borderRadius: BORDER_RADIUS.xs,
-  zIndex: Z_INDEX.toast,
-  boxShadow: 1
+  bottom: `calc(100% + ${getSpacingPx(SPACING.xs)})`,
+  right: getSpacingPx(SPACING.md),
+  borderRadius: BORDER_RADIUS.pill,
+  backgroundColor: "var(--c_node_bg)",
+  zIndex: Z_INDEX.toast
 };
-
-const ROW_SX_SUCCESS = { ...ROW_SX_BASE, backgroundColor: "success.dark" };
-const ROW_SX_ERROR = { ...ROW_SX_BASE, backgroundColor: "error.dark" };
-const TEXT_SX_SUCCESS = { color: "success.contrastText", whiteSpace: "nowrap" };
-const TEXT_SX_ERROR = { color: "error.contrastText", whiteSpace: "nowrap" };
 
 const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
   nodeId,
@@ -77,28 +66,14 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
   const isError = status === "error";
 
   return (
-    <FlexRow
-      className="node-execution-indicator"
-      align="center"
-      gap={0.5}
-      sx={isError ? ROW_SX_ERROR : ROW_SX_SUCCESS}
-    >
-      <Text
-        size="smaller"
-        weight={500}
-        sx={isError ? TEXT_SX_ERROR : TEXT_SX_SUCCESS}
-      >
+    <Box className="node-execution-indicator" sx={ROW_SX}>
+      <StatusPill tone={isError ? "failed" : "done"}>
         {isError
           ? t("i18n-next66.node.nodeExecutionTime.failedIn")
           : t("i18n-next66.node.nodeExecutionTime.completedIn")}
-        <Box
-          component="span"
-          sx={DURATION_SPAN_SX}
-        >
-          {formatDuration(duration)}
-        </Box>
-      </Text>
-    </FlexRow>
+        &nbsp;{formatDuration(duration)}
+      </StatusPill>
+    </Box>
   );
 };
 

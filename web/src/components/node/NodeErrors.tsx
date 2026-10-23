@@ -48,15 +48,19 @@ function collectInputConnections(
     });
 }
 
+// The error banner look (DESIGN.md "Errors and banners"): a severity tint
+// with a matching frame and readable body text, never a solid red block.
 const errorStyles = (theme: Theme) =>
   css({
     position: "relative",
-    backgroundColor: theme.vars.palette.error.main,
-    borderRadius: BORDER_RADIUS.xs,
-    padding: theme.spacing(3),
+    backgroundColor: `rgb(${theme.vars.palette.error.mainChannel} / 0.12)`,
+    border: `1px solid rgb(${theme.vars.palette.error.mainChannel} / 0.5)`,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: theme.spacing(SPACING.md),
     transition: `background-color ${MOTION.normal}`,
     display: "flex",
     flexDirection: "column",
+    gap: getSpacingPx(SPACING.md),
     width: "100%",
     maxWidth: "100%",
 
@@ -64,30 +68,24 @@ const errorStyles = (theme: Theme) =>
       width: "100%",
       maxHeight: "18em",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.grey[1000],
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.primary,
       cursor: "auto",
       userSelect: "text",
-      lineHeight: "1.2em",
-      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)} 0 0`,
+      lineHeight: 1.35,
       whiteSpace: "pre-wrap",
       overflowWrap: "anywhere",
       wordBreak: "break-word",
-      overflowY: "auto",
-      "&::selection": {
-        backgroundColor: theme.vars.palette.grey[0]
-      }
+      overflowY: "auto"
     },
     ".error-task-link": {
-      marginTop: getSpacingPx(SPACING.sm),
       paddingRight: getSpacingPx(18),
     },
-    // In the flow above the text: absolutely placed, the buttons covered the
+    // In the flow below the text: absolutely placed, the buttons covered the
     // first line of the error on a narrow node.
     ".error-actions": {
       display: "flex",
       alignItems: "center",
-      justifyContent: "flex-end",
       flexWrap: "wrap",
       gap: getSpacingPx(SPACING.xs),
     },
@@ -192,6 +190,7 @@ const NodeErrorsImpl: React.FC<{
 
   return (
     <div css={memoizedErrorStyles} className="node-error nodrag nowheel">
+      <div className="error-text">{errorDisplay}</div>
       <div className="error-actions">
         <EditorButton
           variant="outlined"
@@ -231,7 +230,6 @@ const NodeErrorsImpl: React.FC<{
           tooltip={t("i18n-next36.nodeEditor.nodeErrors.copyError")}
         />
       </div>
-      <div className="error-text">{errorDisplay}</div>
       {kieTaskId ? (
         <div className="error-task-link">
           <ExternalLink

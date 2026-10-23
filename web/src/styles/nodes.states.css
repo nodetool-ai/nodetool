@@ -46,32 +46,22 @@
 
 .react-flow__node.bypassed .base-node {
   border-style: dashed !important;
-  background: repeating-linear-gradient(
+  background-image: repeating-linear-gradient(
     45deg,
     transparent,
     transparent 5px,
-    rgba(180, 180, 180, 0.1) 5px,
-    rgba(180, 180, 180, 0.1) 10px
-  );
+    var(--palette-action-hover) 5px,
+    var(--palette-action-hover) 10px
+  ) !important;
 }
 
 .react-flow__node.bypassed .node-header .node-title {
   opacity: 0.8;
 }
 
-.react-flow__node.bypassed .bypass-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--fontSizeSmaller);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: var(--spacing-micro) var(--spacing-sm);
-  border-radius: var(--rounded-sm);
-  background-color: var(--c_warn, rgba(255, 152, 0, 0.2));
-  color: var(--palette-warning-main, rgb(255, 152, 0));
-  margin-left: var(--spacing-md);
+.react-flow__node .bypass-badge {
+  flex-shrink: 0;
+  margin-left: var(--spacing-sm);
 }
 
 /* Edges from bypassed nodes */
