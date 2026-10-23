@@ -42,7 +42,6 @@ import { SKETCH_Z_INDEX, settingRowChildrenSx } from "./sketchStyles";
 import { displayCombo } from "./shortcuts";
 import {
   Caption,
-  Divider,
   FlexColumn,
   FlexRow,
   TabGroup,
@@ -57,6 +56,7 @@ import {
   Slider,
   DeleteButton,
   ICON_SIZE,
+  ToolbarDivider,
   ToolbarIconButton,
   CloseButton
 } from "../ui_primitives";
@@ -86,9 +86,6 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.paper,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       minHeight: "36px",
-      "& .MuiIconButton-root": {
-        padding: getSpacingPx(SPACING.xs),
-      },
       "& .sketch-modal-pen-inline": {
         display: "flex",
         flexDirection: "row",
@@ -338,7 +335,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             nodrag={false}
           />
 
-          <Divider orientation="vertical" flexItem sx={{ mx: getSpacingPx(SPACING.xs) }} />
+          <ToolbarDivider />
 
           <ToolbarIconButton
             icon={<FlipIcon />}
@@ -384,7 +381,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             )}
           </ContextMenu>
 
-          <Divider orientation="vertical" flexItem sx={{ mx: getSpacingPx(SPACING.xs) }} />
+          <ToolbarDivider />
 
           {confirmDiscard ? (
             <>

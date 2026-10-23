@@ -7,6 +7,7 @@ import {
   FlexRow,
   FloatingToolbar,
   Popover,
+  ToolbarDivider,
   ToolbarIconButton,
   Z_INDEX
 } from "../ui_primitives";
@@ -292,13 +293,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
           sx={ARRANGE_BUTTON_SX}
         />
 
-        <Divider orientation="vertical" flexItem sx={DIVIDER_SX} />
+        <ToolbarDivider />
 
         {primaryActions.map((button) => (
           <ActionButton key={button.slug} button={button} />
         ))}
 
-        <Divider orientation="vertical" flexItem sx={DIVIDER_SX} />
+        <ToolbarDivider />
 
         <ActionButton button={deleteAction} />
 

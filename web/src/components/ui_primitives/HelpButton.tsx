@@ -12,6 +12,7 @@ import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import LiveHelpIcon from "@mui/icons-material/LiveHelp";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { MOTION } from "./tokens";
+import { iconButtonBoxSx } from "./ToolbarIconButton";
 
 export type HelpIconVariant = "help" | "helpOutline" | "question" | "liveHelp";
 
@@ -40,17 +41,15 @@ const styles = (theme: Theme) => css`
   .help-button {
     color: ${theme.vars.palette.text.secondary};
     transition: ${MOTION.all};
-    border: 1px solid transparent;
     
     &:hover {
-      color: ${theme.vars.palette.primary.main};
+      color: ${theme.vars.palette.text.primary};
       background-color: ${theme.vars.palette.action.hover};
     }
     
     &.active {
       color: ${theme.vars.palette.primary.main};
-      background-color: ${theme.vars.palette.primary.main}1a;
-      border-color: ${theme.vars.palette.primary.main}40;
+      background-color: ${theme.vars.palette.action.selected};
     }
     
     &.Mui-disabled {
@@ -106,6 +105,7 @@ export const HelpButton: React.FC<HelpButtonProps> = memo(({
       disabled={disabled}
       aria-label={tooltipText}
       tabIndex={tabIndex}
+      sx={iconButtonBoxSx(size)}
     >
       {getIcon(iconVariant, iconSize)}
     </IconButton>

@@ -40,7 +40,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import AssetFilmstrip from "./AssetFilmstrip";
 import { TransformWithWorkflowView } from "./TransformWithWorkflowDialog";
 import { transformSourceFromAsset } from "./transformWorkflow";
@@ -822,7 +822,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             <>
               <ToolbarIconButton
                 ref={setMoreButton}
-                icon={<MoreHorizIcon />}
+                icon={<MoreVertIcon />}
                 tooltip={t("assetViewer.moreActions")}
                 ariaLabel={t("assetViewer.moreActions")}
                 aria-haspopup="menu"

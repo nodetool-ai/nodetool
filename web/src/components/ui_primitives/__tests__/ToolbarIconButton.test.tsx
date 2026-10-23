@@ -86,6 +86,34 @@ describe("ToolbarIconButton", () => {
     expect(screen.getByRole("button")).toHaveClass("active");
   });
 
+  it("reports an on/off toggle with aria-pressed", () => {
+    const { rerender } = render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton icon={<SaveIcon />} tooltip="Wrap" active={false} />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "false");
+
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton icon={<SaveIcon />} tooltip="Wrap" active />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("leaves aria-pressed off a plain command or a button that opens something", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton icon={<SaveIcon />} tooltip="Save" />
+        <ToolbarIconButton icon={<SaveIcon />} tooltip="More" active aria-expanded />
+      </ThemeProvider>
+    );
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).not.toHaveAttribute("aria-pressed");
+    }
+  });
+
   it("is disabled when disabled prop is true", () => {
     render(
       <ThemeProvider theme={mockTheme}>

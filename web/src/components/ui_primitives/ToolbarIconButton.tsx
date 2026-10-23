@@ -22,6 +22,39 @@ import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { Tooltip, tooltipWithShortcut } from "./Tooltip";
 import { isString } from "../../utils/typePredicates";
 import { ButtonSpinner } from "./ButtonSpinner";
+import { CONTROL, ICON_SIZE } from "./tokens";
+
+/** Square box per button size, px: the control heights of `CONTROL`. */
+export const TOOLBAR_ICON_BUTTON_SIZE = {
+  small: CONTROL.height.sm,
+  medium: CONTROL.height.md,
+  large: CONTROL.height.lg
+} as const;
+
+/** Glyph per button size, px. The button sizes the icon it is given. */
+const TOOLBAR_ICON_SIZE = {
+  small: ICON_SIZE.sm,
+  medium: ICON_SIZE.md,
+  large: ICON_SIZE.lg
+} as const;
+
+/**
+ * The box every icon-only button draws: a square of the control height for
+ * its size, no padding, the control radius and a glyph sized by the button.
+ * The semantic buttons (CloseButton, HelpButton, DeleteButton, …) spread it
+ * so they line up with `ToolbarIconButton` in a bar.
+ */
+export const iconButtonBoxSx = (size: string | undefined = "small") => {
+  const key = (size in TOOLBAR_ICON_BUTTON_SIZE ? size : "small") as keyof typeof TOOLBAR_ICON_BUTTON_SIZE;
+  return {
+    flexShrink: 0,
+    minWidth: TOOLBAR_ICON_BUTTON_SIZE[key],
+    height: TOOLBAR_ICON_BUTTON_SIZE[key],
+    padding: 0,
+    borderRadius: CONTROL.radius,
+    "& .MuiSvgIcon-root": { fontSize: TOOLBAR_ICON_SIZE[key] }
+  };
+};
 
 export interface ToolbarIconButtonProps
   extends Omit<IconButtonProps, "children" | "title"> {
@@ -73,8 +106,10 @@ export interface ToolbarIconButtonProps
    */
   variant?: "default" | "primary" | "error";
   /**
-   * Whether button is in active/selected state
-   * @default false
+   * The button is an on/off toggle and this is its state: on draws the
+   * `action.selected` fill with a `primary.main` icon. Passing it (true or
+   * false) also sets `aria-pressed`, unless the button opens something and
+   * says so with `aria-expanded` or `aria-haspopup`.
    */
   active?: boolean;
   /**
@@ -128,7 +163,7 @@ export const ToolbarIconButton = memo(
         tooltipPlacement = "bottom",
         nodrag = true,
         variant = "default",
-        active = false,
+        active,
         shortcut,
         className,
         size = "small",
@@ -155,10 +190,10 @@ export const ToolbarIconButton = memo(
         switch (variant) {
           case "primary":
             return {
-              color: "var(--palette-primary-main)",
+              color: theme.vars.palette.primary.main,
               "&:hover": {
-                backgroundColor: theme.vars.palette.grey[800],
-                color: "var(--palette-primary-light)"
+                backgroundColor: theme.vars.palette.action.hover,
+                color: theme.vars.palette.primary.light
               }
             };
           case "error":
@@ -171,14 +206,20 @@ export const ToolbarIconButton = memo(
             };
           default:
             return {
-              color: theme.vars.palette.grey[200],
+              color: theme.vars.palette.text.secondary,
               "&:hover": {
-                backgroundColor: theme.vars.palette.grey[800],
-                color: theme.vars.palette.grey[0]
+                backgroundColor: theme.vars.palette.action.hover,
+                color: theme.vars.palette.text.primary
               }
             };
         }
       }, [variant, theme]);
+
+      const opensSomething =
+        props["aria-expanded"] !== undefined ||
+        props["aria-haspopup"] !== undefined;
+      const pressed =
+        active === undefined || opensSomething ? undefined : active;
 
       const tooltipContent =
         disabledProp && !loading && disabledReason
@@ -201,11 +242,17 @@ export const ToolbarIconButton = memo(
           tabIndex={tabIndex}
           disabled={disabled}
           aria-busy={loading || undefined}
+          aria-pressed={pressed}
           sx={{
+            ...iconButtonBoxSx(size),
             ...variantStyles,
             ...(active && {
-              backgroundColor: theme.vars.palette.grey[800],
-              color: "var(--palette-primary-main)"
+              backgroundColor: theme.vars.palette.action.selected,
+              color: theme.vars.palette.primary.main,
+              "&:hover": {
+                backgroundColor: theme.vars.palette.action.selected,
+                color: theme.vars.palette.primary.main
+              }
             }),
             ...sx
           }}

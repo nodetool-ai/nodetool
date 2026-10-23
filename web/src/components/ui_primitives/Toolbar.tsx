@@ -20,7 +20,7 @@ import React, { forwardRef } from "react";
 import { Box } from "./Box";
 import type { BoxProps } from "./Box";
 import { SPACING } from "./spacing";
-import { CONTROL } from "./tokens";
+import { CONTROL, ICON_SIZE } from "./tokens";
 
 /** Minimum bar height per density, px. `compact` holds 24-28px controls. */
 export const TOOLBAR_HEIGHT = {
@@ -115,7 +115,11 @@ export const ToolbarGroup = forwardRef<HTMLDivElement, ToolbarGroupProps>(
 
 ToolbarGroup.displayName = "ToolbarGroup";
 
-/** A vertical rule between two `ToolbarGroup`s. */
+/**
+ * A vertical rule between two `ToolbarGroup`s. It is as tall as a toolbar
+ * icon at every bar height, so a compact bar shows the same rule as a
+ * normal one.
+ */
 export const ToolbarDivider: React.FC<{ className?: string }> = ({
   className
 }) => (
@@ -124,9 +128,9 @@ export const ToolbarDivider: React.FC<{ className?: string }> = ({
     aria-orientation="vertical"
     className={className}
     sx={{
-      alignSelf: "stretch",
+      alignSelf: "center",
       flexShrink: 0,
-      my: SPACING.sm,
+      height: ICON_SIZE.sm,
       borderLeft: 1,
       borderColor: "divider"
     }}

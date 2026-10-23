@@ -288,13 +288,14 @@ const TriggerActivationButton: React.FC = () => {
   return (
     <>
       <ToolbarIconButton
-        className="composer-action"
         icon={<BoltIcon />}
         tooltip={buttonLabel}
         onClick={handleOpen}
         active={state === "active" || state === "mixed"}
         variant={hasError || state === "error" ? "error" : "default"}
         ariaLabel={buttonLabel}
+        aria-haspopup="dialog"
+        aria-expanded={Boolean(anchorEl)}
       />
       <Popover
         open={Boolean(anchorEl)}

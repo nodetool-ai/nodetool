@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import UnarchiveOutlinedIcon from "@mui/icons-material/UnarchiveOutlined";
 
 import {
@@ -148,7 +148,7 @@ const ProjectLifecycleActions = ({
     layout === "menu" ? (
       <>
         <ToolbarIconButton
-          icon={<MoreHorizIcon />}
+          icon={<MoreVertIcon />}
           tooltip={t("pass3_33.projects.lifecycle.projectActions")}
           ariaLabel={t("pass3_33.projects.lifecycle.actionsForProject", {
             projectName: project.name

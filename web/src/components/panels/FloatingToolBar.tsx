@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useMemo } from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
-import { CountBadge, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, menuPaperStyles, reducedMotion } from "../ui_primitives";
+import { CountBadge, Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, menuPaperStyles, reducedMotion } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -135,7 +135,7 @@ const actionStyles = (theme: Theme) =>
       minWidth: 0
     },
 
-    "& button": {
+    ".composer-run": {
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
@@ -147,10 +147,7 @@ const actionStyles = (theme: Theme) =>
       "&:focus-visible": {
         outline: `2px solid ${theme.vars.palette.primary.main}`,
         outlineOffset: 2
-      }
-    },
-
-    ".composer-run": {
+      },
       position: "relative",
       minWidth: "36px",
       height: "36px",
@@ -166,49 +163,12 @@ const actionStyles = (theme: Theme) =>
       }
     },
 
-    ".composer-stop": {
-      width: "32px",
-      height: "32px",
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "var(--fontSizeBig)" },
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
-        color: theme.vars.palette.warning.main
-      }
-    },
-
-    ".composer-menu, .composer-action": {
-      width: "32px",
-      height: "32px",
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "var(--fontSizeBig)" },
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
-        color: theme.vars.palette.grey[100]
-      },
-      "&.active": {
-        backgroundColor: theme.vars.palette.action.selected,
-        color: theme.vars.palette.grey[100]
-      }
+    ".composer-stop:hover": {
+      color: theme.vars.palette.warning.main
     },
 
     ".composer-convo": {
       position: "relative",
-      width: "32px",
-      height: "32px",
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "var(--fontSizeBig)" },
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
-        color: theme.vars.palette.grey[100]
-      },
-      "&.active": {
-        backgroundColor: theme.vars.palette.action.selected,
-        color: theme.vars.palette.grey[100]
-      },
       ".convo-badge": {
         position: "absolute",
         top: "-2px",
@@ -462,87 +422,64 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     <div css={actionStyles(theme)} className="composer-workflow-actions">
       <span className="composer-tools">
         {editorViewMode === "graph" && (
-          <Tooltip
-            title={shortcutTooltip(t("i18n-cont-panels-12.toolbar.addNode"), "openNodeMenu")}
-            placement="top"
-          >
-            <button
-              type="button"
-              className="composer-action"
-              onClick={handleToggleNodeMenu}
-              aria-label={t("i18n-cont-panels-12.toolbar.addNode")}
-            >
-              <AddCircleIcon />
-            </button>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<AddCircleIcon />}
+            tooltip={shortcutTooltip(t("i18n-cont-panels-12.toolbar.addNode"), "openNodeMenu")}
+            tooltipPlacement="top"
+            ariaLabel={t("i18n-cont-panels-12.toolbar.addNode")}
+            onClick={handleToggleNodeMenu}
+          />
         )}
 
-        <Tooltip
-          title={conversationOpen ? t("i18n-cont-panels-12.toolbar.hideConversation") : t("i18n-cont-panels-12.toolbar.showConversation")}
-          placement="top"
-        >
-          <button
-            type="button"
-            className={cn("composer-convo", conversationOpen && "active")}
-            onClick={toggleConversation}
-            aria-label={t("i18n-cont-panels-12.toolbar.toggleConversation")}
-            aria-pressed={conversationOpen}
-          >
-            <ForumOutlinedIcon />
-            {conversationCount > 0 && (
-              <span className="convo-badge" aria-hidden>
-                {conversationCount}
-              </span>
-            )}
-          </button>
-        </Tooltip>
+        <ToolbarIconButton
+          className="composer-convo"
+          icon={
+            <>
+              <ForumOutlinedIcon />
+              {conversationCount > 0 && (
+                <span className="convo-badge" aria-hidden>
+                  {conversationCount}
+                </span>
+              )}
+            </>
+          }
+          tooltip={conversationOpen ? t("i18n-cont-panels-12.toolbar.hideConversation") : t("i18n-cont-panels-12.toolbar.showConversation")}
+          tooltipPlacement="top"
+          ariaLabel={t("i18n-cont-panels-12.toolbar.toggleConversation")}
+          active={conversationOpen}
+          onClick={toggleConversation}
+        />
 
         {/* On mobile Auto Layout and Save move into the ⋮ menu to keep the
             toolbar within a phone-width row. */}
         {editorViewMode === "graph" && !isMobile && (
-          <Tooltip
-            title={t("i18n-cont-panels-12.toolbar.autoLayout")}
-            placement="top"
-          >
-            <button
-              type="button"
-              className="composer-action"
-              onClick={handleAutoLayout}
-              aria-label={t("i18n-cont-panels-12.toolbar.autoLayout")}
-            >
-              <LayoutIcon />
-            </button>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<LayoutIcon />}
+            tooltip={t("i18n-cont-panels-12.toolbar.autoLayout")}
+            tooltipPlacement="top"
+            onClick={handleAutoLayout}
+          />
         )}
 
         {!isMobile && (
-          <Tooltip title={t("i18n-cont-panels-12.toolbar.save")} placement="top">
-            <button
-              type="button"
-              className="composer-action"
-              onClick={handleSave}
-              aria-label={t("i18n-cont-panels-12.toolbar.saveWorkflow")}
-            >
-              <SaveIcon />
-            </button>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<SaveIcon />}
+            tooltip={t("i18n-cont-panels-12.toolbar.save")}
+            tooltipPlacement="top"
+            ariaLabel={t("i18n-cont-panels-12.toolbar.saveWorkflow")}
+            onClick={handleSave}
+          />
         )}
 
         {!isMobile && (
-          <Tooltip
-            title={appActionTooltip}
-            placement="top"
-          >
-            <button
-              type="button"
-              className="composer-action"
-              onClick={() => void openWorkflowApp()}
-              aria-label={appActionLabel}
-              disabled={isAppPending}
-            >
-              <DashboardCustomizeOutlinedIcon />
-            </button>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<DashboardCustomizeOutlinedIcon />}
+            tooltip={appActionTooltip}
+            tooltipPlacement="top"
+            ariaLabel={appActionLabel}
+            onClick={() => void openWorkflowApp()}
+            loading={isAppPending}
+          />
         )}
 
         {/* Shown at every width: arming and disarming a trigger is the whole
@@ -552,20 +489,15 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
       <span className="composer-run-group">
         {isRunningish && (
-          <Tooltip
-            title={shortcutTooltip(t("i18n-cont-panels-12.toolbar.stopWorkflow"), "stopWorkflow")}
-            placement="top"
-          >
-            <button
-              type="button"
-              className="composer-stop"
-              onClick={handleStop}
-              aria-label={isStopping ? t("i18n-cont-panels-12.toolbar.stoppingWorkflow") : t("i18n-cont-panels-12.toolbar.stopWorkflow")}
-              disabled={isStopping}
-            >
-              <StopIcon />
-            </button>
-          </Tooltip>
+          <ToolbarIconButton
+            className="composer-stop"
+            icon={<StopIcon />}
+            tooltip={shortcutTooltip(t("i18n-cont-panels-12.toolbar.stopWorkflow"), "stopWorkflow")}
+            tooltipPlacement="top"
+            ariaLabel={isStopping ? t("i18n-cont-panels-12.toolbar.stoppingWorkflow") : t("i18n-cont-panels-12.toolbar.stopWorkflow")}
+            onClick={handleStop}
+            loading={isStopping}
+          />
         )}
 
         <Tooltip title={runTooltip} placement="top">
@@ -603,21 +535,15 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           </button>
         </Tooltip>
 
-        <Tooltip
-          title={t("i18n-cont-panels-12.toolbar.workflowActions")}
-          placement="top"
-        >
-          <button
-            type="button"
-            className={cn("composer-menu", actionsMenuAnchor && "active")}
-            onClick={handleOpenActionsMenu}
-            aria-label={t("i18n-cont-panels-12.toolbar.workflowActions")}
-            aria-haspopup="menu"
-            aria-expanded={Boolean(actionsMenuAnchor)}
-          >
-            <MoreVertIcon />
-          </button>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<MoreVertIcon />}
+          tooltip={t("i18n-cont-panels-12.toolbar.workflowActions")}
+          tooltipPlacement="top"
+          active={Boolean(actionsMenuAnchor)}
+          onClick={handleOpenActionsMenu}
+          aria-haspopup="menu"
+          aria-expanded={Boolean(actionsMenuAnchor)}
+        />
       </span>
     </div>
   );
