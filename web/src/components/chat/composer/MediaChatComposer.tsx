@@ -618,7 +618,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       return { model: retakeParams.model, label: "retake" };
     }
     if (mode === "extend") {
-      return { model: extendParams.model, label: "extend" };
+      return { model: extendParams.model, label: "video extension" };
     }
     if (mode === "audio") {
       return { model: audioParams.model, label: "speech" };
