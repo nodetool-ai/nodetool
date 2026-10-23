@@ -358,27 +358,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        {/* Directory listings that feature NodeTool */}
-        <section aria-label="Featured on" className="pb-16">
-          <div className="mx-auto flex max-w-7xl justify-center px-6 lg:px-8">
-            <a
-              href="https://vantaige.io/"
-              target="_blank"
-              rel="noopener"
-              className="rounded-lg opacity-80 transition-opacity hover:opacity-100 focus-ring"
-            >
-              <img
-                src="/badges/featured-on-ai-vantaige.webp"
-                alt="Featured on AI Vantaige"
-                width={180}
-                height={60}
-                loading="lazy"
-                decoding="async"
-              />
-            </a>
-          </div>
-        </section>
       </div>
 
       {/* Shared site footer (P3) */}
