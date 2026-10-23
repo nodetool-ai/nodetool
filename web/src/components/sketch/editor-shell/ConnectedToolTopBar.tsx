@@ -41,6 +41,8 @@ export interface ConnectedToolTopBarProps {
   headerActions?: React.ReactNode;
   /** Host actions appended to the bar's overflow menu. */
   menuItems?: (close: () => void) => React.ReactNode[];
+  /** The dock's Layout menu, drawn beside the assistant toggle. */
+  layoutMenu?: React.ReactNode;
 }
 
 export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
@@ -166,6 +168,7 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
         <ConnectedEditorActions
           inlineActions={props.headerActions}
           menuItems={props.menuItems}
+          layoutMenu={props.layoutMenu}
         />
       }
       settingsCollapsed={toolSettingsCollapsed}

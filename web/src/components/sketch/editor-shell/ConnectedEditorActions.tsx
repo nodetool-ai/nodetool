@@ -1,8 +1,8 @@
 /**
  * ConnectedEditorActions — the trailing action cluster of the tool bar.
  *
- * A Generate button that opens the text-to-image form, a visible assistant
- * toggle, and an overflow menu for fit / hide panels, the rulers / guides /
+ * A Generate button that opens the text-to-image form, the dock's Layout
+ * menu on desktop, a visible assistant toggle, and an overflow menu for fit / hide panels, the rulers / guides /
  * snap view toggles, "Transform with workflow", plus any document actions the
  * host surface contributes via `menuItems`.
  *
@@ -80,6 +80,8 @@ export interface ConnectedEditorActionsProps {
    * follow-up popover of its own is anchored inside). Returns an array — MUI's
    * Menu rejects a Fragment child. */
   menuItems?: (close: () => void) => React.ReactNode[];
+  /** The dock's Layout menu: built-in and saved panel layouts. */
+  layoutMenu?: React.ReactNode;
 }
 
 /**
@@ -108,7 +110,8 @@ function fitToViewport(): void {
 
 export const ConnectedEditorActions = memo(function ConnectedEditorActions({
   inlineActions,
-  menuItems
+  menuItems,
+  layoutMenu
 }: ConnectedEditorActionsProps) {
   const { t } = useTranslation();
   const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
@@ -229,6 +232,8 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
           )}
         </>
       )}
+
+      {layoutMenu}
 
       <ToolbarIconButton
         icon={<SmartToyOutlinedIcon />}

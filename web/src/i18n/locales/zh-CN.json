@@ -11607,6 +11607,13 @@
         "crop": "裁剪",
         "adjust": "调整",
         "segment": "分割"
+      },
+      "dock": {
+        "canvas": "画布",
+        "canvasSize": "画布大小",
+        "properties": "属性",
+        "noProperties": "无属性",
+        "noPropertiesDescription": "选择矢量图层或生成的图层，即可在此编辑其属性。"
       }
     }
   },

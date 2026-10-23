@@ -18,7 +18,6 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
-import { SKETCH_SIZE } from "../sketchStyles";
 import { EmptyState, ScrollArea } from "../../ui_primitives";
 import { GeneratedLayerPanel } from "./GeneratedLayerPanel";
 import { ImportedLayerPanel } from "./ImportedLayerPanel";
@@ -79,9 +78,8 @@ const SketchInspectorInner: React.FC = () => {
     <ScrollArea
       className="sketch-inspector"
       sx={{
-        width: SKETCH_SIZE.panelWidth,
-        minWidth: SKETCH_SIZE.panelWidth,
-        maxWidth: SKETCH_SIZE.panelWidth,
+        // Fills the dock panel, whose width the user sets.
+        width: "100%",
         flex: 1,
         minHeight: 0,
         // Recessed, darker well for the generate/inspect content so previews

@@ -41,7 +41,6 @@ export const SKETCH_SIZE = {
    *  above or below the thumbnail (flush top/bottom). */
   layerItemHeight: "32px",
   layerThumbnail: "32px",
-  panelWidth: "260px",
 } as const;
 
 /** Thickness (CSS px) of the top and left canvas rulers. */

@@ -11607,6 +11607,13 @@
         "crop": "Zuschneiden",
         "adjust": "Anpassen",
         "segment": "Segmentieren"
+      },
+      "dock": {
+        "canvas": "Leinwand",
+        "canvasSize": "Leinwandgröße",
+        "properties": "Eigenschaften",
+        "noProperties": "Keine Eigenschaften",
+        "noPropertiesDescription": "Wähle eine Vektorebene oder eine generierte Ebene, um ihre Eigenschaften hier zu bearbeiten."
       }
     }
   },

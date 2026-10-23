@@ -30,7 +30,7 @@ export function useSketchIsMobile(
 
 /**
  * Editor width below which the docked assistant squeezes the canvas: the tool
- * column, the 260 px right column, the assistant dock's default 340 px and
+ * column, the 260 px right column, the assistant's 360 px dock column and
  * about 480 px of canvas. A workspace side panel (Chats, Assets) can take the
  * editor below this on a 1440 px screen.
  */
