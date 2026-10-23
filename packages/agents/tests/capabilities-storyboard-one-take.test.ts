@@ -16,6 +16,7 @@ import {
 } from "@nodetool-ai/models";
 import type { StoryboardDocument } from "@nodetool-ai/models";
 import {
+  ONE_TAKE_ENTITY_REFS_NOTE,
   shortResourceId,
   type OneTakeDirection,
   type Shot
@@ -48,8 +49,10 @@ interface OneTakeResult {
     aspect_ratio: string | null;
     resolution: string | null;
     model: Record<string, unknown> | null;
+    reference_source: string | null;
   };
   effective: {
+    reference_source: string;
     duration_seconds: number;
     shot_total_seconds: number;
     aspect_ratio: string | null;
@@ -172,9 +175,11 @@ describe("get_storyboard_one_take", () => {
       duration_seconds: null,
       aspect_ratio: null,
       resolution: null,
-      model: null
+      model: null,
+      reference_source: null
     });
     expect(result.effective).toEqual({
+      reference_source: "stills",
       duration_seconds: 8,
       shot_total_seconds: 8,
       aspect_ratio: "9:16",
@@ -340,7 +345,8 @@ describe("update_storyboard_one_take", () => {
       duration_seconds: 12,
       aspect_ratio: "16:9",
       resolution: "720p",
-      model: { provider: "fal", id: "kling-video", name: "Kling" }
+      model: { provider: "fal", id: "kling-video", name: "Kling" },
+      reference_source: null
     });
     expect(first.effective).toMatchObject({
       aspect_ratio: "16:9",
@@ -366,6 +372,46 @@ describe("update_storyboard_one_take", () => {
     expect(second.settings.resolution).toBeNull();
     expect(second.effective.resolution).toBeNull();
     expect(second.settings.duration_seconds).toBe(12);
+  });
+
+  it("sends the board's entity images for reference_source entities, and clears it with null", async () => {
+    const runner = await makeEntity("Runner");
+    const board = await makeBoard(
+      [
+        shot({ id: "s1", index: 0, entity_ids: [runner.id], keyframe: still("k1") }),
+        shot({ id: "s2", index: 1, entity_ids: [runner.id] })
+      ],
+      { entityIds: [runner.id] }
+    );
+
+    const set = await call("update_storyboard_one_take", {
+      storyboard_id: board.id,
+      reference_source: "entities"
+    });
+    expect(set.error).toBeUndefined();
+    expect(set.settings.reference_source).toBe("entities");
+    expect(set.effective.reference_source).toBe("entities");
+    expect(set.references).toEqual([
+      {
+        image_number: 1,
+        marker: "[Image 1]",
+        entity_id: runner.id,
+        asset_id: runner.id,
+        label: "the character Runner"
+      }
+    ]);
+    expect(set.compiled).toContain(ONE_TAKE_ENTITY_REFS_NOTE);
+    // The shot without a still costs nothing when stills are not sent.
+    expect(set.warnings).toEqual([NO_MODEL]);
+    expect((await reread(board.id)).one_take?.reference_source).toBe("entities");
+
+    const cleared = await call("update_storyboard_one_take", {
+      storyboard_id: board.id,
+      reference_source: null
+    });
+    expect(cleared.effective.reference_source).toBe("stills");
+    expect(cleared.references.map((r) => r["asset_id"])).toEqual(["k1"]);
+    expect((await reread(board.id)).one_take).toEqual({ prompt: "" });
   });
 
   it("stores settings on a board without a direction, with an empty prompt", async () => {
@@ -407,9 +453,11 @@ describe("update_storyboard_one_take", () => {
       duration_seconds: 16,
       aspect_ratio: null,
       resolution: null,
-      model: null
+      model: null,
+      reference_source: null
     });
     expect(result.effective).toEqual({
+      reference_source: "stills",
       duration_seconds: 16,
       shot_total_seconds: 8,
       aspect_ratio: "4:5",

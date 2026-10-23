@@ -8,7 +8,7 @@
  *
  * | Block   | Compiled from                                                    |
  * | ------- | ---------------------------------------------------------------- |
- * | `REFS`  | every shot still in shot order, numbered `[Image N]`             |
+ * | `REFS`  | the reference images, numbered `[Image N]` (see below)           |
  * | `STEPS` | each shot: time range, description, motion, `End:` end state     |
  * | `AUDIO` | each shot's `sound` with its time range                          |
  *
@@ -16,13 +16,31 @@
  * aspect ratio travel as request parameters, so the creator's text never has
  * to repeat them.
  *
+ * The references are one of two sets, chosen per board:
+ *
+ * - `stills` (the default): every shot still, in shot order. A still fixes
+ *   the framing and pose of one instant of its shot.
+ * - `entities`: the image of each cast, location and style entity the shots
+ *   use, each once. They fix who and where, and the compiled
+ *   block says they do not fix framing or pose. Action shots read better this
+ *   way: a still of the peak of an action (a splash, an impact) makes the
+ *   model hold that instant instead of playing the action.
+ *
  * `[Image N]` is the provider-neutral marker the render path already uses: the
  * Dreamina provider turns each one into an inline image mention. Because the
  * numbering follows the board, the creator can refer to `[Image 3]` in their
  * own text.
  */
 
-import type { Shot, ShotModelRef } from "./creative.js";
+import { entitiesForShot } from "./creative.js";
+import type { Entity, Shot, ShotModelRef } from "./creative.js";
+
+/** Which images a one take sends as `[Image N]`. */
+export type OneTakeReferenceSource = "stills" | "entities";
+
+/** The reference source when a direction sets none. */
+export const ONE_TAKE_DEFAULT_REFERENCE_SOURCE: OneTakeReferenceSource =
+  "stills";
 
 /**
  * A board's one-take direction, stored on the storyboard document. Every
@@ -42,15 +60,21 @@ export interface OneTakeDirection {
   resolution?: string | null;
   /** The video model. Absent: the board's video model. */
   model?: ShotModelRef | null;
+  /** The images sent as `[Image N]`. Absent: `stills`. */
+  reference_source?: OneTakeReferenceSource | null;
 }
 
 /**
- * One image the clip conditions on, in `[Image N]` order. Only shot stills
- * go in: the stills already carry the cast, so entity images would only
- * compete with them.
+ * One image the clip conditions on, in `[Image N]` order: a shot still or an
+ * entity image, never both kinds in one take. The kinds compete: a still
+ * already carries the cast, and an entity image sent beside it pulls the
+ * framing toward a portrait.
  */
 export interface OneTakeReference {
-  shot_id: string;
+  /** Set for a shot still. */
+  shot_id?: string;
+  /** Set for an entity image. */
+  entity_id?: string;
   asset_id: string;
   label: string;
 }
@@ -59,6 +83,11 @@ export interface OneTakeReference {
 export interface OneTakeBoard {
   shots: readonly Shot[];
   oneTake?: OneTakeDirection | null;
+  /**
+   * The board's cast, resolved. Read only when the direction's
+   * `reference_source` is `entities`; each shot's entities come from {@link entitiesForShot}.
+   */
+  entities?: readonly Entity[];
 }
 
 /** A shot's place on the one-take clock. */
@@ -69,6 +98,8 @@ export interface OneTakeStep {
 }
 
 export interface CompiledOneTake {
+  /** Which images {@link references} holds. */
+  reference_source: OneTakeReferenceSource;
   /** The block compiled from the board: REFS, STEPS, AUDIO. */
   compiled: string;
   /** What the render sends: the creator's prompt, then the compiled block. */
@@ -150,8 +181,46 @@ const sentence = (text: string | undefined): string => {
 const shotName = (shot: Shot): string =>
   shot.slug?.trim() || `shot ${shot.index + 1}`;
 
-/** The images the clip conditions on: every shot still, in shot order. */
+/** The reference source a direction selects. */
+export const oneTakeReferenceSource = (
+  direction: OneTakeDirection | null | undefined
+): OneTakeReferenceSource =>
+  direction?.reference_source ?? ONE_TAKE_DEFAULT_REFERENCE_SOURCE;
+
+/** The images the clip conditions on, from the direction's source. */
 export function oneTakeReferences(board: OneTakeBoard): OneTakeReference[] {
+  return oneTakeReferenceSource(board.oneTake) === "entities"
+    ? entityReferences(board)
+    : stillReferences(board);
+}
+
+/**
+ * The image of each entity the shots use, once: shots in board order, each
+ * shot's entities in cast order. An entity without an image sends nothing.
+ */
+function entityReferences(board: OneTakeBoard): OneTakeReference[] {
+  const cast = [...(board.entities ?? [])];
+  const seen = new Set<string>();
+  const references: OneTakeReference[] = [];
+  for (const shot of byIndex(board.shots)) {
+    for (const entity of entitiesForShot(shot, cast)) {
+      const assetId = entity.reference_images?.[0]?.asset_id;
+      if (seen.has(entity.id) || !assetId) {
+        continue;
+      }
+      seen.add(entity.id);
+      references.push({
+        entity_id: entity.id,
+        asset_id: assetId,
+        label: `the ${entity.kind} ${entity.name.trim()}`
+      });
+    }
+  }
+  return references;
+}
+
+/** Every shot still, in shot order. */
+function stillReferences(board: OneTakeBoard): OneTakeReference[] {
   const steps = new Map(
     oneTakeSteps(board.shots, board.oneTake?.duration_seconds).map((step) => [
       step.shot_id,
@@ -174,10 +243,21 @@ export function oneTakeReferences(board: OneTakeBoard): OneTakeReference[] {
   });
 }
 
-function compileRefs(references: readonly OneTakeReference[]): string {
-  return references
+/** Leads the REFS block when the references are entity images. */
+export const ONE_TAKE_ENTITY_REFS_NOTE =
+  "These images show who and where only. Take the framing, pose and motion from the steps, not from the images.";
+
+function compileRefs(
+  references: readonly OneTakeReference[],
+  source: OneTakeReferenceSource
+): string {
+  if (references.length === 0) {
+    return "";
+  }
+  const list = references
     .map((reference, index) => `[Image ${index + 1}] is ${reference.label}.`)
     .join(" ");
+  return source === "entities" ? `${list} ${ONE_TAKE_ENTITY_REFS_NOTE}` : list;
 }
 
 function compileSteps(
@@ -223,8 +303,9 @@ function compileAudio(
 export function compileOneTake(board: OneTakeBoard): CompiledOneTake {
   const steps = oneTakeSteps(board.shots, board.oneTake?.duration_seconds);
   const shotTotal = shotSteps(board.shots).at(-1)?.end_seconds ?? 0;
+  const referenceSource = oneTakeReferenceSource(board.oneTake);
   const references = oneTakeReferences(board);
-  const refs = compileRefs(references);
+  const refs = compileRefs(references, referenceSource);
   const audio = compileAudio(board.shots, steps);
   const compiled = [
     refs ? `REFS: ${refs}` : "",
@@ -235,6 +316,7 @@ export function compileOneTake(board: OneTakeBoard): CompiledOneTake {
     .join("\n\n");
   const own = board.oneTake?.prompt.trim() ?? "";
   return {
+    reference_source: referenceSource,
     compiled,
     prompt: [own, compiled].filter((part) => part.length > 0).join("\n\n"),
     references,
@@ -320,10 +402,12 @@ export function sceneClipRun(
  */
 export function compileSceneClip(
   shots: readonly Shot[],
-  clip: SceneClipDirection
+  clip: SceneClipDirection,
+  entities?: readonly Entity[]
 ): CompiledOneTake {
   return compileOneTake({
     shots: sceneClipRun(shots, clip.shot_ids).shots,
-    oneTake: clip
+    oneTake: clip,
+    entities
   });
 }

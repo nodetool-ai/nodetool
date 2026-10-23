@@ -3,8 +3,10 @@
  *
  * Render a whole storyboard as one continuous clip. `compileOneTake` joins
  * the creator's prompt to the block compiled from the board, and lists the
- * shot stills, in shot order, as `[Image N]`. They
- * are sent through the `reference_to_video` capability of `generate_media`.
+ * reference images as `[Image N]`: the shot stills in shot order, or the
+ * images of the board's entities when the direction's `reference_source` is
+ * `entities`. They are sent through the `reference_to_video` capability of
+ * `generate_media`.
  *
  * The render settings (model, duration, aspect ratio, resolution) live on the
  * board's one-take direction. An absent setting falls back as
@@ -21,6 +23,7 @@ import { useCallback, useMemo } from "react";
 import { compileOneTake } from "@nodetool-ai/protocol";
 import type {
   CompiledOneTake,
+  Entity,
   Shot,
   ShotModelRef
 } from "@nodetool-ai/protocol";
@@ -29,6 +32,7 @@ import {
   type StoryboardBoard
 } from "../../stores/storyboard/StoryboardStore";
 import { useLastModelStore } from "../../stores/lastModelStore";
+import { useEntities } from "../../serverState/useEntities";
 import { useVideoModelsByProvider } from "../useModelsByProvider";
 import { modelMatchesTask } from "../modelTaskMatching";
 import { useGenerateShot } from "./useGenerateShot";
@@ -98,16 +102,36 @@ interface UseRenderOneTakeResult {
   renderOneTake: () => Promise<void>;
 }
 
-/** Compile the board's one take. Null when the board has no shots. */
+/** The board's cast: its `entityIds` resolved against the library. */
+export const boardCast = (
+  board: StoryboardBoard | undefined,
+  library: readonly Entity[] | undefined
+): Entity[] => {
+  if (!board || board.entityIds.length === 0 || !library) {
+    return [];
+  }
+  const byId = new Map(library.map((entity) => [entity.id, entity]));
+  return board.entityIds.flatMap((id) => {
+    const entity = byId.get(id);
+    return entity ? [entity] : [];
+  });
+};
+
+/**
+ * Compile the board's one take. Null when the board has no shots. `entities`
+ * is the board's cast, read when the direction sends entity images.
+ */
 export const planOneTake = (
-  board: StoryboardBoard | undefined
+  board: StoryboardBoard | undefined,
+  entities: readonly Entity[] = []
 ): OneTakeRenderPlan | null => {
   if (!board || board.shots.length === 0) {
     return null;
   }
   const compiled = compileOneTake({
     shots: board.shots,
-    oneTake: board.oneTake
+    oneTake: board.oneTake,
+    entities
   });
   const firstShotId = compiled.steps[0]?.shot_id;
   const firstShot = board.shots.find((shot) => shot.id === firstShotId);
@@ -237,7 +261,11 @@ export const oneTakeBlockers = (
   const blockers: string[] = [];
   const imageCount = plan.compiled.references.length;
   if (imageCount === 0) {
-    blockers.push("Render a still for at least one shot.");
+    blockers.push(
+      plan.compiled.reference_source === "entities"
+        ? "Give an entity on the board a reference image first."
+        : "Render a still for at least one shot."
+    );
   }
   if (imageCount > ONE_TAKE_MAX_IMAGES) {
     blockers.push(
@@ -290,6 +318,7 @@ export const oneTakeRequestData = (
 
 export const useRenderOneTake = (boardId: string): UseRenderOneTakeResult => {
   const board = useStoryboardStore((state) => state.boards[boardId]);
+  const { data: library } = useEntities();
   const { models: catalog } = useVideoModelsByProvider();
   const byTask = useLastModelStore((state) => state.byTask);
   const byKind = useLastModelStore((state) => state.byKind);
@@ -299,7 +328,10 @@ export const useRenderOneTake = (boardId: string): UseRenderOneTakeResult => {
     () => rememberedOneTakeModels(byTask, byKind),
     [byTask, byKind]
   );
-  const plan = useMemo(() => planOneTake(board), [board]);
+  const plan = useMemo(
+    () => planOneTake(board, boardCast(board, library)),
+    [board, library]
+  );
   const settings = useMemo(
     () => resolveOneTakeSettings(board, catalog, remembered),
     [board, catalog, remembered]
@@ -312,7 +344,7 @@ export const useRenderOneTake = (boardId: string): UseRenderOneTakeResult => {
   const renderOneTake = useCallback(async (): Promise<void> => {
     // Read the board at send time, not the render that built `plan`.
     const current = useStoryboardStore.getState().getBoard(boardId);
-    const sendPlan = planOneTake(current);
+    const sendPlan = planOneTake(current, boardCast(current, library));
     const sendSettings = resolveOneTakeSettings(current, catalog, remembered);
     const sendBlockers = oneTakeBlockers(sendPlan, sendSettings);
     const model = sendSettings.model;
@@ -330,7 +362,7 @@ export const useRenderOneTake = (boardId: string): UseRenderOneTakeResult => {
       oneTakeRequestData(compiled, sendSettings, model),
       { steps: compiled.steps }
     );
-  }, [boardId, catalog, remembered, startOneTakeClip]);
+  }, [boardId, catalog, library, remembered, startOneTakeClip]);
 
   return { plan, settings, blockers, renderOneTake };
 };

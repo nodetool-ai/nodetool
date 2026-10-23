@@ -104,6 +104,9 @@ const OneTakeRenderDialog: React.FC<OneTakeRenderDialogProps> = ({
     if (blocker === "Render a still for at least one shot.") {
       return t("screens4_13.storyboard.oneTake.blockers.renderStill");
     }
+    if (blocker === "Give an entity on the board a reference image first.") {
+      return t("screens4_13.storyboard.oneTake.blockers.addEntityImage");
+    }
     if (blocker === "No video model chosen.") {
       return t("screens4_13.storyboard.oneTake.blockers.noModel");
     }

@@ -3267,6 +3267,7 @@ const oneTakeUpdateInput = z.object({
     })
     .nullable()
     .optional(),
+  reference_source: z.enum(["stills", "entities"]).nullable().optional(),
   shots: z
     .array(
       z.object({
@@ -3283,7 +3284,8 @@ const ONE_TAKE_SETTINGS = [
   "duration_seconds",
   "aspect_ratio",
   "resolution",
-  "model"
+  "model",
+  "reference_source"
 ] as const;
 
 /** The board's `videoModel` as a model ref, or null when it names none. */
@@ -3307,19 +3309,26 @@ function boardVideoModel(value: unknown): ShotModelRef | null {
 }
 
 /** The shape both one-take capabilities return. */
-function oneTakeSummary(row: Storyboard, doc: OneTakeDoc) {
+async function oneTakeSummary(
+  context: ProcessingContext,
+  row: Storyboard,
+  doc: OneTakeDoc
+) {
   const compiled = compileOneTake({
     shots: doc.shots,
-    oneTake: doc.one_take
+    oneTake: doc.one_take,
+    entities: await loadBoardEntities(context, doc)
   });
   const direction = doc.one_take;
   const settings = {
     duration_seconds: direction?.duration_seconds ?? null,
     aspect_ratio: direction?.aspect_ratio ?? null,
     resolution: direction?.resolution ?? null,
-    model: direction?.model ?? null
+    model: direction?.model ?? null,
+    reference_source: direction?.reference_source ?? null
   };
   const effective = {
+    reference_source: compiled.reference_source,
     duration_seconds: compiled.duration_seconds,
     shot_total_seconds: compiled.shot_total_seconds,
     aspect_ratio: settings.aspect_ratio ?? doc.aspectRatio ?? null,
@@ -3346,7 +3355,13 @@ function oneTakeSummary(row: Storyboard, doc: OneTakeDoc) {
   const withoutStill = compiled.steps
     .map((step) => byId.get(step.shot_id))
     .filter((shot): shot is Shot => !!shot && !shot.keyframe?.asset_id);
-  if (withoutStill.length > 0) {
+  if (compiled.reference_source === "entities") {
+    if (compiled.references.length === 0) {
+      warnings.push(
+        "reference_source is entities, but no entity the shots use has a reference image: the take sends no image."
+      );
+    }
+  } else if (withoutStill.length > 0) {
     warnings.push(
       `Shots without a still send no image: ${withoutStill
         .map((shot) => shot.slug?.trim() || shot.id)
@@ -3390,7 +3405,7 @@ const getStoryboardOneTake: CapabilityExport = {
   impl: async (run, params) => {
     const board = await loadBoard(run, params["storyboard_id"]);
     if (isError(board)) return board;
-    return oneTakeSummary(board.row, board.doc);
+    return oneTakeSummary(run.context, board.row, board.doc);
   }
 };
 
@@ -3403,6 +3418,7 @@ const updateStoryboardOneTake: CapabilityExport = {
       aspect_ratio: params["aspect_ratio"],
       resolution: params["resolution"],
       model: params["model"],
+      reference_source: params["reference_source"],
       shots: params["shots"]
     });
     if (!parsed.success) {
@@ -3419,7 +3435,7 @@ const updateStoryboardOneTake: CapabilityExport = {
     if (prompt === undefined && settingsGiven.length === 0 && !shotPatches) {
       return {
         error:
-          "Pass prompt, duration_seconds, aspect_ratio, resolution, model or shots to update."
+          "Pass prompt, duration_seconds, aspect_ratio, resolution, model, reference_source or shots to update."
       };
     }
 
@@ -3445,7 +3461,9 @@ const updateStoryboardOneTake: CapabilityExport = {
           ...doc.one_take,
           prompt: prompt ?? doc.one_take?.prompt ?? ""
         };
-        const { duration_seconds, aspect_ratio, resolution, model } = parsed.data;
+        const { duration_seconds, aspect_ratio, resolution, model, reference_source } =
+          parsed.data;
+        if (reference_source !== undefined) next.reference_source = reference_source;
         if (duration_seconds !== undefined) next.duration_seconds = duration_seconds;
         if (aspect_ratio !== undefined) next.aspect_ratio = aspect_ratio;
         if (resolution !== undefined) next.resolution = resolution;
@@ -3497,7 +3515,7 @@ const updateStoryboardOneTake: CapabilityExport = {
         { ops }
       );
       if (!saved) continue;
-      return oneTakeSummary(saved, doc);
+      return oneTakeSummary(run.context, saved, doc);
     }
     return {
       error: `Storyboard ${String(params["storyboard_id"])} is being modified concurrently; nothing was saved. Retry the call.`

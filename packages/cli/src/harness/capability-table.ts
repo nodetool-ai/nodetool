@@ -3179,7 +3179,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_storyboard_one_take",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "8f796a7718b5",
+    contract: "312a31bed7e2",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboard-one-take.test.ts",
@@ -3189,7 +3189,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "update_storyboard_one_take",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "f4ba951d881a",
+    contract: "974a52d1d90c",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboard-one-take.test.ts",

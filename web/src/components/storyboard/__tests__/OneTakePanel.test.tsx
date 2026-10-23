@@ -22,6 +22,11 @@ jest.mock(
   { virtual: true }
 );
 
+const mockEntities: unknown[] = [];
+jest.mock("../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: mockEntities })
+}));
+
 const mockVideoModels: unknown[] = [];
 jest.mock("../../../hooks/useModelsByProvider", () => ({
   useVideoModelsByProvider: () => ({ models: mockVideoModels })
@@ -151,6 +156,7 @@ const SEEDANCE = {
 
 beforeEach(() => {
   mockVideoModels.length = 0;
+  mockEntities.length = 0;
   useLastModelStore.setState({ byTask: {}, byKind: {} });
 });
 
@@ -368,6 +374,35 @@ describe("OneTakePanel", () => {
       duration_seconds: 20,
       resolution: "720p"
     });
+  });
+
+  it("switches the references to the cast's images and keeps the prompt", async () => {
+    mockEntities.push({
+      type: "entity",
+      id: "ent-runner",
+      name: "Runner",
+      kind: "character",
+      descriptor: "",
+      reference_images: [{ type: "image", asset_id: "runner-ref" }]
+    });
+    seed(
+      SHOTS.map((value) => ({ ...value, entity_ids: ["ent-runner"] })),
+      { prompt: "Warm light." },
+      ["ent-runner"]
+    );
+    renderPanel();
+
+    expect(
+      screen.getByRole("combobox", { name: "Reference images" })
+    ).toHaveTextContent("Shot stills");
+    await pick("Reference images", "Cast and locations");
+
+    expect(stored()).toEqual({
+      prompt: "Warm light.",
+      reference_source: "entities"
+    });
+    expect(compiled()).toContain("[Image 1] is the character Runner.");
+    expect(compiled()).not.toContain("still of");
   });
 
   it("opens the render dialog", async () => {
