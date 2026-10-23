@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { DreaminaProvider, setDreaminaPageRunner, setDreaminaPendingStore } from "../../src/providers/dreamina-provider.js";
 import { memoryPendingStore } from "../../src/providers/dreamina-pending.js";
+import { GenerationScopeError, runWithGenerationReceipt } from "../../src/generation-receipt.js";
 import type { ImageModel, MusicModel, VideoModel } from "../../src/providers/types.js";
 
 interface CapturedCall { url: URL; headers: Record<string, string>; body: Record<string, any> }
@@ -65,6 +66,10 @@ const videoModel = (id: string): VideoModel => ({ id, name: id, provider: "dream
 const metaShape = (meta: Array<{ meta_type: string; text: string; material_ref?: { material_idx: number } }>): string =>
   meta.map((part) => (part.meta_type === "text" ? part.text : `<${part.meta_type} ${part.material_ref!.material_idx}>`)).join("");
 
+/** The account lookup the provider runs before each generation and upload. */
+const LOGIN_CHECK = "/passport/web/account/info/";
+const LOGGED_IN = { data: { user_id_str: "7000000000000000001" } };
+
 const AUDIO_CONFIG = { song: { model_list: [{ model_req_key: "song_v1", model_name: "Song One", model_status: 0 }] } };
 
 function fakeRunner(history: unknown[]): { calls: CapturedCall[] } {
@@ -72,6 +77,7 @@ function fakeRunner(history: unknown[]): { calls: CapturedCall[] } {
   let polls = 0;
   setDreaminaPageRunner({
     async evaluate(expression: string) {
+      if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
       const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
       const url = new URL(request.url);
       calls.push({ url, headers: request.headers, body: JSON.parse(request.body) });
@@ -140,6 +146,7 @@ describe("DreaminaProvider", () => {
     let polls = 0;
     setDreaminaPageRunner({
       async evaluate(expression: string) {
+        if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
         const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
         const url = new URL(request.url);
         if (url.pathname.endsWith("get_common_config")) return { ret: "0", data: CONFIG };
@@ -162,6 +169,7 @@ describe("DreaminaProvider", () => {
     let tabDownloads = 0;
     setDreaminaPageRunner({
       async evaluate(expression: string) {
+        if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
         if (expression.includes("btoa(")) {
           tabDownloads++;
           return Buffer.from([7, 8, 9]).toString("base64");
@@ -198,6 +206,49 @@ describe("DreaminaProvider", () => {
     const provider = new DreaminaProvider();
     const models = [IMAGE_MODEL];
     await expect(provider.textToImage({ model: models[0], prompt: "x", aspectRatio: "21:9" })).rejects.toThrow("does not offer 21:9");
+  });
+
+  describe("before anything is submitted", () => {
+    /** A tab that answers the login check with `login` and records every other call. */
+    function tabAnsweringLogin(login: () => unknown): { requests: string[] } {
+      const requests: string[] = [];
+      setDreaminaPageRunner({
+        async evaluate(expression: string) {
+          if (expression.includes(LOGIN_CHECK)) return login();
+          requests.push(expression);
+          return { ret: "0", data: CONFIG };
+        }
+      });
+      return { requests };
+    }
+
+    it("stops when the tab is not logged in", async () => {
+      const { requests } = tabAnsweringLogin(() => ({ data: {} }));
+      await expect(new DreaminaProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" })).rejects.toThrow("The Dreamina tab is not logged in");
+      expect(requests).toEqual([]);
+    });
+
+    it("stops within seconds when the tab does not answer", async () => {
+      vi.useFakeTimers();
+      // A frozen tab runs the script, but the page never settles its request.
+      const { requests } = tabAnsweringLogin(() => new Promise(() => undefined));
+      const pending = new DreaminaProvider().textToVideo({ model: videoModel("dreamina_seedance_40_mini"), prompt: "x" });
+      const settled = expect(pending).rejects.toThrow("The Dreamina tab does not answer");
+      await vi.advanceTimersByTimeAsync(15_000);
+      await settled;
+      expect(requests).toEqual([]);
+    });
+  });
+
+  it("records the submit id as the request id once Dreamina accepts the job", async () => {
+    vi.useFakeTimers();
+    const { calls } = fakeRunner([{ task: { status: 50 }, item_list: [{ image: { large_images: [{ image_url: "https://example.com/a.png" }] } }] }]);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1]))));
+    const pending = runWithGenerationReceipt(() => new DreaminaProvider().textToImage({ model: IMAGE_MODEL, prompt: "x" }));
+    await vi.advanceTimersByTimeAsync(5_000);
+    const { receipt } = await pending;
+    const submitId = calls.find((c) => c.url.pathname.endsWith("aigc_draft/generate"))!.body.submit_id;
+    expect(receipt?.provider_request_id).toBe(submitId);
   });
 
   it("explains the missing extension", async () => {
@@ -280,6 +331,7 @@ describe("DreaminaProvider", () => {
       let polls = 0;
       setDreaminaPageRunner({
         async evaluate(expression: string) {
+          if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
           const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
           const path = new URL(request.url).pathname;
           if (path.includes("video_generate")) return { ret: "0", data: VIDEO_CONFIG };
@@ -302,6 +354,7 @@ describe("DreaminaProvider", () => {
       function queuedRunner(state: { finished: boolean; submits: string[] }): void {
         setDreaminaPageRunner({
           async evaluate(expression: string) {
+            if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
             const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
             const path = new URL(request.url).pathname;
             if (path.includes("video_generate")) return { ret: "0", data: VIDEO_CONFIG };
@@ -390,6 +443,7 @@ describe("DreaminaProvider", () => {
         let submitted = false;
         setDreaminaPageRunner({
           async evaluate(expression: string) {
+            if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
             const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
             const path = new URL(request.url).pathname;
             paths.push(path);
@@ -429,6 +483,25 @@ describe("DreaminaProvider", () => {
         expect(submits(paths)).toBe(1);
       });
 
+      it("records the request id of a lost submit once the history shows it", async () => {
+        vi.useFakeTimers();
+        detachingRunner("aigc_draft/generate", true);
+        const pending = runWithGenerationReceipt(() => new DreaminaProvider().textToVideo({ model: videoModel("dreamina_seedance_40_mini"), prompt: "x" }));
+        await vi.advanceTimersByTimeAsync(10_000);
+        expect((await pending).receipt?.provider_request_id).toMatch(/^[0-9a-f-]{36}$/);
+      });
+
+      it("records no request id for a submit that never reached Dreamina", async () => {
+        vi.useFakeTimers();
+        detachingRunner("aigc_draft/generate", false);
+        const pending = runWithGenerationReceipt(() => new DreaminaProvider().textToVideo({ model: videoModel("dreamina_seedance_40_mini"), prompt: "x" }));
+        const settled = pending.then(() => null, (error: unknown) => error);
+        await vi.advanceTimersByTimeAsync(60_000);
+        const error = await settled;
+        expect(error).toBeInstanceOf(GenerationScopeError);
+        expect((error as GenerationScopeError).receipt).toBeNull();
+      });
+
       it("fails without resubmitting when the submit never reached Dreamina", async () => {
         vi.useFakeTimers();
         const { paths } = detachingRunner("aigc_draft/generate", false);
@@ -450,8 +523,9 @@ describe("DreaminaProvider", () => {
       const seen: Seen[] = [];
       setDreaminaPageRunner({
         async evaluate(expression: string) {
+          if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
           if (expression.includes("window.__ntUp ??=")) return true;
-          if (expression.includes("/passport/web/account/info/")) return { data: { user_id_str: "7000000000000000001" } };
+          if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
           const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
           const url = new URL(request.url);
           const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
@@ -585,8 +659,9 @@ describe("DreaminaProvider", () => {
       const seen: Seen[] = [];
       setDreaminaPageRunner({
         async evaluate(expression: string) {
+          if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
           if (expression.includes("window.__ntUp ??=")) return true;
-          if (expression.includes("/passport/web/account/info/")) return { data: { user_id_str: "7000000000000000001" } };
+          if (expression.includes(LOGIN_CHECK)) return LOGGED_IN;
           const request = JSON.parse(/const a = (\{.*?\});\n/s.exec(expression)![1]);
           const url = new URL(request.url);
           const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
