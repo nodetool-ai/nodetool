@@ -81,7 +81,7 @@ describe("OpenRouterProvider", () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: "Bearer k",
-          "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
+          "HTTP-Referer": "https://nodetool.ai",
           "X-Title": "NodeTool"
         })
       })

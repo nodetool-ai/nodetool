@@ -42,7 +42,7 @@ export class RequestyProvider extends OpenAICompatProvider {
         baseURL: REQUESTY_BASE_URL,
         // Attribution headers ride every chat request and the /models fetches.
         defaultHeaders: {
-          "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
+          "HTTP-Referer": "https://nodetool.ai",
           "X-Title": "NodeTool"
         }
       },
