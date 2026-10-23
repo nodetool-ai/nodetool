@@ -13896,6 +13896,7 @@
       "view": {
         "logs": "日志",
         "queue": "队列",
+        "generations": "生成",
         "workers": "工作器",
         "versions": "版本",
         "trace": "跟踪"
@@ -18725,6 +18726,43 @@
       "noBoardsTitle": "没有故事板",
       "noBoardsDescription": "创建一个故事板，以便将其镜头放到时间线上。",
       "listLabel": "故事板镜头"
+    }
+  },
+  "generations": {
+    "title": "生成",
+    "emptyTitle": "还没有生成内容",
+    "emptyDescription": "在任何编辑器、引导流程、聊天或工作流中生成的图像、视频和音频，运行时都会显示在这里。",
+    "clearFinished": "清除已完成",
+    "stop": "停止生成",
+    "stopFailed": "停止生成",
+    "openSource": "打开 {{title}}",
+    "untitled": "{{kind}}生成",
+    "kind": {
+      "image": "图像",
+      "video": "视频",
+      "audio": "音频",
+      "other": "媒体"
+    },
+    "status": {
+      "generating": "生成中",
+      "generated": "完成",
+      "failed": "失败",
+      "cancelled": "已停止"
+    },
+    "filter": {
+      "label": "筛选生成",
+      "all": "全部",
+      "generating": "生成中",
+      "failed": "失败"
+    },
+    "source": {
+      "chat": "聊天",
+      "workflow": "工作流",
+      "storyboard": "故事板",
+      "sketch": "草图",
+      "timeline": "时间线",
+      "model3d": "3D 模型",
+      "script": "脚本"
     }
   }
 }

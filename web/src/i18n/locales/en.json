@@ -13896,6 +13896,7 @@
       "view": {
         "logs": "Logs",
         "queue": "Queue",
+        "generations": "Generations",
         "workers": "Workers",
         "versions": "Versions",
         "trace": "Trace"
@@ -18725,6 +18726,43 @@
       "noBoardsTitle": "No storyboards",
       "noBoardsDescription": "Create a storyboard to place its shots on the timeline.",
       "listLabel": "Storyboard shots"
+    }
+  },
+  "generations": {
+    "title": "Generations",
+    "emptyTitle": "No generations yet",
+    "emptyDescription": "Images, video and audio you generate in any editor, guided flow, chat or workflow show here while they run.",
+    "clearFinished": "Clear finished",
+    "stop": "Stop generating",
+    "stopFailed": "stop the generation",
+    "openSource": "Open {{title}}",
+    "untitled": "{{kind}} generation",
+    "kind": {
+      "image": "Image",
+      "video": "Video",
+      "audio": "Audio",
+      "other": "Media"
+    },
+    "status": {
+      "generating": "generating",
+      "generated": "done",
+      "failed": "failed",
+      "cancelled": "stopped"
+    },
+    "filter": {
+      "label": "Filter generations",
+      "all": "All",
+      "generating": "Generating",
+      "failed": "Failed"
+    },
+    "source": {
+      "chat": "Chat",
+      "workflow": "Workflow",
+      "storyboard": "Storyboard",
+      "sketch": "Sketch",
+      "timeline": "Timeline",
+      "model3d": "3D model",
+      "script": "Script"
     }
   }
 }

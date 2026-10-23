@@ -11,6 +11,12 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useBottomPanelStore } from "../../stores/BottomPanelStore";
+import {
+  bottomPanelHeight,
+  BOTTOM_PANEL_STRIP_HEIGHT
+} from "../../hooks/handlers/useResizeBottomPanel";
+import { useGenerationActivityTracking } from "../../hooks/useGenerationActivityTracking";
 import { useWorkspaceMenuShortcuts } from "../../hooks/useWorkspaceMenuShortcuts";
 import { useWorkspaceDocumentTitle } from "../../hooks/useWorkspaceDocumentTitle";
 import {
@@ -34,9 +40,6 @@ const PanelRight = React.lazy(() => import("../panels/PanelRight"));
 const PanelBottom = React.lazy(() => import("../panels/PanelBottom"));
 const Alert = React.lazy(() => import("../node_editor/Alert"));
 
-// PanelBottom keeps a 32px tab strip docked even when collapsed; the content
-// area must sit above it. (PanelBottom's own HEADER_HEIGHT — kept in sync here.)
-const BOTTOM_STRIP_HEIGHT = 32;
 
 const styles = (theme: Theme, isDragging: boolean) =>
   css({
@@ -86,14 +89,22 @@ const styles = (theme: Theme, isDragging: boolean) =>
       minHeight: 0,
       minWidth: 0,
       marginLeft: `${TOOLBAR_WIDTH}px`,
-      marginBottom: `${BOTTOM_STRIP_HEIGHT}px`,
-      transition: isDragging ? "none" : `margin-left ${MOTION.slow}`,
+      // PanelBottom is viewport-fixed. The content sits above it, collapsed
+      // strip or open panel, so an open panel never covers a composer, a
+      // board's actions or a canvas's controls.
+      marginBottom: `var(--workspace-bottom-gutter, ${BOTTOM_PANEL_STRIP_HEIGHT}px)`,
+      transition: isDragging
+        ? "none"
+        : `margin-left ${MOTION.slow}, margin-bottom ${MOTION.normal}`,
       ...reducedMotion({ transition: MOTION.none }),
       // On mobile the left rail is a floating hamburger and the bottom panel
       // is hidden, so neither gutter exists.
       [theme.breakpoints.down("sm")]: {
         marginBottom: 0
       }
+    },
+    "&[data-bottom-dragging] .workspace-content": {
+      transition: "none"
     },
     "& .tab-layer, & .workspace-empty": {
       position: "absolute",
@@ -198,6 +209,33 @@ const WorkspaceShell = () => {
     write();
     return usePanelStore.subscribe(write);
   }, [isMobile]);
+
+  // The bottom panel's height, published the same way: a drag on its handle
+  // moves the content with it without re-rendering the shell.
+  useEffect(() => {
+    const write = (): void => {
+      const { isVisible, panelSize, isDragging } =
+        useBottomPanelStore.getState().panel;
+      const shell = shellRef.current;
+      if (!shell) {
+        return;
+      }
+      shell.style.setProperty(
+        "--workspace-bottom-gutter",
+        `${bottomPanelHeight(isVisible, panelSize, window.innerHeight)}px`
+      );
+      shell.toggleAttribute("data-bottom-dragging", !!isDragging);
+    };
+    write();
+    window.addEventListener("resize", write);
+    const unsubscribe = useBottomPanelStore.subscribe(write);
+    return () => {
+      window.removeEventListener("resize", write);
+      unsubscribe();
+    };
+  }, []);
+
+  useGenerationActivityTracking();
 
   // Keep the WorkflowManager's "current workflow" aligned with the active
   // workflow tab so the docked panels and run state target the right graph.
