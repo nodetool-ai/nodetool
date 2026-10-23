@@ -8,7 +8,7 @@
  * enqueues stills only.
  */
 
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type {
@@ -231,5 +231,25 @@ describe("BoardStaleBanner", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(mockGenerateKeyframe).not.toHaveBeenCalled();
+  });
+
+  it("hides on dismiss until what is stale changes", async () => {
+    addShot("s-stale-still", 0);
+    addShot("s-stale-clip", 1);
+    const store = useStoryboardStore.getState();
+    store.setShotKeyframe(BOARD, "s-stale-still", staleKeyframe("a-1"));
+
+    const { container } = renderBanner();
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(container.firstChild).toBeNull();
+
+    act(() => {
+      store.setShotClip(BOARD, "s-stale-clip", staleClip("a-2"));
+    });
+    expect(
+      screen.getByText(
+        "Inputs changed (action or prompt). 1 still and 1 clip are stale."
+      )
+    ).toBeInTheDocument();
   });
 });

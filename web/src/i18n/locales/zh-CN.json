@@ -7635,6 +7635,11 @@
         "sendToWorkflow": "发送到工作流…",
         "renderBeforeSend": "请先渲染静帧或片段"
       },
+      "cardMedia": {
+        "label": "卡片媒体",
+        "clips": "片段",
+        "stills": "静帧"
+      },
       "cardSize": {
         "label": "尺寸",
         "valueDescription_other": "卡片宽度至少为 {{formattedCount}} 个字符",
@@ -7715,7 +7720,10 @@
   "screens4_12": {
     "boardRetryFailed": {
       "button_one": "重试 {{count, number}} 个失败请求",
-      "button_other": "重试 {{count, number}} 个失败请求"
+      "button_other": "重试 {{count, number}} 个失败请求",
+      "dismiss": "关闭",
+      "message_other": "{{count, number}} 个渲染请求失败。",
+      "message_one": "{{count, number}} 个渲染请求失败。"
     },
     "boardStaleBanner": {
       "stillCount_one": "{{count, number}} 张静帧",
@@ -7753,7 +7761,8 @@
         "still_other": "只会渲染当前静帧已过期的镜头。",
         "clip_one": "只会渲染当前片段已过期的镜头。",
         "clip_other": "只会渲染当前片段已过期的镜头。"
-      }
+      },
+      "dismiss": "关闭"
     },
     "boardStyleDialog": {
       "title": "更改风格",

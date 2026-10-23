@@ -37,6 +37,7 @@ import {
 import {
   AlertBanner,
   Caption,
+  CloseButton,
   Dialog,
   EditorButton,
   FlexColumn,
@@ -233,6 +234,10 @@ const BoardStaleBannerImpl = ({
     null
   );
   const closeConfirm = useCallback(() => setConfirming(null), []);
+  // A dismissed banner stays hidden until what is stale changes.
+  const signature = `${staleStills.length}:${staleClips.length}:${reasons.join()}`;
+  const [dismissed, setDismissed] = useState<string | null>(null);
+  const dismiss = useCallback(() => setDismissed(signature), [signature]);
 
   // One shot that cannot start records the reason on itself and is toasted, so
   // a single failure must not stop the rest of the re-render.
@@ -256,7 +261,7 @@ const BoardStaleBannerImpl = ({
     reasons,
     t
   );
-  if (!message) {
+  if (!message || (dismissed === signature && confirming === null)) {
     return null;
   }
 
@@ -272,7 +277,7 @@ const BoardStaleBannerImpl = ({
         compact
         className="board-stale-banner"
         action={
-          <FlexRow gap={SPACING.xs} wrap>
+          <FlexRow gap={SPACING.xs} align="center" wrap>
             {staleStills.length > 0 && (
               <EditorButton
                 variant="outlined"
@@ -295,6 +300,10 @@ const BoardStaleBannerImpl = ({
                 })}
               </EditorButton>
             )}
+            <CloseButton
+              tooltip={t("screens4_12.boardStaleBanner.dismiss")}
+              onClick={dismiss}
+            />
           </FlexRow>
         }
       >

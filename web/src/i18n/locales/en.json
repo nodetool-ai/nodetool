@@ -7635,6 +7635,11 @@
         "sendToWorkflow": "Send to workflow…",
         "renderBeforeSend": "Render a still or clip first"
       },
+      "cardMedia": {
+        "label": "Card media",
+        "clips": "Clips",
+        "stills": "Stills"
+      },
       "cardSize": {
         "label": "Size",
         "valueDescription_one": "Cards at least {{formattedCount}} character wide",
@@ -7715,7 +7720,10 @@
   "screens4_12": {
     "boardRetryFailed": {
       "button_one": "Retry {{count, number}} failed request",
-      "button_other": "Retry {{count, number}} failed requests"
+      "button_other": "Retry {{count, number}} failed requests",
+      "dismiss": "Dismiss",
+      "message_one": "{{count, number}} render request failed.",
+      "message_other": "{{count, number}} render requests failed."
     },
     "boardStaleBanner": {
       "stillCount_one": "{{count, number}} still",
@@ -7753,7 +7761,8 @@
         "still_other": "Only shots whose current still is stale will be rendered.",
         "clip_one": "Only the shot whose current clip is stale will be rendered.",
         "clip_other": "Only shots whose current clip is stale will be rendered."
-      }
+      },
+      "dismiss": "Dismiss"
     },
     "boardStyleDialog": {
       "title": "Change style",

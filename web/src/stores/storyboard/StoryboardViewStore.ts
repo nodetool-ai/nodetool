@@ -2,7 +2,7 @@
  * StoryboardViewStore
  *
  * How the creator likes to look at a board, apart from the board itself: the
- * shot cards' size. It is a viewing preference, so it is persisted per browser
+ * shot cards' size, and whether cards show clips or only stills. It is a viewing preference, so it is persisted per browser
  * and shared by every board rather than saved into any one of them.
  */
 
@@ -26,24 +26,30 @@ interface StoryboardViewState {
   /** The minimum width of a shot card, in `ch`. */
   cardSize: number;
   setCardSize: (size: number) => void;
+  /** Cards show each shot's still even when the shot has a clip. */
+  stillsOnly: boolean;
+  setStillsOnly: (stillsOnly: boolean) => void;
 }
 
 export const useStoryboardViewStore = create<StoryboardViewState>()(
   persist(
     (set) => ({
       cardSize: DEFAULT_CARD_SIZE,
-      setCardSize: (size) => set({ cardSize: clampCardSize(size) })
+      setCardSize: (size) => set({ cardSize: clampCardSize(size) }),
+      stillsOnly: false,
+      setStillsOnly: (stillsOnly) => set({ stillsOnly })
     }),
     {
       name: "storyboard-view",
       version: 1,
-      merge: (persisted, current) => ({
-        ...current,
-        cardSize: clampCardSize(
-          (persisted as Partial<StoryboardViewState> | undefined)?.cardSize ??
-            DEFAULT_CARD_SIZE
-        )
-      })
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<StoryboardViewState> | undefined;
+        return {
+          ...current,
+          cardSize: clampCardSize(saved?.cardSize ?? DEFAULT_CARD_SIZE),
+          stillsOnly: saved?.stillsOnly === true
+        };
+      }
     }
   )
 );

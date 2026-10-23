@@ -7635,6 +7635,11 @@
         "sendToWorkflow": "An Workflow senden…",
         "renderBeforeSend": "Erstelle zuerst ein Standbild oder einen Clip"
       },
+      "cardMedia": {
+        "label": "Kartenmedien",
+        "clips": "Clips",
+        "stills": "Standbilder"
+      },
       "cardSize": {
         "label": "Größe",
         "valueDescription_one": "Karten mindestens {{formattedCount}} Zeichen breit",
@@ -7715,7 +7720,10 @@
   "screens4_12": {
     "boardRetryFailed": {
       "button_one": "{{count, number}} fehlgeschlagene Anfrage erneut versuchen",
-      "button_other": "{{count, number}} fehlgeschlagene Anfragen erneut versuchen"
+      "button_other": "{{count, number}} fehlgeschlagene Anfragen erneut versuchen",
+      "dismiss": "Ausblenden",
+      "message_one": "{{count, number}} Render-Anfrage ist fehlgeschlagen.",
+      "message_other": "{{count, number}} Render-Anfragen sind fehlgeschlagen."
     },
     "boardStaleBanner": {
       "stillCount_one": "{{count, number}} Standbild",
@@ -7753,7 +7761,8 @@
         "still_other": "Gerendert werden nur Einstellungen, deren aktuelles Standbild veraltet ist.",
         "clip_one": "Gerendert wird nur die Einstellung, deren aktueller Clip veraltet ist.",
         "clip_other": "Gerendert werden nur Einstellungen, deren aktueller Clip veraltet ist."
-      }
+      },
+      "dismiss": "Ausblenden"
     },
     "boardStyleDialog": {
       "title": "Stil ändern",

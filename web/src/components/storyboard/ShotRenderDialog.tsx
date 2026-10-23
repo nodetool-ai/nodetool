@@ -5,7 +5,8 @@
  * picker opens on the model the shot would use anyway (its remembered model,
  * then the board's, then the last one picked anywhere), so confirming without
  * a change is the one-click regenerate. The render records the choice on the
- * shot, so the next regenerate uses it too.
+ * shot, so the next regenerate uses it too. A clip render also remembers its
+ * resolution, so the next clip dialog opens on it.
  */
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -35,6 +36,7 @@ import {
   type ClipModelTask
 } from "./shotRenderModels";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import { useStoryboardRenderPrefsStore } from "../../stores/storyboard/StoryboardRenderPrefsStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import {
   useImageModelsByProvider,
@@ -159,7 +161,14 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
       declared && declared.length > 0 ? declared : VIDEO_RESOLUTIONS;
     return allowed.map((value) => ({ value, label: value }));
   }, [videoModels, clipSelection?.id, clipSelection?.provider]);
-  const [pickedResolution, setPickedResolution] = useState(CLIP_RESOLUTION);
+  const rememberedResolution = useStoryboardRenderPrefsStore(
+    (state) => state.clipResolution
+  );
+  const setClipResolution = useStoryboardRenderPrefsStore(
+    (state) => state.setClipResolution
+  );
+  const [pickedResolution, setPickedResolution] =
+    useState(rememberedResolution);
   const resolution = resolutionOptions.some(
     (option) => option.value === pickedResolution
   )
@@ -181,6 +190,9 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
     if (!selection) {
       return;
     }
+    if (step === "clip") {
+      setClipResolution(resolution);
+    }
     const render =
       step === "clip"
         ? generateClip(boardId, shot, selection, undefined, { resolution })
@@ -195,6 +207,7 @@ export const ShotRenderDialog: React.FC<ShotRenderDialogProps> = ({
     boardId,
     shot,
     resolution,
+    setClipResolution,
     onClose
   ]);
 

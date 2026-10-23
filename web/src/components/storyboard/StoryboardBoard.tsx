@@ -149,6 +149,7 @@ import ShotCard from "./ShotCard";
 import { shotWorkflowMedia } from "./shotWorkflowMedia";
 import BoardActionsMenu from "./BoardActionsMenu";
 import BoardCardSizeSlider from "./BoardCardSizeSlider";
+import BoardMediaToggle from "./BoardMediaToggle";
 import StoryboardSlideshow from "./StoryboardSlideshow";
 import { useStoryboardViewStore } from "../../stores/storyboard/StoryboardViewStore";
 import ShotEditPanel from "./ShotEditPanel";
@@ -1222,6 +1223,36 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       fullWidth={compactToolbar}
     />
   );
+  // What comes after the board (PRD § 7.4): the script link and the timeline
+  // handoff. They share the action row with Preview and Slideshow, because
+  // neither renders, and a long board must not push them out of sight. Create
+  // is the board's next step, so it is the filled button; Rebuild is not.
+  const handoffButtons = (
+    <>
+      <ScriptLinkControl boardId={boardId} disabled={directing} />
+      <EditorButton
+        variant={timelineId ? "outlined" : "contained"}
+        color="primary"
+        onClick={handleAssembleClick}
+        disabled={!onAssemble || assembling || !hasRenderedShot}
+      >
+        {assembling
+          ? t("screens4_20.storyboardBoard.assembling")
+          : timelineId
+            ? t("screens4_20.storyboardBoard.rebuildLinkedTimeline")
+            : t("screens4_20.storyboardBoard.createTimeline")}
+      </EditorButton>
+      {timelineId && (
+        <EditorButton
+          variant="outlined"
+          startIcon={<MovieOutlinedIcon />}
+          onClick={handleOpenTimeline}
+        >
+          {t("screens4_20.storyboardBoard.openTimeline")}
+        </EditorButton>
+      )}
+    </>
+  );
 
   return (
     <Box sx={{ position: "relative", height: "100%", minHeight: 0 }}>
@@ -1242,6 +1273,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             }
           }}
         >
+          {/* The header reads top to bottom as the board, then the work on
+              it: the title row carries the tools that act on the whole
+              board, and the row under it watches and renders the shots.
+              Tools that act on the grid sit in the shot toolbar above it. */}
           <FlexRow align="center" gap={SPACING.lg} wrap>
             <Text size="big">{title || t("screens4_20.storyboardBoard.untitledFilm")}</Text>
             <BoardGenreChip
@@ -1250,73 +1285,78 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               readOnly={readOnly}
             />
             <BoardLineageChip boardId={boardId} />
-            <Caption color="secondary">{summary}</Caption>
-            {!compactToolbar && (
+            {!compactToolbar && !readOnly && (
               <>
                 <Box sx={{ flex: 1 }} />
-                {hasShots && (
-                  <FlexRow align="center" gap={SPACING.md}>
-                    <BoardCardSizeSlider />
-                    <EditorButton variant="outlined" onClick={openSlideshow}>
-                      {t("screens4_20.storyboardBoard.slideshow")}
-                    </EditorButton>
-                  </FlexRow>
-                )}
-                {!readOnly && (
-                  <FlexRow align="center" gap={SPACING.md} wrap>
-                    {undoRedo}
+                <FlexRow align="center" gap={SPACING.md} wrap>
+                  {undoRedo}
+                  <EditorButton
+                    variant={settingsVisible ? "contained" : "outlined"}
+                    startIcon={<TuneIcon />}
+                    onClick={toggleSettings}
+                    aria-expanded={settingsVisible}
+                    aria-controls={settingsPanelId}
+                  >
+                    {t("screens4_20.storyboardBoard.boardSettings")}
+                  </EditorButton>
+                  {onToggleAssistant && (
                     <EditorButton
-                      variant="outlined"
-                      startIcon={<AddIcon />}
-                      onClick={handleAddShot}
-                      disabled={directing}
+                      variant={assistantOpen ? "contained" : "outlined"}
+                      startIcon={<AutoAwesomeIcon />}
+                      onClick={onToggleAssistant}
+                      aria-pressed={assistantOpen}
                     >
-                      {t("screens4_20.storyboardBoard.addShot")}
+                      {t("screens4_20.storyboardBoard.assistant")}
                     </EditorButton>
-                    <EditorButton
-                      variant="outlined"
-                      onClick={togglePreview}
-                      disabled={!hasPlayableShot}
-                    >
-                      {previewOpen ? t("screens4_20.storyboardBoard.hidePreview") : t("screens4_20.storyboardBoard.preview")}
-                    </EditorButton>
-                    <EditorButton
-                      variant={settingsVisible ? "contained" : "outlined"}
-                      startIcon={<TuneIcon />}
-                      onClick={toggleSettings}
-                      aria-expanded={settingsVisible}
-                      aria-controls={settingsPanelId}
-                    >
-                      {t("screens4_20.storyboardBoard.boardSettings")}
-                    </EditorButton>
-                    <EditorButton
-                      variant={oneTakeOpen ? "contained" : "outlined"}
-                      startIcon={<MovieOutlinedIcon />}
-                      onClick={toggleOneTake}
-                      aria-expanded={oneTakeOpen}
-                      aria-controls={oneTakePanelId}
-                    >
-                      {t("screens4_20.storyboardBoard.oneTake")}
-                    </EditorButton>
-                    {onToggleAssistant && (
-                      <EditorButton
-                        variant={assistantOpen ? "contained" : "outlined"}
-                        startIcon={<AutoAwesomeIcon />}
-                        onClick={onToggleAssistant}
-                        aria-pressed={assistantOpen}
-                      >
-                        {t("screens4_20.storyboardBoard.assistant")}
-                      </EditorButton>
-                    )}
-                    {downloadingStatus}
-                    {actionsMenu}
-                    {renderStillsButton}
-                    {renderClipsButton}
-                  </FlexRow>
-                )}
+                  )}
+                  {downloadingStatus}
+                  {actionsMenu}
+                </FlexRow>
               </>
             )}
           </FlexRow>
+          <Caption color="secondary">{summary}</Caption>
+
+          {!compactToolbar && (hasShots || !readOnly) && (
+            <FlexRow align="center" gap={SPACING.md} wrap>
+              {!readOnly && (
+                <EditorButton
+                  variant="outlined"
+                  startIcon={<PlayCircleOutlineIcon />}
+                  onClick={togglePreview}
+                  disabled={!hasPlayableShot}
+                >
+                  {previewOpen ? t("screens4_20.storyboardBoard.hidePreview") : t("screens4_20.storyboardBoard.preview")}
+                </EditorButton>
+              )}
+              {hasShots && (
+                <EditorButton
+                  variant="outlined"
+                  startIcon={<SlideshowIcon />}
+                  onClick={openSlideshow}
+                >
+                  {t("screens4_20.storyboardBoard.slideshow")}
+                </EditorButton>
+              )}
+              {!readOnly && (
+                <>
+                  {handoffButtons}
+                  <Box sx={{ flex: 1 }} />
+                  <EditorButton
+                    variant={oneTakeOpen ? "contained" : "outlined"}
+                    startIcon={<MovieOutlinedIcon />}
+                    onClick={toggleOneTake}
+                    aria-expanded={oneTakeOpen}
+                    aria-controls={oneTakePanelId}
+                  >
+                    {t("screens4_20.storyboardBoard.oneTake")}
+                  </EditorButton>
+                  {renderStillsButton}
+                  {renderClipsButton}
+                </>
+              )}
+            </FlexRow>
+          )}
 
           {/* A phone has no room for a row of labelled buttons: the board's
               tools become one row of icons, and the two render buttons, which
@@ -1388,7 +1428,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               form: what is stale and what failed. Both render null when they
               have nothing to say, so neither reserves space (PRD § 7.4). */}
           {!readOnly && (
-            <FlexColumn gap={SPACING.md}>
+            <FlexColumn gap={SPACING.sm}>
               <BoardStaleBanner boardId={boardId} disabled={!!directing} />
               <BoardRetryFailed boardId={boardId} disabled={!!directing} />
             </FlexColumn>
@@ -1671,6 +1711,76 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             </React.Suspense>
           )}
 
+          {/* The shot toolbar: what acts on the grid sits right above it. */}
+          {!directing && (shots.length > 0 || !readOnly) && (
+            <FlexRow align="center" gap={SPACING.md} wrap>
+              {shots.length > 0 && (
+                <>
+                  <SearchInput
+                    ref={searchRef}
+                    value={shotQuery}
+                    onChange={setShotQuery}
+                    onSubmit={handleSearchSubmit}
+                    placeholder={t("screens4_20.storyboardBoard.searchShotsPlaceholder")}
+                    ariaLabel={t("screens4_20.storyboardBoard.searchShotsLabel")}
+                    size="small"
+                    sx={{ width: "100%", maxWidth: "40ch" }}
+                  />
+                  {searching && (
+                    <Caption color="secondary" role="status">
+                      {t("screens4_20.storyboardBoard.shotSearchCount", {
+                        visible: visibleShotIds.length,
+                        total: shots.length
+                      })}
+                    </Caption>
+                  )}
+                </>
+              )}
+              {!readOnly && !compactToolbar && (
+                <EditorButton
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddShot}
+                >
+                  {t("screens4_20.storyboardBoard.addShot")}
+                </EditorButton>
+              )}
+              {shots.length > 0 && (
+                <>
+                  <Box sx={{ flex: 1 }} />
+                  <BoardMediaToggle />
+                  {!compactToolbar && <BoardCardSizeSlider />}
+                </>
+              )}
+            </FlexRow>
+          )}
+
+          {/* Why the timeline handoff is unavailable, or why it failed. The
+              handoff buttons themselves sit in the action row above. */}
+          {!readOnly && compactToolbar && (
+            <FlexRow align="flex-start" gap={SPACING.md} wrap>
+              {handoffButtons}
+            </FlexRow>
+          )}
+          {!readOnly && !hasRenderedShot && hasShots && (
+            <Caption color="secondary">
+              {hasUnselectedClip
+                ? t("screens4_20.storyboardBoard.setCurrentClipForTimeline")
+                : t("screens4_20.storyboardBoard.renderMediaForTimeline")}
+            </Caption>
+          )}
+          {!readOnly && assembleError && (
+            <ErrorBanner
+              report={{
+                source: "operation-failure",
+                summary: t("screens4_20.storyboardBoard.assembleErrorSummary"),
+                errorText: assembleError
+              }}
+            >
+              {assembleError}
+            </ErrorBanner>
+          )}
+
           {directing ? (
             <FlexColumn gap={SPACING.md}>
               <Caption color="primary">
@@ -1705,26 +1815,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             />
           ) : (
             <FlexColumn gap={SPACING.lg} sx={{ minWidth: 0 }}>
-              <FlexRow align="center" gap={SPACING.md} wrap>
-                <SearchInput
-                  ref={searchRef}
-                  value={shotQuery}
-                  onChange={setShotQuery}
-                  onSubmit={handleSearchSubmit}
-                  placeholder={t("screens4_20.storyboardBoard.searchShotsPlaceholder")}
-                  ariaLabel={t("screens4_20.storyboardBoard.searchShotsLabel")}
-                  size="small"
-                  sx={{ width: "100%", maxWidth: "40ch" }}
-                />
-                {searching && (
-                  <Caption color="secondary" role="status">
-                    {t("screens4_20.storyboardBoard.shotSearchCount", {
-                      visible: visibleShotIds.length,
-                      total: shots.length
-                    })}
-                  </Caption>
-                )}
-              </FlexRow>
               {visibleGroups.length === 0 ? (
                 <EmptyState
                   variant="empty"
@@ -1810,56 +1900,6 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     </Box>
                   ))}
                 </FlexRow>
-              )}
-            </FlexColumn>
-          )}
-
-          {/* What comes after the board (PRD § 7.4). Both actions already exist
-              — the script link control and the timeline handoff — and are shown
-              here rather than in the spend toolbar, because neither renders. */}
-          {!readOnly && (
-            <FlexColumn gap={SPACING.xs}>
-              <FlexRow align="flex-start" gap={SPACING.md} wrap>
-                <ScriptLinkControl boardId={boardId} disabled={directing} />
-                <EditorButton
-                  variant="contained"
-                  color="primary"
-                  onClick={handleAssembleClick}
-                  disabled={!onAssemble || assembling || !hasRenderedShot}
-                >
-                  {assembling
-                    ? t("screens4_20.storyboardBoard.assembling")
-                    : timelineId
-                      ? t("screens4_20.storyboardBoard.rebuildLinkedTimeline")
-                      : t("screens4_20.storyboardBoard.createTimeline")}
-                </EditorButton>
-                {timelineId && (
-                  <EditorButton
-                    variant="outlined"
-                    startIcon={<MovieOutlinedIcon />}
-                    onClick={handleOpenTimeline}
-                  >
-                    {t("screens4_20.storyboardBoard.openTimeline")}
-                  </EditorButton>
-                )}
-              </FlexRow>
-              {!hasRenderedShot && (
-                <Caption color="secondary">
-                  {hasUnselectedClip
-                    ? t("screens4_20.storyboardBoard.setCurrentClipForTimeline")
-                    : t("screens4_20.storyboardBoard.renderMediaForTimeline")}
-                </Caption>
-              )}
-              {assembleError && (
-                <ErrorBanner
-                  report={{
-                    source: "operation-failure",
-                    summary: t("screens4_20.storyboardBoard.assembleErrorSummary"),
-                    errorText: assembleError
-                  }}
-                >
-                  {assembleError}
-                </ErrorBanner>
               )}
             </FlexColumn>
           )}

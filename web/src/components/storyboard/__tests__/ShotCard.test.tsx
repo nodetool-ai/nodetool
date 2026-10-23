@@ -75,6 +75,7 @@ jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
 
 import ShotCard from "../ShotCard";
 import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
+import { useStoryboardViewStore } from "../../../stores/storyboard/StoryboardViewStore";
 
 // The manual mock the card sees: reaching it by its own path would hand this
 // suite a second copy, whose state the card never reads.
@@ -637,5 +638,29 @@ describe("ShotCard render state", () => {
 
     renderCard(makeShot());
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+});
+
+describe("ShotCard stills mode", () => {
+  const renderedShot = makeShot({
+    status: "rendered",
+    keyframe: { type: "image", uri: "http://example.com/still.png" },
+    clip: { type: "video", uri: "http://example.com/clip.mp4" }
+  });
+
+  afterEach(() => {
+    useStoryboardViewStore.setState({ stillsOnly: false });
+  });
+
+  it("shows the clip when the shot has one", () => {
+    const { container } = renderCard(renderedShot);
+    expect(container.querySelector("video")).toBeInTheDocument();
+  });
+
+  it("shows the still instead of the clip in stills mode", () => {
+    useStoryboardViewStore.setState({ stillsOnly: true });
+    const { container } = renderCard(renderedShot);
+    expect(container.querySelector("video")).not.toBeInTheDocument();
+    expect(screen.getByRole("img")).toBeInTheDocument();
   });
 });

@@ -6,7 +6,10 @@ import {
 } from "../StoryboardViewStore";
 
 beforeEach(() => {
-  useStoryboardViewStore.setState({ cardSize: DEFAULT_CARD_SIZE });
+  useStoryboardViewStore.setState({
+    cardSize: DEFAULT_CARD_SIZE,
+    stillsOnly: false
+  });
 });
 
 describe("StoryboardViewStore", () => {
@@ -24,5 +27,11 @@ describe("StoryboardViewStore", () => {
     expect(useStoryboardViewStore.getState().cardSize).toBe(DEFAULT_CARD_SIZE);
     setCardSize(48);
     expect(useStoryboardViewStore.getState().cardSize).toBe(48);
+  });
+
+  it("shows clips until stills mode is turned on", () => {
+    expect(useStoryboardViewStore.getState().stillsOnly).toBe(false);
+    useStoryboardViewStore.getState().setStillsOnly(true);
+    expect(useStoryboardViewStore.getState().stillsOnly).toBe(true);
   });
 });

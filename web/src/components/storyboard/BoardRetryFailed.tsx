@@ -11,7 +11,7 @@
  * Renders null while nothing on this board has failed (E1 criterion 18).
  */
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
@@ -21,7 +21,13 @@ import {
 } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
-import { EditorButton } from "../ui_primitives";
+import {
+  AlertBanner,
+  CloseButton,
+  EditorButton,
+  FlexRow,
+  SPACING
+} from "../ui_primitives";
 
 export interface BoardRetryFailedProps {
   /** The open board. Only its own failed shots are counted and retried. */
@@ -87,21 +93,42 @@ const BoardRetryFailedImpl = ({
     }
   }, [failedRequestIds, retryFailedRequest]);
 
-  if (failedRequestIds.length === 0) {
+  // A dismissed banner stays hidden until another request fails.
+  const signature = failedRequestIds.join();
+  const [dismissed, setDismissed] = useState<string | null>(null);
+  const dismiss = useCallback(() => setDismissed(signature), [signature]);
+
+  if (failedRequestIds.length === 0 || dismissed === signature) {
     return null;
   }
 
   return (
-    <EditorButton
-      variant="outlined"
+    <AlertBanner
+      severity="warning"
+      compact
       className="board-retry-failed"
-      onClick={handleRetry}
-      disabled={disabled}
+      action={
+        <FlexRow gap={SPACING.xs} align="center">
+          <EditorButton
+            variant="outlined"
+            onClick={handleRetry}
+            disabled={disabled}
+          >
+            {t("screens4_12.boardRetryFailed.button", {
+              count: failedRequestIds.length
+            })}
+          </EditorButton>
+          <CloseButton
+            tooltip={t("screens4_12.boardRetryFailed.dismiss")}
+            onClick={dismiss}
+          />
+        </FlexRow>
+      }
     >
-      {t("screens4_12.boardRetryFailed.button", {
+      {t("screens4_12.boardRetryFailed.message", {
         count: failedRequestIds.length
       })}
-    </EditorButton>
+    </AlertBanner>
   );
 };
 

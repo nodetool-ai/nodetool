@@ -3,7 +3,7 @@
  * failed, and retries exactly those shots.
  */
 
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Shot } from "@nodetool-ai/protocol";
@@ -176,5 +176,24 @@ describe("BoardRetryFailed", () => {
     const { container } = renderRetry();
 
     expect(container.firstChild).toBeNull();
+  });
+
+  it("hides on dismiss until another request fails", async () => {
+    setJobs([job({ shotId: "s-failed-still" })]);
+
+    const { container } = renderRetry();
+    expect(screen.getByText("1 render request failed.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(container.firstChild).toBeNull();
+
+    act(() => {
+      setJobs([
+        job({ shotId: "s-failed-still" }),
+        job({ shotId: "s-failed-clip", kind: "clip" })
+      ]);
+    });
+    expect(
+      screen.getByRole("button", { name: "Retry 2 failed requests" })
+    ).toBeInTheDocument();
   });
 });

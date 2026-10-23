@@ -51,6 +51,7 @@ import ShotActions, { shotPreviewClip } from "./ShotActions";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotStatusPill, { CLIP_COLOR, isShotGenerating } from "./ShotStatusPill";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
+import { useStoryboardViewStore } from "../../stores/storyboard/StoryboardViewStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import { useResolvedMedia } from "../../hooks/useResolvedMediaUri";
 import { formatDuration } from "../../utils/formatUtils";
@@ -189,7 +190,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   const failed = shot.status === "failed" || !!failedJob?.mediaEdit;
   const isGenerating = isShotGenerating(shot);
   const stillRendering = shot.status === "keyframe_generating";
-  const previewClip = shotPreviewClip(shot);
+  // "Stills" in the board toolbar shows the still even when there is a clip.
+  const stillsOnly = useStoryboardViewStore((state) => state.stillsOnly);
+  const previewClip = stillsOnly ? undefined : shotPreviewClip(shot);
   // The card shows the still's thumbnail; the full still is the viewer's.
   const keyframeMedia = useResolvedMedia(shot.keyframe);
   const keyframeThumbUri = keyframeMedia.thumbUrl ?? keyframeMedia.url;
@@ -347,9 +350,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
             hoverControls
             boardId={boardId}
             shot={
-              previewClip && previewClip !== shot.clip
-                ? { ...shot, clip: previewClip }
-                : shot
+              stillsOnly
+                ? { ...shot, clip: undefined }
+                : previewClip && previewClip !== shot.clip
+                  ? { ...shot, clip: previewClip }
+                  : shot
             }
           />
         ) : previewClip ? (

@@ -107,6 +107,7 @@ jest.mock("../../properties/VideoModelSelect", () => ({
 import ShotCard from "../ShotCard";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
+import { useStoryboardRenderPrefsStore } from "../../../stores/storyboard/StoryboardRenderPrefsStore";
 
 const BOARD = "board-render-dialog";
 
@@ -145,6 +146,7 @@ beforeEach(() => {
 
 afterEach(() => {
   useStoryboardStore.getState().removeBoard(BOARD);
+  useStoryboardRenderPrefsStore.setState({ clipResolution: "1080p" });
 });
 
 describe("ShotCard render dialog", () => {
@@ -242,6 +244,36 @@ describe("ShotCard render dialog", () => {
     await userEvent.click(screen.getByRole("button", { name: /^Render clip/ }));
 
     expect(mockGenerateClip).toHaveBeenCalledWith(
+      BOARD,
+      shot,
+      expect.objectContaining({ id: "kling" }),
+      undefined,
+      { resolution: "720p" }
+    );
+  });
+
+  it("opens the next clip dialog on the last rendered resolution", async () => {
+    const shot = seedShot({
+      status: "keyframe_ready",
+      keyframe: { type: "image", uri: "asset://img-1", asset_id: "img-1" },
+      clip_model: { id: "kling", provider: "fal", name: "Kling" }
+    });
+    const { unmount } = renderCard(shot);
+
+    await openMenuItem("Render clip…");
+    await userEvent.click(screen.getByRole("combobox", { name: "Resolution" }));
+    await userEvent.click(screen.getByRole("option", { name: "720p" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Render clip/ }));
+    unmount();
+
+    renderCard(shot);
+    await openMenuItem("Render clip…");
+    expect(
+      screen.getByRole("combobox", { name: "Resolution" })
+    ).toHaveTextContent("720p");
+    await userEvent.click(screen.getByRole("button", { name: /^Render clip/ }));
+
+    expect(mockGenerateClip).toHaveBeenLastCalledWith(
       BOARD,
       shot,
       expect.objectContaining({ id: "kling" }),
