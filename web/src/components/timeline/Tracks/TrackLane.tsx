@@ -83,6 +83,8 @@ const DEFAULT_MIDI_CLIP_DURATION_MS = 4000;
 const NO_CLIP_IDS: string[] = [];
 /** Duration (ms) the mismatch warning banner remains visible. */
 const WARNING_DISMISS_MS = 3000;
+/** A drop this close after a clip's end lands on that end. */
+const DROP_SNAP_PX = 24;
 /** A touch that travels further than this is a swipe, not a tap-to-seek. */
 const TAP_SLOP_PX = 8;
 
@@ -206,6 +208,15 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
     s.selectedGap?.trackId === track.id ? s.selectedGap : null
   );
   const seek = useTimelinePlaybackStore((s) => s.seek);
+  // A click on empty lane past the last clip parks the playhead at the end,
+  // not on a black "No media" frame beyond it.
+  const clampToSequence = useCallback(
+    (timeMs: number): number => {
+      const endMs = timelineStore.getState().durationMs;
+      return Math.max(0, endMs > 0 ? Math.min(endMs, timeMs) : timeMs);
+    },
+    [timelineStore]
+  );
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const setRubberBand = useTimelineUIStore((s) => s.setRubberBand);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
@@ -401,7 +412,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       const startMs =
         dropMode === "overlap"
           ? pointerMs
-          : snapAssetDropMs(timelineStore.getState().clips, track.id, pointerMs);
+          : snapAssetDropMs(
+              timelineStore.getState().clips,
+              track.id,
+              pointerMs,
+              DROP_SNAP_PX * msPerPx
+            );
       dropShotOnTrack(timelineStore, shot, track.id, startMs, dropMode);
     },
     [track.locked, track.type, track.id, msPerPx, timelineStore, showWarning, t]
@@ -476,7 +492,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       const startMs =
         dropMode === "overlap"
           ? pointerMs
-          : snapAssetDropMs(timelineStore.getState().clips, track.id, pointerMs);
+          : snapAssetDropMs(
+              timelineStore.getState().clips,
+              track.id,
+              pointerMs,
+              DROP_SNAP_PX * msPerPx
+            );
 
       // Video dropped on a video track: also create a linked audio clip from
       // the video's audio track. Everything else imports as a single clip.
@@ -667,10 +688,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
       // Move the playhead to the clicked position. The lanes container is
       // inside the scrolling element, so localX is already content-space.
-      const timeMs = Math.round(localX * msPerPx);
-      seek(timeMs);
+      seek(clampToSequence(Math.round(localX * msPerPx)));
     },
-    [clearSelection, laneLongPress, msPerPx, seek, track.id]
+    [clampToSequence, clearSelection, laneLongPress, msPerPx, seek, track.id]
   );
 
   // Apply the rubber-band selection for the given content-space range. Deduped
@@ -804,11 +824,19 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
         Math.hypot(e.clientX - tap.x, e.clientY - tap.y) <= TAP_SLOP_PX
       ) {
         const rect = e.currentTarget.getBoundingClientRect();
-        seek(Math.max(0, Math.round((e.clientX - rect.left) * msPerPx)));
+        seek(clampToSequence(Math.round((e.clientX - rect.left) * msPerPx)));
       }
       endLaneGesture();
     },
-    [endLaneGesture, msPerPx, seek, timelineStore, track.id, track.locked]
+    [
+      clampToSequence,
+      endLaneGesture,
+      msPerPx,
+      seek,
+      timelineStore,
+      track.id,
+      track.locked
+    ]
   );
 
   const handleLaneContextMenu = useCallback(

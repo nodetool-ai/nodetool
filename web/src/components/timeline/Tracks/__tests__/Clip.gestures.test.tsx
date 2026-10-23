@@ -17,6 +17,7 @@ import {
   fireEvent
 } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import { MemoryRouter } from "react-router-dom";
 import mockTheme from "../../../../__mocks__/themeMock";
 
 jest.mock("../useClipThumbnails", () =>
@@ -608,5 +609,38 @@ describe("Clip double-click", () => {
     renderLanes();
     fireEvent.doubleClick(screen.getByTestId("clip-a1"));
     expect(useTimelineUIStore.getState().panelTab).toBe("code");
+  });
+});
+
+describe("Clip right-click", () => {
+  // The clip menu's actions navigate, so it needs a router.
+  const renderRoutedLanes = () => {
+    const { tracks } = useTimelineStore.getState();
+    render(
+      <MemoryRouter>
+        <ThemeProvider theme={mockTheme}>
+          <div data-timeline-lanes="true">
+            {tracks.map((t) => (
+              <TrackLane key={t.id} track={t} />
+            ))}
+          </div>
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+  };
+
+  it("selects the clip, so the Inspector shows what the menu acts on", () => {
+    // Study 16 B3 right-clicked a clip and the Inspector still said
+    // "No selection".
+    renderRoutedLanes();
+    fireEvent.contextMenu(screen.getByTestId("clip-a1"));
+    expect([...useTimelineUIStore.getState().selectedClipIds]).toEqual(["a1"]);
+  });
+
+  it("keeps a selection that holds the clip", () => {
+    useTimelineUIStore.setState({ selectedClipIds: new Set(["a1", "a3"]) });
+    renderRoutedLanes();
+    fireEvent.contextMenu(screen.getByTestId("clip-a1"));
+    expect([...useTimelineUIStore.getState().selectedClipIds]).toEqual(["a1", "a3"]);
   });
 });

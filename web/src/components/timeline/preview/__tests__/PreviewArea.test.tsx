@@ -492,10 +492,23 @@ describe("PreviewArea", () => {
       mockDurationMs = 60_000;
       mockClips = [{ id: "clip", startMs: 0, durationMs: 10_000 }];
       renderPreview();
-      fireEvent.click(
-        screen.getByRole("button", { name: "Next clip boundary" })
-      );
+      fireEvent.keyDown(screen.getByTestId("preview-area"), {
+        key: "ArrowRight",
+        shiftKey: true
+      });
       expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(10_000);
+    });
+
+    it("goes to the start from the first transport button", () => {
+      // Study 16: people press the skip-back icon to play from the
+      // beginning, so it goes to 0, not to the previous clip boundary.
+      mockClips = [
+        { id: "a", startMs: 0, durationMs: 4_000 },
+        { id: "b", startMs: 4_000, durationMs: 4_000 }
+      ];
+      renderPreview();
+      fireEvent.click(screen.getByRole("button", { name: "Go to start" }));
+      expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(0);
     });
 
     it("refreshes a playing MIDI clip after mix controls change", async () => {

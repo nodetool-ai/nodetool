@@ -35,7 +35,8 @@ import {
   Tooltip
 } from "../../ui_primitives";
 
-const buttonStyles = (theme: Theme, compact: boolean) =>
+/** Shared with AddTextButton, which sits beside it in the toolbar. */
+export const toolbarLabelButtonStyles = (theme: Theme, compact: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
@@ -89,7 +90,7 @@ export const ScriptToggleButton: React.FC<ScriptToggleButtonProps> = memo(({ com
     <Tooltip title={label} describeChild>
       <button
         type="button"
-        css={buttonStyles(theme, compact)}
+        css={toolbarLabelButtonStyles(theme, compact)}
         onClick={handleClick}
         aria-label={label}
         data-testid="script-toggle-button"

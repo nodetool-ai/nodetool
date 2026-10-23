@@ -104,6 +104,7 @@ import { SnapGuideOverlay } from "./SnapGuideOverlay";
 import { GestureReadout } from "./GestureReadout";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
+import { AddTextButton } from "./AddTextButton";
 import { AddTrackButton } from "./AddTrackButton";
 import { ScriptToggleButton } from "./ScriptToggleButton";
 import { TimelineViewControls } from "./TimelineViewControls";
@@ -2039,6 +2040,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             </EditorButton>
           )}
           <div style={{ flex: "1 1 auto" }} />
+          <AddTextButton compact={toolbarCompact} />
           <ScriptToggleButton compact={toolbarCompact} />
           <AddTrackButton compact={toolbarCompact} />
           {/* The shortcut sheet documents keyboard bindings — nothing a phone

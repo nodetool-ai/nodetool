@@ -52,6 +52,27 @@ describe("Playhead", () => {
     expect(el.style.transform).toBe("translateX(192px)");
   });
 
+  it("hands a right-click to the lane beneath, so its menu opens", () => {
+    // Study 16: a click on a lane parks the playhead under the pointer, and
+    // the next right-click there opened no "Add text" menu.
+    renderPlayhead();
+    const lane = document.createElement("div");
+    document.body.appendChild(lane);
+    const onLaneMenu = jest.fn();
+    lane.addEventListener("contextmenu", onLaneMenu);
+    const grab = screen.getByTestId("playhead-grab");
+    const original = document.elementsFromPoint;
+    document.elementsFromPoint = () => [grab, lane];
+    try {
+      fireEvent.contextMenu(grab, { clientX: 40, clientY: 20 });
+    } finally {
+      document.elementsFromPoint = original;
+      lane.remove();
+    }
+    expect(onLaneMenu).toHaveBeenCalledTimes(1);
+    expect(onLaneMenu.mock.calls[0][0]).toMatchObject({ clientX: 40, clientY: 20 });
+  });
+
   describe("over the ruler", () => {
     const renderWithRuler = () =>
       render(

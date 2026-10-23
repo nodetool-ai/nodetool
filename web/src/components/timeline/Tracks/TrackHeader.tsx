@@ -884,7 +884,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 onEditingChange={setEditingName}
                 onCommit={commitName}
                 ariaLabel={t("i18n-next6.trackHeader.trackName", { name: track.name })}
-                title={t("i18n-next6.trackHeader.doubleClickToRename")}
+                title={t("i18n-next6.trackHeader.clickToRename")}
               />
               {track.type === "chord" ? (
                 <span

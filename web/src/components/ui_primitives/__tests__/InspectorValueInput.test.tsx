@@ -38,6 +38,25 @@ describe("InspectorValueInput", () => {
     expect(input).toHaveValue("12");
   });
 
+  it("follows a new value while focused and untyped, so leaving commits nothing", () => {
+    // Study 16 B3: Tab left Duration focused on one clip, another clip was
+    // selected, and leaving the field wrote the first clip's 4.00 s to it.
+    const onCommit = jest.fn();
+    const { rerender } = render(<ThemeProvider theme={mockTheme}>
+      <InspectorValueInput ariaLabel="Duration" value="4.00" onCommit={onCommit} />
+    </ThemeProvider>);
+
+    const input = screen.getByRole("textbox", { name: "Duration" });
+    act(() => input.focus());
+    rerender(<ThemeProvider theme={mockTheme}>
+      <InspectorValueInput ariaLabel="Duration" value="8.00" onCommit={onCommit} />
+    </ThemeProvider>);
+    expect(input).toHaveValue("8.00");
+    fireEvent.blur(input);
+
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it("does not commit an escaped draft", () => {
     const onCommit = jest.fn();
     render(<ThemeProvider theme={mockTheme}>

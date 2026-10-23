@@ -16,4 +16,12 @@ describe("snapAssetDropMs", () => {
     expect(snapAssetDropMs([beach], "v1", 5000)).toBe(5000);
     expect(snapAssetDropMs([other], "v1", 3000)).toBe(3000);
   });
+
+  it("snaps a drop just past a clip's end to that end, within the snap distance", () => {
+    // Study 16 E1 and E2 let go 0.7 to 0.9 s after the last picture and the
+    // video played black for that long.
+    expect(snapAssetDropMs([beach], "v1", 4900, 1200)).toBe(4000);
+    expect(snapAssetDropMs([beach], "v1", 5300, 1200)).toBe(5300);
+    expect(snapAssetDropMs([other], "v1", 4500, 1200)).toBe(4500);
+  });
 });

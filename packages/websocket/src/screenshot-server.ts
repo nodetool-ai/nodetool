@@ -42,6 +42,8 @@ import { setCredentialCheckOverride } from "@nodetool-ai/runtime";
 import { createTestUiServer } from "./test-ui-server.js";
 import { seedProjects } from "./screenshot-projects.js";
 import { seedDocsExtras } from "./screenshot-docs-seed.js";
+import { getAssetFileName } from "./lib/asset-paths.js";
+import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   createFakeExecutorResolver,
@@ -1912,6 +1914,138 @@ async function seedStoryboardState(): Promise<void> {
   }).save();
 }
 
+/**
+ * The one document of the `timeline` state: "City at night", three photos one
+ * after the other with music under them. The second photo is twice as long
+ * as the others. UX research's timeline editing tasks start here, so the
+ * photos and the music are real files in the Library.
+ */
+const TIMELINE_STATE_SEQUENCE_ID = "tl-city-night";
+const TIMELINE_STATE_MEDIA = [
+  {
+    id: "5a1c0e2b7d3f4a6c8e9b0d1f2a3c4e01",
+    name: "wet-street.jpg",
+    source: "timelines/voltra/street.jpg",
+    contentType: "image/jpeg",
+    startMs: 0,
+    durationMs: 4000
+  },
+  {
+    id: "5a1c0e2b7d3f4a6c8e9b0d1f2a3c4e02",
+    name: "motorbike-at-dusk.jpg",
+    source: "timelines/voltra/rooftop.jpg",
+    contentType: "image/jpeg",
+    startMs: 4000,
+    durationMs: 8000
+  },
+  {
+    id: "5a1c0e2b7d3f4a6c8e9b0d1f2a3c4e03",
+    name: "tunnel.jpg",
+    source: "timelines/voltra/tunnel.jpg",
+    contentType: "image/jpeg",
+    startMs: 12000,
+    durationMs: 4000
+  }
+] as const;
+const TIMELINE_STATE_MUSIC = {
+  id: "5a1c0e2b7d3f4a6c8e9b0d1f2a3c4e04",
+  name: "night-drive-music.mp3",
+  durationSeconds: 24.36
+};
+
+async function seedTimelineState(): Promise<void> {
+  const repoRoot = resolve(__dirname, "..", "..", "..");
+  const store = async (
+    id: string,
+    name: string,
+    contentType: string,
+    path: string,
+    duration: number | null
+  ): Promise<void> => {
+    const bytes = readFileSync(path);
+    await Asset.create({
+      ...makeAsset(id, name, contentType, USER_ID, bytes.byteLength),
+      duration
+    });
+    await storeAssetWithThumbnail(
+      USER_ID,
+      id,
+      getAssetFileName(id, contentType),
+      bytes,
+      contentType
+    );
+  };
+  const assetsDir = join(
+    repoRoot,
+    "packages/base-nodes/nodetool/assets/nodetool-base"
+  );
+  for (const media of TIMELINE_STATE_MEDIA) {
+    await store(
+      media.id,
+      media.name,
+      media.contentType,
+      join(assetsDir, media.source),
+      null
+    );
+  }
+  await store(
+    TIMELINE_STATE_MUSIC.id,
+    TIMELINE_STATE_MUSIC.name,
+    "audio/mpeg",
+    join(repoRoot, "demo/public/casts/promo/trailer-music.mp3"),
+    TIMELINE_STATE_MUSIC.durationSeconds
+  );
+  const videoTrackId = "tl-city-night-video";
+  const musicTrackId = "tl-city-night-music";
+  const document = {
+    tracks: [
+      { id: videoTrackId, name: "Video", type: "video", index: 0, visible: true, locked: false },
+      { id: musicTrackId, name: "Music", type: "audio", index: 1, visible: true, locked: false }
+    ],
+    clips: [
+      ...TIMELINE_STATE_MEDIA.map((media, index) =>
+        makeTimelineClip(
+          `tl-city-night-photo-${index + 1}`,
+          media.name,
+          videoTrackId,
+          media.startMs,
+          media.durationMs,
+          "image",
+          { sourceType: "imported", currentAssetId: media.id }
+        )
+      ),
+      makeTimelineClip(
+        "tl-city-night-music-clip",
+        TIMELINE_STATE_MUSIC.name,
+        musicTrackId,
+        0,
+        16000,
+        "audio",
+        {
+          sourceType: "imported",
+          currentAssetId: TIMELINE_STATE_MUSIC.id,
+          inPointMs: 0,
+          outPointMs: 16000
+        }
+      )
+    ],
+    markers: []
+  };
+  await new TimelineSequence({
+    id: TIMELINE_STATE_SEQUENCE_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "City at night",
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    duration_ms: 16000,
+    document: JSON.stringify(document),
+    created_at: "2026-01-05T09:00:00Z",
+    updated_at: "2026-01-05T09:00:00Z"
+  }).save();
+}
+
 async function seedOpenAiKey(): Promise<void> {
   const now = new Date().toISOString();
   await getPortableDb()
@@ -1940,6 +2074,8 @@ async function seedOpenAiKey(): Promise<void> {
 // account plus a working workflow and a stored OpenAI key. `unwired-run` is
 // the same with the notes input left unconnected. `storyboard` is that account
 // plus one storyboard with a still on every shot and a stored OpenAI key.
+// `timeline` is that account plus one photo timeline with music, the files
+// behind it in the Library, and a stored OpenAI key.
 const QA_STATE = process.env.NODETOOL_QA_STATE;
 const EMPTY_ACCOUNT =
   QA_STATE === "empty" ||
@@ -1947,7 +2083,8 @@ const EMPTY_ACCOUNT =
   QA_STATE === "other-provider" ||
   QA_STATE === "working-run" ||
   QA_STATE === "unwired-run" ||
-  QA_STATE === "storyboard";
+  QA_STATE === "storyboard" ||
+  QA_STATE === "timeline";
 
 async function seedForState(): Promise<void> {
   if (QA_STATE === "failing-run") {
@@ -1983,6 +2120,14 @@ async function seedForState(): Promise<void> {
     await seedOpenAiKey();
     console.log(
       "[screenshot-server] Empty account with one storyboard and an OpenAI key"
+    );
+    return;
+  }
+  if (QA_STATE === "timeline") {
+    await seedTimelineState();
+    await seedOpenAiKey();
+    console.log(
+      "[screenshot-server] Empty account with one photo timeline, its media and an OpenAI key"
     );
     return;
   }

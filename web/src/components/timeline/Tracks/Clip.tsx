@@ -265,9 +265,14 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       }
       e.preventDefault();
       e.stopPropagation();
+      // The menu acts on this clip, so the Inspector should show it too.
+      // A right-click inside the selection keeps the selection.
+      if (!isSelected) {
+        selectClip(clip.id);
+      }
       setContextMenuPos({ x: e.clientX, y: e.clientY });
     },
-    [clip]
+    [clip, isSelected, selectClip]
   );
 
   // Stable handler props for the memoized ClipBody — inline arrows here would

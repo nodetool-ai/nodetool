@@ -435,10 +435,10 @@ async function runFixture(page: Page, cache: "cold" | "warm"): Promise<TimelineP
   await page.getByRole("button", { name: "Pause" }).click();
   const steady = await readRun(page);
 
-  // The clip-boundary control seeks directly to 60 seconds. Play then tests
+  // Shift+ArrowRight on the preview seeks to the next clip boundary, 60 s. Play then tests
   // that the incoming video starts at its trimmed 7.25 second source in-point.
   const cutStartedAt = await page.evaluate(() => performance.now());
-  await page.getByRole("button", { name: "Next clip boundary" }).click();
+  await page.getByTestId("preview-area").press("Shift+ArrowRight");
   await page.getByRole("button", { name: "Play" }).click();
   await expect.poll(async () => page.locator("video").evaluateAll((videos) =>
     videos.some((element) =>

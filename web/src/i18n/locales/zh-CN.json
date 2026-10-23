@@ -12477,6 +12477,8 @@
       "full": "完整",
       "fullscreen": "全屏",
       "half": "一半",
+      "goToStart": "转到开头",
+      "goToEnd": "转到结尾",
       "loop": "循环",
       "loopOnDescription": "循环已开启：播放会重复入点到出点的范围",
       "loopPlayback": "循环播放",
@@ -12528,10 +12530,10 @@
       "videoLayout": "视频布局"
     },
     "trackHeader": {
+      "clickToRename": "单击以重命名",
       "custom": "自定义",
       "deleteTrack": "删除轨道",
       "deleteTrackQuestion": "删除轨道？",
-      "doubleClickToRename": "双击以重命名",
       "dragToReorder": "拖动以重新排序轨道",
       "duplicateTrack": "复制轨道",
       "editInstrument": "编辑乐器",
