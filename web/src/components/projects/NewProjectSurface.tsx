@@ -36,6 +36,7 @@ import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternate
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import MicNoneOutlinedIcon from "@mui/icons-material/MicNoneOutlined";
@@ -141,7 +142,7 @@ import ExploreExamples from "./ExploreExamples";
 import StartCreationTypes, { type CreationTypeCard } from "./StartCreationTypes";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import ReportBugButton from "../support/ReportBugButton";
-import { openPageTab } from "../workspace/openPageTab";
+import { openExamplesTab, openPageTab } from "../workspace/openPageTab";
 import { ENTRY_CARDS, type EntryFlowId } from "../setup/entryCards";
 import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
@@ -210,6 +211,13 @@ const MORE_CREATION_IDS: readonly EntryFlowId[] = [
 
 /** The blank 3D model card's id; it opens a document, not a flow. */
 const MODEL_CARD_ID = "model3d";
+
+/**
+ * The examples card's id; it opens the Examples page on its Workflows tab.
+ * UX research study 13: people who wanted something ready-made opened
+ * "Explore all creation types" first, and the examples were not there.
+ */
+const EXAMPLES_CARD_ID = "examples";
 
 const CREATION_ICONS: Record<EntryFlowId | typeof MODEL_CARD_ID, React.ReactNode> = {
   image: <ImageOutlinedIcon />,
@@ -1670,15 +1678,30 @@ const NewProjectSurface = ({
         ? t("pass3_32.projects.home.disabled.waitForCurrentWork")
         : undefined
     };
+    const examplesCard: CreationTypeCard = {
+      id: EXAMPLES_CARD_ID,
+      title: t("pass3_32.projects.home.createCards.examples.title"),
+      description: t("pass3_32.projects.home.createCards.examples.description"),
+      icon: <ExploreOutlinedIcon />,
+      accent: "var(--palette-primary-main)"
+    };
     return {
       primary: PRIMARY_CREATION_IDS.map((id) => flowCard(id, true)),
-      more: [...MORE_CREATION_IDS.map((id) => flowCard(id, false)), modelCard]
+      more: [
+        examplesCard,
+        ...MORE_CREATION_IDS.map((id) => flowCard(id, false)),
+        modelCard
+      ]
     };
   }, [creating, gameDimension, isUploading, pendingFlow, starting, t]);
 
   const handleCreationCard = (id: string): void => {
     if (id === MODEL_CARD_ID) {
       void handleNewModel();
+      return;
+    }
+    if (id === EXAMPLES_CARD_ID) {
+      openExamplesTab("workflows");
       return;
     }
     handleEntryCard(id);

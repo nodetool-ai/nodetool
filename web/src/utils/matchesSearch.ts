@@ -4,10 +4,10 @@
  * English endings are dropped first, so "compare" finds "comparison" and
  * "photos" finds "photo". UX research study 12: three of three participants
  * searched the workflow examples for "compare" and missed the one tagged
- * "comparison".
+ * "comparison". Study 13: "simplify" missed the plain-language rewrite.
  */
 
-const ENDINGS = ["ing", "ed", "es", "e", "s"] as const;
+const ENDINGS = ["ing", "ify", "ed", "es", "e", "s"] as const;
 const MIN_STEM_LENGTH = 4;
 
 /** The query word with one common ending removed, when enough remains. */

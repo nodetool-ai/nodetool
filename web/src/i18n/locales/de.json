@@ -4460,7 +4460,8 @@
         "searchPlaceholder": "Apps suchen",
         "searchLabel": "Apps suchen",
         "noSearchResultsTitle": "Keine Apps für diese Suche",
-        "clearSearch": "Suche löschen"
+        "clearSearch": "Suche löschen",
+        "matchingWorkflows": "Passende Workflows"
       },
       "games": {
         "gameplayImageAlt": "{{name}}-Gameplay",
@@ -6310,6 +6311,10 @@
             "title": "Workflow erstellen",
             "description": "Schritte automatisieren und kombinieren"
           },
+          "examples": {
+            "title": "Fertige Beispiele",
+            "description": "Bereits eingerichtete Workflows und Apps. Öffne eines und nutze es mit deinem eigenen Text oder deinen Dateien."
+          },
           "model3d": {
             "title": "3D-Modell",
             "description": "Ein leeres 3D-Modell zum Bearbeiten von Hand. Kein KI-Anbieter nötig."
@@ -6317,7 +6322,7 @@
         },
         "allTypes": {
           "title": "Alle Erstellungsarten ansehen",
-          "description": "3D, Spiele, Skripte, Vorlesen und mehr"
+          "description": "Fertige Beispiele, 3D, Spiele, Skripte, Vorlesen und mehr"
         },
         "recentProjects": {
           "heading": "Zuletzt bearbeitete Projekte",

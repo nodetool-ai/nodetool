@@ -4460,7 +4460,8 @@
         "searchPlaceholder": "Search apps",
         "searchLabel": "Search apps",
         "noSearchResultsTitle": "No apps match your search",
-        "clearSearch": "Clear search"
+        "clearSearch": "Clear search",
+        "matchingWorkflows": "Workflows that match"
       },
       "games": {
         "gameplayImageAlt": "{{name}} gameplay",
@@ -6310,6 +6311,10 @@
             "title": "Create workflow",
             "description": "Automate and combine steps"
           },
+          "examples": {
+            "title": "Ready-made examples",
+            "description": "Workflows and apps already set up. Open one and use it on your own text or files."
+          },
           "model3d": {
             "title": "3D model",
             "description": "A blank 3D model to edit by hand. No AI provider needed."
@@ -6317,7 +6322,7 @@
         },
         "allTypes": {
           "title": "Explore all creation types",
-          "description": "3D, games, scripts, read aloud and more"
+          "description": "Ready-made examples, 3D, games, scripts, read aloud and more"
         },
         "recentProjects": {
           "heading": "Recent projects",

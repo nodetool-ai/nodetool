@@ -10,6 +10,8 @@ const listExampleApps = jest.fn();
 const installExampleApp = jest.fn();
 const openTab = jest.fn();
 const addNotification = jest.fn();
+const loadTemplates = jest.fn();
+const handleExampleClick = jest.fn();
 
 jest.mock("../../../utils/exampleApps", () => ({
   __esModule: true,
@@ -32,6 +34,17 @@ jest.mock("../../../stores/NotificationStore", () => ({
     selector({
       addNotification: (...args: unknown[]) => addNotification(...args)
     })
+}));
+
+jest.mock("../../../contexts/WorkflowManagerContext", () => ({
+  __esModule: true,
+  useWorkflowManager: <T,>(selector: (s: { loadTemplates: unknown }) => T) =>
+    selector({ loadTemplates: (...args: unknown[]) => loadTemplates(...args) })
+}));
+
+jest.mock("../../../hooks/useWorkflowActions", () => ({
+  __esModule: true,
+  useWorkflowActions: () => ({ handleExampleClick, loadingExampleId: null })
 }));
 
 const APPS = [
@@ -70,6 +83,7 @@ describe("DashboardExampleApps", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     listExampleApps.mockResolvedValue(APPS);
+    loadTemplates.mockResolvedValue({ workflows: [], next: null });
   });
 
   it("says what each app needs before it runs", async () => {
@@ -161,6 +175,36 @@ describe("DashboardExampleApps", () => {
     const clearButtons = screen.getAllByRole("button", { name: "Clear search" });
     await user.click(clearButtons[clearButtons.length - 1]);
     expect(screen.getByRole("button", { name: /sku factory/i })).toBeInTheDocument();
+  });
+
+  // UX research study 13: an Apps search for "jargon" found no app, and the
+  // participant never learned that a workflow example did the job.
+  it("names the workflow examples that match an apps search", async () => {
+    const rewrite = {
+      id: "rewrite",
+      name: "Rewrite This So a Customer Understands It",
+      description: "Jargon in, plain language out.",
+      tags: ["text"]
+    };
+    loadTemplates.mockResolvedValue({
+      workflows: [
+        rewrite,
+        { id: "german", name: "Translate Marketing Copy to German", description: "", tags: [] }
+      ],
+      next: null
+    });
+    const user = userEvent.setup();
+    renderApps();
+
+    await screen.findByRole("button", { name: /vary image/i });
+    expect(screen.queryByRole("group", { name: "Workflows that match" })).toBeNull();
+    await user.type(screen.getByRole("textbox", { name: "Search apps" }), "jargon");
+
+    expect(screen.getByText("No apps match your search")).toBeInTheDocument();
+    const row = await screen.findByRole("group", { name: "Workflows that match" });
+    expect(within(row).queryByText("Translate Marketing Copy to German")).toBeNull();
+    await user.click(within(row).getByText(rewrite.name));
+    expect(handleExampleClick).toHaveBeenCalledWith(rewrite);
   });
 
   it("lists only known app details without unavailable compatibility metadata", async () => {
