@@ -15,7 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
-import type { ClipModel3DCamera, TimelineClip } from "@nodetool-ai/timeline";
+import type { ClipEffect, ClipModel3DCamera, TimelineClip } from "@nodetool-ai/timeline";
 import {
   clipSourceMsAt,
   computeModel3DBakeHash,
@@ -207,6 +207,10 @@ function isRunningModel3DLayer(layer: ActiveLayer): boolean {
   );
 }
 
+function hasAnimatedGrain(effects: readonly ClipEffect[] | undefined): boolean {
+  return effects?.some((effect) => effect.type === "grain" && effect.enabled && effect.animate) ?? false;
+}
+
 /** Scene properties that the shared model, rather than animation sampling, resolves. */
 export function sceneRequiresPerFrameResolution(
   layers: readonly ActiveLayer[],
@@ -214,7 +218,9 @@ export function sceneRequiresPerFrameResolution(
   precomposites: readonly CompositePrecomposite[] = [],
   clips: readonly TimelineClip[] = []
 ): boolean {
-  return animatedLayout || precomposites.some((group) => group.transition !== undefined) || layers.some(
+  return animatedLayout ||
+    precomposites.some((group) => group.transition !== undefined || hasAnimatedGrain(group.effects)) ||
+    clips.some((clip) => clip.mediaType === "adjustment" && hasAnimatedGrain(clip.effects)) || layers.some(
     (layer) =>
       layer.transition !== undefined || layer.clip.reframe !== undefined ||
       // A clip fade is folded into the layer's opacity by the scene model, so
@@ -993,9 +999,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     () => ({
       width: sequenceWidth,
       height: sequenceHeight,
+      fps: sequenceFps,
       measureText: textMeasurer()
     }),
-    [sequenceWidth, sequenceHeight]
+    [sequenceWidth, sequenceHeight, sequenceFps]
   );
   /**
    * A `model3d` clip whose Blender bake still matches the live document plays
@@ -2177,7 +2184,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   buildLayersRef.current = buildLayers;
   const precompositesRef = useRef(precomposites);
   precompositesRef.current = precomposites;
-  const hasAnimatedAdjustments = previewClips.some((clip) => clip.mediaType === "adjustment" && clip.animations?.length);
+  const hasAnimatedAdjustments = previewClips.some((clip) => clip.mediaType === "adjustment" && (clip.animations?.length || hasAnimatedGrain(clip.effects)));
   const hasAnimatedAdjustmentsRef = useRef(hasAnimatedAdjustments);
   hasAnimatedAdjustmentsRef.current = hasAnimatedAdjustments;
   const adjustmentsRef = useRef(adjustments);

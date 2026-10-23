@@ -110,6 +110,36 @@ describe("renderTimeline motion", () => {
     jest.clearAllMocks();
   });
 
+  it("holds animated grain at the sequence fps when exporting at a higher fps", async () => {
+    const track = makeTrack({ id: "titles", type: "overlay", index: 0 });
+    const clip = makeClip({
+      trackId: track.id,
+      mediaType: "text",
+      status: "generated",
+      durationMs: 100,
+      textStyle: { text: "Grain", fontSizePx: 96, color: "#ffffff" },
+      effects: [{ id: "grain", type: "grain", enabled: true, amount: 0.25, animate: true }]
+    });
+
+    await renderTimeline({
+      tracks: [track],
+      clips: [clip],
+      width: 1920,
+      height: 1080,
+      fps: 60,
+      referenceFps: 24,
+      durationMs: 100,
+      resolveUrl: jest.fn().mockResolvedValue(undefined)
+    });
+
+    expect(mockSetLayers).toHaveBeenCalledTimes(6);
+    [0, 0, 0, 1, 1, 2].forEach((seed, index) => {
+      expect(mockSetLayers.mock.calls[index][0][0].effects).toEqual([
+        expect.objectContaining({ type: "grain", seed })
+      ]);
+    });
+  });
+
   it("samples authored motion for every exported frame", async () => {
     const track = makeTrack({ id: "titles", type: "overlay", index: 0 });
     const clip = makeClip({

@@ -211,6 +211,9 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "liftGammaGain, applied in the " +
         "order given. blur takes radius in pixels, e.g. {type: \"blur\", " +
         "radius: 80}; unknown parameters such as amount are rejected. " +
+        "grain takes amount (default 0.25), size, colorAmount, roughness " +
+        "(fine-grain weight 0..1, default 0.5), softness (0..1, default 0.25), " +
+        "seed and animate (changes once per sequence frame). " +
         "An empty list clears it. " +
         'add_marker takes {"timeMs", "label"?, "color"?, "note"?} and ' +
         'delete_marker {"target"} (marker id or label). ' +

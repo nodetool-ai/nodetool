@@ -1065,7 +1065,7 @@ export const clipLiftGammaGainEffect = z.object({
   gain: rgbTriple
 });
 
-/** Mirrors ClipGrainEffect. Absent knobs mean `filters.grain@1`'s own defaults. */
+/** Mirrors ClipGrainEffect. Absent knobs mean `filters.grain@2`'s own defaults. */
 export const clipGrainEffect = z.object({
   id: z.string(),
   type: z.literal("grain"),
@@ -1073,6 +1073,8 @@ export const clipGrainEffect = z.object({
   amount: z.number(),
   size: z.number().optional(),
   colorAmount: z.number().optional(),
+  roughness: z.number().min(0).max(1).optional(),
+  softness: z.number().min(0).max(1).optional(),
   animate: z.boolean().optional(),
   seed: z.number().optional()
 });

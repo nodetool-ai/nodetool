@@ -1013,7 +1013,8 @@ export const useTimelineAgentBridge = (
               clips: state.clips,
               mediaTracks: state.mediaTracks,
               tempo: state.tempo,
-              camera2d: state.camera2d
+              camera2d: state.camera2d,
+              fps: state.fps
             }
           );
           return {

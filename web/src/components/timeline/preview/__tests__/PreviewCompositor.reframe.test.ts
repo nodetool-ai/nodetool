@@ -35,6 +35,25 @@ describe("Smart Reframe preview scheduling", () => {
 });
 
 describe("group transition preview scheduling", () => {
+  it("re-resolves animated grain on groups and adjustment clips", () => {
+    const track = makeTrack({ id: "video", type: "video", index: 0 });
+    for (const mediaType of ["group", "adjustment"] as const) {
+      const grainClip = makeClip({
+        id: "grain", trackId: track.id, mediaType, durationMs: 1000,
+        effects: [{ id: "grain", type: "grain", enabled: true, animate: true, amount: 0.25 }]
+      });
+      const child = makeClip({
+        trackId: track.id, mediaType: "image", currentAssetId: "asset", status: "generated", durationMs: 1000
+      });
+      if (mediaType === "group") {
+        child.parentId = grainClip.id;
+      }
+      const clips = [grainClip, child];
+      const scene = computeActiveLayersWithHorizon([track], clips, 0, { canvas: { width: 100, height: 100, fps: 24 } });
+      expect(sceneRequiresPerFrameResolution(scene.layers, false, buildCompositePrecomposites(scene.precomposites), clips)).toBe(true);
+    }
+  });
+
   it("re-resolves a group-only still scene as its transition progresses", () => {
     const video = makeTrack({ id: "video", type: "video", index: 0, visible: true });
     const overlay = makeTrack({ id: "overlay", type: "overlay", index: 1, visible: true });

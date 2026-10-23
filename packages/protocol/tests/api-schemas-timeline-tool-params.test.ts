@@ -194,8 +194,28 @@ describe("build helpers keep only the fields the named type reads", () => {
     const result = effectParams.safeParse({ type: "grain", foo: 1 });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.message).toBe(
-      'grain does not accept parameter "foo". Allowed parameters: amount, size, colorAmount, animate.'
+      'grain does not accept parameter "foo". Allowed parameters: amount, size, colorAmount, roughness, softness, seed, animate.'
     );
+  });
+
+  it("preserves grain texture controls and its deterministic seed", () => {
+    const input = effectParams.parse({
+      type: "grain", amount: 0.25, size: 2, colorAmount: 0.1,
+      roughness: 0.7, softness: 0.3, seed: 42, animate: true
+    });
+    expect(buildEffect(input, 0)).toEqual({
+      ...input, id: "fx-1", enabled: true
+    });
+    expect(buildEffect({ type: "grain" }, 0)).toMatchObject({ amount: 0.25 });
+  });
+
+  it.each(["roughness", "softness"])("bounds grain %s to 0..1", (field) => {
+    for (const value of [0, 1]) {
+      expect(effectParams.safeParse({ type: "grain", [field]: value }).success).toBe(true);
+    }
+    for (const value of [-0.01, 1.01]) {
+      expect(effectParams.safeParse({ type: "grain", [field]: value }).success).toBe(false);
+    }
   });
 
   it("names the valid modes for a missing or unknown stylize/generator mode", () => {

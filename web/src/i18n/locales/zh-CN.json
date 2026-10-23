@@ -5315,6 +5315,7 @@
           "opacity": "不透明度",
           "amount": "数量",
           "softness": "柔和度",
+          "roughness": "粗糙度",
           "size": "大小",
           "animate": "动态",
           "keyColor": "抠像颜色",

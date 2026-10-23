@@ -119,54 +119,72 @@ function gaussian(input: Uint8ClampedArray, width: number, height: number, radiu
   return source;
 }
 
-// Match the float32 arithmetic of filters.grain@1, including hash rounding.
+// Match filters.grain@2 operation ordering and float32 arithmetic.
 const f32 = Math.fround;
-const fract32 = (n: number): number => f32(n - Math.floor(n));
 
-function hash31(x: number, y: number, z: number): number {
-  let px = fract32(f32(f32(x) * f32(0.1031)));
-  let py = fract32(f32(f32(y) * f32(0.1031)));
-  let pz = fract32(f32(f32(z) * f32(0.1031)));
-  const dot = f32(f32(f32(px * f32(py + f32(33.33))) + f32(py * f32(pz + f32(33.33)))) + f32(pz * f32(px + f32(33.33))));
-  px = f32(px + dot); py = f32(py + dot); pz = f32(pz + dot);
-  return fract32(f32(f32(px + py) * pz));
+function grainHash(cx: number, cy: number, seed: number): number {
+  let h = Math.imul(cx, 1597334677) ^ Math.imul(cy, 3812015801) ^ Math.imul(seed, 2798796415);
+  h = Math.imul(h ^ (h >>> 16), 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 3266489917);
+  h ^= h >>> 16;
+  return f32((h >>> 8) / 16777216);
 }
 
 function gaussAt(cx: number, cy: number, seed: number): number {
-  const a = hash31(cx, cy, seed);
-  const b = hash31(f32(cx + 57), f32(cy + 57), seed);
-  const c = hash31(f32(cx + 113), f32(cy + 113), seed);
+  const a = grainHash(cx, cy, seed);
+  const b = grainHash(cx, cy, seed + 1013);
+  const c = grainHash(cx, cy, seed + 3037);
   return f32(f32(f32(f32(a + b) + c) - 1.5) * 2);
 }
 
-function valueNoise(px: number, py: number, seed: number): number {
-  const ix = Math.floor(px), iy = Math.floor(py);
-  const fx = f32(px - ix), fy = f32(py - iy);
-  const ux = f32(fx * fx * (3 - 2 * fx)), uy = f32(fy * fy * (3 - 2 * fy));
-  const n00 = gaussAt(ix, iy, seed);
-  const n10 = gaussAt(f32(ix + 1), iy, seed);
-  const n01 = gaussAt(ix, f32(iy + 1), seed);
-  const n11 = gaussAt(f32(ix + 1), f32(iy + 1), seed);
-  const top = n00 + (n10 - n00) * ux;
-  const bottom = n01 + (n11 - n01) * ux;
-  return f32(top + (bottom - top) * uy);
+function softenedNoise(px: number, py: number, seed: number, softness: number): number {
+  const ix = Math.floor(f32(px + 0.5));
+  const iy = Math.floor(f32(py + 0.5));
+  const sigma = f32(f32(0.7) + f32(softness * f32(0.3)));
+  const falloff = f32(0.5 / f32(sigma * sigma));
+  const boundary = f32(Math.exp(f32(-4 * falloff)));
+  let sum = 0;
+  let energy = 0;
+  for (let y = -2; y <= 2; y++) {
+    for (let x = -2; x <= 2; x++) {
+      const cx = ix + x;
+      const cy = iy + y;
+      const jitterX = f32(grainHash(cx, cy, seed + 4001) - 0.5);
+      const jitterY = f32(grainHash(cx, cy, seed + 8089) - 0.5);
+      const dx = f32(px - f32(cx + jitterX));
+      const dy = f32(py - f32(cy + jitterY));
+      const squared = f32(f32(dx * dx) + f32(dy * dy));
+      const weight = Math.max(0, f32(f32(Math.exp(f32(-squared * falloff))) - boundary));
+      sum = f32(sum + f32(gaussAt(cx, cy, seed) * weight));
+      energy = f32(energy + f32(weight * weight));
+    }
+  }
+  return f32(sum / f32(Math.sqrt(energy)));
 }
 
-function grainAt(px: number, py: number, seed: number, channel: number): number {
-  const s = f32(seed + f32(channel * f32(19.19)));
-  const coarse = valueNoise(px, py, s);
-  const fine = valueNoise(f32(f32(px * 2) + 17), f32(f32(py * 2) + 29), f32(s + 7));
-  return (coarse + 0.5 * fine) * 0.8944;
+function grainAt(px: number, py: number, seed: number, roughness: number, softness: number): number {
+  const coarseX = f32(f32(px * f32(0.8)) - f32(py * f32(0.6)));
+  const coarseY = f32(f32(px * f32(0.6)) + f32(py * f32(0.8)));
+  const fineX = f32(f32(f32(f32(px * f32(0.9238795)) + f32(py * f32(0.3826834))) * 2) + 17);
+  const fineY = f32(f32(f32(f32(-px * f32(0.3826834)) + f32(py * f32(0.9238795))) * 2) + 29);
+  const coarse = softenedNoise(coarseX, coarseY, seed, softness);
+  const fine = softenedNoise(fineX, fineY, seed + 7919, softness);
+  return f32(f32(coarse + f32(roughness * fine)) / f32(Math.sqrt(f32(1 + f32(roughness * roughness)))));
 }
 
-/** Grain lattice position and folded seed for one pixel, exactly as the shader derives them. */
-function grainLattice(x: number, y: number, size: number, seed: number): { px: number; py: number; folded: number } {
-  const s = f32(seed);
-  const folded = f32(s - f32(8192 * Math.floor(s / 8192)));
-  const shiftX = Math.floor(f32(hash31(folded, f32(1.7), f32(9.2)) * 512));
-  const shiftY = Math.floor(f32(hash31(folded, f32(4.1), f32(3.3)) * 512));
-  const cell = f32(Math.max(f32(size), 1));
-  return { px: f32(f32(x / cell) + shiftX), py: f32(f32(y / cell) + shiftY), folded };
+function grainSmoothstep(low: number, high: number, value: number): number {
+  const t = f32(clamp(f32(f32(value - f32(low)) / f32(f32(high) - f32(low)))));
+  return f32(f32(t * t) * f32(3 - f32(2 * t)));
+}
+
+function softLight(base: number, blend: number): number {
+  if (blend <= 0.5) {
+    return f32(base - f32(f32(f32(1 - f32(2 * blend)) * base) * f32(1 - base)));
+  }
+  const d = base <= 0.25
+    ? f32(f32(f32(f32(f32(16 * base) - 12) * base) + 4) * base)
+    : f32(Math.sqrt(base));
+  return f32(base + f32(f32(f32(2 * blend) - 1) * f32(d - base)));
 }
 
 /** CPU counterparts of the persisted GPU color, keying and texture effects. */
@@ -228,15 +246,28 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
           }
         } else if (isClipGrainEffect(effect)) {
           if (a > 0) {
-            const { px, py, folded } = grainLattice(x, y, effect.size ?? 1, effect.seed ?? 0);
-            const mono = grainAt(px, py, folded, 0);
-            const colorAmount = clamp(effect.colorAmount ?? 0);
-            const luma = rgb[0]! * 0.2126 + rgb[1]! * 0.7152 + rgb[2]! * 0.0722;
-            const response = clamp(luma * 6) * (1 - 0.65 * luma * luma);
-            const sigma = clamp(effect.amount) * 0.15 * response;
+            const size = Math.max(f32(effect.size ?? 1), 1);
+            const seed = f32(effect.seed ?? 0);
+            const folded = Math.floor(f32(seed - f32(8192 * Math.floor(f32(seed / 8192)))));
+            const px = f32(f32(x / size) * 1.75);
+            const py = f32(f32(y / size) * 1.75);
+            const roughness = f32(clamp(effect.roughness ?? 0.5));
+            const softness = f32(clamp(effect.softness ?? 0.25));
+            const mono = grainAt(px, py, folded, roughness, softness);
+            const colorAmount = f32(clamp(effect.colorAmount ?? 0));
+            a = f32(a);
             for (let c = 0; c < 3; c++) {
-              const n = colorAmount > 0 ? mono + (grainAt(px, py, folded, c + 1) - mono) * colorAmount : mono;
-              rgb[c] = clamp(rgb[c]! + n * sigma);
+              rgb[c] = f32(f32((input[i + c] ?? 0) / 255) / a);
+            }
+            const luma = f32(f32(f32((rgb[0] ?? 0) * f32(0.2126)) + f32((rgb[1] ?? 0) * f32(0.7152))) + f32((rgb[2] ?? 0) * f32(0.0722)));
+            const response = f32(grainSmoothstep(0.02, 0.28, luma) * f32(1 - grainSmoothstep(0.72, 1, luma)));
+            const sigma = f32(f32(f32(clamp(effect.amount)) * f32(0.2)) * response);
+            for (let c = 0; c < 3; c++) {
+              const n = colorAmount > 0
+                ? f32(mono + f32(f32(grainAt(px, py, folded + (c + 1) * 131, roughness, softness) - mono) * colorAmount))
+                : mono;
+              const blend = clamp(f32(0.5 + f32(n * sigma)));
+              rgb[c] = clamp(softLight(rgb[c] ?? 0, blend));
             }
           }
         } else {

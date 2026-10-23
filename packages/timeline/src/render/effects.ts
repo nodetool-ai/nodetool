@@ -30,7 +30,7 @@ import {
   mixerDropShadowV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
-  filtersGrainV1,
+  filtersGrainV2,
   filtersPixelateV1,
   colorPosterizeV1,
   colorCubeLutV1,
@@ -522,12 +522,14 @@ export class WebGPUEffectsProcessor {
       // `animate` is not a knob here: the scene model has already stamped the
       // frame's seed on the effect, so this only ever draws the pattern it is
       // handed. That is what keeps a render reproducible.
-      step(filtersGrainV1, {
+      step(filtersGrainV2, {
         amount: effect.amount,
-        size: effect.size ?? filtersGrainV1.paramDefaults.size,
+        size: effect.size ?? filtersGrainV2.paramDefaults.size,
         colorAmount:
-          effect.colorAmount ?? filtersGrainV1.paramDefaults.colorAmount,
-        seed: effect.seed ?? filtersGrainV1.paramDefaults.seed
+          effect.colorAmount ?? filtersGrainV2.paramDefaults.colorAmount,
+        roughness: effect.roughness ?? filtersGrainV2.paramDefaults.roughness,
+        softness: effect.softness ?? filtersGrainV2.paramDefaults.softness,
+        seed: effect.seed ?? filtersGrainV2.paramDefaults.seed
       });
       return;
     }

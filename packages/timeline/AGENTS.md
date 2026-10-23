@@ -500,26 +500,20 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   validator's `crop_degenerate`. Canvas 2D needs a `cropSurface` from its host;
   without one it draws uncropped and reports `crop_skipped` (I7).
 
-## Film grain (`filters.grain@1`)
+## Film grain (`filters.grain@2`)
 
-- **Grain multiplies, it does not add.** The layer arrives premultiplied, so
-  `rgb <= a` holds on every pixel and adding noise pushes a channel past its own
-  alpha — invisible on an opaque layer, a bright fringe wherever it is
-  translucent. A per-channel gain saturated against alpha preserves the
-  invariant, and it is also how stock behaves: grain bites in the midtones and
-  leaves black black. The case that catches the additive version is a _dark_
-  half-opaque source; on a bright one the readback's own saturation hides it,
-  which is why `render.grain.gpu.test.ts` says so where it picks its fixture.
-- **The pattern is a hash of the grain cell and a seed — no clock, no
-  `Math.random`.** `resolveAnimatedLayerProps` stamps the frame's time on an
-  `animate` grain, so it rolls the way exposed stock does while two renders of
-  the same frame stay byte-identical and a cached render can be handed back.
-  That is the one place the roll happens, and it is why the shader has no
-  `animate` knob: by the time the chain runs, the seed is already decided.
-- **Canvas 2D grain uses a CPU pixel-effect path**, not a CSS filter.
-  `applyCpuLegacyEffects` applies seeded, alpha-safe grain. Keep its seed and
-  frame-time inputs deterministic so repeated renders of a frame remain
-  stable.
+- **The timeline uses Soft Light grain in straight colour.** Weight the noise
+  toward midtones and premultiply the result again so `rgb <= a` remains true.
+  Pure black and white stay clean. Keep `filters.grain@1` available for callers
+  that explicitly request that version.
+- **The pattern depends on the lattice and sequence frame index.**
+  `resolveAnimatedLayerProps` seeds animated grain with
+  `floor(currentTimeMs * fps / 1000)`. Hosts must pass the sequence's `fps` in
+  their render canvas. Repeated previews within one sequence frame and exports
+  of that frame must use the same seed, independent of clip animation stepping.
+- **Canvas 2D mirrors the GPU model.** Keep the lattice, octave weights,
+  softening, blend and float arithmetic in `cpuLegacyEffects.ts` aligned with
+  the shader. Verify both paths with the grain parity tests.
 
 ## Generated mattes (`src/generatedMatte.ts`, D2)
 

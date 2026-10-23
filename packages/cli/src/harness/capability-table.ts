@@ -2253,11 +2253,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "747859c2756e",
+    contract: "72f40d89d821",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
-      "packages/agents/tests/capabilities-timelines-presets.test.ts",
+      "packages/agents/tests/capabilities-timelines-grain.test.ts",
     ],
     evals: [
       {

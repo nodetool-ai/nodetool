@@ -64,6 +64,7 @@ export interface HeadlessRenderRequest {
   /** The sequence size layers are laid out in. */
   referenceWidth: number;
   referenceHeight: number;
+  referenceFps?: number;
   fps: number;
   durationMs: number;
   alpha: boolean;

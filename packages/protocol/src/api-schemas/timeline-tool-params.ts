@@ -1206,7 +1206,7 @@ const EFFECT_PARAMETER_FIELDS: Record<
   vignette: ["amount", "softness"],
   sharpen: ["amount", "radius"],
   chromaKey: ["color", "tolerance", "softness", "spill"],
-  grain: ["amount", "size", "colorAmount", "animate"],
+  grain: ["amount", "size", "colorAmount", "roughness", "softness", "seed", "animate"],
   curves: ["master", "r", "g", "b"],
   levels: ["inBlack", "inWhite", "gamma", "outBlack", "outWhite"],
   liftGammaGain: ["lift", "gammaRgb", "gain"]
@@ -1241,7 +1241,7 @@ export const effectParams = z.object({
   mode: z.string().optional().describe("stylize or generator mode."),
   scale: z.number().optional().describe("stylize or generator spatial scale."),
   time: z.number().optional().describe("stylize or generator time in seconds."),
-  seed: z.number().optional().describe("stylize or generator deterministic seed."),
+  seed: z.number().optional().describe("stylize, generator or grain deterministic seed."),
   colorA: z.string().optional().describe("generator first colour."),
   colorB: z.string().optional().describe("generator second colour."),
   cube: z.string().optional().describe("lut: full contents of a 3D .cube file."),
@@ -1269,19 +1269,25 @@ export const effectParams = z.object({
   size: z
     .number()
     .optional()
-    .describe("grain: cell size in the clip's own pixels, 1 is per-pixel."),
+    .describe("grain: grain size in rendered pixels, 1 is fine grain."),
   colorAmount: z
     .number()
     .optional()
     .describe("grain: 0 is monochrome grain, 1 full colour noise."),
+  roughness: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("grain: fine-octave weight, 0..1, default 0.5."),
   animate: z
     .boolean()
     .optional()
-    .describe("grain: roll the pattern per frame instead of holding one."),
+    .describe("grain: roll the pattern once per sequence frame instead of holding one."),
   softness: z
     .number()
     .optional()
-    .describe("vignette falloff and chromaKey edge, 0..1."),
+    .describe("vignette falloff, chromaKey edge or grain softening, 0..1. Grain defaults to 0.25."),
   tolerance: z.number().optional().describe("chromaKey: match width, 0..1."),
   spill: z.number().optional().describe("chromaKey: spill suppression, 0..1."),
   master: curvePoints.optional().describe("curves: the luminance curve."),
@@ -1308,6 +1314,14 @@ export const effectParams = z.object({
   // issue, which would never name the type's actual allowed fields.
   .passthrough()
   .superRefine((input, context) => {
+    if (input.type === "grain" && input.softness !== undefined &&
+        (input.softness < 0 || input.softness > 1)) {
+      context.addIssue({
+        code: "custom",
+        path: ["softness"],
+        message: "grain softness must be between 0 and 1."
+      });
+    }
     const allowed = EFFECT_PARAMETER_FIELDS[input.type];
     for (const [field, value] of Object.entries(input)) {
       if (field !== "type" && value !== undefined && !allowed.includes(field)) {
@@ -1420,6 +1434,9 @@ export function buildEffect(
         amount: input.amount ?? 0.25,
         size: input.size,
         colorAmount: input.colorAmount,
+        roughness: input.roughness,
+        softness: input.softness,
+        seed: input.seed,
         animate: input.animate
       };
     case "curves":

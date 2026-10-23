@@ -92,6 +92,8 @@ type AddableEffectType = (typeof ADDABLE_EFFECTS)[number]["value"];
  * so the slider shows the number the frame was rendered with.
  */
 const DEFAULT_SPILL = 0.5;
+const DEFAULT_GRAIN_ROUGHNESS = 0.5;
+const DEFAULT_GRAIN_SOFTNESS = 0.25;
 
 const EFFECT_LABEL_KEYS: Record<string, string> = {
   ...Object.fromEntries(ADDABLE_EFFECTS.map((e) => [e.value, e.labelKey])),
@@ -176,6 +178,8 @@ function makeEffect(type: AddableEffectType): ClipEffect {
         amount: 0.25,
         size: 1,
         colorAmount: 0,
+        roughness: DEFAULT_GRAIN_ROUGHNESS,
+        softness: DEFAULT_GRAIN_SOFTNESS,
         animate: true
       };
   }
@@ -350,6 +354,24 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             value={effect.size ?? 1}
             display={`${(effect.size ?? 1).toFixed(1)}px`}
             onChange={(size) => onPatch({ size })}
+          />
+          <InspectorSliderRow
+            label={t("pass3_24.timeline.effects.fields.roughness")}
+            min={0}
+            max={1}
+            step={0.01}
+            value={effect.roughness ?? DEFAULT_GRAIN_ROUGHNESS}
+            display={(effect.roughness ?? DEFAULT_GRAIN_ROUGHNESS).toFixed(2)}
+            onChange={(roughness) => onPatch({ roughness })}
+          />
+          <InspectorSliderRow
+            label={t("pass3_24.timeline.effects.fields.softness")}
+            min={0}
+            max={1}
+            step={0.01}
+            value={effect.softness ?? DEFAULT_GRAIN_SOFTNESS}
+            display={(effect.softness ?? DEFAULT_GRAIN_SOFTNESS).toFixed(2)}
+            onChange={(softness) => onPatch({ softness })}
           />
           <InspectorSliderRow
             label={t("pass3_24.timeline.effects.fields.color")}

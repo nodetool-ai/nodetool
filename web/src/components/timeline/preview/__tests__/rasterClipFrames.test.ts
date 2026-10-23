@@ -131,14 +131,14 @@ describe("renderRasterClipFrames", () => {
       1,
       expect.objectContaining({ clip, opacity: 0.8 }),
       1000,
-      { width: 1920, height: 1080 },
+      { width: 1920, height: 1080, fps: 30 },
       expect.any(Map)
     );
     expect(resolveAnimatedLayerProps).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ clip, opacity: 0.8 }),
       1500,
-      { width: 1920, height: 1080 },
+      { width: 1920, height: 1080, fps: 30 },
       expect.any(Map)
     );
     expect(setLayers).toHaveBeenCalledTimes(2);

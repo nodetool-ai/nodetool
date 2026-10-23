@@ -5315,6 +5315,7 @@
           "opacity": "Deckkraft",
           "amount": "Betrag",
           "softness": "Weichheit",
+          "roughness": "Rauheit",
           "size": "Größe",
           "animate": "Animieren",
           "keyColor": "Schlüsselfarbe",

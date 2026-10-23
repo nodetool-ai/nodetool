@@ -538,7 +538,7 @@ export function resolveGroups(
       const spatial = camera && !parent?.cameraApplied && own.transform?.depthPx !== undefined
         ? resolveCamera2D(own.transform ?? IDENTITY_TRANSFORM, sampleCamera2D(camera, currentTimeMs), current.effects)
         : null;
-      const effects = spatial?.effects ?? current.effects;
+      const effects = seedAnimatedGrain(spatial?.effects ?? current.effects, currentTimeMs, canvas?.fps ?? 30);
       const transition = groupTransitions.get(current.id);
       const precompose = groupNeedsPrecomposite(
         effects === current.effects ? current : { ...current, effects },
@@ -2070,6 +2070,8 @@ export function resolveAnimatedLayerProps(
   tracking?: RenderTrackingContext
 ): AnimatedLayerProps {
   const clip = layer.clip;
+  const sequenceTimeMs = currentTimeMs;
+  const fps = canvas.fps ?? 30;
   currentTimeMs = clipSteppedTime(clip, currentTimeMs);
   const trackOffset = resolveTrackBindingOffset(
     clip,
@@ -2080,7 +2082,7 @@ export function resolveAnimatedLayerProps(
   const compiled = compiledFor(clip, canvas, cache, tracking?.tempo);
   const links = resolveAnimationLinks(clip, currentTimeMs, tracking?.clips ?? [], canvas, tracking?.tempo);
   if (compiled.length === 0 && Object.keys(links).length === 0) {
-    return cameraProps(staticProps(layer, currentTimeMs, trackOffset), layer.camera2d, currentTimeMs);
+    return cameraProps(staticProps(layer, currentTimeMs, fps, sequenceTimeMs, trackOffset), layer.camera2d, currentTimeMs);
   }
 
   const localMs = currentTimeMs - clip.startMs;
@@ -2102,7 +2104,7 @@ export function resolveAnimatedLayerProps(
     styles.borderRadius === clip.borderRadius &&
     Object.keys(links).length === 0
   ) {
-    return cameraProps(staticProps(layer, currentTimeMs, trackOffset), layer.camera2d, currentTimeMs);
+    return cameraProps(staticProps(layer, currentTimeMs, fps, sequenceTimeMs, trackOffset), layer.camera2d, currentTimeMs);
   }
 
   const base = layer.transform ?? IDENTITY_TRANSFORM;
@@ -2143,7 +2145,9 @@ export function resolveAnimatedLayerProps(
     mask: s.mask,
     effects: seedAnimatedGrain(
       composeAnimatedEffects(styles?.effects ?? clip.effects, s),
-      currentTimeMs
+      currentTimeMs,
+      fps,
+      sequenceTimeMs
     ),
     shapeStyle: composeAnimatedShapeStyle(styles?.shapeStyle ?? clip.shapeStyle, s),
     textStyle,
@@ -2175,6 +2179,8 @@ function staticProps(
     opacity: number;
   },
   currentTimeMs: number,
+  fps: number,
+  sequenceTimeMs: number,
   trackOffset?: { x: number; y: number; scale: number; rotation: number }
 ): AnimatedLayerProps {
   const base = layer.transform ?? IDENTITY_TRANSFORM;
@@ -2201,7 +2207,7 @@ function staticProps(
   return {
     transform,
     opacity: layer.opacity,
-    effects: seedAnimatedGrain(layer.clip.effects, currentTimeMs),
+    effects: seedAnimatedGrain(layer.clip.effects, currentTimeMs, fps, sequenceTimeMs),
     shapeStyle: layer.clip.shapeStyle,
     textStyle: layer.clip.textStyle,
     clipMask: layer.clip.mask,
@@ -2260,7 +2266,7 @@ function composeAnimatedEffects(
  * Give every `animate` grain the frame's own seed, so the pattern rolls the way
  * exposed stock does instead of sitting on the picture like dirt on the lens.
  *
- * The seed is the frame time, not a counter and not `Math.random`: re-rendering
+ * The seed is the sequence frame index, not a counter or `Math.random`: re-rendering
  * one frame draws the same grain, which is what lets a cached render be handed
  * back and what makes the preview and the export agree. Every host resolves its
  * layers through {@link resolveAnimatedLayerProps}, so this is the one place
@@ -2269,12 +2275,14 @@ function composeAnimatedEffects(
  */
 function seedAnimatedGrain(
   effects: ClipEffect[] | undefined,
-  currentTimeMs: number
+  currentTimeMs: number,
+  fps: number,
+  sequenceTimeMs = currentTimeMs
 ): ClipEffect[] | undefined {
   if (!effects?.some((e) => e.enabled && ((isClipGrainEffect(e) && e.animate) || ((e.type === "generator" || e.type === "stylize") && e.animate)))) {
     return effects;
   }
-  const seed = Math.floor(currentTimeMs);
+  const seed = Math.floor(sequenceTimeMs * fps / 1000);
   return effects.map((e) => {
     if (!e.enabled) return e;
     if (isClipGrainEffect(e) && e.animate) return { ...e, seed };

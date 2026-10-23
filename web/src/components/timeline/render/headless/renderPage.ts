@@ -179,6 +179,7 @@ window[HEADLESS_RENDER_ENTRY] = async (request) => {
     height: request.height,
     referenceWidth: request.referenceWidth,
     referenceHeight: request.referenceHeight,
+    referenceFps: request.referenceFps,
     fps: request.fps,
     durationMs: request.durationMs,
     resolveUrl,

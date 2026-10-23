@@ -29,7 +29,7 @@ export async function renderRasterClipFrames(
   outputWidth: number,
   sequenceWidth: number,
   sequenceHeight: number,
-  context?: { clips: TimelineClip[]; mediaTracks: MediaTrack[]; tempo?: TimelineTempo; camera2d?: TimelineCamera2D | null }
+  context?: { clips: TimelineClip[]; mediaTracks: MediaTrack[]; tempo?: TimelineTempo; camera2d?: TimelineCamera2D | null; fps?: number }
 ): Promise<RasterClipFrame[]> {
   if (
     clip.mediaType !== "text" &&
@@ -68,6 +68,7 @@ export async function renderRasterClipFrames(
   const animationCanvas = {
     width: sequenceWidth,
     height: sequenceHeight,
+    fps: context?.fps ?? 30,
     measureText: textMeasurer()
   };
   const layoutTransform = context ? resolveClipLayouts(context.clips, animationCanvas).get(clip.id) : undefined;

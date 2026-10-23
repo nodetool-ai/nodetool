@@ -143,6 +143,8 @@ interface RenderTimelineOptions {
    */
   referenceWidth?: number;
   referenceHeight?: number;
+  /** Sequence frame rate when the export uses a different output rate. */
+  referenceFps?: number;
   fps: number;
   /** Total timeline length to render, in milliseconds. */
   durationMs: number;
@@ -550,6 +552,7 @@ export async function renderTimeline(
     const animCanvas = {
       width: opts.referenceWidth ?? opts.width,
       height: opts.referenceHeight ?? opts.height,
+      fps: opts.referenceFps ?? fps,
       measureText: textMeasurer()
     };
     const animCache = createAnimationCompileCache();

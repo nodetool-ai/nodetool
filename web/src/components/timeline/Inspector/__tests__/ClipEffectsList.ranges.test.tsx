@@ -72,3 +72,35 @@ describe("ClipEffectsList lift/gamma/gain", () => {
     expect(patchClip).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ClipEffectsList grain", () => {
+  it("shows defaults for saved grain and writes roughness and softness edits", () => {
+    const grain: ClipEffect = {
+      id: "fx_grain", type: "grain", enabled: true, amount: 0.25
+    };
+    const clip: TimelineClip = {
+      ...makeClip({ trackId: "t1", mediaType: "video", startMs: 0, durationMs: 1000 }),
+      effects: [grain]
+    };
+    render(<ThemeProvider theme={mockTheme}><ClipEffectsList clip={clip} /></ThemeProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "Film grain" }));
+
+    const roughness = screen.getByRole("slider", { name: "Roughness" });
+    const softness = screen.getByRole("slider", { name: "Softness" });
+    expect(roughness).toHaveAttribute("aria-valuenow", "0.5");
+    expect(softness).toHaveAttribute("aria-valuenow", "0.25");
+    expect(roughness).toHaveAttribute("aria-valuemin", "0");
+    expect(roughness).toHaveAttribute("aria-valuemax", "1");
+    expect(softness).toHaveAttribute("aria-valuemin", "0");
+    expect(softness).toHaveAttribute("aria-valuemax", "1");
+
+    fireEvent.change(roughness, { target: { value: "0.7" } });
+    expect(patchClip).toHaveBeenLastCalledWith(clip.id, {
+      effects: [{ ...grain, roughness: 0.7 }]
+    });
+    fireEvent.change(softness, { target: { value: "0.4" } });
+    expect(patchClip).toHaveBeenLastCalledWith(clip.id, {
+      effects: [{ ...grain, softness: 0.4 }]
+    });
+  });
+});

@@ -361,6 +361,7 @@ export async function renderTimelineFrames(
   const animationCanvas = {
     width: Math.max(1, sequence.width || 1920),
     height: Math.max(1, sequence.height || 1080),
+    fps: Math.max(1, sequence.fps || 30),
     // A `"line"` stagger is counted against the wrapped line count, so the
     // count measures through the same kind of context the rasterizer draws on.
     measureText: measureTextWith(

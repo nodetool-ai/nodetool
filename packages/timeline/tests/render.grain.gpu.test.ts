@@ -1,5 +1,5 @@
 /**
- * Film grain on the GPU path (`filters.grain@1`).
+ * Film grain on the GPU path (`filters.grain@2`).
  *
  * Three properties, each one a way the effect has to be wrong before it is
  * merely ugly:
@@ -10,7 +10,7 @@
  * 2. **It stays inside its own alpha.** The layer arrives premultiplied, so
  *    `rgb <= a` holds on every pixel and noise added to the premultiplied value
  *    would push a channel past it — invisible on an opaque layer, a bright
- *    fringe on a translucent one. That is why the module adds grain to the
+ *    fringe on a translucent one. That is why the module blends grain into the
  *    straight colour and premultiplies again, and why the case that would have
  *    caught it is the half-transparent one.
  * 3. **It is reproducible.** Same seed, same bytes. A render handed back from a
@@ -20,6 +20,7 @@
  * means no Vulkan ICD — see AGENTS.md § WebGPU on a headless machine.
  */
 import { describe, expect, it } from "vitest";
+import { applyCpuLegacyEffects } from "../src/render/cpuLegacyEffects.js";
 import type { ClipGrainEffect } from "../src/index.js";
 import {
   HeadlessFrameCompositor,
@@ -103,6 +104,70 @@ function channelSpread(rgba: Uint8Array, channel = 0): number {
 }
 
 describe.runIf(noAdapterReason === null)("grain on the GPU path", () => {
+  it.each([
+    { size: 1, roughness: 0.5, softness: 0.25, colorAmount: 0, seed: 7, alpha: 255 },
+    { size: 3.5, roughness: 0, softness: 0, colorAmount: 0, seed: 2203, alpha: 255 },
+    { size: 8, roughness: 1, softness: 1, colorAmount: 1, seed: -3, alpha: 255 },
+    { size: 16, roughness: 0.4, softness: 0.6, colorAmount: 0.3, seed: 1234567, alpha: 255 },
+    { size: 16, roughness: 0, softness: 0, colorAmount: 0, seed: 7, alpha: 255 },
+    { size: 16, roughness: 1, softness: 1, colorAmount: 1, seed: 91, alpha: 128 },
+    { size: 3.5, roughness: 0.7, softness: 0.4, colorAmount: 1, seed: 91, alpha: 128 }
+  ])("matches CPU grain with size $size, softness $softness and alpha $alpha", async ({ alpha, ...params }) => {
+    const source = uniform(128, 96, 64, alpha);
+    const effect = grain({ amount: 0.7, ...params });
+    const gpu = await renderFrame([layerWith(source, [effect])], true);
+    const cpu = { width: SIZE, height: SIZE, data: new Uint8ClampedArray(source.rgba) };
+    applyCpuLegacyEffects(cpu, [effect]);
+    let maximum = 0;
+    let total = 0;
+    for (let i = 0; i < gpu.length; i++) {
+      const difference = Math.abs(gpu[i]! - cpu.data[i]!);
+      maximum = Math.max(maximum, difference);
+      total += difference;
+    }
+    expect(maximum).toBeLessThanOrEqual(1);
+    expect(total / gpu.length).toBeLessThan(0.02);
+  });
+
+  it("makes softness smoother and roughness finer without changing the seed", async () => {
+    const source = uniform(128, 128, 128);
+    const render = (params: Partial<ClipGrainEffect>) => renderFrame([
+      layerWith(source, [grain({ amount: 0.6, size: 8, seed: 7, ...params })])
+    ]);
+    const difference = (pixels: Uint8Array) => {
+      let sum = 0;
+      for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE - 1; x++) {
+          const i = (y * SIZE + x) * 4;
+          sum += Math.abs(pixels[i]! - pixels[i + 4]!);
+        }
+      }
+      return sum;
+    };
+    expect(difference(await render({ softness: 1 }))).toBeLessThan(difference(await render({ softness: 0 })));
+    expect(difference(await render({ roughness: 1 }))).toBeGreaterThan(difference(await render({ roughness: 0 })));
+  });
+
+  it("concentrates grain in midtones and keeps pure white clean", async () => {
+    const render = (value: number) => renderFrame([
+      layerWith(uniform(value, value, value), [grain({ amount: 0.5, seed: 7 })])
+    ]);
+    const shadows = channelSpread(await render(32));
+    const midtones = channelSpread(await render(128));
+    const highlights = channelSpread(await render(240));
+    expect(midtones).toBeGreaterThan(shadows * 2);
+    expect(midtones).toBeGreaterThan(highlights * 2);
+    expect(channelSpread(await render(255))).toBe(0);
+  });
+
+  it("keeps the default amount subtle but visible on mid-grey", async () => {
+    const pixels = await renderFrame([
+      layerWith(uniform(128, 128, 128), [grain({ amount: 0.25, seed: 7 })])
+    ]);
+    expect(channelSpread(pixels)).toBeGreaterThan(3);
+    expect(channelSpread(pixels)).toBeLessThan(8);
+  });
+
   it("varies a flat mid-grey that was perfectly uniform without it", async () => {
     const source = uniform(128, 128, 128);
     const plain = await renderFrame([layerWith(source, [])]);

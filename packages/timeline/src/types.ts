@@ -2180,14 +2180,8 @@ export interface ClipVignetteEffect {
 }
 
 /**
- * Film grain: a per-pixel gain wobble, multiplied into the picture rather than
- * added to it. Multiplying is what keeps a premultiplied layer legal — adding
- * noise can push a channel past its own alpha, which reads as a bright fringe
- * wherever the layer is translucent — and it is also how real grain behaves,
- * biting hardest in the midtones and leaving black black.
- *
- * Canvas 2D has no way to draw it (`ctx.filter` carries no noise), so that path
- * reports `grain` through `unsupportedEffectTypes` instead of approximating it.
+ * Film grain blended with Soft Light in straight colour, weighted toward
+ * midtones, then premultiplied again. GPU and Canvas 2D use the same model.
  */
 export interface ClipGrainEffect {
   id: string;
@@ -2196,8 +2190,8 @@ export interface ClipGrainEffect {
   /** Grain strength, 0..1. 0 is a no-op. */
   amount: number;
   /**
-   * Grain cell size in source pixels — 1 is per-pixel, larger is coarser stock.
-   * Absent means `grain@1`'s own default.
+   * Grain cell size in effect-surface pixels. Larger values make coarser grain.
+   * Absent means `grain@2`'s own default.
    */
   size?: number;
   /**
@@ -2206,12 +2200,16 @@ export interface ClipGrainEffect {
    * default.
    */
   colorAmount?: number;
+  /** Fine-octave weight, 0..1. Defaults to 0.5. */
+  roughness?: number;
+  /** Grain softening, 0..1. Defaults to 0.25. */
+  softness?: number;
   /**
    * Roll the pattern with the frame clock, the way exposed stock does. Absent
    * or false holds one pattern for every frame, which is what a still wants.
    *
    * The roll is not a clock and not `Math.random`: `resolveAnimatedLayerProps`
-   * stamps {@link seed} from the frame's own time, so two renders of the same
+   * stamps {@link seed} from the sequence frame index, so two renders of the same
    * frame are byte-identical and a cached render can be handed back.
    */
   animate?: boolean;

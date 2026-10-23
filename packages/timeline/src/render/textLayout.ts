@@ -38,6 +38,8 @@ export type MeasureTextWidth = (text: string, font: string) => number;
 export interface RenderCanvas {
   width: number;
   height: number;
+  /** Sequence frame rate for animated grain. Dimension-only callers default to 30. */
+  fps?: number;
   measureText?: MeasureTextWidth;
 }
 

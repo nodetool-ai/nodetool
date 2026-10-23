@@ -608,6 +608,7 @@ export async function renderTimelineInBrowser(
       height: opts.height,
       referenceWidth: sequence.width > 0 ? sequence.width : opts.width,
       referenceHeight: sequence.height > 0 ? sequence.height : opts.height,
+      referenceFps: sequence.fps,
       fps: opts.fps,
       durationMs: opts.durationMs,
       alpha: output.alpha,

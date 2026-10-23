@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clipGrainEffect,
   clipVersion,
   timelineClip,
   timelineDocument,
@@ -10,6 +11,25 @@ import {
   type ClipVersion,
   type TimelineSetupStage
 } from "../src/api-schemas/timeline.js";
+
+describe("film grain effect", () => {
+  const grain = { id: "grain", type: "grain", enabled: true, amount: 0.25 };
+
+  it("accepts saved effects without texture controls and preserves explicit controls", () => {
+    expect(clipGrainEffect.parse(grain)).toEqual(grain);
+    const textured = { ...grain, roughness: 0.6, softness: 0.4 };
+    expect(clipGrainEffect.parse(textured)).toEqual(textured);
+  });
+
+  it.each(["roughness", "softness"])("bounds %s to 0..1", (field) => {
+    for (const value of [0, 1]) {
+      expect(clipGrainEffect.safeParse({ ...grain, [field]: value }).success).toBe(true);
+    }
+    for (const value of [-0.01, 1.01]) {
+      expect(clipGrainEffect.safeParse({ ...grain, [field]: value }).success).toBe(false);
+    }
+  });
+});
 
 /** A sequence as it was persisted before the guided flow existed. */
 const legacySequence = {

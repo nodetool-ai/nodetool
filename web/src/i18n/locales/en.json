@@ -5315,6 +5315,7 @@
           "opacity": "Opacity",
           "amount": "Amount",
           "softness": "Softness",
+          "roughness": "Roughness",
           "size": "Size",
           "animate": "Animate",
           "keyColor": "Key color",

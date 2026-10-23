@@ -212,6 +212,7 @@ export async function renderTimelineComposited(
   const canvas = {
     width: referenceWidth,
     height: referenceHeight,
+    fps: sequence.fps,
     // A `"line"` stagger is counted against the wrapped line count, so the
     // count measures through the same kind of context the rasterizer draws on.
     // SAFETY: `RasterContext2D` is the subset of the 2D canvas API the

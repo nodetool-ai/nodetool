@@ -77,6 +77,7 @@ export {
   sharpenUnsharpMaskV1,
   vignetteV1,
   filtersGrainV1,
+  filtersGrainV2,
   filtersPixelateV1,
   filtersVisualFxV1,
   filtersThresholdV1,
