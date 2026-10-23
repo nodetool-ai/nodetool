@@ -76,10 +76,14 @@ export function isPublicOAuthRequest(pathname: string): boolean {
  * makes still require login, so there is nothing to gain and a naming
  * collision with the four API paths to avoid.
  */
+function isUnderWellKnown(pathname: string, base: string): boolean {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
 export function isPublicMcpOauthAsRequest(pathname: string): boolean {
   return (
-    pathname.startsWith("/.well-known/oauth-protected-resource") ||
-    pathname.startsWith("/.well-known/oauth-authorization-server") ||
+    isUnderWellKnown(pathname, "/.well-known/oauth-protected-resource") ||
+    isUnderWellKnown(pathname, "/.well-known/oauth-authorization-server") ||
     pathname === "/oauth/authorize" ||
     pathname === "/oauth/token" ||
     pathname === "/oauth/register" ||
