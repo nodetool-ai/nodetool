@@ -63,6 +63,7 @@ The generic `nodetool.agents.Agent` and chat nodes route to whichever provider o
 | Requesty | Claude, GPT, Gemini, DeepSeek, Grok and more through one OpenAI-compatible router |
 | API Route | Hosted Claude, GPT, Gemini and DeepSeek chat models through an OpenAI-compatible API |
 | Opper | Claude, GPT, Gemini, DeepSeek, Kimi and more through one EU-hosted OpenAI-compatible gateway |
+| Cheaper Inference | Claude, GPT, Gemini, DeepSeek and more through one OpenAI-compatible gateway |
 | Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more open models |
 | Evolink | GPT, Claude, Gemini, DeepSeek through one gateway key |
 | kie.ai | GPT, Claude, Grok, Kimi, DeepSeek, and Gemini models through its chat gateway |

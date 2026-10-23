@@ -1175,6 +1175,7 @@ export const PROVIDER_IDS = {
   OPENROUTER: "openrouter",
   REQUESTY: "requesty",
   OPPER: "opper",
+  CHEAPER_INFERENCE: "cheaperinference",
   API_ROUTE: "api_route",
   TOGETHER: "together",
   ALIBABA: "alibaba",
