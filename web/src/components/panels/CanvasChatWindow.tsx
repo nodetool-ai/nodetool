@@ -163,11 +163,22 @@ const styles = (theme: Theme) =>
       padding: getSpacingPx(SPACING.sm)
     },
     // The card keeps the composer's own surface and border, which follow
-    // the color scheme; the window only tightens its corners.
+    // the color scheme. It sits inside the window rather than floating on
+    // the canvas, so it drops the floating shadow and focus shows as the
+    // border alone.
     ".chat-window-composer .media-compose-card": {
       borderRadius: BORDER_RADIUS.lg,
+      boxShadow: "none",
+      [theme.getColorSchemeSelector("dark")]: {
+        boxShadow: "none"
+      },
       "&:focus-within": {
-        borderColor: theme.vars.palette.primary.main
+        borderColor: theme.vars.palette.primary.main,
+        boxShadow: "none",
+        [theme.getColorSchemeSelector("dark")]: {
+          borderColor: theme.vars.palette.primary.main,
+          boxShadow: "none"
+        }
       }
     },
     // The generation chips scroll sideways instead of wrapping in a narrow
