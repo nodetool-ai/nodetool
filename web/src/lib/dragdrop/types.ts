@@ -5,6 +5,8 @@
  * Maps to existing dataTransfer keys for backward compatibility.
  */
 
+import type { ShotClipPlacement } from "@nodetool-ai/timeline";
+
 import type { ExampleModel } from "../../utils/exampleModels";
 import type {
   Asset,
@@ -33,7 +35,8 @@ export type DragDataType =
   | "example-sketch" // Shipped example sketch, installed on drop
   | "example-timeline" // Shipped example timeline, installed on drop
   | "example-storyboard" // Shipped example storyboard, installed on drop
-  | "example-workflow"; // Shipped example workflow, its nodes pasted on drop
+  | "example-workflow" // Shipped example workflow, its nodes pasted on drop
+  | "storyboard-shot"; // Storyboard shot dragged onto a timeline as a clip
 
 /** A single image/video/audio block from a chat message, draggable to canvas. */
 export type ChatMediaDragPayload =
@@ -68,6 +71,17 @@ export interface ExampleWorkflowDragPayload {
   graph: Graph;
 }
 
+/**
+ * A storyboard shot with its picture already resolved, so a drop places the
+ * clip without reading the board again.
+ */
+export interface StoryboardShotDragPayload {
+  boardId: string;
+  shotId: string;
+  name: string;
+  placement: ShotClipPlacement;
+}
+
 export interface DragPayloadMap {
   "create-node": NodeMetadata;
   asset: Asset;
@@ -83,6 +97,7 @@ export interface DragPayloadMap {
   "example-timeline": ExampleDocumentDragPayload;
   "example-storyboard": ExampleDocumentDragPayload;
   "example-workflow": ExampleWorkflowDragPayload;
+  "storyboard-shot": StoryboardShotDragPayload;
 }
 
 interface DragDataFor<T extends DragDataType> {

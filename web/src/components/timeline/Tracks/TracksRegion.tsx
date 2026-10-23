@@ -144,6 +144,7 @@ import { useTimelineIsMobile } from "../../../hooks/timeline/useTimelineIsMobile
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
+import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
 import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
@@ -474,7 +475,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const handleEmptyAreaDragOver = useCallback(
       (e: React.DragEvent<HTMLDivElement>) => {
-        if (!isAssetDrag(e)) return;
+        if (!isAssetDrag(e) && !isShotDrag(e.dataTransfer)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
       },
@@ -483,19 +484,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const handleEmptyAreaDrop = useCallback(
       (e: React.DragEvent<HTMLDivElement>) => {
-        if (!isAssetDrag(e)) return;
+        const shotDrag = isShotDrag(e.dataTransfer);
+        if (!isAssetDrag(e) && !shotDrag) return;
         e.preventDefault();
         e.stopPropagation();
 
         const dragData = deserializeDragData(e.dataTransfer);
-        if (!dragData || dragData.type !== "asset") return;
-        const asset = dragData.payload;
-
-        const mediaType = assetMediaType(asset.content_type, asset.name);
-        if (!mediaType) return;
-
-        const trackType: "video" | "audio" =
-          mediaType === "audio" ? "audio" : "video";
+        if (!dragData) return;
 
         const scrollEl = scrollableRef.current;
         if (!scrollEl) return;
@@ -505,12 +500,31 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           0,
           Math.round((dropX + scrollEl.scrollLeft) * msPerPx)
         );
-
         const dropMode = uiStoreApi.getState().dropMode;
-        const createTrack = (): string => {
+        const createTrackOf = (trackType: "video" | "audio") => (): string => {
           addTrack(trackType);
           return useTimelineStore.getState().tracks.slice(-1)[0]?.id ?? "";
         };
+
+        if (dragData.type === "storyboard-shot") {
+          dropShotOnTrack(
+            docStore,
+            dragData.payload,
+            createTrackOf("video"),
+            startMs,
+            dropMode
+          );
+          return;
+        }
+        if (dragData.type !== "asset") return;
+        const asset = dragData.payload;
+
+        const mediaType = assetMediaType(asset.content_type, asset.name);
+        if (!mediaType) return;
+
+        const createTrack = createTrackOf(
+          mediaType === "audio" ? "audio" : "video"
+        );
         // A video on a new video track also gets a linked audio clip
         // (extracted from the video), matching the per-lane drop path. The
         // new track, the clip(s) and the drop resolution are one undo entry.

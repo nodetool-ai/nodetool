@@ -108,6 +108,7 @@ import { SourceViewerPanel } from "./SourceViewerPanel";
 import MovieFilterOutlinedIcon from "@mui/icons-material/MovieFilterOutlined";
 import TimelineAgentPanel from "./TimelineAgentPanel";
 import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
+import TimelineStoryboardPanel from "./storyboard/TimelineStoryboardPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { useTimelineMenuCommands } from "../../hooks/timeline/useTimelineMenuCommands";
 import { TranscriptPanel } from "./TranscriptPanel";
@@ -965,6 +966,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       visible: !dawActive
     },
     { id: "transcript", node: <TranscriptPanel />, visible: hasScript && !dawActive },
+    { id: "storyboard", node: <TimelineStoryboardPanel />, visible: !dawActive },
     { id: "inspector", node: <TimelineInspector /> },
     { id: "shot", node: <TimelineShotPanel />, visible: hasShotClip },
     { id: "instruments", node: <TimelineInstrumentsPanel />, visible: hasMidiTrack },

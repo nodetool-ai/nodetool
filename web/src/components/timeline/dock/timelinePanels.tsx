@@ -1,5 +1,6 @@
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CodeIcon from "@mui/icons-material/Code";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
 import MovieFilterOutlinedIcon from "@mui/icons-material/MovieFilterOutlined";
@@ -25,6 +26,7 @@ export function timelinePanelRegistrations(dawMode: boolean, t?: TFunction): rea
     { id: "source", title: translate("batch2_27.panels.source", "Source"), icon: <MovieFilterOutlinedIcon {...icon} />, defaultRegion: "viewport" },
     { id: "tracks", title: translate("batch2_27.panels.timeline", "Timeline"), icon: <ViewTimelineOutlinedIcon {...icon} />, defaultRegion: "bottom" },
     { id: "transcript", title: translate("batch2_27.panels.script", "Script"), icon: <SubtitlesOutlinedIcon {...icon} />, defaultRegion: "left" },
+    { id: "storyboard", title: translate("batch2_27.panels.storyboard", "Storyboard"), icon: <DashboardOutlinedIcon {...icon} />, defaultRegion: "left" },
     { id: "inspector", title: translate("batch2_27.panels.inspector", "Inspector"), icon: <TuneOutlinedIcon {...icon} />, defaultRegion: "right" },
     { id: "shot", title: translate("batch2_27.panels.shot", "Shot"), icon: <MovieCreationOutlinedIcon {...icon} />, defaultRegion: "right" },
     { id: "instruments", title: translate("batch2_27.panels.instruments", "Instruments"), icon: <PianoOutlinedIcon {...icon} />, defaultRegion: "right" },

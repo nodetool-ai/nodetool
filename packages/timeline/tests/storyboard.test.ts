@@ -10,7 +10,8 @@ import {
   buildStoryboardTimeline,
   resolveShotSource,
   isAssemblableShot,
-  frameSizeForAspect
+  frameSizeForAspect,
+  shotClipPlacements
 } from "../src/storyboard.js";
 import type { AssembledTimeline } from "../src/storyboard.js";
 import type { TimelineClip } from "../src/types.js";
@@ -913,3 +914,50 @@ describe("scenes do not change the cut", () => {
  expect(buildStoryboardTimeline({boardId:"b",shots:[shot]}).skippedShotIds).toEqual(["s"]);
  });
  });
+
+describe("shotClipPlacements", () => {
+  it("places each shot as assembly lays it down", () => {
+    const shots = [
+      makeShot({
+        id: "rendered",
+        index: 0,
+        clip: { ...clipRef("fused"), duration: 6 }
+      }),
+      makeShot({
+        id: "covered",
+        index: 1,
+        covered_by: { shot_id: "rendered", start_seconds: 2, end_seconds: 6 }
+      }),
+      makeShot({ id: "still", index: 2, keyframe: keyframeRef("frame") }),
+      makeShot({ id: "empty", index: 3 }),
+      makeShot({
+        id: "graphics",
+        index: 4,
+        graphics: { mode: "graphics_first", elements: [] }
+      })
+    ];
+    const placements = shotClipPlacements(shots);
+    const assembled = pictureClips(
+      buildStoryboardTimeline({ boardId: "b", shots }).clips
+    );
+    for (const clip of assembled) {
+      const placement = placements.get(clip.storyboardShotId ?? "");
+      expect(placement).toEqual({
+        mediaType: clip.mediaType,
+        assetId: clip.currentAssetId,
+        durationMs: clip.durationMs,
+        ...(clip.inPointMs !== undefined
+          ? { inPointMs: clip.inPointMs, outPointMs: clip.outPointMs }
+          : {})
+      });
+    }
+    expect(assembled).toHaveLength(3);
+    expect(placements.get("covered")).toMatchObject({
+      assetId: "fused",
+      inPointMs: 2000,
+      outPointMs: 6000
+    });
+    expect(placements.get("empty")).toBeNull();
+    expect(placements.get("graphics")).toBeNull();
+  });
+});

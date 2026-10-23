@@ -1607,7 +1607,8 @@
       "instruments": "Instruments",
       "assistant": "Assistant",
       "history": "History",
-      "code": "Code"
+      "code": "Code",
+      "storyboard": "Storyboard"
     },
     "unavailable": {
       "tracks": "DAW mode has its own track view. Turn it off (Alt+M) to open the Timeline panel.",
@@ -18647,5 +18648,17 @@
     "signIn": "To sign in, copy this command into a terminal on this computer. Complete the Google sign-in, then refresh models.",
     "refreshModels": "Refresh models",
     "statusUnavailable": "Status unavailable"
+  },
+  "batch2_29": {
+    "storyboardPanel": {
+      "hint": "Drag a shot onto a video track, or press Enter to place it at the playhead.",
+      "shotHint": "{{shot}}. Drag onto a video track, or press Enter to place at the playhead.",
+      "shotUnrendered": "{{shot}}. Not rendered yet.",
+      "unrendered": "Not rendered",
+      "noShots": "This storyboard has no shots.",
+      "noBoardsTitle": "No storyboards",
+      "noBoardsDescription": "Create a storyboard to place its shots on the timeline.",
+      "listLabel": "Storyboard shots"
+    }
   }
 }

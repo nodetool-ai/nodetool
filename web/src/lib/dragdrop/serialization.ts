@@ -26,7 +26,8 @@ const VALID_DRAG_TYPES: ReadonlySet<string> = new Set<DragDataType>([
   "example-sketch",
   "example-timeline",
   "example-storyboard",
-  "example-workflow"
+  "example-workflow",
+  "storyboard-shot"
 ]);
 
 function isDragData(value: unknown): value is DragData {
@@ -85,7 +86,10 @@ const LEGACY_KEY_MAP = {
   "example-sketch": "",
   "example-timeline": "",
   "example-storyboard": "",
-  "example-workflow": ""
+  "example-workflow": "",
+  // A key of its own, so a lane can tell a shot drag apart during dragover,
+  // when only the dataTransfer types are readable.
+  "storyboard-shot": "storyboard-shot"
 } satisfies Record<DragDataType, string>;
 
 /**

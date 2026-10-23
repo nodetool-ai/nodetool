@@ -6,6 +6,7 @@ export type {
   TimelineDragPayload,
   ExampleDocumentDragPayload,
   ExampleWorkflowDragPayload,
+  StoryboardShotDragPayload,
   DragData,
   DragMetadata,
   DropZoneConfig,

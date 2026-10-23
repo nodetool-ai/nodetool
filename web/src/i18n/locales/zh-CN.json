@@ -1607,7 +1607,8 @@
       "instruments": "乐器",
       "assistant": "助手",
       "history": "历史记录",
-      "code": "代码"
+      "code": "代码",
+      "storyboard": "故事板"
     },
     "unavailable": {
       "tracks": "DAW 模式有自己的轨道视图。关闭 DAW 模式（Alt+M）以打开时间线面板。",
@@ -18647,5 +18648,17 @@
     "signIn": "要登录，请将此命令复制到这台电脑的终端中运行。完成 Google 登录后，刷新模型。",
     "refreshModels": "刷新模型",
     "statusUnavailable": "状态不可用"
+  },
+  "batch2_29": {
+    "storyboardPanel": {
+      "hint": "将镜头拖到视频轨道上，或按 Enter 将其放在播放头处。",
+      "shotHint": "{{shot}}。拖到视频轨道上，或按 Enter 放在播放头处。",
+      "shotUnrendered": "{{shot}}。尚未渲染。",
+      "unrendered": "未渲染",
+      "noShots": "此故事板没有镜头。",
+      "noBoardsTitle": "没有故事板",
+      "noBoardsDescription": "创建一个故事板，以便将其镜头放到时间线上。",
+      "listLabel": "故事板镜头"
+    }
   }
 }

@@ -67,6 +67,7 @@ panel titles and icons are in [`dock/timelinePanels.tsx`](dock/timelinePanels.ts
 | `source` | Source | Viewport |
 | `tracks` | Timeline | Bottom |
 | `transcript` | Script | Left |
+| `storyboard` | Storyboard | Left |
 | `inspector` | Inspector | Right |
 | `shot` | Shot | Right |
 | `instruments` | Instruments | Right |
@@ -146,6 +147,21 @@ Long press is `useLongPress`, which composes with the existing pointer handlers
 rather than replacing them, so a hold and a drag can share one element.
 
 ## Asset Drag-and-Drop
+
+### From the Storyboard panel → TrackLane
+
+The Storyboard panel (`storyboard/TimelineStoryboardPanel.tsx`) lists one
+board's shots. It opens on the first board the cut links to. Drag a shot onto
+a video or overlay lane, or onto the empty area below the tracks to create a
+video track. Press Enter on a focused shot to place it at the playhead.
+
+The clip is the clip assembly lays down for that shot: `shotClipPlacements` in
+`@nodetool-ai/timeline` resolves the picture, length and source window by the
+rules of `buildStoryboardTimeline`. The clip carries `storyboardBoardId` and
+`storyboardShotId`, so it follows the shot's selected take. A video shot also
+gets its audio twin on a free audio track (`shotAudioClip`). A shot with no
+picture yet cannot be dragged. The drop uses the drop mode and snapping of an
+asset drop and is one undo entry (`dnd/shotToClipAdapter.ts`).
 
 ### From AssetExplorer → TrackLane (supported)
 

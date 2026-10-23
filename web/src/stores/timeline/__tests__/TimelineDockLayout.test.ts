@@ -49,7 +49,7 @@ describe("timeline dock model", () => {
     expect(layout.regions.bottom.map((group) => group.panels)).toEqual([["tracks"]]);
     expect(layout.regions.right).toHaveLength(1);
     expect(layout.regions.right[0].panels).toEqual([...TIMELINE_SIDE_PANEL_IDS]);
-    expect(layout.regions.left[0].panels).toEqual(["transcript"]);
+    expect(layout.regions.left[0].panels).toEqual(["transcript", "storyboard"]);
   });
 
   it("gives each workspace its own emphasis", () => {
@@ -62,7 +62,7 @@ describe("timeline dock model", () => {
     expect(assistant.regions.right[0].activePanelId).toBe("assistant");
     expect(assistant.sizes.right).toBeGreaterThan(editing.sizes.right);
     expect(assistant.hidden).toContain("transcript");
-    expect(review.hidden.sort()).toEqual(["source", "transcript", ...TIMELINE_SIDE_PANEL_IDS].sort());
+    expect(review.hidden.sort()).toEqual(["source", "storyboard", "transcript", ...TIMELINE_SIDE_PANEL_IDS].sort());
   });
 
   it("lets the tracks take most of the height, while the game keeps its half", () => {

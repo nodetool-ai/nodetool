@@ -2,7 +2,7 @@ import { createDockLayoutModel, type DockLayout } from "../dock/DockLayout";
 
 /** Every panel the timeline editor can dock. `program` and `tracks` are required. */
 export const TIMELINE_PANEL_IDS = [
-  "program", "source", "tracks", "transcript",
+  "program", "source", "tracks", "transcript", "storyboard",
   "inspector", "shot", "instruments", "assistant", "history", "code"
 ] as const;
 export type TimelinePanelId = typeof TIMELINE_PANEL_IDS[number];
@@ -19,7 +19,7 @@ function createPreset(name: string): DockLayout {
   const layout: DockLayout = {
     version: 1,
     regions: {
-      left: [{ id: "left-main", panels: ["transcript"], activePanelId: "transcript" }],
+      left: [{ id: "left-main", panels: ["transcript", "storyboard"], activePanelId: "transcript" }],
       right: [{ id: "right-main", panels: SIDE_PANELS, activePanelId: "inspector" }],
       bottom: [{ id: "bottom-main", panels: ["tracks"], activePanelId: "tracks" }],
       // The program and source monitors sit side by side, as in Premiere. Source shows while an asset is selected.
@@ -38,11 +38,11 @@ function createPreset(name: string): DockLayout {
   if (name === "Assistant") {
     layout.regions.right[0].activePanelId = "assistant";
     layout.sizes = { left: 320, right: 520, bottom: 260 };
-    layout.hidden = ["transcript", "source"];
+    layout.hidden = ["transcript", "storyboard", "source"];
   }
   if (name === "Review") {
     layout.sizes = { left: 320, right: 360, bottom: 220 };
-    layout.hidden = ["transcript", "source", ...TIMELINE_SIDE_PANEL_IDS];
+    layout.hidden = ["transcript", "storyboard", "source", ...TIMELINE_SIDE_PANEL_IDS];
   }
   return layout;
 }

@@ -140,8 +140,10 @@ export const trpc = {
   // that renders a script line reaches it. Answering with no data leaves the
   // hook on its `openShots` fallback — the store path those tests drive —
   // rather than standing in for a board they never set up.
+  // The timeline editor's Storyboard panel lists boards through `list`.
   storyboards: {
-    get: { useQuery: jest.fn(() => ({ data: undefined })) }
+    get: { useQuery: jest.fn(() => ({ data: undefined })) },
+    list: { useQuery: jest.fn(() => ({ data: undefined })) }
   },
   timeline: {
     get: { useQuery: jest.fn(() => ({ data: undefined })) }

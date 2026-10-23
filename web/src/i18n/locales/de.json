@@ -1607,7 +1607,8 @@
       "instruments": "Instrumente",
       "assistant": "Assistent",
       "history": "Verlauf",
-      "code": "Code"
+      "code": "Code",
+      "storyboard": "Storyboard"
     },
     "unavailable": {
       "tracks": "Der DAW-Modus hat eine eigene Spuransicht. Deaktiviere ihn (Alt+M), um das Zeitleistenfenster zu öffnen.",
@@ -18647,5 +18648,17 @@
     "signIn": "Kopiere zum Anmelden diesen Befehl in ein Terminal auf diesem Computer. Schließe die Google-Anmeldung ab und aktualisiere dann die Modelle.",
     "refreshModels": "Modelle aktualisieren",
     "statusUnavailable": "Status nicht verfügbar"
+  },
+  "batch2_29": {
+    "storyboardPanel": {
+      "hint": "Ziehen Sie eine Einstellung auf eine Videospur oder drücken Sie Enter, um sie am Abspielkopf einzufügen.",
+      "shotHint": "{{shot}}. Auf eine Videospur ziehen oder mit Enter am Abspielkopf einfügen.",
+      "shotUnrendered": "{{shot}}. Noch nicht gerendert.",
+      "unrendered": "Nicht gerendert",
+      "noShots": "Dieses Storyboard hat keine Einstellungen.",
+      "noBoardsTitle": "Keine Storyboards",
+      "noBoardsDescription": "Erstellen Sie ein Storyboard, um seine Einstellungen auf der Timeline zu platzieren.",
+      "listLabel": "Storyboard-Einstellungen"
+    }
   }
 }

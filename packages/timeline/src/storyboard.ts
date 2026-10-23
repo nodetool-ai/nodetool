@@ -399,6 +399,60 @@ export function layoutShot(shot: Shot, source?: ShotSource | null): ShotLayout {
   };
 }
 
+/**
+ * The picture a shot puts on a video track when it is placed on its own, such
+ * as a shot dragged from a board into a cut. It is the clip assembly would lay
+ * down for the shot, without a position.
+ */
+export interface ShotClipPlacement {
+  mediaType: "video" | "image";
+  assetId: string;
+  durationMs: number;
+  inPointMs?: number;
+  outPointMs?: number;
+}
+
+/**
+ * Every shot's placement in one pass, by the rules of
+ * {@link buildStoryboardTimeline}. A shot that assembly skips, or that holds
+ * only graphics, maps to null.
+ */
+export function shotClipPlacements(
+  shots: readonly Shot[],
+  production?: ProductionRequirement
+): Map<string, ShotClipPlacement | null> {
+  const sources = shotSources(shots);
+  const placements = new Map<string, ShotClipPlacement | null>();
+  for (const shot of shots) {
+    const source = sources.get(shot.id) ?? null;
+    const resolved = resolveShotSource(shot, production, source?.assetId);
+    if (!resolved || resolved.kind === "graphics") {
+      placements.set(shot.id, null);
+      continue;
+    }
+    if (resolved.kind === "still") {
+      placements.set(shot.id, {
+        mediaType: "image",
+        assetId: resolved.assetId,
+        durationMs: shotDurationMs(shot)
+      });
+      continue;
+    }
+    const layout = layoutShot(shot, source);
+    const placement: ShotClipPlacement = {
+      mediaType: "video",
+      assetId: source?.assetId ?? resolved.assetId,
+      durationMs: layout.durationMs
+    };
+    if (layout.inPointMs !== undefined) {
+      placement.inPointMs = layout.inPointMs;
+      placement.outPointMs = layout.outPointMs;
+    }
+    placements.set(shot.id, placement);
+  }
+  return placements;
+}
+
 export function buildStoryboardTimeline(
   input: StoryboardAssemblyInput
 ): AssembledTimeline {

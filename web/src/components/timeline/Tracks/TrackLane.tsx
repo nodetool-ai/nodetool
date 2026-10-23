@@ -74,6 +74,7 @@ import { layoutTrackRows } from "./trackWindow";
 import { trackRowHeightPx } from "./trackHeight";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { snapAssetDropMs } from "./dropSnap";
+import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
 import { trackSelectDirection, trackSelectIds } from "./trackSelect";
 
 /** Two bars of 4/4 at 120 BPM — what an empty midi clip is sized to. */
@@ -342,7 +343,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
   const handleAssetDragOver = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      if (!isAssetDrag(e)) {
+      if (!isAssetDrag(e) && !isShotDrag(e.dataTransfer)) {
         return;
       }
       if (track.locked) {
@@ -369,11 +370,52 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
     []
   );
 
+  /** A storyboard shot dropped on the lane becomes a clip linked to the shot. */
+  const handleShotDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (track.locked) {
+        showWarning(t("i18n-next73.trackLane.locked"), true);
+        return;
+      }
+      const dragData = deserializeDragData(e.dataTransfer);
+      if (dragData?.type !== "storyboard-shot") {
+        return;
+      }
+      const shot = dragData.payload;
+      if (!clipFitsTrack(shot.placement.mediaType, track.type)) {
+        showWarning(
+          t("i18n-next73.trackLane.incompatibleMedia", {
+            mediaType: shot.placement.mediaType,
+            trackType: track.type,
+            expected: t("i18n-next73.trackLane.videoOrOverlay")
+          }),
+          true
+        );
+        return;
+      }
+      const rect = e.currentTarget.getBoundingClientRect();
+      const pointerMs = Math.max(0, Math.round((e.clientX - rect.left) * msPerPx));
+      const dropMode = useTimelineUIStore.getState().dropMode;
+      const startMs =
+        dropMode === "overlap"
+          ? pointerMs
+          : snapAssetDropMs(timelineStore.getState().clips, track.id, pointerMs);
+      dropShotOnTrack(timelineStore, shot, track.id, startMs, dropMode);
+    },
+    [track.locked, track.type, track.id, msPerPx, timelineStore, showWarning, t]
+  );
+
   const handleAssetDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       setIsDragOver(false);
       setIsDragReject(false);
 
+      if (isShotDrag(e.dataTransfer)) {
+        handleShotDrop(e);
+        return;
+      }
       if (!isAssetDrag(e)) {
         return;
       }
@@ -458,6 +500,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       addImportedClip,
       resolveDropInStore,
       importVideoWithAudio,
+      handleShotDrop,
       showWarning,
       t
     ]

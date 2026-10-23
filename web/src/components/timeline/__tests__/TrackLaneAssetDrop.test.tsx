@@ -140,3 +140,53 @@ describe("TrackLane asset drop", () => {
     expect(forestClip()?.startMs).toBe(2200);
   });
 });
+
+describe("TrackLane storyboard shot drop", () => {
+  const shotDropAt = (clientX: number) => {
+    const payload = {
+      boardId: "board-1",
+      shotId: "shot-1",
+      name: "Harbor",
+      placement: { mediaType: "video", assetId: "take-1", durationMs: 3000 }
+    };
+    const data: Record<string, string> = {
+      "application/x-nodetool-drag": JSON.stringify({
+        type: "storyboard-shot",
+        payload
+      }),
+      "storyboard-shot": JSON.stringify(payload)
+    };
+    const lane = screen.getByTestId("track-lane-t1");
+    const event = createEvent.drop(lane, {
+      dataTransfer: {
+        types: Object.keys(data),
+        dropEffect: "none",
+        effectAllowed: "all",
+        getData: (k: string) => data[k] ?? "",
+        setData: () => {}
+      }
+    });
+    Object.defineProperty(event, "clientX", { value: clientX });
+    fireEvent(lane, event);
+  };
+
+  it("places the shot as a clip linked to the shot, snapped like an asset", () => {
+    shotDropAt(220);
+    const clips = useTimelineStore.getState().clips;
+    const shotClip = clips.find(
+      (c) => c.storyboardShotId === "shot-1" && c.mediaType === "video"
+    );
+    expect(shotClip).toMatchObject({
+      trackId: "t1",
+      startMs: 4000,
+      durationMs: 3000,
+      currentAssetId: "take-1",
+      storyboardBoardId: "board-1"
+    });
+    expect(
+      clips.some(
+        (c) => c.mediaType === "audio" && c.linkId === shotClip?.linkId
+      )
+    ).toBe(true);
+  });
+});
