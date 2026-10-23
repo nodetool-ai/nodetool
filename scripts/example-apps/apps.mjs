@@ -667,9 +667,9 @@ export const EXAMPLE_APPS = [
     featured: true,
     tagline: "Settle the message. Direct the campaign image.",
     description:
-      "Start with one offer, compare copy routes and headline angles, then direct a campaign hero with the approved message beside the visual brief.",
+      "Start with one offer, compare copy routes and headline angles, then direct a campaign hero with the approved message beside the visual brief. The hero is a new picture made from the brief. To start from your own product photo, use Directed Campaign Kit.",
     note:
-      "The hero render only runs after you approve the visual brief.",
+      "The hero is a new picture made from your brief, not from a photo of yours. It only renders after you approve the visual brief.",
     workflows: {
       copy: "Ad Copy in Three Registers",
       headlines: "Five Headlines for a Landing Page",
