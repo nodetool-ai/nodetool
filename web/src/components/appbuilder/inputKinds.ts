@@ -32,7 +32,8 @@ export type WorkflowInputKind =
   | "text_list"
   | "model3d"
   | "image_size"
-  | "huggingface_model";
+  | "huggingface_model"
+  | "value";
 
 export const getWorkflowInputKind = (
   nodeType: string
@@ -99,6 +100,10 @@ export const getWorkflowInputKind = (
     case "nodetool.input.TextListInput":
     case "nodetool.input.StringListInput":
       return "text_list";
+    // A named parameter taken as is. Example apps feed it from a variable,
+    // and an input missing here never reaches the run.
+    case "nodetool.input.ValueInput":
+      return "value";
     default:
       return null;
   }
@@ -196,7 +201,8 @@ export const INPUT_KIND_PROPERTY_TYPE = {
   // ImageSizeInput `image_size`, HuggingFaceModelInput `hf.model`.
   model3d: "model_3d",
   image_size: "image_size",
-  huggingface_model: "hf.model"
+  huggingface_model: "hf.model",
+  value: "any"
 } satisfies Record<WorkflowInputKind, Property["type"]["type"]>;
 
 const KIND_NODE_TYPE = {
@@ -227,7 +233,8 @@ const KIND_NODE_TYPE = {
   text_list: "nodetool.input.TextListInput",
   model3d: "nodetool.input.Model3DInput",
   image_size: "nodetool.input.ImageSizeInput",
-  huggingface_model: "nodetool.input.HuggingFaceModelInput"
+  huggingface_model: "nodetool.input.HuggingFaceModelInput",
+  value: "nodetool.input.ValueInput"
 } satisfies Record<WorkflowInputKind, string>;
 
 /** The InputNode type the mini-app property widgets expect for this kind. */

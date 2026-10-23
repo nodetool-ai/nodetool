@@ -1922,6 +1922,46 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       return () => ro.disconnect();
     }, [setLanesViewportWidthPx]);
 
+    // A timeline opens with all of its content in view. Study 14: an example
+    // ad opened at the default zoom showed its last two seconds, and 0 of 3
+    // people found the clips to shorten it. The lanes measure wide while the
+    // dock lays out and settle narrower, so the fit repeats on each resize
+    // until the person zooms. Only the content present when the editor first
+    // has any decides, so a clip added later never rezooms on its own.
+    const initialFitRef = useRef<{ msPerPx: number } | "waiting" | "done">(
+      "waiting"
+    );
+    useEffect(() => {
+      if (fxPanelWidth === 0 || initialFitRef.current === "done") return;
+      const fitIfOverflowing = () => {
+        const state = initialFitRef.current;
+        if (state === "done") return;
+        const ui = uiStoreApi.getState();
+        if (state !== "waiting" && ui.msPerPx !== state.msPerPx) {
+          initialFitRef.current = "done";
+          return;
+        }
+        const doc = docStore.getState();
+        if (doc.clips.length === 0) return;
+        let end = doc.durationMs || 0;
+        for (const c of doc.clips) {
+          end = Math.max(end, c.startMs + c.durationMs);
+        }
+        if (end / ui.msPerPx > fxPanelWidth - ZOOM_FIT_PADDING_PX) {
+          zoomToFit();
+        }
+        initialFitRef.current = { msPerPx: uiStoreApi.getState().msPerPx };
+      };
+      fitIfOverflowing();
+      if (initialFitRef.current !== "waiting") return;
+      // Content arriving decides once; after that only a resize refits.
+      return docStore.subscribe(() => {
+        if (initialFitRef.current === "waiting") {
+          fitIfOverflowing();
+        }
+      });
+    }, [docStore, fxPanelWidth, uiStoreApi, zoomToFit]);
+
     const headerResizeMaxPx =
       fxPanelWidth === 0
         ? MAX_TRACK_HEADER_WIDTH_PX

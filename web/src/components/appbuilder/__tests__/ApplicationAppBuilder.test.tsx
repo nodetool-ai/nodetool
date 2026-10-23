@@ -701,6 +701,38 @@ describe("ApplicationAppBuilder merge base", () => {
     expect(conflicts.map((c) => c.unit.id)).not.toContain("b-2");
   });
 
+  it("takes the echo of the canvas's own save without listing a conflict", async () => {
+    state.application = {
+      ...application,
+      document: twoWidgetDoc("Base label", "Base 2")
+    };
+    const handler = {
+      document: jest.fn(() => twoWidgetDoc("Draft label", "Base 2")),
+      applyExternalDocument: jest.fn()
+    };
+    setPuckAgentHandler("app-1", handler as never);
+    renderBuilder();
+    await screen.findByTestId("bound-workflow");
+
+    // The save's resource_change can arrive before the mutation resolves:
+    // the revision is new and the canvas still reads as dirty, but the row
+    // already holds exactly the draft.
+    appGetQuery.mockResolvedValue({
+      updatedAt: "2026-07-12T10:00:00.000Z",
+      document: twoWidgetDoc("Draft label", "Base 2")
+    });
+    await act_merge({
+      event: "updated",
+      id: "app-1",
+      updatedAt: "2026-07-12T10:00:00.000Z"
+    });
+
+    expect(handler.applyExternalDocument).not.toHaveBeenCalled();
+    expect(
+      useConflictStore.getState().byKey["application:app-1"]?.conflicts ?? []
+    ).toEqual([]);
+  });
+
   it("does not move the merge base under a dirty canvas on a refetch", async () => {
     state.application = {
       ...application,

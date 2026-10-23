@@ -6,6 +6,7 @@ import { DEFAULT_OPERATION_ID } from "@nodetool-ai/app-runtime";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { makeTestRuntime } from "../../__tests__/testRuntime";
 import { ModelSelectWidget } from "../WorkflowInputWidget";
+import useModelPreferencesStore from "../../../../stores/ModelPreferencesStore";
 import type { WorkflowModelTask } from "../../workflowIO";
 
 // The real selects open a model dialog backed by the models API; the widget's
@@ -184,5 +185,50 @@ describe("ModelSelectWidget", () => {
     expect(runtime.store.getState().view["m1:value"]).toEqual(
       expect.objectContaining({ id: "gpt-5.4-mini" })
     );
+  });
+
+  describe("with a saved default", () => {
+    beforeEach(() => {
+      useModelPreferencesStore.getState().setDefault("language_model", {
+        provider: "openai",
+        id: "gpt-5.4-mini",
+        name: "gpt-5.4-mini"
+      });
+      useModelPreferencesStore.getState().setDefault("image_model", {
+        provider: "openai",
+        id: "gpt-image-1",
+        name: "GPT Image"
+      });
+    });
+    afterEach(() => {
+      useModelPreferencesStore.getState().clearDefault("language_model");
+      useModelPreferencesStore.getState().clearDefault("image_model");
+    });
+
+    it("starts an empty picker on the saved default", () => {
+      const runtime = renderWidget({ binding: MODEL_PROPERTY_BINDING });
+
+      expect(
+        runtime.store.getState().inputs[`${DEFAULT_OPERATION_ID}:n5#model`]
+          .value
+      ).toEqual({
+        type: "language_model",
+        provider: "openai",
+        id: "gpt-5.4-mini",
+        name: "gpt-5.4-mini"
+      });
+    });
+
+    it("leaves a picker narrowed to a task empty", () => {
+      renderWidget({
+        binding: MODEL_PROPERTY_BINDING,
+        modelKind: "image_model",
+        task: "image_to_image"
+      });
+
+      expect(
+        screen.getByRole("button", { name: "image_model:none:image_to_image" })
+      ).toBeInTheDocument();
+    });
   });
 });

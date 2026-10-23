@@ -32,7 +32,17 @@ import {
 import { appRouter } from "./trpc/router.js";
 import { createContextFactory } from "./trpc/context.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
-import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
+import {
+  handleApiRequest,
+  handleNodeHttpRequest,
+  type HttpApiOptions
+} from "./http-api.js";
+import { installExampleApp } from "./lib/example-apps.js";
+import { getUserId } from "./lib/http-user-id.js";
+import {
+  handleExampleAppScriptRun,
+  handleJsScriptRun
+} from "./routes/js-scripts.js";
 import { Readable } from "node:stream";
 import { createTestUiRunRoutes } from "./lib/test-ui-run-routes.js";
 import { storyboardZipResponse } from "./routes/storyboards.js";
@@ -1216,6 +1226,60 @@ function resolveExamplesDir(options: TestUiServerOptions): string | null {
   return existsSync(srcDir) ? srcDir : null;
 }
 
+/**
+ * The example-app routes production mounts on Fastify, which this server does
+ * not run: installing an example ("Edit app") and running an example's or an
+ * installed app's scripts. Without them every study session hit "Not found".
+ */
+export async function handleTestUiApiRequest(
+  request: Request,
+  apiOptions: HttpApiOptions
+): Promise<Response> {
+  const { pathname } = new URL(request.url);
+  if (request.method === "POST") {
+    const install = /^\/api\/applications\/examples\/([^/]+)\/install$/.exec(
+      pathname
+    );
+    if (install) {
+      try {
+        const text = await request.text();
+        const body = (text ? JSON.parse(text) : {}) as { projectId?: string };
+        const created = await installExampleApp(
+          getUserId(request, apiOptions.userIdHeader ?? "x-user-id"),
+          apiOptions,
+          decodeURIComponent(install[1]),
+          body.projectId
+        );
+        return Response.json(created);
+      } catch (error) {
+        return Response.json(
+          { detail: error instanceof Error ? error.message : String(error) },
+          { status: 400 }
+        );
+      }
+    }
+    const exampleScript =
+      /^\/api\/applications\/examples\/([^/]+)\/scripts\/([^/]+)\/run$/.exec(
+        pathname
+      );
+    if (exampleScript) {
+      return handleExampleAppScriptRun(
+        request,
+        decodeURIComponent(exampleScript[1]),
+        decodeURIComponent(exampleScript[2]),
+        { apiOptions }
+      );
+    }
+    const script = /^\/api\/js-scripts\/([^/]+)\/run$/.exec(pathname);
+    if (script) {
+      return handleJsScriptRun(request, decodeURIComponent(script[1]), {
+        apiOptions
+      });
+    }
+  }
+  return handleApiRequest(request, apiOptions);
+}
+
 function listExampleWorkflows(
   examplesDir: string
 ): Array<{ id: string; name: string; description: string; tags: string[] }> {
@@ -1593,7 +1657,12 @@ export async function createTestUiServer(options: TestUiServerOptions = {}) {
       url.pathname.startsWith("/v1/") ||
       url.pathname.startsWith("/admin/")
     ) {
-      void handleNodeHttpRequest(req, res, resolvedApiOptions);
+      void handleNodeHttpRequest(
+        req,
+        res,
+        resolvedApiOptions,
+        handleTestUiApiRequest
+      );
       return;
     }
     res.statusCode = 404;

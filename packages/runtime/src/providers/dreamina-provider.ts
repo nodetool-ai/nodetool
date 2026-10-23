@@ -3,9 +3,11 @@ import { crc32 } from "node:zlib";
 import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { fetchExternalMedia } from "../external-media-fetch.js";
+import { recordGenerationReceiptAsync } from "../generation-receipt.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createDreaminaMusic, type DreaminaMusic } from "./dreamina-music.js";
 import { DREAMINA_IMAGE_MODELS, DREAMINA_VIDEO_MODELS } from "./dreamina-models.js";
+import { createExtensionTab, ExtensionTabStallError } from "./extension-tab.js";
 import { filePendingStore, pendingJobKey, type DreaminaPendingStore } from "./dreamina-pending.js";
 import type { EncodedAudioResult, ImageModel, Message, MusicModel, ImageToImageParams, ImageToVideoParams, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToMusicParams, TextToVideoParams, VideoModel, NamedReferenceImage } from "./types.js";
 
@@ -14,70 +16,10 @@ const log = createLogger("nodetool.runtime.providers.dreamina");
 /** Evaluates JavaScript inside the user's logged-in Dreamina tab. */
 export interface DreaminaPageRunner {
   /** Run `expression` (an async-wrapped JS expression) in the tab and return its JSON value. */
-  evaluate(expression: string): Promise<unknown>;
+  evaluate(expression: string, timeoutMs?: number): Promise<unknown>;
 }
 
-/** The extension keeps the debugger attached between polls, then detaches when idle. */
-const IDLE_CLOSE_MS = 30_000;
 const DREAMINA_HOST = "dreamina.capcut.com";
-
-/**
- * Runs scripts in the tab the NodeTool extension is attached to, through the
- * native messaging host's socket. The tab must already be a logged-in Dreamina
- * page, because the requests rely on that origin and its cookies.
- */
-function createExtensionRunner(): DreaminaPageRunner {
-  type Handle = Awaited<ReturnType<typeof import("@nodetool-ai/browser").createExtensionPage>>;
-  let handle: Handle | null = null;
-  let opening: Promise<Handle> | null = null;
-  let idleTimer: ReturnType<typeof setTimeout> | null = null;
-  let busy = 0;
-
-  const drop = async (): Promise<void> => {
-    const current = handle;
-    handle = null;
-    if (current) await current.close().catch(() => undefined);
-  };
-
-  const open = async (): Promise<Handle> => {
-    const { createExtensionPage } = await import("@nodetool-ai/browser");
-    const next = await createExtensionPage(undefined, { urlMatch: DREAMINA_HOST });
-    try {
-      const host = await next.page.evaluate<string>("location.hostname");
-      if (host !== DREAMINA_HOST) {
-        throw new Error(`The attached tab is ${host || "not a web page"}. Open https://${DREAMINA_HOST}, sign in, and attach the NodeTool extension to that tab`);
-      }
-    } catch (error) {
-      await next.close().catch(() => undefined);
-      throw error;
-    }
-    return next;
-  };
-
-  return {
-    async evaluate(expression: string): Promise<unknown> {
-      if (idleTimer) clearTimeout(idleTimer);
-      busy += 1;
-      try {
-        if (!handle) {
-          // One attach serves every concurrent caller.
-          opening ??= open().finally(() => { opening = null; });
-          handle = await opening;
-        }
-        return await handle.page.evaluate(expression);
-      } catch (error) {
-        await drop();
-        throw error;
-      } finally {
-        busy -= 1;
-        if (busy === 0) {
-          idleTimer = setTimeout(() => void drop(), IDLE_CLOSE_MS);
-          idleTimer.unref?.();
-        }
-      }
-    }
-  };
-}
 
 let pageRunner: DreaminaPageRunner | null = null;
 
@@ -86,8 +28,13 @@ export function setDreaminaPageRunner(runner: DreaminaPageRunner | null): void {
   pageRunner = runner;
 }
 
+/**
+ * The tab the NodeTool extension attaches to. The shared tab unfreezes a
+ * background tab before each script: a frozen page runs the script but not
+ * its own request callbacks, so every request would stall.
+ */
 function runner(): DreaminaPageRunner {
-  return (pageRunner ??= createExtensionRunner());
+  return (pageRunner ??= createExtensionTab(DREAMINA_HOST));
 }
 
 let pendingStore: DreaminaPendingStore | null = null;
@@ -109,7 +56,7 @@ class DreaminaStallError extends Error {}
 
 /** Whether `error` means a request stalled, so its outcome is unknown. */
 function stalled(error: unknown): boolean {
-  return error instanceof DreaminaStallError;
+  return error instanceof DreaminaStallError || error instanceof ExtensionTabStallError;
 }
 
 /**
@@ -123,7 +70,7 @@ async function evaluateBounded(expression: string, what: string, timeoutMs = TAB
     timer.unref?.();
   });
   try {
-    return await Promise.race([runner().evaluate(expression), timeout]);
+    return await Promise.race([runner().evaluate(expression, timeoutMs), timeout]);
   } finally {
     clearTimeout(timer);
   }
@@ -235,6 +182,35 @@ async function retryOnTabLoss<T>(what: string, step: () => Promise<T>): Promise<
     if (!tabLost(error)) throw error;
     log.warn("Dreamina tab lost, retrying on a fresh attach", { what, error: (error as Error).message });
     return step();
+  }
+}
+
+/** How long the tab check before a generation may take, the attach included. */
+const TAB_CHECK_TIMEOUT_MS = 15_000;
+const ACCOUNT_INFO_URL = `https://${DREAMINA_HOST}/passport/web/account/info/?aid=${APP_ID}&account_sdk_source=web&language=en`;
+
+/** The Dreamina tab is missing, not logged in, or does not answer. Nothing was uploaded or paid. */
+class DreaminaTabError extends Error {}
+
+/** The logged-in account's user id, read through the tab's own cookies. */
+async function accountUserId(timeoutMs = TAB_CALL_TIMEOUT_MS): Promise<string> {
+  const account = (await evaluateBounded(`fetch(${JSON.stringify(ACCOUNT_INFO_URL)}, { credentials: "include" }).then((r) => r.json())`, "the login check", timeoutMs)) as { data?: { user_id_str?: string } } | null;
+  const userId = account?.data?.user_id_str;
+  if (!userId) throw new DreaminaTabError(`The Dreamina tab is not logged in. Sign in at https://${DREAMINA_HOST} in that tab and try again`);
+  return userId;
+}
+
+/**
+ * Check that the Dreamina tab answers and is logged in, before anything is
+ * uploaded or paid for. A frozen or broken tab fails here in seconds with a
+ * clear cause, instead of as a stalled job minutes later.
+ */
+async function checkTab(): Promise<void> {
+  try {
+    await accountUserId(TAB_CHECK_TIMEOUT_MS);
+  } catch (error) {
+    if (!stalled(error)) throw error;
+    throw new DreaminaTabError(`The Dreamina tab does not answer. Bring the ${DREAMINA_HOST} tab to the front or reload it, then try again. Nothing was submitted`, { cause: error });
   }
 }
 
@@ -390,6 +366,8 @@ const MAX_REFERENCE_VIDEOS = 3;
 const MAX_REFERENCE_AUDIOS = 3;
 /** Chrome accepts at most 1 MiB per host-to-extension message, so the page receives uploads in pieces. */
 const UPLOAD_PIECE_CHARS = 400_000;
+/** One upload request in the tab. A reference video can take minutes on a slow line. */
+const UPLOAD_TIMEOUT_MS = 5 * 60_000;
 
 interface PageFetchRequest {
   url: string;
@@ -414,7 +392,7 @@ async function pageFetch(request: PageFetchRequest): Promise<{ status: number; t
     const response = await fetch(a.url, { method: a.method, headers: a.headers, body, credentials: "omit" });
     return { status: response.status, text: await response.text() };
   })()`;
-  return (await runner().evaluate(expression)) as { status: number; text: string };
+  return (await runner().evaluate(expression, UPLOAD_TIMEOUT_MS)) as { status: number; text: string };
 }
 
 /** Stage `bytes` in the page as base64 pieces and return the staging id. */
@@ -478,9 +456,7 @@ function uploadImage(bytes: Uint8Array): Promise<UploadedImage> {
 
 async function uploadImageOnce(bytes: Uint8Array): Promise<UploadedImage> {
   const token = await callApi<UploadToken>("/mweb/v1/get_upload_token", { scene: 2 });
-  const account = (await runner().evaluate(`fetch("https://dreamina.capcut.com/passport/web/account/info/?aid=${APP_ID}&account_sdk_source=web&language=en", { credentials: "include" }).then((r) => r.json())`)) as { data?: { user_id_str?: string } };
-  const userId = account.data?.user_id_str;
-  if (!userId) throw new Error("Dreamina account info has no user id (is the tab logged in?)");
+  const userId = await accountUserId();
 
   const applyQuery = { Action: "ApplyImageUpload", Version: "2018-08-01", ServiceId: token.space_name, FileSize: String(bytes.length), s: Math.random().toString(36).slice(2, 13), device_platform: "web" };
   const applyUrl = `https://${token.upload_domain}/?${Object.entries(applyQuery).map(([k, v]) => `${encodeQuery(k)}=${encodeQuery(v)}`).join("&")}`;
@@ -536,9 +512,7 @@ function uploadVideo(bytes: Uint8Array): Promise<UploadedVideo> {
 
 async function uploadVideoOnce(bytes: Uint8Array): Promise<UploadedVideo> {
   const token = await callApi<UploadToken>("/mweb/v1/get_upload_token", { scene: 1 });
-  const account = (await runner().evaluate(`fetch("https://dreamina.capcut.com/passport/web/account/info/?aid=${APP_ID}&account_sdk_source=web&language=en", { credentials: "include" }).then((r) => r.json())`)) as { data?: { user_id_str?: string } };
-  const userId = account.data?.user_id_str;
-  if (!userId) throw new Error("Dreamina account info has no user id (is the tab logged in?)");
+  const userId = await accountUserId();
 
   const applyQuery = { Action: "ApplyUploadInner", Version: "2020-11-19", SpaceName: token.space_name, FileType: "video", IsInner: "1", FileSize: String(bytes.length), s: Math.random().toString(36).slice(2, 13), device_platform: "web" };
   const url = (query: Record<string, string>): string => `https://${token.upload_domain}/?${Object.entries(query).map(([k, v]) => `${encodeQuery(k)}=${encodeQuery(v)}`).join("&")}`;
@@ -732,6 +706,9 @@ async function submitAndAwait(body: Record<string, unknown>, submitId: string, t
     log.warn("Dreamina submit has no answer, looking the job up by id", { submitId, error: unconfirmed.message });
   }
   log.info("Dreamina generation submitted", { submitId, timeoutMs, confirmed: !unconfirmed });
+  // A confirmed submit is a job on Dreamina: its id tells the caller that
+  // credits are in use. An unconfirmed one is recorded once the history shows it.
+  if (!unconfirmed) await recordGenerationReceiptAsync({ provider_request_id: submitId });
   return awaitJob(submitId, timeoutMs, signal, unconfirmed);
 }
 
@@ -774,6 +751,7 @@ async function awaitJob(submitId: string, timeoutMs: number, signal?: AbortSigna
     pollFailures = 0;
     const record = history[submitId];
     if (record) {
+      if (!seen && (unconfirmed || resumed)) await recordGenerationReceiptAsync({ provider_request_id: submitId });
       seen = true;
     } else if (!seen && (unconfirmed || resumed) && Date.now() - started > UNCONFIRMED_SUBMIT_GRACE_MS) {
       throw new DreaminaJobMissingError(unconfirmed
@@ -976,6 +954,7 @@ export class DreaminaProvider extends BaseProvider {
   }
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
+    await checkTab();
     const config = await this.imageConfig(params.model.id);
     const { resolution, ratioType, size } = this.imageSize(config, params.resolution, aspectRatioFor(params));
     const seed = params.seed ?? Math.floor(Math.random() * 4_000_000_000);
@@ -991,6 +970,7 @@ export class DreaminaProvider extends BaseProvider {
   override async imageToImage(images: Uint8Array[], params: ImageToImageParams): Promise<Uint8Array> {
     if (images.length === 0) throw new Error("imageToImage needs at least one source image");
     if (images.length > MAX_REFERENCE_IMAGES) throw new Error(`Dreamina takes at most ${MAX_REFERENCE_IMAGES} source images, not ${images.length}`);
+    await checkTab();
     const config = await this.imageConfig(params.model.id);
     if (!config.feats?.includes("byte_edit")) throw new Error(`Dreamina model ${config.model_name} does not take source images`);
     const sources: UploadedImage[] = [];
@@ -1053,10 +1033,12 @@ export class DreaminaProvider extends BaseProvider {
 
   /** Instrumental tracks need no model key. Vocal models appear only where the account lists them. */
   override async textToMusic(params: TextToMusicParams): Promise<EncodedAudioResult> {
+    await checkTab();
     return this.music.generate(params);
   }
 
   private async generateVideo(params: TextToVideoParams, requested: { references: readonly Uint8Array[]; videos?: readonly Uint8Array[]; audios?: readonly Uint8Array[]; first?: Uint8Array; last?: Uint8Array; named?: readonly NamedReferenceImage[] }): Promise<Uint8Array> {
+    await checkTab();
     const config = (await this.videoConfigs()).find((m) => m.model_req_key === params.model.id);
     if (!config) throw new Error(`Unknown Dreamina video model: ${params.model.id}`);
     // Models that take references always render in omni-reference mode, so a

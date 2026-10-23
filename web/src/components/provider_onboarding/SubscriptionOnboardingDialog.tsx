@@ -4,8 +4,10 @@ import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ExtensionOutlinedIcon from "@mui/icons-material/ExtensionOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import {
+  AlertBanner,
   Box,
   Button,
   Caption,
@@ -18,13 +20,18 @@ import {
   SPACING
 } from "../ui_primitives";
 import useSubscriptionOnboardingStore from "../../stores/SubscriptionOnboardingStore";
-import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import { useExtensionStatus } from "../../serverState/useExtensionStatus";
+import { useOAuthConnection } from "../../hooks/useOAuthConnection";
+import { useSecrets } from "../../hooks/useSecrets";
+import { openSettingsTab } from "../workspace/openPageTab";
 import geminiColorIcon from "../../icons/providers/gemini-color.svg";
 import ProviderOnboardingCard from "./ProviderOnboardingCard";
+import ProviderDirectory from "./ProviderDirectory";
+import LocalModelsRow from "./LocalModelsRow";
 import ChromeExtensionStep from "./ChromeExtensionStep";
 import {
   ONBOARDING_PROVIDERS,
+  directoryProviders,
   isOnboardingProviderAvailable,
   type OnboardingProvider
 } from "./providerOnboardingCatalog";
@@ -52,6 +59,23 @@ export const subscriptionProviders = (): OnboardingProvider[] => {
     });
   }
   return providers.filter(isOnboardingProviderAvailable);
+};
+
+/**
+ * The API-key route on the same page: the recommended key providers up
+ * front, every other AI provider behind "More providers".
+ */
+export const apiKeyProviders = (): {
+  featured: OnboardingProvider[];
+  more: OnboardingProvider[];
+} => {
+  const keyed = ONBOARDING_PROVIDERS.filter(
+    (p) => !p.oauthOnly && isOnboardingProviderAvailable(p)
+  );
+  return {
+    featured: keyed.filter((p) => p.recommended),
+    more: [...keyed.filter((p) => !p.recommended), ...directoryProviders()]
+  };
 };
 
 interface GeminiRowProps {
@@ -91,7 +115,7 @@ const GeminiRow: React.FC<GeminiRowProps> = ({ extensionConnected, onSetUp }) =>
       <FlexColumn sx={{ flex: "1 1 180px", minWidth: 0 }} gap={SPACING.micro}>
         <Text>Gemini</Text>
         <Caption size="small" sx={{ lineHeight: 1.5 }}>
-          Chat, images and Veo video on your Google account&apos;s Gemini plan. Runs through the Chrome extension.
+          {t("batch2_7.providerOnboarding.geminiTagline")}
         </Caption>
       </FlexColumn>
       <FlexRow align="center" gap={SPACING.micro} sx={{ marginLeft: "auto" }}>
@@ -119,40 +143,99 @@ const GeminiRow: React.FC<GeminiRowProps> = ({ extensionConnected, onSetUp }) =>
 interface SubscriptionsStepProps {
   providers: OnboardingProvider[];
   onSetUpExtension: () => void;
+  onOpenSettings: () => void;
 }
 
 const SubscriptionsStep: React.FC<SubscriptionsStepProps> = ({
   providers,
-  onSetUpExtension
+  onSetUpExtension,
+  onOpenSettings
 }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { status } = useExtensionStatus();
+  const { secrets } = useSecrets();
+  const chatgpt = useOAuthConnection("openai");
+  const claude = useOAuthConnection("claude");
+  const keyProviders = useMemo(() => apiKeyProviders(), []);
+  const configuredKeys = useMemo(
+    () => new Set(secrets.filter((s) => s.is_configured).map((s) => s.key)),
+    [secrets]
+  );
+  const connectedNames = useMemo(() => {
+    const names = providers
+      .filter(
+        (p) =>
+          (p.oauth === "openai" && chatgpt.isConnected) ||
+          (p.oauth === "claude" && claude.isConnected)
+      )
+      .map((p) => p.name);
+    if (status?.connected) {
+      names.push("Gemini");
+    }
+    for (const p of [...keyProviders.featured, ...keyProviders.more]) {
+      if (configuredKeys.has(p.secretKey)) {
+        names.push(p.name);
+      }
+    }
+    return names;
+  }, [providers, chatgpt.isConnected, claude.isConnected, status?.connected, keyProviders, configuredKeys]);
+  const frame = {
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderRadius: BORDER_RADIUS.lg,
+    overflow: "hidden"
+  };
+
   return (
     <FlexColumn gap={SPACING.xxl}>
+      <Text sx={{ maxWidth: "60ch" }}>{t("batch2_7.providerOnboarding.welcomeIntro")}</Text>
+      {connectedNames.length > 0 && (
+        <AlertBanner severity="success" compact>
+          {t("batch2_7.providerOnboarding.connectedSummary", { providers: connectedNames.join(", ") })}
+        </AlertBanner>
+      )}
       <FlexColumn gap={SPACING.md}>
-        <Text sx={{ maxWidth: "60ch" }}>
-          Sign in with the plans you already pay for. NodeTool uses them
-          directly, so there is no API key to create and no per-token bill.
-        </Text>
-        <Caption>
-          Image generation with ChatGPT, and everything with Gemini, needs the
-          Chrome extension. The next step sets it up.
-        </Caption>
+        <Text component="h3" size="small">{t("batch2_7.providerOnboarding.planGroup")}</Text>
+        <Caption>{t("batch2_7.providerOnboarding.planHint")}</Caption>
+        <FlexColumn sx={frame}>
+          {providers.map((provider) => (
+            <ProviderOnboardingCard key={provider.id} provider={provider} configured={false} />
+          ))}
+          <GeminiRow extensionConnected={status?.connected ?? false} onSetUp={onSetUpExtension} />
+        </FlexColumn>
       </FlexColumn>
-      <FlexColumn sx={{ border: `1px solid ${theme.vars.palette.divider}`, borderRadius: BORDER_RADIUS.lg, overflow: "hidden" }}>
-        {providers.map((provider) => (
-          <ProviderOnboardingCard key={provider.id} provider={provider} configured={false} />
-        ))}
-        <GeminiRow extensionConnected={status?.connected ?? false} onSetUp={onSetUpExtension} />
+      <FlexColumn gap={SPACING.md}>
+        <Text component="h3" size="small">{t("batch2_7.providerOnboarding.keyGroup")}</Text>
+        <Caption>{t("batch2_7.providerOnboarding.billing")}</Caption>
+        <FlexColumn sx={frame}>
+          {keyProviders.featured.map((provider) => (
+            <ProviderOnboardingCard
+              key={provider.id}
+              provider={provider}
+              configured={configuredKeys.has(provider.secretKey)}
+            />
+          ))}
+        </FlexColumn>
+        <ProviderDirectory
+          providers={keyProviders.more}
+          configuredKeys={configuredKeys}
+          onOpenSettings={onOpenSettings}
+        />
       </FlexColumn>
+      <LocalModelsRow />
+      <FlexRow gap={SPACING.md} align="center">
+        <LockOutlinedIcon sx={{ fontSize: "1.2em", color: theme.vars.palette.text.secondary }} />
+        <Caption>{t("batch2_7.providerOnboarding.encryptedKeys")}</Caption>
+      </FlexRow>
     </FlexColumn>
   );
 };
 
 /**
- * First-run onboarding for subscriptions: sign in to ChatGPT and Claude, then
- * add the Chrome extension that ChatGPT image generation and every Gemini
- * request run through.
+ * First-run onboarding: connect any AI the user already has (a ChatGPT or
+ * Claude plan, Gemini through the extension, or an API key for any
+ * provider), then add the Chrome extension that ChatGPT image generation and
+ * every Gemini request run through.
  */
 const SubscriptionOnboardingDialog: React.FC = () => {
   const { t } = useTranslation();
@@ -163,9 +246,9 @@ const SubscriptionOnboardingDialog: React.FC = () => {
 
   const handleNext = useCallback(() => setStep("extension"), [setStep]);
   const handleBack = useCallback(() => setStep("subscriptions"), [setStep]);
-  const handleUseApiKey = useCallback(() => {
+  const handleOpenSettings = useCallback(() => {
     dismiss();
-    openProviderOnboarding();
+    openSettingsTab("providers");
   }, [dismiss]);
 
   if (!open) {
@@ -184,8 +267,8 @@ const SubscriptionOnboardingDialog: React.FC = () => {
       actions={
         onSubscriptions ? (
           <>
-            <Button variant="text" color="inherit" onClick={handleUseApiKey} sx={{ mr: "auto" }}>
-              {t("i18n-next115.providerOnboarding.useApiKeyInstead")}
+            <Button variant="text" color="inherit" onClick={dismiss} sx={{ mr: "auto" }}>
+              {t("batch2_7.providerOnboarding.setUpLater")}
             </Button>
             <Button variant="contained" onClick={handleNext}>
               {t("i18n-next118.providerOnboarding.nextExtension")}
@@ -209,6 +292,7 @@ const SubscriptionOnboardingDialog: React.FC = () => {
           <SubscriptionsStep
             providers={providers}
             onSetUpExtension={handleNext}
+            onOpenSettings={handleOpenSettings}
           />
         ) : (
           <ChromeExtensionStep />

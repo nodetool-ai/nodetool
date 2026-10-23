@@ -71,8 +71,7 @@ import {
   WebsocketPythonBridge,
   SwappableBridge,
   logPythonWorkerStderr,
-  type ModelDownloadUpdate,
-  type PythonBridge
+  type ModelDownloadUpdate
 } from "@nodetool-ai/runtime";
 import { deriveKey, getMasterKey, initMasterKey } from "@nodetool-ai/security";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
@@ -126,7 +125,7 @@ import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
-import { packWebSocketMessage } from "./messagepack.js";
+import { notifyPythonBridgeResourceChanges } from "./python-bridge-resource-events.js";
 import {
   SupabaseAuthProvider,
   LocalAuthProvider,
@@ -298,67 +297,6 @@ let stopGenerationReconcileWorker: (() => void) | null = null;
 let stopErrorTraceMaintenance: (() => void) | null = null;
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;
-}
-
-type ResourceChangeEvent = "created" | "updated" | "deleted";
-
-async function broadcastResourceChange(
-  app: FastifyInstance,
-  change: {
-    event: ResourceChangeEvent;
-    resource_type: string;
-    resource: Record<string, unknown>;
-  }
-): Promise<void> {
-  const message = packWebSocketMessage({
-    type: "resource_change",
-    ...change
-  });
-
-  for (const client of app.websocketServer.clients) {
-    if (client.readyState === 1) {
-      client.send(message);
-    }
-  }
-}
-
-async function notifyPythonBridgeResourceChanges(
-  app: FastifyInstance,
-  pythonBridge: PythonBridge
-): Promise<void> {
-  await broadcastResourceChange(app, {
-    event: "updated",
-    resource_type: "metadata",
-    resource: { id: "nodes", etag: String(Date.now()) }
-  });
-
-  const registered = await registerPythonProvidersOnce();
-
-  const discoveredProviders = await pythonBridge.listProviders();
-  const registeredProviders = new Set(registered);
-
-  for (const provider of discoveredProviders) {
-    await broadcastResourceChange(app, {
-      event: registeredProviders.has(provider.id) ? "created" : "updated",
-      resource_type: "provider",
-      resource: {
-        id: provider.id,
-        provider: provider.id,
-        capabilities: provider.capabilities,
-        etag: String(Date.now())
-      }
-    });
-
-    await broadcastResourceChange(app, {
-      event: "updated",
-      resource_type: "model",
-      resource: {
-        id: provider.id,
-        provider: provider.id,
-        etag: String(Date.now())
-      }
-    });
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1692,7 +1630,7 @@ await app.register(websocketPlugin, {
     logPythonBridgeDiagnostics("connected");
     // The run that asked for the bridge may select a Python-only provider.
     await registerPythonProvidersOnce();
-    notifyPythonBridgeResourceChanges(app, pythonBridge).catch((err) => {
+    notifyPythonBridgeResourceChanges(pythonBridge, registerPythonProvidersOnce).catch((err) => {
       log.warn(
         "Failed to notify Python bridge resource changes",
         err instanceof Error ? err : new Error(String(err))
@@ -2163,7 +2101,7 @@ if (pythonBridge.isAvailable() && pythonOnDemand) {
           );
         });
       logPythonBridgeDiagnostics("connected");
-      notifyPythonBridgeResourceChanges(app, pythonBridge).catch((err) => {
+      notifyPythonBridgeResourceChanges(pythonBridge, registerPythonProvidersOnce).catch((err) => {
         log.warn(
           "Failed to notify Python bridge resource changes",
           err instanceof Error ? err : new Error(String(err))
