@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 import {
   isPublicAppDeploymentRequest,
   isPublicGamePlayRequest,
+  isPublicMcpOauthAsRequest,
   isPublicOAuthRequest,
   isPublicSharedWorkflowRequest,
   isPublicWorkflowMetadataRequest,
@@ -278,6 +279,42 @@ describe("isPublicGamePlayRequest", () => {
     ] as const) {
       expect(isPublicGamePlayRequest(path, method)).toBe(false);
       expect(isPublicAuthExemptRoute(path, method)).toBe(false);
+    }
+  });
+});
+
+describe("isPublicMcpOauthAsRequest", () => {
+  it("exempts the four API paths and both well-known documents", () => {
+    for (const path of [
+      "/oauth/authorize",
+      "/oauth/token",
+      "/oauth/register",
+      "/oauth/revoke",
+      "/.well-known/oauth-protected-resource",
+      "/.well-known/oauth-protected-resource/mcp",
+      "/.well-known/oauth-protected-resource/base/mcp",
+      "/.well-known/oauth-authorization-server",
+      "/.well-known/oauth-authorization-server/base"
+    ]) {
+      expect(isPublicMcpOauthAsRequest(path), path).toBe(true);
+    }
+  });
+
+  it("exempts no sibling that merely shares a well-known prefix", () => {
+    for (const path of [
+      "/.well-known/oauth-protected-resourcex",
+      "/.well-known/oauth-protected-resource-evil",
+      "/.well-known/oauth-protected-resource.json",
+      "/.well-known/oauth-authorization-serverx",
+      "/.well-known/oauth-authorization-server.json"
+    ]) {
+      expect(isPublicMcpOauthAsRequest(path), path).toBe(false);
+    }
+  });
+
+  it("keeps the consent page and other oauth paths behind auth", () => {
+    for (const path of ["/oauth/consent", "/oauth/token/", "/oauth", "/"]) {
+      expect(isPublicMcpOauthAsRequest(path), path).toBe(false);
     }
   });
 });
