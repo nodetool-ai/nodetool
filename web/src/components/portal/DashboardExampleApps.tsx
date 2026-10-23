@@ -31,6 +31,7 @@ import {
   DashboardSearchBox
 } from "./dashboardChrome";
 import ExampleNeedsPill from "./ExampleNeedsPill";
+import MatchingWorkflows from "./MatchingWorkflows";
 
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
@@ -249,6 +250,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
           )}
         </DashboardSectionHeader>
         <p className="apps-lede">{t("pass3_16.portal.apps.description")}</p>
+        {!compact && <MatchingWorkflows query={query} />}
         {isLoading ? (
           <div className="apps-loading">
             <LoadingSpinner

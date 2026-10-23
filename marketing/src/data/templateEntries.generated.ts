@@ -22563,13 +22563,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/rewrite-this-so-a-customer-understands-it",
     "title": "Rewrite This So a Customer Understands It — NodeTool AI Workflow Template",
-    "description": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
+    "description": "Jargon in, plain and simple language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "rewrite-this-so-a-customer-understands-it",
     "name": "Rewrite This So a Customer Understands It",
-    "summary": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
+    "summary": "Jargon in, plain and simple language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
     "tags": [
       "text",
       "example"
@@ -29481,13 +29481,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/turn-a-support-thread-into-a-bug-report",
     "title": "Turn a Support Thread into a Bug Report — NodeTool AI Workflow Template",
-    "description": "A frustrated thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
+    "description": "A frustrated email chain or chat thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "turn-a-support-thread-into-a-bug-report",
     "name": "Turn a Support Thread into a Bug Report",
-    "summary": "A frustrated thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
+    "summary": "A frustrated email chain or chat thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
     "tags": [
       "text",
       "example"

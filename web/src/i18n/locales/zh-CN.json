@@ -4460,7 +4460,8 @@
         "searchPlaceholder": "搜索应用",
         "searchLabel": "搜索应用",
         "noSearchResultsTitle": "没有符合搜索条件的应用",
-        "clearSearch": "清除搜索"
+        "clearSearch": "清除搜索",
+        "matchingWorkflows": "匹配的工作流"
       },
       "games": {
         "gameplayImageAlt": "{{name}}的游戏画面",
@@ -6310,6 +6311,10 @@
             "title": "创建工作流",
             "description": "自动化并组合步骤"
           },
+          "examples": {
+            "title": "现成示例",
+            "description": "已经搭好的工作流和应用。打开一个，用在你自己的文本或文件上。"
+          },
           "model3d": {
             "title": "3D 模型",
             "description": "一个空白 3D 模型，手动编辑。无需 AI 提供商。"
@@ -6317,7 +6322,7 @@
         },
         "allTypes": {
           "title": "浏览所有创建类型",
-          "description": "3D、游戏、脚本、朗读等"
+          "description": "现成示例、3D、游戏、脚本、朗读等"
         },
         "recentProjects": {
           "heading": "最近的项目",
