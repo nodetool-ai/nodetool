@@ -108,6 +108,13 @@ type GlobalWebSocketEvent = keyof GlobalWebSocketEvents;
 const RECONNECT_INTERVAL_MS = 1000;
 
 /**
+ * Upper bound of the random delay before a reconnect's full refresh. A drained
+ * server sends every client back at once, and without the spread they would
+ * all refetch everything at the same instant on the replica taking the load.
+ */
+const RECONNECT_REFRESH_MAX_DELAY_MS = 3000;
+
+/**
  * How many consecutive failed connects still carry the `resume_job` hint.
  *
  * The hint asks the server to replay the handshake at the instance that owns
@@ -146,6 +153,9 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private hasEverConnected = false;
   private networkCleanup: (() => void) | null = null;
   private rendererId: string | null = null;
+  private reconnectRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectRefreshDelay: () => number = () =>
+    Math.random() * RECONNECT_REFRESH_MAX_DELAY_MS;
 
   private constructor() {
     super();
@@ -236,9 +246,10 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
         // After a reconnect, any `resource_change` events emitted while we
         // were offline are gone — refresh every active query so the UI
-        // catches up. Skip on the first connection of the session.
+        // catches up, after a random delay. Skip on the first connection of
+        // the session.
         if (this.hasEverConnected) {
-          invalidateAllResourceQueries();
+          this.scheduleReconnectRefresh();
         }
         this.hasEverConnected = true;
 
@@ -280,6 +291,8 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         }
         this.isConnected = false;
         this.isConnecting = false;
+        // The next open schedules its own refresh.
+        this.cancelReconnectRefresh();
         this.emit("close", code, reason);
       });
 
@@ -538,6 +551,26 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     }
   }
 
+  /** Replace the reconnect refresh delay source, in milliseconds. For tests. */
+  setReconnectRefreshDelay(delay: () => number): void {
+    this.reconnectRefreshDelay = delay;
+  }
+
+  private scheduleReconnectRefresh(): void {
+    this.cancelReconnectRefresh();
+    this.reconnectRefreshTimer = setTimeout(() => {
+      this.reconnectRefreshTimer = null;
+      invalidateAllResourceQueries();
+    }, this.reconnectRefreshDelay());
+  }
+
+  private cancelReconnectRefresh(): void {
+    if (this.reconnectRefreshTimer !== null) {
+      clearTimeout(this.reconnectRefreshTimer);
+      this.reconnectRefreshTimer = null;
+    }
+  }
+
   /** The server-assigned identity of this browser connection, if registered. */
   getRendererId(): string | null {
     return this.rendererId;
@@ -549,6 +582,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
    * its listeners keep feeding `routeMessage`.
    */
   private teardownManager(): void {
+    this.cancelReconnectRefresh();
     const manager = this.wsManager;
     if (!manager) {
       return;

@@ -80,7 +80,7 @@ The following resource types trigger cache invalidation:
 
 | Resource Type | Invalidated Query Keys | Additional Queries |
 |--------------|----------------------|-------------------|
-| `workflow` | `workflows`, `templates` | `workflow-{id}`, `workflow_versions-{id}` |
+| `workflow` | `workflows` | `workflow-{id}` (skipped while an open editor owns the workflow), `workflow_versions-{id}` |
 | `job` | `jobs` | `job-{id}` |
 | `asset` | `assets` | - |
 | `thread` | `threads` | `thread-{id}`, `messages-{id}` |
@@ -103,8 +103,16 @@ The `handleResourceChange()` function in `resourceChangeHandler.ts`:
 
 1. Logs the resource change event
 2. Maps the resource type to query keys
-3. Invalidates all relevant TanStack Query caches
-4. Invalidates specific resource queries if an ID is provided
+3. Queues invalidations for the relevant TanStack Query caches
+4. Queues invalidations for specific resource queries if an ID is provided
+
+Queued invalidations are deduplicated and flushed once, 250 ms after the last
+event or at most 1 s after the first, with `cancelRefetch: false`. A burst of
+events therefore refetches each query once. Editor syncs, the workflow
+reloader and metadata reloads run immediately. A change carrying
+`resource.project_id` refetches only that project's `projects.*` views plus
+the cross-project ones. After a reconnect, `GlobalWebSocketManager` refreshes
+every query after a random delay of up to 3 s.
 
 ```typescript
 export function handleResourceChange(update: ResourceChangeUpdate): void {
@@ -163,9 +171,7 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
 
 ```typescript
 if (resource_type === "my_resource" && resource.id) {
-  queryClient.invalidateQueries({
-    queryKey: ["my_resource", resource.id]
-  });
+  invalidateQueryKey(["my_resource", resource.id]);
 }
 ```
 

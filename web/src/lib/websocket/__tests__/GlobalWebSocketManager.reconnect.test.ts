@@ -7,6 +7,7 @@
  */
 import { globalWebSocketManager } from "../GlobalWebSocketManager";
 import { installGlobal } from "../../../test-utils/doubles";
+import { invalidateAllResourceQueries } from "../../../stores/resourceChangeHandler";
 
 jest.mock("../../../stores/BASE_URL", () => ({
   BASE_URL: "http://localhost:7777",
@@ -91,6 +92,8 @@ describe("GlobalWebSocketManager reconnect handling", () => {
     FakeWebSocket.instances = [];
     installGlobal("WebSocket", FakeWebSocket);
     jest.useFakeTimers();
+    jest.clearAllMocks();
+    globalWebSocketManager.setReconnectRefreshDelay(() => 1500);
   });
 
   afterEach(() => {
@@ -146,5 +149,37 @@ describe("GlobalWebSocketManager reconnect handling", () => {
     await connect();
     expect(FakeWebSocket.instances).toHaveLength(2);
     expect(FakeWebSocket.instances.filter((s) => s.isOpen)).toHaveLength(1);
+  });
+
+  /** Drop the open socket and let the backoff reconnect open a new one. */
+  const dropAndReconnect = async (): Promise<void> => {
+    latestSocket().triggerClose(1006, "abnormal");
+    await jest.advanceTimersByTimeAsync(2000);
+    latestSocket().triggerOpen();
+  };
+
+  it("refreshes every query after a random delay once a reconnect opens", async () => {
+    await connect();
+    expect(invalidateAllResourceQueries).not.toHaveBeenCalled();
+
+    await dropAndReconnect();
+    expect(invalidateAllResourceQueries).not.toHaveBeenCalled();
+
+    await jest.advanceTimersByTimeAsync(1499);
+    expect(invalidateAllResourceQueries).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(1);
+    expect(invalidateAllResourceQueries).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the pending refresh when the socket closes before it fires", async () => {
+    await connect();
+    await dropAndReconnect();
+
+    await jest.advanceTimersByTimeAsync(500);
+    // The next reconnect is never allowed to open, so nothing reschedules.
+    latestSocket().triggerClose(1006, "abnormal");
+    await jest.advanceTimersByTimeAsync(5000);
+
+    expect(invalidateAllResourceQueries).not.toHaveBeenCalled();
   });
 });
