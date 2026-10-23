@@ -13,7 +13,7 @@ describe("OpenMenu", () => {
     renderOpenMenu();
 
     expect(screen.getByText("New workflow")).toBeInTheDocument();
-    expect(screen.getByText("New chat")).toBeInTheDocument();
+    expect(screen.getByText("New chat…")).toBeInTheDocument();
     expect(screen.getByText("New skill")).toBeInTheDocument();
     for (const label of OPEN_ITEMS) {
       expect(screen.queryByText(label)).not.toBeInTheDocument();

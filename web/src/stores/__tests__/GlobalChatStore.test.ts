@@ -74,6 +74,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
 import { pack } from "msgpackr";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
+import useMediaGenerationStore from "../MediaGenerationStore";
 import { tabId, useWorkspaceTabsStore } from "../WorkspaceTabsStore";
 import { trpcClient } from "../../trpc/client";
 import useAuth from "../useAuth";
@@ -195,6 +196,17 @@ describe("GlobalChatStore", () => {
     const state = store.getState();
     expect(state.currentThreadId).toBe(id);
     expect(state.threads[id]).toBeDefined();
+  });
+
+  it("createNewThread starts the composer in Chat, not the last mode", async () => {
+    useMediaGenerationStore.getState().setMode("video");
+    await store.getState().createNewThread();
+    expect(useMediaGenerationStore.getState().mode).toBe("chat");
+
+    await store.getState().createNewThread(undefined, undefined, {
+      mediaMode: "image"
+    });
+    expect(useMediaGenerationStore.getState().mode).toBe("image");
   });
 
   it("does not fetch conversations before authentication is ready", async () => {

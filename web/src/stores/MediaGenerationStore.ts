@@ -313,7 +313,10 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
     }),
     {
       name: "nodetool-media-generation",
-      version: 3,
+      version: 4,
+      // The mode is not kept: a new chat starts in Chat unless it was opened
+      // in another mode, so a reload must not bring back the last one.
+      partialize: ({ mode: _mode, ...params }) => params,
       migrate: (persistedState, version) => {
         let state = (persistedState ?? {}) as Partial<MediaGenerationState>;
         if (version < 2) {
@@ -338,6 +341,10 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
               ...(state.referenceToVideo ?? {})
             }
           };
+        }
+        if (version < 4) {
+          const { mode: _mode, ...params } = state;
+          state = params;
         }
         return state as MediaGenerationState;
       }

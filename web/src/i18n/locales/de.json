@@ -8707,6 +8707,8 @@
       "studio": "Studio",
       "switchToProject": "Zum Projekt {{name}} wechseln",
       "personal": "Persönlich",
+      "newChatInMode": "Neuer Chat: {{mode}}",
+      "newChatInModeValue": "Neuer Chat {{mode}}",
       "newTextFileValue": "Neue Textdatei {{label}}",
       "newTextFile": "Neue Textdatei: {{label}}",
       "newStoryboard": "Neues Storyboard",
