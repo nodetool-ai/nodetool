@@ -1816,7 +1816,8 @@
         "generate_embedding": "Embeddings",
         "text_to_3d": "3D-Generierung",
         "image_to_3d": "3D-Generierung aus Bildern"
-      }
+      },
+      "stepPrompt": "Keiner deiner verbundenen Anbieter kann diesen Schritt ausführen. Verbinde einen dieser Anbieter, um ihn zu nutzen."
     }
   },
   "batch2_8": {},
@@ -4455,7 +4456,11 @@
         "loadErrorDescription": "Versuch es gleich noch einmal.",
         "retry": "Erneut versuchen",
         "emptyTitle": "Keine Apps verfügbar",
-        "emptyDescription": "Beispiel-Apps erscheinen hier, sobald der Server sie bereitstellt."
+        "emptyDescription": "Beispiel-Apps erscheinen hier, sobald der Server sie bereitstellt.",
+        "searchPlaceholder": "Apps suchen",
+        "searchLabel": "Apps suchen",
+        "noSearchResultsTitle": "Keine Apps für diese Suche",
+        "clearSearch": "Suche löschen"
       },
       "games": {
         "gameplayImageAlt": "{{name}}-Gameplay",
@@ -4615,7 +4620,8 @@
       "showAll": "Alle Vorlagen anzeigen",
       "emptyTitle": "Keine Vorlagen verfügbar",
       "emptyDescription": "Vorlagen werden hier angezeigt, sobald sie verfügbar sind.",
-      "visibleCount": "{{visible}} von {{total}}"
+      "visibleCount": "{{visible}} von {{total}}",
+      "matchingApps": "Passende Apps"
     }
   },
   "pass3_18": {

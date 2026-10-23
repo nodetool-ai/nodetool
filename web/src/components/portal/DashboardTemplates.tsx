@@ -30,7 +30,10 @@ import {
   getSpacingPx,
   selectableTileStyles,
   Tooltip,
-  Chip
+  Chip,
+  Caption,
+  FlexRow,
+  GAP
 } from "../ui_primitives";
 import {
   useSectionWrap,
@@ -43,7 +46,11 @@ import {
   getWorkflowCompatibility
 } from "./entryCompatibility";
 import ExampleNeedsPill from "./ExampleNeedsPill";
-import { runsAsIs } from "../../utils/exampleNeeds";
+import { fewestNeedsFirst, runsAsIs } from "../../utils/exampleNeeds";
+import { matchesSearch } from "../../utils/matchesSearch";
+import { listExampleApps } from "../../utils/exampleApps";
+import { useOpenExampleApp } from "../../hooks/useOpenExampleApp";
+import { EXAMPLE_APPS_QUERY_KEY } from "./DashboardExampleApps";
 
 /** Rows shown on the dashboard before the user searches or opens the Examples tab. */
 const MAX_VISIBLE = 18;
@@ -317,15 +324,14 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
         ? allTemplates
         : workflowsForCategory(allTemplates, category);
 
-    const q = query.trim().toLowerCase();
+    const q = query.trim();
     const searched = q
-      ? base.filter((w) => {
-          const haystack = [w.name, w.description, ...(w.tags ?? [])]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          return haystack.includes(q);
-        })
+      ? base.filter((w) =>
+          matchesSearch(
+            [w.name, w.description, ...(w.tags ?? [])].filter(Boolean).join(" "),
+            q
+          )
+        )
       : base;
 
     // Examples that run as is come first. Getting-started picks lead within
@@ -342,6 +348,29 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
       return a.name.localeCompare(b.name);
     });
   }, [allTemplates, category, query]);
+
+  // A search here also names the example apps that match, which the Apps tab
+  // holds: in UX research study 12 every participant searched this tab and
+  // none found the Model Arena or Vary Image app.
+  const openExampleApp = useOpenExampleApp();
+  const { data: exampleApps } = useQuery({
+    queryKey: EXAMPLE_APPS_QUERY_KEY,
+    queryFn: listExampleApps,
+    staleTime: Infinity,
+    enabled: query.trim() !== ""
+  });
+  const matchingApps = useMemo(() => {
+    const q = query.trim();
+    if (!q || !exampleApps) {
+      return [];
+    }
+    return fewestNeedsFirst(
+      exampleApps.filter((app) =>
+        matchesSearch(`${app.name} ${app.description}`, q)
+      ),
+      (app) => app.needs
+    );
+  }, [exampleApps, query]);
 
   const visible = fullPage ? filtered : filtered.slice(0, MAX_VISIBLE);
   const countLabel = fullPage
@@ -396,6 +425,29 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
             );
           })}
         </div>
+
+        {matchingApps.length > 0 && (
+          <FlexRow
+            align="center"
+            gap={GAP.tight}
+            wrap
+            role="group"
+            aria-label={t("pass3_17.templates.matchingApps")}
+            sx={{ paddingBottom: SPACING.md }}
+          >
+            <Caption color="secondary">
+              {t("pass3_17.templates.matchingApps")}
+            </Caption>
+            {matchingApps.map((app) => (
+              <Chip
+                key={app.slug}
+                compact
+                label={app.name}
+                onClick={() => openExampleApp(app)}
+              />
+            ))}
+          </FlexRow>
+        )}
 
         {isLoading ? (
           <div className="tpl-loading">

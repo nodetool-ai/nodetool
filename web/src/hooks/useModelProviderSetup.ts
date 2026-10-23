@@ -28,6 +28,8 @@ interface ModelProviderSetupOptions {
   capability?: OnboardingCapability;
   /** Restrict specialized pickers to the providers they can actually use. */
   providerIds?: readonly string[];
+  /** Provider capabilities of a specialized step, such as `remove_background`. */
+  stepCapabilities?: readonly string[];
   isLoading?: boolean;
   highlightSecretKey?: string;
 }
@@ -38,6 +40,7 @@ export function useModelProviderSetup({
   onClose,
   capability,
   providerIds,
+  stepCapabilities,
   isLoading: pickerLoading = false,
   highlightSecretKey
 }: ModelProviderSetupOptions): { openSetup: () => void } {
@@ -49,8 +52,8 @@ export function useModelProviderSetup({
   );
   const openSetup = useCallback(() => {
     onClose();
-    openProviderOnboarding({ capability, highlightSecretKey });
-  }, [onClose, capability, highlightSecretKey]);
+    openProviderOnboarding({ capability, stepCapabilities, highlightSecretKey });
+  }, [onClose, capability, stepCapabilities, highlightSecretKey]);
 
   useEffect(() => {
     if (!open) {

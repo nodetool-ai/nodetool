@@ -84,3 +84,27 @@ export const runsAsIsFirst = <T>(
   const rest = items.filter((item) => !runsAsIs(needsOf(item)));
   return [...ready, ...rest];
 };
+
+/**
+ * The items that need the least setup first: those that run as is, then those
+ * that need one kind of model, and so on, each group in its original order.
+ * UX research study 12: no example app runs as is, so the Apps tab opened on
+ * ad-format apps needing two kinds of model, and 0 of 9 participants used an
+ * app. The apps that need one model (Model Arena, Vary Image) now lead.
+ */
+export const fewestNeedsFirst = <T>(
+  items: readonly T[],
+  needsOf: (item: T) => ExampleNeeds | null | undefined
+): T[] => {
+  const cost = (item: T): number => {
+    const needs = needsOf(item);
+    if (!needs) {
+      return Number.POSITIVE_INFINITY;
+    }
+    return needs.modelKinds.length + needs.requiredSettings.length;
+  };
+  return items
+    .map((item, index) => ({ item, index, cost: cost(item) }))
+    .sort((a, b) => a.cost - b.cost || a.index - b.index)
+    .map(({ item }) => item);
+};

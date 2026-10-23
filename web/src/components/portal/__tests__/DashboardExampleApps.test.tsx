@@ -117,6 +117,52 @@ describe("DashboardExampleApps", () => {
     expect(names).toEqual(["Runs as is", "Needs an image model"]);
   });
 
+  // UX research study 12: no app runs as is, and the tab opened on ad-format
+  // apps needing two kinds of model. Apps needing one model now lead.
+  it("lists apps that need fewer kinds of model first", async () => {
+    listExampleApps.mockResolvedValue([
+      {
+        ...APPS[1],
+        needs: {
+          modelKinds: ["image_model", "language_model"],
+          requiredSettings: []
+        }
+      },
+      {
+        ...APPS[0],
+        needs: { modelKinds: ["image_model"], requiredSettings: [] }
+      }
+    ]);
+    renderApps();
+
+    await screen.findByRole("button", { name: /vary image/i });
+    const cards = screen.getAllByRole("button", {
+      name: /vary image|sku factory/i
+    });
+    expect(cards[0]).toHaveTextContent("Vary Image");
+    expect(cards[1]).toHaveTextContent("SKU Factory");
+  });
+
+  it("searches apps by what they do, in any word form", async () => {
+    const user = userEvent.setup();
+    renderApps();
+
+    await screen.findByRole("button", { name: /vary image/i });
+    await user.type(screen.getByRole("textbox", { name: "Search apps" }), "photos");
+
+    expect(screen.getByRole("button", { name: /vary image/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /sku factory/i })).not.toBeInTheDocument();
+    expect(screen.getByText("1 app")).toBeInTheDocument();
+
+    await user.clear(screen.getByRole("textbox", { name: "Search apps" }));
+    await user.type(screen.getByRole("textbox", { name: "Search apps" }), "podcast");
+    expect(screen.getByText("No apps match your search")).toBeInTheDocument();
+    // The empty state's button, after the search box's own clear icon.
+    const clearButtons = screen.getAllByRole("button", { name: "Clear search" });
+    await user.click(clearButtons[clearButtons.length - 1]);
+    expect(screen.getByRole("button", { name: /sku factory/i })).toBeInTheDocument();
+  });
+
   it("lists only known app details without unavailable compatibility metadata", async () => {
     renderApps();
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Workflow } from "../stores/ApiTypes";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import useOnboardingStore from "../stores/OnboardingStore";
+import { useNotificationStore } from "../stores/NotificationStore";
 import {
   examplePackageName,
   exampleSeedRef
@@ -78,6 +79,14 @@ export const useWorkflowActions = (): WorkflowActions => {
         });
         navigate("/workspace");
         useOnboardingStore.getState().markStep("keep-creating");
+        // The copy keeps the example's name, so say that it is a copy. In UX
+        // research study 12, 3 of 3 participants who changed an example were
+        // unsure whether saving had changed the example itself.
+        useNotificationStore.getState().addNotification({
+          type: "info",
+          alert: true,
+          content: `This is your own copy of "${example.name}". Changes you save stay in your copy, and the example stays as it was.`
+        });
       } catch (error) {
         console.error("Error copying example:", error);
       } finally {

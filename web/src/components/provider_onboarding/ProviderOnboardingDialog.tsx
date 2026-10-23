@@ -20,17 +20,21 @@ import { providersForCapability } from "./providerOnboardingCatalog";
 const ProviderOnboardingDialog: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { open, capability, reason, highlightSecretKey, dismiss } =
+  const { open, capability, stepCapabilities, reason, highlightSecretKey, dismiss } =
     useProviderOnboardingStore(useShallow((s) => ({
-      open: s.open, capability: s.capability, reason: s.reason,
-      highlightSecretKey: s.highlightSecretKey, dismiss: s.dismiss
+      open: s.open, capability: s.capability, stepCapabilities: s.stepCapabilities,
+      reason: s.reason, highlightSecretKey: s.highlightSecretKey, dismiss: s.dismiss
     })));
   const { secrets } = useSecrets();
   const configuredKeys = useMemo(
     () => new Set(secrets.filter((s) => s.is_configured).map((s) => s.key)),
     [secrets]
   );
-  const providers = useMemo(() => providersForCapability(capability), [capability]);
+  const providers = useMemo(
+    () => providersForCapability(capability, stepCapabilities),
+    [capability, stepCapabilities]
+  );
+  const forStep = (stepCapabilities?.length ?? 0) > 0;
   const groups = [
     { title: t("batch2_7.providerOnboarding.signInGroup"), providers: providers.filter((p) => p.oauth) },
     { title: t("batch2_7.providerOnboarding.apiKeyGroup"), providers: providers.filter((p) => !p.oauth) }
@@ -61,9 +65,11 @@ const ProviderOnboardingDialog: React.FC = () => {
       <FlexColumn gap={SPACING.xxl}>
         <FlexColumn gap={SPACING.md}>
           <Text sx={{ maxWidth: "60ch" }}>
-            {reason ?? (capability
-              ? t("batch2_7.providerOnboarding.capabilityPrompt", { capability: t(`batch2_7.providerOnboarding.capabilities.${capability}`) })
-              : t("batch2_7.providerOnboarding.chooseProvider"))}
+            {reason ?? (forStep
+              ? t("batch2_7.providerOnboarding.stepPrompt")
+              : capability
+                ? t("batch2_7.providerOnboarding.capabilityPrompt", { capability: t(`batch2_7.providerOnboarding.capabilities.${capability}`) })
+                : t("batch2_7.providerOnboarding.chooseProvider"))}
           </Text>
           <Caption size="small">{t("batch2_7.providerOnboarding.billing")}</Caption>
         </FlexColumn>
