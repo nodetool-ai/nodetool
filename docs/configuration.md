@@ -86,6 +86,33 @@ A missing required variable throws `Missing required env var <name> for NODETOOL
 
 The asset store uses `ASSET_BUCKET`; the temp store uses `TEMP_BUCKET`. See `storage-config.ts` in `@nodetool-ai/config`.
 
+## Cross-instance resource changes
+
+With PostgreSQL and a valid `NODETOOL_INSTANCE_ID` (or `FLY_MACHINE_ID`), the
+server distributes resource changes over PostgreSQL LISTEN/NOTIFY. Without an
+instance id, PostgreSQL remains local. SQLite always uses synchronous in-memory
+delivery and opens no listener connection.
+
+Set `DIRECT_URL` to a direct or session-mode connection to the **same database**
+as `DATABASE_URL`. When absent, the listener uses `DATABASE_URL`. Startup rejects
+port 6543 because transaction pooling cannot maintain LISTEN subscriptions.
+Other transaction poolers must also use a direct or session-mode endpoint.
+Budget one dedicated listener connection per replica in addition to
+`DATABASE_POOL_MAX`. Writes and NOTIFY use the normal application pool.
+
+Run the `resource_change_outbox` migration before starting the replicas.
+Notifications larger than 7500 UTF-8 bytes store their complete payload in that
+table and notify peers with its id. A minute timer deletes rows older than a
+minute. PostgreSQL row-level security exposes no outbox rows through the Data
+API. Keeping `ops` avoids treating a large agent edit as a whole-document
+replacement in a dirty editor. The socket frame remains unchanged.
+
+Delivery is best effort, not a durable event log. Each process drops its own
+notifications. A listener reconnect sends `resource_resync` to local sockets,
+which invalidate resource queries just as they do after a socket reconnect.
+Draining stops the listener but keeps publishing writes from finishing runs.
+Shutdown flushes queued publications and stops outbox maintenance.
+
 ## Using Environment Variables in Code
 
 When adding a feature that reads configuration:
