@@ -19,6 +19,7 @@ import {
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
 import { notifyResourceChange, resourceEvents } from "../src/resource-events.js";
+import { notifyPythonBridgeResourceChanges } from "../src/python-bridge-resource-events.js";
 import {
   subscribeResourceChanges,
   type ResourceChangeFrame
@@ -191,6 +192,38 @@ describe("resource change fanout", () => {
       }
     ]);
     expect(changeFrames(open[1].ws)).toEqual([]);
+  });
+
+  it.each([true, false])("excludes app visitors from Python bridge changes (new provider: %s)", async (newProvider) => {
+    const editor = await connectAs("u1");
+    const visitorSession = new WebSocketClientSession({
+      userId: "u1",
+      appSession: { applicationId: "app-1", version: 1 },
+      systemStatsEnabled: false
+    });
+    const visitorWs = new MockWS();
+    await visitorSession.connect(visitorWs);
+    open = [editor, { session: visitorSession, ws: visitorWs }];
+    await notifyPythonBridgeResourceChanges(
+      {
+        listProviders: async () => [
+          { id: "python", capabilities: [], required_secrets: [] }
+        ]
+      },
+      async () => (newProvider ? ["python"] : [])
+    );
+    await flush();
+
+    expect(
+      changeFrames(editor.ws).map((frame) => [
+        frame["resource_type"], frame["event"]
+      ])
+    ).toEqual([
+      ["metadata", "updated"],
+      ["provider", newProvider ? "created" : "updated"],
+      ["model", "updated"]
+    ]);
+    expect(changeFrames(visitorWs)).toEqual([]);
   });
 
   it("removes the shared listeners when the last connection leaves", async () => {

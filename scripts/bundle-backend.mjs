@@ -33,6 +33,7 @@ import Module from "module";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { verifyBackendBundle } from "./verify-backend-bundle.mjs";
+import { backendServerBuildOptions } from "./backend-server-build-options.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1190,11 +1191,8 @@ async function main() {
   // --- esbuild ---
   console.log("Running esbuild...");
   const result = await esbuild.build({
+    ...backendServerBuildOptions,
     entryPoints: [ENTRY_POINT],
-    bundle: true,
-    platform: "node",
-    format: "esm",
-    target: "node20",
     outfile: path.join(BUNDLE_DIR, "server.mjs"),
     external: ESBUILD_EXTERNAL_PACKAGES,
     metafile: true,
