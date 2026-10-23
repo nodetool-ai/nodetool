@@ -437,3 +437,9 @@ function initializeSqliteBaseline(sqlite: Database.Database): void {
       );
   })();
 }
+
+/** The normal application pool, for PostgreSQL-specific transports. */
+export function getPostgresClient(): Sql {
+  if (!_pgClient) { throw new Error("PostgreSQL database not initialized."); }
+  return _pgClient;
+}
