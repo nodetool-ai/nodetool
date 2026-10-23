@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import userEvent from "@testing-library/user-event";
@@ -88,16 +88,25 @@ jest.mock("../../appbuilder/ApplicationAppBuilder", () => ({
   __esModule: true,
   default: function MockApplicationAppBuilder({
     applicationId,
-    onAgentWorkflowIdChange
+    onAgentWorkflowIdChange,
+    assistantPanel
   }: {
     applicationId: string;
     onAgentWorkflowIdChange?: (workflowId: string | undefined) => void;
+    assistantPanel?: React.ReactNode;
   }) {
     React.useEffect(() => {
       builderMounted(applicationId);
       onAgentWorkflowIdChange?.("wf-1");
     }, [applicationId, onAgentWorkflowIdChange]);
-    return <div data-testid="app-builder">{applicationId}</div>;
+    return (
+      <div>
+        <div data-testid="app-builder">{applicationId}</div>
+        {assistantPanel !== undefined && (
+          <div data-testid="builder-assistant-panel">{assistantPanel}</div>
+        )}
+      </div>
+    );
   }
 }));
 
@@ -116,19 +125,25 @@ jest.mock("../../appbuilder/ApplicationRunView", () => ({
   }
 }));
 
+const assistantMounted = jest.fn();
 jest.mock("../../appbuilder/AppBuilderAgentPanel", () => ({
   __esModule: true,
-  default: ({
+  default: function MockAppBuilderAgentPanel({
     applicationId,
     workflowId
   }: {
     applicationId: string;
     workflowId?: string;
-  }) => (
-    <div data-testid="app-assistant">
-      {applicationId}:{workflowId ?? "none"}
-    </div>
-  )
+  }) {
+    React.useEffect(() => {
+      assistantMounted();
+    }, []);
+    return (
+      <div data-testid="app-assistant">
+        {applicationId}:{workflowId ?? "none"}
+      </div>
+    );
+  }
 }));
 
 jest.mock("../../applications/ApplicationGovernancePanel", () => ({
@@ -371,22 +386,35 @@ describe("ApplicationSurface", () => {
     );
   });
 
-  it("keeps the assistant on the right in design, run, and settings", async () => {
+  it("docks the assistant in the builder in design and beside run and settings, as one chat", async () => {
     const user = userEvent.setup();
     renderSurface();
 
-    expect(screen.getByTestId("assistant-side-dock")).toBeInTheDocument();
-    expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
+    // Design: a builder dock panel, so the author can move it.
+    expect(
+      within(screen.getByTestId("builder-assistant-panel")).getByTestId("app-assistant")
+    ).toHaveTextContent("app-1:wf-1");
+    expect(screen.queryByTestId("assistant-side-dock")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Preview draft" }));
     expect(screen.getByTestId("app-run")).toHaveTextContent("app-1");
-    expect(screen.getByTestId("assistant-side-dock")).toBeInTheDocument();
-    expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
+    expect(screen.queryByTestId("builder-assistant-panel")).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("assistant-side-dock")).getByTestId("app-assistant")
+    ).toHaveTextContent("app-1:wf-1");
 
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(screen.getByTestId("governance")).toHaveTextContent("app-1");
-    expect(screen.getByTestId("assistant-side-dock")).toBeInTheDocument();
-    expect(screen.getByTestId("app-assistant")).toHaveTextContent("app-1:wf-1");
+    expect(
+      within(screen.getByTestId("assistant-side-dock")).getByTestId("app-assistant")
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Design" }));
+    expect(
+      within(screen.getByTestId("builder-assistant-panel")).getByTestId("app-assistant")
+    ).toBeInTheDocument();
+    // The chat moved between hosts without remounting, so its thread survives.
+    expect(assistantMounted).toHaveBeenCalledTimes(1);
   });
 
   it("isolates inactive mounted layers from keyboard and assistive technology", async () => {

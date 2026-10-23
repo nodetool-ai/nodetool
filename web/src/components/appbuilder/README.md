@@ -125,19 +125,28 @@ the existing worker path.
     `useResolvedMediaUri`, never a raw locator.
   - `useWidgetRuntime.ts` — binds a widget's props to reactive state + events.
   - `BuilderWorkflowContext.tsx` — supplies the bindable surface to fields.
-  - `PuckAppEditor.tsx` — the `<Puck>` editor wrapper.
+  - `PuckAppEditor.tsx` — the `<Puck>` editor wrapper. It renders
+    `dock/AppBuilderDock.tsx` as Puck's children, so Puck draws none of its own
+    chrome.
+- `dock/AppBuilderDock.tsx` — the editor's panels in the shared dock
+  (`components/dock/`, the one the game and timeline editors use): Canvas
+  (`Puck.Preview`, required), Components, Outline, Properties (`Puck.Fields`),
+  App Data and Agent. Panels move, group, resize and hide, and the layout is saved
+  per user under `nodetool.app-builder-layout.v1`
+  (`stores/appbuilder/AppBuilderDockLayout.ts`). Its toolbar holds undo and
+  redo, the Layout menu, the App Data toggle and Save.
 - `AppRuntimeView.tsx` — the live `<Render>` wrapper (used by app mode).
-- `AppDataPanel.tsx` — the operations/variables/resources editor that docks
-  beside the canvas (the **App Data** toggle in the editor header). Every edit
+- `AppDataPanel.tsx` — the operations/variables/resources editor, a dock panel
+  beside Properties (the **App Data** toggle in the editor toolbar). Every edit
   goes through app-runtime's `doc-ops`, the same pure functions the agent's
   `ui_app_*` tools call, so hand edits and agent edits produce identical
   documents.
 - `AppBuilderShell.tsx` — the editing surface, independent of storage: it seeds
   Puck from a document, holds the operations/resources/variables beside it, and
-  emits the **whole** document on save. Below 638px — where Puck folds its
-  header actions into a chevron menu — the App Data panel covers the canvas
-  instead of docking beside it. The assistant docks on `ApplicationSurface`,
-  so it stays on the right in Design, Run, and Settings.
+  emits the **whole** document on save. The assistant renders once on
+  `ApplicationSurface`, into a container that moves between hosts
+  (`components/dock/AdoptedNodeSlot.tsx`): the builder's Agent panel in Design,
+  the side dock in Run and Settings. Its thread survives every switch.
 - `ApplicationAppBuilder.tsx` — the container over an `applications` record:
   loads with `applications.get`, saves with `applications.update` carrying
   `baseUpdatedAt`. A lost compare-and-swap raises an alert and a banner with a

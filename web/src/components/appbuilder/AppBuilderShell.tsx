@@ -1,19 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
 import type { Data } from "@puckeditor/core";
 import {
   type AppDocMeta,
   type OperationBinding
 } from "@nodetool-ai/app-runtime";
 
-import {
-  Box,
-  EditorButton,
-  FlexColumn,
-  FlexRow,
-  BORDER_RADIUS,
-  Z_INDEX
-} from "../ui_primitives";
+import { Box, FlexColumn } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
@@ -67,34 +59,9 @@ interface AppBuilderShellProps {
    * The App Data form never asks for it.
    */
   projectId?: string;
+  /** The app builder agent, docked as a panel beside the canvas. */
+  assistantPanel?: React.ReactNode;
 }
-
-// Leave room for both the canvas and a docked App Data panel.
-const MIN_DOCKED_WIDTH = 960;
-const DATA_PANEL_WIDTH = 360;
-
-/** Shared framing for the panels that dock beside the canvas. */
-const sidePanelSx = {
-  width: DATA_PANEL_WIDTH,
-  flexShrink: 0,
-  height: "100%",
-  borderLeft: "1px solid",
-  borderColor: "divider",
-  overflow: "hidden",
-  borderTopLeftRadius: BORDER_RADIUS.lg
-} as const;
-
-/** The same panel, covering the canvas instead of docking beside it. */
-const overlayPanelSx = {
-  ...sidePanelSx,
-  position: "absolute",
-  inset: 0,
-  width: "100%",
-  borderLeft: "none",
-  borderTopLeftRadius: 0,
-  backgroundColor: "background.default",
-  zIndex: Z_INDEX.overlay
-} as const;
 
 /**
  * The builder's editing surface, independent of where the document is stored.
@@ -118,9 +85,9 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   onDraftChange,
   saving,
   onClose,
-  projectId
+  projectId,
+  assistantPanel
 }) => {
-  const { t } = useTranslation();
   const setCurrentWorkflowId = useWorkflowManager((s) => s.setCurrentWorkflowId);
   // Puck owns the layout after mount, so this is the seed only. The document's
   // theme is seeded onto the root so the author edits it as a root field, and
@@ -143,26 +110,6 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
     variables: document.variables,
     recipe: document.recipe
   }));
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry) {
-        setContainerWidth(entry.contentRect.width);
-      }
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-  const narrow = containerWidth < MIN_DOCKED_WIDTH;
-  const panelSx = narrow ? overlayPanelSx : sidePanelSx;
-  const [dataOpen, setDataOpen] = useState(false);
-  const toggleData = useCallback(() => setDataOpen((open) => !open), []);
-
   // Point the agent's workflow tools at the graph this app runs.
   useEffect(() => {
     if (agentWorkflowId) setCurrentWorkflowId(agentWorkflowId);
@@ -215,48 +162,36 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   );
 
   return (
-    <FlexRow
-      ref={containerRef}
-      gap={0}
-      sx={{ width: "100%", height: "100%", minHeight: 0, position: "relative" }}
-    >
+    <FlexColumn sx={{ width: "100%", height: "100%", minHeight: 0 }}>
       {/* Syncs workflow tools to this workflow so the agent can edit the graph. */}
       <FrontendToolRuntimeSync />
-      <FlexColumn sx={{ flex: 1, minWidth: 0, height: "100%", minHeight: 0 }}>
-        {header}
-        {banner}
-        <Box sx={{ flex: 1, minHeight: 0 }}>
-          <PuckAppEditor
-            applicationId={applicationId}
-            workflow={workflow}
-            data={data}
-            onPublish={handleSave}
-            onChange={setLiveData}
-            saving={saving}
-            onClose={onClose}
-            meta={meta}
-            onMetaChange={setMeta}
-            dataOpen={dataOpen}
-            onToggleData={toggleData}
-            operationWorkflows={operationWorkflows}
-          />
-        </Box>
-      </FlexColumn>
-      {dataOpen && (
-        <FlexColumn role="complementary" aria-label={t("i18n-next8.appBuilder.shell.appDataLabel")} sx={panelSx}>
-          {narrow && (
-            <EditorButton onClick={toggleData}>{t("i18n-next8.appBuilder.shell.backToCanvas")}</EditorButton>
-          )}
-          <AppDataPanel
-            meta={meta}
-            onChange={setMeta}
-            workflowId={workflow.id}
-            workflowName={workflow.name}
-            projectId={projectId}
-          />
-        </FlexColumn>
-      )}
-    </FlexRow>
+      {header}
+      {banner}
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        <PuckAppEditor
+          applicationId={applicationId}
+          workflow={workflow}
+          data={data}
+          onPublish={handleSave}
+          onChange={setLiveData}
+          saving={saving}
+          onClose={onClose}
+          meta={meta}
+          onMetaChange={setMeta}
+          dataPanel={
+            <AppDataPanel
+              meta={meta}
+              onChange={setMeta}
+              workflowId={workflow.id}
+              workflowName={workflow.name}
+              projectId={projectId}
+            />
+          }
+          operationWorkflows={operationWorkflows}
+          assistantPanel={assistantPanel}
+        />
+      </Box>
+    </FlexColumn>
   );
 };
 

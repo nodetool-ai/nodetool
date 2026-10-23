@@ -16,6 +16,7 @@ jest.mock("@puckeditor/core", () => ({
   Puck: () => null,
   useGetPuck: jest.fn()
 }));
+jest.mock("../../dock/AppBuilderDock", () => ({ __esModule: true, default: () => null }));
 jest.mock("../config", () => ({ appConfig: {}, useAppConfig: () => ({}) }));
 jest.mock("../PuckAgentBinder", () => ({
   __esModule: true,

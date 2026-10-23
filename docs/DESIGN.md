@@ -956,7 +956,7 @@ names the panel, as in the agent panels.
 
 ### Docked panel groups
 
-An editor whose panels the user rearranges (the game and timeline editors)
+An editor whose panels the user rearranges (the game, timeline and app builder editors)
 docks them in groups. The shared dock lives in `web/src/components/dock/`. Each group draws a `DockTabStrip` and its body. The tab names the
 panel, so the panel draws no title strip of its own: its first row is a
 toolbar of controls, or its content.

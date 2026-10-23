@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Puck, useGetPuck, type Data, type Overrides } from "@puckeditor/core";
+import { Puck, useGetPuck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import "./puckTheme.css";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
@@ -9,7 +9,6 @@ import SaveIcon from "@mui/icons-material/Save";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import TabletMacIcon from "@mui/icons-material/TabletMac";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
-import TuneIcon from "@mui/icons-material/Tune";
 
 import { Workflow } from "../../../stores/ApiTypes";
 import { NodeContext } from "../../../contexts/NodeContext";
@@ -20,6 +19,7 @@ import { AppRuntimeContext } from "../runtime/AppRuntimeContext";
 import { BuilderWorkflowProvider } from "./BuilderWorkflowContext";
 import { useAppConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
+import AppBuilderDock from "../dock/AppBuilderDock";
 import {
   APP_SCHEMA_VERSION,
   BASE_APP_SCHEMA_VERSION,
@@ -52,8 +52,10 @@ interface PuckAppEditorProps {
    */
   meta?: AppDocMeta;
   onMetaChange?: (next: AppDocMeta) => void;
-  dataOpen?: boolean;
-  onToggleData?: () => void;
+  /** The App Data panel body, docked beside the canvas. Omitted, the builder has no App Data panel. */
+  dataPanel?: ReactNode;
+  /** The app builder agent, docked as a panel. */
+  assistantPanel?: ReactNode;
   /**
    * The graph of every workflow the document's operations run, by workflow id.
    * An operation whose workflow is missing binds against nothing — the host
@@ -63,8 +65,8 @@ interface PuckAppEditorProps {
 }
 
 /**
- * Replaces Puck's built-in "Publish" button with a "Save" button that reads
- * the current editor data via Puck's store and forwards it to onPublish.
+ * Stands in for Puck's built-in "Publish" button: reads the current editor
+ * data via Puck's store and forwards it to onPublish.
  */
 const SaveButton: React.FC<{ onSave: (data: Data) => void; saving?: boolean }> = ({ onSave, saving }) => {
   const getPuck = useGetPuck();
@@ -87,12 +89,6 @@ const SaveButton: React.FC<{ onSave: (data: Data) => void; saving?: boolean }> =
 };
 
 type PreviewWidth = "phone" | "tablet" | "fit";
-
-/** Puck sidebars start closed. Header buttons still toggle them. */
-const INITIAL_UI = {
-  leftSideBarVisible: false,
-  rightSideBarVisible: false
-};
 
 /**
  * Constrains the canvas preview width so container-query-driven widgets
@@ -119,9 +115,10 @@ const PreviewWidthToggle: React.FC<{
 );
 
 /**
- * The WYSIWYG editor: Puck draws the editing chrome (component drawer, canvas,
- * field inspector) while our contexts supply the bindable workflow surface and
- * an inert design-mode runtime so widget previews render without running.
+ * The WYSIWYG editor: Puck supplies the component drawer, outline, canvas and
+ * field inspector, laid out as panels in our dock (`AppBuilderDock`), while our
+ * contexts supply the bindable workflow surface and an inert design-mode
+ * runtime so widget previews render without running.
  */
 const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   applicationId,
@@ -133,8 +130,8 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   onClose,
   meta = EMPTY_DOC_META,
   onMetaChange,
-  dataOpen = false,
-  onToggleData,
+  dataPanel,
+  assistantPanel,
   operationWorkflows
 }) => {
   const { t } = useTranslation();
@@ -196,63 +193,6 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   const nodeStore = useWorkflowManager((s) => s.nodeStores[workflow.id]);
   const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("fit");
 
-  const overrides = useMemo<Partial<Overrides>>(
-    () => ({
-      headerActions: () => (
-        <>
-          {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
-          <PuckAgentBinder
-            config={appConfig}
-            applicationId={applicationId}
-            workflowId={workflow.id}
-            meta={meta}
-            onMetaChange={handleMetaChange}
-            workflowState={workflowState}
-            workflowStates={workflowStates}
-          />
-          <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
-          {onToggleData && (
-            <EditorButton
-              size="small"
-              variant={dataOpen ? "contained" : "text"}
-              startIcon={<TuneIcon />}
-              onClick={onToggleData}
-              aria-pressed={dataOpen}
-            >
-              {t("i18n-next115.appBuilder.appData")}
-            </EditorButton>
-          )}
-          {onClose && (
-            <EditorButton
-              size="small"
-              variant="text"
-              startIcon={<CloseIcon />}
-              onClick={onClose}
-            >
-              {t("i18n-next115.appBuilder.back")}
-            </EditorButton>
-          )}
-          <SaveButton onSave={onPublish} saving={saving} />
-        </>
-      )
-    }),
-    [
-      applicationId,
-      t,
-      onClose,
-      onPublish,
-      saving,
-      workflow,
-      previewWidth,
-      meta,
-      handleMetaChange,
-      workflowState,
-      workflowStates,
-      dataOpen,
-      onToggleData
-    ]
-  );
-
   return (
     <NodeContext.Provider value={nodeStore ?? null}>
       <BuilderWorkflowProvider
@@ -271,12 +211,45 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
             <Puck
               config={appConfig}
               data={data}
-              ui={INITIAL_UI}
               onPublish={onPublish}
               onChange={onChange}
-              overrides={overrides}
               iframe={{ enabled: false }}
-            />
+            >
+              <AppBuilderDock
+                dataPanel={dataPanel}
+                assistantPanel={assistantPanel}
+                actions={
+                  <>
+                    {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
+                    <PuckAgentBinder
+                      config={appConfig}
+                      applicationId={applicationId}
+                      workflowId={workflow.id}
+                      meta={meta}
+                      onMetaChange={handleMetaChange}
+                      workflowState={workflowState}
+                      workflowStates={workflowStates}
+                    />
+                    <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
+                  </>
+                }
+                trailingActions={
+                  <>
+                    {onClose && (
+                      <EditorButton
+                        size="small"
+                        variant="text"
+                        startIcon={<CloseIcon />}
+                        onClick={onClose}
+                      >
+                        {t("i18n-next115.appBuilder.back")}
+                      </EditorButton>
+                    )}
+                    <SaveButton onSave={onPublish} saving={saving} />
+                  </>
+                }
+              />
+            </Puck>
           </Box>
         </AppRuntimeContext.Provider>
       </BuilderWorkflowProvider>
