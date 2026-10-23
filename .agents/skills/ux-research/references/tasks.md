@@ -76,6 +76,10 @@ never put it in a packet.
 | `photo-variant` | You have a photo of a lamp you sell online. Use something ready-made in this app, not built by you, to get a version of the photo with a different background, until you see the new version. | empty | 40 | Using an example on your own photo |
 | `compare-answers` | You want to see how a few different AI models answer the same question, side by side, so you can choose one. Find something ready-made here that does that and use it with a question of your own, until you see the answers. | empty | 35 | Finding and running an example app |
 | `own-version` | One of the ready-made tools here is close to what you need, but you want your own version of it with one change of your choice, kept apart from the original. Make that version, go back to where you started, and open your version again. | empty | 30 | Copying an example |
+| `find-example` | A customer sent you a long, angry chain of emails saying your app keeps crashing. Your developers want a short, orderly write-up of the problem that they can act on. Find something ready-made here that turns emails like these into that kind of write-up, and open it. | empty | 15 | Finding the example for a specific job |
+| `read-example` | Without running it, work out what the thing you opened needs you to give it, and where you would see what it gives back. Say both. | empty, after `find-example` | 10 | Reading an opened example |
+| `example-own-text` | Your supplier wrote this description of a kettle: "1.7 L borosilicate vessel, 3 kW rapid-boil element, strix-type thermostatic cut-out, 360° cordless base." Your shoppers would not follow it. Use something ready-made here, not built by you, to get a version in everyday words, until you see it. | empty | 30 | Running an example on your own text |
+| `adapt-example` | Something ready-made here turns shop text into German. You also sell in France, so make your own version that turns it into French instead, then use it on "Handmade lavender soap, gentle on skin" until you see the result. | empty | 35 | Changing how an example behaves |
 | `reconnect` | Someone left something here that should turn trip notes into a packing list, but the list it makes never uses the notes. Make it use them, then run it once. | unwired-run | 20 | Reading and repairing a graph's wires |
 
 `add-key`, `read-aloud`, `make-tool`, `make-game`, `keep-answer`, `same-character`, `photo-variant`, `compare-answers` and `own-version` need a test key in
@@ -136,6 +140,10 @@ studies the choice and not the setup.
 | `photo-variant` | An edited picture made from the participant's photo is visible. | Whether it chose an app or a workflow example, and what the model field offered for the step. | [image](../../agentic-qa/references/protocols/library.md#image) |
 | `compare-answers` | Answers from more than one model to the participant's question are visible. | Whether it reached the Model Arena app or the workflow, and what it searched for. | [app-first-use](../../agentic-qa/references/protocols/first-use.md#app-first-use) |
 | `own-version` | A copy of an example with the participant's change, reopened from a list after leaving it. | Whether it trusted that saving left the example alone, and whether it renamed the copy. | [automation-keep](../../agentic-qa/references/protocols/workflows.md#automation-keep) |
+| `find-example` | "Turn a Support Thread into a Bug Report" is open on its canvas. | Where it looked for examples, and which words it searched. | [example-edit](../../agentic-qa/references/protocols/workflows.md#example-edit) |
+| `read-example` | The diary names the "thread" input and the output node (or the run panel) as where the result appears. | Whether it read the canvas note or clicked the nodes. | [example-edit](../../agentic-qa/references/protocols/workflows.md#example-edit) |
+| `example-own-text` | "Rewrite This So a Customer Understands It" (or another plain-language example) ran with the kettle text, output visible. | Whether it reached Examples or asked the chat, and which words it searched. | [example-edit](../../agentic-qa/references/protocols/workflows.md#example-edit) |
+| `adapt-example` | A copy of "Translate Marketing Copy to German" whose Agent instruction asks for French, run with the soap line, output visible. | Where it made the change: the System field, the prompt, the input, or a title only. | [example-edit](../../agentic-qa/references/protocols/workflows.md#example-edit) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -212,6 +220,12 @@ first pick is the FAL-only "Put a Product on a Studio Backdrop", so give it
 40. Vary Image runs on the OpenAI fake. `compare-answers` takes about 30
 actions after `run-example`, 7 of them on the key. The fakes return the same
 text from every model, which participants notice.
+
+Study 13 found that `example-own-text` takes 25 to 29 actions on the fixed
+build, 6 of them on the key, and `adapt-example` 25 to 31. `find-example` and
+`read-example` together take 12 to 20. On the fake runtime every run returns
+"deterministic e2e response", so judge `example-own-text` and `adapt-example`
+on the run, not on the text.
 
 ## Adding a task
 

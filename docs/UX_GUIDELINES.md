@@ -71,6 +71,10 @@ first sessions. People ask the chat instead of scrolling.
   3 of 3 each (`study-10-I2`). It is missed when a first-screen card
   matches better: 0 of 3 who wanted a picture per scene opened it, and all
   took "Create video" (`study-10-I1`).
+- People who want something ready-made unfold that bar too: 5 of 9 did, and
+  the 3 whose job was a text rewrite asked the chat when no example was
+  there. With a "Ready-made examples" card in it, 8 of 8 reached the
+  examples (`study-13-I1`).
 - Unfolding a list scrolls what it reveals into view. At 1280 × 720 the only
   new thing in view was an unlabelled control (`study-10-I3`).
 
@@ -84,7 +88,10 @@ An example that stops on a setup step reads as broken. A card that says
 example with what it needs, and list the ones that run as they are first.
 When none runs as is, list the ones that need the least setup first: the
 Apps tab opened on ad-format apps needing two kinds of model, and 0 of 9
-participants used an example app (`study-12-I1`).
+participants used an example app (`study-12-I1`). Once opened, an
+example's note names the field that sets its behavior. 3 of 3 who turned a
+German translator into a French one had to find "German" in a System field
+nothing pointed to (`study-13-I4`).
 
 ### 1.5 Label navigation, and put Settings and Help where people look
 
@@ -288,7 +295,10 @@ No-match text names its scope and where else to look.
 A search matches other forms of a word ("compare" finds "comparison"), and
 a gallery's search names matches on its sibling tabs. 3 of 3 searched the
 workflow examples for "compare" and missed Model Arena, and 6 of 9 searched
-a tab that held no apps (`study-12-I1`, `study-12-I2`).
+a tab that held no apps (`study-12-I1`, `study-12-I2`). An example's
+description uses the words people search with for its job, not only the
+product's: "email" missed a "support thread" example in 2 of 2, and
+"simple" and "simplify" missed a "plain language" one (`study-13-I2`).
 
 ### 4.7 A disabled control says why
 
@@ -382,6 +392,7 @@ Studies confirmed these. Keep them when changing the surrounding UI.
 | The App flow opening the built app in its run view, with the build's stages listed | `study-8-I2`, `study-8-I4`, study 10 3 of 3 |
 | Clicking a node to open its settings in the side panel | `study-9-I5`, 3 of 3 in 9 actions |
 | Dragging from dot to dot to connect, and the status bar's edge count as confirmation | `study-9-I6`, 5 of 5 |
+| An example's "How it works" note naming its numbered nodes, read to say what it needs and where its result appears | `study-13-I3`, 5 of 5 |
 
 ## 9. Open questions
 
