@@ -15,7 +15,7 @@ Plan a film as a board of shots. Each shot has a prompt, a camera setup, and the
 
 ![Storyboard editor](assets/screenshots/storyboard-board.png)
 
-The Storyboard opens as a workspace tab. The board is on the left. The assistant panel opens beside it on request. A queue overlay appears over the board while renders run.
+The Storyboard opens as a workspace tab. The board is on the left. The assistant panel opens beside it on request. Running renders are listed in the bottom panel's **Generations** view.
 
 | Area | What it holds |
 |---|---|
@@ -124,7 +124,7 @@ The shot remembers the model you picked, so later renders skip the dialog choice
 
 The header's render buttons show a price in the dialog and on the confirm button, for example "Render stills · ~$0.40". Text under the picker explains any request that could not be priced, and **Select a priced model to see the estimate.** appears when no priced model is selected. After you choose stills, the dialog also shows what rendering the clips for the same shots would add. For how provider charges work, see [Costs and Credits](costs-and-credits.md).
 
-The queue overlay lists running renders with progress. You can expand or collapse it. **Stop tracking** hides local progress only, and the provider may still finish the request and charge for it.
+The bottom panel's **Generations** view lists every render with its status, next to generations from chat, other editors and workflow runs. Its tab shows how many are still running. Clicking a render opens its board on that shot, and **Stop generating** cancels it on the server. On a phone, where there is no bottom panel, a queue overlay over the board lists the renders instead. Its **Stop tracking** hides local progress only, and the provider may still finish the request and charge for it.
 
 ---
 
@@ -168,7 +168,7 @@ The same menu offers **Download ZIP** and **Send to workflow…**, which passes 
 
 ## Retry failed shots
 
-When a render fails, **Retry N failed** appears under the header. It retries the latest failed request for each shot and kind. The queue overlay has the same button.
+When a render fails, **Retry N failed** appears under the header. It retries the latest failed request for each shot and kind. On a phone the queue overlay has the same button.
 
 ---
 
