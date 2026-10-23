@@ -35,7 +35,7 @@ const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 /** Attribution headers sent with every OpenRouter request. */
 const OPENROUTER_HEADERS: Record<string, string> = {
   // Stryker disable next-line StringLiteral
-  "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
+  "HTTP-Referer": "https://nodetool.ai",
   // Stryker disable next-line StringLiteral
   "X-Title": "NodeTool"
 };
