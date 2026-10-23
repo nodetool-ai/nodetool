@@ -484,19 +484,31 @@ async function waitForNetworkIdle(client: CDPClient, timeout: number): Promise<v
   });
 }
 
-function mapKey(key: string) {
-  const map: Record<string, { key: string; code: string; vk: number; text?: string }> = {
-    Enter: { key: "Enter", code: "Enter", vk: 13, text: "\r" },
-    Tab: { key: "Tab", code: "Tab", vk: 9 },
-    Escape: { key: "Escape", code: "Escape", vk: 27 },
-    Backspace: { key: "Backspace", code: "Backspace", vk: 8 },
-    ArrowLeft: { key: "ArrowLeft", code: "ArrowLeft", vk: 37 },
-    ArrowUp: { key: "ArrowUp", code: "ArrowUp", vk: 38 },
-    ArrowRight: { key: "ArrowRight", code: "ArrowRight", vk: 39 },
-    ArrowDown: { key: "ArrowDown", code: "ArrowDown", vk: 40 },
-    Space: { key: " ", code: "Space", vk: 32, text: " " }
-  };
-  if (map[key]) return map[key];
+interface KeyDefinition {
+  key: string;
+  code: string;
+  vk: number;
+  text?: string;
+}
+
+const NAMED_KEYS = {
+  Enter: { key: "Enter", code: "Enter", vk: 13, text: "\r" },
+  Tab: { key: "Tab", code: "Tab", vk: 9 },
+  Escape: { key: "Escape", code: "Escape", vk: 27 },
+  Backspace: { key: "Backspace", code: "Backspace", vk: 8 },
+  ArrowLeft: { key: "ArrowLeft", code: "ArrowLeft", vk: 37 },
+  ArrowUp: { key: "ArrowUp", code: "ArrowUp", vk: 38 },
+  ArrowRight: { key: "ArrowRight", code: "ArrowRight", vk: 39 },
+  ArrowDown: { key: "ArrowDown", code: "ArrowDown", vk: 40 },
+  Space: { key: " ", code: "Space", vk: 32, text: " " }
+} satisfies Record<string, KeyDefinition>;
+
+function isNamedKey(key: string): key is keyof typeof NAMED_KEYS {
+  return Object.hasOwn(NAMED_KEYS, key);
+}
+
+function mapKey(key: string): KeyDefinition {
+  if (isNamedKey(key)) return NAMED_KEYS[key];
   if (key.length === 1) {
     return { key, code: `Key${key.toUpperCase()}`, vk: key.toUpperCase().charCodeAt(0), text: key };
   }

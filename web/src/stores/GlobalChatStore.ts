@@ -70,6 +70,7 @@ import {
   useWorkspaceTabsStore
 } from "./WorkspaceTabsStore";
 import useAuth from "./useAuth";
+import { setChatResourceReloader } from "./resourceChangeHandler";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -2071,6 +2072,26 @@ useAuth.subscribe((state, previous) => {
         void useGlobalChatStore.getState().fetchThreads();
       }
     }, 0);
+  }
+});
+
+// Vanilla tRPC reads bypass Query, so invalidating its cache cannot refresh chat.
+setChatResourceReloader(({ resource_type, resource }) => {
+  const state = useGlobalChatStore.getState();
+  if (resource_type === "thread") {
+    void state.fetchThreads();
+  }
+  const threadId =
+    resource_type === "thread"
+      ? resource.id
+      : isString(resource.thread_id)
+        ? resource.thread_id
+        : state.currentThreadId;
+  if (
+    threadId &&
+    (threadId === state.currentThreadId || state.messageCache[threadId])
+  ) {
+    void state.loadMessages(threadId);
   }
 });
 

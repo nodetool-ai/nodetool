@@ -13897,6 +13897,7 @@
       "view": {
         "logs": "Protokolle",
         "queue": "Warteschlange",
+        "generations": "Generierungen",
         "workers": "Worker",
         "versions": "Versionen",
         "trace": "Trace"
@@ -18726,6 +18727,43 @@
       "noBoardsTitle": "Keine Storyboards",
       "noBoardsDescription": "Erstellen Sie ein Storyboard, um seine Einstellungen auf der Timeline zu platzieren.",
       "listLabel": "Storyboard-Einstellungen"
+    }
+  },
+  "generations": {
+    "title": "Generierungen",
+    "emptyTitle": "Noch keine Generierungen",
+    "emptyDescription": "Bilder, Videos und Audio, die du in einem Editor, einem geführten Ablauf, im Chat oder in einem Workflow generierst, erscheinen hier, während sie laufen.",
+    "clearFinished": "Fertige entfernen",
+    "stop": "Generierung stoppen",
+    "stopFailed": "die Generierung stoppen",
+    "openSource": "{{title}} öffnen",
+    "untitled": "{{kind}}-Generierung",
+    "kind": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Audio",
+      "other": "Medien"
+    },
+    "status": {
+      "generating": "generiert",
+      "generated": "fertig",
+      "failed": "fehlgeschlagen",
+      "cancelled": "gestoppt"
+    },
+    "filter": {
+      "label": "Generierungen filtern",
+      "all": "Alle",
+      "generating": "Läuft",
+      "failed": "Fehlgeschlagen"
+    },
+    "source": {
+      "chat": "Chat",
+      "workflow": "Workflow",
+      "storyboard": "Storyboard",
+      "sketch": "Skizze",
+      "timeline": "Timeline",
+      "model3d": "3D-Modell",
+      "script": "Skript"
     }
   },
   "shareDocument": {

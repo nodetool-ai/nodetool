@@ -82,6 +82,10 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
+    path: /^scripts\/(?:ci-plan\.mjs|__tests__\/ci-plan\.test\.mjs)$/,
+    steps: [{ label: "CI planning regressions", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/ci-plan.test.mjs"] }]
+  },
+  {
     path: /^scripts\/(?:test-affected\.mjs|smoke-backend-bundle\.mjs|__tests__\/(?:test-affected|smoke-backend-bundle|desktop-release-recovery)\.test\.mjs)$/,
     steps: [{ label: "script regressions", command: "npm", args: ["run", "test:scripts"] }]
   },
@@ -120,8 +124,12 @@ export const PATH_CHECKS = [
   { path: /^scripts\/validate-examples\.mjs$/, steps: [VALIDATE_EXAMPLES] },
   {
     // The `desktop-backend` surface in the harness registry runs the same smoke.
-    path: /^scripts\/(bundle-backend|verify-backend-bundle|smoke-backend-bundle)\.mjs$/,
+    path: /^scripts\/(bundle-backend|backend-server-build-options|verify-backend-bundle|smoke-backend-bundle)\.mjs$/,
     steps: [{ label: "backend:smoke", command: "npm", args: ["run", "backend:smoke"] }]
+  },
+  {
+    path: /^scripts\/(?:bundle-backend\.mjs|backend-server-build-options\.mjs|__tests__\/backend-server-build-options\.test\.mjs)$/,
+    steps: [{ label: "backend bundle class names", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/backend-server-build-options.test.mjs"] }]
   },
   {
     path: /^scripts\/verify-backend-bundle\.mjs$/,

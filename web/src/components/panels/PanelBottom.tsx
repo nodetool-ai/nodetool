@@ -24,6 +24,7 @@ import {
 } from "../ui_primitives";
 import {
   useResizeBottomPanel,
+  bottomPanelHeight,
   BOTTOM_PANEL_MIN_DRAG_SIZE,
   BOTTOM_PANEL_MAX_SIZE
 } from "../../hooks/handlers/useResizeBottomPanel";
@@ -37,6 +38,7 @@ import { useLocation } from "react-router-dom";
 import isEqual from "../../utils/isEqual";
 import TracePanel from "./TracePanel";
 import QueuePanel from "./jobs/QueuePanel";
+import GenerationsPanel from "./generations/GenerationsPanel";
 import WorkersPanel from "../workers/WorkersPanel";
 import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
 import {
@@ -53,6 +55,7 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { WorkflowVersion } from "../../stores/ApiTypes";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
+import { useGenerationActivityStore } from "../../stores/GenerationActivityStore";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import { isCloudProfile } from "../../lib/runtimeConfig";
@@ -66,6 +69,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import HistoryIcon from "@mui/icons-material/History";
 import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
 import MemoryIcon from "@mui/icons-material/Memory";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
 const HEADER_HEIGHT = CONTROL.height.md;
 
@@ -158,6 +162,7 @@ interface ViewSpec {
 const VIEW_SPECS = {
   logs: { id: "logs", icon: <ArticleIcon /> },
   queue: { id: "queue", icon: <PlaylistPlayIcon /> },
+  generations: { id: "generations", icon: <AutoAwesomeOutlinedIcon /> },
   workers: { id: "workers", icon: <MemoryIcon /> },
   versions: { id: "versions", icon: <HistoryIcon /> },
   trace: { id: "trace", icon: <TimelineIcon /> }
@@ -358,6 +363,12 @@ export const PanelBodyContent = memo(function PanelBodyContent({
           </FlexColumn>
         </FlexColumn>
       );
+    case "generations":
+      return (
+        <PanelErrorBoundary panelName={t("generations.title")}>
+          <GenerationsPanel />
+        </PanelErrorBoundary>
+      );
     case "workers":
       return <WorkersPanel />;
     case "versions":
@@ -414,6 +425,18 @@ const PanelBottom: React.FC = () => {
     [allJobs]
   );
 
+  // The tab counts what is still generating, so work started anywhere shows
+  // in the status bar without opening a panel over the page.
+  const generatingCount = useGenerationActivityStore((state) => {
+    let count = 0;
+    for (const generation of Object.values(state.generations)) {
+      if (generation.status === "generating") {
+        count += 1;
+      }
+    }
+    return count;
+  });
+
   const systemStats = useSystemStatsStore((state) => state.stats);
 
   // Clicking the open view's tab again collapses the panel.
@@ -438,10 +461,15 @@ const PanelBottom: React.FC = () => {
           value: view,
           label: t(`i18n-next31.panels.view.${view}`),
           icon: spec.icon,
-          count: view === "queue" && queuedCount > 0 ? queuedCount : undefined
+          count:
+            view === "queue" && queuedCount > 0
+              ? queuedCount
+              : view === "generations" && generatingCount > 0
+                ? generatingCount
+                : undefined
         };
       }),
-    [queuedCount, t]
+    [queuedCount, generatingCount, t]
   );
 
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
@@ -456,14 +484,12 @@ const PanelBottom: React.FC = () => {
     return null;
   }
 
-  const openHeight = isVisible
-    ? Math.min(
-        panelSize,
-        typeof window !== "undefined"
-          ? Math.max(200, window.innerHeight * 0.7)
-          : panelSize
-      )
-    : HEADER_HEIGHT;
+  const openHeight =
+    typeof window !== "undefined"
+      ? bottomPanelHeight(isVisible, panelSize, window.innerHeight)
+      : isVisible
+        ? panelSize
+        : HEADER_HEIGHT;
 
   return (
     <div
