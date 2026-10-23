@@ -7,10 +7,11 @@
  * one aborts a recoverable release, the other reports a broken release as green.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { RELEASE_REPOSITORY } from "../release/verify-staging.mjs";
 
 import {
   classifyPublishResult,
@@ -161,6 +162,30 @@ function releaseFixture() {
   ] }));
   return { root, dest, packages: ["cli", "core-nodes", "game-nodes", "game-renderer", "node-catalog"].map(name => ({ name })) };
 }
+
+// npm rejects a provenance publish whose package.json repository differs from
+// the repository that built it. The 0.8.7 release lost 53 packages this way:
+// a new workspace without a "repository" field failed, and every dependent of
+// it was held back.
+describe("public package metadata", () => {
+  const root = new URL("../../", import.meta.url);
+  const manifests = ["packages", "reliability"].flatMap(dir => {
+    const base = new URL(`${dir}/`, root);
+    return readdirSync(base, { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && existsSync(new URL(`${entry.name}/package.json`, base)))
+      .map(entry => JSON.parse(readFileSync(new URL(`${entry.name}/package.json`, base), "utf8")))
+      .filter(pkg => !pkg.private && pkg.name && pkg.version);
+  });
+
+  it("inspects the public workspace packages", () => {
+    expect(manifests.length).toBeGreaterThan(10);
+  });
+
+  it.each(manifests.map(pkg => [pkg.name, pkg]))("%s names the release repository for provenance", (_name, pkg) => {
+    const url = typeof pkg.repository === "string" ? pkg.repository : pkg.repository?.url;
+    expect(url?.replace(/^git\+/, "").replace(/\.git$/, "")).toBe(RELEASE_REPOSITORY);
+  });
+});
 
 describe("publishInDependencyOrder", () => {
   const pkg = (name, deps = []) => ({ name, version: "1.0.0", deps });

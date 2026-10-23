@@ -418,5 +418,9 @@ pinned by tests. Update them in the same change, or CI fails:
 
 1. Create directory under `packages/<name>/` with `package.json`, `tsconfig.json`, `src/index.ts`.
 2. Set `"name": "@nodetool-ai/<name>"` and `"type": "module"` in package.json.
+   A public package also needs `license`, `publishConfig`, and a `repository`
+   that names `https://github.com/nodetool-ai/nodetool.git`. npm rejects a
+   provenance publish without it, and every dependent is held back.
+   `scripts/__tests__/publish-packages.test.mjs` checks this.
 3. Add the workspace path to the root `package.json` `workspaces` array.
 4. Run `npm install` from the repo root to link the workspace. `npm run build:packages` is `turbo run build --filter="./packages/*"`, which derives build order from each package's declared dependencies — there is no per-package step to add.

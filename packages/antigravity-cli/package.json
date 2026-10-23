@@ -2,6 +2,16 @@
   "name": "@nodetool-ai/antigravity-cli",
   "version": "0.8.4",
   "description": "Managed Antigravity CLI installation for NodeTool",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/antigravity-cli"
+  },
+  "homepage": "https://nodetool.ai",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "engines": {
     "node": "24.22.1"
