@@ -28,12 +28,14 @@ interface DockGroupProps {
   readonly onDragStart?: (panelId: string, event: PointerEvent) => void;
   readonly maximized?: boolean;
   readonly onToggleMaximize?: () => void;
+  /** Leaves out the tab strip. The panel body fills the group. */
+  readonly tabless?: boolean;
 }
 
 type MenuState = { readonly panelId: string; readonly position: { x: number; y: number } } | null;
 
 export function DockGroup({ group, region, presentation, store, setSlot, drag = null, onDragStart, maximized = false,
-  onToggleMaximize }: DockGroupProps): ReactNode {
+  onToggleMaximize, tabless = false }: DockGroupProps): ReactNode {
   const { t } = useTranslation();
   const { metadata } = presentation;
   const { model } = store.getState();
@@ -72,7 +74,7 @@ export function DockGroup({ group, region, presentation, store, setSlot, drag = 
     onFocusCapture={() => setFocused(true)}
     onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setFocused(false); } }}
     sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden", bgcolor: "background.paper" }}>
-    <DockTabStrip ariaLabel={t("batch2_2.dock.panelTabs", { region: t(`batch2_2.dock.regions.${region}`), editor: model.editorLabel })} panelIdPrefix={idPrefix} focused={focused}
+    {!tabless && <DockTabStrip ariaLabel={t("batch2_2.dock.panelTabs", { region: t(`batch2_2.dock.regions.${region}`), editor: model.editorLabel })} panelIdPrefix={idPrefix} focused={focused}
       tabs={eligible.map((id) => ({ id, label: title(id), icon: icon(id), closable: !required.has(id) }))}
       activeId={active} dropIndex={dropIndex}
       onActivate={(panelId) => { if (panelId !== active) { dispatch({ type: "activate", panelId }); } }}
@@ -84,10 +86,10 @@ export function DockGroup({ group, region, presentation, store, setSlot, drag = 
         onClick={(event: React.MouseEvent<HTMLElement>) => {
           const rect = event.currentTarget.getBoundingClientRect();
           setMenu({ panelId: active, position: { x: rect.left, y: rect.bottom } });
-        }} />} />
+        }} />} />}
     <Box data-dock-body sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0 }}>
-      <Box ref={slotRef} data-dock-slot={group.id} role="tabpanel" id={`${idPrefix}-panel`}
-        aria-labelledby={dockTabElementId(idPrefix, active)}
+      <Box ref={slotRef} data-dock-slot={group.id} role={tabless ? undefined : "tabpanel"} id={`${idPrefix}-panel`}
+        aria-labelledby={tabless ? undefined : dockTabElementId(idPrefix, active)}
         sx={{ position: "absolute", inset: 0, overflow: "hidden" }} />
       <DockDropOverlay zone={target?.kind === "zone" ? target.zone : null} />
     </Box>

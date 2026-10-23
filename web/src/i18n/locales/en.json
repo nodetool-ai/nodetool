@@ -11626,6 +11626,13 @@
         "crop": "Crop",
         "adjust": "Adjust",
         "segment": "Segment"
+      },
+      "dock": {
+        "canvas": "Canvas",
+        "canvasSize": "Canvas size",
+        "properties": "Properties",
+        "noProperties": "No properties",
+        "noPropertiesDescription": "Select a vector layer or a generated layer to edit its properties here."
       }
     }
   },

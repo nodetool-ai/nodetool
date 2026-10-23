@@ -19,7 +19,12 @@ import { VectorLayerPanel } from "./VectorLayerPanel";
 import { SketchInspector } from "./SketchInspector";
 import { sketchSectionSx } from "./sketchSectionSx";
 
-const ConnectedGeneratedLayerSectionInner: React.FC = () => {
+interface ConnectedGeneratedLayerSectionProps {
+  /** Shown instead of nothing when the active layer has no vector or generation settings. */
+  emptyState?: React.ReactNode;
+}
+
+const ConnectedGeneratedLayerSectionInner: React.FC<ConnectedGeneratedLayerSectionProps> = ({ emptyState = null }) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const activeLayerId = useSketchStore((s) => s.document.activeLayerId);
@@ -40,7 +45,7 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
     );
   }
   if (!binding) {
-    return null;
+    return emptyState;
   }
 
   const isWorkflowBound = !binding.kind || binding.kind === "workflow";
