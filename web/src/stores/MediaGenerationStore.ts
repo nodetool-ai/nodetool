@@ -41,6 +41,8 @@ export interface MediaGenerationRequest {
   source_asset_id?: string | null;
   /** Keep the first reference video's audio (reference_to_video). */
   use_reference_video_audio?: boolean | null;
+  /** Which end of the attached clip the footage is added to (extend). */
+  extend_direction?: ExtendDirection | null;
   extras?: Record<string, unknown> | null;
 }
 
@@ -213,6 +215,21 @@ interface ReferenceToVideoGenerationParams {
   useReferenceVideoAudio: boolean;
 }
 
+/** Retake: restyle or change an attached clip, guided by the prompt. */
+interface RetakeParams {
+  model: VideoModelSelection | null;
+}
+
+/** Extend: add footage before or after an attached clip. */
+export type ExtendDirection = "start" | "end";
+
+interface ExtendParams {
+  model: VideoModelSelection | null;
+  direction: ExtendDirection;
+  /** Seconds added to the clip, not the length of the result. */
+  duration: number;
+}
+
 interface MediaGenerationState {
   mode: MediaMode;
   image: ImageGenerationParams;
@@ -222,6 +239,10 @@ interface MediaGenerationState {
   referenceToVideo: ReferenceToVideoGenerationParams;
   audio: AudioGenerationParams;
   music: MusicGenerationParams;
+  retake: RetakeParams;
+  extend: ExtendParams;
+  setRetakeParams: (params: Partial<RetakeParams>) => void;
+  setExtendParams: (params: Partial<ExtendParams>) => void;
   setMusicParams: (params: Partial<MusicGenerationParams>) => void;
   setMode: (mode: MediaMode) => void;
   setImageParams: (params: Partial<ImageGenerationParams>) => void;
@@ -280,6 +301,17 @@ const DEFAULT_REFERENCE_TO_VIDEO_PARAMS: ReferenceToVideoGenerationParams = {
   useReferenceVideoAudio: false
 };
 
+const DEFAULT_RETAKE_PARAMS: RetakeParams = { model: null };
+
+const DEFAULT_EXTEND_PARAMS: ExtendParams = {
+  model: null,
+  direction: "end",
+  duration: 3
+};
+
+/** Seconds the Extend mode offers to add. */
+export const EXTEND_DURATIONS = [2, 3, 5, 8] as const;
+
 const useMediaGenerationStore = create<MediaGenerationState>()(
   persist(
     (set) => ({
@@ -291,6 +323,12 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
       referenceToVideo: DEFAULT_REFERENCE_TO_VIDEO_PARAMS,
       audio: DEFAULT_AUDIO_PARAMS,
       music: { model: null, duration: 30 },
+      retake: DEFAULT_RETAKE_PARAMS,
+      extend: DEFAULT_EXTEND_PARAMS,
+      setRetakeParams: (params) =>
+        set((state) => ({ retake: { ...state.retake, ...params } })),
+      setExtendParams: (params) =>
+        set((state) => ({ extend: { ...state.extend, ...params } })),
       setMusicParams: (params) =>
         set((state) => ({ music: { ...state.music, ...params } })),
       setMode: (mode) => set({ mode }),
@@ -313,7 +351,7 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
     }),
     {
       name: "nodetool-media-generation",
-      version: 4,
+      version: 5,
       // The mode is not kept: a new chat starts in Chat unless it was opened
       // in another mode, so a reload must not bring back the last one.
       partialize: ({ mode: _mode, ...params }) => params,
@@ -345,6 +383,13 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
         if (version < 4) {
           const { mode: _mode, ...params } = state;
           state = params;
+        }
+        if (version < 5) {
+          state = {
+            ...state,
+            retake: { ...DEFAULT_RETAKE_PARAMS, ...(state.retake ?? {}) },
+            extend: { ...DEFAULT_EXTEND_PARAMS, ...(state.extend ?? {}) }
+          };
         }
         return state as MediaGenerationState;
       }

@@ -13191,7 +13191,9 @@
             "audioToVideo": "Audio zu Video",
             "retake": "Neu aufnehmen",
             "extend": "Verlängern",
-            "motionControl": "Bewegungssteuerung"
+            "motionControl": "Bewegungssteuerung",
+            "retakeDescription": "ein angehängtes Video ändern",
+            "extendDescription": "einem angehängten Video Material hinzufügen"
           }
         },
         "stopGeneration": "Generierung stoppen",
@@ -17963,8 +17965,8 @@
         "spokenText": "Gib den Text ein, der gesprochen werden soll…",
         "music": "Beschreibe die Musik, die du generieren möchtest…",
         "audioVideo": "Beschreibe eine mit Audio synchronisierte Szene…",
-        "retake": "Verfeinere die letzte Generierung…",
-        "extend": "Beschreibe, wie es weitergehen soll…",
+        "retake": "Beschreibe, was am angehängten Video geändert werden soll…",
+        "extend": "Beschreibe, was im hinzugefügten Material passiert…",
         "motion": "Bewegung beschreiben…",
         "planShort": "Beschreibe die zu planende Arbeit…",
         "plan": "Beschreibe die Arbeit. Der Agent schlägt einen Plan vor und führt ihn nicht aus.",
@@ -17978,7 +17980,17 @@
       "messageQueued": "Nachricht eingereiht - {{prompt}}",
       "sendNow": "Jetzt senden",
       "uploading": "Wird hochgeladen…",
-      "addToMessage": "Zur Nachricht hinzufügen"
+      "addToMessage": "Zur Nachricht hinzufügen",
+      "selectRetakeModel": "Retake-Modell auswählen",
+      "selectExtendModel": "Verlängerungsmodell auswählen",
+      "extendDirection": "Material hinzufügen",
+      "extendEnd": "Danach",
+      "extendEndDescription": "Nach dem letzten Bild weiterführen",
+      "extendStart": "Davor",
+      "extendStartDescription": "Vor dem ersten Bild einleiten",
+      "extendDuration": "Hinzuzufügende Sekunden",
+      "extendSeconds_one": "+{{count}} Sek.",
+      "extendSeconds_other": "+{{count}} Sek."
     },
     "message": {
       "addToCanvas": "Zur Arbeitsfläche hinzufügen",

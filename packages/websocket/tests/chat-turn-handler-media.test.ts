@@ -722,3 +722,129 @@ describe("reference_to_video", () => {
     expect(assistantFrames(harness)).toHaveLength(1);
   });
 });
+
+describe("retake and extend", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  it("refuses retake without an attached video", async () => {
+    const harness = makeChatTurnHarness({
+      session: { resolveProvider: async () => fakeProvider({}) },
+      deps: {
+        resolveReferenceMediaBytes: async () => ({ images: [PNG], videos: [] })
+      }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-media-retake-empty", {
+        mode: "retake",
+        provider: "mock",
+        model: "v2v-1"
+      })
+    );
+    const [err] = harness.session.messagesOfType("error");
+    expect(String(err.message)).toContain("Retake needs a video");
+    expect(assistantFrames(harness)).toHaveLength(0);
+  });
+
+  it("retakes the attached clip, steered by the attached images", async () => {
+    const clip = new Uint8Array([3, 3, 3]);
+    const image = new Uint8Array([1, 1, 1]);
+    let source: Uint8Array | null = null;
+    let params: Record<string, unknown> | null = null;
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            videoToVideo: async (v, p) => {
+              source = v as Uint8Array;
+              params = p as Record<string, unknown>;
+              return PNG;
+            }
+          })
+      },
+      deps: {
+        resolveReferenceMediaBytes: async () => ({
+          images: [image],
+          videos: [clip]
+        })
+      }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn(
+        "t-media-retake",
+        { mode: "retake", provider: "mock", model: "v2v-1" },
+        "make it night"
+      )
+    );
+    expect(source).toEqual(clip);
+    expect(params?.prompt).toBe("make it night");
+    expect(params?.referenceImages).toEqual([image]);
+    expect((params?.model as Record<string, unknown>).id).toBe("v2v-1");
+    const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
+    const [block] = assistant.content as Array<Record<string, unknown>>;
+    expect(block.type).toBe("video");
+  });
+
+  it("refuses extend without an attached video", async () => {
+    const harness = makeChatTurnHarness({
+      session: { resolveProvider: async () => fakeProvider({}) },
+      deps: {
+        resolveReferenceMediaBytes: async () => ({ images: [], videos: [] })
+      }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-media-extend-empty", {
+        mode: "extend",
+        provider: "mock",
+        model: "ext-1"
+      })
+    );
+    const [err] = harness.session.messagesOfType("error");
+    expect(String(err.message)).toContain("Extend needs a video");
+  });
+
+  it("extends the attached clip at the chosen end by the chosen seconds", async () => {
+    const clip = new Uint8Array([3, 3, 3]);
+    let source: Uint8Array | null = null;
+    let params: Record<string, unknown> | null = null;
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            extendVideo: async (v, p) => {
+              source = v as Uint8Array;
+              params = p as Record<string, unknown>;
+              return PNG;
+            }
+          })
+      },
+      deps: {
+        resolveReferenceMediaBytes: async () => ({ images: [], videos: [clip] })
+      }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn(
+        "t-media-extend",
+        {
+          mode: "extend",
+          provider: "mock",
+          model: "ext-1",
+          extend_direction: "start",
+          duration: 5
+        },
+        "the fox walks in from the left"
+      )
+    );
+    expect(source).toEqual(clip);
+    expect(params?.mode).toBe("start");
+    expect(params?.durationSeconds).toBe(5);
+    expect(params?.prompt).toBe("the fox walks in from the left");
+    const [assistant] = assistantFrames(harness);
+    expectReplyBeforeDone(harness);
+    expect(
+      (assistant.content as Array<Record<string, unknown>>)[0].type
+    ).toBe("video");
+  });
+});

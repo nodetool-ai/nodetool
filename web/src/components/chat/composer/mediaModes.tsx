@@ -66,6 +66,20 @@ export const MEDIA_MODES: readonly MediaModeItem[] = [
     enabled: true
   },
   {
+    id: "retake",
+    labelKey: "retake",
+    descriptionKey: "retakeDescription",
+    icon: <ReplayIcon fontSize="small" />,
+    enabled: true
+  },
+  {
+    id: "extend",
+    labelKey: "extend",
+    descriptionKey: "extendDescription",
+    icon: <TimelineIcon fontSize="small" />,
+    enabled: true
+  },
+  {
     id: "audio",
     labelKey: "readAloud",
     icon: <RecordVoiceOverIcon fontSize="small" />,
@@ -81,18 +95,6 @@ export const MEDIA_MODES: readonly MediaModeItem[] = [
     id: "audio_to_video",
     labelKey: "audioToVideo",
     icon: <GraphicEqIcon fontSize="small" />,
-    enabled: false
-  },
-  {
-    id: "retake",
-    labelKey: "retake",
-    icon: <ReplayIcon fontSize="small" />,
-    enabled: false
-  },
-  {
-    id: "extend",
-    labelKey: "extend",
-    icon: <TimelineIcon fontSize="small" />,
     enabled: false
   },
   {
