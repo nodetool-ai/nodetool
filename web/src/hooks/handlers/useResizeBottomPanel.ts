@@ -7,6 +7,22 @@ const MIN_DRAG_SIZE = 40;
 const MIN_PANEL_SIZE = 200;
 const MAX_PANEL_SIZE = 600;
 
+/** The tab strip PanelBottom keeps docked while the panel is collapsed. */
+export const BOTTOM_PANEL_STRIP_HEIGHT = 32;
+
+/**
+ * The height the bottom panel takes on screen. An open panel never takes more
+ * than 70% of the window, so the page above it keeps room to work in.
+ */
+export const bottomPanelHeight = (
+  isVisible: boolean,
+  panelSize: number,
+  viewportHeight: number
+): number =>
+  isVisible
+    ? Math.min(panelSize, Math.max(200, viewportHeight * 0.7))
+    : BOTTOM_PANEL_STRIP_HEIGHT;
+
 /** Smallest and largest height a drag can set. */
 export const BOTTOM_PANEL_MIN_DRAG_SIZE = MIN_DRAG_SIZE;
 export const BOTTOM_PANEL_MAX_SIZE = MAX_PANEL_SIZE;

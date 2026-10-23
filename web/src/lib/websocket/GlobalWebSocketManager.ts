@@ -99,6 +99,8 @@ interface GlobalWebSocketEvents {
   close: (code?: number, reason?: string) => void;
   error: (error: Error) => void;
   message: (message: WebSocketMessage) => void;
+  /** A command this client wrote to the socket, after it was written. */
+  send: (message: Record<string, unknown>) => void;
   reconnecting: (attempt: number, maxAttempts: number) => void;
   stateChange: (state: ConnectionState, previous: ConnectionState) => void;
 }
@@ -467,6 +469,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
     console.debug("GlobalWebSocketManager: Sending message", message);
     this.wsManager.send(message);
+    this.emit("send", message);
   }
 
   /**
