@@ -321,7 +321,10 @@ export class CdpRelay {
       return;
     }
     try {
-      const tab = await findAttachableTab(urlMatch);
+      // A web page can still refuse the debugger when another extension
+      // embeds a frame in it, so a refused tab moves the search to the next.
+      const refused = new Set<number>();
+      let tab = await findAttachableTab(urlMatch, refused);
       if (!tab) {
         if (urlMatch) {
           throw new Error(
@@ -332,8 +335,22 @@ export class CdpRelay {
           "No debuggable tab is open. Chrome blocks debugging of its own pages, other extensions' pages and the Web Store — open a normal web page and try again.",
         );
       }
-      await this.attachTab(tab.id);
-      this.send<AttachedFrame>({ kind: "attached", tabId: tab.id });
+      for (;;) {
+        try {
+          await this.attachTab(tab.id);
+          return;
+        } catch (err) {
+          if (!(err instanceof ForeignFrameError)) {
+            throw err;
+          }
+          refused.add(tab.id);
+          const next = await findAttachableTab(urlMatch, refused);
+          if (!next) {
+            throw err;
+          }
+          tab = next;
+        }
+      }
     } catch (err) {
       this.sendFatal(errorMessage(err));
     }
@@ -361,7 +378,14 @@ export class CdpRelay {
     if (this.attachedTabId !== null) {
       await this.teardownDebugger("Re-attaching to a new tab", false);
     }
-    await chrome.debugger.attach({ tabId }, CDP_PROTOCOL_VERSION);
+    try {
+      await chrome.debugger.attach({ tabId }, CDP_PROTOCOL_VERSION);
+    } catch (err) {
+      if (errorMessage(err).includes("chrome-extension://")) {
+        throw new ForeignFrameError();
+      }
+      throw err;
+    }
     this.attachedTabId = tabId;
     this.lastError = null;
     this.send<AttachedFrame>({ kind: "attached", tabId });
@@ -446,6 +470,21 @@ export function attachBlockReason(url: string | undefined): string | null {
   return null;
 }
 
+/**
+ * Chrome refuses to debug a tab when any frame in it belongs to another
+ * extension, even when the tab itself is an ordinary web page. Password
+ * managers, screen recorders and AI sidebars embed such frames. The tab URL
+ * does not show this, so only the attach itself detects it.
+ */
+export class ForeignFrameError extends Error {
+  constructor() {
+    super(
+      "Chrome refused to debug this tab because another extension embeds a frame in it (password managers and screen recorders do this). Set that extension's site access to \"On click\" for this site, or use a different tab.",
+    );
+    this.name = "ForeignFrameError";
+  }
+}
+
 /** Schemes `chrome.debugger` always refuses. */
 const BLOCKED_SCHEMES = new Set([
   "chrome:",
@@ -467,26 +506,24 @@ const WEB_STORE_HOSTS = [
  */
 export async function findAttachableTab(
   urlMatch?: string,
+  exclude: ReadonlySet<number> = new Set(),
 ): Promise<{ id: number } | null> {
+  const usable = (tab: chrome.tabs.Tab): boolean =>
+    tab.id !== undefined && !exclude.has(tab.id) && !attachBlockReason(tab.url);
   if (urlMatch) {
     const all = await chrome.tabs.query({});
     const matches = all.filter(
-      (tab) =>
-        tab.id !== undefined &&
-        tab.url?.includes(urlMatch) &&
-        !attachBlockReason(tab.url),
+      (tab) => usable(tab) && tab.url?.includes(urlMatch),
     );
     const best = matches.find((tab) => tab.active) ?? matches[0];
     return best?.id !== undefined ? { id: best.id } : null;
   }
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (active?.id !== undefined && !attachBlockReason(active.url)) {
-    return { id: active.id };
+  if (active && usable(active)) {
+    return { id: active.id as number };
   }
   const all = await chrome.tabs.query({});
-  const candidates = all.filter(
-    (tab) => tab.id !== undefined && !attachBlockReason(tab.url),
-  );
+  const candidates = all.filter(usable);
   if (candidates.length === 0) {
     return null;
   }

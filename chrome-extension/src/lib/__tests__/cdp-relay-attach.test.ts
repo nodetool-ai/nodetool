@@ -130,3 +130,54 @@ describe("native-host ownership lifecycle", () => {
     expect(detached).toHaveBeenCalledOnce();
   });
 });
+
+describe("tabs with another extension's frame", () => {
+  const chromeRefusal = "Cannot access a chrome-extension:// URL of different extension";
+
+  async function startRelay(attach: (target: { tabId: number }) => Promise<void>) {
+    const { CdpRelay } = await import("../cdp-relay.js");
+    let receive!: (frame: unknown) => void;
+    const sent: unknown[] = [];
+    const port = {
+      onMessage: { addListener: (listener: typeof receive) => { receive = listener; } },
+      onDisconnect: { addListener: vi.fn() },
+      postMessage: (frame: unknown) => sent.push(frame)
+    };
+    Object.assign(chrome, {
+      runtime: { id: "own-extension-id", connectNative: () => port },
+      alarms: { create: vi.fn() },
+      debugger: {
+        onEvent: { addListener: vi.fn() }, onDetach: { addListener: vi.fn() },
+        attach: vi.fn(attach),
+        detach: vi.fn().mockResolvedValue(undefined),
+        sendCommand: vi.fn().mockResolvedValue({})
+      }
+    });
+    const relay = new CdpRelay();
+    await relay.start();
+    return { relay, receive, sent };
+  }
+
+  it("moves a host attach to the next tab when Chrome refuses one", async () => {
+    tabs = [
+      { id: 7, url: "https://a.example/", active: true },
+      { id: 8, url: "https://b.example/", lastAccessed: 100 },
+    ];
+    const { receive, sent } = await startRelay(async ({ tabId }) => {
+      if (tabId === 7) {
+        throw new Error(chromeRefusal);
+      }
+    });
+    receive({ kind: "attach" });
+    await vi.waitFor(() => expect(sent).toContainEqual({ kind: "attached", tabId: 8 }));
+    expect(sent).not.toContainEqual(expect.objectContaining({ kind: "error" }));
+  });
+
+  it("explains the refusal when the user attaches such a tab", async () => {
+    tabs = [{ id: 7, url: "https://a.example/", active: true }];
+    const { relay } = await startRelay(async () => {
+      throw new Error(chromeRefusal);
+    });
+    await expect(relay.attachActiveTab()).rejects.toThrow("another extension embeds a frame");
+  });
+});
