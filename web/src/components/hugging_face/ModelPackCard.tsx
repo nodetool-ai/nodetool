@@ -14,9 +14,8 @@ import {
   MOTION,
   Card,
   BORDER_RADIUS,
-  List,
-  ListItem,
-  ListItemText,
+  ListGroup,
+  ListItemRow,
   ICON_SIZE
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -278,30 +277,20 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
           >
             {t("i18n-next55.modelPack.includedModels")}
           </Text>
-          <List dense disablePadding>
+          <ListGroup compact flush>
             {pack.models.map((model) => (
-              <ListItem
+              <ListItemRow
                 key={model.id}
+                primary={model.name || model.id}
+                secondary={`${model.repo_id}/${model.path}`}
                 sx={{
                   py: 0.5,
                   px: 1,
-                  backgroundColor: "var(--palette-grey-800)",
+                  backgroundColor: "background.default",
                   borderRadius: BORDER_RADIUS.xs,
                   mb: 0.5
                 }}
               >
-                <ListItemText
-                  primary={model.name || model.id}
-                  secondary={`${model.repo_id}/${model.path}`}
-                  primaryTypographyProps={{
-                    variant: "body2",
-                    sx: { fontWeight: 500 }
-                  }}
-                  secondaryTypographyProps={{
-                    variant: "caption",
-                    sx: { color: "var(--palette-grey-500)" }
-                  }}
-                />
                 {downloadedModels.has(model.id) && (
                   <CheckCircleIcon
                     sx={{
@@ -318,9 +307,9 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                     {formatBytes(model.size_on_disk)}
                   </Caption>
                 )}
-              </ListItem>
+              </ListItemRow>
             ))}
-          </List>
+          </ListGroup>
         </Box>
       </Collapse>
     </Card>
