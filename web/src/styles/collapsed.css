@@ -222,6 +222,14 @@
   flex-shrink: 0;
 }
 
+/* The strip has no body padding: the header fills it, centers the title on
+   the socket line and keeps the icon clear of the side sockets. */
+.node-body.base-node.collapsed > .node-header {
+  height: 100%;
+  padding: 0 var(--spacing-md);
+  box-sizing: border-box;
+}
+
 .node-body.collapsed .node-title {
   font-size: var(--fontSizeSmall);
 }

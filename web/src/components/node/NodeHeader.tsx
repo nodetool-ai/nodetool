@@ -93,10 +93,10 @@ const headerCss = css({
     wordWrap: "break-word",
     lineHeight: "1.2em",
     fontSize: "var(--fontSizeSmall)",
-    fontWeight: 400,
+    fontWeight: 500,
     letterSpacing: "0.01em",
     padding: `${getSpacingPx(SPACING.micro)} 0`,
-    color: "var(--palette-text-secondary)"
+    color: "var(--palette-text-primary)"
   },
   ".node-title-text": {
     minWidth: 0,
@@ -343,7 +343,12 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
           </ToolbarIconButton>
         )}
         {data.bypassed && (
-          <span className="bypass-badge">{t("i18n-next39.nodeEditor.header.disabled")}</span>
+          <Chip
+            compact
+            color="warning"
+            className="bypass-badge"
+            label={t("i18n-next39.nodeEditor.header.disabled")}
+          />
         )}
         {logCount > 0 && !hideLogs && (
           <ToolbarIconButton
