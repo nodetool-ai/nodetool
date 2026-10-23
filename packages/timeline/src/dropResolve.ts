@@ -7,7 +7,8 @@
  *
  * - **overwrite** — the moved clip replaces what it covers on its track. A
  *   clip fully under it goes, a clip it partly covers is trimmed back, and a
- *   clip that spans it is cut in two around it.
+ *   clip that spans it is cut in two around it. The clip's linked partners
+ *   (its audio) get the same cut.
  * - **insert** — the moved clip pushes everything from its start onward to
  *   the right by its length, on every unlocked track, cutting a clip on its
  *   own track that straddles the insert point (and that clip's linked
@@ -65,13 +66,40 @@ function movedWithDependants(
 }
 
 /**
+ * What is left of `c` once the window [startMs, endMs) is cleared from it:
+ * nothing when the window covers it, a trimmed clip when the window overlaps
+ * one end, a head and a tail when the window falls inside it, and `c` itself
+ * when they do not touch. Throws when `c` refuses the trim or split.
+ */
+function clearWindow(
+  c: TimelineClip,
+  startMs: number,
+  endMs: number
+): TimelineClip[] {
+  const cStart = c.startMs;
+  const cEnd = clipEndMs(c);
+  if (cEnd <= startMs || cStart >= endMs) return [c];
+  if (cStart >= startMs && cEnd <= endMs) return [];
+  if (cStart < startMs && cEnd > endMs) {
+    const [head, rest] = splitClip(c, startMs);
+    const [, tail] = splitClip(rest, endMs);
+    return [head, tail];
+  }
+  if (cStart < startMs) return [trimClip(c, "end", startMs - cEnd)];
+  return [trimClip(c, "start", -(endMs - cStart))];
+}
+
+/**
  * Cut back, split or remove the clips that `movedIds` now cover on their own
- * tracks. Linked siblings and group children of a moved clip moved with it,
- * so each clears its own track and none is a victim. A group clip is never a
- * victim either: removing or trimming it as media would strand its children.
- * A clip that refuses a trim or split (a time-remapped one) is left where it
- * is rather than half-edited, and so is a locked clip or one on a locked
- * track: the mover overlaps it instead.
+ * tracks, and the same window out of each victim's linked partners, so a
+ * video and its audio stay in sync. A cut that leaves a link group with a head
+ * and a tail links the heads together and the tails together. Linked siblings
+ * and group children of a moved clip moved with it, so each clears its own
+ * track and none is a victim. A group clip is never a victim either: removing
+ * or trimming it as media would strand its children. A link group with a
+ * member that refuses a trim or split (a time-remapped one) is left whole
+ * rather than half-edited, and a locked clip or one on a locked track keeps
+ * its place: the mover overlaps it instead.
  */
 export function resolveOverwrite(
   clips: readonly TimelineClip[],
@@ -81,53 +109,61 @@ export function resolveOverwrite(
   const movingIds = movedWithDependants(clips, movedIds);
   const movers = clips.filter((c) => movingIds.has(c.id));
   if (movers.length === 0) return [...clips];
+  const editable = (c: TimelineClip): boolean =>
+    !movingIds.has(c.id) &&
+    !isGroupClip(c) &&
+    options.lockedTrackIds?.has(c.trackId) !== true &&
+    options.lockedClipIds?.has(c.id) !== true;
 
   let next: TimelineClip[] = [...clips];
   for (const m of movers) {
     const mStart = m.startMs;
     const mEnd = clipEndMs(m);
-    const out: TimelineClip[] = [];
-    for (const c of next) {
-      if (
-        movingIds.has(c.id) ||
-        c.trackId !== m.trackId ||
-        isGroupClip(c) ||
-        options.lockedTrackIds?.has(c.trackId) === true ||
-        options.lockedClipIds?.has(c.id) === true
-      ) {
-        out.push(c);
-        continue;
-      }
-      const cStart = c.startMs;
-      const cEnd = clipEndMs(c);
-      if (cEnd <= mStart || cStart >= mEnd) {
-        out.push(c);
-        continue;
-      }
-      try {
-        if (cStart >= mStart && cEnd <= mEnd) {
-          // Fully covered: gone.
-          continue;
-        }
-        if (cStart < mStart && cEnd > mEnd) {
-          // Spans the mover: keep the head and the tail.
-          const [head, rest] = splitClip(c, mStart);
-          const [, tail] = splitClip(rest, mEnd);
-          out.push(head, tail);
-          continue;
-        }
-        if (cStart < mStart) {
-          // Overlaps the mover's head: cut the victim's tail back.
-          out.push(trimClip(c, "end", mStart - cEnd));
-          continue;
-        }
-        // Overlaps the mover's tail: advance the victim's head.
-        out.push(trimClip(c, "start", -(mEnd - cStart)));
-      } catch {
-        out.push(c);
-      }
+    const victims = next.filter(
+      (c) =>
+        c.trackId === m.trackId &&
+        editable(c) &&
+        clipEndMs(c) > mStart &&
+        c.startMs < mEnd
+    );
+    if (victims.length === 0) continue;
+
+    // Each victim with its linked partners, cut as one unit.
+    const units = new Map<string, TimelineClip[]>();
+    for (const v of victims) {
+      const key = v.linkId ?? `clip:${v.id}`;
+      if (units.has(key)) continue;
+      units.set(
+        key,
+        v.linkId === undefined
+          ? [v]
+          : next.filter((c) => c.linkId === v.linkId && editable(c))
+      );
     }
-    next = out;
+
+    const replaced = new Map<string, TimelineClip[]>();
+    for (const unit of units.values()) {
+      let pieces: TimelineClip[][];
+      try {
+        pieces = unit.map((c) => clearWindow(c, mStart, mEnd));
+      } catch {
+        continue;
+      }
+      const linkId = unit[0].linkId;
+      if (linkId !== undefined && pieces.some((p) => p.length === 2)) {
+        const headLinkId = createTimeOrderedUuid();
+        const tailLinkId = createTimeOrderedUuid();
+        pieces = pieces.map((p) =>
+          p.map((piece) => ({
+            ...piece,
+            linkId: clipEndMs(piece) <= mStart ? headLinkId : tailLinkId
+          }))
+        );
+      }
+      unit.forEach((c, i) => replaced.set(c.id, pieces[i]));
+    }
+
+    next = next.flatMap((c) => replaced.get(c.id) ?? [c]);
   }
   return next;
 }

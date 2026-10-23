@@ -137,6 +137,66 @@ describe("drop resolution keeps links and groups whole", () => {
     expect(vLeft.linkId).not.toBe("L");
   });
 
+  it("overwrite trims a covered clip's linked audio with it", () => {
+    const out = resolveOverwrite(
+      [
+        clip("v", 0, 4000, { linkId: "L" }),
+        clip("a", 0, 4000, { trackId: "a1", linkId: "L" }),
+        clip("m", 0, 3000)
+      ],
+      new Set(["m"])
+    );
+    expect([byId(out, "v")!.startMs, byId(out, "v")!.durationMs]).toEqual([3000, 1000]);
+    expect([byId(out, "a")!.startMs, byId(out, "a")!.durationMs]).toEqual([3000, 1000]);
+    expect(byId(out, "a")!.inPointMs).toBe(3000);
+    expect(byId(out, "a")!.linkId).toBe("L");
+  });
+
+  it("overwrite removes a fully covered clip's linked audio with it", () => {
+    const out = resolveOverwrite(
+      [
+        clip("v", 1000, 2000, { linkId: "L" }),
+        clip("a", 1000, 2000, { trackId: "a1", linkId: "L" }),
+        clip("m", 0, 5000)
+      ],
+      new Set(["m"])
+    );
+    expect(out.map((c) => c.id)).toEqual(["m"]);
+  });
+
+  it("overwrite splits a spanning clip's linked audio and links heads and tails", () => {
+    const out = resolveOverwrite(
+      [
+        clip("v", 0, 10000, { linkId: "L" }),
+        clip("a", 0, 10000, { trackId: "a1", linkId: "L" }),
+        clip("m", 4000, 2000)
+      ],
+      new Set(["m"])
+    );
+    const parts = (trackId: string) =>
+      out
+        .filter((c) => c.trackId === trackId && c.id !== "m")
+        .sort((x, y) => x.startMs - y.startMs);
+    const [vHead, vTail] = parts("v1");
+    const [aHead, aTail] = parts("a1");
+    expect([aHead.startMs, aHead.durationMs]).toEqual([0, 4000]);
+    expect([aTail.startMs, aTail.durationMs]).toEqual([6000, 4000]);
+    expect(vHead.linkId).toBe(aHead.linkId);
+    expect(vTail.linkId).toBe(aTail.linkId);
+    expect(vHead.linkId).not.toBe(vTail.linkId);
+  });
+
+  it("overwrite leaves a linked partner on a locked track alone", () => {
+    const audio = clip("a", 0, 4000, { trackId: "a1", linkId: "L" });
+    const out = resolveOverwrite(
+      [clip("v", 0, 4000, { linkId: "L" }), audio, clip("m", 0, 3000)],
+      new Set(["m"]),
+      { lockedTrackIds: new Set(["a1"]) }
+    );
+    expect(byId(out, "v")!.startMs).toBe(3000);
+    expect(byId(out, "a")).toEqual(audio);
+  });
+
   it("overwrite never removes or trims a group clip it lands on", () => {
     const group = clip("g", 1000, 2000, { mediaType: "group", trackId: "g1" });
     const child = clip("c", 1000, 1000, { parentId: "g", trackId: "v2" });
