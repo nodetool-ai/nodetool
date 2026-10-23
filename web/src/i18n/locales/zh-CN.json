@@ -11996,8 +11996,7 @@
         "composerPlaceholder": "让助手构建应用或编辑工作流…"
       },
       "shell": {
-        "appDataLabel": "应用数据",
-        "backToCanvas": "返回画布"
+        "appDataLabel": "应用数据"
       },
       "runtime": {
         "viewTrace": "查看运行追踪",
@@ -12019,6 +12018,15 @@
         "workflowUnavailableTitle": "工作流不可用",
         "workflowUnavailableDescription": "此应用运行的工作流 {{workflowId}} 无法加载。",
         "previewDraftNotice": "正在预览当前草稿。此操作不会更改已发布的应用。"
+      },
+      "dock": {
+        "canvas": "画布",
+        "components": "组件",
+        "outline": "大纲",
+        "properties": "属性",
+        "page": "页面",
+        "undo": "撤销",
+        "redo": "重做"
       }
     }
   },

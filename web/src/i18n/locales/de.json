@@ -11996,8 +11996,7 @@
         "composerPlaceholder": "Bitte den Agenten, deine App zu erstellen oder den Workflow zu bearbeiten…"
       },
       "shell": {
-        "appDataLabel": "App-Daten",
-        "backToCanvas": "Zurück zur Arbeitsfläche"
+        "appDataLabel": "App-Daten"
       },
       "runtime": {
         "viewTrace": "Trace anzeigen",
@@ -12019,6 +12018,15 @@
         "workflowUnavailableTitle": "Workflow nicht verfügbar",
         "workflowUnavailableDescription": "Diese App führt den Workflow {{workflowId}} aus, der nicht geladen werden konnte.",
         "previewDraftNotice": "Vorschau des aktuellen Entwurfs. Dadurch wird die freigegebene App nicht geändert."
+      },
+      "dock": {
+        "canvas": "Leinwand",
+        "components": "Komponenten",
+        "outline": "Gliederung",
+        "properties": "Eigenschaften",
+        "page": "Seite",
+        "undo": "Rückgängig",
+        "redo": "Wiederholen"
       }
     }
   },

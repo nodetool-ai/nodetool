@@ -1082,10 +1082,9 @@ if (process.env.JEST_WORKER_ID) {
 
     /**
      * Select a widget on the Design canvas by the text it renders, so the
-     * right-hand inspector shows that widget's fields. Puck's own class names
-     * are content-hashed, so the canvas is addressed by text and the inspector
-     * by the stable `_Sidebar--right` prefix. The editor starts with both Puck
-     * sidebars closed, so the inspector is opened from Puck's header toggle.
+     * docked Properties panel shows that widget's fields. Puck's own class
+     * names are content-hashed, so the canvas is addressed by text and the
+     * inspector by its dock panel id. The default layout shows Properties.
      */
     async function selectWidget(page: Page, text: string): Promise<void> {
       await openMiniApp(page);
@@ -1094,9 +1093,6 @@ if (process.env.JEST_WORKER_ID) {
         .first()
         .waitFor({ state: "visible", timeout: 20000 });
       await waitForAnimation(page, 2000);
-      if (!(await page.locator(RIGHT_SIDEBAR).first().isVisible())) {
-        await page.locator('button[title="Toggle right sidebar"]').first().click();
-      }
       await page
         .getByText(text, { exact: true })
         .first()
@@ -1108,7 +1104,7 @@ if (process.env.JEST_WORKER_ID) {
       await waitForAnimation(page, 1000);
     }
 
-    const RIGHT_SIDEBAR = '[class*="_Sidebar--right"]';
+    const RIGHT_SIDEBAR = '[data-dock-panel="fields"]';
 
     // The binding picker, open. It lists what the bound workflow actually
     // offers — its Input nodes, the settings of each node, its Output nodes —

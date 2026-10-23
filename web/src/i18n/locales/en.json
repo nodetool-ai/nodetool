@@ -11996,8 +11996,7 @@
         "composerPlaceholder": "Ask the agent to build your app or edit the workflow…"
       },
       "shell": {
-        "appDataLabel": "App data",
-        "backToCanvas": "Back to canvas"
+        "appDataLabel": "App data"
       },
       "runtime": {
         "viewTrace": "View trace",
@@ -12019,6 +12018,15 @@
         "workflowUnavailableTitle": "Workflow unavailable",
         "workflowUnavailableDescription": "This app runs workflow {{workflowId}}, which could not be loaded.",
         "previewDraftNotice": "Previewing current draft. This does not change the released app."
+      },
+      "dock": {
+        "canvas": "Canvas",
+        "components": "Components",
+        "outline": "Outline",
+        "properties": "Properties",
+        "page": "Page",
+        "undo": "Undo",
+        "redo": "Redo"
       }
     }
   },

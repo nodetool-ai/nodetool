@@ -60,9 +60,7 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
   await expect(
     builder.getByRole("button", { name: "Save", exact: true })
   ).toBeVisible();
-  await builder
-    .getByRole("button", { name: "Toggle right sidebar", exact: true })
-    .click();
+  // The page's fields show in the docked Properties panel while nothing is selected.
   await builder
     .getByRole("textbox", { name: "App title", exact: true })
     .fill("My exact Price Drop");
@@ -89,8 +87,8 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
   await expect(
     page
       .locator(".appbuilder-editor")
-      .getByRole("heading", { name: "My exact Price Drop", exact: true })
-  ).toBeVisible();
+      .getByRole("textbox", { name: "App title", exact: true })
+  ).toHaveValue("My exact Price Drop");
   // Running the recipe stops here. Its finish runs an agent, which the
   // journey backend's fake provider cannot drive. Planning and finishing are
   // covered by packages/websocket/tests/product-price-drop.test.ts.

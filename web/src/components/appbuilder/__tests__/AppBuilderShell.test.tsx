@@ -1,5 +1,5 @@
 import { stub } from "../../../test-utils/doubles";
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Data, DefaultComponents } from "@puckeditor/core";
@@ -77,15 +77,15 @@ jest.mock("../puck/PuckAppEditor", () => ({
     onPublish,
     onMetaChange,
     onClose,
-    onToggleData
+    dataPanel
   }: {
     onPublish: (data: Data) => void;
     onMetaChange?: (meta: AppDocMeta) => void;
     onClose?: () => void;
-    onToggleData?: () => void;
+    dataPanel?: React.ReactNode;
   }) => (
     <div>
-      <button onClick={onToggleData}>App Data</button>
+      <section aria-label="App data panel">{dataPanel}</section>
       <button type="button" onClick={() => onMetaChange?.(EDITED_META)}>
         Edit meta
       </button>
@@ -155,29 +155,8 @@ const renderShell = (onSave = jest.fn()) => {
   return onSave;
 };
 
-const originalMatchMedia = window.matchMedia;
-
-/** Reports every query as matching (or not), standing in for the viewport width. */
-const setNarrowViewport = (narrow: boolean) => {
-  window.matchMedia = jest.fn((query: string) => stub<MediaQueryList>({
-    matches: narrow,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn()
-  }));
-};
-
 beforeEach(() => {
   jest.clearAllMocks();
-  setNarrowViewport(false);
-});
-
-afterEach(() => {
-  window.matchMedia = originalMatchMedia;
 });
 
 describe("AppBuilderShell", () => {
@@ -273,28 +252,7 @@ describe("AppBuilderShell", () => {
   });
 });
 
-it("lets an author return to the canvas from App Data in a narrow container", async () => {
-    renderShell();
-    await userEvent.click(screen.getByRole("button", { name: "App Data" }));
-    expect(screen.getByText("App data fields")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Back to canvas" }));
-    expect(screen.queryByText("App data fields")).not.toBeInTheDocument();
-  });
-
-it("switches App Data to an overlay when its container shrinks", async () => {
-    let resize: ResizeObserverCallback | undefined;
-    const observer = stub<ResizeObserver>({
-      observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn()
-    });
-    const observe = jest.spyOn(globalThis, "ResizeObserver").mockImplementation((callback) => {
-      resize = callback;
-      return observer;
-    });
-    renderShell();
-    act(() => resize?.([stub<ResizeObserverEntry>({ contentRect: { width: 1100 } })], observer));
-    await userEvent.click(screen.getByRole("button", { name: "App Data" }));
-    expect(screen.queryByRole("button", { name: "Back to canvas" })).not.toBeInTheDocument();
-    act(() => resize?.([stub<ResizeObserverEntry>({ contentRect: { width: 600 } })], observer));
-    expect(screen.getByRole("button", { name: "Back to canvas" })).toBeInTheDocument();
-    observe.mockRestore();
- });
+it("hands App Data to the editor to dock beside the canvas", () => {
+  renderShell();
+  expect(screen.getByRole("region", { name: "App data panel" })).toHaveTextContent("App data fields");
+});
