@@ -8724,6 +8724,8 @@
       "studio": "工作室",
       "switchToProject": "切换到项目{{name}}",
       "personal": "个人",
+      "newChatInMode": "新建聊天：{{mode}}",
+      "newChatInModeValue": "新建聊天{{mode}}",
       "newTextFileValue": "新建文本文件{{label}}",
       "newTextFile": "新建文本文件：{{label}}",
       "newStoryboard": "新建分镜脚本",

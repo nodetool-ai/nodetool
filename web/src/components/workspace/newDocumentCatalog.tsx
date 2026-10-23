@@ -3,7 +3,7 @@
  * the `+ New` popover and the strip at the foot of the new-project surface.
  *
  * Each entry either creates its document straight away or names a submenu the
- * caller renders (text templates, storyboard examples), so both surfaces offer
+ * caller renders (chat modes, text templates, storyboard examples), so both surfaces offer
  * the same set without either owning the creators.
  */
 
@@ -35,6 +35,7 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import type { MediaMode } from "../../stores/MediaGenerationStore";
 import {
   creationProjectId,
   useWorkspaceTabsStore,
@@ -137,7 +138,7 @@ export const TEXT_FILE_TEMPLATES: readonly TextFileTemplate[] = [
 ];
 
 /** Entries whose second choice the caller renders. */
-export type NewDocumentSubmenu = "texts" | "storyboards";
+export type NewDocumentSubmenu = "chats" | "texts" | "storyboards";
 
 export interface NewDocumentEntry {
   key: string;
@@ -164,6 +165,8 @@ interface NewDocumentCatalogOptions {
 
 export interface NewDocumentCatalog {
   entries: readonly NewDocumentEntry[];
+  /** Start a chat whose composer opens on `mode`. */
+  createChat: (mode: MediaMode) => Promise<void>;
   createTextFile: (template: TextFileTemplate) => Promise<void>;
   createBlankStoryboard: () => Promise<void>;
   installStoryboardExample: (slug: string, name: string) => Promise<void>;
@@ -255,10 +258,11 @@ export const useNewDocumentCatalog = (
   );
 
   const createChat = useCallback(
-    () =>
+    (mode: MediaMode) =>
       runCreate("chat", async (destinationProjectId) => {
         const threadId = await createNewThread(undefined, undefined, {
-          projectId: destinationProjectId
+          projectId: destinationProjectId,
+          mediaMode: mode
         });
         openTab({
           type: "chat",
@@ -480,10 +484,10 @@ export const useNewDocumentCatalog = (
     {
       key: "chat",
       label: "Chat",
-      menuLabel: "New chat",
+      menuLabel: "New chat…",
       type: "chat",
       icon: <ForumOutlinedIcon fontSize="small" />,
-      create: createChat
+      submenu: "chats"
     },
     {
       key: "text",
@@ -569,6 +573,7 @@ export const useNewDocumentCatalog = (
 
   return {
     entries,
+    createChat,
     createTextFile,
     createBlankStoryboard,
     installStoryboardExample,

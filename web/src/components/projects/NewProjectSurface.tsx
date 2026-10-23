@@ -162,6 +162,7 @@ import {
   useSeedTimelineDetail
 } from "../../hooks/useTimelineSequence";
 import { useCreateScript } from "../../hooks/script/useScripts";
+import { MEDIA_MODES } from "../chat/composer/mediaModes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
 import {
@@ -643,6 +644,7 @@ const NewProjectSurface = ({
   // project being described does not exist yet.
   const {
     entries,
+    createChat,
     createTextFile,
     createBlankStoryboard,
     installStoryboardExample,
@@ -2712,6 +2714,22 @@ const NewProjectSurface = ({
         maxHeight="50vh"
         paperSx={{ width: SUBMENU_WIDTH, maxWidth: SUBMENU_MAX_WIDTH }}
       >
+        {submenu?.kind === "chats" &&
+          MEDIA_MODES.filter((mode) => mode.enabled).map((mode) => (
+            <MenuItemPrimitive
+              key={mode.id}
+              label={t(`i18n-next22.chat.composer.mediaMode.modes.${mode.labelKey}`)}
+              secondary={
+                mode.descriptionKey &&
+                t(`i18n-next22.chat.composer.mediaMode.modes.${mode.descriptionKey}`)
+              }
+              icon={mode.icon}
+              disabled={creating !== null}
+              onClick={() => {
+                void createChat(mode.id);
+              }}
+            />
+          ))}
         {submenu?.kind === "texts" &&
           TEXT_FILE_TEMPLATES.map((template) => (
             <MenuItemPrimitive
