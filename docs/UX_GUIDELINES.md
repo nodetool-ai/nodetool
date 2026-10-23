@@ -10,7 +10,7 @@ description: "NodeTool UX guidelines — rules for entry points, models, saving,
 **Navigation**: [Root AGENTS.md](../AGENTS.md) | [Design System](DESIGN.md) | [Brand & Verbal Guidelines](BRAND.md) → **UX Guidelines**
 
 How a NodeTool screen should behave for someone who has never seen it. The
-rules come from UX research studies 1 to 7: 89 blind agent sessions on a
+rules come from the UX research studies: blind agent sessions on a
 disposable copy of the app, each working out the UI from screenshots. Every
 rule cites the insight it comes from. The insight log, with evidence counts
 and current status, is
@@ -82,6 +82,9 @@ project. Every route the change adds must be visible or announced there.
 An example that stops on a setup step reads as broken. A card that says
 "Runs as is" is chosen on that word (`study-2-I2`). Badge each
 example with what it needs, and list the ones that run as they are first.
+When none runs as is, list the ones that need the least setup first: the
+Apps tab opened on ad-format apps needing two kinds of model, and 0 of 9
+participants used an example app (`study-12-I1`).
 
 ### 1.5 Label navigation, and put Settings and Help where people look
 
@@ -131,6 +134,11 @@ model with the same mark.
 With no provider, a picker that opened on 14 GB local downloads sent 2 of 2
 participants searching before they found "Add providers" at the bottom
 (`study-3-I5`). Its first row offers an API key.
+
+When the step needs a capability only some providers have, such as removing
+a background, the setup offers only those providers and says why. Offered
+every image provider, 2 of 2 connected OpenAI, and the picker reopened the
+same dialog until the budget ran out (`study-12-I4`).
 
 ### 2.5 A filter filters everything in the list
 
@@ -190,6 +198,10 @@ A new Library folder that did not appear after "Create" made 3 of 3 doubt it
 worked, at about 7 actions each (`study-6-I9`). The default name
 was not selected, so replacing it cost 2 more actions. After a create, the
 new item is on screen with its name selected.
+
+Opening an example makes a copy with the example's name. Say that it is a
+copy and that the example is unchanged: 3 of 3 who changed an example could
+not tell whether saving had changed the original (`study-12-I5`).
 
 The same holds on the canvas. Nodes added from the toolbar's menu all landed
 at the window's top left, under the tab bar and on the node before, and 2 of
@@ -273,6 +285,11 @@ control the message is about.
 and read "No matching documents" as "not there" (`study-7-I5`).
 No-match text names its scope and where else to look.
 
+A search matches other forms of a word ("compare" finds "comparison"), and
+a gallery's search names matches on its sibling tabs. 3 of 3 searched the
+workflow examples for "compare" and missed Model Arena, and 6 of 9 searched
+a tab that held no apps (`study-12-I1`, `study-12-I2`).
+
 ### 4.7 A disabled control says why
 
 "Create" stayed grey with no reason until an unmarked field was filled
@@ -280,6 +297,10 @@ No-match text names its scope and where else to look.
 (study 6 defects). A storyboard's grey "Preview" was pressed by 3 of 3, who
 could not tell it was off (`study-11-I2`). Mark required fields, and give a disabled primary action a
 reason the person can read without hovering.
+
+The same holds for a run the app blocks. A run stopped for a missing model
+said so only in the notification bell, and 3 of 3 who pressed it saw
+nothing happen (`study-12-I3`). Show the reason as a toast as well.
 
 ## 5. Words on screen
 

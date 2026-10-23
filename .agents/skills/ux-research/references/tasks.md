@@ -73,10 +73,13 @@ never put it in a packet.
 | `reorder-scenes` | The client now wants the advert to open on the person drinking. Make the last scene the first one, and keep the others in their order. | storyboard | 15 | Reordering shots |
 | `watch-plan` | Before paying for any video, you want to see this advert's plan play through from the first scene to the last, like a rough cut. Do that. | storyboard | 15 | Previewing a board |
 | `send-plan` | A client who does not use this app wants to look through this advert's plan on their own computer. Get the plan out of the app as something you could send them. | storyboard | 15 | Exporting a board |
+| `photo-variant` | You have a photo of a lamp you sell online. Use something ready-made in this app, not built by you, to get a version of the photo with a different background, until you see the new version. | empty | 40 | Using an example on your own photo |
+| `compare-answers` | You want to see how a few different AI models answer the same question, side by side, so you can choose one. Find something ready-made here that does that and use it with a question of your own, until you see the answers. | empty | 35 | Finding and running an example app |
+| `own-version` | One of the ready-made tools here is close to what you need, but you want your own version of it with one change of your choice, kept apart from the original. Make that version, go back to where you started, and open your version again. | empty | 30 | Copying an example |
 | `reconnect` | Someone left something here that should turn trip notes into a packing list, but the list it makes never uses the notes. Make it use them, then run it once. | unwired-run | 20 | Reading and repairing a graph's wires |
 
-`add-key`, `read-aloud`, `make-tool`, `make-game`, `keep-answer` and `same-character` need a test key in
-`credentials`. `add-photo` and `change-photo` need an image in `assets`, `photo-video` two
+`add-key`, `read-aloud`, `make-tool`, `make-game`, `keep-answer`, `same-character`, `photo-variant`, `compare-answers` and `own-version` need a test key in
+`credentials`. `add-photo`, `change-photo` and `photo-variant` need an image in `assets`, `photo-video` two
 photos of different scenes, `sort-photos` three photos of two trips, and `ask-file` a text file, and `same-character` one photo named for the cat. The `storyboard` state seeds one example board and an OpenAI key for `change-scene`, `reorder-scenes`, `watch-plan` and `send-plan`. `switch-model` on `seeded-demo` has every provider connected, so it
 studies the choice and not the setup.
 
@@ -130,6 +133,9 @@ studies the choice and not the setup.
 | `reorder-scenes` | The shots read cold-sip, ice-drop, coffee-pour, cream-swirl. | Menu or drag, and whether the grip was on screen. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
 | `watch-plan` | The preview or slideshow plays, with a screenshot of shot 1 and a later shot. | Which control it pressed first: Preview, Slideshow or One Take. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
 | `send-plan` | The receipt says the browser downloaded a file of the board (a ZIP, or an exported timeline). | Where it looked for export, and what it expected the file to hold. | [storyboard](../../agentic-qa/references/protocols/creative.md#storyboard) |
+| `photo-variant` | An edited picture made from the participant's photo is visible. | Whether it chose an app or a workflow example, and what the model field offered for the step. | [image](../../agentic-qa/references/protocols/library.md#image) |
+| `compare-answers` | Answers from more than one model to the participant's question are visible. | Whether it reached the Model Arena app or the workflow, and what it searched for. | [app-first-use](../../agentic-qa/references/protocols/first-use.md#app-first-use) |
+| `own-version` | A copy of an example with the participant's change, reopened from a list after leaving it. | Whether it trusted that saving left the example alone, and whether it renamed the copy. | [automation-keep](../../agentic-qa/references/protocols/workflows.md#automation-keep) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -200,6 +206,12 @@ ignoring their beats. `change-scene` and `reorder-scenes` together need 35 at
 1280 × 720. `watch-plan` and `send-plan` together take about 12 on the fixed
 build. Before the study 11 PR the test server did not serve the board's ZIP
 export, so `send-plan` failed on every session there.
+
+Study 12 found that `photo-variant` cannot finish within 35 actions when the
+first pick is the FAL-only "Put a Product on a Studio Backdrop", so give it
+40. Vary Image runs on the OpenAI fake. `compare-answers` takes about 30
+actions after `run-example`, 7 of them on the key. The fakes return the same
+text from every model, which participants notice.
 
 ## Adding a task
 
