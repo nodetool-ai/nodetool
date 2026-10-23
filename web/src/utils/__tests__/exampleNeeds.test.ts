@@ -1,5 +1,6 @@
 import {
   exampleNeedsLabel,
+  fewestNeedsFirst,
   runsAsIsFirst,
   storyboardNeeds
 } from "../exampleNeeds";
@@ -76,5 +77,28 @@ describe("runsAsIsFirst", () => {
     expect(runsAsIsFirst(items, (item) => item.needs).map((i) => i.id)).toEqual(
       ["b", "a"]
     );
+  });
+});
+
+describe("fewestNeedsFirst", () => {
+  const ready = { modelKinds: [], requiredSettings: [] };
+  const one = { modelKinds: ["language_model"], requiredSettings: [] };
+  const two = {
+    modelKinds: ["image_model", "language_model"],
+    requiredSettings: []
+  };
+
+  it("orders by how much setup an item needs, keeping ties in order", () => {
+    const items = [
+      { id: "ad-a", needs: two },
+      { id: "ad-b", needs: two },
+      { id: "arena", needs: one },
+      { id: "unknown", needs: null },
+      { id: "vary", needs: one },
+      { id: "ready", needs: ready }
+    ];
+    expect(
+      fewestNeedsFirst(items, (item) => item.needs).map((i) => i.id)
+    ).toEqual(["ready", "arena", "vary", "ad-a", "ad-b", "unknown"]);
   });
 });

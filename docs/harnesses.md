@@ -1177,8 +1177,10 @@ sequence — which `validate_timeline` then checks. **`list_storyboards`** and
 **`get_storyboard_one_take`** reads a board's one-take prompt with the block
 compiled from the board and its `[Image N]` references, and
 **`update_storyboard_one_take`** writes the prompt, the render settings
-(`duration_seconds`, `aspect_ratio`, `resolution`, `model`), and each shot's
-`end_state` and `sound`.
+(`duration_seconds`, `aspect_ratio`, `resolution`, `model`, `reference_source`),
+and each shot's `end_state` and `sound`. `reference_source` picks the `[Image N]`
+set: `stills` (the default, the shot stills) or `entities` (the image of each
+board entity the shots use, for action that a still would freeze).
 
 `edit_storyboard`'s `set_board` operation accepts screenplay-level `narration`
 and `music_prompt` strings. It preserves the screenplay's other fields and
@@ -2662,24 +2664,24 @@ on its HTTP traces endpoint.
 
 ```bash
 # JSONL log file (analyzer-friendly — one span per line)
-NODETOOL_TRACE_FILE=/tmp/nodetool-trace.jsonl npm run dev:chat -- --agent
-npm run dev:chat -- --agent --trace-file /tmp/nodetool-trace.jsonl
+NODETOOL_TRACE_FILE=/tmp/nodetool-trace.jsonl npm run dev:chat
+npm run dev:chat -- --trace-file /tmp/nodetool-trace.jsonl
 
 # Stdout — pretty (human) or json (JSONL)
-NODETOOL_TRACE_STDOUT=pretty npm run dev:chat -- --agent
-npm run dev:chat -- --agent --trace-stdout pretty
-npm run dev:chat -- --agent --trace-stdout json
+NODETOOL_TRACE_STDOUT=pretty npm run dev:chat
+npm run dev:chat -- --trace-stdout pretty
+npm run dev:chat -- --trace-stdout json
 
 # OpenTelemetry — Traceloop cloud
-TRACELOOP_API_KEY=your-key npm run dev:chat -- --agent
+TRACELOOP_API_KEY=your-key npm run dev:chat
 
 # OpenTelemetry — custom OTLP backend (Jaeger, Grafana, etc.)
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:chat -- --agent
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:chat
 # Full traces URL, used as given; OTEL_EXPORTER_OTLP_HEADERS adds auth headers
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://otlp.example.com/v1/traces npm run dev:server
 
 # Debug logging (all LLM calls, planning details)
-NODETOOL_LOG_LEVEL=debug npm run dev:chat -- --agent
+NODETOOL_LOG_LEVEL=debug npm run dev:chat
 ```
 
 The `--trace-file` and `--trace-stdout` flags also work on the `nodetool` CLI:

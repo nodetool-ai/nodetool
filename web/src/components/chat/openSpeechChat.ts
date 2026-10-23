@@ -1,6 +1,5 @@
 import useChatDraftStore from "../../stores/ChatDraftStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import useMediaGenerationStore from "../../stores/MediaGenerationStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 
 /**
@@ -12,10 +11,9 @@ export async function openSpeechChat(
   projectId: string,
   line = ""
 ): Promise<void> {
-  useMediaGenerationStore.getState().setMode("audio");
   const threadId = await useGlobalChatStore
     .getState()
-    .createNewThread(undefined, null, { projectId });
+    .createNewThread(undefined, null, { projectId, mediaMode: "audio" });
   if (line.length > 0) {
     useChatDraftStore.getState().setDraft(threadId, line);
   }

@@ -189,6 +189,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   );
   const musicParams = useMediaGenerationStore((s) => s.music);
   const audioParams = useMediaGenerationStore((s) => s.audio);
+  const retakeParams = useMediaGenerationStore((s) => s.retake);
+  const extendParams = useMediaGenerationStore((s) => s.extend);
 
   // Language-model selection from chat store (used in chat mode & forwarded
   // as provider/model for media calls when a media model is not picked).
@@ -460,6 +462,22 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           : null
       };
     }
+    if (mode === "retake") {
+      return {
+        mode: "retake",
+        provider: retakeParams.model?.provider ?? null,
+        model: retakeParams.model?.id ?? null
+      };
+    }
+    if (mode === "extend") {
+      return {
+        mode: "extend",
+        provider: extendParams.model?.provider ?? null,
+        model: extendParams.model?.id ?? null,
+        extend_direction: extendParams.direction,
+        duration: extendParams.duration
+      };
+    }
     if (mode === "music") {
       return {
         mode,
@@ -486,6 +504,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     videoParams,
     imageToVideoParams,
     referenceToVideoParams,
+    retakeParams,
+    extendParams,
     audioParams,
     musicParams
   ]);
@@ -562,6 +582,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     mode === "video" ||
     mode === "image_to_video" ||
     mode === "reference_to_video" ||
+    mode === "retake" ||
+    mode === "extend" ||
     mode === "audio" ||
     mode === "music";
 
@@ -592,6 +614,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         label: "reference to video"
       };
     }
+    if (mode === "retake") {
+      return { model: retakeParams.model, label: "retake" };
+    }
+    if (mode === "extend") {
+      return { model: extendParams.model, label: "video extension" };
+    }
     if (mode === "audio") {
       return { model: audioParams.model, label: "speech" };
     }
@@ -605,6 +633,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     videoParams.model,
     imageToVideoParams.model,
     referenceToVideoParams.model,
+    retakeParams.model,
+    extendParams.model,
     audioParams.model,
     musicParams.model
   ]);

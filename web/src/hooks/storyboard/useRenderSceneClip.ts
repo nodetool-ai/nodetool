@@ -7,7 +7,7 @@
  * goes through the same `reference_to_video` request as a one take.
  *
  * A setting the scene clip leaves unset falls back to the board's one-take
- * setting, then as {@link resolveOneTakeSettings} documents. The duration is
+ * setting (the reference source included), then as {@link resolveOneTakeSettings} documents. The duration is
  * the exception: the board's one-take duration is the whole film's length, so
  * an unset scene clip duration is the run's shot total.
  *
@@ -19,6 +19,7 @@
 import { useCallback, useMemo } from "react";
 import { sceneClipRun } from "@nodetool-ai/protocol";
 import type {
+  Entity,
   OneTakeDirection,
   SceneClipDirection,
   ShotModelRef
@@ -28,10 +29,12 @@ import {
   type StoryboardBoard
 } from "../../stores/storyboard/StoryboardStore";
 import { useLastModelStore } from "../../stores/lastModelStore";
+import { useEntities } from "../../serverState/useEntities";
 import { useVideoModelsByProvider } from "../useModelsByProvider";
 import { useGenerateShot } from "./useGenerateShot";
 import {
   ONE_TAKE_TASK,
+  boardCast,
   oneTakeBlockers,
   oneTakeRequestData,
   planOneTake,
@@ -51,7 +54,9 @@ export const sceneClipDirectionWithFallbacks = (
   duration_seconds: clip.duration_seconds ?? null,
   model: clip.model ?? board?.oneTake?.model ?? null,
   aspect_ratio: clip.aspect_ratio ?? board?.oneTake?.aspect_ratio ?? null,
-  resolution: clip.resolution ?? board?.oneTake?.resolution ?? null
+  resolution: clip.resolution ?? board?.oneTake?.resolution ?? null,
+  reference_source:
+    clip.reference_source ?? board?.oneTake?.reference_source ?? null
 });
 
 /** The board narrowed to the scene clip's run, with its direction. */
@@ -68,8 +73,10 @@ const sceneClipBoard = (
 /** Compile the scene clip. Null when none of its shots exist. */
 export const planSceneClip = (
   board: StoryboardBoard | undefined,
-  clip: SceneClipDirection
-): OneTakeRenderPlan | null => planOneTake(sceneClipBoard(board, clip));
+  clip: SceneClipDirection,
+  entities: readonly Entity[] = []
+): OneTakeRenderPlan | null =>
+  planOneTake(sceneClipBoard(board, clip), entities);
 
 /** The scene clip's effective settings. */
 export const resolveSceneClipSettings = (
@@ -104,6 +111,7 @@ export const useRenderSceneClip = (
   clip: SceneClipDirection
 ): UseRenderSceneClipResult => {
   const board = useStoryboardStore((state) => state.boards[boardId]);
+  const { data: library } = useEntities();
   const { models: catalog } = useVideoModelsByProvider();
   const byTask = useLastModelStore((state) => state.byTask);
   const byKind = useLastModelStore((state) => state.byKind);
@@ -113,7 +121,10 @@ export const useRenderSceneClip = (
     () => rememberedOneTakeModels(byTask, byKind),
     [byTask, byKind]
   );
-  const plan = useMemo(() => planSceneClip(board, clip), [board, clip]);
+  const plan = useMemo(
+    () => planSceneClip(board, clip, boardCast(board, library)),
+    [board, clip, library]
+  );
   const settings = useMemo(
     () => resolveSceneClipSettings(board, clip, catalog, remembered),
     [board, clip, catalog, remembered]
@@ -127,7 +138,11 @@ export const useRenderSceneClip = (
     async (sendClip: SceneClipDirection): Promise<void> => {
       // Read the board at send time, not the render that built `plan`.
       const current = useStoryboardStore.getState().getBoard(boardId);
-      const sendPlan = planSceneClip(current, sendClip);
+      const sendPlan = planSceneClip(
+        current,
+        sendClip,
+        boardCast(current, library)
+      );
       const sendSettings = resolveSceneClipSettings(
         current,
         sendClip,
@@ -156,7 +171,7 @@ export const useRenderSceneClip = (
         { steps: compiled.steps }
       );
     },
-    [boardId, catalog, remembered, startOneTakeClip]
+    [boardId, catalog, library, remembered, startOneTakeClip]
   );
 
   return { plan, settings, blockers, renderSceneClip };

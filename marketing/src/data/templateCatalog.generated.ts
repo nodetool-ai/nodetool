@@ -1616,7 +1616,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "rewrite-this-so-a-customer-understands-it",
         "name": "Rewrite This So a Customer Understands It",
-        "description": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
+        "description": "Jargon in, plain and simple language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
         "tags": [
           "text"
         ]
@@ -1740,7 +1740,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "turn-a-support-thread-into-a-bug-report",
         "name": "Turn a Support Thread into a Bug Report",
-        "description": "A frustrated thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
+        "description": "A frustrated email chain or chat thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
         "tags": [
           "text"
         ]

@@ -1799,9 +1799,8 @@
       "signInWindowNote": "Die Anmeldung wird in einem neuen Fenster geöffnet. Dieser Dialog schließt sich nach Abschluss.",
       "gemini": "Gemini",
       "extensionConnected": "Erweiterung verbunden",
-      "subscriptionsTitle": "Verbinde deine KI-Abos",
+      "subscriptionsTitle": "Verbinde die KI, die du schon nutzt",
       "addExtensionTitle": "Chrome-Erweiterung hinzufügen",
-      "useApiKeyInstead": "Stattdessen einen API-Schlüssel verwenden",
       "nextExtension": "Weiter: Chrome-Erweiterung",
       "back": "Zurück",
       "stepCount": "Schritt {{current}} von {{total}}",
@@ -1816,7 +1815,20 @@
         "generate_embedding": "Embeddings",
         "text_to_3d": "3D-Generierung",
         "image_to_3d": "3D-Generierung aus Bildern"
-      }
+      },
+      "stepPrompt": "Keiner deiner verbundenen Anbieter kann diesen Schritt ausführen. Verbinde einen dieser Anbieter, um ihn zu nutzen.",
+      "welcomeIntro": "Wähle, was für dich am einfachsten ist. Eins reicht für den Anfang, weitere kannst du jederzeit in den Einstellungen hinzufügen.",
+      "planGroup": "Ein Abo nutzen, das du schon bezahlst",
+      "planHint": "Kein API-Schlüssel und keine Abrechnung pro Token. ChatGPT-Bilder und alles in Gemini laufen über die Chrome-Erweiterung, die der nächste Schritt einrichtet.",
+      "keyGroup": "Oder einen API-Schlüssel einfügen",
+      "geminiTagline": "Chat, Bilder und Veo-Videos mit dem Gemini-Abo deines Google-Kontos. Läuft über die Chrome-Erweiterung.",
+      "connectedSummary": "Verbunden mit {{providers}}. Mach weiter oder füge einen weiteren hinzu.",
+      "setUpLater": "Später einrichten",
+      "moreProviders": "Weitere Anbieter ({{count}})",
+      "searchProviders": "Anbieter suchen",
+      "noProviderMatch": "Keiner dieser {{count}} Anbieter passt zu „{{query}}“. Die Einstellungen listen auch lokale Server und eigene Anbieter.",
+      "directoryCapabilityNote": "Nicht jeder Anbieter hier bietet {{capability}}. Prüfe seine Dokumentation, bevor du einen Schlüssel hinzufügst.",
+      "setUpInSettings": "In den Einstellungen einrichten"
     }
   },
   "batch2_8": {},
@@ -4455,7 +4467,12 @@
         "loadErrorDescription": "Versuch es gleich noch einmal.",
         "retry": "Erneut versuchen",
         "emptyTitle": "Keine Apps verfügbar",
-        "emptyDescription": "Beispiel-Apps erscheinen hier, sobald der Server sie bereitstellt."
+        "emptyDescription": "Beispiel-Apps erscheinen hier, sobald der Server sie bereitstellt.",
+        "searchPlaceholder": "Apps suchen",
+        "searchLabel": "Apps suchen",
+        "noSearchResultsTitle": "Keine Apps für diese Suche",
+        "clearSearch": "Suche löschen",
+        "matchingWorkflows": "Passende Workflows"
       },
       "games": {
         "gameplayImageAlt": "{{name}}-Gameplay",
@@ -4615,7 +4632,8 @@
       "showAll": "Alle Vorlagen anzeigen",
       "emptyTitle": "Keine Vorlagen verfügbar",
       "emptyDescription": "Vorlagen werden hier angezeigt, sobald sie verfügbar sind.",
-      "visibleCount": "{{visible}} von {{total}}"
+      "visibleCount": "{{visible}} von {{total}}",
+      "matchingApps": "Passende Apps"
     }
   },
   "pass3_18": {
@@ -6304,6 +6322,10 @@
             "title": "Workflow erstellen",
             "description": "Schritte automatisieren und kombinieren"
           },
+          "examples": {
+            "title": "Fertige Beispiele",
+            "description": "Bereits eingerichtete Workflows und Apps. Öffne eines und nutze es mit deinem eigenen Text oder deinen Dateien."
+          },
           "model3d": {
             "title": "3D-Modell",
             "description": "Ein leeres 3D-Modell zum Bearbeiten von Hand. Kein KI-Anbieter nötig."
@@ -6311,7 +6333,7 @@
         },
         "allTypes": {
           "title": "Alle Erstellungsarten ansehen",
-          "description": "3D, Spiele, Skripte, Vorlesen und mehr"
+          "description": "Fertige Beispiele, 3D, Spiele, Skripte, Vorlesen und mehr"
         },
         "recentProjects": {
           "heading": "Zuletzt bearbeitete Projekte",
@@ -7790,6 +7812,11 @@
         "promptHelp": "Marke, Regeln, Licht und alles Weitere. Verweise auf Bilder als [Image N].",
         "renderSettings": "Rendereinstellungen",
         "videoModel": "Videomodell",
+        "referenceSource": "Referenzbilder",
+        "referenceStills": "Standbilder der Einstellungen",
+        "referenceEntities": "Besetzung und Orte",
+        "referenceStillsHelp": "Das Standbild jeder Einstellung legt Bildausschnitt und Pose fest. Am besten für ruhige Einstellungen.",
+        "referenceEntitiesHelp": "Die Bilder der Entitäten legen fest, wer und wo. Der Text der Einstellung legt Bildausschnitt und Bewegung fest. Am besten für Action.",
         "duration": "Dauer",
         "aspectRatio": "Seitenverhältnis",
         "resolution": "Auflösung",
@@ -7821,6 +7848,7 @@
         "blockers": {
           "addShot": "Füge zuerst eine Einstellung zum Board hinzu.",
           "renderStill": "Rendere mindestens ein Standbild.",
+          "addEntityImage": "Gib zuerst einer Entität auf dem Board ein Referenzbild.",
           "noModel": "Kein Videomodell ausgewählt.",
           "imageLimit_one": "{{count}} Bild überschreitet das Limit von {{limit}}. Entferne {{removeCount}}.",
           "imageLimit_other": "{{count}} Bilder überschreiten das Limit von {{limit}}. Entferne {{removeCount}}.",
@@ -8718,6 +8746,8 @@
       "studio": "Studio",
       "switchToProject": "Zum Projekt {{name}} wechseln",
       "personal": "Persönlich",
+      "newChatInMode": "Neuer Chat: {{mode}}",
+      "newChatInModeValue": "Neuer Chat {{mode}}",
       "newTextFileValue": "Neue Textdatei {{label}}",
       "newTextFile": "Neue Textdatei: {{label}}",
       "newStoryboard": "Neues Storyboard",
@@ -11618,6 +11648,13 @@
         "crop": "Zuschneiden",
         "adjust": "Anpassen",
         "segment": "Segmentieren"
+      },
+      "dock": {
+        "canvas": "Leinwand",
+        "canvasSize": "Leinwandgröße",
+        "properties": "Eigenschaften",
+        "noProperties": "Keine Eigenschaften",
+        "noPropertiesDescription": "Wähle eine Vektorebene oder eine generierte Ebene, um ihre Eigenschaften hier zu bearbeiten."
       }
     }
   },
@@ -11996,8 +12033,7 @@
         "composerPlaceholder": "Bitte den Agenten, deine App zu erstellen oder den Workflow zu bearbeiten…"
       },
       "shell": {
-        "appDataLabel": "App-Daten",
-        "backToCanvas": "Zurück zur Arbeitsfläche"
+        "appDataLabel": "App-Daten"
       },
       "runtime": {
         "viewTrace": "Trace anzeigen",
@@ -12019,6 +12055,16 @@
         "workflowUnavailableTitle": "Workflow nicht verfügbar",
         "workflowUnavailableDescription": "Diese App führt den Workflow {{workflowId}} aus, der nicht geladen werden konnte.",
         "previewDraftNotice": "Vorschau des aktuellen Entwurfs. Dadurch wird die freigegebene App nicht geändert."
+      },
+      "dock": {
+        "canvas": "Leinwand",
+        "components": "Komponenten",
+        "outline": "Gliederung",
+        "properties": "Eigenschaften",
+        "page": "Seite",
+        "undo": "Rückgängig",
+        "redo": "Wiederholen",
+        "agent": "Agent"
       }
     }
   },
@@ -13183,7 +13229,9 @@
             "audioToVideo": "Audio zu Video",
             "retake": "Neu aufnehmen",
             "extend": "Verlängern",
-            "motionControl": "Bewegungssteuerung"
+            "motionControl": "Bewegungssteuerung",
+            "retakeDescription": "ein angehängtes Video ändern",
+            "extendDescription": "einem angehängten Video Material hinzufügen"
           }
         },
         "stopGeneration": "Generierung stoppen",
@@ -13848,6 +13896,7 @@
       "view": {
         "logs": "Protokolle",
         "queue": "Warteschlange",
+        "generations": "Generierungen",
         "workers": "Worker",
         "versions": "Versionen",
         "trace": "Trace"
@@ -17955,8 +18004,8 @@
         "spokenText": "Gib den Text ein, der gesprochen werden soll…",
         "music": "Beschreibe die Musik, die du generieren möchtest…",
         "audioVideo": "Beschreibe eine mit Audio synchronisierte Szene…",
-        "retake": "Verfeinere die letzte Generierung…",
-        "extend": "Beschreibe, wie es weitergehen soll…",
+        "retake": "Beschreibe, was am angehängten Video geändert werden soll…",
+        "extend": "Beschreibe, was im hinzugefügten Material passiert…",
         "motion": "Bewegung beschreiben…",
         "planShort": "Beschreibe die zu planende Arbeit…",
         "plan": "Beschreibe die Arbeit. Der Agent schlägt einen Plan vor und führt ihn nicht aus.",
@@ -17970,7 +18019,17 @@
       "messageQueued": "Nachricht eingereiht - {{prompt}}",
       "sendNow": "Jetzt senden",
       "uploading": "Wird hochgeladen…",
-      "addToMessage": "Zur Nachricht hinzufügen"
+      "addToMessage": "Zur Nachricht hinzufügen",
+      "selectRetakeModel": "Retake-Modell auswählen",
+      "selectExtendModel": "Verlängerungsmodell auswählen",
+      "extendDirection": "Material hinzufügen",
+      "extendEnd": "Danach",
+      "extendEndDescription": "Nach dem letzten Bild weiterführen",
+      "extendStart": "Davor",
+      "extendStartDescription": "Vor dem ersten Bild einleiten",
+      "extendDuration": "Hinzuzufügende Sekunden",
+      "extendSeconds_one": "+{{count}} Sek.",
+      "extendSeconds_other": "+{{count}} Sek."
     },
     "message": {
       "addToCanvas": "Zur Arbeitsfläche hinzufügen",
@@ -18435,8 +18494,7 @@
       "editorHeading": "Editor"
     },
     "providerOnboarding": {
-      "setUp": "Einrichten",
-      "useApiKeyInstead": "Stattdessen einen API-Schlüssel verwenden"
+      "setUp": "Einrichten"
     },
     "scriptReview": {
       "addLine": "Zeile hinzufügen"
@@ -18668,6 +18726,43 @@
       "noBoardsTitle": "Keine Storyboards",
       "noBoardsDescription": "Erstellen Sie ein Storyboard, um seine Einstellungen auf der Timeline zu platzieren.",
       "listLabel": "Storyboard-Einstellungen"
+    }
+  },
+  "generations": {
+    "title": "Generierungen",
+    "emptyTitle": "Noch keine Generierungen",
+    "emptyDescription": "Bilder, Videos und Audio, die du in einem Editor, einem geführten Ablauf, im Chat oder in einem Workflow generierst, erscheinen hier, während sie laufen.",
+    "clearFinished": "Fertige entfernen",
+    "stop": "Generierung stoppen",
+    "stopFailed": "die Generierung stoppen",
+    "openSource": "{{title}} öffnen",
+    "untitled": "{{kind}}-Generierung",
+    "kind": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Audio",
+      "other": "Medien"
+    },
+    "status": {
+      "generating": "generiert",
+      "generated": "fertig",
+      "failed": "fehlgeschlagen",
+      "cancelled": "gestoppt"
+    },
+    "filter": {
+      "label": "Generierungen filtern",
+      "all": "Alle",
+      "generating": "Läuft",
+      "failed": "Fehlgeschlagen"
+    },
+    "source": {
+      "chat": "Chat",
+      "workflow": "Workflow",
+      "storyboard": "Storyboard",
+      "sketch": "Skizze",
+      "timeline": "Timeline",
+      "model3d": "3D-Modell",
+      "script": "Skript"
     }
   }
 }

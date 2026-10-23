@@ -28,7 +28,7 @@ const CRISP_NO_BLUR_STYLES = {
 export const getPreviewNodeSelectionSx = (theme: Theme, selected: boolean) => ({
   display: "flex" as const,
   border: `1px solid ${
-    selected ? theme.vars.palette.grey[100] : theme.vars.palette.grey[700]
+    selected ? theme.vars.palette.grey[100] : theme.vars.palette.divider
   }`,
   boxShadow: SHADOW(theme).sm,
   backgroundColor: theme.vars.palette.c_node_bg,
@@ -40,7 +40,7 @@ export const getOutputNodeSelectionSx = (theme: Theme, selected: boolean) => ({
   border: `1px solid ${
     selected
       ? `color-mix(in srgb, ${theme.vars.palette.info.main} 82%, white 18%)`
-      : theme.vars.palette.grey[700]
+      : theme.vars.palette.divider
   }`,
   boxShadow: SHADOW(theme).sm,
   backgroundColor: theme.vars.palette.c_node_bg,
@@ -66,10 +66,10 @@ export const getBaseNodeSelectionStyles = ({
   const borderColor = isFocused
     ? theme.vars.palette.warning.main
     : selected
-      ? `color-mix(in srgb, ${resolvedBaseColor} 82%, white 18%)`
+      ? resolvedBaseColor
       : hasParent
         ? `color-mix(in srgb, var(--c_node_header_bg_group) 82%, ${theme.vars.palette.primary.main} 18%)`
-        : theme.vars.palette.grey[700];
+        : theme.vars.palette.divider;
 
   const sizeStyles = collapsed
     ? NODE_COLLAPSED_BASE_NODE_SX

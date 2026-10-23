@@ -1,5 +1,10 @@
 import type { OnboardingCapability } from "../../stores/ProviderOnboardingStore";
 import { isElectron, isLocalhost } from "../../lib/env";
+import {
+  PROVIDER_META,
+  isProviderAvailable,
+  type ProviderMeta
+} from "../menus/providerCatalog";
 
 import meshyIcon from "../../icons/providers/meshy-color.svg";
 import openaiIcon from "../../icons/providers/openai.svg";
@@ -17,7 +22,8 @@ export interface OnboardingProvider {
   name: string;
   /** Secret key / env var this provider stores its credential under. */
   secretKey: string;
-  icon: string;
+  /** Logo. A provider without one shows its initial. */
+  icon?: string;
   /** Single-color (black) glyph — needs inverting in dark mode to stay visible. */
   mono?: boolean;
   /** Supports one-click OAuth sign-in instead of pasting a key. */
@@ -38,12 +44,23 @@ export interface OnboardingProvider {
   tagline: string;
   /** Capabilities this provider unlocks (matches the providers endpoint). */
   capabilities: OnboardingCapability[];
+  /**
+   * Image steps beyond text to image that the provider runs, as the providers
+   * endpoint names them (`remove_background`, `upscale_image`, …). A picker
+   * for one of these steps lists only the providers that declare it.
+   */
+  stepCapabilities?: readonly string[];
   /** Page where the user creates an API key. */
   keyUrl: string;
   /** Provider pricing / docs page. */
   pricingUrl: string;
   /** One-line, beginner-friendly cost summary. */
-  costHint: string;
+  costHint?: string;
+  /**
+   * The credential is more than one pasted key (an endpoint, a region, a CLI
+   * sign-in), so the card sends the user to Settings instead of a key field.
+   */
+  setupInSettings?: boolean;
   /** Whether a free tier or free credits are available to start. */
   freeTier?: string;
   /** Highlighted as an easy first choice. */
@@ -78,6 +95,7 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
       "automatic_speech_recognition",
       "generate_embedding"
     ],
+    stepCapabilities: ["image_to_image", "inpainting"],
     keyUrl: "https://platform.openai.com/api-keys",
     pricingUrl: "https://openai.com/api/pricing/",
     costHint: "Pay per token, ~$0.15–$5 per 1M tokens depending on the model.",
@@ -164,6 +182,7 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
       "text_to_video",
       "generate_embedding"
     ],
+    stepCapabilities: ["image_to_image"],
     keyUrl: "https://aistudio.google.com/apikey",
     pricingUrl: "https://ai.google.dev/pricing",
     costHint: "Pay per token, with a generous free tier to experiment.",
@@ -202,6 +221,16 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
     icon: falColorIcon,
     tagline: "Fast image and video generation (FLUX and more).",
     capabilities: ["text_to_image", "text_to_video"],
+    stepCapabilities: [
+      "image_to_image",
+      "inpainting",
+      "outpaint_image",
+      "upscale_image",
+      "remove_background",
+      "relight_image",
+      "segment_image",
+      "vectorize_image"
+    ],
     keyUrl: "https://fal.ai/dashboard/keys",
     pricingUrl: "https://fal.ai/pricing",
     costHint: "Pay per generation, priced per image or per second of video."
@@ -218,6 +247,15 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
       "text_to_video",
       "text_to_music",
       "generate_message"
+    ],
+    stepCapabilities: [
+      "image_to_image",
+      "inpainting",
+      "outpaint_image",
+      "upscale_image",
+      "remove_background",
+      "relight_image",
+      "vectorize_image"
     ],
     keyUrl: "https://replicate.com/account/api-tokens",
     pricingUrl: "https://replicate.com/pricing",
@@ -265,13 +303,101 @@ export const isOnboardingProviderAvailable = (
  * capability we show the whole curated list (recommended first).
  */
 export const providersForCapability = (
-  capability?: OnboardingCapability
+  capability?: OnboardingCapability,
+  stepCapabilities?: readonly string[]
 ): OnboardingProvider[] => {
   const available = ONBOARDING_PROVIDERS.filter(isOnboardingProviderAvailable);
-  const matches = capability
+  const forCapability = capability
     ? available.filter((p) => p.capabilities.includes(capability))
     : available;
+  // A step such as background removal runs on fewer providers than its model
+  // kind. Offering every image provider there let people connect one that
+  // cannot do the step, and the picker reopened this dialog (study 12).
+  const forStep = stepCapabilities?.length
+    ? available.filter((p) =>
+        stepCapabilities.some(
+          (step) =>
+            (p.capabilities as readonly string[]).includes(step) ||
+            (p.stepCapabilities ?? []).includes(step)
+        )
+      )
+    : [];
+  const matches = forStep.length > 0 ? forStep : forCapability;
   return matches.sort(
     (a, b) => Number(b.recommended ?? false) - Number(a.recommended ?? false)
   );
+};
+
+/** Settings sections that hold AI model providers, in display order. */
+const DIRECTORY_SECTIONS: readonly ProviderMeta["section"][] = [
+  "popular",
+  "language",
+  "media",
+  "gateways"
+];
+
+/** Capabilities the language-model sections serve; the rest are media. */
+const TEXT_CAPABILITIES: readonly OnboardingCapability[] = [
+  "generate_message",
+  "generate_embedding"
+];
+
+const toOnboardingProvider = (meta: ProviderMeta): OnboardingProvider => ({
+  id: meta.providerId ?? meta.key,
+  name: meta.name,
+  secretKey: meta.key,
+  icon: meta.icon,
+  mono: meta.mono,
+  oauth: meta.oauth,
+  oauthOnly: meta.oauthOnly,
+  localOnly: meta.localOnly,
+  tagline: meta.description,
+  capabilities: [],
+  keyUrl: meta.docsUrl,
+  pricingUrl: meta.docsUrl,
+  setupInSettings: Boolean(meta.fields) || (!meta.oauth && Boolean(meta.localOnly))
+});
+
+/**
+ * Every AI provider in the settings registry that the curated list leaves
+ * out, so onboarding can connect any of them without a trip to Settings.
+ * The registry does not record capabilities, so a capability narrows the
+ * list by section only: chat and embeddings to the language sections, the
+ * rest to media. Web search, GPU rental and service keys are not AI
+ * providers and stay in Settings.
+ */
+export const directoryProviders = (
+  capability?: OnboardingCapability
+): OnboardingProvider[] => {
+  const curatedKeys = new Set(ONBOARDING_PROVIDERS.map((p) => p.secretKey));
+  const sections = !capability
+    ? DIRECTORY_SECTIONS
+    : TEXT_CAPABILITIES.includes(capability)
+      ? DIRECTORY_SECTIONS.filter((s) => s !== "media")
+      : DIRECTORY_SECTIONS.filter((s) => s === "media" || s === "gateways");
+  return PROVIDER_META.filter(
+    (meta) =>
+      meta.providerId !== undefined &&
+      sections.includes(meta.section) &&
+      !curatedKeys.has(meta.key) &&
+      isProviderAvailable(meta)
+  )
+    .sort(
+      (a, b) =>
+        sections.indexOf(a.section) - sections.indexOf(b.section) ||
+        a.name.localeCompare(b.name)
+    )
+    .map(toOnboardingProvider);
+};
+
+/** Case-insensitive match on a provider's name and description. */
+export const matchesProviderQuery = (
+  provider: OnboardingProvider,
+  query: string
+): boolean => {
+  const needle = query.trim().toLowerCase();
+  if (!needle) {
+    return true;
+  }
+  return `${provider.name} ${provider.tagline}`.toLowerCase().includes(needle);
 };

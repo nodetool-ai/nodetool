@@ -2,8 +2,8 @@
  * OneTakePanel
  *
  * The board's one-take direction: the creator's own prompt, the render
- * settings (model, duration, aspect ratio, resolution), and the block compiled
- * from the board (REFS, STEPS, AUDIO). The board stores the prompt and any
+ * settings (model, duration, aspect ratio, resolution, reference images), and
+ * the block compiled from the board (REFS, STEPS, AUDIO). The board stores the prompt and any
  * setting the creator picks. An unset setting shows its fallback from
  * `resolveOneTakeSettings`. The compiled block is `compileOneTake`, the same compiler the render
  * and the agent tools call, so it is always what the render sends after the
@@ -16,14 +16,18 @@
 import React, { memo, Suspense, useCallback, useMemo, useState } from "react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
-import { compileOneTake } from "@nodetool-ai/protocol";
-import type { OneTakeDirection } from "@nodetool-ai/protocol";
+import { compileOneTake, oneTakeReferenceSource } from "@nodetool-ai/protocol";
+import type {
+  OneTakeDirection,
+  OneTakeReferenceSource
+} from "@nodetool-ai/protocol";
 
 import {
   useBoard,
   useStoryboardStore
 } from "../../stores/storyboard/StoryboardStore";
 import { useLastModelStore } from "../../stores/lastModelStore";
+import { useEntities } from "../../serverState/useEntities";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import {
   AlertBanner,
@@ -52,6 +56,7 @@ import {
   ONE_TAKE_FALLBACK_RESOLUTIONS,
   ONE_TAKE_MAX_IMAGES,
   ONE_TAKE_TASK,
+  boardCast,
   oneTakeMaxSeconds,
   rememberedOneTakeModels,
   resolveOneTakeSettings
@@ -120,14 +125,34 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
   const board = useStoryboardStore((state) => state.boards[boardId]);
   const oneTake = board?.oneTake;
   const setOneTake = useStoryboardStore((state) => state.setOneTake);
+  const { data: library } = useEntities();
   const { models: catalog } = useVideoModelsByProvider();
   const byTask = useLastModelStore((state) => state.byTask);
   const byKind = useLastModelStore((state) => state.byKind);
   const [renderOpen, setRenderOpen] = useState(false);
 
   const compiled = useMemo(
-    () => compileOneTake({ shots, oneTake }),
-    [shots, oneTake]
+    () =>
+      compileOneTake({
+        shots,
+        oneTake,
+        entities: boardCast(board, library)
+      }),
+    [shots, oneTake, board, library]
+  );
+  const referenceSource = oneTakeReferenceSource(oneTake);
+  const referenceOptions = useMemo(
+    () => [
+      {
+        value: "stills",
+        label: t("screens4_13.storyboard.oneTake.referenceStills")
+      },
+      {
+        value: "entities",
+        label: t("screens4_13.storyboard.oneTake.referenceEntities")
+      }
+    ],
+    [t]
   );
 
   const remembered = useMemo(
@@ -260,6 +285,11 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
     (value: string) => update({ resolution: value === "" ? null : value }),
     [update]
   );
+  const handleReferenceSourceChange = useCallback(
+    (value: string) =>
+      update({ reference_source: value as OneTakeReferenceSource }),
+    [update]
+  );
   const openRender = useCallback(() => setRenderOpen(true), []);
   const closeRender = useCallback(() => setRenderOpen(false), []);
 
@@ -347,6 +377,20 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
                 />
               </Box>
             </FlexRow>
+            <Box data-testid="one-take-reference-source">
+              <SelectField
+                label={t("screens4_13.storyboard.oneTake.referenceSource")}
+                size="small"
+                value={referenceSource}
+                onChange={handleReferenceSourceChange}
+                options={referenceOptions}
+                description={t(
+                  referenceSource === "entities"
+                    ? "screens4_13.storyboard.oneTake.referenceEntitiesHelp"
+                    : "screens4_13.storyboard.oneTake.referenceStillsHelp"
+                )}
+              />
+            </Box>
           </FormSection>
         </Box>
 
@@ -403,7 +447,7 @@ const OneTakePanelInner: React.FC<OneTakePanelProps> = ({
             <FlexColumn gap={SPACING.xs} data-testid="one-take-images">
               {compiled.references.map((reference, index) => (
                 <FlexRow
-                  key={`${reference.shot_id}-${reference.asset_id}-${index}`}
+                  key={`${reference.shot_id ?? reference.entity_id}-${reference.asset_id}-${index}`}
                   align="center"
                   gap={SPACING.sm}
                   data-testid="one-take-image"

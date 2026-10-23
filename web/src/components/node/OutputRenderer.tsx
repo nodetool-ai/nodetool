@@ -26,13 +26,13 @@ import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 
 import {
+  Box,
   Container,
   EmptyState,
   LoadingSpinner,
   BORDER_RADIUS,
-  List,
-  ListItem,
-  ListItemText, getSpacingPx, SPACING
+  ListGroup,
+  ListItemRow, getSpacingPx, SPACING
 } from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
@@ -668,24 +668,22 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 className="nodrag"
                 style={SCROLL_CONTAINER_STYLE}
               >
-                <List sx={LIST_WRAPPER_SX}>
+                <ListGroup sx={LIST_WRAPPER_SX}>
                   {arr.map((item) => (
-                    <ListItem
+                    <ListItemRow
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(item),
                         seen
                       )}
                       sx={LIST_ITEM_SX}
-                    >
-                      <ListItemText
-                        primaryTypographyProps={{
-                          sx: PRE_WRAP_PRIMARY_SX
-                        }}
-                        primary={item}
-                      />
-                    </ListItem>
+                      primary={
+                        <Box component="span" sx={PRE_WRAP_PRIMARY_SX}>
+                          {item}
+                        </Box>
+                      }
+                    />
                   ))}
-                </List>
+                </ListGroup>
               </div>
             );
           }
@@ -704,31 +702,30 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   className="nodrag"
                   style={SCROLL_CONTAINER_STYLE}
                 >
-                  <List sx={LIST_WRAPPER_SX}>
+                  <ListGroup sx={LIST_WRAPPER_SX}>
                     {arr.map((chunk) => {
                       const key = withOccurrenceSuffix(
                         `audio-chunk:${chunk.timestamp[0]}:${chunk.timestamp[1]}:${hashStringBounded(chunk.text)}`,
                         seen
                       );
                       return (
-                        <ListItem
+                        <ListItemRow
                           key={key}
                           sx={AUDIO_CHUNK_ITEM_SX}
-                        >
-                          <ListItemText
-                            primary={`${formatAudioChunkTimestamp(chunk.timestamp[0])} → ${formatAudioChunkTimestamp(chunk.timestamp[1])}`}
-                            secondary={chunk.text}
-                            primaryTypographyProps={{
-                              sx: MONOSPACE_SX
-                            }}
-                            secondaryTypographyProps={{
-                              sx: PRE_WRAP_SX
-                            }}
-                          />
-                        </ListItem>
+                          primary={
+                            <Box component="span" sx={MONOSPACE_SX}>
+                              {`${formatAudioChunkTimestamp(chunk.timestamp[0])} → ${formatAudioChunkTimestamp(chunk.timestamp[1])}`}
+                            </Box>
+                          }
+                          secondary={
+                            <Box component="span" sx={PRE_WRAP_SX}>
+                              {chunk.text}
+                            </Box>
+                          }
+                        />
                       );
                     })}
-                  </List>
+                  </ListGroup>
                 </div>
               );
             }

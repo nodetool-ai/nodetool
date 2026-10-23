@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { assertCoreOnlyInstall, assertCoreInstallSize, CORE_INSTALL_BUDGET_KIB, cleanEnv } from "../smoke-packed-cli.mjs";
 import { runReleaseCommand, tarballIntegrity } from "./pin-catalog.mjs";
+import { createLimiter, timed } from "./commands.mjs";
 import { runFalFixture } from "../packed-fal-fixture.mjs";
 import { validateInstallPin } from "./install-pins.mjs";
 import { loadRegistryDist, loadRegistryJson, REGISTRY_READINESS_MS } from "./registry.mjs";
@@ -14,6 +15,8 @@ import { loadRegistryDist, loadRegistryJson, REGISTRY_READINESS_MS } from "./reg
 export const RELEASE_REPOSITORY = "https://github.com/nodetool-ai/nodetool";
 export const RELEASE_WORKFLOW = ".github/workflows/publish.yaml";
 const PROVENANCE_TYPE = "https://slsa.dev/provenance/v1";
+/** Concurrent registry reads. Each one may wait out npm's propagation delay. */
+const REGISTRY_CONCURRENCY = 8;
 
 export function releaseArtifacts(directory, run = runReleaseCommand) {
   const packages = [];
@@ -105,7 +108,12 @@ export function hasReleaseProvenance(pin, response, originalRun) {
 }
 
 /** Verify a fresh registry CLI through its authorized pack installer. */
-export async function verifyRegistryInstall(catalog, { run = runReleaseCommand, temporaryRoot = tmpdir() } = {}) {
+export async function verifyRegistryInstall(catalog, { run: runCommand = runReleaseCommand, temporaryRoot = tmpdir() } = {}) {
+  const run = (command, args, options) => {
+    const started = Date.now();
+    try { return runCommand(command, args, options); }
+    finally { console.log(`[time]   ${[command.split("/").at(-1), ...args.slice(0, 2)].join(" ")}: ${((Date.now() - started) / 1000).toFixed(1)}s`); }
+  };
   const pack = catalog.packs.find(entry => entry.kind === "node-pack" && entry.id === "fal");
   if (!pack) { throw new Error("No node pack is available for the staging install smoke"); }
   const work = mkdtempSync(join(temporaryRoot, "nodetool-registry-staging-"));
@@ -173,7 +181,8 @@ export async function verifyStaging(catalog, artifacts, {
 } = {}) {
   const pins = stagingPins(catalog, artifacts);
   const readiness = { deadline: Date.now() + REGISTRY_READINESS_MS };
-  for (const pin of pins) {
+  const limit = createLimiter(REGISTRY_CONCURRENCY);
+  await timed(`registry integrity and provenance for ${pins.length} pins`, () => Promise.all(pins.map(pin => limit(async () => {
     const spec = `${pin.name}@${pin.version}`;
     const dist = await loadDist(pin, readiness);
     if (dist.integrity !== pin.integrity) { throw new Error(`Registry integrity differs from release pin: ${spec}`); }
@@ -183,8 +192,8 @@ export async function verifyStaging(catalog, artifacts, {
         throw new Error(`Missing matching ${RELEASE_REPOSITORY}/${RELEASE_WORKFLOW} provenance for ${spec}`);
       }
     }
-  }
-  await smoke();
+  }))));
+  await timed("registry install smoke", smoke);
   return pins;
 }
 

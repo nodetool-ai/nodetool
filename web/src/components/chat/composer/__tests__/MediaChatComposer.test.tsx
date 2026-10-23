@@ -155,7 +155,9 @@ const MEDIA_DEFAULTS = (() => {
     imageToVideo: s.imageToVideo,
     referenceToVideo: s.referenceToVideo,
     music: s.music,
-    audio: s.audio
+    audio: s.audio,
+    retake: s.retake,
+    extend: s.extend
   };
 })();
 
@@ -470,6 +472,54 @@ describe("MediaChatComposer", () => {
       duration: 60
     });
     expect(promptBox()).toHaveValue("");
+  });
+
+  it("sends extend with the chosen end and seconds", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    useMediaGenerationStore.setState({
+      mode: "extend",
+      extend: {
+        ...MEDIA_DEFAULTS.extend,
+        model: {
+          type: "video_model",
+          id: "ext-1",
+          provider: "fal_ai",
+          name: "Extender"
+        }
+      }
+    });
+    renderComposer(onSendMessage);
+
+    await user.click(screen.getByRole("button", { name: "After" }));
+    await user.click(screen.getByText("Before"));
+    await user.click(screen.getByRole("button", { name: "+3 Sec" }));
+    await user.click(screen.getByText("+5 Sec"));
+    await user.click(promptBox());
+    await user.keyboard("the fox walks in");
+    await user.click(screen.getByRole("button", { name: "Generate" }));
+
+    expect(onSendMessage.mock.calls[0][2]).toEqual({
+      mode: "extend",
+      provider: "fal_ai",
+      model: "ext-1",
+      extend_direction: "start",
+      duration: 5
+    });
+  });
+
+  it("opens the video picker when retake has no model", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    useMediaGenerationStore.setState({ mode: "retake" });
+    renderComposer(onSendMessage);
+
+    await user.click(promptBox());
+    await user.keyboard("make it night");
+    await user.click(screen.getByRole("button", { name: "Generate" }));
+
+    expect(onSendMessage).not.toHaveBeenCalled();
+    expect(screen.getByTestId("video-model-dialog")).toBeInTheDocument();
   });
 
   it("sends the media generation payload once a model is picked", async () => {

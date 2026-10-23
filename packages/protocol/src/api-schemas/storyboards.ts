@@ -486,7 +486,8 @@ export const oneTakeDirection = z.object({
   model: z
     .object({ id: z.string(), provider: z.string(), name: z.string().optional() })
     .nullable()
-    .optional()
+    .optional(),
+  reference_source: z.enum(["stills", "entities"]).nullable().optional()
 });
 export type OneTakeDirectionSchema = z.infer<typeof oneTakeDirection>;
 

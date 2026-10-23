@@ -7,6 +7,7 @@ import LoginIcon from "@mui/icons-material/Login";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
 import {
   AlertBanner,
@@ -65,6 +66,11 @@ interface ProviderOnboardingCardProps {
   configured: boolean;
   /** Start expanded (e.g. the provider a per-node warning pointed at). */
   defaultExpanded?: boolean;
+  /**
+   * Opens the provider's Settings card, for credentials the inline key field
+   * cannot hold (`provider.setupInSettings`).
+   */
+  onOpenSettings?: () => void;
 }
 
 /**
@@ -76,7 +82,8 @@ interface ProviderOnboardingCardProps {
 const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
   provider,
   configured,
-  defaultExpanded = false
+  defaultExpanded = false,
+  onOpenSettings
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -255,19 +262,25 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
               overflow: "hidden"
             }}
           >
-            <Box
-              component="img"
-              src={provider.icon}
-              alt=""
-              aria-hidden
-              sx={{
-                width: 24,
-                height: 24,
-                objectFit: "contain",
-                ...(provider.mono &&
-                  theme.applyStyles("dark", { filter: "invert(1)" }))
-              }}
-            />
+            {provider.icon ? (
+              <Box
+                component="img"
+                src={provider.icon}
+                alt=""
+                aria-hidden
+                sx={{
+                  width: 24,
+                  height: 24,
+                  objectFit: "contain",
+                  ...(provider.mono &&
+                    theme.applyStyles("dark", { filter: "invert(1)" }))
+                }}
+              />
+            ) : (
+              <Text aria-hidden weight={600} color="secondary">
+                {provider.name.charAt(0).toUpperCase()}
+              </Text>
+            )}
           </FlexRow>
 
           {/* Info */}
@@ -284,7 +297,26 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
 
           {/* Actions */}
           <FlexRow align="center" gap={SPACING.md} wrap sx={{ marginLeft: "auto" }}>
-            {hasStoredKey ? (
+            {provider.setupInSettings ? (
+              configured ? (
+                <FlexRow align="center" gap={SPACING.micro}>
+                  <CheckCircleRoundedIcon
+                    sx={{ fontSize: "1.2em", color: theme.vars.palette.success.main }}
+                  />
+                  <Caption size="small">{t("i18n-next33.provider.connectedLabel")}</Caption>
+                </FlexRow>
+              ) : (
+                <EditorButton
+                  density="compact"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<SettingsOutlinedIcon />}
+                  onClick={onOpenSettings}
+                >
+                  {t("batch2_7.providerOnboarding.setUpInSettings")}
+                </EditorButton>
+              )
+            ) : hasStoredKey ? (
               <FlexRow align="center" gap={SPACING.micro}>
                 <CheckCircleRoundedIcon
                   sx={{
@@ -374,7 +406,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         </FlexRow>
 
         {/* Inline API-key entry */}
-        {expanded && (!isConnected || replacing) && !provider.oauthOnly && (
+        {expanded && (!isConnected || replacing) && !provider.oauthOnly && !provider.setupInSettings && (
           <FlexColumn id={keyFieldId} gap={SPACING.lg} className="nodrag nowheel" sx={{ pt: SPACING.lg }}>
             <FlexRow gap={SPACING.xs} align="center">
               <TextInput
@@ -428,9 +460,9 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
               >
                 {t("i18n-next33.provider.getKey", { provider: provider.name })}
               </EditorButton>
-              <Caption size="smaller" >
-                {provider.costHint}
-              </Caption>
+              {provider.costHint && (
+                <Caption size="smaller">{provider.costHint}</Caption>
+              )}
             </FlexRow>
             {rejected && (
               <FlexRow align="center" gap={SPACING.xs} wrap>

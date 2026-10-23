@@ -510,6 +510,7 @@ describe("refreshWorkflow — the merge base follows the editor's own saves", ()
     const queryClient = new QueryClient();
     const store = createWorkflowManagerStore(queryClient);
     store.getState().addWorkflow(noEdgeWorkflow);
+    queryClient.setQueryData(["workflow", "wf-1"], noEdgeWorkflow);
 
     const { store: fakeStore } = makeFakeNodeStore([], []);
     store.setState((state: { nodeStores: Record<string, NodeStoreApi> }) => ({
@@ -532,5 +533,33 @@ describe("refreshWorkflow — the merge base follows the editor's own saves", ()
 
     expect(fetchWorkflowById).not.toHaveBeenCalled();
     expect(useConflictStore.getState().byKey["workflow:wf-1"]).toBeUndefined();
+    // The resource-change handler leaves this query to the open editor, and
+    // the autosave never wrote it. It must be stale so the next reader fetches.
+    expect(
+      queryClient.getQueryState(["workflow", "wf-1"])?.isInvalidated
+    ).toBe(true);
+  });
+
+  it("stores the fetched server copy even when the editor already has its etag", async () => {
+    const queryClient = new QueryClient();
+    const store = createWorkflowManagerStore(queryClient);
+    store.getState().addWorkflow(noEdgeWorkflow);
+    queryClient.setQueryData(["workflow", "wf-1"], noEdgeWorkflow);
+
+    const { store: fakeStore } = makeFakeNodeStore([], []);
+    store.setState((state: { nodeStores: Record<string, NodeStoreApi> }) => ({
+      nodeStores: { ...state.nodeStores, "wf-1": fakeStore }
+    }));
+    const fresh = {
+      ...baseWorkflow,
+      updated_at: "2026-08-12T00:00:00Z",
+      etag: "base-etag"
+    };
+    fetchWorkflowById.mockResolvedValue(fresh);
+
+    // The fake editor already reports "base-etag", so nothing is reloaded.
+    await store.getState().refreshWorkflow("wf-1", "base-etag");
+
+    expect(queryClient.getQueryData(["workflow", "wf-1"])).toEqual(fresh);
   });
 });

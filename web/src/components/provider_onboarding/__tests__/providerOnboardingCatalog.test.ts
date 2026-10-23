@@ -1,7 +1,9 @@
 import {
   ONBOARDING_PROVIDERS,
   CAPABILITY_LABELS,
+  directoryProviders,
   isOnboardingProviderAvailable,
+  matchesProviderQuery,
   providersForCapability
 } from "../providerOnboardingCatalog";
 import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
@@ -93,4 +95,76 @@ it("offers a connectable provider for both 3D tasks", () => {
   for (const capability of ["text_to_3d", "image_to_3d"] as const) {
     expect(providersForCapability(capability).some((provider) => provider.secretKey === "MESHY_API_KEY")).toBe(true);
   }
+});
+
+// UX research study 12: the background-removal picker offered OpenAI, which
+// cannot remove a background, and reopened setup after it was connected.
+it("offers only the providers that run a specialized image step", () => {
+  const ids = providersForCapability("text_to_image", ["remove_background"]).map(
+    (provider) => provider.id
+  );
+  expect(ids).toEqual(expect.arrayContaining(["fal", "replicate"]));
+  expect(ids).not.toContain("openai");
+  expect(ids).not.toContain("gemini");
+});
+
+it("keeps every image provider for an image step that most providers run", () => {
+  const ids = providersForCapability("text_to_image", ["image_to_image"]).map(
+    (provider) => provider.id
+  );
+  expect(ids).toEqual(expect.arrayContaining(["openai", "gemini", "fal"]));
+});
+
+it("falls back to the model kind when no listed provider runs the step", () => {
+  expect(providersForCapability("text_to_image", ["estimate_depth"])).toEqual(
+    providersForCapability("text_to_image")
+  );
+});
+
+describe("directoryProviders", () => {
+  it("adds every AI provider the curated list leaves out, once", () => {
+    const providers = directoryProviders();
+    const keys = providers.map((p) => p.secretKey);
+    expect(keys).toEqual(expect.arrayContaining(["DEEPSEEK_API_KEY", "OPENROUTER_API_KEY", "TOPAZ_API_KEY"]));
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const curated of ONBOARDING_PROVIDERS) {
+      expect(keys).not.toContain(curated.secretKey);
+    }
+    // OpenAI's settings card carries the ChatGPT sign-in, already curated.
+    expect(keys).not.toContain("OPENAI_API_KEY");
+  });
+
+  it("leaves web search, GPU rental and service keys in Settings", () => {
+    const keys = directoryProviders().map((p) => p.secretKey);
+    for (const key of ["SERPAPI_API_KEY", "RUNPOD_API_KEY", "SERVER_AUTH_TOKEN", "GOOGLE_MAIL_USER"]) {
+      expect(keys).not.toContain(key);
+    }
+  });
+
+  it("sends multi-field credentials to Settings instead of one key field", () => {
+    const byKey = new Map(directoryProviders().map((p) => [p.secretKey, p]));
+    expect(byKey.get("AZURE_OPENAI_API_KEY")?.setupInSettings).toBe(true);
+    expect(byKey.get("HIGGSFIELD_API_KEY_ID")?.setupInSettings).toBe(true);
+    expect(byKey.get("DEEPSEEK_API_KEY")?.setupInSettings).toBe(false);
+  });
+
+  it("narrows by section for a capability", () => {
+    const text = directoryProviders("generate_message").map((p) => p.secretKey);
+    const image = directoryProviders("text_to_image").map((p) => p.secretKey);
+    expect(text).toContain("DEEPSEEK_API_KEY");
+    expect(text).not.toContain("TOPAZ_API_KEY");
+    expect(image).toContain("TOPAZ_API_KEY");
+    expect(image).not.toContain("DEEPSEEK_API_KEY");
+    // Gateways serve both.
+    expect(text).toContain("ATLASCLOUD_API_KEY");
+    expect(image).toContain("ATLASCLOUD_API_KEY");
+  });
+});
+
+it("matches a provider query on name and description, ignoring case", () => {
+  const groq = ONBOARDING_PROVIDERS.find((p) => p.id === "groq")!;
+  expect(matchesProviderQuery(groq, "  GROQ ")).toBe(true);
+  expect(matchesProviderQuery(groq, "fast")).toBe(true);
+  expect(matchesProviderQuery(groq, "video")).toBe(false);
+  expect(matchesProviderQuery(groq, "")).toBe(true);
 });

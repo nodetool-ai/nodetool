@@ -325,6 +325,14 @@ a `media_strategy: "still_motion_graphics"` shot does the same to
 `end_state` (the picture the shot ends on) and `sound` (what is heard) are one-take
 cues; `update_storyboard_one_take` sets them too.
 
+A one take sends the shot stills as `[Image N]` by default. A still fixes the
+framing and pose of one instant, so for an action shot the model holds that instant
+instead of playing the action: a still of a splash at its peak renders as a shoe
+hovering over frozen water. For a board with action, set `reference_source:
+"entities"` on `update_storyboard_one_take`. The take then sends the reference
+image of each board entity the shots use, and the shot text sets framing and
+motion. Give the cast and the location entities clean reference images first.
+
 `camera` is `{framing?, lens?, angle?, movement?, equipment?}`.
 
 `covered_by` is `{shot_id, start_seconds?, end_seconds?}` — this shot's picture is a

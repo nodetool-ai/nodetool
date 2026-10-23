@@ -48,7 +48,8 @@ import {
 } from "../inputProperty";
 import { WorkflowInputIO, WorkflowModelTask } from "../workflowIO";
 import { useWidgetRuntime } from "./useWidgetRuntime";
-import { isString } from "../../../utils/typePredicates";
+import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
+import { isRecord, isString } from "../../../utils/typePredicates";
 import type {
   ImageModelTask,
   VideoModelTask
@@ -388,6 +389,26 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
     if (kind === "video_model") return VIDEO_TASK_BY_NODE_TYPE[boundNodeType];
     return undefined;
   }, [boundNodeType, kind, props.task]);
+
+  // An empty picker takes the saved default of its kind, which connecting a
+  // provider sets. Study 14: an example app with four language-model fields
+  // made people pick the same model four times. A picker narrowed to a task
+  // stays empty, because the default may not do that task.
+  const savedDefault = useModelPreferencesStore(
+    (state) => state.defaults[kind]
+  );
+  const hasModel = isRecord(value) && isString(value.id) && value.id !== "";
+  useEffect(() => {
+    if (hasModel || task || !savedDefault?.provider || !savedDefault.id) {
+      return;
+    }
+    setValue({
+      type: kind,
+      provider: savedDefault.provider,
+      id: savedDefault.id,
+      name: savedDefault.name
+    });
+  }, [hasModel, kind, savedDefault, setValue, task]);
 
   const input = useMemo<WorkflowInputIO>(
     () => ({

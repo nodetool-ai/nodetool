@@ -207,7 +207,29 @@ describe("useRenderSceneClip", () => {
       duration_seconds: null,
       model,
       aspect_ratio: null,
-      resolution: "1080p"
+      resolution: "1080p",
+      reference_source: null
     });
+  });
+
+  it("takes the board's reference source unless it sets its own", () => {
+    useStoryboardStore.setState((state) => ({
+      boards: {
+        ...state.boards,
+        [BOARD]: {
+          ...state.boards[BOARD],
+          oneTake: { prompt: "", reference_source: "entities" }
+        }
+      }
+    }));
+    expect(
+      sceneClipDirectionWithFallbacks(board(), clip).reference_source
+    ).toBe("entities");
+    expect(
+      sceneClipDirectionWithFallbacks(board(), {
+        ...clip,
+        reference_source: "stills"
+      }).reference_source
+    ).toBe("stills");
   });
 });

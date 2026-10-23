@@ -109,7 +109,8 @@ import type { UiContext } from "@nodetool-ai/protocol";
 import {
   Tool,
   compactAssetUris,
-  compactResourceIds
+  compactResourceIds,
+  whenBackgroundGenerationsSettle
 } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
@@ -3048,8 +3049,12 @@ export class ChatTurnHandler {
       await this.saveMessageToDb(errorMsgData);
       await this.session.send(errorMsgData);
     } finally {
-      detachPredictions();
-      detachCostLedger();
+      // A background generation outlives the turn that started it. Its
+      // terminal message closes its row, so keep listening until it settles.
+      void whenBackgroundGenerationsSettle(ctx).finally(() => {
+        detachPredictions();
+        detachCostLedger();
+      });
       try {
         await chatWorkspace?.cleanupScratch?.();
       } catch (err) {
@@ -3941,6 +3946,117 @@ export class ChatTurnHandler {
                 format: "mp4",
                 duration
               }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
+        await this.saveMessageToDb(assistantMsgData);
+        await this.session.send(assistantMsgData);
+        await sendTerminalDone();
+        return;
+      }
+
+      if (mode === "retake" || mode === "extend") {
+        // Both work on a clip the user attached: retake changes it as the
+        // prompt asks, extend adds footage before or after it. The first
+        // attached video is the source; for retake the attached images and
+        // any `@`-mentioned entity's images steer the look.
+        const attached = await this.deps.resolveReferenceMediaBytes(
+          data,
+          mediaGeneration,
+          userId
+        );
+        const sourceVideo = attached.videos[0];
+        if (!sourceVideo || sourceVideo.length === 0) {
+          await this.session.send({
+            type: "error",
+            message:
+              mode === "retake"
+                ? "Retake needs a video — attach the clip to change first"
+                : "Extend needs a video — attach the clip to extend first",
+            thread_id: threadId
+          });
+          return;
+        }
+        const sourceModel: ProviderVideoModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+
+        await this.session.send({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        let generated;
+        if (mode === "retake") {
+          const referenceImages = [...attached.images, ...entityImageBytes];
+          generated = await generate(
+            "video_to_video",
+            {
+              prompt: expandedPrompt,
+              video: sourceVideo,
+              reference_images: referenceImages
+            },
+            { mime: "video/mp4" },
+            (abort) =>
+              provider.videoToVideo(sourceVideo, {
+                model: sourceModel,
+                prompt: expandedPrompt,
+                referenceImages:
+                  referenceImages.length > 0 ? referenceImages : undefined,
+                signal: abort
+              })
+          );
+        } else {
+          const direction =
+            mediaGeneration.extend_direction === "start" ? "start" : "end";
+          const seconds =
+            isNumber(mediaGeneration.duration) && mediaGeneration.duration > 0
+              ? (mediaGeneration.duration as number)
+              : 3;
+          generated = await generate(
+            "extend_video",
+            {
+              prompt: expandedPrompt,
+              video: sourceVideo,
+              mode: direction,
+              duration_seconds: seconds
+            },
+            { mime: "video/mp4" },
+            (abort) =>
+              provider.extendVideo(sourceVideo, {
+                model: sourceModel,
+                prompt: expandedPrompt,
+                mode: direction,
+                durationSeconds: seconds,
+                signal: abort
+              })
+          );
+        }
+        if (cancelled()) return;
+        const assetId =
+          seamAssetId(generated) ??
+          (await storeMediaAsset(generated.output, "video/mp4", "mp4"));
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "video",
+              video: { type: "video", asset_id: assetId, format: "mp4" }
             }
           ],
           thread_id: threadId,

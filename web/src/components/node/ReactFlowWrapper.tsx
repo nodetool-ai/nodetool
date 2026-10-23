@@ -86,7 +86,6 @@ import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
-import EdgeGradientDefinitions from "../node_editor/EdgeGradientDefinitions";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodeStoreRef, useNodes } from "../../contexts/NodeContext";
@@ -817,7 +816,7 @@ const ReactFlowWrapper = ({
   );
   const nodeStatuses = useStatusStore(nodeStatusesSelector);
 
-  const { processedEdges, activeGradientKeys } = useProcessedEdges({
+  const { processedEdges } = useProcessedEdges({
     edges,
     nodes,
     dataTypes: DATA_TYPES,
@@ -828,21 +827,6 @@ const ReactFlowWrapper = ({
     nodeStatuses,
     isSelecting
   });
-  const prevGradientKeysRef = useRef<Set<string>>(new Set());
-  const prevGradientKeysArrayRef = useRef<string[]>([]);
-  const activeGradientKeysArray = useMemo(() => {
-    const prev = prevGradientKeysRef.current;
-    if (
-      activeGradientKeys.size === prev.size &&
-      [...activeGradientKeys].every((k) => prev.has(k))
-    ) {
-      return prevGradientKeysArrayRef.current;
-    }
-    prevGradientKeysRef.current = activeGradientKeys;
-    const arr = Array.from(activeGradientKeys);
-    prevGradientKeysArrayRef.current = arr;
-    return arr;
-  }, [activeGradientKeys]);
 
   // Stable selector: only updates when the set of selected IDs actually changes,
   // not on every position update during drag. The selector itself runs on every
@@ -1156,10 +1140,6 @@ const ReactFlowWrapper = ({
         <LinkLayer />
         <ContextMenus />
         <ConnectableNodes />
-        <EdgeGradientDefinitions
-          dataTypes={DATA_TYPES}
-          activeGradientKeys={activeGradientKeysArray}
-        />
       </ReactFlow>
       {pendingNodeType && ghostPosition && (
         <GhostNode

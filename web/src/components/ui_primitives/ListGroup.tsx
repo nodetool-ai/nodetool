@@ -79,8 +79,12 @@ export interface ListItemRowProps extends Omit<ListItemProps, "button"> {
   onClick?: () => void;
   /** Selected state for clickable items */
   selected?: boolean;
+  /** Disables a clickable item */
+  disabled?: boolean;
   /** Additional sx for the text element */
   textSx?: SxProps<Theme>;
+  /** Layout overrides for the button of a clickable item (padding, gap) */
+  buttonSx?: SxProps<Theme>;
 }
 
 /**
@@ -112,7 +116,9 @@ const ListItemRowInternal: React.FC<ListItemRowProps> = ({
   icon,
   onClick,
   selected = false,
+  disabled = false,
   textSx,
+  buttonSx,
   children,
   sx,
   ...props
@@ -148,11 +154,15 @@ const ListItemRowInternal: React.FC<ListItemRowProps> = ({
         <ListItemButton
           onClick={onClick}
           selected={selected}
-          sx={{
-            ...selectableRowStyles(theme, { selected }),
-            "&.Mui-selected": selectedRowStyles(theme),
-            "&.Mui-focusVisible": focusRing(theme)
-          }}
+          disabled={disabled}
+          sx={[
+            {
+              ...selectableRowStyles(theme, { selected }),
+              "&.Mui-selected": selectedRowStyles(theme),
+              "&.Mui-focusVisible": focusRing(theme)
+            },
+            ...(Array.isArray(buttonSx) ? buttonSx : buttonSx ? [buttonSx] : [])
+          ]}
         >
           {content}
         </ListItemButton>

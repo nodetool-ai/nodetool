@@ -2,8 +2,8 @@
  * @jest-environment jsdom
  *
  * A one-take render sends one `reference_to_video` request with the shot
- * stills only, as `[Image N]` in shot order,
- * attached to the first shot. The prompt is the creator's text, then the
+ * stills as `[Image N]` in shot order, or the cast's images when the
+ * direction's `reference_source` is `entities`, attached to the first shot. The prompt is the creator's text, then the
  * block compiled from the board.
  * Its completion makes the clip the first shot's clip and covers every other
  * shot with its window of the take.
@@ -248,6 +248,34 @@ describe("useRenderOneTake", () => {
     expect(result.current.plan?.compiled.references).toEqual([]);
     await expect(result.current.renderOneTake()).rejects.toThrow(
       "Render a still for at least one shot."
+    );
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("sends the cast's images instead of the stills when reference_source is entities", async () => {
+    seedBoard({ ...oneTake, reference_source: "entities" });
+    useStoryboardStore
+      .getState()
+      .upsertShot(BOARD, { ...shots[1], entity_ids: [hero.id] });
+    const { result } = renderHook(() => useRenderOneTake(BOARD));
+    await act(async () => {
+      await result.current.renderOneTake();
+    });
+
+    const data = send.mock.calls[0][0].data;
+    expect(data.reference_images).toEqual([
+      { type: "image", asset_id: "hero-ref" }
+    ]);
+    expect(data.prompt).toContain("REFS: [Image 1] is the character Hero.");
+    expect(data.prompt).not.toContain("still of");
+  });
+
+  it("refuses an entity take while no entity on the board has an image", async () => {
+    seedBoard({ ...oneTake, reference_source: "entities" }, []);
+    const { result } = renderHook(() => useRenderOneTake(BOARD));
+    expect(result.current.plan?.compiled.references).toEqual([]);
+    await expect(result.current.renderOneTake()).rejects.toThrow(
+      "Give an entity on the board a reference image first."
     );
     expect(send).not.toHaveBeenCalled();
   });

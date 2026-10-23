@@ -79,6 +79,10 @@ field. None names the product or its features.
 | `ad-junior` | You are a junior account manager at an advertising agency and present campaign ideas to clients in slide decks. You have not used this product before. |
 | `student` | You are a university student who edits short videos for a film club on a laptop. You have not used this product before. |
 | `event-planner` | You organise weddings and parties and keep every plan in shared spreadsheets and slide decks. You have not used this product before. |
+| `photographer` | You are a freelance photographer who shoots products for small brands and edits the photos on a laptop. You have not used this product before. |
+| `podcaster` | You host a weekly interview podcast and write its show notes and social posts yourself. You have not used this product before. |
+| `online-seller` | You sell handmade lamps and home goods through an online shop you run from your kitchen table. You have not used this product before. |
+| `marketing-lead` | You lead marketing at a ten-person software company and brief freelancers on ads and launch material. You have not used this product before. |
 
 A persona changes how the participant reads the screen, not what it knows
 about NodeTool. Never put product knowledge in a persona.

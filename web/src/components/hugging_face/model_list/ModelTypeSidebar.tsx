@@ -7,15 +7,10 @@ import {
   BORDER_RADIUS,
   EYEBROW,
   SPACING,
-  TYPOGRAPHY,
-  selectableRowStyles,
-  selectedRowStyles,
   getSpacingPx,
-  List,
-  ListItem,
-  ListItemButton,
-  Text,
-  ListItemText
+  ListGroup,
+  ListItemRow,
+  Text
 } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/IconForType";
@@ -75,22 +70,70 @@ const ModelTypeSidebar: React.FC = () => {
       >
       {t("i18n-next29.categories.title")}
       </Box>
-    <List className="model-type-list" sx={{ padding: 0 }}>
+    <ListGroup className="model-type-list" flush>
       {modelTypes
         .filter((type) => availableModelTypes.has(type))
         .map((type) => {
           const href = getHuggingFaceLink(type);
           const isSelected = selectedModelType === type;
-          
+
           return (
-            <ListItem
-              disablePadding
+            <ListItemRow
               key={type}
+              onClick={createModelTypeChangeHandler(type)}
+              selected={isSelected}
+              className="model-type-item"
               sx={{
                 mb: 0.25,
                 borderRadius: BORDER_RADIUS.md,
                 overflow: "hidden"
               }}
+              buttonSx={{
+                padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
+                minWidth: 0,
+                gap: 1,
+                // Provider logos (HF, Ollama) sit inline in the label; keep
+                // them monochrome so the rail reads as one list.
+                "& img": { filter: "saturate(0)" }
+              }}
+              // "All" has no inline icon from prettifyModelType, so give it
+              // one here. Every other category already renders a meaningful
+              // leading icon (HF logo / Ollama / model) via the label.
+              icon={
+                type === "All" ? (
+                  <IconForType
+                    iconName="model"
+                    containerStyle={{ display: "flex" }}
+                    svgProps={{
+                      style: {
+                        width: "20px",
+                        height: "20px",
+                        color: isSelected
+                          ? theme.vars.palette.text.primary
+                          : theme.vars.palette.text.secondary
+                      }
+                    }}
+                    showTooltip={false}
+                  />
+                ) : undefined
+              }
+              primary={
+                <Box
+                  component="span"
+                  title={plainLabel(type)}
+                  sx={{
+                    display: "block",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    color: isSelected ? "text.primary" : "text.secondary",
+                    "& img": { verticalAlign: "middle" }
+                  }}
+                >
+                  {prettifyModelType(type)}
+                </Box>
+              }
+              textSx={{ minWidth: 0, my: 0 }}
               secondaryAction={
                 href ? (
                   <ToolbarIconButton
@@ -112,69 +155,15 @@ const ModelTypeSidebar: React.FC = () => {
                 ) : undefined
               }
             >
-            <ListItemButton
-              className={`model-type-button`}
-              selected={isSelected}
-              onClick={createModelTypeChangeHandler(type)}
-              sx={{
-                  ...selectableRowStyles(theme, { selected: isSelected }),
-                  "&.Mui-selected": selectedRowStyles(theme),
-                  "&.Mui-focusVisible": {
-                    backgroundColor: isSelected
-                      ? theme.vars.palette.action.selected
-                      : theme.vars.palette.action.hover
-                  },
-                  padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
-                  minWidth: 0,
-                  gap: 1,
-                  // Provider logos (HF, Ollama) sit inline in the label; keep
-                  // them monochrome so the rail reads as one list.
-                  "& img": { filter: "saturate(0)" }
-                }}
-              >
-                {/* "All" has no inline icon from prettifyModelType, so give it
-                    one here. Every other category already renders a meaningful
-                    leading icon (HF logo / Ollama / model) via the label, so a
-                    second data-type icon would just be redundant clutter. */}
-                {type === "All" && (
-                  <IconForType
-                    iconName="model"
-                    containerStyle={{ marginRight: getSpacingPx(SPACING.md), display: "flex" }}
-                    svgProps={{
-                      style: {
-                        width: "20px",
-                        height: "20px",
-                        color: isSelected
-                          ? theme.vars.palette.text.primary
-                          : theme.vars.palette.text.secondary
-                      }
-                    }}
-                    showTooltip={false}
-                  />
-                )}
-                <ListItemText
-                  primary={prettifyModelType(type)}
-                  title={plainLabel(type)}
-                  sx={{ minWidth: 0, my: 0 }}
-                  primaryTypographyProps={{
-                    noWrap: true,
-                    sx: {
-                      ...TYPOGRAPHY.sans.label,
-                      "& img": { verticalAlign: "middle" }
-                    },
-                    color: isSelected ? "text.primary" : "text.secondary"
-                  }}
-                />
-                {modelCountsByType[type] !== undefined && (
-                  <Text size="smaller" color="secondary" sx={{ ml: 1 }}>
-                    {modelCountsByType[type]}
-                  </Text>
-                )}
-              </ListItemButton>
-            </ListItem>
+              {modelCountsByType[type] !== undefined && (
+                <Text size="smaller" color="secondary" sx={{ ml: 1 }}>
+                  {modelCountsByType[type]}
+                </Text>
+              )}
+            </ListItemRow>
           );
         })}
-    </List>
+    </ListGroup>
     </Box>
   );
 };

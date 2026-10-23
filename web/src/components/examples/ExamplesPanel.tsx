@@ -31,6 +31,7 @@ import {
   type ExampleGroup,
   type ExampleKind
 } from "./useExampleGroups";
+import { matchesSearch } from "../../utils/matchesSearch";
 
 type ExampleFilter = ExampleKind | "all";
 
@@ -239,16 +240,14 @@ const ExamplesPanel = () => {
   const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = query.trim();
     return groups
       .filter((group) => filter === "all" || group.kind === filter)
       .map((group) => ({
         group,
         entries: needle
-          ? group.entries.filter(
-              (entry) =>
-                entry.name.toLowerCase().includes(needle) ||
-                entry.secondary.toLowerCase().includes(needle)
+          ? group.entries.filter((entry) =>
+              matchesSearch(`${entry.name} ${entry.secondary}`, needle)
             )
           : group.entries
       }))

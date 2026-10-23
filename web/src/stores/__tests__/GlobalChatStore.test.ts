@@ -74,6 +74,8 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
 import { pack } from "msgpackr";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
+import useMediaGenerationStore from "../MediaGenerationStore";
+import { handleResourceChange } from "../resourceChangeHandler";
 import { tabId, useWorkspaceTabsStore } from "../WorkspaceTabsStore";
 import { trpcClient } from "../../trpc/client";
 import useAuth from "../useAuth";
@@ -189,12 +191,61 @@ describe("GlobalChatStore", () => {
   afterEach(() => {
   });
 
+  it("refreshes uncached conversations after an external thread write", () => {
+    const fetchThreads = jest.fn().mockResolvedValue(undefined);
+    const loadMessages = jest.fn().mockResolvedValue([]);
+    store.setState({ fetchThreads, loadMessages, currentThreadId: "thread-1" });
+
+    handleResourceChange({
+      type: "resource_change", event: "created", resource_type: "thread",
+      resource: { id: "thread-1" }
+    });
+
+    expect(fetchThreads).toHaveBeenCalledTimes(1);
+    expect(loadMessages).toHaveBeenCalledWith("thread-1");
+  });
+
+  it("refreshes cached message history for the event's thread", () => {
+    const loadMessages = jest.fn().mockResolvedValue([]);
+    store.setState({ loadMessages, currentThreadId: "active", messageCache: { background: [] } });
+
+    handleResourceChange({
+      type: "resource_change", event: "created", resource_type: "message",
+      resource: { id: "message-1", thread_id: "background" }
+    });
+
+    expect(loadMessages).toHaveBeenCalledWith("background");
+  });
+
+  it("does not fetch messages for an unopened conversation", () => {
+    const loadMessages = jest.fn().mockResolvedValue([]);
+    store.setState({ loadMessages, currentThreadId: "active", messageCache: {} });
+
+    handleResourceChange({
+      type: "resource_change", event: "created", resource_type: "message",
+      resource: { id: "message-1", thread_id: "unopened" }
+    });
+
+    expect(loadMessages).not.toHaveBeenCalled();
+  });
+
   it("createNewThread creates thread and sets currentThreadId", async () => {
     const id = await store.getState().createNewThread();
     expect(id).toBe("id-0");
     const state = store.getState();
     expect(state.currentThreadId).toBe(id);
     expect(state.threads[id]).toBeDefined();
+  });
+
+  it("createNewThread starts the composer in Chat, not the last mode", async () => {
+    useMediaGenerationStore.getState().setMode("video");
+    await store.getState().createNewThread();
+    expect(useMediaGenerationStore.getState().mode).toBe("chat");
+
+    await store.getState().createNewThread(undefined, undefined, {
+      mediaMode: "image"
+    });
+    expect(useMediaGenerationStore.getState().mode).toBe("image");
   });
 
   it("does not fetch conversations before authentication is ready", async () => {

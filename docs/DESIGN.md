@@ -149,7 +149,7 @@ around it is not exempt.
 
 | Element | Use | Look | Check | Detail |
 |---|---|---|---|---|
-| List | `selectableRowStyles`, `ListPanelItem`, `VirtualList` for long lists, `HoverActionGroup` for row actions | Hover `action.hover`, picked `action.selected`, inner 2px focus ring, 13px/500 title, caption second line | `list/raw-list` | [Lists and grids](#12-lists-and-grids) |
+| List | `ListGroup` with `ListItemRow`, `selectableRowStyles`, `ListPanelItem`, `VirtualList` for long lists, `HoverActionGroup` for row actions | Hover `action.hover`, picked `action.selected`, inner 2px focus ring, 13px/500 title, caption second line | `list/raw-list` | [Lists and grids](#12-lists-and-grids) |
 | Tree | `TreeRow` | 13px row indented `SPACING.md` per level, list row states | — | [Trees and tables](#trees-and-tables) |
 | Grid | `AutoGrid` with `selectableTileStyles` | 1px `divider` frame, picked `primary.main` frame and ring, outer focus ring | — | [Lists and grids](#12-lists-and-grids) |
 | Card | `Card`, `StatCard` | `background.paper`, `divider` border, `BORDER_RADIUS.md` | `card/hand-built` | [Cards](#cards) |
@@ -956,7 +956,7 @@ names the panel, as in the agent panels.
 
 ### Docked panel groups
 
-An editor whose panels the user rearranges (the game and timeline editors)
+An editor whose panels the user rearranges (the game, timeline and app builder editors)
 docks them in groups. The shared dock lives in `web/src/components/dock/`. Each group draws a `DockTabStrip` and its body. The tab names the
 panel, so the panel draws no title strip of its own: its first row is a
 toolbar of controls, or its content.

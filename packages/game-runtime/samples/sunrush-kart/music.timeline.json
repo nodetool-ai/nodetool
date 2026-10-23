@@ -1,0 +1,4154 @@
+{
+  "id": "6a350bac9b664735869fed2730de09b2",
+  "name": "Sunrush Kart \u00b7 Coastline Cup",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 21818.18181818182,
+  "document": {
+    "tempo": {
+      "bpm": 132,
+      "offsetMs": 0,
+      "timeSignature": {
+        "beatsPerBar": 4,
+        "beatUnit": 4
+      }
+    },
+    "tracks": [
+      {
+        "id": "drums",
+        "name": "DR-1 \u00b7 Coastline drums",
+        "type": "midi",
+        "index": 0,
+        "visible": true,
+        "locked": false,
+        "volumeDb": -3,
+        "pan": -0.04,
+        "instrument": {
+          "type": "drum",
+          "baseNote": 36,
+          "pads": [
+            {
+              "position": 0,
+              "semitones": -26,
+              "pitchEnvAmount": 22,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 300,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Kick",
+              "table": "thud"
+            },
+            {
+              "position": 0,
+              "semitones": -19,
+              "pitchEnvAmount": 16,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 240,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Kick 2",
+              "table": "thud"
+            },
+            {
+              "position": 1,
+              "semitones": -6,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 1,
+              "noiseColor": 0.1,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 2,
+              "holdMs": 4,
+              "decayMs": 125,
+              "curve": 0.8,
+              "filter": {
+                "type": "hp12",
+                "cutoffHz": 1500,
+                "resonance": 0.08
+              },
+              "level": 0.66,
+              "velocityToLevel": 0.6,
+              "name": "Soft noise snare",
+              "table": "grit"
+            },
+            {
+              "position": 0,
+              "semitones": 7,
+              "pitchEnvAmount": 2,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0.35,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 140,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Clap",
+              "table": "crack"
+            },
+            {
+              "position": 0,
+              "semitones": 24,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 80,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Rim",
+              "table": "tine"
+            },
+            {
+              "position": 0,
+              "semitones": 18,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 6389,
+              "ringMix": 0.18,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 40,
+              "curve": 0.35,
+              "filter": {
+                "type": "hp12",
+                "cutoffHz": 7200,
+                "resonance": 0.18
+              },
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Closed hat",
+              "table": "tine"
+            },
+            {
+              "position": 0,
+              "semitones": 12,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 5197,
+              "ringMix": 0.28,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 300,
+              "curve": 0.35,
+              "filter": {
+                "type": "hp12",
+                "cutoffHz": 5200,
+                "resonance": 0.18
+              },
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Open hat",
+              "table": "tine"
+            },
+            {
+              "position": 0,
+              "semitones": 5,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1667,
+              "ringMix": 0.46,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 1400,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Ride",
+              "table": "tine"
+            },
+            {
+              "position": 0,
+              "semitones": -19,
+              "pitchEnvAmount": 12,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 280,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Low tom",
+              "table": "thud"
+            },
+            {
+              "position": 0,
+              "semitones": -12,
+              "pitchEnvAmount": 10,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 240,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Mid tom",
+              "table": "thud"
+            },
+            {
+              "position": 0,
+              "semitones": -5,
+              "pitchEnvAmount": 8,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 200,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "High tom",
+              "table": "thud"
+            },
+            {
+              "position": 0,
+              "semitones": 0,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 2741,
+              "ringMix": 0.62,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 1800,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Crash",
+              "table": "tine"
+            },
+            {
+              "position": 0,
+              "semitones": -5,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 731,
+              "ringMix": 0.78,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 160,
+              "curve": 0.22,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Perc 1",
+              "table": "chime"
+            },
+            {
+              "position": 0.38,
+              "semitones": 17,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0.18,
+              "noiseColor": 0.75,
+              "ringHz": 3271,
+              "ringMix": 0.88,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 200,
+              "curve": 0.35,
+              "filter": {
+                "type": "hp12",
+                "cutoffHz": 3600,
+                "resonance": 0.18
+              },
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Perc 2",
+              "table": "grit"
+            },
+            {
+              "position": 0,
+              "semitones": -5,
+              "pitchEnvAmount": 0,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 480,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Vox",
+              "table": "vox"
+            },
+            {
+              "position": 0,
+              "semitones": -12,
+              "pitchEnvAmount": 9,
+              "pitchEnvDecayMs": 60,
+              "noiseLevel": 0,
+              "noiseColor": 0,
+              "ringHz": 1200,
+              "ringMix": 0,
+              "attackMs": 1,
+              "holdMs": 10,
+              "decayMs": 220,
+              "curve": 0.35,
+              "filter": null,
+              "level": 0.8,
+              "velocityToLevel": 0.6,
+              "name": "Glitch",
+              "table": "grit"
+            }
+          ],
+          "gainDb": -6
+        },
+        "effects": [
+          {
+            "id": "drums-ott",
+            "type": "fable",
+            "enabled": true,
+            "kind": "ott",
+            "params": {
+              "fx.ott.depth": 0.12,
+              "fx.ott.time": 1.4,
+              "fx.ott.up": 0.45,
+              "fx.ott.down": 0.8
+            }
+          }
+        ]
+      },
+      {
+        "id": "bass",
+        "name": "BL-1 \u00b7 Rounded bass",
+        "type": "midi",
+        "index": 1,
+        "visible": true,
+        "locked": false,
+        "volumeDb": 0,
+        "pan": 0.04,
+        "instrument": {
+          "type": "bass",
+          "table": "prime",
+          "position": 0.38,
+          "semitones": 0,
+          "subShape": "sine",
+          "subOctave": -1,
+          "subLevel": 0.35,
+          "filterType": "lp24",
+          "cutoffHz": 650,
+          "resonance": 0.14,
+          "drive": 0.1,
+          "filterEnvAmount": 0.8,
+          "keyTrack": 0.3,
+          "filterAttackMs": 1,
+          "filterDecayMs": 380,
+          "ampEnv": {
+            "attackMs": 8,
+            "decayMs": 650,
+            "sustain": 0.35,
+            "releaseMs": 180
+          },
+          "accentAmount": 0.2,
+          "accentVelocity": 100,
+          "slideMs": 25,
+          "gainDb": -9
+        }
+      },
+      {
+        "id": "chords",
+        "name": "WT-1 \u00b7 Muted offbeat chords",
+        "type": "midi",
+        "index": 2,
+        "visible": true,
+        "locked": false,
+        "volumeDb": -4,
+        "pan": -0.35,
+        "instrument": {
+          "type": "wavetable",
+          "oscA": {
+            "table": "pulse",
+            "position": 0.35,
+            "semitones": 0,
+            "fine": 0,
+            "level": 0.85,
+            "unison": 1,
+            "detune": 0
+          },
+          "oscB": {
+            "table": "prime",
+            "position": 0.25,
+            "semitones": 0,
+            "fine": -3,
+            "level": 0.4,
+            "unison": 1,
+            "detune": 0.2
+          },
+          "subLevel": 0,
+          "subOctave": -1,
+          "noiseLevel": 0,
+          "filterType": "lp24",
+          "cutoffHz": 700,
+          "resonance": 0.22,
+          "drive": 0.05,
+          "filterEnvAmount": 2,
+          "keyTrack": 0.6,
+          "ampEnv": {
+            "attackMs": 3,
+            "decayMs": 340,
+            "sustain": 0,
+            "releaseMs": 130
+          },
+          "modEnv": {
+            "attackMs": 1,
+            "decayMs": 180,
+            "sustain": 0,
+            "releaseMs": 100
+          },
+          "gainDb": -8
+        }
+      },
+      {
+        "id": "lead",
+        "name": "WT-1 \u00b7 Rounded pluck melody",
+        "type": "midi",
+        "index": 3,
+        "visible": true,
+        "locked": false,
+        "volumeDb": 1,
+        "pan": 0.12,
+        "instrument": {
+          "type": "wavetable",
+          "oscA": {
+            "table": "prime",
+            "position": 0.27,
+            "semitones": 0,
+            "fine": 0,
+            "level": 0.9,
+            "unison": 1,
+            "detune": 0
+          },
+          "oscB": {
+            "table": "prime",
+            "position": 0.66,
+            "semitones": 0,
+            "fine": 0,
+            "level": 0,
+            "unison": 1,
+            "detune": 0
+          },
+          "subLevel": 0,
+          "subOctave": -1,
+          "noiseLevel": 0,
+          "filterType": "lp12",
+          "cutoffHz": 2400,
+          "resonance": 0.08,
+          "drive": 0,
+          "filterEnvAmount": 0.3,
+          "keyTrack": 0.3,
+          "ampEnv": {
+            "attackMs": 8,
+            "decayMs": 260,
+            "sustain": 0.2,
+            "releaseMs": 90
+          },
+          "modEnv": {
+            "attackMs": 2,
+            "decayMs": 180,
+            "sustain": 0,
+            "releaseMs": 80
+          },
+          "gainDb": -8
+        },
+        "effects": [
+          {
+            "id": "lead-ott",
+            "type": "fable",
+            "enabled": true,
+            "kind": "ott",
+            "params": {
+              "fx.ott.depth": 0.16,
+              "fx.ott.time": 1.2,
+              "fx.ott.up": 0.5,
+              "fx.ott.down": 0.8
+            }
+          },
+          {
+            "id": "lead-delay",
+            "type": "fable",
+            "enabled": true,
+            "kind": "echo",
+            "params": {
+              "fx.delay.sync": 1,
+              "fx.delay.div": 3,
+              "fx.delay.fb": 0.18,
+              "fx.delay.mix": 0.1,
+              "fx.delay.tone": 3200,
+              "fx.delay.wow": 0.03,
+              "fx.delay.flutter": 0.02,
+              "fx.delay.sat": 0.08,
+              "fx.delay.width": 0.65,
+              "fx.delay.mode": 0
+            }
+          },
+          {
+            "id": "lead-reverb",
+            "type": "fable",
+            "enabled": true,
+            "kind": "reverb",
+            "params": {
+              "fx.reverb.size": 0.24,
+              "fx.reverb.mix": 0.09
+            }
+          }
+        ]
+      },
+      {
+        "id": "bells",
+        "name": "WT-1 \u00b7 Glass mallet response",
+        "type": "midi",
+        "index": 4,
+        "visible": true,
+        "locked": false,
+        "volumeDb": -7,
+        "pan": 0.45,
+        "instrument": {
+          "type": "wavetable",
+          "oscA": {
+            "table": "chime",
+            "position": 0.38,
+            "semitones": 0,
+            "fine": 0,
+            "level": 0.85,
+            "unison": 1,
+            "detune": 0
+          },
+          "oscB": {
+            "table": "prime",
+            "position": 0,
+            "semitones": 12,
+            "fine": 0,
+            "level": 0.35,
+            "unison": 1,
+            "detune": 0.2
+          },
+          "subLevel": 0,
+          "subOctave": -1,
+          "noiseLevel": 0,
+          "filterType": "lp12",
+          "cutoffHz": 3800,
+          "resonance": 0.08,
+          "drive": 0,
+          "filterEnvAmount": 0.5,
+          "keyTrack": 0.6,
+          "ampEnv": {
+            "attackMs": 2,
+            "decayMs": 1100,
+            "sustain": 0,
+            "releaseMs": 450
+          },
+          "modEnv": {
+            "attackMs": 1,
+            "decayMs": 350,
+            "sustain": 0,
+            "releaseMs": 250
+          },
+          "gainDb": -9
+        },
+        "effects": [
+          {
+            "id": "bells-delay",
+            "type": "fable",
+            "enabled": true,
+            "kind": "echo",
+            "params": {
+              "fx.delay.sync": 1,
+              "fx.delay.div": 3,
+              "fx.delay.fb": 0.22,
+              "fx.delay.mix": 0.16,
+              "fx.delay.tone": 4200,
+              "fx.delay.wow": 0.04,
+              "fx.delay.flutter": 0.02,
+              "fx.delay.sat": 0.08,
+              "fx.delay.width": 0.85,
+              "fx.delay.mode": 0
+            }
+          },
+          {
+            "id": "bells-reverb",
+            "type": "fable",
+            "enabled": true,
+            "kind": "reverb",
+            "params": {
+              "fx.reverb.size": 0.32,
+              "fx.reverb.mix": 0.12
+            }
+          }
+        ]
+      }
+    ],
+    "clips": [
+      {
+        "id": "drums-pattern",
+        "trackId": "drums",
+        "name": "DR-1 \u00b7 Coastline drums",
+        "startMs": 0,
+        "durationMs": 21818.18181818182,
+        "mediaType": "midi",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "notes": [
+          {
+            "id": "drums-0",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 0,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-1",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 0,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-2",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 480,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-3",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 960,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-4",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 960,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-5",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 960,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-6",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 1440,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-7",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 1920,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-8",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 1920,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-9",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 2400,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-10",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 2880,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-11",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 2880,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-12",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 2880,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-13",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 3360,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-14",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 3840,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-15",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 3840,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-16",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 4320,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-17",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 4800,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-18",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 4800,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-19",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 4800,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-20",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 5280,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-21",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 5760,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-22",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 5760,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-23",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 6240,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-24",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 6720,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-25",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 6720,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-26",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 6720,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-27",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 7200,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-28",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 7680,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-29",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 7680,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-30",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 8160,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-31",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 8640,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-32",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 8640,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-33",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 8640,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-34",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 9120,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-35",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 9600,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-36",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 9600,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-37",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 10080,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-38",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 10560,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-39",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 10560,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-40",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 10560,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-41",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 11040,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-42",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 11520,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-43",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 11520,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-44",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 12000,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-45",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 12480,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-46",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 12480,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-47",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 12480,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-48",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 12960,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-49",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 13440,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-50",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 13440,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-51",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 13920,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-52",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 14400,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-53",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 14400,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-54",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 14400,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-55",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 14880,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-56",
+            "pitch": 38,
+            "velocity": 55,
+            "startTick": 14640,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-57",
+            "pitch": 38,
+            "velocity": 67,
+            "startTick": 14880,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-58",
+            "pitch": 38,
+            "velocity": 79,
+            "startTick": 15120,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-59",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 15360,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-60",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 15360,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-61",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 15840,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-62",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 16320,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-63",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 16320,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-64",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 16320,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-65",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 16800,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-66",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 17280,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-67",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 17280,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-68",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 17760,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-69",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 18240,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-70",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 18240,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-71",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 18240,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-72",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 18720,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-73",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 19200,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-74",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 19200,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-75",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 19680,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-76",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 20160,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-77",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 20160,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-78",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 20160,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-79",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 20640,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-80",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 21120,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-81",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 21120,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-82",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 21600,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-83",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 22080,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-84",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 22080,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-85",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 22080,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-86",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 22560,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-87",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 23040,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-88",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 23040,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-89",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 23520,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-90",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 24000,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-91",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 24000,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-92",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 24000,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-93",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 24480,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-94",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 24960,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-95",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 24960,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-96",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 25440,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-97",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 25920,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-98",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 25920,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-99",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 25920,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-100",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 26400,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-101",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 26880,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-102",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 26880,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-103",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 27360,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-104",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 27840,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-105",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 27840,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-106",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 27840,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-107",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 28320,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-108",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 28800,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-109",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 28800,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-110",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 29280,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-111",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 29760,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-112",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 29760,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-113",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 29760,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-114",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 30240,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-115",
+            "pitch": 38,
+            "velocity": 55,
+            "startTick": 30000,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-116",
+            "pitch": 38,
+            "velocity": 67,
+            "startTick": 30240,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-117",
+            "pitch": 38,
+            "velocity": 79,
+            "startTick": 30480,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-118",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 30720,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-119",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 30720,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-120",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 31200,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-121",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 31680,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-122",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 31680,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-123",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 31680,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-124",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 32160,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-125",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 32640,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-126",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 32640,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-127",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 33120,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-128",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 33600,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-129",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 33600,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-130",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 33600,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-131",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 34080,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-132",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 34560,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-133",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 34560,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-134",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 35040,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-135",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 35520,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-136",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 35520,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-137",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 35520,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-138",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 36000,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-139",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 36480,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-140",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 36480,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-141",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 36960,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-142",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 37440,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-143",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 37440,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-144",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 37440,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-145",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 37920,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-146",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 38400,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-147",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 38400,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-148",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 38880,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-149",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 39360,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-150",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 39360,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-151",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 39360,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-152",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 39840,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-153",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 40320,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-154",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 40320,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-155",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 40800,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-156",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 41280,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-157",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 41280,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-158",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 41280,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-159",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 41760,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-160",
+            "pitch": 36,
+            "velocity": 112,
+            "startTick": 42240,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-161",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 42240,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-162",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 42720,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-163",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 43200,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-164",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 43200,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-165",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 43200,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-166",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 43680,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-167",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 44160,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-168",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 44160,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-169",
+            "pitch": 41,
+            "velocity": 66,
+            "startTick": 44640,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-170",
+            "pitch": 36,
+            "velocity": 104,
+            "startTick": 45120,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-171",
+            "pitch": 38,
+            "velocity": 96,
+            "startTick": 45120,
+            "durationTick": 192
+          },
+          {
+            "id": "drums-172",
+            "pitch": 41,
+            "velocity": 45,
+            "startTick": 45120,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-173",
+            "pitch": 42,
+            "velocity": 66,
+            "startTick": 45600,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-174",
+            "pitch": 38,
+            "velocity": 55,
+            "startTick": 45360,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-175",
+            "pitch": 38,
+            "velocity": 67,
+            "startTick": 45600,
+            "durationTick": 96
+          },
+          {
+            "id": "drums-176",
+            "pitch": 38,
+            "velocity": 79,
+            "startTick": 45840,
+            "durationTick": 96
+          }
+        ]
+      },
+      {
+        "id": "bass-pattern",
+        "trackId": "bass",
+        "name": "BL-1 \u00b7 Rounded bass",
+        "startMs": 0,
+        "durationMs": 21818.18181818182,
+        "mediaType": "midi",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "notes": [
+          {
+            "id": "bass-0",
+            "pitch": 36,
+            "velocity": 110,
+            "startTick": 0,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-1",
+            "pitch": 36,
+            "velocity": 94,
+            "startTick": 960,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-2",
+            "pitch": 36,
+            "velocity": 94,
+            "startTick": 1920,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-3",
+            "pitch": 43,
+            "velocity": 94,
+            "startTick": 2880,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-4",
+            "pitch": 33,
+            "velocity": 110,
+            "startTick": 3840,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-5",
+            "pitch": 33,
+            "velocity": 94,
+            "startTick": 4800,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-6",
+            "pitch": 33,
+            "velocity": 94,
+            "startTick": 5760,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-7",
+            "pitch": 40,
+            "velocity": 94,
+            "startTick": 6720,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-8",
+            "pitch": 38,
+            "velocity": 110,
+            "startTick": 7680,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-9",
+            "pitch": 38,
+            "velocity": 94,
+            "startTick": 8640,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-10",
+            "pitch": 38,
+            "velocity": 94,
+            "startTick": 9600,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-11",
+            "pitch": 45,
+            "velocity": 94,
+            "startTick": 10560,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-12",
+            "pitch": 31,
+            "velocity": 110,
+            "startTick": 11520,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-13",
+            "pitch": 31,
+            "velocity": 94,
+            "startTick": 12480,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-14",
+            "pitch": 31,
+            "velocity": 94,
+            "startTick": 13440,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-15",
+            "pitch": 38,
+            "velocity": 94,
+            "startTick": 14400,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-16",
+            "pitch": 36,
+            "velocity": 110,
+            "startTick": 15360,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-17",
+            "pitch": 36,
+            "velocity": 94,
+            "startTick": 16320,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-18",
+            "pitch": 36,
+            "velocity": 94,
+            "startTick": 17280,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-19",
+            "pitch": 43,
+            "velocity": 94,
+            "startTick": 18240,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-20",
+            "pitch": 33,
+            "velocity": 110,
+            "startTick": 19200,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-21",
+            "pitch": 33,
+            "velocity": 94,
+            "startTick": 20160,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-22",
+            "pitch": 33,
+            "velocity": 94,
+            "startTick": 21120,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-23",
+            "pitch": 40,
+            "velocity": 94,
+            "startTick": 22080,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-24",
+            "pitch": 41,
+            "velocity": 110,
+            "startTick": 23040,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-25",
+            "pitch": 41,
+            "velocity": 94,
+            "startTick": 24000,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-26",
+            "pitch": 41,
+            "velocity": 94,
+            "startTick": 24960,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-27",
+            "pitch": 48,
+            "velocity": 94,
+            "startTick": 25920,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-28",
+            "pitch": 31,
+            "velocity": 110,
+            "startTick": 26880,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-29",
+            "pitch": 31,
+            "velocity": 94,
+            "startTick": 27840,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-30",
+            "pitch": 31,
+            "velocity": 94,
+            "startTick": 28800,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-31",
+            "pitch": 38,
+            "velocity": 94,
+            "startTick": 29760,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-32",
+            "pitch": 36,
+            "velocity": 110,
+            "startTick": 30720,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-33",
+            "pitch": 36,
+            "velocity": 94,
+            "startTick": 31680,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-34",
+            "pitch": 36,
+            "velocity": 94,
+            "startTick": 32640,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-35",
+            "pitch": 43,
+            "velocity": 94,
+            "startTick": 33600,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-36",
+            "pitch": 33,
+            "velocity": 110,
+            "startTick": 34560,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-37",
+            "pitch": 33,
+            "velocity": 94,
+            "startTick": 35520,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-38",
+            "pitch": 33,
+            "velocity": 94,
+            "startTick": 36480,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-39",
+            "pitch": 40,
+            "velocity": 94,
+            "startTick": 37440,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-40",
+            "pitch": 38,
+            "velocity": 110,
+            "startTick": 38400,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-41",
+            "pitch": 38,
+            "velocity": 94,
+            "startTick": 39360,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-42",
+            "pitch": 38,
+            "velocity": 94,
+            "startTick": 40320,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-43",
+            "pitch": 45,
+            "velocity": 94,
+            "startTick": 41280,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-44",
+            "pitch": 31,
+            "velocity": 110,
+            "startTick": 42240,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-45",
+            "pitch": 31,
+            "velocity": 94,
+            "startTick": 43200,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-46",
+            "pitch": 31,
+            "velocity": 94,
+            "startTick": 44160,
+            "durationTick": 691
+          },
+          {
+            "id": "bass-47",
+            "pitch": 38,
+            "velocity": 94,
+            "startTick": 45120,
+            "durationTick": 691
+          }
+        ]
+      },
+      {
+        "id": "chords-pattern",
+        "trackId": "chords",
+        "name": "WT-1 \u00b7 Muted offbeat chords",
+        "startMs": 0,
+        "durationMs": 21818.18181818182,
+        "mediaType": "midi",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "notes": [
+          {
+            "id": "chords-0",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 480,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-1",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 480,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-2",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 480,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-3",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 1440,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-4",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 1440,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-5",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 1440,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-6",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 2400,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-7",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 2400,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-8",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 2400,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-9",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 3360,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-10",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 3360,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-11",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 3360,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-12",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 4320,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-13",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 4320,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-14",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 4320,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-15",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 5280,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-16",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 5280,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-17",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 5280,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-18",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 6240,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-19",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 6240,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-20",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 6240,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-21",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 7200,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-22",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 7200,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-23",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 7200,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-24",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 8160,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-25",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 8160,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-26",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 8160,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-27",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 9120,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-28",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 9120,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-29",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 9120,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-30",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 10080,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-31",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 10080,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-32",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 10080,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-33",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 11040,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-34",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 11040,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-35",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 11040,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-36",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 12000,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-37",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 12000,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-38",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 12000,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-39",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 12960,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-40",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 12960,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-41",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 12960,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-42",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 13920,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-43",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 13920,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-44",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 13920,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-45",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 14880,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-46",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 14880,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-47",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 14880,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-48",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 15840,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-49",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 15840,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-50",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 15840,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-51",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 16800,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-52",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 16800,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-53",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 16800,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-54",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 17760,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-55",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 17760,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-56",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 17760,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-57",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 18720,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-58",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 18720,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-59",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 18720,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-60",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 19680,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-61",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 19680,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-62",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 19680,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-63",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 20640,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-64",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 20640,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-65",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 20640,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-66",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 21600,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-67",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 21600,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-68",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 21600,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-69",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 22560,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-70",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 22560,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-71",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 22560,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-72",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 23520,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-73",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 23520,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-74",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 23520,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-75",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 24480,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-76",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 24480,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-77",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 24480,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-78",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 25440,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-79",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 25440,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-80",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 25440,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-81",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 26400,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-82",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 26400,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-83",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 26400,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-84",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 27360,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-85",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 27360,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-86",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 27360,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-87",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 28320,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-88",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 28320,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-89",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 28320,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-90",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 29280,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-91",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 29280,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-92",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 29280,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-93",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 30240,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-94",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 30240,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-95",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 30240,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-96",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 31200,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-97",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 31200,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-98",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 31200,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-99",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 32160,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-100",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 32160,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-101",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 32160,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-102",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 33120,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-103",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 33120,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-104",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 33120,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-105",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 34080,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-106",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 34080,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-107",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 34080,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-108",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 35040,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-109",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 35040,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-110",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 35040,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-111",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 36000,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-112",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 36000,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-113",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 36000,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-114",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 36960,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-115",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 36960,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-116",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 36960,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-117",
+            "pitch": 60,
+            "velocity": 82,
+            "startTick": 37920,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-118",
+            "pitch": 64,
+            "velocity": 82,
+            "startTick": 37920,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-119",
+            "pitch": 67,
+            "velocity": 82,
+            "startTick": 37920,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-120",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 38880,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-121",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 38880,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-122",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 38880,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-123",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 39840,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-124",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 39840,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-125",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 39840,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-126",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 40800,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-127",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 40800,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-128",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 40800,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-129",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 41760,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-130",
+            "pitch": 69,
+            "velocity": 82,
+            "startTick": 41760,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-131",
+            "pitch": 72,
+            "velocity": 82,
+            "startTick": 41760,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-132",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 42720,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-133",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 42720,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-134",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 42720,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-135",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 43680,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-136",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 43680,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-137",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 43680,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-138",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 44640,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-139",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 44640,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-140",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 44640,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-141",
+            "pitch": 62,
+            "velocity": 82,
+            "startTick": 45600,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-142",
+            "pitch": 65,
+            "velocity": 82,
+            "startTick": 45600,
+            "durationTick": 384
+          },
+          {
+            "id": "chords-143",
+            "pitch": 71,
+            "velocity": 82,
+            "startTick": 45600,
+            "durationTick": 384
+          }
+        ]
+      },
+      {
+        "id": "lead-pattern",
+        "trackId": "lead",
+        "name": "WT-1 \u00b7 Rounded pluck melody",
+        "startMs": 0,
+        "durationMs": 21818.18181818182,
+        "mediaType": "midi",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "notes": [
+          {
+            "id": "lead-0",
+            "pitch": 76,
+            "velocity": 110,
+            "startTick": 0,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-1",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 720,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-2",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 1440,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-3",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 1920,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-4",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 2640,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-5",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 3360,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-6",
+            "pitch": 72,
+            "velocity": 110,
+            "startTick": 3840,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-7",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 4560,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-8",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 5280,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-9",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 5760,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-10",
+            "pitch": 72,
+            "velocity": 96,
+            "startTick": 6480,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-11",
+            "pitch": 71,
+            "velocity": 96,
+            "startTick": 7200,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-12",
+            "pitch": 74,
+            "velocity": 110,
+            "startTick": 7680,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-13",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 8400,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-14",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 9120,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-15",
+            "pitch": 84,
+            "velocity": 96,
+            "startTick": 9600,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-16",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 10320,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-17",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 11040,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-18",
+            "pitch": 79,
+            "velocity": 110,
+            "startTick": 11520,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-19",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 12240,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-20",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 12960,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-21",
+            "pitch": 71,
+            "velocity": 96,
+            "startTick": 13440,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-22",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 14160,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-23",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 14880,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-24",
+            "pitch": 76,
+            "velocity": 110,
+            "startTick": 15360,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-25",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 16080,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-26",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 16800,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-27",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 17280,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-28",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 18000,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-29",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 18720,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-30",
+            "pitch": 72,
+            "velocity": 110,
+            "startTick": 19200,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-31",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 19920,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-32",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 20640,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-33",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 21120,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-34",
+            "pitch": 72,
+            "velocity": 96,
+            "startTick": 21840,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-35",
+            "pitch": 71,
+            "velocity": 96,
+            "startTick": 22560,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-36",
+            "pitch": 74,
+            "velocity": 110,
+            "startTick": 23040,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-37",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 23760,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-38",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 24480,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-39",
+            "pitch": 84,
+            "velocity": 96,
+            "startTick": 24960,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-40",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 25680,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-41",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 26400,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-42",
+            "pitch": 79,
+            "velocity": 110,
+            "startTick": 26880,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-43",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 27600,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-44",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 28320,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-45",
+            "pitch": 71,
+            "velocity": 96,
+            "startTick": 28800,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-46",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 29520,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-47",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 30240,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-48",
+            "pitch": 76,
+            "velocity": 110,
+            "startTick": 30720,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-49",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 31440,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-50",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 32160,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-51",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 32640,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-52",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 33360,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-53",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 34080,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-54",
+            "pitch": 72,
+            "velocity": 110,
+            "startTick": 34560,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-55",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 35280,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-56",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 36000,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-57",
+            "pitch": 76,
+            "velocity": 96,
+            "startTick": 36480,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-58",
+            "pitch": 72,
+            "velocity": 96,
+            "startTick": 37200,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-59",
+            "pitch": 71,
+            "velocity": 96,
+            "startTick": 37920,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-60",
+            "pitch": 74,
+            "velocity": 110,
+            "startTick": 38400,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-61",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 39120,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-62",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 39840,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-63",
+            "pitch": 84,
+            "velocity": 96,
+            "startTick": 40320,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-64",
+            "pitch": 81,
+            "velocity": 96,
+            "startTick": 41040,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-65",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 41760,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-66",
+            "pitch": 79,
+            "velocity": 110,
+            "startTick": 42240,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-67",
+            "pitch": 77,
+            "velocity": 96,
+            "startTick": 42960,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-68",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 43680,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-69",
+            "pitch": 71,
+            "velocity": 96,
+            "startTick": 44160,
+            "durationTick": 624
+          },
+          {
+            "id": "lead-70",
+            "pitch": 74,
+            "velocity": 96,
+            "startTick": 44880,
+            "durationTick": 432
+          },
+          {
+            "id": "lead-71",
+            "pitch": 79,
+            "velocity": 96,
+            "startTick": 45600,
+            "durationTick": 432
+          }
+        ]
+      },
+      {
+        "id": "bells-pattern",
+        "trackId": "bells",
+        "name": "WT-1 \u00b7 Glass mallet response",
+        "startMs": 0,
+        "durationMs": 21818.18181818182,
+        "mediaType": "midi",
+        "sourceType": "imported",
+        "status": "generated",
+        "locked": false,
+        "versions": [],
+        "notes": [
+          {
+            "id": "bells-0",
+            "pitch": 88,
+            "velocity": 74,
+            "startTick": 15600,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-1",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 16320,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-2",
+            "pitch": 93,
+            "velocity": 74,
+            "startTick": 17040,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-3",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 17520,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-4",
+            "pitch": 88,
+            "velocity": 74,
+            "startTick": 18240,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-5",
+            "pitch": 86,
+            "velocity": 74,
+            "startTick": 18960,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-6",
+            "pitch": 84,
+            "velocity": 74,
+            "startTick": 19440,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-7",
+            "pitch": 88,
+            "velocity": 74,
+            "startTick": 20160,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-8",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 20880,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-9",
+            "pitch": 88,
+            "velocity": 74,
+            "startTick": 21360,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-10",
+            "pitch": 84,
+            "velocity": 74,
+            "startTick": 22080,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-11",
+            "pitch": 83,
+            "velocity": 74,
+            "startTick": 22800,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-12",
+            "pitch": 86,
+            "velocity": 74,
+            "startTick": 23280,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-13",
+            "pitch": 89,
+            "velocity": 74,
+            "startTick": 24000,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-14",
+            "pitch": 93,
+            "velocity": 74,
+            "startTick": 24720,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-15",
+            "pitch": 96,
+            "velocity": 74,
+            "startTick": 25200,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-16",
+            "pitch": 93,
+            "velocity": 74,
+            "startTick": 25920,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-17",
+            "pitch": 89,
+            "velocity": 74,
+            "startTick": 26640,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-18",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 27120,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-19",
+            "pitch": 89,
+            "velocity": 74,
+            "startTick": 27840,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-20",
+            "pitch": 86,
+            "velocity": 74,
+            "startTick": 28560,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-21",
+            "pitch": 83,
+            "velocity": 74,
+            "startTick": 29040,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-22",
+            "pitch": 86,
+            "velocity": 74,
+            "startTick": 29760,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-23",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 30480,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-24",
+            "pitch": 88,
+            "velocity": 74,
+            "startTick": 30960,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-25",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 31680,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-26",
+            "pitch": 93,
+            "velocity": 74,
+            "startTick": 32400,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-27",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 32880,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-28",
+            "pitch": 88,
+            "velocity": 74,
+            "startTick": 33600,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-29",
+            "pitch": 86,
+            "velocity": 74,
+            "startTick": 34320,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-30",
+            "pitch": 84,
+            "velocity": 74,
+            "startTick": 34800,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-31",
+            "pitch": 88,
+            "velocity": 74,
+            "startTick": 35520,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-32",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 36240,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-33",
+            "pitch": 88,
+            "velocity": 74,
+            "startTick": 36720,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-34",
+            "pitch": 84,
+            "velocity": 74,
+            "startTick": 37440,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-35",
+            "pitch": 83,
+            "velocity": 74,
+            "startTick": 38160,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-36",
+            "pitch": 86,
+            "velocity": 74,
+            "startTick": 38640,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-37",
+            "pitch": 89,
+            "velocity": 74,
+            "startTick": 39360,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-38",
+            "pitch": 93,
+            "velocity": 74,
+            "startTick": 40080,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-39",
+            "pitch": 96,
+            "velocity": 74,
+            "startTick": 40560,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-40",
+            "pitch": 93,
+            "velocity": 74,
+            "startTick": 41280,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-41",
+            "pitch": 89,
+            "velocity": 74,
+            "startTick": 42000,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-42",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 42480,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-43",
+            "pitch": 89,
+            "velocity": 74,
+            "startTick": 43200,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-44",
+            "pitch": 86,
+            "velocity": 74,
+            "startTick": 43920,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-45",
+            "pitch": 83,
+            "velocity": 74,
+            "startTick": 44400,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-46",
+            "pitch": 86,
+            "velocity": 74,
+            "startTick": 45120,
+            "durationTick": 336
+          },
+          {
+            "id": "bells-47",
+            "pitch": 91,
+            "velocity": 74,
+            "startTick": 45840,
+            "durationTick": 336
+          }
+        ]
+      }
+    ],
+    "markers": [
+      {
+        "id": "theme",
+        "timeMs": 0,
+        "label": "Coastline theme"
+      },
+      {
+        "id": "response",
+        "timeMs": 7272.727272727273,
+        "label": "Mallet response"
+      },
+      {
+        "id": "turnaround",
+        "timeMs": 14545.454545454546,
+        "label": "Turnaround"
+      }
+    ],
+    "master": {
+      "volumeDb": -1
+    }
+  }
+}

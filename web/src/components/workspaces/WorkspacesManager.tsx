@@ -30,8 +30,8 @@ import {
   LoadingSpinner,
   Text,
   ToolbarIconButton,
-  List,
-  ListItem,
+  ListGroup,
+  ListItemRow,
   ListItemSecondaryAction
 } from "../ui_primitives";
 
@@ -243,9 +243,9 @@ const WorkspacesManager: React.FC = () => {
               {t("batch2_1.errors.loadDescription")}
             </ErrorBanner>
           ) : workspaces.length > 0 ? (
-            <List className="workspace-list">
+            <ListGroup className="workspace-list">
               {workspaces.map((workspace) => (
-                <ListItem key={workspace.id} className="workspace-item">
+                <ListItemRow key={workspace.id} className="workspace-item">
                   <div className="workspace-item-content">
                     <FolderIcon className="workspace-icon" />
                     <Text className="workspace-path" title={workspace.path}>
@@ -294,9 +294,9 @@ const WorkspacesManager: React.FC = () => {
                       />
                     )}
                   </ListItemSecondaryAction>
-                </ListItem>
+                </ListItemRow>
               ))}
-            </List>
+            </ListGroup>
           ) : (
             <EmptyState
               icon={<FolderIcon />}

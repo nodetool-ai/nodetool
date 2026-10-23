@@ -17,10 +17,8 @@ import {
   BORDER_RADIUS,
   CloseButton,
   Divider,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
+  ListGroup,
+  ListItemRow,
   LoadingSpinner,
   MobileBottomSheet,
   MOTION,
@@ -43,6 +41,12 @@ interface MobileDocumentSelectorProps {
   onClose: (tab: WorkspaceTab) => void;
   onCloseAll: () => void;
 }
+
+const ROW_SX = {
+  minHeight: "44px",
+  gap: SPACING.md,
+  px: SPACING.xl
+} as const;
 
 const styles = (theme: Theme) =>
   css({
@@ -92,15 +96,6 @@ const styles = (theme: Theme) =>
 const sheetStyles = (theme: Theme) =>
   css({
     paddingBottom: getSpacingPx(SPACING.xl),
-    "& .doc-row": {
-      minHeight: "44px",
-      gap: getSpacingPx(SPACING.md),
-      paddingLeft: getSpacingPx(SPACING.xl),
-      paddingRight: getSpacingPx(SPACING.xl),
-      "&.selected": {
-        backgroundColor: theme.vars.palette.action.selected
-      }
-    },
     "& .row-glyph": {
       flexShrink: 0,
       width: "20px",
@@ -110,11 +105,6 @@ const sheetStyles = (theme: Theme) =>
       flexShrink: 0,
       width: "44px",
       height: "44px"
-    },
-    "& .close-all": {
-      minHeight: "44px",
-      paddingLeft: getSpacingPx(SPACING.xl),
-      color: theme.vars.palette.text.secondary
     }
   });
 
@@ -243,11 +233,25 @@ const MobileDocumentSelector = ({
               description={t("i18n-next51.documents.noDocumentsDescription")}
             />
           )}
-          <List dense disablePadding>
+          <ListGroup compact flush>
             {tabs.map((tab) => (
-              <ListItem
+              <ListItemRow
                 key={tab.id}
                 disablePadding
+                selected={tab.id === activeTabId}
+                onClick={() => handleSelect(tab.id)}
+                buttonSx={ROW_SX}
+                icon={
+                  <span
+                    className="row-glyph"
+                    style={{ color: typeColor[tab.type] }}
+                    aria-hidden
+                  >
+                    {typeGlyph[tab.type]}
+                  </span>
+                }
+                primary={tabDisplayTitle(tab)}
+                secondary={tab.type}
                 secondaryAction={
                   <CloseButton
                     className="row-close"
@@ -256,40 +260,22 @@ const MobileDocumentSelector = ({
                   />
                 }
               >
-                <ListItemButton
-                  className={`doc-row${tab.id === activeTabId ? " selected" : ""}`}
-                  selected={tab.id === activeTabId}
-                  onClick={() => handleSelect(tab.id)}
-                >
-                  <span
-                    className="row-glyph"
-                    style={{ color: typeColor[tab.type] }}
-                    aria-hidden
-                  >
-                    {typeGlyph[tab.type]}
-                  </span>
-                  <ListItemText
-                    primary={tabDisplayTitle(tab)}
-                    secondary={tab.type}
-                  />
-                  <DocumentStatus tab={tab} />
-                </ListItemButton>
-              </ListItem>
+                <DocumentStatus tab={tab} />
+              </ListItemRow>
             ))}
-          </List>
+          </ListGroup>
           {tabs.length > 1 && (
             <>
               <Divider />
-              <List dense disablePadding>
-                <ListItem disablePadding>
-                  <ListItemButton
-                    className="close-all"
-                    onClick={handleCloseAll}
-                  >
-                    <ListItemText primary={t("i18n-next51.documents.closeAll")} />
-                  </ListItemButton>
-                </ListItem>
-              </List>
+              <ListGroup compact flush>
+                <ListItemRow
+                  disablePadding
+                  className="close-all"
+                  onClick={handleCloseAll}
+                  buttonSx={ROW_SX}
+                  primary={t("i18n-next51.documents.closeAll")}
+                />
+              </ListGroup>
             </>
           )}
         </div>

@@ -65,8 +65,14 @@ Every sketch has its own URL at `/sketch/<documentId>`. Opening a sketch in its 
 | **Toolbar** (left) | Pick a tool; switch foreground/background colors |
 | **Tool options** (top) | Settings for the active tool — size, opacity, hardness, shape type, transform handles |
 | **Canvas** (center) | Draw, paint, and composite; zoom and pan |
-| **Layers panel** (right) | Add, reorder, blend, lock, hide, and group layers; mark a mask layer |
-| **Inspector** (right) | Per-layer details — including AI generation controls for generated layers |
+| **Color** (right) | Pick the foreground color and preset swatches |
+| **Layers** (right) | Add, reorder, blend, lock, hide, and group layers; mark a mask layer |
+| **History** (right) | Step back to any earlier state of the document |
+| **Properties** (right) | Per-layer details, including AI generation controls for generated layers and settings for vector layers |
+| **Canvas size** (right) | Resize the canvas and turn the resize handles on or off |
+| **Assistant** (left) | Chat with the editor assistant |
+
+The panels sit in the same dock as the timeline and game editors. Drag a tab to move a panel into another group, split a group, or dock it at an edge. Drag the dividers to resize. The **Layout** menu in the tool bar switches between the built-in layouts (**Essentials**, **Painting**, **Compositing**, **Assistant**), saves your own, resets the current one, and shows or hides each panel. Layouts are saved per user.
 
 Press `Tab` to hide the panels for a clean, full-canvas view.
 
@@ -181,12 +187,12 @@ The editor is layer-based. Stack layers, reorder them, toggle visibility, lock t
 
 ## AI Generation
 
-What sets the Sketch Editor apart is that a layer can be **generated**, not just painted. Select a layer and open the **Inspector** to bind it to a generator:
+What sets the Sketch Editor apart is that a layer can be **generated**, not just painted. Select a layer and open the **Properties** panel to bind it to a generator:
 
-- **Prompt-based generation** — pick a provider and model, write a prompt, and generate text-to-image or image-to-image results directly onto the layer. Image-to-image takes a source layer plus edit strength and inference steps. The Inspector shows an estimated cost before you generate.
-- **Workflow-bound generation** — click **Generate Layer** in the Inspector toolbar and pick one of your workflows that has an image output node (`ImageOutput`, `MaskOutput`, or `Output`). If it has several, choose which output node feeds the layer. The layer becomes a live surface for any pipeline you've built.
+- **Prompt-based generation** — pick a provider and model, write a prompt, and generate text-to-image or image-to-image results directly onto the layer. Image-to-image takes a source layer plus edit strength and inference steps. The Properties panel shows an estimated cost before you generate.
+- **Workflow-bound generation** — click **Generate Layer** in the Properties panel toolbar and pick one of your workflows that has an image output node (`ImageOutput`, `MaskOutput`, or `Output`). If it has several, choose which output node feeds the layer. The layer becomes a live surface for any pipeline you've built.
 
-Each generation is tracked as a **version** on the layer, so you can compare results and roll back. NodeTool also tracks each layer's inputs: if you change a prompt, parameter, or an upstream layer the generation depends on, the layer is flagged **stale** so you know it's worth regenerating. **Re-generate Stale** in the Inspector toolbar runs all stale layers in dependency order and skips locked layers. Generation runs as a job over the WebSocket connection, with live progress shown on the layer.
+Each generation is tracked as a **version** on the layer, so you can compare results and roll back. NodeTool also tracks each layer's inputs: if you change a prompt, parameter, or an upstream layer the generation depends on, the layer is flagged **stale** so you know it's worth regenerating. **Re-generate Stale** in the Properties panel toolbar runs all stale layers in dependency order and skips locked layers. Generation runs as a job over the WebSocket connection, with live progress shown on the layer.
 
 The editor also has an assistant chat panel. It receives the active layers and can generate images or edit layers from a description.
 
@@ -329,7 +335,7 @@ Because the document is shared across the tab, the Sketches panel, and the stand
 
 1. Open a blank canvas from **+ New → New image**.
 2. Block in a rough composition with the brush on one layer.
-3. Add a new layer, select the region you want to generate, and bind the layer to a model or workflow in the Inspector.
+3. Add a new layer, select the region you want to generate, and bind the layer to a model or workflow in the Properties panel.
 4. Write a prompt and **Generate**.
 5. Keep painting on top, then choose **Save to image** and **Done** — the flattened result flows downstream.
 

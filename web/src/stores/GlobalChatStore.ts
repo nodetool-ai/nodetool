@@ -51,7 +51,10 @@ import {
   type ChatStateSetter
 } from "../core/chat/chatProtocol";
 import type { SubAgentMessages } from "../core/chat/subAgentMessages";
-import type { ChatOutgoingMessage } from "./MediaGenerationStore";
+import useMediaGenerationStore, {
+  type ChatOutgoingMessage,
+  type MediaMode
+} from "./MediaGenerationStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   DEFAULT_THREAD_RUNTIME,
@@ -67,6 +70,7 @@ import {
   useWorkspaceTabsStore
 } from "./WorkspaceTabsStore";
 import useAuth from "./useAuth";
+import { setChatResourceReloader } from "./resourceChangeHandler";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -388,10 +392,18 @@ export interface GlobalChatState {
       makeCurrent?: boolean;
     }
   ) => void;
+  /**
+   * Start a local thread. The composer's mode is set to `options.mediaMode`,
+   * Chat when omitted, so a new chat never inherits the last chat's mode.
+   */
   createNewThread: (
     title?: string,
     workflowId?: string | null,
-    options?: { makeCurrent?: boolean; projectId?: string | null }
+    options?: {
+      makeCurrent?: boolean;
+      projectId?: string | null;
+      mediaMode?: MediaMode;
+    }
   ) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
@@ -1093,8 +1105,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Ensure we have a thread
         let threadId = targetThreadId ?? currentThreadId;
         if (!threadId) {
+          // Created for this send, so it keeps the mode the send was made in.
           threadId = await get().createNewThread(undefined, undefined, {
-            projectId: creationProjectId()
+            projectId: creationProjectId(),
+            mediaMode: useMediaGenerationStore.getState().mode
           });
         }
         const tid = threadId;
@@ -1416,8 +1430,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
       createNewThread: async (
         title?: string,
         workflowId?: string | null,
-        options?: { makeCurrent?: boolean; projectId?: string | null }
+        options?: {
+          makeCurrent?: boolean;
+          projectId?: string | null;
+          mediaMode?: MediaMode;
+        }
       ) => {
+        useMediaGenerationStore.getState().setMode(options?.mediaMode ?? "chat");
         const id = crypto.randomUUID();
         get().ensureLocalThread(id, {
           title: isString(title) ? title : undefined,
@@ -2053,6 +2072,26 @@ useAuth.subscribe((state, previous) => {
         void useGlobalChatStore.getState().fetchThreads();
       }
     }, 0);
+  }
+});
+
+// Vanilla tRPC reads bypass Query, so invalidating its cache cannot refresh chat.
+setChatResourceReloader(({ resource_type, resource }) => {
+  const state = useGlobalChatStore.getState();
+  if (resource_type === "thread") {
+    void state.fetchThreads();
+  }
+  const threadId =
+    resource_type === "thread"
+      ? resource.id
+      : isString(resource.thread_id)
+        ? resource.thread_id
+        : state.currentThreadId;
+  if (
+    threadId &&
+    (threadId === state.currentThreadId || state.messageCache[threadId])
+  ) {
+    void state.loadMessages(threadId);
   }
 });
 

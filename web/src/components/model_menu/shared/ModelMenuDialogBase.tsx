@@ -110,6 +110,11 @@ interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   modelType?: string;
   setupCapability?: OnboardingCapability;
   setupProviderIds?: readonly string[];
+  /**
+   * Provider capabilities of the step this picker serves, such as
+   * `remove_background`. Provider setup then offers only providers that run it.
+   */
+  setupStepCapabilities?: readonly string[];
   /** The model the control holds now. Its row is marked in the list. */
   selectedModel?: { id: string; provider?: string };
   /**
@@ -148,6 +153,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   modelType,
   setupCapability,
   setupProviderIds,
+  setupStepCapabilities,
   selectedModel,
   promptForApiKey = false,
   localCapabilities
@@ -170,6 +176,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     onClose,
     capability: setupCapability ?? capabilityForModelType(modelType),
     providerIds: setupProviderIds ?? modelData.providers,
+    stepCapabilities: setupStepCapabilities,
     isLoading: isLoading || isFetching
   });
   const isError = !!fetchedError;
@@ -519,10 +526,11 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       onClose();
       openProviderOnboarding({
         capability: setupCapability ?? capabilityForModelType(modelType),
+        stepCapabilities: setupStepCapabilities,
         highlightSecretKey: secret ?? undefined
       });
     },
-    [onClose, setupCapability, modelType]
+    [onClose, setupCapability, setupStepCapabilities, modelType]
   );
 
   const handleRefresh = useCallback(async () => {

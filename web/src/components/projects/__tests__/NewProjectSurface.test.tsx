@@ -2377,3 +2377,20 @@ it("leads with five creation types and reveals the others on request", async () 
     await userEvent.click(screen.getByRole("option", { name: "3D exploration" }));
     expect(within(cards).getByRole("button", { name: /Game Start with a playable 3D exploration scene/ })).toBeInTheDocument();
   });
+
+  // UX research study 13: people who wanted something ready-made unfolded the
+  // creation types first, and the examples were not among them.
+  it("names the examples on the creation types bar and opens them from it", async () => {
+    renderSurface(null, false);
+    const bar = screen.getByRole("button", { name: /^Explore all creation types/ });
+    expect(bar).toHaveTextContent("Ready-made examples");
+    await userEvent.click(bar);
+    const cards = screen.getByRole("group", { name: "Start with a guided flow" });
+    await userEvent.click(
+      within(cards).getByRole("button", { name: /^Ready-made examples / })
+    );
+
+    expect(openExamplesTab).toHaveBeenCalledWith("workflows");
+    expect(createProject).not.toHaveBeenCalled();
+    expect(createNewThread).not.toHaveBeenCalled();
+  });

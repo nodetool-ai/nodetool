@@ -39,6 +39,7 @@ import {
   TEXT_FILE_TEMPLATES,
   useNewDocumentCatalog
 } from "../workspace/newDocumentCatalog";
+import { MEDIA_MODES } from "../chat/composer/mediaModes";
 import { TYPE_GLYPH, tabDisplayTitle } from "../workspace/tabTypeIdentity";
 import { PROJECT_GLYPH } from "../projects/projectIdentity";
 import { navigateTo } from "../../lib/appNavigation";
@@ -282,6 +283,32 @@ const CreateCommands = memo(function CreateCommands() {
   return (
     <Command.Group heading={t("screens4_4.globalCommands.create")}>
       {catalog.entries.map((entry) => {
+        if (entry.submenu === "chats") {
+          return MEDIA_MODES.filter((mode) => mode.enabled).map((mode) => {
+            const modeLabel = t(
+              `i18n-next22.chat.composer.mediaMode.modes.${mode.labelKey}`
+            );
+            const isChat = mode.id === "chat";
+            return (
+              <Command.Item
+                key={`chat-${mode.id}`}
+                value={
+                  isChat
+                    ? entryLabels.chat
+                    : t("screens4_4.globalCommands.newChatInModeValue", { mode: modeLabel })
+                }
+                onSelect={() =>
+                  runCommandAndClose(() => catalog.createChat(mode.id))
+                }
+              >
+                {mode.icon}{" "}
+                {isChat
+                  ? entryLabels.chat
+                  : t("screens4_4.globalCommands.newChatInMode", { mode: modeLabel })}
+              </Command.Item>
+            );
+          });
+        }
         if (entry.submenu === "texts") {
           return TEXT_FILE_TEMPLATES.map((template) => (
             <Command.Item

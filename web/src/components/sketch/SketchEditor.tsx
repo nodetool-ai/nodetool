@@ -33,20 +33,26 @@
  * - **useEditorStoreActions** groups the flat action grab-bag into focused bundles
  *   for history, layer, canvas, color, and session concerns.
  * - **editor-shell/** contains connected shell subscriber components.
+ * - The desktop panels sit in the shared dock (`components/dock`), the same
+ *   draggable, resizable layout the timeline and game editors use. The panels
+ *   and the built-in layouts are in `stores/sketch/SketchDockLayout`.
  */
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useEffect, useRef } from "react";
+import React, { memo, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useStore } from "zustand";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import {
   CollapsibleSection,
   ColorSwatch,
   Container,
+  EmptyState,
   Fab,
   FlexColumn,
   FlexRow,
@@ -79,12 +85,16 @@ import { ConnectedGeneratedLayerSection } from "./Inspector/ConnectedGeneratedLa
 import SketchAgentPanel from "./SketchAgentPanel";
 import { SketchRulersAndGuides } from "./guides/SketchRulersAndGuides";
 import { SketchHistoryPanel } from "./history/SketchHistoryPanel";
-import ResizableSideDock from "../chat/assistant/ResizableSideDock";
+import { DockCanvas } from "../dock/DockCanvas";
+import { DockLayoutMenu } from "../dock/DockLayoutMenu";
+import { useDockPresentation, type DockPanelView } from "../dock/useDockPresentation";
+import { sketchPanelRegistrations } from "./dock/sketchPanels";
+import { useSketchDockLayoutStore } from "../../stores/sketch/useSketchDockLayoutStore";
+import type { SketchPanelId } from "../../stores/sketch/SketchDockLayout";
 import { useSketchAgentBridge } from "../../hooks/sketch/useSketchAgentBridge";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchWorkflowFreshnessCheck } from "../../hooks/sketch/useSketchWorkflowFreshnessCheck";
-import { SKETCH_SIZE } from "./sketchStyles";
 import { ColorFieldPicker } from "./ColorFieldPicker";
 import { SKETCH_PRESET_SWATCHES, colorToHex6 } from "./types";
 import { useSketchStore } from "./state/useSketchStore";
@@ -145,6 +155,22 @@ const ConnectedColorPanel = memo(function ConnectedColorPanel() {
     </FlexColumn>
   );
 });
+
+/** Mounts before its first activation, so the canvas is ready under any layout. */
+const EAGER_DOCK_PANELS: readonly SketchPanelId[] = ["canvas"];
+
+/** Scrolling body of a docked side panel. The dock tab names the panel. */
+function SketchDockPanel({ children }: { children: React.ReactNode }) {
+  return (
+    <FlexColumn
+      className="sketch-editor__dock-panel"
+      gap={0}
+      sx={{ flex: 1, minHeight: 0, overflowY: "auto", userSelect: "none" }}
+    >
+      {children}
+    </FlexColumn>
+  );
+}
 
 /** Section header that mirrors the active foreground color as a hex chip. */
 const ColorSectionHeader = memo(function ColorSectionHeader() {
@@ -400,10 +426,105 @@ function SketchEditor({
   // and auto-resolve a missing selectedOutputNodeId.
   useSketchWorkflowFreshnessCheck(sessionDocumentId);
 
-  // Color / Layers / Canvas sections. Shared between the docked desktop
-  // column and the mobile bottom sheet so the two stay in lockstep.
+  // ─── Dock (the shared panel layout the timeline and game editors use) ─
+  const dockStore = useSketchDockLayoutStore();
+  const dockLayout = useStore(dockStore, (state) => state.layout);
+  const dockRoot = useRef<HTMLDivElement>(null);
+  const dockRegistrations = useMemo(() => sketchPanelRegistrations(t), [t]);
+  useEffect(() => {
+    dockStore.getState().registerPanels(dockRegistrations);
+  }, [dockStore, dockRegistrations, dockLayout]);
+
+  // The assistant's open flag also drives the phone sheet and the toolbar
+  // toggle, so it and the dock's hidden list follow each other: the toggle
+  // shows or hides the dock panel, and closing the tab or choosing a layout
+  // updates the flag.
+  const assistantDockHidden = dockLayout.hidden.includes("assistant");
+  useEffect(() => {
+    const state = dockStore.getState();
+    if (assistantPanelOpen) {
+      state.revealPanel("assistant");
+    } else {
+      state.dispatch({ type: "hide", panelId: "assistant" });
+    }
+  }, [assistantPanelOpen, dockStore]);
+  const lastAssistantDockHidden = useRef(assistantDockHidden);
+  useEffect(() => {
+    if (lastAssistantDockHidden.current === assistantDockHidden) {
+      return;
+    }
+    lastAssistantDockHidden.current = assistantDockHidden;
+    if (assistantDockHidden === assistantPanelOpen) {
+      setAssistantPanelOpen(!assistantDockHidden);
+    }
+  }, [assistantDockHidden, assistantPanelOpen, setAssistantPanelOpen]);
+
+  const layoutMenu = useMemo(
+    () =>
+      isMobile ? undefined : (
+        <DockLayoutMenu store={dockStore} panels={dockRegistrations} />
+      ),
+    [dockStore, dockRegistrations, isMobile]
+  );
+
+  // The panel bodies. The desktop dock shows each as its own panel; the
+  // mobile bottom sheet stacks them as collapsible sections.
+  const layersPanel = (
+    <ConnectedLayersPanel
+      onClearLayer={session.canvasActions.handleClearLayer}
+      onFlipHorizontal={session.layerActions.handleFlipHorizontal}
+      onFlipVertical={session.layerActions.handleFlipVertical}
+      onRotate180={session.layerActions.handleRotate180}
+      onMergeDown={session.layerActions.handleMergeDown}
+      onFlattenVisible={session.layerActions.handleFlattenVisible}
+      onTrimLayerToBounds={session.canvasActions.handleTrimLayerToBounds}
+      onCropCanvasToActiveLayerVisiblePixels={
+        session.canvasActions.handleCropCanvasToActiveLayerVisiblePixels
+      }
+      onCropCanvasToActiveLayerExtents={
+        session.canvasActions.handleCropCanvasToActiveLayerExtents
+      }
+      onToggleVisibility={session.layerActions.handleToggleVisibility}
+      onAddLayer={(fillColor) =>
+        session.layerActions.handleAddLayer({
+          fillColor: fillColor ?? undefined
+        })
+      }
+      onRemoveLayer={session.layerActions.handleRemoveLayer}
+      onDuplicateLayer={session.layerActions.handleDuplicateLayer}
+      onReorderLayers={session.layerActions.handleReorderLayers}
+      onSetMaskLayer={session.layerActions.handleSetMaskLayer}
+      onToggleAlphaLock={session.layerActions.handleToggleAlphaLock}
+      onToggleExposedInput={session.layerActions.handleToggleExposedInput}
+      onToggleExposedOutput={session.layerActions.handleToggleExposedOutput}
+      onLayerOpacityChange={session.layerActions.handleSetLayerOpacity}
+      onLayerBlendModeChange={session.layerActions.handleSetLayerBlendMode}
+      onRenameLayer={session.layerActions.handleRenameLayer}
+      onAddGroup={session.layerActions.handleAddGroup}
+      onToggleGroupCollapsed={session.layerActions.handleToggleGroupCollapsed}
+      onMoveLayerToGroup={session.layerActions.handleMoveLayerToGroup}
+      onUngroupLayer={session.layerActions.handleUngroupLayer}
+      onGroupSelectedLayers={session.layerActions.handleGroupSelectedLayers}
+      onMergeSelectedLayers={session.layerActions.handleMergeSelectedLayers}
+      onDeleteSelectedLayers={session.layerActions.handleDeleteSelectedLayers}
+      onLoadLayerAsSelection={session.canvasActions.handleLoadLayerAsSelection}
+    />
+  );
+  const historyPanel = (
+    <SketchHistoryPanel onUndo={session.handleUndo} onRedo={session.handleRedo} />
+  );
+  const canvasSizePanel = (
+    <ConnectedCanvasSizePanel
+      onCanvasResize={session.canvasActions.handleCanvasResize}
+      canvasResizeHandlesEnabled={session.canvasResizeHandlesEnabled}
+      onCanvasResizeHandlesEnabledChange={
+        session.handleCanvasResizeHandlesEnabledChange
+      }
+    />
+  );
+
   const sectionSx = sketchSectionSx(theme);
-  const rightPanelSections = (
+  const mobilePanelSections = (
     <>
       <CollapsibleSection
         className="sketch-editor__color-section"
@@ -422,51 +543,7 @@ function SketchEditor({
         compact
         sx={{ ...sectionSx, minHeight: 0 }}
       >
-        <ConnectedLayersPanel
-          onClearLayer={session.canvasActions.handleClearLayer}
-          onFlipHorizontal={session.layerActions.handleFlipHorizontal}
-          onFlipVertical={session.layerActions.handleFlipVertical}
-          onRotate180={session.layerActions.handleRotate180}
-          onMergeDown={session.layerActions.handleMergeDown}
-          onFlattenVisible={session.layerActions.handleFlattenVisible}
-          onTrimLayerToBounds={session.canvasActions.handleTrimLayerToBounds}
-          onCropCanvasToActiveLayerVisiblePixels={
-            session.canvasActions.handleCropCanvasToActiveLayerVisiblePixels
-          }
-          onCropCanvasToActiveLayerExtents={
-            session.canvasActions.handleCropCanvasToActiveLayerExtents
-          }
-          onToggleVisibility={session.layerActions.handleToggleVisibility}
-          onAddLayer={(fillColor) =>
-            session.layerActions.handleAddLayer({
-              fillColor: fillColor ?? undefined
-            })
-          }
-          onRemoveLayer={session.layerActions.handleRemoveLayer}
-          onDuplicateLayer={session.layerActions.handleDuplicateLayer}
-          onReorderLayers={session.layerActions.handleReorderLayers}
-          onSetMaskLayer={session.layerActions.handleSetMaskLayer}
-          onToggleAlphaLock={session.layerActions.handleToggleAlphaLock}
-          onToggleExposedInput={session.layerActions.handleToggleExposedInput}
-          onToggleExposedOutput={session.layerActions.handleToggleExposedOutput}
-          onLayerOpacityChange={session.layerActions.handleSetLayerOpacity}
-          onLayerBlendModeChange={session.layerActions.handleSetLayerBlendMode}
-          onRenameLayer={session.layerActions.handleRenameLayer}
-          onAddGroup={session.layerActions.handleAddGroup}
-          onToggleGroupCollapsed={
-            session.layerActions.handleToggleGroupCollapsed
-          }
-          onMoveLayerToGroup={session.layerActions.handleMoveLayerToGroup}
-          onUngroupLayer={session.layerActions.handleUngroupLayer}
-          onGroupSelectedLayers={session.layerActions.handleGroupSelectedLayers}
-          onMergeSelectedLayers={session.layerActions.handleMergeSelectedLayers}
-          onDeleteSelectedLayers={
-            session.layerActions.handleDeleteSelectedLayers
-          }
-          onLoadLayerAsSelection={
-            session.canvasActions.handleLoadLayerAsSelection
-          }
-        />
+        {layersPanel}
       </CollapsibleSection>
 
       <CollapsibleSection
@@ -476,10 +553,7 @@ function SketchEditor({
         compact
         sx={sectionSx}
       >
-        <SketchHistoryPanel
-          onUndo={session.handleUndo}
-          onRedo={session.handleRedo}
-        />
+        {historyPanel}
       </CollapsibleSection>
 
       <CollapsibleSection
@@ -489,18 +563,199 @@ function SketchEditor({
         compact
         sx={sectionSx}
       >
-        <ConnectedCanvasSizePanel
-          onCanvasResize={session.canvasActions.handleCanvasResize}
-          canvasResizeHandlesEnabled={session.canvasResizeHandlesEnabled}
-          onCanvasResizeHandlesEnabledChange={
-            session.handleCanvasResizeHandlesEnabledChange
-          }
-        />
+        {canvasSizePanel}
       </CollapsibleSection>
 
       <ConnectedGeneratedLayerSection />
     </>
   );
+
+  const canvasPane = (
+    <FlexColumn
+      className="sketch-editor__workspace"
+      sx={{
+        flex: 1,
+        overflow: "hidden",
+        minHeight: 0,
+        minWidth: 0,
+        containerType: "inline-size",
+        containerName: "sketch-workspace",
+        position: "relative"
+      }}
+    >
+      <Container
+        className="sketch-editor__canvas-region"
+        padding="none"
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          position: "relative",
+          zIndex: Z_INDEX.raised,
+          overflow: "hidden"
+        }}
+      >
+        <SketchCanvasPane
+          canvasReady={session.canvasReady}
+          canvasRef={session.canvasRef}
+          document={session.document}
+          activeTool={session.activeTool}
+          interactionTool={session.interactionTool}
+          onZoomChange={session.canvasStore.setZoom}
+          onPanChange={session.canvasStore.setPan}
+          onStrokeStart={session.canvasActions.handleStrokeStart}
+          onStrokeEnd={session.canvasActions.handleStrokeEnd}
+          onCanvasLeave={session.canvasActions.flushLayerThumbnailsWhenIdle}
+          onLayerTransformChange={
+            session.canvasActions.handleCommitLayerTransform
+          }
+          onLayerContentBoundsChange={session.layerStore.setLayerContentBounds}
+          onBrushSizeChange={session.colorActions.handleBrushSizeChange}
+          onContextMenu={session.canvasActions.handleContextMenu}
+          onTransformContextMenu={
+            session.canvasActions.handleTransformContextMenu
+          }
+          onCropComplete={session.canvasActions.handleCropComplete}
+          onEyedropperPick={session.colorActions.handleEyedropperPick}
+          onAutoPickLayer={session.layerStore.setActiveLayer}
+          onDropImage={session.canvasActions.handleDropImage}
+          onDropAsset={session.canvasActions.handleDropAsset}
+          onCanvasResizeStart={
+            session.canvasResizeHandlesEnabled
+              ? session.canvasActions.handleCanvasResizeStart
+              : undefined
+          }
+          onCanvasResize={
+            session.canvasResizeHandlesEnabled
+              ? session.canvasActions.handleCanvasResizeDrag
+              : undefined
+          }
+          segmentation={session.segmentation}
+        />
+        <SketchRulersAndGuides />
+      </Container>
+      {/*
+      Tool top bar sits above the canvas in z-order but does not consume flex
+      height, so wrap/resize of tool settings no longer shrinks the canvas or
+      shifts the image. Pass-through clicks use pointer-events below.
+    */}
+      <Container
+        padding="none"
+        sx={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: Z_INDEX.raised + 1,
+          pointerEvents: "none",
+          "& > *": { pointerEvents: "auto" }
+        }}
+      >
+        <ConnectedToolTopBar
+          compactLayout={isMobile}
+          adjBrightness={session.canvasActions.adjBrightness}
+          adjContrast={session.canvasActions.adjContrast}
+          adjSaturation={session.canvasActions.adjSaturation}
+          onAdjustBrightnessChange={session.canvasActions.setAdjBrightness}
+          onAdjustContrastChange={session.canvasActions.setAdjContrast}
+          onAdjustSaturationChange={session.canvasActions.setAdjSaturation}
+          onAdjustApply={session.canvasActions.handleApplyAdjustments}
+          onAdjustCancel={session.canvasActions.handleCancelAdjustments}
+          onTransformCommit={session.canvasActions.handleTransformCommit}
+          onTransformCancel={session.canvasActions.handleTransformCancel}
+          onTransformReset={session.canvasActions.handleTransformReset}
+          segmentation={session.segmentation}
+          onRunSegmentation={commands.handleRunSegmentation}
+          onClearSegmentPrompts={commands.handleClearSegmentPrompts}
+          onCropCanvasToSelection={
+            session.canvasActions.handleCropCanvasToSelection
+          }
+          onCropCommit={session.canvasActions.handleCropCommit}
+          onCropCancelPreview={session.canvasActions.handleCropCancelPreview}
+          headerActions={headerActions}
+          menuItems={menuItems}
+          layoutMenu={layoutMenu}
+        />
+      </Container>
+
+      {/* Restoring the chrome is otherwise Tab-only, and a touch device
+          has no Tab key — keep one always-visible affordance on the bare
+          canvas. */}
+      {panelsHidden && (
+        <Tooltip title={t("i18n-next4.sketch.showPanels")}>
+          <Fab
+            className="sketch-editor__show-panels-fab"
+            size="small"
+            aria-label={t("i18n-next4.sketch.showPanels")}
+            onClick={togglePanelsHidden}
+            sx={{
+              position: "absolute",
+              top: (t) => t.spacing(1),
+              right: (t) => t.spacing(1),
+              zIndex: Z_INDEX.raised + 2
+            }}
+          >
+            <ViewSidebarOutlinedIcon fontSize="small" />
+          </Fab>
+        </Tooltip>
+      )}
+    </FlexColumn>
+  );
+
+  // The side panels sit in the dock on desktop. On a phone, and while Tab
+  // hides the chrome, only the canvas shows; the panels keep their places in
+  // the layout. The canvas never leaves the dock, so it never remounts.
+  const sidePanelsShown = !isMobile && !panelsHidden;
+  const dockViews: DockPanelView[] = [
+    { id: "canvas", node: canvasPane },
+    {
+      id: "color",
+      node: <SketchDockPanel><ConnectedColorPanel /></SketchDockPanel>,
+      visible: sidePanelsShown
+    },
+    { id: "layers", node: <SketchDockPanel>{layersPanel}</SketchDockPanel>, visible: sidePanelsShown },
+    { id: "history", node: <SketchDockPanel>{historyPanel}</SketchDockPanel>, visible: sidePanelsShown },
+    {
+      id: "properties",
+      node: (
+        <SketchDockPanel>
+          <ConnectedGeneratedLayerSection
+            emptyState={
+              <EmptyState
+                size="small"
+                icon={<TuneOutlinedIcon />}
+                title={t("i18n-next4.sketch.dock.noProperties")}
+                description={t("i18n-next4.sketch.dock.noPropertiesDescription")}
+              />
+            }
+          />
+        </SketchDockPanel>
+      ),
+      visible: sidePanelsShown
+    },
+    { id: "canvasSize", node: <SketchDockPanel>{canvasSizePanel}</SketchDockPanel>, visible: sidePanelsShown },
+    {
+      id: "assistant",
+      node: (
+        <FlexColumn
+          className="sketch-editor__assistant-panel"
+          gap={0}
+          sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+        >
+          <SketchAgentPanel />
+        </FlexColumn>
+      ),
+      visible: sidePanelsShown
+    }
+  ];
+  const shownDockViews = dockViews.filter((view) => view.visible !== false);
+  const dockPresentation = useDockPresentation({
+    store: dockStore,
+    layout: dockLayout,
+    registry: dockRegistrations,
+    availableIds: shownDockViews.map((view) => view.id),
+    views: shownDockViews,
+    root: dockRoot
+  });
 
   return (
     <FlexColumn ref={containerRef} className="sketch-editor" css={styles(theme)} gap={0}>
@@ -512,175 +767,17 @@ function SketchEditor({
         <ConnectedToolbar />
 
         <FlexColumn
-          className="sketch-editor__workspace"
-          sx={{
-            flex: 1,
-            overflow: "hidden",
-            minHeight: 0,
-            minWidth: 0,
-            containerType: "inline-size",
-            containerName: "sketch-workspace",
-            position: "relative"
-          }}
+          ref={dockRoot}
+          className="sketch-editor__dock"
+          sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}
         >
-          <Container
-            className="sketch-editor__canvas-region"
-            padding="none"
-            sx={{
-              flex: 1,
-              minHeight: 0,
-              position: "relative",
-              zIndex: Z_INDEX.raised,
-              overflow: "hidden"
-            }}
-          >
-            <SketchCanvasPane
-              canvasReady={session.canvasReady}
-              canvasRef={session.canvasRef}
-              document={session.document}
-              activeTool={session.activeTool}
-              interactionTool={session.interactionTool}
-              onZoomChange={session.canvasStore.setZoom}
-              onPanChange={session.canvasStore.setPan}
-              onStrokeStart={session.canvasActions.handleStrokeStart}
-              onStrokeEnd={session.canvasActions.handleStrokeEnd}
-              onCanvasLeave={session.canvasActions.flushLayerThumbnailsWhenIdle}
-              onLayerTransformChange={
-                session.canvasActions.handleCommitLayerTransform
-              }
-              onLayerContentBoundsChange={
-                session.layerStore.setLayerContentBounds
-              }
-              onBrushSizeChange={session.colorActions.handleBrushSizeChange}
-              onContextMenu={session.canvasActions.handleContextMenu}
-              onTransformContextMenu={
-                session.canvasActions.handleTransformContextMenu
-              }
-              onCropComplete={session.canvasActions.handleCropComplete}
-              onEyedropperPick={session.colorActions.handleEyedropperPick}
-              onAutoPickLayer={session.layerStore.setActiveLayer}
-              onDropImage={session.canvasActions.handleDropImage}
-              onDropAsset={session.canvasActions.handleDropAsset}
-              onCanvasResizeStart={
-                session.canvasResizeHandlesEnabled
-                  ? session.canvasActions.handleCanvasResizeStart
-                  : undefined
-              }
-              onCanvasResize={
-                session.canvasResizeHandlesEnabled
-                  ? session.canvasActions.handleCanvasResizeDrag
-                  : undefined
-              }
-              segmentation={session.segmentation}
-            />
-            <SketchRulersAndGuides />
-          </Container>
-          {/*
-          Tool top bar sits above the canvas in z-order but does not consume flex
-          height, so wrap/resize of tool settings no longer shrinks the canvas or
-          shifts the image. Pass-through clicks use pointer-events below.
-        */}
-          <Container
-            padding="none"
-            sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: Z_INDEX.raised + 1,
-              pointerEvents: "none",
-              "& > *": { pointerEvents: "auto" }
-            }}
-          >
-            <ConnectedToolTopBar
-              compactLayout={isMobile}
-              adjBrightness={session.canvasActions.adjBrightness}
-              adjContrast={session.canvasActions.adjContrast}
-              adjSaturation={session.canvasActions.adjSaturation}
-              onAdjustBrightnessChange={session.canvasActions.setAdjBrightness}
-              onAdjustContrastChange={session.canvasActions.setAdjContrast}
-              onAdjustSaturationChange={session.canvasActions.setAdjSaturation}
-              onAdjustApply={session.canvasActions.handleApplyAdjustments}
-              onAdjustCancel={session.canvasActions.handleCancelAdjustments}
-              onTransformCommit={session.canvasActions.handleTransformCommit}
-              onTransformCancel={session.canvasActions.handleTransformCancel}
-              onTransformReset={session.canvasActions.handleTransformReset}
-              segmentation={session.segmentation}
-              onRunSegmentation={commands.handleRunSegmentation}
-              onClearSegmentPrompts={commands.handleClearSegmentPrompts}
-              onCropCanvasToSelection={
-                session.canvasActions.handleCropCanvasToSelection
-              }
-              onCropCommit={session.canvasActions.handleCropCommit}
-              onCropCancelPreview={
-                session.canvasActions.handleCropCancelPreview
-              }
-              headerActions={headerActions}
-              menuItems={menuItems}
-            />
-          </Container>
-
-          {/* Restoring the chrome is otherwise Tab-only, and a touch device
-              has no Tab key — keep one always-visible affordance on the bare
-              canvas. */}
-          {panelsHidden && (
-            <Tooltip title={t("i18n-next4.sketch.showPanels")}>
-              <Fab
-                className="sketch-editor__show-panels-fab"
-                size="small"
-                aria-label={t("i18n-next4.sketch.showPanels")}
-                onClick={togglePanelsHidden}
-                sx={{
-                  position: "absolute",
-                  top: (t) => t.spacing(1),
-                  right: (t) => t.spacing(1),
-                  zIndex: Z_INDEX.raised + 2
-                }}
-              >
-                <ViewSidebarOutlinedIcon fontSize="small" />
-              </Fab>
-            </Tooltip>
-          )}
+          <DockCanvas
+            presentation={dockPresentation}
+            store={dockStore}
+            eagerPanels={EAGER_DOCK_PANELS}
+            tabless={!sidePanelsShown}
+          />
         </FlexColumn>
-
-        {/* Right column: color, layers, canvas size sections. The wrapper
-          itself is gated on `panelsHidden` so Tab collapses the column's
-          reserved width (not just blanks its contents), giving the
-          canvas the freed real estate. On mobile the column is dropped here
-          and the same sections render in a bottom sheet below. */}
-        {!panelsHidden && !isMobile && (
-          <FlexColumn
-            className="sketch-editor__panel-right"
-            sx={{
-              width: SKETCH_SIZE.panelWidth,
-              minWidth: SKETCH_SIZE.panelWidth,
-              maxWidth: SKETCH_SIZE.panelWidth,
-              minHeight: 0,
-              flexShrink: 0,
-              backgroundColor: theme.vars.palette.background.paper,
-              borderLeft: `1px solid ${theme.vars.palette.divider}`,
-              overflowY: "auto",
-              userSelect: "none"
-            }}
-            gap={0}
-          >
-            {rightPanelSections}
-          </FlexColumn>
-        )}
-
-        {/* AI assistant chat column — a toggleable right-most panel that
-          drives the editor through the ui_sketch_* agent tools. Gated on the
-          same panelsHidden chrome toggle so Tab collapses it too. On mobile
-          it moves into a bottom sheet (below). */}
-        {!panelsHidden && !isMobile && assistantPanelOpen && (
-          <ResizableSideDock
-            storageKey="sketch_assistant"
-            className="sketch-editor__assistant-panel"
-            ariaLabel={t("i18n-next4.sketch.resizeAssistant")}
-          >
-            <SketchAgentPanel />
-          </ResizableSideDock>
-        )}
       </FlexRow>
 
       {/* ── Mobile chrome ─────────────────────────────────────────────
@@ -723,7 +820,7 @@ function SketchEditor({
                 sx={{ minHeight: 0, overflow: "auto" }}
                 gap={0}
               >
-                {rightPanelSections}
+                {mobilePanelSections}
               </FlexColumn>
             </MobileBottomSheet>
           )}

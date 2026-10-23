@@ -56,6 +56,8 @@ interface ApplicationAppBuilderProps {
    * bind the same thread Design, Run, and Settings share.
    */
   onAgentWorkflowIdChange?: (workflowId: string | undefined) => void;
+  /** The surface's agent, docked as a builder panel while Design is showing. */
+  assistantPanel?: React.ReactNode;
 }
 
 /**
@@ -85,7 +87,8 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   applicationId,
   onDraftChange,
   onSaveReady,
-  onAgentWorkflowIdChange
+  onAgentWorkflowIdChange,
+  assistantPanel
 }) => {
   const { t } = useTranslation();
   const { data: application, isLoading, isError, error } =
@@ -310,6 +313,16 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       );
       const draft = handler.document();
       if (!base) return;
+
+      // The row already holds the draft: usually this canvas's own save,
+      // whose notice beat the mutation. Nothing to merge or offer.
+      if (
+        appDocumentFingerprint(fresh.document) === appDocumentFingerprint(draft)
+      ) {
+        revisionRef.current = fresh.updatedAt;
+        lastSyncedRef.current = JSON.stringify(fresh.document);
+        return;
+      }
 
       const { doc: merged, conflicts, nextBase } = mergeAppDocuments(
         appDocumentToMerge(base),
@@ -596,6 +609,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       agentWorkflowId={workflow?.id}
       onOperationsChange={setLiveOperations}
       projectId={application.projectId}
+      assistantPanel={assistantPanel}
       onSave={(next) => {
         void handleSave(next).catch(() => undefined);
       }}

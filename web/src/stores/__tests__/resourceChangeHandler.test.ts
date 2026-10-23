@@ -1,8 +1,16 @@
 /**
  * Tests for resource change handler
  */
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import {
+  flushResourceInvalidations,
   handleResourceChange,
+  INVALIDATION_DEBOUNCE_MS,
+  INVALIDATION_MAX_WAIT_MS,
+  invalidateAllResourceQueries,
+  RESOURCE_TRPC_PROCEDURES,
+  setChatResourceReloader,
   setWorkflowResourceReloader
 } from "../resourceChangeHandler";
 import { queryClient } from "../../queryClient";
@@ -47,36 +55,149 @@ jest.mock("../WorkspaceTabsStore", () => ({
   }
 }));
 
+/** Invalidations join an in-flight refetch instead of restarting it. */
+const NO_CANCEL = { cancelRefetch: false };
+
+/** Handle one change and run its queued invalidations now. */
+const change = (update: ResourceChangeUpdate): void => {
+  handleResourceChange(update);
+  flushResourceInvalidations();
+};
+
+type QueryPredicate = (q: { queryKey: readonly unknown[] }) => boolean;
+
+/** Every predicate the flushed invalidations passed. */
+const invalidationPredicates = (): QueryPredicate[] =>
+  (queryClient.invalidateQueries as jest.Mock).mock.calls
+    .map((call) => call[0]?.predicate)
+    .filter(isFunction) as QueryPredicate[];
+
+/** How many flushed invalidations named exactly this query key. */
+const keyedInvalidations = (queryKey: readonly unknown[]): number =>
+  (queryClient.invalidateQueries as jest.Mock).mock.calls.filter(
+    (call) => JSON.stringify(call[0]?.queryKey) === JSON.stringify(queryKey)
+  ).length;
+
 describe("handleResourceChange", () => {
   beforeEach(() => {
+    flushResourceInvalidations();
     jest.clearAllMocks();
     setWorkflowResourceReloader(null);
+    setChatResourceReloader(null);
+    jest.spyOn(document, "hasFocus").mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("maps each tRPC invalidation to a registered reader", () => {
+    const readSources = (directory: string): string[] =>
+      readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const filename = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+          return entry.name === "__tests__" ? [] : readSources(filename);
+        }
+        return /\.tsx?$/.test(filename) ? [readFileSync(filename, "utf8")] : [];
+      });
+    const sources = readSources(path.join(__dirname, "../.."));
+    expect(sources.length).toBeGreaterThan(0);
+    expect(Object.keys(RESOURCE_TRPC_PROCEDURES).length).toBeGreaterThan(0);
+    for (const procedures of Object.values(RESOURCE_TRPC_PROCEDURES)) {
+      for (const [router, procedure] of procedures) {
+        const reader = new RegExp(
+          `(?:trpc|trpcClient)\\.${router}\\.${procedure}\\.(?:useQuery|useSuspenseQuery|query)\\s*\\(`
+        );
+        expect(sources.some((source) => reader.test(source))).toBe(true);
+      }
+    }
+  });
+
+  it.each(["thread", "message"])(
+    "refreshes the uncached chat reader on %s changes",
+    (resourceType) => {
+      const reload = jest.fn();
+      setChatResourceReloader(reload);
+      const update: ResourceChangeUpdate = {
+        type: "resource_change",
+        event: "created",
+        resource_type: resourceType,
+        resource: { id: "resource-1", thread_id: "thread-1" }
+      };
+      handleResourceChange(update);
+      expect(reload).toHaveBeenCalledWith(update);
+    }
+  );
+
+  it.each([
+    ["thread", "threads", "list"],
+    ["message", "messages", "list"],
+    ["workflow", "workflows", "list"],
+    ["asset", "assets", "list"],
+    ["asset", "assets", "get"],
+    ["skill", "skills", "list"],
+    ["skill", "skills", "get"],
+    ["memory", "memories", "list"],
+    ["memory", "memories", "search"]
+  ])("refreshes %s readers using %s.%s", (resourceType, router, procedure) => {
+    change({
+      type: "resource_change",
+      event: "updated",
+      resource_type: resourceType,
+      resource: { id: "resource-1" },
+      ops: [{ tool: "update_skill", input: { name: "Changed" } }]
+    });
+    const predicates = (queryClient.invalidateQueries as jest.Mock).mock.calls
+      .map((call) => call[0]?.predicate)
+      .filter(
+        (predicate): predicate is (query: { queryKey: readonly unknown[] }) => boolean =>
+          typeof predicate === "function"
+      );
+    expect(
+      predicates.some((predicate) =>
+        predicate({
+          queryKey: [
+            [router, procedure],
+            { input: { id: "resource-1" }, type: "query" }
+          ]
+        })
+      )
+    ).toBe(true);
+    expect(
+      predicates.some((predicate) =>
+        predicate({
+          queryKey: [["unrelated", procedure], {}]
+        })
+      )
+    ).toBe(false);
   });
 
   it("refetches the workspace explorer when a run writes a file", () => {
-    handleResourceChange({
+    change({
       type: "resource_change",
       event: "updated",
       resource_type: "workspacefile",
       resource: { id: "ws-1" }
     } as ResourceChangeUpdate);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["workspace-files", "ws-1"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["workspace-files", "ws-1"] },
+      NO_CANCEL
+    );
   });
 
   it("refetches every workspace listing when the change names none", () => {
-    handleResourceChange({
+    change({
       type: "resource_change",
       event: "updated",
       resource_type: "workspacefile",
       resource: {}
     } as unknown as ResourceChangeUpdate);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["workspace-files"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["workspace-files"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates workflow queries on workflow update", () => {
@@ -90,27 +211,28 @@ describe("handleResourceChange", () => {
       }
     };
 
-    handleResourceChange(update);
+    change(update);
 
     // Should invalidate general workflows query
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["workflows"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["workflows"] },
+      NO_CANCEL
+    );
 
-    // Should also invalidate templates query
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["templates"]
-    });
+    // Templates are shipped examples no user write changes.
+    expect(keyedInvalidations(["templates"])).toBe(0);
 
     // Should invalidate specific workflow query
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["workflow", "workflow-123"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["workflow", "workflow-123"] },
+      NO_CANCEL
+    );
 
     // Should invalidate workflow versions query
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["workflow", "workflow-123", "versions"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["workflow", "workflow-123", "versions"] },
+      NO_CANCEL
+    );
   });
 
   it("opens a tab for a workflow created outside the editor", async () => {
@@ -128,6 +250,45 @@ describe("handleResourceChange", () => {
       mode: "edit",
       projectId: "proj-1"
     });
+  });
+
+  it("invalidates a created workflow without opening it in an unfocused window", async () => {
+    jest.spyOn(document, "hasFocus").mockReturnValue(false);
+
+    change({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-background" }
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
+    expect(resolveDocumentProject).not.toHaveBeenCalled();
+    expect(keyedInvalidations(["workflows"])).toBe(1);
+    expect(keyedInvalidations(["workflow", "wf-background"])).toBe(1);
+  });
+
+  it("does not open a workflow if the window loses focus during its fetch", async () => {
+    let resolveProject: (value: { id: string; projectId: string }) => void =
+      () => undefined;
+    (resolveDocumentProject as jest.Mock).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveProject = resolve;
+        })
+    );
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-focus-changed" }
+    });
+    jest.spyOn(document, "hasFocus").mockReturnValue(false);
+    resolveProject({ id: "wf-focus-changed", projectId: "proj-1" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
   });
 
   it("does not reopen a workflow that already has a tab", async () => {
@@ -206,15 +367,17 @@ describe("handleResourceChange", () => {
       }
     };
 
-    handleResourceChange(update);
+    change(update);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["jobs"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["jobs"] },
+      NO_CANCEL
+    );
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["job", "job-456"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["job", "job-456"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates asset queries on asset deleted", () => {
@@ -227,20 +390,23 @@ describe("handleResourceChange", () => {
       }
     };
 
-    handleResourceChange(update);
+    change(update);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["assets"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["assets"] },
+      NO_CANCEL
+    );
 
     // The plural ["assets"] key does not prefix-match the singular form,
     // so detail queries need an explicit invalidation.
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["asset", "asset-789"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["textAsset", "asset-789"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["asset", "asset-789"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["textAsset", "asset-789"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates settings queries on setting update", () => {
@@ -251,29 +417,12 @@ describe("handleResourceChange", () => {
       resource: { id: "user-1:THEME", etag: "s1" }
     };
 
-    handleResourceChange(update);
+    change(update);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["settings"]
-    });
-  });
-
-  it("invalidates messages query when a message resource includes thread_id", () => {
-    const update: ResourceChangeUpdate = {
-      type: "resource_change",
-      event: "created",
-      resource_type: "message",
-      resource: { id: "msg-1", thread_id: "thread-101" }
-    };
-
-    handleResourceChange(update);
-
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["messages"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["messages", "thread-101"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["settings"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates the workflow versions list when scoped to a workflow", () => {
@@ -284,11 +433,12 @@ describe("handleResourceChange", () => {
       resource: { id: "ver-1", workflow_id: "workflow-123" }
     };
 
-    handleResourceChange(update);
+    change(update);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["workflow", "workflow-123", "versions"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["workflow", "workflow-123", "versions"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates collections on collection mutation", () => {
@@ -299,37 +449,12 @@ describe("handleResourceChange", () => {
       resource: { id: "my-coll" }
     };
 
-    handleResourceChange(update);
+    change(update);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["collections"]
-    });
-  });
-
-  it("invalidates thread and messages queries on thread update", () => {
-    const update: ResourceChangeUpdate = {
-      type: "resource_change",
-      event: "updated",
-      resource_type: "thread",
-      resource: {
-        id: "thread-101",
-        etag: "ghi101"
-      }
-    };
-
-    handleResourceChange(update);
-
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["threads"]
-    });
-
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["thread", "thread-101"]
-    });
-
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["messages", "thread-101"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["collections"] },
+      NO_CANCEL
+    );
   });
 
   it("handles resource types without query key mappings", () => {
@@ -343,7 +468,7 @@ describe("handleResourceChange", () => {
     };
 
     // Should not throw
-    handleResourceChange(update);
+    change(update);
 
     // Should not invalidate any queries
     expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
@@ -361,12 +486,13 @@ describe("handleResourceChange", () => {
     };
 
     // Should not throw
-    handleResourceChange(update);
+    change(update);
 
     // Should still invalidate general queries
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["workflows"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["workflows"] },
+      NO_CANCEL
+    );
   });
 
   it("reloads metadata on metadata update", () => {
@@ -380,12 +506,13 @@ describe("handleResourceChange", () => {
       }
     };
 
-    handleResourceChange(update);
+    change(update);
 
     expect(loadMetadata).toHaveBeenCalled();
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["metadata"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["metadata"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates provider and model queries on provider update", () => {
@@ -399,35 +526,44 @@ describe("handleResourceChange", () => {
       }
     };
 
-    handleResourceChange(update);
+    change(update);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["providers"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["language-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["embedding-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["image-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["tts-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["asr-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["video-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["allModels"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["providers"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["language-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["embedding-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["image-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["tts-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["asr-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["video-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["allModels"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates model queries on model update", () => {
@@ -441,35 +577,44 @@ describe("handleResourceChange", () => {
       }
     };
 
-    handleResourceChange(update);
+    change(update);
 
-    expect(queryClient.invalidateQueries).not.toHaveBeenCalledWith({
-      queryKey: ["providers"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["language-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["embedding-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["image-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["tts-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["asr-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["video-models"]
-    });
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["allModels"]
-    });
+    expect(queryClient.invalidateQueries).not.toHaveBeenCalledWith(
+      { queryKey: ["providers"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["language-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["embedding-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["image-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["tts-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["asr-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["video-models"] },
+      NO_CANCEL
+    );
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["allModels"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates settings on setting update", () => {
@@ -480,11 +625,12 @@ describe("handleResourceChange", () => {
       resource: { id: "OPENAI_API_KEY" }
     };
 
-    handleResourceChange(update);
+    change(update);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["settings"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["settings"] },
+      NO_CANCEL
+    );
   });
 
   it("invalidates workflow version queries on workflowversion change", () => {
@@ -495,14 +641,15 @@ describe("handleResourceChange", () => {
       resource: { id: "version-xyz" }
     };
 
-    handleResourceChange(update);
+    change(update);
 
     // The version's id is not the workflow id, so the handler invalidates
     // every `["workflow", *, "versions"]` query via predicate.
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
       expect.objectContaining({
         predicate: expect.any(Function)
-      })
+      }),
+      NO_CANCEL
     );
     const predicateCall = (
       queryClient.invalidateQueries as jest.Mock
@@ -517,7 +664,7 @@ describe("handleResourceChange", () => {
   });
 
   it("refetches the project views when a document is created", () => {
-    handleResourceChange({
+    change({
       type: "resource_change",
       event: "created",
       resource_type: "storyboard",
@@ -540,16 +687,17 @@ describe("handleResourceChange", () => {
     // tags reaches the browser as an asset change and nothing else. `["assets"]`
     // does not prefix-match `["entities"]`, and a project's overview lists the
     // entities filed under it.
-    handleResourceChange({
+    change({
       type: "resource_change",
       event: "updated",
       resource_type: "asset",
       resource: { id: "a1" }
     } as ResourceChangeUpdate);
 
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["entities"]
-    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+      { queryKey: ["entities"] },
+      NO_CANCEL
+    );
 
     const predicates = (queryClient.invalidateQueries as jest.Mock).mock.calls
       .map((call) => call[0]?.predicate)
@@ -564,7 +712,7 @@ describe("handleResourceChange", () => {
   });
 
   it("refetches the project views when a project row changes", () => {
-    handleResourceChange({
+    change({
       type: "resource_change",
       event: "updated",
       resource_type: "project",
@@ -579,7 +727,7 @@ describe("handleResourceChange", () => {
   });
 
   it("refetches the project views when a workflow is saved", () => {
-    handleResourceChange({
+    change({
       type: "resource_change",
       event: "created",
       resource_type: "workflow",
@@ -599,7 +747,7 @@ describe("handleResourceChange", () => {
   });
 
   it("refetches the project views when a prediction (chat spend) lands", () => {
-    handleResourceChange({
+    change({
       type: "resource_change",
       event: "created",
       resource_type: "prediction",
@@ -617,7 +765,7 @@ describe("handleResourceChange", () => {
   });
 
   it("refetches both the js script list and the node menu's palette", () => {
-    handleResourceChange({
+    change({
       type: "resource_change",
       event: "updated",
       resource_type: "jsscript",
@@ -664,7 +812,7 @@ describe("handleResourceChange", () => {
       "asset",
       "project"
     ])("refetches after a %s change", (resourceType) => {
-      handleResourceChange({
+      change({
         type: "resource_change",
         event: "updated",
         resource_type: resourceType,
@@ -675,7 +823,7 @@ describe("handleResourceChange", () => {
     });
 
     it("leaves it alone for a change that adds no document", () => {
-      handleResourceChange({
+      change({
         type: "resource_change",
         event: "updated",
         resource_type: "setting",
@@ -700,8 +848,174 @@ describe("handleResourceChange", () => {
     };
 
     // Should not throw with additional properties
-    handleResourceChange(update);
+    change(update);
 
     expect(queryClient.invalidateQueries).toHaveBeenCalled();
+  });
+
+  describe("workflow detail owned by an open editor", () => {
+    const updated: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "updated",
+      resource_type: "workflow",
+      resource: { id: "wf-open", etag: "e2" }
+    };
+
+    it("leaves the detail query to the editor but refetches its versions", () => {
+      setWorkflowResourceReloader(() => true);
+
+      change(updated);
+
+      expect(keyedInvalidations(["workflow", "wf-open"])).toBe(0);
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+        { queryKey: ["workflow", "wf-open", "versions"] },
+        NO_CANCEL
+      );
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
+        { queryKey: ["workflows"] },
+        NO_CANCEL
+      );
+    });
+
+    it("invalidates the detail query when no editor owns the workflow", () => {
+      setWorkflowResourceReloader(() => false);
+
+      change(updated);
+
+      expect(keyedInvalidations(["workflow", "wf-open"])).toBe(1);
+    });
+
+    it("runs the reloader before any invalidation lands", () => {
+      let invalidationsBeforeReload = -1;
+      setWorkflowResourceReloader(() => {
+        invalidationsBeforeReload = (queryClient.invalidateQueries as jest.Mock)
+          .mock.calls.length;
+        return false;
+      });
+
+      change(updated);
+
+      expect(invalidationsBeforeReload).toBe(0);
+    });
+  });
+
+  describe("project views narrowed by project_id", () => {
+    const pageKey = (id: string): readonly unknown[] => [
+      ["projects", "documentPage"],
+      { input: { id, offset: 0, limit: 4 }, type: "query" }
+    ];
+    const summariesKey: readonly unknown[] = [
+      ["projects", "summaries"],
+      { input: {}, type: "query" }
+    ];
+    const matchesAny = (queryKey: readonly unknown[]): boolean =>
+      invalidationPredicates().some((predicate) => predicate({ queryKey }));
+
+    it("refetches only the named project's views and the cross-project ones", () => {
+      change({
+        type: "resource_change",
+        event: "updated",
+        resource_type: "asset",
+        resource: { id: "a1", project_id: "p1" }
+      });
+
+      expect(matchesAny(pageKey("p1"))).toBe(true);
+      expect(
+        matchesAny([["projects", "get"], { input: { id: "p1" }, type: "query" }])
+      ).toBe(true);
+      expect(matchesAny(summariesKey)).toBe(true);
+      expect(matchesAny(pageKey("p2"))).toBe(false);
+      expect(
+        matchesAny([["projects", "get"], { input: { id: "p2" }, type: "query" }])
+      ).toBe(false);
+    });
+
+    it("refetches every project's views when the change names none", () => {
+      change({
+        type: "resource_change",
+        event: "updated",
+        resource_type: "asset",
+        resource: { id: "a1" }
+      });
+
+      expect(matchesAny(pageKey("p1"))).toBe(true);
+      expect(matchesAny(pageKey("p2"))).toBe(true);
+      expect(matchesAny(summariesKey)).toBe(true);
+    });
+  });
+
+  describe("coalescing", () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      flushResourceInvalidations();
+      jest.useRealTimers();
+    });
+
+    const assetChange = (index: number): ResourceChangeUpdate => ({
+      type: "resource_change",
+      event: "created",
+      resource_type: "asset",
+      resource: { id: `asset-${index}` }
+    });
+
+    it("invalidates each target once after a burst of asset events", () => {
+      for (let index = 0; index < 20; index += 1) {
+        handleResourceChange(assetChange(index));
+      }
+      expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(INVALIDATION_DEBOUNCE_MS);
+
+      expect(keyedInvalidations(["assets"])).toBe(1);
+      expect(keyedInvalidations(["entities"])).toBe(1);
+      expect(keyedInvalidations(["asset", "asset-0"])).toBe(1);
+      expect(keyedInvalidations(["asset", "asset-19"])).toBe(1);
+      // Project views, documents.index, and the two tRPC asset readers.
+      expect(invalidationPredicates()).toHaveLength(4);
+      for (const procedure of ["list", "get"]) {
+        expect(invalidationPredicates().filter((predicate) => predicate({
+          queryKey: [["assets", procedure], { input: {}, type: "query" }]
+        }))).toHaveLength(1);
+      }
+      for (const call of (queryClient.invalidateQueries as jest.Mock).mock
+        .calls) {
+        expect(call[1]).toEqual(NO_CANCEL);
+      }
+    });
+
+    it("waits for the burst to go quiet", () => {
+      handleResourceChange(assetChange(0));
+      jest.advanceTimersByTime(INVALIDATION_DEBOUNCE_MS - 1);
+      handleResourceChange(assetChange(1));
+      jest.advanceTimersByTime(INVALIDATION_DEBOUNCE_MS - 1);
+
+      expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(1);
+      expect(keyedInvalidations(["assets"])).toBe(1);
+    });
+
+    it("flushes a continuous burst by the max wait", () => {
+      const step = INVALIDATION_DEBOUNCE_MS / 2;
+      for (let elapsed = 0; elapsed < INVALIDATION_MAX_WAIT_MS; elapsed += step) {
+        handleResourceChange(assetChange(elapsed));
+        jest.advanceTimersByTime(step);
+      }
+
+      expect(keyedInvalidations(["assets"])).toBe(1);
+    });
+
+    it("drops queued work when every query is refreshed", () => {
+      handleResourceChange(assetChange(0));
+
+      invalidateAllResourceQueries();
+      jest.advanceTimersByTime(INVALIDATION_MAX_WAIT_MS);
+
+      expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(1);
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({}, NO_CANCEL);
+    });
   });
 });

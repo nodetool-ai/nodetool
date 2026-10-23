@@ -44,7 +44,8 @@ describe("OpenMenu create into the selected project", () => {
   it("opens a new chat in the selected project", async () => {
     const user = userEvent.setup();
     renderOpenMenu();
-    await user.click(screen.getByText("New chat"));
+    await user.click(screen.getByText("New chat…"));
+    await user.click(screen.getByText("Chat"));
 
     await waitFor(() =>
       expect(mockOpenMenu.openTab).toHaveBeenCalledWith({
@@ -54,6 +55,43 @@ describe("OpenMenu create into the selected project", () => {
         title: "New chat",
         projectId: "p1"
       })
+    );
+    expect(mockOpenMenu.createNewThread).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      { projectId: "p1", mediaMode: "chat" }
+    );
+  });
+
+  it("lists every available chat mode and starts the chat in the one picked", async () => {
+    const user = userEvent.setup();
+    renderOpenMenu();
+    await user.click(screen.getByText("New chat…"));
+
+    for (const label of [
+      "Chat",
+      "Generate images",
+      "Edit images",
+      "Generate videos",
+      "Animate image",
+      "Reference to video",
+      "Retake",
+      "Extend",
+      "Read aloud",
+      "Generate music"
+    ]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    // Modes the composer marks "Soon" have nothing to start.
+    expect(screen.queryByText("Motion control")).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("Generate videos"));
+    await waitFor(() =>
+      expect(mockOpenMenu.createNewThread).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+        { projectId: "p1", mediaMode: "video" }
+      )
     );
   });
 

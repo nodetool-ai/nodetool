@@ -5,16 +5,12 @@ import { ConfiguredProviderCache } from "./configured-providers.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import { createLogger, getByteLimitEnv } from "@nodetool-ai/config";
 import { getAssetAdapter } from "./lib/storage.js";
-import {
-  isNonEmptyString,
-  isObjectLike,
-  isString
-} from "./lib/wire-values.js";
+import { isObjectLike, isString } from "./lib/wire-values.js";
 import { onDrain } from "./drain.js";
 import {
-  resourceEvents,
-  type ResourceChangePayload
-} from "./resource-events.js";
+  subscribeResourceChanges,
+  type ResourceChangeSubscriber
+} from "./lib/resource-change-fanout.js";
 import {
   createSystemStatsSampler,
   systemStatsBroadcastEnabled
@@ -29,13 +25,7 @@ import type {
   ChatTurnExecutionHooks,
   ChatTurnSession
 } from "./chat-turn-registry.js";
-import {
-  Asset,
-  ModelChangeEvent,
-  ModelChangeMeta,
-  ModelObserver,
-  type DBModel
-} from "@nodetool-ai/models";
+import { Asset } from "@nodetool-ai/models";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import {
   activeModelLoads,
@@ -460,6 +450,7 @@ export class WebSocketClientSession implements ClientSession {
   readonly commands: CommandRouter;
   private observerRegistered = false;
   private unsubscribeRunTrace: (() => void) | null = null;
+  private unsubscribeResourceChanges: (() => void) | null = null;
   private runTraceDelivery: RunTraceLiveDelivery | null = null;
   /** Unsubscribe from the process drain, held for the life of the socket. */
   private drainUnsubscribe: (() => void) | null = null;
@@ -1363,8 +1354,9 @@ export class WebSocketClientSession implements ClientSession {
     this.unsubscribeRunTrace = subscribeRunTraceUpdates((userId, update) => {
       if (!this.appSession && userId === this.userId) { this.runTraceDelivery?.enqueue(update); }
     });
-    ModelObserver.subscribe(this.onModelChange);
-    resourceEvents.on("change", this.onResourceEvent);
+    this.unsubscribeResourceChanges = subscribeResourceChanges(
+      this.resourceChangeSubscriber
+    );
     this.observerRegistered = true;
   }
 
@@ -1374,66 +1366,28 @@ export class WebSocketClientSession implements ClientSession {
     this.unsubscribeRunTrace = null;
     this.runTraceDelivery?.close();
     this.runTraceDelivery = null;
-    ModelObserver.unsubscribe(this.onModelChange);
-    resourceEvents.off("change", this.onResourceEvent);
+    this.unsubscribeResourceChanges?.();
+    this.unsubscribeResourceChanges = null;
     this.observerRegistered = false;
   }
 
-  private onModelChange = (
-    instance: DBModel,
-    event: ModelChangeEvent,
-    meta?: ModelChangeMeta
-  ): void => {
-    if (!this.websocket) return;
-    // Only forward changes for models the connected user owns. Models without
-    // a `user_id` (runtime-internal types) are forwarded to every connection.
-    const ownerId = (instance as DBModel & { user_id?: string }).user_id;
-    if (ownerId && this.userId && ownerId !== this.userId) return;
-
-    const resource: Record<string, unknown> = {
-      id: instance.partitionValue(),
-      etag: instance.getEtag()
-    };
-    // Include scope fields for resource types whose cache is keyed on a
-    // parent id (Message → thread_id, WorkflowVersion → workflow_id, etc.).
-    // Frontend handlers use these to narrow invalidation. `updated_at` rides
-    // along as the row's concurrency token: an open editor compares it against
-    // the token it last saved with to tell its own write apart from one made
-    // outside the browser (agent, CLI, another tab).
-    const data = instance as Record<string, unknown>;
-    for (const field of [
-      "workflow_id",
-      "thread_id",
-      "parent_id",
-      "updated_at"
-    ] as const) {
-      const value = data[field];
-      if (isNonEmptyString(value)) {
-        resource[field] = value;
+  /**
+   * This connection's end of the shared `resource_change` feed. The frame is
+   * built once per write in `resource-change-fanout.ts` and shared, so it is
+   * sent as is. Owned changes and shared workflow changes are forwarded. Ownerless
+   * ones (runtime-internal models) go to every connection.
+   */
+  private readonly resourceChangeSubscriber: ResourceChangeSubscriber = {
+    accepts: (ownerId, recipients) => {
+      if (!this.websocket) return false;
+      if (ownerId && this.userId && ownerId !== this.userId) {
+        return recipients?.has(this.userId) ?? false;
       }
+      return true;
+    },
+    deliver: (frame) => {
+      this.sendDetached(frame);
     }
-
-    const message: Record<string, unknown> = {
-      type: "resource_change",
-      event,
-      resource_type: instance.constructor.name.toLowerCase(),
-      resource
-    };
-    if (meta?.ops && meta.ops.length > 0) {
-      message.ops = meta.ops;
-    }
-    this.sendDetached(message);
-  };
-
-  private onResourceEvent = (payload: ResourceChangePayload): void => {
-    if (!this.websocket) return;
-    if (payload.userId && this.userId && payload.userId !== this.userId) return;
-    this.sendDetached({
-      type: "resource_change",
-      event: payload.event,
-      resource_type: payload.resource_type,
-      resource: payload.resource
-    });
   };
 
   async run(websocket: WebSocketConnection): Promise<void> {

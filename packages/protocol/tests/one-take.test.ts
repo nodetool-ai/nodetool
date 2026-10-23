@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   ONE_TAKE_DEFAULT_SHOT_SECONDS,
+  ONE_TAKE_ENTITY_REFS_NOTE,
   compileOneTake,
   compileSceneClip,
   sceneClipRun,
   oneTakeSteps,
   oneTakeWindow
 } from "../src/one-take.js";
-import type { Shot } from "../src/creative.js";
+import type { Entity, Shot } from "../src/creative.js";
 import {
   storyboardDocument,
   storyboardShot
@@ -95,6 +96,10 @@ describe("compileOneTake", () => {
     ]);
   });
 
+  it("reports the stills source when the direction sets none", () => {
+    expect(compileOneTake({ shots: SHOTS }).reference_source).toBe("stills");
+  });
+
   it("is only the compiled block when the creator wrote nothing", () => {
     const out = compileOneTake({ shots: SHOTS, oneTake: { prompt: "  " } });
     expect(out.prompt).toBe(out.compiled);
@@ -161,6 +166,102 @@ describe("compileOneTake", () => {
   });
 });
 
+const entity = (
+  id: string,
+  kind: Entity["kind"],
+  name: string,
+  assetId?: string
+): Entity => ({
+  type: "entity",
+  id,
+  kind,
+  name,
+  descriptor: "",
+  reference_images: assetId ? [still(assetId)] : []
+});
+
+describe("compileOneTake with entity references", () => {
+  const CAST: Entity[] = [
+    entity("runner", "character", "Runner", "img-runner"),
+    entity("street", "location", "Wet street", "img-street"),
+    entity("sneaker", "prop", "Sneaker", "img-sneaker"),
+    entity("bystander", "character", "Bystander", "img-bystander"),
+    entity("ghost", "character", "Ghost")
+  ];
+  const BOARD: Shot[] = [
+    shot("puddle", 0, {
+      duration_seconds: 3,
+      action: "A still puddle on the wet street.",
+      entity_ids: ["street"],
+      keyframe: still("still-puddle")
+    }),
+    shot("stride", 1, {
+      duration_seconds: 3,
+      action: "The runner jogs past.",
+      entity_ids: ["runner", "sneaker", "street", "ghost"],
+      keyframe: still("still-stride")
+    })
+  ];
+
+  it("sends each used entity's image once, shot by shot", () => {
+    const out = compileOneTake({
+      shots: BOARD,
+      entities: CAST,
+      oneTake: { prompt: "", reference_source: "entities" }
+    });
+    expect(out.reference_source).toBe("entities");
+    expect(out.references).toEqual([
+      { entity_id: "street", asset_id: "img-street", label: "the location Wet street" },
+      { entity_id: "runner", asset_id: "img-runner", label: "the character Runner" },
+      { entity_id: "sneaker", asset_id: "img-sneaker", label: "the prop Sneaker" }
+    ]);
+  });
+
+  it("says the images fix identity only, and sends no shot still", () => {
+    const out = compileOneTake({
+      shots: BOARD,
+      entities: CAST,
+      oneTake: { prompt: "", reference_source: "entities" }
+    });
+    expect(out.compiled.split("\n\n")[0]).toBe(
+      `REFS: [Image 1] is the location Wet street. [Image 2] is the character Runner. [Image 3] is the prop Sneaker. ${ONE_TAKE_ENTITY_REFS_NOTE}`
+    );
+    expect(out.compiled).not.toContain("still of");
+  });
+
+  it("compiles no REFS block when no used entity has an image", () => {
+    const out = compileOneTake({
+      shots: [shot("a", 0, { entity_ids: ["ghost"], keyframe: still("still-a") })],
+      entities: CAST,
+      oneTake: { prompt: "", reference_source: "entities" }
+    });
+    expect(out.references).toEqual([]);
+    expect(out.compiled.startsWith("STEP_01")).toBe(true);
+  });
+
+  it("keeps sending stills when the board holds entities but the source is stills", () => {
+    const out = compileOneTake({ shots: BOARD, entities: CAST });
+    expect(out.references.map((r) => r.asset_id)).toEqual([
+      "still-puddle",
+      "still-stride"
+    ]);
+  });
+
+  it("compiles a scene clip's entity references from its own shots", () => {
+    const out = compileSceneClip(
+      [...BOARD, shot("splash", 2, { entity_ids: ["bystander"] })],
+      { id: "clip", prompt: "", shot_ids: ["stride", "splash"], reference_source: "entities" },
+      CAST
+    );
+    expect(out.references.map((r) => r.entity_id)).toEqual([
+      "runner",
+      "street",
+      "sneaker",
+      "bystander"
+    ]);
+  });
+});
+
 describe("one-take schemas", () => {
   const baseDocument = {
     screenplay: null,
@@ -191,6 +292,20 @@ describe("one-take schemas", () => {
     };
     const parsed = storyboardDocument.parse({ ...baseDocument, one_take: direction });
     expect(parsed.one_take).toEqual(direction);
+  });
+
+  it("keeps the reference source through a parse and rejects an unknown one", () => {
+    const parsed = storyboardDocument.parse({
+      ...baseDocument,
+      one_take: { prompt: "", reference_source: "entities" }
+    });
+    expect(parsed.one_take?.reference_source).toBe("entities");
+    expect(
+      storyboardDocument.safeParse({
+        ...baseDocument,
+        one_take: { prompt: "", reference_source: "keyframes" }
+      }).success
+    ).toBe(false);
   });
 
   it("rejects a non-positive duration", () => {

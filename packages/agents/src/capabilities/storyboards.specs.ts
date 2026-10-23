@@ -331,6 +331,17 @@ export const UPDATE_STORYBOARD_ONE_TAKE_SCHEMA: JsonSchema = {
         "For example 720p or 1080p. null clears it: the render picks 1080p " +
         "when the model offers it."
     },
+    reference_source: {
+      type: ["string", "null"],
+      enum: ["stills", "entities", null],
+      description:
+        "Which images go in as [Image N]. `stills`: each shot's still, which " +
+        "fixes that shot's framing and pose; suits calm shots. `entities`: " +
+        "the reference image of each board entity the shots use, which fixes " +
+        "who and where while the shot text sets framing and motion; suits " +
+        "action, where a still of the peak (a splash, an impact) makes the " +
+        "model hold that instant. null clears it: `stills` applies."
+    },
     model: {
       type: ["object", "null"],
       description:
@@ -634,9 +645,11 @@ export const getStoryboardOneTakeSpec: CapabilitySpec = {
   description:
     "Read a storyboard's one-take direction: the creator's prompt, the " +
     "block compiled from the board (REFS, STEPS, AUDIO), the full prompt a " +
-    "render sends, the [Image N] references (the shot stills, in shot " +
-    "order), each shot's window, the total duration, the stored render " +
-    "`settings` (duration_seconds, aspect_ratio, resolution, model; null " +
+    "render sends, the [Image N] references (the shot stills in shot " +
+    "order, or the board's entity images when reference_source is " +
+    "`entities`), each shot's window, the total duration, the stored render " +
+    "`settings` (duration_seconds, aspect_ratio, resolution, model, " +
+    "reference_source; null " +
     "when unset), the `effective` values after the board's fallbacks, and " +
     "warnings.",
   inputSchema: GET_STORYBOARD_ONE_TAKE_SCHEMA,
@@ -649,8 +662,9 @@ export const updateStoryboardOneTakeSpec: CapabilitySpec = {
   name: "update_storyboard_one_take",
   description:
     "Write a storyboard's one-take direction. `prompt` replaces the " +
-    "creator's prompt. `duration_seconds`, `aspect_ratio`, `resolution` " +
-    "and `model` set the render settings and keep the others. null clears " +
+    "creator's prompt. `duration_seconds`, `aspect_ratio`, `resolution`, " +
+    "`model` and `reference_source` set the render settings and keep the " +
+    "others. null clears " +
     "one. `shots` sets each shot's end_state and sound. " +
     "References, steps and audio are compiled from the board. Renders " +
     "nothing. Returns what get_storyboard_one_take returns.",

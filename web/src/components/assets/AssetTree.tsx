@@ -9,10 +9,7 @@ import {
   LoadingSpinner,
   Box,
   Collapse,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
+  TreeRow,
   SPACING,
   getSpacingPx,
   EmptyState
@@ -215,40 +212,37 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     // Nodes are already sorted during processing (processAssetTree), no need to sort here
 
     return (
-      <List
-        className="asset-tree"
-        dense
-        disablePadding
-        sx={{ backgroundColor: "transparent" }}
-      >
+      <Box className="asset-tree-level" role="group">
         {nodes.map((node) => (
           <React.Fragment key={node.id}>
-            <ListItemButton
+            <TreeRow
+              component="button"
+              type="button"
+              interactive
+              depth={depth}
               onClick={createFolderToggleHandler(node.id)}
-              sx={{ paddingLeft: theme.spacing(depth * SPACING.xl) }}
             >
-              <ListItemIcon
+              <Box
+                component="span"
                 sx={{
-                  minWidth: "1em",
-                  paddingRight: getSpacingPx(SPACING.md),
-                  "& > *": {
-                    color: theme.vars.palette.grey[100],
-                    width: "1em",
-                    height: "1em"
-                  }
+                  display: "inline-flex",
+                  color: "text.secondary",
+                  "& > *": { width: "1em", height: "1em" }
                 }}
               >
                 {getFileIcon(node.content_type)}
-              </ListItemIcon>
-              <ListItemText primary={node.name} />
+              </Box>
+              <Text component="span" size="small" truncate sx={{ flex: 1 }}>
+                {node.name}
+              </Text>
               {node.content_type === "folder" &&
                 node.children &&
                 node.children.length > 0 && (
                   <>
                     {closedFolders.includes(node.id) ? (
-                      <ExpandMore />
+                      <ExpandMore fontSize="small" />
                     ) : (
-                      <ExpandLess />
+                      <ExpandLess fontSize="small" />
                     )}
                     <Text size="small" color="secondary">
                       {t("i18n-next43-assets-navigation.assetTree.items", {
@@ -257,7 +251,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
                     </Text>
                   </>
                 )}
-            </ListItemButton>
+            </TreeRow>
             {node.content_type === "folder" && node.children && (
               <Collapse
                 in={!closedFolders.includes(node.id)}
@@ -269,9 +263,9 @@ const AssetTree: React.FC<AssetTreeProps> = ({
             )}
           </React.Fragment>
         ))}
-      </List>
+      </Box>
     );
-  }, [closedFolders, createFolderToggleHandler, getFileIcon, t, theme]);
+  }, [closedFolders, createFolderToggleHandler, getFileIcon, t]);
 
   if (isLoading) {
     return <LoadingSpinner />;

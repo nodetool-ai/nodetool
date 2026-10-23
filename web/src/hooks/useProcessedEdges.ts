@@ -28,7 +28,6 @@ interface ProcessedEdgesOptions {
 
 interface ProcessedEdgesResult {
   processedEdges: Edge[];
-  activeGradientKeys: Set<string>;
 }
 
 // Global cache for node structure strings to avoid expensive object iteration during drag
@@ -52,8 +51,7 @@ function useStructurallyProcessedEdges({
 
   // Cache last result so we can reuse it during drag
   const lastResultRef = useRef<ProcessedEdgesResult>({
-    processedEdges: [],
-    activeGradientKeys: new Set()
+    processedEdges: []
   });
 
   // Structural key: only things that affect edge typing / gradients.
@@ -102,8 +100,6 @@ function useStructurallyProcessedEdges({
     const currentNodes = nodesRef.current;
     const nodeMap = new Map(currentNodes.map((node) => [node.id, node]));
     const getNode = (id: string) => nodeMap.get(id);
-
-    const activeGradientKeys = new Set<string>();
 
     // Precompute the incoming edge feeding each (target, handle) so chasing a
     // forward chain (Reroute / If / Switch) is O(1) per hop instead of an O(E)
@@ -254,6 +250,7 @@ function useStructurallyProcessedEdges({
       let sourceColor = defaultColor;
       let sourceTypeLabel = "Any";
       let targetTypeSlug = "any";
+      let targetColor = defaultColor;
 
       if (sourceNode && normalizedSourceHandle) {
         const effective = getEffectiveSourceType(
@@ -268,6 +265,7 @@ function useStructurallyProcessedEdges({
       if (targetNode && normalizedTargetHandle) {
         if (isForwardInput(targetNode.type, normalizedTargetHandle)) {
           targetTypeSlug = sourceTypeSlug;
+          targetColor = sourceColor;
         } else if (targetNode.type) {
           const targetMetadata = getMetadata(targetNode.type);
           if (targetMetadata) {
@@ -283,19 +281,11 @@ function useStructurallyProcessedEdges({
                         dataTypeBySlug.get(typeString);
               if (t) {
                 targetTypeSlug = t.slug;
+                targetColor = t.color || defaultColor;
               }
             }
           }
         }
-      }
-
-      let strokeStyle: string;
-      if (sourceTypeSlug === targetTypeSlug) {
-        strokeStyle = sourceColor;
-      } else {
-        const gradientKey = `gradient-${sourceTypeSlug}-${targetTypeSlug}`;
-        strokeStyle = `url(#${gradientKey})`;
-        activeGradientKeys.add(gradientKey);
       }
 
       const classes: string[] = [];
@@ -326,7 +316,9 @@ function useStructurallyProcessedEdges({
         className: [edge.className, ...classes].filter(Boolean).join(" "),
         style: {
           ...edge.style,
-          stroke: strokeStyle,
+          // An edge between two types is drawn as a gradient by CustomEdge,
+          // which owns the edge's geometry; the source color is the fallback.
+          stroke: sourceColor,
           // A4: unselected edges use 1.5px stroke. Selected edges are
           // promoted to 2px + glow in CustomEdge (CSS controls hover/selected).
           strokeWidth: 1.5,
@@ -335,12 +327,14 @@ function useStructurallyProcessedEdges({
         data: {
           ...edge.data,
           dataTypeLabel: sourceTypeLabel,
-          sourceTypeColor: sourceColor
+          sourceTypeColor: sourceColor,
+          targetTypeColor:
+            sourceTypeSlug === targetTypeSlug ? sourceColor : targetColor
         }
       };
     });
 
-    const result = { processedEdges: processedResultEdges, activeGradientKeys };
+    const result = { processedEdges: processedResultEdges };
     lastResultRef.current = result;
     // Reference nodesStructureKey to satisfy eslint and document it as an intentional dependency.
     void nodesStructureKey;
@@ -401,7 +395,7 @@ export function useProcessedEdges({
   );
 
   return useMemo(() => {
-    const { processedEdges: structuralEdges, activeGradientKeys } = structuralResult;
+    const { processedEdges: structuralEdges } = structuralResult;
     const nextCache = new Map<string, {
       structural: Edge;
       status: string | undefined;
@@ -474,14 +468,13 @@ export function useProcessedEdges({
     const prev = prevStatusResultRef.current;
     if (
       prev &&
-      prev.activeGradientKeys === activeGradientKeys &&
       prev.processedEdges.length === processedEdges.length &&
       prev.processedEdges.every((e, i) => e === processedEdges[i])
     ) {
       return prev;
     }
 
-    const result = { processedEdges, activeGradientKeys };
+    const result = { processedEdges };
     prevStatusResultRef.current = result;
     return result;
   }, [structuralResult, workflowId, focusedJobId, edgeStatuses, nodeStatuses]);

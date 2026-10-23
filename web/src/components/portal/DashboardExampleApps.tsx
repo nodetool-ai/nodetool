@@ -2,17 +2,17 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
-import useOnboardingStore from "../../stores/OnboardingStore";
 import { BASE_URL } from "../../stores/BASE_URL";
+import { useOpenExampleApp } from "../../hooks/useOpenExampleApp";
 import {
   listExampleApps,
   type ExampleAppSummary
 } from "../../utils/exampleApps";
-import { runsAsIsFirst } from "../../utils/exampleNeeds";
+import { fewestNeedsFirst } from "../../utils/exampleNeeds";
+import { matchesSearch } from "../../utils/matchesSearch";
 import {
   AutoGrid,
   EditorButton,
@@ -25,8 +25,13 @@ import {
   selectableTileStyles,
   Tooltip
 } from "../ui_primitives";
-import { useSectionWrap, DashboardSectionHeader } from "./dashboardChrome";
+import {
+  useSectionWrap,
+  DashboardSectionHeader,
+  DashboardSearchBox
+} from "./dashboardChrome";
 import ExampleNeedsPill from "./ExampleNeedsPill";
+import MatchingWorkflows from "./MatchingWorkflows";
 
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
@@ -182,19 +187,8 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   const theme = useTheme();
   const { t } = useTranslation();
   const sectionWrap = useSectionWrap();
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const handleUse = useCallback(
-    (app: ExampleAppSummary) => {
-      openTab({
-        type: "example-app",
-        ref: app.slug,
-        mode: "view",
-        title: app.name
-      });
-      useOnboardingStore.getState().markStep("keep-creating");
-    },
-    [openTab]
-  );
+  const handleUse = useOpenExampleApp();
+  const [query, setQuery] = useState("");
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: EXAMPLE_APPS_QUERY_KEY,
@@ -202,12 +196,30 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
     staleTime: Infinity
   });
 
+  // Simplest first: fewest kinds of model, then fewest workflows. In study 12
+  // a four-workflow kit that asks for a product photo led the tab and was
+  // opened and left before the one-workflow Model Arena.
   const apps = useMemo(
-    () => runsAsIsFirst(data ?? [], (app) => app.needs),
+    () =>
+      fewestNeedsFirst(
+        [...(data ?? [])].sort(
+          (a, b) => a.workflows.length - b.workflows.length
+        ),
+        (app) => app.needs
+      ),
     [data]
   );
-  const countLabel = t("pass3_16.portal.apps.count", { count: apps.length });
-  const visibleApps = compact ? apps.slice(0, 4) : apps;
+  const matchingApps = useMemo(
+    () =>
+      apps.filter((app) =>
+        matchesSearch(`${app.name} ${app.description}`, query)
+      ),
+    [apps, query]
+  );
+  const countLabel = t("pass3_16.portal.apps.count", {
+    count: matchingApps.length
+  });
+  const visibleApps = compact ? apps.slice(0, 4) : matchingApps;
 
   return (
     <section
@@ -219,6 +231,14 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
           title={t("pass3_16.portal.apps.title")}
           count={countLabel}
         >
+          {!compact && (
+            <DashboardSearchBox
+              value={query}
+              onChange={setQuery}
+              placeholder={t("pass3_16.portal.apps.searchPlaceholder")}
+              aria-label={t("pass3_16.portal.apps.searchLabel")}
+            />
+          )}
           {compact && onBrowseAll && apps.length > visibleApps.length && (
             <EditorButton
               variant="text"
@@ -230,6 +250,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
           )}
         </DashboardSectionHeader>
         <p className="apps-lede">{t("pass3_16.portal.apps.description")}</p>
+        {!compact && <MatchingWorkflows query={query} />}
         {isLoading ? (
           <div className="apps-loading">
             <LoadingSpinner
@@ -253,6 +274,15 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
               variant="no-data"
               title={t("pass3_16.portal.apps.emptyTitle")}
               description={t("pass3_16.portal.apps.emptyDescription")}
+            />
+          </div>
+        ) : visibleApps.length === 0 ? (
+          <div className="apps-empty">
+            <EmptyState
+              variant="no-results"
+              title={t("pass3_16.portal.apps.noSearchResultsTitle")}
+              actionText={t("pass3_16.portal.apps.clearSearch")}
+              onAction={() => setQuery("")}
             />
           </div>
         ) : (

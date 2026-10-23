@@ -6,14 +6,10 @@ import { useTheme } from "@mui/material/styles";
 import {
   Divider,
   MobileBottomSheet,
-  BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
+  ListGroup,
+  ListItemRow,
   ListSubheader,
   menuGroupHeaderStyles
 } from "../ui_primitives";
@@ -45,18 +41,9 @@ const styles = (theme: Theme) =>
   css({
     padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
     ".menu-item": {
-      borderRadius: BORDER_RADIUS.lg,
-      margin: `${getSpacingPx(SPACING.micro)} 0`,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover
-      },
-      "&.disabled": {
-        opacity: 0.5,
-        pointerEvents: "none"
-      }
+      margin: `${getSpacingPx(SPACING.micro)} 0`
     },
-    ".menu-item-icon": {
-      minWidth: "40px",
+    ".menu-item .MuiListItemIcon-root": {
       color: theme.vars.palette.text.secondary
     },
     "& .MuiListSubheader-root": {
@@ -132,12 +119,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
   }, [handleAction, createNode, addNode, getViewportCenter]);
 
   const addInputNode = useCallback(
-    (event: React.MouseEvent) => {
-      const target = event.currentTarget as HTMLElement;
-      const nodeType = target.dataset.nodeType;
-      if (!nodeType) {
-        return;
-      }
+    (nodeType: string) => {
       handleAction(() => {
         const metadata = useMetadataStore
           .getState()
@@ -173,147 +155,92 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
       ariaLabel={t("screens4_4.mobilePane.ariaLabel")}
     >
       <div className="menu-content" css={styles(theme)}>
-        <List dense>
+        <ListGroup compact>
           <ListSubheader disableSticky>{t("screens4_4.mobilePane.actions")}</ListSubheader>
-          <ListItem className={`menu-item ${!isClipboardValid ? "disabled" : ""}`}>
-            <ListItemButton onClick={handlePasteAction} disabled={!isClipboardValid}>
-              <ListItemIcon className="menu-item-icon">
-                <SouthEastIcon />
-              </ListItemIcon>
-              <ListItemText 
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.paste")}
-                secondary={!isClipboardValid ? t("screens4_4.mobilePane.noValidNodes") : t("screens4_4.mobilePane.pasteCopiedNodes")}
-              />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem className="menu-item">
-            <ListItemButton onClick={handleFitScreen}>
-              <ListItemIcon className="menu-item-icon">
-                <FitScreenIcon />
-              </ListItemIcon>
-              <ListItemText 
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.fitScreen")}
-                secondary={t("screens4_4.mobilePane.centerNodes")}
-              />
-            </ListItemButton>
-          </ListItem>
+          <ListItemRow
+            className="menu-item"
+            onClick={handlePasteAction}
+            disabled={!isClipboardValid}
+            icon={<SouthEastIcon />}
+            primary={t("screens4_4.mobilePane.paste")}
+            secondary={!isClipboardValid ? t("screens4_4.mobilePane.noValidNodes") : t("screens4_4.mobilePane.pasteCopiedNodes")}
+          />
+          <ListItemRow
+            className="menu-item"
+            onClick={handleFitScreen}
+            icon={<FitScreenIcon />}
+            primary={t("screens4_4.mobilePane.fitScreen")}
+            secondary={t("screens4_4.mobilePane.centerNodes")}
+          />
 
           <Divider sx={dividerSx} />
 
           <ListSubheader disableSticky>{t("screens4_4.mobilePane.aiNodes")}</ListSubheader>
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addAgentNode}>
-              <ListItemIcon className="menu-item-icon">
-                <SupportAgentIcon />
-              </ListItemIcon>
-              <ListItemText 
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.addAgent")}
-                secondary={t("screens4_4.mobilePane.agentDescription")}
-              />
-            </ListItemButton>
-          </ListItem>
+          <ListItemRow
+            className="menu-item"
+            onClick={addAgentNode}
+            icon={<SupportAgentIcon />}
+            primary={t("screens4_4.mobilePane.addAgent")}
+            secondary={t("screens4_4.mobilePane.agentDescription")}
+          />
 
           <Divider sx={dividerSx} />
 
           <ListSubheader disableSticky>{t("screens4_4.mobilePane.inputNodes")}</ListSubheader>
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode} data-node-type="StringInput">
-              <ListItemIcon className="menu-item-icon">
-                <TextFieldsIcon />
-              </ListItemIcon>
-              <ListItemText
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.stringInput")}
-                secondary={t("screens4_4.mobilePane.textInputDescription")}
-              />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode} data-node-type="IntegerInput">
-              <ListItemIcon className="menu-item-icon">
-                <NumbersIcon />
-              </ListItemIcon>
-              <ListItemText
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.integerInput")}
-                secondary={t("screens4_4.mobilePane.wholeNumberDescription")}
-              />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode} data-node-type="FloatInput">
-              <ListItemIcon className="menu-item-icon">
-                <NumbersIcon />
-              </ListItemIcon>
-              <ListItemText
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.floatInput")}
-                secondary={t("screens4_4.mobilePane.decimalNumberDescription")}
-              />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode} data-node-type="ChatInput">
-              <ListItemIcon className="menu-item-icon">
-                <ChatIcon />
-              </ListItemIcon>
-              <ListItemText
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.chatInput")}
-                secondary={t("screens4_4.mobilePane.chatMessageDescription")}
-              />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addInputNode} data-node-type="ImageInput">
-              <ListItemIcon className="menu-item-icon">
-                <ImageIcon />
-              </ListItemIcon>
-              <ListItemText
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.imageInput")}
-                secondary={t("screens4_4.mobilePane.imageFileDescription")}
-              />
-            </ListItemButton>
-          </ListItem>
+          <ListItemRow
+            className="menu-item"
+            onClick={() => addInputNode("StringInput")}
+            icon={<TextFieldsIcon />}
+            primary={t("screens4_4.mobilePane.stringInput")}
+            secondary={t("screens4_4.mobilePane.textInputDescription")}
+          />
+          <ListItemRow
+            className="menu-item"
+            onClick={() => addInputNode("IntegerInput")}
+            icon={<NumbersIcon />}
+            primary={t("screens4_4.mobilePane.integerInput")}
+            secondary={t("screens4_4.mobilePane.wholeNumberDescription")}
+          />
+          <ListItemRow
+            className="menu-item"
+            onClick={() => addInputNode("FloatInput")}
+            icon={<NumbersIcon />}
+            primary={t("screens4_4.mobilePane.floatInput")}
+            secondary={t("screens4_4.mobilePane.decimalNumberDescription")}
+          />
+          <ListItemRow
+            className="menu-item"
+            onClick={() => addInputNode("ChatInput")}
+            icon={<ChatIcon />}
+            primary={t("screens4_4.mobilePane.chatInput")}
+            secondary={t("screens4_4.mobilePane.chatMessageDescription")}
+          />
+          <ListItemRow
+            className="menu-item"
+            onClick={() => addInputNode("ImageInput")}
+            icon={<ImageIcon />}
+            primary={t("screens4_4.mobilePane.imageInput")}
+            secondary={t("screens4_4.mobilePane.imageFileDescription")}
+          />
 
           <Divider sx={dividerSx} />
 
           <ListSubheader disableSticky>{t("screens4_4.mobilePane.organization")}</ListSubheader>
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addComment}>
-              <ListItemIcon className="menu-item-icon">
-                <AddCommentIcon />
-              </ListItemIcon>
-              <ListItemText 
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.addComment")}
-                secondary={t("screens4_4.mobilePane.commentDescription")}
-              />
-            </ListItemButton>
-          </ListItem>
-
-          <ListItem className="menu-item">
-            <ListItemButton onClick={addGroupNode}>
-              <ListItemIcon className="menu-item-icon">
-                <GroupWorkIcon />
-              </ListItemIcon>
-              <ListItemText
-                className="menu-item-text"
-                primary={t("screens4_4.mobilePane.addGroup")}
-                secondary={t("screens4_4.mobilePane.groupDescription")}
-              />
-            </ListItemButton>
-          </ListItem>
-        </List>
+          <ListItemRow
+            className="menu-item"
+            onClick={addComment}
+            icon={<AddCommentIcon />}
+            primary={t("screens4_4.mobilePane.addComment")}
+            secondary={t("screens4_4.mobilePane.commentDescription")}
+          />
+          <ListItemRow
+            className="menu-item"
+            onClick={addGroupNode}
+            icon={<GroupWorkIcon />}
+            primary={t("screens4_4.mobilePane.addGroup")}
+            secondary={t("screens4_4.mobilePane.groupDescription")}
+          />
+        </ListGroup>
       </div>
     </MobileBottomSheet>
   );

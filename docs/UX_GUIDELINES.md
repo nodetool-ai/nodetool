@@ -10,7 +10,7 @@ description: "NodeTool UX guidelines — rules for entry points, models, saving,
 **Navigation**: [Root AGENTS.md](../AGENTS.md) | [Design System](DESIGN.md) | [Brand & Verbal Guidelines](BRAND.md) → **UX Guidelines**
 
 How a NodeTool screen should behave for someone who has never seen it. The
-rules come from UX research studies 1 to 7: 89 blind agent sessions on a
+rules come from the UX research studies: blind agent sessions on a
 disposable copy of the app, each working out the UI from screenshots. Every
 rule cites the insight it comes from. The insight log, with evidence counts
 and current status, is
@@ -71,6 +71,10 @@ first sessions. People ask the chat instead of scrolling.
   3 of 3 each (`study-10-I2`). It is missed when a first-screen card
   matches better: 0 of 3 who wanted a picture per scene opened it, and all
   took "Create video" (`study-10-I1`).
+- People who want something ready-made unfold that bar too: 5 of 9 did, and
+  the 3 whose job was a text rewrite asked the chat when no example was
+  there. With a "Ready-made examples" card in it, 8 of 8 reached the
+  examples (`study-13-I1`).
 - Unfolding a list scrolls what it reveals into view. At 1280 × 720 the only
   new thing in view was an unlabelled control (`study-10-I3`).
 
@@ -82,6 +86,17 @@ project. Every route the change adds must be visible or announced there.
 An example that stops on a setup step reads as broken. A card that says
 "Runs as is" is chosen on that word (`study-2-I2`). Badge each
 example with what it needs, and list the ones that run as they are first.
+When none runs as is, list the ones that need the least setup first: the
+Apps tab opened on ad-format apps needing two kinds of model, and 0 of 9
+participants used an example app (`study-12-I1`). Once opened, an
+example's note names the field that sets its behavior. 3 of 3 who turned a
+German translator into a French one had to find "German" in a System field
+nothing pointed to (`study-13-I4`). A description also says what the item
+does not take: 3 of 3 who wanted an ad from their own photo opened Ad Maker
+first and learned only at its second step that it takes no photo
+(`study-14-I3`). Every field an example app shows reaches its run. 17 of 33
+apps dropped their named parameters, so a chosen model read as missing
+(`study-14-I1`).
 
 ### 1.5 Label navigation, and put Settings and Help where people look
 
@@ -117,7 +132,9 @@ shipped, the picture flow's image model stayed blank and failed a session
 Video flow's voice (study 10, D1), then the storyboard's per-shot render
 dialog while its batch dialog was filled (`study-11-I4`).
 A new model kind, a new picker or a new flow reads the Settings default for
-its kind, and connecting a provider seeds that default.
+its kind, and connecting a provider seeds that default. An example app's model
+fields are pickers too: people picked the same model in four fields
+(`study-12-R2`).
 
 ### 2.3 Show which model is current, the same way everywhere
 
@@ -131,6 +148,11 @@ model with the same mark.
 With no provider, a picker that opened on 14 GB local downloads sent 2 of 2
 participants searching before they found "Add providers" at the bottom
 (`study-3-I5`). Its first row offers an API key.
+
+When the step needs a capability only some providers have, such as removing
+a background, the setup offers only those providers and says why. Offered
+every image provider, 2 of 2 connected OpenAI, and the picker reopened the
+same dialog until the budget ran out (`study-12-I4`).
 
 ### 2.5 A filter filters everything in the list
 
@@ -191,6 +213,10 @@ worked, at about 7 actions each (`study-6-I9`). The default name
 was not selected, so replacing it cost 2 more actions. After a create, the
 new item is on screen with its name selected.
 
+Opening an example makes a copy with the example's name. Say that it is a
+copy and that the example is unchanged: 3 of 3 who changed an example could
+not tell whether saving had changed the original (`study-12-I5`).
+
 The same holds on the canvas. Nodes added from the toolbar's menu all landed
 at the window's top left, under the tab bar and on the node before, and 2 of
 3 spent up to 10 actions moving them apart (`study-9-I1`). A new node lands
@@ -201,7 +227,9 @@ in view and clear of the nodes already there.
 A dot on the bell was the only confirmation for 2 of 2 who pressed "Save to
 image" (`study-5-I5`), and an export that finished without a message left
 only the browser's download bar (study 3, D12). Say it in a toast or inline,
-and name the file.
+and name the file. A save never reports itself as a change made elsewhere:
+the app editor raised "changed outside the editor" on every Save, and the
+person clicked Discard, unsure which button kept the edit (`study-14-I5`).
 
 ### 3.6 Keep undo on every removal
 
@@ -255,6 +283,8 @@ run, an empty output reads "The last run sent nothing here".
   (`study-4-I2`).
 - A failed storyboard download showed `{"detail":"Not found"}`, and 3 of 3
   could not tell what was missing (`study-11-I3`).
+- A failed example app step said only "Example app operation failed"
+  (`study-14-I2`). Show the reason the server gave.
 
 An error message names the cause in the person's terms and the next action.
 It never shows encoder strings, stack traces, storage paths or model ids as
@@ -273,6 +303,14 @@ control the message is about.
 and read "No matching documents" as "not there" (`study-7-I5`).
 No-match text names its scope and where else to look.
 
+A search matches other forms of a word ("compare" finds "comparison"), and
+a gallery's search names matches on its sibling tabs. 3 of 3 searched the
+workflow examples for "compare" and missed Model Arena, and 6 of 9 searched
+a tab that held no apps (`study-12-I1`, `study-12-I2`). An example's
+description uses the words people search with for its job, not only the
+product's: "email" missed a "support thread" example in 2 of 2, and
+"simple" and "simplify" missed a "plain language" one (`study-13-I2`).
+
 ### 4.7 A disabled control says why
 
 "Create" stayed grey with no reason until an unmarked field was filled
@@ -280,6 +318,10 @@ No-match text names its scope and where else to look.
 (study 6 defects). A storyboard's grey "Preview" was pressed by 3 of 3, who
 could not tell it was off (`study-11-I2`). Mark required fields, and give a disabled primary action a
 reason the person can read without hovering.
+
+The same holds for a run the app blocks. A run stopped for a missing model
+said so only in the notification bell, and 3 of 3 who pressed it saw
+nothing happen (`study-12-I3`). Show the reason as a toast as well.
 
 ## 5. Words on screen
 
@@ -339,6 +381,10 @@ Test every new surface at 1280 × 720, 1366 × 768, 1024 × 768 and 960 × 1000
   defects). A menu stays inside the window and shows that it scrolls.
 - Toasts covered getting-started chips, the inspector and the run button
   (studies 3, 4 and 6 defects).
+- An editor with a time axis opens with all of its content in view. A
+  timeline opened on its last seconds, and 0 of 3 found the clips to shorten
+  (`study-14-I4`). Fit after the layout settles: the lanes measured 784 px
+  while the dock laid out and about 300 px after it.
 
 The narrow-width behavior is still under research. Until it is decided, a
 panel must not cover the control the person opened it to use.
@@ -361,6 +407,8 @@ Studies confirmed these. Keep them when changing the surrounding UI.
 | The App flow opening the built app in its run view, with the build's stages listed | `study-8-I2`, `study-8-I4`, study 10 3 of 3 |
 | Clicking a node to open its settings in the side panel | `study-9-I5`, 3 of 3 in 9 actions |
 | Dragging from dot to dot to connect, and the status bar's edge count as confirmation | `study-9-I6`, 5 of 5 |
+| An example's "How it works" note naming its numbered nodes, read to say what it needs and where its result appears | `study-13-I3`, 5 of 5 |
+| The Examples Games tab, with control hints on the game's first screen | `study-14-I6`, 4 of 4 |
 
 ## 9. Open questions
 

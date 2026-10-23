@@ -264,22 +264,13 @@ describe("StoryboardSurface setup stages", () => {
     expect(screen.getByTestId("agent-panel")).toBeInTheDocument();
   });
 
-  it("opens the guarded shot editor target from the queue", async () => {
+  it("leaves the render queue to the bottom panel on wide screens", () => {
     seedBoard("done");
     renderSurface();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Review completed takes" })
-    );
-
-    expect(screen.getByTestId("board")).toHaveAttribute(
-      "data-review-shot",
-      "shot-review"
-    );
-    expect(screen.getByTestId("board")).toHaveAttribute(
-      "data-review-request",
-      "request-review"
-    );
+    expect(
+      screen.queryByRole("button", { name: "Review completed takes" })
+    ).not.toBeInTheDocument();
   });
 
   it("reveals the board pane before opening a completed take on mobile", async () => {

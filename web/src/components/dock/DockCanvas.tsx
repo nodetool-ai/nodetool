@@ -29,6 +29,8 @@ interface DockCanvasProps {
   readonly eagerPanels?: readonly string[];
   /** Height, in px, added to the bottom region for now. Not stored: the saved size is untouched. */
   readonly extraBottom?: number;
+  /** Draws the groups without tab strips, for a canvas that shows one panel with no chrome, such as a phone layout. */
+  readonly tabless?: boolean;
 }
 
 /** The panel being dragged and where it would land if released now. */
@@ -59,7 +61,7 @@ function useElementSize(): [(node: HTMLElement | null) => void, { width: number;
   return [ref, size];
 }
 
-export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extraBottom = 0 }: DockCanvasProps): ReactNode {
+export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extraBottom = 0, tabless = false }: DockCanvasProps): ReactNode {
   const { t } = useTranslation();
   const root = useRef<HTMLDivElement | null>(null);
   const [slots, setSlots] = useState<ReadonlyMap<string, HTMLElement>>(new Map());
@@ -182,7 +184,7 @@ export function DockCanvas({ presentation, store, maximizeRef, eagerPanels, extr
   }, [dragging, endDrag, hitTest]);
 
   const renderGroup = (group: DockLayoutGroup, region: DockRegion): ReactNode => <DockGroup key={group.id} group={group} region={region}
-    presentation={presentation} store={store} setSlot={setSlot} drag={drag} onDragStart={startDrag}
+    presentation={presentation} store={store} setSlot={setSlot} drag={drag} onDragStart={startDrag} tabless={tabless}
     maximized={maximized === group.id} onToggleMaximize={() => maximize.current?.toggle(group.id)} />;
 
   const widthMaximum = Math.max(100, Math.min(1600, bounds.width / 3));

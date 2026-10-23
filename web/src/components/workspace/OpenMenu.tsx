@@ -20,6 +20,7 @@ import {
   type NewDocumentSubmenu
 } from "./newDocumentCatalog";
 import { useGuidedFlowStarters } from "./useGuidedFlowStarters";
+import { MEDIA_MODES } from "../chat/composer/mediaModes";
 
 interface OpenMenuProps {
   anchorEl: HTMLElement | null;
@@ -93,6 +94,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
 
   const {
     entries,
+    createChat,
     createTextFile,
     createBlankStoryboard,
     installStoryboardExample,
@@ -185,6 +187,24 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             onClick={() =>
               entry.submenu ? setView(entry.submenu) : void entry.create?.()
             }
+            disabled={busy}
+          />
+        ))
+      ]}
+
+      {view === "chats" && [
+        backRow,
+        // Modes marked "Soon" in the composer have nothing to start yet.
+        ...MEDIA_MODES.filter((mode) => mode.enabled).map((mode) => (
+          <MenuItemPrimitive
+            key={mode.id}
+            label={t(`i18n-next22.chat.composer.mediaMode.modes.${mode.labelKey}`)}
+            secondary={
+              mode.descriptionKey &&
+              t(`i18n-next22.chat.composer.mediaMode.modes.${mode.descriptionKey}`)
+            }
+            icon={mode.icon}
+            onClick={() => void createChat(mode.id)}
             disabled={busy}
           />
         ))

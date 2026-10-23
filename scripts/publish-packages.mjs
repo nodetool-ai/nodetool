@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Publish every public workspace package to npm, one at a time, idempotently.
+ * Publish every public workspace package to npm, idempotently.
  *
  * `npm publish --workspaces` aborts on the first package that fails. That is
  * how the 0.7.0-rc.24..rc.40 releases died: the first workspace in the list
@@ -9,9 +9,10 @@
  * whatever did publish before the failure now returns EPUBLISHCONFLICT and
  * kills the retry at that package instead.
  *
- * This script publishes in dependency order, treats "this exact version is
- * already on the registry" as success, and exits non-zero at the end if
- * anything failed. Re-running after a partial publish finishes the job.
+ * This script publishes in dependency order, with independent packages in
+ * parallel. It treats "this exact version is already on the registry" as
+ * success, and exits non-zero at the end if anything failed. Re-running after
+ * a partial publish finishes the job.
  *
  * A package whose workspace dependency failed is not published. The 0.8.2
  * release published `cli` and `agents` after `app-runtime` failed, so the
@@ -27,11 +28,11 @@
 import { readFileSync, readdirSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { tmpdir } from "node:os";
 import { pack, existingTarballs } from "./smoke-packed-cli.mjs";
 import { catalogPackageNames, runReleaseCommand, tarballIntegrity, writeReleasePinnedCatalog } from "./release/pin-catalog.mjs";
+import { createLimiter, runReleaseCommandAsync, spawnCapture, timed } from "./release/commands.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
@@ -57,6 +58,12 @@ export function classifyPublishResult(status, output) {
   }
   return "failed";
 }
+
+/**
+ * Concurrent `npm publish` calls. Each one spends most of its time on the
+ * provenance signature and the registry upload, so a handful overlap well.
+ */
+const PUBLISH_CONCURRENCY = 6;
 
 const DEP_FIELDS = ["dependencies", "optionalDependencies", "peerDependencies"];
 
@@ -103,6 +110,29 @@ export function unmetDeps(pkg, available) {
   return pkg.deps.filter((d) => !available.has(d));
 }
 
+/**
+ * Publish each package once its workspace dependencies are available, running
+ * up to `limit` at once. A package whose dependency did not become available
+ * is passed to `onBlocked` instead, so the registry never holds a version that
+ * points at a missing one.
+ */
+export async function publishInDependencyOrder(packages, available, limit, publish, onBlocked) {
+  const run = createLimiter(limit);
+  const settled = new Map();
+  for (const pkg of packages) {
+    settled.set(pkg.name, (async () => {
+      await Promise.all(pkg.deps.map(dep => settled.get(dep)));
+      const unmet = unmetDeps(pkg, available);
+      if (unmet.length > 0) {
+        onBlocked(pkg, unmet);
+        return;
+      }
+      await run(() => publish(pkg));
+    })());
+  }
+  await Promise.all(settled.values());
+}
+
 /** Packing has a catalog boundary independent of the later publish dependency order. */
 export async function packRelease(packages, dest, {
   root = ROOT,
@@ -143,7 +173,7 @@ export function assertPublishTag(tag, dryRun = false) {
   }
 }
 
-export async function stageExistingVersion(name, version, run = runReleaseCommand) {
+export async function stageExistingVersion(name, version, run = runReleaseCommandAsync) {
   await run("npm", ["dist-tag", "add", `${name}@${version}`, "staging"], { cwd: ROOT });
 }
 
@@ -197,12 +227,8 @@ skipping versions already present on the registry.
   }
 
   /** True when name@version is already on the registry. */
-  function alreadyPublished(name, version) {
-    const res = spawnSync(
-      "npm",
-      ["view", `${name}@${version}`, "version", "--json"],
-      { encoding: "utf8" }
-    );
+  async function alreadyPublished(name, version) {
+    const res = await spawnCapture("npm", ["view", `${name}@${version}`, "version", "--json"]);
     return res.status === 0 && res.stdout.trim() !== "";
   }
 
@@ -238,26 +264,24 @@ skipping versions already present on the registry.
     /** Packages whose current version is on the registry (or would be, in a dry run). */
     const available = new Set();
 
-    for (const pkg of packages) {
-      const { name, version } = pkg;
-      const unmet = unmetDeps(pkg, available);
-      if (unmet.length > 0) {
-        console.error(`BLOCK   ${name}@${version} (needs ${unmet.join(", ")})`);
-        blocked.push(`${name}@${version}`);
-        continue;
+    /** Point staging at a version an earlier run already published. */
+    async function stageSkipped(name, version) {
+      console.log(`skip    ${name}@${version} (already on registry)`);
+      try {
+        if (!values["dry-run"]) { await stageExistingVersion(name, version); }
+        skipped.push(`${name}@${version}`);
+        available.add(name);
+      } catch (error) {
+        console.error(`FAIL    ${name}@${version} staging tag`);
+        failed.push({ name: `${name}@${version}`, output: error.message });
       }
+    }
 
-      if (!values["dry-run"] && alreadyPublished(name, version)) {
-        console.log(`skip    ${name}@${version} (already on registry)`);
-        try {
-          await stageExistingVersion(name, version);
-          skipped.push(`${name}@${version}`);
-          available.add(name);
-        } catch (error) {
-          console.error(`FAIL    ${name}@${version} staging tag`);
-          failed.push({ name: `${name}@${version}`, output: error.message });
-        }
-        continue;
+    async function publishOne(pkg) {
+      const { name, version } = pkg;
+      if (!values["dry-run"] && await alreadyPublished(name, version)) {
+        await stageSkipped(name, version);
+        return;
       }
 
       const args = [
@@ -272,8 +296,8 @@ skipping versions already present on the registry.
       ];
       if (values["dry-run"]) args.push("--dry-run");
 
-      const res = spawnSync("npm", args, { cwd: ROOT, encoding: "utf8" });
-      const output = `${res.stdout ?? ""}${res.stderr ?? ""}`;
+      const res = await spawnCapture("npm", args, { cwd: ROOT });
+      const output = `${res.stdout}${res.stderr}`;
 
       switch (classifyPublishResult(res.status, output)) {
         case "published":
@@ -282,15 +306,7 @@ skipping versions already present on the registry.
           available.add(name);
           break;
         case "skipped":
-          console.log(`skip    ${name}@${version} (already on registry)`);
-          try {
-            if (!values["dry-run"]) { await stageExistingVersion(name, version); }
-            skipped.push(`${name}@${version}`);
-            available.add(name);
-          } catch (error) {
-            console.error(`FAIL    ${name}@${version} staging tag`);
-            failed.push({ name: `${name}@${version}`, output: error.message });
-          }
+          await stageSkipped(name, version);
           break;
         default:
           console.error(`FAIL    ${name}@${version}`);
@@ -298,6 +314,13 @@ skipping versions already present on the registry.
           failed.push({ name: `${name}@${version}`, output: output.trim() });
       }
     }
+
+    await timed(`publish ${packages.length} packages`, () =>
+      publishInDependencyOrder(packages, available, PUBLISH_CONCURRENCY, publishOne, (pkg, unmet) => {
+        console.error(`BLOCK   ${pkg.name}@${pkg.version} (needs ${unmet.join(", ")})`);
+        blocked.push(`${pkg.name}@${pkg.version}`);
+      })
+    );
 
     console.log(
       `\npublished ${published.length}, skipped ${skipped.length}, ` +

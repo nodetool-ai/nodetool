@@ -341,9 +341,8 @@ Preserve these patterns when fixing the above:
 - Audio streaming is fully coalesced (200ms batches, single-copy append,
   rolling caps, React-free worklet fast path) — the template for text streams.
 - Connection drag writes no store state per pointermove; the connectability
-  matrix is precomputed at metadata load; `EdgeGradientDefinitions` renders one
-  gradient per active type pair with stabilized keys; `CustomEdge`/`ControlEdge`
-  have explicit memo comparators.
+  matrix is precomputed at metadata load; `CustomEdge`/`ControlEdge` have
+  explicit memo comparators.
 - `AxisMarker` and `GhostNode` handle per-frame updates via refs/rAF with zero
   React re-renders; viewport is persisted only on `onMoveEnd`; drag
   intersection checks are throttled to 50ms.

@@ -1,7 +1,7 @@
 ---
 layout: page
-title: "TypeScript DSL Guide"
-description: "Define NodeTool workflows programmatically using type-safe TypeScript factory functions."
+title: "TypeScript DSL: Build Workflows in Code"
+description: "Write NodeTool workflows in TypeScript with @nodetool-ai/dsl: typed node factories, IDE autocompletion, and the same JSON graph the visual editor opens."
 ---
 
 The TypeScript DSL (`@nodetool-ai/dsl`) provides type-safe factory functions for building NodeTool workflows in code. Define workflows programmatically with full IDE autocompletion, then serialize them to the same JSON format used by the visual editor.

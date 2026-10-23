@@ -161,8 +161,16 @@ jobs:
     if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
     strategy:
       fail-fast: false
+      # macOS builds one architecture per job. Each app waits several minutes
+      # for Apple notarization, and separate jobs overlap those waits.
       matrix:
-        os: [windows-2022, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-2022
+          - os: ubuntu-latest
+          - os: macos-latest
+            arch: x64
+          - os: macos-latest
+            arch: arm64
 
     runs-on: ${{ matrix.os }}
 
@@ -660,13 +668,29 @@ jobs:
           npm run prepare-backend
           npm run prepare-mcpb
           npm run prepare-chrome-extension
-          npx electron-builder --config electron-builder.json --publish never
+          # Explicit CLI targets replace the config's two-arch mac targets.
+          npx electron-builder --config electron-builder.json ${{ matrix.arch && format('--mac zip dmg --{0}', matrix.arch) || '' }} --publish never
 
-      # See the Windows step above. Only the first matching layout is booted:
-      # on macOS the x64 app is cross-built on an arm64 runner, and its bundled
-      # Node can't run natively there.
+      # Each macOS job writes its own updater manifest. Rename it per arch so
+      # the merged artifact download keeps both; the publish job merges them.
+      - name: Rename macOS updater manifest per arch
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          manifests=(electron/dist/*-mac.yml)
+          if [ "${#manifests[@]}" -ne 1 ]; then
+            echo "::error::Expected one macOS updater manifest, found ${#manifests[@]}"
+            exit 1
+          fi
+          mv "${manifests[0]}" "${manifests[0]%.yml}-${{ matrix.arch }}.yml"
+
+      # See the Windows step above. The x64 macOS app is cross-built on an
+      # arm64 runner, and its bundled Node can't run natively there, so only
+      # the arm64 job boots its backend.
       - name: Smoke-boot packaged backend (macOS/Linux)
-        if: matrix.os != 'windows-2022'
+        if: matrix.os != 'windows-2022' && matrix.arch != 'x64'
         shell: bash
         run: |
           set -euo pipefail
@@ -687,7 +711,7 @@ jobs:
       # F2) — see the Windows step's comment above; same per-OS packed tree,
       # same candidate-search pattern as the smoke-boot step just above.
       - name: Reliability Ring 2 packed-backend journey (macOS/Linux)
-        if: matrix.os != 'windows-2022'
+        if: matrix.os != 'windows-2022' && matrix.arch != 'x64'
         shell: bash
         run: |
           set -euo pipefail
@@ -885,7 +909,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: electron-${{ matrix.os }}
+          name: electron-${{ matrix.os }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
           retention-days: 7
           if-no-files-found: ignore
           path: |
@@ -975,6 +999,9 @@ jobs:
           pattern: '*'
           merge-multiple: true
           path: release-assets
+
+      - name: Merge macOS updater manifests
+        run: node scripts/merge-mac-update-manifests.mjs release-assets
 
       - name: Validate release assets
         run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}"
