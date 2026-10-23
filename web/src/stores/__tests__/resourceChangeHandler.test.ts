@@ -79,6 +79,11 @@ describe("handleResourceChange", () => {
     flushResourceInvalidations();
     jest.clearAllMocks();
     setWorkflowResourceReloader(null);
+    jest.spyOn(document, "hasFocus").mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("refetches the workspace explorer when a run writes a file", () => {
@@ -159,6 +164,45 @@ describe("handleResourceChange", () => {
       mode: "edit",
       projectId: "proj-1"
     });
+  });
+
+  it("invalidates a created workflow without opening it in an unfocused window", async () => {
+    jest.spyOn(document, "hasFocus").mockReturnValue(false);
+
+    change({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-background" }
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
+    expect(resolveDocumentProject).not.toHaveBeenCalled();
+    expect(keyedInvalidations(["workflows"])).toBe(1);
+    expect(keyedInvalidations(["workflow", "wf-background"])).toBe(1);
+  });
+
+  it("does not open a workflow if the window loses focus during its fetch", async () => {
+    let resolveProject: (value: { id: string; projectId: string }) => void =
+      () => undefined;
+    (resolveDocumentProject as jest.Mock).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveProject = resolve;
+        })
+    );
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-focus-changed" }
+    });
+    jest.spyOn(document, "hasFocus").mockReturnValue(false);
+    resolveProject({ id: "wf-focus-changed", projectId: "proj-1" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
   });
 
   it("does not reopen a workflow that already has a tab", async () => {

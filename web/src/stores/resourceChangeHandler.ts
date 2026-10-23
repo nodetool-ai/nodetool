@@ -265,7 +265,8 @@ function invalidateTrpcProcedure(router: string, procedure: string): void {
 
 /**
  * A workflow created outside the editor (bundle import, API, agent) has no tab
- * and no editor store until something opens it. Opening the tab mounts the
+ * and no editor store until something opens it. Only the focused window opens
+ * it automatically. Opening the tab mounts the
  * editor, which is what makes the workflow editable. A workflow this page
  * created already has its surface: the guided Workflow flow keeps its draft in
  * a guided flow tab, and a second editor tab beside it was a stray "Untitled".
@@ -276,20 +277,20 @@ async function openCreatedWorkflowTab(id: string): Promise<void> {
     useWorkspaceTabsStore
       .getState()
       .tabs.some((tab) => tab.id === tabId("workflow", id));
-  if (hasSurface()) {
+  if (!document.hasFocus() || hasSurface()) {
     return;
   }
   try {
-    const document = await resolveDocumentProject("workflow", id);
-    // The event can arrive before this page's own create call returns.
-    if (hasSurface()) {
+    const resolvedDocument = await resolveDocumentProject("workflow", id);
+    // Focus can move while fetching, or this page's own create can return.
+    if (!document.hasFocus() || hasSurface()) {
       return;
     }
     useWorkspaceTabsStore.getState().openTab({
       type: "workflow",
-      ref: document.id,
+      ref: resolvedDocument.id,
       mode: "edit",
-      projectId: document.projectId ?? LOOSE_PROJECT_ID
+      projectId: resolvedDocument.projectId ?? LOOSE_PROJECT_ID
     });
   } catch (error) {
     console.warn(`[ResourceChange] Could not open workflow ${id}`, error);
