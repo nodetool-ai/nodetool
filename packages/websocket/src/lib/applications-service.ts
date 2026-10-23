@@ -48,6 +48,7 @@ import {
 import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
 import { isRecord, isString } from "./wire-values.js";
+import { hasDocumentRole, type DocumentRole } from "./document-access.js";
 
 export const listApplicationsInput = z.object({
   projectId: z.string().optional(),
@@ -84,11 +85,15 @@ interface AppDocColumn {
 
 export async function loadOwnedApplication(
   userId: string | null,
-  id: string
+  id: string,
+  minimum: DocumentRole = "owner"
 ): Promise<Application> {
   if (!userId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
   const app = await Application.findById(id);
-  if (!app || app.user_id !== userId) {
+  if (
+    !app ||
+    !(await hasDocumentRole("application", app, userId, minimum))
+  ) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Application not found");
   }
   return app;
@@ -342,7 +347,7 @@ export async function getApplication(
   userId: string,
   id: string
 ): Promise<ApplicationResponse> {
-  const app = await loadOwnedApplication(userId, id);
+  const app = await loadOwnedApplication(userId, id, "viewer");
   return applicationResponse.parse(app.toResponse());
 }
 
@@ -421,7 +426,7 @@ export async function updateApplication(
   userId: string,
   input: UpdateApplicationInput
 ): Promise<ApplicationResponse> {
-  const app = await loadOwnedApplication(userId, input.id);
+  const app = await loadOwnedApplication(userId, input.id, "editor");
 
   // CAS on updated_at so the conflict check and the write are atomic.
   const expectedUpdatedAt = input.baseUpdatedAt ?? app.updated_at;
@@ -651,7 +656,8 @@ export async function releasedApplicationDocument(
   userId: string,
   id: string
 ): Promise<ApplicationReleaseResponse | null> {
-  await loadOwnedApplication(userId, id);
-  const release = await releasedApplicationRelease(id, userId);
+  // Release rows are keyed by the owner, who may not be the caller.
+  const app = await loadOwnedApplication(userId, id, "viewer");
+  const release = await releasedApplicationRelease(id, app.user_id);
   return release ? applicationReleaseResponse.parse(release) : null;
 }

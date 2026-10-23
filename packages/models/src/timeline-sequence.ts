@@ -22,6 +22,7 @@ import {
 import { getPortableDb } from "./db.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
+import { removeDocumentSharing } from "./document-sharing.js";
 
 export class TimelineSequenceConflictError extends Error {
   constructor(id: string) {
@@ -224,6 +225,7 @@ export class TimelineSequence extends DBModel {
     const row = await TimelineSequence.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
+    await removeDocumentSharing("timeline", id);
     // Belt-and-braces with the FK cascade: version rows outliving their
     // document would be unreachable garbage.
     await TimelineSequenceVersion.deleteForTimeline(id);

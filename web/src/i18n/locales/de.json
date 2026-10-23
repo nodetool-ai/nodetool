@@ -13854,7 +13854,8 @@
         "creative": "Kreativdokumente",
         "text": "Textdateien",
         "agents": "Agenten und Code",
-        "entities": "Entitäten"
+        "entities": "Entitäten",
+        "shared": "Mit mir geteilt"
       },
       "type": {
         "workflow": "Workflow",
@@ -18725,6 +18726,16 @@
       "noBoardsTitle": "Keine Storyboards",
       "noBoardsDescription": "Erstellen Sie ein Storyboard, um seine Einstellungen auf der Timeline zu platzieren.",
       "listLabel": "Storyboard-Einstellungen"
+    }
+  },
+  "shareDocument": {
+    "description": "Wer auf diesem Server angemeldet ist und einen Ansichts- oder Bearbeitungslink öffnet, erhält die Rolle dieses Links. Betrachter können das Dokument öffnen. Bearbeiter können außerdem Änderungen speichern. Nur Sie können es löschen oder ändern, wer Zugriff hat. Wenn Sie einen Link widerrufen, kann niemand Neues mehr beitreten. Personen, die bereits beigetreten sind, bleiben unten aufgeführt.",
+    "shareAction": "Teilen…",
+    "shareNamed": "{{name}} teilen",
+    "accept": {
+      "invalidLink": "Dieser Freigabelink ist ungültig oder wurde widerrufen. Bitten Sie die Person, der das Dokument gehört, um einen neuen Link.",
+      "goToWorkspace": "Zum Arbeitsbereich",
+      "opening": "Geteiltes Dokument wird geöffnet"
     }
   }
 }

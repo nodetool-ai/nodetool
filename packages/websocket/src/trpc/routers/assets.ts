@@ -82,6 +82,7 @@ import {
   searchInput,
   searchOutput
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
+import { isAssetSharedWithUser } from "../../lib/document-access.js";
 
 /**
  * Remove an asset's stored bytes, its thumbnail, and its preview proxy.
@@ -294,6 +295,19 @@ function withExternalFingerprint(
   return merged;
 }
 
+/**
+ * Another user's asset that a document shared with the caller shows. Exact
+ * ids only: a short prefix would resolve across every user's library.
+ */
+async function findSharedAsset(
+  userId: string,
+  id: string
+): Promise<Asset | null> {
+  const asset = (await Asset.get(id)) as Asset | null;
+  if (!asset || asset.id !== id) return null;
+  return (await isAssetSharedWithUser(userId, asset)) ? asset : null;
+}
+
 export const assetsRouter = router({
   list: protectedProcedure
     .input(listInput)
@@ -361,7 +375,9 @@ export const assetsRouter = router({
         };
       }
 
-      const asset = await Asset.find(ctx.userId, input.id);
+      const asset =
+        (await Asset.find(ctx.userId, input.id)) ??
+        (await findSharedAsset(ctx.userId, input.id));
       if (!asset) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }

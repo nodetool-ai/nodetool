@@ -139,11 +139,12 @@ export const applicationsRouter = router({
     .input(idInput)
     .output(z.array(applicationVersionResponse))
     .query(async ({ ctx, input }) => {
-      await loadOwned(ctx.userId, input.id);
+      // Version rows are keyed by the owner, who may not be the caller.
+      const app = await loadOwned(ctx.userId, input.id, "viewer");
       const versions = await listApplicationVersions(
         input.id,
         undefined,
-        ctx.userId
+        app.user_id
       );
       return versions.map((v) => applicationVersionResponse.parse(v));
     }),
@@ -152,8 +153,8 @@ export const applicationsRouter = router({
     .input(idInput)
     .output(applicationVersionResponse.nullable())
     .query(async ({ ctx, input }) => {
-      await loadOwned(ctx.userId, input.id);
-      const version = await releasedApplicationVersion(input.id, ctx.userId);
+      const app = await loadOwned(ctx.userId, input.id, "viewer");
+      const version = await releasedApplicationVersion(input.id, app.user_id);
       return version ? applicationVersionResponse.parse(version) : null;
     }),
 

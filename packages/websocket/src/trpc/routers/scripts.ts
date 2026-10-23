@@ -29,6 +29,10 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import {
+  hasDocumentRole,
+  type DocumentRole
+} from "../../lib/document-access.js";
 
 const listInput = z.object({
   projectId: z.string().optional()
@@ -55,13 +59,21 @@ function toListItem(script: Script) {
   };
 }
 
+/**
+ * Load a script the caller holds at least `minimum` on: reads take "viewer",
+ * saves "editor", and delete stays with the owner. See lib/document-access.ts.
+ */
 async function loadOwned(
   ctxUserId: string | null,
-  id: string
+  id: string,
+  minimum: DocumentRole = "owner"
 ): Promise<Script> {
   if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
   const script = await Script.findById(id);
-  if (!script || script.user_id !== ctxUserId) {
+  if (
+    !script ||
+    !(await hasDocumentRole("script", script, ctxUserId, minimum))
+  ) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Script not found");
   }
   return script;
@@ -82,7 +94,7 @@ export const scriptsRouter = router({
     .input(idInput)
     .output(scriptResponse)
     .query(async ({ ctx, input }) => {
-      const script = await loadOwned(ctx.userId, input.id);
+      const script = await loadOwned(ctx.userId, input.id, "viewer");
       return scriptResponse.parse(script.toResponse());
     }),
 
@@ -124,7 +136,7 @@ export const scriptsRouter = router({
     .input(updateInput)
     .output(scriptResponse)
     .mutation(async ({ ctx, input }) => {
-      const script = await loadOwned(ctx.userId, input.id);
+      const script = await loadOwned(ctx.userId, input.id, "editor");
 
       // CAS on updated_at so the conflict check and the write are atomic.
       const expectedUpdatedAt = input.baseUpdatedAt ?? script.updated_at;

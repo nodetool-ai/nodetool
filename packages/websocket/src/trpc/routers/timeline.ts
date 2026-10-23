@@ -66,6 +66,10 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { isString } from "../../lib/wire-values.js";
 import { installExampleTimeline, listExampleTimelines } from "../../lib/example-timelines.js";
+import {
+  hasDocumentRole,
+  type DocumentRole
+} from "../../lib/document-access.js";
 
 const log = createLogger("nodetool.websocket.trpc.timeline");
 
@@ -332,13 +336,21 @@ export function __resetTimelineAutosaveVersionState(): void {
   lastAutosaveVersionTime.clear();
 }
 
+/**
+ * Load a timeline the caller holds at least `minimum` on: reads take "viewer",
+ * saves "editor", and delete stays with the owner. See lib/document-access.ts.
+ */
 async function loadOwned(
   ctxUserId: string | null,
-  id: string
+  id: string,
+  minimum: DocumentRole = "owner"
 ): Promise<TimelineSequence> {
   if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
   const seq = await TimelineSequence.findById(id);
-  if (!seq || seq.user_id !== ctxUserId) {
+  if (
+    !seq ||
+    !(await hasDocumentRole("timeline", seq, ctxUserId, minimum))
+  ) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
   }
   return seq;
@@ -444,7 +456,7 @@ export const timelineRouter = router({
     .input(idInput)
     .output(timelineSequenceResponse)
     .query(async ({ ctx, input }) => {
-      const seq = await loadOwned(ctx.userId, input.id);
+      const seq = await loadOwned(ctx.userId, input.id, "viewer");
       return seq.toTimelineSequence();
     }),
 
@@ -500,7 +512,7 @@ export const timelineRouter = router({
     .input(updateInput)
     .output(updateOutput)
     .mutation(async ({ ctx, input }) => {
-      const seq = await loadOwned(ctx.userId, input.id);
+      const seq = await loadOwned(ctx.userId, input.id, "editor");
 
       // The write CAS-es on this value, so the conflict check and the write are
       // atomic (no TOCTOU window). When the client supplies baseUpdatedAt, honor
@@ -625,7 +637,7 @@ export const timelineRouter = router({
       .input(listTimelineVersionsInput)
       .output(z.array(timelineVersionListItem))
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        await loadOwned(ctx.userId, input.id, "viewer");
         const versions = await TimelineSequenceVersion.listForTimeline(
           input.id,
           { limit: input.limit, saveType: input.saveType }
@@ -637,7 +649,7 @@ export const timelineRouter = router({
       .input(getTimelineVersionInput)
       .output(timelineVersionResponse)
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        await loadOwned(ctx.userId, input.id, "viewer");
         const version = await TimelineSequenceVersion.findByVersion(
           input.id,
           input.version
@@ -655,7 +667,7 @@ export const timelineRouter = router({
       .input(createTimelineVersionInput)
       .output(timelineVersionListItem)
       .mutation(async ({ ctx, input }) => {
-        const seq = await loadOwned(ctx.userId, input.id);
+        const seq = await loadOwned(ctx.userId, input.id, "editor");
         const version = await TimelineSequenceVersion.snapshot(seq, {
           saveType: "manual",
           name: input.name ?? null
@@ -667,7 +679,7 @@ export const timelineRouter = router({
       .input(restoreTimelineVersionInput)
       .output(timelineSequenceResponse)
       .mutation(async ({ ctx, input }) => {
-        const seq = await loadOwned(ctx.userId, input.id);
+        const seq = await loadOwned(ctx.userId, input.id, "editor");
         const version = await TimelineSequenceVersion.findByVersion(
           input.id,
           input.version
@@ -798,7 +810,7 @@ export const timelineRouter = router({
       .input(createClipInput)
       .output(timelineClipResponse)
       .mutation(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        await loadOwned(ctx.userId, input.id, "editor");
 
         // Validate access to the source workflow.
         const source = await Workflow.find(ctx.userId!, input.sourceWorkflowId);

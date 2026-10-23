@@ -15,6 +15,7 @@ import {
 import { getPortableDb } from "./db.js";
 import { jsScripts } from "./schema/js-scripts.js";
 import { JsScriptVersion } from "./js-script-version.js";
+import { removeDocumentSharing } from "./document-sharing.js";
 
 export interface JsScriptResponse {
   id: string;
@@ -86,6 +87,7 @@ export class JsScript extends DBModel {
     const row = await JsScript.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
+    await removeDocumentSharing("jsscript", id);
     // Belt-and-braces with the FK cascade: version rows outliving their
     // document would be unreachable garbage.
     await JsScriptVersion.deleteForScript(id);

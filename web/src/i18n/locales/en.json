@@ -13854,7 +13854,8 @@
         "creative": "Creative documents",
         "text": "Text files",
         "agents": "Agents & code",
-        "entities": "Entities"
+        "entities": "Entities",
+        "shared": "Shared with me"
       },
       "type": {
         "workflow": "Workflow",
@@ -18725,6 +18726,16 @@
       "noBoardsTitle": "No storyboards",
       "noBoardsDescription": "Create a storyboard to place its shots on the timeline.",
       "listLabel": "Storyboard shots"
+    }
+  },
+  "shareDocument": {
+    "description": "Anyone signed in to this server who opens a view or edit link gets the role assigned to that link. Viewers can open the document. Editors can also save changes. Only you can delete it or change who has access. Revoking a link stops new people from joining. People who already joined remain listed below.",
+    "shareAction": "Share…",
+    "shareNamed": "Share {{name}}",
+    "accept": {
+      "invalidLink": "This share link is invalid or has been revoked. Ask the document owner for a new one.",
+      "goToWorkspace": "Go to workspace",
+      "opening": "Opening shared document"
     }
   }
 }
