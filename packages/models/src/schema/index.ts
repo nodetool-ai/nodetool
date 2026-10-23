@@ -55,3 +55,5 @@ export { generationAttachments } from "./generation-attachments.js";
 export * from "./app-instances.js";
 
 export * from "./run-traces.js";
+
+export { resourceChangeOutbox } from "./resource-change-outbox.js";

@@ -180,6 +180,9 @@ async function seedUser(userId: string, tag: string): Promise<void> {
     }
 
     // The columns the assertions below actually look at.
+    if (entry.table === "resource_change_outbox") {
+      row.payload = JSON.stringify({ payload: { owner_user_id: userId } });
+    }
     if (entry.table === "nodetool_predictions") {
       row.parameters = { prompt: "a private prompt" };
       row.metadata = { note: "private" };
@@ -246,6 +249,25 @@ describe("erasePersonalData", () => {
     }
     expect(empty).toEqual([]);
     expect(PERSONAL_DATA_REGISTRY.length).toBeGreaterThanOrEqual(40);
+  });
+
+  it("erases queued resource changes only for the subject", async () => {
+    await getPortableDb().insert(schema.resourceChangeOutbox).values(
+      [SUBJECT, OTHER].map((userId) => ({
+        id: userId,
+        payload: JSON.stringify({
+          origin: "replica",
+          payload: { owner_user_id: userId, ops: [{ text: "private draft" }] }
+        }),
+        created_at: new Date().toISOString()
+      }))
+    );
+    await erasePersonalData(SUBJECT);
+    const rows = await getPortableDb().select().from(schema.resourceChangeOutbox);
+    expect(rows.map((row) => row.id).sort()).toEqual([
+      "o-resource_change_outbox",
+      OTHER
+    ].sort());
   });
 
   it("removes the subject's rows from every delete table", async () => {
@@ -542,6 +564,7 @@ describe("exportPersonalData", () => {
       "nodetool_generation_outputs",
       "nodetool_generation_webhook_deliveries",
       "nodetool_team_tasks",
+      "resource_change_outbox",
       "run_inbox_messages",
       "worker_instances",
       "worker_profiles"

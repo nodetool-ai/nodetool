@@ -244,7 +244,12 @@ content_expired INTEGER NOT NULL DEFAULT 0)`,
 
 const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
 const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0";
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL];
+export const RESOURCE_CHANGE_OUTBOX_DDL: readonly string[] = [
+  'CREATE TABLE IF NOT EXISTS "resource_change_outbox" ("id" text PRIMARY KEY NOT NULL, "payload" text NOT NULL, "created_at" text NOT NULL)',
+  'CREATE INDEX IF NOT EXISTS "idx_resource_change_outbox_created_at" ON "resource_change_outbox" ("created_at")'
+];
+
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -4191,6 +4196,19 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS nodetool_analytics_events");
       await db.execute("DROP TABLE IF EXISTS nodetool_analytics_daily");
     }
+  },
+  {
+    version: "20261023_000000",
+    name: "resource_change_outbox",
+    createsTables: ["resource_change_outbox"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of RESOURCE_CHANGE_OUTBOX_DDL) { await db.execute(statement); }
+      if (db.dbType === "postgres") {
+        await db.execute("ALTER TABLE resource_change_outbox ENABLE ROW LEVEL SECURITY");
+      }
+    },
+    async down(db) { await db.execute("DROP TABLE IF EXISTS resource_change_outbox"); }
   }
 ];
 
