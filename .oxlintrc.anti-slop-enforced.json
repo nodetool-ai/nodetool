@@ -152,6 +152,7 @@
         "packages/automation-nodes/src/**",
         "packages/base-nodes/src/**",
         "packages/blender-nodes/src/**",
+        "packages/browser/src/**",
         "packages/chat/src/**",
         "packages/code-nodes/src/**",
         "packages/config/src/**",
