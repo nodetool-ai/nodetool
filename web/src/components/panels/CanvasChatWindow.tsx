@@ -162,14 +162,10 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.sm),
       padding: getSpacingPx(SPACING.sm)
     },
+    // The card keeps the composer's own surface and border, which follow
+    // the color scheme; the window only tightens its corners.
     ".chat-window-composer .media-compose-card": {
-      background: theme.vars.palette.grey[50],
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
       borderRadius: BORDER_RADIUS.lg,
-      [theme.getColorSchemeSelector("dark")]: {
-        background: theme.vars.palette.grey[1000],
-        border: `1px solid ${theme.vars.palette.divider}`
-      },
       "&:focus-within": {
         borderColor: theme.vars.palette.primary.main
       }

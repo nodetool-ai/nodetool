@@ -193,8 +193,9 @@ export const createMediaComposerStyles = (theme: Theme) =>
         cursor: "not-allowed",
         transform: "none",
         boxShadow: "none",
-        background: theme.vars.palette.background.paper,
-        color: theme.vars.palette.grey[500]
+        // Same idle look as Send: a tint that shows on either card surface.
+        background: theme.vars.palette.c_overlay_strong,
+        color: theme.vars.palette.text.disabled
       }
     },
 
