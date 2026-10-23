@@ -89,8 +89,10 @@ describe("useChatViewThread", () => {
       await isolated.result.current.sendMessage(makeMessage("from assistant"));
     });
 
+    // Created for this send, so it keeps the composer's mode.
     expect(createNewThread).toHaveBeenCalledWith(undefined, null, {
-      makeCurrent: false
+      makeCurrent: false,
+      mediaMode: "chat"
     });
     expect(switchThread).not.toHaveBeenCalled();
     expect(useGlobalChatStore.getState().currentThreadId).toBe("canvas");
