@@ -1,7 +1,7 @@
 ---
 layout: page
-title: "ComfyUI Setup"
-description: "Give NodeTool's ComfyUI nodes an endpoint: a local ComfyUI, a rented GPU, or Comfy Cloud, and the models each server has to already hold."
+title: "ComfyUI Setup: Endpoint and Ports"
+description: "Point NodeTool's ComfyUI nodes at a server: a local ComfyUI on 127.0.0.1:8188 (the default), comfy-api-proxy on 8189, a rented GPU, or Comfy Cloud."
 ---
 
 You have a ComfyUI workflow in API format and a NodeTool graph to put it in. What

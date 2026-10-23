@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Install NodeTool on Windows, macOS, or Linux"
-description: "Download NodeTool for Windows, macOS, or Linux — dmg, exe, or AppImage — then connect an AI provider so agents and media generation can run."
+description: "Download NodeTool for Windows (Nodetool-Setup .exe), macOS (.dmg), or Linux (AppImage), then connect an AI provider so agents and media generation can run."
 ---
 
 Download, install, open, connect a provider. There is no setup wizard, but

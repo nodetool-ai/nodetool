@@ -1,7 +1,7 @@
 ---
 layout: page
-title: "Video Editor"
-description: "A generation-aware timeline editor for sequencing, compositing, animating, and AI-generating media inside NodeTool."
+title: "Video Editor: AI Timeline Editing"
+description: "A multi-track timeline where a clip is imported media or a workflow output that regenerates when its parameters change. Cut, composite, and generate in place."
 ---
 
 Cut a sequence on a multi-track timeline, bind any workflow to a clip, and generate the footage in place. NodeTool's Video Editor is a non-linear editor where clips can be imported media _or_ live workflow outputs that regenerate when you change their parameters.
