@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { closeDb, executeRaw, initTestDb, pingDb } from "../src/db.js";
+import { closeDb, executeRaw, getPortableDb, initTestDb, pingDb } from "../src/db.js";
+import { ERASURE_STEPS } from "../src/personal-data.js";
+import { resourceChangeOutbox } from "../src/schema/resource-change-outbox.js";
 import { ModelChangeEvent, ModelObserver } from "../src/base-model.js";
 import { Asset } from "../src/asset.js";
 import {
@@ -55,6 +57,27 @@ afterEach(async () => {
 });
 
 describe("model execution on SQLite and PostgreSQL", () => {
+  it("erases resource-change delivery copies by their envelope owner", async () => {
+    await onBothDialects(async () => {
+      await getPortableDb().insert(resourceChangeOutbox).values(
+        [OWNER, "other"].map((userId) => ({
+          id: userId,
+          payload: JSON.stringify({ payload: { owner_user_id: userId } }),
+          created_at: new Date().toISOString()
+        }))
+      );
+      const step = ERASURE_STEPS.find((entry) => entry.table === "resource_change_outbox")!;
+      const report = await step.run({
+        userId: OWNER, runIds: [], gameIds: [], applicationIds: [],
+        grantIds: [], workflowIds: [], generationIds: [], options: {}
+      });
+      expect(report.deleted).toBe(1);
+      const rows = await getPortableDb().select().from(resourceChangeOutbox);
+      expect(rows.map((row) => row.id)).toEqual(["other"]);
+      return report;
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
   it("executes raw queries and Personal migration on the active engine", async () => {
     await onBothDialects(async () => {
       const asset = await Asset.create<Asset>({ id: "raw-query-asset", user_id: OWNER });
