@@ -266,7 +266,7 @@
     "katex": "^0.19.0"
   },
   "engines": {
-    "node": "24.18.0"
+    "node": "24.22.1"
   },
   "packageManager": "npm@10.9.7"
 }

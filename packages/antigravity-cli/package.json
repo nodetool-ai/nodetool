@@ -4,7 +4,7 @@
   "description": "Managed Antigravity CLI installation for NodeTool",
   "type": "module",
   "engines": {
-    "node": "24.18.0"
+    "node": "24.22.1"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
