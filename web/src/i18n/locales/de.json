@@ -6169,8 +6169,8 @@
           "app": "App",
           "chat": "Chat"
         },
-        "referenceImageCount_one": "{{count}} Referenzbild",
-        "referenceImageCount_other": "{{count}} Referenzbilder",
+        "attachedFileCount_one": "{{count}} angehängte Datei",
+        "attachedFileCount_other": "{{count}} angehängte Dateien",
         "singleEntity": "die Entität {{name}}",
         "entityCount_one": "{{count}} Entität",
         "entityCount_other": "{{count}} Entitäten",
@@ -6252,9 +6252,9 @@
         "chatPromptLabel": "Chat-Prompt",
         "promptPlaceholder": "Beschreib, was du erstellen möchtest. Tippe / für einen Skill, @ für eine Datei oder Entität.",
         "removeReference": "{{name}} entfernen",
-        "referenceImages": "Referenzbilder",
-        "referenceImageCountShort_one": "Referenzbilder · {{count}}",
-        "referenceImageCountShort_other": "Referenzbilder · {{count}}",
+        "attachFiles": "Dateien anhängen",
+        "attachedFileCountShort_one": "Dateien · {{count}}",
+        "attachedFileCountShort_other": "Dateien · {{count}}",
         "entitiesNone": "Entitäten · keine",
         "entitiesSelected": "Entitäten · {{entities}}",
         "selectedModel": "Modell · {{name}}",
@@ -6299,8 +6299,6 @@
           "tsv": "TSV (.tsv)",
           "txt": "Klartext (.txt)"
         },
-        "unsupportedReferenceFiles_one": "Nur Bilder können als Referenzbilder verwendet werden. {{files}} wurde nicht hinzugefügt.",
-        "unsupportedReferenceFiles_other": "Nur Bilder können als Referenzbilder verwendet werden. {{files}} wurden nicht hinzugefügt.",
         "createCards": {
           "image": {
             "title": "Bild erstellen",
@@ -13948,7 +13946,7 @@
       "recent": "Zuletzt verwendet",
       "saved": "Gespeichert",
       "noRecentMatch": "Keine aktuellen Assets passen.",
-      "noRecentAssets": "Bisher wurden keine Assets verwendet. Erzeuge eines oder ziehe eines hierher.",
+      "noRecentAssets": "Noch keine Dateien. Hänge eine an oder ziehe eine hierher.",
       "noAssetsMatch": "Keine passenden Assets.",
       "noSavedAssets": "Noch keine Assets gespeichert.",
       "entities": "Entitäten",
@@ -18085,6 +18083,8 @@
       "noConversations": "Noch keine Unterhaltungen",
       "tryDifferentSearch": "Versuch es mit einem anderen Suchbegriff.",
       "startConversation": "Starte eine Unterhaltung, um KI-Workflows in natürlicher Sprache zu erkunden.",
+      "rename": "Unterhaltung umbenennen",
+      "renameLabel": "Name der Unterhaltung",
       "deleteTitle": "Unterhaltung löschen",
       "deleteContent": "„{{name}}“ löschen? Das lässt sich nicht rückgängig machen.",
       "delete": "Löschen"

@@ -32,7 +32,7 @@ import {
 } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame } from "@nodetool-ai/game-runtime";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
+import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -595,9 +595,6 @@ const NewProjectSurface = ({
     getFileContents
   } = useFileHandling();
   const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
-  const referenceImageCount = droppedFiles.filter((file) =>
-    file.type.startsWith("image/")
-  ).length;
   const { data: entities } = useEntities();
   // Both the user's own skills and the ones NodeTool ships: either is a
   // starter, and either is invoked the same way.
@@ -809,30 +806,17 @@ const NewProjectSurface = ({
       setValue: setPrompt
     });
 
-  const handleRefImages = useCallback(
+  // Any file attaches: a picture shows as a thumbnail and is a reference for
+  // the image flows, any other file shows as a named chip, as a dropped one
+  // does. Study 15 found people asking about a notes file here and the box
+  // refusing it.
+  const handleAttachFiles = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files ?? []);
-      // The picker's image filter is a default a person can switch off, and a
-      // text file taken as a reference showed as a broken picture.
-      const images = files.filter((file) => file.type.startsWith("image/"));
-      const skipped = files.filter((file) => !file.type.startsWith("image/"));
-      if (skipped.length > 0) {
-        addNotification({
-          type: "warning",
-          alert: true,
-          content: t("pass3_32.projects.home.unsupportedReferenceFiles", {
-            files: skipped.map((file) => file.name).join(", "),
-            count: skipped.length
-          })
-        });
-      }
-      if (images.length > 0) {
-        uploadFiles(images);
-      }
+      uploadFiles(Array.from(event.target.files ?? []));
       // Clear the input so picking the same file twice still registers.
       event.target.value = "";
     },
-    [addNotification, uploadFiles, t]
+    [uploadFiles]
   );
 
   const handleStart = useCallback(async () => {
@@ -1048,7 +1032,7 @@ const NewProjectSurface = ({
             : carries.references;
       const leftOver = droppedFiles.length - carried;
       if (leftOver > 0) {
-        left.push(t("pass3_32.projects.home.referenceImageCount", { count: leftOver }));
+        left.push(t("pass3_32.projects.home.attachedFileCount", { count: leftOver }));
       }
       if (!carries.entities && selectedEntities.length > 0) {
         left.push(
@@ -1283,7 +1267,11 @@ const NewProjectSurface = ({
         text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.image");
       setStarting(true);
       try {
-        const references = await uploadComposerReferences(droppedFiles);
+        // Only a picture can guide a picture; another attached file is named
+        // as left behind.
+        const references = await uploadComposerReferences(
+          droppedFiles.filter((file) => file.type.startsWith("image/"))
+        );
         const started = await startImageFlow({
           name,
           projectId,
@@ -2416,21 +2404,20 @@ const NewProjectSurface = ({
                     variant="text"
                     color="inherit"
                     density="normal"
-                    startIcon={<AddPhotoAlternateOutlinedIcon />}
+                    startIcon={<AttachFileOutlinedIcon />}
                     onClick={() => refInputRef.current?.click()}
                     sx={composerPillSx}
                   >
-                    {referenceImageCount === 0
-                      ? t("pass3_32.projects.home.referenceImages")
-                      : t("pass3_32.projects.home.referenceImageCountShort", { count: referenceImageCount })}
+                    {droppedFiles.length === 0
+                      ? t("pass3_32.projects.home.attachFiles")
+                      : t("pass3_32.projects.home.attachedFileCountShort", { count: droppedFiles.length })}
                   </EditorButton>
                   <input
                     ref={refInputRef}
                     type="file"
-                    accept="image/*"
                     multiple
-                    aria-label={t("pass3_32.projects.home.referenceImages")}
-                    onChange={handleRefImages}
+                    aria-label={t("pass3_32.projects.home.attachFiles")}
+                    onChange={handleAttachFiles}
                     style={{ display: "none" }}
                   />
                   <EditorButton

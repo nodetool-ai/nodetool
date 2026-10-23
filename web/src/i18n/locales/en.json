@@ -6169,8 +6169,8 @@
           "app": "app",
           "chat": "chat"
         },
-        "referenceImageCount_one": "{{count}} reference image",
-        "referenceImageCount_other": "{{count}} reference images",
+        "attachedFileCount_one": "{{count}} attached file",
+        "attachedFileCount_other": "{{count}} attached files",
         "singleEntity": "the entity {{name}}",
         "entityCount_one": "{{count}} entity",
         "entityCount_other": "{{count}} entities",
@@ -6252,9 +6252,9 @@
         "chatPromptLabel": "Chat prompt",
         "promptPlaceholder": "Describe what you want to create. Type / for a skill, @ for a file or entity.",
         "removeReference": "Remove {{name}}",
-        "referenceImages": "Reference images",
-        "referenceImageCountShort_one": "Ref images · {{count}}",
-        "referenceImageCountShort_other": "Ref images · {{count}}",
+        "attachFiles": "Attach files",
+        "attachedFileCountShort_one": "Files · {{count}}",
+        "attachedFileCountShort_other": "Files · {{count}}",
         "entitiesNone": "Entities · none",
         "entitiesSelected": "Entities · {{entities}}",
         "selectedModel": "Model · {{name}}",
@@ -6299,8 +6299,6 @@
           "tsv": "TSV (.tsv)",
           "txt": "Plain text (.txt)"
         },
-        "unsupportedReferenceFiles_one": "Reference images only accept pictures. {{files}} was not added.",
-        "unsupportedReferenceFiles_other": "Reference images only accept pictures. {{files}} were not added.",
         "createCards": {
           "image": {
             "title": "Create image",
@@ -13948,7 +13946,7 @@
       "recent": "Recent",
       "saved": "Saved",
       "noRecentMatch": "No recent assets match.",
-      "noRecentAssets": "No assets used yet. Generate or drag one in.",
+      "noRecentAssets": "No files yet. Attach or drag one in.",
       "noAssetsMatch": "No assets match.",
       "noSavedAssets": "No saved assets yet.",
       "entities": "Entities",
@@ -18085,6 +18083,8 @@
       "noConversations": "No conversations yet",
       "tryDifferentSearch": "Try a different search term.",
       "startConversation": "Start a conversation to explore AI workflows with natural language.",
+      "rename": "Rename conversation",
+      "renameLabel": "Conversation name",
       "deleteTitle": "Delete conversation",
       "deleteContent": "Delete \"{{name}}\"? This cannot be undone.",
       "delete": "Delete"

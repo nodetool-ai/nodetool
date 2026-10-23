@@ -57,13 +57,13 @@ export const createStyles = (theme: Theme) =>
 
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        ".delete-button": { opacity: 1 },
+        ".delete-button, .rename-button": { opacity: 1 },
         ".thread-time": { opacity: 0 }
       },
 
-      // A keyboard user reaching the delete button must be able to see it.
+      // A keyboard user reaching a row's buttons must be able to see them.
       "&:focus-within": {
-        ".delete-button": { opacity: 1 }
+        ".delete-button, .rename-button": { opacity: 1 }
       },
 
       "&.selected": selectedRowStyles(theme),
@@ -117,14 +117,32 @@ export const createStyles = (theme: Theme) =>
       transition: `opacity ${MOTION.fast}`
     },
 
-    // DeleteButton renders: Tooltip > span > IconButton.delete-button
-    // Position the span wrapper absolutely so it doesn't affect li height.
-    "span:has(> .delete-button)": {
+    // The row's buttons sit over its right end, where the timestamp hides on
+    // hover, so they do not affect the li height.
+    ".thread-item-actions": {
       position: "absolute",
       right: getSpacingPx(SPACING.xs),
       top: "50%",
       transform: "translateY(-50%)",
-      zIndex: Z_INDEX.raised
+      zIndex: Z_INDEX.raised,
+      display: "flex",
+      alignItems: "center"
+    },
+
+    ".thread-title-input": {
+      width: "100%",
+      padding: `${theme.spacing(SPACING.xs)} ${theme.spacing(SPACING.md)}`,
+      ...TYPOGRAPHY.sans.label
+    },
+
+    ".rename-button": {
+      opacity: 0,
+      padding: getSpacingPx(SPACING.xs),
+      minWidth: "unset",
+      color: theme.vars.palette.text.secondary,
+      transition: `${MOTION.opacity}, ${MOTION.background}`,
+
+      svg: { fontSize: FONT_SIZE_SANS.body }
     },
 
     ".delete-button": {
@@ -146,7 +164,7 @@ export const createStyles = (theme: Theme) =>
     // of the timestamp and swallows taps near the right edge of a row. Show it
     // and drop the timestamp, matching what hovering does on a mouse.
     "@media (hover: none)": {
-      ".delete-button": { opacity: 1 },
+      ".delete-button, .rename-button": { opacity: 1 },
       ".thread-time": { opacity: 0 }
     }
   });

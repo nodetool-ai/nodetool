@@ -27,6 +27,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
   currentThreadId,
   onSelectThread,
   onDeleteThread,
+  onRenameThread,
   getThreadPreview,
   isFiltered = false
 }) => {
@@ -91,6 +92,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
             isDeleting={singleId === deletingId}
             onSelect={onSelectThread}
             onRequestDelete={handleRequestDelete}
+            onRename={onRenameThread}
             previewText={getThreadPreview(singleId)}
           />
         );
@@ -125,6 +127,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
               isDeleting={threadId === deletingId}
               onSelect={onSelectThread}
               onRequestDelete={handleRequestDelete}
+              onRename={onRenameThread}
               previewText={getThreadPreview(threadId)}
             />
           );
@@ -139,6 +142,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
     deletingId,
     onSelectThread,
     handleRequestDelete,
+    onRenameThread,
     getThreadPreview
   ]);
 
