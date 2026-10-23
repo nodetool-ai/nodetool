@@ -157,6 +157,7 @@ describe("buildCiPlan", () => {
       "tsconfig.build.json",
       "turbo.json",
       "scripts/bundle-backend.mjs",
+      "scripts/backend-server-build-options.mjs",
       "scripts/verify-backend-bundle.mjs"
     ]) {
       expect(plan([file]).docker).toBe(true);

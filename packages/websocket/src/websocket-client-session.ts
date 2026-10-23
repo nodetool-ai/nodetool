@@ -1374,13 +1374,15 @@ export class WebSocketClientSession implements ClientSession {
   /**
    * This connection's end of the shared `resource_change` feed. The frame is
    * built once per write in `resource-change-fanout.ts` and shared, so it is
-   * sent as is. Only changes the connected user owns are forwarded. Ownerless
+   * sent as is. Owned changes and shared workflow changes are forwarded. Ownerless
    * ones (runtime-internal models) go to every connection.
    */
   private readonly resourceChangeSubscriber: ResourceChangeSubscriber = {
-    accepts: (ownerId) => {
+    accepts: (ownerId, recipients) => {
       if (!this.websocket) return false;
-      if (ownerId && this.userId && ownerId !== this.userId) return false;
+      if (ownerId && this.userId && ownerId !== this.userId) {
+        return recipients?.has(this.userId) ?? false;
+      }
       return true;
     },
     deliver: (frame) => {

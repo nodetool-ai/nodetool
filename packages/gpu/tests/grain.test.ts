@@ -84,7 +84,11 @@ function edgeEnergyModulation(pixels: Uint8Array, size: number, angle: number): 
   return 2 * Math.hypot(real, imaginary) / total;
 }
 
-describe("film grain modules", () => {
+// Cases render on a software Vulkan rasterizer in CI, and the first one also
+// compiles the grain shaders, so vitest's 5s default is too short there.
+const GPU_TEST_TIMEOUT_MS = 30_000;
+
+describe("film grain modules", { timeout: GPU_TEST_TIMEOUT_MS }, () => {
   it("retains fine pixel-scale grain at the default size and amount", async () => {
     const pixels = await render(2, { amount: 0.25, size: 1 });
     let sum = 0;

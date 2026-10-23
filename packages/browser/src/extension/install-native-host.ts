@@ -15,7 +15,7 @@ import { NATIVE_HOST_NAME } from "./bridge-paths.js";
 /** The extension's ID, fixed by the `key` field in `chrome-extension/manifest.json`. */
 export const EXTENSION_ID = "acnankgjnlmpbjcpebmelmognbnnhigb";
 
-const BROWSER_DATA_DIRS: Record<string, string[]> = {
+const BROWSER_DATA_DIRS = {
   darwin: [
     "Library/Application Support/Google/Chrome",
     "Library/Application Support/Chromium",
@@ -29,7 +29,7 @@ const BROWSER_DATA_DIRS: Record<string, string[]> = {
     ".config/BraveSoftware/Brave-Browser",
     ".config/microsoft-edge"
   ]
-};
+} satisfies Record<"darwin" | "linux", string[]>;
 
 export interface InstallNativeHostOptions {
   /** Node binary the wrapper runs. Defaults to the current one. */
@@ -47,7 +47,10 @@ export interface InstallNativeHostResult {
 
 /** Directories (one per installed browser) that hold native host manifests. */
 export function nativeHostManifestDirs(home = os.homedir()): string[] {
-  const roots = BROWSER_DATA_DIRS[process.platform] ?? [];
+  const roots =
+    process.platform === "darwin" || process.platform === "linux"
+      ? BROWSER_DATA_DIRS[process.platform]
+      : [];
   return roots
     .map((root) => path.join(home, root))
     .filter((dir) => fs.existsSync(dir))

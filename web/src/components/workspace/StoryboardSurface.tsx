@@ -282,8 +282,6 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
         />
       )}
       <FlexRow sx={{ flex: 1, minHeight: 0 }}>
-        {/* On wide screens the queue overlay anchors to the board column, so
-            it never floats over the assistant dock on the right. */}
         <Box
           sx={{
             flex: 1,
@@ -294,7 +292,6 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
           }}
         >
           {board}
-          {!mobileEdit && queueOverlay}
         </Box>
         {mode !== "view" && (
           // Hidden, not unmounted: the conversation survives a toggle.
@@ -319,8 +316,10 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
           </Box>
         )}
       </FlexRow>
-      {/* On a phone it stays up over either pane, so a running batch is
-          visible from the assistant too. */}
+      {/* A phone has no bottom panel, so the board keeps its own queue
+          there. It stays up over either pane, so a running batch is visible
+          from the assistant too. On wider screens renders are listed in the
+          bottom panel's Generations view. */}
       {mobileEdit && queueOverlay}
     </FlexColumn>
   );

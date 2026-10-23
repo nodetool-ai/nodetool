@@ -1799,9 +1799,8 @@
       "signInWindowNote": "Die Anmeldung wird in einem neuen Fenster geöffnet. Dieser Dialog schließt sich nach Abschluss.",
       "gemini": "Gemini",
       "extensionConnected": "Erweiterung verbunden",
-      "subscriptionsTitle": "Verbinde deine KI-Abos",
+      "subscriptionsTitle": "Verbinde die KI, die du schon nutzt",
       "addExtensionTitle": "Chrome-Erweiterung hinzufügen",
-      "useApiKeyInstead": "Stattdessen einen API-Schlüssel verwenden",
       "nextExtension": "Weiter: Chrome-Erweiterung",
       "back": "Zurück",
       "stepCount": "Schritt {{current}} von {{total}}",
@@ -1817,7 +1816,19 @@
         "text_to_3d": "3D-Generierung",
         "image_to_3d": "3D-Generierung aus Bildern"
       },
-      "stepPrompt": "Keiner deiner verbundenen Anbieter kann diesen Schritt ausführen. Verbinde einen dieser Anbieter, um ihn zu nutzen."
+      "stepPrompt": "Keiner deiner verbundenen Anbieter kann diesen Schritt ausführen. Verbinde einen dieser Anbieter, um ihn zu nutzen.",
+      "welcomeIntro": "Wähle, was für dich am einfachsten ist. Eins reicht für den Anfang, weitere kannst du jederzeit in den Einstellungen hinzufügen.",
+      "planGroup": "Ein Abo nutzen, das du schon bezahlst",
+      "planHint": "Kein API-Schlüssel und keine Abrechnung pro Token. ChatGPT-Bilder und alles in Gemini laufen über die Chrome-Erweiterung, die der nächste Schritt einrichtet.",
+      "keyGroup": "Oder einen API-Schlüssel einfügen",
+      "geminiTagline": "Chat, Bilder und Veo-Videos mit dem Gemini-Abo deines Google-Kontos. Läuft über die Chrome-Erweiterung.",
+      "connectedSummary": "Verbunden mit {{providers}}. Mach weiter oder füge einen weiteren hinzu.",
+      "setUpLater": "Später einrichten",
+      "moreProviders": "Weitere Anbieter ({{count}})",
+      "searchProviders": "Anbieter suchen",
+      "noProviderMatch": "Keiner dieser {{count}} Anbieter passt zu „{{query}}“. Die Einstellungen listen auch lokale Server und eigene Anbieter.",
+      "directoryCapabilityNote": "Nicht jeder Anbieter hier bietet {{capability}}. Prüfe seine Dokumentation, bevor du einen Schlüssel hinzufügst.",
+      "setUpInSettings": "In den Einstellungen einrichten"
     }
   },
   "batch2_8": {},
@@ -13885,6 +13896,7 @@
       "view": {
         "logs": "Protokolle",
         "queue": "Warteschlange",
+        "generations": "Generierungen",
         "workers": "Worker",
         "versions": "Versionen",
         "trace": "Trace"
@@ -18482,8 +18494,7 @@
       "editorHeading": "Editor"
     },
     "providerOnboarding": {
-      "setUp": "Einrichten",
-      "useApiKeyInstead": "Stattdessen einen API-Schlüssel verwenden"
+      "setUp": "Einrichten"
     },
     "scriptReview": {
       "addLine": "Zeile hinzufügen"
@@ -18715,6 +18726,43 @@
       "noBoardsTitle": "Keine Storyboards",
       "noBoardsDescription": "Erstellen Sie ein Storyboard, um seine Einstellungen auf der Timeline zu platzieren.",
       "listLabel": "Storyboard-Einstellungen"
+    }
+  },
+  "generations": {
+    "title": "Generierungen",
+    "emptyTitle": "Noch keine Generierungen",
+    "emptyDescription": "Bilder, Videos und Audio, die du in einem Editor, einem geführten Ablauf, im Chat oder in einem Workflow generierst, erscheinen hier, während sie laufen.",
+    "clearFinished": "Fertige entfernen",
+    "stop": "Generierung stoppen",
+    "stopFailed": "die Generierung stoppen",
+    "openSource": "{{title}} öffnen",
+    "untitled": "{{kind}}-Generierung",
+    "kind": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Audio",
+      "other": "Medien"
+    },
+    "status": {
+      "generating": "generiert",
+      "generated": "fertig",
+      "failed": "fehlgeschlagen",
+      "cancelled": "gestoppt"
+    },
+    "filter": {
+      "label": "Generierungen filtern",
+      "all": "Alle",
+      "generating": "Läuft",
+      "failed": "Fehlgeschlagen"
+    },
+    "source": {
+      "chat": "Chat",
+      "workflow": "Workflow",
+      "storyboard": "Storyboard",
+      "sketch": "Skizze",
+      "timeline": "Timeline",
+      "model3d": "3D-Modell",
+      "script": "Skript"
     }
   }
 }

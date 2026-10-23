@@ -3,19 +3,19 @@ import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import {
-  Box, Button, Caption, Dialog, EditorButton, FlexColumn, FlexRow, Text,
+  Button, Caption, Dialog, FlexColumn, FlexRow, Text,
   BORDER_RADIUS, SPACING
 } from "../ui_primitives";
 import { useSecrets } from "../../hooks/useSecrets";
 import useProviderOnboardingStore from "../../stores/ProviderOnboardingStore";
 import { isElectron, isLocalhost } from "../../lib/env";
 import { openSettingsTab } from "../workspace/openPageTab";
-import ollamaIcon from "../../icons/providers/ollama.svg";
 import ProviderOnboardingCard from "./ProviderOnboardingCard";
-import { providersForCapability } from "./providerOnboardingCatalog";
+import ProviderDirectory from "./ProviderDirectory";
+import LocalModelsRow from "./LocalModelsRow";
+import { directoryProviders, providersForCapability } from "./providerOnboardingCatalog";
 
 const ProviderOnboardingDialog: React.FC = () => {
   const { t } = useTranslation();
@@ -35,6 +35,12 @@ const ProviderOnboardingDialog: React.FC = () => {
     [capability, stepCapabilities]
   );
   const forStep = (stepCapabilities?.length ?? 0) > 0;
+  // A step only some providers run keeps its short list (study 12): the
+  // registry cannot say which of the others run it.
+  const moreProviders = useMemo(
+    () => (forStep ? [] : directoryProviders(capability)),
+    [forStep, capability]
+  );
   const groups = [
     { title: t("batch2_7.providerOnboarding.signInGroup"), providers: providers.filter((p) => p.oauth) },
     { title: t("batch2_7.providerOnboarding.apiKeyGroup"), providers: providers.filter((p) => !p.oauth) }
@@ -83,21 +89,21 @@ const ProviderOnboardingDialog: React.FC = () => {
                   provider={provider}
                   configured={configuredKeys.has(provider.secretKey)}
                   defaultExpanded={highlightSecretKey === provider.secretKey}
+                  onOpenSettings={handleOpenSettings}
                 />
               ))}
             </FlexColumn>
           </FlexColumn>
         ))}
-        {showLocal && (
-          <FlexRow align="center" gap={SPACING.lg} wrap>
-            <Box component="img" src={ollamaIcon} alt="" sx={{ width: 28, height: 28, ...theme.applyStyles("dark", { filter: "invert(1)" }) }} />
-            <FlexColumn gap={SPACING.xs} sx={{ flex: "1 1 180px" }}>
-              <Text size="small">{t("batch2_7.providerOnboarding.localTitle")}</Text>
-              <Caption>{t("batch2_7.providerOnboarding.localDescription")}</Caption>
-            </FlexColumn>
-            <EditorButton component="a" href="https://ollama.com/download" target="_blank" rel="noopener noreferrer" variant="text" endIcon={<OpenInNewIcon />}>{t("batch2_7.providerOnboarding.getOllama")}</EditorButton>
-          </FlexRow>
-        )}
+        <ProviderDirectory
+          providers={moreProviders}
+          configuredKeys={configuredKeys}
+          onOpenSettings={handleOpenSettings}
+          note={capability
+            ? t("batch2_7.providerOnboarding.directoryCapabilityNote", { capability: t(`batch2_7.providerOnboarding.capabilities.${capability}`) })
+            : undefined}
+        />
+        {showLocal && <LocalModelsRow />}
         <FlexRow gap={SPACING.md} align="center">
           <LockOutlinedIcon sx={{ fontSize: "1.2em", color: theme.vars.palette.text.secondary }} />
           <Caption>{t("batch2_7.providerOnboarding.encryptedKeys")}</Caption>

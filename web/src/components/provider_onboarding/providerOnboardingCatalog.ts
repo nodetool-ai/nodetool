@@ -1,5 +1,10 @@
 import type { OnboardingCapability } from "../../stores/ProviderOnboardingStore";
 import { isElectron, isLocalhost } from "../../lib/env";
+import {
+  PROVIDER_META,
+  isProviderAvailable,
+  type ProviderMeta
+} from "../menus/providerCatalog";
 
 import meshyIcon from "../../icons/providers/meshy-color.svg";
 import openaiIcon from "../../icons/providers/openai.svg";
@@ -17,7 +22,8 @@ export interface OnboardingProvider {
   name: string;
   /** Secret key / env var this provider stores its credential under. */
   secretKey: string;
-  icon: string;
+  /** Logo. A provider without one shows its initial. */
+  icon?: string;
   /** Single-color (black) glyph — needs inverting in dark mode to stay visible. */
   mono?: boolean;
   /** Supports one-click OAuth sign-in instead of pasting a key. */
@@ -49,7 +55,12 @@ export interface OnboardingProvider {
   /** Provider pricing / docs page. */
   pricingUrl: string;
   /** One-line, beginner-friendly cost summary. */
-  costHint: string;
+  costHint?: string;
+  /**
+   * The credential is more than one pasted key (an endpoint, a region, a CLI
+   * sign-in), so the card sends the user to Settings instead of a key field.
+   */
+  setupInSettings?: boolean;
   /** Whether a free tier or free credits are available to start. */
   freeTier?: string;
   /** Highlighted as an easy first choice. */
@@ -315,4 +326,78 @@ export const providersForCapability = (
   return matches.sort(
     (a, b) => Number(b.recommended ?? false) - Number(a.recommended ?? false)
   );
+};
+
+/** Settings sections that hold AI model providers, in display order. */
+const DIRECTORY_SECTIONS: readonly ProviderMeta["section"][] = [
+  "popular",
+  "language",
+  "media",
+  "gateways"
+];
+
+/** Capabilities the language-model sections serve; the rest are media. */
+const TEXT_CAPABILITIES: readonly OnboardingCapability[] = [
+  "generate_message",
+  "generate_embedding"
+];
+
+const toOnboardingProvider = (meta: ProviderMeta): OnboardingProvider => ({
+  id: meta.providerId ?? meta.key,
+  name: meta.name,
+  secretKey: meta.key,
+  icon: meta.icon,
+  mono: meta.mono,
+  oauth: meta.oauth,
+  oauthOnly: meta.oauthOnly,
+  localOnly: meta.localOnly,
+  tagline: meta.description,
+  capabilities: [],
+  keyUrl: meta.docsUrl,
+  pricingUrl: meta.docsUrl,
+  setupInSettings: Boolean(meta.fields) || (!meta.oauth && Boolean(meta.localOnly))
+});
+
+/**
+ * Every AI provider in the settings registry that the curated list leaves
+ * out, so onboarding can connect any of them without a trip to Settings.
+ * The registry does not record capabilities, so a capability narrows the
+ * list by section only: chat and embeddings to the language sections, the
+ * rest to media. Web search, GPU rental and service keys are not AI
+ * providers and stay in Settings.
+ */
+export const directoryProviders = (
+  capability?: OnboardingCapability
+): OnboardingProvider[] => {
+  const curatedKeys = new Set(ONBOARDING_PROVIDERS.map((p) => p.secretKey));
+  const sections = !capability
+    ? DIRECTORY_SECTIONS
+    : TEXT_CAPABILITIES.includes(capability)
+      ? DIRECTORY_SECTIONS.filter((s) => s !== "media")
+      : DIRECTORY_SECTIONS.filter((s) => s === "media" || s === "gateways");
+  return PROVIDER_META.filter(
+    (meta) =>
+      meta.providerId !== undefined &&
+      sections.includes(meta.section) &&
+      !curatedKeys.has(meta.key) &&
+      isProviderAvailable(meta)
+  )
+    .sort(
+      (a, b) =>
+        sections.indexOf(a.section) - sections.indexOf(b.section) ||
+        a.name.localeCompare(b.name)
+    )
+    .map(toOnboardingProvider);
+};
+
+/** Case-insensitive match on a provider's name and description. */
+export const matchesProviderQuery = (
+  provider: OnboardingProvider,
+  query: string
+): boolean => {
+  const needle = query.trim().toLowerCase();
+  if (!needle) {
+    return true;
+  }
+  return `${provider.name} ${provider.tagline}`.toLowerCase().includes(needle);
 };

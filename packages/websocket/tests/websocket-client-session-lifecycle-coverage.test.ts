@@ -7,7 +7,15 @@ import {
 } from "../src/websocket-client-session.js";
 import { extractTextContent } from "../src/session/chat-history.js";
 import { resetEnvironment } from "@nodetool-ai/config";
-import { initTestDb, Job } from "@nodetool-ai/models";
+import {
+  initTestDb,
+  Job,
+  ModelObserver,
+  ModelChangeEvent,
+  Workflow,
+  WorkflowVersion,
+  WorkflowCollaborator
+} from "@nodetool-ai/models";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -911,5 +919,219 @@ describe("WebSocketClientSession lifecycle — disconnect cleanup", () => {
     expect(runner.jobs.slotCounters.activeJobs).toBe(0);
     expect(ws.closed).toBe(true);
     expect(runner.websocket).toBeNull();
+  });
+});
+
+describe("shared workflow change delivery", () => {
+  const sessions: WebSocketClientSession[] = [];
+  beforeEach(async () => {
+    ModelObserver.clear();
+    await initTestDb();
+  });
+  afterEach(async () => {
+    for (const session of sessions.splice(0)) {
+      await session.disconnect();
+    }
+    vi.restoreAllMocks();
+    ModelObserver.clear();
+  });
+
+  async function connect(userId: string): Promise<MockWebSocket> {
+    const ws = new MockWebSocket();
+    const session = new WebSocketClientSession({ resolveExecutor });
+    sessions.push(session);
+    await session.connect(ws, userId);
+    return ws;
+  }
+
+  it("delivers workflow changes, versions and ops only to the owner and grantees", async () => {
+    const owner = await connect("owner");
+    const editor = await connect("editor");
+    const stranger = await connect("stranger");
+    const viewer = await connect("viewer");
+    const grants = vi
+      .spyOn(WorkflowCollaborator, "listForWorkflow")
+      .mockResolvedValue([
+        new WorkflowCollaborator({
+          workflow_id: "workflow",
+          user_id: "editor",
+          role: "editor"
+        }),
+        new WorkflowCollaborator({
+          workflow_id: "workflow",
+          user_id: "viewer",
+          role: "viewer"
+        })
+      ]);
+    const workflow = new Workflow({
+      id: "workflow",
+      user_id: "owner",
+      updated_at: "2026-10-23T10:00:00.000Z"
+    });
+    const etag = vi.spyOn(workflow, "getEtag");
+    const ops = [{ tool: "ui_update_workflow", input: { name: "Changed" } }];
+    ModelObserver.notify(workflow, ModelChangeEvent.UPDATED, { ops });
+    await vi.waitFor(() =>
+      expect(decodeAll(editor)).toContainEqual(
+        expect.objectContaining({
+          resource_type: "workflow",
+          event: "updated",
+          ops
+        })
+      )
+    );
+    expect(etag).toHaveBeenCalledTimes(1);
+    ModelObserver.notify(
+      new WorkflowVersion({ workflow_id: "workflow", user_id: "owner" }),
+      ModelChangeEvent.CREATED
+    );
+    await vi.waitFor(() =>
+      expect(decodeAll(editor)).toContainEqual(
+        expect.objectContaining({ resource_type: "workflowversion" })
+      )
+    );
+    expect(
+      decodeAll(owner).filter((m) => m.type === "resource_change")
+    ).toHaveLength(2);
+    expect(
+      decodeAll(stranger).filter((m) => m.type === "resource_change")
+    ).toHaveLength(0);
+    // The shared fanout caches recipients once per workflow.
+    expect(
+      decodeAll(viewer).filter((m) => m.type === "resource_change")
+    ).toHaveLength(2);
+    expect(grants).toHaveBeenCalledTimes(1);
+    grants.mockResolvedValue([]);
+    ModelObserver.notify(
+      new WorkflowCollaborator({ workflow_id: "workflow", user_id: "editor" }),
+      ModelChangeEvent.DELETED
+    );
+    ModelObserver.notify(workflow, ModelChangeEvent.UPDATED);
+    await vi.waitFor(() => expect(grants).toHaveBeenCalledTimes(2));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(
+      decodeAll(editor).filter((m) => m.resource_type === "workflow")
+    ).toHaveLength(1);
+    grants.mockResolvedValue([
+      new WorkflowCollaborator({ workflow_id: "workflow", user_id: "editor" })
+    ]);
+    ModelObserver.notify(
+      new WorkflowCollaborator({ workflow_id: "workflow", user_id: "editor" }),
+      ModelChangeEvent.CREATED
+    );
+    ModelObserver.notify(workflow, ModelChangeEvent.UPDATED);
+    await vi.waitFor(() =>
+      expect(
+        decodeAll(editor).filter((m) => m.resource_type === "workflow")
+      ).toHaveLength(2)
+    );
+  });
+
+  it("captures the write token before an asynchronous grant lookup", async () => {
+    const editor = await connect("editor");
+    vi.spyOn(WorkflowCollaborator, "listForWorkflow").mockResolvedValue([
+      new WorkflowCollaborator({
+        workflow_id: "snapshot-workflow",
+        user_id: "editor"
+      })
+    ]);
+    const workflow = new Workflow({
+      id: "snapshot-workflow",
+      user_id: "owner",
+      updated_at: "2026-10-23T10:00:00.000Z"
+    });
+    ModelObserver.notify(workflow, ModelChangeEvent.UPDATED);
+    workflow.updated_at = "2026-10-23T11:00:00.000Z";
+    await vi.waitFor(() =>
+      expect(decodeAll(editor)).toContainEqual(
+        expect.objectContaining({
+          resource_type: "workflow",
+          resource: expect.objectContaining({
+            updated_at: "2026-10-23T10:00:00.000Z"
+          })
+        })
+      )
+    );
+  });
+
+  it("rechecks a grant revoked during a pending lookup", async () => {
+    const editor = await connect("editor");
+    let resolveGrants: (grants: WorkflowCollaborator[]) => void = () => {
+      throw new Error("Lookup not started");
+    };
+    const pending = new Promise<WorkflowCollaborator[]>((resolve) => {
+      resolveGrants = resolve;
+    });
+    const grants = vi
+      .spyOn(WorkflowCollaborator, "listForWorkflow")
+      .mockReturnValueOnce(pending)
+      .mockResolvedValue([]);
+    const workflow = new Workflow({ id: "pending-workflow", user_id: "owner" });
+    ModelObserver.notify(workflow, ModelChangeEvent.UPDATED);
+    ModelObserver.notify(
+      new WorkflowCollaborator({
+        workflow_id: "pending-workflow",
+        user_id: "editor"
+      }),
+      ModelChangeEvent.DELETED
+    );
+    resolveGrants([
+      new WorkflowCollaborator({
+        workflow_id: "pending-workflow",
+        user_id: "editor"
+      })
+    ]);
+    await vi.waitFor(() => expect(grants).toHaveBeenCalledTimes(2));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(
+      decodeAll(editor).filter((m) => m.resource_type === "pending-workflow")
+    ).toHaveLength(0);
+  });
+
+  it("delivers a version authored by an editor to the workflow owner", async () => {
+    const workflow = await Workflow.create({
+      user_id: "owner",
+      name: "Shared"
+    });
+    await WorkflowCollaborator.upsert({
+      workflowId: workflow.id,
+      userId: "editor",
+      role: "editor",
+      invitedBy: "owner"
+    });
+    const owner = await connect("owner");
+    await WorkflowVersion.create({
+      workflow_id: workflow.id,
+      user_id: "editor"
+    });
+    await vi.waitFor(() =>
+      expect(decodeAll(owner)).toContainEqual(
+        expect.objectContaining({ resource_type: "workflowversion" })
+      )
+    );
+  });
+
+  it("delivers an owner's delete with a cold cache before grants are removed", async () => {
+    const workflow = await Workflow.create({
+      user_id: "owner",
+      name: "Shared"
+    });
+    await WorkflowCollaborator.upsert({
+      workflowId: workflow.id,
+      userId: "editor",
+      role: "editor",
+      invitedBy: "owner"
+    });
+    const editor = await connect("editor");
+    await Workflow.deleteOwned("owner", workflow.id);
+    await vi.waitFor(() =>
+      expect(decodeAll(editor)).toContainEqual(
+        expect.objectContaining({
+          resource_type: "workflow",
+          event: "deleted",
+          resource: expect.objectContaining({ id: workflow.id })
+        })
+      )
+    );
   });
 });

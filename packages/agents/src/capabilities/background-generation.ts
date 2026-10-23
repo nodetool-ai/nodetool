@@ -3,7 +3,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 /** Background generations a run may have open at once. */
 export const MAX_BACKGROUND_GENERATIONS = 16;
 
-const openBackground = new WeakMap<ProcessingContext, number>();
+const openBackground = new WeakMap<ProcessingContext, Set<Promise<void>>>();
 
 export function backgroundGenerationLimitError(): { error: string } {
   return {
@@ -21,19 +21,38 @@ export function startBackgroundGeneration(
   context: ProcessingContext,
   work: () => Promise<unknown>
 ): boolean {
-  const open = openBackground.get(context) ?? 0;
-  if (open >= MAX_BACKGROUND_GENERATIONS) return false;
+  let open = openBackground.get(context);
+  if (!open) {
+    open = new Set();
+    openBackground.set(context, open);
+  }
+  if (open.size >= MAX_BACKGROUND_GENERATIONS) return false;
 
-  openBackground.set(context, open + 1);
-  void work()
-    .catch(() => {
-      // The generation seam records the terminal failure.
-    })
+  const running: Promise<void> = work()
+    .then(
+      () => undefined,
+      () => {
+        // The generation seam records the terminal failure.
+      }
+    )
     .finally(() => {
-      openBackground.set(
-        context,
-        Math.max(0, (openBackground.get(context) ?? 1) - 1)
-      );
+      open.delete(running);
     });
+  open.add(running);
   return true;
+}
+
+/**
+ * Resolve once every background generation open on `context` has settled,
+ * including any started while waiting. A host that stops listening to the
+ * context's messages before then loses their terminal messages, and the
+ * generation rows stay "running".
+ */
+export async function whenBackgroundGenerationsSettle(
+  context: ProcessingContext
+): Promise<void> {
+  const open = openBackground.get(context);
+  while (open && open.size > 0) {
+    await Promise.all([...open]);
+  }
 }

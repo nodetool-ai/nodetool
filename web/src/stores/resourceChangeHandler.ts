@@ -66,17 +66,45 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
   // Not "templates": they are shipped examples no user write changes, and
   // their loader re-reads every example file.
   workflow: ["workflows"],
-  workflowversion: [],
   job: ["jobs"],
   asset: ["assets"],
-  thread: ["threads"],
-  message: ["messages"],
   collection: ["collections"],
   workspace: ["workspaces"],
   secret: ["secrets"],
   setting: ["settings"],
   metadata: ["metadata"]
 };
+
+/** Procedures read through tRPC rather than the legacy string query keys. */
+export const RESOURCE_TRPC_PROCEDURES: Record<
+  string,
+  readonly (readonly [string, string])[]
+> = {
+  workflow: [["workflows", "list"]],
+  asset: [
+    ["assets", "list"],
+    ["assets", "get"]
+  ],
+  thread: [["threads", "list"]],
+  message: [["messages", "list"]],
+  skill: [
+    ["skills", "list"],
+    ["skills", "get"]
+  ],
+  memory: [
+    ["memories", "list"],
+    ["memories", "search"]
+  ]
+};
+
+type ChatResourceReloader = (update: ResourceChangeUpdate) => void;
+let chatResourceReloader: ChatResourceReloader | null = null;
+
+export function setChatResourceReloader(
+  reloader: ChatResourceReloader | null
+): void {
+  chatResourceReloader = reloader;
+}
 
 /**
  * Document tables an open editor holds one row of. The list query behind the
@@ -265,7 +293,8 @@ function invalidateTrpcProcedure(router: string, procedure: string): void {
 
 /**
  * A workflow created outside the editor (bundle import, API, agent) has no tab
- * and no editor store until something opens it. Opening the tab mounts the
+ * and no editor store until something opens it. Only the focused window opens
+ * it automatically. Opening the tab mounts the
  * editor, which is what makes the workflow editable. A workflow this page
  * created already has its surface: the guided Workflow flow keeps its draft in
  * a guided flow tab, and a second editor tab beside it was a stray "Untitled".
@@ -276,20 +305,20 @@ async function openCreatedWorkflowTab(id: string): Promise<void> {
     useWorkspaceTabsStore
       .getState()
       .tabs.some((tab) => tab.id === tabId("workflow", id));
-  if (hasSurface()) {
+  if (!document.hasFocus() || hasSurface()) {
     return;
   }
   try {
-    const document = await resolveDocumentProject("workflow", id);
-    // The event can arrive before this page's own create call returns.
-    if (hasSurface()) {
+    const resolvedDocument = await resolveDocumentProject("workflow", id);
+    // Focus can move while fetching, or this page's own create can return.
+    if (!document.hasFocus() || hasSurface()) {
       return;
     }
     useWorkspaceTabsStore.getState().openTab({
       type: "workflow",
-      ref: document.id,
+      ref: resolvedDocument.id,
       mode: "edit",
-      projectId: document.projectId ?? LOOSE_PROJECT_ID
+      projectId: resolvedDocument.projectId ?? LOOSE_PROJECT_ID
     });
   } catch (error) {
     console.warn(`[ResourceChange] Could not open workflow ${id}`, error);
@@ -420,16 +449,24 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     invalidateDocumentIndex();
   }
 
+  for (const [router, procedure] of RESOURCE_TRPC_PROCEDURES[resource_type] ??
+    []) {
+    invalidateTrpcProcedure(router, procedure);
+  }
+  if (resource_type === "thread" || resource_type === "message") {
+    chatResourceReloader?.(update);
+  }
+
   const queryKeys = RESOURCE_TYPE_TO_QUERY_KEYS[resource_type];
 
-  if (queryKeys === undefined) {
+  if (queryKeys === undefined && !RESOURCE_TRPC_PROCEDURES[resource_type]) {
     console.debug(
       `[ResourceChange] No query keys configured for resource_type: ${resource_type}, skipping cache invalidation`
     );
     return;
   }
 
-  if (queryKeys.length > 0) {
+  if (queryKeys && queryKeys.length > 0) {
     console.debug(
       `[ResourceChange] Invalidating ${queryKeys.length} query key(s) for ${resource_type}:`,
       queryKeys
@@ -467,22 +504,6 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
         invalidateQueryKey(["workflow", resource.id]);
       }
       invalidateQueryKey(["workflow", resource.id, "versions"]);
-    }
-
-    if (resource_type === "thread") {
-      invalidateQueryKey(["thread", resource.id]);
-      invalidateQueryKey(["messages", resource.id]);
-    }
-
-    if (resource_type === "message") {
-      // `resource.id` is the message id; messages are scoped by thread_id when
-      // the runner provides it, but we can also fall back to invalidating any
-      // thread-scoped messages query.
-      const threadId =
-        isString(resource.thread_id) ? resource.thread_id : null;
-      if (threadId) {
-        invalidateQueryKey(["messages", threadId]);
-      }
     }
 
     if (resource_type === "job") {

@@ -4,10 +4,7 @@
  * real TrackLane/Clip tree against the default timeline store instance.
  */
 
-import { installPointerEvent } from "../../../../test-utils/pointerEvent";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { ThemeProvider } from "@mui/material/styles";
-import mockTheme from "../../../../__mocks__/themeMock";
+import { screen, fireEvent } from "@testing-library/react";
 
 jest.mock("../useClipThumbnails", () =>
   jest
@@ -43,97 +40,45 @@ jest.mock("../../../../stores/timeline/TimelineGenerationStore", () =>
     .timelineGenerationStoreMock()
 );
 
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
-import { TrackLane } from "../TrackLane";
+import {
+  installPointerEvent,
+  makeTrack,
+  makeClip,
+  seedTimeline,
+  renderLanes
+} from "../../../../test-utils/timelineClipHarness";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
-import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
 
 beforeAll(installPointerEvent);
 
-const makeTrack = (
-  id: string,
-  index: number,
-  locked = false
-): TimelineTrack => ({
-  id,
-  name: `Video ${index + 1}`,
-  type: "video",
-  index,
-  visible: true,
-  locked
-});
-
-const makeClip = (
-  id: string,
-  trackId: string,
-  startMs: number,
-  durationMs: number,
-  locked = false
-): TimelineClip => ({
-  id,
-  trackId,
-  name: id,
-  startMs,
-  durationMs,
-  mediaType: "video",
-  sourceType: "imported",
-  status: "draft",
-  locked,
-  versions: []
-});
-
 /** 10 ms per px, so 30 px of pointer travel is 300 ms — clear of the 8 px
  *  snap threshold around the 1 s gridlines and the other clips' edges. */
-const MS_PER_PX = 10;
 const DRAG_PX = 30;
-const DRAG_MS = DRAG_PX * MS_PER_PX;
+const DRAG_MS = DRAG_PX * 10;
 
 const seed = () => {
-  useTimelineStore.setState({
-    tracks: [makeTrack("t1", 0)],
-    clips: [
-      { ...makeClip("a", "t1", 0, 2000), inPointMs: 0, outPointMs: 2000 },
-      { ...makeClip("b", "t1", 2000, 2000), inPointMs: 1000, outPointMs: 3000 },
-      { ...makeClip("c", "t1", 4000, 2000), inPointMs: 1000, outPointMs: 3000 },
+  seedTimeline(
+    [makeTrack("t1", 0)],
+    [
+      makeClip("a", "t1", 0, 2000, { inPointMs: 0, outPointMs: 2000 }),
+      makeClip("b", "t1", 2000, 2000, { inPointMs: 1000, outPointMs: 3000 }),
+      makeClip("c", "t1", 4000, 2000, { inPointMs: 1000, outPointMs: 3000 }),
       makeClip("d", "t1", 9000, 1000)
-    ],
-    durationMs: 12_000,
-    linkedSelection: true
-  });
-  useTimelineUIStore.setState({
-    msPerPx: MS_PER_PX,
-    scrollLeftPx: 0,
-    activeTool: "select",
-    selectedClipIds: new Set<string>(),
-    selectedGap: null,
-    rubberBand: null,
-    snapEnabled: false
-  });
-  useTimelinePlaybackStore.setState({ currentTimeMs: 0 });
-};
-
-const renderLanes = () => {
-  const { tracks } = useTimelineStore.getState();
-  render(
-    <ThemeProvider theme={mockTheme}>
-      <div data-timeline-lanes="true">
-        {tracks.map((t) => (
-          <TrackLane key={t.id} track={t} />
-        ))}
-      </div>
-    </ThemeProvider>
+    ]
   );
+  useTimelineStore.setState({ linkedSelection: true });
+  useTimelineUIStore.setState({ selectedGap: null, snapEnabled: false });
 };
 
+// Alt+drag duplicates at pointerdown, so the modifier rides on the press too.
 const dragClip = (
   clipId: string,
   fromX: number,
   toX: number,
   mods: { altKey?: boolean } = {}
 ) => {
-  const el = screen.getByTestId(`clip-${clipId}`);
-  fireEvent.pointerDown(el, {
+  fireEvent.pointerDown(screen.getByTestId(`clip-${clipId}`), {
     button: 0,
     buttons: 1,
     clientX: fromX,

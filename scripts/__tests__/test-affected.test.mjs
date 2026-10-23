@@ -42,6 +42,13 @@ describe("buildPlan", () => {
     ]);
   });
 
+  it.each(["scripts/ci-plan.mjs", "scripts/__tests__/ci-plan.test.mjs"])("selects CI planning regressions for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps).toEqual([
+      { label: "CI planning regressions", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/ci-plan.test.mjs"] }
+    ]);
+  });
+
   it("checks smoke behavior and the real bundle when the backend smoke changes", () => {
     expect(plan(["scripts/smoke-backend-bundle.mjs"]).globalFiles).toEqual([]);
     expect(labels([
@@ -166,7 +173,10 @@ describe("buildPlan", () => {
   });
 
   it("runs the backend bundle smoke for the bundle scripts", () => {
-    expect(labels(["scripts/bundle-backend.mjs"])).toEqual(["backend:smoke"]);
+    for (const file of ["scripts/bundle-backend.mjs", "scripts/backend-server-build-options.mjs"]) {
+      expect(labels([file])).toEqual(["backend:smoke", "backend bundle class names"]);
+    }
+    expect(labels(["scripts/__tests__/backend-server-build-options.test.mjs"])).toEqual(["backend bundle class names"]);
     const steps = plan(["scripts/verify-backend-bundle.mjs"]).steps;
     expect(steps.map((s) => [s.command, ...s.args])).toEqual([
       ["npm", "run", "backend:smoke"],
