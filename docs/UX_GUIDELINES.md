@@ -91,7 +91,12 @@ Apps tab opened on ad-format apps needing two kinds of model, and 0 of 9
 participants used an example app (`study-12-I1`). Once opened, an
 example's note names the field that sets its behavior. 3 of 3 who turned a
 German translator into a French one had to find "German" in a System field
-nothing pointed to (`study-13-I4`).
+nothing pointed to (`study-13-I4`). A description also says what the item
+does not take: 3 of 3 who wanted an ad from their own photo opened Ad Maker
+first and learned only at its second step that it takes no photo
+(`study-14-I3`). Every field an example app shows reaches its run. 17 of 33
+apps dropped their named parameters, so a chosen model read as missing
+(`study-14-I1`).
 
 ### 1.5 Label navigation, and put Settings and Help where people look
 
@@ -127,7 +132,9 @@ shipped, the picture flow's image model stayed blank and failed a session
 Video flow's voice (study 10, D1), then the storyboard's per-shot render
 dialog while its batch dialog was filled (`study-11-I4`).
 A new model kind, a new picker or a new flow reads the Settings default for
-its kind, and connecting a provider seeds that default.
+its kind, and connecting a provider seeds that default. An example app's model
+fields are pickers too: people picked the same model in four fields
+(`study-12-R2`).
 
 ### 2.3 Show which model is current, the same way everywhere
 
@@ -220,7 +227,9 @@ in view and clear of the nodes already there.
 A dot on the bell was the only confirmation for 2 of 2 who pressed "Save to
 image" (`study-5-I5`), and an export that finished without a message left
 only the browser's download bar (study 3, D12). Say it in a toast or inline,
-and name the file.
+and name the file. A save never reports itself as a change made elsewhere:
+the app editor raised "changed outside the editor" on every Save, and the
+person clicked Discard, unsure which button kept the edit (`study-14-I5`).
 
 ### 3.6 Keep undo on every removal
 
@@ -274,6 +283,8 @@ run, an empty output reads "The last run sent nothing here".
   (`study-4-I2`).
 - A failed storyboard download showed `{"detail":"Not found"}`, and 3 of 3
   could not tell what was missing (`study-11-I3`).
+- A failed example app step said only "Example app operation failed"
+  (`study-14-I2`). Show the reason the server gave.
 
 An error message names the cause in the person's terms and the next action.
 It never shows encoder strings, stack traces, storage paths or model ids as
@@ -370,6 +381,10 @@ Test every new surface at 1280 × 720, 1366 × 768, 1024 × 768 and 960 × 1000
   defects). A menu stays inside the window and shows that it scrolls.
 - Toasts covered getting-started chips, the inspector and the run button
   (studies 3, 4 and 6 defects).
+- An editor with a time axis opens with all of its content in view. A
+  timeline opened on its last seconds, and 0 of 3 found the clips to shorten
+  (`study-14-I4`). Fit after the layout settles: the lanes measured 784 px
+  while the dock laid out and about 300 px after it.
 
 The narrow-width behavior is still under research. Until it is decided, a
 panel must not cover the control the person opened it to use.
@@ -393,6 +408,7 @@ Studies confirmed these. Keep them when changing the surrounding UI.
 | Clicking a node to open its settings in the side panel | `study-9-I5`, 3 of 3 in 9 actions |
 | Dragging from dot to dot to connect, and the status bar's edge count as confirmation | `study-9-I6`, 5 of 5 |
 | An example's "How it works" note naming its numbered nodes, read to say what it needs and where its result appears | `study-13-I3`, 5 of 5 |
+| The Examples Games tab, with control hints on the game's first screen | `study-14-I6`, 4 of 4 |
 
 ## 9. Open questions
 
