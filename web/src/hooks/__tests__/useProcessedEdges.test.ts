@@ -65,7 +65,6 @@ describe("useProcessedEdges", () => {
       );
 
       expect(result.current.processedEdges).toEqual([]);
-      expect(result.current.activeGradientKeys.size).toBe(0);
     });
 
     it("processes edges and adds styles", () => {
@@ -319,7 +318,7 @@ describe("useProcessedEdges", () => {
   });
 
   describe("gradient handling", () => {
-    it("adds gradient key when source and target types differ", () => {
+    it("passes both type colors when source and target types differ", () => {
       const nodes = [
         createMockNode("node1", "test.ImageNode"),
         createMockNode("node2", "test.AudioNode")
@@ -357,8 +356,10 @@ describe("useProcessedEdges", () => {
         })
       );
 
-      // Should have a gradient key for different types
-      expect(result.current.activeGradientKeys.size).toBeGreaterThanOrEqual(0);
+      const edge = result.current.processedEdges[0];
+      expect(edge.style?.stroke).toBe("#e91e63");
+      expect(edge.data?.sourceTypeColor).toBe("#e91e63");
+      expect(edge.data?.targetTypeColor).toBe("#9c27b0");
     });
 
     it("uses solid color when source and target types match", () => {
@@ -386,7 +387,9 @@ describe("useProcessedEdges", () => {
       );
 
       // Should use solid color, no gradient
-      expect(result.current.processedEdges[0].style?.stroke).not.toContain("url(#gradient");
+      const edge = result.current.processedEdges[0];
+      expect(edge.style?.stroke).toBe("#3f51b5");
+      expect(edge.data?.targetTypeColor).toBe(edge.data?.sourceTypeColor);
     });
   });
 

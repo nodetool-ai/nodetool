@@ -12,6 +12,14 @@ import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_pri
 import { memo, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+/**
+ * Id of the gradient an edge between two types is stroked with. Edge ids are
+ * free-form, so anything outside the safe set is replaced for `url(#…)`.
+ */
+export function edgeGradientId(edgeId: string): string {
+  return `edge-gradient-${edgeId.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+}
+
 export function CustomEdge({
   id,
   sourceX,
@@ -38,6 +46,16 @@ export function CustomEdge({
   const counter = data?.counter as number | undefined;
   const dataTypeLabel = data?.dataTypeLabel as string | undefined;
   const sourceTypeColor = data?.sourceTypeColor as string | undefined;
+  const targetTypeColor = data?.targetTypeColor as string | undefined;
+  // Each edge gets its own gradient, laid out in user space from source to
+  // target. A shared gradient in the default objectBoundingBox units paints
+  // nothing on a path with a zero-height box, so an edge between handles at
+  // the same height (common in generated layouts) was invisible until a node
+  // moved.
+  const gradientId =
+    sourceTypeColor && targetTypeColor && sourceTypeColor !== targetTypeColor
+      ? edgeGradientId(id)
+      : undefined;
   const accent = sourceTypeColor || "currentColor";
   const showLabel = counter && counter > 1;
 
@@ -86,6 +104,7 @@ export function CustomEdge({
   const enhancedStyle = useMemo(() => {
     return {
       ...style,
+      ...(gradientId && { stroke: `url(#${gradientId})` }),
       ...(selected && {
         strokeWidth: 2
       }),
@@ -94,10 +113,25 @@ export function CustomEdge({
         animation: `edgeFlow ${MOTION.spin} infinite`
       })
     };
-  }, [style, isActive, selected]);
+  }, [style, gradientId, isActive, selected]);
 
   return (
     <>
+      {gradientId && (
+        <defs>
+          <linearGradient
+            id={gradientId}
+            gradientUnits="userSpaceOnUse"
+            x1={sourceX}
+            y1={sourceY}
+            x2={targetX}
+            y2={targetY}
+          >
+            <stop offset="0%" stopColor={sourceTypeColor} />
+            <stop offset="100%" stopColor={targetTypeColor} />
+          </linearGradient>
+        </defs>
+      )}
       {selected && (
         <path
           d={edgePath}
@@ -145,6 +179,7 @@ const MemoizedCustomEdge = memo(CustomEdge, (prevProps, nextProps) => {
     prevProps.data?.counter === nextProps.data?.counter &&
     prevProps.data?.dataTypeLabel === nextProps.data?.dataTypeLabel &&
     prevProps.data?.sourceTypeColor === nextProps.data?.sourceTypeColor &&
+    prevProps.data?.targetTypeColor === nextProps.data?.targetTypeColor &&
     prevProps.data?.status === nextProps.data?.status
   );
 });
