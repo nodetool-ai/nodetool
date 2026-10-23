@@ -43,25 +43,25 @@ describe("node-runtime.constants", () => {
 
   it("builds nodejs.org archive info per target", () => {
     const mac = c.nodeArchive("darwin", "arm64");
-    expect(mac.dir).toBe("node-v24.18.0-darwin-arm64");
-    expect(mac.archive).toBe("node-v24.18.0-darwin-arm64.tar.gz");
-    expect(mac.binaryInArchive).toBe("node-v24.18.0-darwin-arm64/bin/node");
+    expect(mac.dir).toBe("node-v24.22.1-darwin-arm64");
+    expect(mac.archive).toBe("node-v24.22.1-darwin-arm64.tar.gz");
+    expect(mac.binaryInArchive).toBe("node-v24.22.1-darwin-arm64/bin/node");
 
     const win = c.nodeArchive("win32", "x64");
-    expect(win.dir).toBe("node-v24.18.0-win-x64");
-    expect(win.archive).toBe("node-v24.18.0-win-x64.zip");
-    expect(win.binaryInArchive).toBe("node-v24.18.0-win-x64/node.exe");
+    expect(win.dir).toBe("node-v24.22.1-win-x64");
+    expect(win.archive).toBe("node-v24.22.1-win-x64.zip");
+    expect(win.binaryInArchive).toBe("node-v24.22.1-win-x64/node.exe");
   });
 
   it("locates the npm package inside each archive layout", () => {
-    expect(c.npmDirInArchive("darwin", "node-v24.18.0-darwin-arm64")).toBe(
-      "node-v24.18.0-darwin-arm64/lib/node_modules/npm"
+    expect(c.npmDirInArchive("darwin", "node-v24.22.1-darwin-arm64")).toBe(
+      "node-v24.22.1-darwin-arm64/lib/node_modules/npm"
     );
-    expect(c.npmDirInArchive("linux", "node-v24.18.0-linux-x64")).toBe(
-      "node-v24.18.0-linux-x64/lib/node_modules/npm"
+    expect(c.npmDirInArchive("linux", "node-v24.22.1-linux-x64")).toBe(
+      "node-v24.22.1-linux-x64/lib/node_modules/npm"
     );
-    expect(c.npmDirInArchive("win32", "node-v24.18.0-win-x64")).toBe(
-      "node-v24.18.0-win-x64/node_modules/npm"
+    expect(c.npmDirInArchive("win32", "node-v24.22.1-win-x64")).toBe(
+      "node-v24.22.1-win-x64/node_modules/npm"
     );
   });
 
