@@ -1,12 +1,16 @@
 /**
  * Tests for resource change handler
  */
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import {
   flushResourceInvalidations,
   handleResourceChange,
   INVALIDATION_DEBOUNCE_MS,
   INVALIDATION_MAX_WAIT_MS,
   invalidateAllResourceQueries,
+  RESOURCE_TRPC_PROCEDURES,
+  setChatResourceReloader,
   setWorkflowResourceReloader
 } from "../resourceChangeHandler";
 import { queryClient } from "../../queryClient";
@@ -79,6 +83,93 @@ describe("handleResourceChange", () => {
     flushResourceInvalidations();
     jest.clearAllMocks();
     setWorkflowResourceReloader(null);
+    setChatResourceReloader(null);
+    jest.spyOn(document, "hasFocus").mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("maps each tRPC invalidation to a registered reader", () => {
+    const readSources = (directory: string): string[] =>
+      readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const filename = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+          return entry.name === "__tests__" ? [] : readSources(filename);
+        }
+        return /\.tsx?$/.test(filename) ? [readFileSync(filename, "utf8")] : [];
+      });
+    const sources = readSources(path.join(__dirname, "../.."));
+    expect(sources.length).toBeGreaterThan(0);
+    expect(Object.keys(RESOURCE_TRPC_PROCEDURES).length).toBeGreaterThan(0);
+    for (const procedures of Object.values(RESOURCE_TRPC_PROCEDURES)) {
+      for (const [router, procedure] of procedures) {
+        const reader = new RegExp(
+          `(?:trpc|trpcClient)\\.${router}\\.${procedure}\\.(?:useQuery|useSuspenseQuery|query)\\s*\\(`
+        );
+        expect(sources.some((source) => reader.test(source))).toBe(true);
+      }
+    }
+  });
+
+  it.each(["thread", "message"])(
+    "refreshes the uncached chat reader on %s changes",
+    (resourceType) => {
+      const reload = jest.fn();
+      setChatResourceReloader(reload);
+      const update: ResourceChangeUpdate = {
+        type: "resource_change",
+        event: "created",
+        resource_type: resourceType,
+        resource: { id: "resource-1", thread_id: "thread-1" }
+      };
+      handleResourceChange(update);
+      expect(reload).toHaveBeenCalledWith(update);
+    }
+  );
+
+  it.each([
+    ["thread", "threads", "list"],
+    ["message", "messages", "list"],
+    ["workflow", "workflows", "list"],
+    ["asset", "assets", "list"],
+    ["asset", "assets", "get"],
+    ["skill", "skills", "list"],
+    ["skill", "skills", "get"],
+    ["memory", "memories", "list"],
+    ["memory", "memories", "search"]
+  ])("refreshes %s readers using %s.%s", (resourceType, router, procedure) => {
+    change({
+      type: "resource_change",
+      event: "updated",
+      resource_type: resourceType,
+      resource: { id: "resource-1" },
+      ops: [{ tool: "update_skill", input: { name: "Changed" } }]
+    });
+    const predicates = (queryClient.invalidateQueries as jest.Mock).mock.calls
+      .map((call) => call[0]?.predicate)
+      .filter(
+        (predicate): predicate is (query: { queryKey: readonly unknown[] }) => boolean =>
+          typeof predicate === "function"
+      );
+    expect(
+      predicates.some((predicate) =>
+        predicate({
+          queryKey: [
+            [router, procedure],
+            { input: { id: "resource-1" }, type: "query" }
+          ]
+        })
+      )
+    ).toBe(true);
+    expect(
+      predicates.some((predicate) =>
+        predicate({
+          queryKey: [["unrelated", procedure], {}]
+        })
+      )
+    ).toBe(false);
   });
 
   it("refetches the workspace explorer when a run writes a file", () => {
@@ -159,6 +250,45 @@ describe("handleResourceChange", () => {
       mode: "edit",
       projectId: "proj-1"
     });
+  });
+
+  it("invalidates a created workflow without opening it in an unfocused window", async () => {
+    jest.spyOn(document, "hasFocus").mockReturnValue(false);
+
+    change({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-background" }
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
+    expect(resolveDocumentProject).not.toHaveBeenCalled();
+    expect(keyedInvalidations(["workflows"])).toBe(1);
+    expect(keyedInvalidations(["workflow", "wf-background"])).toBe(1);
+  });
+
+  it("does not open a workflow if the window loses focus during its fetch", async () => {
+    let resolveProject: (value: { id: string; projectId: string }) => void =
+      () => undefined;
+    (resolveDocumentProject as jest.Mock).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveProject = resolve;
+        })
+    );
+    handleResourceChange({
+      type: "resource_change",
+      event: "created",
+      resource_type: "workflow",
+      resource: { id: "wf-focus-changed" }
+    });
+    jest.spyOn(document, "hasFocus").mockReturnValue(false);
+    resolveProject({ id: "wf-focus-changed", projectId: "proj-1" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mockOpenTab).not.toHaveBeenCalled();
   });
 
   it("does not reopen a workflow that already has a tab", async () => {
@@ -295,26 +425,6 @@ describe("handleResourceChange", () => {
     );
   });
 
-  it("invalidates messages query when a message resource includes thread_id", () => {
-    const update: ResourceChangeUpdate = {
-      type: "resource_change",
-      event: "created",
-      resource_type: "message",
-      resource: { id: "msg-1", thread_id: "thread-101" }
-    };
-
-    change(update);
-
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
-      { queryKey: ["messages"] },
-      NO_CANCEL
-    );
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
-      { queryKey: ["messages", "thread-101"] },
-      NO_CANCEL
-    );
-  });
-
   it("invalidates the workflow versions list when scoped to a workflow", () => {
     const update: ResourceChangeUpdate = {
       type: "resource_change",
@@ -343,35 +453,6 @@ describe("handleResourceChange", () => {
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
       { queryKey: ["collections"] },
-      NO_CANCEL
-    );
-  });
-
-  it("invalidates thread and messages queries on thread update", () => {
-    const update: ResourceChangeUpdate = {
-      type: "resource_change",
-      event: "updated",
-      resource_type: "thread",
-      resource: {
-        id: "thread-101",
-        etag: "ghi101"
-      }
-    };
-
-    change(update);
-
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
-      { queryKey: ["threads"] },
-      NO_CANCEL
-    );
-
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
-      { queryKey: ["thread", "thread-101"] },
-      NO_CANCEL
-    );
-
-    expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
-      { queryKey: ["messages", "thread-101"] },
       NO_CANCEL
     );
   });
@@ -892,8 +973,13 @@ describe("handleResourceChange", () => {
       expect(keyedInvalidations(["entities"])).toBe(1);
       expect(keyedInvalidations(["asset", "asset-0"])).toBe(1);
       expect(keyedInvalidations(["asset", "asset-19"])).toBe(1);
-      // One project-views sweep and one documents.index sweep.
-      expect(invalidationPredicates()).toHaveLength(2);
+      // Project views, documents.index, and the two tRPC asset readers.
+      expect(invalidationPredicates()).toHaveLength(4);
+      for (const procedure of ["list", "get"]) {
+        expect(invalidationPredicates().filter((predicate) => predicate({
+          queryKey: [["assets", procedure], { input: {}, type: "query" }]
+        }))).toHaveLength(1);
+      }
       for (const call of (queryClient.invalidateQueries as jest.Mock).mock
         .calls) {
         expect(call[1]).toEqual(NO_CANCEL);

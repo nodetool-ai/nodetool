@@ -1932,6 +1932,7 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "packages/server/",
       "scripts/bundle-backend.mjs",
+      "scripts/backend-server-build-options.mjs",
       "scripts/verify-backend-bundle.mjs",
       "packages/config/src/package-asset-registry.ts"
     ]

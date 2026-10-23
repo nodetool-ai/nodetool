@@ -356,7 +356,10 @@ name the difference ("Save and close").
 A one-line field for "one benefit per line" joined the lines silently in 3 of
 3 (`study-1-I4`). A text file attached with "@" showed as a broken
 reference image (`study-4-I5`). Multi-line data gets a multi-line
-field, and a file shows as what it is.
+field, and a file shows as what it is. An attach control takes every kind
+of file its box can use: the home box's "Reference images" refused a notes
+file in 2 of 3, and 3 of 3 left for the Library to upload it
+(`study-15-I1`).
 
 ## 6. Acting on items
 
@@ -365,6 +368,9 @@ field, and a file shows as what it is.
 3 of 3 looked for rename on the Home card, the list row or the heading, and
 it existed only on the open tab (`study-2-I1`). Rename, duplicate
 and delete belong on every surface that lists the item: card, row and tab.
+Conversations repeated it: 3 of 3 right-clicked or double-clicked the Chats
+row to rename, and with a rename button on the row 3 of 3 used it
+(`study-15-I3`).
 
 An editor's main additions belong in its toolbar, not only in a right-click
 menu. 6 of 6 asked to put words over a video looked in the timeline toolbar,

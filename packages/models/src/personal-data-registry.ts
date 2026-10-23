@@ -98,6 +98,15 @@ export interface PersonalDataEntry {
 export const WITHHELD_VALUE = "[withheld: credential material]";
 
 export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
+  {
+    table: "resource_change_outbox",
+    schemaExport: "resourceChangeOutbox",
+    disposition: "delete",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Temporary delivery copies of document edits, including personal content. Erasure matches payload.owner_user_id inside the JSON envelope. The active transport also sweeps expired rows after a minute. Exports include the source documents instead of these delivery copies."
+  },
   // ── Identity, credentials and consent ──────────────────────────────
 
   {

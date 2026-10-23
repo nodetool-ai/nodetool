@@ -46,6 +46,7 @@ import {
 } from "../../../lib/chat/uiContext";
 import { CHAT_COLUMN_MAX_WIDTH, type ChatStatus } from "../types/chat.types";
 import { conversationToMarkdown } from "../utils/conversationMarkdown";
+import { isTitleFromQuestion, titleFromQuestion } from "../utils/threadUtils";
 import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
@@ -439,6 +440,22 @@ const ChatView = ({
               { type: "text", text },
               ...blocks.filter((block) => block.type !== "text")
             ];
+      // UX research study 15: an edited opening question kept the old
+      // question as the tab's title. A title the person chose stays.
+      const { threads, messageCache, updateThreadTitle } =
+        useGlobalChatStore.getState();
+      const firstQuestion = messageCache[effectiveThreadId]?.find(
+        (cached) => cached.role === "user"
+      );
+      const oldText = blocks.find((block) => block.type === "text");
+      const currentTitle = threads[effectiveThreadId]?.title;
+      const retitle =
+        text !== undefined &&
+        firstQuestion !== undefined &&
+        firstQuestion.id === message.id &&
+        oldText?.type === "text" &&
+        Boolean(currentTitle) &&
+        isTitleFromQuestion(currentTitle ?? "", oldText.text ?? "");
       if (message.id) {
         try {
           await rewindThread(effectiveThreadId, message.id);
@@ -451,6 +468,9 @@ const ChatView = ({
           });
           return;
         }
+      }
+      if (retitle && text !== undefined) {
+        void updateThreadTitle(effectiveThreadId, titleFromQuestion(text));
       }
       await handleSendMessage(
         content,

@@ -4,7 +4,7 @@ import { isObjectLike } from "../utils/typePredicates";
 /**
  * Bottom panel hosts secondary workflow tools that used to live in PanelRight.
  * Grouped into:
- *  - "run":      logs, jobs
+ *  - "run":      logs, queue, generations, workers
  *  - "workflow": versions
  *  - "debug":    trace
  *
@@ -18,6 +18,7 @@ import { isObjectLike } from "../utils/typePredicates";
 export type BottomPanelView =
   | "logs"
   | "queue"
+  | "generations"
   | "workers"
   | "versions"
   | "trace";
@@ -29,7 +30,7 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
   label: string;
   views: readonly BottomPanelView[];
 }> = [
-  { id: "run", label: "Run", views: ["logs", "queue", "workers"] },
+  { id: "run", label: "Run", views: ["logs", "queue", "generations", "workers"] },
   {
     id: "workflow",
     label: "Workflow",

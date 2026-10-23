@@ -115,16 +115,23 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
     }
   }, [autoFocusEnabled]);
 
-  const { isLoading, threadsError, threads, messageCache, deleteThread } =
-    useGlobalChatStore(
-      useShallow((state) => ({
-        isLoading: state.isLoadingThreads,
-        threadsError: state.threadsError,
-        threads: state.threads,
-        messageCache: state.messageCache,
-        deleteThread: state.deleteThread
-      }))
-    );
+  const {
+    isLoading,
+    threadsError,
+    threads,
+    messageCache,
+    deleteThread,
+    updateThreadTitle
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      isLoading: state.isLoadingThreads,
+      threadsError: state.threadsError,
+      threads: state.threads,
+      messageCache: state.messageCache,
+      deleteThread: state.deleteThread,
+      updateThreadTitle: state.updateThreadTitle
+    }))
+  );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -188,6 +195,13 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
       });
     },
     [deleteThread, addNotification, t]
+  );
+
+  const handleRenameThread = useCallback(
+    (id: string, title: string) => {
+      void updateThreadTitle(id, title);
+    },
+    [updateThreadTitle]
   );
 
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
@@ -263,6 +277,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
             onNewThread={() => void handleNewThread()}
             onSelectThread={handleSelectThread}
             onDeleteThread={handleDeleteThread}
+            onRenameThread={handleRenameThread}
             getThreadPreview={getThreadPreview}
             isFiltered={filterValue.trim().length > 0}
           />

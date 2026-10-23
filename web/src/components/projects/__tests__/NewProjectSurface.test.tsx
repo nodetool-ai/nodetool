@@ -204,7 +204,12 @@ jest.mock("../../../hooks/script/useScripts", () => ({
   useCreateScript: () => ({ mutateAsync: createScript })
 }));
 const startImageFlowMock = jest.fn(
-  async (_options: { name: string; projectId: string; brief: string }) => ({
+  async (_options: {
+    name: string;
+    projectId: string;
+    brief: string;
+    references?: { name: string }[];
+  }) => ({
     documentId: "sketch-1",
     name: "A picture"
   })
@@ -833,11 +838,11 @@ describe("NewProjectSurface", () => {
       "Make a lamp ad"
     );
     await userEvent.upload(
-      screen.getByLabelText("Reference images"),
+      screen.getByLabelText("Attach files"),
       new File(["image bytes"], "lamp.png", { type: "image/png" })
     );
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Ref images · 1" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Files · 1" })).toBeInTheDocument()
     );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
@@ -849,32 +854,57 @@ describe("NewProjectSurface", () => {
     });
   });
 
-  it("keeps a non-image out of the reference images and says so", async () => {
-    createAsset.mockResolvedValue({
-      id: "reference-asset",
-      name: "lamp.png",
-      content_type: "image/png",
-      thumb_url: "https://example.test/lamp-thumb.png",
-      get_url: "https://example.test/lamp.png"
-    });
+  // UX research study 15: people asked the home box about a notes file, and
+  // its only attach control refused anything but a picture.
+  it("attaches a text file as a named file, next to a picture", async () => {
+    createAsset.mockImplementation(async (file: File) => ({
+      id: file.name === "lamp.png" ? "lamp-asset" : "notes-asset",
+      name: file.name,
+      content_type: file.type
+    }));
     renderSurface();
-    // A person can switch the file picker's image filter off.
-    const user = userEvent.setup({ applyAccept: false });
-    await user.upload(screen.getByLabelText("Reference images"), [
-      new File(["notes"], "trip-notes.txt", { type: "text/plain" }),
+    await userEvent.upload(screen.getByLabelText("Attach files"), [
+      new File(["notes"], "meeting-notes.txt", { type: "text/plain" }),
       new File(["image bytes"], "lamp.png", { type: "image/png" })
     ]);
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Ref images · 1" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Files · 2" })).toBeInTheDocument()
     );
-    expect(createAsset).toHaveBeenCalledTimes(1);
-    expect(createAsset.mock.calls[0]?.[0]).toMatchObject({ name: "lamp.png" });
-    expect(addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "warning",
-        content: "Reference images only accept pictures. trip-notes.txt was not added."
-      })
+    expect(createAsset).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "meeting-notes.txt" })).toBeInTheDocument();
+    expect(addNotification).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "warning" })
+    );
+  });
+
+  it("leaves a text file out of the image flow's references and says so", async () => {
+    createAsset.mockImplementation(async (file: File) => ({
+      id: file.name === "lamp.png" ? "lamp-asset" : "notes-asset",
+      name: file.name,
+      content_type: file.type
+    }));
+    renderSurface();
+    await userEvent.upload(screen.getByLabelText("Attach files"), [
+      new File(["notes"], "meeting-notes.txt", { type: "text/plain" }),
+      new File(["image bytes"], "lamp.png", { type: "image/png" })
+    ]);
+    await screen.findByRole("button", { name: "Files · 2" });
+    const cards = screen.getByRole("group", {
+      name: "Start with a guided flow"
+    });
+    await userEvent.click(within(cards).getByRole("button", { name: /^Create image / }));
+
+    await waitFor(() => expect(startImageFlowMock).toHaveBeenCalled());
+    expect(startImageFlowMock.mock.calls[0]?.[0].references).toEqual([
+      expect.objectContaining({ name: "lamp.png" })
+    ]);
+    await waitFor(() =>
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("so 1 attached file stay")
+        })
+      )
     );
   });
 
@@ -893,7 +923,7 @@ describe("NewProjectSurface", () => {
     );
     renderSurface();
     await userEvent.upload(
-      screen.getByLabelText("Reference images"),
+      screen.getByLabelText("Attach files"),
       new File(["image bytes"], "lamp.png", { type: "image/png" })
     );
     const cards = screen.getByRole("group", {
@@ -924,12 +954,12 @@ describe("NewProjectSurface", () => {
     });
     renderSurface();
     await userEvent.upload(
-      screen.getByLabelText("Reference images"),
+      screen.getByLabelText("Attach files"),
       [1, 2, 3, 4, 5].map(
         (n) => new File(["bytes"], `ref-${n}.png`, { type: "image/png" })
       )
     );
-    await screen.findByRole("button", { name: "Ref images · 5" });
+    await screen.findByRole("button", { name: "Files · 5" });
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
     });
@@ -938,7 +968,7 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: expect.stringContaining("2 reference images stay")
+          content: expect.stringContaining("2 attached files stay")
         })
       )
     );
@@ -961,7 +991,7 @@ describe("NewProjectSurface", () => {
       "Make a lamp ad"
     );
     await userEvent.upload(
-      screen.getByLabelText("Reference images"),
+      screen.getByLabelText("Attach files"),
       new File(["image bytes"], "lamp.png", { type: "image/png" })
     );
 
@@ -1392,7 +1422,7 @@ describe("NewProjectSurface", () => {
   });
 
   // UX research study 4: a text file picked with `@` showed as a broken
-  // picture and was counted as "Ref images · 1".
+  // picture and was counted as "Files · 1".
   it("shows a file picked with `@` by its name, not as a reference image", async () => {
     const user = userEvent.setup();
     mockMentionAssets = [
@@ -1415,7 +1445,7 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "meeting-notes.txt" })).toBeInTheDocument()
     );
-    expect(screen.getByRole("button", { name: "Reference images" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Files · 1" })).toBeInTheDocument();
   });
 
   it("writes an entity picked from `@` into the prompt as its token", async () => {
@@ -2211,10 +2241,10 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     await user.upload(
-      screen.getByLabelText("Reference images"),
+      screen.getByLabelText("Attach files"),
       new File(["image bytes"], "lamp.png", { type: "image/png" })
     );
-    await screen.findByRole("button", { name: "Ref images · 1" });
+    await screen.findByRole("button", { name: "Files · 1" });
     await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
     await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
     await user.click(screen.getByRole("button", { name: "Done" }));
@@ -2233,7 +2263,7 @@ describe("NewProjectSurface", () => {
     await user.click(screen.getByRole("button", { name: "Change flow" }));
 
     expect(
-      await screen.findByRole("button", { name: "Ref images · 1" })
+      await screen.findByRole("button", { name: "Files · 1" })
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /^Entities · Aurora lamp/ })
