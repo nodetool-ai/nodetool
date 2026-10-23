@@ -1,15 +1,17 @@
-import { asMock } from "../../../test-utils/doubles";
-import { act, render, screen } from "@testing-library/react";
+import { asMock, stub } from "../../../test-utils/doubles";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
 import SubscriptionOnboardingDialog, {
+  apiKeyProviders,
   subscriptionProviders
 } from "../SubscriptionOnboardingDialog";
 import useSubscriptionOnboardingStore from "../../../stores/SubscriptionOnboardingStore";
-import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
+import { useSettingsPageStore } from "../../../stores/SettingsPageStore";
+import { useSecrets } from "../../../hooks/useSecrets";
 import {
   useExtensionStatus,
   useInstallExtensionHost
@@ -18,7 +20,8 @@ import { useOAuthConnection } from "../../../hooks/useOAuthConnection";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
-jest.mock("../../../stores/ProviderOnboardingStore");
+jest.mock("../../../hooks/useSecrets");
+jest.mock("../../../lib/appNavigation");
 jest.mock("../../../serverState/useExtensionStatus");
 jest.mock("../../../hooks/useOAuthConnection");
 jest.mock("../../../stores/SecretsStore");
@@ -28,7 +31,14 @@ jest.mock("../../../lib/env", () => ({ isElectron: false, isLocalhost: true }));
 const mockUseExtensionStatus = jest.mocked(useExtensionStatus);
 const mockUseInstallExtensionHost = jest.mocked(useInstallExtensionHost);
 const install = jest.fn();
-const mockOpenProviderOnboarding = jest.mocked(openProviderOnboarding);
+
+const secretsState = (configured: string[] = []) =>
+  stub<ReturnType<typeof useSecrets>>({
+    secrets: configured.map((key) => ({ key, is_configured: true })),
+    isLoading: false,
+    isSuccess: true,
+    isApiKeySet: () => false
+  });
 
 const extensionStatus = (
   connected: boolean,
@@ -52,6 +62,7 @@ beforeEach(() => {
   useSubscriptionOnboardingStore.setState({ open: true, step: "subscriptions" });
   mockUseExtensionStatus.mockReturnValue(extensionStatus(false));
   mockUseInstallExtensionHost.mockReturnValue(installState());
+  jest.mocked(useSecrets).mockReturnValue(secretsState());
   jest.mocked(useOAuthConnection).mockReturnValue({
     label: "",
     isConnected: false,
@@ -90,6 +101,17 @@ describe("subscriptionProviders", () => {
   });
 });
 
+describe("apiKeyProviders", () => {
+  it("features the recommended key providers and keeps every other one a click away", () => {
+    const { featured, more } = apiKeyProviders();
+    expect(featured.map((p) => p.id)).toEqual(["openai", "huggingface", "anthropic", "gemini"]);
+    expect(featured.every((p) => !p.oauthOnly)).toBe(true);
+    const moreKeys = more.map((p) => p.secretKey);
+    expect(moreKeys).toEqual(expect.arrayContaining(["GROQ_API_KEY", "FAL_API_KEY", "DEEPSEEK_API_KEY", "OPENROUTER_API_KEY"]));
+    expect(moreKeys).not.toContain("CODEX_SUBSCRIPTION");
+  });
+});
+
 describe("SubscriptionOnboardingDialog", () => {
   it("renders nothing while closed", () => {
     useSubscriptionOnboardingStore.setState({ open: false });
@@ -99,13 +121,59 @@ describe("SubscriptionOnboardingDialog", () => {
 
   it("offers ChatGPT and Claude sign-ins and points Gemini at the extension", () => {
     renderDialog();
-    expect(screen.getByText("Connect your AI subscriptions")).toBeInTheDocument();
-    expect(screen.getByRole("article", { name: "ChatGPT" })).toBeInTheDocument();
-    expect(screen.getByRole("article", { name: "Claude" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /sign in/i })).toHaveLength(2);
-    // A subscription page has no API-key field.
-    expect(screen.queryByRole("button", { name: /^(use|add) api key$/i })).toBeNull();
+    expect(screen.getByText("Connect the AI you already use")).toBeInTheDocument();
+    const chatgpt = screen.getByRole("article", { name: "ChatGPT" });
+    const claude = screen.getByRole("article", { name: "Claude" });
+    for (const plan of [chatgpt, claude]) {
+      expect(within(plan).getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+      // A plan sign-in has no API-key field.
+      expect(within(plan).queryByRole("button", { name: /api key/i })).toBeNull();
+    }
     expect(screen.getByRole("article", { name: "Gemini" })).toBeInTheDocument();
+  });
+
+  it("offers API keys on the same page", () => {
+    renderDialog();
+    expect(screen.getByText("Or paste an API key")).toBeInTheDocument();
+    for (const name of ["OpenAI", "Anthropic", "Google Gemini", "Hugging Face"]) {
+      expect(screen.getByRole("article", { name })).toBeInTheDocument();
+    }
+    expect(screen.getByRole("link", { name: "Get Ollama" })).toBeInTheDocument();
+  });
+
+  it("finds and connects any other provider in place", async () => {
+    renderDialog();
+    expect(screen.queryByRole("article", { name: "DeepSeek" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^More providers \(\d+\)$/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Search providers" }), "deep");
+    const deepseek = screen.getByRole("article", { name: "DeepSeek" });
+    expect(screen.queryByRole("article", { name: "Groq" })).toBeNull();
+    await userEvent.click(within(deepseek).getByRole("button", { name: "Add API key" }));
+    expect(within(deepseek).getByLabelText("DeepSeek API key")).toBeInTheDocument();
+  });
+
+  it("says what it searched when no provider matches", async () => {
+    renderDialog();
+    await userEvent.click(screen.getByRole("button", { name: /^More providers/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Search providers" }), "zzzz");
+    expect(screen.getByRole("status")).toHaveTextContent(/providers matches “zzzz”/);
+  });
+
+  it("sends a multi-field provider to its Settings card", async () => {
+    renderDialog();
+    await userEvent.click(screen.getByRole("button", { name: /^More providers/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Search providers" }), "azure");
+    const azure = screen.getByRole("article", { name: "Azure OpenAI" });
+    await userEvent.click(within(azure).getByRole("button", { name: "Set up in Settings" }));
+    expect(useSubscriptionOnboardingStore.getState().open).toBe(false);
+    expect(useSettingsPageStore.getState().section).toBe("providers");
+  });
+
+  it("says which providers are connected", () => {
+    jest.mocked(useSecrets).mockReturnValue(secretsState(["ANTHROPIC_API_KEY"]));
+    mockUseExtensionStatus.mockReturnValue(extensionStatus(true));
+    renderDialog();
+    expect(screen.getByText(/You're connected to Gemini, Anthropic\./)).toBeInTheDocument();
   });
 
   it("moves to the extension step from the Gemini row", async () => {
@@ -131,7 +199,7 @@ describe("SubscriptionOnboardingDialog", () => {
     expect(screen.getByText("Extension not connected")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByText("Connect your AI subscriptions")).toBeInTheDocument();
+    expect(screen.getByText("Connect the AI you already use")).toBeInTheDocument();
   });
 
   it("registers the browser bridge itself when it is missing", () => {
@@ -182,10 +250,9 @@ describe("SubscriptionOnboardingDialog", () => {
     }
   });
 
-  it("hands off to the API-key dialog", async () => {
+  it("closes from Set up later", async () => {
     renderDialog();
-    await userEvent.click(screen.getByRole("button", { name: "Use an API key instead" }));
-    expect(mockOpenProviderOnboarding).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole("button", { name: "Set up later" }));
     expect(useSubscriptionOnboardingStore.getState().open).toBe(false);
   });
 

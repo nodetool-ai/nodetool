@@ -9,6 +9,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { Workflow } from "../../stores/ApiTypes";
 import { restFetch } from "../../lib/rest-fetch";
+import { isRecord, isString } from "../../utils/typePredicates";
 import {
   readScriptRunBody,
   scriptRunHeaders,
@@ -51,7 +52,13 @@ export default function ExampleAppUseView({ slug }: ExampleAppUseViewProps) {
         }
       );
       if (!response.ok) {
-        throw new Error(t("pass3_18.examples.app.errors.operationFailed"));
+        // The server's reason, so a failed step says what went wrong.
+        const body: unknown = await response.json().catch(() => null);
+        const detail =
+          isRecord(body) && isString(body.detail) ? body.detail : null;
+        throw new Error(
+          detail ?? t("pass3_18.examples.app.errors.operationFailed")
+        );
       }
       return runJsScriptResponse.parse(
         await readScriptRunBody(response, onLine)

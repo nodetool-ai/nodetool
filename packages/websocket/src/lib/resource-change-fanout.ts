@@ -6,12 +6,15 @@
  * and each callback ran `getEtag()` — a JSON round-trip of every JSON column
  * (a whole workflow graph) plus a sha256 — for the same write. Here the frame
  * is built once per write and handed to every session that takes it. Sessions
- * keep their own owner filtering through `accepts`.
+ * keep their own access filtering through `accepts`.
  */
 
 import { createLogger } from "@nodetool-ai/config";
 import {
   ModelObserver,
+  Workflow,
+  WorkflowVersion,
+  WorkflowCollaborator,
   type DBModel,
   type ModelChangeEvent,
   type ModelChangeMeta
@@ -33,9 +36,10 @@ export type ResourceChangeFrame = Readonly<Record<string, unknown>>;
 export interface ResourceChangeSubscriber {
   /**
    * Whether this connection takes a change owned by `ownerId` (`null` for a
-   * row or event with no owner).
+   * row or event with no owner). `recipients` includes users granted access
+   * to a shared workflow and its owner.
    */
-  accepts(ownerId: string | null): boolean;
+  accepts(ownerId: string | null, recipients?: ReadonlySet<string>): boolean;
   deliver(frame: ResourceChangeFrame): void;
 }
 
@@ -56,6 +60,7 @@ const FORWARDED_FIELDS = [
 ] as const;
 
 const subscribers = new Set<ResourceChangeSubscriber>();
+const workflowRecipients = new Map<string, Promise<Set<string>>>();
 
 function ownerOf(instance: DBModel): string | null {
   // Models without a `user_id` (runtime-internal types) go to every
@@ -65,12 +70,13 @@ function ownerOf(instance: DBModel): string | null {
 }
 
 function acceptingSubscribers(
-  ownerId: string | null
+  ownerId: string | null,
+  recipients?: ReadonlySet<string>
 ): ResourceChangeSubscriber[] {
   const out: ResourceChangeSubscriber[] = [];
   for (const subscriber of subscribers) {
     try {
-      if (subscriber.accepts(ownerId)) out.push(subscriber);
+      if (subscriber.accepts(ownerId, recipients)) out.push(subscriber);
     } catch (error) {
       log.error("resource_change subscriber filter failed", {
         error: String(error)
@@ -125,11 +131,98 @@ const onModelChange = (
   event: ModelChangeEvent,
   meta?: ModelChangeMeta
 ): void => {
-  // Filter first: a write no connection takes costs no etag.
-  const targets = acceptingSubscribers(ownerOf(instance));
-  if (targets.length === 0) return;
-  deliverAll(targets, buildModelChangeFrame(instance, event, meta));
+  if (instance instanceof WorkflowCollaborator) {
+    workflowRecipients.delete(instance.workflow_id);
+  }
+  const ownerId = ownerOf(instance);
+  const targets = acceptingSubscribers(ownerId);
+  let frame: ResourceChangeFrame | undefined;
+  const getFrame = (): ResourceChangeFrame => {
+    frame ??= buildModelChangeFrame(instance, event, meta);
+    return frame;
+  };
+  if (targets.length > 0) {
+    deliverAll(targets, getFrame());
+  }
+  const workflowId =
+    instance instanceof Workflow
+      ? instance.id
+      : instance instanceof WorkflowVersion
+        ? instance.workflow_id
+        : undefined;
+  if (workflowId && ownerId) {
+    // Freeze the write token before the row can change during the grant lookup.
+    getFrame();
+    deliverWorkflowChange(
+      workflowId,
+      ownerId,
+      targets,
+      getFrame,
+      instance instanceof Workflow && event === "deleted"
+    ).catch((error) => {
+      log.error("Shared workflow change delivery failed", {
+        error: String(error)
+      });
+    });
+  }
 };
+
+async function deliverWorkflowChange(
+  workflowId: string,
+  ownerId: string,
+  delivered: readonly ResourceChangeSubscriber[],
+  getFrame: () => ResourceChangeFrame,
+  deleted: boolean
+): Promise<void> {
+  let pending = workflowRecipients.get(workflowId);
+  if (!pending) {
+    pending = Promise.all([
+      WorkflowCollaborator.listForWorkflow(workflowId),
+      Workflow.get<Workflow>(workflowId)
+    ]).then(([grants, workflow]) => {
+      const users = new Set(grants.map((grant) => grant.user_id));
+      // A version's user_id identifies its author, who may be an editor.
+      if (workflow) {
+        users.add(workflow.user_id);
+      }
+      return users;
+    });
+    workflowRecipients.set(workflowId, pending);
+  }
+  let recipients: Set<string>;
+  try {
+    recipients = await pending;
+  } catch (error) {
+    if (workflowRecipients.get(workflowId) === pending) {
+      workflowRecipients.delete(workflowId);
+    }
+    throw error;
+  }
+  if (subscribers.size === 0) {
+    return;
+  }
+  // A grant may have been revoked while the database query was pending.
+  if (workflowRecipients.get(workflowId) !== pending) {
+    await deliverWorkflowChange(
+      workflowId,
+      ownerId,
+      delivered,
+      getFrame,
+      deleted
+    );
+    return;
+  }
+  const alreadyDelivered = new Set(delivered);
+  const targets = acceptingSubscribers(ownerId, recipients).filter(
+    (subscriber) => !alreadyDelivered.has(subscriber)
+  );
+  if (targets.length > 0) {
+    deliverAll(targets, getFrame());
+  }
+  if (deleted) {
+    workflowRecipients.delete(workflowId);
+  }
+}
 
 const onResourceEvent = (payload: ResourceChangePayload): void => {
   const targets = acceptingSubscribers(
@@ -166,5 +259,6 @@ export function subscribeResourceChanges(
     if (subscribers.size > 0) return;
     ModelObserver.unsubscribe(onModelChange);
     resourceEvents.off("change", onResourceEvent);
+    workflowRecipients.clear();
   };
 }

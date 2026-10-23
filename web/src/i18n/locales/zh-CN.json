@@ -1799,9 +1799,8 @@
       "signInWindowNote": "登录页面会在新窗口中打开。完成后此对话框会关闭。",
       "gemini": "Gemini",
       "extensionConnected": "扩展程序已连接",
-      "subscriptionsTitle": "连接你的 AI 订阅",
+      "subscriptionsTitle": "连接你已在使用的 AI",
       "addExtensionTitle": "添加 Chrome 扩展程序",
-      "useApiKeyInstead": "改用 API 密钥",
       "nextExtension": "下一步：Chrome 扩展程序",
       "back": "返回",
       "stepCount": "第 {{current}} 步，共 {{total}} 步",
@@ -1817,7 +1816,19 @@
         "text_to_3d": "3D 生成",
         "image_to_3d": "从图像生成 3D 模型"
       },
-      "stepPrompt": "你已连接的提供商都无法执行此步骤。请连接以下任一提供商来使用它。"
+      "stepPrompt": "你已连接的提供商都无法执行此步骤。请连接以下任一提供商来使用它。",
+      "welcomeIntro": "选择最方便的方式即可。连接一个就能开始，之后随时可以在设置中添加更多。",
+      "planGroup": "使用你已付费的订阅",
+      "planHint": "无需 API 密钥，也不按 token 计费。ChatGPT 图像以及 Gemini 的所有功能都通过 Chrome 扩展程序运行，下一步会设置它。",
+      "keyGroup": "或粘贴 API 密钥",
+      "geminiTagline": "使用你 Google 账户的 Gemini 订阅进行聊天、生成图像和 Veo 视频。通过 Chrome 扩展程序运行。",
+      "connectedSummary": "已连接 {{providers}}。你可以继续，或再添加一个。",
+      "setUpLater": "稍后设置",
+      "moreProviders": "更多提供商（{{count}}）",
+      "searchProviders": "搜索提供商",
+      "noProviderMatch": "这 {{count}} 个提供商中没有与“{{query}}”匹配的。设置中还列出了本地服务器和自定义提供商。",
+      "directoryCapabilityNote": "并非这里的每个提供商都支持{{capability}}。添加密钥前请查看其文档。",
+      "setUpInSettings": "在设置中配置"
     }
   },
   "batch2_8": {},
@@ -4460,7 +4471,8 @@
         "searchPlaceholder": "搜索应用",
         "searchLabel": "搜索应用",
         "noSearchResultsTitle": "没有符合搜索条件的应用",
-        "clearSearch": "清除搜索"
+        "clearSearch": "清除搜索",
+        "matchingWorkflows": "匹配的工作流"
       },
       "games": {
         "gameplayImageAlt": "{{name}}的游戏画面",
@@ -6310,6 +6322,10 @@
             "title": "创建工作流",
             "description": "自动化并组合步骤"
           },
+          "examples": {
+            "title": "现成示例",
+            "description": "已经搭好的工作流和应用。打开一个，用在你自己的文本或文件上。"
+          },
           "model3d": {
             "title": "3D 模型",
             "description": "一个空白 3D 模型，手动编辑。无需 AI 提供商。"
@@ -6317,7 +6333,7 @@
         },
         "allTypes": {
           "title": "浏览所有创建类型",
-          "description": "3D、游戏、脚本、朗读等"
+          "description": "现成示例、3D、游戏、脚本、朗读等"
         },
         "recentProjects": {
           "heading": "最近的项目",
@@ -13880,6 +13896,7 @@
       "view": {
         "logs": "日志",
         "queue": "队列",
+        "generations": "生成",
         "workers": "工作器",
         "versions": "版本",
         "trace": "跟踪"
@@ -18477,8 +18494,7 @@
       "editorHeading": "编辑器"
     },
     "providerOnboarding": {
-      "setUp": "设置",
-      "useApiKeyInstead": "改用 API 密钥"
+      "setUp": "设置"
     },
     "scriptReview": {
       "addLine": "添加一行"
@@ -18710,6 +18726,43 @@
       "noBoardsTitle": "没有故事板",
       "noBoardsDescription": "创建一个故事板，以便将其镜头放到时间线上。",
       "listLabel": "故事板镜头"
+    }
+  },
+  "generations": {
+    "title": "生成",
+    "emptyTitle": "还没有生成内容",
+    "emptyDescription": "在任何编辑器、引导流程、聊天或工作流中生成的图像、视频和音频，运行时都会显示在这里。",
+    "clearFinished": "清除已完成",
+    "stop": "停止生成",
+    "stopFailed": "停止生成",
+    "openSource": "打开 {{title}}",
+    "untitled": "{{kind}}生成",
+    "kind": {
+      "image": "图像",
+      "video": "视频",
+      "audio": "音频",
+      "other": "媒体"
+    },
+    "status": {
+      "generating": "生成中",
+      "generated": "完成",
+      "failed": "失败",
+      "cancelled": "已停止"
+    },
+    "filter": {
+      "label": "筛选生成",
+      "all": "全部",
+      "generating": "生成中",
+      "failed": "失败"
+    },
+    "source": {
+      "chat": "聊天",
+      "workflow": "工作流",
+      "storyboard": "故事板",
+      "sketch": "草图",
+      "timeline": "时间线",
+      "model3d": "3D 模型",
+      "script": "脚本"
     }
   }
 }

@@ -2063,7 +2063,11 @@ async function readNodeRequestBody(
 export async function handleNodeHttpRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  options: HttpApiOptions = {}
+  options: HttpApiOptions = {},
+  handle: (
+    request: Request,
+    options: HttpApiOptions
+  ) => Promise<Response> = handleApiRequest
 ): Promise<void> {
   const method = req.method ?? "GET";
   const baseUrl = options.baseUrl ?? "http://127.0.0.1:7777";
@@ -2086,7 +2090,7 @@ export async function handleNodeHttpRequest(
       rawBody && rawBody.byteLength > 0 ? new Uint8Array(rawBody) : undefined
   });
 
-  const response = await handleApiRequest(request, options);
+  const response = await handle(request, options);
 
   res.statusCode = response.status;
   response.headers.forEach((value, key) => {

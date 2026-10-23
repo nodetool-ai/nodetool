@@ -1799,9 +1799,8 @@
       "signInWindowNote": "The sign-in opens in a new window. This dialog closes when it finishes.",
       "gemini": "Gemini",
       "extensionConnected": "Extension connected",
-      "subscriptionsTitle": "Connect your AI subscriptions",
+      "subscriptionsTitle": "Connect the AI you already use",
       "addExtensionTitle": "Add the Chrome extension",
-      "useApiKeyInstead": "Use an API key instead",
       "nextExtension": "Next: Chrome extension",
       "back": "Back",
       "stepCount": "Step {{current}} of {{total}}",
@@ -1817,7 +1816,19 @@
         "text_to_3d": "3D generation",
         "image_to_3d": "3D generation from images"
       },
-      "stepPrompt": "None of your connected providers can do this step. Connect one of these to use it."
+      "stepPrompt": "None of your connected providers can do this step. Connect one of these to use it.",
+      "welcomeIntro": "Pick whichever is easiest. One is enough to start, and you can add more any time in Settings.",
+      "planGroup": "Use a plan you already pay for",
+      "planHint": "No API key and no per-token bill. ChatGPT images and everything in Gemini run through the Chrome extension, which the next step sets up.",
+      "keyGroup": "Or paste an API key",
+      "geminiTagline": "Chat, images and Veo video on your Google account's Gemini plan. Runs through the Chrome extension.",
+      "connectedSummary": "You're connected to {{providers}}. Continue, or add another.",
+      "setUpLater": "Set up later",
+      "moreProviders": "More providers ({{count}})",
+      "searchProviders": "Search providers",
+      "noProviderMatch": "None of these {{count}} providers matches “{{query}}”. Settings also lists local servers and custom providers.",
+      "directoryCapabilityNote": "Not every provider here offers {{capability}}. Check its docs before you add a key.",
+      "setUpInSettings": "Set up in Settings"
     }
   },
   "batch2_8": {},
@@ -4460,7 +4471,8 @@
         "searchPlaceholder": "Search apps",
         "searchLabel": "Search apps",
         "noSearchResultsTitle": "No apps match your search",
-        "clearSearch": "Clear search"
+        "clearSearch": "Clear search",
+        "matchingWorkflows": "Workflows that match"
       },
       "games": {
         "gameplayImageAlt": "{{name}} gameplay",
@@ -6310,6 +6322,10 @@
             "title": "Create workflow",
             "description": "Automate and combine steps"
           },
+          "examples": {
+            "title": "Ready-made examples",
+            "description": "Workflows and apps already set up. Open one and use it on your own text or files."
+          },
           "model3d": {
             "title": "3D model",
             "description": "A blank 3D model to edit by hand. No AI provider needed."
@@ -6317,7 +6333,7 @@
         },
         "allTypes": {
           "title": "Explore all creation types",
-          "description": "3D, games, scripts, read aloud and more"
+          "description": "Ready-made examples, 3D, games, scripts, read aloud and more"
         },
         "recentProjects": {
           "heading": "Recent projects",
@@ -13880,6 +13896,7 @@
       "view": {
         "logs": "Logs",
         "queue": "Queue",
+        "generations": "Generations",
         "workers": "Workers",
         "versions": "Versions",
         "trace": "Trace"
@@ -18477,8 +18494,7 @@
       "editorHeading": "Editor"
     },
     "providerOnboarding": {
-      "setUp": "Set up",
-      "useApiKeyInstead": "Use an API key instead"
+      "setUp": "Set up"
     },
     "scriptReview": {
       "addLine": "Add a line"
@@ -18710,6 +18726,43 @@
       "noBoardsTitle": "No storyboards",
       "noBoardsDescription": "Create a storyboard to place its shots on the timeline.",
       "listLabel": "Storyboard shots"
+    }
+  },
+  "generations": {
+    "title": "Generations",
+    "emptyTitle": "No generations yet",
+    "emptyDescription": "Images, video and audio you generate in any editor, guided flow, chat or workflow show here while they run.",
+    "clearFinished": "Clear finished",
+    "stop": "Stop generating",
+    "stopFailed": "stop the generation",
+    "openSource": "Open {{title}}",
+    "untitled": "{{kind}} generation",
+    "kind": {
+      "image": "Image",
+      "video": "Video",
+      "audio": "Audio",
+      "other": "Media"
+    },
+    "status": {
+      "generating": "generating",
+      "generated": "done",
+      "failed": "failed",
+      "cancelled": "stopped"
+    },
+    "filter": {
+      "label": "Filter generations",
+      "all": "All",
+      "generating": "Generating",
+      "failed": "Failed"
+    },
+    "source": {
+      "chat": "Chat",
+      "workflow": "Workflow",
+      "storyboard": "Storyboard",
+      "sketch": "Sketch",
+      "timeline": "Timeline",
+      "model3d": "3D model",
+      "script": "Script"
     }
   }
 }

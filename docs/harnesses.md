@@ -2664,24 +2664,24 @@ on its HTTP traces endpoint.
 
 ```bash
 # JSONL log file (analyzer-friendly — one span per line)
-NODETOOL_TRACE_FILE=/tmp/nodetool-trace.jsonl npm run dev:chat -- --agent
-npm run dev:chat -- --agent --trace-file /tmp/nodetool-trace.jsonl
+NODETOOL_TRACE_FILE=/tmp/nodetool-trace.jsonl npm run dev:chat
+npm run dev:chat -- --trace-file /tmp/nodetool-trace.jsonl
 
 # Stdout — pretty (human) or json (JSONL)
-NODETOOL_TRACE_STDOUT=pretty npm run dev:chat -- --agent
-npm run dev:chat -- --agent --trace-stdout pretty
-npm run dev:chat -- --agent --trace-stdout json
+NODETOOL_TRACE_STDOUT=pretty npm run dev:chat
+npm run dev:chat -- --trace-stdout pretty
+npm run dev:chat -- --trace-stdout json
 
 # OpenTelemetry — Traceloop cloud
-TRACELOOP_API_KEY=your-key npm run dev:chat -- --agent
+TRACELOOP_API_KEY=your-key npm run dev:chat
 
 # OpenTelemetry — custom OTLP backend (Jaeger, Grafana, etc.)
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:chat -- --agent
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:chat
 # Full traces URL, used as given; OTEL_EXPORTER_OTLP_HEADERS adds auth headers
 OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://otlp.example.com/v1/traces npm run dev:server
 
 # Debug logging (all LLM calls, planning details)
-NODETOOL_LOG_LEVEL=debug npm run dev:chat -- --agent
+NODETOOL_LOG_LEVEL=debug npm run dev:chat
 ```
 
 The `--trace-file` and `--trace-stdout` flags also work on the `nodetool` CLI:

@@ -1503,3 +1503,167 @@ export const SEED_ANALYZER_BODIES: readonly { id: string; code: string }[] = [
     code: "stream('s1'); inputs.i1; inputs.s1;"
   }
 ];
+
+export interface PropertySeed {
+  id: string;
+  declared: readonly { name: string; type: string; required?: boolean }[];
+  properties: Record<string, unknown>;
+  dynamicSlots?: Record<string, unknown>;
+  dynamicValues?: Record<string, unknown>;
+  connected?: readonly string[];
+}
+
+/** Direct `validateNodeProperties` inputs for the empty, unset-model and dynamic-slot branches. */
+export const SEED_PROPERTY_CASES: readonly PropertySeed[] = [
+  {
+    id: "empty-string",
+    declared: [{ name: "p", type: "str", required: true }],
+    properties: { p: "" }
+  },
+  {
+    id: "empty-list",
+    declared: [{ name: "p", type: "list", required: true }],
+    properties: { p: [] }
+  },
+  {
+    id: "zero-number",
+    declared: [{ name: "p", type: "int", required: true }],
+    properties: { p: 0 }
+  },
+  {
+    id: "empty-object",
+    declared: [{ name: "p", type: "dict", required: true }],
+    properties: { p: {} }
+  },
+  {
+    id: "filled-list",
+    declared: [{ name: "p", type: "list", required: true }],
+    properties: { p: [1] }
+  },
+  {
+    id: "missing-optional",
+    declared: [{ name: "p", type: "str" }],
+    properties: {}
+  },
+  {
+    id: "connected-required",
+    declared: [{ name: "p", type: "str", required: true }],
+    properties: {},
+    connected: ["p"]
+  },
+  {
+    id: "model-null",
+    declared: [{ name: "m", type: "language_model" }],
+    properties: { m: null }
+  },
+  {
+    id: "model-string",
+    declared: [{ name: "m", type: "language_model" }],
+    properties: { m: "gpt-5" }
+  },
+  {
+    id: "model-no-provider",
+    declared: [{ name: "m", type: "language_model" }],
+    properties: { m: { id: "x" } }
+  },
+  {
+    id: "model-empty-provider",
+    declared: [{ name: "m", type: "language_model" }],
+    properties: { m: { provider: "empty", id: "x" } }
+  },
+  {
+    id: "model-no-id",
+    declared: [{ name: "m", type: "language_model" }],
+    properties: { m: { provider: "openai" } }
+  },
+  {
+    id: "model-empty-id",
+    declared: [{ name: "m", type: "language_model" }],
+    properties: { m: { provider: "openai", id: "" } }
+  },
+  {
+    id: "model-numeric-provider",
+    declared: [{ name: "m", type: "language_model" }],
+    properties: { m: { provider: 7, id: "x" } }
+  },
+  {
+    id: "model-ok",
+    declared: [{ name: "m", type: "language_model" }],
+    properties: { m: { provider: "openai", id: "gpt-5" } }
+  },
+  {
+    id: "image-empty",
+    declared: [{ name: "i", type: "image", required: true }],
+    properties: { i: { uri: "" } }
+  },
+  {
+    id: "image-ok",
+    declared: [{ name: "i", type: "image", required: true }],
+    properties: { i: { uri: "file:///a.png" } }
+  },
+  {
+    id: "image-optional-unset",
+    declared: [{ name: "i", type: "image" }],
+    properties: {}
+  },
+  {
+    id: "untyped-model-name",
+    declared: [{ name: "m", type: "" }],
+    properties: { m: null }
+  },
+  {
+    id: "slot-required-empty",
+    declared: [],
+    properties: {},
+    dynamicSlots: { s: { type: { type: "str" }, required: true } },
+    dynamicValues: { s: "" }
+  },
+  {
+    id: "slot-required-zero",
+    declared: [],
+    properties: {},
+    dynamicSlots: { s: { type: { type: "int" }, required: true } },
+    dynamicValues: { s: 0 }
+  },
+  {
+    id: "slot-required-empty-list",
+    declared: [],
+    properties: {},
+    dynamicSlots: { s: { type: { type: "list" }, required: true } },
+    dynamicValues: { s: [] }
+  },
+  {
+    id: "slot-optional-empty",
+    declared: [],
+    properties: {},
+    dynamicSlots: { s: { type: { type: "str" } } },
+    dynamicValues: { s: "" }
+  },
+  {
+    id: "slot-required-connected",
+    declared: [],
+    properties: {},
+    dynamicSlots: { s: { type: { type: "str" }, required: true } },
+    dynamicValues: {},
+    connected: ["s"]
+  },
+  {
+    id: "slot-no-values",
+    declared: [],
+    properties: {},
+    dynamicSlots: { s: { type: { type: "int" }, required: true } }
+  },
+  {
+    id: "slot-no-values-optional",
+    declared: [],
+    properties: {},
+    dynamicSlots: { s: { type: { type: "int" } } }
+  },
+  {
+    id: "slot-mismatch",
+    declared: [],
+    properties: {},
+    dynamicSlots: { s: { type: { type: "int" } } },
+    dynamicValues: { s: "text" }
+  }
+];

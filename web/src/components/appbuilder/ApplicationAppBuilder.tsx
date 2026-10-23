@@ -314,6 +314,16 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       const draft = handler.document();
       if (!base) return;
 
+      // The row already holds the draft: usually this canvas's own save,
+      // whose notice beat the mutation. Nothing to merge or offer.
+      if (
+        appDocumentFingerprint(fresh.document) === appDocumentFingerprint(draft)
+      ) {
+        revisionRef.current = fresh.updatedAt;
+        lastSyncedRef.current = JSON.stringify(fresh.document);
+        return;
+      }
+
       const { doc: merged, conflicts, nextBase } = mergeAppDocuments(
         appDocumentToMerge(base),
         appDocumentToMerge(draft),

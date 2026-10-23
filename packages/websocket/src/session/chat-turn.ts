@@ -109,7 +109,8 @@ import type { UiContext } from "@nodetool-ai/protocol";
 import {
   Tool,
   compactAssetUris,
-  compactResourceIds
+  compactResourceIds,
+  whenBackgroundGenerationsSettle
 } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
@@ -3048,8 +3049,12 @@ export class ChatTurnHandler {
       await this.saveMessageToDb(errorMsgData);
       await this.session.send(errorMsgData);
     } finally {
-      detachPredictions();
-      detachCostLedger();
+      // A background generation outlives the turn that started it. Its
+      // terminal message closes its row, so keep listening until it settles.
+      void whenBackgroundGenerationsSettle(ctx).finally(() => {
+        detachPredictions();
+        detachCostLedger();
+      });
       try {
         await chatWorkspace?.cleanupScratch?.();
       } catch (err) {
