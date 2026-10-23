@@ -101,6 +101,27 @@ describe("ProviderOnboardingDialog", () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
+  it("connects any provider from More providers, not only the curated list", async () => {
+    renderDialog();
+    expect(screen.queryByRole("article", { name: "OpenRouter" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^More providers \(\d+\)$/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Search providers" }), "openrouter");
+    expect(screen.getByRole("article", { name: "OpenRouter" })).toBeInTheDocument();
+  });
+
+  it("keeps a specialized step to the providers that run it", () => {
+    const stepState = {
+      ...storeState,
+      capability: "text_to_image",
+      stepCapabilities: ["remove_background"]
+    };
+    mockUseProviderOnboardingStore.mockImplementation(
+      <T,>(selector: (s: typeof stepState) => T) => selector(stepState)
+    );
+    renderDialog();
+    expect(screen.queryByRole("button", { name: /^More providers/ })).toBeNull();
+  });
+
   it("opens the settings tab via the router singleton, not useNavigate", async () => {
     useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
     renderDialog();

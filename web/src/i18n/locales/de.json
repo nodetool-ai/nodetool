@@ -1799,9 +1799,8 @@
       "signInWindowNote": "Die Anmeldung wird in einem neuen Fenster geöffnet. Dieser Dialog schließt sich nach Abschluss.",
       "gemini": "Gemini",
       "extensionConnected": "Erweiterung verbunden",
-      "subscriptionsTitle": "Verbinde deine KI-Abos",
+      "subscriptionsTitle": "Verbinde die KI, die du schon nutzt",
       "addExtensionTitle": "Chrome-Erweiterung hinzufügen",
-      "useApiKeyInstead": "Stattdessen einen API-Schlüssel verwenden",
       "nextExtension": "Weiter: Chrome-Erweiterung",
       "back": "Zurück",
       "stepCount": "Schritt {{current}} von {{total}}",
@@ -1817,7 +1816,19 @@
         "text_to_3d": "3D-Generierung",
         "image_to_3d": "3D-Generierung aus Bildern"
       },
-      "stepPrompt": "Keiner deiner verbundenen Anbieter kann diesen Schritt ausführen. Verbinde einen dieser Anbieter, um ihn zu nutzen."
+      "stepPrompt": "Keiner deiner verbundenen Anbieter kann diesen Schritt ausführen. Verbinde einen dieser Anbieter, um ihn zu nutzen.",
+      "welcomeIntro": "Wähle, was für dich am einfachsten ist. Eins reicht für den Anfang, weitere kannst du jederzeit in den Einstellungen hinzufügen.",
+      "planGroup": "Ein Abo nutzen, das du schon bezahlst",
+      "planHint": "Kein API-Schlüssel und keine Abrechnung pro Token. ChatGPT-Bilder und alles in Gemini laufen über die Chrome-Erweiterung, die der nächste Schritt einrichtet.",
+      "keyGroup": "Oder einen API-Schlüssel einfügen",
+      "geminiTagline": "Chat, Bilder und Veo-Videos mit dem Gemini-Abo deines Google-Kontos. Läuft über die Chrome-Erweiterung.",
+      "connectedSummary": "Verbunden mit {{providers}}. Mach weiter oder füge einen weiteren hinzu.",
+      "setUpLater": "Später einrichten",
+      "moreProviders": "Weitere Anbieter ({{count}})",
+      "searchProviders": "Anbieter suchen",
+      "noProviderMatch": "Keiner dieser {{count}} Anbieter passt zu „{{query}}“. Die Einstellungen listen auch lokale Server und eigene Anbieter.",
+      "directoryCapabilityNote": "Nicht jeder Anbieter hier bietet {{capability}}. Prüfe seine Dokumentation, bevor du einen Schlüssel hinzufügst.",
+      "setUpInSettings": "In den Einstellungen einrichten"
     }
   },
   "batch2_8": {},
@@ -18482,8 +18493,7 @@
       "editorHeading": "Editor"
     },
     "providerOnboarding": {
-      "setUp": "Einrichten",
-      "useApiKeyInstead": "Stattdessen einen API-Schlüssel verwenden"
+      "setUp": "Einrichten"
     },
     "scriptReview": {
       "addLine": "Zeile hinzufügen"
