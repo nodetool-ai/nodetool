@@ -413,10 +413,12 @@ export async function retrieveSourceAssetBytes(
   if (!asset) {
     throw new Error(`Source asset not found: ${assetId}`);
   }
+  // `assetId` may be a short id the row lookup resolved; storage keys use the
+  // full one.
   const bytes = await retrieveAssetBytes(
     getAssetAdapter(),
     userId,
-    assetId,
+    asset.id,
     asset.content_type
   );
   if (!bytes) {
@@ -1449,13 +1451,13 @@ export class DirectInferenceHandler {
         retrieveAssetBytes(
           adapter,
           userId,
-          req.sourceAssetId,
+          sourceAsset.id,
           sourceAsset.content_type
         ),
         retrieveAssetBytes(
           adapter,
           userId,
-          req.maskAssetId,
+          maskAsset.id,
           maskAsset.content_type
         )
       ]);
@@ -1504,7 +1506,7 @@ export class DirectInferenceHandler {
       const sourceBytes = await retrieveAssetBytes(
         getAssetAdapter(),
         userId,
-        req.sourceAssetId,
+        sourceAsset.id,
         sourceAsset.content_type
       );
       if (!sourceBytes) {
@@ -1606,7 +1608,7 @@ export class DirectInferenceHandler {
     const bytes = await retrieveAssetBytes(
       getAssetAdapter(),
       userId,
-      req.assetId,
+      asset.id,
       asset.content_type
     );
     if (!bytes) {

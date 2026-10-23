@@ -46,6 +46,24 @@ jest.mock("../../../../serverState/useStylePresets", () => ({
   useStylePresets: () => ({ data: [] })
 }));
 
+// The asset lookup an agent-supplied id resolves through: it answers the full
+// id for a 12-character short id, the way the server's `Asset.find` does.
+const FULL_ASSET_IDS: Record<string, string> = {
+  "758ecb56940e": "758ecb56940e408e89432b0e15722b99"
+};
+jest.mock("../../../../trpc/client", () => ({
+  trpcClient: {
+    assets: {
+      get: {
+        query: async ({ id }: { id: string }) => ({
+          id: FULL_ASSET_IDS[id] ?? id,
+          content_type: "image/png"
+        })
+      }
+    }
+  }
+}));
+
 const rpcRequest = jest.fn();
 jest.mock("../../../websocket/rpcRequest", () => ({
   rpcRequest: (...args: unknown[]) => rpcRequest(...(args as [])),
@@ -477,6 +495,19 @@ describe("version tools", () => {
     expect(target.keyframe_versions?.[1]).toMatchObject({ flip_of: "a1" });
     // An upload or a flip is not a render, so it can never read stale.
     expect(target.keyframe_versions?.[1]?.render_inputs).toBeUndefined();
+  });
+});
+
+describe("ui_storyboard_add_keyframe_version ids", () => {
+  it("stores the full asset id when the agent passes a short one", async () => {
+    await call("ui_storyboard_add_keyframe_version", {
+      target: "s1",
+      assetId: "758ecb56940e"
+    });
+
+    const added = board().shots[0].keyframe_versions?.at(-1);
+    expect(added?.asset_id).toBe("758ecb56940e408e89432b0e15722b99");
+    expect(added?.uri).toBe("asset://758ecb56940e408e89432b0e15722b99");
   });
 });
 

@@ -5,6 +5,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import { getStoryboardAgentHandler } from "../../../components/storyboard/storyboardAgentBridge";
 import { flushStoryboardSave } from "../../../hooks/storyboard/storyboardSaveRegistry";
 import { docUrl } from "./resourceLinks";
+import { trpcClient } from "../../../trpc/client";
 
 /**
  * Frontend tools that let the agent direct the live Storyboard surface — load a
@@ -940,10 +941,19 @@ FrontendToolRegistry.register({
       )
   }),
   async execute({ storyboard_id, target, assetId, flipOf }) {
+    // An agent sees 12-character short ids. The board must store the full id,
+    // because storage keys and the server's byte reads use it.
+    const asset = await trpcClient.assets.get.query({ id: assetId });
+    if (!asset.content_type.startsWith("image/")) {
+      throw new Error(`Asset ${assetId} is not an image.`);
+    }
+    const derivedFrom = flipOf
+      ? (await trpcClient.assets.get.query({ id: flipOf })).id
+      : undefined;
     const shot = getStoryboardAgentHandler(storyboard_id).addKeyframeVersion(
       target,
-      assetId,
-      flipOf
+      asset.id,
+      derivedFrom
     );
     const persisted = await persistBoard(storyboard_id, "The still");
     return {

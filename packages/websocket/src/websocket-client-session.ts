@@ -1167,7 +1167,7 @@ export class WebSocketClientSession implements ClientSession {
       return await retrieveAssetBytes(
         getAssetAdapter(),
         userId,
-        assetId,
+        asset.id,
         asset.content_type
       );
     } catch (err) {

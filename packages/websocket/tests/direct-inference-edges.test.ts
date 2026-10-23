@@ -16,6 +16,7 @@ process.env.ASSET_FOLDER = mkdtempSync(join(tmpdir(), "nt-inference-test-"));
 import { describe, it, expect, beforeEach } from "vitest";
 import { closeDb, initTestDb, Asset, Prediction, Storyboard, TimelineSequence, emptyStoryboardDocument } from "@nodetool-ai/models";
 import type { BaseProvider } from "@nodetool-ai/runtime";
+import { shortResourceId } from "@nodetool-ai/protocol";
 
 import {
   DirectInferenceHandler,
@@ -897,6 +898,37 @@ describe("runDirectMediaGeneration", () => {
 
   });
 
+  it("reads inpaint and image_edit sources named by a short asset id", async () => {
+    const sourceId = await createStoredAsset("1", "image/png", PNG_1x1);
+    const maskId = await createStoredAsset("1", "image/png", PNG_1x1);
+    let inpaintSources: Uint8Array[] = [];
+    let editSources: Uint8Array[] = [];
+    const provider = asProvider({
+      getTotalCost: () => 0,
+      async inpaintImages(images: Uint8Array[], _params: unknown, n: number) {
+        inpaintSources = images;
+        return Array.from({ length: n }, () => PNG_1x1);
+      },
+      async imageToImages(images: Uint8Array[], _params: unknown, n: number) {
+        editSources = images;
+        return Array.from({ length: n }, () => PNG_1x1);
+      }
+    });
+    const { handler } = makeHandler(provider);
+    await handler.runDirectMediaGeneration(
+      mediaReq({
+        mode: "inpaint",
+        sourceAssetId: shortResourceId(sourceId),
+        maskAssetId: shortResourceId(maskId)
+      })
+    );
+    expect(Array.from(inpaintSources[0])).toEqual(Array.from(PNG_1x1));
+    await handler.runDirectMediaGeneration(
+      mediaReq({ mode: "image_edit", sourceAssetId: shortResourceId(sourceId) })
+    );
+    expect(Array.from(editSources[0])).toEqual(Array.from(PNG_1x1));
+  });
+
   it("hands upscale the scale and outpaint the padding, with no prompt required", async () => {
     const sourceId = await createStoredAsset("1", "image/png", PNG_1x1);
     let upscale: { image: Uint8Array; scale?: number | null; prompt?: string | null } | null = null;
@@ -1295,6 +1327,12 @@ describe("entity reference helpers", () => {
     ]);
     expect(out).toHaveLength(1);
     expect(Array.from(out[0])).toEqual(Array.from(PNG_1x1));
+  });
+
+  it("retrieveSourceAssetBytes reads an asset named by its short id", async () => {
+    const id = await createStoredAsset("1", "image/png", PNG_1x1);
+    const bytes = await retrieveSourceAssetBytes("1", shortResourceId(id));
+    expect(Array.from(bytes)).toEqual(Array.from(PNG_1x1));
   });
 
   it("retrieveSourceAssetBytes names the asset in both failure modes", async () => {
