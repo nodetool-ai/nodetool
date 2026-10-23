@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+
+// Each case renders several frames on a software Vulkan rasterizer in CI.
+const SWEEP_TIMEOUT_MS = 30_000;
 import { createGPUContextFromDevice } from "../src/context.js";
 import { createExecutor } from "../src/executor.js";
 import { getNodeGPUDevice } from "../src/node.js";
@@ -123,7 +126,8 @@ describe("film grain modules", () => {
           }
         }
       }
-    }
+    },
+    SWEEP_TIMEOUT_MS
   );
 
   it.each([0.5, 1])("keeps mixed octaves free of lattice edges at roughness %s", async (roughness) => {
@@ -138,7 +142,7 @@ describe("film grain modules", () => {
         }
       }
     }
-  });
+  }, SWEEP_TIMEOUT_MS);
 
   it("retains pinned v1 and resolves v2 as the latest grain", () => {
     const registry = createDefaultRegistry();
