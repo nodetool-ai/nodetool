@@ -10,7 +10,9 @@ import { unpack } from "msgpackr";
 import {
   DBModel,
   ModelChangeEvent,
-  ModelObserver
+  ModelObserver,
+  Workflow as StoredWorkflow,
+  WorkflowCollaborator
 } from "@nodetool-ai/models";
 import { resourceChangeMessageOutSchema } from "@nodetool-ai/protocol";
 import {
@@ -24,6 +26,8 @@ import {
   subscribeResourceChanges,
   type ResourceChangeFrame
 } from "../src/lib/resource-change-fanout.js";
+
+import { resourceChangeBus, stopResourceChangeFeeds } from "../src/lib/resource-change-bus.js";
 
 class MockWS implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -82,6 +86,7 @@ async function connectAs(userId: string): Promise<Connected> {
 let open: Connected[] = [];
 
 beforeEach(() => {
+  stopResourceChangeFeeds();
   ModelObserver.clear();
   open = [];
 });
@@ -89,6 +94,8 @@ beforeEach(() => {
 afterEach(async () => {
   for (const { session } of open) await session.disconnect();
   open = [];
+  stopResourceChangeFeeds();
+  await resourceChangeBus.close();
   vi.restoreAllMocks();
   ModelObserver.clear();
 });
@@ -158,7 +165,7 @@ describe("resource change fanout", () => {
     }
   });
 
-  it("skips the etag when no connection takes the write", async () => {
+  it("serializes a write even when only remote connections may take it", async () => {
     open = [await connectAs("u1")];
     const etag = vi.spyOn(Workflow.prototype, "getEtag");
 
@@ -168,7 +175,7 @@ describe("resource change fanout", () => {
     );
     await flush();
 
-    expect(etag).not.toHaveBeenCalled();
+    expect(etag).toHaveBeenCalledTimes(1);
     expect(changeFrames(open[0].ws)).toEqual([]);
   });
 
@@ -195,6 +202,8 @@ describe("resource change fanout", () => {
   });
 
   it.each([true, false])("excludes app visitors from Python bridge changes (new provider: %s)", async (newProvider) => {
+    const publish = vi.fn().mockResolvedValue(undefined);
+    resourceChangeBus.setTransport({ publish, close: async () => {} });
     const editor = await connectAs("u1");
     const visitorSession = new WebSocketClientSession({
       userId: "u1",
@@ -224,30 +233,45 @@ describe("resource change fanout", () => {
       ["model", "updated"]
     ]);
     expect(changeFrames(visitorWs)).toEqual([]);
+    expect(publish).not.toHaveBeenCalled();
   });
 
-  it("removes the shared listeners when the last connection leaves", async () => {
+  it("keeps the process feed until shutdown after the last connection leaves", async () => {
     const baseline = resourceEvents.listenerCount("change");
-    const unsubscribe = vi.spyOn(ModelObserver, "unsubscribe");
     const first = await connectAs("u1");
     const second = await connectAs("u1");
     expect(resourceEvents.listenerCount("change")).toBe(baseline + 1);
-
     await first.session.disconnect();
-    expect(resourceEvents.listenerCount("change")).toBe(baseline + 1);
-    const callsWhileOneLeft = unsubscribe.mock.calls.length;
-
     await second.session.disconnect();
+    expect(resourceEvents.listenerCount("change")).toBe(baseline + 1);
+    stopResourceChangeFeeds();
     expect(resourceEvents.listenerCount("change")).toBe(baseline);
-    expect(unsubscribe.mock.calls.length).toBe(callsWhileOneLeft + 1);
+  });
 
-    // With the callback gone, a write builds no frame at all.
-    const etag = vi.spyOn(Workflow.prototype, "getEtag");
-    ModelObserver.notify(
-      new Workflow({ id: "w3", user_id: "u1" }),
-      ModelChangeEvent.UPDATED
-    );
-    expect(etag).not.toHaveBeenCalled();
+  it("delivers remote workflow changes to collaborators and invalidates revoked grants", async () => {
+    const grants = vi.spyOn(WorkflowCollaborator, "listForWorkflow")
+      .mockResolvedValue([new WorkflowCollaborator({ user_id: "u2" })]);
+    vi.spyOn(StoredWorkflow, "get").mockResolvedValue(new StoredWorkflow({ user_id: "u1" }));
+    open = [await connectAs("u1"), await connectAs("u2"), await connectAs("u3")];
+    const payload = {
+      resource_type: "workflow", event: "updated",
+      resource: { id: "w1", etag: "etag", project_id: "p1" }, owner_user_id: "u1"
+    };
+    const publish = () => resourceChangeBus.receive(JSON.stringify({ origin: "peer", payload }));
+    publish();
+    await flush();
+    expect(changeFrames(open[0].ws)).toHaveLength(1);
+    expect(changeFrames(open[1].ws)).toHaveLength(1);
+    expect(changeFrames(open[2].ws)).toHaveLength(0);
+    grants.mockResolvedValue([]);
+    resourceChangeBus.receive(JSON.stringify({ origin: "peer", payload: {
+      resource_type: "workflowcollaborator", event: "deleted",
+      resource: { id: "grant", workflow_id: "w1" }, owner_user_id: "u1"
+    } }));
+    publish();
+    await flush();
+    expect(changeFrames(open[1].ws)).toHaveLength(1);
+    expect(grants).toHaveBeenCalledTimes(2);
   });
 
   it("keeps delivering to the others when one subscriber throws", () => {

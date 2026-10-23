@@ -6,6 +6,7 @@ export async function notifyPythonBridgeResourceChanges(
   registerPythonProvidersOnce: () => Promise<string[]>
 ): Promise<void> {
   notifyResourceChange({
+    localOnly: true,
     event: "updated",
     resource_type: "metadata",
     resource: { id: "nodes", etag: String(Date.now()) }
@@ -18,6 +19,7 @@ export async function notifyPythonBridgeResourceChanges(
 
   for (const provider of discoveredProviders) {
     notifyResourceChange({
+    localOnly: true,
       event: registeredProviders.has(provider.id) ? "created" : "updated",
       resource_type: "provider",
       resource: {
@@ -29,6 +31,7 @@ export async function notifyPythonBridgeResourceChanges(
     });
 
     notifyResourceChange({
+    localOnly: true,
       event: "updated",
       resource_type: "model",
       resource: {

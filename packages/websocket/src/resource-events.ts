@@ -18,6 +18,8 @@ export interface ResourceChangePayload {
   resource: Record<string, unknown> & { id: string; etag?: string };
   /** When set, only sessions for this user receive the event. */
   userId?: string | null;
+  /** Process-specific metadata must not be sent to other replicas. */
+  localOnly?: boolean;
 }
 
 class ResourceEventEmitter extends EventEmitter {
