@@ -15,6 +15,7 @@ import { spawnSync } from "node:child_process";
 import {
   classifyPublishResult,
   packRelease,
+  publishInDependencyOrder,
   publishOrder,
   unmetDeps,
   workspaceDeps
@@ -160,6 +161,45 @@ function releaseFixture() {
   ] }));
   return { root, dest, packages: ["cli", "core-nodes", "game-nodes", "game-renderer", "node-catalog"].map(name => ({ name })) };
 }
+
+describe("publishInDependencyOrder", () => {
+  const pkg = (name, deps = []) => ({ name, version: "1.0.0", deps });
+  // protocol <- runtime <- cli, with three leaves beside them.
+  const packages = publishOrder([
+    pkg("cli", ["runtime"]), pkg("runtime", ["protocol"]), pkg("protocol"),
+    pkg("leaf-a"), pkg("leaf-b"), pkg("leaf-c")
+  ]);
+
+  it("publishes each package after its dependencies and never runs more than the limit", async () => {
+    const available = new Set();
+    const finished = [];
+    let active = 0;
+    let peak = 0;
+    await publishInDependencyOrder(packages, available, 2, async (p) => {
+      for (const dep of p.deps) { expect(finished).toContain(dep); }
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise(resolveTick => setTimeout(resolveTick, 5));
+      active--;
+      finished.push(p.name);
+      available.add(p.name);
+    }, () => { throw new Error("nothing should block"); });
+    expect(finished).toHaveLength(packages.length);
+    expect(peak).toBe(2);
+  });
+
+  it("blocks every transitive dependent of a failed package and still publishes the rest", async () => {
+    const available = new Set();
+    const blocked = [];
+    const attempted = [];
+    await publishInDependencyOrder(packages, available, 4, async (p) => {
+      attempted.push(p.name);
+      if (p.name !== "protocol") { available.add(p.name); }
+    }, (p, unmet) => { blocked.push([p.name, unmet]); });
+    expect(blocked).toEqual([["runtime", ["protocol"]], ["cli", ["runtime"]]]);
+    expect(attempted.sort()).toEqual(["leaf-a", "leaf-b", "leaf-c", "protocol"]);
+  });
+});
 
 describe("release packing order", () => {
   it("packs every catalog registrar and companion once, pins and rebuilds catalog, then packs remaining core", async () => {

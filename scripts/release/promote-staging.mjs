@@ -3,8 +3,11 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { runReleaseCommand } from "./pin-catalog.mjs";
+import { createLimiter, runReleaseCommandAsync, timed } from "./commands.mjs";
 import { releaseInputs, verifyStaging } from "./verify-staging.mjs";
+
+/** Concurrent `npm dist-tag add` calls before the CLI, which always goes last. */
+const PROMOTION_CONCURRENCY = 8;
 
 export function releaseTag(version) {
   const parsed = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(version);
@@ -27,7 +30,7 @@ export function promotionOrder(artifacts) {
 export async function promoteStaging(catalog, artifacts, {
   tag = releaseTag(catalog.coreVersion),
   verify = () => verifyStaging(catalog, artifacts),
-  run = runReleaseCommand,
+  run = runReleaseCommandAsync,
   dryRun = false
 } = {}) {
   const expectedTag = releaseTag(catalog.coreVersion);
@@ -35,9 +38,11 @@ export async function promoteStaging(catalog, artifacts, {
   const order = promotionOrder(artifacts);
   await verify();
   if (dryRun) { return order.map(pkg => pkg.name); }
-  for (const pkg of order) {
-    await run("npm", ["dist-tag", "add", `${pkg.name}@${pkg.version}`, tag], {});
-  }
+  const promote = pkg => run("npm", ["dist-tag", "add", `${pkg.name}@${pkg.version}`, tag], {});
+  const cli = order.at(-1);
+  const limit = createLimiter(PROMOTION_CONCURRENCY);
+  await timed(`promote ${order.length - 1} packages`, () => Promise.all(order.slice(0, -1).map(pkg => limit(() => promote(pkg)))));
+  await promote(cli);
   return order.map(pkg => pkg.name);
 }
 
@@ -49,7 +54,7 @@ async function main() {
   const { catalog, artifacts } = releaseInputs(resolve(values["tarballs-dir"]), resolve(values.catalog));
   const options = { dryRun: values["dry-run"] };
   if (values.tag) { options.tag = values.tag; }
-  const order = await promoteStaging(catalog, artifacts, options);
+  const order = await timed("verify staging and promote", () => promoteStaging(catalog, artifacts, options));
   console.log(`${values["dry-run"] ? "Verified promotion plan for" : "Promoted"} ${order.length} packages, CLI last`);
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

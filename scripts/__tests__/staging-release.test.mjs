@@ -81,14 +81,16 @@ describe("staging verification", () => {
     const run = vi.fn(async () => ({ integrity: "sha512-wrong" }));
     const smoke = vi.fn();
     await expect(verifyStaging(catalogFixture(), artifacts, { loadDist: run, smoke })).rejects.toThrow("Registry integrity differs");
-    expect(run).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledTimes(artifacts.length);
     expect(smoke).not.toHaveBeenCalled();
   });
 
   it("requires provenance on every first-party artifact", async () => {
     const run = vi.fn(async requested => ({ integrity: artifacts.find(pkg => requested.name === pkg.name).integrity }));
-    await expect(verifyStaging(catalogFixture(), artifacts, { loadDist: run, smoke: vi.fn() })).rejects.toThrow("Missing matching");
-    expect(run).toHaveBeenCalledOnce();
+    const smoke = vi.fn();
+    await expect(verifyStaging(catalogFixture(), artifacts, { loadDist: run, smoke })).rejects.toThrow("Missing matching");
+    expect(run).toHaveBeenCalledTimes(artifacts.length);
+    expect(smoke).not.toHaveBeenCalled();
   });
 
   it("checks represented third-party allowlist pins without inventing NodeTool provenance", async () => {
@@ -145,6 +147,23 @@ describe("verified promotion", () => {
     expect(order).toEqual(["@nodetool-ai/fal-nodes", "@nodetool-ai/protocol", "@nodetool-ai/cli"]);
     expect(promotionOrder(artifacts).at(-1).name).toBe("@nodetool-ai/cli");
   });
+  it("starts the CLI promotion only after every parallel promotion has finished", async () => {
+    const pending = [];
+    const finished = new Set();
+    const run = vi.fn((_command, args) => {
+      if (args[2].includes("/cli@")) {
+        expect(finished.size).toBe(artifacts.length - 1);
+        return Promise.resolve();
+      }
+      return new Promise(resolveCall => pending.push(() => { finished.add(args[2]); resolveCall(); }));
+    });
+    const promotion = promoteStaging(catalogFixture(), artifacts, { verify: async () => {}, run });
+    await vi.waitFor(() => expect(pending).toHaveLength(artifacts.length - 1));
+    expect(run).toHaveBeenCalledTimes(artifacts.length - 1);
+    for (const release of pending.reverse()) { release(); }
+    await promotion;
+    expect(run.mock.calls.at(-1)[1][2]).toBe("@nodetool-ai/cli@1.2.3");
+  });
   it("leaves every latest tag unchanged when the real verifier sees a deliberately wrong pin", async () => {
     const catalog = catalogFixture();
     catalog.packs[0].npm.integrity = "sha512-wrong";
@@ -164,8 +183,8 @@ describe("verified promotion", () => {
   it("keeps the CLI unpromoted if an earlier promotion fails", async () => {
     const run = vi.fn(async () => { throw new Error("registry refused promotion"); });
     await expect(promoteStaging(catalogFixture(), artifacts, { verify: async () => {}, run })).rejects.toThrow("registry refused");
-    expect(run).toHaveBeenCalledOnce();
-    expect(run.mock.calls[0][1][2]).not.toContain("/cli@");
+    expect(run).toHaveBeenCalledTimes(artifacts.length - 1);
+    for (const [, args] of run.mock.calls) { expect(args[2]).not.toContain("/cli@"); }
   });
   it("requires a CLI artifact before verification or tag writes", () => {
     expect(() => promotionOrder(artifacts.filter(pkg => pkg.name !== "@nodetool-ai/cli"))).toThrow("requires the CLI");
