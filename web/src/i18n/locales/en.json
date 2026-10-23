@@ -12026,7 +12026,8 @@
         "properties": "Properties",
         "page": "Page",
         "undo": "Undo",
-        "redo": "Redo"
+        "redo": "Redo",
+        "agent": "Agent"
       }
     }
   },

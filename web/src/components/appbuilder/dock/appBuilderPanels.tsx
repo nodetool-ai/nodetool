@@ -1,3 +1,4 @@
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import ViewQuiltOutlinedIcon from "@mui/icons-material/ViewQuiltOutlined";
@@ -19,6 +20,7 @@ export function appBuilderPanelRegistrations(t: TFunction): readonly AppBuilderP
     { id: "components", title: t("i18n-next8.appBuilder.dock.components"), icon: <DashboardCustomizeOutlinedIcon {...icon} />, defaultRegion: "left" },
     { id: "outline", title: t("i18n-next8.appBuilder.dock.outline"), icon: <AccountTreeOutlinedIcon {...icon} />, defaultRegion: "left" },
     { id: "fields", title: t("i18n-next8.appBuilder.dock.properties"), icon: <EditOutlinedIcon {...icon} />, defaultRegion: "right" },
-    { id: "data", title: t("i18n-next8.appBuilder.shell.appDataLabel"), icon: <TuneIcon {...icon} />, defaultRegion: "right" }
+    { id: "data", title: t("i18n-next8.appBuilder.shell.appDataLabel"), icon: <TuneIcon {...icon} />, defaultRegion: "right" },
+    { id: "assistant", title: t("i18n-next8.appBuilder.dock.agent"), icon: <AutoAwesomeIcon {...icon} />, defaultRegion: "right" }
   ];
 }

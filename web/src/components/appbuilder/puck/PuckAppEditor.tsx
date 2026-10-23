@@ -54,6 +54,8 @@ interface PuckAppEditorProps {
   onMetaChange?: (next: AppDocMeta) => void;
   /** The App Data panel body, docked beside the canvas. Omitted, the builder has no App Data panel. */
   dataPanel?: ReactNode;
+  /** The app builder agent, docked as a panel. */
+  assistantPanel?: ReactNode;
   /**
    * The graph of every workflow the document's operations run, by workflow id.
    * An operation whose workflow is missing binds against nothing — the host
@@ -129,6 +131,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   meta = EMPTY_DOC_META,
   onMetaChange,
   dataPanel,
+  assistantPanel,
   operationWorkflows
 }) => {
   const { t } = useTranslation();
@@ -214,6 +217,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
             >
               <AppBuilderDock
                 dataPanel={dataPanel}
+                assistantPanel={assistantPanel}
                 actions={
                   <>
                     {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}

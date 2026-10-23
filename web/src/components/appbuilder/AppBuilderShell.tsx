@@ -59,6 +59,8 @@ interface AppBuilderShellProps {
    * The App Data form never asks for it.
    */
   projectId?: string;
+  /** The app builder agent, docked as a panel beside the canvas. */
+  assistantPanel?: React.ReactNode;
 }
 
 /**
@@ -83,7 +85,8 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   onDraftChange,
   saving,
   onClose,
-  projectId
+  projectId,
+  assistantPanel
 }) => {
   const setCurrentWorkflowId = useWorkflowManager((s) => s.setCurrentWorkflowId);
   // Puck owns the layout after mount, so this is the seed only. The document's
@@ -185,6 +188,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             />
           }
           operationWorkflows={operationWorkflows}
+          assistantPanel={assistantPanel}
         />
       </Box>
     </FlexColumn>

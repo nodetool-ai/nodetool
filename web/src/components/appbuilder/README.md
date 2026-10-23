@@ -130,8 +130,8 @@ the existing worker path.
     chrome.
 - `dock/AppBuilderDock.tsx` — the editor's panels in the shared dock
   (`components/dock/`, the one the game and timeline editors use): Canvas
-  (`Puck.Preview`, required), Components, Outline, Properties (`Puck.Fields`)
-  and App Data. Panels move, group, resize and hide, and the layout is saved
+  (`Puck.Preview`, required), Components, Outline, Properties (`Puck.Fields`),
+  App Data and Agent. Panels move, group, resize and hide, and the layout is saved
   per user under `nodetool.app-builder-layout.v1`
   (`stores/appbuilder/AppBuilderDockLayout.ts`). Its toolbar holds undo and
   redo, the Layout menu, the App Data toggle and Save.
@@ -143,8 +143,10 @@ the existing worker path.
   documents.
 - `AppBuilderShell.tsx` — the editing surface, independent of storage: it seeds
   Puck from a document, holds the operations/resources/variables beside it, and
-  emits the **whole** document on save. The assistant docks on `ApplicationSurface`,
-  so it stays on the right in Design, Run, and Settings.
+  emits the **whole** document on save. The assistant renders once on
+  `ApplicationSurface`, into a container that moves between hosts
+  (`components/dock/AdoptedNodeSlot.tsx`): the builder's Agent panel in Design,
+  the side dock in Run and Settings. Its thread survives every switch.
 - `ApplicationAppBuilder.tsx` — the container over an `applications` record:
   loads with `applications.get`, saves with `applications.update` carrying
   `baseUpdatedAt`. A lost compare-and-swap raises an alert and a banner with a

@@ -1,7 +1,7 @@
 import { createDockLayoutModel, type DockLayout } from "../dock/DockLayout";
 
 /** Every panel the app builder can dock. The canvas is required. */
-export const APP_BUILDER_PANEL_IDS = ["canvas", "components", "outline", "fields", "data"] as const;
+export const APP_BUILDER_PANEL_IDS = ["canvas", "components", "outline", "fields", "data", "assistant"] as const;
 export type AppBuilderPanelId = typeof APP_BUILDER_PANEL_IDS[number];
 
 /** Built-in layouts in menu order. The first is the default. */
@@ -12,15 +12,19 @@ function createPreset(name: string): DockLayout {
     version: 1,
     regions: {
       left: [{ id: "left-main", panels: ["components", "outline"], activePanelId: "components" }],
-      right: [{ id: "right-main", panels: ["fields", "data"], activePanelId: "fields" }],
+      // The agent sits under Properties, taking more of the height for its thread.
+      right: [
+        { id: "right-main", panels: ["fields", "data"], activePanelId: "fields" },
+        { id: "right-assistant", panels: ["assistant"], activePanelId: "assistant", weight: 1.5 }
+      ],
       bottom: [],
       viewport: [{ id: "viewport-main", panels: ["canvas"], activePanelId: "canvas" }]
     },
     // App Data opens from the toolbar, as a tab beside Properties.
     hidden: ["data"],
-    sizes: { left: 260, right: 340, bottom: 240 }
+    sizes: { left: 260, right: 400, bottom: 240 }
   };
-  if (name === "Canvas") { layout.hidden = ["components", "outline", "fields", "data"]; }
+  if (name === "Canvas") { layout.hidden = ["components", "outline", "fields", "data", "assistant"]; }
   return layout;
 }
 

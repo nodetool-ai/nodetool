@@ -56,6 +56,8 @@ interface ApplicationAppBuilderProps {
    * bind the same thread Design, Run, and Settings share.
    */
   onAgentWorkflowIdChange?: (workflowId: string | undefined) => void;
+  /** The surface's agent, docked as a builder panel while Design is showing. */
+  assistantPanel?: React.ReactNode;
 }
 
 /**
@@ -85,7 +87,8 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   applicationId,
   onDraftChange,
   onSaveReady,
-  onAgentWorkflowIdChange
+  onAgentWorkflowIdChange,
+  assistantPanel
 }) => {
   const { t } = useTranslation();
   const { data: application, isLoading, isError, error } =
@@ -596,6 +599,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       agentWorkflowId={workflow?.id}
       onOperationsChange={setLiveOperations}
       projectId={application.projectId}
+      assistantPanel={assistantPanel}
       onSave={(next) => {
         void handleSave(next).catch(() => undefined);
       }}

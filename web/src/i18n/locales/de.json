@@ -12026,7 +12026,8 @@
         "properties": "Eigenschaften",
         "page": "Seite",
         "undo": "Rückgängig",
-        "redo": "Wiederholen"
+        "redo": "Wiederholen",
+        "agent": "Agent"
       }
     }
   },

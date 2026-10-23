@@ -71,6 +71,17 @@ it("opens App Data as a tab beside Properties and closes it again", async () => 
   expect(screen.queryByRole("tab", { name: /App data/ })).not.toBeInTheDocument();
 });
 
+it("docks the agent under Properties when the surface supplies it", () => {
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <AppBuilderDock assistantPanel={<div>Agent thread</div>} />
+    </ThemeProvider>
+  );
+  expect(screen.getByRole("tab", { name: /Agent/ })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByText("Agent thread")).toBeVisible();
+  expect(screen.getByRole("tab", { name: /Properties/ })).toHaveAttribute("aria-selected", "true");
+});
+
 it("leaves App Data out when the editor has no data panel", () => {
   renderDock();
   expect(screen.queryByRole("button", { name: "App data" })).not.toBeInTheDocument();

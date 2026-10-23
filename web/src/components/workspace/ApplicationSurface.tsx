@@ -6,6 +6,7 @@ import {
   useState,
   type MouseEvent
 } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -37,6 +38,7 @@ import {
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
+import { AdoptedNodeSlot } from "../dock/AdoptedNodeSlot";
 import {
   Box,
   AlertBanner,
@@ -68,8 +70,9 @@ type ApplicationView = "design" | "run" | "preview" | "settings";
  * the same trick the workspace shell plays with its tabs, for the same reason.
  * Rendering only the active view unmounted the whole builder on the way to Run
  * and back: the Puck canvas re-seeded from the saved document (losing unsaved
- * edits) and operations and variables reset. The assistant docks on this
- * surface, so it stays on the right in every view and keeps its thread.
+ * edits) and operations and variables reset. The assistant renders on this
+ * surface and keeps its thread in every view: a builder dock panel in Design,
+ * the side dock in Run and Settings.
  */
 const LAYER_SX = { position: "absolute", inset: 0 } as const;
 const ACTIVE_LAYER_SX = {
@@ -154,6 +157,20 @@ const ApplicationSurface = ({
     observer.observe(element);
     return () => observer.disconnect();
   }, [isLoading, isError]);
+  // The assistant renders once, into this container, which moves between the
+  // builder's dock (Design), the side dock (Run, Settings) and the narrow
+  // overlay. Moving the container keeps the chat mounted with its thread.
+  const [assistantHost] = useState(() => {
+    const element = window.document.createElement("div");
+    Object.assign(element.style, {
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+      height: "100%",
+      minHeight: "0"
+    });
+    return element;
+  });
   const [narrowAgentOpen, setNarrowAgentOpen] = useState(false);
   const narrowAgentPanelRef = useRef<HTMLDivElement>(null);
   const narrowAgentButtonRef = useRef<HTMLButtonElement>(null);
@@ -313,6 +330,8 @@ const ApplicationSurface = ({
     />
   );
   const isRunView = view === "run" || view === "preview";
+  // In Design the agent is a builder dock panel the author can move.
+  const assistantInBuilderDock = mode === "edit" && !narrow && view === "design";
 
   return (
     <FlexRow
@@ -392,6 +411,11 @@ const ApplicationSurface = ({
                 onAgentWorkflowIdChange={setAgentWorkflowId}
                 onDraftChange={setDraftDocument}
                 onSaveReady={registerSave}
+                assistantPanel={
+                  assistantInBuilderDock ? (
+                    <AdoptedNodeSlot node={assistantHost} />
+                  ) : undefined
+                }
               />
             </Box>
           )}
@@ -443,20 +467,21 @@ const ApplicationSurface = ({
                 display: narrowAgentOpen ? "block" : "none"
               }}
             >
-              {assistant}
+              <AdoptedNodeSlot node={assistantHost} />
             </Box>
           )}
         </Box>
       </FlexColumn>
-      {mode === "edit" && !narrow && (
+      {mode === "edit" && !narrow && !assistantInBuilderDock && (
         <ResizableSideDock
           storageKey="app_builder"
           defaultWidth={420}
           ariaLabel={t("i18n-next119.workspace.resizeAppBuilderAssistant")}
         >
-          {assistant}
+          <AdoptedNodeSlot node={assistantHost} />
         </ResizableSideDock>
       )}
+      {mode === "edit" && createPortal(assistant, assistantHost)}
       {mode === "edit" && narrow && (
         <CircularActionButton
           ref={narrowAgentButtonRef}

@@ -34,6 +34,8 @@ interface AppBuilderDockProps {
   trailingActions?: ReactNode;
   /** The App Data panel body. Without it the panel and its toggle are left out. */
   dataPanel?: ReactNode;
+  /** The app builder agent. Without it the Agent panel is left out of the dock while its place in the layout stays. */
+  assistantPanel?: ReactNode;
 }
 
 /** Undo and redo over Puck's history, which its default header used to draw. */
@@ -84,14 +86,15 @@ const PropertiesPanel: React.FC = () => {
 /**
  * The builder's panels in the shared dock (the one the game and timeline
  * editors use): the canvas in the viewport, Components and Outline on the
- * left, Properties and App Data on the right. Panels move, group, resize and
+ * left, Properties, App Data and the agent on the right. Panels move, group, resize and
  * hide, and the layout is saved per user. Rendered as Puck's children, so
  * Puck draws none of its own chrome and every panel reads Puck's store.
  */
 const AppBuilderDock: React.FC<AppBuilderDockProps> = ({
   actions,
   trailingActions,
-  dataPanel
+  dataPanel,
+  assistantPanel
 }) => {
   const { t } = useTranslation();
   const store = useAppBuilderDockLayoutStore();
@@ -130,7 +133,8 @@ const AppBuilderDock: React.FC<AppBuilderDockProps> = ({
       )
     },
     { id: "fields", node: <PropertiesPanel /> },
-    { id: "data", node: dataPanel, visible: hasData }
+    { id: "data", node: dataPanel, visible: hasData },
+    { id: "assistant", node: assistantPanel, visible: assistantPanel !== undefined }
   ].filter((view) => view.visible !== false);
   const presentation = useDockPresentation({
     store,
