@@ -13196,6 +13196,8 @@
       "actions": {
         "copyMarkdown": "Unterhaltung als Markdown kopieren",
         "newChat": "Neuer Chat",
+        "showSidebar": "Seitenleiste einblenden",
+        "hideSidebar": "Seitenleiste ausblenden",
         "scrollToBottom": "Zum Ende scrollen"
       },
       "errors": {

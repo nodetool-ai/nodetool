@@ -19,6 +19,7 @@ import {
 } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import {
   FlexColumn,
   FlexRow,
@@ -353,8 +354,19 @@ const ChatView = ({
   const isBusy = status === "loading" || status === "streaming";
   const hasTaskRail =
     isBusy && Boolean(currentTaskUpdate) && !hasAgentExecutionMessages;
-  const showTaskSidebar = railsFit && hasTaskRail;
-  const showTodoSidebar = railsFit && !showTaskSidebar && todos.length > 0;
+  // The header toggle hides the desktop rail to give the conversation the
+  // full width. Phones switch rails with tabs instead.
+  const [railHidden, setRailHidden] = useState(false);
+  const hasDesktopRail = railsFit && (hasTaskRail || todos.length > 0);
+  const showTaskSidebar = railsFit && !railHidden && hasTaskRail;
+  const showTodoSidebar =
+    railsFit && !railHidden && !hasTaskRail && todos.length > 0;
+  const handleToggleRail = useCallback(() => {
+    setRailHidden((hidden) => !hidden);
+  }, []);
+  const railToggleLabel = railHidden
+    ? t("i18n-next23.chat.actions.showSidebar")
+    : t("i18n-next23.chat.actions.hideSidebar");
 
   const [mobileRail, setMobileRail] = useState<MobileRail>("chat");
   const mobileRails = useMemo<MobileRail[]>(() => {
@@ -499,6 +511,7 @@ const ChatView = ({
     <div className="chat-view" css={cssStyles} ref={rootRef}>
       <div className="chat-main">
         {((!isMobile && messages.length > 0) ||
+          hasDesktopRail ||
           (showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={SPACING.md}>
             {!isMobile && messages.length > 0 && (
@@ -506,6 +519,15 @@ const ChatView = ({
                 onClick={handleCopyConversation}
                 tooltip={t("i18n-next23.chat.actions.copyMarkdown")}
                 icon={<ContentCopyIcon fontSize="small" />}
+              />
+            )}
+            {hasDesktopRail && (
+              <ToolbarIconButton
+                onClick={handleToggleRail}
+                tooltip={railToggleLabel}
+                ariaLabel={railToggleLabel}
+                active={!railHidden}
+                icon={<ViewSidebarOutlinedIcon fontSize="small" />}
               />
             )}
             {showNewChatButton && onNewChat && (

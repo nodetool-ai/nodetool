@@ -13196,6 +13196,8 @@
       "actions": {
         "copyMarkdown": "将对话复制为 Markdown",
         "newChat": "新建聊天",
+        "showSidebar": "显示侧边栏",
+        "hideSidebar": "隐藏侧边栏",
         "scrollToBottom": "滚动到底部"
       },
       "errors": {

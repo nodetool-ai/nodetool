@@ -546,6 +546,43 @@ describe("ChatView", () => {
       expect(screen.getByTestId("task-update-display")).toBeInTheDocument();
     });
 
+    it("hides and shows the desktop right sidebar from the header", async () => {
+      mockedUseMediaQuery.mockReturnValue(true);
+      const taskUpdate: TaskUpdate = {
+        type: "task_update",
+        task: { id: "task-1", title: "Test task", status: "running" },
+        event: TaskUpdateEvent.StepStarted
+      };
+
+      renderWithProviders(
+        <ChatView
+          {...baseProps}
+          status="streaming"
+          messages={[
+            {
+              id: "1",
+              type: "message",
+              role: "user",
+              content: [{ type: "text", text: "Test" }]
+            }
+          ]}
+          currentTaskUpdate={taskUpdate}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Hide side panel" })
+      );
+      expect(
+        screen.queryByLabelText("Active agent task")
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Show side panel" })
+      );
+      expect(screen.getByLabelText("Active agent task")).toBeInTheDocument();
+    });
+
     it("hides the active task sidebar on narrow screens", () => {
       const taskUpdate: TaskUpdate = {
         type: "task_update",

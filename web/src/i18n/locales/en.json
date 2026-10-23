@@ -13196,6 +13196,8 @@
       "actions": {
         "copyMarkdown": "Copy conversation as Markdown",
         "newChat": "New chat",
+        "showSidebar": "Show side panel",
+        "hideSidebar": "Hide side panel",
         "scrollToBottom": "Scroll to bottom"
       },
       "errors": {
