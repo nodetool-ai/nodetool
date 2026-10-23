@@ -497,8 +497,18 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           const held = savesInFlight.get(workflowId) ?? [];
           savesInFlight.delete(workflowId);
           for (const notice of held) {
-            // Our own write echoing back — the save already applied it.
-            if (savedEtag && notice.etag === savedEtag) continue;
+            // Our own write echoing back — the save already applied it. An
+            // autosave leaves the cached server copy behind, so mark it stale
+            // without refetching: the editor holds this graph, and the next
+            // reader that needs the server copy fetches it.
+            if (savedEtag && notice.etag === savedEtag) {
+              void get().queryClient?.invalidateQueries({
+                queryKey: workflowQueryKey(workflowId),
+                exact: true,
+                refetchType: "none"
+              });
+              continue;
+            }
             void get().refreshWorkflow(workflowId, notice.etag, notice.ops);
           }
         }
@@ -978,9 +988,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const storeBefore = get().nodeStores[workflowId];
         if (!storeBefore) return;
 
-        // Read the merge base before the first await. The notice that brought
-        // us here also invalidates the workflow query, so anything read after
-        // the await may already be the server copy.
+        // Read the merge base before the first await. Anything read after the
+        // await may already be the server copy. While this store is open the
+        // notice leaves the workflow query to this function, which keeps it
+        // current below.
         const baseWorkflow = mergeBases.get(workflowId);
 
         // A save is in flight: nothing yet says whether this notice is that
@@ -1009,8 +1020,19 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             `[WorkflowManager] Failed to refresh workflow ${workflowId}`,
             err
           );
+          void get().queryClient?.invalidateQueries({
+            queryKey: workflowQueryKey(workflowId),
+            exact: true,
+            refetchType: "none"
+          });
           return;
         }
+
+        // The cache holds the server copy whichever way the editor takes it.
+        get().queryClient?.setQueryData(
+          workflowQueryKey(workflowId),
+          freshWorkflow
+        );
 
         const currentStore = get().nodeStores[workflowId];
         const dirty = currentStore.getState().workflowIsDirty;
@@ -1056,10 +1078,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               ops
             );
             mergeBases.set(workflowId, freshWorkflow);
-            get().queryClient?.setQueryData(
-              workflowQueryKey(workflowId),
-              freshWorkflow
-            );
           } else {
             reportDocumentConflicts(`workflow:${workflowId}`, [
               {
@@ -1462,7 +1480,11 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
   });
 
   setWorkflowResourceReloader((workflowId, etag, ops) => {
+    if (!store.getState().nodeStores[workflowId]) {
+      return false;
+    }
     void store.getState().refreshWorkflow(workflowId, etag, ops);
+    return true;
   });
 
   return store;
