@@ -37,9 +37,12 @@ describe("capabilityForMode", () => {
     expect(capabilityForMode("audio")).toBe("text_to_speech");
   });
 
+  it("gates retake and extend on a video provider", () => {
+    expect(capabilityForMode("retake")).toBe("text_to_video");
+    expect(capabilityForMode("extend")).toBe("text_to_video");
+  });
+
   it("maps not-yet-selectable modes to null", () => {
-    expect(capabilityForMode("retake")).toBeNull();
-    expect(capabilityForMode("extend")).toBeNull();
     expect(capabilityForMode("motion_control")).toBeNull();
     expect(capabilityForMode("audio_to_video")).toBeNull();
   });
@@ -52,6 +55,8 @@ describe("capabilityForMode", () => {
       "video",
       "image_to_video",
       "reference_to_video",
+      "retake",
+      "extend",
       "audio"
     ] as const) {
       expect(setupReasonForMode(mode)).toEqual(expect.any(String));

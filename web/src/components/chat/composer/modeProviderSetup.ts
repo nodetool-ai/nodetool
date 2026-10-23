@@ -21,6 +21,8 @@ export const capabilityForMode = (
     case "video":
     case "image_to_video":
     case "reference_to_video":
+    case "retake":
+    case "extend":
       return "text_to_video";
     case "music":
       return "text_to_music";
@@ -46,6 +48,10 @@ export const setupReasonForMode = (mode: MediaMode): string | null => {
       return "Animating images needs a video provider. Connect one to continue.";
     case "reference_to_video":
       return "Reference to video needs a video provider. Connect one to continue.";
+    case "retake":
+      return "Retake needs a video provider. Connect one to continue.";
+    case "extend":
+      return "Extending a video needs a video provider. Connect one to continue.";
     case "music":
       return "Generating music needs a music provider. Connect one to continue.";
     case "audio":

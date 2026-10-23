@@ -13213,7 +13213,9 @@
             "audioToVideo": "Audio to video",
             "retake": "Retake",
             "extend": "Extend",
-            "motionControl": "Motion control"
+            "motionControl": "Motion control",
+            "retakeDescription": "change an attached video",
+            "extendDescription": "add footage to an attached video"
           }
         },
         "stopGeneration": "Stop generation",
@@ -17985,8 +17987,8 @@
         "spokenText": "Type the text you want spoken…",
         "music": "Describe the music you want to generate…",
         "audioVideo": "Describe a scene synced to audio…",
-        "retake": "Refine the last generation…",
-        "extend": "Describe how to extend…",
+        "retake": "Describe what to change in the attached video…",
+        "extend": "Describe what happens in the added footage…",
         "motion": "Describe the motion…",
         "planShort": "Describe the work to plan…",
         "plan": "Describe the work. The agent will propose a plan, not run it.",
@@ -18000,7 +18002,17 @@
       "messageQueued": "Message queued - {{prompt}}",
       "sendNow": "Send now",
       "uploading": "Uploading…",
-      "addToMessage": "Add to message"
+      "addToMessage": "Add to message",
+      "selectRetakeModel": "Select retake model",
+      "selectExtendModel": "Select extend model",
+      "extendDirection": "Add footage",
+      "extendEnd": "After",
+      "extendEndDescription": "Continue past the last frame",
+      "extendStart": "Before",
+      "extendStartDescription": "Lead in before the first frame",
+      "extendDuration": "Seconds to add",
+      "extendSeconds_one": "+{{count}} Sec",
+      "extendSeconds_other": "+{{count}} Sec"
     },
     "message": {
       "addToCanvas": "Add to canvas",

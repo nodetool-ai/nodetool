@@ -13213,7 +13213,9 @@
             "audioToVideo": "音频生成视频",
             "retake": "重拍",
             "extend": "延长",
-            "motionControl": "动作控制"
+            "motionControl": "动作控制",
+            "retakeDescription": "修改附加的视频",
+            "extendDescription": "为附加的视频添加画面"
           }
         },
         "stopGeneration": "停止生成",
@@ -17985,8 +17987,8 @@
         "spokenText": "输入要朗读的文字…",
         "music": "描述要生成的音乐…",
         "audioVideo": "描述与音频同步的场景…",
-        "retake": "调整上一次生成…",
-        "extend": "描述如何延长…",
+        "retake": "描述要对附加视频做的修改…",
+        "extend": "描述新增画面中发生的内容…",
         "motion": "描述动作…",
         "planShort": "描述要规划的工作…",
         "plan": "描述要完成的工作。代理会提出计划，但不会执行。",
@@ -18000,7 +18002,17 @@
       "messageQueued": "消息已排队 - {{prompt}}",
       "sendNow": "立即发送",
       "uploading": "正在上传…",
-      "addToMessage": "添加到消息"
+      "addToMessage": "添加到消息",
+      "selectRetakeModel": "选择重拍模型",
+      "selectExtendModel": "选择延长模型",
+      "extendDirection": "添加画面",
+      "extendEnd": "之后",
+      "extendEndDescription": "从最后一帧之后继续",
+      "extendStart": "之前",
+      "extendStartDescription": "在第一帧之前引入",
+      "extendDuration": "添加秒数",
+      "extendSeconds_one": "+{{count}} 秒",
+      "extendSeconds_other": "+{{count}} 秒"
     },
     "message": {
       "addToCanvas": "添加到画布",

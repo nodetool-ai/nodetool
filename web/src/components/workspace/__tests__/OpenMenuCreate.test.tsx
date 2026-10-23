@@ -75,13 +75,15 @@ describe("OpenMenu create into the selected project", () => {
       "Generate videos",
       "Animate image",
       "Reference to video",
+      "Retake",
+      "Extend",
       "Read aloud",
       "Generate music"
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     // Modes the composer marks "Soon" have nothing to start.
-    expect(screen.queryByText("Retake")).not.toBeInTheDocument();
+    expect(screen.queryByText("Motion control")).not.toBeInTheDocument();
 
     await user.click(screen.getByText("Generate videos"));
     await waitFor(() =>

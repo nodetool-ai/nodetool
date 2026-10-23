@@ -23,19 +23,26 @@ import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
+import ReplayIcon from "@mui/icons-material/Replay";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import FirstPageIcon from "@mui/icons-material/FirstPage";
+import LastPageIcon from "@mui/icons-material/LastPage";
 
 import useMediaGenerationStore, {
   AUDIO_FORMATS,
   AUDIO_SPEEDS,
   DEFAULT_TTS_VOICES,
+  EXTEND_DURATIONS,
   MUSIC_DURATIONS,
   IMAGE_VARIATIONS
 } from "../../../stores/MediaGenerationStore";
 import type {
   AudioFormat,
-  MediaMode
+  ExtendDirection,
+  MediaMode,
+  VideoModelSelection
 } from "../../../stores/MediaGenerationStore";
-import type { MusicModel } from "../../../stores/ApiTypes";
+import type { MusicModel, VideoModel } from "../../../stores/ApiTypes";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import ModelChip, { type ModelPickerHandle } from "./ModelChip";
 import OptionChip from "./OptionChip";
@@ -489,6 +496,119 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
   );
 }
 
+/** The stored selection for a picked video model, constraints included. */
+const videoModelSelection = (model: VideoModel): VideoModelSelection => ({
+  type: "video_model",
+  id: model.id,
+  provider: model.provider,
+  name: model.name || "",
+  ...videoModelConstraints(model)
+});
+
+function RetakeModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
+  const params = useMediaGenerationStore((s) => s.retake);
+  const setParams = useMediaGenerationStore((s) => s.setRetakeParams);
+  const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
+
+  return (
+    <ModelChip
+      openRef={openModelPickerRef}
+      icon={<ReplayIcon fontSize="small" />}
+      label={params.model?.name || t("i18n-next54.composer.selectRetakeModel")}
+      picker={{
+        kind: "video",
+        task: "video_to_video",
+        onPick: (model) => {
+          setParams({ model: videoModelSelection(model) });
+          addRecentModel(recentModelEntry(model));
+        }
+      }}
+    />
+  );
+}
+
+function ExtendModeChips({ openModelPickerRef }: ClusterProps) {
+  const { t } = useTranslation();
+  const params = useMediaGenerationStore((s) => s.extend);
+  const setParams = useMediaGenerationStore((s) => s.setExtendParams);
+  const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
+  const directionOptions: MediaOption<ExtendDirection>[] = [
+    {
+      id: "end",
+      label: t("i18n-next54.composer.extendEnd"),
+      description: t("i18n-next54.composer.extendEndDescription"),
+      icon: <LastPageIcon fontSize="small" />
+    },
+    {
+      id: "start",
+      label: t("i18n-next54.composer.extendStart"),
+      description: t("i18n-next54.composer.extendStartDescription"),
+      icon: <FirstPageIcon fontSize="small" />
+    }
+  ];
+  // A model that lists durations accepts nothing else.
+  const durationOptions = useMemo<MediaOption<number>[]>(
+    () =>
+      (params.model?.durations ?? EXTEND_DURATIONS).map((d) => ({
+        id: d,
+        label: t("i18n-next54.composer.extendSeconds", { count: d }),
+        icon: <AccessTimeIcon fontSize="small" />
+      })),
+    [params.model?.durations, t]
+  );
+
+  return (
+    <>
+      <ModelChip
+        openRef={openModelPickerRef}
+        icon={<TimelineIcon fontSize="small" />}
+        label={params.model?.name || t("i18n-next54.composer.selectExtendModel")}
+        picker={{
+          kind: "video",
+          task: "extend_video",
+          onPick: (model) => {
+            const selection = videoModelSelection(model);
+            setParams({
+              model: selection,
+              duration: clampToAllowed(params.duration, selection.durations)
+            });
+            addRecentModel(recentModelEntry(model));
+          }
+        }}
+      />
+      <OptionChip
+        menu="option"
+        icon={
+          params.direction === "start" ? (
+            <FirstPageIcon fontSize="small" />
+          ) : (
+            <LastPageIcon fontSize="small" />
+          )
+        }
+        label={
+          params.direction === "start"
+            ? t("i18n-next54.composer.extendStart")
+            : t("i18n-next54.composer.extendEnd")
+        }
+        header={t("i18n-next54.composer.extendDirection")}
+        value={params.direction}
+        options={directionOptions}
+        onChange={(direction) => setParams({ direction })}
+      />
+      <OptionChip
+        menu="option"
+        icon={<AccessTimeIcon fontSize="small" />}
+        label={t("i18n-next54.composer.extendSeconds", { count: params.duration })}
+        header={t("i18n-next54.composer.extendDuration")}
+        value={params.duration}
+        options={durationOptions}
+        onChange={(duration) => setParams({ duration })}
+      />
+    </>
+  );
+}
+
 function AudioModeChips({ openModelPickerRef }: ClusterProps) {
   const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.audio);
@@ -572,6 +692,12 @@ export function ModeChips({ mode, openModelPickerRef }: ModeChipsProps) {
     return (
       <ReferenceToVideoModeChips openModelPickerRef={openModelPickerRef} />
     );
+  }
+  if (mode === "retake") {
+    return <RetakeModeChips openModelPickerRef={openModelPickerRef} />;
+  }
+  if (mode === "extend") {
+    return <ExtendModeChips openModelPickerRef={openModelPickerRef} />;
   }
   if (mode === "music")
     return <MusicModeChips openModelPickerRef={openModelPickerRef} />;

@@ -9,6 +9,7 @@ const MEDIA_PREDICTION_CAPABILITIES = new Set<string>([
   "image_to_video",
   "reference_to_video",
   "video_to_video",
+  "extend_video",
   "lip_sync",
   "text_to_speech",
   "text_to_music"
@@ -37,6 +38,7 @@ export function mediaPredictionLabel(capability: string): string {
     case "image_to_video":
     case "reference_to_video":
     case "video_to_video":
+    case "extend_video":
     case "lip_sync":
       return "Generating video";
     case "text_to_speech":

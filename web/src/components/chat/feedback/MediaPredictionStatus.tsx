@@ -24,6 +24,7 @@ function predictionLabelKey(capability: string):
     case "image_to_video":
     case "reference_to_video":
     case "video_to_video":
+    case "extend_video":
     case "lip_sync":
       return "i18n-next67.chat.mediaPrediction.generatingVideo";
     case "text_to_speech":

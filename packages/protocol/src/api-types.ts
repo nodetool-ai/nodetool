@@ -686,6 +686,11 @@ export interface MediaGenerationRequest {
    * the provider rejects the request when the selected one does not.
    */
   use_reference_video_audio?: boolean | null;
+  /**
+   * Which end of the attached clip new footage is added to (extend):
+   * "start" adds before the first frame, "end" after the last.
+   */
+  extend_direction?: "start" | "end" | null;
   /** Extra provider-specific params. */
   extras?: Record<string, unknown> | null;
 }
