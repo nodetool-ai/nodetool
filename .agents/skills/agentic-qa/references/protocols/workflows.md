@@ -210,7 +210,8 @@ and shows the change, and opening the example again shows it unchanged.
   screenshot.
 - Record whether the copy got a name that tells it apart from the example.
 
-**Routes.** More, then "Examples", or Home's "Browse examples". The
+**Routes.** More, then "Examples", Home's "Browse examples", or Home's
+"Explore all creation types", then "Ready-made examples" (Workflows tab). The
 Workflows tab's "Start from a template" copies the card into the current
 project and opens the copy. The rail's "Documents" panel lists the copy.
 
