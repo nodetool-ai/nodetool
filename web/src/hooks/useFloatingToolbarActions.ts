@@ -218,9 +218,11 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
         const first = missing[0];
         showModelCallout(missing);
         // The call-out sits in the inspector, which may be closed, so the
-        // blocked run also says why on its own.
+        // blocked run also says why on its own, as a toast: in the bell alone
+        // it went unseen (UX research study 12).
         addNotification({
           type: "warning",
+          alert: true,
           content: `Pick a model on ${first.nodeTitle} before running.`
         });
         const target = nodeStore

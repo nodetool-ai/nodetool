@@ -21,6 +21,11 @@ export type OnboardingCapability =
 interface OpenOptions {
   /** Feature the user was blocked on — filters and orders the provider list. */
   capability?: OnboardingCapability;
+  /**
+   * The step's own provider capabilities, such as `remove_background`, when
+   * fewer providers run it than its model kind. Narrows the list further.
+   */
+  stepCapabilities?: readonly string[];
   /** Friendly one-liner explaining why the dialog appeared. */
   reason?: string;
   /** Secret key of a provider to pre-expand (e.g. from a per-node warning). */
@@ -30,6 +35,7 @@ interface OpenOptions {
 interface ProviderOnboardingState {
   open: boolean;
   capability?: OnboardingCapability;
+  stepCapabilities?: readonly string[];
   reason?: string;
   highlightSecretKey?: string;
   show: (options?: OpenOptions) => void;
@@ -47,12 +53,14 @@ export const useProviderOnboardingStore = create<ProviderOnboardingState>(
   (set) => ({
     open: false,
     capability: undefined,
+    stepCapabilities: undefined,
     reason: undefined,
     highlightSecretKey: undefined,
     show: (options) =>
       set({
         open: true,
         capability: options?.capability,
+        stepCapabilities: options?.stepCapabilities,
         reason: options?.reason,
         highlightSecretKey: options?.highlightSecretKey
       }),
@@ -60,6 +68,7 @@ export const useProviderOnboardingStore = create<ProviderOnboardingState>(
       set({
         open: false,
         capability: undefined,
+        stepCapabilities: undefined,
         reason: undefined,
         highlightSecretKey: undefined
       })

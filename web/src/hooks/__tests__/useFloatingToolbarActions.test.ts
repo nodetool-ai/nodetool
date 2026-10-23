@@ -302,6 +302,7 @@ describe("useFloatingToolbarActions", () => {
       expect(useNotificationStore.getState().notifications).toEqual([
         expect.objectContaining({
           type: "warning",
+          alert: true,
           content: "Pick a model on Agent before running."
         })
       ]);

@@ -3,6 +3,7 @@ import { useWorkflowActions } from "../useWorkflowActions";
 import { Workflow } from "../../stores/ApiTypes";
 import * as ReactRouterDom from "react-router-dom";
 import { openPageTab } from "../../components/workspace/openPageTab";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 jest.mock("../../components/workspace/openPageTab", () => ({
   openPageTab: jest.fn()
@@ -182,6 +183,25 @@ describe("useWorkflowActions", () => {
       await result.current.handleExampleClick(mockWorkflow);
 
       expect(mockNavigate).toHaveBeenCalledWith("/workspace");
+    });
+
+    // UX research study 12: the copy keeps the example's name, and 3 of 3
+    // participants could not tell whether saving had changed the example.
+    it("says that the opened workflow is the user's own copy", async () => {
+      useNotificationStore.setState({ notifications: [] });
+      const { result } = renderHook(() => useWorkflowActions());
+
+      await result.current.handleExampleClick(mockWorkflow);
+
+      expect(useNotificationStore.getState().notifications).toEqual([
+        expect.objectContaining({
+          type: "info",
+          alert: true,
+          content: expect.stringContaining(
+            'This is your own copy of "Test Workflow"'
+          )
+        })
+      ]);
     });
 
     it("clears loading state after success so the still-mounted page stays clickable", async () => {

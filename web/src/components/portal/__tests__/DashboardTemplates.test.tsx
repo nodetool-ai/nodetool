@@ -13,6 +13,19 @@ import useMetadataStore from "../../../stores/MetadataStore";
 const loadTemplates = jest.fn();
 const handleExampleClick = jest.fn();
 const handleViewAllTemplates = jest.fn();
+const listExampleApps = jest.fn();
+const openTab = jest.fn();
+
+jest.mock("../../../utils/exampleApps", () => ({
+  __esModule: true,
+  listExampleApps: (...args: unknown[]) => listExampleApps(...args)
+}));
+
+jest.mock("../../../stores/WorkspaceTabsStore", () => ({
+  __esModule: true,
+  useWorkspaceTabsStore: <T,>(selector: (s: { openTab: unknown }) => T) =>
+    selector({ openTab: (...args: unknown[]) => openTab(...args) })
+}));
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   __esModule: true,
@@ -215,5 +228,64 @@ describe("DashboardTemplates", () => {
     expect(
       screen.queryByRole("button", { name: /image upscaler/i })
     ).not.toBeInTheDocument();
+  });
+
+  // UX research study 12: "compare" missed the template tagged "comparison".
+  it("finds a template through another form of a word", async () => {
+    const user = userEvent.setup();
+    listExampleApps.mockResolvedValue([]);
+    renderTemplates([
+      ...TEMPLATES,
+      template("t4", "Model Arena", ["comparison", "llm"])
+    ]);
+
+    await screen.findByRole("button", { name: /image upscaler/i });
+    await user.type(screen.getByRole("textbox"), "compare");
+
+    expect(screen.getByRole("button", { name: /model arena/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /image upscaler/i })
+    ).not.toBeInTheDocument();
+  });
+
+  // UX research study 12: every participant searched the templates, and none
+  // reached the matching example app on the Apps tab.
+  it("names the example apps that match a search and opens one", async () => {
+    const user = userEvent.setup();
+    listExampleApps.mockResolvedValue([
+      {
+        slug: "model-arena",
+        name: "Model Arena",
+        description: "Three answers in three columns, then a judge scores them.",
+        workflows: ["Model Arena"],
+        operationCount: 1,
+        thumbnailUrl: null,
+        needs: { modelKinds: ["language_model"], requiredSettings: [] }
+      },
+      {
+        slug: "vary-image",
+        name: "Vary Image",
+        description: "Change one thing about a photo.",
+        workflows: ["Edit"],
+        operationCount: 1,
+        thumbnailUrl: null,
+        needs: { modelKinds: ["image_model"], requiredSettings: [] }
+      }
+    ]);
+    renderTemplates();
+
+    await screen.findByRole("button", { name: /image upscaler/i });
+    expect(listExampleApps).not.toHaveBeenCalled();
+    await user.type(screen.getByRole("textbox"), "answers");
+
+    const apps = await screen.findByRole("group", { name: "Apps that match" });
+    expect(within(apps).queryByText("Vary Image")).not.toBeInTheDocument();
+    await user.click(within(apps).getByText("Model Arena"));
+    expect(openTab).toHaveBeenCalledWith({
+      type: "example-app",
+      ref: "model-arena",
+      mode: "view",
+      title: "Model Arena"
+    });
   });
 });

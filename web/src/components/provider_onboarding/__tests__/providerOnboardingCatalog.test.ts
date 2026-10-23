@@ -94,3 +94,27 @@ it("offers a connectable provider for both 3D tasks", () => {
     expect(providersForCapability(capability).some((provider) => provider.secretKey === "MESHY_API_KEY")).toBe(true);
   }
 });
+
+// UX research study 12: the background-removal picker offered OpenAI, which
+// cannot remove a background, and reopened setup after it was connected.
+it("offers only the providers that run a specialized image step", () => {
+  const ids = providersForCapability("text_to_image", ["remove_background"]).map(
+    (provider) => provider.id
+  );
+  expect(ids).toEqual(expect.arrayContaining(["fal", "replicate"]));
+  expect(ids).not.toContain("openai");
+  expect(ids).not.toContain("gemini");
+});
+
+it("keeps every image provider for an image step that most providers run", () => {
+  const ids = providersForCapability("text_to_image", ["image_to_image"]).map(
+    (provider) => provider.id
+  );
+  expect(ids).toEqual(expect.arrayContaining(["openai", "gemini", "fal"]));
+});
+
+it("falls back to the model kind when no listed provider runs the step", () => {
+  expect(providersForCapability("text_to_image", ["estimate_depth"])).toEqual(
+    providersForCapability("text_to_image")
+  );
+});

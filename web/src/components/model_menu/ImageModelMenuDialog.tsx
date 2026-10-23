@@ -37,6 +37,9 @@ function ImageModelMenuDialog({
     () => imageTaskCapabilities(task === undefined ? undefined : [task].flat()),
     [task]
   );
+  // A task picker such as background removal sets up only the providers
+  // that run its task. Without a task, any image provider will do.
+  const stepCapabilities = task === undefined ? undefined : localCapabilities;
   return (
     <ModelMenuDialogBase<ImageModel>
       open={open}
@@ -49,6 +52,7 @@ function ImageModelMenuDialog({
       storeHook={useImageModelMenuStore}
       modelType="image_model"
       localCapabilities={localCapabilities}
+      setupStepCapabilities={stepCapabilities}
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
       selectedModel={selectedModel}
