@@ -1,27 +1,28 @@
 #!/usr/bin/env node
-// Ring 0 (PR gate) reliability leg — docs/RELIABILITY_TASKS.md Track F, task
-// F2; docs/RELIABILITY_ARCHITECTURE.md §11: "the five fastest journeys (1, 3,
-// 6, 13, 14) on the kernel surface with strict lifecycle mode." Journey 14
-// (malformed-protocol) has no `reliability/journeys/` directory yet — that
-// coverage lives as websocket package tests (the journey 14 corpus) — so this
-// runs the five journeys that do exist as harness journeys: linear-text-pipeline
-// (1), fan-out-fan-in-dag (3), error-in-one-branch (13), mid-run-cancel-node
-// and mid-run-cancel-streaming (6a/6b).
+// Ring 0 (PR gate) reliability leg: the fast hermetic journeys on the kernel
+// surface with strict lifecycle mode. The malformed-protocol corpus (journey
+// 14) runs as `reliability/harness/tests/journeys/ws-malformed-transport.test.ts`
+// and the websocket package tests, not here, because it needs the ws-server.
 //
 // Each journey runs on the kernel surface only (`--surface kernel`), which is
 // always the oracle and always strict (reliability/harness/src/drivers/
 // kernel.ts passes `strict: true` unconditionally) — no cross-surface diff at
-// this ring, just the fast hermetic invariant/lifecycle checks. Requires
-// `npm run build:packages` to have run first (built `dist/` for the CLI and
-// the journeys' node registry).
+// this ring, just the fast hermetic invariant/lifecycle checks. A journey
+// whose fault matrix names the kernel (slow-consumer-drain) runs with that
+// fault applied. Requires `npm run build:packages` to have run first (built
+// `dist/` for the CLI and the journeys' node registry).
 //
 // Local: `npm run reliability:ring0`
 const RING0_JOURNEYS = [
   "linear-text-pipeline",
   "fan-out-fan-in-dag",
+  "fan-in-shared-list-handle",
   "error-in-one-branch",
   "mid-run-cancel-node",
-  "mid-run-cancel-streaming"
+  "mid-run-cancel-streaming",
+  "streaming-input-complete",
+  "workflow-loop",
+  "slow-consumer-drain"
 ];
 
 import { spawnSync } from "node:child_process";

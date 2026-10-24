@@ -1,0 +1,15 @@
+{
+  "name": "streaming-input-complete",
+  "description": "The completing half of mid-run-cancel-streaming: three values pushed into an external streaming input (`pushInput` on the kernel, `stream_input` on the ws-server), then `end_input_stream`. The sink must collect all three in order and the run must complete, so a dropped, reordered or never-closed input stream fails the outputs golden or the terminal checks on either surface.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": true,
+    "streamShape": false
+  }
+}

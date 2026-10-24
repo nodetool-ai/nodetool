@@ -25,6 +25,8 @@ describe.each([
   { name: "linear-text-pipeline", expectedStatus: "completed" },
   { name: "fan-out-fan-in-dag", expectedStatus: "completed" },
   { name: "fan-in-shared-list-handle", expectedStatus: "completed" },
+  { name: "workflow-loop", expectedStatus: "completed" },
+  { name: "streaming-input-complete", expectedStatus: "completed" },
   { name: "error-in-one-branch", expectedStatus: "failed" },
   { name: "mid-run-cancel-node", expectedStatus: "cancelled" },
   { name: "mid-run-cancel-streaming", expectedStatus: "cancelled" }
