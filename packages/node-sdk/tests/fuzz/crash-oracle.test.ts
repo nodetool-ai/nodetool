@@ -20,6 +20,7 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import {
+  collectJsScriptLinks,
   validateGraph,
   type GraphValidationReport
 } from "../../src/graph-validation.js";
@@ -58,6 +59,7 @@ import {
   SEED_ANALYZER_BODIES,
   SEED_CODE_BODIES,
   SEED_GRAPHS,
+  SEED_JS_SCRIPT_GRAPH,
   SEED_MIGRATION_BODIES,
   SEED_MODULE_SOURCES,
   SEED_PROPERTY_CASES,
@@ -412,4 +414,47 @@ it(`${GRAPH} formats validation issues with and without node context`, async () 
     formatValidationIssues([{ ...issue, nodeId: "n1", nodeType: "t.T" }, issue])
   ];
   await expectPinned(JSON.stringify(lines, null, 1), "format-issues.json");
+});
+
+it(`${GRAPH} reports script link issues for every lookup outcome`, async () => {
+  const port = (name: string) => ({ name });
+  const resolve = (link: { id: string; version: number }) =>
+    link.id === "s1"
+      ? {
+          id: "s1",
+          name: "match",
+          version: link.version,
+          document: { inputs: [port("text")], outputs: [port("count")] }
+        }
+      : link.id === "s2"
+        ? {
+            id: "s2",
+            name: "mismatch",
+            version: link.version,
+            document: { inputs: [port("a"), port("b")], outputs: [port("r")] }
+          }
+        : undefined;
+  const lookups = {
+    none: undefined,
+    empty: () => undefined,
+    resolving: resolve
+  } as const;
+  const lines = [
+    JSON.stringify(collectJsScriptLinks(SEED_JS_SCRIPT_GRAPH)),
+    JSON.stringify(collectJsScriptLinks({}))
+  ];
+  for (const [name, jsScriptLookup] of Object.entries(lookups)) {
+    const report = validateGraph(SEED_JS_SCRIPT_GRAPH, registry, {
+      sandboxModuleCatalog: null,
+      jsScriptLookup: jsScriptLookup as never
+    });
+    for (const issue of report.issues) {
+      if (issue.code.startsWith("js_script")) {
+        lines.push(
+          `${name} ${issue.nodeId} ${issue.severity} ${issue.code} ${issue.message}`
+        );
+      }
+    }
+  }
+  await expectPinned(lines.join("\n"), "js-script-link-issues.txt");
 });

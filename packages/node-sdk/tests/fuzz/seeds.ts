@@ -1667,3 +1667,36 @@ export const SEED_PROPERTY_CASES: readonly PropertySeed[] = [
     dynamicValues: { s: "text" }
   }
 ];
+
+const codeNode = (id: string, script: unknown, extra: object = {}) => ({
+  id,
+  type: "nodetool.code.Code",
+  properties: { code: "", packages: [], script },
+  dynamic_inputs: { text: { type: { type: "str" } } },
+  dynamic_outputs: { count: { type: "int" } },
+  ...extra
+});
+
+/**
+ * Code nodes carrying `script` links: a matching pin, a pin whose ports
+ * disagree, a duplicate pin, a pin the lookup does not know, padded and
+ * malformed ids and versions, an unlinked node, and a non-Code node holding a
+ * link-shaped property.
+ */
+export const SEED_JS_SCRIPT_GRAPH: { nodes: unknown[]; edges: unknown[] } = {
+  nodes: [
+    codeNode("match", { id: "s1", version: 1 }),
+    codeNode("mismatch", { id: "s2", version: 2 }),
+    codeNode("duplicate", { id: " s1 ", version: 1 }),
+    codeNode("unknown", { id: "s3", version: 1 }),
+    codeNode("fractional", { id: "s4", version: 1.5 }),
+    codeNode("blank", { id: "  ", version: 1 }),
+    codeNode("unlinked", {}),
+    {
+      id: "plain",
+      type: "nodetool.input.StringInput",
+      properties: { name: "text", value: "", script: { id: "s1", version: 1 } }
+    }
+  ],
+  edges: []
+};
