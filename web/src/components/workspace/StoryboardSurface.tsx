@@ -6,6 +6,7 @@ import TheatersIcon from "@mui/icons-material/Theaters";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import {
   useWorkspaceTabsStore,
+  type WorkspaceTab,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
@@ -33,6 +34,7 @@ import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
 import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import DocumentLoadStatus from "./DocumentLoadStatus";
+import { WithDocumentBar, useDocumentBarHost } from "./documentBarParts";
 import { SetupFlow } from "../setup/SetupFlow";
 import {
   useStoryboardSetupFlow,
@@ -45,6 +47,8 @@ interface StoryboardSurfaceProps {
   /** Whether this tab is the focused one. Not used by the agent bridge, which
    * registers every open board by id. */
   active: boolean;
+  /** The workspace tab, whose document bar tops the surface. */
+  tab: WorkspaceTab;
 }
 
 type MobilePane = "board" | "assistant";
@@ -64,8 +68,15 @@ const isMobilePane = (value: string): value is MobilePane =>
  * columns don't fit, so edit mode collapses to a single pane with a
  * segmented switcher; every pane stays mounted (toggled via `display`) so
  * board, chat, and scroll state survive switches and breakpoint crossings.
+ *
+ * The document bar spans the board and the assistant. The board fills it.
  */
-const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
+const StoryboardSurface = ({
+  refId,
+  mode,
+  active,
+  tab
+}: StoryboardSurfaceProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -190,6 +201,8 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   ]);
   useContextCommands(t("i18n-next51.storyboard.menuHeading"), menuCommands, active);
 
+  const { host: barHost, render: documentBar } = useDocumentBarHost(tab);
+
   const board = useMemo(
     () => (
       <StoryboardBoard
@@ -204,9 +217,11 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
         reviewRequest={reviewRequest}
         assistantOpen={assistantOpen}
         onToggleAssistant={desktopAssistant ? toggleAssistant : undefined}
+        documentBar={documentBar}
       />
     ),
     [
+      documentBar,
       assistantOpen,
       desktopAssistant,
       toggleAssistant,
@@ -226,20 +241,24 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   // copy lands looks like a board with no shots.
   if (loadState !== "ready") {
     return (
-      <DocumentLoadStatus
-        state={loadState}
-        label={t("i18n-next51.storyboard.label")}
-        onRetry={() => setRetryToken((value) => value + 1)}
-      />
+      <WithDocumentBar tab={tab}>
+        <DocumentLoadStatus
+          state={loadState}
+          label={t("i18n-next51.storyboard.label")}
+          onRetry={() => setRetryToken((value) => value + 1)}
+        />
+      </WithDocumentBar>
     );
   }
 
   if (setupStage !== "done") {
     return (
-      <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
-        {conflictBanner}
-        <SetupFlow config={setupConfig} readOnly={mode === "view"} />
-      </FlexColumn>
+      <WithDocumentBar tab={tab}>
+        <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
+          {conflictBanner}
+          <SetupFlow config={setupConfig} readOnly={mode === "view"} />
+        </FlexColumn>
+      </WithDocumentBar>
     );
   }
 
@@ -263,6 +282,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
 
   return (
     <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
+      {barHost}
       {conflictBanner}
       {mobileEdit && (
         <TabGroup

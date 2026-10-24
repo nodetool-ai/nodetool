@@ -10409,6 +10409,7 @@
       "emptyText": "添加角色、地点、风格或道具，为每个镜头提供参考。"
     },
     "storyboardBoard": {
+      "renderOptions": "渲染选项",
       "sceneShotCaption": "场景 {{scene}} | 镜头 {{shot}}",
       "requestCost": "{{count}} 个请求 · 预计 {{cost}}{{partial, select, true {（其中 {{pricedCount}} 个已计价）} other {}}}",
       "requestCountUnpriced": "{{count}} 个请求 · 暂无价格信息",

@@ -18,6 +18,14 @@ import type { DocumentLoadState } from "../../../stores/documentSync";
 // The look step reaches the generation store, the entity library and the
 // cost estimate. `LookStep.test.tsx` covers what it does; these suites only
 // need it to exist so the flow can mount.
+const boardTab = {
+  id: "storyboard:board-1",
+  type: "storyboard" as const,
+  ref: "board-1",
+  mode: "edit" as const,
+  title: "Board"
+};
+
 jest.mock("../WorkspaceDocumentBar", () => ({
   __esModule: true,
   default: ({ tab }: { tab: { title: string } }) => (
@@ -116,14 +124,14 @@ const withTheme = (ui: React.ReactElement) =>
 describe("document surfaces during the initial load", () => {
   it("retries a failed storyboard load without closing the tab", async () => {
     storyboardLoadState = "error";
-    withTheme(<StoryboardSurface refId="board-1" mode="edit" active />);
+    withTheme(<StoryboardSurface refId="board-1" mode="edit" active tab={boardTab} />);
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(mockStoryboardSync).toHaveBeenLastCalledWith("board-1", 1);
   });
 
   it("shows a spinner instead of an empty storyboard", () => {
     storyboardLoadState = "loading";
-    withTheme(<StoryboardSurface refId="board-1" mode="edit" active />);
+    withTheme(<StoryboardSurface refId="board-1" mode="edit" active tab={boardTab} />);
 
     expect(screen.getByText("Loading storyboard")).toBeInTheDocument();
     expect(screen.queryByText("storyboard board")).not.toBeInTheDocument();
@@ -131,7 +139,7 @@ describe("document surfaces during the initial load", () => {
 
   it("renders the storyboard once the load lands", () => {
     storyboardLoadState = "ready";
-    withTheme(<StoryboardSurface refId="board-1" mode="edit" active />);
+    withTheme(<StoryboardSurface refId="board-1" mode="edit" active tab={boardTab} />);
 
     expect(screen.getByText("storyboard board")).toBeInTheDocument();
     expect(screen.queryByText("Loading storyboard")).not.toBeInTheDocument();
@@ -139,7 +147,7 @@ describe("document surfaces during the initial load", () => {
 
   it("says so when a storyboard cannot be loaded", () => {
     storyboardLoadState = "error";
-    withTheme(<StoryboardSurface refId="board-1" mode="edit" active />);
+    withTheme(<StoryboardSurface refId="board-1" mode="edit" active tab={boardTab} />);
 
     expect(
       screen.getByText("Could not load this storyboard")

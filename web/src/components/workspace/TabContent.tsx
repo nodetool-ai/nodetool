@@ -90,7 +90,12 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       );
     case "storyboard":
       return (
-        <StoryboardSurface refId={tab.ref} mode={tab.mode} active={active} />
+        <StoryboardSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+          tab={tab}
+        />
       );
     case "script":
       return (
