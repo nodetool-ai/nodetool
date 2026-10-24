@@ -67,14 +67,16 @@ export const storageRouter = router({
       // when a deployment hasn't run `nodetool storage migrate-keys` yet.
       // Also handle the reverse: a flat asset reference (e.g. from an old
       // `asset://<id>.png` markdown image) is translated to the current
-      // owner-prefixed key when that object exists.
+      // owner-prefixed key when that object exists. A prefixed key that
+      // passed the read check is the caller's own or, for a collaborator,
+      // that of an owner whose shared document shows the asset.
       const adapter = getAssetAdapter();
       const owner = assetKeyOwner(input.key);
       let key = input.key;
-      if (owner === ctx.userId) {
+      if (owner !== null) {
         const resolved = await resolveExistingAssetKey(
           adapter,
-          ctx.userId,
+          owner,
           input.key.slice(owner.length + 1)
         );
         // Falling back drops the owner prefix, and the prefix was the only
@@ -83,14 +85,14 @@ export const storageRouter = router({
         // against the `assets` row, exactly as the REST route does.
         if (resolved) {
           const stillOwned =
-            assetKeyOwner(resolved) === ctx.userId ||
-            (await callerOwnsStorageKey(ctx.userId, resolved));
+            assetKeyOwner(resolved) === owner ||
+            (await callerOwnsStorageKey(owner, resolved));
           if (!stillOwned) {
             throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
           }
           key = resolved;
         }
-      } else if (owner === null) {
+      } else {
         // Flat key (legacy or from `asset://<id>.ext`): prefer the
         // owner-prefixed object when it exists, otherwise keep the flat key.
         // This lets `asset://<asset-id>.png` references resolve to
