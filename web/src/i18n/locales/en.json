@@ -15808,6 +15808,7 @@
       "code": "Code",
       "run": "Run",
       "script": "Script",
+      "scriptSettings": "Script settings",
       "assistant": "Assistant"
     },
     "model3d": {

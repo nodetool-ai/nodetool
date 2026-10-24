@@ -18,6 +18,21 @@ import type { DocumentLoadState } from "../../../stores/documentSync";
 // The look step reaches the generation store, the entity library and the
 // cost estimate. `LookStep.test.tsx` covers what it does; these suites only
 // need it to exist so the flow can mount.
+jest.mock("../WorkspaceDocumentBar", () => ({
+  __esModule: true,
+  default: ({ tab }: { tab: { title: string } }) => (
+    <div role="toolbar" aria-label={`${tab.title} document`} />
+  )
+}));
+
+const scriptTab = {
+  id: "script:script-1",
+  type: "script" as const,
+  ref: "script-1",
+  mode: "edit" as const,
+  title: "Script"
+};
+
 jest.mock("../../../components/setup/storyboard/LookStep", () => ({
   LookStep: () => null,
   LookFooterControls: () => null,
@@ -33,7 +48,9 @@ jest.mock("@mui/material/useMediaQuery", () => () => false);
 let storyboardLoadState: DocumentLoadState = "loading";
 let scriptLoadState: DocumentLoadState = "loading";
 
-const mockStoryboardSync = jest.fn<DocumentLoadState, unknown[]>(() => storyboardLoadState);
+const mockStoryboardSync = jest.fn<DocumentLoadState, unknown[]>(
+  () => storyboardLoadState
+);
 jest.mock("../../../hooks/storyboard/useStoryboardServerSync", () => ({
   useStoryboardServerSync: (...args: unknown[]) => mockStoryboardSync(...args)
 }));
@@ -131,7 +148,9 @@ describe("document surfaces during the initial load", () => {
 
   it("shows a spinner instead of an empty script", () => {
     scriptLoadState = "loading";
-    withTheme(<ScriptSurface refId="script-1" mode="edit" active />);
+    withTheme(
+      <ScriptSurface refId="script-1" mode="edit" active tab={scriptTab} />
+    );
 
     expect(screen.getByText("Loading script")).toBeInTheDocument();
     expect(screen.queryByText("script document")).not.toBeInTheDocument();
@@ -139,7 +158,9 @@ describe("document surfaces during the initial load", () => {
 
   it("renders the script once the load lands", () => {
     scriptLoadState = "ready";
-    withTheme(<ScriptSurface refId="script-1" mode="edit" active />);
+    withTheme(
+      <ScriptSurface refId="script-1" mode="edit" active tab={scriptTab} />
+    );
 
     expect(screen.getByText("script document")).toBeInTheDocument();
   });
