@@ -446,7 +446,7 @@ describe("back-sync into a jointly assembled sequence", () => {
     }
   });
 
-  it("re-voicing a line patches its voiceover clip and shifts the later one", async () => {
+  it("re-voicing with the board unreadable patches its voiceover clip and shifts the later one", async () => {
     seedJoint();
     getQuery.mockResolvedValue(jointSequence());
     updateMutate.mockResolvedValue({});
@@ -468,7 +468,7 @@ describe("back-sync into a jointly assembled sequence", () => {
     expect(later?.startMs).toBe(2000 + 3000);
   });
 
-  it("re-voicing does not touch the storyboard's shot clips", async () => {
+  it("re-voicing with the board unreadable does not touch the shot clips", async () => {
     seedJoint();
     const sequence = jointSequence();
     getQuery.mockResolvedValue(sequence);

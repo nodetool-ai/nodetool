@@ -75,12 +75,15 @@ export async function syncLineClipToTimeline(
       // A cut assembled with the storyboard places each line inside the shot
       // that covers it, and each shot runs as long as its lines. Moving only
       // the voice clips left later lines outside their shots, so a linked cut
-      // is laid out again, the way Assemble does it.
+      // is laid out again, the way Assemble does it. When the board can't be
+      // read, the voice clips are patched alone, as for a script-only cut.
       const linkedBoardId = clips[targetIndex].storyboardBoardId;
-      if (linkedBoardId) {
-        const latest = useScriptStore.getState().getScript(scriptId);
-        const board = await loadLinkedBoard(linkedBoardId);
-        if (!latest || !board) return false;
+      const latest = linkedBoardId
+        ? useScriptStore.getState().getScript(scriptId)
+        : undefined;
+      const board =
+        linkedBoardId && latest ? await loadLinkedBoard(linkedBoardId) : null;
+      if (latest && board) {
         const doc = buildScriptTimelineDocument(latest, board);
         const merged = mergeIntoSequence(
           {
