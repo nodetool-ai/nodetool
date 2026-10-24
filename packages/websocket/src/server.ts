@@ -46,7 +46,13 @@ import {
   denyUnauthorized,
   denyDraining
 } from "./lib/ws-upgrade.js";
-import { isDraining, startDrain } from "./drain.js";
+import { getInstanceId } from "./lib/instance-id.js";
+import {
+  resourceChangeBus,
+  startResourceChangeFeeds,
+  stopResourceChangeFeeds
+} from "./lib/resource-change-bus.js";
+import { isDraining, startDrain, onDrain } from "./drain.js";
 import { chatTurnRegistry } from "./chat-turn-registry.js";
 import { jobRunRegistry } from "./job-run-registry.js";
 import { replayUpgradeToOwner } from "./lib/fly-replay.js";
@@ -89,6 +95,8 @@ import {
   getWorkerProfile,
   initDb,
   initPostgresDb,
+  openResourceChangeChannel,
+  resolveResourceChangeListenerUrl,
   isAccessToken,
   McpOauthClient,
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
@@ -319,6 +327,24 @@ try {
   const postgresDatabaseUrl = getPostgresDatabaseUrl();
   if (postgresDatabaseUrl) {
     await initPostgresDb(postgresDatabaseUrl);
+    if (getInstanceId()) {
+      const channel = await openResourceChangeChannel(
+        resolveResourceChangeListenerUrl(
+          postgresDatabaseUrl,
+          process.env["DIRECT_URL"]
+        ),
+        (message) => resourceChangeBus.receive(message),
+        () => resourceChangeBus.resync()
+      );
+      resourceChangeBus.setTransport(channel);
+      onDrain(() => {
+        void channel.stopListening().catch((error: unknown) => {
+          log.error("Resource change listener shutdown failed", {
+            error: String(error)
+          });
+        });
+      });
+    }
     log.info(`PostgreSQL database ready [${startupMs()}]`, {
       url: maskDatabaseUrl(postgresDatabaseUrl)
     });
@@ -336,6 +362,8 @@ try {
     initDb(dbPath);
     log.info(`SQLite database ready [${startupMs()}]`, { path: dbPath });
   }
+
+  startResourceChangeFeeds();
 
   // Initialize master key from keychain before any secret access. Callers
   // that need provider credentials bind their own `(key) => getSecret(key,
@@ -2016,6 +2044,8 @@ async function shutdown(signal: string): Promise<void> {
       jobs: jobRunRegistry.runningCount()
     });
   }
+  stopResourceChangeFeeds();
+  await resourceChangeBus.close();
   // Spans are batched, so without this every span the last turns produced dies
   // with the process.
   await shutdownTelemetry();

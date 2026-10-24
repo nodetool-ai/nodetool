@@ -14,6 +14,23 @@ rolling release script live in the adjacent
 [nodetool-deploy repository](https://github.com/nodetool-ai/nodetool-deploy),
 checked out at `/home/claude/nodetool-deploy` on that host.
 
+## Resource changes between replicas
+
+Set distinct `NODETOOL_INSTANCE_ID` values (`app-1` and `app-2`) and provide
+`DIRECT_URL` on each replica for the shared Supabase database. The listener URL
+must use a direct or session-mode connection, not transaction-mode port 6543.
+`DATABASE_URL` can continue to use transaction pooling for ordinary writes.
+Allow one additional database connection per replica and apply the
+`resource_change_outbox` migration before deploying the server. See
+[configuration](configuration.md#cross-instance-resource-changes) for payload
+limits, retention, and reconnect behavior.
+
+After deployment, keep a browser on one replica and force an MCP client onto
+the other. Have the agent edit the open timeline while the browser has an
+unsaved edit to a different merge unit. Verify the agent edit merges without a
+reload, preserves the local draft, and arrives once. Repeat with an edit whose
+ops exceed 7500 bytes. This requires both replicas to run the new server.
+
 ## Release chain
 
 A push to `main` starts the Docker image build, User Journeys, and Test

@@ -739,6 +739,7 @@ export const outboundControlMessageSchemas = {
   rpc_response: rpcResponseMessageOutSchema,
   system_stats: systemStatsMessageOutSchema,
   resource_change: resourceChangeMessageOutSchema,
+  resource_resync: z.object({ type: z.literal("resource_resync") }),
   model_load_progress: modelLoadProgressMessageOutSchema,
   run_trace: runTraceMessageOutSchema,
   renderer_registered: rendererRegisteredMessageOutSchema,
