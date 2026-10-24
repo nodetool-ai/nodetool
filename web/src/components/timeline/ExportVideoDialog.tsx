@@ -2,11 +2,11 @@
  * The format and transparency choice the browser export offers before it
  * starts (T27).
  *
- * Four formats, and the reason each is here: MP4 is what plays everywhere,
+ * Five formats, and the reason each is here: MP4 is what plays everywhere,
  * WebM is VP9 and is the one the browser encoder can write with a transparency
  * channel, a PNG sequence is a zip of stills for a compositor that wants the
- * frames rather than a clip, and MP3 is the audio mixdown alone, for a
- * soundtrack or a podcast cut.
+ * frames rather than a clip, and WAV and MP3 are the audio mixdown alone: WAV
+ * uncompressed for a DAW or a mastering pass, MP3 for sharing.
  *
  * The dialog picks the format and hands it to the caller; the render itself is
  * `useTimelineExport`.
@@ -31,7 +31,7 @@ import { canEncodeMp4 } from "./render/canEncodeMp4";
 /** What the dialog hands back when the user starts the render. */
 export interface ExportVideoChoice {
   format: TimelineExportFormat;
-  /** Keep the alpha channel. Never true for `mp4` or `mp3`, which cannot carry one. */
+  /** Keep the alpha channel. Never true for `mp4` or an audio format, which cannot carry one. */
   alpha: boolean;
 }
 
@@ -47,13 +47,14 @@ function isExportFormat(value: string): value is TimelineExportFormat {
     value === "mp4" ||
     value === "webm" ||
     value === "png_sequence" ||
+    value === "wav" ||
     value === "mp3"
   );
 }
 
 /** Formats with no alpha channel, where the transparency switch is off. */
 function isOpaqueFormat(format: TimelineExportFormat): boolean {
-  return format === "mp4" || format === "mp3";
+  return format === "mp4" || format === "wav" || format === "mp3";
 }
 
 export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
@@ -88,7 +89,7 @@ export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
   const handleFormatChange = useCallback((value: string) => {
     if (!isExportFormat(value)) return;
     setFormat(value);
-    // MP4 refuses alpha in the renderer and MP3 has no picture, so the switch
+    // MP4 refuses alpha in the renderer and audio has no picture, so the switch
     // cannot stay on behind a disabled control.
     if (isOpaqueFormat(value)) setAlpha(false);
   }, []);
@@ -102,12 +103,14 @@ export const ExportVideoDialog: React.FC<ExportVideoDialogProps> = ({
     { value: "mp4", label: "MP4 (H.264)", disabled: !mp4Supported },
     { value: "webm", label: "WebM (VP9)" },
     { value: "png_sequence", label: t("timeline.export.pngSequence") },
+    { value: "wav", label: t("timeline.export.wav") },
     { value: "mp3", label: t("timeline.export.mp3") }
   ];
   const formatNote = {
     mp4: t("timeline.export.mp4Note"),
     webm: t("timeline.export.webmNote"),
     png_sequence: t("timeline.export.pngSequenceNote"),
+    wav: t("timeline.export.wavNote"),
     mp3: t("timeline.export.mp3Note")
   }[format];
 

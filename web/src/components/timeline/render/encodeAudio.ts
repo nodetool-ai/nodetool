@@ -1,6 +1,6 @@
 /**
  * Audio-only exports: encode a mixed-down `AudioBuffer` as a WAV or MP3 file,
- * and render a whole timeline to one MP3.
+ * and render a whole timeline to one such file.
  *
  * The mixdown is {@link renderTimelineAudio}, the same offline mix the video
  * export muxes in, so the file holds what the preview plays: clip gain, fades,
@@ -71,7 +71,8 @@ export async function encodeAudioBuffer(
   return new Uint8Array(bytes);
 }
 
-interface RenderTimelineMp3Options {
+interface RenderTimelineAudioFileOptions {
+  format: AudioFileFormat;
   clips: TimelineClip[];
   tracks: TimelineTrack[];
   /** Total timeline length to render, in milliseconds. */
@@ -83,11 +84,14 @@ interface RenderTimelineMp3Options {
   onProgress?: (progress: RenderProgress) => void;
 }
 
-/** Mix the whole timeline down to stereo and encode it as a 320 kbps MP3. */
-export async function renderTimelineMp3(
-  opts: RenderTimelineMp3Options
+/**
+ * Mix the whole timeline down to stereo and encode it as a 16-bit PCM WAV or
+ * a 320 kbps MP3.
+ */
+export async function renderTimelineAudioFile(
+  opts: RenderTimelineAudioFileOptions
 ): Promise<{ bytes: Uint8Array; mimeType: string; extension: string }> {
-  const { onProgress, signal } = opts;
+  const { format, onProgress, signal } = opts;
   if (opts.durationMs <= 0) throw new Error("durationMs must be positive");
 
   onProgress?.({ phase: "audio", frame: 0, totalFrames: 0, ratio: 0 });
@@ -105,11 +109,11 @@ export async function renderTimelineMp3(
   }
   // Null when no clip is audible: every track muted, or no audio at all.
   if (!buffer) {
-    throw new Error("Nothing on the timeline makes sound, so there is no MP3 to export.");
+    throw new Error(`Nothing on the timeline makes sound, so there is no ${format.toUpperCase()} to export.`);
   }
 
   onProgress?.({ phase: "finalizing", frame: 0, totalFrames: 0, ratio: 0.5 });
-  const bytes = await encodeAudioBuffer(buffer, "mp3", TIMELINE_MP3_BITRATE);
+  const bytes = await encodeAudioBuffer(buffer, format, TIMELINE_MP3_BITRATE);
   onProgress?.({ phase: "finalizing", frame: 0, totalFrames: 0, ratio: 1 });
-  return { bytes, mimeType: AUDIO_FILE_MIME.mp3, extension: "mp3" };
+  return { bytes, mimeType: AUDIO_FILE_MIME[format], extension: format };
 }

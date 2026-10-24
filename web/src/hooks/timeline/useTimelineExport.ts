@@ -5,8 +5,8 @@
  * Pulls the live document straight from {@link useTimelineStore} and resolves
  * clip assets through {@link useAssetStore}, so the export renders exactly the
  * sequence the user is editing. The format the caller picks decides both the
- * encode and the file extension — MP4, WebM, a zip of PNGs, or an MP3 of the
- * audio mixdown alone.
+ * encode and the file extension — MP4, WebM, a zip of PNGs, or a WAV or MP3
+ * of the audio mixdown alone.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -21,10 +21,10 @@ import {
   type BrowserExportFormat,
   type RenderProgress
 } from "../../components/timeline/render/TimelineRenderer";
-import { renderTimelineMp3 } from "../../components/timeline/render/encodeAudio";
+import { renderTimelineAudioFile } from "../../components/timeline/render/encodeAudio";
 
 /** What the export can write: a video container, PNG stills, or audio only. */
-export type TimelineExportFormat = BrowserExportFormat | "mp3";
+export type TimelineExportFormat = BrowserExportFormat | "wav" | "mp3";
 
 /** The render choices the export dialog collects. */
 export interface TimelineExportOptions {
@@ -207,8 +207,9 @@ export function useTimelineExport(): UseTimelineExportResult {
           throw new Error("Add a clip before exporting.");
         }
 
-        if (options?.format === "mp3") {
-          const audio = await renderTimelineMp3({
+        if (options?.format === "wav" || options?.format === "mp3") {
+          const audio = await renderTimelineAudioFile({
+            format: options.format,
             tracks: state.tracks,
             clips: state.clips,
             durationMs: exportDurationMs,

@@ -14745,6 +14745,8 @@
       "mp4Note": "可在任何地方播放。不支持透明度。",
       "webmNote": "VP9 视频，带 Opus 音频。",
       "pngSequenceNote": "压缩包中每帧一个 PNG，并通过 manifest.json 标注帧率和尺寸。不含音频。",
+      "wav": "WAV 音频（16 位）",
+      "wavNote": "整个时间线的立体声音频混音，48 kHz 无压缩。不含视频。",
       "mp3": "MP3 音频（320 kbps）",
       "mp3Note": "整个时间线的立体声音频混音。不含视频。",
       "mp4Unsupported": "此浏览器无法写入 MP4，因此已关闭。",
@@ -14756,7 +14758,8 @@
         "mp4": "MP4 不支持 Alpha 通道。请选择 WebM 或 PNG 序列。",
         "webm": "合成到透明背景上并保留 Alpha 通道。",
         "png_sequence": "每个 PNG 都会保留 Alpha 通道。",
-        "mp3": "MP3 没有画面，因此无需透明处理。"
+        "mp3": "MP3 没有画面，因此无需透明处理。",
+        "wav": "WAV 没有画面，因此无需透明处理。"
       }
     },
     "source": {
