@@ -16720,6 +16720,7 @@
       "copyName": "{{name}} (Kopie)",
       "createScriptAction": "das Skript erstellen",
       "duplicateScriptAction": "das Skript duplizieren",
+      "deleteScriptAction": "das Skript löschen",
       "singular": "Script",
       "plural": "Skripte",
       "emptyDescription": "Erstelle mit der Schaltfläche + oben ein neues Skript.",

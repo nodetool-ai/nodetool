@@ -864,6 +864,31 @@ describe("generate_speech when both TTS paths fail", () => {
   });
 });
 
+describe("generate_speech delivery direction", () => {
+  it("passes instructions to the provider, and leaves them out when blank", async () => {
+    const textToSpeechEncoded = vi.fn(async (_req: { params: Record<string, unknown> }) => ({
+      data: new Uint8Array([1, 2, 3]),
+      mimeType: "audio/mpeg"
+    }));
+    const context = withGenerationSeam({
+      userId: "user-1",
+      textToSpeechEncoded,
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async () => ({ id: "speech-asset" })
+    }) as unknown as ProcessingContext;
+
+    await asTool(generateSpeech).process(context, {
+      provider: "openai", model: "gpt-4o-mini-tts", text: "hello", instructions: "whispering"
+    });
+    await asTool(generateSpeech).process(context, {
+      provider: "openai", model: "gpt-4o-mini-tts", text: "hello", instructions: "  "
+    });
+
+    expect(textToSpeechEncoded.mock.calls[0][0].params["instructions"]).toBe("whispering");
+    expect(textToSpeechEncoded.mock.calls[1][0].params).not.toHaveProperty("instructions");
+  });
+});
+
 describe("generate_speech streaming PCM content", () => {
   function streamingContext(pieces: readonly { samples?: Int16Array; sampleRate?: number }[]) {
     const createAsset = vi.fn(async (_args: { content: Uint8Array; contentType: string }) => ({ id: "speech-asset" }));

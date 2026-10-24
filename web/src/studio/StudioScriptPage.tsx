@@ -32,6 +32,7 @@ import {
   useScriptCast,
   useScriptTitle
 } from "../stores/script/ScriptStore";
+import { redoScript, undoScript } from "../stores/script/timelineSync";
 import { useScriptServerSync } from "../hooks/script/useScriptServerSync";
 import { useDocumentUndoShortcuts } from "../hooks/useDocumentUndoShortcuts";
 import { useScriptAgentBridge } from "../hooks/script/useScriptAgentBridge";
@@ -72,14 +73,12 @@ const StudioScriptPage = () => {
   const setupStage = useScriptSetupStage(scriptId);
   const setupConfig = useScriptSetupFlow({ scriptId });
 
-  const undo = useScriptStore((state) => state.undo);
-  const redo = useScriptStore((state) => state.redo);
   // No document undo while the flow shows: it would revert the setup itself.
   useDocumentUndoShortcuts({
     active: true,
     enabled: setupStage === "done",
-    onUndo: useCallback(() => undo(scriptId), [undo, scriptId]),
-    onRedo: useCallback(() => redo(scriptId), [redo, scriptId])
+    onUndo: useCallback(() => undoScript(scriptId), [scriptId]),
+    onRedo: useCallback(() => redoScript(scriptId), [scriptId])
   });
 
   const dockTabs = useMemo(
