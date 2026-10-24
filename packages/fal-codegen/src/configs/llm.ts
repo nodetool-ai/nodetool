@@ -2,6 +2,12 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "nvidia/nemotron-3-5-super/text": {
+      className: "Nemotron35SuperText",
+      docstring: "NVIDIA Nemotron 3.5 Super answers text prompts.",
+      tags: ["llm", "text", "nvidia", "nemotron"]
+    },
+
     "openrouter/router": {
       className: "OpenRouter",
       docstring:

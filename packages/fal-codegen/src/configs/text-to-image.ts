@@ -16,6 +16,73 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "ideogram/vector/text-to-vector": {
+      className: "IdeogramVectorTextToVector",
+      docstring:
+        "Ideogram Vector generates editable SVG vector graphics from a text prompt, with optional reference images and low, medium, or high quality tiers.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "ideogram",
+        "vector",
+        "svg"
+      ]
+    },
+
+    "google/nano-banana-2.1": {
+      className: "NanoBanana21",
+      docstring:
+        "Nano Banana 2.1 (Gemini) generates images from text at 1K, 2K, or 4K, including wide and tall aspect ratios.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "google",
+        "nano-banana",
+        "gemini"
+      ]
+    },
+
+    "blackforestlabs/flux-3/text-to-image": {
+      className: "Flux3TextToImage",
+      docstring: "FLUX 3 generates images from a text prompt.",
+      tags: ["generation", "text-to-image", "txt2img", "flux", "flux-3"]
+    },
+
+    "blackforestlabs/flux-3/klein/text-to-image": {
+      className: "Flux3KleinTextToImage",
+      docstring:
+        "FLUX 3 [klein] is the small, fast FLUX 3 model for generating images from text.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "flux",
+        "flux-3",
+        "klein"
+      ]
+    },
+
+    "krea/v3/text-to-image": {
+      className: "KreaV3TextToImage",
+      docstring: "Krea 3 generates images from a text prompt.",
+      tags: ["generation", "text-to-image", "txt2img", "krea"]
+    },
+
+    "bria/fibo-2/generate": {
+      className: "BriaFibo2Generate",
+      docstring:
+        "Bria FIBO 2 generates images from text with structured, controllable prompts, trained on licensed data.",
+      tags: ["generation", "text-to-image", "txt2img", "bria", "fibo"]
+    },
+
+    "fal-ai/moss-image": {
+      className: "MossImage",
+      docstring: "MOSS-Image generates images from a text prompt.",
+      tags: ["generation", "text-to-image", "txt2img", "moss"]
+    },
+
     "ideogram/v4.5": {
       className: "IdeogramV45",
       docstring:

@@ -2,6 +2,12 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "mirelo-ai/sfx2.0/video-to-audio": {
+      className: "Sfx20VideoToAudio",
+      docstring: "Mirelo SFX 2.0 generates sound effects that match a video.",
+      tags: ["audio", "video-to-audio", "sound-effects", "mirelo-ai"]
+    },
+
     "fal-ai/sam-audio/visual-separate": {
       className: "SamAudioVisualSeparate",
       docstring:

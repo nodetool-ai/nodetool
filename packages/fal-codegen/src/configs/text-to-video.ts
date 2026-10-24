@@ -2,6 +2,52 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "kling/v4/text-to-video": {
+      className: "KlingV4TextToVideo",
+      docstring: "Kling 4 generates video from a text prompt.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "kling"]
+    },
+
+    "blackforestlabs/flux-3-max/text-to-video": {
+      className: "Flux3MaxTextToVideo",
+      docstring:
+        "FLUX 3 Max generates video from a text prompt with the highest-quality FLUX 3 model.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "flux",
+        "flux-3"
+      ]
+    },
+
+    "heygen/heygen-video/text-to-video": {
+      className: "HeygenVideoTextToVideo",
+      docstring: "HeyGen Video generates video from a text prompt.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "heygen"]
+    },
+
+    "xai/grok-imagine-video/v1.5/lite/text-to-video": {
+      className: "GrokImagineVideoV15LiteTextToVideo",
+      docstring:
+        "Grok Imagine Video 1.5 Lite generates videos from text prompts at lower cost.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "grok", "xai"]
+    },
+
+    "fal-ai/kandinsky6-pro/text-to-video": {
+      className: "Kandinsky6ProTextToVideo",
+      docstring: "Kandinsky 6 Pro generates video from a text prompt.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "kandinsky"]
+    },
+
+    "fal-ai/kandinsky6-lite/text-to-video": {
+      className: "Kandinsky6LiteTextToVideo",
+      docstring:
+        "Kandinsky 6 Lite generates video from a text prompt at lower cost.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "kandinsky"]
+    },
+
     "blackforestlabs/flux-3/text-to-video": {
       className: "Flux3TextToVideo",
       docstring:
