@@ -948,25 +948,35 @@ export abstract class PythonBridgeBase
 
   async getWorkerStatus() {
     const requestId = randomUUID();
-    const result = await new Promise<Record<string, unknown>>(
-      (resolve, reject) => {
-        this._pendingStream.set(requestId, {
-          resolve,
-          reject,
-          onChunk: () => {}
+    const result = await this._requestWorkerStatus(requestId);
+    return this._recordWorkerStatus(result);
+  }
+
+  private _requestWorkerStatus(
+    requestId: string
+  ): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      this._pendingStream.set(requestId, {
+        resolve,
+        reject,
+        onChunk: () => {}
+      });
+      try {
+        this._send({
+          type: "worker.status",
+          request_id: requestId,
+          data: {}
         });
-        try {
-          this._send({
-            type: "worker.status",
-            request_id: requestId,
-            data: {}
-          });
-        } catch (err) {
-          this._pendingStream.delete(requestId);
-          reject(err instanceof Error ? err : new Error(String(err)));
-        }
+      } catch (err) {
+        this._pendingStream.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
       }
-    );
+    });
+  }
+
+  private _recordWorkerStatus(
+    result: Record<string, unknown>
+  ): PythonWorkerStatus {
     this._workerStatus = workerStatusSchema.parse(result);
     // A status reply that carries no `load_errors` leaves the ones `discover`
     // reported in place; only a reply that names the field replaces them.
@@ -996,25 +1006,7 @@ export abstract class PythonBridgeBase
     const requestId = randomUUID();
     let timer: NodeJS.Timeout | undefined;
 
-    const statusPromise = new Promise<Record<string, unknown>>(
-      (resolve, reject) => {
-        this._pendingStream.set(requestId, {
-          resolve,
-          reject,
-          onChunk: () => {}
-        });
-        try {
-          this._send({
-            type: "worker.status",
-            request_id: requestId,
-            data: {}
-          });
-        } catch (err) {
-          this._pendingStream.delete(requestId);
-          reject(err instanceof Error ? err : new Error(String(err)));
-        }
-      }
-    );
+    const statusPromise = this._requestWorkerStatus(requestId);
 
     const timeoutPromise = new Promise<Record<string, unknown>>((_, reject) => {
       timer = setTimeout(() => {
@@ -1029,13 +1021,7 @@ export abstract class PythonBridgeBase
 
     try {
       const result = await Promise.race([statusPromise, timeoutPromise]);
-      this._workerStatus = workerStatusSchema.parse(result);
-      // See getWorkerStatus: absence keeps the discover-reported errors.
-      this._loadErrors =
-        result["load_errors"] == null
-          ? this._loadErrors
-          : this._workerStatus.load_errors;
-      return this._workerStatus;
+      return this._recordWorkerStatus(result);
     } finally {
       if (timer) {
         clearTimeout(timer);
