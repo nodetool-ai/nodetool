@@ -27,10 +27,6 @@ export const COMP_STYLES: CompStyle[] = [
   { id: 'squash', label: 'SQUASH', hint: 'Dense, obvious pumping', ratio: 8, attack: 0.001, releaseBeats: 0.125, targetGr: 8, loudPct: 0.5 },
 ];
 
-// Hosts that know their tempo (SQ-4) register it; standalone devices estimate.
-let tempoProvider: () => number | null = () => null;
-export function setTempoProvider(provider: () => number | null): void { tempoProvider = provider; }
-
 export const compStyleById = (id: string) => COMP_STYLES.find(s => s.id === id) ?? COMP_STYLES[0];
 
 /** Fallback only: the peak detector reads this much above ~33 ms RMS blocks. */
@@ -131,7 +127,7 @@ export function fitComp(blocks: number[], style: CompStyle, depth: number, optio
   const cut = percentile(sorted, style.loudPct);
   const loud = audible.filter(i => blocks[i] >= cut);
   const target = style.targetGr * depth;
-  const tempo = options.bpm ?? tempoProvider() ?? estimateBpm(blocks);
+  const tempo = options.bpm ?? estimateBpm(blocks);
   const release = Math.round(clamp(style.releaseBeats * 60 / (tempo ?? 120), 0.01, 2) * 1000) / 1000;
 
   // Per-block detector levels: exact from the trace, else RMS plus the offset.
