@@ -849,12 +849,10 @@ async function synthesizeLine(
   const provider = voice.provider;
   const model = voice.model;
   if (!provider || !model) return null;
-  const params = {
-    text,
-    voice: voice.voice,
-    speed,
-    ...(direction ? { instructions: direction } : {})
-  };
+  const params: Record<string, unknown> = { text, voice: voice.voice, speed };
+  if (direction) {
+    params["instructions"] = direction;
+  }
 
   // Providers that stream raw PCM (OpenAI, ElevenLabs…) are wrapped into a WAV.
   // Providers that return an encoded audio file (FAL, KIE) go through the
