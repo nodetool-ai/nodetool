@@ -14744,6 +14744,8 @@
       "mp4Note": "Wird überall abgespielt. Keine Transparenz.",
       "webmNote": "VP9-Video mit Opus-Audio.",
       "pngSequenceNote": "Eine PNG-Datei pro Frame in einem ZIP-Archiv, mit einer manifest.json für Bildrate und Größe. Kein Audio.",
+      "mp3": "MP3-Audio (320 kbit/s)",
+      "mp3Note": "Der Audio-Mixdown der ganzen Timeline in Stereo. Kein Video.",
       "mp4Unsupported": "Dieser Browser kann keine MP4-Dateien schreiben. Daher ist diese Option deaktiviert.",
       "alphaLabel": "Mit Transparenz exportieren",
       "title": "Timeline exportieren",
@@ -14752,7 +14754,8 @@
       "alphaNote": {
         "mp4": "MP4 unterstützt keinen Alphakanal. Wähle WebM oder eine PNG-Sequenz.",
         "webm": "Wird über einen transparenten Hintergrund gelegt und behält den Alphakanal bei.",
-        "png_sequence": "Jede PNG-Datei behält ihren Alphakanal."
+        "png_sequence": "Jede PNG-Datei behält ihren Alphakanal.",
+        "mp3": "Eine MP3-Datei hat kein Bild, daher gibt es nichts transparent zu machen."
       }
     },
     "source": {

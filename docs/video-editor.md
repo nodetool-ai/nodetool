@@ -27,7 +27,7 @@ The Video Editor (timeline editor) is a non-linear, multi-track surface for asse
 - Generated clips bound to any workflow, with parameters exposed in the Inspector
 - Staleness tracking — edit a bound workflow and the clip is flagged for regeneration
 - Version history per clip — keep the last N successful generations and restore them
-- Export — render the whole timeline to MP4, WebM, or a PNG sequence at the sequence resolution, in the browser or server-side
+- Export — render the whole timeline to MP4, WebM, or a PNG sequence at the sequence resolution, in the browser or server-side, or its audio alone to MP3 in the browser
 - Full undo/redo and debounced autosave
 
 ---
@@ -197,6 +197,7 @@ Preview and export sample the same animation resolver, so transforms and opacity
 | MP4 (H.264) | Plays everywhere. No transparency. |
 | WebM (VP9) | VP9 video with Opus audio. Can keep an alpha channel with **Export with transparency**. |
 | PNG sequence (.zip) | One PNG per frame plus a `manifest.json` with the rate and size. No audio. |
+| MP3 audio (320 kbps) | The whole timeline's audio mixdown in stereo, with the same mix as the video export. No video. |
 
 - Rendering is **frame-by-frame** at the sequence resolution through the same compositor used for preview, so the export matches what you see.
 - Audio is mixed offline and muxed with the encoded video.
