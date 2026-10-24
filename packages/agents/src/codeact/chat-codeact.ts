@@ -42,7 +42,7 @@ import { stripImagePayload } from "../tools/image-injection.js";
 import type { Tool } from "../tools/base-tool.js";
 import { searchTools } from "../tools/tool-search.js";
 import { truncateToolResult } from "../constants.js";
-import { buildCodeActSystemPrompt } from "./prompt.js";
+import { buildCodeActSystemPrompt, buildCodeActTurnSection } from "./prompt.js";
 import {
   mountActionModules,
   packagePromptLines,
@@ -133,6 +133,16 @@ export interface ChatCodeActSessionOptions {
   /** Tools documented in full; defaults to {@link CODEACT_RESIDENT_TOOL_NAMES}. */
   residentToolNames?: Iterable<string>;
   /**
+   * Tools documented in full for this turn only, in
+   * {@link ChatCodeActSession.turnPromptSection} rather than the system
+   * section, which lists them by name with the other deferred tools. For what
+   * changes between turns of one thread, such as the focused document's
+   * `ui_<type>_*` set: kept out of the system section, it leaves that section
+   * byte-identical across the thread, so a provider's prompt cache and
+   * resumable session survive a change of focus.
+   */
+  turnToolNames?: Iterable<string>;
+  /**
    * Tools the caller also offers as ordinary provider tools. They stay on the
    * belt — code composes them — but the prompt documents them as direct calls
    * instead of repeating their catalog signature.
@@ -151,6 +161,13 @@ export interface ChatCodeActSessionOptions {
    * the caller names what the session allows.
    */
   sandboxPackages?: readonly string[];
+  /**
+   * Further specifiers this turn alone consents to, such as those the focused
+   * document grants. Importable like {@link sandboxPackages}, but documented in
+   * {@link ChatCodeActSession.turnPromptSection} so the system section stays
+   * the same across the thread.
+   */
+  turnSandboxPackages?: readonly string[];
   /**
    * Catalog the allowed specifiers resolve through. Defaults to the process
    * catalog the host installed — a chat session gets no ProcessingContext, so
@@ -180,6 +197,13 @@ export interface ChatCodeActSession {
   };
   /** Appended to the chat system prompt: contract, catalog, sandbox summary. */
   systemPromptSection: string;
+  /**
+   * What only this turn adds: the signatures of
+   * {@link ChatCodeActSessionOptions.turnToolNames} and the lines of
+   * {@link ChatCodeActSessionOptions.turnSandboxPackages}. Empty when there is
+   * none. The host sends it with the turn's message, not in the system prompt.
+   */
+  turnPromptSection: string;
   /** Run one code action; returns the observation envelope as JSON text. */
   executeAction(args: Record<string, unknown>): Promise<string>;
   /** Bridged tool calls consumed so far this turn (across actions). */
@@ -239,7 +263,7 @@ export function createChatCodeActSession(
   // Authoring a graph is a package, not a builder: a turn whose belt can save,
   // validate and run a workflow gets the DSL pack on its allowlist, provided
   // this machine installed it.
-  const sandboxPackages = withTimelinePackage(
+  const threadPackages = withTimelinePackage(
     withGamePackage(
       withFlowPackage(
         withFabricPackage(
@@ -257,9 +281,17 @@ export function createChatCodeActSession(
     ),
     sandboxModuleCatalog
   );
-  const withGraphDsl = sandboxPackages.includes(GRAPH_DSL_PACKAGE);
-  const withFlow = sandboxPackages.includes(FLOW_PACKAGE);
-  const withFabric = sandboxPackages.includes(FABRIC_PACKAGE);
+  const turnPackages = sessionAllowedPackages(
+    options.turnSandboxPackages
+  ).filter((specifier) => !threadPackages.includes(specifier));
+  // Everything importable this turn. The prompt sections below read the
+  // thread's part from the system section and the turn's part from the turn
+  // section, and decide what to print from the thread's part alone, so a
+  // change of focus never reaches the system prompt.
+  const sandboxPackages = [...threadPackages, ...turnPackages];
+  const withGraphDsl = threadPackages.includes(GRAPH_DSL_PACKAGE);
+  const withFlow = threadPackages.includes(FLOW_PACKAGE);
+  const withFabric = threadPackages.includes(FABRIC_PACKAGE);
 
   // A session that allows packages can read what they document. The tool runs
   // in-session rather than through the chat router: it needs no permission gate
@@ -268,7 +300,7 @@ export function createChatCodeActSession(
   // `package_docs_unavailable` — the prompt never advertises a call that cannot
   // be made.
   const docsTool =
-    sandboxPackages.length > 0 &&
+    threadPackages.length > 0 &&
     !options.tools.some((t) => t.name === SANDBOX_PACKAGE_DOCS_TOOL_NAME)
       ? sandboxPackageDocsTool(sandboxPackages, sandboxModuleCatalog)
       : null;
@@ -468,12 +500,15 @@ export function createChatCodeActSession(
   );
   let resident: ToolSignatureSource[];
   let deferred: ToolSignatureSource[];
+  const turnNames = new Set(options.turnToolNames ?? []);
+  let turnTools: ToolSignatureSource[] = [];
   if (catalogTools.length <= CODEACT_DEFER_THRESHOLD) {
     resident = [...catalogTools];
     deferred = [];
   } else {
     resident = catalogTools.filter((t) => residentNames.has(t.name));
     deferred = catalogTools.filter((t) => !residentNames.has(t.name));
+    turnTools = deferred.filter((t) => turnNames.has(t.name));
   }
 
   const nodetoolApiSection = withNodetoolApi
@@ -497,9 +532,15 @@ export function createChatCodeActSession(
       ? [...options.directToolNames]
       : undefined,
     extraSections,
-    packageLines: packagePromptLines(sandboxPackages, sandboxModuleCatalog),
+    packageLines: packagePromptLines(threadPackages, sandboxModuleCatalog),
     packageDocsTool: byName.has(SANDBOX_PACKAGE_DOCS_TOOL_NAME),
     packageListTool: byName.has(SANDBOX_PACKAGE_LIST_TOOL_NAME)
+  });
+
+  const turnPromptSection = buildCodeActTurnSection({
+    tools: turnTools,
+    graftedSpecifiers,
+    packageLines: packagePromptLines(turnPackages, sandboxModuleCatalog)
   });
 
   const preludeParts = [CODEACT_PRELUDE];
@@ -656,6 +697,7 @@ export function createChatCodeActSession(
       inputSchema: EXECUTE_CODE_INPUT_SCHEMA
     },
     systemPromptSection,
+    turnPromptSection,
     executeAction,
     toolCallCount: () => totalCalls
   };

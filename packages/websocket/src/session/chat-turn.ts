@@ -2302,8 +2302,14 @@ export class ChatTurnHandler {
             description: s.description,
             inputSchema: s.inputSchema
           })),
+        // The surface's packages hold for the thread. The focused
+        // document's are the turn's, so a change of focus does not change
+        // the system prompt and invalidate the prompt cache.
         sandboxPackages: sandboxPackagesForChat({
           source: uiContext?.source,
+          catalog: getProcessSandboxModuleCatalog()
+        }),
+        turnSandboxPackages: sandboxPackagesForChat({
           focusedType: uiContext?.focused?.type,
           catalog: getProcessSandboxModuleCatalog()
         }),
@@ -2320,12 +2326,14 @@ export class ChatTurnHandler {
         },
         residentToolNames: [
           ...CODEACT_RESIDENT_TOOL_NAMES,
-          ...RESIDENT_TOOL_NAMES,
-          ...focusedUiToolNames(
-            uiContext,
-            allSchemas.map((schema) => schema.name)
-          )
+          ...RESIDENT_TOOL_NAMES
         ],
+        // Same reason: the focused document's tools are documented with the
+        // turn's message rather than in the system prompt.
+        turnToolNames: focusedUiToolNames(
+          uiContext,
+          allSchemas.map((schema) => schema.name)
+        ),
         context: ctx,
         signal,
         clock: codeactClock,
@@ -2404,6 +2412,11 @@ export class ChatTurnHandler {
     // turn to turn, so it rides here rather than in the system prompt.
     const uiContextSection = buildUiContextSection(uiContext, workflowId);
     if (uiContextSection) volatileContext.push(uiContextSection);
+    // The focused document's tool signatures and packages, for the same
+    // reason.
+    if (codeactSession?.turnPromptSection) {
+      volatileContext.push(codeactSession.turnPromptSection);
+    }
     // Durable memories (memory_* tools), so the agent starts each turn aware
     // of what it recorded — project facts, decisions, and the assets it
     // generated for reuse. This thread's in full, the rest as a count it can

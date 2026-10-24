@@ -63,7 +63,8 @@ interface CapturedMessage {
 async function runTurn(
   threadId: string,
   content: string,
-  extra: Record<string, unknown> = {}
+  extra: Record<string, unknown> = {},
+  clientTools: Array<Record<string, unknown>> = []
 ): Promise<CapturedMessage[]> {
   let captured: CapturedMessage[] = [];
   const provider = async () =>
@@ -100,6 +101,16 @@ async function runTurn(
     resolveProvider: provider
   });
   await runner.connect(ws);
+  if (clientTools.length > 0) {
+    // What the browser's `client_tools_manifest` frame registers.
+    (
+      runner as unknown as {
+        clientToolsManifest: Record<string, Record<string, unknown>>;
+      }
+    ).clientToolsManifest = Object.fromEntries(
+      clientTools.map((tool) => [String(tool.name), tool])
+    );
+  }
   await runner.handleCommand({
     command: "chat_message",
     data: {
@@ -291,6 +302,42 @@ describe("chat prompt placement", () => {
     expect(tail).toContain("layer: layer-2");
     expect(tail).toContain("wf-42");
     expect(tail).toContain("Tidy this up");
+  });
+
+  it("keeps the system message byte-identical when the focused document type changes", async () => {
+    // Enough UI tools that the CodeAct catalog defers them, which is where
+    // the focused type's tools used to be promoted into the system message.
+    const uiTools = ["sketch", "timeline"].flatMap((type) =>
+      Array.from({ length: 12 }, (_, i) => ({
+        name: `ui_${type}_op${i}`,
+        description: `Run ${type} operation ${i}.`,
+        parameters: {
+          type: "object",
+          properties: { document_id: { type: "string" } }
+        }
+      }))
+    );
+    const turn = (type: "sketch" | "timeline") =>
+      runTurn(
+        "t-focus",
+        "Tidy this up",
+        {
+          ui_context: {
+            focused: { type, id: `${type}-1`, title: "Doc" },
+            open: [{ type, id: `${type}-1`, title: "Doc" }]
+          }
+        },
+        uiTools
+      );
+    const sketch = await turn("sketch");
+    const timeline = await turn("timeline");
+
+    expect(textOf(timeline[0])).toBe(textOf(sketch[0]));
+    expect(textOf(sketch[0])).not.toContain("Run sketch operation 3.");
+
+    expect(textOf(lastUser(sketch))).toContain("Run sketch operation 3.");
+    expect(textOf(lastUser(sketch))).not.toContain("Run timeline operation 3.");
+    expect(textOf(lastUser(timeline))).toContain("Run timeline operation 3.");
   });
 
   it("keeps the system message byte-identical when the turn compacts", async () => {
