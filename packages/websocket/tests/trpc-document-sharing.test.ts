@@ -8,6 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Asset, ModelObserver, initTestDb } from "@nodetool-ai/models";
+import { shortResourceId } from "@nodetool-ai/protocol";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -240,6 +241,96 @@ describe("documentSharing", () => {
       id: board.id
     });
     expect(sharing.collaborators).toEqual([]);
+  });
+
+  it("keys links and grants on the full id when named by a short id", async () => {
+    const board = await owner().storyboards.create({
+      name: "Trailer",
+      projectId: "default"
+    });
+    const short = shortResourceId(board.id);
+    expect(short).toHaveLength(12);
+
+    const link = await owner().documentSharing.createLink({
+      type: "storyboard",
+      id: short,
+      role: "viewer"
+    });
+    await guest().documentSharing.accept({ token: link.token });
+
+    // Listed under the full id, so the link is not stored under the prefix.
+    const byFull = await owner().documentSharing.get({
+      type: "storyboard",
+      id: board.id
+    });
+    expect(byFull.shares).toEqual([
+      expect.objectContaining({ token: link.token })
+    ]);
+    const byShort = await owner().documentSharing.get({
+      type: "storyboard",
+      id: short
+    });
+    expect(byShort.collaborators).toEqual([
+      expect.objectContaining({ user_id: GUEST, role: "viewer" })
+    ]);
+    expect(byShort.shares).toEqual([
+      expect.objectContaining({ token: link.token })
+    ]);
+
+    await owner().documentSharing.setRole({
+      type: "storyboard",
+      id: short,
+      user_id: GUEST,
+      role: "editor"
+    });
+    expect(
+      (await guest().storyboards.update({ id: board.id, name: "Edited" })).name
+    ).toBe("Edited");
+
+    await owner().documentSharing.revokeLink({
+      type: "storyboard",
+      id: short,
+      share_id: link.id
+    });
+    await expect(
+      guest().documentSharing.accept({ token: link.token })
+    ).rejects.toThrow("Share link is invalid or revoked");
+
+    // A collaborator leaving by the short id resolves it too.
+    await guest().documentSharing.removeCollaborator({
+      type: "storyboard",
+      id: short,
+      user_id: GUEST
+    });
+    expect((await guest().documentSharing.sharedWithMe()).documents).toEqual(
+      []
+    );
+  });
+
+  it("reads and deletes timeline versions when named by a short id", async () => {
+    const seq = await owner().timeline.create({
+      name: "Cut",
+      projectId: "default"
+    });
+    const created = await owner().timeline.versions.create({ id: seq.id });
+    const short = shortResourceId(seq.id);
+
+    expect(await owner().timeline.versions.list({ id: short })).toEqual([
+      expect.objectContaining({ version: created.version })
+    ]);
+    expect(
+      (
+        await owner().timeline.versions.get({
+          id: short,
+          version: created.version
+        })
+      ).version
+    ).toBe(created.version);
+    await owner().timeline.versions.delete({
+      id: short,
+      version: created.version
+    });
+    expect(await owner().timeline.versions.list({ id: seq.id })).toEqual([]);
   });
 
   it("shows a collaborator the owner's media the document names, and nothing else", async () => {

@@ -17,8 +17,9 @@ import {
   isToolCall
 } from "@nodetool-ai/runtime";
 import { getSecret } from "@nodetool-ai/models";
-import type { Message, ProviderTool } from "@nodetool-ai/runtime";
+import type { Message, ProviderStreamItem, ProviderTool } from "@nodetool-ai/runtime";
 import { isRecord } from "./lib/wire-values.js";
+import { streamedWebResponse } from "./lib/bridge.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -230,10 +231,22 @@ export function createSSEStream(
   const id = `chatcmpl-${randomUUID()}`;
   const created = Math.floor(Date.now() / 1000);
 
+  // A client disconnect cancels the body. cancel() aborts the provider call
+  // and closes the iterator so generation stops instead of running to the end.
+  const abort = new AbortController();
+  let cancelled = false;
+  let iterator: AsyncIterator<ProviderStreamItem> | undefined;
+
   return new ReadableStream<Uint8Array>({
+    cancel() {
+      cancelled = true;
+      abort.abort();
+      void Promise.resolve(iterator?.return?.()).catch(() => {});
+    },
     async start(controller) {
       try {
         const stream = provider.generateMessages({
+          signal: abort.signal,
           messages,
           model,
           tools,
@@ -247,7 +260,11 @@ export function createSSEStream(
         // Track tool call indices for proper OpenAI format
         let toolCallIndex = 0;
 
-        for await (const item of stream) {
+        iterator = stream[Symbol.asyncIterator]();
+        while (true) {
+          const next = await iterator.next();
+          if (next.done || cancelled) break;
+          const item = next.value;
           if (isChunk(item)) {
             const chunk = {
               id,
@@ -300,6 +317,8 @@ export function createSSEStream(
           }
         }
 
+        if (cancelled) return;
+
         // Determine finish reason
         const finishReason = toolCallIndex > 0 ? "tool_calls" : "stop";
 
@@ -323,6 +342,7 @@ export function createSSEStream(
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       } catch (err) {
+        if (cancelled) return;
         const message = err instanceof Error ? err.message : String(err);
         const errorChunk = {
           error: {
@@ -385,7 +405,7 @@ async function handleChatCompletions(
   };
 
   if (stream) {
-    return new Response(
+    return streamedWebResponse(
       createSSEStream(provider, messages, model, tools, genOptions),
       {
         headers: {

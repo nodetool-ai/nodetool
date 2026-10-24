@@ -14,6 +14,10 @@ vi.mock("postgres", () => ({
 }));
 import {
   openResourceChangeChannel,
+  packResourceChangeMessages,
+  encodeResourceChangeGroup,
+  MAX_PENDING_NOTIFICATIONS,
+  RESYNC_MESSAGE,
   NOTIFY_PAYLOAD_LIMIT
 } from "../src/resource-change-channel.js";
 
@@ -94,4 +98,87 @@ it("sweeps expired outbox rows and stops maintenance on close", async () => {
   const count = driver.pool.mock.calls.length;
   await vi.advanceTimersByTimeAsync(120_000);
   expect(driver.pool).toHaveBeenCalledTimes(count);
+});
+
+it("packs messages under the limit and keeps singletons in the old form", () => {
+  const a = JSON.stringify({ v: "a".repeat(40) });
+  expect(packResourceChangeMessages([])).toEqual([]);
+  expect(packResourceChangeMessages([a])).toEqual([[a]]);
+  expect(encodeResourceChangeGroup([a])).toBe(a);
+  expect(JSON.parse(encodeResourceChangeGroup([a, a]))).toEqual([
+    JSON.parse(a),
+    JSON.parse(a)
+  ]);
+  const limit = Buffer.byteLength(a) * 2 + 3;
+  expect(packResourceChangeMessages([a, a, a], limit)).toEqual([[a, a], [a]]);
+  for (const group of packResourceChangeMessages([a, a, a, a, a], limit)) {
+    expect(Buffer.byteLength(encodeResourceChangeGroup(group))).toBeLessThanOrEqual(limit);
+  }
+  const big = JSON.stringify({ v: "b".repeat(100) });
+  expect(packResourceChangeMessages([a, big, a], limit)).toEqual([[a], [big], [a]]);
+});
+
+it("sends messages published in one tick as one notification", async () => {
+  const channel = await openResourceChangeChannel(
+    "postgres://localhost/db",
+    vi.fn(),
+    vi.fn()
+  );
+  try {
+    const one = JSON.stringify({ n: 1 });
+    const two = JSON.stringify({ n: 2 });
+    await Promise.all([channel.publish(one), channel.publish(two)]);
+    const notifies = driver.pool.mock.calls.filter(([sql]) =>
+      sql.join("").includes("pg_notify")
+    );
+    expect(notifies).toHaveLength(1);
+    expect(JSON.parse(notifies[0]?.[2])).toEqual([{ n: 1 }, { n: 2 }]);
+  } finally {
+    await channel.close();
+  }
+});
+
+it("drops the oldest pending messages past the cap and sends one resync marker", async () => {
+  const channel = await openResourceChangeChannel(
+    "postgres://localhost/db",
+    vi.fn(),
+    vi.fn()
+  );
+  try {
+    const total = MAX_PENDING_NOTIFICATIONS + 5;
+    const all = Array.from({ length: total }, (_, n) =>
+      channel.publish(JSON.stringify({ n }))
+    );
+    await Promise.all(all);
+    const sent = driver.pool.mock.calls
+      .filter(([sql]) => sql.join("").includes("pg_notify"))
+      .flatMap(([, , payload]) => {
+        const parsed = JSON.parse(payload);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      });
+    expect(sent.filter((m) => m.n !== undefined)).toHaveLength(
+      MAX_PENDING_NOTIFICATIONS
+    );
+    expect(sent.at(-1)).toEqual(JSON.parse(RESYNC_MESSAGE));
+    expect(sent.find((m) => m.n === 0)).toBeUndefined();
+  } finally {
+    await channel.close();
+  }
+});
+
+it("passes a batch notification through to receive unchanged", async () => {
+  const receive = vi.fn();
+  const channel = await openResourceChangeChannel(
+    "postgres://localhost/db",
+    receive,
+    vi.fn()
+  );
+  try {
+    const onMessage = driver.listen.mock.calls[0]?.[1];
+    onMessage('[{"n":1},{"n":2}]');
+    await vi.waitFor(() => expect(receive).toHaveBeenCalledTimes(1));
+    expect(receive).toHaveBeenCalledWith('[{"n":1},{"n":2}]');
+  } finally {
+    await channel.close();
+  }
 });
