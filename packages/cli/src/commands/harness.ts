@@ -296,11 +296,14 @@ export function registerHarnessCommands(program: Command): void {
           ), opts.json));
         }
 
-        const timeoutSeconds = Number(opts.timeout ?? "900");
-        const timeoutMs =
-          Number.isFinite(timeoutSeconds) && timeoutSeconds > 0
-            ? timeoutSeconds * 1000
-            : 900_000;
+        // An unusable --timeout falls back to the default, and so does the
+        // number the TIMEOUT line prints: it said "exceeded NaNs" before.
+        const requestedTimeout = Number(opts.timeout ?? "900");
+        const timeoutSeconds =
+          Number.isFinite(requestedTimeout) && requestedTimeout > 0
+            ? requestedTimeout
+            : 900;
+        const timeoutMs = timeoutSeconds * 1000;
         const jobsRequested = Number(opts.jobs ?? "1");
         const jobs =
           Number.isInteger(jobsRequested) && jobsRequested > 0
@@ -732,6 +735,46 @@ function selfcheckEnv(): NodeJS.ProcessEnv {
   };
 }
 
+/** Kill switches for every selfcheck process group still running. */
+const liveGroups = new Set<() => void>();
+
+function killLiveGroups(): void {
+  for (const kill of liveGroups) kill();
+}
+
+function interruptGate(): never {
+  killLiveGroups();
+  process.exit(130);
+}
+
+function terminateGate(): never {
+  killLiveGroups();
+  process.exit(143);
+}
+
+/**
+ * Tie a selfcheck's process group to the gate's own lifetime and return the
+ * release to call once it has settled. Each check leads its own group
+ * (`detached`) so a timeout can kill everything its shell started, which also
+ * keeps a terminal Ctrl-C from reaching it: a gate that exited or was
+ * interrupted left the check running. The handlers live only while a group
+ * does, and are shared, so `--jobs` past ten adds no listener per check.
+ */
+function trackGroup(killGroup: () => void): () => void {
+  if (liveGroups.size === 0) {
+    process.on("exit", killLiveGroups);
+    process.on("SIGINT", interruptGate);
+    process.on("SIGTERM", terminateGate);
+  }
+  liveGroups.add(killGroup);
+  return () => {
+    if (!liveGroups.delete(killGroup) || liveGroups.size > 0) return;
+    process.removeListener("exit", killLiveGroups);
+    process.removeListener("SIGINT", interruptGate);
+    process.removeListener("SIGTERM", terminateGate);
+  };
+}
+
 /** Run one serial selfcheck, retaining live output and bounded JSON capture. */
 async function runCheckSerial(
   check: GateCheck,
@@ -765,17 +808,7 @@ async function runCheckSerial(
         child.kill("SIGKILL");
       }
     };
-    const interrupt = (): never => {
-      killGroup();
-      process.exit(130);
-    };
-    const terminate = (): never => {
-      killGroup();
-      process.exit(143);
-    };
-    process.once("exit", killGroup);
-    process.once("SIGINT", interrupt);
-    process.once("SIGTERM", terminate);
+    const release = trackGroup(killGroup);
     const kill = (reason: string): void => {
       if (errorCode !== undefined) {
         return;
@@ -808,9 +841,7 @@ async function runCheckSerial(
     });
     child.on("close", (status, signal) => {
       clearTimeout(timer);
-      process.removeListener("exit", killGroup);
-      process.removeListener("SIGINT", interrupt);
-      process.removeListener("SIGTERM", terminate);
+      release();
       resolveOutcome({
         status,
         signal,
@@ -850,6 +881,17 @@ async function runCheckAsync(
       detached: true,
       env: selfcheckEnv()
     });
+    let groupKilled = false;
+    const killGroup = (): void => {
+      if (groupKilled) return;
+      groupKilled = true;
+      try {
+        if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
+      } catch {
+        child.kill("SIGKILL");
+      }
+    };
+    const release = trackGroup(killGroup);
     const settle = (
       status: number | null,
       signal: NodeJS.Signals | null
@@ -857,6 +899,7 @@ async function runCheckAsync(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      release();
       resolveOutcome({
         status,
         signal,
@@ -868,11 +911,7 @@ async function runCheckAsync(
     };
     const timer = setTimeout(() => {
       timedOut = true;
-      try {
-        if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
-      } catch {
-        child.kill("SIGKILL");
-      }
+      killGroup();
       settle(null, "SIGKILL");
     }, o.timeoutMs);
     child.stdout?.setEncoding("utf8");
