@@ -4,6 +4,7 @@ import type {
   PackageActionResult,
   PackageInfo
 } from "./stores/NodePacksStore";
+import type { VstBridge } from "./components/timeline/daw/devices/vstBridge";
 
 interface WindowControls {
   minimize: () => void;
@@ -186,6 +187,8 @@ declare global {
       mcp?: {
         installBundle: () => Promise<McpBundleInstallResult>;
       };
+      /** VST3 instruments. Desktop only. */
+      vst?: VstBridge;
       windowControls: WindowControls;
       platform: string;
       logging?: {

@@ -536,6 +536,75 @@ export enum IpcChannels {
   FRONTEND_LOG = "frontend-log",
   // MCP bundle (.mcpb) install for Claude Desktop
   MCP_INSTALL_BUNDLE = "mcp-install-bundle",
+  // VST3 instruments, hosted by the FableVstHost helper process
+  VST_STATUS = "vst-status",
+  VST_SCAN = "vst-scan",
+  VST_RENDER = "vst-render",
+  VST_OPEN_EDITOR = "vst-open-editor",
+  VST_CLOSE_EDITOR = "vst-close-editor",
+  VST_EVENT = "vst-event",
+}
+
+/** Whether VST3 instruments can play, and why not when they cannot. */
+export interface VstHostStatus {
+  available: boolean;
+  /** The helper executable, when one was found. */
+  path?: string;
+  /** Why the host is unavailable, for the device view. */
+  reason?: string;
+}
+
+/** One plug-in type the host's scan found. */
+export interface VstPluginInfo {
+  uid: string;
+  name: string;
+  vendor: string;
+  version: string;
+  path: string;
+  isInstrument: boolean;
+}
+
+/** The plug-in a request loads: a path from the scan and the type inside it. */
+export interface VstPluginTarget {
+  path: string;
+  uid: string;
+}
+
+export interface VstNoteEvent {
+  pitch: number;
+  velocity: number;
+  startFrame: number;
+  gateOffFrame: number;
+}
+
+export interface VstRenderRequest {
+  plugin: VstPluginTarget;
+  /** Base64 plug-in state, or null for the plug-in's default. */
+  state: string | null;
+  sampleRate: number;
+  frames: number;
+  events: VstNoteEvent[];
+}
+
+export interface VstRenderResult {
+  frames: number;
+  /** Planar stereo: `frames` left samples, then `frames` right samples. */
+  pcm: Float32Array;
+}
+
+export interface VstOpenEditorRequest {
+  /** The editor's own instance, one per timeline track. */
+  instance: string;
+  plugin: VstPluginTarget;
+  state: string | null;
+  title: string;
+}
+
+/** The plug-in window changed the sound, or the user closed it. */
+export interface VstHostEvent {
+  event: "state" | "editorClosed" | "exited";
+  instance?: string;
+  state?: string;
 }
 
 /** Result of handing the bundled `.mcpb` to the OS for Claude Desktop. */
@@ -704,6 +773,11 @@ export interface IpcRequest {
   [IpcChannels.FILE_READ_BUFFER]: string; // filePath
   [IpcChannels.FRONTEND_LOG]: FrontendLogRequest;
   [IpcChannels.MCP_INSTALL_BUNDLE]: void;
+  [IpcChannels.VST_STATUS]: void;
+  [IpcChannels.VST_SCAN]: { rescan?: boolean } | undefined;
+  [IpcChannels.VST_RENDER]: VstRenderRequest;
+  [IpcChannels.VST_OPEN_EDITOR]: VstOpenEditorRequest;
+  [IpcChannels.VST_CLOSE_EDITOR]: string;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -801,6 +875,11 @@ export interface IpcResponse {
   [IpcChannels.FILE_READ_BUFFER]: { buffer: Buffer; mimeType: string } | null;
   [IpcChannels.FRONTEND_LOG]: void;
   [IpcChannels.MCP_INSTALL_BUNDLE]: McpBundleInstallResult;
+  [IpcChannels.VST_STATUS]: VstHostStatus;
+  [IpcChannels.VST_SCAN]: VstPluginInfo[];
+  [IpcChannels.VST_RENDER]: VstRenderResult;
+  [IpcChannels.VST_OPEN_EDITOR]: void;
+  [IpcChannels.VST_CLOSE_EDITOR]: void;
 }
 
 // Event types for each IPC channel
@@ -814,6 +893,7 @@ export interface IpcEvents {
   [IpcChannels.INSTALL_LOCATION_PROMPT]: InstallLocationData;
   [IpcChannels.MENU_EVENT]: MenuEventData;
   [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
+  [IpcChannels.VST_EVENT]: VstHostEvent;
 }
 
 export type PythonPackages = string[];

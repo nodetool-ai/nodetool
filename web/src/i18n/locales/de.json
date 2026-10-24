@@ -16634,6 +16634,20 @@
         "moveTenPixels": "Clip um zehn Pixel verschieben",
         "resetTransform": "Transformation zurücksetzen"
       }
+    },
+    "vst": {
+      "desktopOnly": "VST-Instrumente spielen in der NodeTool-Desktop-App. Im Browser ist diese Spur stumm.",
+      "checking": "VST-Host wird gesucht",
+      "hostMissing": "Der VST-Host ist nicht installiert.",
+      "plugin": "VST-Instrument",
+      "choose": "Plug-in auswählen",
+      "missingPlugin": "{{name}} (hier nicht installiert)",
+      "scanning": "Plug-in-Ordner werden durchsucht",
+      "none": "In den Standardordnern für Plug-ins wurden keine VST3-Instrumente gefunden.",
+      "openWindow": "Plug-in-Fenster öffnen",
+      "closeWindow": "Plug-in-Fenster schließen",
+      "rescan": "Erneut suchen",
+      "hint": "Klangänderungen im Plug-in-Fenster werden mit der Timeline gespeichert. Clips werden beim Abspielen durch das Plug-in gerendert."
     }
   },
   "i18n-next63": {

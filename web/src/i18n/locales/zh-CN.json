@@ -16634,6 +16634,20 @@
         "moveTenPixels": "将片段移动十个像素",
         "resetTransform": "重置变换"
       }
+    },
+    "vst": {
+      "desktopOnly": "VST 乐器只能在 NodeTool 桌面应用中播放。在浏览器中此轨道静音。",
+      "checking": "正在查找 VST 主机",
+      "hostMissing": "未安装 VST 主机。",
+      "plugin": "VST 乐器",
+      "choose": "选择插件",
+      "missingPlugin": "{{name}}（本机未安装）",
+      "scanning": "正在扫描插件文件夹",
+      "none": "在标准插件文件夹中未找到 VST3 乐器。",
+      "openWindow": "打开插件窗口",
+      "closeWindow": "关闭插件窗口",
+      "rescan": "重新扫描",
+      "hint": "在插件窗口中所做的音色更改会随时间线一起保存。片段播放时通过插件渲染。"
     }
   },
   "i18n-next63": {

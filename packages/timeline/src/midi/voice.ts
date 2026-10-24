@@ -415,6 +415,9 @@ export function renderInstrumentEvents(
         }
       }
       break;
+    case "vst":
+      // Native plug-in code: only a host process renders it (see `vstHost`).
+      return out;
   }
 
   return finishBuffer(out, instrument.gainDb, soundingAtEnd, sampleRate);
@@ -438,11 +441,36 @@ export interface RenderMidiClipInput {
  */
 export function renderMidiClip(input: RenderMidiClipInput): Float32Array {
   const { clip, bpm, instrument, sampleRate } = input;
-  const totalFrames = Math.round((clip.durationMs / 1000) * sampleRate);
+  return renderInstrumentEvents(
+    midiClipVoiceEvents(clip, bpm, sampleRate),
+    midiClipFrames(clip, sampleRate),
+    instrument,
+    sampleRate,
+    input.samples
+  );
+}
+
+/** How many frames `renderMidiClip` returns for `clip`. */
+export function midiClipFrames(
+  clip: Pick<TimelineClip, "durationMs">,
+  sampleRate: number
+): number {
+  return Math.round((clip.durationMs / 1000) * sampleRate);
+}
+
+/**
+ * The notes `renderMidiClip` triggers, in frames from the window start. A host
+ * that renders an instrument itself (a VST plug-in) plays these.
+ */
+export function midiClipVoiceEvents(
+  clip: Pick<TimelineClip, "notes" | "inPointMs" | "durationMs">,
+  bpm: number,
+  sampleRate: number
+): VoiceEvent[] {
   const windowStartMs = clip.inPointMs ?? 0;
   const windowEndMs = windowStartMs + clip.durationMs;
 
-  const events: VoiceEvent[] = visibleNotes(clip, bpm).map((note) => {
+  return visibleNotes(clip, bpm).map((note) => {
     const { startMs, endMs } = noteWindowMs(note, bpm);
     const startFrame = Math.round(
       ((startMs - windowStartMs) / 1000) * sampleRate
@@ -459,8 +487,6 @@ export function renderMidiClip(input: RenderMidiClipInput): Float32Array {
       gateOffFrame: Math.max(gateOffFrame, startFrame + 1)
     };
   });
-
-  return renderInstrumentEvents(events, totalFrames, instrument, sampleRate, input.samples);
 }
 
 export interface RenderAuditionNoteInput {

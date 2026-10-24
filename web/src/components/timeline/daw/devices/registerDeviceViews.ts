@@ -19,3 +19,4 @@ for (const kind of FABLE_EFFECT_KINDS) {
 registerInstrumentView("drum", () => import("./Dr1DeviceView"));
 registerInstrumentView("bass", () => import("./Bl1DeviceView"));
 registerInstrumentView("wavetable", () => import("./Wt1DeviceView"));
+registerInstrumentView("vst", () => import("./VstDeviceView"));

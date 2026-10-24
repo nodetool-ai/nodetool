@@ -80,6 +80,9 @@ const bass = (over: Partial<BassMidiInstrument>): BassMidiInstrument => ({
   ...over
 });
 
+/** The preset id a `vst` instrument of any plug-in reports. */
+export const VST_PRESET_ID = "vst";
+
 /**
  * The shipped voices. `saw-lead` is spelled out rather than aliased to
  * `DEFAULT_MIDI_INSTRUMENT` so the two are pinned by a test instead of by
@@ -91,6 +94,13 @@ export const MIDI_INSTRUMENT_PRESETS: readonly MidiInstrumentPreset[] = [
     id: "sampler",
     name: "Sampler · load audio samples",
     instrument: { type: "sampler", zones: [], oneShot: true, attackMs: 0, releaseMs: 100, gainDb: -6 }
+  },
+  {
+    // Every VST instrument reads back as this preset: the plug-in and its
+    // state are chosen in the device view, not here.
+    id: VST_PRESET_ID,
+    name: "VST instrument · desktop app",
+    instrument: { type: "vst", plugin: null, state: null, gainDb: 0 }
   },
   {
     id: "saw-lead",
@@ -550,6 +560,7 @@ export function findInstrumentPreset(
 export function presetIdForInstrument(
   instrument: MidiInstrument
 ): string | undefined {
+  if (instrument.type === "vst") return VST_PRESET_ID;
   const signature = instrumentSignature(instrument);
   return MIDI_INSTRUMENT_PRESETS.find(
     (preset) => instrumentSignature(preset.instrument) === signature

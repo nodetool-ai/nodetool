@@ -31,7 +31,7 @@ import { useBatchedGesture } from "../../../hooks/timeline/useBatchedGesture";
 
 import "./fablesynth-editor.css";
 
-type FableInstrument = Exclude<MidiInstrument, { type: "subtractive" | "sampler" }>;
+type FableInstrument = Exclude<MidiInstrument, { type: "subtractive" | "sampler" | "vst" }>;
 type KnobSize = "lg" | "md" | "sm" | "xs";
 type Accent = "a" | "b" | "f" | "n";
 

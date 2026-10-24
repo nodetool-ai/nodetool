@@ -49,6 +49,9 @@ export function instrumentSignature(instrument: MidiInstrument): string {
   return stableString(instrument);
 }
 
+/** How long an audition lets a VST instrument ring past its note. */
+export const VST_TAIL_MS = 1500;
+
 /** Middle C — the note an audition plays when the voice is a pitched one. */
 export const AUDITION_PITCH = 60;
 
@@ -74,6 +77,9 @@ export function instrumentTailMs(instrument: MidiInstrument): number {
     case "sampler":
     case "subtractive":
       return instrument.releaseMs;
+    case "vst":
+      // The plug-in's release is unknown from outside; give pads and reverbs room.
+      return VST_TAIL_MS;
     case "wavetable":
       return Math.max(instrument.ampEnv.releaseMs, instrument.modEnv.releaseMs);
     case "bass":
