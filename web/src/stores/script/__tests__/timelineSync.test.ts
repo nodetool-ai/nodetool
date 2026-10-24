@@ -72,7 +72,7 @@ describe("syncLineClipToTimeline", () => {
     expect(getQuery).not.toHaveBeenCalled();
   });
 
-  it("patches the linked clip and shifts later script clips by the duration delta", async () => {
+  it("patches the linked clip and leaves later script clips where they are", async () => {
     seedScript("tl-1");
     useScriptStore.getState().loadScript("script-1", {
       title: "S",
@@ -121,7 +121,7 @@ describe("syncLineClipToTimeline", () => {
       (c: TimelineClip) => c.scriptLineId === "line-2"
     );
     expect(untouched.currentAssetId).toBe("old-asset");
-    expect(untouched.startMs).toBe(2500);
+    expect(untouched.startMs).toBe(1000);
   });
 
   it("clears stale captions when the selected take has no word timings", async () => {

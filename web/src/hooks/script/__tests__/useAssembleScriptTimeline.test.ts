@@ -127,7 +127,7 @@ describe("useAssembleScriptTimeline", () => {
     expect(createMutate).not.toHaveBeenCalled();
   });
 
-  it("re-assembles in place, dropping the old voiceover track but keeping foreign tracks", async () => {
+  it("re-assembles in place, keeping the voiceover track, clip positions and foreign tracks", async () => {
     seedVoicedScript("script-1", "tl-1");
     const oldVoTrack = makeTrack({ type: "audio", name: "Voiceover", index: 0 });
     const musicTrack = makeTrack({ type: "audio", name: "Music", index: 1 });
@@ -135,7 +135,8 @@ describe("useAssembleScriptTimeline", () => {
       trackId: oldVoTrack.id,
       scriptId: "script-1",
       scriptLineId: "line-a",
-      currentAssetId: "asset-old"
+      currentAssetId: "asset-old",
+      startMs: 3000
     });
     const musicClip: TimelineClip = makeClip({
       trackId: musicTrack.id,
@@ -161,21 +162,15 @@ describe("useAssembleScriptTimeline", () => {
     expect(out!.sequenceId).toBe("tl-1");
     expect(createMutate).not.toHaveBeenCalled();
     const doc = updateMutate.mock.calls[0][0].document;
-    // Old voiceover track/clip dropped, music track/clip kept, new VO added.
-    expect(doc.tracks.map((t: { name: string }) => t.name)).toEqual([
-      "Voiceover",
-      "Music"
+    // The voiceover track and the moved clip stay; the clip takes the new
+    // take. The music track and its clip are untouched.
+    expect(doc.tracks.map((t: { id: string }) => t.id)).toEqual([
+      oldVoTrack.id,
+      musicTrack.id
     ]);
-    expect(doc.tracks.some((t: { id: string }) => t.id === oldVoTrack.id)).toBe(
-      false
-    );
+    const voClip = doc.clips.find((c: TimelineClip) => c.id === oldVoClip.id);
+    expect(voClip).toMatchObject({ currentAssetId: "asset-a", startMs: 3000 });
     expect(doc.clips.some((c: TimelineClip) => c.currentAssetId === "music-1")).toBe(
-      true
-    );
-    expect(doc.clips.some((c: TimelineClip) => c.currentAssetId === "asset-old")).toBe(
-      false
-    );
-    expect(doc.clips.some((c: TimelineClip) => c.currentAssetId === "asset-a")).toBe(
       true
     );
   });

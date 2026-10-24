@@ -70,7 +70,7 @@ import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
-import { layoutTrackRows } from "./trackWindow";
+import { layoutTrackRows, scriptVoiceoverTrackId } from "./trackWindow";
 import { trackRowHeightPx } from "./trackHeight";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { snapAssetDropMs } from "./dropSnap";
@@ -649,7 +649,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
           document.trackFolders,
           collapsedFolderIds,
           useTimelineLayoutStore.getState().dawMode,
-          useTimelineUIStore.getState().shownAutomationTrackIds
+          useTimelineUIStore.getState().shownAutomationTrackIds,
+          scriptVoiceoverTrackId(document.clips)
         );
         rows.forEach((row) => {
           if (row.kind === "track") {

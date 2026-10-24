@@ -111,7 +111,11 @@ import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import TimelineStoryboardPanel from "./storyboard/TimelineStoryboardPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { useTimelineMenuCommands } from "../../hooks/timeline/useTimelineMenuCommands";
-import { TranscriptPanel } from "./TranscriptPanel";
+import { TimelineScriptPanel } from "./TimelineScriptPanel";
+import {
+  useLinkedScriptId,
+  useLinkedScriptSync
+} from "../../hooks/timeline/useLinkedScript";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { useTimelineLayoutStore } from "../../stores/timeline/TimelineLayoutStore";
 import { useTimelineDockLayoutStore } from "../../stores/timeline/useTimelineDockLayoutStore";
@@ -483,7 +487,7 @@ const MobilePanelSheet: React.FC<{
         ) : activeTab === "agent" ? (
           <TimelineAgentPanel />
         ) : activeTab === "script" ? (
-          <TranscriptPanel />
+          <TimelineScriptPanel />
         ) : activeTab === "code" ? (
           <CodePanel />
         ) : (
@@ -549,6 +553,12 @@ interface TimelineEditorProps {
   active?: boolean;
 }
 
+/** Keeps the linked script loaded and reconciled into this timeline. */
+const LinkedScriptSync: React.FC<{ scriptId: string }> = ({ scriptId }) => {
+  useLinkedScriptSync(scriptId);
+  return null;
+};
+
 const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   sequenceId: sequenceIdProp,
   active = true
@@ -583,6 +593,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // code, opens the Code panel (dock on desktop, sheet on phone).
   const hasCode = useTimelineHasCode(sequenceId);
   const hasScript = useHasScript();
+  const linkedScriptId = useLinkedScriptId(sequenceId ?? null);
   const dawMode = useTimelineLayoutStore((s) => s.dawMode);
   const setDawMode = useTimelineLayoutStore((s) => s.setDawMode);
   const { hasMidiTrack, hasSourceAsset, hasShotClip } = useContextualPanelFlags();
@@ -965,7 +976,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       node: <TimelineTracksPanel onGenerate={sequenceUnavailable ? undefined : openGenerate} />,
       visible: !dawActive
     },
-    { id: "transcript", node: <TranscriptPanel />, visible: hasScript && !dawActive },
+    { id: "transcript", node: <TimelineScriptPanel />, visible: (hasScript || !!linkedScriptId) && !dawActive },
     { id: "storyboard", node: <TimelineStoryboardPanel />, visible: !dawActive },
     { id: "inspector", node: <TimelineInspector /> },
     { id: "shot", node: <TimelineShotPanel />, visible: hasShotClip },
@@ -1174,6 +1185,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {!workspaceHeader && headerActions}
       {conflictBanner}
+      {linkedScriptId ? <LinkedScriptSync scriptId={linkedScriptId} /> : null}
       {/* The guided video flow's landing strip: progress, retries and next
        *  steps. Renders nothing on a sequence that never went through it. */}
       <VideoLandingStrip

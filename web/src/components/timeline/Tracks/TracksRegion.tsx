@@ -118,7 +118,7 @@ import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { AutomationAddLaneHeader, AutomationLaneHeader } from "./automation/AutomationLaneHeader";
 import { AutomationLaneView } from "./automation/AutomationLaneView";
 import { AUTOMATION_FOOTER_HEIGHT_PX } from "./automation/automationLayout";
-import { layoutTrackRows, TRACK_FOLDER_HEIGHT_PX, visibleTrackWindow } from "./trackWindow";
+import { layoutTrackRows, scriptVoiceoverTrackId, TRACK_FOLDER_HEIGHT_PX, visibleTrackWindow } from "./trackWindow";
 import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
 import { AudioGainDialog } from "../clipDialogs/AudioGainDialog";
@@ -1868,6 +1868,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
+    const scriptTrackId = useTimelineStore((s) => scriptVoiceoverTrackId(s.clips));
     const trackLayout = useMemo(
       () =>
         layoutTrackRows(
@@ -1878,9 +1879,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           trackFolders,
           collapsedFolderIds,
           dawMode,
-          shownAutomationTrackIds
+          shownAutomationTrackIds,
+          scriptTrackId
         ),
-      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode, shownAutomationTrackIds]
+      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode, shownAutomationTrackIds, scriptTrackId]
     );
     const previousTrackLayoutRef = useRef(trackLayout);
     const previousVerticalZoomRef = useRef(verticalZoom);
