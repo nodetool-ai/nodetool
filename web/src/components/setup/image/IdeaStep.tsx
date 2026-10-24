@@ -2,8 +2,12 @@
  * Step 1 of the image flow — the idea (PRD § 10.1).
  *
  * The brief is written straight onto the document as it is typed, so
- * `Continue` has only the stage left to write and a reload resumes with the
+ * `Refine step by step` has only the stage left to write and a reload resumes with the
  * text intact (D1, D3).
+ *
+ * `Generate your image` is the quick path: the sentence is rendered with the
+ * look's defaults and the model in the footer. `Refine step by step` is the
+ * full path through the use case, the refined brief and the look.
  *
  * Both alternatives land in the same place — stage `done` and the editor —
  * because neither has a brief to refine: an upload is already the picture, and
@@ -36,6 +40,7 @@ import ReportBugButton from "../../support/ReportBugButton";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import type { UploadFirstLayerResult } from "../../../hooks/sketch/useUploadFirstLayer";
 import { readEntityIds, readReferences } from "./setupContext";
+import { ModelListState, type LookStepControls } from "./LookStep";
 
 /**
  * Three briefs that read like something a person would type. The storyboard
@@ -58,11 +63,14 @@ export interface IdeaStepProps {
   /** Opens the editor on a blank canvas — the flow's escape hatch. */
   onStartBlank: () => void;
   upload: UploadFirstLayerResult;
+  /** The quick path's model list, said here when it cannot generate. */
+  look: LookStepControls;
 }
 
 const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onStartBlank,
-  upload
+  upload,
+  look
 }) => {
   const { t } = useTranslation();
   const brief = useSketchStore((state) => state.document.setup?.brief ?? "");
@@ -157,6 +165,15 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           onChange={handleChange}
           inputRef={briefField}
         />
+
+        {/* A ready list is picked from the footer. Loading says so beside the
+            button, so only an answer the creator has to act on shows here. */}
+        {look.availability !== "ready" && look.availability !== "loading" ? (
+          <ModelListState
+            availability={look.availability}
+            onRetry={look.refetchModels}
+          />
+        ) : null}
 
         {upload.error ? (
           <AlertBanner

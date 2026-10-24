@@ -39,20 +39,22 @@ Every step has a primary button named for its outcome, such as **Generate your i
 
 ## Image
 
-The Image flow creates a sketch. It turns a sentence into a brief, then renders one, two, or four variations for you to pick from. The sketch editor is described in [Sketch Editor](sketch-editor.md).
+The Image flow creates a sketch. It has two paths. The quick path renders your sentence right away from step 1. The step-by-step path turns the sentence into a brief, lets you choose size and style, and then renders one, two, or four variations for you to pick from. The sketch editor is described in [Sketch Editor](sketch-editor.md).
 
 ### Step 1: Idea
 
 The heading is **What image do you want?** Describe the picture in the **Your image** box. One sentence is enough. The box is required. Three example briefs below it fill the box when you click one.
 
-If the flow was started from the new-project prompt with reference images or entities attached, they appear under **Came with your prompt**. The brief refinement reads the reference images.
+If the flow was started from the new-project prompt with reference images or entities attached, they appear under **Came with your prompt**. The step-by-step brief reads the reference images. The quick path uses your text only.
 
 **Other ways to start** skips the brief:
 
 - **Upload an image to edit** opens the sketch editor with your PNG, JPEG, WebP, or GIF as the first layer.
 - **Start with a blank canvas** opens the editor on an empty canvas.
 
-The footer has a model picker for the language model that writes the brief. Choose **Continue**.
+The footer has the image model picker and the cost estimate. Choose **Generate your image** to render one variation of your sentence on a square canvas with no style. If the model does not accept a square, the canvas moves to the first size it does accept. The contact sheet's **Back to generation settings** opens step 3 when you want a different size, style, or model.
+
+Choose **Refine step by step** to take the full path through steps 2 and 3. Nothing is rendered or charged until step 3.
 
 ### Step 2: Brief
 
