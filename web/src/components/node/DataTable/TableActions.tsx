@@ -6,7 +6,7 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 import { ColumnDef } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { DeleteButton, RefreshButton, DownloadButton, Divider, ToolbarIconButton, ICON_SIZE } from "../../ui_primitives";
+import { DeleteButton, RefreshButton, DownloadButton, ToolbarDivider, ToolbarIconButton, ICON_SIZE } from "../../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
@@ -452,7 +452,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
       {isModalMode && editable && (
         <>
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <ToolbarDivider />
           <ToolbarIconButton
             title={t("dataTable.undo")}
             shortcut={["Ctrl", "Z"]}
@@ -471,7 +471,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
           >
             <RedoIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <ToolbarDivider />
           <ToolbarIconButton title={t("dataTable.pasteFromClipboard")} onClick={handlePaste}>
             <ContentPasteIcon sx={{ fontSize: ICON_SIZE.xs }} />
           </ToolbarIconButton>
@@ -480,7 +480,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
 
       {isModalMode && (
         <>
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <ToolbarDivider />
           <DownloadButton
             onClick={handleExportCSV}
             tooltip={t("dataTable.exportCsv")}

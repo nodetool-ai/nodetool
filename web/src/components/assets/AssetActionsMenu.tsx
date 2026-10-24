@@ -30,8 +30,7 @@ import {
   Divider,
   EditorButton,
   TruncatedText,
-  SPACING,
-  ICON_SIZE
+  SPACING
 } from "../ui_primitives";
 import isEqual from "../../utils/isEqual";
 
@@ -255,9 +254,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             wrap
             sx={{
               px: SPACING.micro,
-              py: SPACING.micro,
-              "& .MuiIconButton-root": { padding: SPACING.sm },
-              "& .MuiIconButton-root .MuiSvgIcon-root": { fontSize: ICON_SIZE.sm }
+              py: SPACING.micro
             }}
           >
             {!hideFolderControls && hasFolders && (

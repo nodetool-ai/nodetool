@@ -13,7 +13,7 @@ import {
   ToggleButtonProps,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { BORDER_RADIUS, MOTION, reducedMotion } from "./tokens";
+import { BORDER_RADIUS, ICON_SIZE, MOTION, reducedMotion } from "./tokens";
 import { SPACING } from "./spacing";
 
 // --- ToggleGroup ---
@@ -94,6 +94,8 @@ const ToggleGroupInternal: React.FC<ToggleGroupProps> = ({
           lineHeight: 1,
           letterSpacing: 0,
           textTransform: "none" as const,
+          // An icon option draws the toolbar glyph size.
+          "& .MuiSvgIcon-root": { fontSize: ICON_SIZE.sm },
           color: palette.text.secondary,
           transition: `${MOTION.background}, color ${MOTION.fast}`,
           "&:hover": {

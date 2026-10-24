@@ -254,9 +254,6 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
         },
       },
     },
-    "& .MuiIconButton-root": {
-      padding: getSpacingPx(SPACING.xs),
-    },
   };
 };
 

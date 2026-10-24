@@ -8,10 +8,10 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 
 import {
-  Divider,
   EditorButton,
   FlexRow,
   MenuItemPrimitive,
+  ToolbarDivider,
   ToolbarIconButton,
   Tooltip
 } from "../ui_primitives";
@@ -119,7 +119,7 @@ const ViewportHud = ({
           </EditorButton>
         </span>
       </Tooltip>
-      <Divider orientation="vertical" flexItem />
+      <ToolbarDivider />
       <ToolbarIconButton
         icon={<GridOnIcon fontSize="small" />}
         tooltip={t("i18n-next38.viewport.grid")}

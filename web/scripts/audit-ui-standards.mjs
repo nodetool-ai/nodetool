@@ -404,6 +404,30 @@ const RULES = [
     fix: "background.paper/default, divider, c_scrim",
     line: /\b(background|backgroundColor|bgcolor|border\w*)\s*:.*grey\[[789]00\]/
   },
+  // Toolbars
+  {
+    id: "toolbar/raw-divider",
+    element: "Toolbars",
+    finds: "vertical MUI Divider between controls",
+    fix: "ToolbarDivider",
+    tag: ["Divider"],
+    test: /orientation="vertical"/
+  },
+  {
+    id: "toolbar/hand-active",
+    element: "Toolbars",
+    finds: "ToolbarIconButton coloured by hand for its on state",
+    fix: "active={on}",
+    tag: ["ToolbarIconButton"],
+    test: /sx=\{[\s\S]*\bcolor:\s*[\w.]+\s*\?\s*["']primary/
+  },
+  {
+    id: "toolbar/icon-button-override",
+    element: "Toolbars",
+    finds: "a bar resizing or recolouring the icon buttons inside it",
+    fix: "ToolbarIconButton size/active; the bar carries layout only",
+    line: /["']&?\s*\.MuiIconButton-root["']\s*:/
+  },
   // Icons
   {
     id: "icon/hand-size",

@@ -170,8 +170,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
             onClick={onToggleTranscript}
             tooltip={transcriptVisible ? t("i18n-next6.topBar.hideTranscript") : t("i18n-next6.topBar.showTranscript")}
             aria-label={transcriptVisible ? t("i18n-next6.topBar.hideTranscript") : t("i18n-next6.topBar.showTranscript")}
-            aria-pressed={transcriptVisible}
-            sx={{ color: transcriptVisible ? "primary.main" : undefined }}
+            active={transcriptVisible}
           >
             <SubjectIcon fontSize="small" />
           </ToolbarIconButton>
@@ -181,8 +180,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
             onClick={onToggleSidePanel}
             tooltip={sidePanelVisible ? t("i18n-next6.topBar.hideSidePanel") : t("i18n-next6.topBar.showSidePanel")}
             aria-label={sidePanelVisible ? t("i18n-next6.topBar.hideSidePanel") : t("i18n-next6.topBar.showSidePanel")}
-            aria-pressed={sidePanelVisible}
-            sx={{ color: sidePanelVisible ? "primary.main" : undefined }}
+            active={sidePanelVisible}
           >
             <ViewSidebarOutlinedIcon fontSize="small" />
           </ToolbarIconButton>

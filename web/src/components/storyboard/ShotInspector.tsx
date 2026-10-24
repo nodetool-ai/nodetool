@@ -33,7 +33,7 @@ import {
   Chip,
   CloseButton,
   Dialog,
-  Divider,
+  ToolbarDivider,
   EditorButton,
   FlexColumn,
   FlexRow,
@@ -205,11 +205,11 @@ const ShotInspectorInner: React.FC<ShotInspectorProps> = ({
             number: shotNumber
           })}
         </Box>
-        <Divider orientation="vertical" flexItem />
+        <ToolbarDivider />
         <Box sx={{ flex: "1 1 240px", minWidth: 0 }}>
           <ShotActionText action={shot.action} entities={shotEntities} />
         </Box>
-        <Divider orientation="vertical" flexItem />
+        <ToolbarDivider />
         <Caption color="secondary">
           {t("i18n-cont-storyboard-04.storyboard.shotInspector.appearsIn")}
         </Caption>

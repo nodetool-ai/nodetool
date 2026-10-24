@@ -15,6 +15,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { Tooltip, tooltipWithShortcut } from "./Tooltip";
+import { iconButtonBoxSx } from "./ToolbarIconButton";
 
 export interface CloseButtonProps {
   /**
@@ -132,10 +133,11 @@ export const CloseButton = memo(
             disabled={disabled}
             size={buttonSize}
             sx={{
-              color: theme.vars.palette.grey[300],
+              ...iconButtonBoxSx(buttonSize),
+              color: theme.vars.palette.text.secondary,
               "&:hover": {
-                color: theme.vars.palette.grey[100],
-                backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel ?? '255 255 255'} / 0.08)`
+                color: theme.vars.palette.text.primary,
+                backgroundColor: theme.vars.palette.action.hover
               },
               ...sx
             }}

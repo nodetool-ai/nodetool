@@ -58,7 +58,7 @@ jest.mock("@mui/material/Box", () => ({
   )
 }));
 
-// Mock the ToolbarIconButton and TextInput components
+// Mock the button primitives and TextInput
 jest.mock("../../ui_primitives", () => ({
   ...jest.requireActual("../../ui_primitives/tokens"),
   ...jest.requireActual("../../ui_primitives/spacing"),
@@ -93,6 +93,15 @@ jest.mock("../../ui_primitives", () => ({
       data-testid="toolbar-icon-button"
     >
       {icon}
+    </button>
+  ),
+  EditorButton: ({
+    children,
+    onClick,
+    disabled
+  }: React.ComponentProps<"button">) => (
+    <button onClick={onClick} disabled={disabled} data-testid="editor-button">
+      {children}
     </button>
   ),
   TextInput: ({

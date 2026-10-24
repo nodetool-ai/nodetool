@@ -128,8 +128,8 @@ import {
   HelpButton,
   ResizeHandle,
   Toolbar,
+  ToolbarDivider,
   ToolbarIconButton,
-  Tooltip,
   TYPOGRAPHY,
   FONT_SIZE_MONO,
   FONT_WEIGHT,
@@ -1993,31 +1993,25 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           sx={toolbarSx(toolbarCompact)}
           data-testid="timeline-toolbar"
         >
+          {/* History first, as in every editor toolbar. */}
+          <ToolbarIconButton
+            icon={<UndoIcon />}
+            tooltip={t("i18n-next73.tracks.undo", { shortcut: `${modKeyLabel}+Z` })}
+            ariaLabel={t("i18n-next73.tracks.undoLabel")}
+            onClick={handleUndo}
+            disabled={!canUndo}
+            data-testid="timeline-undo"
+          />
+          <ToolbarIconButton
+            icon={<RedoIcon />}
+            tooltip={t("i18n-next73.tracks.redo", { shortcut: `${modKeyLabel}+Shift+Z` })}
+            ariaLabel={t("i18n-next73.tracks.redoLabel")}
+            onClick={handleRedo}
+            disabled={!canRedo}
+            data-testid="timeline-redo"
+          />
+          <ToolbarDivider />
           <ToolToggle compact={toolbarCompact} />
-          {/* The tooltip sits on a span so it still shows over a disabled
-              button, which fires no pointer events of its own. */}
-          <Tooltip title={t("i18n-next73.tracks.undo", { shortcut: `${modKeyLabel}+Z` })}>
-            <span>
-              <ToolbarIconButton
-                icon={<UndoIcon />}
-                ariaLabel={t("i18n-next73.tracks.undoLabel")}
-                onClick={handleUndo}
-                disabled={!canUndo}
-                data-testid="timeline-undo"
-              />
-            </span>
-          </Tooltip>
-          <Tooltip title={t("i18n-next73.tracks.redo", { shortcut: `${modKeyLabel}+Shift+Z` })}>
-            <span>
-              <ToolbarIconButton
-                icon={<RedoIcon />}
-                ariaLabel={t("i18n-next73.tracks.redoLabel")}
-                onClick={handleRedo}
-                disabled={!canRedo}
-                data-testid="timeline-redo"
-              />
-            </span>
-          </Tooltip>
           {onGenerate && (
             <EditorButton
               variant="contained"

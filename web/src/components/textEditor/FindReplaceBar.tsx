@@ -9,6 +9,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
 import {
   CloseButton,
+  EditorButton,
   TextInput,
   Toolbar,
   ToolbarGroup,
@@ -167,26 +168,24 @@ const FindReplaceBar = ({
         </div>
 
         <ToolbarIconButton
-          icon={<KeyboardArrowUpIcon fontSize="small" />}
+          icon={<KeyboardArrowUpIcon/>}
           tooltip={t("screen_scripts_text.textEditor.previousMatch")}
           onClick={onPrevious}
           disabled={totalMatches === 0}
-          className="toolbar-button"
         />
 
         <ToolbarIconButton
-          icon={<KeyboardArrowDownIcon fontSize="small" />}
+          icon={<KeyboardArrowDownIcon/>}
           tooltip={t("screen_scripts_text.textEditor.nextMatch")}
           onClick={onNext}
           disabled={totalMatches === 0}
-          className="toolbar-button"
         />
 
         <ToolbarIconButton
-          icon={<ReplaceIcon fontSize="small" />}
+          icon={<ReplaceIcon/>}
           tooltip={t("screen_scripts_text.textEditor.toggleReplace")}
           onClick={handleToggleReplace}
-          className="toolbar-button"
+          active={showReplace}
         />
       </ToolbarGroup>
 
@@ -210,33 +209,25 @@ const FindReplaceBar = ({
             }}
           />
 
-          <span>
-            <ToolbarIconButton
-              icon={
-                <span style={TYPOGRAPHY.sans.label}>
-                  {t("i18n-next113.textEditor.replace")}
-                </span>
-              }
-              tooltip={t("screen_scripts_text.textEditor.replace")}
-              onClick={handleReplace}
-              disabled={!isValidSearch || totalMatches === 0}
-              className="toolbar-button"
-            />
-          </span>
+          <EditorButton
+            density="compact"
+            variant="text"
+            tooltip={t("screen_scripts_text.textEditor.replace")}
+            onClick={handleReplace}
+            disabled={!isValidSearch || totalMatches === 0}
+          >
+            {t("i18n-next113.textEditor.replace")}
+          </EditorButton>
 
-          <span>
-            <ToolbarIconButton
-              icon={
-                <span style={TYPOGRAPHY.sans.label}>
-                  {t("i18n-next113.textEditor.all")}
-                </span>
-              }
-              tooltip={t("screen_scripts_text.textEditor.replaceAll")}
-              onClick={handleReplaceAll}
-              disabled={!isValidSearch || totalMatches === 0}
-              className="toolbar-button"
-            />
-          </span>
+          <EditorButton
+            density="compact"
+            variant="text"
+            tooltip={t("screen_scripts_text.textEditor.replaceAll")}
+            onClick={handleReplaceAll}
+            disabled={!isValidSearch || totalMatches === 0}
+          >
+            {t("i18n-next113.textEditor.all")}
+          </EditorButton>
         </ToolbarGroup>
       )}
 
@@ -244,7 +235,6 @@ const FindReplaceBar = ({
         onClick={handleClose}
         buttonSize="small"
         tooltip={t("screen_scripts_text.textEditor.closeFindReplace")}
-        className="toolbar-button"
       />
     </Toolbar>
   );

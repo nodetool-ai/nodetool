@@ -50,7 +50,6 @@ import {
   AlertBanner,
   Box,
   ConfirmDialog,
-  Divider,
   EditorButton,
   EmptyState,
   FlexColumn,
@@ -60,6 +59,8 @@ import {
   Text,
   ToggleGroup,
   ToggleOption,
+  Toolbar,
+  ToolbarDivider,
   ToolbarIconButton,
   Tooltip,
   UndoRedoButtons,
@@ -231,16 +232,6 @@ const styles = (theme: Theme) =>
       height: "100%",
       minHeight: 0,
       backgroundColor: theme.vars.palette.background.default
-    },
-    ".editor-toolbar": {
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
-      gap: getSpacingPx(SPACING.sm),
-      alignItems: "center",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.background.paper,
-      flexShrink: 0,
-      flexWrap: "wrap",
-      minHeight: 44
     },
     ".editor-title": {
       maxWidth: "240px",
@@ -1513,7 +1504,7 @@ const Model3DEditor = ({
       fullWidth
       fullHeight
     >
-      <FlexRow className="editor-toolbar" fullWidth>
+      <Toolbar className="editor-toolbar" sx={{ flexWrap: "wrap" }}>
         <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
           <Text size="small" weight={600} className="editor-title" title={name}>
             {name || t("i18n-cont-model-editor-11.modelEditor.title")}
@@ -1524,7 +1515,7 @@ const Model3DEditor = ({
             </Tooltip>
           )}
         </FlexRow>
-        <Divider orientation="vertical" flexItem />
+        <ToolbarDivider />
         <UndoRedoButtons
           canUndo={history.canUndo()}
           canRedo={history.canRedo()}
@@ -1534,9 +1525,9 @@ const Model3DEditor = ({
           undoTooltip={withShortcut(undoLabel ? t("i18n-cont-model-editor-11.modelEditor.actions.undoNamed", { label: undoLabel }) : t("i18n-cont-model-editor-11.modelEditor.actions.undo"), "undo")}
           redoTooltip={withShortcut(redoLabel ? t("i18n-cont-model-editor-11.modelEditor.actions.redoNamed", { label: redoLabel }) : t("i18n-cont-model-editor-11.modelEditor.actions.redo"), "redo")}
         />
-        <Divider orientation="vertical" flexItem />
+        <ToolbarDivider />
         <ToggleGroup
-          size="small"
+          segmented
           exclusive
           value={gizmoMode}
           onChange={(_e, value) => value && setGizmoMode(value as GizmoMode)}
@@ -1578,7 +1569,7 @@ const Model3DEditor = ({
           size="small"
           ariaLabel={t("i18n-cont-model-editor-11.modelEditor.snap.toggle")}
         />
-        <Divider orientation="vertical" flexItem />
+        <ToolbarDivider />
         <MenuButton label={t("i18n-cont-model-editor-11.modelEditor.actions.add")} icon={<AddIcon />} tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.addTooltip")}>
           {(close) =>
             ADD_MENU_GROUPS.flatMap((group, groupIndex) =>
@@ -1722,7 +1713,7 @@ const Model3DEditor = ({
           </Tooltip>
           <CloseButton onClick={requestClose} tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.close")} />
         </FlexRow>
-      </FlexRow>
+      </Toolbar>
 
       <FlexRow className="editor-body" fullWidth>
         <FlexColumn className="side-panel left" fullHeight>

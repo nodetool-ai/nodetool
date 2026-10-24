@@ -1200,6 +1200,19 @@ Rules:
 - A bar taller than its density (a stacked two-row header) overrides
   `flexDirection` and `px` in `sx` but keeps the surface and rule.
 
+Buttons in a bar, in every editor (workflow, sketch, timeline, 3D, text,
+script, storyboard):
+
+| Part | Rule |
+|---|---|
+| Icon-only command | `ToolbarIconButton` with `tooltip` (and `shortcut`). It is a 28px square with a 16px glyph at the default `size="small"` (32/18 at `medium`, 36/20 at `large`), `text.secondary` at rest, `action.hover` and `text.primary` on hover. Do not pass `fontSize` to its icon, and do not restyle it with a `.MuiIconButton-root` or class override on the bar |
+| On/off state | `active` on the `ToolbarIconButton`: an `action.selected` fill and a `primary.main` icon. Passing `active` also sets `aria-pressed`, unless the button opens a menu or panel and says so with `aria-expanded` or `aria-haspopup`. Never colour the icon by hand (`sx={{ color: on ? "primary.main" : … }}`) |
+| Text command | `EditorButton` (`density="compact"` in a compact bar). Never put a text label inside a `ToolbarIconButton` |
+| One of a few modes | `ToggleGroup segmented` |
+| Groups | Related buttons sit in a `ToolbarGroup`. A `ToolbarDivider` (a 16px rule) separates groups. Never a MUI `Divider orientation="vertical"` or a hand-drawn border |
+| Order | History (undo, redo) first, then tools and modes, then view toggles, then document actions (save, export), then the overflow menu, then close |
+| Overflow | One `MoreVert` `ToolbarIconButton` with a "More actions" style tooltip, opening an `EditorMenu` |
+
 ---
 
 ## 11. Properties panels
