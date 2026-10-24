@@ -104,10 +104,17 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
         <StoryboardSurface refId={tab.ref} mode={tab.mode} active={active} />
       );
     case "script":
-      return <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "jsscript":
       return (
-        <JsScriptSurface refId={tab.ref} mode={tab.mode} active={active} />
+        <JsScriptSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+          tab={tab}
+        />
       );
     case "skill":
       return (

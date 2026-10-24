@@ -6,6 +6,9 @@
  * Both buttons execute server-side against the *saved* document, so the
  * console says so when a save is still pending rather than letting the user
  * read a stale result as a fresh one.
+ *
+ * Given `documentBar`, the save status, Run and Test move into the workspace
+ * document bar and the console keeps the output and the "Running…" state.
  */
 import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,9 +25,12 @@ import {
   FlexRow,
   Label,
   LogView,
+  SaveStatus,
   ScrollArea,
   Text,
-  SPACING
+  SPACING,
+  type DocumentBarRender,
+  type SaveStatusValue
 } from "../ui_primitives";
 import {
   useJsScriptCode,
@@ -49,7 +55,15 @@ interface JsScriptRunConsoleProps {
   active?: boolean;
   onRun: (request: JsScriptRunRequest) => void;
   onTest: () => void;
+  /** Draws the save status, Run and Test in the workspace document bar. */
+  documentBar?: DocumentBarRender;
 }
+
+const BAR_SAVE_STATUS: Record<string, SaveStatusValue> = {
+  unsaved: "dirty",
+  saving: "saving",
+  error: "error"
+};
 
 const json = (value: unknown): string => {
   try {
@@ -98,7 +112,8 @@ const JsScriptRunConsole = ({
   readOnly = false,
   active = false,
   onRun,
-  onTest
+  onTest,
+  documentBar
 }: JsScriptRunConsoleProps) => {
   const { t, i18n } = useTranslation("translation", { keyPrefix: "screen_scripts_js" });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -132,38 +147,76 @@ const JsScriptRunConsole = ({
   }, [running, readOnly, tests.length, onTest, t]);
   useContextCommands(t("context.script"), menuCommands, active);
 
+  const runButton = (
+    <EditorButton
+      density={documentBar ? "normal" : "compact"}
+      variant="contained"
+      startIcon={<PlayArrowIcon />}
+      disabled={readOnly}
+      loading={running}
+      onClick={() => setDialogOpen(true)}
+    >
+      {t("actions.run")}
+    </EditorButton>
+  );
+  const testButton = (
+    <EditorButton
+      density={documentBar ? "normal" : "compact"}
+      startIcon={<ScienceOutlinedIcon />}
+      disabled={running || readOnly || tests.length === 0}
+      onClick={onTest}
+    >
+      {tests.length === 0 ? t("tests.none") : t("tests.count", { count: tests.length })}
+    </EditorButton>
+  );
+  const runningLabel = running && (
+    <Text size="small" color="secondary">
+      {t("status.running")}
+    </Text>
+  );
+  // A reload has no `SaveStatus` counterpart, so the bar shows it as saved
+  // and the console keeps the notice.
+  const saveNotice = saveStatus !== "saved" &&
+    (!documentBar || saveStatus === "reloaded") && (
+      <Text size="small" color="secondary">
+        {t("status.savedScript", { status: t(`saveStatus.${saveStatus}`) })}
+      </Text>
+    );
+
   return (
     <FlexColumn fullWidth gap={SPACING.sm} sx={{ minHeight: 0, flex: 1 }}>
-      <FlexRow gap={SPACING.sm} align="center" wrap padding={1}>
-        <EditorButton
-          density="compact"
-          variant="contained"
-          startIcon={<PlayArrowIcon />}
-          disabled={readOnly}
-          loading={running}
-          onClick={() => setDialogOpen(true)}
-        >
-          {t("actions.run")}
-        </EditorButton>
-        <EditorButton
-          density="compact"
-          startIcon={<ScienceOutlinedIcon />}
-          disabled={running || readOnly || tests.length === 0}
-          onClick={onTest}
-        >
-          {tests.length === 0 ? t("tests.none") : t("tests.count", { count: tests.length })}
-        </EditorButton>
-        {running && (
-          <Text size="small" color="secondary">
-            {t("status.running")}
-          </Text>
-        )}
-        {saveStatus !== "saved" && (
-          <Text size="small" color="secondary">
-            {t("status.savedScript", { status: t(`saveStatus.${saveStatus}`) })}
-          </Text>
-        )}
-      </FlexRow>
+      {documentBar ? (
+        <>
+          {documentBar(
+            readOnly
+              ? {}
+              : {
+                  status: (
+                    <SaveStatus state={BAR_SAVE_STATUS[saveStatus] ?? "saved"} />
+                  ),
+                  actions: (
+                    <>
+                      {runButton}
+                      {testButton}
+                    </>
+                  )
+                }
+          )}
+          {(runningLabel || saveNotice) && (
+            <FlexRow gap={SPACING.sm} align="center" wrap padding={1}>
+              {runningLabel}
+              {saveNotice}
+            </FlexRow>
+          )}
+        </>
+      ) : (
+        <FlexRow gap={SPACING.sm} align="center" wrap padding={1}>
+          {runButton}
+          {testButton}
+          {runningLabel}
+          {saveNotice}
+        </FlexRow>
+      )}
 
       <ScrollArea>
         <FlexColumn gap={SPACING.md} padding={1}>

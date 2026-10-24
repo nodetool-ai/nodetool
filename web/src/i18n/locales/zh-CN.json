@@ -15808,6 +15808,7 @@
       "code": "代码",
       "run": "运行",
       "script": "脚本",
+      "scriptSettings": "脚本设置",
       "assistant": "助手"
     },
     "model3d": {
