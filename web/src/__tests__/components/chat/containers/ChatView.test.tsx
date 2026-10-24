@@ -23,6 +23,7 @@ import {
   TaskUpdate
 } from "../../../../stores/ApiTypes";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
+import type { ChatCommand } from "../../../../components/chat/types/chat.types";
 
 // Mock react-router-dom hooks
 const mockNavigate = jest.fn();
@@ -91,21 +92,34 @@ jest.mock("../../../../components/node/TaskUpdateDisplay", () => ({
   default: () => <div data-testid="task-update-display" />
 }));
 
+// The commands ChatView handed to the composer on its last render.
+let latestCommands: ChatCommand[] = [];
+const commandNamed = (name: string): ChatCommand => {
+  const command = latestCommands.find((item) => item.name === name);
+  if (!command) {
+    throw new Error(`no /${name} command`);
+  }
+  return command;
+};
+
 // Mock ChatInputSection component
 jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
   __esModule: true,
   default: function MockChatInputSection({
     status,
     onSendMessage,
-    threadId
+    threadId,
+    commands
   }: {
     status?: string;
     threadId?: string | null;
+    commands?: ChatCommand[];
     onSendMessage: (
       content: MessageContent[],
       prompt: string
     ) => Promise<void> | void;
   }) {
+    latestCommands = commands ?? [];
     return (
       <div data-testid="chat-input-section">
         <div>Status: {status}</div>
@@ -753,6 +767,98 @@ describe("ChatView", () => {
       expect(
         screen.queryByRole("button", { name: "Retry" })
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Slash Commands", () => {
+    const compacted: Message[] = [
+      {
+        id: "1",
+        type: "message",
+        role: "user",
+        content: [
+          { type: "text", text: "Draw a fox" },
+          { type: "image_url", image: { type: "image", uri: "asset://a" } }
+        ]
+      },
+      {
+        id: "2",
+        type: "message",
+        role: "assistant",
+        content: "Here it is"
+      },
+      {
+        id: "3",
+        type: "message",
+        role: "user",
+        execution_event_type: "compaction",
+        content: "[Conversation so far]"
+      }
+    ];
+
+    it("rewinds the last prompt, not a compaction record, and returns its text", async () => {
+      const rewindThread = jest.fn().mockResolvedValue(undefined);
+      act(() => {
+        useGlobalChatStore.setState({ rewindThread });
+      });
+      renderWithProviders(
+        <ChatView {...baseProps} threadId="thread-1" messages={compacted} />
+      );
+
+      let restored: string | void = undefined;
+      await act(async () => {
+        restored = await commandNamed("rewind").run("");
+      });
+
+      expect(rewindThread).toHaveBeenCalledWith("thread-1", "1");
+      expect(restored).toBe("Draw a fox");
+    });
+
+    it("compacts the rendered thread", async () => {
+      const compactThread = jest.fn().mockResolvedValue(undefined);
+      act(() => {
+        useGlobalChatStore.setState({ compactThread });
+      });
+      renderWithProviders(
+        <ChatView {...baseProps} threadId="thread-1" messages={compacted} />
+      );
+
+      await act(async () => {
+        await commandNamed("compact").run("");
+      });
+
+      expect(compactThread).toHaveBeenCalledWith("thread-1");
+    });
+
+    it("offers /new only when the host can start a chat", () => {
+      const onNewChat = jest.fn();
+      const { rerender } = renderWithProviders(
+        <ChatView {...baseProps} threadId="thread-1" messages={compacted} />
+      );
+      expect(latestCommands.map((item) => item.name)).toEqual([
+        "compact",
+        "rewind"
+      ]);
+
+      rerender(
+        <ThemeProvider theme={mockTheme}>
+          <KeyboardProvider>
+            <ChatView
+              {...baseProps}
+              threadId="thread-1"
+              messages={compacted}
+              onNewChat={onNewChat}
+            />
+          </KeyboardProvider>
+        </ThemeProvider>
+      );
+      void commandNamed("new").run("");
+      expect(onNewChat).toHaveBeenCalledTimes(1);
+    });
+
+    it("offers no thread command before a thread exists", () => {
+      renderWithProviders(<ChatView {...baseProps} threadId={null} />);
+      expect(latestCommands).toEqual([]);
     });
   });
 

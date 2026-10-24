@@ -38,3 +38,15 @@ export type ChatStatus =
 
 /** Width of the message column and the composer beneath it, in px. */
 export const CHAT_COLUMN_MAX_WIDTH = 800;
+
+/**
+ * A `/name` command typed into the composer. It runs instead of being sent.
+ * A returned string replaces the prompt, for a command that hands text back.
+ */
+export interface ChatCommand {
+  name: string;
+  description: string;
+  run: (argument: string) => void | string | Promise<void | string>;
+  /** Run while a reply streams. A command that changes the thread waits. */
+  whileBusy?: boolean;
+}

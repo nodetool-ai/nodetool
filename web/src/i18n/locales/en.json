@@ -13261,6 +13261,7 @@
       },
       "errors": {
         "sendMessage": "Could not send the message: {{error}}",
+        "compact": "Could not compact the conversation: {{error}}",
         "copyConversation": "Could not copy the conversation.",
         "rewindConversation": "Could not rewind the conversation: {{error}}"
       },
@@ -17964,6 +17965,13 @@
       },
       "skills": "Skills",
       "noMatchingSkills": "No matching skills",
+      "commands": {
+        "compact": "Summarize the conversation so far to free up context",
+        "model": "Choose a model",
+        "mode": "Permissions: plan, default, auto",
+        "new": "Start a new conversation",
+        "rewind": "Take back your last message and edit it"
+      },
       "selectModel": "Select model",
       "selectMusicModel": "Select music model",
       "selectEditModel": "Select edit model",

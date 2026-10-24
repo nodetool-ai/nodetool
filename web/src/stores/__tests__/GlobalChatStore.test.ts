@@ -1604,6 +1604,39 @@ describe("GlobalChatStore", () => {
     });
   });
 
+  describe("compactThread", () => {
+    it("asks the server to compact and adds nothing to the thread", async () => {
+      const threadId = await store.getState().createNewThread();
+      mockGlobalWebSocketManager.send.mockClear();
+
+      await store.getState().compactThread(threadId);
+
+      expect(mockGlobalWebSocketManager.send).toHaveBeenCalledWith({
+        command: "chat_message",
+        data: {
+          thread_id: threadId,
+          provider: "openai",
+          model: "gpt-5.4-mini",
+          compact: true
+        }
+      });
+      expect(store.getState().messageCache[threadId] ?? []).toEqual([]);
+      expect(store.getState().threadRuntime[threadId]?.status).toBe("loading");
+    });
+
+    it("returns the thread to idle when the request cannot be sent", async () => {
+      const threadId = await store.getState().createNewThread();
+      mockGlobalWebSocketManager.send.mockRejectedValueOnce(
+        new Error("socket closed")
+      );
+
+      await expect(store.getState().compactThread(threadId)).rejects.toThrow(
+        "socket closed"
+      );
+      expect(store.getState().threadRuntime[threadId]?.status).toBe("idle");
+    });
+  });
+
   describe("stopGeneration", () => {
     let sentData: unknown;
 

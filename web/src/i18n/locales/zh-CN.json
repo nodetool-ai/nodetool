@@ -13261,6 +13261,7 @@
       },
       "errors": {
         "sendMessage": "无法发送消息：{{error}}",
+        "compact": "无法压缩对话：{{error}}",
         "copyConversation": "无法复制对话。",
         "rewindConversation": "无法回退对话：{{error}}"
       },
@@ -17964,6 +17965,13 @@
       },
       "skills": "技能",
       "noMatchingSkills": "没有匹配的技能",
+      "commands": {
+        "compact": "总结目前的对话以释放上下文",
+        "model": "选择模型",
+        "mode": "权限：plan、default、auto",
+        "new": "开始新对话",
+        "rewind": "撤回上一条消息并编辑"
+      },
       "selectModel": "选择模型",
       "selectMusicModel": "选择音乐模型",
       "selectEditModel": "选择编辑模型",

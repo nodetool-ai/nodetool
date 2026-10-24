@@ -540,6 +540,100 @@ describe("chat compaction", () => {
   });
 });
 
+describe("compaction on request", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  /** Run `/compact` against a provider whose summarizer is `summarize`. */
+  async function compactOnRequest(
+    threadId: string,
+    summarize: FakeProviderShape["generateMessageTraced"]
+  ) {
+    let loops = 0;
+    const harness = makeChatTurnHarness({
+      session: {
+        resolveProvider: async () =>
+          fakeProvider({
+            generateLoop: async function* () {
+              loops++;
+              yield { type: "chunk", content: "ok", done: true };
+            },
+            generateMessageTraced: summarize
+          })
+      }
+    });
+    await harness.handler.handleChatMessage({
+      ...chatTurn(threadId, ""),
+      compact: true
+    });
+    return { session: harness.session, loops };
+  }
+
+  it("summarizes the whole thread, saves no prompt and answers nothing", async () => {
+    const threadId = "t-manual";
+    await seedThread(threadId);
+    const summarized: unknown[] = [];
+
+    const { session, loops } = await compactOnRequest(threadId, async (args) => {
+      summarized.push(args.messages);
+      return { role: "assistant", content: "Summary: asset://img-4.png" };
+    });
+
+    expect(loops).toBe(0);
+    const transcript = JSON.stringify(summarized);
+    expect(transcript).toContain("ask 1");
+    expect(transcript).toContain("ask 4");
+    const [rows] = await Message.paginate(threadId, { limit: 100 });
+    // Twelve seeded rows plus the record: the request itself is not stored.
+    expect(rows).toHaveLength(13);
+    const record = rows[rows.length - 1];
+    expect(isCompactionMessage(record)).toBe(true);
+    expect(String(record.content)).toContain("asset://img-4.png");
+    expect(session.messagesOfType("generation_stopped")).toHaveLength(1);
+    expect(session.messagesOfType("error")).toHaveLength(0);
+    const announced = session
+      .messagesOfType("message")
+      .find((m) => m.execution_event_type === COMPACTION_EVENT_TYPE);
+    expect(announced?.content).toBe(record.content);
+  });
+
+  it("refuses a thread with nothing since the last compaction", async () => {
+    const threadId = "t-manual-empty";
+    await Message.create({
+      thread_id: threadId,
+      user_id: "1",
+      role: "user",
+      execution_event_type: COMPACTION_EVENT_TYPE,
+      content: "[Conversation so far]\n- earlier"
+    });
+
+    const { session } = await compactOnRequest(threadId, async () => {
+      throw new Error("must not summarize");
+    });
+
+    expect(session.messagesOfType("error")[0]?.message).toBe(
+      "There is nothing to compact yet."
+    );
+    expect(await compactionRows(threadId)).toHaveLength(1);
+  });
+
+  it("reports a failed summary and leaves the thread as it was", async () => {
+    const threadId = "t-manual-fails";
+    await seedThread(threadId);
+
+    const { session } = await compactOnRequest(threadId, async () => {
+      throw new Error("summarizer is down");
+    });
+
+    expect(String(session.messagesOfType("error")[0]?.message)).toContain(
+      "summarizer is down"
+    );
+    expect(session.messagesOfType("generation_stopped")).toHaveLength(0);
+    expect(await compactionRows(threadId)).toHaveLength(0);
+  });
+});
+
 describe("compactionThreshold", () => {
   it("is 90% of the window", () => {
     expect(compactionThreshold({ thresholdTokens: null }, 200_000)).toBe(

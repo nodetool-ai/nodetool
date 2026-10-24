@@ -13261,6 +13261,7 @@
       },
       "errors": {
         "sendMessage": "Nachricht konnte nicht gesendet werden: {{error}}",
+        "compact": "Unterhaltung konnte nicht verdichtet werden: {{error}}",
         "copyConversation": "Unterhaltung konnte nicht kopiert werden.",
         "rewindConversation": "Unterhaltung konnte nicht zurückgespult werden: {{error}}"
       },
@@ -17964,6 +17965,13 @@
       },
       "skills": "Skills",
       "noMatchingSkills": "Keine passenden Skills",
+      "commands": {
+        "compact": "Bisherige Unterhaltung zusammenfassen, um Kontext freizugeben",
+        "model": "Modell auswählen",
+        "mode": "Berechtigungen: plan, default, auto",
+        "new": "Neue Unterhaltung beginnen",
+        "rewind": "Letzte Nachricht zurücknehmen und bearbeiten"
+      },
       "selectModel": "Modell auswählen",
       "selectMusicModel": "Musikmodell auswählen",
       "selectEditModel": "Bearbeitungsmodell auswählen",
