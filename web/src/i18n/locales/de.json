@@ -6138,7 +6138,8 @@
       "documents": {
         "title": "Dokumente",
         "regionLabel": "Dokumente im aktuellen Projekt",
-        "countAndSort": "Dokumente · {{count}} · neueste zuerst",
+        "countSubtitle_one": "1 Dokument · neueste zuerst",
+        "countSubtitle_other": "{{count}} Dokumente · neueste zuerst",
         "loadFailureSummary": "Projekt-Dokumente konnten nicht geladen werden",
         "emptyTitle": "Noch keine Dokumente in diesem Projekt",
         "previousPage": "Vorherige",
@@ -6269,6 +6270,9 @@
         "gameDimension": "Spieltyp",
         "game2d": "2D-Spiel",
         "game3d": "3D-Erkundung",
+        "newProject": "Neues Projekt",
+        "newProjectHint": "In einem neuen Projekt starten, benannt nach deinem Prompt",
+        "newProjectError": "Das Projekt konnte nicht erstellt werden: {{error}}",
         "blankDocument": "Leeres Dokument",
         "blankDocumentDescription": "— wird als lose Registerkarte außerhalb eines Projekts geöffnet",
         "browseExamples": "Beispiele durchsuchen",
@@ -6458,13 +6462,21 @@
         "selectedProject": "Ausgewähltes Projekt: {{name}}",
         "selectProject": "Projekt auswählen",
         "projectHome": "Projektübersicht",
+        "openProjectHome": "Projektübersicht öffnen: {{name}}",
         "newProject": "Neues Projekt",
         "searchProjects": "Projekte durchsuchen",
         "loadingProjects": "Projekte werden geladen",
         "projectListLoadFailed": "Projektliste konnte nicht geladen werden",
         "couldNotLoadProjects": "Projekte konnten nicht geladen werden",
         "noMatchingProjects": "Keine passenden Projekte",
-        "noNamedProjects": "Noch keine benannten Projekte"
+        "noNamedProjects": "Noch keine benannten Projekte",
+        "documents": "Dokumente",
+        "projects": "Projekte",
+        "loadingDocuments": "Dokumente werden geladen…",
+        "couldNotLoadDocuments": "Dokumente konnten nicht geladen werden",
+        "noDocuments": "Noch keine Dokumente",
+        "noMatchingDocuments": "Keine passenden Dokumente",
+        "searchProjectsAndDocuments": "Projekte und Dokumente durchsuchen"
       },
       "rail": {
         "projects": "Projekte"
@@ -7915,6 +7927,7 @@
           "differentScenes": "Die Einstellungen in diesem Szenenclip gehören nicht mehr zu derselben Szene.",
           "addShot": "Füge zuerst eine Einstellung zum Board hinzu.",
           "renderStill": "Rendere mindestens ein Standbild.",
+          "addEntityImage": "Gib zuerst einer Entität auf dem Board ein Referenzbild.",
           "noVideoModel": "Kein Videomodell ausgewählt.",
           "imageLimit": "{{imageCount}} Bilder überschreiten das Limit von {{limit}}. Entferne {{remove}}.",
           "durationUnavailable": "{{model}} bietet keinen {{duration}}-Clip an. Wähle eine dieser Optionen: {{choices}}.",
@@ -9194,6 +9207,10 @@
         "soundNotifications": {
           "label": "Tonbenachrichtigungen",
           "description": "Spiele einen Systemton ab, wenn Workflows abgeschlossen sind, Exporte fertig sind oder andere wichtige Ereignisse eintreten."
+        },
+        "systemNotifications": {
+          "label": "Desktop-Benachrichtigungen",
+          "description": "Zeige eine Systembenachrichtigung, wenn ein Lauf oder eine Chat-Antwort fertig ist, während NodeTool im Hintergrund ist."
         }
       },
       "updates": {
@@ -10403,6 +10420,7 @@
       "emptyText": "Füge Figuren, Orte, Stile oder Requisiten hinzu, die jede Einstellung prägen."
     },
     "storyboardBoard": {
+      "renderOptions": "Render-Optionen",
       "sceneShotCaption": "Szene {{scene}} | Einstellung {{shot}}",
       "requestCost": "{{count}} Anfragen · geschätzt {{cost}}{{partial, select, true { ({{pricedCount}} mit Preis)} other {}}}",
       "requestCountUnpriced": "{{count}} Anfragen · Preis nicht verfügbar",
@@ -10575,6 +10593,9 @@
       "enqueued": "Eingereiht"
     },
     "toolbar": {
+      "graph": "Graph",
+      "chain": "Kette",
+      "viewMode": "Editoransicht",
       "openApp": "App öffnen",
       "makeApp": "App erstellen",
       "openWorkflowApp": "Die App öffnen, die diesen Workflow ausführt",
@@ -12500,6 +12521,10 @@
       "volume": "Lautstärke"
     },
     "topBar": {
+      "export": "Exportieren",
+      "workspace": "Arbeitsbereich",
+      "videoEditing": "Videoschnitt",
+      "audioDaw": "Audio (DAW)",
       "adaptFormat": "Format anpassen",
       "code": "Code",
       "daw": "DAW",
@@ -12529,7 +12554,6 @@
     },
     "trackHeader": {
       "clickToRename": "Zum Umbenennen klicken",
-      "custom": "Benutzerdefiniert",
       "deleteTrack": "Spur löschen",
       "deleteTrackQuestion": "Spur löschen?",
       "dragToReorder": "Ziehen, um die Spur neu anzuordnen",
@@ -12543,6 +12567,7 @@
       "insertTrackAbove": "{{type}}-Spur darüber einfügen",
       "insertTrackBelow": "{{type}}-Spur darunter einfügen",
       "instrumentFor": "Instrument für {{name}}",
+      "presetFor": "Preset für {{name}}",
       "lockTrack": "Spur sperren",
       "moveToFolder": "Zu {{name}} verschieben",
       "mute": "Stummschalten",
@@ -13261,6 +13286,7 @@
       },
       "errors": {
         "sendMessage": "Nachricht konnte nicht gesendet werden: {{error}}",
+        "compact": "Unterhaltung konnte nicht verdichtet werden: {{error}}",
         "copyConversation": "Unterhaltung konnte nicht kopiert werden.",
         "rewindConversation": "Unterhaltung konnte nicht zurückgespult werden: {{error}}"
       },
@@ -14744,6 +14770,10 @@
       "mp4Note": "Wird überall abgespielt. Keine Transparenz.",
       "webmNote": "VP9-Video mit Opus-Audio.",
       "pngSequenceNote": "Eine PNG-Datei pro Frame in einem ZIP-Archiv, mit einer manifest.json für Bildrate und Größe. Kein Audio.",
+      "wav": "WAV-Audio (16 Bit)",
+      "wavNote": "Der Audio-Mixdown der ganzen Timeline in Stereo, unkomprimiert mit 48 kHz. Kein Video.",
+      "mp3": "MP3-Audio (320 kbit/s)",
+      "mp3Note": "Der Audio-Mixdown der ganzen Timeline in Stereo. Kein Video.",
       "mp4Unsupported": "Dieser Browser kann keine MP4-Dateien schreiben. Daher ist diese Option deaktiviert.",
       "alphaLabel": "Mit Transparenz exportieren",
       "title": "Timeline exportieren",
@@ -14752,7 +14782,9 @@
       "alphaNote": {
         "mp4": "MP4 unterstützt keinen Alphakanal. Wähle WebM oder eine PNG-Sequenz.",
         "webm": "Wird über einen transparenten Hintergrund gelegt und behält den Alphakanal bei.",
-        "png_sequence": "Jede PNG-Datei behält ihren Alphakanal."
+        "png_sequence": "Jede PNG-Datei behält ihren Alphakanal.",
+        "mp3": "Eine MP3-Datei hat kein Bild, daher gibt es nichts transparent zu machen.",
+        "wav": "Eine WAV-Datei hat kein Bild, daher gibt es nichts transparent zu machen."
       }
     },
     "source": {
@@ -15795,6 +15827,7 @@
       "code": "Code",
       "run": "Ausführen",
       "script": "Skript",
+      "scriptSettings": "Skript-Einstellungen",
       "assistant": "Assistent"
     },
     "model3d": {
@@ -16489,7 +16522,7 @@
     },
     "instrument": {
       "preset": "Instrumenten-Preset",
-      "custom": "Benutzerdefiniert",
+      "type": "Instrument",
       "keyboard": "Tastatur",
       "loading": "Instrument wird geladen",
       "device": "Instrumentengerät",
@@ -16634,6 +16667,20 @@
         "moveTenPixels": "Clip um zehn Pixel verschieben",
         "resetTransform": "Transformation zurücksetzen"
       }
+    },
+    "vst": {
+      "desktopOnly": "VST-Instrumente spielen in der NodeTool-Desktop-App. Im Browser ist diese Spur stumm.",
+      "checking": "VST-Host wird gesucht",
+      "hostMissing": "Der VST-Host ist nicht installiert.",
+      "plugin": "VST-Instrument",
+      "choose": "Plug-in auswählen",
+      "missingPlugin": "{{name}} (hier nicht installiert)",
+      "scanning": "Plug-in-Ordner werden durchsucht",
+      "none": "In den Standardordnern für Plug-ins wurden keine VST3-Instrumente gefunden.",
+      "openWindow": "Plug-in-Fenster öffnen",
+      "closeWindow": "Plug-in-Fenster schließen",
+      "rescan": "Erneut suchen",
+      "hint": "Klangänderungen im Plug-in-Fenster werden mit der Timeline gespeichert. Clips werden beim Abspielen durch das Plug-in gerendert."
     }
   },
   "i18n-next63": {
@@ -16677,6 +16724,7 @@
       "copyName": "{{name}} (Kopie)",
       "createScriptAction": "das Skript erstellen",
       "duplicateScriptAction": "das Skript duplizieren",
+      "deleteScriptAction": "das Skript löschen",
       "singular": "Script",
       "plural": "Skripte",
       "emptyDescription": "Erstelle mit der Schaltfläche + oben ein neues Skript.",
@@ -16879,14 +16927,41 @@
         "importFailed": "Import fehlgeschlagen: {{error}}",
         "extractFailed": "Als Skript extrahieren fehlgeschlagen: {{error}}",
         "transcriptLabel": "TRANSKRIPT",
-        "scriptLabel": "SKRIPT",
+        "wordsLabel": "WÖRTER",
         "paragraphs_one": "1 Absatz",
         "paragraphs_other": "{{count}} Absätze",
         "removeFillers": "Füllwörter entfernen ({{count}})",
         "importTooltip": "Audio oder Video zum Transkribieren importieren",
         "importLabel": "Audio oder Video importieren",
         "extractTooltip": "Dieses Transkript als bearbeitbares Skript extrahieren",
-        "extractLabel": "Als Skript extrahieren"
+        "extractLabel": "Als Skript extrahieren",
+        "editTooltip": "Transkript bearbeiten (oder auf ein Wort doppelklicken)",
+        "editLabel": "Transkript bearbeiten",
+        "doneEditingTooltip": "Bearbeitung beenden (Esc)",
+        "doneEditingLabel": "Bearbeitung beenden"
+      },
+      "linkedScript": {
+        "addLine": "Zeile hinzufügen",
+        "lineLabel": "Zeilentext",
+        "linePlaceholder": "Zeile schreiben",
+        "lines_one": "1 Zeile",
+        "lines_other": "{{count}} Zeilen",
+        "linkFailed": "Skript konnte nicht verknüpft werden: {{error}}",
+        "unlinkFailed": "Skript konnte nicht getrennt werden: {{error}}",
+        "linkLabel": "Skript verknüpfen",
+        "linkTooltip": "Ein Skript mit dieser Timeline verknüpfen",
+        "newScript": "Neues Skript",
+        "newScriptName": "Skript zu {{name}}",
+        "openLabel": "Im Skripteditor öffnen",
+        "openTooltip": "Das Skript im Skripteditor öffnen",
+        "timeline": "Timeline",
+        "unlinkLabel": "Skript trennen",
+        "unlinkTooltip": "Das Skript trennen. Seine Clips bleiben in der Timeline.",
+        "untitled": "Unbenanntes Skript",
+        "voiceDraftTooltip": "Noch nicht vertont. Diese Zeile vertonen.",
+        "voiceFailed": "Vertonung fehlgeschlagen: {{error}}",
+        "voiceLabel": "Zeile vertonen",
+        "voiceStaleTooltip": "Der Text hat sich seit der letzten Aufnahme geändert. Diese Zeile neu vertonen."
       }
     }
   },
@@ -17897,7 +17972,6 @@
       },
       "status": {
         "alert": "Warnung",
-        "appSaved": "App gespeichert",
         "doneSuffix": ", fertig",
         "generating": "Wird generiert…",
         "loading": "Wird geladen",
@@ -17964,6 +18038,13 @@
       },
       "skills": "Skills",
       "noMatchingSkills": "Keine passenden Skills",
+      "commands": {
+        "compact": "Bisherige Unterhaltung zusammenfassen, um Kontext freizugeben",
+        "model": "Modell auswählen",
+        "mode": "Berechtigungen: plan, default, auto",
+        "new": "Neue Unterhaltung beginnen",
+        "rewind": "Letzte Nachricht zurücknehmen und bearbeiten"
+      },
       "selectModel": "Modell auswählen",
       "selectMusicModel": "Musikmodell auswählen",
       "selectEditModel": "Bearbeitungsmodell auswählen",
@@ -18280,6 +18361,19 @@
       "saving": "Wird gespeichert…",
       "saved": "Gespeichert",
       "error": "Speichern fehlgeschlagen"
+    },
+    "saveStatus": {
+      "notSaved": "Nicht gespeichert",
+      "retry": "Erneut versuchen",
+      "readOnly": "Schreibgeschützt"
+    },
+    "documentBar": {
+      "mode": "Dokumentmodus",
+      "label": "Dokument {{title}}",
+      "rename": "Dokumentname",
+      "renameHint": "Zum Umbenennen doppelklicken",
+      "moreActions": "Weitere Aktionen",
+      "copyContents": "Inhalt kopieren"
     }
   },
   "i18n-next105": {
@@ -18291,9 +18385,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "Fertig"
-    },
     "workspaceFile": {
       "invalidReference": "Ungültiger Dateiverweis im Arbeitsbereich"
     }
@@ -18508,8 +18599,7 @@
       "loading": "Stimmen der verfügbaren Anbieter werden gesucht…"
     },
     "appBuilder": {
-      "appData": "App-Daten",
-      "back": "Zurück"
+      "appData": "App-Daten"
     }
   },
   "i18n-next116": {
@@ -18777,5 +18867,34 @@
       "goToWorkspace": "Zum Arbeitsbereich",
       "opening": "Geteiltes Dokument wird geöffnet"
     }
+  },
+  "timelineAutomation": {
+    "groups": {
+      "mixer": "Mixer",
+      "clips": "Clips auf dieser Spur"
+    },
+    "params": {
+      "volume": "Lautstärke",
+      "pan": "Panorama",
+      "opacity": "Deckkraft",
+      "scale": "Skalierung",
+      "positionX": "Position X",
+      "positionY": "Position Y",
+      "rotation": "Drehung",
+      "brightness": "Helligkeit",
+      "contrast": "Kontrast",
+      "saturation": "Sättigung",
+      "hue": "Farbton",
+      "blur": "Unschärfe"
+    },
+    "showLanes": "Automationsspuren anzeigen",
+    "hideLanes": "Automationsspuren ausblenden",
+    "addLane": "Parameter automatisieren",
+    "turnOff": "Spur ausschalten",
+    "turnOn": "Spur einschalten",
+    "removeLane": "Spur entfernen",
+    "missingTarget": "Entferntes Gerät",
+    "laneLabel": "Automationsspur: {{name}}",
+    "deletePoint": "Punkt löschen"
   }
 }

@@ -129,7 +129,10 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
         }
         if (plainThreadStarted.current) return undefined;
         plainThreadStarted.current = true;
-        return createNewThread().then(selectThread);
+        // Opening the panel must not reset the mode another chat is in.
+        return createNewThread(undefined, undefined, {
+          keepMediaMode: true
+        }).then(selectThread);
       })
       .catch((err) => {
         console.error("AppBuilder agent: failed to connect", err);

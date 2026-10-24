@@ -1,6 +1,9 @@
 import React, { memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
+import type {
+  WorkspaceTab,
+  WorkspaceTabType
+} from "../../stores/WorkspaceTabsStore";
 import { LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
 
@@ -49,48 +52,83 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
           workflowId={tab.ref}
           mode={tab.mode}
           active={active}
+          tab={tab}
         />
       );
     case "image":
-      return <ImageSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <ImageSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "svg":
-      return <SvgSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <SvgSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "sketch":
-      return <SketchSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <SketchSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "text":
-      return <TextSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <TextSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "model3d":
-      return <Model3DSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <Model3DSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "audio":
-      return <AudioSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <AudioSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "timeline":
-      return <TimelineSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <TimelineSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+          tab={tab}
+        />
+      );
     case "storyboard":
       return (
-        <StoryboardSurface refId={tab.ref} mode={tab.mode} active={active} />
+        <StoryboardSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+          tab={tab}
+        />
       );
     case "script":
-      return <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "jsscript":
       return (
-        <JsScriptSurface refId={tab.ref} mode={tab.mode} active={active} />
+        <JsScriptSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+          tab={tab}
+        />
       );
     case "skill":
-      return <SkillSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <SkillSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "workspace-file":
       return (
         <WorkspaceFileSurface
           refId={tab.ref}
           mode={tab.mode}
           active={active}
+          tab={tab}
         />
       );
     case "application":
-      return <ApplicationSurface refId={tab.ref} mode={tab.mode} instanceId={tab.instanceId} selectedRunId={tab.selectedRunId} />;
+      return <ApplicationSurface refId={tab.ref} mode={tab.mode} instanceId={tab.instanceId} selectedRunId={tab.selectedRunId} tab={tab} />;
     case "example-app":
-      return <ExampleAppSurface slug={tab.ref} title={tab.title} />;
+      return <ExampleAppSurface slug={tab.ref} title={tab.title} tab={tab} />;
     case "game":
-      return <GameSurface refId={tab.ref} active={active} mode={tab.mode} />;
+      return <GameSurface refId={tab.ref} active={active} mode={tab.mode} tab={tab} />;
     case "chat":
       return <ChatSurface refId={tab.ref} active={active} />;
     case "page":

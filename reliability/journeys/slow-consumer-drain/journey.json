@@ -1,0 +1,15 @@
+{
+  "name": "slow-consumer-drain",
+  "description": "The fan-out/fan-in DAG of fan-out-fan-in-dag, read by a consumer that holds every message for a few milliseconds (`client-slow-consumer`, kernel surface). The run emits its last messages and closes the message stream while the consumer holds one, so a stream that stops on `closed` before draining what arrived during the hold drops the final node results and the terminal `job_update` while the run still reports completed (fixed in packages/kernel/src/message-stream.ts). The fault preserves the outcome, so the outputs golden is still compared, and the unfaulted ws-server run must match the slowed kernel oracle frame for frame.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [{ "type": "client-slow-consumer", "surface": "kernel", "params": { "delayMs": 10 } }],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": true,
+    "streamShape": false
+  }
+}

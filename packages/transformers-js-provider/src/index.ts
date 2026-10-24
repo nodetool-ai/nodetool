@@ -18,6 +18,15 @@ let registered = false;
  */
 export function registerTransformersJsProvider(): void {
   if (registered) return;
-  registerProvider("transformers_js", TransformersJsProvider);
+  // Runs inside the NodeTool process, so the model picker labels its models
+  // as local rather than API. Without metadata the registry assumes a
+  // remote API.
+  registerProvider(
+    "transformers_js",
+    TransformersJsProvider,
+    {},
+    {},
+    { access: "in_process", displayName: "Transformers.js" }
+  );
   registered = true;
 }

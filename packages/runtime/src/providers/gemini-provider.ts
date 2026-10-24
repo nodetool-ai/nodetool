@@ -1814,6 +1814,29 @@ export class GeminiProvider extends BaseProvider {
         resolutions: ["1K", "2K", "4K"]
       },
       {
+        id: "gemini-nano-banana-2.1",
+        name: "Nano Banana 2.1",
+        provider: "gemini",
+        supportedTasks: ["text_to_image", "image_to_image"],
+        aspectRatios: [
+          "1:1",
+          "1:4",
+          "1:8",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:1",
+          "4:3",
+          "4:5",
+          "5:4",
+          "8:1",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        resolutions: ["1K", "2K", "4K"]
+      },
+      {
         id: "gemini-3.1-flash-lite-image",
         name: "Gemini 3.1 Flash-Lite Image",
         provider: "gemini",

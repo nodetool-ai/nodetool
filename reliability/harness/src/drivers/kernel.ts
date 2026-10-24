@@ -43,6 +43,7 @@ import { AnchorWaiter } from "./anchors.js";
 import { buildJourneyRegistry } from "./registry.js";
 import { journeyPythonBridgeFactory } from "./python-bridge.js";
 import { getInjectedHostStorage } from "../faults/host-faults.js";
+import { getInjectedConsumerDelayMs } from "../faults/client-faults.js";
 import { RELIABILITY_FAULT_PROVIDER_ID } from "../faults/provider-faults.js";
 import type { RunDriver } from "./types.js";
 
@@ -62,6 +63,10 @@ async function pumpMessages(
       )
     );
     waiter.notify(message as unknown as Record<string, unknown>);
+    const delayMs = getInjectedConsumerDelayMs();
+    if (delayMs !== null) {
+      await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+    }
   }
 }
 

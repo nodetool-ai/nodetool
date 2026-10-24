@@ -637,9 +637,9 @@ export const timelineRouter = router({
       .input(listTimelineVersionsInput)
       .output(z.array(timelineVersionListItem))
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id, "viewer");
+        const seq = await loadOwned(ctx.userId, input.id, "viewer");
         const versions = await TimelineSequenceVersion.listForTimeline(
-          input.id,
+          seq.id,
           { limit: input.limit, saveType: input.saveType }
         );
         return versions.map(toVersionListItem);
@@ -649,9 +649,9 @@ export const timelineRouter = router({
       .input(getTimelineVersionInput)
       .output(timelineVersionResponse)
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id, "viewer");
+        const seq = await loadOwned(ctx.userId, input.id, "viewer");
         const version = await TimelineSequenceVersion.findByVersion(
-          input.id,
+          seq.id,
           input.version
         );
         if (!version) {
@@ -681,7 +681,7 @@ export const timelineRouter = router({
       .mutation(async ({ ctx, input }) => {
         const seq = await loadOwned(ctx.userId, input.id, "editor");
         const version = await TimelineSequenceVersion.findByVersion(
-          input.id,
+          seq.id,
           input.version
         );
         if (!version) {
@@ -720,9 +720,9 @@ export const timelineRouter = router({
       .input(deleteTimelineVersionInput)
       .output(okOutput)
       .mutation(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        const seq = await loadOwned(ctx.userId, input.id);
         const version = await TimelineSequenceVersion.findByVersion(
-          input.id,
+          seq.id,
           input.version
         );
         if (!version) {

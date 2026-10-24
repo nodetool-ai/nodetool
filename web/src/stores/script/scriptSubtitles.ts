@@ -6,7 +6,8 @@
  * and lays the takes end to end with the authored `pauseAfterMs` gaps — the same
  * layout `assembleScriptTimeline` uses — then renders subtitle cues via the
  * shared `@nodetool-ai/timeline` formatter. Unvoiced lines (no current take) are
- * skipped.
+ * skipped. A voiced line with no text gets no cue but keeps its slot, because
+ * its take still plays in the assembled audio.
  */
 
 import {
@@ -41,7 +42,6 @@ export const scriptSubtitleEntries = (script: ScriptDraft): SubtitleEntry[] => {
     for (const line of section.lines) {
       const take = line.takes.find((t) => t.id === line.currentTakeId);
       if (!take || !take.assetId) continue;
-      if (!line.text.trim()) continue;
       entries.push({
         text: line.text,
         durationMs: take.durationMs > 0 ? take.durationMs : PLACEHOLDER_LINE_MS,
@@ -67,5 +67,6 @@ export const exportScriptSubtitles = (
   const cues = assembleSubtitleCues(entries, {
     granularity: options.granularity ?? "line"
   });
+  if (cues.length === 0) return null;
   return { text: formatSubtitles(cues, format), format, cueCount: cues.length };
 };

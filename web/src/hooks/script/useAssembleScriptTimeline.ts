@@ -11,21 +11,26 @@
  * document mapping lives in {@link buildScriptTimelineDocument}.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { trpcClient } from "../../trpc/client";
-import { useScriptStore } from "../../stores/script/ScriptStore";
+import {
+  useScriptStore,
+  type ScriptDraft
+} from "../../stores/script/ScriptStore";
 import {
   useWorkspaceTabsStore,
   creationProjectId
 } from "../../stores/WorkspaceTabsStore";
 import { buildScriptTimelineDocument } from "../../components/script/assembleScriptTimeline";
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import { reconcileScriptClips } from "@nodetool-ai/timeline";
+import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import { loadLinkedBoard } from "../../lib/linkedAssembly";
 import {
   mergeIntoSequence,
   stampBoardProvenance
 } from "../../lib/assembledSequenceMerge";
 import { newDocumentId } from "../../lib/newDocumentId";
+import { isTimelineReconciledLive } from "../../stores/script/liveTimelineLinks";
 
 interface AssembleScriptResult {
   sequenceId: string;
@@ -60,10 +65,33 @@ async function sequenceProjectId(scriptId: string): Promise<string> {
   }
 }
 
+/**
+ * The saved sequence with the script's clips reconciled in place, so a clip
+ * someone moved stays put. Null when nothing changes, or when an editor here
+ * has the timeline open and reconciles it live.
+ */
+function reconcileUnlessLive(
+  sequenceId: string,
+  existing: { tracks: TimelineTrack[]; clips: TimelineClip[] },
+  script: ScriptDraft
+): { tracks: TimelineTrack[]; clips: TimelineClip[] } | null {
+  if (isTimelineReconciledLive(sequenceId)) return null;
+  const result = reconcileScriptClips(existing, {
+    scriptId: script.id,
+    cast: script.cast,
+    sections: script.sections
+  });
+  return result.changed ? { tracks: result.tracks, clips: result.clips } : null;
+}
+
 export const useAssembleScriptTimeline =
   (): UseAssembleScriptTimelineResult => {
     const [assembling, setAssembling] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    // Synchronous guard: `assembling` disables the button only after a
+    // re-render, and the linked-board load gave a second click time to start
+    // a second sequence.
+    const inFlightRef = useRef(false);
 
     const assemble = useCallback(
       async (scriptId: string): Promise<AssembleScriptResult> => {
@@ -71,23 +99,27 @@ export const useAssembleScriptTimeline =
         if (!script) {
           throw new Error(`No script "${scriptId}".`);
         }
-        // A linked board that cannot be read leaves the script assembling the
-        // way an unlinked one does — a deleted board must not break assemble.
-        const board = script.storyboardId
-          ? await loadLinkedBoard(script.storyboardId)
-          : null;
-        const doc = buildScriptTimelineDocument(script, board);
-        const lineClips = doc.clips.filter((clip) => clip.scriptLineId);
-        if (lineClips.length === 0) {
-          const message =
-            "No voiced lines to assemble — voice at least one line first.";
-          setError(message);
-          throw new Error(message);
+        if (inFlightRef.current) {
+          throw new Error("This script is already being assembled.");
         }
-
+        inFlightRef.current = true;
         setError(null);
         setAssembling(true);
         try {
+          // A linked board that cannot be read leaves the script assembling
+          // the way an unlinked one does — a deleted board must not break
+          // assemble.
+          const board = script.storyboardId
+            ? await loadLinkedBoard(script.storyboardId)
+            : null;
+          const doc = buildScriptTimelineDocument(script, board);
+          const lineClips = doc.clips.filter((clip) => clip.scriptLineId);
+          if (lineClips.length === 0) {
+            throw new Error(
+              "No voiced lines to assemble — voice at least one line first."
+            );
+          }
+
           const name = script.title.trim() || "Script voiceover";
           const clips = board
             ? stampBoardProvenance(doc.clips, board.boardId)
@@ -95,24 +127,29 @@ export const useAssembleScriptTimeline =
           const existingId = script.timelineId;
 
           if (existingId) {
-            // Re-assemble: replace what these documents put in the sequence,
-            // keep every other track and clip the editor added.
+            // Re-assemble. With a board, replace what these documents put in
+            // the sequence and keep every other track and clip the editor
+            // added. Without one, reconcile the script's clips in place.
             const sequence = await trpcClient.timeline.get.query({
               id: existingId
             });
-            const merged = mergeIntoSequence(
-              { tracks: doc.tracks, clips },
-              {
-                tracks: sequence.tracks,
-                clips: sequence.clips as TimelineClip[]
-              },
-              { scriptId, boardId: board?.boardId ?? null }
-            );
-            await trpcClient.timeline.update.mutate({
-              id: existingId,
-              baseUpdatedAt: sequence.updatedAt,
-              document: { ...merged, markers: sequence.markers ?? [] }
-            });
+            const existing = {
+              tracks: sequence.tracks,
+              clips: sequence.clips as TimelineClip[]
+            };
+            const written = board
+              ? mergeIntoSequence({ tracks: doc.tracks, clips }, existing, {
+                  scriptId,
+                  boardId: board.boardId
+                })
+              : reconcileUnlessLive(existingId, existing, script);
+            if (written) {
+              await trpcClient.timeline.update.mutate({
+                id: existingId,
+                baseUpdatedAt: sequence.updatedAt,
+                document: { ...written, markers: sequence.markers ?? [] }
+              });
+            }
             useWorkspaceTabsStore.getState().openTab({
               type: "timeline",
               ref: existingId,
@@ -157,6 +194,7 @@ export const useAssembleScriptTimeline =
           setError(err instanceof Error ? err.message : String(err));
           throw err;
         } finally {
+          inFlightRef.current = false;
           setAssembling(false);
         }
       },

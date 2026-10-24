@@ -24,6 +24,17 @@ import { NODE_HEADER_MIN_HEIGHT } from "./NodeHeader";
 import { SPACING, Z_INDEX } from "../ui_primitives";
 
 const HANDLE_ROW_HEIGHT = 18;
+/** Space between two handle rows: the row margin plus the column gap, px. */
+const HANDLE_ROW_SPACING = 10;
+
+/**
+ * Height a floating column of `count` handles takes, px. A body that bounds
+ * the column (the content card's preview area) grows to at least this so the
+ * last handles are not cut off below the node.
+ */
+export const handleColumnHeight = (count: number): number =>
+  count * HANDLE_ROW_HEIGHT + Math.max(0, count - 1) * HANDLE_ROW_SPACING;
+
 /** Offset that centers the first handle row on the header row. */
 const HEADER_ALIGNED_TOP = (NODE_HEADER_MIN_HEIGHT - HANDLE_ROW_HEIGHT) / 2;
 
@@ -39,6 +50,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",
+      // Row margin + this gap = HANDLE_ROW_SPACING.
       gap: theme.spacing(0.5)
     },
     // Stacked (in-flow) variant: used by the generic body, where the column

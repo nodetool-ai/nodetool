@@ -417,6 +417,24 @@ export class OpenAIProvider extends BaseProvider {
     return this.provider === PROVIDER_IDS.OPENAI;
   }
 
+  /**
+   * `prompt_cache_key` for a request. OpenAI picks the cache machine from a
+   * hash of the prompt's first tokens combined with this key, so requests that
+   * share a key and a prefix land where that prefix is already cached. All
+   * turns and tool rounds of one thread share a key; without a thread the
+   * system prompt stands in, which groups the calls of one agent or node.
+   * Only OpenAI's own API takes the field, so compatible endpoints get none.
+   */
+  protected promptCacheKey(args: {
+    threadId?: string | null;
+    messages?: Message[];
+  }): string | undefined {
+    if (this.provider !== PROVIDER_IDS.OPENAI) return undefined;
+    if (args.threadId) return `nodetool-${hashSystemPrompt(args.threadId)}`;
+    const system = responsesSystemPrompt(args.messages ?? []);
+    return system ? `nodetool-${hashSystemPrompt(system)}` : undefined;
+  }
+
   async hasToolSupport(model: string): Promise<boolean> {
     if (this.usesResponsesApi(model)) return true;
     return !(model.startsWith("o1") || model.startsWith("o3"));
@@ -1147,6 +1165,8 @@ export class OpenAIProvider extends BaseProvider {
       stream: true,
       stream_options: { include_usage: true }
     };
+    const promptCacheKey = this.promptCacheKey(args);
+    if (promptCacheKey) request.prompt_cache_key = promptCacheKey;
 
     const hasTools = tools.length > 0 && (await this.hasToolSupport(model));
 
@@ -1291,6 +1311,8 @@ export class OpenAIProvider extends BaseProvider {
       stream: false,
       max_completion_tokens: maxTokens
     };
+    const promptCacheKey = this.promptCacheKey(args);
+    if (promptCacheKey) request.prompt_cache_key = promptCacheKey;
 
     const hasTools = tools.length > 0 && (await this.hasToolSupport(model));
 
@@ -1599,6 +1621,8 @@ export class OpenAIProvider extends BaseProvider {
       | "temperature"
       | "topP"
       | "effort"
+      | "threadId"
+      | "messages"
     >,
     config: {
       input: Array<Record<string, unknown>>;
@@ -1618,6 +1642,8 @@ export class OpenAIProvider extends BaseProvider {
     if (config.previousResponseId) {
       request.previous_response_id = config.previousResponseId;
     }
+    const promptCacheKey = this.promptCacheKey(args);
+    if (promptCacheKey) request.prompt_cache_key = promptCacheKey;
     if (args.maxTokens != null) request.max_output_tokens = args.maxTokens;
     if (args.temperature != null) request.temperature = args.temperature;
     if (args.topP != null) request.top_p = args.topP;

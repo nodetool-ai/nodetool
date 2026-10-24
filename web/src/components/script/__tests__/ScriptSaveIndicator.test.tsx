@@ -59,7 +59,7 @@ describe("ScriptSaveIndicator", () => {
         <ScriptSaveIndicator scriptId={SCRIPT_ID} />
       </WithTheme>
     );
-    expect(screen.getByText("Save failed")).toBeInTheDocument();
+    expect(screen.getByText("Not saved")).toBeInTheDocument();
   });
 
   it("warns when a newer server version replaced local edits", () => {

@@ -174,6 +174,12 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   fields.** The FableSynth voices carry nested oscillators, envelopes and
   sixteen pads; a hand-written field list would go stale on the first one
   added, and the cache would serve audio from before the change.
+- **The FableSynth factory presets are generated, not handwritten.**
+  `src/midi/fablesynthPresets.gen.ts` holds every WT-1 preset, BL-1 patch and
+  DR-1 kit, converted by the web device mappings
+  (`web/src/components/timeline/daw/devices/fablesynthFactoryPresets.ts`).
+  After a FableSynth preset changes, run `npm run fablesynth-presets` in
+  `web/`. A handwritten preset with the same id wins.
 - **A new instrument type is two edits, not one.** `types.ts` and
   `@nodetool-ai/protocol`'s `midiInstrument` schema both describe the union, and
   `tests/midi.protocolCompat.test.ts` parses every shipped preset through the

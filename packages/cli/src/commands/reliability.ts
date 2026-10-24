@@ -39,9 +39,10 @@ export function registerReliabilityCommands(program: Command): void {
     .option(
       "--faults <name>",
       "Inject this fault (repeatable), replacing the journey's own declared fault matrix for " +
-        "this run — provider-seam faults (provider-429/500/timeout/truncated-stream/" +
-        "malformed-sse/slow-drip/cost-omission) are implemented (task D1); ws/bridge/host/" +
-        "client fault names are recognized but report as unimplemented until D2/D3 land",
+        "this run. Implemented: provider-429/500/timeout/truncated-stream/malformed-sse/" +
+        "slow-drip/cost-omission, ws-delay/reorder/fragment/drop-no-fin/stall-reads/abrupt-close, " +
+        "bridge-exit-mid-request/framing-violation/never-ready/epipe/version-mismatch, " +
+        "host-disk-full, client-slow-consumer. Other known names report as unimplemented",
       (value: string, previous: string[] = []) => [...previous, value],
       []
     )

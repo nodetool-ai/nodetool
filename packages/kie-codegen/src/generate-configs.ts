@@ -23,7 +23,9 @@ export async function generateKieConfigs(
   const previous = options.previous ?? (await readKieConfigs());
   const fetcher = new KieSchemaFetcher();
 
-  const llms = await fetcher.fetchLlms(useCache);
+  // Always refetch the index. A cached llms.txt hides every model KIE has
+  // added since it was written, and nothing else would ever surface them.
+  const llms = await fetcher.fetchLlms(false);
   const entries = fetcher.parseLlmsEntries(llms);
   const selectedEntries = Number.isFinite(options.limit)
     ? entries.slice(0, options.limit)

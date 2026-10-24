@@ -229,6 +229,51 @@ describe("script voice tools", () => {
     expect(lines[1].currentTakeId).toBe("t2");
   });
 
+  it("sends each line's delivery note and records what shaped the take", async () => {
+    const row = await makeScript(
+      [line({ id: "l1", speakerId: "sp1", text: "Hush", direction: "  whispering " })],
+      undefined,
+      "fast"
+    );
+    const { context, textToSpeechEncoded } = ctx();
+
+    await toolForCapabilityName("voice_script_lines").process(context, {
+      script_id: row.id
+    });
+
+    expect(textToSpeechEncoded.mock.calls[0][0]).toMatchObject({
+      instructions: "whispering",
+      speed: 1.15
+    });
+    const saved = (await Script.findById(row.id))!.toDocument();
+    const recorded = saved.sections[0].lines[0].takes[0];
+    expect(recorded.directionSnapshot).toBe("whispering");
+    expect(recorded.speedSnapshot).toBe(1.15);
+  });
+
+  it("re-voices a line whose pace changed since its take", async () => {
+    const row = await makeScript(
+      [
+        line({
+          id: "l1",
+          speakerId: "sp1",
+          currentTakeId: "t1",
+          takes: [take({ id: "t1", speedSnapshot: null, directionSnapshot: "" })]
+        })
+      ],
+      undefined,
+      "slow"
+    );
+    const { context, textToSpeechEncoded } = ctx();
+
+    const result = (await toolForCapabilityName("voice_script_lines").process(context, {
+      script_id: row.id
+    })) as { voiced: number };
+
+    expect(result.voiced).toBe(1);
+    expect(textToSpeechEncoded).toHaveBeenCalledOnce();
+  });
+
   it("skips a line with no voice and says how to fix it", async () => {
     const row = await makeScript([line({ id: "l1", text: "Orphan" })], []);
     const result = (await toolForCapabilityName("voice_script_lines").process(ctx().context, {

@@ -70,7 +70,9 @@ Derived, not stored:
 - **Line status**: `draft` (no takes), `voiced` (current take's `textSnapshot`
   and `voiceSnapshot` match the line), `stale` (text or voice changed since the
   take — show a re-voice affordance, exactly like the timeline's
-  `dependencyHash` staleness).
+  `dependencyHash` staleness). A take that records `directionSnapshot` or
+  `speedSnapshot` also goes stale when the line's direction or the script's
+  pace changes. Takes without them compare text and voice only.
 - **Script duration**: sum of current-take durations plus pauses. Placeholder
   duration for unvoiced lines (the transcript layer's `PLACEHOLDER_BEAT_MS`
   move).

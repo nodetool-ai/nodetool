@@ -25,7 +25,7 @@ The **Chain Editor** is a linear alternative to the node graph. Instead of placi
 
 There are two entry points:
 
-- **In a workflow tab.** Open the **⋮** (Workflow actions) menu on the composer bar and choose **Chain View**. The same menu item reads **Graph View** while the chain is showing. The choice is the `editorViewMode` setting, so it applies to every workflow tab and is remembered. The graph editor stays mounted underneath, so switching back keeps your canvas position.
+- **In a workflow tab.** Pick **Chain** in the **Graph / Chain** switch of the document bar. The choice is the `editorViewMode` setting, so it applies to every workflow tab and is remembered. The graph editor stays mounted underneath, so switching back keeps your canvas position.
 - **As a page.** Go to `/chain/:workflowId` to edit a stored workflow, or `/chain` to start an empty chain called "Untitled Workflow".
 
 ![Chain Editor — Empty](assets/screenshots/web-chain-editor-empty.png)
@@ -99,7 +99,7 @@ Chain cards have no run button of their own. In a workflow tab, use the composer
 
 A chain is a different view of the workflow graph.
 
-1. **Chain → Graph.** Choose **Graph View** in the **⋮** menu. Edits made in the chain are already in the graph, and positions of nodes that existed before are kept.
+1. **Chain → Graph.** Pick **Graph** in the document bar's switch. Edits made in the chain are already in the graph, and positions of nodes that existed before are kept.
 2. **Graph → Chain.** The chain lists every node that has registered metadata in depth-first order from the nodes with no incoming connection, with inputs first and outputs last. Branches become extra cards, and a field wired to an earlier step shows that step as its source.
 
 Nodes the chain cannot show, such as comments and groups, are left untouched in the graph. Saving from the standalone `/chain` page writes only the chain's nodes and lays them out in a single column.

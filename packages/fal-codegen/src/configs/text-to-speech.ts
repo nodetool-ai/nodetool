@@ -2,6 +2,19 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "heygen/heygen-voice": {
+      className: "HeygenVoice",
+      docstring: "HeyGen Voice converts text to natural speech.",
+      tags: ["audio", "text-to-speech", "tts", "heygen"]
+    },
+
+    "heygen/heygen-voice/turbo": {
+      className: "HeygenVoiceTurbo",
+      docstring:
+        "HeyGen Voice Turbo converts text to speech with lower latency.",
+      tags: ["audio", "text-to-speech", "tts", "heygen", "turbo"]
+    },
+
     "elevenlabs/tts/eleven-v4": {
       className: "ElevenlabsTtsElevenV4",
       docstring:

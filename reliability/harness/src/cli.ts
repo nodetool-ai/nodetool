@@ -71,7 +71,8 @@ export const KNOWN_FAULT_TYPES: readonly string[] = [
   "client-cancel-storm",
   "client-reconnect-storm",
   "client-duplicate-command",
-  "client-out-of-order-end-stream"
+  "client-out-of-order-end-stream",
+  "client-slow-consumer"
 ];
 
 export class ReliabilityCliError extends Error {}

@@ -143,6 +143,12 @@ export const PATH_CHECKS = [
   },
   { path: /^marketing\//, steps: [] },
   {
+    // The JUCE helper builds with CMake. The VST host workflow runs the same
+    // build on macOS and Windows.
+    path: /^native\/vst-host\//,
+    steps: [{ label: "vst-host: build and vst_host_test", command: "node", args: ["electron/scripts/build-vst-host.mjs", "--test"] }]
+  },
+  {
     // The rankings sync, its matcher and the naming helper the GenSpend sync
     // shares. The matcher is covered in model-pricing, and the route listing
     // against the real providers in runtime.

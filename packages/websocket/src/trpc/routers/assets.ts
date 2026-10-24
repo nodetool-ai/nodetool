@@ -299,7 +299,7 @@ function withExternalFingerprint(
 /**
  * Another user's asset that a document shared with the caller shows. Full
  * generated ids only: a short prefix would resolve across every user's
- * library, and the document match is a substring test.
+ * library, and the document match reads full ids out of the stored row.
  */
 async function findSharedAsset(
   userId: string,

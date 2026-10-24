@@ -55,10 +55,8 @@ function LfoView() {
       ctx.strokeStyle = '#4dff9e';
       ctx.lineWidth = 1.3;
       ctx.globalAlpha = 0.9;
-      ctx.shadowColor = '#4dff9e';
-      ctx.shadowBlur = 5;
+
       ctx.stroke();
-      ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
     };
     redraw.current = () => { const canvas = canvasRef.current; if (canvas) draw(canvas); };

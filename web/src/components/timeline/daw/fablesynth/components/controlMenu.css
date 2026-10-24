@@ -6,11 +6,11 @@
   overflow-y: auto;
   padding: 4px;
   box-sizing: border-box;
-  background: var(--panel-low, #0d1017);
+  background: var(--panel-low, var(--palette-background-paper));
   color: var(--text-ice, #dfe6f3);
-  border: 1px solid #394255;
+  border: 1px solid var(--palette-c_gray3);
   border-radius: 4px;
-  box-shadow: 0 8px 24px #06070b99;
+  box-shadow: none;
 }
 .fablesynth .control-menu button {
   display: block;
@@ -26,12 +26,12 @@
 }
 .fablesynth .control-menu button:hover:not(:disabled),
 .fablesynth .control-menu button:focus-visible {
-  background: #242c3b;
+  background: var(--palette-c_gray2);
   outline: 1px solid #9fb4d8;
 }
 .fablesynth .control-menu button:disabled { opacity: .45; cursor: default; }
 .fablesynth .control-menu .control-menu-source { padding-left: 24px; }
-.fablesynth .control-menu-sep { height: 1px; margin: 4px 2px; background: #394255; }
+.fablesynth .control-menu-sep { height: 1px; margin: 4px 2px; background: var(--palette-c_gray3); }
 .fablesynth .control-menu .control-menu-remove { display: flex; align-items: center; gap: 8px; }
 .fablesynth .control-menu .control-menu-remove::before {
   content: '';

@@ -63,6 +63,25 @@ describe("WorkflowCollaborator model", () => {
     expect(await WorkflowCollaborator.listForWorkflow("wf1")).toHaveLength(1);
   });
 
+  it("upsert never lowers an existing role", async () => {
+    await WorkflowCollaborator.upsert({
+      workflowId: "wf1",
+      userId: "u2",
+      role: "editor",
+      invitedBy: "u1"
+    });
+    const again = await WorkflowCollaborator.upsert({
+      workflowId: "wf1",
+      userId: "u2",
+      role: "viewer",
+      invitedBy: "u1"
+    });
+    expect(again.role).toBe("editor");
+    expect((await WorkflowCollaborator.findFor("wf1", "u2"))?.role).toBe(
+      "editor"
+    );
+  });
+
   it("listForUser returns all grants for a user", async () => {
     await WorkflowCollaborator.create({
       workflow_id: "wf1",

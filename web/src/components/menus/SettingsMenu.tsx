@@ -235,6 +235,9 @@ function SettingsPage() {
   const setSoundNotifications = useSettingsStore(
     (state) => state.setSoundNotifications
   );
+  const setSystemNotifications = useSettingsStore(
+    (state) => state.setSystemNotifications
+  );
   const updateAutosaveSettings = useSettingsStore(
     (state) => state.updateAutosaveSettings
   );
@@ -398,6 +401,13 @@ function SettingsPage() {
       setSoundNotifications(checked);
     },
     [setSoundNotifications]
+  );
+
+  const handleSystemNotificationsChange = useCallback(
+    (checked: boolean) => {
+      setSystemNotifications(checked);
+    },
+    [setSystemNotifications]
   );
 
   const handleSnapToGridChange = useCallback(
@@ -793,6 +803,18 @@ function SettingsPage() {
                           />
                         </SearchItem>
                       )}
+
+                      <SearchItem
+                        search={search}
+                        keywords="editor workspace desktop system notifications alerts"
+                      >
+                        <LabeledSwitch
+                          label={t("screens4_6.settings.editor.systemNotifications.label")}
+                          checked={!!settings.systemNotifications}
+                          onChange={handleSystemNotificationsChange}
+                          description={t("screens4_6.settings.editor.systemNotifications.description")}
+                        />
+                      </SearchItem>
 
                     </div>
 

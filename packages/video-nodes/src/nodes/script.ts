@@ -217,7 +217,15 @@ export class VoiceScriptNode extends BaseNode {
         if (!voice) continue;
         if (!needsVoicing(line, voice)) continue;
 
-        const synth = await synthesizeLine(context, text, voice, this.speed);
+        // The line's delivery note, for models that take a direction.
+        const direction = line.direction?.trim() ?? "";
+        const synth = await synthesizeLine(
+          context,
+          text,
+          voice,
+          this.speed,
+          direction
+        );
         if (!synth) continue;
 
         const durationMs = await probeDurationMs(
@@ -238,6 +246,7 @@ export class VoiceScriptNode extends BaseNode {
           words: [],
           textSnapshot: line.text,
           voiceSnapshot: voice,
+          directionSnapshot: direction,
           createdAt: new Date().toISOString()
         };
         await attachTake(context, script.id, line.id, take);
@@ -417,8 +426,8 @@ export class ScriptToSubtitlesNode extends BaseNode {
     for (const line of allLines(doc)) {
       const take = currentTake(line);
       if (!take || !take.assetId) continue;
-      const text = line.text.trim();
-      if (!text) continue;
+      // A voiced line with no text gets no cue but keeps its slot: its take
+      // still plays in the assembled audio.
       entries.push({
         text: line.text,
         durationMs: take.durationMs > 0 ? take.durationMs : PLACEHOLDER_LINE_MS,
@@ -834,12 +843,16 @@ async function synthesizeLine(
   context: ProcessingContext,
   text: string,
   voice: VoiceBindingLike,
-  speed: number
+  speed: number,
+  direction: string
 ): Promise<SynthResult | null> {
   const provider = voice.provider;
   const model = voice.model;
   if (!provider || !model) return null;
-  const params = { text, voice: voice.voice, speed };
+  const params: Record<string, unknown> = { text, voice: voice.voice, speed };
+  if (direction) {
+    params["instructions"] = direction;
+  }
 
   // Providers that stream raw PCM (OpenAI, ElevenLabs…) are wrapped into a WAV.
   // Providers that return an encoded audio file (FAL, KIE) go through the

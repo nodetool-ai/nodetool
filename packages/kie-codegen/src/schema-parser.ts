@@ -205,6 +205,24 @@ function listTypeForItems(itemSchema: JsonRecord): FieldDef["type"] {
   }
 }
 
+/**
+ * Kling 3.0's elements and shot lists take the values the Element and Shot
+ * nodes output instead of raw objects; the factory uploads their media and
+ * builds KIE's item shapes.
+ */
+function withAccessoryType(modelId: string, field: FieldDef): FieldDef {
+  if (!modelId.startsWith("kling-3.0") || field.type !== "list[dict]") {
+    return field;
+  }
+  if (field.name === "elements" || field.name === "kling_elements") {
+    return { ...field, type: "list[video_element]" };
+  }
+  if (field.name === "multi_prompt") {
+    return { ...field, type: "list[shot]" };
+  }
+  return field;
+}
+
 function defaultForMedia(kind: MediaKind): MediaRefDefault {
   if (kind === "audio") {
     return AUDIO_REF;
@@ -697,7 +715,7 @@ export function parseKieSchema(
     if (!mapped) {
       continue;
     }
-    fields.push(mapped.field);
+    fields.push(withAccessoryType(modelId, mapped.field));
     if (mapped.upload) {
       uploads.push(mapped.upload);
     }

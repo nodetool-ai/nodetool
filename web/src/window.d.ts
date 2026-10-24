@@ -4,6 +4,7 @@ import type {
   PackageActionResult,
   PackageInfo
 } from "./stores/NodePacksStore";
+import type { VstBridge } from "./components/timeline/daw/devices/vstBridge";
 
 interface WindowControls {
   minimize: () => void;
@@ -185,6 +186,18 @@ declare global {
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;
       mcp?: {
         installBundle: () => Promise<McpBundleInstallResult>;
+      };
+      /** VST3 instruments. Desktop only. */
+      vst?: VstBridge;
+      /** Native OS notifications. Desktop only. */
+      notifications?: {
+        /** Resolves whether a notification was shown: none while focused. */
+        show: (request: {
+          title?: string;
+          body: string;
+          tag?: string;
+          silent?: boolean;
+        }) => Promise<boolean>;
       };
       windowControls: WindowControls;
       platform: string;

@@ -54,6 +54,11 @@ export interface Settings {
   selectNodesOnDrag: boolean;
   soundNotifications: boolean;
   /**
+   * Show a desktop notification when a run or chat reply finishes while
+   * NodeTool is not focused.
+   */
+  systemNotifications: boolean;
+  /**
    * When enabled, changing any node property will trigger execution of
    * the downstream subgraph automatically (like "Run from here").
    */
@@ -115,6 +120,7 @@ interface SettingsStore {
   setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
+  setSystemNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
   setEditorViewMode: (value: "graph" | "chain") => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
@@ -141,6 +147,7 @@ export const defaultSettings: Settings = {
   alertBeforeTabClose: true,
   selectNodesOnDrag: false,
   soundNotifications: true,
+  systemNotifications: true,
   instantUpdate: false,
   editorViewMode: "graph",
   imageEditorOpenMode: "modal",
@@ -274,6 +281,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             soundNotifications: value
+          }
+        })),
+      setSystemNotifications: (value: boolean) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            systemNotifications: value
           }
         })),
       setInstantUpdate: (value: boolean) =>

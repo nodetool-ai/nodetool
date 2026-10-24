@@ -143,7 +143,15 @@ jest.mock("../../../trpc/client", () => ({
 // own suite (ScriptLinkControl.test.tsx).
 jest.mock("../ScriptLinkControl", () => ({
   __esModule: true,
-  default: () => null
+  default: () => null,
+  ScriptLinkNotices: () => null,
+  useScriptLinkAction: () => ({
+    label: "Extract script",
+    tooltip: "",
+    onClick: () => undefined,
+    disabled: false,
+    notices: []
+  })
 }));
 
 const mockGenerateKeyframe = jest.fn(async () => undefined);
@@ -379,6 +387,7 @@ jest.mock("../../../hooks/storyboard/storyboardSaveRegistry", () => ({
 import StoryboardBoard from "../StoryboardBoard";
 import { StudioProvider } from "../../../studio/StudioContext";
 import { displayNumber } from "../../../lib/storyboard/sceneOrder";
+import type { DocumentBarRender } from "../../ui_primitives";
 
 let nextIndex = 0;
 const makeShot = (id: string, sceneId?: string): Shot => {
@@ -1626,5 +1635,79 @@ describe("StoryboardBoard quick search", () => {
 
     expect(mockSelectShot).toHaveBeenCalledWith("board-1", "s-door");
     expect(screen.getByRole("button", { name: "s-door" })).toHaveFocus();
+  });
+});
+
+describe("StoryboardBoard in the document bar", () => {
+  const bar: DocumentBarRender = ({ status, history, mode, view, actions }) => (
+    <div role="toolbar" aria-label="document bar">
+      {status}
+      {history}
+      {mode}
+      {view}
+      {actions}
+    </div>
+  );
+  const renderInBar = () =>
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard
+          boardId="board-1"
+          onDirect={jest.fn()}
+          onAssemble={jest.fn()}
+          documentBar={bar}
+        />
+      </ThemeProvider>
+    );
+
+  it("moves the header into the bar", () => {
+    mockShots = [makeShot("s1")];
+    renderInBar();
+    const toolbar = screen.getByRole("toolbar", { name: "document bar" });
+
+    expect(toolbar).toHaveTextContent("Saved");
+    expect(
+      within(toolbar).getByRole("button", { name: /render stills/i })
+    ).toBeInTheDocument();
+    expect(
+      within(toolbar).getByRole("button", { name: "Render options" })
+    ).toBeInTheDocument();
+    expect(
+      within(toolbar).getByRole("button", { name: "Board settings" })
+    ).toBeInTheDocument();
+    // The header rows are gone: no labelled Preview or Slideshow buttons.
+    expect(screen.queryByRole("button", { name: "Slideshow" })).toBeNull();
+  });
+
+  it("swaps the grid for the preview in Preview mode", async () => {
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        keyframe: { type: "image", asset_id: "still-1", uri: "asset://s1" }
+      }
+    ];
+    const user = userEvent.setup();
+    renderInBar();
+    const grid = screen.getByRole("group", { name: /shots/i });
+    expect(grid).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+
+    expect(await screen.findByTestId("storyboard-preview")).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /shots/i })).toBeNull();
+  });
+
+  it("offers the board's other steps in the ⋮ menu", async () => {
+    mockShots = [makeShot("s1")];
+    const user = userEvent.setup();
+    renderInBar();
+
+    await user.click(screen.getByRole("button", { name: /more board actions/i }));
+
+    expect(screen.getByRole("menuitem", { name: /slideshow/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /one take/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /create timeline/i })
+    ).toBeInTheDocument();
   });
 });

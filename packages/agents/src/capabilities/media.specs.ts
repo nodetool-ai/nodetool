@@ -311,6 +311,11 @@ export const GENERATE_SPEECH_SCHEMA: JsonSchema = {
     speed: {
       type: "number" as const,
       description: "Speech speed (e.g. 0.25–4.0)."
+    },
+    instructions: {
+      type: "string" as const,
+      description:
+        "Delivery direction for models that take one (e.g. 'whispering, tired')."
     }
   },
   required: ["provider", "model", "text"]

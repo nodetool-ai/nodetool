@@ -13,6 +13,7 @@ import type {
   WavetableOscillator
 } from "../types.js";
 import { CINEMATIC_KIT, TR_VOID_KIT } from "./engines/kits.js";
+import { FABLESYNTH_FACTORY_PRESETS } from "./fablesynthPresets.gen.js";
 import { instrumentSignature } from "./instrument.js";
 
 export interface MidiInstrumentPreset {
@@ -80,17 +81,27 @@ const bass = (over: Partial<BassMidiInstrument>): BassMidiInstrument => ({
   ...over
 });
 
+/** The preset id a `vst` instrument of any plug-in reports. */
+export const VST_PRESET_ID = "vst";
+
 /**
- * The shipped voices. `saw-lead` is spelled out rather than aliased to
+ * The handwritten voices. `saw-lead` is spelled out rather than aliased to
  * `DEFAULT_MIDI_INSTRUMENT` so the two are pinned by a test instead of by
  * construction — a default nudged in `instrument.ts` fails there rather than
  * silently renaming the preset's sound.
  */
-export const MIDI_INSTRUMENT_PRESETS: readonly MidiInstrumentPreset[] = [
+const HANDWRITTEN_PRESETS: readonly MidiInstrumentPreset[] = [
   {
     id: "sampler",
     name: "Sampler · load audio samples",
     instrument: { type: "sampler", zones: [], oneShot: true, attackMs: 0, releaseMs: 100, gainDb: -6 }
+  },
+  {
+    // Every VST instrument reads back as this preset: the plug-in and its
+    // state are chosen in the device view, not here.
+    id: VST_PRESET_ID,
+    name: "VST instrument · desktop app",
+    instrument: { type: "vst", plugin: null, state: null, gainDb: 0 }
   },
   {
     id: "saw-lead",
@@ -535,6 +546,18 @@ export const MIDI_INSTRUMENT_PRESETS: readonly MidiInstrumentPreset[] = [
   }
 ];
 
+/**
+ * The handwritten voices, then every FableSynth factory sound
+ * (`fablesynthPresets.gen.ts`). A handwritten id wins, so a stored `preset`
+ * ref keeps the sound it named.
+ */
+export const MIDI_INSTRUMENT_PRESETS: readonly MidiInstrumentPreset[] = [
+  ...HANDWRITTEN_PRESETS,
+  ...FABLESYNTH_FACTORY_PRESETS.filter(
+    (preset) => !HANDWRITTEN_PRESETS.some((own) => own.id === preset.id)
+  )
+];
+
 /** The preset with this id, or undefined. */
 export function findInstrumentPreset(
   id: string
@@ -550,8 +573,58 @@ export function findInstrumentPreset(
 export function presetIdForInstrument(
   instrument: MidiInstrument
 ): string | undefined {
+  if (instrument.type === "vst") return VST_PRESET_ID;
   const signature = instrumentSignature(instrument);
   return MIDI_INSTRUMENT_PRESETS.find(
     (preset) => instrumentSignature(preset.instrument) === signature
   )?.id;
+}
+
+/** An instrument a MIDI track can hold, with the presets that start it. */
+export interface MidiInstrumentChoice {
+  type: Exclude<MidiInstrument["type"], "subtractive">;
+  name: string;
+  presets: readonly MidiInstrumentPreset[];
+}
+
+const INSTRUMENT_NAMES: readonly [MidiInstrumentChoice["type"], string][] = [
+  ["wavetable", "WT-1 Wavetable"],
+  ["bass", "BL-1 Bass"],
+  ["drum", "DR-1 Drums"],
+  ["sampler", "Sampler"],
+  ["vst", "VST instrument"]
+];
+
+/**
+ * The instruments offered for new and edited tracks, each with its presets.
+ * `subtractive` is left out: its voices still load and play, but nothing
+ * offers them any more.
+ */
+export const MIDI_INSTRUMENT_CHOICES: readonly MidiInstrumentChoice[] =
+  INSTRUMENT_NAMES.map(([type, name]) => ({
+    type,
+    name,
+    presets: MIDI_INSTRUMENT_PRESETS.filter(
+      (preset) => preset.instrument.type === type
+    )
+  }));
+
+/** The offered instrument of this type, or undefined for a legacy one. */
+export function findInstrumentChoice(
+  type: MidiInstrument["type"]
+): MidiInstrumentChoice | undefined {
+  return MIDI_INSTRUMENT_CHOICES.find((choice) => choice.type === type);
+}
+
+/**
+ * What `list_instruments` reports: each offered instrument with its preset
+ * ids and names, the two choices the editor's selects make. A preset id goes
+ * to `set_track_instrument` as `{ preset }`.
+ */
+export function listMidiInstruments() {
+  return MIDI_INSTRUMENT_CHOICES.map((choice) => ({
+    type: choice.type,
+    name: choice.name,
+    presets: choice.presets.map(({ id, name }) => ({ id, name }))
+  }));
 }

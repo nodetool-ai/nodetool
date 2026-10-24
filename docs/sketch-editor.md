@@ -46,7 +46,7 @@ The Sketch Editor runs in three places, all backed by the same document so your 
 
 1. Click the **+** button in the workspace tab bar (top of the editor).
 2. Choose **New sketch**. NodeTool creates a blank white image asset and opens it in a new tab in edit mode. To edit an existing image, open the asset in a tab and switch it to edit mode.
-3. The editor fills the tab. Use **Save to image** to render the composite back into the asset, then **Done** to return the tab to view mode.
+3. The editor fills the tab. Use **Save to image** in the document bar to render the composite back into the asset. The eye icon beside it returns the tab to view mode.
 
 ### From the Sketches panel
 
@@ -337,7 +337,7 @@ Because the document is shared across the tab, the Sketches panel, and the stand
 2. Block in a rough composition with the brush on one layer.
 3. Add a new layer, select the region you want to generate, and bind the layer to a model or workflow in the Properties panel.
 4. Write a prompt and **Generate**.
-5. Keep painting on top, then choose **Save to image** and **Done** — the flattened result flows downstream.
+5. Keep painting on top, then choose **Save to image**. The flattened result flows downstream.
 
 ### Masking for inpaint
 

@@ -3,6 +3,7 @@ import {
   defaultValueForType,
   isTypedSlot,
   normalizeDynamicSlot,
+  normalizeDynamicOutputs,
   normalizeDynamicSlots,
   normalizeTypeMetadata,
   slotType,
@@ -184,5 +185,25 @@ describe("valueFitsType", () => {
     expect(valueFitsType(["a"], listOf("str"))).toBe(true);
     expect(valueFitsType(["a"], listOf("image"))).toBe(false);
     expect(valueFitsType([], listOf("image"))).toBe(true);
+  });
+});
+
+describe("normalizeDynamicOutputs", () => {
+  it("completes each output's TypeMetadata", () => {
+    expect(
+      normalizeDynamicOutputs({ video: { type: "video", type_args: [] } })
+    ).toEqual({
+      video: {
+        type: "video",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      }
+    });
+  });
+
+  it("returns an empty map for missing outputs", () => {
+    expect(normalizeDynamicOutputs(undefined)).toEqual({});
   });
 });

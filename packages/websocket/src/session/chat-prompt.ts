@@ -126,8 +126,8 @@ of assuming the only way forward is a workflow.
   \`nodetool.assets\`: list, search, get, save, read.
 - **thread** — this conversation and its memory; see "Memory and resources".
 The \`ui_*\` families act on a document the user has open and take its id — the
-open ids are listed under "What the user is looking at", and the exact tools in
-a family differ per surface, so \`nodetool.searchTools\` rather than guessing names.
+open ids are listed under "What the user is looking at" in the latest user
+message, and the exact tools in a family differ per surface, so \`nodetool.searchTools\` rather than guessing names.
 Use available headless creation tools when no document exists. If the required
 operation only has editor tools, ask the user to open the document they need.
 
@@ -398,6 +398,11 @@ export function unroutableToolMessage(name: string): string {
  * (App Builder, timeline editor, …) can append its own guidance by sending a
  * `system_prompt` on the chat message — it is layered after the base prompt as
  * a context-specific addendum, never a replacement.
+ *
+ * The chat turn passes no `uiContext` or `workflowId`: what the user is
+ * looking at changes between turns (focus, selection, the open tabs), and a
+ * system prompt that changes invalidates every cached token after it. The
+ * turn sends {@link buildUiContextSection} at the tail instead.
  */
 export function buildChatAgentSystemPrompt(
   mode: PermissionMode,
@@ -409,14 +414,32 @@ export function buildChatAgentSystemPrompt(
     isString(extraSystemPrompt) && extraSystemPrompt.trim()
       ? `\n\n${extraSystemPrompt.trim()}\n`
       : "";
-  const uiBlock = formatUiContext(uiContext);
   return (
     CHAT_AGENT_SYSTEM_PROMPT +
     PERMISSION_MODE_PROMPTS[mode] +
-    uiBlock +
-    formatBoundWorkflow(uiContext, workflowId, uiBlock !== "") +
+    formatUiAndWorkflow(uiContext, workflowId) +
     extra
   );
+}
+
+/**
+ * The "What the user is looking at" section on its own, for the turn-scoped
+ * context that rides the last user message. Empty when there is nothing to
+ * say.
+ */
+export function buildUiContextSection(
+  uiContext?: UiContext | null,
+  workflowId?: string | null
+): string {
+  return formatUiAndWorkflow(uiContext, workflowId).trim();
+}
+
+function formatUiAndWorkflow(
+  uiContext: UiContext | null | undefined,
+  workflowId: string | null | undefined
+): string {
+  const uiBlock = formatUiContext(uiContext);
+  return uiBlock + formatBoundWorkflow(uiContext, workflowId, uiBlock !== "");
 }
 
 /**

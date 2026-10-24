@@ -160,6 +160,7 @@ import { RunNodeTool } from "../agent/run-node-tool.js";
 import { extractEmbeddedImage } from "./asset-autosave.js";
 import {
   buildChatAgentSystemPrompt,
+  buildUiContextSection,
   focusedUiToolNames,
   normalizeToolCallName,
   RESIDENT_TOOL_NAMES,
@@ -1550,6 +1551,12 @@ export class ChatTurnHandler {
     const userId = this.session.requireUserId();
     log.debug("Chat message", { threadId, model, provider: providerId });
 
+    // `/compact` is a command, not a prompt: nothing is saved or answered.
+    if (data.compact === true) {
+      await this.compactOnRequest(threadId, providerId, model, signal);
+      return;
+    }
+
     // Save user message to DB — matches Python's _save_message_to_db_async(data)
     const turnMessage = await this.saveMessageToDb(data, { keepClientId: true });
 
@@ -1564,6 +1571,123 @@ export class ChatTurnHandler {
         await settleRegisteredRunTrace(rootContext, signal?.aborted ? "cancelled" : "failed", error instanceof Error ? error.message : String(error));
         throw error;
       }
+    });
+  }
+
+  /**
+   * Which model writes a compaction summary: `NODETOOL_COMPACTION_MODEL` when
+   * set, otherwise the one the turn runs on. The setting takes the
+   * `provider/model` form the supervisor's does, and a bare id names a model
+   * on the turn's provider.
+   */
+  private async resolveSummarizer(
+    configured: string | null,
+    turn: { providerId: string; provider: BaseProvider; model: string },
+    userId: string
+  ): Promise<{ provider: BaseProvider; model: string }> {
+    const { providerId, provider, model } = turn;
+    if (configured === null) return { provider, model };
+    const slash = configured.indexOf("/");
+    if (slash <= 0) return { provider, model: configured };
+    const otherId = configured.slice(0, slash);
+    const otherModel = configured.slice(slash + 1);
+    if (otherId === providerId) return { provider, model: otherModel };
+    const resolved = await this.session.resolveProvider?.(otherId, userId);
+    if (!resolved) {
+      throw new Error(`No provider registered for "${otherId}"`);
+    }
+    return { provider: resolved, model: otherModel };
+  }
+
+  /**
+   * Compact a thread on request (`/compact`): summarize everything since the
+   * newest compaction into one record and answer no prompt. Unlike the
+   * automatic trigger, nothing is kept verbatim, so the next turn starts from
+   * the summary alone. The turn ends with `generation_stopped` on success and
+   * `error` otherwise, and the thread is left as it was on any failure.
+   */
+  private async compactOnRequest(
+    threadId: string,
+    providerId: string,
+    model: string,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const userId = this.session.requireUserId();
+    const fail = (message: string) =>
+      this.session.send({ type: "error", message, thread_id: threadId });
+    const rows = historySinceCompaction(await loadRecentThreadRows(threadId));
+    if (rows.every(isCompactionMessage)) {
+      await fail("There is nothing to compact yet.");
+      return;
+    }
+    if (!this.session.resolveProvider) {
+      await fail("No provider resolver configured");
+      return;
+    }
+    const settings = await readCompactionSettings();
+    let summary: string | null;
+    try {
+      const provider = await this.session.resolveProvider(providerId, userId);
+      const summarizer = await this.resolveSummarizer(
+        settings.model,
+        { providerId, provider, model },
+        userId
+      );
+      // The managed provider spends NodeTool's keys against the user's
+      // credits, so the summary call is admitted like any other turn.
+      if (summarizer.provider.provider === "nodetool") {
+        const decision = await admitSpend(userId, 0, [summarizer.model]);
+        if (!decision.allowed) {
+          await fail(decision.reason);
+          return;
+        }
+      }
+      summary = await summarizeForCompaction({
+        provider: summarizer.provider,
+        model: summarizer.model,
+        messages: rows.flatMap((row) => {
+          const message = dbMessageToProviderMessage(row, userId);
+          return message ? [message] : [];
+        }),
+        signal
+      });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      log.warn("Manual compaction failed", { threadId, error: detail });
+      await fail(`Could not summarize this conversation (${detail}).`);
+      return;
+    }
+    if (summary === null) {
+      await fail("The summary of this conversation came back empty.");
+      return;
+    }
+    const restricted = restrictedTraceToolNames();
+    const record = await Message.create<Message>({
+      thread_id: threadId,
+      user_id: userId,
+      role: "user",
+      execution_event_type: COMPACTION_EVENT_TYPE,
+      content: compactionMessageContent(summary),
+      tools: (await threadHasTraceContentTools(userId, threadId, restricted))
+        ? restricted
+        : null
+    });
+    this.measuredThreadTokens.delete(threadId);
+    await this.session.send({
+      type: "message",
+      role: "user",
+      execution_event_type: COMPACTION_EVENT_TYPE,
+      content: record.content,
+      thread_id: threadId
+    });
+    log.info("Compacted chat history on request", {
+      threadId,
+      summarized: rows.length
+    });
+    await this.session.send({
+      type: "generation_stopped",
+      message: "Conversation compacted.",
+      thread_id: threadId
     });
   }
 
@@ -1695,12 +1819,7 @@ export class ChatTurnHandler {
     const userSkills = await this.loadUserSkills(userId);
     const skillCatalogSection = formatSkillCatalogForPrompt(userSkills);
     const buildSystemContent = (): string => {
-      const base = buildChatAgentSystemPrompt(
-        permissionMode,
-        extraSystemPrompt,
-        uiContext,
-        workflowId
-      );
+      const base = buildChatAgentSystemPrompt(permissionMode, extraSystemPrompt);
       const sections = [base];
       if (codeactPromptSection) sections.push(codeactPromptSection);
       if (skillCatalogSection) sections.push(skillCatalogSection);
@@ -2183,8 +2302,14 @@ export class ChatTurnHandler {
             description: s.description,
             inputSchema: s.inputSchema
           })),
+        // The surface's packages hold for the thread. The focused
+        // document's are the turn's, so a change of focus does not change
+        // the system prompt and invalidate the prompt cache.
         sandboxPackages: sandboxPackagesForChat({
           source: uiContext?.source,
+          catalog: getProcessSandboxModuleCatalog()
+        }),
+        turnSandboxPackages: sandboxPackagesForChat({
           focusedType: uiContext?.focused?.type,
           catalog: getProcessSandboxModuleCatalog()
         }),
@@ -2201,12 +2326,14 @@ export class ChatTurnHandler {
         },
         residentToolNames: [
           ...CODEACT_RESIDENT_TOOL_NAMES,
-          ...RESIDENT_TOOL_NAMES,
-          ...focusedUiToolNames(
-            uiContext,
-            allSchemas.map((schema) => schema.name)
-          )
+          ...RESIDENT_TOOL_NAMES
         ],
+        // Same reason: the focused document's tools are documented with the
+        // turn's message rather than in the system prompt.
+        turnToolNames: focusedUiToolNames(
+          uiContext,
+          allSchemas.map((schema) => schema.name)
+        ),
         context: ctx,
         signal,
         clock: codeactClock,
@@ -2281,6 +2408,15 @@ export class ChatTurnHandler {
     // — which is exactly why it must sit behind every byte a later turn will
     // reuse. See `appendContextToLastUser`.
     const volatileContext: string[] = [];
+    // What the user is looking at (focus, open tabs, selection) changes from
+    // turn to turn, so it rides here rather than in the system prompt.
+    const uiContextSection = buildUiContextSection(uiContext, workflowId);
+    if (uiContextSection) volatileContext.push(uiContextSection);
+    // The focused document's tool signatures and packages, for the same
+    // reason.
+    if (codeactSession?.turnPromptSection) {
+      volatileContext.push(codeactSession.turnPromptSection);
+    }
     // Durable memories (memory_* tools), so the agent starts each turn aware
     // of what it recorded — project facts, decisions, and the assets it
     // generated for reuse. This thread's in full, the rest as a count it can
@@ -2608,29 +2744,6 @@ export class ChatTurnHandler {
       });
     };
 
-    /**
-     * Which model writes the summary: `NODETOOL_COMPACTION_MODEL` when set,
-     * otherwise the one the turn is already running on. The setting takes the
-     * `provider/model` form the supervisor's does, and a bare id names a model
-     * on this turn's provider.
-     */
-    const summarizerModel = async (): Promise<{
-      provider: BaseProvider;
-      model: string;
-    }> => {
-      const configured = compaction.model;
-      if (configured === null) return { provider, model };
-      const slash = configured.indexOf("/");
-      if (slash <= 0) return { provider, model: configured };
-      const otherId = configured.slice(0, slash);
-      const otherModel = configured.slice(slash + 1);
-      if (otherId === providerId) return { provider, model: otherModel };
-      const resolved = await this.session.resolveProvider?.(otherId, userId);
-      if (!resolved) {
-        throw new Error(`No provider registered for "${otherId}"`);
-      }
-      return { provider: resolved, model: otherModel };
-    };
 
     /**
      * Summarize this thread up to the cut, persist the record, and rebuild the
@@ -2662,7 +2775,11 @@ export class ChatTurnHandler {
       if (!cut) return false;
       let summary: string | null;
       try {
-        const summarizer = await summarizerModel();
+        const summarizer = await this.resolveSummarizer(
+          compaction.model,
+          { providerId, provider, model },
+          userId
+        );
         summary = await summarizeForCompaction({
           provider: summarizer.provider,
           model: summarizer.model,

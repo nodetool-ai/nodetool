@@ -73,7 +73,10 @@ import {
 } from "./threadRuntime";
 import { applyMediaPrediction } from "./mediaPrediction";
 import { isNumber, isString } from "../../utils/typePredicates";
+import { notifySystem } from "../../utils/systemNotification";
 import {
+  THOUGHT_CLOSE,
+  hasOpenThought,
   streamedChunkText,
   stripThoughtContent,
   thoughtBlocks
@@ -479,6 +482,55 @@ const trailingText = (content: Message["content"]): string => {
     return lastBlock && lastBlock.type === "text" ? lastBlock.text : "";
   }
   return "";
+};
+
+/** Characters of the reply a desktop notification previews. */
+const REPLY_PREVIEW_LENGTH = 140;
+
+/**
+ * Tell a user who looked away that a chat turn finished, with the start of
+ * the reply. `notifySystem` stays silent while the app is focused.
+ */
+const announceTurnFinished = (state: GlobalChatState, threadId: string): void => {
+  const messages = state.messageCache[threadId] || [];
+  const lastMessage = messages[messages.length - 1];
+  const reply =
+    lastMessage?.role === "assistant"
+      ? stripThoughtContent(trailingText(lastMessage.content))
+          .replace(/\s+/g, " ")
+          .trim()
+      : "";
+  const preview =
+    reply.length > REPLY_PREVIEW_LENGTH
+      ? `${reply.slice(0, REPLY_PREVIEW_LENGTH - 1)}…`
+      : reply;
+  notifySystem({
+    title: state.threads[threadId]?.title || "Chat",
+    body: preview || "Chat reply finished.",
+    tag: `chat-turn-finished-${threadId}`
+  });
+};
+
+/**
+ * Close a reasoning block the last message left open. Chunks close it only
+ * when answer text or `done` follows in the same message, so reasoning that
+ * leads straight into a tool call stayed "Thinking" until the turn ended.
+ */
+const closeTrailingThought = (messages: Message[]): Message[] => {
+  const lastMessage = messages[messages.length - 1];
+  if (
+    lastMessage?.role !== "assistant" ||
+    !hasOpenThought(trailingText(lastMessage.content))
+  ) {
+    return messages;
+  }
+  return [
+    ...messages.slice(0, -1),
+    {
+      ...lastMessage,
+      content: appendTextContent(lastMessage.content, THOUGHT_CLOSE)
+    }
+  ];
 };
 
 const applyChunk = (
@@ -1044,9 +1096,10 @@ const replaceStreamPlaceholderOrAppend = (
 const applyToolMessage = (
   state: GlobalChatState,
   threadId: string,
-  messages: Message[],
+  cachedMessages: Message[],
   msg: Message
 ) => {
+  const messages = closeTrailingThought(cachedMessages);
   // An assistant message carrying tool_calls finalizes the text the server just
   // streamed, so replace the streaming placeholder instead of appending a second
   // copy. Plain tool-result messages (role === "tool") never have a placeholder
@@ -1621,6 +1674,9 @@ export async function handleChatWebSocketMessage(
       );
     }
     applyReducer(applyChunk, data);
+    if (data.done && tid) {
+      announceTurnFinished(get(), tid);
+    }
   } else if (data.type === "output_update") {
     applyReducer(applyOutputUpdate, data);
   } else if (data.type === "tool_call_update") {

@@ -71,10 +71,8 @@ export function LFOView({ shape, rate, accent, className }: LFOViewProps) {
       ctx.beginPath();
       ctx.arc(pad + phase * W, y, 2.5, 0, Math.PI * 2);
       ctx.fillStyle = '#fff';
-      ctx.shadowColor = accent;
-      ctx.shadowBlur = 8;
+
       ctx.fill();
-      ctx.shadowBlur = 0;
     };
     redraw.current = () => { const canvas = canvasRef.current; if (canvas) draw(canvas); };
     const stopLoop = startCanvasLoop(canvasRef, draw);

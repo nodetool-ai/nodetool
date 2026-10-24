@@ -119,9 +119,9 @@ so layouts do not follow the user to another browser.
 Below the `sm` breakpoint (`useTimelineIsMobile`, matching `MobileClassProvider`
 and the sketch editor) the shell drops to one column:
 
-- **TopBar** wraps into two rows — prompt + Generate above, the model and
-  output chips in a scrolling rail below — and Settings / Save / Save as Asset
-  / Export collapse into one overflow menu.
+- **TimelineDocumentBar** keeps Export as its one button. The Workspace menu
+  and the panel toggles leave, and Video / DAW moves into the ⋮ menu with
+  Settings, Save as asset and the other exports.
 - **Preview** takes the full width. Inspector, Assistant, History, and the
   script transcript move into a bottom sheet opened from the status bar, so
   preview and tracks — the two you need at once — stay stacked and both usable.
@@ -239,7 +239,7 @@ mute/solo, the DSP chain, the offline export — because the notes become an
 
 ### Editing a part
 
-- **Tempo** lives in Project settings (the TopBar's Settings): BPM, time
+- **Tempo** lives in Project settings (in the document bar's ⋮ menu): BPM, time
   signature and where beat one sits. It is document state the autosave already
   carries, so applying it calls the store's `setTempo` rather than the
   `width`/`height`/`fps` PATCH the same dialog does — and the dialog says what
@@ -328,7 +328,8 @@ the preset it matches, and each midi clip's note count.
 
 ## DAW mode
 
-The TopBar's Video / DAW switch (or Alt+M in every keyboard layout) is a
+The Workspace menu in the document bar (Video editing or Audio (DAW), or
+Alt+M in every keyboard layout) is a
 persisted layout flag, `dawMode` on `TimelineLayoutStore`. It changes the
 layout only; the document is the same.
 
@@ -469,7 +470,7 @@ edits from another tab are out of scope (last-write-wins via `updated_at`).
 
 ## Video Export (frame-by-frame, 1:1 with live)
 
-The **Export** action in the `TopBar` renders the sequence to an MP4 entirely
+The **Export** button in `TimelineDocumentBar` renders the sequence to an MP4 entirely
 in the browser. It reuses the *same* compositor and scene description as the
 live preview, so an exported frame is identical to what playback showed:
 

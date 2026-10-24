@@ -1,7 +1,7 @@
 /**
  * TranscriptPanel — Studio's transcript-driven editor surface.
  *
- * The script is one freeform text editor ({@link TranscriptEditor}): words are
+ * The transcript is one freeform text editor ({@link TranscriptEditor}): words are
  * editable text bound to the media, so typing corrects the transcript, deleting
  * ripple-cuts the timeline, and the caret seeks the shared playhead. This panel
  * wraps it with filler removal and media import — all of which mutate the clip
@@ -17,6 +17,8 @@ import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import EditNoteIcon from "@mui/icons-material/EditNote";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import CheckIcon from "@mui/icons-material/Check";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -40,9 +42,17 @@ import { buildTranscriptDoc, isTranscriptClip } from "../../stores/timeline/tran
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useExtractScript } from "../../hooks/script/useExtractScript";
-import { TranscriptEditor } from "./transcript/TranscriptEditor";
+import {
+  TranscriptEditor,
+  type TranscriptEditorMode
+} from "./transcript/TranscriptEditor";
 
-export const TranscriptPanel: React.FC = memo(() => {
+interface TranscriptPanelProps {
+  /** An extra control at the end of the header actions. */
+  headerAction?: React.ReactNode;
+}
+
+export const TranscriptPanel: React.FC<TranscriptPanelProps> = memo(({ headerAction }) => {
   const { t } = useTranslation();
   // Only the transcript/caption-bearing subset — untouched clips (B-roll,
   // music) keep their identity across store publishes, so `useShallow`
@@ -60,6 +70,8 @@ export const TranscriptPanel: React.FC = memo(() => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const [mode, setMode] = useState<TranscriptEditorMode>("script");
+  const writing = mode === "write";
 
   const { segments, fillerCount } = useMemo(() => {
     const doc = buildTranscriptDoc(clips);
@@ -141,7 +153,7 @@ export const TranscriptPanel: React.FC = memo(() => {
         <FlexRow align="center" justify="space-between">
           <FlexRow gap={SPACING.xs} align="baseline">
             <Text size="smaller" sx={{ letterSpacing: "0.08em" }}>
-              {t("i18n-next65.timeline.transcript.scriptLabel")}
+              {t("i18n-next65.timeline.transcript.wordsLabel")}
             </Text>
             <Caption sx={{ color: "text.disabled" }}>
               {t("i18n-next65.timeline.transcript.paragraphs", {
@@ -150,6 +162,27 @@ export const TranscriptPanel: React.FC = memo(() => {
             </Caption>
           </FlexRow>
           <FlexRow gap={SPACING.xs} align="center">
+            <ToolbarIconButton
+              icon={
+                writing ? (
+                  <CheckIcon fontSize="small" />
+                ) : (
+                  <EditOutlinedIcon fontSize="small" />
+                )
+              }
+              tooltip={t(
+                writing
+                  ? "i18n-next65.timeline.transcript.doneEditingTooltip"
+                  : "i18n-next65.timeline.transcript.editTooltip"
+              )}
+              aria-label={t(
+                writing
+                  ? "i18n-next65.timeline.transcript.doneEditingLabel"
+                  : "i18n-next65.timeline.transcript.editLabel"
+              )}
+              active={writing}
+              onClick={() => setMode(writing ? "script" : "write")}
+            />
             {fillerCount > 0 ? (
               <EditorButton
                 size="small"
@@ -177,10 +210,11 @@ export const TranscriptPanel: React.FC = memo(() => {
                 onClick={() => void onExtractScript()}
               />
             ) : null}
+            {headerAction}
           </FlexRow>
         </FlexRow>
 
-        <TranscriptEditor />
+        <TranscriptEditor mode={mode} onModeChange={setMode} />
       </FlexColumn>
     </Panel>
   );

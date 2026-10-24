@@ -18,7 +18,7 @@
 
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
-import type { CreativeContext } from "@nodetool-ai/protocol";
+import { paceSpeed, type CreativeContext } from "@nodetool-ai/protocol";
 import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import {
   pushHistory,
@@ -55,6 +55,11 @@ export interface ScriptTake {
   words: ScriptCaptionWord[];
   textSnapshot: string;
   voiceSnapshot: VoiceBinding | null;
+  /** The trimmed delivery note sent as TTS instructions ("" for none). */
+  directionSnapshot?: string;
+  /** The pace speed sent (null for the provider default); absent when the
+   * provider ignores pace. */
+  speedSnapshot?: number | null;
   createdAt: string;
   favorite?: boolean;
   costCredits?: number;
@@ -102,6 +107,8 @@ export interface ScriptDraft {
   storyboardId: string | null;
   /** Optional shared product, audience, and reference context. */
   creativeContext?: CreativeContext;
+  /** The template script this one was filled from, kept for its lineage. */
+  templateId?: string | null;
   /**
    * Where the script sits in the guided setup, and the answers each step wrote
    * (PRD § 9.5). Null on a script written before the flow existed, which is
@@ -241,6 +248,18 @@ export interface ScriptStoreState {
    * line id, or null when the line is not found.
    */
   duplicateLine: (scriptId: string, lineId: string) => string | null;
+  /**
+   * Split `lineId` at the caret as one undo step: it keeps `before` and its
+   * takes, and a new line after it takes `after` with the same speaker and
+   * direction. The pause moves to the new line, which now ends the passage.
+   * Returns the new line id, or null when the line is not found.
+   */
+  splitLine: (
+    scriptId: string,
+    lineId: string,
+    before: string,
+    after: string
+  ) => string | null;
   patchLine: (
     scriptId: string,
     lineId: string,
@@ -367,6 +386,23 @@ const mapLine = (
   return changed ? { ...script, sections } : script;
 };
 
+/**
+ * A restored checkpoint with the current values of the fields that never
+ * record one. The timeline and storyboard links and the guided setup change
+ * without an undo step, so undo must not move them either: restoring the
+ * checkpoint's old link unlinked an assembled sequence, and its old setup
+ * stage put the setup flow back in place of the editor.
+ */
+const keepUntracked = (
+  restored: ScriptDraft,
+  current: ScriptDraft
+): ScriptDraft => ({
+  ...restored,
+  timelineId: current.timelineId,
+  storyboardId: current.storyboardId,
+  setup: current.setup
+});
+
 // ── Store ────────────────────────────────────────────────────────────────────
 
 export const useScriptStore = create<ScriptStoreState>((set, get) => ({
@@ -385,7 +421,10 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
       return {
         scripts: {
           ...state.scripts,
-          [scriptId]: { ...result.restored, updatedAt: Date.now() }
+          [scriptId]: {
+            ...keepUntracked(result.restored, current),
+            updatedAt: Date.now()
+          }
         },
         history: result.history
       };
@@ -400,7 +439,10 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
       return {
         scripts: {
           ...state.scripts,
-          [scriptId]: { ...result.restored, updatedAt: Date.now() }
+          [scriptId]: {
+            ...keepUntracked(result.restored, current),
+            updatedAt: Date.now()
+          }
         },
         history: result.history
       };
@@ -785,6 +827,7 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
             speakerId: src.speakerId ?? null,
             direction: src.direction,
             pauseAfterMs: src.pauseAfterMs,
+            targetDurationMs: src.targetDurationMs,
             voiceOverride: src.voiceOverride,
             takes: [],
             currentTakeId: null
@@ -796,6 +839,38 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
           return { ...section, lines };
         });
         return done ? { ...s, sections } : s;
+      })
+    );
+    return created ? newId : null;
+  },
+
+  splitLine: (scriptId, lineId, before, after) => {
+    const newId = uid("line");
+    let created = false;
+    set((state) =>
+      withScript(state, scriptId, (s) => {
+        const sections = s.sections.map((section) => {
+          const idx = section.lines.findIndex((l) => l.id === lineId);
+          if (created || idx < 0) return section;
+          const src = section.lines[idx];
+          const head: ScriptLine = { ...src, text: before };
+          delete head.pauseAfterMs;
+          const tail: ScriptLine = {
+            id: newId,
+            text: after,
+            speakerId: src.speakerId ?? null,
+            direction: src.direction,
+            pauseAfterMs: src.pauseAfterMs,
+            voiceOverride: src.voiceOverride,
+            takes: [],
+            currentTakeId: null
+          };
+          const lines = [...section.lines];
+          lines.splice(idx, 1, head, tail);
+          created = true;
+          return { ...section, lines };
+        });
+        return created ? { ...s, sections } : s;
       })
     );
     return created ? newId : null;
@@ -1011,6 +1086,15 @@ export const useScriptTitle = (scriptId: string): string =>
 export const useScriptSetup = (scriptId: string): ScriptSetup | null =>
   useScriptStore((state) => state.scripts[scriptId]?.setup ?? null);
 
+/**
+ * Reactive pace speed a voicing of this script sends (null for the provider
+ * default) — the third argument of {@link lineStatus}.
+ */
+export const useScriptSpeed = (scriptId: string): number | null =>
+  useScriptStore(
+    (state) => paceSpeed(state.scripts[scriptId]?.setup?.pace) ?? null
+  );
+
 /** Reactive transient voicing flag for a line. */
 export const useLineVoicing = (lineId: string): boolean =>
   useScriptStore((state) => !!state.voicingLineIds[lineId]);
@@ -1032,21 +1116,36 @@ export const useScriptSaveStatus = (scriptId: string): ScriptSaveStatus =>
 
 /**
  * Line status derived from its current take vs. the current text/voice.
- * `draft` — no takes; `voiced` — current take matches; `stale` — text or voice
- * changed since the take was made.
+ * `draft` — no takes; `voiced` — current take matches; `stale` — text, voice,
+ * delivery note or pace changed since the take was made.
+ *
+ * `speed` is the pace speed a voicing would send now (null for the provider
+ * default). Leave it out where the script's pace is unknown; a take compares
+ * pace and direction only when it recorded them.
  */
 export type LineStatus = "draft" | "voiced" | "stale";
 
 export const lineStatus = (
   line: ScriptLine,
-  effectiveVoice: VoiceBinding | null
+  effectiveVoice: VoiceBinding | null,
+  speed?: number | null
 ): LineStatus => {
   const take = line.takes.find((t) => t.id === line.currentTakeId);
   if (!take) return "draft";
   const textMatches = take.textSnapshot === line.text;
   const voiceMatches =
-    JSON.stringify(take.voiceSnapshot) === JSON.stringify(effectiveVoice);
-  return textMatches && voiceMatches ? "voiced" : "stale";
+    JSON.stringify(take.voiceSnapshot ?? null) ===
+    JSON.stringify(effectiveVoice);
+  const directionMatches =
+    take.directionSnapshot === undefined ||
+    take.directionSnapshot === (line.direction?.trim() ?? "");
+  const speedMatches =
+    take.speedSnapshot === undefined ||
+    speed === undefined ||
+    take.speedSnapshot === speed;
+  return textMatches && voiceMatches && directionMatches && speedMatches
+    ? "voiced"
+    : "stale";
 };
 
 /** The voice a line will be sung with: its override, else its speaker's. */

@@ -98,7 +98,7 @@ describe("midi types match the protocol schemas", () => {
   it("covers every instrument type with a preset", () => {
     expect(
       new Set(MIDI_INSTRUMENT_PRESETS.map((p) => p.instrument.type))
-    ).toEqual(new Set(["subtractive", "wavetable", "bass", "drum", "sampler"]));
+    ).toEqual(new Set(["subtractive", "wavetable", "bass", "drum", "sampler", "vst"]));
   });
 
   it("parses chord tracks and clip harmony through the protocol schemas", () => {

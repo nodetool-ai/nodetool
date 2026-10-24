@@ -49,17 +49,12 @@ export function EnvView({ a, d, s, r, accent, className }: EnvViewProps) {
 
     ctx.strokeStyle = accent;
     ctx.lineWidth = 1.6;
-    ctx.shadowColor = accent;
-    ctx.shadowBlur = 6;
+
     ctx.stroke();
-    ctx.shadowBlur = 0;
     ctx.lineTo(X(total), Y(0));
     ctx.lineTo(X(0), Y(0));
     ctx.closePath();
-    const grad = ctx.createLinearGradient(0, pad, 0, h);
-    grad.addColorStop(0, accent + '44');
-    grad.addColorStop(1, accent + '00');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = accent + '22';
     ctx.fill();
   }, [a, d, s, r, accent, resizeTick]);
 

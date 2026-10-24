@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import { stub } from "../../../test-utils/doubles";
+import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
 
 const state: { error: Error | null } = { error: null };
 
@@ -25,13 +26,15 @@ jest.mock("../../../hooks/useApplications", () => ({
     isLoading: false,
     isError: state.error !== null,
     error: state.error
-  })
+  }),
+  useLinkedWorkflows: () => ({ links: [] })
 }));
 
 const openTab = jest.fn();
 const setTitle = jest.fn();
 const resolveApplicationInstance = jest.fn();
 const setApplicationRunSelection = jest.fn();
+const setMode = jest.fn();
 let tabs: Array<{
   type: string;
   ref: string;
@@ -62,6 +65,7 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
       tabs: typeof tabs;
       resolveApplicationInstance: jest.Mock;
       setApplicationRunSelection: jest.Mock;
+      setMode: jest.Mock;
     }) => T
   ) =>
     selector({
@@ -70,6 +74,7 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
       tabs,
       resolveApplicationInstance,
       setApplicationRunSelection,
+      setMode,
       activeTabId: "application:app-1"
     })
 }));
@@ -77,11 +82,55 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 const linkedProps = jest.fn();
 jest.mock("../LinkedWorkflowsMenu", () => ({
   __esModule: true,
-  default: (props: { applicationId: string; active?: boolean }) => {
+  LinkedWorkflowsList: (props: {
+    applicationId: string;
+    active?: boolean;
+    anchorEl: HTMLElement | null;
+  }) => {
     linkedProps(props);
-    return <div data-testid="linked-workflows">{props.applicationId}</div>;
+    return props.anchorEl ? (
+      <div data-testid="linked-workflows">{props.applicationId}</div>
+    ) : null;
   }
 }));
+
+// The bar draws each slot; the title and rename are WorkspaceDocumentBar's own.
+jest.mock("../WorkspaceDocumentBar", () => ({
+  __esModule: true,
+  default: ({
+    tab,
+    status,
+    history,
+    mode,
+    view,
+    actions
+  }: {
+    tab: { title: string };
+  } & Record<"status" | "history" | "mode" | "view" | "actions", React.ReactNode>) => (
+    <div role="toolbar" aria-label={`${tab.title} document`}>
+      {status}
+      {history}
+      {mode}
+      {view}
+      {actions}
+    </div>
+  )
+}));
+
+const appTab = (title = "Translator", instanceId?: string) => ({
+  id: instanceId ? `application:app-1:instance:${instanceId}` : "application:app-1",
+  type: "application" as const,
+  ref: "app-1",
+  instanceId,
+  mode: instanceId ? ("view" as const) : ("edit" as const),
+  title
+});
+
+/** Preview draft sits in the bar's ⋮ menu. */
+const openPreviewDraft = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole("button", { name: "More actions" }));
+  await user.click(screen.getByRole("menuitem", { name: "Preview draft" }));
+};
 
 const builderMounted = jest.fn();
 jest.mock("../../appbuilder/ApplicationAppBuilder", () => ({
@@ -163,7 +212,7 @@ const renderSurface = (mode: "edit" | "view" = "edit") =>
           new QueryClient({ defaultOptions: { mutations: { retry: false } } })
         }
       >
-        <ApplicationSurface refId="app-1" mode={mode} />
+        <ApplicationSurface refId="app-1" mode={mode} tab={appTab()} />
       </QueryClientProvider>
     </ThemeProvider>
   );
@@ -237,13 +286,16 @@ describe("ApplicationSurface", () => {
             refId="app-1"
             instanceId="existing-instance"
             mode="view"
+            tab={appTab("Spring sale", "existing-instance")}
           />
-          <ApplicationSurface refId="app-1" mode="edit" />
+          <ApplicationSurface refId="app-1" mode="edit" tab={appTab()} />
         </QueryClientProvider>
       </ThemeProvider>
     );
     expect(runMounted).toHaveBeenCalledTimes(1);
-    await userEvent.click(screen.getByRole("button", { name: "Run" }));
+    await userEvent.click(
+      within(screen.getByRole("toolbar", { name: "Translator document" })).getByRole("button", { name: "Run" })
+    );
     expect(openTab).toHaveBeenCalledWith({
       type: "application",
       ref: "app-1",
@@ -293,9 +345,7 @@ describe("ApplicationSurface", () => {
       }
     ];
     renderSurface();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Preview draft" })
-    );
+    await openPreviewDraft(userEvent.setup());
     expect(runMounted).toHaveBeenCalledWith(
       expect.objectContaining({ previewDraft: true })
     );
@@ -317,11 +367,10 @@ describe("ApplicationSurface", () => {
     expect(setTitle).toHaveBeenCalledWith("app-1", "application", "Translator");
   });
 
-  it("hides the editor header when previewing an app", () => {
+  it("keeps the bar to the title and Run/Design/Settings when running an app", () => {
     renderSurface("view");
 
-    expect(screen.queryByText("Translates things")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("linked-workflows")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
     expect(screen.getByTestId("app-run")).toBeInTheDocument();
     expect(screen.queryByTestId("app-builder")).not.toBeInTheDocument();
     expect(screen.queryByTestId("app-assistant")).not.toBeInTheDocument();
@@ -353,7 +402,7 @@ describe("ApplicationSurface", () => {
     const user = userEvent.setup();
     renderSurface();
 
-    await user.click(screen.getByRole("button", { name: "Preview draft" }));
+    await openPreviewDraft(user);
     expect(screen.getByTestId("application-design-layer")).toHaveAttribute(
       "inert"
     );
@@ -378,7 +427,7 @@ describe("ApplicationSurface", () => {
     const user = userEvent.setup();
     renderSurface();
 
-    await user.click(screen.getByRole("button", { name: "Preview draft" }));
+    await openPreviewDraft(user);
 
     expect(screen.getByTestId("app-run")).toHaveTextContent("app-1");
     expect(screen.getByTestId("application-run-layer")).not.toHaveAttribute(
@@ -396,7 +445,7 @@ describe("ApplicationSurface", () => {
     ).toHaveTextContent("app-1:wf-1");
     expect(screen.queryByTestId("assistant-side-dock")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Preview draft" }));
+    await openPreviewDraft(user);
     expect(screen.getByTestId("app-run")).toHaveTextContent("app-1");
     expect(screen.queryByTestId("builder-assistant-panel")).not.toBeInTheDocument();
     expect(
@@ -421,7 +470,7 @@ describe("ApplicationSurface", () => {
     const user = userEvent.setup();
     renderSurface();
 
-    await user.click(screen.getByRole("button", { name: "Preview draft" }));
+    await openPreviewDraft(user);
     expect(screen.getByTestId("application-design-layer")).toHaveAttribute(
       "aria-hidden",
       "true"
@@ -473,14 +522,38 @@ describe("ApplicationSurface", () => {
     expect(screen.getByRole("button", { name: "Ask agent" })).toHaveFocus();
   });
 
-  it("links its workflows without opening one", () => {
+  it("links its workflows from the ⋮ menu without opening one", async () => {
+    const user = userEvent.setup();
     renderSurface();
+    expect(screen.queryByTestId("linked-workflows")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(screen.getByRole("menuitem", { name: /workflow/i }));
 
     expect(screen.getByTestId("linked-workflows")).toHaveTextContent("app-1");
     expect(linkedProps).toHaveBeenCalledWith(
       expect.objectContaining({ applicationId: "app-1", active: true })
     );
     expect(openTab).not.toHaveBeenCalled();
+  });
+
+  it("asks for edit mode when Design is picked while running", async () => {
+    const user = userEvent.setup();
+    renderSurface("view");
+
+    await user.click(screen.getByRole("button", { name: "Design" }));
+
+    expect(setMode).toHaveBeenCalledWith("application:app-1", "edit");
+  });
+
+  it("reports unsaved builder edits in the bar", () => {
+    useDocumentDraftStore.getState().setDirty("application:app-1", true);
+    renderSurface();
+
+    expect(
+      screen.getByRole("toolbar", { name: "Translator document" })
+    ).toHaveTextContent("Unsaved changes");
+    useDocumentDraftStore.getState().setDirty("application:app-1", false);
   });
 
   it("reports an app that could not be loaded", () => {

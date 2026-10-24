@@ -10,6 +10,21 @@ import { useDocumentUndoShortcuts } from "../../../hooks/useDocumentUndoShortcut
 import ScriptSurface from "../ScriptSurface";
 
 let stage = "idea";
+jest.mock("../WorkspaceDocumentBar", () => ({
+  __esModule: true,
+  default: ({ tab }: { tab: { title: string } }) => (
+    <div role="toolbar" aria-label={`${tab.title} document`} />
+  )
+}));
+
+const scriptTab = {
+  id: "script:script-1",
+  type: "script" as const,
+  ref: "script-1",
+  mode: "edit" as const,
+  title: "Script"
+};
+
 jest.mock("../../setup/script/useScriptSetupFlow", () => ({
   useScriptSetupStage: () => stage,
   useScriptSetupFlow: () => ({})
@@ -29,7 +44,11 @@ jest.mock("../../../hooks/script/useScriptAgentBridge", () => ({
   useScriptAgentBridge: jest.fn()
 }));
 jest.mock("../../../hooks/useDocumentConflicts", () => ({
-  useDocumentConflicts: () => ({ items: [], accept: jest.fn(), discard: jest.fn() })
+  useDocumentConflicts: () => ({
+    items: [],
+    accept: jest.fn(),
+    discard: jest.fn()
+  })
 }));
 jest.mock("../../script/ScriptDocumentPane", () => () => null);
 jest.mock("../../script/ScriptCastPanel", () => () => null);
@@ -43,7 +62,7 @@ const lastEnabled = (): boolean | undefined =>
 const renderSurface = (mode: "edit" | "view" = "edit") =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <ScriptSurface refId="script-undo" mode={mode} active />
+      <ScriptSurface refId="script-undo" mode={mode} active tab={scriptTab} />
     </ThemeProvider>
   );
 

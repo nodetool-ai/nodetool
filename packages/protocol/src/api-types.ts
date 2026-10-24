@@ -765,10 +765,11 @@ export interface Message {
   media_generation?: MediaGenerationRequest | null;
   /**
    * What the user is looking at when they send the message. The server renders
-   * this into the system prompt so the agent knows which documents are open and
-   * which one has focus, and can pass their ids to the `ui_*` tools — every one
-   * of which requires an explicit document id rather than acting on whatever
-   * editor happens to be mounted.
+   * this into the turn context appended to the user message, so the agent
+   * knows which documents are open and which one has focus, and can pass their
+   * ids to the `ui_*` tools — every one of which requires an explicit document
+   * id rather than acting on whatever editor happens to be mounted. It stays
+   * out of the system prompt so a change of focus keeps the prompt cache.
    */
   ui_context?: UiContext | null;
 }

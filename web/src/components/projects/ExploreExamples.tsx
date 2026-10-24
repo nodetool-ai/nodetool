@@ -11,8 +11,8 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import type { ExampleTab } from "../../stores/ExamplesPageStore";
 import { SetupCardButton } from "../setup/SetupCardButton";
 import {
-  AutoGrid,
   BORDER_RADIUS,
+  Box,
   Caption,
   EditorButton,
   FlexColumn,
@@ -24,13 +24,13 @@ import {
   Text,
   TYPOGRAPHY
 } from "../ui_primitives";
+import StartSection, { START_CARD_GRID_SX } from "./StartSection";
 import { openExamplesTab } from "../workspace/openPageTab";
 import imageStill from "../../assets/guided-flows/image.webp";
 import videoStill from "../../assets/guided-flows/video.webp";
 import appStill from "../../assets/guided-flows/script.webp";
 import workflowStill from "../../assets/guided-flows/workflow.webp";
 
-const CARD_MIN_WIDTH = 240;
 const THUMB_WIDTH = 88;
 const THUMB_HEIGHT = 64;
 const EXAMPLE_CARD_CLASS = "start-example-card";
@@ -51,20 +51,10 @@ const EXAMPLE_KINDS: readonly ExampleKind[] = [
 const ExploreExamples = () => {
   const { t } = useTranslation();
   return (
-    <FlexColumn
-      component="section"
-      aria-label={t("pass3_32.projects.home.exploreExamples.heading")}
-      gap={GAP.comfortable}
-    >
-      <FlexRow align="flex-end" gap={GAP.normal}>
-        <FlexColumn gap={GAP.tight} sx={{ flex: 1, minWidth: 0 }}>
-          <Text size="big" component="h2">
-            {t("pass3_32.projects.home.exploreExamples.heading")}
-          </Text>
-          <Caption color="secondary">
-            {t("pass3_32.projects.home.exploreExamples.intro")}
-          </Caption>
-        </FlexColumn>
+    <StartSection
+      title={t("pass3_32.projects.home.exploreExamples.heading")}
+      subtitle={t("pass3_32.projects.home.exploreExamples.intro")}
+      action={
         <EditorButton
           variant="text"
           density="compact"
@@ -73,14 +63,13 @@ const ExploreExamples = () => {
         >
           {t("pass3_32.projects.home.exploreExamples.viewAll")}
         </EditorButton>
-      </FlexRow>
-      <AutoGrid
+      }
+    >
+      <Box
         role="group"
         aria-label={t("pass3_32.projects.home.exploreExamples.heading")}
-        minItemWidth={CARD_MIN_WIDTH}
-        fill="fit"
-        gap={GAP.comfortable}
         sx={{
+          ...START_CARD_GRID_SX,
           [`& .${EXAMPLE_CARD_CLASS}`]: {
             borderRadius: BORDER_RADIUS.lg,
             boxShadow: (theme) => SHADOW(theme).sm
@@ -116,8 +105,8 @@ const ExploreExamples = () => {
             </FlexRow>
           </SetupCardButton>
         ))}
-      </AutoGrid>
-    </FlexColumn>
+      </Box>
+    </StartSection>
   );
 };
 

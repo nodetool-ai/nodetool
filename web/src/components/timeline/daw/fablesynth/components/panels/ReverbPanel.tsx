@@ -72,8 +72,7 @@ export function ReverbPanel({ adapter }: { adapter: FxPanelAdapter }) {
         c.strokeStyle = i ? slate : ice;
         c.lineWidth = i ? 0.8 : 1.4;
         c.globalAlpha = i ? 0.15 + (1 - depth) * 0.42 : 0.9;
-        c.shadowColor = ice; c.shadowBlur = !i && (l || r) ? 5 : 0;
-        c.stroke(); c.shadowBlur = 0;
+        c.stroke();
         c.lineTo(center + half * scale, y); c.lineTo(center - half * scale, y); c.closePath();
         c.fillStyle = slate; c.globalAlpha = (l + r) * 0.025 * (1 - depth); c.fill();
       }

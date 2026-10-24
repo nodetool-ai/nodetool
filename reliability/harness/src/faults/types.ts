@@ -37,6 +37,11 @@ export interface FaultModule {
   /** Matches a `JourneyFault.type` / `KNOWN_FAULT_TYPES` entry exactly. */
   readonly name: string;
   readonly seam: FaultSeam;
+  /** True when the run must still produce its unfaulted result under this
+   * fault (it slows or stresses the run without breaking it), so the
+   * journey's goldens are still compared. Omitted means the fault is meant
+   * to fail the run and the goldens are skipped. */
+  readonly preservesOutcome?: boolean;
   /** Applies the fault for the duration of one driver run. May be called
    * many times concurrently-in-sequence (once per applicable surface) across
    * one `compareJourney` call — implementations must not assume they're only

@@ -112,6 +112,9 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
     if (blocker === "Render a still for at least one shot.") {
       return t("screens4_14.storyboard.sceneClip.blockers.renderStill");
     }
+    if (blocker === "Give an entity on the board a reference image first.") {
+      return t("screens4_14.storyboard.sceneClip.blockers.addEntityImage");
+    }
     if (blocker === "No video model chosen.") {
       return t("screens4_14.storyboard.sceneClip.blockers.noVideoModel");
     }
@@ -323,6 +326,9 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
 
   const references = plan?.compiled.references ?? [];
   const steps = plan?.compiled.steps ?? [];
+  // With entity images as the references the stills above are not sent, so
+  // the images that are get their own row.
+  const sendsEntities = plan?.compiled.reference_source === "entities";
 
   return (
     <Dialog
@@ -419,6 +425,34 @@ const SceneClipDialog: React.FC<SceneClipDialogProps> = ({
                 </FlexColumn>
               );
             })}
+          </FlexRow>
+        )}
+
+        {sendsEntities && references.length > 0 && (
+          <FlexRow gap={SPACING.sm} wrap data-testid="scene-clip-entity-images">
+            {references.map((reference, index) => (
+              <FlexColumn
+                key={`${reference.entity_id}-${reference.asset_id}`}
+                gap={SPACING.micro}
+                sx={thumbSx}
+              >
+                <ResponsiveImage
+                  locator={{ asset_id: reference.asset_id }}
+                  preferThumbnail
+                  loading="lazy"
+                  alt={reference.label}
+                  aspectRatio="1 / 1"
+                  fit="cover"
+                />
+                <Caption color="secondary" sx={{ px: SPACING.micro }}>
+                  {`${t("screens4_14.storyboard.sceneClip.imageReference", {
+                    number: new Intl.NumberFormat(i18n.language).format(
+                      index + 1
+                    )
+                  })}${reference.label}`}
+                </Caption>
+              </FlexColumn>
+            ))}
           </FlexRow>
         )}
 

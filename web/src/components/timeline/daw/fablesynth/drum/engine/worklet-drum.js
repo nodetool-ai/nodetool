@@ -1257,6 +1257,9 @@ class DrumProcessor extends AudioWorkletProcessor {
     this.padL = []; this.padR = [];
     this.busL = []; this.busR = []; this.verbInL = []; this.verbInR = [];
     this.ensureCap(128);
+    // Timeline automation lanes (devices/param-automation-worklet.js).
+    this.pauto = globalThis.FableParamAutomation ? new globalThis.FableParamAutomation() : null;
+    this.pautoSet = (k, v) => this.onMsg({ t: 'p', k, v });
     this.port.onmessage = (e) => this.onMsg(e.data);
     this.port.postMessage({ t: 'latency', n: this.latency });
     // Timeline host (NodeTool): frame-stamped note events, every bus summed
@@ -1338,6 +1341,7 @@ class DrumProcessor extends AudioWorkletProcessor {
   }
 
   onMsg(d) {
+    if (this.pauto && this.pauto.onMsg(d, this.port)) return;
     switch (d.t) {
       case 'dynamics':
         this.metering = !!d.on; this.meterEnergy.fill(0); this.meterSamples = 0; this.meterReduction = 0;
@@ -2450,6 +2454,7 @@ class DrumProcessor extends AudioWorkletProcessor {
     }
     const n = outputs[0]?.[0]?.length || 128;
     this.ensureCap(n);
+    if (this.pauto) this.pauto.tick(currentFrame, this.pautoSet);
 
     const padL = this.padL, padR = this.padR;
     for (let i = 0; i < NPADS; i++) { padL[i].fill(0, 0, n); padR[i].fill(0, 0, n); }

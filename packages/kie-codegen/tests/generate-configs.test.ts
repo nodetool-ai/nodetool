@@ -106,6 +106,24 @@ describe("generateKieConfigs", () => {
     expect(node.fields.map((field) => field.name)).toEqual(["customMode"]);
   });
 
+  it("refetches the llms.txt index even when the cache is on", async () => {
+    stubDocs({
+      "https://docs.kie.ai/llms.txt": "## API Docs\n",
+      "https://docs.kie.ai/suno-api/generate-music.md": NEW_PAGE,
+      "https://docs.kie.ai/old-model/suno-api/generate-music.md": LEGACY_PAGE
+    });
+    await generateKieConfigs({ useCache: true, previous: [] });
+
+    stubDocs({
+      "https://docs.kie.ai/llms.txt": LLMS,
+      "https://docs.kie.ai/suno-api/generate-music.md": NEW_PAGE,
+      "https://docs.kie.ai/old-model/suno-api/generate-music.md": LEGACY_PAGE
+    });
+    const nodes = await generateKieConfigs({ useCache: true, previous: [] });
+
+    expect(nodes.map((node) => node.className)).toEqual(["GenerateMusic"]);
+  });
+
   it("keeps the previous config when a docs page cannot be fetched", async () => {
     stubDocs({
       "https://docs.kie.ai/llms.txt": LLMS,

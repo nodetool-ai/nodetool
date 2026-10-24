@@ -354,6 +354,12 @@ export {
   LIB_YTDLP_NODES
 } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
 export {
+  KeyframeNode,
+  ElementNode,
+  ShotNode,
+  VIDEO_ACCESSORY_NODES
+} from "@nodetool-ai/video-nodes/nodes/accessories";
+export {
   SliceImageGridLibNode,
   LIB_GRID_NODES
 } from "@nodetool-ai/image-nodes/nodes/lib-grid";
@@ -504,6 +510,7 @@ import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { BLENDER_NODES } from "@nodetool-ai/blender-nodes";
 import { MANIMGX_NODES } from "@nodetool-ai/manimgx-nodes";
 import { LIB_YTDLP_NODES } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
+import { VIDEO_ACCESSORY_NODES } from "@nodetool-ai/video-nodes/nodes/accessories";
 import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes/nodes/lib-grid";
 import { GAME_NODES as GAME_IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/game";
 import { GAME_NODES as GAME_AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/game";
@@ -573,6 +580,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...BLENDER_NODES,
   ...MANIMGX_NODES,
   ...LIB_YTDLP_NODES,
+  ...VIDEO_ACCESSORY_NODES,
   ...LIB_GRID_NODES,
   ...GAME_IMAGE_NODES,
   ...GAME_AUDIO_NODES,

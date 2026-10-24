@@ -171,6 +171,116 @@ describe("useScriptServerSync", () => {
     );
   });
 
+  it("loads and saves once when two surfaces sync the same script, and hands over on unmount", async () => {
+    const first = renderHook(() => useScriptServerSync("script-1"));
+    const second = renderHook(() => useScriptServerSync("script-1"));
+    await waitFor(() => expect(second.result.current).toBe("ready"));
+    expect(first.result.current).toBe("ready");
+    expect(getQuery).toHaveBeenCalledTimes(1);
+
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+    first.unmount();
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    // The follower takes over after the leader's last save without a reload.
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-2")
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(getQuery).toHaveBeenCalledTimes(1);
+
+    second.unmount();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps an edit made while the next sync takes over, without reloading", async () => {
+    const first = renderHook(() => useScriptServerSync("script-1"));
+    const second = renderHook(() => useScriptServerSync("script-1"));
+    await waitFor(() => expect(second.result.current).toBe("ready"));
+    // A reload would stay in flight across the edit below, then land over it.
+    let resolveGet: (value: unknown) => void = () => {};
+    getQuery.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveGet = resolve;
+        })
+    );
+
+    act(() => useScriptStore.getState().setTitle("script-1", "Leader edit"));
+    first.unmount();
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    act(() => useScriptStore.getState().setTitle("script-1", "Follower edit"));
+    await act(async () => {
+      resolveGet({
+        id: "script-1",
+        name: "Leader edit",
+        document: { cast: [], sections: [] },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "rev-2"
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(useScriptStore.getState().scripts["script-1"]?.title).toBe(
+      "Follower edit"
+    );
+
+    await waitFor(
+      () =>
+        expect(updateMutate).toHaveBeenLastCalledWith(
+          expect.objectContaining({ name: "Follower edit", baseUpdatedAt: "rev-2" })
+        ),
+      { timeout: 3000 }
+    );
+    expect(getQuery).toHaveBeenCalledTimes(1);
+    expect(useScriptStore.getState().scripts["script-1"]?.title).toBe(
+      "Follower edit"
+    );
+    expect(second.result.current).toBe("ready");
+    second.unmount();
+  });
+
+  it("saves the draft after a handover when the leaving sync's last save failed", async () => {
+    updateMutate.mockRejectedValueOnce(new Error("offline"));
+    const first = renderHook(() => useScriptServerSync("script-1"));
+    const second = renderHook(() => useScriptServerSync("script-1"));
+    await waitFor(() => expect(second.result.current).toBe("ready"));
+
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+    first.unmount();
+
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(2), {
+      timeout: 3000
+    });
+    expect(updateMutate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ name: "Unsaved title", baseUpdatedAt: "rev-1" })
+    );
+    expect(useScriptStore.getState().scripts["script-1"]?.title).toBe(
+      "Unsaved title"
+    );
+    expect(getQuery).toHaveBeenCalledTimes(1);
+    second.unmount();
+  });
+
+  it("reports a failed initial load on every surface that syncs the script", async () => {
+    getQuery.mockRejectedValue(new Error("network down"));
+    const first = renderHook(() => useScriptServerSync("script-1"));
+    const second = renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() => expect(first.result.current).toBe("error"));
+    await waitFor(() => expect(second.result.current).toBe("error"));
+    first.unmount();
+    second.unmount();
+  });
+
   it("loads the persisted storyboard back-pointer and saves it back", async () => {
     getQuery.mockResolvedValue({
       id: "script-1",
@@ -946,6 +1056,66 @@ describe("useScriptServerSync — notices that arrive during an in-flight save",
     expect(
       useScriptStore.getState().scripts["script-1"]?.sections[0]?.lines[0]?.text
     ).toBe("One — draft!");
+
+    rendered.unmount();
+  });
+});
+
+describe("useScriptServerSync — undo after a clean reload", () => {
+  // Earlier cases leave checkpoints for the same script id behind.
+  beforeEach(() => useScriptStore.setState({ history: {} }));
+
+  const lines = (first: string, second: string) => [
+    { id: "L1", text: first, takes: [] },
+    { id: "L2", text: second, takes: [] }
+  ];
+  const response = (first: string, second: string, updatedAt: string) => ({
+    id: "script-1",
+    name: "Saved script",
+    document: { cast: [], sections: [{ id: "sec-1", lines: lines(first, second) }] },
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt
+  });
+
+  it("keeps an external edit that a clean editor reloaded when undoing its own edit", async () => {
+    getQuery.mockResolvedValue(response("one", "two", "rev-1"));
+    const rendered = renderHook(() => useScriptServerSync("script-1"));
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+
+    act(() => {
+      useScriptStore.getState().patchLine("script-1", "L1", { text: "mine" });
+    });
+    // The autosave lands, so the editor is clean again.
+    await waitFor(
+      () =>
+        expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-2"),
+      { timeout: 3000 }
+    );
+
+    // Another writer changes the other line; the clean editor reloads it.
+    getQuery.mockResolvedValue(response("mine", "agent", "rev-3"));
+    await act(async () => {
+      handleDocumentResourceChange("script", {
+        event: "updated",
+        id: "script-1",
+        updatedAt: "rev-3",
+        ops: [{ tool: "set_line_text", input: { line_id: "L2", text: "agent" } }]
+      });
+    });
+    await waitFor(() =>
+      expect(
+        useScriptStore.getState().scripts["script-1"]?.sections[0]?.lines[1]?.text
+      ).toBe("agent")
+    );
+
+    act(() => useScriptStore.getState().undo("script-1"));
+    expect(
+      useScriptStore.getState().scripts["script-1"]?.sections[0]?.lines.map(
+        (line) => line.text
+      )
+    ).toEqual(["one", "agent"]);
 
     rendered.unmount();
   });

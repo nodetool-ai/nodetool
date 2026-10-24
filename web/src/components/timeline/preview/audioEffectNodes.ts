@@ -112,6 +112,60 @@ export function applyCompressorEffect(
   node.knee.value = e.kneeDb;
 }
 
+/**
+ * The AudioParam a built-in track effect field plays through, with the map
+ * from the field's unit to the param's, for automation. Null for a field no
+ * param carries (a filter's mode) or an effect this table does not cover.
+ */
+export function effectAutomationParam(
+  unit: EffectUnit,
+  field: string
+): { param: AudioParam; map: (value: number) => number; curved: boolean } | null {
+  const node = (i: number) => unit.nodes[i];
+  const same = (value: number) => value;
+  const seconds = (ms: number) => ms / 1000;
+  switch (unit.effect.type) {
+    case "gain":
+      return field === "gainDb"
+        ? { param: (node(0) as GainNode).gain, map: dbToLin, curved: true }
+        : null;
+    case "eq3": {
+      const [low, mid, high] = [0, 1, 2].map((i) => node(i) as BiquadFilterNode);
+      const params: Record<string, AudioParam> = {
+        lowFreq: low.frequency,
+        lowGainDb: low.gain,
+        midFreq: mid.frequency,
+        midQ: mid.Q,
+        midGainDb: mid.gain,
+        highFreq: high.frequency,
+        highGainDb: high.gain
+      };
+      const param = params[field];
+      return param ? { param, map: same, curved: field.endsWith("Freq") } : null;
+    }
+    case "filter": {
+      const filter = node(0) as BiquadFilterNode;
+      if (field === "frequency") return { param: filter.frequency, map: same, curved: true };
+      if (field === "q") return { param: filter.Q, map: same, curved: false };
+      return null;
+    }
+    case "compressor": {
+      const comp = node(0) as DynamicsCompressorNode;
+      const params: Record<string, { param: AudioParam; map: (v: number) => number }> = {
+        thresholdDb: { param: comp.threshold, map: same },
+        ratio: { param: comp.ratio, map: same },
+        attackMs: { param: comp.attack, map: seconds },
+        releaseMs: { param: comp.release, map: seconds },
+        kneeDb: { param: comp.knee, map: same }
+      };
+      const entry = params[field];
+      return entry ? { ...entry, curved: false } : null;
+    }
+    default:
+      return null;
+  }
+}
+
 const DISTORTION_CURVE_POINTS = 4096;
 
 /** `tanh(k·x) / tanh(k)`: soft clipping that keeps full scale at full scale. */

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 
 import {
   Box,
@@ -7,10 +8,19 @@ import {
   FlexColumn,
   FlexRow,
   LoadingSpinner,
+  MenuItemPrimitive,
+  SaveStatus,
   SPACING,
   TruncatedText,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  UndoRedoButtons
 } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
+import {
+  DocumentMoreMenu,
+  DocumentSaveButton,
+  explicitSaveStatus
+} from "../workspace/documentBarParts";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import type { Asset } from "../../stores/ApiTypes";
@@ -55,7 +65,8 @@ import {
 
 interface AudioSampleEditorProps {
   asset: Asset;
-  onClose: () => void;
+  /** Draws Done. A workspace tab leaves it out (it has View/Edit). */
+  onClose?: () => void;
   active?: boolean;
   /**
    * Replaces the default save, which overwrites the asset's bytes. Resolves
@@ -64,6 +75,12 @@ interface AudioSampleEditorProps {
   onSaveSample?: (sample: AudioSample) => Promise<boolean>;
   /** Region (seconds) selected once the audio has loaded. */
   initialSelection?: Selection;
+  /**
+   * Draws the document bar (a workspace tab). The save status, Undo/Redo,
+   * Save and Transform with workflow move into it; the edits and effects
+   * stay in the toolbar.
+   */
+  documentBar?: DocumentBarRender;
 }
 
 const MIN_ZOOM = 1;
@@ -104,7 +121,8 @@ const AudioSampleEditor = ({
   onClose,
   active = true,
   onSaveSample,
-  initialSelection
+  initialSelection,
+  documentBar
 }: AudioSampleEditorProps) => {
   const { t } = useTranslation();
   const history = useEditHistory<AudioSample>();
@@ -536,10 +554,13 @@ const AudioSampleEditor = ({
 
   const closeEffect = useCallback(() => setOpenEffect(null), []);
 
+  const [saveFailed, setSaveFailed] = useState(false);
   const handleSave = useCallback(async () => {
     const savingSample = sampleRef.current;
-    if (savingSample && (await save(savingSample)))
-      setSavedSample(savingSample);
+    if (!savingSample) return;
+    const saved = await save(savingSample);
+    setSaveFailed(!saved);
+    if (saved) setSavedSample(savingSample);
   }, [save]);
 
   const zoomIn = useCallback(
@@ -552,24 +573,78 @@ const AudioSampleEditor = ({
   );
   const zoomFit = useCallback(() => setZoom(1), []);
 
+  const ready = !loading && !error && !!sample;
+  const bar = documentBar?.(
+    ready
+      ? {
+          status: (
+            <SaveStatus
+              state={explicitSaveStatus({
+                saving,
+                dirty: sample !== savedSample,
+                failed: saveFailed
+              })}
+              onRetry={() => void handleSave()}
+            />
+          ),
+          history: (
+            <UndoRedoButtons
+              canUndo={history.canUndo}
+              canRedo={history.canRedo}
+              onUndo={history.undo}
+              onRedo={history.redo}
+            />
+          ),
+          actions: (
+            <>
+              <DocumentSaveButton
+                onSave={() => void handleSave()}
+                saving={saving}
+                disabled={sample === savedSample}
+              />
+              <DocumentMoreMenu
+                items={(close) => [
+                  <MenuItemPrimitive
+                    key="transform"
+                    label={t("transformWithWorkflow.open")}
+                    icon={<AutoFixHighOutlinedIcon fontSize="small" />}
+                    onClick={() => {
+                      close();
+                      handleTransform();
+                    }}
+                  />
+                ]}
+              />
+            </>
+          )
+        }
+      : {}
+  );
+
   if (loading) {
     return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <LoadingSpinner />
+      <FlexColumn fullWidth fullHeight>
+        {bar}
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
+          <LoadingSpinner />
+        </FlexColumn>
       </FlexColumn>
     );
   }
 
   if (error || !sample) {
     return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <EmptyState
-          variant="error"
-          title={t("batch2_16.audio.couldNotOpen")}
-          description={error ?? t("batch2_16.audio.decodeFailed")}
-          actionText={t("batch2_16.audio.done")}
-          onAction={onClose}
-        />
+      <FlexColumn fullWidth fullHeight>
+        {bar}
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
+          <EmptyState
+            variant="error"
+            title={t("batch2_16.audio.couldNotOpen")}
+            description={error ?? t("batch2_16.audio.decodeFailed")}
+            actionText={onClose ? t("batch2_16.audio.done") : undefined}
+            onAction={onClose}
+          />
+        </FlexColumn>
       </FlexColumn>
     );
   }
@@ -606,6 +681,7 @@ const AudioSampleEditor = ({
 
   return (
     <FlexColumn fullWidth fullHeight sx={{ overflow: "hidden" }}>
+      {bar}
       <AudioEditorToolbar
         hasSelection={hasSelection}
         canUndo={history.canUndo}
@@ -622,11 +698,11 @@ const AudioSampleEditor = ({
         onQuieten={handleQuieten}
         onReverse={handleReverse}
         onEffect={handleEffect}
-        onTransform={handleTransform}
-        onUndo={history.undo}
-        onRedo={history.redo}
-        onSave={handleSave}
-        onDone={onClose}
+        onTransform={documentBar ? undefined : handleTransform}
+        onUndo={documentBar ? undefined : history.undo}
+        onRedo={documentBar ? undefined : history.redo}
+        onSave={documentBar ? undefined : handleSave}
+        onDone={documentBar ? undefined : onClose}
       />
 
       <Box

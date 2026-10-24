@@ -107,10 +107,6 @@ export function EqPanel({ adapter }: { adapter: FxPanelAdapter }) {
         onPointerUp={e => { drag.current = null; e.currentTarget.releasePointerCapture(e.pointerId); }}
         onPointerCancel={() => { drag.current = null; }} onLostPointerCapture={() => { drag.current = null; }}>
         <defs>
-          <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--ac-n)" stopOpacity="0.23" />
-            <stop offset="1" stopColor="var(--ac-n)" stopOpacity="0.02" />
-          </linearGradient>
           <clipPath id={`${id}-clip`}><rect x={LEFT - 1} y={TOP - 1} width={RIGHT - LEFT + 2} height={BOTTOM - TOP + 2} /></clipPath>
         </defs>
         {[12, 0, -12].map(db => <g key={db} className="eq-grid">
@@ -123,7 +119,7 @@ export function EqPanel({ adapter }: { adapter: FxPanelAdapter }) {
         </g>)}
         <g clipPath={`url(#${id}-clip)`}>
           <path ref={live} className="eq-live" d="" aria-hidden="true" />
-          <path d={`${paths[selected]} L${RIGHT},${Y(0)} L${LEFT},${Y(0)} Z`} fill={`url(#${id}-fill)`} />
+          <path d={`${paths[selected]} L${RIGHT},${Y(0)} L${LEFT},${Y(0)} Z`} fill="var(--ac-n)" fillOpacity={0.12} />
           {paths.slice(0, 4).map((d, i) => <path key={i} d={d} className={`eq-band-curve${selected === i ? ' selected' : ''}`} />)}
           <path d={on ? paths[4] : `M${LEFT},${Y(0)} H${RIGHT}`} className="eq-sum" />
           {autoOpen && matchPath && <path d={matchPath} className="eq-auto-match"><title>{t("i18n-next15.wavetable.eqCorrectionTitle")}</title></path>}

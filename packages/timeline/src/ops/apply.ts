@@ -86,6 +86,7 @@ import { DEFAULT_MIDI_INSTRUMENT } from "../midi/instrument.js";
 import { createMidiNote, sortNotes, validateNotes } from "../midi/notes.js";
 import {
   findInstrumentPreset,
+  listMidiInstruments,
   MIDI_INSTRUMENT_PRESETS
 } from "../midi/presets.js";
 import {
@@ -2258,6 +2259,11 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       properties: CUSTOM_ANIMATION_CONTRACT.properties
     };
   },
+
+  list_instruments: (_scope) => ({
+    ok: true,
+    instruments: listMidiInstruments()
+  }),
 
   select_clip: (scope, op) => {
     const state = scope.state;

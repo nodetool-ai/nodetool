@@ -176,12 +176,13 @@ Name the provider on every model field and warn when its key is missing.
 
 ### 3.1 Leaving an editor never drops what is on screen
 
-Switching to View, closing a tab or pressing "Done" must keep the draft.
+Switching to View or closing a tab must keep the draft.
 
 - "View" before "Save" threw away a text file's draft in 3 of 3, all of whom
   named it the hardest moment (`study-7-I1`).
 - "Done" and "Save to image" were indistinguishable, and "Done" left a blank
-  image (`study-5-I5`). "Done" now saves.
+  image (`study-5-I5`). "Done" is gone: View/Edit in the document bar
+  leaves the editor, and "Save to image" is its one action.
 
 Most NodeTool documents save as you go, so people assume all of them do. A
 surface that does not autosave saves on close.

@@ -1325,3 +1325,47 @@ describe("setOneTake", () => {
     expect(pastLength()).toBe(past);
   });
 });
+
+describe("removeShot coverage", () => {
+  it("releases the shots a removed shot's clip covered", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "owner",
+      index: 0,
+      action: "owner",
+      status: "rendered",
+      clip: video(1)
+    });
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "covered",
+      index: 1,
+      action: "covered",
+      status: "rendered",
+      keyframe: image(1),
+      covered_by: { shot_id: "owner", start_seconds: 2, end_seconds: 4 }
+    });
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "other",
+      index: 2,
+      action: "other",
+      status: "rendered",
+      clip: video(2),
+      covered_by: { shot_id: "elsewhere" }
+    });
+
+    store.removeShot(BOARD, "owner");
+
+    const shots = useStoryboardStore.getState().boards[BOARD]?.shots ?? [];
+    const covered = shots.find((s) => s.id === "covered");
+    expect(covered?.covered_by).toBeNull();
+    // It has no picture now, so it reads as waiting for its own clip.
+    expect(covered?.status).toBe("keyframe_ready");
+    expect(shots.find((s) => s.id === "other")?.covered_by).toEqual({
+      shot_id: "elsewhere"
+    });
+  });
+});

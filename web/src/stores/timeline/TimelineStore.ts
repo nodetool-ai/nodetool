@@ -106,6 +106,7 @@ import type {
   ClipBindingKind,
   ClipAnimation,
   ClipGeneratedMatte,
+  AutomationLane,
   MidiInstrument,
   MidiNote,
   TimelineChord,
@@ -564,6 +565,11 @@ export interface TimelineStoreState {
   applyDetectedBeats: (tempo: TimelineTempo, barTimesMs: readonly number[]) => void;
   /** Set the synth a midi track plays. Every clip on the track uses it. */
   setTrackInstrument: (trackId: string, instrument: MidiInstrument) => void;
+  /**
+   * Replace a track's automation lanes. One undo entry; a locked track keeps
+   * its lanes. An empty list removes the field.
+   */
+  setTrackAutomation: (trackId: string, automation: AutomationLane[]) => void;
   /** Replace a chord track's chord regions (sorted by onset). */
   setTrackChords: (trackId: string, chords: TimelineChord[]) => void;
   /** Set or clear (`undefined`) a midi clip's arp, comp and scale settings. */
@@ -3888,6 +3894,19 @@ export const createTimelineStore = (
             }
             const tracks = patchById(state.tracks, trackId, { instrument });
             return tracks === state.tracks ? state : { tracks };
+          }),
+
+        setTrackAutomation: (trackId, automation) =>
+          set((state) => {
+            const track = state.tracks.find((t) => t.id === trackId);
+            if (!track || track.locked) {
+              return state;
+            }
+            return {
+              tracks: patchById(state.tracks, trackId, {
+                automation: automation.length > 0 ? automation : undefined
+              })
+            };
           }),
 
         setTrackChords: (trackId, chords) =>

@@ -108,6 +108,15 @@ function videoToVideo(inputs) {
 function lipSync(inputs) {
   return callNode("nodetool.video.LipSync", inputs);
 }
+function keyframe(inputs) {
+  return callNode("nodetool.video.Keyframe", inputs);
+}
+function element(inputs) {
+  return callNode("nodetool.video.Element", inputs);
+}
+function shot(inputs) {
+  return callNode("nodetool.video.Shot", inputs);
+}
 export {
   addAudio,
   addSubtitles,
@@ -117,6 +126,7 @@ export {
   concat,
   denoise,
   easeCurve,
+  element,
   extractAudio,
   extractFrame,
   forEachFrame,
@@ -124,6 +134,7 @@ export {
   frameToVideo,
   getVideoInfo,
   imageToVideo,
+  keyframe,
   lipSync,
   loadVideoAssets,
   loadVideoFile,
@@ -137,6 +148,7 @@ export {
   saveVideoFile,
   setSpeed,
   sharpness,
+  shot,
   stabilize,
   textToVideo,
   transition,

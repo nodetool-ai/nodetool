@@ -5,6 +5,7 @@ import {
 } from "../../src/providers/codex-provider.js";
 import { CODEX_BACKEND_BASE_URL } from "@nodetool-ai/protocol";
 import { providerFailureDetail } from "../../src/providers/provider-error.js";
+import type { Message } from "../../src/providers/types.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -180,6 +181,134 @@ describe("CodexProvider", () => {
         (i.content as Array<{ text?: string }>).every((c) => !c.text)
     );
     expect(emptyMessages).toHaveLength(0);
+  });
+
+  it("keys every turn and tool round of a thread to one cache session", async () => {
+    const requests: Array<{
+      body: Record<string, unknown>;
+      headers: Record<string, string>;
+    }> = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (_url, init?: RequestInit) => {
+        requests.push({
+          body: JSON.parse(String(init?.body)),
+          headers: init?.headers as Record<string, string>
+        });
+        return new Response(
+          `data: ${JSON.stringify({ type: "response.completed", response: {} })}\n\n`,
+          { status: 200, headers: { "content-type": "text/event-stream" } }
+        );
+      }
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    const tools = [
+      {
+        name: "foo",
+        description: "Foo",
+        inputSchema: { type: "object", properties: {} }
+      }
+    ];
+    const turn1 = [
+      { role: "system" as const, content: "Be brief." },
+      { role: "user" as const, content: "call the tool" }
+    ];
+    const round2 = [
+      ...turn1,
+      {
+        role: "assistant" as const,
+        content: null,
+        toolCalls: [{ id: "c1", name: "foo", args: { a: 1 } }]
+      },
+      { role: "tool" as const, content: "result", toolCallId: "c1" }
+    ];
+    const turn2 = [
+      ...round2,
+      { role: "assistant" as const, content: "done" },
+      { role: "user" as const, content: "again" }
+    ];
+    for (const messages of [turn1, round2, turn2]) {
+      for await (const _ of provider.generateMessages({
+        messages,
+        tools,
+        model: "gpt-5.5",
+        threadId: "thread-1"
+      })) {
+        void _;
+      }
+    }
+    // Another thread with the same prompt gets its own key.
+    for await (const _ of provider.generateMessages({
+      messages: turn1,
+      tools,
+      model: "gpt-5.5",
+      threadId: "thread-2"
+    })) {
+      void _;
+    }
+
+    const keys = requests.map((r) => r.body.prompt_cache_key);
+    expect(keys[0]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+    );
+    expect(keys.slice(0, 3)).toEqual([keys[0], keys[0], keys[0]]);
+    expect(keys[3]).not.toBe(keys[0]);
+    // The session header carries the same id, as the Codex CLI sends it.
+    expect(requests.map((r) => r.headers.session_id)).toEqual(keys);
+
+    // Each request's input is the previous one's plus what came after it, and
+    // the instructions and tools never move, so the prefix stays cached.
+    const [a, b, c] = requests.map((r) => r.body);
+    for (const [prev, next] of [
+      [a, b],
+      [b, c]
+    ]) {
+      const prevInput = prev.input as unknown[];
+      expect((next.input as unknown[]).slice(0, prevInput.length)).toEqual(
+        prevInput
+      );
+      expect(next.instructions).toBe(prev.instructions);
+      expect(next.tools).toEqual(prev.tools);
+    }
+  });
+
+  it("keys threadless calls by their instructions", async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (_url, init?: RequestInit) => {
+        requests.push(JSON.parse(String(init?.body)));
+        return new Response(
+          `data: ${JSON.stringify({ type: "response.completed", response: {} })}\n\n`,
+          { status: 200, headers: { "content-type": "text/event-stream" } }
+        );
+      }
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    const run = async (messages: Message[]) => {
+      for await (const _ of provider.generateMessages({
+        messages,
+        model: "gpt-5.5"
+      })) {
+        void _;
+      }
+    };
+    await run([
+      { role: "system", content: "Summarize." },
+      { role: "user", content: "one" }
+    ]);
+    await run([
+      { role: "system", content: "Summarize." },
+      { role: "user", content: "two" }
+    ]);
+    await run([
+      { role: "system", content: "Translate." },
+      { role: "user", content: "one" }
+    ]);
+    await run([{ role: "user", content: "no system prompt" }]);
+    const keys = requests.map((r) => r.prompt_cache_key);
+    expect(keys[0]).toBeDefined();
+    expect(keys[1]).toBe(keys[0]);
+    expect(keys[2]).not.toBe(keys[0]);
+    expect(keys[3]).toBeUndefined();
   });
 
   it("extracts PNG bytes from the image_generation_call output item", async () => {

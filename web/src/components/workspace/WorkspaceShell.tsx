@@ -28,7 +28,6 @@ import { LoadingSpinner, MOTION, reducedMotion } from "../ui_primitives";
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import WorkspaceTabLayer from "./WorkspaceTabLayer";
-import { WorkspaceHeaderActionsProvider } from "./WorkspaceHeaderActionsContext";
 
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 
@@ -254,66 +253,64 @@ const WorkspaceShell = () => {
     activeTab?.type === "workflow" && activeTab.mode === "edit";
 
   return (
-    <WorkspaceHeaderActionsProvider>
-      <div ref={shellRef} css={shellStyles} className="workspace-shell">
-        {/* The guided game/workflow flows build their graphs through the same
-          `ui_*` tools an agent drives, from tabs (e.g. New Project) where the
-          editor chrome — and its own sync — is not mounted. Without this the
-          build fails with "Frontend tool runtime state is not initialized". */}
-        <FrontendToolRuntimeSync />
-        <WorkspaceTabBar />
-        {/* PanelBottom is viewport-fixed; it reads this offset so the left rail
-          does not cover the start of its tab strip and panel content. */}
-        <div
-          className="workspace-main"
-          style={{ "--workspace-content-left": `${contentMarginLeft}px` } as React.CSSProperties}
-        >
-          <Suspense fallback={null}>
-            <PanelLeft />
-          </Suspense>
+    <div ref={shellRef} css={shellStyles} className="workspace-shell">
+      {/* The guided game/workflow flows build their graphs through the same
+        `ui_*` tools an agent drives, from tabs (e.g. New Project) where the
+        editor chrome — and its own sync — is not mounted. Without this the
+        build fails with "Frontend tool runtime state is not initialized". */}
+      <FrontendToolRuntimeSync />
+      <WorkspaceTabBar />
+      {/* PanelBottom is viewport-fixed; it reads this offset so the left rail
+        does not cover the start of its tab strip and panel content. */}
+      <div
+        className="workspace-main"
+        style={{ "--workspace-content-left": `${contentMarginLeft}px` } as React.CSSProperties}
+      >
+        <Suspense fallback={null}>
+          <PanelLeft />
+        </Suspense>
 
-          <div className="workspace-center">
-            <div
-              className="workspace-content"
-              style={{ marginLeft: contentMarginLeft }}
-            >
-              {!activeTab && (
-                <div className="workspace-empty">
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <NewProjectSurface />
-                  </Suspense>
-                </div>
-              )}
-              {tabs.map((tab) => {
-                const isActive =
-                  tab.id === activeTabId && isTabInScope(tab, activeProjectId);
-                return (
-                  <WorkspaceTabLayer key={tab.id} active={isActive}>
-                    <TabContent tab={tab} active={isActive} />
-                  </WorkspaceTabLayer>
-                );
-              })}
-            </div>
+        <div className="workspace-center">
+          <div
+            className="workspace-content"
+            style={{ marginLeft: contentMarginLeft }}
+          >
+            {!activeTab && (
+              <div className="workspace-empty">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <NewProjectSurface />
+                </Suspense>
+              </div>
+            )}
+            {tabs.map((tab) => {
+              const isActive =
+                tab.id === activeTabId && isTabInScope(tab, activeProjectId);
+              return (
+                <WorkspaceTabLayer key={tab.id} active={isActive}>
+                  <TabContent tab={tab} active={isActive} />
+                </WorkspaceTabLayer>
+              );
+            })}
           </div>
-
-          <Suspense fallback={null}>
-            <PanelBottom />
-          </Suspense>
-
-          {showWorkflowEditChrome && (
-            <Suspense fallback={null}>
-              <PanelRight />
-            </Suspense>
-          )}
-
-          {/* Notification popups belong to every tab type, not only the
-              workflow editor. */}
-          <Suspense fallback={null}>
-            <Alert inspectorShown={showWorkflowEditChrome} />
-          </Suspense>
         </div>
+
+        <Suspense fallback={null}>
+          <PanelBottom />
+        </Suspense>
+
+        {showWorkflowEditChrome && (
+          <Suspense fallback={null}>
+            <PanelRight />
+          </Suspense>
+        )}
+
+        {/* Notification popups belong to every tab type, not only the
+            workflow editor. */}
+        <Suspense fallback={null}>
+          <Alert inspectorShown={showWorkflowEditChrome} />
+        </Suspense>
       </div>
-    </WorkspaceHeaderActionsProvider>
+    </div>
   );
 };
 

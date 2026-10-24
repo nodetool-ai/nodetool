@@ -172,5 +172,8 @@ describe("voiceLine generate_media payloads", () => {
     const take = await done;
     expect(take.assetId).toBe("aud-1");
     expect(take.textSnapshot).toBe("We are closed.");
+    // What else shaped the audio, so editing it later marks the take stale.
+    expect(take.directionSnapshot).toBe("");
+    expect(take.speedSnapshot).toBeNull();
   });
 });

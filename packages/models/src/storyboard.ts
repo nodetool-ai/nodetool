@@ -179,7 +179,7 @@ export class Storyboard extends DBModel {
     const row = await Storyboard.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
-    await removeDocumentSharing("storyboard", id);
+    await removeDocumentSharing("storyboard", row.id);
     return true;
   }
 

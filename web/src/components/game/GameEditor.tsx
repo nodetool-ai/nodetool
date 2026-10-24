@@ -16,7 +16,7 @@ import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutSto
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
 import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, ConflictBanner, Dialog, EmptyState, FlexColumn, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, ConflictBanner, Dialog, EmptyState, FlexColumn, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput, type DocumentBarRender } from "../ui_primitives";
 import ErrorBanner from "../support/ErrorBanner";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
@@ -30,7 +30,7 @@ import GameSceneTree from "./panels/hierarchy/GameSceneTree";
 import GameRuntimeInspector from "./panels/inspector/GameRuntimeInspector";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
 import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
-import GameEditorShell from "./shell/GameEditorShell";
+import GameEditorShell, { withGameDocumentBar } from "./shell/GameEditorShell";
 import type { GameCommandHandler, GameCommandHandlers } from "./shell/gameCommands";
 import { useGameAssistantDraft } from "./panels/agent/useGameAssistantDraft";
 import GameConsolePanel from "./panels/console/GameConsolePanel";
@@ -48,6 +48,8 @@ import { localTransform, selectionRoots, worldTransforms } from "./viewport2d/vi
 interface GameEditorProps {
   refId: string;
   active: boolean;
+  /** Draws the workspace document bar in place of the editor's title row. */
+  documentBar?: DocumentBarRender;
 }
 
 async function openGameDiagnosticSession2D(document: GameDocument, signal: AbortSignal): Promise<GameDiagnosticSession> {
@@ -57,7 +59,7 @@ async function openGameDiagnosticSession2D(document: GameDocument, signal: Abort
   return { step: () => session.step(EMPTY_INPUT), dispose: () => session.dispose() };
 }
 
-const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
+const LegacyGameEditor = ({ refId, active, documentBar }: GameEditorProps) => {
   const { t } = useTranslation();
   const { data, isPending, error: loadError } = trpc.games.getDraft.useQuery({ id: refId }, { staleTime: 15_000 });
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
@@ -401,13 +403,14 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const validationIssues = documentValidation?.issues ?? [];
   const runtimeEntity = playState.sceneId === activeSceneId ? runtimeEntities?.find((entity) => entity.id === selectedIds[0]) ?? null : null;
 
-  if (loadError?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery key={refId} refId={refId} />; }
-  if (isPending || (data && !document)) return <LoadingSpinner text={t("game.editor.loadingGame")} />;
+  if (loadError?.data?.code === "PRECONDITION_FAILED") { return withGameDocumentBar(documentBar, <GameDraftRecovery key={refId} refId={refId} />); }
+  if (isPending || (data && !document)) return withGameDocumentBar(documentBar, <LoadingSpinner text={t("game.editor.loadingGame")} />);
   if (loadError || !data || !document) {
-    return <EmptyState variant="error" title={t("game.editor.loadError.title")} description={loadError?.message ?? t("game.editor.loadError.description")} />;
+    return withGameDocumentBar(documentBar,
+      <EmptyState variant="error" title={t("game.editor.loadError.title")} description={loadError?.message ?? t("game.editor.loadError.description")} />);
   }
 
-  return <GameEditorShell layoutStore={layoutStore} dimension="2d" active={active}
+  return <GameEditorShell layoutStore={layoutStore} dimension="2d" active={active} documentBar={documentBar}
     exportGame={{ id: refId, name: data.game.name }}
     toolbar={{
         name: data.game.name,
@@ -420,6 +423,10 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         sceneTreeOpen: sceneTreeOpen,
         inspectorOpen: inspectorOpen,
         playHref: `/game/${encodeURIComponent(refId)}`,
+        canUndo: canUndo,
+        canRedo: canRedo,
+        onUndo: () => getGameDraftStore(refId).getState().undo(),
+        onRedo: () => getGameDraftStore(refId).getState().redo(),
         onPlay: beginPlay,
         onRestart: restart,
         onStop: stop,
@@ -535,6 +542,6 @@ export default function GameEditor(props: GameEditorProps) {
   const { t } = useTranslation();
   const { data } = trpc.games.getDraft.useQuery({ id: props.refId }, { staleTime: 15_000 });
   return data?.document.schemaVersion === 3
-    ? <Suspense fallback={<LoadingSpinner text={t("game.editor.loading3dEditor")} />}><Editor3D {...props} /></Suspense>
+    ? <Suspense fallback={withGameDocumentBar(props.documentBar, <LoadingSpinner text={t("game.editor.loading3dEditor")} />)}><Editor3D {...props} /></Suspense>
     : <LegacyGameEditor {...props} />;
 }

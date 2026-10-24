@@ -374,6 +374,12 @@ export interface GlobalChatState {
     message: Message | ChatOutgoingMessage,
     threadId?: string
   ) => Promise<ChatSendOutcome>;
+  /**
+   * Replace a thread's history with one summary (`/compact`). Nothing enters
+   * the thread except the summary record the server sends back. Rejects when
+   * no model is selected or the request cannot reach the socket.
+   */
+  compactThread: (threadId: string) => Promise<void>;
   resetMessages: () => void;
 
   // Thread actions
@@ -395,6 +401,8 @@ export interface GlobalChatState {
   /**
    * Start a local thread. The composer's mode is set to `options.mediaMode`,
    * Chat when omitted, so a new chat never inherits the last chat's mode.
+   * `keepMediaMode` leaves the mode alone, for a thread created in the
+   * background that the person did not ask to start.
    */
   createNewThread: (
     title?: string,
@@ -403,6 +411,7 @@ export interface GlobalChatState {
       makeCurrent?: boolean;
       projectId?: string | null;
       mediaMode?: MediaMode;
+      keepMediaMode?: boolean;
     }
   ) => Promise<string>;
   switchThread: (threadId: string) => void;
@@ -426,6 +435,9 @@ export interface GlobalChatState {
 
 /** A 32-hex message id, the shape the server mints and accepts from a client. */
 const newMessageId = (): string => crypto.randomUUID().replace(/-/g, "");
+
+/** A `fetchThreads` call arrived while one was loading. */
+let threadsRefetchQueued = false;
 
 function buildDefaultLanguageModel(): LanguageModel {
   return {
@@ -555,7 +567,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
 
         // No conversation yet — start a fresh thread bound to this workflow.
-        const threadId = await get().createNewThread(undefined, workflowId);
+        const threadId = await get().createNewThread(undefined, workflowId, {
+          keepMediaMode: true
+        });
         set((s) => ({
           workflowThreadId: { ...s.workflowThreadId, [workflowId]: threadId }
         }));
@@ -1276,6 +1290,37 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       },
 
+      compactThread: async (threadId: string) => {
+        const model = get().getSelectedModel(threadId);
+        if (!isModelSelected(model)) {
+          throw new Error(NO_MODEL_SELECTED_MESSAGE);
+        }
+        await globalWebSocketManager.ensureConnection();
+        ensureThreadSubscription(threadId, set, get);
+        set((state) =>
+          threadRuntimeUpdate(state, threadId, {
+            error: null,
+            status: "loading"
+          })
+        );
+        try {
+          await globalWebSocketManager.send({
+            command: "chat_message",
+            data: {
+              thread_id: threadId,
+              provider: model.provider,
+              model: model.id,
+              compact: true
+            }
+          });
+        } catch (error) {
+          set((state) =>
+            threadRuntimeUpdate(state, threadId, { status: "idle" })
+          );
+          throw error;
+        }
+      },
+
       resetMessages: () => {
         const threadId = get().currentThreadId;
         if (threadId) {
@@ -1289,7 +1334,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       fetchThreads: async () => {
-        if (useAuth.getState().state !== "logged_in" || get().isLoadingThreads) {
+        if (useAuth.getState().state !== "logged_in") {
+          return;
+        }
+        // A change that lands while a list is loading may be missing from
+        // it, so fetch once more when the current load finishes.
+        if (get().isLoadingThreads) {
+          threadsRefetchQueued = true;
           return;
         }
         const threadsAtRequest = get().threads;
@@ -1337,6 +1388,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
           });
         } finally {
           set({ isLoadingThreads: false });
+          if (threadsRefetchQueued) {
+            threadsRefetchQueued = false;
+            void get().fetchThreads();
+          }
         }
       },
 
@@ -1434,9 +1489,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
           makeCurrent?: boolean;
           projectId?: string | null;
           mediaMode?: MediaMode;
+          keepMediaMode?: boolean;
         }
       ) => {
-        useMediaGenerationStore.getState().setMode(options?.mediaMode ?? "chat");
+        if (!options?.keepMediaMode) {
+          useMediaGenerationStore
+            .getState()
+            .setMode(options?.mediaMode ?? "chat");
+        }
         const id = crypto.randomUUID();
         get().ensureLocalThread(id, {
           title: isString(title) ? title : undefined,
@@ -1620,7 +1680,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // If no threads remain, create a new one immediately
           const { threads, currentThreadId } = get();
           if (!currentThreadId && Object.keys(threads).length === 0) {
-            await get().createNewThread();
+            await get().createNewThread(undefined, undefined, {
+              keepMediaMode: true
+            });
           }
         } catch (error) {
           console.error("Failed to delete thread:", error);
@@ -2076,8 +2138,20 @@ useAuth.subscribe((state, previous) => {
 });
 
 // Vanilla tRPC reads bypass Query, so invalidating its cache cannot refresh chat.
-setChatResourceReloader(({ resource_type, resource }) => {
+setChatResourceReloader(({ event, resource_type, resource }) => {
   const state = useGlobalChatStore.getState();
+  // The list fetch only merges, so a thread deleted in another tab or by an
+  // agent would stay listed.
+  if (resource_type === "thread" && event === "deleted") {
+    const deletedId = resource.id;
+    if (isString(deletedId) && state.threads[deletedId]) {
+      useGlobalChatStore.setState((current) => {
+        const { [deletedId]: _deleted, ...threads } = current.threads;
+        return { threads };
+      });
+    }
+    return;
+  }
   if (resource_type === "thread") {
     void state.fetchThreads();
   }
@@ -2088,11 +2162,20 @@ setChatResourceReloader(({ resource_type, resource }) => {
         ? resource.thread_id
         : state.currentThreadId;
   if (
-    threadId &&
-    (threadId === state.currentThreadId || state.messageCache[threadId])
+    !threadId ||
+    (threadId !== state.currentThreadId && !state.messageCache[threadId])
   ) {
-    void state.loadMessages(threadId);
+    return;
   }
+  // A thread with a reply in flight already receives every row its turn saves
+  // over the socket. Reloading it mid-turn duplicated the streamed text before
+  // a tool call, dropped rows echoed during the load, and replaced the reply
+  // with a server row that has no reasoning.
+  const runtimeStatus = getThreadRuntime(state, threadId).status;
+  if (runtimeStatus !== "idle" && runtimeStatus !== "error") {
+    return;
+  }
+  void state.loadMessages(threadId);
 });
 
 export default useGlobalChatStore;

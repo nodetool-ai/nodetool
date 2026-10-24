@@ -953,6 +953,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
     // defeat that memo and force all media children (e.g. <video>) to re-render.
     // Deps are exactly the non-stable values it closes over — createToggleHandler
     // is already stable via useCallback.
+    const thoughtThreadId = threadId ?? message.thread_id;
     const renderTextContent = useCallback(
       (content: string, index: string | number) => {
         if (hasHarmonyTokens(content)) {
@@ -979,6 +980,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                         onToggle={createToggleHandler(key)}
                         textBefore={parsedThought.textBeforeThought}
                         textAfter={parsedThought.textAfterThought}
+                        threadId={thoughtThreadId}
                       />
                     );
                   }
@@ -1027,6 +1029,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
               onToggle={createToggleHandler(key)}
               textBefore={parsedThought.textBeforeThought}
               textAfter={parsedThought.textAfterThought}
+              threadId={thoughtThreadId}
             />
           );
         }
@@ -1041,7 +1044,8 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
         isThoughtExpanded,
         createToggleHandler,
         onInsertCode,
-        insertIntoEditor
+        insertIntoEditor,
+        thoughtThreadId
       ]
     );
 

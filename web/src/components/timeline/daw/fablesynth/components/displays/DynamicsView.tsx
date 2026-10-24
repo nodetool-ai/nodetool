@@ -54,9 +54,7 @@ export function DynamicsView({ kind, telemetryEngine, telemetryParams, prefix = 
           const bx = x + col * 0.18, bw = Math.max(6, col * 0.12);
           c.fillStyle = slate; c.globalAlpha = 0.08; c.fillRect(bx, top, bw, bottom - top); c.globalAlpha = 1;
           const v = on ? clamp((data.ott.levels[i] + 60) / 60, 0, 1) : 0;
-          const grad = c.createLinearGradient(0, top, 0, bottom);
-          grad.addColorStop(0, ink); grad.addColorStop(1, slate);
-          c.fillStyle = grad; c.globalAlpha = on ? 0.8 : 0.2;
+          c.fillStyle = ink; c.globalAlpha = on ? 0.8 : 0.2;
           c.fillRect(bx, bottom - v * (bottom - top), bw, v * (bottom - top)); c.globalAlpha = 1;
           const gx = x + col * 0.44, gw = col * 0.35, half = (bottom - top) / 2;
           line(gx, top, gx + gw, top, slate, 0.1); line(gx, bottom, gx + gw, bottom, slate, 0.1);

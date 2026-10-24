@@ -1,5 +1,8 @@
 import {
+  automationBreakpoints,
   fadeShapeGain,
+  INSTRUMENT_DEVICE_ID,
+  isAutomationLaneActive,
   midiClipNoteEvents,
   resolveClipFades,
   sampleFadeShape,
@@ -7,6 +10,7 @@ import {
 } from "@nodetool-ai/timeline";
 import type { ClipFadeShape, TimeRemapAudioSegment } from "@nodetool-ai/timeline";
 import type {
+  AutomationLane,
   MidiInstrument,
   TimelineClip,
   TimelineMasterChannel,
@@ -15,6 +19,7 @@ import type {
 } from "@nodetool-ai/timeline";
 import {
   liveDeviceFactory,
+  type DeviceAutomationLane,
   type LiveInstrumentDevice,
   type LiveNoteEvent
 } from "../daw/devices/liveDevice";
@@ -27,6 +32,7 @@ import {
   buildClipEffectChain,
   buildEffectUnit,
   disconnectNodes,
+  effectAutomationParam,
   releaseEffectUnit,
   type ClipEffectChain,
   type EffectUnit
@@ -116,6 +122,36 @@ export interface StereoMeterTap {
   /** The splitter feeding both, disconnected with the channel. */
   splitter: ChannelSplitterNode;
 }
+
+/**
+ * The play gesture's clock for automation: the document time at a context
+ * time, and the playback rate.
+ */
+interface AutomationClock {
+  ctxSec: number;
+  docMs: number;
+  rate: number;
+}
+
+/** A device or FX stage that plays automation lanes itself. */
+interface AutomatedDevice {
+  setAutomation?(lanes: readonly DeviceAutomationLane[]): void;
+  syncAutomation?(): Promise<void>;
+}
+
+/** What one track's scheduled automation holds, to release it again. */
+interface TrackAutomationState {
+  /** The track fields it was scheduled from; a change reschedules it. */
+  automation: TimelineTrack["automation"];
+  effects: TimelineTrack["effects"];
+  instrumentType: MidiInstrument["type"] | undefined;
+  /** Automated params and the value each returns to when automation stops. */
+  params: Map<AudioParam, number>;
+  devices: Set<AutomatedDevice>;
+}
+
+/** Longest straight ramp a curved automation segment is cut into. */
+const AUTOMATION_STEP_MS = 10;
 
 /** Analyser window for channel meters: about 43 ms at 48 kHz. */
 const METER_FFT_SIZE = 2048;
@@ -466,6 +502,9 @@ export class AudioGraph {
   private readonly signal: AbortSignal | undefined;
   /** Bumped by every use of the context, so a deferred suspend can see it is stale. */
   private contextUse = 0;
+  /** Set while a play gesture runs its automation lanes. */
+  private automationClock: AutomationClock | null = null;
+  private trackAutomation = new Map<string, TrackAutomationState>();
 
   constructor(
     private readonly injectedContext?: BaseAudioContext,
@@ -785,10 +824,174 @@ export class AudioGraph {
       const muted = track.muted === true || (hasSolo && !track.solo);
       // Use a short ramp instead of a hard cut to avoid clicks.
       chain.trackGain.gain.setTargetAtTime(muted ? 0 : 1, now, 0.01);
-      chain.fader.gain.setTargetAtTime(dbToGain(track.volumeDb), now, 0.01);
-      chain.panner.pan.setTargetAtTime(track.pan ?? 0, now, 0.01);
+      // An automated fader or pan follows its lane; its own value returns
+      // when the automation stops.
+      const automated = this.trackAutomation.get(track.id)?.params;
+      if (automated?.has(chain.fader.gain)) {
+        automated.set(chain.fader.gain, dbToGain(track.volumeDb));
+      } else {
+        chain.fader.gain.setTargetAtTime(dbToGain(track.volumeDb), now, 0.01);
+      }
+      if (automated?.has(chain.panner.pan)) {
+        automated.set(chain.panner.pan, track.pan ?? 0);
+      } else {
+        chain.panner.pan.setTargetAtTime(track.pan ?? 0, now, 0.01);
+      }
       this.setTrackEffects(track.id, track.effects ?? []);
       if (track.type === "midi") this.syncTrackDevice(track);
+      if (this.automationClock && this.automationChanged(track)) {
+        void this.scheduleTrackAutomation(track);
+      }
+    }
+  }
+
+  // ── Automation ──────────────────────────────────────────────────────────
+
+  /**
+   * Run every audio and midi track's automation lanes from `currentTimeMs`,
+   * for the play gesture that just scheduled its clips. Each lane is set to
+   * its value now and ramps along its curve on the context clock: the fader,
+   * pan and built-in effects as AudioParam ramps, instruments and FableSynth
+   * inserts as lanes in their worklets. An offline render waits until every
+   * worklet holds its lanes.
+   */
+  async startAutomation(
+    tracks: TimelineTrack[],
+    currentTimeMs: number,
+    globalRate = 1
+  ): Promise<void> {
+    this.stopAutomation();
+    if (!(globalRate > 0)) return;
+    const ctx = this.getContext();
+    this.automationClock = { ctxSec: ctx.currentTime, docMs: currentTimeMs, rate: globalRate };
+    const sounding = tracks.filter((t) => t.type === "audio" || t.type === "midi");
+    await Promise.all(sounding.map((track) => this.scheduleTrackAutomation(track)));
+    if (typeof OfflineAudioContext !== "undefined" && ctx instanceof OfflineAudioContext) {
+      const devices = [...this.trackAutomation.values()].flatMap((state) => [...state.devices]);
+      await Promise.all(devices.map((device) => device.syncAutomation?.()));
+    }
+  }
+
+  /** Return every automated param to its own value and clear device lanes. */
+  stopAutomation(): void {
+    for (const trackId of [...this.trackAutomation.keys()]) {
+      this.releaseTrackAutomation(trackId);
+    }
+    this.automationClock = null;
+  }
+
+  private automationChanged(track: TimelineTrack): boolean {
+    const state = this.trackAutomation.get(track.id);
+    if (!state) return (track.automation?.length ?? 0) > 0;
+    return (
+      state.automation !== track.automation ||
+      state.effects !== track.effects ||
+      state.instrumentType !== this.trackDevices.get(track.id)?.type
+    );
+  }
+
+  private releaseTrackAutomation(trackId: string): void {
+    const state = this.trackAutomation.get(trackId);
+    if (!state) return;
+    this.trackAutomation.delete(trackId);
+    const now = this.ctx?.currentTime ?? 0;
+    for (const [param, value] of state.params) {
+      param.cancelScheduledValues(0);
+      param.setTargetAtTime(value, now, 0.01);
+    }
+    for (const device of state.devices) device.setAutomation?.([]);
+  }
+
+  /** Schedule one track's lanes from the clock's current document time. */
+  private async scheduleTrackAutomation(track: TimelineTrack): Promise<void> {
+    const clock = this.automationClock;
+    if (!clock) return;
+    this.releaseTrackAutomation(track.id);
+    const state: TrackAutomationState = {
+      automation: track.automation,
+      effects: track.effects,
+      instrumentType: this.trackDevices.get(track.id)?.type,
+      params: new Map(),
+      devices: new Set()
+    };
+    this.trackAutomation.set(track.id, state);
+    const lanes = (track.automation ?? []).filter(isAutomationLaneActive);
+    if (lanes.length === 0) return;
+
+    const ctx = this.getContext();
+    const chain = this.getOrCreateTrackChain(track.id);
+    const now = ctx.currentTime;
+    const docNowMs = clock.docMs + (now - clock.ctxSec) * 1000 * clock.rate;
+    const toCtxSec = (ms: number) => clock.ctxSec + (ms - clock.docMs) / 1000 / clock.rate;
+    const deviceLanes = new Map<AutomatedDevice, DeviceAutomationLane[]>();
+    const addDeviceLane = (device: AutomatedDevice | null | undefined, lane: AutomationLane, param: string) => {
+      if (!device?.setAutomation) return;
+      const points = automationBreakpoints(lane.points, docNowMs, { maxStepMs: AUTOMATION_STEP_MS })
+        .map((bp) => ({ timeSec: toCtxSec(bp.timeMs), value: bp.value }));
+      deviceLanes.set(device, [...(deviceLanes.get(device) ?? []), { param, points }]);
+    };
+    const automateParam = (
+      param: AudioParam,
+      lane: AutomationLane,
+      map: (value: number) => number,
+      ownValue: number,
+      curved: boolean
+    ) => {
+      const breakpoints = automationBreakpoints(lane.points, docNowMs, {
+        maxStepMs: AUTOMATION_STEP_MS,
+        subdivideLinear: curved
+      });
+      if (breakpoints.length === 0) return;
+      param.cancelScheduledValues(now);
+      param.setValueAtTime(map(breakpoints[0].value), now);
+      for (const bp of breakpoints.slice(1)) {
+        param.linearRampToValueAtTime(map(bp.value), toCtxSec(bp.timeMs));
+      }
+      state.params.set(param, ownValue);
+    };
+
+    let instrumentLanes: AutomationLane[] = [];
+    for (const lane of lanes) {
+      const target = lane.target;
+      if (target.kind === "mixer") {
+        if (target.param === "volumeDb") {
+          automateParam(chain.fader.gain, lane, (db) => dbToGain(db), dbToGain(track.volumeDb), true);
+        } else {
+          automateParam(chain.panner.pan, lane, (pan) => Math.min(1, Math.max(-1, pan)), track.pan ?? 0, false);
+        }
+        continue;
+      }
+      if (target.kind !== "device") continue;
+      if (target.deviceId === INSTRUMENT_DEVICE_ID) {
+        instrumentLanes = [...instrumentLanes, lane];
+        continue;
+      }
+      const unit = chain.units.find((u) => u.effect.id === target.deviceId);
+      if (!unit) continue;
+      if (unit.fable) {
+        addDeviceLane(unit.fable, lane, target.param);
+        continue;
+      }
+      const entry = effectAutomationParam(unit, target.param);
+      if (entry) {
+        const own = (unit.effect as unknown as Record<string, unknown>)[target.param];
+        automateParam(entry.param, lane, entry.map, entry.map(typeof own === "number" ? own : 0), entry.curved);
+      }
+    }
+    if (instrumentLanes.length > 0) {
+      // Nothing may have played on the track yet: its device starts here.
+      this.syncTrackDevice(track);
+      const device = await this.trackDevices.get(track.id)?.device;
+      // A newer gesture or edit rescheduled the track while the device loaded.
+      if (this.trackAutomation.get(track.id) !== state) return;
+      state.instrumentType = this.trackDevices.get(track.id)?.type;
+      for (const lane of instrumentLanes) {
+        if (lane.target.kind === "device") addDeviceLane(device, lane, lane.target.param);
+      }
+    }
+    for (const [device, deviceLaneList] of deviceLanes) {
+      device.setAutomation?.(deviceLaneList);
+      state.devices.add(device);
     }
   }
 
@@ -1026,6 +1229,8 @@ export class AudioGraph {
     );
 
     await this.addClips(clips, tracks, currentTimeMs, shouldCancel, globalRate);
+    if (shouldCancel?.()) return;
+    await this.startAutomation(tracks, currentTimeMs, globalRate);
   }
 
   /**
@@ -1640,6 +1845,7 @@ export class AudioGraph {
   }
 
   stopAll(): void {
+    this.stopAutomation();
     this.liveClips.clear();
     for (const state of this.trackDevices.values()) state.ready?.clear();
     for (const [id, sources] of this.clipSources) {

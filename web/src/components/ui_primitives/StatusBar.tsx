@@ -153,7 +153,7 @@ export const SaveState: React.FC<SaveStateProps> = ({
         />
       )}
       {showLabel && (
-        <Box component="span" sx={{ ...TYPOGRAPHY.sans.caption, color: "text.secondary", whiteSpace: "nowrap" }}>
+        <Box component="span" className="save-state-label" sx={{ ...TYPOGRAPHY.sans.caption, color: "text.secondary", whiteSpace: "nowrap" }}>
           {label}
         </Box>
       )}

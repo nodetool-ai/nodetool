@@ -35,7 +35,8 @@ import { useModeProviderSetup } from "./useModeProviderSetup";
 import type {
   Asset,
   LanguageModel,
-  MessageContent
+  MessageContent,
+  PermissionMode
 } from "../../../stores/ApiTypes";
 import {
   isModelSelected,
@@ -43,6 +44,7 @@ import {
   type ModelSelection
 } from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
+import type { ChatCommand } from "../types/chat.types";
 import {
   assetToUri,
   entityToUri
@@ -81,6 +83,20 @@ const MOBILE_TEXTAREA_MAX_HEIGHT = 140;
  *  as on a phone. */
 const NARROW_CARD_WIDTH = 520;
 
+const NO_COMMANDS: readonly ChatCommand[] = [];
+
+const PERMISSION_MODES: readonly PermissionMode[] = ["plan", "default", "auto"];
+
+/** Split `/name argument` into its parts, or null for an ordinary prompt. */
+const parseCommand = (
+  text: string
+): { name: string; argument: string } | null => {
+  const match = /^\/(\S+)(?:\s+([\s\S]*))?$/.exec(text.trim());
+  return match
+    ? { name: match[1].toLowerCase(), argument: (match[2] ?? "").trim() }
+    : null;
+};
+
 interface MediaChatComposerProps {
   isLoading: boolean;
   isStreaming: boolean;
@@ -89,6 +105,8 @@ interface MediaChatComposerProps {
     prompt: string,
     mediaGeneration?: MediaGenerationRequest
   ) => void | boolean | Promise<void | boolean>;
+  /** Thread commands the `/` menu offers next to `/model` and `/mode`. */
+  commands?: readonly ChatCommand[];
   onStop?: () => void;
   disabled?: boolean;
   selectedModel?: LanguageModel;
@@ -135,6 +153,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   isLoading,
   isStreaming,
   onSendMessage,
+  commands = NO_COMMANDS,
   onStop,
   disabled = false,
   selectedModel,
@@ -303,6 +322,55 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       onSelectAsset: handleSelectAsset,
       includeEntities: true
     });
+  const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
+  const setPermissionMode = useGlobalChatStore(
+    (state) => state.setPermissionMode
+  );
+  // The model chip and the permission chip are hidden together in chat mode,
+  // and a command must not reach a control the surface does not show.
+  const hasChatControls = mode !== "chat" || !hideModelPicker;
+  const slashCommands = useMemo((): ChatCommand[] => {
+    const own: ChatCommand[] = [];
+    if (hasChatControls) {
+      own.push({
+        name: "model",
+        description: t("i18n-next54.composer.commands.model"),
+        run: openModelPicker,
+        whileBusy: true
+      });
+    }
+    if (mode === "chat" && !hideModelPicker) {
+      own.push({
+        name: "mode",
+        description: t("i18n-next54.composer.commands.mode"),
+        run: (argument) => {
+          const next = argument
+            ? PERMISSION_MODES.find((item) => item === argument.toLowerCase())
+            : PERMISSION_MODES[
+                (PERMISSION_MODES.indexOf(permissionMode) + 1) %
+                  PERMISSION_MODES.length
+              ];
+          if (!next) {
+            return `/mode ${argument}`;
+          }
+          setPermissionMode(threadId ?? currentThreadId, next);
+        },
+        whileBusy: true
+      });
+    }
+    return [...own, ...commands];
+  }, [
+    hasChatControls,
+    mode,
+    hideModelPicker,
+    commands,
+    openModelPicker,
+    permissionMode,
+    setPermissionMode,
+    threadId,
+    currentThreadId,
+    t
+  ]);
   const {
     skillMenu,
     handleKeyDown: handleSkillKeyDown,
@@ -311,7 +379,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   } = useTextareaSkillMention({
     textareaRef,
     value: prompt,
-    setValue: setPrompt
+    setValue: setPrompt,
+    commands: slashCommands
   });
 
   const {
@@ -658,6 +727,25 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       ) {
         return;
       }
+      // A command runs instead of being sent. One that changes the thread
+      // waits for the running turn rather than being queued behind it.
+      const parsed = droppedFiles.length === 0 ? parseCommand(text) : null;
+      const command = parsed
+        ? slashCommands.find((item) => item.name === parsed.name)
+        : undefined;
+      if (parsed && command) {
+        if (!command.whileBusy && (isLoading || isStreaming)) {
+          return;
+        }
+        recordHistory(text);
+        setPrompt((current) => (current === draft ? "" : current));
+        const replacement = await command.run(parsed.argument);
+        if (typeof replacement === "string") {
+          setPrompt(replacement);
+          textareaRef.current?.focus();
+        }
+        return;
+      }
       // No configured provider can serve this mode — sending would only fail on
       // the server. Keep the prompt and guide the user through provider setup.
       if (providerSetup.needsSetup) {
@@ -693,7 +781,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       recordHistory,
       providerSetup,
       needsModel,
-      openModelPicker
+      openModelPicker,
+      slashCommands,
+      isLoading,
+      isStreaming
     ]
   );
 

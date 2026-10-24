@@ -6,6 +6,7 @@
 
 import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 import { usePanelStore } from "../../stores/PanelStore";
 import {
@@ -14,7 +15,6 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { trpc } from "../../trpc/client";
 import {
-  BORDER_RADIUS,
   Box,
   Caption,
   Card,
@@ -24,11 +24,16 @@ import {
   Label,
   SPACING
 } from "../ui_primitives";
+import StartSection, {
+  START_CARD_COLUMNS,
+  START_CARD_GRID_SX,
+  START_CARD_SX
+} from "./StartSection";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
 import type { Thread } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 
-const RECENT_CHAT_COUNT = 4;
+const RECENT_CHAT_COUNT = START_CARD_COLUMNS;
 const RELATIVE_TIME_UNITS: Record<string, Intl.RelativeTimeFormatUnit> = {
   sec: "second",
   min: "minute",
@@ -87,10 +92,11 @@ const RecentChatCard = memo(function RecentChatCard({
     <Card
       variant="outlined"
       padding="none"
+      radius="lg"
       clickable
       onClick={handleOpen}
       aria-label={title}
-      sx={{ minWidth: 0, borderRadius: BORDER_RADIUS.md }}
+      sx={START_CARD_SX}
     >
       <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md }}>
         <FlexRow align="center" gap={SPACING.md} sx={{ minWidth: 0 }}>
@@ -173,37 +179,28 @@ const RecentChats = () => {
   if (threads.length === 0) return null;
 
   return (
-    <FlexColumn
-      component="section"
-      gap={SPACING.md}
-      aria-label={t("pass3_35.recentChats.sectionLabel")}
-    >
-      <FlexRow align="center" gap={SPACING.md}>
-        <Caption color="muted" sx={{ flex: 1 }}>
-          {t("pass3_35.recentChats.heading")}
-        </Caption>
-        {data?.next && (
+    <StartSection
+      title={t("pass3_35.recentChats.heading")}
+      ariaLabel={t("pass3_35.recentChats.sectionLabel")}
+      action={
+        data?.next ? (
           <EditorButton
             variant="text"
             density="compact"
+            endIcon={<ArrowForwardIcon />}
             onClick={showAllChats}
           >
             {t("pass3_35.recentChats.allChats")}
           </EditorButton>
-        )}
-      </FlexRow>
-      <Box
-        sx={{
-          display: "grid",
-          gap: SPACING.md,
-          gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 190px), 1fr))"
-        }}
-      >
+        ) : undefined
+      }
+    >
+      <Box sx={START_CARD_GRID_SX}>
         {threads.map((thread) => (
           <RecentChatCard key={thread.id} thread={thread} onOpen={openChat} />
         ))}
       </Box>
-    </FlexColumn>
+    </StartSection>
   );
 };
 

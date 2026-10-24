@@ -5,8 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import SaveIcon from "@mui/icons-material/Save";
-import type * as monaco from "monaco-editor";
 
 import type { Asset, DataframeRef } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -30,18 +28,26 @@ import DataTable from "../node/DataTable/DataTable";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import ErrorBanner from "../support/ErrorBanner";
 import {
-  EditorButton,
+  DocumentBar,
   FlexColumn,
-  FlexRow,
   LoadingSpinner,
-  SaveState,
-  Toolbar
+  SaveStatus,
+  Toolbar,
+  UndoRedoButtons
 } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
+import {
+  DocumentSaveButton,
+  explicitSaveStatus,
+  useMonacoHistory
+} from "./documentBarParts";
 
 interface TextDocumentEditorProps {
   asset: Asset;
   /** Whether the editor's tab is on screen; lists its commands in the Cmd+K menu. */
   active?: boolean;
+  /** Draws the document bar. Defaults to a bar titled with the asset name. */
+  documentBar?: DocumentBarRender;
 }
 
 const textAssetKey = (id: string) => ["textAsset", id] as const;
@@ -85,12 +91,14 @@ const styles = (theme: Theme) =>
  * The edit surface of a `text` workspace tab. CSV/TSV assets open in the
  * tabular DataTable editor; every other text format opens in Monaco with a
  * filename-inferred language. Edits are tracked against the loaded baseline
- * (dirty dot) and persisted back via the asset update API (Cmd/Ctrl+S or the
- * toolbar Save button).
+ * in the document bar's save status and persisted back via the asset update
+ * API (Cmd/Ctrl+S or the bar's Save button). Undo and Redo sit in the bar.
+ * The formatting tools stay in a row inside the editor.
  */
 const TextDocumentEditor = ({
   asset,
-  active = false
+  active = false,
+  documentBar
 }: TextDocumentEditorProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -114,9 +122,8 @@ const TextDocumentEditor = ({
   // `content` stays canonical for dirty-tracking and saving.
   const [csvDataframe, setCsvDataframe] = useState<DataframeRef | null>(null);
   const [wordWrap, setWordWrap] = useState(true);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const history = useMonacoHistory();
+  const { editorRef } = history;
 
   const {
     data: loadedText,
@@ -229,25 +236,16 @@ const TextDocumentEditor = ({
     [queryClient, update, addNotification]
   );
 
-  const updateHistoryState = useCallback(() => {
-    const model = editorRef.current?.getModel();
-    const alternativeVersionId = model?.getAlternativeVersionId() ?? 1;
-    const versionId = model?.getVersionId() ?? 1;
-    setCanUndo(alternativeVersionId < versionId);
-    setCanRedo(alternativeVersionId > versionId);
-  }, []);
-
-  const handleEditorMount = useCallback(
-    (editor: monaco.editor.IStandaloneCodeEditor) => {
-      editorRef.current = editor;
-      updateHistoryState();
-      editor.onDidChangeModelContent(updateHistoryState);
+  const { onEditorMount } = history;
+  const handleEditorMount = useCallback<typeof onEditorMount>(
+    (editor) => {
+      onEditorMount(editor);
       // A new file opens empty; put the caret in it so typing just works.
       if (editor.getModel()?.getValueLength() === 0) {
         editor.focus();
       }
     },
-    [updateHistoryState]
+    [onEditorMount]
   );
 
   // Markdown buttons for people who do not know the syntax (study-7-I3).
@@ -278,7 +276,7 @@ const TextDocumentEditor = ({
       ]);
       editor.focus();
     },
-    []
+    [editorRef]
   );
 
   const handleHeading = useCallback(
@@ -310,17 +308,10 @@ const TextDocumentEditor = ({
       });
     }
     editor.focus();
-  }, []);
+  }, [editorRef]);
 
-  const handleUndo = useCallback(() => {
-    editorRef.current?.trigger("toolbar", "undo", null);
-    updateHistoryState();
-  }, [updateHistoryState]);
-
-  const handleRedo = useCallback(() => {
-    editorRef.current?.trigger("toolbar", "redo", null);
-    updateHistoryState();
-  }, [updateHistoryState]);
+  const handleUndo = history.undo;
+  const handleRedo = history.redo;
 
   const handleSave = useCallback(() => {
     if (content === null || content === savedContent || isSaving) {
@@ -343,12 +334,24 @@ const TextDocumentEditor = ({
     }
     if (!isCsv) {
       commands.push(
-        { id: "undo", label: t("i18n-next51.common.undo"), run: handleUndo, shortcut: `${mod}Z` },
-        { id: "redo", label: t("i18n-next51.common.redo"), run: handleRedo, shortcut: `${shiftMod}Z` }
+        {
+          id: "undo",
+          label: t("i18n-next51.common.undo"),
+          run: handleUndo,
+          shortcut: `${mod}Z`
+        },
+        {
+          id: "redo",
+          label: t("i18n-next51.common.redo"),
+          run: handleRedo,
+          shortcut: `${shiftMod}Z`
+        }
       );
       commands.push({
         id: "word-wrap",
-        label: wordWrap ? t("i18n-next51.text.turnOffWordWrap") : t("i18n-next51.text.turnOnWordWrap"),
+        label: wordWrap
+          ? t("i18n-next51.text.turnOffWordWrap")
+          : t("i18n-next51.text.turnOnWordWrap"),
         run: () => setWordWrap((wrap) => !wrap)
       });
     }
@@ -429,21 +432,6 @@ const TextDocumentEditor = ({
             editable
             isModalMode
             onChange={handleDataframeChange}
-            toolbarEnd={
-              <>
-                <SaveState state={isDirty ? "dirty" : "idle"} showLabel={false} />
-                <EditorButton
-                  variant="contained"
-                  size="small"
-                  startIcon={<SaveIcon />}
-                  disabled={!isDirty}
-                  loading={isSaving}
-                  onClick={handleSave}
-                >
-                  {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
-                </EditorButton>
-              </>
-            }
           />
         </div>
       );
@@ -455,9 +443,7 @@ const TextDocumentEditor = ({
           language={language ?? "plaintext"}
           wordWrap={wordWrap}
           placeholder={
-            isMarkdown
-              ? t("i18n-next51.text.markdownPlaceholder")
-              : undefined
+            isMarkdown ? t("i18n-next51.text.markdownPlaceholder") : undefined
           }
           onChange={setContent}
           onSave={handleSave}
@@ -467,37 +453,51 @@ const TextDocumentEditor = ({
     );
   };
 
+  const barSlots = {
+    status: (
+      <SaveStatus
+        state={explicitSaveStatus({
+          saving: isSaving,
+          dirty: isDirty,
+          failed: saveMutation.isError
+        })}
+        onRetry={handleSave}
+      />
+    ),
+    // The table keeps its own Undo and Redo.
+    history: isCsv ? undefined : (
+      <UndoRedoButtons
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+      />
+    ),
+    actions: (
+      <DocumentSaveButton
+        onSave={handleSave}
+        saving={isSaving}
+        disabled={!isDirty}
+      />
+    )
+  };
+
   return (
     <div css={editorStyles}>
+      {documentBar ? (
+        documentBar(barSlots)
+      ) : (
+        <DocumentBar title={asset.name ?? ""} {...barSlots} />
+      )}
       {!isCsv && (
-        <Toolbar
-          className="editor-toolbar-row"
-          sx={{ justifyContent: "space-between", px: 0, gap: 0 }}
-        >
+        <Toolbar className="editor-toolbar-row" sx={{ px: 0, gap: 0 }}>
           <EditorToolbar
-            onUndo={handleUndo}
-            onRedo={handleRedo}
             onToggleWordWrap={() => setWordWrap((w) => !w)}
             onHeading={isMarkdown ? handleHeading : undefined}
             onBold={isMarkdown ? handleBold : undefined}
             onBulletList={isMarkdown ? handleBulletList : undefined}
-            canUndo={canUndo}
-            canRedo={canRedo}
             wordWrapEnabled={wordWrap}
           />
-          <FlexRow align="center" gap={0.5} sx={{ px: 1 }}>
-            <SaveState state={isDirty ? "dirty" : "idle"} showLabel={false} />
-            <EditorButton
-              variant="contained"
-              size="small"
-              startIcon={<SaveIcon />}
-              disabled={!isDirty}
-              loading={isSaving}
-              onClick={handleSave}
-            >
-              {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
-            </EditorButton>
-          </FlexRow>
         </Toolbar>
       )}
 

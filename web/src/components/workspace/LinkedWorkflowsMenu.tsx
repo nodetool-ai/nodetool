@@ -29,20 +29,27 @@ interface LinkedWorkflowsMenuProps {
   active?: boolean;
 }
 
-const LinkedWorkflowsMenu = ({
+interface LinkedWorkflowsListProps {
+  applicationId: string;
+  /** The app tab has focus — background tabs fetch nothing. */
+  active?: boolean;
+  anchorEl: HTMLElement | null;
+  onClose: () => void;
+}
+
+/**
+ * The menu of linked workflows alone, anchored where the host says. The
+ * document bar opens it from its ⋮ menu.
+ */
+export const LinkedWorkflowsList = ({
   applicationId,
-  active = true
-}: LinkedWorkflowsMenuProps) => {
+  active = true,
+  anchorEl,
+  onClose
+}: LinkedWorkflowsListProps) => {
   const { t } = useTranslation();
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const { links } = useLinkedWorkflows(applicationId, active);
-
-  const open = useCallback(
-    (event: MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget),
-    []
-  );
-  const close = useCallback(() => setAnchorEl(null), []);
 
   const openWorkflow = useCallback(
     (link: LinkedWorkflow) => {
@@ -53,10 +60,77 @@ const LinkedWorkflowsMenu = ({
         title: link.name,
         projectId: link.projectId
       });
-      setAnchorEl(null);
+      onClose();
     },
-    [openTab]
+    [openTab, onClose]
   );
+
+  return (
+    <ContextMenu
+      anchorEl={anchorEl}
+      open={anchorEl !== null}
+      onClose={onClose}
+      slotProps={{ list: { "aria-label": t("batch2_0.linkedWorkflowsLabel") } }}
+    >
+      {links.length === 0 && (
+        <MenuItem disabled>
+          <ListItemText primary={t("batch2_0.noWorkflowsBound")} />
+        </MenuItem>
+      )}
+      {links.map((link) => {
+        const broken = link.error !== null;
+        return (
+          <MenuItem
+            key={link.workflowId}
+            disabled={broken}
+            onClick={() => openWorkflow(link)}
+          >
+            <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
+              <FlexRow align="center" gap={SPACING.xs}>
+                <ListItemText
+                  primary={broken ? t("batch2_0.workflowUnavailable") : link.name}
+                  slotProps={{ primary: { noWrap: true } }}
+                />
+                {link.isPinned && (
+                  <Chip
+                    compact
+                    color="info"
+                    label={
+                      link.pinnedVersion === null
+                        ? t("batch2_0.pinned")
+                        : t("batch2_0.pinnedVersion", { version: link.pinnedVersion })
+                    }
+                  />
+                )}
+              </FlexRow>
+              <Caption color={broken ? "error" : "secondary"}>
+                {broken
+                  ? `${link.workflowId} — ${link.error?.message ?? t("batch2_0.couldNotBeLoaded")}`
+                  : link.operations.length
+                    ? t("batch2_0.usedBy", { names: link.operations.map((operation) => operation.name).join(", ") })
+                    : t("batch2_0.boundToNoOperation")}
+              </Caption>
+            </FlexColumn>
+          </MenuItem>
+        );
+      })}
+    </ContextMenu>
+  );
+};
+
+const LinkedWorkflowsMenu = ({
+  applicationId,
+  active = true
+}: LinkedWorkflowsMenuProps) => {
+  const { t } = useTranslation();
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const { links } = useLinkedWorkflows(applicationId, active);
+
+  const open = useCallback(
+    (event: MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget),
+    []
+  );
+  const close = useCallback(() => setAnchorEl(null), []);
 
   return (
     <>
@@ -69,55 +143,12 @@ const LinkedWorkflowsMenu = ({
       >
         {t("batch2_0.linkedWorkflows", { count: links.length })}
       </Button>
-      <ContextMenu
+      <LinkedWorkflowsList
+        applicationId={applicationId}
+        active={active}
         anchorEl={anchorEl}
-        open={anchorEl !== null}
         onClose={close}
-        slotProps={{ list: { "aria-label": t("batch2_0.linkedWorkflowsLabel") } }}
-      >
-        {links.length === 0 && (
-          <MenuItem disabled>
-            <ListItemText primary={t("batch2_0.noWorkflowsBound")} />
-          </MenuItem>
-        )}
-        {links.map((link) => {
-          const broken = link.error !== null;
-          return (
-            <MenuItem
-              key={link.workflowId}
-              disabled={broken}
-              onClick={() => openWorkflow(link)}
-            >
-              <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
-                <FlexRow align="center" gap={SPACING.xs}>
-                  <ListItemText
-                    primary={broken ? t("batch2_0.workflowUnavailable") : link.name}
-                    slotProps={{ primary: { noWrap: true } }}
-                  />
-                  {link.isPinned && (
-                    <Chip
-                      compact
-                      color="info"
-                      label={
-                        link.pinnedVersion === null
-                          ? t("batch2_0.pinned")
-                          : t("batch2_0.pinnedVersion", { version: link.pinnedVersion })
-                      }
-                    />
-                  )}
-                </FlexRow>
-                <Caption color={broken ? "error" : "secondary"}>
-                  {broken
-                    ? `${link.workflowId} — ${link.error?.message ?? t("batch2_0.couldNotBeLoaded")}`
-                    : link.operations.length
-                      ? t("batch2_0.usedBy", { names: link.operations.map((operation) => operation.name).join(", ") })
-                      : t("batch2_0.boundToNoOperation")}
-                </Caption>
-              </FlexColumn>
-            </MenuItem>
-          );
-        })}
-      </ContextMenu>
+      />
     </>
   );
 };

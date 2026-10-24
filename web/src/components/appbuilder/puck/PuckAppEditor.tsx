@@ -1,10 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, useState, type ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import { Puck, useGetPuck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import "./puckTheme.css";
-import CloseIcon from "@mui/icons-material/CloseOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import TabletMacIcon from "@mui/icons-material/TabletMac";
@@ -19,7 +17,7 @@ import { AppRuntimeContext } from "../runtime/AppRuntimeContext";
 import { BuilderWorkflowProvider } from "./BuilderWorkflowContext";
 import { useAppConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
-import AppBuilderDock from "../dock/AppBuilderDock";
+import AppBuilderDock, { type AppBuilderBarSlots } from "../dock/AppBuilderDock";
 import {
   APP_SCHEMA_VERSION,
   BASE_APP_SCHEMA_VERSION,
@@ -43,8 +41,8 @@ interface PuckAppEditorProps {
   onPublish: (data: Data) => void;
   onChange?: (data: Data) => void;
   saving?: boolean;
-  /** Omitted when the builder is embedded and there is nowhere to go back to. */
-  onClose?: () => void;
+  /** Places in the workspace document bar for the builder's controls. */
+  barSlots?: AppBuilderBarSlots;
   /**
    * The document's operations, variables, and resources. Puck does not own
    * them, so the page holds them and the agent tools edit them through
@@ -127,14 +125,13 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   onPublish,
   onChange,
   saving,
-  onClose,
+  barSlots,
   meta = EMPTY_DOC_META,
   onMetaChange,
   dataPanel,
   assistantPanel,
   operationWorkflows
 }) => {
-  const { t } = useTranslation();
   const appConfig = useAppConfig();
   const workflowState = useMemo(
     () => extractWorkflowState(workflow, meta.resources),
@@ -215,39 +212,24 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               onChange={onChange}
               iframe={{ enabled: false }}
             >
+              {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
+              <PuckAgentBinder
+                config={appConfig}
+                applicationId={applicationId}
+                workflowId={workflow.id}
+                meta={meta}
+                onMetaChange={handleMetaChange}
+                workflowState={workflowState}
+                workflowStates={workflowStates}
+              />
               <AppBuilderDock
                 dataPanel={dataPanel}
                 assistantPanel={assistantPanel}
+                barSlots={barSlots}
                 actions={
-                  <>
-                    {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
-                    <PuckAgentBinder
-                      config={appConfig}
-                      applicationId={applicationId}
-                      workflowId={workflow.id}
-                      meta={meta}
-                      onMetaChange={handleMetaChange}
-                      workflowState={workflowState}
-                      workflowStates={workflowStates}
-                    />
-                    <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
-                  </>
+                  <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
                 }
-                trailingActions={
-                  <>
-                    {onClose && (
-                      <EditorButton
-                        size="small"
-                        variant="text"
-                        startIcon={<CloseIcon />}
-                        onClick={onClose}
-                      >
-                        {t("i18n-next115.appBuilder.back")}
-                      </EditorButton>
-                    )}
-                    <SaveButton onSave={onPublish} saving={saving} />
-                  </>
-                }
+                trailingActions={<SaveButton onSave={onPublish} saving={saving} />}
               />
             </Puck>
           </Box>

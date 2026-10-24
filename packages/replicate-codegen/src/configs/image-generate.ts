@@ -2,6 +2,78 @@ import type { ModuleConfig } from "../types.js";
 
 export const imageGenerateConfig: ModuleConfig = {
   configs: {
+    "quiverai/arrow-1.1": {
+      className: "Arrow_1_1",
+      returnType: "image"
+    },
+    "quiverai/arrow-1.1-max": {
+      className: "Arrow_1_1_Max",
+      returnType: "image"
+    },
+    "quiverai/arrow-1.1-vectorize": {
+      className: "Arrow_1_1_Vectorize",
+      returnType: "image"
+    },
+    "quiverai/arrow-1.1-max-vectorize": {
+      className: "Arrow_1_1_Max_Vectorize",
+      returnType: "image"
+    },
+    "google/nano-banana-2.1": {
+      className: "Nano_Banana_2_1",
+      returnType: "image"
+    },
+    "black-forest-labs/flux-3-image": {
+      className: "Flux_3_Image",
+      returnType: "image"
+    },
+    "black-forest-labs/flux-1.1-pro": {
+      className: "Flux_1_1_Pro",
+      returnType: "image"
+    },
+    "krea/krea-3": {
+      className: "Krea_3",
+      returnType: "image"
+    },
+    "ideogram-ai/ideogram-4-5": {
+      className: "Ideogram_4_5",
+      returnType: "image"
+    },
+    "ideogram-ai/ideogram-4-5-precise-edit": {
+      className: "Ideogram_4_5_Precise_Edit",
+      returnType: "image"
+    },
+    "openai/gpt-image-2.5-flare": {
+      className: "GPT_Image_2_5_Flare",
+      returnType: "image"
+    },
+    "openai/gpt-image-2.5-sunburst": {
+      className: "GPT_Image_2_5_Sunburst",
+      returnType: "image"
+    },
+    "openai/dall-e-3": {
+      className: "Dall_E_3",
+      returnType: "image"
+    },
+    "xai/grok-imagine-image-2": {
+      className: "Grok_Imagine_Image_2",
+      returnType: "image"
+    },
+    "prunaai/p-image-ideogram": {
+      className: "P_Image_Ideogram",
+      returnType: "image"
+    },
+    "recraft-ai/recraft-v4-styles-pro-svg": {
+      className: "Recraft_V4_Styles_Pro_SVG",
+      returnType: "image"
+    },
+    "luma/photon": {
+      className: "Photon",
+      returnType: "image"
+    },
+    "stability-ai/stable-diffusion-3": {
+      className: "StableDiffusion3",
+      returnType: "image"
+    },
     "logerzhu/ad-inpaint": {
       className: "AdInpaint",
       returnType: "image",

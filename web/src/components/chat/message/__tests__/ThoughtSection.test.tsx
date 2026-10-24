@@ -51,6 +51,14 @@ describe("ThoughtSection", () => {
     expect(screen.getByText("Weighing the options")).toBeInTheDocument();
   });
 
+  it("follows its own thread, not the current one", () => {
+    mockStatus = "streaming";
+    renderSection({ threadId: "t2" });
+    expect(
+      screen.getByRole("button", { name: /^thought$/i })
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("folds away once the block closes", () => {
     renderSection({ hasClosingTag: true });
     const header = screen.getByRole("button", { name: /^thought$/i });

@@ -184,6 +184,13 @@ describe("buildPlan", () => {
     ]);
   });
 
+  it("builds and tests the VST host when its native source changes", () => {
+    const steps = plan(["native/vst-host/source/VstHost.cpp"]).steps;
+    expect(steps.map((s) => [s.command, ...s.args])).toEqual([
+      ["node", "electron/scripts/build-vst-host.mjs", "--test"]
+    ]);
+  });
+
   it("runs each check once and still runs the owning workspaces", () => {
     expect(
       labels([

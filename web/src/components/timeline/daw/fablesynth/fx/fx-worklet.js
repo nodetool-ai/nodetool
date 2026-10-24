@@ -214,6 +214,9 @@ class FableFxProcessor extends AudioWorkletProcessor {
     this.init();
     this.merge(o.params || {});
     this.apply();
+    // Timeline automation lanes (devices/param-automation-worklet.js).
+    this.pauto = globalThis.FableParamAutomation ? new globalThis.FableParamAutomation() : null;
+    this.pautoSet = (k, v) => this.onMsg({ t: 'params', params: { [k]: v } });
     this.port.onmessage = (e) => this.onMsg(e.data);
   }
 
@@ -372,6 +375,7 @@ class FableFxProcessor extends AudioWorkletProcessor {
 
   onMsg(d) {
     if (!d || typeof d !== 'object') return;
+    if (this.pauto && this.pauto.onMsg(d, this.port)) return;
     if (d.t === 'params') {
       if (d.params) this.merge(d.params);
       if (typeof d.enabled === 'boolean') this.enabled = d.enabled;
@@ -574,6 +578,7 @@ class FableFxProcessor extends AudioWorkletProcessor {
     if (!output || output.length === 0) return true;
     const n = output[0].length;
     this.grow(n);
+    if (this.pauto) this.pauto.tick(currentFrame, this.pautoSet);
     const L = this.L, R = this.R;
     const inL = input && input[0], inR = input && (input[1] || input[0]);
     for (let i = 0; i < n; i++) { L[i] = inL ? inL[i] : 0; R[i] = inR ? inR[i] : 0; }

@@ -12,6 +12,7 @@ import { useChatDraftStore } from "../../../../stores/ChatDraftStore";
 import { useProvidersByCapability } from "../../../../hooks/useProviders";
 import { asTextArea, stub } from "../../../../test-utils/doubles";
 import type { MessageContent, MusicModel } from "../../../../stores/ApiTypes";
+import type { ChatCommand } from "../../types/chat.types";
 
 // The provider query decides whether the composer refuses a send and shows the
 // setup banner instead. Every mode here has a provider. The rest of the module
@@ -162,6 +163,7 @@ const MEDIA_DEFAULTS = (() => {
 })();
 
 interface ComposerOverrides {
+  commands?: ChatCommand[];
   isLoading?: boolean;
   isStreaming?: boolean;
   onStop?: () => void;
@@ -284,6 +286,106 @@ describe("MediaChatComposer", () => {
     expect(content).toEqual([{ type: "text", text: "hello there" }]);
     expect(prompt).toBe("hello there");
     expect(promptBox().value).toBe("");
+  });
+
+  it("runs a thread command from the slash menu instead of sending it", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    const run = jest.fn();
+    renderComposer(onSendMessage, {
+      commands: [{ name: "compact", description: "Summarize", run }]
+    });
+
+    await user.click(promptBox());
+    await user.keyboard("/comp");
+    expect(await screen.findByTestId("skill-option-compact")).toBeInTheDocument();
+    await user.keyboard("{Enter}");
+    expect(promptBox().value).toBe("/compact ");
+    await user.keyboard("{Enter}");
+
+    expect(run).toHaveBeenCalledWith("");
+    expect(onSendMessage).not.toHaveBeenCalled();
+    expect(promptBox().value).toBe("");
+  });
+
+  it("puts the text a command returns back into the prompt", async () => {
+    const user = userEvent.setup();
+    renderComposer(jest.fn(), {
+      commands: [
+        {
+          name: "rewind",
+          description: "Take back",
+          run: async () => "the earlier prompt"
+        }
+      ]
+    });
+
+    await user.click(promptBox());
+    await user.keyboard("/rewind {Enter}");
+
+    await waitFor(() => expect(promptBox().value).toBe("the earlier prompt"));
+  });
+
+  it("holds a thread command while a reply streams", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    const run = jest.fn();
+    renderComposer(onSendMessage, {
+      commands: [{ name: "compact", description: "Summarize", run }],
+      isStreaming: true
+    });
+
+    await user.click(promptBox());
+    await user.keyboard("/compact {Enter}");
+
+    expect(run).not.toHaveBeenCalled();
+    expect(onSendMessage).not.toHaveBeenCalled();
+    expect(promptBox().value).toBe("/compact ");
+  });
+
+  it("sends an unknown command as a prompt", async () => {
+    const user = userEvent.setup();
+    const onSendMessage = jest.fn();
+    renderComposer(onSendMessage);
+
+    await user.click(promptBox());
+    await user.keyboard("/compact {Enter}");
+
+    expect(onSendMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the model picker on /model", async () => {
+    const user = userEvent.setup();
+    renderComposer(jest.fn());
+
+    await user.click(promptBox());
+    await user.keyboard("/model {Enter}");
+
+    expect(screen.getByTestId("language-model-dialog")).toBeInTheDocument();
+    expect(promptBox().value).toBe("");
+  });
+
+  it("sets the permission mode on /mode and cycles it without an argument", async () => {
+    const user = userEvent.setup();
+    useGlobalChatStore.getState().setPermissionMode(THREAD_ID, "default");
+    renderComposer(jest.fn());
+
+    await user.click(promptBox());
+    await user.keyboard("/mode plan{Enter}");
+    expect(useGlobalChatStore.getState().getPermissionMode(THREAD_ID)).toBe(
+      "plan"
+    );
+
+    await user.keyboard("/mode {Enter}");
+    expect(useGlobalChatStore.getState().getPermissionMode(THREAD_ID)).toBe(
+      "default"
+    );
+
+    await user.keyboard("/mode bogus{Enter}");
+    expect(useGlobalChatStore.getState().getPermissionMode(THREAD_ID)).toBe(
+      "default"
+    );
+    expect(promptBox().value).toBe("/mode bogus");
   });
 
   it("shows Send disabled until there is a prompt, then sends on click", async () => {

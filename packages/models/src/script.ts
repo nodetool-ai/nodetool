@@ -34,6 +34,8 @@ export interface ScriptTake {
   words: ScriptCaptionWord[];
   textSnapshot: string;
   voiceSnapshot: VoiceBinding | null;
+  directionSnapshot?: string;
+  speedSnapshot?: number | null;
   createdAt: string;
   favorite?: boolean;
   costCredits?: number;
@@ -194,7 +196,7 @@ export class Script extends DBModel {
     const row = await Script.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
-    await removeDocumentSharing("script", id);
+    await removeDocumentSharing("script", row.id);
     return true;
   }
 

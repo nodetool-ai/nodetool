@@ -21,14 +21,33 @@ const projects = {
 };
 
 const documentsQuery = jest.fn();
+const menuDocuments = {
+  data: [
+    {
+      type: "timeline",
+      ref: "t1",
+      name: "Beacon cut",
+      updatedAt: "2026-10-02T00:00:00Z"
+    },
+    {
+      type: "script",
+      ref: "s1",
+      name: "Beacon voiceover",
+      updatedAt: "2026-10-03T00:00:00Z"
+    }
+  ],
+  isPending: false,
+  error: null
+};
 const createProject = jest.fn();
+const updateProject = jest.fn();
 jest.mock("../../../trpc/client", () => {
   const invalidate = { invalidate: jest.fn() };
   return {
   trpc: {
     useUtils: () => ({
       projects: {
-        list: invalidate,
+        list: { ...invalidate, setData: jest.fn() },
         archived: invalidate,
         summaries: invalidate,
         unassigned: invalidate,
@@ -37,6 +56,7 @@ jest.mock("../../../trpc/client", () => {
     }),
     projects: {
       list: { useQuery: () => ({ ...projects }) },
+      documents: { useQuery: () => ({ ...menuDocuments }) },
       create: {
         useMutation: () => ({ mutateAsync: createProject, isPending: false })
       }
@@ -45,6 +65,7 @@ jest.mock("../../../trpc/client", () => {
   trpcClient: {
     projects: {
       documents: { query: (...args: unknown[]) => documentsQuery(...args) },
+      update: { mutate: (...args: unknown[]) => updateProject(...args) },
       restoreTabs: { query: async () => [] }
     }
   }
@@ -59,6 +80,12 @@ const renderSelector = (inline = false, mobile = false) =>
       <ProjectSelector inline={inline} mobile={mobile} />
     </ThemeProvider>
   );
+
+beforeAll(() => {
+  // jsdom has no layout, so it leaves out the scroll methods.
+  Element.prototype.scrollIntoView = jest.fn();
+  Element.prototype.scrollTo = jest.fn();
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -147,15 +174,52 @@ describe("ProjectSelector", () => {
     );
   });
 
-  it("labels the tab bar selector Project", () => {
+  it("names the project in the app bar and opens its home on click", async () => {
+    const user = userEvent.setup();
     useWorkspaceTabsStore.getState().setActiveProjectId("b");
     renderSelector();
 
+    const home = screen.getByRole("button", {
+      name: "Open project home: Beacon"
+    });
+    expect(home).toHaveTextContent("Beacon");
+    await user.click(home);
+
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
+      "project-new:new"
+    );
     expect(
-      screen.getByRole("button", { name: "Select project" })
+      screen.getByRole("button", { name: "Open project home: Beacon" })
+    ).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("names the app bar control Personal when no project is open", () => {
+    renderSelector();
+
+    expect(
+      screen.getByRole("button", { name: "Open project home: Personal" })
     ).toBeInTheDocument();
-    expect(screen.getByText("Project")).toBeInTheDocument();
-    expect(screen.queryByText("Beacon")).not.toBeInTheDocument();
+  });
+
+  it("renames the project on a double-click of its name", async () => {
+    const user = userEvent.setup();
+    updateProject.mockResolvedValue({
+      id: "b",
+      name: "Lighthouse",
+      isPersonal: false
+    });
+    useWorkspaceTabsStore.getState().setActiveProjectId("b");
+    renderSelector();
+
+    await user.dblClick(
+      screen.getByRole("button", { name: "Open project home: Beacon" })
+    );
+    const input = screen.getByRole("textbox", { name: "Project name" });
+    await user.clear(input);
+    await user.type(input, "Lighthouse{Enter}");
+
+    expect(updateProject).toHaveBeenCalledWith({ id: "b", name: "Lighthouse" });
   });
 
   it("names and creates a project from the selector menu, then opens its home", async () => {
@@ -209,5 +273,37 @@ describe("ProjectSelector", () => {
     expect(start).toBe(0);
     expect(personal).toBeGreaterThan(start);
     expect(screen.queryByText("Manage projects")).toBeNull();
+  });
+
+  it("lists the active project's documents in the menu and opens one", async () => {
+    const user = userEvent.setup();
+    useWorkspaceTabsStore.getState().setActiveProjectId("b");
+    renderSelector();
+    await user.click(screen.getByRole("button", { name: "Select project" }));
+
+    const items = screen
+      .getAllByRole("menuitem")
+      .map((item) => item.textContent ?? "");
+    const voiceover = items.findIndex((text) => text.includes("Beacon voiceover"));
+    const cut = items.findIndex((text) => text.includes("Beacon cut"));
+    expect(voiceover).toBeGreaterThanOrEqual(0);
+    expect(voiceover).toBeLessThan(cut);
+
+    const search = screen.getByRole("textbox", {
+      name: "Search projects and documents"
+    });
+    // "b" starts "Beacon": the menu type-ahead must not move focus there.
+    await user.type(search, "beacon cut");
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue("beacon cut");
+    expect(screen.getByRole("menu", { name: "Documents" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /Beacon voiceover/ })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: /Beacon cut/ }));
+
+    const state = useWorkspaceTabsStore.getState();
+    const active = state.tabs.find((tab) => tab.id === state.activeTabId);
+    expect(active).toMatchObject({ type: "timeline", ref: "t1", projectId: "b" });
   });
 });

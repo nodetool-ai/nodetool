@@ -24,19 +24,25 @@ import {
   FlexRow,
   GAP,
   ResponsiveImage,
-  SHADOW,
   SPACING,
-  Text,
   TruncatedText,
   TYPOGRAPHY
 } from "../ui_primitives";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 import type { ProjectDetail } from "./projectStatus";
+import StartSection, {
+  START_CARD_COLUMNS,
+  START_CARD_GRID_SX,
+  START_CARD_SX,
+  StartCardSkeletons
+} from "./StartSection";
 
 /** How many projects the row shows. */
-const RECENT_LIMIT = 4;
+const RECENT_LIMIT = START_CARD_COLUMNS;
 const STILL_HEIGHT = 120;
+/** The still plus the name and edited rows, for the loading placeholders. */
+const CARD_HEIGHT = 180;
 
 const RecentProjectCard = memo(
   ({
@@ -59,13 +65,17 @@ const RecentProjectCard = memo(
         clickable
         onClick={() => onOpen(detail)}
         aria-label={project.name}
-        sx={{ overflow: "hidden", boxShadow: (theme) => SHADOW(theme).sm }}
+        sx={START_CARD_SX}
       >
         <Box
           sx={{
             height: STILL_HEIGHT,
             flexShrink: 0,
-            bgcolor: "action.hover",
+            // A project with no picture yet gets a faint wash of its colour
+            // rather than a grey slab.
+            bgcolor: still
+              ? "action.hover"
+              : `color-mix(in srgb, ${PROJECT_COLOR} 6%, transparent)`,
             borderBottom: "1px solid",
             borderColor: "divider"
           }}
@@ -139,20 +149,14 @@ const RecentProjects = () => {
   }, [openTab, t]);
 
   // Nothing to go back to yet: the creation cards above are the way in.
-  if (recent.length === 0) {
+  if (!summaries.isPending && recent.length === 0) {
     return null;
   }
 
   return (
-    <FlexColumn
-      component="section"
-      aria-label={t("pass3_32.projects.home.recentProjects.heading")}
-      gap={GAP.comfortable}
-    >
-      <FlexRow align="center" gap={GAP.normal}>
-        <Text size="big" component="h2" sx={{ flex: 1 }}>
-          {t("pass3_32.projects.home.recentProjects.heading")}
-        </Text>
+    <StartSection
+      title={t("pass3_32.projects.home.recentProjects.heading")}
+      action={
         <EditorButton
           variant="text"
           density="compact"
@@ -161,29 +165,26 @@ const RecentProjects = () => {
         >
           {t("pass3_32.projects.home.recentProjects.viewAll")}
         </EditorButton>
-      </FlexRow>
-      {/* Four columns on a wide screen whatever the count, so two projects
-          keep the size four would have. */}
-      <Box
-        sx={{
-          display: "grid",
-          gap: GAP.comfortable,
-          gridTemplateColumns: {
-            xs: "minmax(0, 1fr)",
-            sm: "repeat(2, minmax(0, 1fr))",
-            md: `repeat(${RECENT_LIMIT}, minmax(0, 1fr))`
-          }
-        }}
-      >
-        {recent.map((detail) => (
-          <RecentProjectCard
-            key={detail.project.id}
-            detail={detail}
-            onOpen={handleOpen}
-          />
-        ))}
-      </Box>
-    </FlexColumn>
+      }
+    >
+      {/* Placeholders hold the row's place while the projects load, so the
+          sections below do not jump down when they arrive. */}
+      {summaries.isPending ? (
+        <StartCardSkeletons height={CARD_HEIGHT} />
+      ) : (
+        // Four columns on a wide screen whatever the count, so two projects
+        // keep the size four would have.
+        <Box sx={START_CARD_GRID_SX}>
+          {recent.map((detail) => (
+            <RecentProjectCard
+              key={detail.project.id}
+              detail={detail}
+              onOpen={handleOpen}
+            />
+          ))}
+        </Box>
+      )}
+    </StartSection>
   );
 };
 

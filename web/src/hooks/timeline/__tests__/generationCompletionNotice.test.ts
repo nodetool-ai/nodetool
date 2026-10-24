@@ -31,6 +31,7 @@ const setHidden = (hidden: boolean): void => {
     value: hidden,
     configurable: true
   });
+  jest.spyOn(document, "hasFocus").mockReturnValue(!hidden);
 };
 
 const toasts = () =>
@@ -52,6 +53,7 @@ describe("announceGenerationFinished", () => {
   });
   afterEach(() => {
     delete (globalThis as { Notification?: unknown }).Notification;
+    jest.restoreAllMocks();
   });
 
   it("shows one success toast naming the clip", () => {
@@ -93,7 +95,7 @@ describe("announceGenerationFinished", () => {
     expect(toasts()[0].content).toBe('The edit of "Beach" finished.');
   });
 
-  it("sends a system notification only while the tab is hidden", () => {
+  it("sends a system notification only while the app is in the background", () => {
     const ctor = installNotification("granted");
     finish("req-1", 1_000);
     expect(ctor).not.toHaveBeenCalled();

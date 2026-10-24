@@ -34,12 +34,10 @@ export function StackPreview({ frames, current, accent }: {
       }
       if (f === current) {
         ctx.strokeStyle = accent; ctx.globalAlpha = 1; ctx.lineWidth = 1.8;
-        ctx.shadowColor = accent; ctx.shadowBlur = 10;
       } else {
         ctx.strokeStyle = '#5b6a86'; ctx.globalAlpha = 0.18 + d * 0.5; ctx.lineWidth = 1;
-        ctx.shadowBlur = 0;
       }
-      ctx.stroke(); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      ctx.stroke(); ctx.globalAlpha = 1;
     }
   }, [frames, current, accent]);
   return <canvas ref={ref} className="wte-stack" />;

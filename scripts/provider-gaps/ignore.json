@@ -1,0 +1,17 @@
+{
+  "$comment": "Upstream ids provider-model-gaps.mjs should not report. `*` matches any run of characters. Say why next to each group, so the next reader can tell a decision from an accident.",
+  "fal": {
+    "`/ws` endpoints are WebSocket-only; FalNode calls the queue API": ["*/ws"]
+  },
+  "replicate": {
+    "legacy chat models superseded by later releases of the same family": [
+      "meta/llama-2-*",
+      "mistralai/mistral-7b-v0.1",
+      "ibm-granite/granite-3.0-*",
+      "ibm-granite/granite-3.1-*",
+      "ibm-granite/granite-8b-code-instruct-128k",
+      "ibm-granite/granite-20b-code-instruct-8k"
+    ]
+  },
+  "gemini": {}
+}

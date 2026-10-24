@@ -31,6 +31,8 @@ interface ThoughtSectionProps {
   onToggle: (nextOpen: boolean, event?: React.MouseEvent | React.KeyboardEvent) => void;
   textBefore?: string;
   textAfter?: string;
+  /** The thread the message belongs to; the current thread when omitted. */
+  threadId?: string | null;
 }
 
 /** Whole seconds, at least one: "Thought for 0s" would read as a glitch. */
@@ -50,14 +52,18 @@ export const ThoughtSection: React.FC<ThoughtSectionProps> = React.memo(({
   isExpanded,
   onToggle,
   textBefore,
-  textAfter
+  textAfter,
+  threadId
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
   // An unclosed block in a thread that stopped streaming is a reply cut off
   // mid-thought, not one still thinking.
   const threadStreaming = useGlobalChatStore((state) => {
-    const status = getThreadRuntime(state, state.currentThreadId).status;
+    const status = getThreadRuntime(
+      state,
+      threadId ?? state.currentThreadId
+    ).status;
     return status === "streaming" || status === "loading";
   });
   const isRunning = !hasClosingTag && threadStreaming;

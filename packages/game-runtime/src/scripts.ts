@@ -4,7 +4,7 @@ import { gameBehavior, gameNonSpatialScriptCommand, gameUiScriptCommand, resolve
 
 import { GameScriptLogCollector, withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import { GameScriptSaveCollector, type GameSaveRequest } from "./script-saves.js";
-import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
+import { defaultScriptCallClock, scriptBudgetScale, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, SCRIPT_SYNCHRONOUS_RESULT, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript, canReuseGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
@@ -189,7 +189,8 @@ function assertBeforeDeadline(deadline: number, budget: string): void {
 export interface GameScriptOptions {
   /**
    * Measures each call against its `maxTickMs`, capped at 20 ms. The default is the thread's CPU time where the host
-   * reports it (Node), otherwise wall time. The batch budget and preparation limits use wall time.
+   * reports it (Node), otherwise wall time. On Node, garbage collection pauses during the call do not count.
+   * The batch budget and preparation limits use wall time.
    */
   readonly callClock?: ScriptCallClock;
   /**
@@ -368,6 +369,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
 ): Promise<IsolatedScriptRunner<Call, Input, Command>> {
   const callClock = options.callClock ?? defaultScriptCallClock;
   const skipOverruns = options.overrun === "skip";
+  const budgetScale = scriptBudgetScale();
   let envelope = envelopeSchemas.get(commandSchema);
   if (envelope === undefined) {
     envelope = z.object({ value: z.strictObject({ state: z.json(), commands: z.array(commandSchema) }), rngState: z.number().int().nonnegative() });
@@ -628,7 +630,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
       const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
       for (const [index, call] of calls.entries()) {
-        const callBudgetMs = Number.isFinite(call.maxTickMs) ? Math.min(MAX_SCRIPT_CALL_MS, call.maxTickMs) : MAX_SCRIPT_CALL_MS;
+        const callBudgetMs = (Number.isFinite(call.maxTickMs) ? Math.min(MAX_SCRIPT_CALL_MS, call.maxTickMs) : MAX_SCRIPT_CALL_MS) * budgetScale;
         if (skipOverruns && performance.now() >= batchDeadline) {
           const skipped = calls.slice(index);
           for (const rest of skipped) { results.push({ entityId: rest.entityId, state: rest.state, commands: [] }); }
@@ -895,7 +897,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (calls.length === 0) {
             return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0, byEntity: {} } };
           }
-          const batchMs = firstBatch ? FIRST_BATCH_MS : SCRIPT_BATCH_MS;
+          const batchMs = (firstBatch ? FIRST_BATCH_MS : SCRIPT_BATCH_MS) * budgetScale;
           firstBatch = false;
           return execute(calls, input, rngState, world, batchMs);
         } catch (error) {
