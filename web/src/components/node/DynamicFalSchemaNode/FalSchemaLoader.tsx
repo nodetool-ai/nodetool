@@ -4,14 +4,34 @@ import { Caption, ToolbarIconButton, Box, SPACING, getSpacingPx, ICON_SIZE } fro
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
-import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveFalSchemaClient } from "../../../utils/falDynamicSchema";
-import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
+import {
+  normalizeDynamicOutputs,
+  normalizeDynamicSlots
+} from "../../../utils/dynamicSlots";
 import { replaceDynamicSlots } from "../../../utils/replaceDynamicSlots";
 import { NodeData } from "../../../stores/NodeData";
 import { isNumber } from "../../../utils/typePredicates";
 
 export { DYNAMIC_FAL_NODE_TYPE } from "../../../constants/nodeTypes";
+
+/** A `seed` defaulting to -1 means "random", so its minimum must allow -1. */
+const widenRandomSeedMin = (
+  inputs: Record<string, object> | undefined
+): Record<string, unknown> => {
+  const out: Record<string, unknown> = {};
+  for (const [name, meta] of Object.entries(inputs ?? {})) {
+    const { min, default: defaultValue } = meta as {
+      min?: unknown;
+      default?: unknown;
+    };
+    out[name] =
+      name === "seed" && defaultValue === -1
+        ? { ...meta, min: isNumber(min) ? Math.min(min, -1) : -1 }
+        : meta;
+  }
+  return out;
+};
 
 interface FalSchemaLoaderProps {
   nodeId: string;
@@ -52,65 +72,17 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
     setLoading(true);
     try {
       const resolved = await resolveFalSchemaClient(modelInfo, BASE_URL);
-      const dynamic_outputs: Record<string, TypeMetadata> = {};
-      for (const [k, v] of Object.entries(resolved.dynamic_outputs ?? {})) {
-        const meta = v as {
-          type: string;
-          optional?: boolean;
-          type_args?: unknown[];
-          values?: (string | number)[] | null;
-          type_name?: string | null;
-        };
-        dynamic_outputs[k] = {
-          type: meta.type,
-          optional: meta.optional ?? false,
-          type_args: (Array.isArray(meta.type_args)
-            ? meta.type_args
-            : []) as TypeMetadata[],
-          ...(meta.values != null && { values: meta.values }),
-          ...(meta.type_name != null && { type_name: meta.type_name })
-        } as TypeMetadata;
-      }
-      // Resolver-flat shape; normalized to slot declarations before it lands
-      // in the store (see `utils/dynamicSlots.ts`).
-      const dynamic_inputs: Record<string, Record<string, unknown>> = {};
-      for (const [k, v] of Object.entries(resolved.dynamic_inputs ?? {})) {
-        const meta = v as {
-          type: string;
-          optional?: boolean;
-          type_args?: unknown[];
-          description?: string;
-          values?: (string | number)[] | null;
-          type_name?: string | null;
-          min?: number;
-          max?: number;
-          default?: unknown;
-        };
-        const effectiveMin =
-          k === "seed" && meta.default === -1
-            ? (isNumber(meta.min) ? Math.min(meta.min, -1) : -1)
-            : meta.min;
-        dynamic_inputs[k] = {
-          ...meta,
-          type: meta.type,
-          optional: meta.optional ?? false,
-          type_args: (Array.isArray(meta.type_args)
-            ? meta.type_args
-            : []) as TypeMetadata[],
-          ...(meta.description != null && { description: meta.description }),
-          ...(effectiveMin != null && { min: effectiveMin }),
-          values: meta.values || (meta as typeof meta & { enum?: (string | number)[] }).enum,
-        };
-      }
+      const dynamic_outputs = normalizeDynamicOutputs(resolved.dynamic_outputs);
+      const dynamic_inputs = normalizeDynamicSlots(
+        widenRandomSeedMin(resolved.dynamic_inputs)
+      );
       const dynamic_properties = force
         ? resolved.dynamic_properties
         : { ...resolved.dynamic_properties, ...(existingDynamicPropsRef.current ?? {}) };
       replaceDynamicSlots(nodeStore, nodeId, {
         dynamic_properties,
         dynamic_inputs:
-          Object.keys(dynamic_inputs).length > 0
-            ? normalizeDynamicSlots(dynamic_inputs)
-            : undefined,
+          Object.keys(dynamic_inputs).length > 0 ? dynamic_inputs : undefined,
         dynamic_outputs,
         ...(resolved.endpoint_id != null && {
           endpoint_id: resolved.endpoint_id

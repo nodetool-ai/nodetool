@@ -97,6 +97,17 @@ export const normalizeDynamicSlots = (
   return out;
 };
 
+/** Normalize a resolver's `dynamic_outputs` map to complete `TypeMetadata`. */
+export const normalizeDynamicOutputs = (
+  raw: Record<string, unknown> | undefined | null
+) => {
+  const out: Record<string, TypeMetadata> = {};
+  for (const [name, type] of Object.entries(raw ?? {})) {
+    out[name] = normalizeTypeMetadata(type);
+  }
+  return out;
+};
+
 /** Declared type of a slot, or `any` when there is no declaration. */
 export const slotType = (
   slot: DynamicSlotDeclaration | undefined
