@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import SaveIcon from "@mui/icons-material/Save";
 
 import type { Asset, DataframeRef } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -15,13 +14,15 @@ import type { ContextCommand } from "../../stores/CommandMenuStore";
 import DataTable from "../node/DataTable/DataTable";
 import ErrorBanner from "../support/ErrorBanner";
 import {
-  EditorButton,
+  DocumentBar,
   FlexColumn,
   LoadingSpinner,
   SelectField,
-  SaveState,
+  SaveStatus,
   EmptyState
 } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
+import { DocumentSaveButton, explicitSaveStatus } from "./documentBarParts";
 import { arrayBufferToBase64 } from "../audio_editor/audioSample";
 import { isMac } from "../../utils/platform";
 import isEqual from "../../utils/isEqual";
@@ -43,6 +44,8 @@ interface SpreadsheetDocumentEditorProps {
   readOnly?: boolean;
   /** Whether the editor's tab is on screen; lists its commands in the Cmd+K menu. */
   active?: boolean;
+  /** Draws the document bar. Defaults to a bar titled with the asset name. */
+  documentBar?: DocumentBarRender;
 }
 
 const styles = (theme: Theme) =>
@@ -74,12 +77,14 @@ const styles = (theme: Theme) =>
  * The table editor for an Excel (.xlsx) asset. Each worksheet opens in the
  * DataTable editor, first row as header; a picker switches sheets and keeps
  * each sheet's edits. Saving writes only the changed cells back into the
- * workbook, so other sheets, styles and untouched formulas survive.
+ * workbook, so other sheets, styles and untouched formulas survive. The save
+ * status and Save sit in the document bar, the sheet picker in the table.
  */
 const SpreadsheetDocumentEditor = ({
   asset,
   readOnly = false,
-  active = false
+  active = false,
+  documentBar
 }: SpreadsheetDocumentEditorProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -210,50 +215,81 @@ const SpreadsheetDocumentEditor = ({
     [workbook]
   );
 
-  if (error) {
-    return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        sx={{ alignItems: "center", justifyContent: "center" }}
-      >
-        <ErrorBanner
-          report={{
-            source: "operation-failure",
-            summary: "Spreadsheet failed to load",
-            errorText: error.message
-          }}
-        >
-          {t("i18n-next51.spreadsheet.loadError")}
-        </ErrorBanner>
-      </FlexColumn>
-    );
-  }
-  if (isLoading || !workbook) {
-    return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        sx={{ alignItems: "center", justifyContent: "center" }}
-      >
-        <LoadingSpinner />
-      </FlexColumn>
-    );
-  }
-  if (!dataframe) {
-    return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        sx={{ alignItems: "center", justifyContent: "center" }}
-      >
-        <EmptyState size="small" variant="no-data" title={t("i18n-next51.spreadsheet.noSheets")} />
-      </FlexColumn>
-    );
-  }
+  const barSlots = readOnly
+    ? {}
+    : {
+        status: (
+          <SaveStatus
+            state={explicitSaveStatus({
+              saving: isSaving,
+              dirty: isDirty,
+              failed: saveMutation.isError
+            })}
+            onRetry={handleSave}
+          />
+        ),
+        actions: (
+          <DocumentSaveButton
+            onSave={handleSave}
+            saving={isSaving}
+            disabled={!isDirty}
+          />
+        )
+      };
+  const bar = documentBar ? (
+    documentBar(barSlots)
+  ) : (
+    <DocumentBar title={asset.name ?? ""} {...barSlots} />
+  );
 
-  return (
-    <div css={editorStyles}>
+  const body = () => {
+    if (error) {
+      return (
+        <FlexColumn
+          fullWidth
+          fullHeight
+          sx={{ alignItems: "center", justifyContent: "center" }}
+        >
+          <ErrorBanner
+            report={{
+              source: "operation-failure",
+              summary: "Spreadsheet failed to load",
+              errorText: error.message
+            }}
+          >
+            {t("i18n-next51.spreadsheet.loadError")}
+          </ErrorBanner>
+        </FlexColumn>
+      );
+    }
+    if (isLoading || !workbook) {
+      return (
+        <FlexColumn
+          fullWidth
+          fullHeight
+          sx={{ alignItems: "center", justifyContent: "center" }}
+        >
+          <LoadingSpinner />
+        </FlexColumn>
+      );
+    }
+    if (!dataframe) {
+      return (
+        <FlexColumn
+          fullWidth
+          fullHeight
+          sx={{ alignItems: "center", justifyContent: "center" }}
+        >
+          <EmptyState
+            size="small"
+            variant="no-data"
+            title={t("i18n-next51.spreadsheet.noSheets")}
+          />
+        </FlexColumn>
+      );
+    }
+
+    return (
       <div className="table-host">
         <DataTable
           // Each sheet gets its own table and undo history.
@@ -263,38 +299,27 @@ const SpreadsheetDocumentEditor = ({
           isModalMode
           onChange={readOnly ? undefined : handleChange}
           toolbarEnd={
-            <>
-              {sheetOptions.length > 1 && (
-                <SelectField
-                  className="sheet-select"
-                  label={t("i18n-next51.spreadsheet.sheet")}
-                  hideLabel
-                  size="small"
-                  value={activeIndex}
-                  options={sheetOptions}
-                  onChange={(value) => setSheetIndex(Number(value))}
-                />
-              )}
-              <SaveState
-                state={!readOnly && isDirty ? "dirty" : "idle"}
-                showLabel={false}
+            sheetOptions.length > 1 ? (
+              <SelectField
+                className="sheet-select"
+                label={t("i18n-next51.spreadsheet.sheet")}
+                hideLabel
+                size="small"
+                value={activeIndex}
+                options={sheetOptions}
+                onChange={(value) => setSheetIndex(Number(value))}
               />
-              {!readOnly && (
-                <EditorButton
-                  variant="contained"
-                  size="small"
-                  startIcon={<SaveIcon />}
-                  disabled={!isDirty}
-                  loading={isSaving}
-                  onClick={handleSave}
-                >
-                  {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
-                </EditorButton>
-              )}
-            </>
+            ) : undefined
           }
         />
       </div>
+    );
+  };
+
+  return (
+    <div css={editorStyles}>
+      {bar}
+      {body()}
     </div>
   );
 };

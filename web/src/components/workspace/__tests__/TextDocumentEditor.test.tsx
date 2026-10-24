@@ -274,3 +274,40 @@ describe("TextDocumentEditor — Markdown buttons", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("TextDocumentEditor — document bar", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUpdate.mockResolvedValue({});
+    installGlobal(
+      "fetch",
+      jest.fn().mockResolvedValue({ ok: true, text: async () => "# Untitled" })
+    );
+  });
+
+  it("shows the save state and saves from the bar", async () => {
+    renderEditor(markdownAsset());
+    await userEvent.click(
+      await screen.findByRole("button", { name: "type draft" })
+    );
+    const bar = screen.getByRole("toolbar", { name: "notes.md document" });
+    expect(bar).toHaveTextContent("Unsaved changes");
+    expect(screen.getByRole("button", { name: /undo/i })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => expect(bar).toHaveTextContent("Saved"));
+    expect(mockUpdate).toHaveBeenCalledWith({
+      id: "md-1",
+      data: "# Heater\n\nIt stopped working.",
+      content_type: "text/markdown"
+    });
+  });
+
+  it("leaves Undo and Redo to the table for a CSV", async () => {
+    renderEditor(csvAsset("rows.csv"));
+    await screen.findByTestId("row-count");
+    expect(screen.queryByRole("button", { name: /undo/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /save/i })).toBeDisabled();
+  });
+});

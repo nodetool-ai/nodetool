@@ -70,6 +70,19 @@ export interface DocumentBarProps {
   className?: string;
 }
 
+/** The slots a surface fills. The title and rename come from the host. */
+export type DocumentBarSlots = Pick<
+  DocumentBarProps,
+  "status" | "history" | "mode" | "view" | "actions"
+>;
+
+/**
+ * Draws the bar from an editor's slots. An editor that sits inside a host
+ * (a workspace tab, a dialog) takes one, so the host decides the title and
+ * the rename while the editor supplies its status, history and actions.
+ */
+export type DocumentBarRender = (slots: DocumentBarSlots) => React.ReactNode;
+
 const DocumentBarInternal: React.FC<DocumentBarProps> = ({
   title,
   onRename,

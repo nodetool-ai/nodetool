@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -11,8 +11,7 @@ import TimelineEditor from "../timeline/TimelineEditor";
 import TimelinePlayer from "../timeline/TimelinePlayer";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
 import DocumentLoadStatus from "./DocumentLoadStatus";
-import WorkspaceDocumentBar from "./WorkspaceDocumentBar";
-import { FlexColumn } from "../ui_primitives";
+import { WithDocumentBar } from "./documentBarParts";
 
 interface TimelineSurfaceProps {
   refId: string;
@@ -21,25 +20,6 @@ interface TimelineSurfaceProps {
   /** The workspace tab. Without one (the Studio route) there is no bar. */
   tab?: WorkspaceTab;
 }
-
-/** The generic document bar over a state that is not the editor. */
-const WithDocumentBar = ({
-  tab,
-  children
-}: {
-  tab?: WorkspaceTab;
-  children: React.ReactNode;
-}) =>
-  !tab ? (
-    <>{children}</>
-  ) : (
-  <>
-    <WorkspaceDocumentBar tab={tab} />
-    <FlexColumn sx={{ flex: 1, minHeight: 0, position: "relative" }}>
-      {children}
-    </FlexColumn>
-  </>
-);
 
 /**
  * Workspace surface for a timeline tab. `refId` is the sequenceId. The

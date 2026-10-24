@@ -43,7 +43,11 @@ export type {
 } from "./StatusBar";
 export type { ToolbarIconButtonProps } from "./ToolbarIconButton";
 export { DocumentBar, DOCUMENT_BAR_HEIGHT } from "./DocumentBar";
-export type { DocumentBarProps } from "./DocumentBar";
+export type {
+  DocumentBarProps,
+  DocumentBarRender,
+  DocumentBarSlots
+} from "./DocumentBar";
 export { SaveStatus } from "./SaveStatus";
 export type { SaveStatusProps, SaveStatusValue } from "./SaveStatus";
 export { ModeSwitch } from "./ModeSwitch";

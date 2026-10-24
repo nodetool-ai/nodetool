@@ -10,7 +10,6 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
 import type { Theme } from "@mui/material/styles";
-import SaveIcon from "@mui/icons-material/Save";
 
 import { trpc, trpcClient } from "../../trpc/client";
 import type { SkillResponse } from "@nodetool-ai/protocol/api-schemas/skills.js";
@@ -23,16 +22,18 @@ import MonacoPane from "../workspace/MonacoPane";
 import EditorToolbar from "../textEditor/EditorToolbar";
 import {
   Caption,
-  EditorButton,
+  DocumentBar,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
+  SaveStatus,
   TextInput,
   FormField,
   SPACING,
-  StatusDot,
+  UndoRedoButtons,
   getSpacingPx
 } from "../ui_primitives";
+import type { DocumentBarRender, SaveStatusValue } from "../ui_primitives";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import type * as monaco from "monaco-editor";
 import {
@@ -43,6 +44,8 @@ import {
 interface SkillEditorPaneProps {
   skillId: string;
   readOnly?: boolean;
+  /** Draws the document bar. Defaults to a bar titled with the skill name. */
+  documentBar?: DocumentBarRender;
 }
 
 const styles = (theme: Theme) =>
@@ -68,7 +71,15 @@ const styles = (theme: Theme) =>
     }
   });
 
-const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) => {
+/**
+ * The skill editor. It autosaves, so its document bar carries only the save
+ * status and Undo/Redo, with no Save button. A shipped skill is read only.
+ */
+const SkillEditorPane = ({
+  skillId,
+  readOnly = false,
+  documentBar
+}: SkillEditorPaneProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const editorStyles = styles(theme);
@@ -150,7 +161,11 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
     setSavedContent(skill.content ?? "");
     setBaseUpdatedAt(skill.updatedAt);
     initializedSkillIdRef.current = skill.id;
-    setTabTitle(skillId, "skill", skill.name || t("screen_remaining.skills.untitled"));
+    setTabTitle(
+      skillId,
+      "skill",
+      skill.name || t("screen_remaining.skills.untitled")
+    );
   }, [
     skill,
     skillId,
@@ -212,10 +227,13 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
     [skillId, utils.skills.get]
   );
 
-  const handleSaveError = useCallback((err: unknown) => {
-    if (mountedRef.current) setAutosavePaused(true);
-    notifyMutationError(t("screen_remaining.skills.saveAction"), err);
-  }, [t]);
+  const handleSaveError = useCallback(
+    (err: unknown) => {
+      if (mountedRef.current) setAutosavePaused(true);
+      notifyMutationError(t("screen_remaining.skills.saveAction"), err);
+    },
+    [t]
+  );
 
   const handleSave = useCallback(() => {
     if (!isDirty || updateMutation.isPending || !baseUpdatedAt) return;
@@ -239,10 +257,10 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
       baseUpdatedAt
     };
     const savePromise = updateMutation.mutateAsync({
-        id: skillId,
-        baseUpdatedAt,
-        ...patch
-      });
+      id: skillId,
+      baseUpdatedAt,
+      ...patch
+    });
     savePromiseRef.current = savePromise;
     void savePromise
       .then(handleSaveSuccess)
@@ -330,7 +348,10 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
           currentUtils.skills.get.setData({ id: currentSkillId }, updated);
           void currentUtils.skills.list.invalidate();
         } catch (saveError) {
-          notifyMutationError(t("screen_remaining.skills.saveAction"), saveError);
+          notifyMutationError(
+            t("screen_remaining.skills.saveAction"),
+            saveError
+          );
         }
       };
       void flush();
@@ -382,9 +403,12 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
   const handleToggleWordWrap = useCallback(() => {
     setWordWrap((current) => !current);
   }, []);
-  const handleNameChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    setName(event.currentTarget.value);
-  }, []);
+  const handleNameChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setName(event.currentTarget.value);
+    },
+    []
+  );
   const handleDescriptionChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       setDescription(event.currentTarget.value);
@@ -398,6 +422,37 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
     setAutosavePaused(false);
     handleSave();
   }, [handleSave]);
+
+  let saveStatus: SaveStatusValue = "saved";
+  if (readOnly) saveStatus = "readOnly";
+  else if (updateMutation.isPending) saveStatus = "saving";
+  else if (isDirty && autosavePaused) saveStatus = "error";
+  else if (isDirty) saveStatus = "dirty";
+  const barSlots = {
+    status: <SaveStatus state={saveStatus} onRetry={handleManualSave} />,
+    history: readOnly ? undefined : (
+      <UndoRedoButtons
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+      />
+    ),
+    actions: updateMutation.error ? (
+      <ReportBugButton
+        context={{
+          source: "panel-crash",
+          summary: t("screen_remaining.skills.saveError"),
+          errorText: updateMutation.error.message
+        }}
+      />
+    ) : undefined
+  };
+  const bar = documentBar ? (
+    documentBar(barSlots)
+  ) : (
+    <DocumentBar title={name || skill?.name || ""} {...barSlots} />
+  );
 
   if (error) {
     return (
@@ -433,39 +488,12 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
 
   return (
     <FlexColumn fullWidth fullHeight gap={SPACING.none} css={editorStyles}>
-      <FlexRow className="editor-toolbar-row" align="center" justify="space-between">
+      {bar}
+      <FlexRow className="editor-toolbar-row" align="center">
         <EditorToolbar
-          onUndo={handleUndo}
-          onRedo={handleRedo}
           onToggleWordWrap={handleToggleWordWrap}
-          canUndo={canUndo}
-          canRedo={canRedo}
           wordWrapEnabled={wordWrap}
         />
-        <FlexRow align="center" gap={SPACING.micro} sx={{ px: SPACING.xs }}>
-          {isDirty && (
-            <StatusDot tone="warning" size="medium" label={t("screen_remaining.skills.unsavedChanges")} />
-          )}
-          {updateMutation.error && (
-            <ReportBugButton
-              context={{
-                source: "panel-crash",
-            summary: t("screen_remaining.skills.saveError"),
-                errorText: updateMutation.error.message
-              }}
-            />
-          )}
-          <EditorButton
-            variant="contained"
-            size="small"
-            startIcon={<SaveIcon />}
-            disabled={!isDirty || readOnly}
-            loading={updateMutation.isPending}
-            onClick={handleManualSave}
-          >
-            {updateMutation.isPending ? t("screen_remaining.skills.saving") : t("common.save")}
-          </EditorButton>
-        </FlexRow>
       </FlexRow>
 
       <FlexColumn className="meta-row">
@@ -516,7 +544,11 @@ const SkillEditorPane = ({ skillId, readOnly = false }: SkillEditorPaneProps) =>
             </ErrorBanner>
           </FlexColumn>
         ) : isMonacoLoading ? (
-          <FlexColumn fullWidth fullHeight sx={{ alignItems: "center", justifyContent: "center" }}>
+          <FlexColumn
+            fullWidth
+            fullHeight
+            sx={{ alignItems: "center", justifyContent: "center" }}
+          >
             <LoadingSpinner />
           </FlexColumn>
         ) : (

@@ -5,28 +5,31 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import SaveIcon from "@mui/icons-material/Save";
 
 import { useAssetById } from "../../serverState/useAssetById";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   useWorkspaceTabsStore,
+  type WorkspaceTab,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import ErrorBanner from "../support/ErrorBanner";
 import {
-  Caption,
-  EditorButton,
   FlexColumn,
-  FlexRow,
   LoadingSpinner,
-  SaveState,
-  Toolbar,
+  SaveStatus,
+  UndoRedoButtons,
   EmptyState
 } from "../ui_primitives";
 import MonacoPane from "./MonacoPane";
 import SvgPreview from "./SvgPreview";
+import {
+  DocumentSaveButton,
+  WithDocumentBar,
+  explicitSaveStatus,
+  useMonacoHistory
+} from "./documentBarParts";
 
 const SVG_CONTENT_TYPE = "image/svg+xml";
 
@@ -38,6 +41,8 @@ interface SvgSurfaceProps {
    * store, so an inactive tab can stay mounted with its editor live.
    */
   active: boolean;
+  /** The workspace tab, whose document bar tops the surface. */
+  tab: WorkspaceTab;
 }
 
 const svgAssetKey = (id: string) => ["svgAsset", id] as const;
@@ -73,9 +78,10 @@ const styles = (theme: Theme) =>
  * An SVG is a picture and a text file at once, which is why it has a surface of
  * its own rather than sharing the image tab: view mode paints the vector, edit
  * mode puts the markup in Monaco beside a live preview of what the unsaved text
- * renders to. Saving writes the markup back to the asset.
+ * renders to. Saving writes the markup back to the asset. In edit mode the
+ * document bar carries the save status, Undo/Redo of the markup, and Save.
  */
-const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
+const SvgSurface = ({ refId, mode, tab }: SvgSurfaceProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const surfaceStyles = useMemo(() => styles(theme), [theme]);
@@ -87,6 +93,7 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
     (state) => state.addNotification
   );
 
+  const history = useMonacoHistory();
   const [content, setContent] = useState<string | null>(null);
   const [savedContent, setSavedContent] = useState<string | null>(null);
 
@@ -163,98 +170,125 @@ const SvgSurface = ({ refId, mode }: SvgSurfaceProps) => {
     saveMutation.mutate(content);
   }, [content, savedContent, isSaving, saveMutation]);
 
-  if (isLoading) {
-    return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <LoadingSpinner />
-      </FlexColumn>
-    );
-  }
+  const body = () => {
+    if (isLoading) {
+      return (
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
+          <LoadingSpinner />
+        </FlexColumn>
+      );
+    }
 
-  if (error || !asset) {
-    return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        {error ? (
+    if (error || !asset) {
+      return (
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
+          {error ? (
+            <ErrorBanner
+              report={{
+                source: "operation-failure",
+                summary: "SVG asset failed to load",
+                errorText: error.message
+              }}
+            >
+              {t("i18n-next51.svg.loadError")}
+            </ErrorBanner>
+          ) : (
+            <EmptyState
+              variant="no-data"
+              title={t("i18n-next51.svg.notFound")}
+              description={t("i18n-next51.svg.mayHaveBeenDeleted")}
+            />
+          )}
+        </FlexColumn>
+      );
+    }
+
+    if (markupError) {
+      return (
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: "SVG asset failed to load",
-              errorText: error.message
+              summary: "SVG content failed to load",
+              errorText: markupError.message
             }}
           >
-            {t("i18n-next51.svg.loadError")}
+            {t("i18n-next51.svg.contentLoadError")}
           </ErrorBanner>
-        ) : (
-          <EmptyState
-            variant="no-data"
-            title={t("i18n-next51.svg.notFound")}
-            description={t("i18n-next51.svg.mayHaveBeenDeleted")}
-          />
-        )}
-      </FlexColumn>
-    );
-  }
+        </FlexColumn>
+      );
+    }
 
-  if (markupError) {
+    if (markupLoading || content === null) {
+      return (
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
+          <LoadingSpinner />
+        </FlexColumn>
+      );
+    }
+
+    if (mode !== "edit") {
+      return <SvgPreview markup={content} />;
+    }
+
     return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <ErrorBanner
-          report={{
-            source: "operation-failure",
-            summary: "SVG content failed to load",
-            errorText: markupError.message
-          }}
-        >
-          {t("i18n-next51.svg.contentLoadError")}
-        </ErrorBanner>
-      </FlexColumn>
-    );
-  }
-
-  if (markupLoading || content === null) {
-    return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <LoadingSpinner />
-      </FlexColumn>
-    );
-  }
-
-  if (mode !== "edit") {
-    return <SvgPreview markup={content} />;
-  }
-
-  return (
-    <div css={surfaceStyles}>
-      <Toolbar sx={{ justifyContent: "space-between" }}>
-        <Caption>{asset.name}</Caption>
-        <FlexRow align="center" gap={0.5}>
-          <SaveState state={isDirty ? "dirty" : "idle"} showLabel={false} />
-          <EditorButton
-            variant="contained"
-            size="small"
-            startIcon={<SaveIcon />}
-            disabled={!isDirty}
-            loading={isSaving}
-            onClick={handleSave}
-          >
-            {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
-          </EditorButton>
-        </FlexRow>
-      </Toolbar>
-      <div className="panes">
-        <div className="source-pane">
-          <MonacoPane
-            value={content}
-            language="xml"
-            onChange={setContent}
-            onSave={handleSave}
-          />
-        </div>
-        <div className="preview-pane">
-          <SvgPreview markup={content} />
+      <div css={surfaceStyles}>
+        <div className="panes">
+          <div className="source-pane">
+            <MonacoPane
+              value={content}
+              language="xml"
+              onChange={setContent}
+              onSave={handleSave}
+              onEditorMount={history.onEditorMount}
+            />
+          </div>
+          <div className="preview-pane">
+            <SvgPreview markup={content} />
+          </div>
         </div>
       </div>
-    </div>
+    );
+  };
+
+  const editing = mode === "edit" && content !== null;
+  return (
+    <WithDocumentBar
+      tab={tab}
+      status={
+        editing ? (
+          <SaveStatus
+            state={explicitSaveStatus({
+              saving: isSaving,
+              dirty: isDirty,
+              failed: saveMutation.isError
+            })}
+            onRetry={handleSave}
+          />
+        ) : undefined
+      }
+      history={
+        editing ? (
+          <UndoRedoButtons
+            canUndo={history.canUndo}
+            canRedo={history.canRedo}
+            onUndo={history.undo}
+            onRedo={history.redo}
+          />
+        ) : undefined
+      }
+      actions={
+        editing ? (
+          <DocumentSaveButton
+            onSave={handleSave}
+            saving={isSaving}
+            disabled={!isDirty}
+          />
+        ) : undefined
+      }
+    >
+      {body()}
+    </WithDocumentBar>
   );
 };
 
