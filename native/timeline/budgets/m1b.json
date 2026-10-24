@@ -1,0 +1,10 @@
+{
+  "submitIntervalMs.p95": 17.5,
+  "cpuMs.p95": 8,
+  "frameError.max": 1,
+  "frameErrorZeroFraction": 0.95,
+  "missingMediaFrames": 0,
+  "cutMisses": 0,
+  "decoderCloseMs": 1000,
+  "skippedSubmitsFraction": 0.01
+}

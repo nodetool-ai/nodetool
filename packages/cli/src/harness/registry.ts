@@ -1237,6 +1237,46 @@ export const HARNESSES: HarnessEntry[] = [
         "npm run test --workspace=packages/execution -- execution-session-hydration-audit",
       cost: "cheap"
     }
+  },
+  // The native timeline prototype (native/timeline/) needs Qt 6.12 and FFmpeg,
+  // which CI does not install, so none of these has a selfcheck: the gate
+  // lists them as manual work for a change under native/timeline/.
+  {
+    id: "native-timeline-bench",
+    title: "Native timeline GPU preview bench (frame timing budget)",
+    command:
+      "native/timeline/build/nodetool-timeline native/timeline/fixtures/synthetic-8.json --bench --frames 600 --size 1920x1080 --budget native/timeline/budgets/m1a.json",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    docs: "native/timeline/README.md § Bench"
+  },
+  {
+    id: "native-timeline-plan",
+    title: "Native timeline frame plan vs the web scene model",
+    command:
+      "ctest --test-dir native/timeline/build && node native/timeline/scripts/plan-conformance.mjs --json",
+    kind: "static",
+    capabilities: ["json", "no-db"],
+    docs: "native/timeline/README.md § Plan check"
+  },
+  {
+    id: "native-timeline-media",
+    title: "Native timeline media decode: frame numbers, colour vs timeline render, 4-track realtime bench",
+    command:
+      "node native/timeline/scripts/check-frame-numbers.mjs --json && " +
+      "node native/timeline/scripts/compare-golden.mjs native/timeline/fixtures/video-colorbars-bt709-limited.json --frames 0,45 --min-psnr 40 --json && " +
+      "native/timeline/build/nodetool-timeline native/timeline/fixtures/video-4tracks.json --bench --realtime 15 --size 1920x1080 --budget native/timeline/budgets/m1b.json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Media checks"
+  },
+  {
+    id: "native-timeline-golden",
+    title: "Native timeline golden import (media fixture through timeline render --stills)",
+    command: "node native/timeline/scripts/golden-import.mjs",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Golden import"
   }
 ];
 
@@ -2215,6 +2255,18 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"
     ]
+  },
+  {
+    id: "native-timeline",
+    title: "Native timeline prototype (C++/Qt/FFmpeg, native/timeline/)",
+    harnesses: ["native-timeline-plan", "native-timeline-bench", "native-timeline-media", "native-timeline-golden"],
+    paths: ["native/timeline/"],
+    gap:
+      "Every check needs a Qt 6.12 and FFmpeg build of native/timeline/, " +
+      "which CI does not install, so the gate lists them as manual work. " +
+      "Closing the gap: a macOS CI job that installs qt and ffmpeg, builds " +
+      "with CMake, and runs ctest, plan-conformance.mjs and the bench budget " +
+      "(the bench needs a display, so a hosted runner with a screen)."
   }
 ];
 
