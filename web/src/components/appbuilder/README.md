@@ -190,7 +190,7 @@ Variable node and wire app state to it.
 
 Apps are opened from the **Apps** panel in the left sidebar. "New app" starts
 an empty one; "Create app from workflow" scaffolds a one-way copy bound to that
-workflow. The workflow editor's toolbar has the same scaffold as **Make app**
+workflow. The workflow's document bar has the same scaffold as **Make app** in its ⋮ menu
 (`hooks/useWorkflowApp.ts`): it opens the most recently edited app whose
 operations run the open workflow (`applications.list` with `workflowId`), and
 otherwise saves the graph and creates one from it, then reads **Open app**.

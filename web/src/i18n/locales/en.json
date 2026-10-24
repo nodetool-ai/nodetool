@@ -10581,6 +10581,9 @@
       "enqueued": "Enqueued"
     },
     "toolbar": {
+      "graph": "Graph",
+      "chain": "Chain",
+      "viewMode": "Editor view",
       "openApp": "Open app",
       "makeApp": "Make app",
       "openWorkflowApp": "Open the app that runs this workflow",

@@ -129,6 +129,21 @@ The execution trace of a run, with per-node timing. A run selector in the header
 
 ---
 
+## Document Bar
+
+The row under the tab bar belongs to the open workflow. It holds the name (double-click to rename), the save status, Undo and Redo, the **Graph / Chain** switch, the chat and mini map toggles, and a **⋮** menu.
+
+| Control | When shown | Action |
+|---------|------------|--------|
+| Save status | Always | **Saved**, **Saving…**, **Unsaved changes**, or **Not saved** with Retry. The workflow autosaves, and `Ctrl/⌘ + S` saves now |
+| Undo, Redo | Not on mobile | Step through the graph history |
+| Graph / Chain | Always | Switch between the node canvas and the [chain editor](chain-editor.md) |
+| Chat | Always | Show or hide the conversation window, with a count badge |
+| Mini map | Graph view | Show or hide the mini map |
+| ⋮ | Always | **Make app** (or **Open app**), **Download JSON**, **Convert to JS script**, **Download Node.js script** |
+
+**Download JSON** saves the workflow as `<name>.json` with an empty `id`.
+
 ## Composer Bar
 
 A dock floating over the canvas. Its top part is the chat and media prompt (generated media is added to the canvas as nodes). Under it sits the row of workflow controls. Drag the handle at the left of the row to move the dock, and double-click it to reset the position. On narrow screens the dock is fixed to the bottom.
@@ -138,15 +153,13 @@ A dock floating over the canvas. Its top part is the chat and media prompt (gene
 | Control | When shown | Action |
 |---------|------------|--------|
 | Add node | Graph view | Open the node menu |
-| Conversation | Always | Show or hide the conversation above the dock, with a count badge |
 | Auto Layout | Graph view, not on mobile | Auto-arrange the graph |
-| Save | Not on mobile | Save the workflow |
 | Trigger toggle | Workflow has trigger nodes | Arm or disarm the workflow's triggers, with per-trigger schedule and last-fired details. See [Triggers](triggers.md) |
 | Stop | While a run is starting, queued, or running | Cancel the run |
 | Run | Always | Run the entire workflow. The label reads **Run entire workflow**, **Starting**, **Queued #n**, **Running**, **Stopping**, or **Error · Retry**, and a badge counts additional queued runs. Elapsed time shows while running. |
 | ⋮ Workflow actions | Always | Overflow menu (see below) |
 
-The **⋮** overflow menu contains: **Chain View / Graph View** (toggle), **Instant Update** (on/off, re-runs the downstream part of the graph when you change an input value), **Stop** (while running), **Auto Layout** and **Save** (on mobile), **Mini Map** (show/hide), **Download JSON**, and **Panels…** (on mobile). **Download JSON** saves the workflow as `<name>.json` with an empty `id`.
+The **⋮** overflow menu contains: **Instant Update** (on/off, re-runs the downstream part of the graph when you change an input value), **Stop** (while running), **Auto Layout** (on mobile), and **Panels…** (on mobile). The view switch, the chat and the exports sit in the [document bar](#document-bar).
 
 There is no Pause, Resume, or Fit button in the dock. A run cannot be paused or resumed.
 
