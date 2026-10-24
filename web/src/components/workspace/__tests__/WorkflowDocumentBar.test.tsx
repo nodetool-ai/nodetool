@@ -12,6 +12,22 @@ const convertToJsScript = jest.fn();
 let dirty = false;
 let saveStates: Record<string, "saving" | "error"> = {};
 
+interface NodeStateMock {
+  workflowJSON: () => string;
+  workflow: { name: string };
+}
+interface TemporalStateMock {
+  undo: () => void;
+  redo: () => void;
+  pastStates: unknown[];
+  futureStates: unknown[];
+}
+interface ManagerStateMock {
+  workflowSaveStates: Record<string, "saving" | "error">;
+  getWorkflow: () => void;
+  saveWorkflow: () => void;
+}
+
 jest.mock("../WorkspaceDocumentBar", () => ({
   __esModule: true,
   default: ({
@@ -37,15 +53,15 @@ jest.mock("../WorkspaceDocumentBar", () => ({
 
 jest.mock("../../../contexts/NodeContext", () => ({
   __esModule: true,
-  useNodes: <T,>(selector: (s: object) => T) =>
+  useNodes: <T,>(selector: (s: NodeStateMock) => T) =>
     selector({ workflowJSON: () => "{}", workflow: { name: "Flow" } }),
-  useTemporalNodes: <T,>(selector: (s: object) => T) =>
+  useTemporalNodes: <T,>(selector: (s: TemporalStateMock) => T) =>
     selector({ undo, redo: jest.fn(), pastStates: [1], futureStates: [] })
 }));
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   __esModule: true,
-  useWorkflowManager: <T,>(selector: (s: object) => T) =>
+  useWorkflowManager: <T,>(selector: (s: ManagerStateMock) => T) =>
     selector({
       workflowSaveStates: saveStates,
       getWorkflow: jest.fn(),
