@@ -25,7 +25,7 @@ import { tabCanRename } from "./tabRename";
 import { useRenameDocument } from "../../hooks/useRenameDocument";
 import { useWorkspaceDocumentClose } from "../../hooks/useWorkspaceDocumentClose";
 import { HEADER_HEIGHT, TOOLBAR_WIDTH } from "../../config/constants";
-import AddIcon from "@mui/icons-material/Add";
+import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 
 import {
   BORDER_RADIUS,
@@ -649,7 +649,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       <ToolbarIconButton
         ref={newTabButtonRef}
         className="new-tab-icon"
-        icon={<AddIcon />}
+        icon={<AddOutlinedIcon />}
         tooltip={t("i18n-next51.tabBar.openOrCreateTab")}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
