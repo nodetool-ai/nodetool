@@ -13,7 +13,7 @@ import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, Label, LoadingSpinner, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EmptyState, FlexColumn, FlexRow, Label, LoadingSpinner, SPACING, Text, TextInput, type DocumentBarRender } from "../ui_primitives";
 import ErrorBanner from "../support/ErrorBanner";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
@@ -24,7 +24,7 @@ import GameHierarchy3D from "./panels/hierarchy/GameHierarchy3D";
 import GameInspector3D from "./panels/inspector/GameInspector3D";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
 import GameAssetBrowser from "./panels/assets/GameAssetBrowser";
-import GameEditorShell from "./shell/GameEditorShell";
+import GameEditorShell, { withGameDocumentBar } from "./shell/GameEditorShell";
 import GameRevisions from "./panels/revisions/GameRevisions";
 import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
@@ -46,10 +46,15 @@ async function openDiagnosticSession(document: GameDocument3D, signal: AbortSign
   return { step: () => session.step(EMPTY_INPUT_3D), dispose: () => session.dispose() };
 }
 
-interface GameEditor3DProps { readonly refId: string; readonly active: boolean; }
+interface GameEditor3DProps {
+  readonly refId: string;
+  readonly active: boolean;
+  /** Draws the workspace document bar in place of the editor's title row. */
+  readonly documentBar?: DocumentBarRender;
+}
 interface GameEditor3DContentProps extends GameEditor3DProps { readonly document: GameDocument3D; readonly name: string; readonly projectId: string; }
 
-function GameEditor3DContent({ refId, active, document, name, projectId }: GameEditor3DContentProps) {
+function GameEditor3DContent({ refId, active, document, name, projectId, documentBar }: GameEditor3DContentProps) {
   const { t } = useTranslation();
   const selectedIds = useGameDraft(refId, (state) => state.selectedIds);
   const saveStatus = useGameDraft(refId, (state) => state.saveStatus);
@@ -266,7 +271,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const restart = useMemo(() => host.playDocument && JSON.stringify({ ...host.playDocument, revision: document.revision }) !== JSON.stringify(document),
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
-  return <GameEditorShell layoutStore={layoutStore} dimension="3d" active={active}
+  return <GameEditorShell layoutStore={layoutStore} dimension="3d" active={active} documentBar={documentBar}
     exportGame={{ id: refId, name: name }}
     toolbar={{ name: name,
         playing: host.playing,
@@ -391,7 +396,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
 
 }
 
-export default function GameEditor3D({ refId, active }: GameEditor3DProps) {
+export default function GameEditor3D({ refId, active, documentBar }: GameEditor3DProps) {
   const { t } = useTranslation();
   const { data, isPending, error } = trpc.games.getDraft.useQuery({ id: refId }, { staleTime: 15_000 });
   const document = useGameDraft(refId, (state) => state.document?.schemaVersion === 3 ? state.document : null);
@@ -401,14 +406,15 @@ export default function GameEditor3D({ refId, active }: GameEditor3DProps) {
     const state = store.getState();
     if (state.pendingOps.length === 0 && state.baseUpdatedAt !== data.game.draftUpdatedAt) { state.load(data.document, data.game.draftUpdatedAt); }
   }, [data, refId]);
-  if (error?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery key={refId} refId={refId} />; }
-  if (isPending || (data && !document)) { return <LoadingSpinner text={t("i18n-next26.game.loading3dGame")} />; }
+  if (error?.data?.code === "PRECONDITION_FAILED") { return withGameDocumentBar(documentBar, <GameDraftRecovery key={refId} refId={refId} />); }
+  if (isPending || (data && !document)) { return withGameDocumentBar(documentBar, <LoadingSpinner text={t("i18n-next26.game.loading3dGame")} />); }
   if (error || !data || !document) {
     const message = error?.message ?? t("i18n-next26.game.sourceUnavailable");
-    return <FlexColumn gap={SPACING.sm} align="center">
+    return withGameDocumentBar(documentBar, <FlexColumn gap={SPACING.sm} align="center">
       <EmptyState variant="error" title={t("i18n-next26.game.couldNotLoad")} description={message} />
       <ReportBugButton context={{ source: "panel-crash", summary: t("i18n-next26.game.couldNotLoad"), errorText: message, nodeDetail: `Game: ${refId}` }} />
-    </FlexColumn>;
+    </FlexColumn>);
   }
-  return <GameEditor3DContent refId={refId} active={active} document={document} name={data.game.name} projectId={data.game.projectId} />;
+  return <GameEditor3DContent refId={refId} active={active} document={document} name={data.game.name} projectId={data.game.projectId}
+    documentBar={documentBar} />;
 }
