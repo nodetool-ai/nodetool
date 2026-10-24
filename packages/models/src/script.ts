@@ -34,6 +34,8 @@ export interface ScriptTake {
   words: ScriptCaptionWord[];
   textSnapshot: string;
   voiceSnapshot: VoiceBinding | null;
+  directionSnapshot?: string;
+  speedSnapshot?: number | null;
   createdAt: string;
   favorite?: boolean;
   costCredits?: number;

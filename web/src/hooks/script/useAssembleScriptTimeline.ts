@@ -11,7 +11,7 @@
  * document mapping lives in {@link buildScriptTimelineDocument}.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { trpcClient } from "../../trpc/client";
 import { useScriptStore } from "../../stores/script/ScriptStore";
 import {
@@ -64,6 +64,10 @@ export const useAssembleScriptTimeline =
   (): UseAssembleScriptTimelineResult => {
     const [assembling, setAssembling] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    // Synchronous guard: `assembling` disables the button only after a
+    // re-render, and the linked-board load gave a second click time to start
+    // a second sequence.
+    const inFlightRef = useRef(false);
 
     const assemble = useCallback(
       async (scriptId: string): Promise<AssembleScriptResult> => {
@@ -71,23 +75,27 @@ export const useAssembleScriptTimeline =
         if (!script) {
           throw new Error(`No script "${scriptId}".`);
         }
-        // A linked board that cannot be read leaves the script assembling the
-        // way an unlinked one does — a deleted board must not break assemble.
-        const board = script.storyboardId
-          ? await loadLinkedBoard(script.storyboardId)
-          : null;
-        const doc = buildScriptTimelineDocument(script, board);
-        const lineClips = doc.clips.filter((clip) => clip.scriptLineId);
-        if (lineClips.length === 0) {
-          const message =
-            "No voiced lines to assemble — voice at least one line first.";
-          setError(message);
-          throw new Error(message);
+        if (inFlightRef.current) {
+          throw new Error("This script is already being assembled.");
         }
-
+        inFlightRef.current = true;
         setError(null);
         setAssembling(true);
         try {
+          // A linked board that cannot be read leaves the script assembling
+          // the way an unlinked one does — a deleted board must not break
+          // assemble.
+          const board = script.storyboardId
+            ? await loadLinkedBoard(script.storyboardId)
+            : null;
+          const doc = buildScriptTimelineDocument(script, board);
+          const lineClips = doc.clips.filter((clip) => clip.scriptLineId);
+          if (lineClips.length === 0) {
+            throw new Error(
+              "No voiced lines to assemble — voice at least one line first."
+            );
+          }
+
           const name = script.title.trim() || "Script voiceover";
           const clips = board
             ? stampBoardProvenance(doc.clips, board.boardId)
@@ -157,6 +165,7 @@ export const useAssembleScriptTimeline =
           setError(err instanceof Error ? err.message : String(err));
           throw err;
         } finally {
+          inFlightRef.current = false;
           setAssembling(false);
         }
       },

@@ -22,10 +22,13 @@ export const useScriptPlaythrough = (scriptId: string): Playthrough => {
   const [playing, setPlaying] = useState(false);
   const [currentLineId, setCurrentLineId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const cancelledRef = useRef(false);
+  // Each play() gets a fresh run id; a run stops as soon as it is no longer the
+  // current one. A shared "cancelled" flag let a stopped run waiting out a
+  // pause resume once the next play() cleared the flag, so two runs played.
+  const runRef = useRef(0);
 
   const stop = useCallback(() => {
-    cancelledRef.current = true;
+    runRef.current += 1;
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = "";
@@ -42,7 +45,8 @@ export const useScriptPlaythrough = (scriptId: string): Playthrough => {
     const script = useScriptStore.getState().scripts[scriptId];
     if (!script) return;
 
-    cancelledRef.current = false;
+    const runId = ++runRef.current;
+    const cancelled = (): boolean => runRef.current !== runId;
     setPlaying(true);
 
     const lines = script.sections
@@ -69,7 +73,7 @@ export const useScriptPlaythrough = (scriptId: string): Playthrough => {
 
     const run = async (): Promise<void> => {
       for (const { line, take } of lines) {
-        if (cancelledRef.current) break;
+        if (cancelled()) break;
         setCurrentLineId(line.id);
         let url: string | null = null;
         try {
@@ -78,13 +82,13 @@ export const useScriptPlaythrough = (scriptId: string): Playthrough => {
         } catch {
           url = null;
         }
-        if (cancelledRef.current) break;
+        if (cancelled()) break;
         if (url) await playOne(url);
-        if (cancelledRef.current) break;
+        if (cancelled()) break;
         if (line.pauseAfterMs && line.pauseAfterMs > 0)
           await wait(line.pauseAfterMs);
       }
-      if (!cancelledRef.current) {
+      if (!cancelled()) {
         setPlaying(false);
         setCurrentLineId(null);
       }
