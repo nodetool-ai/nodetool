@@ -35,7 +35,7 @@ sources. Their model lineage and reproduction promises cannot be interchanged.
 
 F3. Page expansion has an opportunity cost. The
 [SEO audit](../SEO_STRATEGY.md) prioritizes consolidation and improving existing
-ranked pages. More descriptive pages would leave the conversion gap intact.
+ranked pages.
 
 | Decision | Choice and consequence                                                                                                                                                                                                                                     |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
