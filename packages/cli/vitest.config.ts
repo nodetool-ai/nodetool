@@ -117,6 +117,9 @@ export default defineConfig({
     fileParallelism: false,
     maxWorkers: 2,
     testTimeout: 30000,
+    // CI runners share CPUs, so a game script call that takes a few milliseconds can overrun its 20 ms
+    // limit. Spawned CLIs inherit the scale.
+    env: { NODETOOL_GAME_SCRIPT_BUDGET_SCALE: "5" },
     projects: [
       {
         extends: true,
