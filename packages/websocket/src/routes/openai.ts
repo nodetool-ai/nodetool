@@ -29,6 +29,8 @@ const openaiRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         })
       );
     });
+    // Streamed (SSE) bodies are sent by bridge; Fastify must not end the reply.
+    return reply;
   });
 };
 

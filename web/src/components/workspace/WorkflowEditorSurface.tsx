@@ -23,6 +23,7 @@ import {
   creationProjectId,
   tabId,
   useWorkspaceTabsStore,
+  type WorkspaceTab,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import { useCreateApplication } from "../../hooks/useApplications";
@@ -70,6 +71,8 @@ import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { useBrowserPreviewsOnLoad } from "../../hooks/nodes/useBrowserPreviewsOnLoad";
 import WorkflowGraphPreview from "../version/WorkflowGraphPreview";
 import { WorkflowLandingChecklist } from "../setup/workflow/WorkflowLandingChecklist";
+import WorkflowDocumentBar from "./WorkflowDocumentBar";
+import { WithDocumentBar } from "./documentBarParts";
 
 // Floating editor status message: sits above the canvas and node overlays but
 // below the node-info panel (15000) and find dialog (20000). Beyond the shared
@@ -80,6 +83,8 @@ interface WorkflowEditorSurfaceProps {
   workflowId: string;
   mode?: WorkspaceTabMode;
   active: boolean;
+  /** The workspace tab. Without one there is no document bar. */
+  tab?: WorkspaceTab;
 }
 
 /**
@@ -99,7 +104,8 @@ interface WorkflowEditorSurfaceProps {
 const WorkflowEditorSurface = ({
   workflowId,
   mode = "edit",
-  active
+  active,
+  tab
 }: WorkflowEditorSurfaceProps) => {
   const { t } = useTranslation();
   const nodeStore = useWorkflowManager((state) =>
@@ -464,70 +470,80 @@ const WorkflowEditorSurface = ({
   if (!nodeStore) {
     if (loadFailed !== null) {
       return (
-        <EmptyState
-          variant="error"
-          title={t("i18n-next51.workflow.loadErrorTitle")}
-          description={
-            <FlexColumn align="center" gap={SPACING.sm}>
-              {t("i18n-next51.workflow.checkConnection")}
-              <ReportBugButton
-                context={{
-                  source: "operation-failure",
-                  summary: "Workflow tab failed to load",
-                  errorText: loadFailed,
-                  workflowId
-                }}
-              />
-            </FlexColumn>
-          }
-          actionText={t("i18n-next51.common.retry")}
-          onAction={() => setLoadAttempt((attempt) => attempt + 1)}
-        />
+        <WithDocumentBar tab={tab}>
+          <EmptyState
+            variant="error"
+            title={t("i18n-next51.workflow.loadErrorTitle")}
+            description={
+              <FlexColumn align="center" gap={SPACING.sm}>
+                {t("i18n-next51.workflow.checkConnection")}
+                <ReportBugButton
+                  context={{
+                    source: "operation-failure",
+                    summary: "Workflow tab failed to load",
+                    errorText: loadFailed,
+                    workflowId
+                  }}
+                />
+              </FlexColumn>
+            }
+            actionText={t("i18n-next51.common.retry")}
+            onAction={() => setLoadAttempt((attempt) => attempt + 1)}
+          />
+        </WithDocumentBar>
       );
     }
     if (missing) {
       return null;
     }
     return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        sx={{ alignItems: "center", justifyContent: "center" }}
-      >
-        <LoadingSpinner />
-      </FlexColumn>
+      <WithDocumentBar tab={tab}>
+        <FlexColumn
+          fullWidth
+          fullHeight
+          sx={{ alignItems: "center", justifyContent: "center" }}
+        >
+          <LoadingSpinner />
+        </FlexColumn>
+      </WithDocumentBar>
     );
   }
 
   if (mode === "view") {
     return (
-      <WorkflowGraphPreview
-        graph={workflow?.graph}
-        workflowId={workflowId}
-        width="100%"
-        height="100%"
-      />
+      <WithDocumentBar tab={tab}>
+        <WorkflowGraphPreview
+          graph={workflow?.graph}
+          workflowId={workflowId}
+          width="100%"
+          height="100%"
+        />
+      </WithDocumentBar>
     );
   }
 
   if (gameStage !== "done" && !gameFinished) {
     return (
-      <GameSetupHost
-        workflowId={workflowId}
-        {...(workflowProjectId && { projectId: workflowProjectId })}
-        onStartAlternative={startBlankGame}
-        onFinish={(result) => void finishGameFlow(result)}
-      />
+      <WithDocumentBar tab={tab}>
+        <GameSetupHost
+          workflowId={workflowId}
+          {...(workflowProjectId && { projectId: workflowProjectId })}
+          onStartAlternative={startBlankGame}
+          onFinish={(result) => void finishGameFlow(result)}
+        />
+      </WithDocumentBar>
     );
   }
 
   if (setupStage !== "done" && !setupFinished) {
     return (
-      <WorkflowSetupHost
-        workflowId={workflowId}
-        onStartFromExample={startFromExample}
-        onFinish={finishSetupFlow}
-      />
+      <WithDocumentBar tab={tab}>
+        <WorkflowSetupHost
+          workflowId={workflowId}
+          onStartFromExample={startFromExample}
+          onFinish={finishSetupFlow}
+        />
+      </WithDocumentBar>
     );
   }
 
@@ -539,19 +555,7 @@ const WorkflowEditorSurface = ({
         <ContextMenuProvider>
           <ConnectableNodesProvider>
             <KeyboardProvider>
-              {active && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 16,
-                    zIndex: STATUS_MESSAGE_Z_INDEX
-                  }}
-                >
-                  <StatusMessage />
-                </div>
-              )}
-              <WorkflowConflictBanner workflowId={workflowId} />
+              {tab && <WorkflowDocumentBar tab={tab} />}
               {visibleLanding && (
                 <Box
                   data-testid="workflow-landing"
@@ -608,6 +612,19 @@ const WorkflowEditorSurface = ({
                   height: "100%"
                 }}
               >
+                {active && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      right: 16,
+                      zIndex: STATUS_MESSAGE_Z_INDEX
+                    }}
+                  >
+                    <StatusMessage />
+                  </div>
+                )}
+                <WorkflowConflictBanner workflowId={workflowId} />
                 {/* The chain view replaces the canvas for the active tab. The
                     node editor stays mounted underneath so toggling back keeps
                     its viewport and transient editor state. */}

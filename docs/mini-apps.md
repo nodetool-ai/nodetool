@@ -77,8 +77,8 @@ workflow.
 | Where | How to get there |
 | --- | --- |
 | Apps panel | Left sidebar → **Apps**. Every app in the project, plus the **New app** and **Create app from workflow** buttons. Right-click a row to rename, duplicate, or delete an app. |
-| App tab | Click an app. It opens as a workspace tab with four views: **Design**, **Run**, **Preview draft**, **Settings**. |
-| Linked workflows | A **Linked workflows** menu on the app tab, listing the workflows this app runs. Click one to open it as a normal workflow tab. |
+| App tab | Click an app. It opens as a workspace tab. Its document bar switches between **Run**, **Design**, and **Settings**, and its ⋮ menu holds **Preview draft**. |
+| Linked workflows | **Linked workflows** in the app tab's ⋮ menu lists the workflows this app runs. Click one to open it as a normal workflow tab. |
 | Terminal | `nodetool app debug <application_id>`. See [Checking an app](#checking-an-app). |
 
 **Design** is where you place and wire widgets:

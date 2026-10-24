@@ -270,3 +270,27 @@ it("marks each docked panel host with data-dock-panel so 2D viewport shortcuts f
   await user.keyboard("{Home}");
   expect(viewportShortcut).toHaveBeenCalledTimes(1);
 });
+
+it("hands the document bar its slots and keeps the transport row", async () => {
+  const user = userEvent.setup();
+  render(<ThemeProvider theme={mockTheme}>
+    <Shell dimension="2d" toolbar={{ ...toolbar, saveStatus: "unsaved", canUndo: true, onUndo: jest.fn(), onRedo: jest.fn() }}
+      status={status} panels={[]}
+      documentBar={({ status: saveState, history, view, actions }) => <div role="toolbar" aria-label="document bar">
+        {saveState}{history}{view}{actions}
+      </div>} />
+  </ThemeProvider>);
+  const bar = screen.getByRole("toolbar", { name: "document bar" });
+  expect(bar).toHaveTextContent("Unsaved changes");
+  expect(within(bar).getByRole("button", { name: "Undo" })).toBeEnabled();
+  expect(within(bar).getByRole("button", { name: "Publish" })).toBeInTheDocument();
+  // Play, Step and Stop stay in the editor, outside the bar.
+  const transport = screen.getByRole("group", { name: "Play controls" });
+  expect(bar.contains(transport)).toBe(false);
+  // The title row is gone.
+  expect(screen.queryByText("Shell game")).toBeNull();
+
+  await user.click(within(bar).getByRole("button", { name: /more actions/i }));
+  expect(screen.getByRole("menuitem", { name: /save play state/i })).toBeInTheDocument();
+  expect(screen.getByRole("menuitem", { name: /play in new tab/i })).toBeInTheDocument();
+});

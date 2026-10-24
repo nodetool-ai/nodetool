@@ -31,6 +31,15 @@ const envelopeSchema = z.object({
   payload: resourceChangePayloadSchema
 });
 
+function isResyncMarker(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as { type?: unknown }).type === "resource_resync"
+  );
+}
+
 export function serializeModelChange(
   instance: DBModel,
   event: ModelChangeEvent,
@@ -88,10 +97,45 @@ export class ResourceChangeBus {
     }
   }
 
+  /**
+   * Accepts one envelope (the form replicas sent before batching) or a JSON
+   * array of envelopes. A malformed single envelope throws so the caller
+   * resyncs. A malformed array entry is logged and skipped. A
+   * `{type: "resource_resync"}` entry, sent when a publisher dropped messages
+   * under load, triggers one resync for the whole message.
+   */
   receive(encoded: string): void {
-    const { origin, payload } = envelopeSchema.parse(JSON.parse(encoded));
-    if (origin !== this.origin) {
-      this.deliverLocal(payload);
+    const parsed: unknown = JSON.parse(encoded);
+    if (!Array.isArray(parsed)) {
+      if (isResyncMarker(parsed)) {
+        this.resync();
+        return;
+      }
+      const { origin, payload } = envelopeSchema.parse(parsed);
+      if (origin !== this.origin) {
+        this.deliverLocal(payload);
+      }
+      return;
+    }
+    let resync = false;
+    for (const entry of parsed) {
+      if (isResyncMarker(entry)) {
+        resync = true;
+        continue;
+      }
+      const envelope = envelopeSchema.safeParse(entry);
+      if (!envelope.success) {
+        log.warn("Skipping malformed resource change in batch", {
+          error: envelope.error.message
+        });
+        continue;
+      }
+      if (envelope.data.origin !== this.origin) {
+        this.deliverLocal(envelope.data.payload);
+      }
+    }
+    if (resync) {
+      this.resync();
     }
   }
 

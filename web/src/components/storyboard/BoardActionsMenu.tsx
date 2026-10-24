@@ -3,6 +3,9 @@
  * then (restyling the board, exporting it, handing its media to a workflow).
  * Keeping them behind one button leaves the toolbar to the steps of making
  * the film: add shots, preview, settings, render.
+ *
+ * In the workspace document bar the menu also takes the board's secondary
+ * steps (`leadingItems`), which sit above these.
  */
 
 import React, { memo, useCallback, useState } from "react";
@@ -15,6 +18,7 @@ import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
 import { useInStudio } from "../../studio/StudioContext";
 import { SendToWorkflowMenu } from "../workflows/SendToWorkflowMenu";
 import {
+  Divider,
   EditorMenu,
   MenuItemPrimitive,
   ToolbarIconButton
@@ -29,6 +33,8 @@ interface BoardActionsMenuProps {
   hasShots: boolean;
   /** Every still and clip on the board, for "Send to workflow". */
   workflowMedia: readonly WorkflowMediaItem[];
+  /** Keyed items drawn first, then a divider. Each gets a close callback. */
+  leadingItems?: (close: () => void) => React.ReactNode[];
 }
 
 const BoardActionsMenu: React.FC<BoardActionsMenuProps> = ({
@@ -36,7 +42,8 @@ const BoardActionsMenu: React.FC<BoardActionsMenuProps> = ({
   onDownloadZip,
   downloading,
   hasShots,
-  workflowMedia
+  workflowMedia,
+  leadingItems
 }) => {
   const { t } = useTranslation();
   const inStudio = useInStudio();
@@ -81,6 +88,10 @@ const BoardActionsMenu: React.FC<BoardActionsMenuProps> = ({
           list: { "aria-label": t("screens4_11.storyboard.boardActions.menuLabel") }
         }}
       >
+        {leadingItems && [
+          ...leadingItems(closeMenu),
+          <Divider key="leading-divider" />
+        ]}
         <MenuItemPrimitive
           label={t("screens4_11.storyboard.boardActions.changeStyle")}
           icon={<PaletteOutlinedIcon fontSize="small" />}

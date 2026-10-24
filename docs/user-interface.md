@@ -109,7 +109,7 @@ hand to someone who has never heard of NodeTool.
 3. Lay out input widgets, a run button, and display widgets in the app's tab.
 4. Flip the tab to **Run**, then publish.
 
-The workflows stay separate resources. **Linked workflows** on the app tab opens
+The workflows stay separate resources. **Linked workflows** in the app tab's ⋮ menu opens
 one in its own tab. On desktop, right-click the tray icon to launch any app in
 its own window.
 

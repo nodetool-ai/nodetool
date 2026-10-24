@@ -47,6 +47,15 @@ import { Script, type ScriptDocument } from "../src/script.js";
 import { Storyboard, type StoryboardDocument } from "../src/storyboard.js";
 import { TimelineSequence } from "../src/timeline-sequence.js";
 import { Workflow } from "../src/workflow.js";
+import { WorkflowCollaborator } from "../src/workflow-collaborator.js";
+import { WorkflowShare } from "../src/workflow-share.js";
+import { WorkflowVersion } from "../src/workflow-version.js";
+import { TriggerRegistration } from "../src/trigger-registration.js";
+import { TimelineSequenceVersion } from "../src/timeline-sequence-version.js";
+import {
+  DocumentCollaborator,
+  DocumentShare
+} from "../src/document-sharing.js";
 import { Workspace } from "../src/workspace.js";
 import type { Shot } from "@nodetool-ai/protocol";
 
@@ -305,6 +314,105 @@ describe("Project model", () => {
     job.markCompleted();
     await expect(job.save()).rejects.toThrow("Project has been deleted");
     expect(await Project.deleteOwned("u1", project.id)).toBe(true);
+  });
+
+  it("runs the per-item cleanup for the project's workflows and documents", async () => {
+    const project = await Project.create<Project>({
+      user_id: "u1",
+      name: "Aurora"
+    });
+    const keep = await Project.create<Project>({
+      user_id: "u1",
+      name: "Kept"
+    });
+    const workflowIn = (projectId: string) =>
+      Workflow.create<Workflow>({
+        user_id: "u1",
+        project_id: projectId,
+        name: "wf",
+        description: "",
+        tags: [],
+        access: "private",
+        graph: { nodes: [], edges: [] },
+        run_mode: "workflow"
+      });
+    const workflow = await workflowIn(project.id);
+    const kept = await workflowIn(keep.id);
+    for (const wf of [workflow, kept]) {
+      await TriggerRegistration.create<TriggerRegistration>({
+        user_id: "u1",
+        workflow_id: wf.id,
+        node_id: "n1",
+        kind: "webhook",
+        config_json: {},
+        enabled: 1
+      });
+      await WorkflowVersion.create<WorkflowVersion>({
+        workflow_id: wf.id,
+        user_id: "u1",
+        version: await WorkflowVersion.nextVersion(wf.id)
+      });
+    }
+    await WorkflowCollaborator.upsert({
+      workflowId: workflow.id,
+      userId: "u2",
+      role: "viewer",
+      invitedBy: "u1"
+    });
+    await WorkflowShare.ensure({
+      workflowId: workflow.id,
+      role: "viewer",
+      createdBy: "u1"
+    });
+    const board = await Storyboard.create<Storyboard>({
+      user_id: "u1",
+      project_id: project.id,
+      name: "Board"
+    });
+    await DocumentCollaborator.upsert({
+      documentType: "storyboard",
+      documentId: board.id,
+      userId: "u2",
+      role: "editor",
+      invitedBy: "u1"
+    });
+    await DocumentShare.ensure({
+      documentType: "storyboard",
+      documentId: board.id,
+      role: "viewer",
+      createdBy: "u1"
+    });
+    const cut = await TimelineSequence.create<TimelineSequence>({
+      user_id: "u1",
+      project_id: project.id,
+      name: "Cut",
+      fps: 30,
+      width: 16,
+      height: 9,
+      duration_ms: 1,
+      document: JSON.stringify({ tracks: [], clips: [], markers: [] })
+    });
+    await TimelineSequenceVersion.snapshot(cut, { saveType: "manual" });
+
+    expect(await Project.deleteOwned("u1", project.id)).toBe(true);
+
+    // A deleted project's webhook must stop answering, and its version rows
+    // hold full graph snapshots.
+    expect(await TriggerRegistration.findByWorkflow(workflow.id)).toEqual([]);
+    expect(await WorkflowVersion.listForWorkflow(workflow.id)).toEqual([]);
+    expect(await WorkflowCollaborator.findFor(workflow.id, "u2")).toBeNull();
+    expect(await WorkflowShare.listForWorkflow(workflow.id)).toEqual([]);
+    expect(
+      await DocumentCollaborator.listForDocument("storyboard", board.id)
+    ).toEqual([]);
+    expect(await DocumentShare.listForDocument("storyboard", board.id)).toEqual(
+      []
+    );
+    expect(await TimelineSequenceVersion.listForTimeline(cut.id)).toEqual([]);
+
+    // Another project's workflow keeps its trigger and history.
+    expect(await TriggerRegistration.findByWorkflow(kept.id)).toHaveLength(1);
+    expect(await WorkflowVersion.listForWorkflow(kept.id)).toHaveLength(1);
   });
 
   it("keeps a project's completed output separate from another project's upload", async () => {

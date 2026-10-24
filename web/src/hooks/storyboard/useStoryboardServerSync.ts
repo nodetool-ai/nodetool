@@ -28,6 +28,7 @@ import { mergeByUnits, type MergeConflict } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { storyboardMergeAdapter } from "../../stores/storyboard/merge";
+import { useStoryboardSaveStatusStore } from "../../stores/storyboard/StoryboardSaveStatusStore";
 import { isPermanentSaveError } from "../../utils/saveErrors";
 import {
   registerStoryboardSaver,
@@ -453,6 +454,7 @@ export const useStoryboardServerSync = (
       isCasConflict: isConflict,
       isRetryableError: (error) => !isPermanentSaveError(error),
       onStatus: (status) => {
+        useStoryboardSaveStatusStore.getState().setStatus(boardId, status);
         if (status === "error") reportFailure("The server rejected the save.");
       }
     });

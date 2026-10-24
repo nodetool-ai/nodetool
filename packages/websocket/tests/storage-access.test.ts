@@ -8,6 +8,10 @@ const findAsset = vi.fn();
 vi.mock("@nodetool-ai/models", () => ({
   Asset: { find: (...args: unknown[]) => findAsset(...args) }
 }));
+const isAssetIdShared = vi.fn();
+vi.mock("../src/lib/document-access.js", () => ({
+  isAssetIdSharedWithUser: (...args: unknown[]) => isAssetIdShared(...args)
+}));
 
 import {
   assetIdFromKey,
@@ -16,14 +20,19 @@ import {
   isRuntimeScratchKey
 } from "../src/lib/storage-access.js";
 
+const SHARED_ID = "0123456789abcdef0123456789abcdef";
+
 beforeEach(() => {
   findAsset.mockReset();
+  isAssetIdShared.mockReset();
+  isAssetIdShared.mockResolvedValue(false);
 });
 
 describe("assetIdFromKey", () => {
   it.each([
     ["abc123.png", "abc123"],
     ["abc123_thumb.jpg", "abc123"],
+    ["abc123_proxy.mp4", "abc123"],
     ["abc123", "abc123"],
     ["nested/dir/abc123.png", "abc123"],
     ["nested\\dir\\abc123.png", "abc123"]
@@ -120,6 +129,51 @@ describe("canReadStorageKey", () => {
     findAsset.mockResolvedValue({ id: "abc", user_id: "user-a" });
     await expect(canReadStorageKey("user-a", "abc.png")).resolves.toBe(true);
     expect(findAsset).toHaveBeenCalledWith("user-a", "abc");
+  });
+
+  it("allows another owner's key when a document shared with the caller shows the asset", async () => {
+    isAssetIdShared.mockResolvedValue(true);
+    findAsset.mockResolvedValue({ id: SHARED_ID, user_id: "user-a" });
+    await expect(
+      canReadStorageKey("user-b", `user-a/${SHARED_ID}_thumb.jpg`)
+    ).resolves.toBe(true);
+    expect(isAssetIdShared).toHaveBeenCalledWith("user-b", "user-a", SHARED_ID);
+    expect(findAsset).toHaveBeenCalledWith("user-a", SHARED_ID);
+  });
+
+  it("denies another owner's key when no shared document shows the asset", async () => {
+    findAsset.mockResolvedValue({ id: SHARED_ID, user_id: "user-a" });
+    await expect(
+      canReadStorageKey("user-b", `user-a/${SHARED_ID}.png`)
+    ).resolves.toBe(false);
+    expect(findAsset).not.toHaveBeenCalled();
+  });
+
+  it("denies a shared asset whose row is gone", async () => {
+    isAssetIdShared.mockResolvedValue(true);
+    findAsset.mockResolvedValue(null);
+    await expect(
+      canReadStorageKey("user-b", `user-a/${SHARED_ID}.png`)
+    ).resolves.toBe(false);
+  });
+
+  it("does not extend sharing to nested keys or short ids", async () => {
+    isAssetIdShared.mockResolvedValue(true);
+    findAsset.mockResolvedValue({ id: SHARED_ID, user_id: "user-a" });
+    await expect(
+      canReadStorageKey("user-b", `user-a/other/${SHARED_ID}.png`)
+    ).resolves.toBe(false);
+    await expect(
+      canReadStorageKey("user-b", `user-a/${SHARED_ID.slice(0, 12)}.png`)
+    ).resolves.toBe(false);
+    expect(isAssetIdShared).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the sharing lookup throws", async () => {
+    isAssetIdShared.mockRejectedValue(new Error("db down"));
+    await expect(
+      canReadStorageKey("user-b", `user-a/${SHARED_ID}.png`)
+    ).resolves.toBe(false);
   });
 
   it("requires ownership for legacy flat keys", async () => {

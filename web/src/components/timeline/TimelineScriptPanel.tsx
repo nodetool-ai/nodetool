@@ -17,7 +17,7 @@ import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import MicNoneIcon from "@mui/icons-material/MicNone";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
 
 import {
