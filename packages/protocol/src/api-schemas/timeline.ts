@@ -472,7 +472,8 @@ export type DrumPad = z.infer<typeof drumPad>;
  *
  * `subtractive` is the built-in synth. The other three are ports of the
  * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
- * synth, BL-1 the acid bassline, DR-1 the drum machine.
+ * synth, BL-1 the acid bassline, DR-1 the drum machine. `vst` is a VST3
+ * instrument the desktop app hosts.
  */
 export const samplerZone = z.object({
   id: z.string().min(1),
@@ -495,8 +496,28 @@ export const samplerMidiInstrument = z.object({
     gainDb: z.number().min(-60).max(12)
   });
 
+/** `VstPluginRef` in `@nodetool-ai/timeline`: the VST3 plug-in a track loads. */
+export const vstPluginRef = z.object({
+  uid: z.string().min(1).max(512),
+  name: z.string().max(256),
+  vendor: z.string().max(256),
+  path: z.string().min(1).max(4096)
+});
+
+/** Base64 plug-in state above this is refused, so one track cannot bloat the document. */
+export const VST_STATE_MAX_CHARS = 8_000_000;
+
+/** A VST3 instrument hosted by the desktop app. Silent wherever no host runs. */
+export const vstMidiInstrument = z.object({
+  type: z.literal("vst"),
+  plugin: vstPluginRef.nullable(),
+  state: z.string().max(VST_STATE_MAX_CHARS).nullable(),
+  gainDb: z.number().min(-60).max(12)
+});
+
 export const midiInstrument = z.discriminatedUnion("type", [
   samplerMidiInstrument,
+  vstMidiInstrument,
   z.object({
     type: z.literal("subtractive"),
     waveform: z.enum(["saw", "square", "triangle", "sine"]),

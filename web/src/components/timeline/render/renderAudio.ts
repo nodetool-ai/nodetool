@@ -12,6 +12,8 @@ import {
   DEFAULT_MIDI_INSTRUMENT,
   effectiveAssetId,
   harmonizeClips,
+  midiClipFrames,
+  midiClipVoiceEvents,
   renderMidiClip,
   resolveTempo,
   videoClipsWithOwnAudio
@@ -23,6 +25,7 @@ import type {
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import { getSamplerAudio } from "../preview/samplerAudio";
+import { renderVstBuffer } from "../preview/vstRender";
 import { AudioGraph, type ScheduledAudioClip } from "../preview/AudioGraph";
 import { liveDeviceFactory } from "../daw/devices/liveDevice";
 import "../daw/devices/registerFablesynthDevices";
@@ -140,6 +143,23 @@ export async function renderTimelineAudio(
           return { clip, live: { bpm } };
         }
         if (clip.mediaType === "midi") {
+          const instrument = instrumentOf(clip.trackId);
+          if (instrument.type === "vst") {
+            // The desktop host renders the plug-in; without one this throws
+            // rather than exporting the track as silence.
+            const buffer = await renderVstBuffer(
+              offline,
+              instrument,
+              midiClipVoiceEvents(clip, bpm, sampleRate),
+              midiClipFrames(clip, sampleRate)
+            ).catch((error: unknown) => {
+              throw new Error(
+                `Cannot export the VST instrument track: ${error instanceof Error ? error.message : String(error)}`
+              );
+            });
+            throwIfAborted(signal);
+            return { clip, buffer };
+          }
           // Rendered inline: the export already runs off the main thread's hot
           // path, and one context per render makes a worker round trip pure cost.
           const recordings = await getSamplerAudio(

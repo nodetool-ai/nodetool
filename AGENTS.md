@@ -63,7 +63,7 @@ Guidelines](docs/BRAND.md).
 - **[Agent Harnesses & Tooling](#agent-harnesses--tooling)** — Validate, debug, run, single-node, browser, deploy, trace (the tools that close the build→verify loop)
 - **[Harness Reference](docs/harnesses.md)** — Every harness and agent tool surface in full: flags, what it simulates, the design behind it. CLI flags: [docs/cli.md](docs/cli.md)
 - **[Production Deploy (Docker)](docs/docker-production-deploy.md)** — How `main` reaches api.nodetool.ai: the release gates, restricted SSH, and rolling drain
-- **[Dev Environment](docs/dev-environment.md)** — Sandboxed/proxied `npm install`, WebGPU without a Vulkan driver
+- **[Dev Environment](docs/dev-environment.md)** — Sandboxed/proxied `npm install`, WebGPU without a Vulkan driver, building the VST instrument host
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`), and the index of the per-package overlays
 - **[Agent System](packages/agents/AGENTS.md)** — Planning, execution, parallelism, skills, tuning
 - **[Agent Architecture & Tools](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes

@@ -16646,6 +16646,20 @@
         "moveTenPixels": "Move the clip ten pixels",
         "resetTransform": "Reset the transform"
       }
+    },
+    "vst": {
+      "desktopOnly": "VST instruments play in the NodeTool desktop app. In the browser this track is silent.",
+      "checking": "Looking for the VST host",
+      "hostMissing": "The VST host is not installed.",
+      "plugin": "VST instrument",
+      "choose": "Choose a plug-in",
+      "missingPlugin": "{{name}} (not installed here)",
+      "scanning": "Scanning plug-in folders",
+      "none": "No VST3 instruments were found in the standard plug-in folders.",
+      "openWindow": "Open plug-in window",
+      "closeWindow": "Close plug-in window",
+      "rescan": "Rescan",
+      "hint": "Sound changes made in the plug-in window are saved with the timeline. Clips render through the plug-in when they play."
     }
   },
   "i18n-next63": {

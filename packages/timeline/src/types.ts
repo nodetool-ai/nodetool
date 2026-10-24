@@ -920,14 +920,40 @@ export interface MidiNote {
  * `subtractive` is the built-in synth. The other three are ports of the
  * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
  * synth, BL-1 the acid bassline, DR-1 the drum machine. The sampler plays
- * recorded audio assets through MIDI key mappings.
+ * recorded audio assets through MIDI key mappings. `vst` is a third-party VST3
+ * instrument that the desktop app hosts in a separate process.
  */
 export type MidiInstrument =
   | SubtractiveMidiInstrument
   | WavetableMidiInstrument
   | BassMidiInstrument
   | DrumMidiInstrument
-  | SamplerMidiInstrument;
+  | SamplerMidiInstrument
+  | VstMidiInstrument;
+
+/** Which VST3 plug-in a `vst` instrument loads, as the host's scan reported it. */
+export interface VstPluginRef {
+  /** The host's identifier for the plug-in type inside its bundle. */
+  uid: string;
+  name: string;
+  vendor: string;
+  /** The `.vst3` bundle on the machine that picked it. */
+  path: string;
+}
+
+/**
+ * A VST3 instrument. Only the desktop app can play it: the plug-in is native
+ * code on the user's machine, rendered by the FableSynth VST host. Renderers
+ * without a host (the browser build, the server export) play it as silence.
+ */
+export interface VstMidiInstrument {
+  type: "vst";
+  /** Null until a plug-in is chosen. */
+  plugin: VstPluginRef | null;
+  /** The plug-in's own saved state, base64. Null plays its default sound. */
+  state: string | null;
+  gainDb: number;
+}
 
 /** Recorded audio mapped to MIDI key ranges. Overlapping zones layer. */
 export interface SamplerZone {

@@ -75,6 +75,12 @@ const IpcChannels = {
   DIALOG_OPEN_FILE: "dialog-open-file",
   DIALOG_OPEN_FOLDER: "dialog-open-folder",
   FRONTEND_LOG: "frontend-log",
+  VST_STATUS: "vst-status",
+  VST_SCAN: "vst-scan",
+  VST_RENDER: "vst-render",
+  VST_OPEN_EDITOR: "vst-open-editor",
+  VST_CLOSE_EDITOR: "vst-close-editor",
+  VST_EVENT: "vst-event",
 } as const;
 
 jest.mock("../types.d", () => ({ IpcChannels, IpcEvents: {} }));
@@ -217,6 +223,31 @@ describe("preload contract", () => {
       IpcChannels.SETTINGS_GET_UPDATE_CHANNEL,
       IpcChannels.SETTINGS_SET_UPDATE_CHANNEL,
     ]);
+  });
+
+  test("vst namespace methods route to expected IPC channels", () => {
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
+    jest.mocked(electronMock.ipcRenderer.on).mockClear();
+    const plugin = { path: "/plugins/Pad.vst3", uid: "VST3-Pad" };
+
+    api.vst.status();
+    api.vst.scan(true);
+    api.vst.render({ plugin, state: null, sampleRate: 48000, frames: 4, events: [] });
+    api.vst.openEditor({ instance: "track:t1", plugin, state: null, title: "Pad" });
+    api.vst.closeEditor("track:t1");
+    api.vst.onEvent(() => {});
+
+    const channels = jest.mocked(electronMock.ipcRenderer.invoke).mock.calls
+      .map((c: unknown[]) => c[0]);
+    expect(channels).toEqual([
+      IpcChannels.VST_STATUS,
+      IpcChannels.VST_SCAN,
+      IpcChannels.VST_RENDER,
+      IpcChannels.VST_OPEN_EDITOR,
+      IpcChannels.VST_CLOSE_EDITOR,
+    ]);
+    expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls[1][1]).toEqual({ rescan: true });
+    expect(jest.mocked(electronMock.ipcRenderer.on).mock.calls[0][0]).toBe(IpcChannels.VST_EVENT);
   });
 
   test("windowControls uses ipcRenderer.send (fire-and-forget), not invoke", () => {

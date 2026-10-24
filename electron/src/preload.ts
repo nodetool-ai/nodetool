@@ -24,6 +24,8 @@ import {
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
   RuntimePackageId,
+  VstOpenEditorRequest,
+  VstRenderRequest,
 } from "./types.d";
 import { isString } from "./typePredicates";
 
@@ -641,6 +643,27 @@ const api = {
   mcp: {
     /** Install the bundled NodeTool `.mcpb` into Claude Desktop. */
     installBundle: () => ipcRenderer.invoke(IpcChannels.MCP_INSTALL_BUNDLE),
+  },
+
+  // ============================================================================
+  // vst: VST3 instruments, hosted by the NodeToolVstHost helper process
+  // ============================================================================
+  vst: {
+    /** Whether the helper is installed. */
+    status: () => ipcRenderer.invoke(IpcChannels.VST_STATUS),
+    /** The VST3 instruments on this computer. */
+    scan: (rescan?: boolean) =>
+      ipcRenderer.invoke(IpcChannels.VST_SCAN, { rescan: rescan === true }),
+    /** Render note events through a plug-in, as planar stereo. */
+    render: (request: VstRenderRequest) =>
+      ipcRenderer.invoke(IpcChannels.VST_RENDER, request),
+    /** Open the plug-in's own window for one track. */
+    openEditor: (request: VstOpenEditorRequest) =>
+      ipcRenderer.invoke(IpcChannels.VST_OPEN_EDITOR, request),
+    closeEditor: (instance: string) =>
+      ipcRenderer.invoke(IpcChannels.VST_CLOSE_EDITOR, instance),
+    /** State changes from an open plug-in window, and the helper exiting. */
+    onEvent: createEventSubscription(IpcChannels.VST_EVENT),
   },
 
   // ============================================================================
