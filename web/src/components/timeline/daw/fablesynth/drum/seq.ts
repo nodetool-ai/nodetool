@@ -5,8 +5,6 @@ import { PAD_COUNT } from './params';
 
 export const STEPS = 16;
 export const NPATTERNS = 4;
-export const ACCENT_VEL = 1.0;
-export const PLAIN_VEL = 0.72;
 // Swing: odd 16ths are delayed by swing * SWING_MAX of a step (1.0 → triplet feel).
 export const SWING_MAX = 0.667;
 

@@ -8,7 +8,6 @@ export type SketchPanelId = typeof SKETCH_PANEL_IDS[number];
 
 /** Built-in layouts in menu order. The first is the default. */
 export const SKETCH_LAYOUT_PRESETS = ["Essentials", "Painting", "Compositing", "Assistant"] as const;
-export type SketchLayoutPreset = typeof SKETCH_LAYOUT_PRESETS[number];
 
 /** Width, in px, of the right column in the default layout. Matches the column the editor had before the dock. */
 const RIGHT_WIDTH = 260;
