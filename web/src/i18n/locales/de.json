@@ -12546,7 +12546,6 @@
     },
     "trackHeader": {
       "clickToRename": "Zum Umbenennen klicken",
-      "custom": "Benutzerdefiniert",
       "deleteTrack": "Spur löschen",
       "deleteTrackQuestion": "Spur löschen?",
       "dragToReorder": "Ziehen, um die Spur neu anzuordnen",
@@ -12560,6 +12559,7 @@
       "insertTrackAbove": "{{type}}-Spur darüber einfügen",
       "insertTrackBelow": "{{type}}-Spur darunter einfügen",
       "instrumentFor": "Instrument für {{name}}",
+      "presetFor": "Preset für {{name}}",
       "lockTrack": "Spur sperren",
       "moveToFolder": "Zu {{name}} verschieben",
       "mute": "Stummschalten",
@@ -16514,7 +16514,7 @@
     },
     "instrument": {
       "preset": "Instrumenten-Preset",
-      "custom": "Benutzerdefiniert",
+      "type": "Instrument",
       "keyboard": "Tastatur",
       "loading": "Instrument wird geladen",
       "device": "Instrumentengerät",

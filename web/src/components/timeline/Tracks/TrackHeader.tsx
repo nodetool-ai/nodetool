@@ -35,11 +35,13 @@ import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 
+import { findInstrumentPreset } from "@nodetool-ai/timeline";
 import {
-  findInstrumentPreset,
-  presetIdForInstrument
-} from "@nodetool-ai/timeline";
-import { TIMELINE_INSTRUMENT_PRESETS } from "../../../stores/timeline/instrumentPresets";
+  DEFAULT_TIMELINE_INSTRUMENT,
+  INSTRUMENT_TYPE_OPTIONS,
+  instrumentForType,
+  instrumentSelection
+} from "../../../stores/timeline/instrumentPresets";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
@@ -74,7 +76,6 @@ import {
   TYPOGRAPHY,
   Z_INDEX
 } from "../../ui_primitives";
-import type { SelectOption } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { trackRowHeightPx } from "./trackHeight";
@@ -362,7 +363,7 @@ const resizeHandleStyles = (theme: Theme) =>
     }
   });
 
-/** The preset select at the icon buttons' height, so the row stays even. */
+/** The instrument selects at the icon buttons' height, so the row stays even. */
 const presetFieldHeight = {
   "& .MuiInputBase-root": {
     height: CONTROL.height.xs,
@@ -370,10 +371,10 @@ const presetFieldHeight = {
   }
 };
 
-/** Inline in the controls row: keep the preset compact as the header grows. */
+/** Inline in the controls row: keep the selects compact as the header grows. */
 const presetSelectStyles = css({
   minWidth: 0,
-  flex: "0 1 160px",
+  flex: "0 1 120px",
   "@container (max-width: 280px)": { display: "none" },
   ...presetFieldHeight
 });
@@ -398,9 +399,6 @@ const instrumentRowSelectStyles = css({
   ...presetFieldHeight
 });
 
-/** Shown when the track's voice matches no shipped preset. */
-const CUSTOM_PRESET = "custom";
-
 interface TrackHeaderProps {
   track: TimelineTrack;
   /** Pre-computed 1-based index within the track's type group. */
@@ -418,13 +416,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
   ({ track, typedIndex, compact = false }) => {
     const theme = useTheme();
     const { t } = useTranslation();
-    const presetOptions: readonly SelectOption[] = [
-      ...TIMELINE_INSTRUMENT_PRESETS.map((preset) => ({
-        value: preset.id,
-        label: preset.name
-      })),
-      { value: CUSTOM_PRESET, label: t("i18n-next6.trackHeader.custom") }
-    ];
 
     const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
     const setTrackLocked = useTimelineStore((s) => s.setTrackLocked);
@@ -638,10 +629,18 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
 
     const isMidi = track.type === "midi";
     const setTrackInstrument = useTimelineStore((s) => s.setTrackInstrument);
-    const presetId =
-      isMidi && track.instrument && track.instrument.type !== "subtractive"
-        ? (presetIdForInstrument(track.instrument) ?? CUSTOM_PRESET)
-        : CUSTOM_PRESET;
+    const selection = instrumentSelection(
+      track.instrument ?? DEFAULT_TIMELINE_INSTRUMENT
+    );
+    const handleTypeChange = useCallback(
+      (value: string) => {
+        const instrument = instrumentForType(value);
+        if (instrument) {
+          setTrackInstrument(track.id, instrument);
+        }
+      },
+      [setTrackInstrument, track.id]
+    );
     const handlePresetChange = useCallback(
       (value: string) => {
         const preset = findInstrumentPreset(value);
@@ -818,11 +817,25 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           size="small"
           appearance="inspector"
           variant="outlined"
-          value={presetId}
-          options={presetOptions}
-          onChange={handlePresetChange}
+          value={selection.type}
+          options={INSTRUMENT_TYPE_OPTIONS}
+          onChange={handleTypeChange}
           css={instrumentOnOwnRow ? instrumentRowSelectStyles : presetSelectStyles}
         />
+        {/* A sampler or a VST has one starting point, so no preset to pick. */}
+        {selection.presetOptions.length > 1 && (
+          <SelectField
+            label={t("i18n-next6.trackHeader.presetFor", { name: track.name })}
+            hideLabel
+            size="small"
+            appearance="inspector"
+            variant="outlined"
+            value={selection.presetId}
+            options={selection.presetOptions}
+            onChange={handlePresetChange}
+            css={instrumentOnOwnRow ? instrumentRowSelectStyles : presetSelectStyles}
+          />
+        )}
         <Tooltip title={t("i18n-next6.trackHeader.editInstrument")}>
           <button
             type="button"

@@ -12546,7 +12546,6 @@
     },
     "trackHeader": {
       "clickToRename": "Click to rename",
-      "custom": "Custom",
       "deleteTrack": "Delete track",
       "deleteTrackQuestion": "Delete track?",
       "dragToReorder": "Drag to reorder track",
@@ -12560,6 +12559,7 @@
       "insertTrackAbove": "Insert {{type}} track above",
       "insertTrackBelow": "Insert {{type}} track below",
       "instrumentFor": "Instrument for {{name}}",
+      "presetFor": "Preset for {{name}}",
       "lockTrack": "Lock track",
       "moveToFolder": "Move to {{name}}",
       "mute": "Mute",
@@ -16514,7 +16514,7 @@
     },
     "instrument": {
       "preset": "Instrument preset",
-      "custom": "Custom",
+      "type": "Instrument",
       "keyboard": "Keyboard",
       "loading": "Loading instrument",
       "device": "Instrument device",

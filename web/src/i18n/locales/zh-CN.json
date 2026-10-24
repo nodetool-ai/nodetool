@@ -12546,7 +12546,6 @@
     },
     "trackHeader": {
       "clickToRename": "单击以重命名",
-      "custom": "自定义",
       "deleteTrack": "删除轨道",
       "deleteTrackQuestion": "删除轨道？",
       "dragToReorder": "拖动以重新排序轨道",
@@ -12560,6 +12559,7 @@
       "insertTrackAbove": "在上方插入{{type}}轨道",
       "insertTrackBelow": "在下方插入{{type}}轨道",
       "instrumentFor": "{{name}}的乐器",
+      "presetFor": "{{name}}的预设",
       "lockTrack": "锁定轨道",
       "moveToFolder": "移至{{name}}",
       "mute": "静音",
@@ -16514,7 +16514,7 @@
     },
     "instrument": {
       "preset": "乐器预设",
-      "custom": "自定义",
+      "type": "乐器",
       "keyboard": "键盘",
       "loading": "正在加载乐器",
       "device": "乐器设备",

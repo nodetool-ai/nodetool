@@ -1600,6 +1600,10 @@ export function createTimelineToolBridge(
       editOp("set_track_instrument", args)
     ),
 
+    sharedTool("ui_timeline_list_instruments", async (args) =>
+      editOp("list_instruments", args)
+    ),
+
     // The note edits. Each runs the whole list through one pure function from
     // `@nodetool-ai/timeline` and replaces it — the ids survive, so a
     // selection and an undo in the editor still point at the same notes.
