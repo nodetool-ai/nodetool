@@ -13,7 +13,9 @@
  */
 import path from "node:path";
 import { Asset } from "@nodetool-ai/models";
+import { isFullResourceId } from "@nodetool-ai/protocol";
 import { assetKeyOwner } from "@nodetool-ai/storage";
+import { isAssetIdSharedWithUser } from "./document-access.js";
 
 /**
  * Key prefixes the runtime writes to directly, with no `assets` row behind
@@ -37,13 +39,14 @@ export function isRuntimeScratchKey(key: string): boolean {
 }
 
 /**
- * Derive the owning asset id from a storage key. Asset files are stored flat
- * as `<assetId>.<ext>` and `<assetId>_thumb.jpg`.
+ * Derive the owning asset id from a storage key. Asset files are stored as
+ * `<assetId>.<ext>`, `<assetId>_thumb.jpg` and, for a video's preview,
+ * `<assetId>_proxy.<ext>`.
  */
 export function assetIdFromKey(key: string): string | null {
   const base = path.basename(normalizeKey(key));
   const withoutExt = base.replace(/\.[^.]+$/, "");
-  const id = withoutExt.replace(/_thumb$/, "");
+  const id = withoutExt.replace(/_(thumb|proxy)$/, "");
   return id || null;
 }
 
@@ -67,10 +70,14 @@ export async function callerOwnsStorageKey(
 /**
  * Whether `userId` may read the bytes at `key`.
  *
- * Owner-prefixed keys (`<userId>/<assetId>.<ext>`) are settled by the prefix
- * alone — no database round trip, and the same rule a Supabase RLS policy or
- * bucket policy applies to the object itself. Legacy flat keys, written
- * before that layout, still need the `assets` lookup.
+ * The caller's own owner-prefixed keys (`<userId>/<assetId>.<ext>`) are
+ * settled by the prefix alone — no database round trip, and the same rule a
+ * Supabase RLS policy or bucket policy applies to the object itself. Another
+ * owner's key is readable only when a document shared with the caller shows
+ * that asset (see `isSharedStorageKey`). Legacy flat keys, written before
+ * the prefixed layout, still need the `assets` lookup.
+ *
+ * Reads only: nothing may write or delete through a shared grant.
  */
 export async function canReadStorageKey(
   userId: string,
@@ -78,6 +85,34 @@ export async function canReadStorageKey(
 ): Promise<boolean> {
   if (isRuntimeScratchKey(key)) return true;
   const owner = assetKeyOwner(key);
-  if (owner !== null) return owner === userId;
-  return callerOwnsStorageKey(userId, key);
+  if (owner === null) return callerOwnsStorageKey(userId, key);
+  if (owner === userId) return true;
+  return isSharedStorageKey(userId, owner, key);
+}
+
+/**
+ * Whether `<owner>/<file>` holds the bytes, thumbnail or video proxy of an
+ * asset that a document shared with `userId` shows. With the file backend
+ * a collaborator loads a shared document's media through `/api/storage`, and
+ * the key carries the owner, not the caller. Only the exact two-segment key
+ * and a full asset id qualify, and the asset row must still exist. Fails
+ * closed.
+ */
+async function isSharedStorageKey(
+  userId: string,
+  owner: string,
+  key: string
+): Promise<boolean> {
+  const segments = normalizeKey(key)
+    .split("/")
+    .filter((segment) => segment && segment !== ".");
+  if (segments.length !== 2) return false;
+  const assetId = assetIdFromKey(segments[1]);
+  if (!assetId || !isFullResourceId(assetId)) return false;
+  try {
+    if (!(await isAssetIdSharedWithUser(userId, owner, assetId))) return false;
+    return (await Asset.find(owner, assetId)) !== null;
+  } catch {
+    return false;
+  }
 }

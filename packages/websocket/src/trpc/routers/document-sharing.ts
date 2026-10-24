@@ -38,6 +38,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/document-sharing.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import {
+  invalidateSharedAssets,
   loadSharedDocument,
   type SharedDocumentRow
 } from "../../lib/document-access.js";
@@ -179,6 +180,7 @@ export const documentSharingRouter = router({
       if (!removed) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
       }
+      invalidateSharedAssets(input.user_id);
       return { ok: true as const };
     }),
 
@@ -209,6 +211,8 @@ export const documentSharingRouter = router({
         role: share.role,
         invitedBy: share.created_by
       });
+      // The new document's media must load on the very next request.
+      invalidateSharedAssets(ctx.userId);
       return toSharedItem(share.document_type, document, grant.role);
     }),
 
