@@ -239,12 +239,14 @@ describe("GlobalChatStore", () => {
       threads: {
         gone: {
           id: "gone",
+          user_id: "u",
           title: "Old",
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z"
         },
         kept: {
           id: "kept",
+          user_id: "u",
           title: "Kept",
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z"
