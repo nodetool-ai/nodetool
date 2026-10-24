@@ -48,6 +48,10 @@
         {
             "from": "mcpb",
             "to": "mcpb"
+        },
+        {
+            "from": "vst-host",
+            "to": "vst-host"
         }
     ],
     "publish": [

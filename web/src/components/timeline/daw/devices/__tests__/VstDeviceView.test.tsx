@@ -26,7 +26,7 @@ const plugin = {
 function makeBridge(): VstBridge & { emit: (event: VstHostEvent) => void } {
   let listener: ((event: VstHostEvent) => void) | null = null;
   return {
-    status: jest.fn(async () => ({ available: true, path: "/bin/FableVstHost" })),
+    status: jest.fn(async () => ({ available: true, path: "/bin/NodeToolVstHost" })),
     scan: jest.fn(async () => [plugin]),
     render: jest.fn(),
     openEditor: jest.fn(async () => undefined),
@@ -85,10 +85,10 @@ describe("VstDeviceView", () => {
 
   it("shows why the host is unavailable", async () => {
     const bridge = makeBridge();
-    (bridge.status as jest.Mock).mockResolvedValue({ available: false, reason: "Build FableVstHost first." });
+    (bridge.status as jest.Mock).mockResolvedValue({ available: false, reason: "Build NodeToolVstHost first." });
     window.api = { ...api, vst: bridge } as typeof window.api;
     renderView(midiTrackWithVst());
-    expect(await screen.findByTestId("vst-host-missing")).toHaveTextContent("Build FableVstHost first.");
+    expect(await screen.findByTestId("vst-host-missing")).toHaveTextContent("Build NodeToolVstHost first.");
     expect(bridge.scan).not.toHaveBeenCalled();
   });
 

@@ -646,7 +646,7 @@ const api = {
   },
 
   // ============================================================================
-  // vst: VST3 instruments, hosted by the FableVstHost helper process
+  // vst: VST3 instruments, hosted by the NodeToolVstHost helper process
   // ============================================================================
   vst: {
     /** Whether the helper is installed. */

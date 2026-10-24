@@ -316,6 +316,20 @@ jobs:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: npm run build --workspace=web
 
+      # The VST instrument host (native/vst-host). electron-builder packs
+      # electron/vst-host/ as resources/vst-host/; on macOS it is a universal
+      # binary that the app's signing and notarization cover.
+      - name: Install VST host build libraries (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libxext-dev libxinerama-dev \
+            libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev
+
+      - name: Build VST host
+        shell: bash
+        run: node electron/scripts/build-vst-host.mjs --test
+
       - name: Create Web Build Archive
         if: matrix.os == 'ubuntu-latest'
         shell: bash

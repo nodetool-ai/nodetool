@@ -1,9 +1,8 @@
 /**
- * VST3 instruments for the timeline, hosted by FableVstHost.
+ * VST3 instruments for the timeline, hosted by NodeToolVstHost.
  *
- * Plug-ins are native code, so they never load into Electron: the helper from
- * the FableSynth repository (github.com/georgi/fablesynth, `juce/source/vsthost`)
- * runs them in its own process and a crashing plug-in takes down only the
+ * Plug-ins are native code, so they never load into Electron: the helper
+ * (`native/vst-host`, staged by `scripts/build-vst-host.mjs`) runs them in its own process and a crashing plug-in takes down only the
  * helper, which restarts on the next request. Requests and replies are JSON
  * lines on the helper's stdin and stdout, and a render's audio comes back
  * through a temporary file.
@@ -34,12 +33,12 @@ import {
 
 /** Names the helper executable may have, per platform. */
 function helperFileName(platform: NodeJS.Platform): string {
-  return platform === "win32" ? "FableVstHost.exe" : "FableVstHost";
+  return platform === "win32" ? "NodeToolVstHost.exe" : "NodeToolVstHost";
 }
 
 /**
  * Where the helper may be, in order: `NODETOOL_VST_HOST`, the app's bundled
- * resources, then `<userData>/vst-host/`.
+ * resources (`electron/vst-host/` when unpackaged), then `<userData>/vst-host/`.
  */
 export function vstHostCandidates(
   env: NodeJS.ProcessEnv = process.env,
@@ -51,9 +50,11 @@ export function vstHostCandidates(
   if (override) {
     candidates.push(override);
   }
-  if (app.isPackaged) {
-    candidates.push(path.join(process.resourcesPath, "vst-host", name));
-  }
+  candidates.push(
+    app.isPackaged
+      ? path.join(process.resourcesPath, "vst-host", name)
+      : path.join(app.getAppPath(), "vst-host", name),
+  );
   candidates.push(path.join(app.getPath("userData"), "vst-host", name));
   return candidates;
 }
@@ -167,7 +168,7 @@ export class VstHost {
       return {
         available: false,
         reason:
-          "The VST host is not installed. Build FableVstHost from the FableSynth repository and set NODETOOL_VST_HOST to its path, or place it in the app's vst-host folder.",
+          "The VST host is not installed. Run `npm run build:vst-host` in electron/, or set NODETOOL_VST_HOST to the NodeToolVstHost executable.",
       };
     }
     return { available: true, path: found };

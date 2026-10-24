@@ -536,7 +536,7 @@ export enum IpcChannels {
   FRONTEND_LOG = "frontend-log",
   // MCP bundle (.mcpb) install for Claude Desktop
   MCP_INSTALL_BUNDLE = "mcp-install-bundle",
-  // VST3 instruments, hosted by the FableVstHost helper process
+  // VST3 instruments, hosted by the NodeToolVstHost helper process
   VST_STATUS = "vst-status",
   VST_SCAN = "vst-scan",
   VST_RENDER = "vst-render",

@@ -1,7 +1,7 @@
 /**
  * The desktop app's VST3 host, as the renderer sees it (`window.api.vst`).
  *
- * The plug-ins run in FableVstHost, a helper process the desktop app starts;
+ * The plug-ins run in NodeToolVstHost, a helper process the desktop app starts;
  * the browser build has no bridge, so a `vst` track there is silent and its
  * device view says why. These types mirror `electron/src/types.d.ts`.
  */

@@ -105,12 +105,13 @@ directory for file tools); vaults sit one level above the database.
 ### VST instruments
 
 Timeline tracks can play third-party VST3 instruments. Plug-ins never load into
-Electron: `vstHost.ts` runs FableVstHost from the FableSynth repository as a
-child process and talks to it in JSON lines
-([protocol and build](https://github.com/georgi/fablesynth/blob/main/juce/docs/vst-host.md)).
-The helper is found through `NODETOOL_VST_HOST`, then `resources/vst-host/`,
-then `<userData>/vst-host/`. The renderer reaches it over `window.api.vst.*`
-(IPC `VST_*`).
+Electron: `vstHost.ts` runs NodeToolVstHost as a child process and talks to it
+in JSON lines. The helper's JUCE source, protocol and build are in
+[native/vst-host](../../native/vst-host/README.md). `npm run build:vst-host`
+stages it in `electron/vst-host/`, which electron-builder packs as
+`resources/vst-host/`. The helper is found through `NODETOOL_VST_HOST`, then
+that folder, then `<userData>/vst-host/`. The renderer reaches it over
+`window.api.vst.*` (IPC `VST_*`).
 
 - Every plug-in path a request names must appear in the helper's own scan.
   The renderer cannot point the helper at another library.

@@ -1,5 +1,5 @@
 /**
- * VstHost against a stand-in helper: a Node script that speaks FableVstHost's
+ * VstHost against a stand-in helper: a Node script that speaks NodeToolVstHost's
  * JSON-line protocol, so the request routing, the path check, the PCM file
  * hand-off and the restart after a crash run against a real child process.
  */
@@ -62,7 +62,7 @@ describe("VstHost", () => {
     spawned = 0;
     events = [];
     host = new VstHost({
-      locate: () => "FableVstHost",
+      locate: () => "NodeToolVstHost",
       spawnHelper: () => {
         spawned++;
         return spawn(process.execPath, [script], { stdio: ["pipe", "pipe", "pipe"] });
