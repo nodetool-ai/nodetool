@@ -20,7 +20,7 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "zod": "^4.0.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@nodetool-ai/model3d": "*",
