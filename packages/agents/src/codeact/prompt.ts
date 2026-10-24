@@ -449,3 +449,38 @@ export function buildCodeActSystemPrompt(
   sections.push(renderSandboxSummary(manifest, variant, nodetoolApiLoaded));
   return sections.join("\n\n");
 }
+
+/**
+ * The part of a chat session's CodeAct prompt that belongs to one turn: full
+ * signatures for the tools that turn puts in focus, and the packages only that
+ * turn allows. The system section names the same tools among the deferred ones,
+ * so this adds detail without changing the system prompt. Empty when the turn
+ * adds nothing.
+ */
+export function buildCodeActTurnSection(options: {
+  tools: ToolSignatureSource[];
+  graftedSpecifiers?: ReadonlyMap<string, string>;
+  packageLines?: readonly string[];
+}): string {
+  const sections: string[] = [];
+  if (options.tools.length > 0) {
+    sections.push(
+      `# Tools for the focused document
+` +
+        `These are documented in full for this turn, so call them without ` +
+        `\`nodetool.searchTools()\` first. ${TOOL_CATALOG_GUIDANCE}\n\n` +
+        renderToolCatalog(options.tools, options.graftedSpecifiers)
+    );
+  }
+  const lines = options.packageLines ?? [];
+  if (lines.length > 0) {
+    sections.push(
+      `# Sandbox packages for this turn\n` +
+        `This turn may also import these, whatever the system prompt's ` +
+        `sandbox package list says. Use a static \`import\` at the top of ` +
+        `the action.\n\n` +
+        lines.map((line) => `- ${line}`).join("\n")
+    );
+  }
+  return sections.join("\n\n");
+}
