@@ -25,13 +25,46 @@ export function threadCpuScriptCallClock(): ScriptCallClock | undefined {
 
 export const defaultScriptCallClock: ScriptCallClock = threadCpuScriptCallClock() ?? wallScriptCallClock;
 
+interface GcProfiler {
+  start(): void;
+  stop(): { readonly statistics: readonly { readonly cost: number }[] } | undefined;
+}
+
+type BuiltinModuleLoader = (id: string) => { GCProfiler?: new () => GcProfiler } | undefined;
+
+/** V8's GC profiler on Node. Browsers have none, so their call limit keeps counting collector pauses. */
+const gcProfiler: GcProfiler | undefined = (() => {
+  const load = (globalThis as { process?: { getBuiltinModule?: BuiltinModuleLoader } }).process?.getBuiltinModule;
+  const Profiler = typeof load === "function" ? load("node:v8")?.GCProfiler : undefined;
+  return Profiler === undefined ? undefined : new Profiler();
+})();
+
+/** Milliseconds of collector pauses since the profiler last started, then restarts it. */
+function collectedMs(profiler: GcProfiler): number {
+  const statistics = profiler.stop()?.statistics ?? [];
+  profiler.start();
+  let micros = 0;
+  for (const entry of statistics) { micros += entry.cost; }
+  return micros / 1000;
+}
+
 /**
  * Starts the per-call limit. A thread's CPU time cannot exceed the wall time that passed, so the
  * wall check skips the clock read for most calls. It also stops coarse CPU accounting from ending a
- * call before `limitMs` of wall time has passed.
+ * call before `limitMs` of wall time has passed. V8 runs its collector on the calling thread when its
+ * helper threads get no CPU, so pauses it records during the call are not charged to the script. A
+ * pause can include time the thread waited for a processor, so a call may run past `limitMs` by that
+ * much. The wall-clock batch budget still bounds it.
  */
 export function startScriptCallTimer(clock: ScriptCallClock, limitMs: number): () => boolean {
+  if (gcProfiler !== undefined) { collectedMs(gcProfiler); }
+  let gcMs = 0;
   const wallStarted = performance.now();
   const started = clock.now();
-  return () => performance.now() - wallStarted >= limitMs && clock.now() - started >= limitMs;
+  return () => {
+    if (performance.now() - wallStarted - gcMs < limitMs || clock.now() - started - gcMs < limitMs) { return false; }
+    if (gcProfiler === undefined) { return true; }
+    gcMs += collectedMs(gcProfiler);
+    return performance.now() - wallStarted - gcMs >= limitMs && clock.now() - started - gcMs >= limitMs;
+  };
 }
