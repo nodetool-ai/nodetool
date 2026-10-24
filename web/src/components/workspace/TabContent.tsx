@@ -47,9 +47,6 @@ const NewProjectSurface = React.lazy(
  * its surface renders `WorkspaceDocumentBar` itself.
  */
 const GENERIC_DOCUMENT_BAR_TYPES: ReadonlySet<WorkspaceTabType> = new Set([
-  "image",
-  "model3d",
-  "audio",
   "application",
   "game"
 ]);
@@ -70,21 +67,29 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
         />
       );
     case "image":
-      return <ImageSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <ImageSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "svg":
       return (
         <SvgSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
       );
     case "sketch":
-      return <SketchSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <SketchSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "text":
       return (
         <TextSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
       );
     case "model3d":
-      return <Model3DSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <Model3DSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "audio":
-      return <AudioSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <AudioSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "timeline":
       return (
         <TimelineSurface
@@ -99,10 +104,17 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
         <StoryboardSurface refId={tab.ref} mode={tab.mode} active={active} />
       );
     case "script":
-      return <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <ScriptSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "jsscript":
       return (
-        <JsScriptSurface refId={tab.ref} mode={tab.mode} active={active} />
+        <JsScriptSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+          tab={tab}
+        />
       );
     case "skill":
       return (

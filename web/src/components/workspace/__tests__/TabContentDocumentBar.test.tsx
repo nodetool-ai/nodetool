@@ -11,9 +11,9 @@ import {
 jest.mock("../../../hooks/useRenameDocument", () => ({
   useRenameDocument: () => jest.fn()
 }));
-jest.mock("../ImageSurface", () => ({
+jest.mock("../ApplicationSurface", () => ({
   __esModule: true,
-  default: () => <div>Image surface</div>
+  default: () => <div>App surface</div>
 }));
 jest.mock("../ScriptSurface", () => ({
   __esModule: true,
@@ -32,8 +32,8 @@ const renderTab = (tab: WorkspaceTab) =>
 describe("TabContent document bar", () => {
   it("gives a View/Edit type a document bar with the mode switch", async () => {
     const tab: WorkspaceTab = {
-      id: "image:a",
-      type: "image",
+      id: "application:a",
+      type: "application",
       ref: "a",
       mode: "view",
       title: "Notes"
@@ -42,7 +42,7 @@ describe("TabContent document bar", () => {
     const user = userEvent.setup();
     renderTab(tab);
 
-    expect(await screen.findByText("Image surface")).toBeInTheDocument();
+    expect(await screen.findByText("App surface")).toBeInTheDocument();
     expect(
       screen.getByRole("toolbar", { name: "Notes document" })
     ).toBeInTheDocument();

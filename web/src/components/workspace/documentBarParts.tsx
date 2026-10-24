@@ -5,6 +5,7 @@
  */
 
 import React, { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import SaveIcon from "@mui/icons-material/Save";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -12,6 +13,7 @@ import type * as monaco from "monaco-editor";
 
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import {
+  Box,
   EditorButton,
   EditorMenu,
   FlexColumn,
@@ -28,6 +30,28 @@ import WorkspaceDocumentBar from "./WorkspaceDocumentBar";
 export const workspaceDocumentBar =
   (tab: WorkspaceTab): DocumentBarRender =>
   (slots) => <WorkspaceDocumentBar tab={tab} {...slots} />;
+
+/**
+ * The bar of a surface whose editor sits deeper in its layout than the top
+ * row, such as a script between its cast and assistant docks. The surface
+ * puts `host` first; the editor draws the bar into it through `render`.
+ * `view` (the surface's panel toggles) fills the View slot.
+ */
+export const useDocumentBarHost = (tab: WorkspaceTab, view?: React.ReactNode) => {
+  const [hostElement, setHostElement] = useState<HTMLDivElement | null>(null);
+  const render = useCallback<DocumentBarRender>(
+    (slots) =>
+      hostElement
+        ? createPortal(
+            <WorkspaceDocumentBar tab={tab} {...slots} view={view ?? slots.view} />,
+            hostElement
+          )
+        : null,
+    [hostElement, tab, view]
+  );
+  const host = <Box ref={setHostElement} sx={{ flexShrink: 0 }} />;
+  return { host, render };
+};
 
 interface WithDocumentBarProps extends DocumentBarSlots {
   /** The workspace tab. Without one (outside the workspace) there is no bar. */

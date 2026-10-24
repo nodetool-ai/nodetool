@@ -15,6 +15,21 @@ import mockTheme from "../../../__mocks__/themeMock";
 
 jest.mock("@mui/material/useMediaQuery", () => () => true);
 
+jest.mock("../WorkspaceDocumentBar", () => ({
+  __esModule: true,
+  default: ({ tab }: { tab: { title: string } }) => (
+    <div role="toolbar" aria-label={`${tab.title} document`} />
+  )
+}));
+
+const tab = {
+  id: "jsscript:script-1",
+  type: "jsscript" as const,
+  ref: "script-1",
+  mode: "edit" as const,
+  title: "My script"
+};
+
 jest.mock("../../../hooks/jsScript/useJsScriptServerSync", () => ({
   useJsScriptServerSync: jest.fn(() => "ready")
 }));
@@ -62,7 +77,7 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 const renderSurface = () =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <JsScriptSurface refId="script-1" mode="edit" active />
+      <JsScriptSurface refId="script-1" mode="edit" active tab={tab} />
     </ThemeProvider>
   );
 

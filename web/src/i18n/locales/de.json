@@ -15812,6 +15812,7 @@
       "code": "Code",
       "run": "Ausführen",
       "script": "Skript",
+      "scriptSettings": "Skript-Einstellungen",
       "assistant": "Assistent"
     },
     "model3d": {
@@ -18369,9 +18370,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "Fertig"
-    },
     "workspaceFile": {
       "invalidReference": "Ungültiger Dateiverweis im Arbeitsbereich"
     }

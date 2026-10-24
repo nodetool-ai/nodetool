@@ -61,6 +61,7 @@ import {
   Tooltip,
   Z_INDEX
 } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
 import { sketchSectionSx } from "./Inspector/sketchSectionSx";
 import type { SketchDocument } from "./types";
@@ -76,6 +77,7 @@ import {
   ConnectedStatusBar,
   ConnectedToolbar,
   ConnectedToolTopBar,
+  ConnectedDocumentBar,
   ConnectedLayersPanel,
   ConnectedCanvasSizePanel,
   ConnectedContextMenu,
@@ -204,6 +206,12 @@ interface SketchEditorProps {
    * menu's close callback, and returns an array — MUI's Menu rejects a
    * Fragment child. */
   menuItems?: (close: () => void) => React.ReactNode[];
+  /**
+   * Draws the document bar (a workspace tab). `headerActions`, Generate, the
+   * Layout menu, the assistant toggle and the overflow menu move into it,
+   * with the save status and Undo/Redo, and leave the tool top bar.
+   */
+  documentBar?: DocumentBarRender;
   ref?: React.Ref<SketchEditorHandle>;
 }
 
@@ -217,6 +225,7 @@ function SketchEditor({
   suspendKeyboardShortcuts,
   headerActions,
   menuItems,
+  documentBar,
   ref
 }: SketchEditorProps) {
   const { t } = useTranslation();
@@ -674,6 +683,7 @@ function SketchEditor({
           headerActions={headerActions}
           menuItems={menuItems}
           layoutMenu={layoutMenu}
+          hideEditorActions={!!documentBar}
         />
       </Container>
 
@@ -759,6 +769,16 @@ function SketchEditor({
 
   return (
     <FlexColumn ref={containerRef} className="sketch-editor" css={styles(theme)} gap={0}>
+      {documentBar && (
+        <ConnectedDocumentBar
+          render={documentBar}
+          onUndo={session.handleUndo}
+          onRedo={session.handleRedo}
+          inlineActions={headerActions}
+          menuItems={menuItems}
+          layoutMenu={layoutMenu}
+        />
+      )}
       <FlexRow
         className="sketch-editor__body"
         sx={{ flex: 1, minHeight: 0, width: "100%", overflow: "hidden" }}

@@ -4,6 +4,19 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import Model3DSurface from "../Model3DSurface";
 import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
+jest.mock("../WorkspaceDocumentBar", () => ({
+  __esModule: true,
+  default: ({ tab }: { tab: { title: string } }) => (
+    <div role="toolbar" aria-label={`${tab.title} document`} />
+  )
+}));
+const tab = {
+  id: "model3d:model-1",
+  type: "model3d" as const,
+  ref: "model-1",
+  mode: "edit" as const,
+  title: "Doc"
+};
 const mockQuery = jest.fn();
 const mockRefetch = jest.fn();
 jest.mock("../../../serverState/useAssetById", () => ({ useAssetById: () => mockQuery() }));
@@ -11,12 +24,12 @@ jest.mock("../../asset_viewer/LazyModel3DViewer", () => ({ __esModule: true, def
 jest.mock("../../../stores/AssetStore", () => ({ useAssetStore: (select: (s: unknown) => unknown) => select({ update: jest.fn(), invalidateQueries: jest.fn() }) }));
 it.each(["404", "403", "network"])("renders a settled %s metadata failure and can retry", async (failure) => {
   mockQuery.mockReturnValue({ data: undefined, isPending: false, isError: true, error: new Error(failure), refetch: mockRefetch });
-  const page = render(<ThemeProvider theme={mockTheme}><Model3DSurface refId="model-1" mode="view" active /></ThemeProvider>);
+  const page = render(<ThemeProvider theme={mockTheme}><Model3DSurface tab={tab} refId="model-1" mode="view" active /></ThemeProvider>);
   expect(screen.getByText("Could not load this 3D asset")).toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(mockRefetch).toHaveBeenCalled();
   mockQuery.mockReturnValue({ data: { id: "model-1", content_type: "model/gltf-binary", name: "Model" }, isPending: false });
-  page.rerender(<ThemeProvider theme={mockTheme}><Model3DSurface refId="model-1" mode="view" active /></ThemeProvider>);
+  page.rerender(<ThemeProvider theme={mockTheme}><Model3DSurface tab={tab} refId="model-1" mode="view" active /></ThemeProvider>);
   expect(screen.getByText("Model loaded")).toBeInTheDocument();
 });
 
@@ -52,7 +65,7 @@ const signedAsset = (signature: string) => ({
 
 const renderSurface = (mode: "edit" | "view") => (
   <ThemeProvider theme={mockTheme}>
-    <Model3DSurface refId="model-1" mode={mode} active />
+    <Model3DSurface tab={tab} refId="model-1" mode={mode} active />
   </ThemeProvider>
 );
 
