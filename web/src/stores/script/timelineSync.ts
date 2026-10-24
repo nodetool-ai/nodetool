@@ -4,13 +4,12 @@
  *
  * When a script has been assembled (`script.timelineId` set) and a line gets a
  * new current take, the linked voiceover clip (matched by `scriptLineId`) picks
- * up the new take's asset, duration, and word timings. Uses a get→CAS-update
- * cycle against the persisted document; an editor with the sequence open reads
- * the change on next load. Failures are logged, never thrown — a sync miss must
+ * up the new take's asset, duration, and word timings. The clip keeps its
+ * position, and so does every other clip: placements are the editor's. Uses a
+ * get→CAS-update cycle against the persisted document. A timeline open in an
+ * editor here reconciles the script live (`useLinkedScriptSync`), so this
+ * leaves that one alone. Failures are logged, never thrown — a sync miss must
  * not fail the take.
- *
- * In a cut assembled with the storyboard the whole cut is laid out again,
- * since each shot runs as long as its lines.
  *
  * This mirrors the storyboard's `syncShotClipToTimeline`. Structural drift
  * (adding/removing/reordering lines) is out of scope here — it prompts a
@@ -23,18 +22,11 @@ import {
   type ScriptDraft,
   type ScriptTake
 } from "./ScriptStore";
-import {
-  buildScriptTimelineDocument,
-  takeCaptionWords
-} from "../../components/script/assembleScriptTimeline";
-import { loadLinkedBoard } from "../../lib/linkedAssembly";
+import { takeCaptionWords } from "../../components/script/assembleScriptTimeline";
 import { isScriptWriting } from "../../hooks/script/scriptWrites";
-import {
-  mergeIntoSequence,
-  stampBoardProvenance
-} from "../../lib/assembledSequenceMerge";
 import { makeClipVersion } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
+import { isTimelineReconciledLive } from "./liveTimelineLinks";
 import {
   ApiErrorCode,
   isTRPCErrorWithCode
@@ -47,7 +39,7 @@ export async function syncLineClipToTimeline(
 ): Promise<boolean> {
   const script = useScriptStore.getState().getScript(scriptId);
   const timelineId = script?.timelineId;
-  if (!timelineId) {
+  if (!timelineId || isTimelineReconciledLive(timelineId)) {
     return false;
   }
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -72,35 +64,6 @@ export async function syncLineClipToTimeline(
       );
       if (targetIndex < 0) return false;
 
-      // A cut assembled with the storyboard places each line inside the shot
-      // that covers it, and each shot runs as long as its lines. Moving only
-      // the voice clips left later lines outside their shots, so a linked cut
-      // is laid out again, the way Assemble does it. When the board can't be
-      // read, the voice clips are patched alone, as for a script-only cut.
-      const linkedBoardId = clips[targetIndex].storyboardBoardId;
-      const latest = linkedBoardId
-        ? useScriptStore.getState().getScript(scriptId)
-        : undefined;
-      const board =
-        linkedBoardId && latest ? await loadLinkedBoard(linkedBoardId) : null;
-      if (latest && board) {
-        const doc = buildScriptTimelineDocument(latest, board);
-        const merged = mergeIntoSequence(
-          {
-            tracks: doc.tracks,
-            clips: stampBoardProvenance(doc.clips, board.boardId)
-          },
-          { tracks: sequence.tracks, clips },
-          { scriptId, boardId: board.boardId }
-        );
-        await trpcClient.timeline.update.mutate({
-          id: timelineId,
-          baseUpdatedAt: sequence.updatedAt,
-          document: { ...merged, markers: sequence.markers ?? [] }
-        });
-        return true;
-      }
-
       if (!activeTake) {
         const next = clips.filter((_, index) => index !== targetIndex);
         await trpcClient.timeline.update.mutate({
@@ -120,15 +83,6 @@ export async function syncLineClipToTimeline(
       const durationMs =
         activeTake.durationMs > 0 ? activeTake.durationMs : target.durationMs;
       const caption = words.length ? { words } : undefined;
-      const deltaMs = durationMs - target.durationMs;
-      const lineOrder = script
-        ? new Map(
-            script.sections
-              .flatMap((section) => section.lines)
-              .map((line, index) => [line.id, index])
-          )
-        : new Map<string, number>();
-      const targetOrder = lineOrder.get(lineId);
       const next = clips.map((clip, index) => {
         if (index === targetIndex) {
           if (
@@ -166,18 +120,6 @@ export async function syncLineClipToTimeline(
             caption,
             status: "generated" as const
           };
-        }
-        const clipOrder = clip.scriptLineId
-          ? lineOrder.get(clip.scriptLineId)
-          : undefined;
-        if (
-          deltaMs !== 0 &&
-          targetOrder !== undefined &&
-          clip.scriptId === scriptId &&
-          clipOrder !== undefined &&
-          clipOrder > targetOrder
-        ) {
-          return { ...clip, startMs: clip.startMs + deltaMs };
         }
         return clip;
       });

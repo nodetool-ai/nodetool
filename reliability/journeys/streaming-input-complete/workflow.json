@@ -1,0 +1,28 @@
+{
+  "id": "streaming-input-complete",
+  "name": "Streaming input fed to completion",
+  "nodes": [
+    {
+      "id": "src",
+      "type": "nodetool.input.ReliabilityStreamingInput",
+      "name": "src",
+      "properties": {}
+    },
+    {
+      "id": "sink",
+      "type": "test.reliability.StreamSink",
+      "name": "sink",
+      "properties": {}
+    },
+    {
+      "id": "out1",
+      "type": "nodetool.output.Output",
+      "name": "out1",
+      "properties": { "name": "result" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "src", "sourceHandle": "output", "target": "sink", "targetHandle": "value" },
+    { "id": "e2", "source": "sink", "sourceHandle": "output", "target": "out1", "targetHandle": "value" }
+  ]
+}

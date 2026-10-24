@@ -2,6 +2,12 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "kotoba-technologies/kotoba-stt/v1/speech-to-text": {
+      className: "KotobaSttV1SpeechToText",
+      docstring: "Kotoba STT transcribes speech to text, tuned for Japanese.",
+      tags: ["audio", "speech-to-text", "transcription", "kotoba", "japanese"]
+    },
+
     "fal-ai/elevenlabs/speech-to-text": {
       className: "ElevenLabsSpeechToText",
       docstring:

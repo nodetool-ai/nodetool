@@ -16,6 +16,7 @@
  * credentialed provider.
  */
 
+import { createHash } from "node:crypto";
 import OpenAI from "openai";
 import { createLogger, type Logger } from "@nodetool-ai/config";
 import {
@@ -84,6 +85,31 @@ function codexClientVersion(): string {
  */
 function codexHttpError(message: string, status: number): Error {
   return Object.assign(new Error(message), { status });
+}
+
+/**
+ * The id Codex groups one conversation's requests under. The Codex CLI sends
+ * its conversation id as both the `session_id` header and `prompt_cache_key`,
+ * and the backend routes requests that share it to where their prefix is
+ * already cached. A thread keys by its id, so every turn and tool round of it
+ * lands together; without a thread the instructions stand in, which groups the
+ * calls of one agent or node. UUID-shaped like the CLI's own ids. Undefined
+ * when there is nothing stable to key on.
+ */
+export function codexConversationId(
+  threadId: string | null | undefined,
+  instructions: string
+): string | undefined {
+  const source = threadId
+    ? `thread:${threadId}`
+    : instructions
+      ? `system:${instructions}`
+      : "";
+  if (!source) return undefined;
+  const hex = createHash("sha256")
+    .update(`nodetool-codex:${source}`)
+    .digest("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
 /** A function call accumulated across Responses streaming events. */
@@ -338,7 +364,7 @@ export class CodexProvider extends OpenAIProvider {
 
   // --- Responses API transport -------------------------------------------
 
-  private buildHeaders(accept = "text/event-stream") {
+  private buildHeaders(accept = "text/event-stream", sessionId?: string) {
     const version = codexClientVersion();
     const headers: Record<string, string> = {
       authorization: `Bearer ${this.accessToken}`,
@@ -348,7 +374,7 @@ export class CodexProvider extends OpenAIProvider {
       "openai-beta": "responses=experimental",
       version,
       "user-agent": `${this.originator}/${version} (NodeTool)`,
-      session_id: globalThis.crypto.randomUUID()
+      session_id: sessionId ?? globalThis.crypto.randomUUID()
     };
     if (this.accountId) {
       headers["chatgpt-account-id"] = this.accountId;
@@ -362,6 +388,7 @@ export class CodexProvider extends OpenAIProvider {
     model: string;
     tools?: ProviderTool[];
     toolChoice?: string | "any";
+    threadId?: string | null;
   }) {
     const instructions = args.messages
       .filter((m) => m.role === "system")
@@ -413,6 +440,8 @@ export class CodexProvider extends OpenAIProvider {
       store: false,
       stream: true
     };
+    const conversationId = codexConversationId(args.threadId, instructions);
+    if (conversationId) body.prompt_cache_key = conversationId;
 
     if (args.tools?.length) {
       body.tools = args.tools.map((t) => ({
@@ -458,7 +487,10 @@ export class CodexProvider extends OpenAIProvider {
     this.recordRequestPayload(body);
     const res = await fetch(`${CODEX_BACKEND_BASE_URL}/responses`, {
       method: "POST",
-      headers: this.buildHeaders(),
+      headers: this.buildHeaders(
+        "text/event-stream",
+        isString(body.prompt_cache_key) ? body.prompt_cache_key : undefined
+      ),
       body: JSON.stringify(body),
       signal: args.signal
     });

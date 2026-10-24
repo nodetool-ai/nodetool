@@ -148,6 +148,12 @@ export const trpc = {
   timeline: {
     get: { useQuery: jest.fn(() => ({ data: undefined })) }
   },
+  // The timeline editor finds its linked script through `list`. No data
+  // leaves it on the transcript panel, which is what a test without a
+  // linked script wants.
+  scripts: {
+    list: { useQuery: jest.fn(() => ({ data: undefined })) }
+  },
   // `useCodeNodeScriptLink` reads a Code node's linked script through this
   // hook. No data leaves it on its unlinked fallback, which is what every
   // test that doesn't set one up wants.

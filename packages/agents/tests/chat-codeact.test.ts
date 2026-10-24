@@ -938,3 +938,77 @@ describe("platform modules in a chat session", () => {
     expect(obs.error).toContain(sandboxCapabilitySpecifier("ui"));
   }, 60_000);
 });
+
+describe("turn-scoped prompt in a chat session", () => {
+  // Over CODEACT_DEFER_THRESHOLD, so the catalog splits resident from deferred.
+  const UI_TOOLS = ["timeline", "sketch"].flatMap((type) =>
+    Array.from({ length: 10 }, (_, i) => ({
+      name: `ui_${type}_op${i}`,
+      description: `${type} operation ${i}.`,
+      inputSchema: objectSchema({ document_id: { type: "string" } })
+    }))
+  );
+  const SUMMARIES: SandboxModuleSummary[] = ["@acme/geo", "@acme/game"].map(
+    (name) => ({
+      specifier: name,
+      packName: name,
+      packVersion: "1.0.0",
+      kind: "js",
+      description: `${name} helpers.`
+    })
+  );
+  const catalog: SandboxModuleCatalog = {
+    summaries: () => SUMMARIES,
+    diagnostics: () => [],
+    resolveForExecution: () => ({ modules: [], statuses: [] }),
+    packSkill: () => undefined
+  };
+  const sessionFor = (type: "timeline" | "sketch" | null) =>
+    createChatCodeActSession({
+      tools: UI_TOOLS,
+      executeTool: async () => ({}),
+      sandboxPackages: ["@acme/geo"],
+      turnSandboxPackages: type === "sketch" ? ["@acme/game"] : [],
+      sandboxModuleCatalog: catalog,
+      turnToolNames: type
+        ? UI_TOOLS.map((t) => t.name).filter((n) =>
+            n.startsWith(`ui_${type}_`)
+          )
+        : []
+    });
+
+  it("keeps the system section identical whatever the turn focuses", () => {
+    const sections = [null, "timeline", "sketch"].map(
+      (type) =>
+        sessionFor(type as "timeline" | "sketch" | null).systemPromptSection
+    );
+    expect(sections[1]).toBe(sections[0]);
+    expect(sections[2]).toBe(sections[0]);
+    expect(sections[0]).not.toContain("@acme/game helpers.");
+  });
+
+  it("documents the focused tools and the turn's packages in the turn section", () => {
+    const timeline = sessionFor("timeline").turnPromptSection;
+    expect(timeline).toContain("ui_timeline_op3");
+    expect(timeline).toContain("timeline operation 3.");
+    expect(timeline).not.toContain("ui_sketch_op3");
+    expect(timeline).not.toContain("@acme/game");
+
+    const sketch = sessionFor("sketch").turnPromptSection;
+    expect(sketch).toContain("sketch operation 3.");
+    expect(sketch).toContain("@acme/game helpers.");
+
+    expect(sessionFor(null).turnPromptSection).toBe("");
+  });
+
+  it("allows the turn's packages on the session's allowlist", async () => {
+    const obs = await runAction(
+      sessionFor("sketch"),
+      'import { get_sandbox_package_docs } from "@nodetool-ai/sandbox-nodetool/packs";\n' +
+        'return await get_sandbox_package_docs({ specifier: "@acme/game" });'
+    );
+    // Past the allowlist, the catalog has no skill to serve.
+    expect(obs.error ?? "").not.toContain("allowlist");
+    expect(obs.error).toContain("no readable SKILL.md");
+  }, 60_000);
+});

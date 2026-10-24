@@ -577,10 +577,14 @@ describe("executeChecks", () => {
     }
   });
 
+  // jobs=2 runs the interrupted check in the cheap pool and holds `next` back
+  // as an expensive check, which only starts once the pool has drained.
   it.each([
-    { signal: "SIGINT" as const, exitCode: 130 },
-    { signal: "SIGTERM" as const, exitCode: 143 }
-  ])("cleans up a serial gate on $signal and does not start its next check", async ({ signal, exitCode }) => {
+    { signal: "SIGINT" as const, exitCode: 130, jobs: 1 },
+    { signal: "SIGTERM" as const, exitCode: 143, jobs: 1 },
+    { signal: "SIGINT" as const, exitCode: 130, jobs: 2 },
+    { signal: "SIGTERM" as const, exitCode: 143, jobs: 2 }
+  ])("cleans up a gate on $signal with jobs=$jobs and does not start its next check", async ({ signal, exitCode, jobs }) => {
     const dir = mkdtempSync(join(tmpdir(), "gate-interrupt-"));
     const pidPath = join(dir, "pid");
     const parentPidPath = join(dir, "parent-pid");
@@ -594,8 +598,8 @@ describe("executeChecks", () => {
     writeFileSync(entry, `import { executeChecks } from ${JSON.stringify(harnessUrl)};
 await executeChecks(${JSON.stringify([
       check("interrupted", node(parentCode)),
-      check("next", node(`require("node:fs").writeFileSync(${JSON.stringify(nextPath)},"started")`))
-    ])}, ${JSON.stringify(runOpts())});`);
+      check("next", node(`require("node:fs").writeFileSync(${JSON.stringify(nextPath)},"started")`), { cost: "expensive" })
+    ])}, ${JSON.stringify(runOpts({ jobs }))});`);
     const gate = spawn(process.execPath, ["--import", import.meta.resolve("tsx"), entry], { stdio: "ignore" });
     const closed = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
       gate.once("error", reject);

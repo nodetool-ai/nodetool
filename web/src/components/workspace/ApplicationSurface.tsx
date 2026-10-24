@@ -1,16 +1,12 @@
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type MouseEvent
-} from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "@tanstack/react-query";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
   parseApplicationDocument,
   type AppDocument
@@ -28,13 +24,21 @@ import ApplicationGovernancePanel from "../applications/ApplicationGovernancePan
 import ApplicationAppBuilder from "../appbuilder/ApplicationAppBuilder";
 import ApplicationRunView from "../appbuilder/ApplicationRunView";
 import AppBuilderAgentPanel from "../appbuilder/AppBuilderAgentPanel";
-import LinkedWorkflowsMenu from "./LinkedWorkflowsMenu";
-import { useApplication } from "../../hooks/useApplications";
+import { LinkedWorkflowsList } from "./LinkedWorkflowsMenu";
+import WorkspaceDocumentBar from "./WorkspaceDocumentBar";
+import { WithDocumentBar } from "./documentBarParts";
+import type { AppBuilderBarSlots } from "../appbuilder/dock/AppBuilderDock";
+import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
+import {
+  useApplication,
+  useLinkedWorkflows
+} from "../../hooks/useApplications";
 import { trpcClient } from "../../trpc/client";
 import ReportBugButton from "../support/ReportBugButton";
 import {
   tabId,
   useWorkspaceTabsStore,
+  type WorkspaceTab,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
@@ -42,16 +46,17 @@ import { AdoptedNodeSlot } from "../dock/AdoptedNodeSlot";
 import {
   Box,
   AlertBanner,
-  Caption,
   CircularActionButton,
+  EditorMenu,
   EmptyState,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
+  MenuItemPrimitive,
+  ModeSwitch,
+  SaveStatus,
   ScrollArea,
-  Text,
-  ToggleGroup,
-  ToggleOption,
+  ToolbarIconButton,
   SPACING,
   Z_INDEX
 } from "../ui_primitives";
@@ -61,6 +66,8 @@ interface ApplicationSurfaceProps {
   instanceId?: string;
   selectedRunId?: string;
   mode?: WorkspaceTabMode;
+  /** The workspace tab, whose document bar tops the surface. */
+  tab: WorkspaceTab;
 }
 
 type ApplicationView = "design" | "run" | "preview" | "settings";
@@ -100,12 +107,17 @@ const overlayPanelSx = {
 /**
  * Workspace surface for a mini app: the WYSIWYG canvas over the app's own
  * document, plus its publish and governance controls.
+ *
+ * The document bar's Mode is Run / Design / Settings, in place of the generic
+ * View/Edit: Run is the view mode, Design and Settings edit. In Design the
+ * builder fills the bar's History, View and Save through `AppBuilderBarSlots`.
  */
 const ApplicationSurface = ({
   refId,
   instanceId,
   selectedRunId,
-  mode = "view"
+  mode = "view",
+  tab
 }: ApplicationSurfaceProps) => {
   const { t } = useTranslation();
   const {
@@ -117,8 +129,11 @@ const ApplicationSurface = ({
   const [view, setView] = useState<ApplicationView>(
     mode === "view" ? "run" : "design"
   );
+  // A view picked from Run asks for edit mode first; the switch lands on it.
+  const pendingViewRef = useRef<ApplicationView | null>(null);
   useEffect(() => {
-    const next = mode === "view" ? "run" : "design";
+    const next = pendingViewRef.current ?? (mode === "view" ? "run" : "design");
+    pendingViewRef.current = null;
     setView(next);
     setOpened((views) => (views.includes(next) ? views : [...views, next]));
   }, [mode]);
@@ -257,10 +272,17 @@ const ApplicationSurface = ({
     },
     [refId, instanceId, selectRun]
   );
-  const handleViewChange = useCallback(
-    (_event: MouseEvent<HTMLElement>, next: ApplicationView | null) => {
-      if (!next) return;
-      if (next === "run" && mode === "edit") {
+  const setTabMode = useWorkspaceTabsStore((state) => state.setMode);
+  const changeView = useCallback(
+    (next: ApplicationView) => {
+      if (mode === "view") {
+        if (next !== "run") {
+          pendingViewRef.current = next;
+          setTabMode(tab.id, "edit");
+        }
+        return;
+      }
+      if (next === "run") {
         const existing = tabs.find(
           (tab) =>
             tab.type === "application" && tab.ref === refId && tab.instanceId
@@ -300,26 +322,63 @@ const ApplicationSurface = ({
       tabs,
       refId,
       openTab,
-      openWorkingInstance
+      openWorkingInstance,
+      setTabMode,
+      tab.id
     ]
   );
 
+  // The bar. In Design the builder portals its Undo/Redo, view controls and
+  // Save into the three hosts below.
+  const dirty = useDocumentDraftStore(
+    (state) => state.dirtyTabs[`application:${refId}`] ?? false
+  );
+  const saving = useDocumentDraftStore(
+    (state) => state.savingTabs[`application:${refId}`] ?? false
+  );
+  const [historyHost, setHistoryHost] = useState<HTMLElement | null>(null);
+  const [viewHost, setViewHost] = useState<HTMLElement | null>(null);
+  const [actionsHost, setActionsHost] = useState<HTMLElement | null>(null);
+  const barSlots = useMemo<AppBuilderBarSlots>(
+    () => ({ history: historyHost, view: viewHost, actions: actionsHost }),
+    [historyHost, viewHost, actionsHost]
+  );
+  const [moreAnchor, setMoreAnchor] = useState<HTMLButtonElement | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [linkedOpen, setLinkedOpen] = useState(false);
+  const { links } = useLinkedWorkflows(refId, isActiveTab && mode === "edit");
+
   useEffect(() => {
     if (!application || instanceId) return;
-    setTabTitle(refId, "application", application.name || t("i18n-next51.application.untitledApp"));
+    setTabTitle(
+      refId,
+      "application",
+      application.name || t("i18n-next51.application.untitledApp")
+    );
   }, [application, refId, instanceId, setTabTitle, t]);
 
   if (isLoading) {
-    return <LoadingSpinner size="large" text={t("i18n-next51.application.loading")} />;
+    return (
+      <WithDocumentBar tab={tab} mode={null}>
+        <LoadingSpinner
+          size="large"
+          text={t("i18n-next51.application.loading")}
+        />
+      </WithDocumentBar>
+    );
   }
 
   if (isError || !application) {
     return (
-      <EmptyState
-        variant="error"
-        title={t("i18n-next51.application.loadErrorTitle")}
-        description={error?.message ?? t("i18n-next51.application.mayHaveBeenDeleted")}
-      />
+      <WithDocumentBar tab={tab} mode={null}>
+        <EmptyState
+          variant="error"
+          title={t("i18n-next51.application.loadErrorTitle")}
+          description={
+            error?.message ?? t("i18n-next51.application.mayHaveBeenDeleted")
+          }
+        />
+      </WithDocumentBar>
     );
   }
 
@@ -331,173 +390,225 @@ const ApplicationSurface = ({
   );
   const isRunView = view === "run" || view === "preview";
   // In Design the agent is a builder dock panel the author can move.
-  const assistantInBuilderDock = mode === "edit" && !narrow && view === "design";
+  const assistantInBuilderDock =
+    mode === "edit" && !narrow && view === "design";
+  const designing = mode === "edit" && view === "design";
+  const closeMore = () => setMoreOpen(false);
+  const documentBar = (
+    <WorkspaceDocumentBar
+      tab={tab}
+      status={
+        mode === "edit" ? (
+          <SaveStatus state={saving ? "saving" : dirty ? "dirty" : "saved"} />
+        ) : undefined
+      }
+      history={
+        designing ? (
+          <Box ref={setHistoryHost} sx={{ display: "contents" }} />
+        ) : undefined
+      }
+      mode={
+        <ModeSwitch<ApplicationView>
+          ariaLabel={t("i18n-next51.application.appView")}
+          options={[
+            { value: "run", label: t("i18n-next51.application.run") },
+            { value: "design", label: t("i18n-next51.application.design") },
+            { value: "settings", label: t("i18n-next51.application.settings") }
+          ]}
+          value={view}
+          onChange={changeView}
+        />
+      }
+      view={
+        designing ? (
+          <Box ref={setViewHost} sx={{ display: "contents" }} />
+        ) : undefined
+      }
+      actions={
+        mode === "edit" ? (
+          <>
+            {designing && (
+              <Box ref={setActionsHost} sx={{ display: "contents" }} />
+            )}
+            <ToolbarIconButton
+              ref={setMoreAnchor}
+              icon={<MoreVertIcon />}
+              tooltip={t("i18n-next103.documentBar.moreActions")}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen(true)}
+            />
+            <EditorMenu
+              anchorEl={moreAnchor}
+              open={moreOpen}
+              onClose={closeMore}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+              <MenuItemPrimitive
+                icon={<AccountTreeOutlinedIcon fontSize="small" />}
+                label={t("batch2_0.linkedWorkflows", { count: links.length })}
+                onClick={() => {
+                  closeMore();
+                  setLinkedOpen(true);
+                }}
+              />
+              <MenuItemPrimitive
+                icon={<VisibilityOutlinedIcon fontSize="small" />}
+                label={t("i18n-next51.application.previewDraft")}
+                selected={view === "preview"}
+                onClick={() => {
+                  closeMore();
+                  changeView("preview");
+                }}
+              />
+            </EditorMenu>
+            <LinkedWorkflowsList
+              applicationId={application.id}
+              active={isActiveTab}
+              anchorEl={linkedOpen ? moreAnchor : null}
+              onClose={() => setLinkedOpen(false)}
+            />
+          </>
+        ) : undefined
+      }
+    />
+  );
 
   return (
-    <FlexRow
-      ref={surfaceRef}
-      gap={0}
-      sx={{ width: "100%", height: "100%", minHeight: 0, position: "relative" }}
-    >
-      <FlexColumn
+    <FlexColumn gap={0} sx={{ width: "100%", height: "100%", minHeight: 0 }}>
+      {documentBar}
+      <FlexRow
+        ref={surfaceRef}
         gap={0}
-        sx={{ flex: 1, minWidth: 0, height: "100%", minHeight: 0 }}
+        sx={{ width: "100%", flex: 1, minHeight: 0, position: "relative" }}
       >
-        {mode === "edit" && (
-          <FlexRow
-            align="center"
-            justify="space-between"
-            gap={SPACING.md}
-            sx={{
-              px: SPACING.lg,
-              py: SPACING.md,
-              borderBottom: "1px solid",
-              borderColor: "divider",
-              backgroundColor: "background.paper"
-            }}
-          >
-            <Box sx={{ minWidth: 0 }}>
-              <Text size="small" weight={600} truncate>
-                {application.name || t("i18n-next51.application.untitledApp")}
-              </Text>
-              {application.description && (
-                <Caption color="secondary" sx={{ display: "block" }}>
-                  {application.description}
-                </Caption>
-              )}
-            </Box>
-            <FlexRow align="center" gap={SPACING.sm}>
-              <LinkedWorkflowsMenu
-                applicationId={application.id}
-                active={isActiveTab}
-              />
-              <ToggleGroup
-                segmented
-                exclusive
-                value={view}
-                onChange={handleViewChange}
-                aria-label={t("i18n-next51.application.appView")}
-              >
-                <ToggleOption value="design">{t("i18n-next51.application.design")}</ToggleOption>
-                <ToggleOption value="run">{t("i18n-next51.application.run")}</ToggleOption>
-                <ToggleOption value="preview">{t("i18n-next51.application.previewDraft")}</ToggleOption>
-                <ToggleOption value="settings">{t("i18n-next51.application.settings")}</ToggleOption>
-              </ToggleGroup>
-            </FlexRow>
-          </FlexRow>
-        )}
-        {openWorkingInstance.error && (
-          <AlertBanner severity="error">
-            {openWorkingInstance.error.message}
-            <ReportBugButton
-              context={{
-                source: "operation-failure",
-                summary: "Could not open app instance",
-                errorText: openWorkingInstance.error.message
-              }}
-            />
-          </AlertBanner>
-        )}
-        <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
-          {opened.includes("design") && (
-            <Box
-              data-testid="application-design-layer"
-              aria-hidden={view !== "design"}
-              inert={view !== "design"}
-              sx={view === "design" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
-            >
-              <ApplicationAppBuilder
-                applicationId={application.id}
-                onAgentWorkflowIdChange={setAgentWorkflowId}
-                onDraftChange={setDraftDocument}
-                onSaveReady={registerSave}
-                assistantPanel={
-                  assistantInBuilderDock ? (
-                    <AdoptedNodeSlot node={assistantHost} />
-                  ) : undefined
-                }
-              />
-            </Box>
-          )}
-          {opened.includes("run") && (mode !== "edit" || previewDocument) && (
-            <Box
-              data-testid="application-run-layer"
-              aria-hidden={!isRunView}
-              inert={!isRunView}
-              sx={isRunView ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
-            >
-              <ApplicationRunView
-                applicationId={application.id}
-                instanceId={instanceId}
-                selectedRunId={selectedRunId}
-                onSelectRun={onSelectRun}
-                onInstanceReady={
-                  view === "preview" ? undefined : onInstanceReady
-                }
-                previewDraft={mode === "edit" || view === "preview"}
-                draftDocument={previewDocument}
-              />
-            </Box>
-          )}
-          {opened.includes("settings") && (
-            <Box
-              data-testid="application-settings-layer"
-              aria-hidden={view !== "settings"}
-              inert={view !== "settings"}
-              sx={view === "settings" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
-            >
-              <ScrollArea fullHeight>
-                <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>
-                  <ApplicationGovernancePanel
-                    applicationId={application.id}
-                    beforePublish={beforePublish}
-                  />
-                </FlexColumn>
-              </ScrollArea>
-            </Box>
-          )}
-          {mode === "edit" && narrow && (
-            <Box
-              ref={narrowAgentPanelRef}
-              role="dialog"
-              aria-label={t("i18n-next51.application.builderAssistant")}
-              tabIndex={-1}
-              sx={{
-                ...overlayPanelSx,
-                display: narrowAgentOpen ? "block" : "none"
-              }}
-            >
-              <AdoptedNodeSlot node={assistantHost} />
-            </Box>
-          )}
-        </Box>
-      </FlexColumn>
-      {mode === "edit" && !narrow && !assistantInBuilderDock && (
-        <ResizableSideDock
-          storageKey="app_builder"
-          defaultWidth={420}
-          ariaLabel={t("i18n-next119.workspace.resizeAppBuilderAssistant")}
+        <FlexColumn
+          gap={0}
+          sx={{ flex: 1, minWidth: 0, height: "100%", minHeight: 0 }}
         >
-          <AdoptedNodeSlot node={assistantHost} />
-        </ResizableSideDock>
-      )}
-      {mode === "edit" && createPortal(assistant, assistantHost)}
-      {mode === "edit" && narrow && (
-        <CircularActionButton
-          ref={narrowAgentButtonRef}
-          icon={narrowAgentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
-          onClick={toggleNarrowAgent}
-          ariaLabel={narrowAgentOpen ? t("i18n-next51.application.closeAgent") : t("i18n-next51.application.askAgent")}
-          tooltip={narrowAgentOpen ? t("i18n-next51.application.closeAgent") : t("i18n-next51.application.askAgent")}
-          tooltipPlacement="top"
-          size={48}
-          position="absolute"
-          bottom={SPACING.xl}
-          right={SPACING.xl}
-          zIndex={Z_INDEX.modal}
-        />
-      )}
-    </FlexRow>
+          {openWorkingInstance.error && (
+            <AlertBanner severity="error">
+              {openWorkingInstance.error.message}
+              <ReportBugButton
+                context={{
+                  source: "operation-failure",
+                  summary: "Could not open app instance",
+                  errorText: openWorkingInstance.error.message
+                }}
+              />
+            </AlertBanner>
+          )}
+          <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+            {opened.includes("design") && (
+              <Box
+                data-testid="application-design-layer"
+                aria-hidden={view !== "design"}
+                inert={view !== "design"}
+                sx={view === "design" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
+              >
+                <ApplicationAppBuilder
+                  applicationId={application.id}
+                  onAgentWorkflowIdChange={setAgentWorkflowId}
+                  onDraftChange={setDraftDocument}
+                  onSaveReady={registerSave}
+                  barSlots={barSlots}
+                  assistantPanel={
+                    assistantInBuilderDock ? (
+                      <AdoptedNodeSlot node={assistantHost} />
+                    ) : undefined
+                  }
+                />
+              </Box>
+            )}
+            {opened.includes("run") && (mode !== "edit" || previewDocument) && (
+              <Box
+                data-testid="application-run-layer"
+                aria-hidden={!isRunView}
+                inert={!isRunView}
+                sx={isRunView ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
+              >
+                <ApplicationRunView
+                  applicationId={application.id}
+                  instanceId={instanceId}
+                  selectedRunId={selectedRunId}
+                  onSelectRun={onSelectRun}
+                  onInstanceReady={
+                    view === "preview" ? undefined : onInstanceReady
+                  }
+                  previewDraft={mode === "edit" || view === "preview"}
+                  draftDocument={previewDocument}
+                />
+              </Box>
+            )}
+            {opened.includes("settings") && (
+              <Box
+                data-testid="application-settings-layer"
+                aria-hidden={view !== "settings"}
+                inert={view !== "settings"}
+                sx={view === "settings" ? ACTIVE_LAYER_SX : HIDDEN_LAYER_SX}
+              >
+                <ScrollArea fullHeight>
+                  <FlexColumn gap={SPACING.lg} padding={SPACING.xl} fullWidth>
+                    <ApplicationGovernancePanel
+                      applicationId={application.id}
+                      beforePublish={beforePublish}
+                    />
+                  </FlexColumn>
+                </ScrollArea>
+              </Box>
+            )}
+            {mode === "edit" && narrow && (
+              <Box
+                ref={narrowAgentPanelRef}
+                role="dialog"
+                aria-label={t("i18n-next51.application.builderAssistant")}
+                tabIndex={-1}
+                sx={{
+                  ...overlayPanelSx,
+                  display: narrowAgentOpen ? "block" : "none"
+                }}
+              >
+                <AdoptedNodeSlot node={assistantHost} />
+              </Box>
+            )}
+          </Box>
+        </FlexColumn>
+        {mode === "edit" && !narrow && !assistantInBuilderDock && (
+          <ResizableSideDock
+            storageKey="app_builder"
+            defaultWidth={420}
+            ariaLabel={t("i18n-next119.workspace.resizeAppBuilderAssistant")}
+          >
+            <AdoptedNodeSlot node={assistantHost} />
+          </ResizableSideDock>
+        )}
+        {mode === "edit" && createPortal(assistant, assistantHost)}
+        {mode === "edit" && narrow && (
+          <CircularActionButton
+            ref={narrowAgentButtonRef}
+            icon={narrowAgentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
+            onClick={toggleNarrowAgent}
+            ariaLabel={
+              narrowAgentOpen
+                ? t("i18n-next51.application.closeAgent")
+                : t("i18n-next51.application.askAgent")
+            }
+            tooltip={
+              narrowAgentOpen
+                ? t("i18n-next51.application.closeAgent")
+                : t("i18n-next51.application.askAgent")
+            }
+            tooltipPlacement="top"
+            size={48}
+            position="absolute"
+            bottom={SPACING.xl}
+            right={SPACING.xl}
+            zIndex={Z_INDEX.modal}
+          />
+        )}
+      </FlexRow>
+    </FlexColumn>
   );
 };
 

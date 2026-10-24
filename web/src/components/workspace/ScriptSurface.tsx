@@ -7,6 +7,7 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import {
   useWorkspaceTabsStore,
+  type WorkspaceTab,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import {
@@ -25,6 +26,7 @@ import {
   EditorButton,
   MobileBottomSheet,
   ConflictBanner,
+  ToolbarIconButton,
   SPACING,
   Z_INDEX
 } from "../ui_primitives";
@@ -39,6 +41,7 @@ import {
   useScriptSetupFlow,
   useScriptSetupStage
 } from "../setup/script/useScriptSetupFlow";
+import { WithDocumentBar, useDocumentBarHost } from "./documentBarParts";
 
 interface ScriptSurfaceProps {
   refId: string;
@@ -46,6 +49,8 @@ interface ScriptSurfaceProps {
   /** Whether this tab is the focused one. Not used by the agent bridge, which
    * registers every open script by id. */
   active: boolean;
+  /** The workspace tab, whose document bar tops the surface. */
+  tab: WorkspaceTab;
 }
 
 type DockTab = "cast" | "assistant";
@@ -57,8 +62,11 @@ type DockTab = "cast" | "assistant";
  * ui_script_* tools), keeps the tab label in sync with the title, and lays out
  * the cast rail, the document pane, and the assistant dock side by side. On
  * mobile the cast and assistant share a bottom sheet.
+ *
+ * The document bar spans the surface. The pane fills it with the save status,
+ * history and actions; the surface adds the Cast and Assistant toggles.
  */
-const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
+const ScriptSurface = ({ refId, mode, active, tab }: ScriptSurfaceProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -72,6 +80,8 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   const readOnly = mode === "view";
   const [dockTab, setDockTab] = useState<DockTab>("cast");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [castOpen, setCastOpen] = useState(true);
+  const [assistantOpen, setAssistantOpen] = useState(true);
 
   const openSheet = useCallback((tab: DockTab) => {
     setDockTab(tab);
@@ -126,10 +136,49 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
     />
   );
 
+  // Panel toggles for the bar's View slot. Phones reach the panels through
+  // the bottom sheet instead.
+  const panelToggles = useMemo(
+    () =>
+      isMobile ? undefined : (
+        <>
+          <ToolbarIconButton
+            icon={<GroupsIcon />}
+            tooltip={t("i18n-next51.script.cast")}
+            active={castOpen}
+            aria-pressed={castOpen}
+            onClick={() => setCastOpen((open) => !open)}
+          />
+          {!readOnly && (
+            <ToolbarIconButton
+              icon={<AutoAwesomeIcon />}
+              tooltip={t("i18n-next51.script.assistant")}
+              active={assistantOpen}
+              aria-pressed={assistantOpen}
+              onClick={() => setAssistantOpen((open) => !open)}
+            />
+          )}
+        </>
+      ),
+    [isMobile, castOpen, assistantOpen, readOnly, t]
+  );
+  const { host: barHost, render: documentBar } = useDocumentBarHost(
+    tab,
+    panelToggles
+  );
+
   const dockTabs = useMemo(
     () => [
-      { value: "cast", label: t("i18n-next51.script.cast"), icon: <GroupsIcon /> },
-      { value: "assistant", label: t("i18n-next51.script.assistant"), icon: <AutoAwesomeIcon /> }
+      {
+        value: "cast",
+        label: t("i18n-next51.script.cast"),
+        icon: <GroupsIcon />
+      },
+      {
+        value: "assistant",
+        label: t("i18n-next51.script.assistant"),
+        icon: <AutoAwesomeIcon />
+      }
     ],
     [t]
   );
@@ -158,11 +207,22 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   // The store seeds an empty script on mount, so rendering before the server
   // copy lands looks like a script with no lines.
   if (loadState !== "ready") {
-    return <DocumentLoadStatus state={loadState} label={t("i18n-next51.script.label")} />;
+    return (
+      <WithDocumentBar tab={tab}>
+        <DocumentLoadStatus
+          state={loadState}
+          label={t("i18n-next51.script.label")}
+        />
+      </WithDocumentBar>
+    );
   }
 
   if (setupStage !== "done") {
-    return <SetupFlow config={setupConfig} readOnly={readOnly} />;
+    return (
+      <WithDocumentBar tab={tab}>
+        <SetupFlow config={setupConfig} readOnly={readOnly} />
+      </WithDocumentBar>
+    );
   }
 
   // On mobile the fixed 320px side dock would crush the document, so the cast
@@ -171,11 +231,13 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   if (isMobile) {
     return (
       <FlexColumn fullHeight sx={{ minHeight: 0, position: "relative" }}>
+        {barHost}
         {conflictBanner}
         <ScriptDocumentPane
           scriptId={refId}
           readOnly={readOnly}
           active={active}
+          documentBar={documentBar}
         />
         {!readOnly && (
           <>
@@ -209,7 +271,11 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
               open={sheetOpen}
               onClose={() => setSheetOpen(false)}
               maxHeight="85dvh"
-              title={dockTab === "cast" ? t("i18n-next51.script.cast") : t("i18n-next51.script.assistant")}
+              title={
+                dockTab === "cast"
+                  ? t("i18n-next51.script.cast")
+                  : t("i18n-next51.script.assistant")
+              }
               headerExtras={dockTabGroup}
               ariaLabel={t("i18n-next51.script.castAndAssistant")}
             >
@@ -229,47 +295,57 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   // Desktop reads like a call sheet: the cast down the left, the lines in the
   // middle, the assistant on the right.
   return (
-    <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
-      {conflictBanner}
-      <ResizableSideDock
-        side="left"
-        storageKey="script_cast"
-        defaultWidth={300}
-        minWidth={260}
-        maxWidth={440}
-        ariaLabel={t("i18n-next51.script.resizeCast")}
-      >
-        <FlexColumn
-          fullWidth
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            overflow: "hidden",
-            backgroundColor: "background.default"
-          }}
-        >
-          <ScriptCastPanel scriptId={refId} cast={cast} readOnly={readOnly} />
-        </FlexColumn>
-      </ResizableSideDock>
-      <ScriptDocumentPane
-        scriptId={refId}
-        readOnly={readOnly}
-        active={active}
-      />
-      {!readOnly && (
-        <ResizableSideDock
-          storageKey="script_assistant"
-          ariaLabel={t("i18n-next51.script.resizeAssistant")}
-        >
-          <FlexColumn
-            fullWidth
-            sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+    <FlexColumn fullHeight sx={{ minHeight: 0 }}>
+      {barHost}
+      <FlexRow sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+        {conflictBanner}
+        {castOpen && (
+          <ResizableSideDock
+            side="left"
+            storageKey="script_cast"
+            defaultWidth={300}
+            minWidth={260}
+            maxWidth={440}
+            ariaLabel={t("i18n-next51.script.resizeCast")}
           >
-            <ScriptAgentPanel scriptId={refId} />
-          </FlexColumn>
-        </ResizableSideDock>
-      )}
-    </FlexRow>
+            <FlexColumn
+              fullWidth
+              sx={{
+                flex: 1,
+                minHeight: 0,
+                overflow: "hidden",
+                backgroundColor: "background.default"
+              }}
+            >
+              <ScriptCastPanel
+                scriptId={refId}
+                cast={cast}
+                readOnly={readOnly}
+              />
+            </FlexColumn>
+          </ResizableSideDock>
+        )}
+        <ScriptDocumentPane
+          scriptId={refId}
+          readOnly={readOnly}
+          active={active}
+          documentBar={documentBar}
+        />
+        {!readOnly && assistantOpen && (
+          <ResizableSideDock
+            storageKey="script_assistant"
+            ariaLabel={t("i18n-next51.script.resizeAssistant")}
+          >
+            <FlexColumn
+              fullWidth
+              sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+            >
+              <ScriptAgentPanel scriptId={refId} />
+            </FlexColumn>
+          </ResizableSideDock>
+        )}
+      </FlexRow>
+    </FlexColumn>
   );
 };
 

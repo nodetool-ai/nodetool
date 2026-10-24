@@ -113,7 +113,7 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
                 <DeviceView trackId={trackId} />
               </Suspense>
             </PanelErrorBoundary>
-          ) : instrument.type === "sampler" ? <SamplerInstrumentEditor key={trackId} instrument={instrument} onChange={commit} /> : instrument.type === "subtractive" ? <Caption color="muted">{t("i18n-next59.instrument.choosePreset")}</Caption> : (
+          ) : instrument.type === "sampler" ? <SamplerInstrumentEditor key={trackId} instrument={instrument} onChange={commit} /> : instrument.type === "subtractive" ? <Caption color="muted">{t("i18n-next59.instrument.choosePreset")}</Caption> : instrument.type === "vst" ? null : (
             <FableSynthInstrumentEditor key={trackId} instrument={instrument} onChange={commit} />
           )}
           {auditionError && <Caption role="alert">{auditionError}</Caption>}

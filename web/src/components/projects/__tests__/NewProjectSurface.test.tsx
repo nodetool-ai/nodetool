@@ -824,6 +824,52 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  it("starts the chat in a new project only when the New project pill is on", async () => {
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/Describe what you want to create/),
+      "A spot for our desk lamp"
+    );
+    const pill = screen.getByRole("button", { name: "New project" });
+    expect(pill).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(pill);
+    expect(pill).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
+
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({ name: "A spot for our desk lamp" })
+    );
+    await waitFor(() =>
+      expect(createNewThread).toHaveBeenCalledWith(undefined, null, { projectId: "p9" })
+    );
+    expect(openProject).toHaveBeenCalledWith({
+      id: "p9",
+      name: "A spot for our desk lamp"
+    });
+    expect(openTab).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "chat", ref: "chat-1", projectId: "p9" })
+    );
+  });
+
+  it("starts a guided flow in a new project when the New project pill is on", async () => {
+    actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: "current-project" });
+    renderSurface();
+    await userEvent.type(
+      screen.getByPlaceholderText(/Describe what you want to create/),
+      "A spot for our desk lamp"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "New project" }));
+    const cards = screen.getByRole("group", { name: "Start with a guided flow" });
+    await userEvent.click(within(cards).getByRole("button", { name: /^Create image / }));
+
+    await waitFor(() => expect(startImageFlowMock).toHaveBeenCalled());
+    expect(createProject).toHaveBeenCalledWith({ name: "A spot for our desk lamp" });
+    expect(startImageFlowMock).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "p9" })
+    );
+  });
+
   it("uploads reference images before staging the opening chat turn", async () => {
     createAsset.mockResolvedValue({
       id: "reference-asset",

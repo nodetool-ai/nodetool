@@ -2,6 +2,26 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "meshy/v7/retexture": {
+      className: "MeshyV7Retexture",
+      docstring:
+        "Meshy 7 retextures an existing 3D model from a text or image prompt.",
+      tags: ["3d", "3d-to-3d", "texture", "meshy"]
+    },
+
+    "meshy/v6/retexture": {
+      className: "MeshyV6Retexture",
+      docstring:
+        "Meshy 6 retextures an existing 3D model from a text or image prompt.",
+      tags: ["3d", "3d-to-3d", "texture", "meshy"]
+    },
+
+    "meshy/v6-lite/retexture": {
+      className: "MeshyV6LiteRetexture",
+      docstring: "Meshy 6 Lite retextures an existing 3D model at lower cost.",
+      tags: ["3d", "3d-to-3d", "texture", "meshy"]
+    },
+
     "fal-ai/sam-3/3d-align": {
       className: "Sam33DAlign",
       docstring: "Sam 3",

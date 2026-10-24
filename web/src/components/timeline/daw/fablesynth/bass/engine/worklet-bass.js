@@ -1056,6 +1056,9 @@ class BassProcessor extends AudioWorkletProcessor {
     if (opts.events) this.queueEvents(opts.events);
     this.port.postMessage({ t: 'latency', n: this.fx.latencySamples });
     this.port.postMessage({ t: 'ready' });
+    // Timeline automation lanes (devices/param-automation-worklet.js).
+    this.pauto = globalThis.FableParamAutomation ? new globalThis.FableParamAutomation() : null;
+    this.pautoSet = (k, v) => this.onMsg({ t: 'p', k, v });
     this.port.onmessage = (e) => this.onMsg(e.data);
   }
 
@@ -1093,6 +1096,7 @@ class BassProcessor extends AudioWorkletProcessor {
   }
 
   onMsg(d) {
+    if (this.pauto && this.pauto.onMsg(d, this.port)) return;
     switch (d.t) {
       case 'dynamics':
         this.fx.metering = !!d.on; this.fx.meterEnergy.fill(0); this.fx.meterSamples = 0; this.fx.meterReduction = 0;
@@ -1712,6 +1716,7 @@ class BassProcessor extends AudioWorkletProcessor {
     L.fill(0); R.fill(0);
 
     const start = currentFrame;
+    if (this.pauto) this.pauto.tick(start, this.pautoSet);
     const q = this.evq;
     // Events whose frame has passed: a note-on is dropped, a note-off still
     // applies so no note hangs.

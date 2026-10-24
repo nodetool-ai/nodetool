@@ -1,5 +1,5 @@
 /**
- * DAW mode in the TimelineEditor shell: the TopBar switch and the keyboard
+ * DAW mode in the TimelineEditor shell: the Workspace menu and the keyboard
  * toggle swap the preview for the transport strip, give the tracks the room
  * and open the bottom dock; Video mode stays as it was.
  */
@@ -181,17 +181,29 @@ beforeEach(() => {
   });
 });
 
+/** Opens the Workspace menu and picks one of its workspaces. */
+const chooseWorkspace = async (name: string): Promise<void> => {
+  await userEvent.click(
+    screen.getByRole("button", { name: /Video editing|Audio \(DAW\)/ })
+  );
+  // The row's name also carries its shortcut.
+  const rows = await screen.findAllByRole("menuitem");
+  const row = rows.find((item) => item.textContent?.startsWith(name));
+  if (!row) throw new Error(`No workspace named ${name}`);
+  await userEvent.click(row);
+};
+
 describe("TimelineEditor DAW mode", () => {
   it("keeps the video layout by default", () => {
     renderEditor();
     expect(screen.getByTestId("preview-area")).toHaveAttribute("data-audio-only", "false");
     expect(screen.queryByTestId("daw-dock")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Video layout" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Video editing/ })).toBeInTheDocument();
   });
 
-  it("switches to DAW mode from the TopBar: transport instead of the preview, and the dock", async () => {
+  it("switches to DAW mode from the Workspace menu: transport instead of the preview, and the dock", async () => {
     renderEditor();
-    await userEvent.click(screen.getByRole("button", { name: "DAW mode" }));
+    await chooseWorkspace("Audio (DAW)");
 
     expect(useTimelineLayoutStore.getState().dawMode).toBe(true);
     // One preview, mounted audio-only: playback keeps its graph and clock.
@@ -213,9 +225,9 @@ describe("TimelineEditor DAW mode", () => {
   it("reads the ruler in bars while in DAW mode and restores it after", async () => {
     renderEditor();
     expect(useTimelineUIStore.getState().rulerMode).toBe("timecode");
-    await userEvent.click(screen.getByRole("button", { name: "DAW mode" }));
+    await chooseWorkspace("Audio (DAW)");
     expect(useTimelineUIStore.getState().rulerMode).toBe("bars");
-    await userEvent.click(screen.getByRole("button", { name: "Video layout" }));
+    await chooseWorkspace("Video editing");
     expect(useTimelineUIStore.getState().rulerMode).toBe("timecode");
     expect(screen.getByTestId("preview-area")).toHaveAttribute("data-audio-only", "false");
     expect(screen.queryByTestId("daw-dock")).not.toBeInTheDocument();

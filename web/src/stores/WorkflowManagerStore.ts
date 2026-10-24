@@ -316,6 +316,11 @@ export type WorkflowManagerState = {
   // timestamp makes the server's update route refuse the create-on-first-save
   // upsert with "Workflow not found".
   unsavedWorkflowIds: Record<string, true>;
+  /**
+   * Workflows with a write running ("saving") or whose last write threw
+   * ("error"). A workflow absent here is idle after a good write.
+   */
+  workflowSaveStates: Record<string, "saving" | "error">;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   refreshWorkflow: (
     workflowId: string,
@@ -486,14 +491,25 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       workflowId: string,
       task: () => Promise<string | undefined>
     ): Promise<void> => {
+      const setSaveState = (value: "saving" | "error" | null) =>
+        set((state) => {
+          const { [workflowId]: _previous, ...rest } = state.workflowSaveStates;
+          return {
+            workflowSaveStates: value ? { ...rest, [workflowId]: value } : rest
+          };
+        });
       const start = async (): Promise<void> => {
         savesInFlight.set(workflowId, []);
+        setSaveState("saving");
         // The etag the server assigns this write. Every notice held while it
         // runs is judged against it: equal means our own write.
         let savedEtag: string | undefined;
+        let failed = true;
         try {
           savedEtag = await task();
+          failed = false;
         } finally {
+          setSaveState(failed ? "error" : null);
           const held = savesInFlight.get(workflowId) ?? [];
           savesInFlight.delete(workflowId);
           for (const notice of held) {
@@ -707,6 +723,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       nodeStores: {},
       openWorkflows: [],
       unsavedWorkflowIds: {},
+      workflowSaveStates: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
       queryClient: queryClient,
 

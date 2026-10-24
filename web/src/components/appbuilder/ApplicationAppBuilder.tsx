@@ -31,6 +31,7 @@ import {
   type AppDocument
 } from "./appData";
 import AppBuilderShell from "./AppBuilderShell";
+import type { AppBuilderBarSlots } from "./dock/AppBuilderDock";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { useConflictStore } from "../../stores/ConflictStore";
 import type { MergeConflict } from "../../stores/documentMerge";
@@ -58,6 +59,8 @@ interface ApplicationAppBuilderProps {
   onAgentWorkflowIdChange?: (workflowId: string | undefined) => void;
   /** The surface's agent, docked as a builder panel while Design is showing. */
   assistantPanel?: React.ReactNode;
+  /** Places in the workspace document bar for the builder's controls. */
+  barSlots?: AppBuilderBarSlots;
 }
 
 /**
@@ -88,7 +91,8 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   onDraftChange,
   onSaveReady,
   onAgentWorkflowIdChange,
-  assistantPanel
+  assistantPanel,
+  barSlots
 }) => {
   const { t } = useTranslation();
   const { data: application, isLoading, isError, error } =
@@ -516,7 +520,6 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
           setConflict(null);
           revisionRef.current = saved.updatedAt;
           lastSyncedRef.current = JSON.stringify(saved.document);
-          addNotification({ type: "success", content: t("i18n-next53.appBuilder.status.appSaved") });
           return saved.updatedAt;
         } catch (err) {
           if (isConcurrencyConflict(err)) {
@@ -610,6 +613,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       onOperationsChange={setLiveOperations}
       projectId={application.projectId}
       assistantPanel={assistantPanel}
+      barSlots={barSlots}
       onSave={(next) => {
         void handleSave(next).catch(() => undefined);
       }}

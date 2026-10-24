@@ -5,7 +5,8 @@
  * Pulls the live document straight from {@link useTimelineStore} and resolves
  * clip assets through {@link useAssetStore}, so the export renders exactly the
  * sequence the user is editing. The format the caller picks decides both the
- * encode and the file extension — MP4, WebM, or a zip of PNGs.
+ * encode and the file extension — MP4, WebM, a zip of PNGs, or a WAV or MP3
+ * of the audio mixdown alone.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -20,11 +21,15 @@ import {
   type BrowserExportFormat,
   type RenderProgress
 } from "../../components/timeline/render/TimelineRenderer";
+import { renderTimelineAudioFile } from "../../components/timeline/render/encodeAudio";
+
+/** What the export can write: a video container, PNG stills, or audio only. */
+export type TimelineExportFormat = BrowserExportFormat | "wav" | "mp3";
 
 /** The render choices the export dialog collects. */
 export interface TimelineExportOptions {
   /** Container to write. Default MP4. */
-  format?: BrowserExportFormat;
+  format?: TimelineExportFormat;
   /**
    * Keep the alpha channel. `renderTimeline` refuses `mp4` with alpha, so the
    * error surfaces the same way any other render failure does.
@@ -200,6 +205,27 @@ export function useTimelineExport(): UseTimelineExportResult {
           state.clips.length > 0 ? clipsDurationMs : state.durationMs;
         if (exportDurationMs <= 0) {
           throw new Error("Add a clip before exporting.");
+        }
+
+        if (options?.format === "wav" || options?.format === "mp3") {
+          const audio = await renderTimelineAudioFile({
+            format: options.format,
+            tracks: state.tracks,
+            clips: state.clips,
+            durationMs: exportDurationMs,
+            tempo: state.tempo,
+            master: state.master,
+            resolveUrl,
+            signal: controller.signal,
+            onProgress: handleProgress
+          });
+          await sink(
+            audio.bytes,
+            audio.mimeType,
+            sanitizeFilename(filename ?? "timeline"),
+            audio.extension
+          );
+          return;
         }
 
         const { bytes, mimeType, extension, degradations } =

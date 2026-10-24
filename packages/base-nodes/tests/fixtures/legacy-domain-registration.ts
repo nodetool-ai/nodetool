@@ -48089,6 +48089,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type_args: [],
           values: [
             'gemini-3.1-flash-image',
+            'gemini-nano-banana-2.1',
             'gemini-3.1-flash-lite-image',
             'gemini-3-pro-image',
             'imagen-4.0-generate-001'
@@ -48101,6 +48102,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         max: undefined,
         values: [
           'gemini-3.1-flash-image',
+          'gemini-nano-banana-2.1',
           'gemini-3.1-flash-lite-image',
           'gemini-3-pro-image',
           'imagen-4.0-generate-001'

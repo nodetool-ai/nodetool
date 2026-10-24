@@ -35,6 +35,86 @@ import {
 
 type ScriptResponse = Awaited<ReturnType<typeof trpcClient.scripts.get.query>>;
 
+/**
+ * What a leaving leader hands the next one: the copy it last synced with the
+ * server. The draft and its revision stay in the store.
+ */
+interface ScriptSyncHandover {
+  base: ScriptDraft | null;
+}
+
+type StartScriptSync = (
+  handover: ScriptSyncHandover | null
+) => () => Promise<ScriptSyncHandover>;
+
+interface ScriptSyncClaim {
+  start: StartScriptSync;
+  stop: () => Promise<ScriptSyncHandover> | void;
+  report: (state: DocumentLoadState) => void;
+  leading: boolean;
+}
+
+/**
+ * Mounted syncs by script id; the first one runs, the rest follow. Every
+ * claim reports the group's load state, so a follower sees the leader's.
+ */
+interface ScriptSyncGroup {
+  queue: ScriptSyncClaim[];
+  loadState: DocumentLoadState;
+}
+
+const groups = new Map<string, ScriptSyncGroup>();
+
+/** Set the load state of every mounted sync of `scriptId`. */
+function reportScriptLoadState(
+  scriptId: string,
+  state: DocumentLoadState
+): void {
+  const group = groups.get(scriptId);
+  if (!group) return;
+  group.loadState = state;
+  for (const claim of group.queue) claim.report(state);
+}
+
+/**
+ * Join the queue for `scriptId`. The first claim runs `start`; later claims
+ * follow. When the leading claim is released, the next one starts once the
+ * leader's last save has settled, and takes over its synced base instead of
+ * reloading over the draft.
+ */
+function claimScriptSync(
+  scriptId: string,
+  start: StartScriptSync,
+  report: (state: DocumentLoadState) => void
+): () => void {
+  const group = groups.get(scriptId) ?? { queue: [], loadState: "loading" };
+  groups.set(scriptId, group);
+  const { queue } = group;
+  const claim: ScriptSyncClaim = {
+    start,
+    stop: () => {},
+    report,
+    leading: queue.length === 0
+  };
+  queue.push(claim);
+  if (claim.leading) claim.stop = start(null);
+  else report(group.loadState);
+  return () => {
+    queue.splice(queue.indexOf(claim), 1);
+    if (queue.length === 0 && groups.get(scriptId) === group) {
+      groups.delete(scriptId);
+    }
+    const stopped = claim.stop();
+    if (!claim.leading || !stopped) return;
+    void stopped.then((handover) => {
+      const next = queue[0];
+      if (!next || next.leading) return;
+      next.leading = true;
+      next.stop = next.start(handover);
+    });
+  };
+}
+
 /** Every mounted sync's flush, by script id. */
 const flushers = new Map<string, Set<() => Promise<unknown>>>();
 
@@ -239,381 +319,401 @@ export const useScriptServerSync = (
   utilsRef.current = utils;
 
   useEffect(() => {
-    let disposed = false;
-    const store = useScriptStore;
-    setLoadState("loading");
+    // One mounted sync per script loads and saves it, so a script open in its
+    // tab and in a timeline's script panel is written once per edit.
+    const startSync: StartScriptSync = (handover) => {
+      let disposed = false;
+      const store = useScriptStore;
 
-    // Notices that arrived while a save was in flight. One of them may be that
-    // save's own echo, which only the save's response token identifies; the
-    // rest are foreign writes and are handled once the save settles.
-    const pendingNotices: ExternalNotice[] = [];
+      // Notices that arrived while a save was in flight. One of them may be that
+      // save's own echo, which only the save's response token identifies; the
+      // rest are foreign writes and are handled once the save settles.
+      const pendingNotices: ExternalNotice[] = [];
 
-    const isDirty = (): boolean =>
-      (store.getState().scripts[scriptId] ?? null) !== syncedRef.current;
-    const currentRevision = (): string | null =>
-      store.getState().serverRevisions[scriptId] ?? null;
+      const isDirty = (): boolean =>
+        (store.getState().scripts[scriptId] ?? null) !== syncedRef.current;
+      const currentRevision = (): string | null =>
+        store.getState().serverRevisions[scriptId] ?? null;
 
-    // `statusAfter` is applied only once the server copy has actually replaced
-    // the local one, so the indicator never claims a state before it's true.
-    const applyResponse = (
-      res: ScriptResponse,
-      statusAfter: ScriptSaveStatus | null
-    ): void => {
-      if (disposed) return;
-      const server = responseToScript(res);
-      if (store.getState().scripts[scriptId]) {
-        // A clean reload is a merge the draft contests nowhere. Going through
-        // applyMerged rebases the undo stack onto the server copy; a plain
-        // load would leave whole-document checkpoints that undo the external
-        // write along with the creator's own edit.
-        store.getState().applyMerged(scriptId, {
-          ...emptyDraft(scriptId),
-          ...server
-        });
-      } else {
-        store.getState().loadScript(scriptId, server);
-      }
-      revisionRef.current = res.updatedAt;
-      store.getState().setServerRevision(scriptId, res.updatedAt);
-      syncedRef.current = store.getState().scripts[scriptId] ?? null;
-      if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
-    };
-
-    // `statusAfter` is the status to set once the load lands. Mount load →
-    // "saved" (clearing a stale error from a previous session); the CAS-conflict
-    // reload → "reloaded", set post-replacement so a slow reload can't claim it
-    // early. A load that never applies (early error) sets nothing.
-    const load = async (
-      statusAfter: ScriptSaveStatus | null = "saved"
-    ): Promise<void> => {
-      try {
-        applyResponse(
-          await trpcClient.scripts.get.query({ id: scriptId }),
-          statusAfter
-        );
-      } catch (error) {
-        if (!isNotFound(error)) {
-          console.error("Failed to load script", error);
-          // A failed load (e.g. a CAS-conflict reload that couldn't fetch) must
-          // not leave the status stuck on the "saving" it was set to — surface
-          // the failure.
-          store.getState().setSaveStatus(scriptId, "error");
-          return;
-        }
-        // Unknown to the server: upsert-create carrying any local content.
-        const local = store.getState().scripts[scriptId];
-        try {
-          const created = await trpcClient.scripts.create.mutate({
-            id: scriptId,
-            name: local?.title || "Untitled script",
-            document: local ? scriptToDocument(local) : undefined
+      // `statusAfter` is applied only once the server copy has actually replaced
+      // the local one, so the indicator never claims a state before it's true.
+      const applyResponse = (
+        res: ScriptResponse,
+        statusAfter: ScriptSaveStatus | null
+      ): void => {
+        if (disposed) return;
+        const server = responseToScript(res);
+        if (store.getState().scripts[scriptId]) {
+          // A clean reload is a merge the draft contests nowhere. Going through
+          // applyMerged rebases the undo stack onto the server copy; a plain
+          // load would leave whole-document checkpoints that undo the external
+          // write along with the creator's own edit.
+          store.getState().applyMerged(scriptId, {
+            ...emptyDraft(scriptId),
+            ...server
           });
-          if (disposed) return;
-          revisionRef.current = created.updatedAt;
-          store.getState().setServerRevision(scriptId, created.updatedAt);
-          syncedRef.current = store.getState().scripts[scriptId] ?? null;
-          if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
-          void utilsRef.current.scripts.list.invalidate();
-        } catch (createError) {
-          console.error("Failed to create script", createError);
-          store.getState().setSaveStatus(scriptId, "error");
-        }
-      }
-    };
-
-    let controller: DocumentSyncController;
-    const unsubscribe = store.subscribe((state, prev) => {
-      if (state.scripts[scriptId] === prev.scripts[scriptId]) return;
-      if (state.scripts[scriptId] === syncedRef.current) return;
-      if (!state.serverRevisions[scriptId]) return;
-      // Edits landed; the debounced save hasn't fired yet. Reflect the pending
-      // state so "saved" never lies during the debounce window. (Setting status
-      // only touches saveStatus, so this subscriber early-returns on it.)
-      store.getState().setSaveStatus(scriptId, "unsaved");
-      controller.markDirty();
-    });
-
-    // Writes from outside this browser (agent doc-ops, CLI, another tab) come
-    // in as `resource_change`. A clean tab takes the server copy; a dirty one
-    // merges the change per merge unit — draft wins, refused values land in
-    // the conflict banner, no undo entry for external work (ADR 0001).
-    const mergeExternal = async (
-      notice: ExternalNotice,
-      prefetched?: ScriptResponse
-    ): Promise<void> => {
-      let res: ScriptResponse;
-      if (prefetched) {
-        res = prefetched;
-      } else {
-        try {
-          res = await trpcClient.scripts.get.query({ id: scriptId });
-        } catch (error) {
-          console.error("Failed to fetch script for merge", error);
-          return;
-        }
-      }
-      if (disposed) return;
-      const base = syncedRef.current;
-      const draft = store.getState().scripts[scriptId];
-      if (!base || !draft || base === draft) return;
-
-      const serverScript: ScriptDraft = {
-        ...responseToScript(res),
-        id: scriptId,
-        updatedAt: Date.now()
-      };
-
-      const { doc: merged, conflicts, nextBase } = mergeScriptDocuments(
-        base,
-        draft,
-        serverScript,
-        notice.ops
-      );
-      // SAFETY: `ScriptMergeDoc` is the merge engine's view of a script —
-      // the same fields, with the unit collections widened to `unknown[]`
-      // so the engine can carry them. The engine writes a collection back by
-      // spreading the document it was given, so every other field of `draft`
-      // survives; re-typing them is what makes the result a `ScriptDraft`
-      // again.
-      store.getState().applyMerged(
-        scriptId,
-        merged as unknown as ScriptDraft
-      );
-      revisionRef.current = res.updatedAt;
-      store.getState().setServerRevision(scriptId, res.updatedAt);
-      // The server copy, except in the units the draft refused, which keep the
-      // base they had — otherwise the next external write reads a refused unit
-      // as unchanged on the server and the draft wins with nothing listed, so
-      // the external value can never be taken again.
-      // SAFETY: same widening as `merged` above — the engine's document view
-      // and `ScriptDraft` are the same fields.
-      syncedRef.current = {
-        ...(nextBase as unknown as ScriptDraft),
-        id: scriptId,
-        updatedAt: Date.now()
-      };
-
-      const listed = conflicts.map((conflict) =>
-        conflict.unit.id
-          ? conflict
-          : { ...conflict, unit: { ...conflict.unit, id: conflict.unit.kind } }
-      );
-      useConflictStore.getState().addConflicts(`script:${scriptId}`, listed, {
-        onAccept: (unitId) => {
-          const entry = useConflictStore.getState().byKey[`script:${scriptId}`];
-          const conflict = entry?.conflicts.find((c) => c.unit.id === unitId);
-          if (!conflict) return;
-          acceptConflict(conflict, serverScript);
-        },
-        onDiscard: () => {}
-      });
-    };
-
-    /** Take one refused external value into the draft (an undoable edit). */
-    const acceptConflict = (
-      conflict: MergeConflict,
-      serverScript: ScriptDraft
-    ): void => {
-      const s = store.getState();
-      const draft = s.scripts[scriptId];
-      if (!draft) return;
-      if (conflict.reason === "replaced") {
-        s.loadScript(scriptId, serverScript, { checkpoint: true });
-        return;
-      }
-      if (conflict.unit.kind === "speaker" && conflict.external != null) {
-        const incoming = serverScript.cast.find((speaker) => speaker.id === conflict.unit.id);
-        if (!incoming) return;
-        if (draft.cast.some((speaker) => speaker.id === incoming.id)) {
-          s.updateSpeaker(scriptId, incoming.id, incoming);
         } else {
-          const cast = [...draft.cast];
-          const index = serverScript.cast.indexOf(incoming);
-          cast.splice(Math.min(index, cast.length), 0, incoming);
-          s.loadScript(scriptId, { ...draft, cast }, { checkpoint: true });
+          store.getState().loadScript(scriptId, server);
         }
-        return;
-      }
-      if (conflict.reason === "deleted" && conflict.external === null) {
-        if (conflict.unit.kind === "speaker") {
-          s.removeSpeaker(scriptId, conflict.unit.id);
-        } else if (conflict.unit.kind === "section") {
-          s.removeSection(scriptId, conflict.unit.id);
-        } else if (conflict.unit.kind === "line") {
-          s.removeLine(scriptId, conflict.unit.id);
-        } else if (conflict.unit.kind === "take") {
-          removeTakeById(scriptId, draft, conflict.unit.id, s);
-        }
-        return;
-      }
-      if (conflict.unit.kind === "line") {
-        acceptLine(
-          scriptId,
-          draft,
-          conflict.external as ScriptDraft["sections"][number]["lines"][number] | null,
-          serverScript,
-          s
-        );
-        return;
-      }
-      if (
-        conflict.unit.kind === "take" &&
-        conflict.external != null
-      ) {
-        acceptTake(
-          scriptId,
-          draft,
-          conflict.unit.id,
-          conflict.external as ScriptDraft["sections"][number]["lines"][number]["takes"][number],
-          serverScript,
-          s
-        );
-        return;
-      }
-      if (conflict.unit.kind === "section") {
-        const incoming = serverScript.sections.find((section) => section.id === conflict.unit.id);
-        if (!incoming) return;
-        if (!draft.sections.some((section) => section.id === incoming.id)) {
-          const sections = [...draft.sections];
-          const index = serverScript.sections.indexOf(incoming);
-          sections.splice(Math.min(index, sections.length), 0, incoming);
-          s.loadScript(scriptId, { ...draft, sections }, { checkpoint: true });
-          return;
-        }
-        // Take the server's section fields; the lines merged per line and
-        // stay as the draft holds them.
-        const { lines: _lines, ...rest } = incoming;
-        s.patchSection(scriptId, conflict.unit.id, rest);
-        return;
-      }
-      if (conflict.unit.kind === "field" && conflict.unit.id === "title") {
-        s.setTitle(scriptId, serverScript.title);
-      }
-      if (conflict.unit.kind === "field" && conflict.unit.id === "setup") {
-        s.loadScript(scriptId, { ...draft, setup: serverScript.setup ?? null });
-      }
-      // The other scalars the merge adapter lists. Without these, Accept
-      // cleared the banner entry and kept the draft's value.
-      if (conflict.unit.kind === "field" && conflict.unit.id === "timelineId") {
-        s.setTimelineLink(scriptId, serverScript.timelineId);
-      }
-      if (conflict.unit.kind === "field" && conflict.unit.id === "storyboardId") {
-        s.setStoryboardLink(scriptId, serverScript.storyboardId);
-      }
-      if (
-        conflict.unit.kind === "field" &&
-        conflict.unit.id === "creativeContext"
-      ) {
-        s.setCreativeContext(scriptId, serverScript.creativeContext);
-      }
-    };
+        revisionRef.current = res.updatedAt;
+        store.getState().setServerRevision(scriptId, res.updatedAt);
+        syncedRef.current = store.getState().scripts[scriptId] ?? null;
+        if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
+      };
 
-    const unwatch = registerDocumentSync("script", scriptId, {
-      localRevision: () => revisionRef.current,
-      isDirty: () =>
-        (store.getState().scripts[scriptId] ?? null) !== syncedRef.current,
-      reload: () => {
-        void (async () => {
+      // `statusAfter` is the status to set once the load lands. Mount load →
+      // "saved" (clearing a stale error from a previous session); the CAS-conflict
+      // reload → "reloaded", set post-replacement so a slow reload can't claim it
+      // early. A load that never applies (early error) sets nothing.
+      const load = async (
+        statusAfter: ScriptSaveStatus | null = "saved"
+      ): Promise<void> => {
+        try {
+          applyResponse(
+            await trpcClient.scripts.get.query({ id: scriptId }),
+            statusAfter
+          );
+        } catch (error) {
+          if (!isNotFound(error)) {
+            console.error("Failed to load script", error);
+            // A failed load (e.g. a CAS-conflict reload that couldn't fetch) must
+            // not leave the status stuck on the "saving" it was set to — surface
+            // the failure.
+            store.getState().setSaveStatus(scriptId, "error");
+            return;
+          }
+          // Unknown to the server: upsert-create carrying any local content.
+          const local = store.getState().scripts[scriptId];
           try {
-            const response = await trpcClient.scripts.get.query({ id: scriptId });
+            const created = await trpcClient.scripts.create.mutate({
+              id: scriptId,
+              name: local?.title || "Untitled script",
+              document: local ? scriptToDocument(local) : undefined
+            });
             if (disposed) return;
-            // A take may complete while the clean-editor reload is in flight.
-            // Merge that new draft with the external response instead of
-            // applying the response over the take.
-            if (isDirty()) {
-              await mergeExternal({ updatedAt: response.updatedAt }, response);
-              return;
-            }
-            applyResponse(response, "reloaded");
-          } catch (error) {
-            console.error("Failed to reload script", error);
+            revisionRef.current = created.updatedAt;
+            store.getState().setServerRevision(scriptId, created.updatedAt);
+            syncedRef.current = store.getState().scripts[scriptId] ?? null;
+            if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
+            void utilsRef.current.scripts.list.invalidate();
+          } catch (createError) {
+            console.error("Failed to create script", createError);
             store.getState().setSaveStatus(scriptId, "error");
           }
-        })();
-      },
-      merge: (notice) => {
-        // A save in flight makes the notice ambiguous: it may be that save's
-        // own echo, and only the save's response token says so. Hold it until
-        // then rather than guessing — guessing hides another tab's write and
-        // rolls the revision to a token we never received.
-        if (controller.isSaving()) {
-          pendingNotices.push({ updatedAt: notice.updatedAt, ops: notice.ops });
+        }
+      };
+
+      let controller: DocumentSyncController;
+      const unsubscribe = store.subscribe((state, prev) => {
+        if (state.scripts[scriptId] === prev.scripts[scriptId]) return;
+        if (state.scripts[scriptId] === syncedRef.current) return;
+        if (!state.serverRevisions[scriptId]) return;
+        // Edits landed; the debounced save hasn't fired yet. Reflect the pending
+        // state so "saved" never lies during the debounce window. (Setting status
+        // only touches saveStatus, so this subscriber early-returns on it.)
+        store.getState().setSaveStatus(scriptId, "unsaved");
+        controller.markDirty();
+      });
+
+      // Writes from outside this browser (agent doc-ops, CLI, another tab) come
+      // in as `resource_change`. A clean tab takes the server copy; a dirty one
+      // merges the change per merge unit — draft wins, refused values land in
+      // the conflict banner, no undo entry for external work (ADR 0001).
+      const mergeExternal = async (
+        notice: ExternalNotice,
+        prefetched?: ScriptResponse
+      ): Promise<void> => {
+        let res: ScriptResponse;
+        if (prefetched) {
+          res = prefetched;
+        } else {
+          try {
+            res = await trpcClient.scripts.get.query({ id: scriptId });
+          } catch (error) {
+            console.error("Failed to fetch script for merge", error);
+            return;
+          }
+        }
+        if (disposed) return;
+        const base = syncedRef.current;
+        const draft = store.getState().scripts[scriptId];
+        if (!base || !draft || base === draft) return;
+
+        const serverScript: ScriptDraft = {
+          ...responseToScript(res),
+          id: scriptId,
+          updatedAt: Date.now()
+        };
+
+        const { doc: merged, conflicts, nextBase } = mergeScriptDocuments(
+          base,
+          draft,
+          serverScript,
+          notice.ops
+        );
+        // SAFETY: `ScriptMergeDoc` is the merge engine's view of a script —
+        // the same fields, with the unit collections widened to `unknown[]`
+        // so the engine can carry them. The engine writes a collection back by
+        // spreading the document it was given, so every other field of `draft`
+        // survives; re-typing them is what makes the result a `ScriptDraft`
+        // again.
+        store.getState().applyMerged(
+          scriptId,
+          merged as unknown as ScriptDraft
+        );
+        revisionRef.current = res.updatedAt;
+        store.getState().setServerRevision(scriptId, res.updatedAt);
+        // The server copy, except in the units the draft refused, which keep the
+        // base they had — otherwise the next external write reads a refused unit
+        // as unchanged on the server and the draft wins with nothing listed, so
+        // the external value can never be taken again.
+        // SAFETY: same widening as `merged` above — the engine's document view
+        // and `ScriptDraft` are the same fields.
+        syncedRef.current = {
+          ...(nextBase as unknown as ScriptDraft),
+          id: scriptId,
+          updatedAt: Date.now()
+        };
+
+        const listed = conflicts.map((conflict) =>
+          conflict.unit.id
+            ? conflict
+            : { ...conflict, unit: { ...conflict.unit, id: conflict.unit.kind } }
+        );
+        useConflictStore.getState().addConflicts(`script:${scriptId}`, listed, {
+          onAccept: (unitId) => {
+            const entry = useConflictStore.getState().byKey[`script:${scriptId}`];
+            const conflict = entry?.conflicts.find((c) => c.unit.id === unitId);
+            if (!conflict) return;
+            acceptConflict(conflict, serverScript);
+          },
+          onDiscard: () => {}
+        });
+      };
+
+      /** Take one refused external value into the draft (an undoable edit). */
+      const acceptConflict = (
+        conflict: MergeConflict,
+        serverScript: ScriptDraft
+      ): void => {
+        const s = store.getState();
+        const draft = s.scripts[scriptId];
+        if (!draft) return;
+        if (conflict.reason === "replaced") {
+          s.loadScript(scriptId, serverScript, { checkpoint: true });
           return;
         }
-        void mergeExternal(notice);
-      }
-    });
+        if (conflict.unit.kind === "speaker" && conflict.external != null) {
+          const incoming = serverScript.cast.find((speaker) => speaker.id === conflict.unit.id);
+          if (!incoming) return;
+          if (draft.cast.some((speaker) => speaker.id === incoming.id)) {
+            s.updateSpeaker(scriptId, incoming.id, incoming);
+          } else {
+            const cast = [...draft.cast];
+            const index = serverScript.cast.indexOf(incoming);
+            cast.splice(Math.min(index, cast.length), 0, incoming);
+            s.loadScript(scriptId, { ...draft, cast }, { checkpoint: true });
+          }
+          return;
+        }
+        if (conflict.reason === "deleted" && conflict.external === null) {
+          if (conflict.unit.kind === "speaker") {
+            s.removeSpeaker(scriptId, conflict.unit.id);
+          } else if (conflict.unit.kind === "section") {
+            s.removeSection(scriptId, conflict.unit.id);
+          } else if (conflict.unit.kind === "line") {
+            s.removeLine(scriptId, conflict.unit.id);
+          } else if (conflict.unit.kind === "take") {
+            removeTakeById(scriptId, draft, conflict.unit.id, s);
+          }
+          return;
+        }
+        if (conflict.unit.kind === "line") {
+          acceptLine(
+            scriptId,
+            draft,
+            conflict.external as ScriptDraft["sections"][number]["lines"][number] | null,
+            serverScript,
+            s
+          );
+          return;
+        }
+        if (
+          conflict.unit.kind === "take" &&
+          conflict.external != null
+        ) {
+          acceptTake(
+            scriptId,
+            draft,
+            conflict.unit.id,
+            conflict.external as ScriptDraft["sections"][number]["lines"][number]["takes"][number],
+            serverScript,
+            s
+          );
+          return;
+        }
+        if (conflict.unit.kind === "section") {
+          const incoming = serverScript.sections.find((section) => section.id === conflict.unit.id);
+          if (!incoming) return;
+          if (!draft.sections.some((section) => section.id === incoming.id)) {
+            const sections = [...draft.sections];
+            const index = serverScript.sections.indexOf(incoming);
+            sections.splice(Math.min(index, sections.length), 0, incoming);
+            s.loadScript(scriptId, { ...draft, sections }, { checkpoint: true });
+            return;
+          }
+          // Take the server's section fields; the lines merged per line and
+          // stay as the draft holds them.
+          const { lines: _lines, ...rest } = incoming;
+          s.patchSection(scriptId, conflict.unit.id, rest);
+          return;
+        }
+        if (conflict.unit.kind === "field" && conflict.unit.id === "title") {
+          s.setTitle(scriptId, serverScript.title);
+        }
+        if (conflict.unit.kind === "field" && conflict.unit.id === "setup") {
+          s.loadScript(scriptId, { ...draft, setup: serverScript.setup ?? null });
+        }
+        // The other scalars the merge adapter lists. Without these, Accept
+        // cleared the banner entry and kept the draft's value.
+        if (conflict.unit.kind === "field" && conflict.unit.id === "timelineId") {
+          s.setTimelineLink(scriptId, serverScript.timelineId);
+        }
+        if (conflict.unit.kind === "field" && conflict.unit.id === "storyboardId") {
+          s.setStoryboardLink(scriptId, serverScript.storyboardId);
+        }
+        if (
+          conflict.unit.kind === "field" &&
+          conflict.unit.id === "creativeContext"
+        ) {
+          s.setCreativeContext(scriptId, serverScript.creativeContext);
+        }
+      };
 
-    controller = createDocumentSyncController<ScriptDraft>({
-      getDraft: () => store.getState().scripts[scriptId] ?? null,
-      getRevision: currentRevision,
-      isDirty,
-      save: async (script, revision) => {
-        const updated = await trpcClient.scripts.update.mutate({
-          id: scriptId,
-          baseUpdatedAt: revision,
-          name: script.title || "Untitled script",
-          document: scriptToDocument(script),
-          timelineId: script.timelineId,
-          storyboardId: script.storyboardId
+      const unwatch = registerDocumentSync("script", scriptId, {
+        localRevision: () => revisionRef.current,
+        isDirty: () =>
+          (store.getState().scripts[scriptId] ?? null) !== syncedRef.current,
+        reload: () => {
+          void (async () => {
+            try {
+              const response = await trpcClient.scripts.get.query({ id: scriptId });
+              if (disposed) return;
+              // A take may complete while the clean-editor reload is in flight.
+              // Merge that new draft with the external response instead of
+              // applying the response over the take.
+              if (isDirty()) {
+                await mergeExternal({ updatedAt: response.updatedAt }, response);
+                return;
+              }
+              applyResponse(response, "reloaded");
+            } catch (error) {
+              console.error("Failed to reload script", error);
+              store.getState().setSaveStatus(scriptId, "error");
+            }
+          })();
+        },
+        merge: (notice) => {
+          // A save in flight makes the notice ambiguous: it may be that save's
+          // own echo, and only the save's response token says so. Hold it until
+          // then rather than guessing — guessing hides another tab's write and
+          // rolls the revision to a token we never received.
+          if (controller.isSaving()) {
+            pendingNotices.push({ updatedAt: notice.updatedAt, ops: notice.ops });
+            return;
+          }
+          void mergeExternal(notice);
+        }
+      });
+
+      controller = createDocumentSyncController<ScriptDraft>({
+        getDraft: () => store.getState().scripts[scriptId] ?? null,
+        getRevision: currentRevision,
+        isDirty,
+        save: async (script, revision) => {
+          const updated = await trpcClient.scripts.update.mutate({
+            id: scriptId,
+            baseUpdatedAt: revision,
+            name: script.title || "Untitled script",
+            document: scriptToDocument(script),
+            timelineId: script.timelineId,
+            storyboardId: script.storyboardId
+          });
+          revisionRef.current = updated.updatedAt;
+          store.getState().setServerRevision(scriptId, updated.updatedAt);
+          void utilsRef.current.scripts.list.invalidate();
+          const notices = pendingNotices.splice(0, pendingNotices.length);
+          for (const notice of notices) {
+            if (notice.updatedAt === updated.updatedAt) continue;
+            await mergeExternal(notice);
+          }
+          if (store.getState().scripts[scriptId] === script) {
+            syncedRef.current = script;
+          }
+          if (store.getState().scripts[scriptId] !== script) controller.markDirty();
+          return { updatedAt: updated.updatedAt };
+        },
+        recoverCasConflict: async () => {
+          const notices = pendingNotices.splice(0, pendingNotices.length);
+          for (const notice of notices) {
+            await mergeExternal(notice);
+          }
+          const response = await trpcClient.scripts.get.query({ id: scriptId });
+          if (!isDirty()) {
+            applyResponse(response, "reloaded");
+          } else if (response.updatedAt !== revisionRef.current) {
+            await mergeExternal({ updatedAt: response.updatedAt }, response);
+          }
+        },
+        isCasConflict: isConflict,
+        isRetryableError: (error) => !isPermanentSaveError(error),
+        onStatus: (status) => store.getState().setSaveStatus(scriptId, status)
+      });
+
+      if (handover && currentRevision()) {
+        // Taking over from a sync that left: the store already holds the
+        // draft and its revision. A reload here would replace edits made
+        // while it was in flight, or a draft whose last save failed.
+        revisionRef.current = currentRevision();
+        syncedRef.current = handover.base;
+        if (isDirty()) controller.markDirty();
+      } else {
+        // The initial load gates rendering: a script with no server revision
+        // once it has settled is one that failed to load. Later reloads (CAS
+        // conflict, resource_change) leave the state alone — the surface
+        // already has a document to show.
+        reportScriptLoadState(scriptId, "loading");
+        void load().finally(() => {
+          if (disposed) return;
+          reportScriptLoadState(
+            scriptId,
+            store.getState().serverRevisions[scriptId] ? "ready" : "error"
+          );
         });
-        revisionRef.current = updated.updatedAt;
-        store.getState().setServerRevision(scriptId, updated.updatedAt);
-        void utilsRef.current.scripts.list.invalidate();
-        const notices = pendingNotices.splice(0, pendingNotices.length);
-        for (const notice of notices) {
-          if (notice.updatedAt === updated.updatedAt) continue;
-          await mergeExternal(notice);
-        }
-        if (store.getState().scripts[scriptId] === script) {
-          syncedRef.current = script;
-        }
-        if (store.getState().scripts[scriptId] !== script) controller.markDirty();
-        return { updatedAt: updated.updatedAt };
-      },
-      recoverCasConflict: async () => {
-        const notices = pendingNotices.splice(0, pendingNotices.length);
-        for (const notice of notices) {
-          await mergeExternal(notice);
-        }
-        const response = await trpcClient.scripts.get.query({ id: scriptId });
-        if (!isDirty()) {
-          applyResponse(response, "reloaded");
-        } else if (response.updatedAt !== revisionRef.current) {
-          await mergeExternal({ updatedAt: response.updatedAt }, response);
-        }
-      },
-      isCasConflict: isConflict,
-      isRetryableError: (error) => !isPermanentSaveError(error),
-      onStatus: (status) => store.getState().setSaveStatus(scriptId, status)
-    });
-
-    // The initial load gates rendering: a script with no server revision once
-    // it has settled is one that failed to load. Later reloads (CAS conflict,
-    // resource_change) leave the state alone — the surface already has a
-    // document to show.
-    void load().finally(() => {
-      if (disposed) return;
-      setLoadState(
-        store.getState().serverRevisions[scriptId] ? "ready" : "error"
-      );
-    });
-
-    const flush = (): Promise<unknown> => controller.flush();
-    const registered = flushers.get(scriptId) ?? new Set();
-    registered.add(flush);
-    flushers.set(scriptId, registered);
-
-    return () => {
-      disposed = true;
-      registered.delete(flush);
-      if (registered.size === 0 && flushers.get(scriptId) === registered) {
-        flushers.delete(scriptId);
       }
-      unwatch();
-      unsubscribe();
-      controller.dispose();
+
+      const flush = (): Promise<unknown> => controller.flush();
+      const registered = flushers.get(scriptId) ?? new Set();
+      registered.add(flush);
+      flushers.set(scriptId, registered);
+
+      return () => {
+        disposed = true;
+        registered.delete(flush);
+        if (registered.size === 0 && flushers.get(scriptId) === registered) {
+          flushers.delete(scriptId);
+        }
+        unwatch();
+        unsubscribe();
+        controller.dispose();
+        // Disposing starts the last save; a following sync of this script
+        // takes over once it has settled, from the base that save left.
+        const handOver = (): ScriptSyncHandover => ({ base: syncedRef.current });
+        return controller.flush().then(handOver, handOver);
+      };
     };
+
+    return claimScriptSync(scriptId, startSync, setLoadState);
   }, [scriptId]);
 
   return loadState;

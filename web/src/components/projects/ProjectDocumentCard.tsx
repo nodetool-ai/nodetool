@@ -6,6 +6,7 @@
 
 import { memo, useCallback, useState, type MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
+import type { Theme } from "@mui/material/styles";
 
 import {
   BORDER_RADIUS,
@@ -18,6 +19,7 @@ import {
   InlineEditableText,
   Label,
   MenuItemPrimitive,
+  SHADOW,
   SPACING,
   StatusPill,
   TYPOGRAPHY
@@ -117,7 +119,11 @@ const ProjectDocumentCard = ({
           overflow: "hidden",
           minWidth: 0,
           borderRadius: BORDER_RADIUS.md,
+          // On the start page the card wears the same large radius and lift
+          // as the project and example cards beside it.
           ...(compact && {
+            borderRadius: BORDER_RADIUS.lg,
+            boxShadow: (theme: Theme) => SHADOW(theme).sm,
             "& > :first-child": { height: "auto", aspectRatio: "3 / 1" }
           })
         }}

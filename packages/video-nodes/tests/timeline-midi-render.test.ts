@@ -351,6 +351,22 @@ describe("RenderTimeline — midi tracks", () => {
     }
   );
 
+  it("refuses a VST track instead of exporting it as silence", async () => {
+    const vst = {
+      type: "vst",
+      plugin: { uid: "VST3-Pad", name: "Pad", vendor: "Acme", path: "/plugins/Pad.vst3" },
+      state: null,
+      gainDb: 0
+    };
+    await expect(
+      render(sequence({ tracks: [{ ...MIDI_TRACK, instrument: vst }] }))
+    ).rejects.toThrow(/plays a VST instrument.*desktop app/);
+    // Muted, it stays out of the mix and the export goes ahead.
+    await expect(
+      render(sequence({ tracks: [{ ...MIDI_TRACK, instrument: vst, muted: true }, VIDEO_TRACK], clips: [midiClip(), videoClip()] }))
+    ).resolves.toBeDefined();
+  });
+
   it("leaves a muted midi track out of the mix", async () => {
     const seq = sequence({
       tracks: [{ ...MIDI_TRACK, muted: true }, VIDEO_TRACK],

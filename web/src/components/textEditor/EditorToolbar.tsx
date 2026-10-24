@@ -16,6 +16,8 @@ import {
 } from "../ui_primitives";
 
 interface EditorToolbarProps {
+  /** Undo and Redo render only when both are given. Document editors put
+   * them in the document bar instead. */
   onUndo?: () => void;
   onRedo?: () => void;
   onToggleWordWrap?: () => void;
@@ -48,10 +50,11 @@ const EditorToolbar = ({
   readOnly = false
 }: EditorToolbarProps) => {
   const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_text" });
+  const showHistory = !readOnly && !!onUndo && !!onRedo;
 
   return (
     <Toolbar className="editor-toolbar" density="compact">
-      {!readOnly && (
+      {showHistory && (
         <ToolbarGroup>
           <ToolbarIconButton
             icon={<UndoIcon />}
@@ -67,7 +70,7 @@ const EditorToolbar = ({
           />
         </ToolbarGroup>
       )}
-      {!readOnly && <ToolbarDivider />}
+      {showHistory && <ToolbarDivider />}
 
       {!readOnly && onHeading && onBold && onBulletList && (
         <>

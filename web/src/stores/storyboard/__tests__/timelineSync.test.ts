@@ -446,7 +446,7 @@ describe("back-sync into a jointly assembled sequence", () => {
     }
   });
 
-  it("re-voicing with the board unreadable patches its voiceover clip and shifts the later one", async () => {
+  it("re-voicing a line patches its voiceover clip and leaves the later one in place", async () => {
     seedJoint();
     getQuery.mockResolvedValue(jointSequence());
     updateMutate.mockResolvedValue({});
@@ -462,13 +462,13 @@ describe("back-sync into a jointly assembled sequence", () => {
     expect(patched?.caption?.words).toEqual([
       { word: "again", startMs: 0, endMs: 400 }
     ]);
-    // The other line's clip keeps its take but slides by the delta (5000-2000).
+    // The other line's clip keeps its take and its placement.
     const later = clips.find((c) => c.scriptLineId === "line-2");
     expect(later?.currentAssetId).toBe("asset-line-2");
-    expect(later?.startMs).toBe(2000 + 3000);
+    expect(later?.startMs).toBe(2000);
   });
 
-  it("re-voicing with the board unreadable does not touch the shot clips", async () => {
+  it("re-voicing does not touch the storyboard's shot clips", async () => {
     seedJoint();
     const sequence = jointSequence();
     getQuery.mockResolvedValue(sequence);

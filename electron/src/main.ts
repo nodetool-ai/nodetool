@@ -62,6 +62,7 @@ import { IpcChannels } from "./types.d";
 import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 import { configureCertificateTrust } from "./certificateTrust";
+import { disposeVstHost } from "./vstHost";
 
 configureCertificateTrust();
 
@@ -613,6 +614,7 @@ process.on(
 );
 
 app.on("will-quit", () => {
+  disposeVstHost();
   globalShortcut.unregisterAll();
   cleanupTrayEvents();
   closeLogStream();

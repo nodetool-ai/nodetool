@@ -2,6 +2,12 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "nvidia/nemotron-3-5-super/video": {
+      className: "Nemotron35SuperVideo",
+      docstring: "NVIDIA Nemotron 3.5 Super answers prompts about videos.",
+      tags: ["video", "video-to-text", "nvidia", "nemotron"]
+    },
+
     "openrouter/router/video/enterprise": {
       className: "RouterVideoEnterprise",
       docstring:

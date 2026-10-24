@@ -1,7 +1,8 @@
 /**
  * Adds FableSynth processors to a context once. The instrument processors
  * build their FX from classes `ott` and `lab` define on the worklet global
- * scope, so callers list those first and the modules are added in order.
+ * scope, and their timeline automation from the class `pauto` defines, so
+ * callers list those first and the modules are added in order.
  */
 
 import type { FableWorkletName } from "./fableWorkletUrls";

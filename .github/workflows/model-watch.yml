@@ -14,7 +14,7 @@ name: Model Watch
 #
 # Required repo secrets (any subset — a missing one skips that provider):
 #   FAL_API_KEY, REPLICATE_API_TOKEN, KIE_API_KEY, TOGETHER_API_KEY,
-#   ATLASCLOUD_API_KEY, TOPAZ_API_KEY
+#   ATLASCLOUD_API_KEY, TOPAZ_API_KEY, GEMINI_API_KEY
 
 on:
   workflow_dispatch: {}
@@ -69,6 +69,63 @@ jobs:
         # Never fail the job on a provider error — the report records errorCount
         # and the next step decides what to file.
         run: npm run seo:model-watch -- --out model-watch-report.json --pretty || true
+
+      - name: Diff upstream catalogs against the codegen allowlists
+        # model-watch above only sees models that already have a node. This
+        # finds the ones that never got one. See scripts/provider-model-gaps.mjs.
+        env:
+          FAL_API_KEY: ${{ secrets.FAL_API_KEY }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/provider-model-gaps.mjs --out provider-gaps-report.json || true
+
+      - name: Open one issue per provider with models we never added
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const fs = require("fs");
+            const path = "provider-gaps-report.json";
+            if (!fs.existsSync(path)) {
+              core.warning("provider-model-gaps did not write a report.");
+              return;
+            }
+            const report = JSON.parse(fs.readFileSync(path, "utf8"));
+            const LABEL = "provider-gap";
+            try {
+              await github.rest.issues.getLabel({ ...context.repo, name: LABEL });
+            } catch {
+              await github.rest.issues.createLabel({
+                ...context.repo,
+                name: LABEL,
+                color: "d93f0b",
+                description: "Upstream provider models with no NodeTool node",
+              });
+            }
+
+            for (const p of report.providers || []) {
+              if (!p.ok) {
+                core.warning(`${p.provider}: ${p.error}`);
+                continue;
+              }
+              if (p.missing.length === 0) continue;
+              const title = `provider-gap: ${p.missing.length} ${p.provider} model(s) without a node`;
+              const existing = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open label:${LABEL} in:title "${p.provider} model(s)"`,
+              });
+              if (existing.data.total_count > 0) {
+                core.info(`Gap issue already open for ${p.provider}; skipping.`);
+                continue;
+              }
+              const body =
+                `The weekly gap check found **${p.missing.length}** ${p.provider} model(s) in the ` +
+                `upstream catalog (${p.upstreamCount} listed, ${p.ignored} ignored) with no entry in ` +
+                `the codegen allowlist.\n\n` +
+                `Add each one to the provider's \`src/configs/\` and regenerate, or add it to ` +
+                `\`scripts/provider-gaps/ignore.json\` with the reason it is skipped.\n\n` +
+                p.missing.map((id) => `- \`${id}\``).join("\n");
+              await github.rest.issues.create({ ...context.repo, title, body, labels: [LABEL] });
+              core.info(`Opened gap issue for ${p.provider} (${p.missing.length}).`);
+            }
 
       - name: Open one issue per provider with new models
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9

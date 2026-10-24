@@ -25,6 +25,8 @@ import {
   isTranscriptClip,
   type TranscriptSegment
 } from "../../../stores/timeline/transcriptOps";
+import { useScriptStore } from "../../../stores/script/ScriptStore";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { trackHeaderWidthCss } from "./TrackHeader";
 
 export const SCRIPT_LANE_HEIGHT_PX = 46;
@@ -77,6 +79,12 @@ const PhraseChipRoot = styled("button")(({ theme }) => ({
   },
   "&.is-active": { color: theme.vars.palette.text.primary },
   "&.is-draft": { fontStyle: "italic" },
+  // The script line was edited after this take: the chip shows the new text
+  // until the line is voiced again.
+  "&.is-stale": {
+    borderStyle: "dashed",
+    color: theme.vars.palette.text.disabled
+  },
   "& .w-active": {
     borderRadius: BORDER_RADIUS.xs,
     padding: `0 ${getSpacingPx(SPACING.micro)}`, // was 0 1px
@@ -150,6 +158,8 @@ interface ScriptChipView {
   gapMs: number;
   prevEndMs: number | undefined;
   title: string;
+  /** The linked script line's text when it no longer matches the take. */
+  staleText?: string;
 }
 
 interface PhraseChipProps {
@@ -196,7 +206,11 @@ const PhraseChip: React.FC<PhraseChipProps> = memo(function PhraseChip({
         ref={(el) => registerChipEl(seg.id, el)}
         type="button"
         style={{ left, width }}
-        className={[isSelected ? "is-selected" : "", seg.isDraft ? "is-draft" : ""]
+        className={[
+          isSelected ? "is-selected" : "",
+          seg.isDraft ? "is-draft" : "",
+          view.staleText !== undefined ? "is-stale" : ""
+        ]
           .filter(Boolean)
           .join(" ")}
         title={title}
@@ -205,7 +219,9 @@ const PhraseChip: React.FC<PhraseChipProps> = memo(function PhraseChip({
         onClick={() => onSelect(seg)}
       >
         <span className="phrase-text">
-          {seg.isDraft
+          {view.staleText !== undefined
+            ? view.staleText || "…"
+            : seg.isDraft
             ? seg.draftText || "…"
             : seg.tokens.map((t, ti) => (
                 <React.Fragment key={t.wordIndex}>
@@ -225,6 +241,37 @@ const PhraseChip: React.FC<PhraseChipProps> = memo(function PhraseChip({
   );
 });
 
+/**
+ * Clip id → the linked script line's current text, for each voiceover clip
+ * whose line was edited after its take was voiced.
+ */
+function useStaleLineTexts(clips: TimelineClip[]): ReadonlyMap<string, string> {
+  // The editor keeps the linked script loaded (`useLinkedScriptSync`), so the
+  // store is enough here.
+  const sequenceId = useTimelineStore((s) => s.sequenceId);
+  const script = useScriptStore((s) =>
+    sequenceId
+      ? Object.values(s.scripts).find((candidate) => candidate.timelineId === sequenceId)
+      : undefined
+  );
+  return useMemo(() => {
+    const stale = new Map<string, string>();
+    if (!script) return stale;
+    const lines = new Map(
+      script.sections.flatMap((section) => section.lines).map((line) => [line.id, line])
+    );
+    for (const clip of clips) {
+      if (clip.scriptId !== script.id || !clip.scriptLineId) continue;
+      const line = lines.get(clip.scriptLineId);
+      const take = line?.takes.find((t) => t.id === line.currentTakeId);
+      if (line && take && take.textSnapshot !== line.text) {
+        stale.set(clip.id, line.text);
+      }
+    }
+    return stale;
+  }, [clips, script]);
+}
+
 export const ScriptLane: React.FC = () => {
   // Only the transcript/caption-bearing subset — untouched clips (B-roll,
   // music) keep their identity across store publishes, so `useShallow`
@@ -235,6 +282,7 @@ export const ScriptLane: React.FC = () => {
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const playbackApi = useTimelinePlaybackStoreApi();
+  const staleTexts = useStaleLineTexts(clips);
 
   // Chip view models plus the two sorted lookup tables the highlight effect
   // binary-searches — all derived from `segments` in one pass so `title` and
@@ -248,8 +296,13 @@ export const ScriptLane: React.FC = () => {
     segments.forEach((seg, i) => {
       const prev = segments[i - 1];
       const gapMs = prev ? seg.startMs - prev.endMs : 0;
-      const title = seg.isDraft ? seg.draftText : seg.tokens.map((t) => t.text).join(" ");
-      chipViews.push({ segment: seg, gapMs, prevEndMs: prev?.endMs, title });
+      const staleText = seg.clipIds
+        .map((id) => staleTexts.get(id))
+        .find((text) => text !== undefined);
+      const title =
+        staleText ??
+        (seg.isDraft ? seg.draftText : seg.tokens.map((t) => t.text).join(" "));
+      chipViews.push({ segment: seg, gapMs, prevEndMs: prev?.endMs, title, staleText });
       segmentRanges.push({ key: seg.id, startMs: seg.startMs, endMs: seg.endMs });
       seg.tokens.forEach((t, ti) => {
         wordRanges.push({ key: `${seg.id}:${ti}`, startMs: t.startMs, endMs: t.endMs });
@@ -257,7 +310,7 @@ export const ScriptLane: React.FC = () => {
     });
 
     return { chipViews, segmentRanges, wordRanges };
-  }, [clips]);
+  }, [clips, staleTexts]);
 
   // DOM refs for the imperative highlight — populated by the chips' callback
   // refs, so applying the highlight is a Map lookup, never a DOM query.

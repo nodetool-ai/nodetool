@@ -1,0 +1,49 @@
+name: VST host
+
+# Builds NodeToolVstHost and runs vst_host_test on every desktop platform when
+# the helper or its build changes. The desktop release builds it the same way.
+on:
+  pull_request:
+    paths:
+      - "native/vst-host/**"
+      - "electron/scripts/build-vst-host.mjs"
+      - ".github/workflows/vst-host.yml"
+  push:
+    branches: [main]
+    paths:
+      - "native/vst-host/**"
+      - "electron/scripts/build-vst-host.mjs"
+      - ".github/workflows/vst-host.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vst-host-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install build libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev libxext-dev libxinerama-dev \
+            libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev
+
+      - name: Build and test
+        shell: bash
+        run: node electron/scripts/build-vst-host.mjs --test

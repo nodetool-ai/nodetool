@@ -508,8 +508,10 @@ export const sameMediaRef = (
  */
 /**
  * Put `sceneClip` in the list: replace the one with its id in place, or
- * append it. Every other scene clip gives up the shots it shares with it and
- * drops below two shots.
+ * append it. Every other scene clip gives up the shots it shares with it,
+ * keeps the longest unbroken part of its run that is left, and drops when no
+ * part holds two shots. Keeping both ends of a run split in the middle would
+ * leave a clip whose shots are no longer next to each other.
  */
 export const upsertSceneClip = (
   sceneClips: readonly SceneClipDirection[],
@@ -520,9 +522,20 @@ export const upsertSceneClip = (
     if (clip.id === sceneClip.id) {
       return [sceneClip];
     }
-    const shotIds = clip.shot_ids.filter((id) => !taken.has(id));
-    if (shotIds.length === clip.shot_ids.length) {
+    if (!clip.shot_ids.some((id) => taken.has(id))) {
       return [clip];
+    }
+    let shotIds: string[] = [];
+    let part: string[] = [];
+    for (const id of [...clip.shot_ids, null]) {
+      if (id !== null && !taken.has(id)) {
+        part.push(id);
+        continue;
+      }
+      if (part.length > shotIds.length) {
+        shotIds = part;
+      }
+      part = [];
     }
     return shotIds.length >= SCENE_CLIP_MIN_SHOTS
       ? [{ ...clip, shot_ids: shotIds }]
@@ -1541,9 +1554,28 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         if (!b.shots.some((s) => s.id === shotId)) {
           return null;
         }
+        // Coverage pointing at a shot that is gone has no picture behind it
+        // and keeps the shot out of the clip render, so the dependents go
+        // back to needing their own render, as `remove_shot` does.
         const next = structural(
           b,
-          b.shots.filter((s) => s.id !== shotId)
+          b.shots
+            .filter((s) => s.id !== shotId)
+            .map(
+              (s): Shot =>
+                s.covered_by?.shot_id === shotId
+                  ? {
+                      ...s,
+                      covered_by: null,
+                      status:
+                        s.status === "rendered" && !s.clip
+                          ? s.keyframe
+                            ? "keyframe_ready"
+                            : "planned"
+                          : s.status
+                    }
+                  : s
+            )
         );
         return (
           next && {

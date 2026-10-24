@@ -2,6 +2,42 @@ import type { ModuleConfig } from "../types.js";
 
 export const videoGenerateConfig: ModuleConfig = {
   configs: {
+    "black-forest-labs/flux-3": {
+      className: "Flux_3",
+      returnType: "video"
+    },
+    "google/gemini-omni-1.1": {
+      className: "Gemini_Omni_1_1",
+      returnType: "video"
+    },
+    "lightricks/ltx-2.5-fast": {
+      className: "LTX_2_5_Fast",
+      returnType: "video"
+    },
+    "pixverse/pixverse-v6-max": {
+      className: "Pixverse_V6_Max",
+      returnType: "video"
+    },
+    "prunaai/p-video-2": {
+      className: "P_Video_2",
+      returnType: "video"
+    },
+    "prunaai/p-video-2-pro": {
+      className: "P_Video_2_Pro",
+      returnType: "video"
+    },
+    "prunaai/p-video-2-pro-avatar": {
+      className: "P_Video_2_Pro_Avatar",
+      returnType: "video"
+    },
+    "prunaai/p-video-2-pro-reference": {
+      className: "P_Video_2_Pro_Reference",
+      returnType: "video"
+    },
+    "prunaai/p-video-edit": {
+      className: "P_Video_Edit",
+      returnType: "video"
+    },
     "lucataco/hotshot-xl": {
       className: "HotshotXL",
       returnType: "video"

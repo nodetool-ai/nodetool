@@ -19,6 +19,7 @@
  */
 
 export { ConnectedEditorActions } from "./ConnectedEditorActions";
+export { ConnectedDocumentBar } from "./ConnectedDocumentBar";
 export { ConnectedGeneratePopover } from "./ConnectedGeneratePopover";
 export { ConnectedStatusBar } from "./ConnectedStatusBar";
 export { ConnectedToolbar } from "./ConnectedToolbar";

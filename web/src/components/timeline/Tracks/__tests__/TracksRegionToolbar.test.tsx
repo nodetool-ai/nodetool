@@ -1,6 +1,5 @@
 /**
  * TracksRegion toolbar and lane affordances:
- *   - Undo / Redo buttons follow the temporal store and drive it
  *   - the empty-sequence hint shows until a clip exists, without taking drops
  *   - the track-height separator resizes from the keyboard
  *
@@ -39,37 +38,6 @@ const resetDoc = () => {
     getTimelineTemporal().clear();
   });
 };
-
-describe("TracksRegion toolbar undo/redo", () => {
-  it("disables both buttons with no history, then undoes and redoes", () => {
-    renderRegion();
-    resetDoc();
-
-    // Re-query after each change: a disabled icon button sits inside a tooltip
-    // span, so enabling it renders a new element.
-    const undo = () => screen.getByTestId("timeline-undo");
-    const redo = () => screen.getByTestId("timeline-redo");
-    expect(undo()).toBeDisabled();
-    expect(redo()).toBeDisabled();
-
-    act(() => {
-      useTimelineStore.getState().addTrack("video", "Video 1");
-    });
-    expect(useTimelineStore.getState().tracks).toHaveLength(1);
-    expect(undo()).toBeEnabled();
-
-    act(() => {
-      fireEvent.click(undo());
-    });
-    expect(useTimelineStore.getState().tracks).toHaveLength(0);
-    expect(redo()).toBeEnabled();
-
-    act(() => {
-      fireEvent.click(redo());
-    });
-    expect(useTimelineStore.getState().tracks).toHaveLength(1);
-  });
-});
 
 describe("TracksRegion toolbar Generate button", () => {
   it("opens the Generate dialog", () => {

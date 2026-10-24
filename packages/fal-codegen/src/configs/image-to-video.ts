@@ -2,6 +2,127 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "kling/v4/image-to-video": {
+      className: "KlingV4ImageToVideo",
+      docstring:
+        "Kling 4 animates a start image into a video guided by a text prompt.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "kling"]
+    },
+
+    "kling/v4/reference-to-video": {
+      className: "KlingV4ReferenceToVideo",
+      docstring:
+        "Kling 4 generates video that keeps the subjects of reference images consistent.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "reference-to-video",
+        "kling"
+      ]
+    },
+
+    "blackforestlabs/flux-3-max/image-to-video": {
+      className: "Flux3MaxImageToVideo",
+      docstring:
+        "FLUX 3 Max animates a start image into a video with the highest-quality FLUX 3 model.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "flux",
+        "flux-3"
+      ]
+    },
+
+    "blackforestlabs/flux-3-max/keyframes-to-video": {
+      className: "Flux3MaxKeyframesToVideo",
+      docstring:
+        "FLUX 3 Max generates a video that passes through a sequence of keyframe images.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "keyframes",
+        "flux",
+        "flux-3"
+      ]
+    },
+
+    "heygen/heygen-video/image-to-video": {
+      className: "HeygenVideoImageToVideo",
+      docstring: "HeyGen Video animates a start image into a video.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "heygen"]
+    },
+
+    "heygen/heygen-video/reference-to-video": {
+      className: "HeygenVideoReferenceToVideo",
+      docstring:
+        "HeyGen Video generates video that keeps the subjects of reference images consistent.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "reference-to-video",
+        "heygen"
+      ]
+    },
+
+    "xai/grok-imagine-video/v1.5/lite/image-to-video": {
+      className: "GrokImagineVideoV15LiteImageToVideo",
+      docstring:
+        "Grok Imagine Video 1.5 Lite animates an image into a video at lower cost.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "grok", "xai"]
+    },
+
+    "fal-ai/vidu/q4/image-to-video": {
+      className: "ViduQ4ImageToVideo",
+      docstring: "Vidu Q4 animates a start image into a video.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "vidu"]
+    },
+
+    "fal-ai/vidu/q4/reference-to-video": {
+      className: "ViduQ4ReferenceToVideo",
+      docstring:
+        "Vidu Q4 generates video that keeps the subjects of reference images consistent.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "reference-to-video",
+        "vidu"
+      ]
+    },
+
+    "fal-ai/kandinsky6-pro/image-to-video": {
+      className: "Kandinsky6ProImageToVideo",
+      docstring: "Kandinsky 6 Pro animates a start image into a video.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "kandinsky"]
+    },
+
+    "fal-ai/kandinsky6-lite/image-to-video": {
+      className: "Kandinsky6LiteImageToVideo",
+      docstring:
+        "Kandinsky 6 Lite animates a start image into a video at lower cost.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "kandinsky"]
+    },
+
+    "bytedance/omnihuman/v2": {
+      className: "OmnihumanV2",
+      docstring:
+        "OmniHuman 2 animates a portrait into a talking or singing video driven by audio.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "avatar",
+        "lipsync",
+        "bytedance",
+        "omnihuman"
+      ]
+    },
+
     "pixelcut/looping-video": {
       className: "PixelcutLoopingVideo",
       docstring:

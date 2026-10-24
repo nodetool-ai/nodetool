@@ -33,6 +33,21 @@ describe("scripts router back-pointers", () => {
   });
   afterEach(() => ModelObserver.clear());
 
+  it("lists only the scripts linked to a timeline when asked", async () => {
+    const linked = await caller().scripts.create({ name: "Linked", projectId: "p1" });
+    await caller().scripts.create({ name: "Other", projectId: "p1" });
+    await caller().scripts.update({
+      id: linked.id,
+      timelineId: "tl-1",
+      baseUpdatedAt: linked.updatedAt
+    });
+
+    const forTimeline = await caller().scripts.list({ timelineId: "tl-1" });
+    expect(forTimeline.map((s) => s.id)).toEqual([linked.id]);
+    expect(await caller().scripts.list({ timelineId: "tl-2" })).toEqual([]);
+    expect(await caller().scripts.list({ projectId: "p1" })).toHaveLength(2);
+  });
+
   it("rejects missing and foreign project ids", async () => {
     const foreign = await Project.create<Project>({
       user_id: "user-2",

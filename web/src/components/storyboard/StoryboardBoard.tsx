@@ -50,6 +50,10 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SlideshowIcon from "@mui/icons-material/Slideshow";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import ViewModuleOutlinedIcon from "@mui/icons-material/ViewModuleOutlined";
+import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -75,6 +79,7 @@ import {
   Dialog,
   Divider,
   EditorButton,
+  EditorMenu,
   EmptyState,
   FlexColumn,
   FlexRow,
@@ -82,11 +87,14 @@ import {
   FormGrid,
   FormSection,
   LoadingSpinner,
+  MenuItemPrimitive,
+  ModeSwitch,
   Panel,
   ScrollArea,
   SearchInput,
   SectionHeader,
   SelectField,
+  SaveStatus,
   Skeleton,
   Text,
   TextArea,
@@ -96,7 +104,10 @@ import {
   UndoRedoButtons,
   BORDER_RADIUS,
   SPACING,
-  Z_INDEX
+  Z_INDEX,
+  type DocumentBarRender,
+  type DocumentBarSlots,
+  type SaveStatusValue
 } from "../ui_primitives";
 import {
   useBoard,
@@ -144,7 +155,11 @@ import {
   sceneClipParts,
   sceneClipsInGroup
 } from "./sceneClips";
-import ScriptLinkControl from "./ScriptLinkControl";
+import ScriptLinkControl, {
+  ScriptLinkNotices,
+  useScriptLinkAction
+} from "./ScriptLinkControl";
+import { useStoryboardSaveStatus } from "../../stores/storyboard/StoryboardSaveStatusStore";
 import ShotCard from "./ShotCard";
 import { shotWorkflowMedia } from "./shotWorkflowMedia";
 import BoardActionsMenu from "./BoardActionsMenu";
@@ -197,7 +212,19 @@ interface StoryboardBoardProps {
   assistantOpen?: boolean;
   /** Shows or hides the assistant. The toolbar offers no toggle without it. */
   onToggleAssistant?: () => void;
+  /**
+   * Draws the workspace document bar. The board then hands it the save
+   * status, Undo/Redo, the Board/Preview mode, the settings and assistant
+   * toggles, Render, Open timeline and ⋮, and drops its own header rows.
+   */
+  documentBar?: DocumentBarRender;
 }
+
+const BAR_SAVE_STATUS: Record<string, SaveStatusValue> = {
+  unsaved: "dirty",
+  saving: "saving",
+  error: "error"
+};
 
 export interface StoryboardReviewRequest {
   shotId: string;
@@ -384,7 +411,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   assembleError,
   reviewRequest,
   assistantOpen = false,
-  onToggleAssistant
+  onToggleAssistant,
+  documentBar
 }) => {
   const { t, i18n } = useTranslation();
   const formatCost = (usd: number): string => {
@@ -436,6 +464,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const canRedo = useStoryboardCanRedo(boardId);
   const onUndo = useCallback(() => undo(boardId), [undo, boardId]);
   const onRedo = useCallback(() => redo(boardId), [redo, boardId]);
+  const barMode = !!documentBar;
+  const saveStatus = useStoryboardSaveStatus(boardId);
+  const scriptLink = useScriptLinkAction(boardId, directing);
+  const [renderCaret, setRenderCaret] = useState<HTMLButtonElement | null>(
+    null
+  );
+  const [renderMenuOpen, setRenderMenuOpen] = useState(false);
 
   const [shotCount, setShotCount] = useState<number>(6);
   const [confirmRedirect, setConfirmRedirect] = useState(false);
@@ -1254,8 +1289,220 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     </>
   );
 
+  // The document bar's half of the header. Render is one split button: the
+  // next step is the face, and the caret offers both batches. The other
+  // steps (Slideshow, One take, the script link, the timeline handoff) move
+  // into ⋮ next to the board actions.
+  const renderStep = hasIncompleteStills ? "stills" : "clips";
+  const closeRenderMenu = () => setRenderMenuOpen(false);
+  const renderSplit = (
+    <FlexRow align="center" gap={SPACING.micro}>
+      <RenderBatchButton
+        label={
+          renderStep === "stills"
+            ? t("screens4_20.storyboardBoard.renderStills")
+            : t("screens4_20.storyboardBoard.renderClips")
+        }
+        estimate={renderStep === "stills" ? stillsCost : clipsCost}
+        disabled={
+          (renderStep === "stills"
+            ? pendingStills.length === 0
+            : pendingClips.length === 0) || !!directing
+        }
+        highlighted
+        onClick={
+          renderStep === "stills"
+            ? openStillRenderDialog
+            : openClipRenderDialog
+        }
+      />
+      <ToolbarIconButton
+        ref={setRenderCaret}
+        icon={<ArrowDropDownIcon />}
+        tooltip={t("screens4_20.storyboardBoard.renderOptions")}
+        ariaLabel={t("screens4_20.storyboardBoard.renderOptions")}
+        aria-haspopup="menu"
+        aria-expanded={renderMenuOpen}
+        disabled={!!directing}
+        onClick={() => setRenderMenuOpen(true)}
+      />
+      <EditorMenu
+        anchorEl={renderCaret}
+        open={renderMenuOpen}
+        onClose={closeRenderMenu}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItemPrimitive
+          label={t("screens4_20.storyboardBoard.renderStills")}
+          disabled={pendingStills.length === 0}
+          onClick={() => {
+            closeRenderMenu();
+            openStillRenderDialog();
+          }}
+        />
+        <MenuItemPrimitive
+          label={t("screens4_20.storyboardBoard.renderClips")}
+          disabled={pendingClips.length === 0}
+          onClick={() => {
+            closeRenderMenu();
+            openClipRenderDialog();
+          }}
+        />
+      </EditorMenu>
+    </FlexRow>
+  );
+  const barMenu = (
+    <BoardActionsMenu
+      onChangeStyle={openStyle}
+      onDownloadZip={handleDownloadZip}
+      downloading={downloading}
+      hasShots={hasShots}
+      workflowMedia={boardWorkflowMedia}
+      leadingItems={(close) => [
+        ...(hasShots
+          ? [
+              <MenuItemPrimitive
+                key="slideshow"
+                label={t("screens4_20.storyboardBoard.slideshow")}
+                icon={<SlideshowIcon fontSize="small" />}
+                onClick={() => {
+                  close();
+                  openSlideshow();
+                }}
+              />
+            ]
+          : []),
+        <MenuItemPrimitive
+          key="one-take"
+          label={t("screens4_20.storyboardBoard.oneTake")}
+          icon={<MovieOutlinedIcon fontSize="small" />}
+          selected={oneTakeOpen}
+          onClick={() => {
+            close();
+            toggleOneTake();
+          }}
+        />,
+        <MenuItemPrimitive
+          key="script-link"
+          label={scriptLink.label}
+          secondary={scriptLink.tooltip}
+          icon={<DescriptionOutlinedIcon fontSize="small" />}
+          disabled={scriptLink.disabled}
+          onClick={() => {
+            close();
+            scriptLink.onClick();
+          }}
+        />,
+        <MenuItemPrimitive
+          key="timeline"
+          label={
+            assembling
+              ? t("screens4_20.storyboardBoard.assembling")
+              : timelineId
+                ? t("screens4_20.storyboardBoard.rebuildLinkedTimeline")
+                : t("screens4_20.storyboardBoard.createTimeline")
+          }
+          icon={<ViewTimelineOutlinedIcon fontSize="small" />}
+          disabled={!onAssemble || assembling || !hasRenderedShot}
+          onClick={() => {
+            close();
+            handleAssembleClick();
+          }}
+        />
+      ]}
+    />
+  );
+  const statusSlot = !readOnly && (
+    <SaveStatus state={BAR_SAVE_STATUS[saveStatus] ?? "saved"} />
+  );
+  // A phone keeps its row of icons under the bar, so the bar only reports
+  // the save state there.
+  const barSlots: DocumentBarSlots = compactToolbar
+    ? { status: statusSlot }
+    : readOnly
+      ? {
+          actions: hasShots && (
+            <EditorButton
+              variant="outlined"
+              startIcon={<SlideshowIcon />}
+              onClick={openSlideshow}
+            >
+              {t("screens4_20.storyboardBoard.slideshow")}
+            </EditorButton>
+          )
+        }
+      : {
+          status: statusSlot,
+          history: undoRedo,
+          mode: (
+            <ModeSwitch<"board" | "preview">
+              ariaLabel={t("i18n-next103.documentBar.mode")}
+              options={[
+                {
+                  value: "board",
+                  label: t("i18n-next51.storyboard.board"),
+                  icon: <ViewModuleOutlinedIcon />
+                },
+                {
+                  value: "preview",
+                  label: t("screens4_20.storyboardBoard.preview"),
+                  icon: <PlayCircleOutlineIcon />
+                }
+              ]}
+              value={previewOpen ? "preview" : "board"}
+              onChange={(next) => setPreviewOpen(next === "preview")}
+            />
+          ),
+          view: (
+            <>
+              <ToolbarIconButton
+                icon={<TuneIcon />}
+                tooltip={t("screens4_20.storyboardBoard.boardSettings")}
+                onClick={toggleSettings}
+                active={settingsVisible}
+                aria-expanded={settingsVisible}
+                aria-controls={settingsPanelId}
+              />
+              {onToggleAssistant && (
+                <ToolbarIconButton
+                  icon={<AutoAwesomeIcon />}
+                  tooltip={t("screens4_20.storyboardBoard.assistant")}
+                  onClick={onToggleAssistant}
+                  active={assistantOpen}
+                  aria-pressed={assistantOpen}
+                />
+              )}
+            </>
+          ),
+          actions: (
+            <>
+              {renderSplit}
+              {timelineId && (
+                <EditorButton
+                  variant="outlined"
+                  startIcon={<MovieOutlinedIcon />}
+                  onClick={handleOpenTimeline}
+                >
+                  {t("screens4_20.storyboardBoard.openTimeline")}
+                </EditorButton>
+              )}
+              {barMenu}
+            </>
+          )
+        };
+  // In the bar's Preview mode the preview takes the grid's place.
+  const previewMode = barMode && previewOpen;
+  const boardChips = (
+    <>
+      <BoardGenreChip boardId={boardId} genre={genre} readOnly={readOnly} />
+      <BoardLineageChip boardId={boardId} />
+    </>
+  );
+
   return (
     <Box sx={{ position: "relative", height: "100%", minHeight: 0 }}>
+      {documentBar?.(barSlots)}
       <ScrollArea
         fullHeight
         thin
@@ -1277,6 +1524,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               it: the title row carries the tools that act on the whole
               board, and the row under it watches and renders the shots.
               Tools that act on the grid sit in the shot toolbar above it. */}
+          {!barMode && (
           <FlexRow align="center" gap={SPACING.lg} wrap>
             <Text size="big">{title || t("screens4_20.storyboardBoard.untitledFilm")}</Text>
             <BoardGenreChip
@@ -1315,9 +1563,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               </>
             )}
           </FlexRow>
-          <Caption color="secondary">{summary}</Caption>
+          )}
+          {!barMode && <Caption color="secondary">{summary}</Caption>}
 
-          {!compactToolbar && (hasShots || !readOnly) && (
+          {!compactToolbar && !barMode && (hasShots || !readOnly) && (
             <FlexRow align="center" gap={SPACING.md} wrap>
               {!readOnly && (
                 <EditorButton
@@ -1431,6 +1680,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             <FlexColumn gap={SPACING.sm}>
               <BoardStaleBanner boardId={boardId} disabled={!!directing} />
               <BoardRetryFailed boardId={boardId} disabled={!!directing} />
+              {barMode && !compactToolbar && (
+                <ScriptLinkNotices notices={scriptLink.notices} />
+              )}
             </FlexColumn>
           )}
 
@@ -1452,6 +1704,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                       />
                     }
                   />
+                  {barMode && (
+                    <FlexRow align="center" gap={SPACING.md} wrap>
+                      {boardChips}
+                    </FlexRow>
+                  )}
                   <FormGrid stackBelow={FORM_STACK_BELOW}>
                     <FormSection label={t("screens4_20.storyboardBoard.screenplay")}>
                       <TextInput
@@ -1712,7 +1969,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
           )}
 
           {/* The shot toolbar: what acts on the grid sits right above it. */}
-          {!directing && (shots.length > 0 || !readOnly) && (
+          {!previewMode && !directing && (shots.length > 0 || !readOnly) && (
             <FlexRow align="center" gap={SPACING.md} wrap>
               {shots.length > 0 && (
                 <>
@@ -1744,6 +2001,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 >
                   {t("screens4_20.storyboardBoard.addShot")}
                 </EditorButton>
+              )}
+              {barMode && (
+                <>
+                  {readOnly && boardChips}
+                  <Caption color="secondary">{summary}</Caption>
+                  {downloadingStatus}
+                </>
               )}
               {shots.length > 0 && (
                 <>
@@ -1781,7 +2045,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             </ErrorBanner>
           )}
 
-          {directing ? (
+          {previewMode ? null : directing ? (
             <FlexColumn gap={SPACING.md}>
               <Caption color="primary">
                 {t("screens4_20.storyboardBoard.directorWriting")}

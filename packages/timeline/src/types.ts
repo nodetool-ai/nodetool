@@ -414,6 +414,58 @@ export interface TimelineTrack {
    * clips and makes no sound: midi clips with `harmony` play over it.
    */
   chords?: TimelineChord[];
+  /**
+   * Automation lanes: curves over document time that drive one parameter
+   * each, the way Ableton and Cubase draw them under a track. See
+   * `automation.ts`. Must also exist on the protocol zod schema or PATCH
+   * strips it.
+   */
+  automation?: AutomationLane[];
+}
+
+/**
+ * The control an automation lane drives.
+ *
+ * - `mixer`: the channel fader (`volumeDb`) or `pan` of an audio or midi track.
+ * - `device`: one numeric parameter of a device on the track. `deviceId` is
+ *   `"instrument"` (`INSTRUMENT_DEVICE_ID`) for the track's instrument or a
+ *   track effect's id; `param` is the device's own parameter
+ *   id (a FableSynth id such as `filter.cutoff`, or a built-in effect field
+ *   such as `frequency`). Other devices (plugins) take the same shape.
+ * - `clip`: an animated property of every clip on a picture track, folded
+ *   onto each clip the way its own keyframes fold (`opacity` multiplies,
+ *   `offsetX` adds, ...).
+ */
+export type AutomationTarget =
+  | { kind: "mixer"; param: "volumeDb" | "pan" }
+  | { kind: "device"; deviceId: string; param: string }
+  /**
+   * `property` names an `AnimatedProperty`. It is typed `string` the way a
+   * custom animation curve's is: a name this build does not know animates
+   * nothing.
+   */
+  | { kind: "clip"; property: string };
+
+/** One breakpoint of an automation lane. */
+export interface AutomationPoint {
+  /** Document time in ms. */
+  timeMs: number;
+  /** The parameter's value in its own unit (dB, Hz, 0..1, ...). */
+  value: number;
+  /**
+   * Easing of the segment arriving at this point, as on a clip keyframe.
+   * Absent means linear.
+   */
+  easing?: string;
+}
+
+export interface AutomationLane {
+  id: string;
+  target: AutomationTarget;
+  /** Sorted by `timeMs`. Before the first and after the last the value holds. */
+  points: AutomationPoint[];
+  /** False keeps the lane but plays the parameter's own value. Default true. */
+  enabled?: boolean;
 }
 
 /** Chord qualities, the keys of `CHORD_QUALITIES` in `harmony/chords.ts`. */
@@ -868,14 +920,40 @@ export interface MidiNote {
  * `subtractive` is the built-in synth. The other three are ports of the
  * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
  * synth, BL-1 the acid bassline, DR-1 the drum machine. The sampler plays
- * recorded audio assets through MIDI key mappings.
+ * recorded audio assets through MIDI key mappings. `vst` is a third-party VST3
+ * instrument that the desktop app hosts in a separate process.
  */
 export type MidiInstrument =
   | SubtractiveMidiInstrument
   | WavetableMidiInstrument
   | BassMidiInstrument
   | DrumMidiInstrument
-  | SamplerMidiInstrument;
+  | SamplerMidiInstrument
+  | VstMidiInstrument;
+
+/** Which VST3 plug-in a `vst` instrument loads, as the host's scan reported it. */
+export interface VstPluginRef {
+  /** The host's identifier for the plug-in type inside its bundle. */
+  uid: string;
+  name: string;
+  vendor: string;
+  /** The `.vst3` bundle on the machine that picked it. */
+  path: string;
+}
+
+/**
+ * A VST3 instrument. Only the desktop app can play it: the plug-in is native
+ * code on the user's machine, rendered by the FableSynth VST host. Renderers
+ * without a host (the browser build, the server export) play it as silence.
+ */
+export interface VstMidiInstrument {
+  type: "vst";
+  /** Null until a plug-in is chosen. */
+  plugin: VstPluginRef | null;
+  /** The plug-in's own saved state, base64. Null plays its default sound. */
+  state: string | null;
+  gainDb: number;
+}
 
 /** Recorded audio mapped to MIDI key ranges. Overlapping zones layer. */
 export interface SamplerZone {

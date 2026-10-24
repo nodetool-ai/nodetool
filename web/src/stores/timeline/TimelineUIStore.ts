@@ -186,6 +186,11 @@ export interface TimelineUIState {
    * shown at a time to keep vertical layout tractable.
    */
   expandedFxTrackId: string | null;
+  /**
+   * Tracks whose automation lanes are shown under the track row. Several can
+   * be open at once, as in a DAW arrangement.
+   */
+  shownAutomationTrackIds: string[];
 
   /** Id of the track currently being drag-reordered, or null. */
   draggingTrackId: string | null;
@@ -318,6 +323,10 @@ export interface TimelineUIState {
   setExpandedFxTrackId: (trackId: string | null) => void;
   /** Toggle the inline DSP chain editor for the given track. */
   toggleExpandedFx: (trackId: string) => void;
+  /** Show or hide a track's automation lanes. */
+  toggleTrackAutomation: (trackId: string) => void;
+  /** Show a track's automation lanes (no-op when shown). */
+  showTrackAutomation: (trackId: string) => void;
 
   // ── Piano roll ────────────────────────────────────────────────────────────
 
@@ -430,6 +439,7 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     previewFullscreenRequest: 0,
     matteViewEnabled: false,
     expandedFxTrackId: null,
+    shownAutomationTrackIds: [],
     expandedInstrumentTrackId: null,
     panelTab: "inspector",
     panelTabRequest: 0,
@@ -607,6 +617,20 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
       set((state) => ({
         expandedFxTrackId: state.expandedFxTrackId === trackId ? null : trackId
       })),
+
+    toggleTrackAutomation: (trackId) =>
+      set((state) => ({
+        shownAutomationTrackIds: state.shownAutomationTrackIds.includes(trackId)
+          ? state.shownAutomationTrackIds.filter((id) => id !== trackId)
+          : [...state.shownAutomationTrackIds, trackId]
+      })),
+
+    showTrackAutomation: (trackId) =>
+      set((state) =>
+        state.shownAutomationTrackIds.includes(trackId)
+          ? state
+          : { shownAutomationTrackIds: [...state.shownAutomationTrackIds, trackId] }
+      ),
 
     openPianoRoll: (clipId) => set({ pianoRollClipId: clipId }),
 

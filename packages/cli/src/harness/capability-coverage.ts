@@ -236,7 +236,9 @@ export function auditCapabilityCoverage(
  *
  * The scan is structural — brace depth inside the array literal — so it does
  * not care how the entries are wrapped, only that each carries a
- * `name: "..."` field.
+ * `name: "..."` field. String literals and comments are stepped over whole: a
+ * hand-written gap note that mentions `{` or `]` otherwise shifted the depth,
+ * and every entry after it was merged into one block or dropped.
  */
 export function extractCoverageBlocks(
   source: string
@@ -255,6 +257,20 @@ export function extractCoverageBlocks(
   let blockStart = -1;
   for (let i = start + 1; i < source.length; i += 1) {
     const ch = source[i];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      i = skipStringLiteral(source, i);
+      continue;
+    }
+    if (ch === "/" && source[i + 1] === "/") {
+      const end = source.indexOf("\n", i);
+      i = end === -1 ? source.length : end;
+      continue;
+    }
+    if (ch === "/" && source[i + 1] === "*") {
+      const end = source.indexOf("*/", i + 2);
+      i = end === -1 ? source.length : end + 1;
+      continue;
+    }
     if (ch === "]" && depth === 0) break;
     if (ch === "{") {
       if (depth === 0) blockStart = i;
@@ -270,6 +286,19 @@ export function extractCoverageBlocks(
     }
   }
   return blocks;
+}
+
+/** Index of the quote that closes the literal opening at `open`. */
+function skipStringLiteral(source: string, open: number): number {
+  const quote = source[open];
+  for (let i = open + 1; i < source.length; i += 1) {
+    if (source[i] === "\\") {
+      i += 1;
+    } else if (source[i] === quote) {
+      return i;
+    }
+  }
+  return source.length;
 }
 
 /** An entry's text with the generated fingerprint removed. */

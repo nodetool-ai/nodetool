@@ -11,13 +11,15 @@
 import { buildScriptTimeline } from "@nodetool-ai/timeline";
 import type { ScriptDraft } from "../../stores/script/ScriptStore";
 import { renderTimelineAudio } from "../timeline/render/renderAudio";
+import {
+  AUDIO_FILE_MIME,
+  encodeAudioBuffer,
+  type AudioFileFormat
+} from "../timeline/render/encodeAudio";
 
-export type ScriptAudioFormat = "wav" | "mp3";
+export type ScriptAudioFormat = AudioFileFormat;
 
-export const SCRIPT_AUDIO_MIME: Record<ScriptAudioFormat, string> = {
-  wav: "audio/wav",
-  mp3: "audio/mpeg"
-};
+export const SCRIPT_AUDIO_MIME = AUDIO_FILE_MIME;
 
 const MP3_BITRATE = 192_000;
 
@@ -45,42 +47,9 @@ export async function renderScriptAudio(
 }
 
 /** Encode a rendered buffer as a 16-bit PCM WAV or a 192 kbps MP3. */
-export async function encodeScriptAudio(
+export function encodeScriptAudio(
   buffer: AudioBuffer,
   format: ScriptAudioFormat
 ): Promise<Uint8Array> {
-  const {
-    Output,
-    BufferTarget,
-    WavOutputFormat,
-    Mp3OutputFormat,
-    AudioBufferSource,
-    canEncodeAudio
-  } = await import("mediabunny");
-
-  if (format === "mp3" && !(await canEncodeAudio("mp3"))) {
-    // No browser ships an MP3 encoder in WebCodecs; the LAME build is loaded
-    // only when someone exports MP3.
-    const { registerMp3Encoder } = await import("@mediabunny/mp3-encoder");
-    registerMp3Encoder();
-  }
-
-  const output = new Output({
-    format: format === "wav" ? new WavOutputFormat() : new Mp3OutputFormat(),
-    target: new BufferTarget()
-  });
-  const source = new AudioBufferSource(
-    format === "wav"
-      ? { codec: "pcm-s16" }
-      : { codec: "mp3", bitrate: MP3_BITRATE }
-  );
-  output.addAudioTrack(source);
-  await output.start();
-  await source.add(buffer);
-  source.close();
-  await output.finalize();
-
-  const bytes = output.target.buffer;
-  if (!bytes) throw new Error("The audio encoder produced no output");
-  return new Uint8Array(bytes);
+  return encodeAudioBuffer(buffer, format, MP3_BITRATE);
 }

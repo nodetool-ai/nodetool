@@ -1,0 +1,45 @@
+{
+  "id": "workflow-loop",
+  "name": "Workflow loop with a feedback condition",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "nodetool.constant.String",
+      "name": "start",
+      "properties": { "value": "" }
+    },
+    {
+      "id": "loop",
+      "type": "nodetool.control.Loop",
+      "name": "loop",
+      "properties": { "max_iterations": 10 }
+    },
+    {
+      "id": "grow",
+      "type": "nodetool.code.Code",
+      "name": "grow",
+      "properties": {
+        "code": "const next = String(inputs.value) + \"ab\"[Number(inputs.index) % 2];\nreturn { next, more: next.length < 4 };"
+      },
+      "dynamic_properties": { "value": "", "index": 0 },
+      "dynamic_outputs": {
+        "next": { "type": "str", "type_args": [], "optional": false },
+        "more": { "type": "bool", "type_args": [], "optional": false }
+      }
+    },
+    {
+      "id": "out1",
+      "type": "nodetool.output.Output",
+      "name": "out1",
+      "properties": { "name": "result" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "start", "sourceHandle": "output", "target": "loop", "targetHandle": "initial" },
+    { "id": "e2", "source": "loop", "sourceHandle": "value", "target": "grow", "targetHandle": "value" },
+    { "id": "e3", "source": "loop", "sourceHandle": "index", "target": "grow", "targetHandle": "index" },
+    { "id": "e4", "source": "grow", "sourceHandle": "next", "target": "loop", "targetHandle": "next" },
+    { "id": "e5", "source": "grow", "sourceHandle": "more", "target": "loop", "targetHandle": "condition" },
+    { "id": "e6", "source": "loop", "sourceHandle": "done", "target": "out1", "targetHandle": "value" }
+  ]
+}

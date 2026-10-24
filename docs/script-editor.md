@@ -119,7 +119,11 @@ Once at least one line is voiced, the toolbar offers a timeline action. Its labe
 
 An unlinked script becomes a voiceover track with captions from the current takes. A linked script is cut with its storyboard: the board's rendered shots carry the picture and each line's take sits inside the shot that covers it. Shots without a render are left out and reported. The same actions appear in the command menu as **Send to Timeline**, **Update Timeline**, and **Assemble Video**.
 
-Open the result in the [Video Editor](video-editor.md). The script keeps a pointer to the timeline.
+Open the result in the [Video Editor](video-editor.md). The script keeps a pointer to the timeline. A timeline links one script.
+
+While the linked timeline is open, it follows the script live. A newly voiced line gets a clip after the clip of the line before it. A new take replaces the audio of its clip. A deleted line, or a line without a take, loses its clip. The timeline keeps the position of every clip: if you move a clip, it stays there when you edit or voice its line again. Delete a line's clip in the timeline and the line is deleted from the script. Undo in the timeline brings back the clip and the line with its takes. **Update timeline** applies the same rules to a timeline that is not open.
+
+You can also link a script from the timeline. In the timeline's **Script** panel, choose the link button and pick a script or **New script**. The panel then lists the script's lines. Edit a line's text there, or voice a line that has no audio or whose text changed after its last take. Press Backspace in an empty line to delete it. Takes and waveforms stay in the script editor.
 
 ---
 
