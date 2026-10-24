@@ -12506,6 +12506,10 @@
       "volume": "Volume"
     },
     "topBar": {
+      "export": "Export",
+      "workspace": "Workspace",
+      "videoEditing": "Video editing",
+      "audioDaw": "Audio (DAW)",
       "adaptFormat": "Adapt format",
       "code": "Code",
       "daw": "DAW",

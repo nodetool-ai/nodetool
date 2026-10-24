@@ -45,37 +45,6 @@ import MobileRailLauncher from "../panels/MobileRailLauncher";
 import ProjectSelector from "../projects/ProjectSelector";
 import { ActivityIndicator } from "../timeline/ActivityIndicator";
 import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
-import { useWorkspaceHeaderActions } from "./WorkspaceHeaderActionsContext";
-
-/** One half of a two-way switch in the tab bar, level with the 28px icon buttons. */
-const segmentStyles = (theme: Theme) => ({
-  display: "flex",
-  alignItems: "center",
-  height: `${CONTROL.height.sm}px`,
-  margin: 0,
-  padding: `0 ${getSpacingPx(SPACING.lg)}`,
-  border: `1px solid ${theme.vars.palette.divider}`,
-  borderRadius: 0,
-  background: "transparent",
-  color: theme.vars.palette.text.secondary,
-  cursor: "pointer",
-  fontFamily: "inherit",
-  fontSize: "var(--fontSizeSmaller)",
-  fontWeight: 500,
-  lineHeight: 1,
-  whiteSpace: "nowrap" as const,
-  "&:hover": {
-    color: theme.vars.palette.text.primary,
-    backgroundColor: theme.vars.palette.action.hover
-  },
-  "&:first-of-type": {
-    borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`,
-    borderRight: "none"
-  },
-  "&:last-of-type": {
-    borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0`
-  }
-});
 
 const styles = (theme: Theme) =>
   css({
@@ -229,12 +198,6 @@ const styles = (theme: Theme) =>
       minWidth: getSpacingPx(SPACING.xl)
     },
 
-    "& .document-actions": {
-      display: "flex",
-      alignItems: "stretch",
-      flexShrink: 0
-    },
-
     "& .right-actions": {
       WebkitAppRegion: "no-drag",
       display: "flex",
@@ -254,20 +217,6 @@ const styles = (theme: Theme) =>
           backgroundColor: theme.vars.palette.action.hover
         },
         "&.Mui-focusVisible": focusRing(theme)
-      },
-      // A document's own segmented switch (the timeline's Video / DAW)
-      // matches View / Edit, with the quieter selected fill of a sub-mode.
-      "& .MuiToggleButtonGroup-root": {
-        flexShrink: 0,
-        "& .MuiToggleButton-root": {
-          ...segmentStyles(theme),
-          minHeight: 0,
-          "&.Mui-selected, &.Mui-selected:hover": {
-            color: theme.vars.palette.text.primary,
-            backgroundColor: theme.vars.palette.action.selected
-          },
-          "&.Mui-focusVisible": focusRing(theme)
-        }
       },
       "& svg, & .MuiSvgIcon-root": {
         width: "16px",
@@ -317,11 +266,6 @@ const styles = (theme: Theme) =>
         padding: `0 ${getSpacingPx(SPACING.lg)}`,
         "& .new-tab-caret": { display: "none" }
       },
-      "& .actions-row .right-actions": {
-        flex: 1,
-        justifyContent: "flex-end",
-        overflowX: "auto"
-      }
     }
   });
 
@@ -340,7 +284,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   } = useWorkspaceDocumentClose();
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
   const renameDocument = useRenameDocument();
-  const headerActions = useWorkspaceHeaderActions()?.actions;
 
   const workflowManagerStore = useWorkflowManagerStore();
 
@@ -506,8 +449,8 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   if (isMobile) {
     // Phones get two labelled rows instead of one strip of glyphs: the top
     // row says where you are (menu, project, app status), the second says
-    // what you are looking at (current document, New). Document-specific
-    // actions, when a document supplies them, take a third row.
+    // what you are looking at (current document, New). Document controls
+    // live in each document's own bar.
     return (
       <div css={tabBarStyles} className="workspace-tabbar is-mobile">
         <div className="mobile-row app-row">
@@ -535,11 +478,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           />
           {mobileNewTabButton}
         </div>
-        {headerActions && (
-          <div className="mobile-row actions-row">
-            <div className="right-actions">{headerActions}</div>
-          </div>
-        )}
         {openMenu}
       </div>
     );
@@ -548,7 +486,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   return (
     <div
       css={tabBarStyles}
-      className={`workspace-tabbar${headerActions ? " has-document-actions" : ""}`}
+      className="workspace-tabbar"
     >
       <ProjectSelector />
       <div className="tabs">
@@ -590,13 +528,10 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
       {openMenu}
 
-      <div className="document-actions">
-        <div className="right-actions">
-          {headerActions}
-          <ActivityIndicator />
-          <NotificationButton />
-          <SettingsHeaderButton />
-        </div>
+      <div className="right-actions">
+        <ActivityIndicator />
+        <NotificationButton />
+        <SettingsHeaderButton />
       </div>
     </div>
   );

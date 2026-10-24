@@ -7,12 +7,8 @@ import React, { Suspense, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { PreviewArea } from "../../preview/PreviewArea";
-import { TopBar } from "../../TopBar";
+import { TimelineDocumentBar } from "../../TimelineDocumentBar";
 import WorkspaceTabBar from "../../../workspace/WorkspaceTabBar";
-import {
-  WorkspaceHeaderActionsProvider,
-  useWorkspaceHeaderActions
-} from "../../../workspace/WorkspaceHeaderActionsContext";
 import { WorkflowManagerProvider } from "../../../../contexts/WorkflowManagerContext";
 import { useWorkspaceTabsStore } from "../../../../stores/WorkspaceTabsStore";
 import { TimelineInspector } from "../../Inspector/TimelineInspector";
@@ -205,30 +201,10 @@ function MixerLabView(): React.JSX.Element {
 
 const noop = (): void => {};
 
-/** Registers the timeline's TopBar in the tab bar the way TimelineEditor does. */
-function HeaderLabActions({ dawMode }: { dawMode: boolean }): null {
-  const register = useWorkspaceHeaderActions()?.registerActions;
-  useEffect(() => {
-    register?.(
-      "lab-header",
-      <TopBar
-        onExportVideo={noop}
-        onExportBundle={noop}
-        onSave={noop}
-        onOpenSettings={noop}
-        sequenceId="lab-header"
-        onToggleSidePanel={noop}
-        onSetDawMode={noop}
-        dawMode={dawMode}
-      />
-    );
-  }, [register, dawMode]);
-  return null;
-}
-
 /**
- * The workspace tab bar with a timeline tab open in Edit mode and its TopBar
- * on the right, for checking the header's alignment. `&daw=1` selects DAW.
+ * The workspace app bar with a timeline tab open in Edit mode, and the
+ * timeline's document bar under it, for checking both rows' alignment.
+ * `&daw=1` selects DAW.
  */
 function HeaderLabView(): React.JSX.Element {
   const queryClient = useQueryClient();
@@ -239,19 +215,30 @@ function HeaderLabView(): React.JSX.Element {
       .openTab({ type: "timeline", ref: "lab-header", mode: "edit", title: "Lab sequence" });
     return null;
   });
+  const tab = useWorkspaceTabsStore((state) =>
+    state.tabs.find((entry) => entry.ref === "lab-header")
+  );
   return (
     <WorkflowManagerProvider queryClient={queryClient}>
-      <WorkspaceHeaderActionsProvider>
-        <HeaderLabActions dawMode={dawMode} />
-        <WorkspaceTabBar />
-      </WorkspaceHeaderActionsProvider>
+      <WorkspaceTabBar />
+      <TimelineDocumentBar
+        tab={tab}
+        title="Lab sequence"
+        sequenceId="lab-header"
+        onExportVideo={noop}
+        onExportBundle={noop}
+        onOpenSettings={noop}
+        onToggleSidePanel={noop}
+        dawMode={dawMode}
+        onSetDawMode={noop}
+      />
     </WorkflowManagerProvider>
   );
 }
 
 export const LAB_VIEWS: Record<string, LabView> = {
   header: {
-    title: "Workspace tab bar with the timeline's actions",
+    title: "Workspace app bar and the timeline's document bar",
     render: () => <HeaderLabView />
   },
   mixer: {

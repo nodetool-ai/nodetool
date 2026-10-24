@@ -12506,6 +12506,10 @@
       "volume": "Lautstärke"
     },
     "topBar": {
+      "export": "Exportieren",
+      "workspace": "Arbeitsbereich",
+      "videoEditing": "Videoschnitt",
+      "audioDaw": "Audio (DAW)",
       "adaptFormat": "Format anpassen",
       "code": "Code",
       "daw": "DAW",

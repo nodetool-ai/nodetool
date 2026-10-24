@@ -8,17 +8,22 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
 
-import { TopBar } from "../TopBar";
+import { TimelineDocumentBar } from "../TimelineDocumentBar";
 import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
+import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
 
-const renderTopBar = (props: React.ComponentProps<typeof TopBar>) =>
+type BarProps = Partial<React.ComponentProps<typeof TimelineDocumentBar>>;
+
+const renderTopBar = (props: BarProps) =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <TopBar {...props} />
+      <TimelineProvider>
+        <TimelineDocumentBar title="Cut" {...props} />
+      </TimelineProvider>
     </ThemeProvider>
   );
 
-describe("TopBar project archive action", () => {
+describe("TimelineDocumentBar overflow menu", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -78,41 +83,71 @@ describe("TopBar project archive action", () => {
     expect(onAdaptFormat).toHaveBeenCalledTimes(1);
   });
 
-  it("omits the action when no handler is given", () => {
-    renderTopBar({ onSave: jest.fn() });
+  it("omits the menu when no handler is given", () => {
+    renderTopBar({});
     expect(
       screen.queryByRole("button", { name: "More timeline actions" })
     ).not.toBeInTheDocument();
   });
-});
 
-describe("TopBar Code button", () => {
-  it("omits the Code button for a timeline with no code", () => {
-    renderTopBar({ onOpenCode: jest.fn(), hasCode: false });
-    expect(
-      screen.queryByRole("button", { name: "Open the timeline's code" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("opens the code panel when clicked", async () => {
+  it("offers the Code panel in the menu only when the timeline has code", async () => {
     const onOpenCode = jest.fn();
-    renderTopBar({ onOpenCode, hasCode: true });
+    const { unmount } = renderTopBar({ onOpenCode, hasCode: false });
+    expect(
+      screen.queryByRole("button", { name: "More timeline actions" })
+    ).not.toBeInTheDocument();
+    unmount();
 
+    renderTopBar({ onOpenCode, hasCode: true });
     await userEvent.click(
-      screen.getByRole("button", { name: "Open the timeline's code" })
+      screen.getByRole("button", { name: "More timeline actions" })
     );
+    await userEvent.click(await screen.findByText("Code"));
     expect(onOpenCode).toHaveBeenCalledTimes(1);
   });
+
+  it("offers video or DAW in the menu when there is no Workspace menu", async () => {
+    const onSetDawMode = jest.fn();
+    renderTopBar({ onSetDawMode, dawMode: false });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "More timeline actions" })
+    );
+    expect(
+      screen.getByRole("menuitemradio", { name: "Video editing" })
+    ).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(
+      screen.getByRole("menuitemradio", { name: "Audio (DAW)" })
+    );
+    expect(onSetDawMode).toHaveBeenCalledWith(true);
+  });
 });
 
-describe("TopBar save state", () => {
+describe("TimelineDocumentBar actions", () => {
+  it("makes Export the one primary button and has no Save button", async () => {
+    const onExportVideo = jest.fn();
+    renderTopBar({ onExportVideo, sequenceId: "seq-1" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Export" }));
+    expect(onExportVideo).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+  });
+
+  it("puts Undo and Redo in the bar", () => {
+    renderTopBar({});
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled();
+  });
+});
+
+describe("TimelineDocumentBar save status", () => {
   afterEach(() => {
     useDocumentDraftStore.getState().setDirty("timeline:seq-1", false);
     useDocumentDraftStore.getState().setSaving("timeline:seq-1", false);
   });
 
   it("reads Saved, Unsaved changes and Saving… from the autosave state", () => {
-    renderTopBar({ onSave: jest.fn(), sequenceId: "seq-1" });
+    renderTopBar({ sequenceId: "seq-1" });
     expect(screen.getByRole("status")).toHaveTextContent("Saved");
 
     act(() => useDocumentDraftStore.getState().setDirty("timeline:seq-1", true));
@@ -123,7 +158,7 @@ describe("TopBar save state", () => {
   });
 });
 
-describe("TopBar panel toggles", () => {
+describe("TimelineDocumentBar panel toggles", () => {
   it("offers no panel toggles without handlers", () => {
     renderTopBar({});
     expect(

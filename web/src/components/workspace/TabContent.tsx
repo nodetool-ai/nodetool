@@ -49,7 +49,6 @@ const NewProjectSurface = React.lazy(
 const GENERIC_DOCUMENT_BAR_TYPES: ReadonlySet<WorkspaceTabType> = new Set([
   "image",
   "svg",
-  "timeline",
   "skill",
   "model3d",
   "text",
@@ -87,7 +86,14 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
     case "audio":
       return <AudioSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "timeline":
-      return <TimelineSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <TimelineSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+          tab={tab}
+        />
+      );
     case "storyboard":
       return (
         <StoryboardSurface refId={tab.ref} mode={tab.mode} active={active} />
