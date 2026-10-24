@@ -12,7 +12,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/AddOutlined";
-import CloseIcon from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import type { TrackEffect } from "@nodetool-ai/timeline";
 
