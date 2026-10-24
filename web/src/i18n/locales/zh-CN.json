@@ -6169,8 +6169,8 @@
           "app": "应用",
           "chat": "聊天"
         },
-        "referenceImageCount_one": "{{count}} 张参考图片",
-        "referenceImageCount_other": "{{count}} 张参考图片",
+        "attachedFileCount_one": "{{count}} 个附加文件",
+        "attachedFileCount_other": "{{count}} 个附加文件",
         "singleEntity": "实体 {{name}}",
         "entityCount_one": "{{count}} 个实体",
         "entityCount_other": "{{count}} 个实体",
@@ -6252,9 +6252,9 @@
         "chatPromptLabel": "聊天提示",
         "promptPlaceholder": "描述你想创建的内容。输入 / 选择技能，输入 @ 选择文件或实体。",
         "removeReference": "移除 {{name}}",
-        "referenceImages": "参考图片",
-        "referenceImageCountShort_one": "参考图片 · {{count}}",
-        "referenceImageCountShort_other": "参考图片 · {{count}}",
+        "attachFiles": "附加文件",
+        "attachedFileCountShort_one": "文件 · {{count}}",
+        "attachedFileCountShort_other": "文件 · {{count}}",
         "entitiesNone": "实体 · 无",
         "entitiesSelected": "实体 · {{entities}}",
         "selectedModel": "模型 · {{name}}",
@@ -6299,8 +6299,6 @@
           "tsv": "TSV (.tsv)",
           "txt": "纯文本 (.txt)"
         },
-        "unsupportedReferenceFiles_one": "参考图片只能使用图片文件。未添加 {{files}}。",
-        "unsupportedReferenceFiles_other": "参考图片只能使用图片文件。未添加 {{files}}。",
         "createCards": {
           "image": {
             "title": "创建图像",
@@ -13950,7 +13948,7 @@
       "recent": "最近使用",
       "saved": "已保存",
       "noRecentMatch": "没有匹配的最近使用资源。",
-      "noRecentAssets": "尚未使用资源。生成或拖入一个资源。",
+      "noRecentAssets": "还没有文件。附加或拖入一个文件。",
       "noAssetsMatch": "没有匹配的资源。",
       "noSavedAssets": "尚未保存资源。",
       "entities": "实体",
@@ -18087,6 +18085,8 @@
       "noConversations": "暂无对话",
       "tryDifferentSearch": "请尝试其他搜索词。",
       "startConversation": "开始对话，用自然语言探索 AI 工作流。",
+      "rename": "重命名对话",
+      "renameLabel": "对话名称",
       "deleteTitle": "删除对话",
       "deleteContent": "删除“{{name}}”？此操作无法撤销。",
       "delete": "删除"

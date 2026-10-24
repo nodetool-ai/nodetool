@@ -31,10 +31,11 @@
  *   leaves the media readable to anyone holding a URL.
  */
 
-import { and, count, eq, inArray, notInArray, type SQL } from "drizzle-orm";
+import { and, count, eq, inArray, notInArray, sql, type SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 
-import { getPortableDb } from "./db.js";
+import { getDatabase, getPortableDb } from "./db.js";
+import { resourceChangeOutbox } from "./schema/resource-change-outbox.js";
 import {
   PERSONAL_DATA_REGISTRY,
   WITHHELD_VALUE,
@@ -365,6 +366,19 @@ function indirectStep(
  * are separate concerns.
  */
 export const ERASURE_STEPS: readonly ErasureStep[] = [
+  {
+    table: "resource_change_outbox",
+    async run(ctx) {
+      const owner = getDatabase().dialect === "postgres"
+        ? sql`${resourceChangeOutbox.payload}::json -> 'payload' ->> 'owner_user_id'`
+        : sql`json_extract(${resourceChangeOutbox.payload}, '$.payload.owner_user_id')`;
+      return deleted(
+        "resource_change_outbox",
+        "delete",
+        await deleteRows(resourceChangeOutbox, sql`${owner} = ${ctx.userId}`)
+      );
+    }
+  },
   // Run exhaust, reached through the jobs that are still present.
   indirectStep("run_events", runEvents, runEvents.run_id, (c) => c.runIds),
   indirectStep(

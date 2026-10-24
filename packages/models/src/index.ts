@@ -15,6 +15,7 @@ export {
   getDb,
   getDatabase,
   getDbType,
+  getPostgresClient,
   getRawDb,
   pingDb,
   closeDb
@@ -601,3 +602,5 @@ export type { RunReaderSpan } from "./run-readers.js";
 export { threadHasTraceContentTools } from "./trace-provenance.js";
 
 export { listAppInstanceMetadata } from "./app-instance-list.js";
+
+export { openResourceChangeChannel, resolveResourceChangeListenerUrl, NOTIFY_PAYLOAD_LIMIT } from "./resource-change-channel.js";
