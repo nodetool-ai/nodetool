@@ -2107,6 +2107,7 @@ export async function handleNodeHttpRequest(
   const mayCompress =
     response.status !== 206 &&
     !response.headers.has("content-range") &&
+    !contentType.startsWith("text/event-stream") &&
     (contentType.includes("json") || contentType.startsWith("text/")) &&
     acceptEncoding.includes("gzip");
 
@@ -2124,16 +2125,27 @@ export async function handleNodeHttpRequest(
   }
 
   const reader = response.body.getReader();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
+  // A client disconnect cancels the body so a streaming producer (SSE) stops.
+  const onClose = () => {
+    void reader.cancel().catch(() => {});
+  };
+  res.once("close", onClose);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      if (!res.write(value)) {
+        await once(res, "drain");
+      }
     }
-    if (!res.write(value)) {
-      await once(res, "drain");
-    }
+    res.end();
+  } catch (err) {
+    if (!res.destroyed) throw err;
+  } finally {
+    res.off("close", onClose);
   }
-  res.end();
 }
 
 export function createHttpApiServer(options: HttpApiOptions = {}): Server {
