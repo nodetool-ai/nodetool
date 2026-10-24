@@ -979,6 +979,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                         onToggle={createToggleHandler(key)}
                         textBefore={parsedThought.textBeforeThought}
                         textAfter={parsedThought.textAfterThought}
+                        threadId={threadId ?? message.thread_id}
                       />
                     );
                   }
@@ -1027,6 +1028,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
               onToggle={createToggleHandler(key)}
               textBefore={parsedThought.textBeforeThought}
               textAfter={parsedThought.textAfterThought}
+              threadId={threadId ?? message.thread_id}
             />
           );
         }

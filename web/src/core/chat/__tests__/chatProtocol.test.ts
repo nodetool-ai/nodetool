@@ -1482,5 +1482,22 @@ describe("output_update store writes", () => {
       expect(messages[1].id).toBe("server-1");
       expect(messages[1].content).toBe("<think>Weigh it.</think>Because it is.");
     });
+
+    it("closes the reasoning when a tool call follows it", async () => {
+      const state = await run([
+        chunk("Look it up.", true),
+        {
+          type: "message",
+          role: "assistant",
+          thread_id: "thread-1",
+          content: "",
+          tool_calls: [{ id: "call-1", name: "search", args: {} }]
+        }
+      ]);
+      const messages = state.messageCache["thread-1"];
+      expect(messages).toHaveLength(3);
+      expect(messages[1].content).toBe("<think>Look it up.</think>");
+      expect(messages[2].tool_calls).toHaveLength(1);
+    });
   });
 });

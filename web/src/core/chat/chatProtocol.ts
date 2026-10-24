@@ -74,6 +74,8 @@ import {
 import { applyMediaPrediction } from "./mediaPrediction";
 import { isNumber, isString } from "../../utils/typePredicates";
 import {
+  THOUGHT_CLOSE,
+  hasOpenThought,
   streamedChunkText,
   stripThoughtContent,
   thoughtBlocks
@@ -479,6 +481,28 @@ const trailingText = (content: Message["content"]): string => {
     return lastBlock && lastBlock.type === "text" ? lastBlock.text : "";
   }
   return "";
+};
+
+/**
+ * Close a reasoning block the last message left open. Chunks close it only
+ * when answer text or `done` follows in the same message, so reasoning that
+ * leads straight into a tool call stayed "Thinking" until the turn ended.
+ */
+const closeTrailingThought = (messages: Message[]): Message[] => {
+  const lastMessage = messages[messages.length - 1];
+  if (
+    lastMessage?.role !== "assistant" ||
+    !hasOpenThought(trailingText(lastMessage.content))
+  ) {
+    return messages;
+  }
+  return [
+    ...messages.slice(0, -1),
+    {
+      ...lastMessage,
+      content: appendTextContent(lastMessage.content, THOUGHT_CLOSE)
+    }
+  ];
 };
 
 const applyChunk = (
@@ -1044,9 +1068,10 @@ const replaceStreamPlaceholderOrAppend = (
 const applyToolMessage = (
   state: GlobalChatState,
   threadId: string,
-  messages: Message[],
+  cachedMessages: Message[],
   msg: Message
 ) => {
+  const messages = closeTrailingThought(cachedMessages);
   // An assistant message carrying tool_calls finalizes the text the server just
   // streamed, so replace the streaming placeholder instead of appending a second
   // copy. Plain tool-result messages (role === "tool") never have a placeholder
