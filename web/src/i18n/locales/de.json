@@ -9207,6 +9207,10 @@
         "soundNotifications": {
           "label": "Tonbenachrichtigungen",
           "description": "Spiele einen Systemton ab, wenn Workflows abgeschlossen sind, Exporte fertig sind oder andere wichtige Ereignisse eintreten."
+        },
+        "systemNotifications": {
+          "label": "Desktop-Benachrichtigungen",
+          "description": "Zeige eine Systembenachrichtigung, wenn ein Lauf oder eine Chat-Antwort fertig ist, während NodeTool im Hintergrund ist."
         }
       },
       "updates": {
