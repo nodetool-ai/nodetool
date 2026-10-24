@@ -25,6 +25,21 @@ export function threadCpuScriptCallClock(): ScriptCallClock | undefined {
 
 export const defaultScriptCallClock: ScriptCallClock = threadCpuScriptCallClock() ?? wallScriptCallClock;
 
+/**
+ * Multiplies the per-call and per-batch script time limits. Tests on shared CI runners set
+ * `NODETOOL_GAME_SCRIPT_BUDGET_SCALE`, because a contended runner can stretch a call that takes a few
+ * milliseconds past its 20 ms limit. Unset or empty means 1. Players and replays never set it.
+ */
+export function scriptBudgetScale(): number {
+  const raw = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.["NODETOOL_GAME_SCRIPT_BUDGET_SCALE"];
+  if (raw === undefined || raw === "") { return 1; }
+  const scale = Number(raw);
+  if (!Number.isFinite(scale) || scale < 1) {
+    throw new Error(`NODETOOL_GAME_SCRIPT_BUDGET_SCALE must be a number of at least 1, got "${raw}"`);
+  }
+  return scale;
+}
+
 interface GcProfiler {
   start(): void;
   stop(): { readonly statistics: readonly { readonly cost: number }[] } | undefined;
