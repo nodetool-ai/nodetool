@@ -11,6 +11,21 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
 let mockMobile = false;
+jest.mock("../WorkspaceDocumentBar", () => ({
+  __esModule: true,
+  default: ({ tab }: { tab: { title: string } }) => (
+    <div role="toolbar" aria-label={`${tab.title} document`} />
+  )
+}));
+
+const boardTab = {
+  id: "storyboard:board-1",
+  type: "storyboard" as const,
+  ref: "board-1",
+  mode: "edit" as const,
+  title: "Board"
+};
+
 jest.mock("@mui/material", () => ({
   ...jest.requireActual("@mui/material"),
   useMediaQuery: () => mockMobile
@@ -192,7 +207,7 @@ const seedLegacyBoard = () => {
 const renderSurface = (mode: "edit" | "view" = "edit") =>
   render(
     <ThemeProvider theme={mockTheme}>
-      <StoryboardSurface refId={BOARD_ID} mode={mode} active />
+      <StoryboardSurface refId={BOARD_ID} mode={mode} active tab={boardTab} />
     </ThemeProvider>
   );
 
@@ -298,7 +313,7 @@ describe("StoryboardSurface setup stages", () => {
 
     const surface = (
       <ThemeProvider theme={mockTheme}>
-        <StoryboardSurface refId={BOARD_ID} mode="edit" active />
+        <StoryboardSurface refId={BOARD_ID} mode="edit" active tab={boardTab} />
       </ThemeProvider>
     );
     mockMobile = true;

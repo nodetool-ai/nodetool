@@ -10405,6 +10405,7 @@
       "emptyText": "Füge Figuren, Orte, Stile oder Requisiten hinzu, die jede Einstellung prägen."
     },
     "storyboardBoard": {
+      "renderOptions": "Render-Optionen",
       "sceneShotCaption": "Szene {{scene}} | Einstellung {{shot}}",
       "requestCost": "{{count}} Anfragen · geschätzt {{cost}}{{partial, select, true { ({{pricedCount}} mit Preis)} other {}}}",
       "requestCountUnpriced": "{{count}} Anfragen · Preis nicht verfügbar",

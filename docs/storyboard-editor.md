@@ -19,11 +19,13 @@ The Storyboard opens as a workspace tab. The board is on the left. The assistant
 
 | Area | What it holds |
 |---|---|
-| Header | Board title, genre chip, shot summary, card size slider, **Slideshow**, and the board tools |
-| Board settings | Screenplay fields, direction settings, and the **Direct** button |
+| Document bar | Board title, save state, Undo and Redo, **Board** and **Preview**, the Board settings and Assistant toggles, **Render**, **Open timeline**, and the ⋮ menu |
+| Board settings | Genre chip, screenplay fields, direction settings, and the **Direct** button |
 | Banners | A stale-version notice and a **Retry N failed** button, shown only when they apply |
 | Shot grid | Scene headers with shot cards under them |
-| Footer | **Open script** or **Extract script**, and **Create timeline** |
+| Shot row | Search, **Add shot**, the shot summary, the card media toggle, and the card size slider |
+
+The ⋮ menu holds **Slideshow**, **One take**, **Open script** or **Extract script**, **Create timeline** or **Rebuild linked timeline**, **Change style**, **Download ZIP**, and **Send to workflow**.
 
 The board is the working copy of a film. Stills, clips, and takes stay in your asset library, so closing the tab loses nothing.
 
@@ -57,7 +59,7 @@ Open **Board settings** to write the brief. Press **Direct** and the screenplay 
 | Aspect ratio | 16:9, 9:16, 1:1, 4:3, or 21:9 |
 | Shots | How many shots **Direct** writes |
 
-You can skip directing. **Add shot** in the header adds one shot at a time, and the **+** that appears between two cards inserts a shot after the first.
+You can skip directing. **Add shot** in the shot row adds one shot at a time, and the **+** that appears between two cards inserts a shot after the first.
 
 ---
 
@@ -79,7 +81,7 @@ Shots sit under scene headers labeled **Scene 1**, **Scene 2**, and so on, with 
 - **Reorder:** Drag a card onto another. Dropping across a scene header moves the shot to that scene.
 - **Hover actions:** A card shows **Edit**, **Iterate**, a regenerate button, and an upload button for your own still. Double-click the media to view it fullscreen.
 - **Shot actions menu:** **Render still…**, **Render clip…**, **Download**, **Send to workflow…**, **Duplicate shot**, **Delete shot**.
-- **Undo and redo:** The undo buttons in the header cover board edits. The Undo tooltip reads "Undo (⌘Z)".
+- **Undo and redo:** The undo buttons in the document bar cover board edits. The Undo tooltip reads "Undo (⌘Z)".
 - **Genre:** The chip beside the title shows the genre. **Set genre** appears when none is set.
 
 Select a card to open the shot inspector under the grid. It repeats **Edit**, **Iterate**, **Regenerate**, and **Delete**, and its **Appears in** row links to the timeline cut and the script lines that use the shot.
@@ -114,15 +116,15 @@ Render one shot or the whole board.
 
 | Action | Where | What happens |
 |---|---|---|
-| **Render stills** | Header | Opens a dialog to pick the **Still model**, then renders every shot without a still |
-| **Render clips** | Header | Opens a dialog with one model picker per kind of clip in the batch |
+| **Render stills** | Document bar | Opens a dialog to pick the **Still model**, then renders every shot without a still |
+| **Render clips** | Document bar | Opens a dialog with one model picker per kind of clip in the batch |
 | **Render still…** / **Render clip…** | Shot actions menu | Same dialog for one shot |
 | **Regenerate** | Card, inspector, editor | Re-renders the still with the model the shot used last |
 | **Iterate** | Card, inspector | Asks for a note such as "make it darker, add rain" and re-renders the current clip with it |
 
 The shot remembers the model you picked, so later renders skip the dialog choice. If an entity is attached and the chosen still model cannot take reference images, a warning appears under the model picker.
 
-The header's render buttons show a price in the dialog and on the confirm button, for example "Render stills · ~$0.40". Text under the picker explains any request that could not be priced, and **Select a priced model to see the estimate.** appears when no priced model is selected. After you choose stills, the dialog also shows what rendering the clips for the same shots would add. For how provider charges work, see [Costs and Credits](costs-and-credits.md).
+The Render button shows the next batch, stills until every shot has one and then clips. Its arrow offers both. The render buttons show a price in the dialog and on the confirm button, for example "Render stills · ~$0.40". Text under the picker explains any request that could not be priced, and **Select a priced model to see the estimate.** appears when no priced model is selected. After you choose stills, the dialog also shows what rendering the clips for the same shots would add. For how provider charges work, see [Costs and Credits](costs-and-credits.md).
 
 The bottom panel's **Generations** view lists every render with its status, next to generations from chat, other editors and workflow runs. Its tab shows how many are still running. Clicking a render opens its board on that shot, and **Stop generating** cancels it on the server. On a phone, where there is no bottom panel, a queue overlay over the board lists the renders instead. Its **Stop tracking** hides local progress only, and the provider may still finish the request and charge for it.
 
@@ -168,14 +170,14 @@ The same menu offers **Download ZIP** and **Send to workflow…**, which passes 
 
 ## Retry failed shots
 
-When a render fails, **Retry N failed** appears under the header. It retries the latest failed request for each shot and kind. On a phone the queue overlay has the same button.
+When a render fails, **Retry N failed** appears under the document bar. It retries the latest failed request for each shot and kind. On a phone the queue overlay has the same button.
 
 ---
 
 ## Slideshow and preview
 
-- **Slideshow** opens a fullscreen player. It shows each shot's clip or still with its caption. Use the left and right arrow keys or **Previous shot** and **Next shot**. **Autoplay** advances for you, and **Edit shot** jumps to the editor. Unrendered shots read "Not rendered yet".
-- **Preview** plays the board's shots in sequence inside the board. It is disabled until a shot has a still or clip.
+- **Slideshow** (in ⋮) opens a fullscreen player. It shows each shot's clip or still with its caption. Use the left and right arrow keys or **Previous shot** and **Next shot**. **Autoplay** advances for you, and **Edit shot** jumps to the editor. Unrendered shots read "Not rendered yet".
+- **Preview** in the document bar plays the board's shots in sequence in place of the grid. **Board** returns to the grid. A board with no still or clip yet says so.
 
 ---
 

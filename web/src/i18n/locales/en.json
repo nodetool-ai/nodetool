@@ -10405,6 +10405,7 @@
       "emptyText": "Add characters, locations, styles, or props to guide every shot."
     },
     "storyboardBoard": {
+      "renderOptions": "Render options",
       "sceneShotCaption": "Scene {{scene}} | Shot {{shot}}",
       "requestCost": "{{count}} requests · estimated {{cost}}{{partial, select, true { ({{pricedCount}} priced)} other {}}}",
       "requestCountUnpriced": "{{count}} requests · pricing unavailable",
