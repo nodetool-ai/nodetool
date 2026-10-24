@@ -18777,5 +18777,34 @@
       "goToWorkspace": "Go to workspace",
       "opening": "Opening shared document"
     }
+  },
+  "timelineAutomation": {
+    "groups": {
+      "mixer": "Mixer",
+      "clips": "Clips on this track"
+    },
+    "params": {
+      "volume": "Volume",
+      "pan": "Pan",
+      "opacity": "Opacity",
+      "scale": "Scale",
+      "positionX": "Position X",
+      "positionY": "Position Y",
+      "rotation": "Rotation",
+      "brightness": "Brightness",
+      "contrast": "Contrast",
+      "saturation": "Saturation",
+      "hue": "Hue",
+      "blur": "Blur"
+    },
+    "showLanes": "Show automation lanes",
+    "hideLanes": "Hide automation lanes",
+    "addLane": "Automate a parameter",
+    "turnOff": "Turn lane off",
+    "turnOn": "Turn lane on",
+    "removeLane": "Remove lane",
+    "missingTarget": "Removed device",
+    "laneLabel": "Automation lane: {{name}}",
+    "deletePoint": "Delete point"
   }
 }

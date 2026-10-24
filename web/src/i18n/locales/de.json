@@ -18777,5 +18777,34 @@
       "goToWorkspace": "Zum Arbeitsbereich",
       "opening": "Geteiltes Dokument wird geöffnet"
     }
+  },
+  "timelineAutomation": {
+    "groups": {
+      "mixer": "Mixer",
+      "clips": "Clips auf dieser Spur"
+    },
+    "params": {
+      "volume": "Lautstärke",
+      "pan": "Panorama",
+      "opacity": "Deckkraft",
+      "scale": "Skalierung",
+      "positionX": "Position X",
+      "positionY": "Position Y",
+      "rotation": "Drehung",
+      "brightness": "Helligkeit",
+      "contrast": "Kontrast",
+      "saturation": "Sättigung",
+      "hue": "Farbton",
+      "blur": "Unschärfe"
+    },
+    "showLanes": "Automationsspuren anzeigen",
+    "hideLanes": "Automationsspuren ausblenden",
+    "addLane": "Parameter automatisieren",
+    "turnOff": "Spur ausschalten",
+    "turnOn": "Spur einschalten",
+    "removeLane": "Spur entfernen",
+    "missingTarget": "Entferntes Gerät",
+    "laneLabel": "Automationsspur: {{name}}",
+    "deletePoint": "Punkt löschen"
   }
 }

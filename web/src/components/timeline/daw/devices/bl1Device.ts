@@ -172,7 +172,7 @@ export const createBl1Device: LiveDeviceFactory = async (ctx, instrument, option
   if (instrument.type !== "bass") {
     throw new Error(`BL-1 cannot play a ${instrument.type} instrument`);
   }
-  await loadFableWorklets(ctx, ["ott", "bl1"]);
+  await loadFableWorklets(ctx, ["pauto", "ott", "bl1"]);
   const params = bl1ParamRecord(instrument);
   const node = new AudioWorkletNode(ctx, "fable-bl", {
     numberOfInputs: 0,

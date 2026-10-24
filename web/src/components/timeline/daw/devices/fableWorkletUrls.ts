@@ -5,6 +5,7 @@
  */
 
 export const FABLE_WORKLET_URLS = {
+  pauto: new URL("./param-automation-worklet.js", import.meta.url).href,
   ott: new URL("../fablesynth/engine/ott-worklet.js", import.meta.url).href,
   lab: new URL("../fablesynth/engine/lab-worklet.js", import.meta.url).href,
   wt1: new URL("../fablesynth/engine/worklet.js", import.meta.url).href,

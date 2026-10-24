@@ -1651,6 +1651,9 @@ class FableProcessor extends AudioWorkletProcessor {
     // Timeline event queue: sorted { f, on, n, v }, consumed from evHead.
     this.evq = [];
     this.evHead = 0;
+    // Timeline automation lanes (devices/param-automation-worklet.js).
+    this.pauto = globalThis.FableParamAutomation ? new globalThis.FableParamAutomation() : null;
+    this.pautoSet = (k, v) => this.onMsg({ t: 'p', k, v });
     this.port.onmessage = (e) => this.onMsg(e.data);
     // Timeline hosts (and offline renders) hand over tables, params and the
     // whole score at construction, so the first quantum already has them.
@@ -1701,6 +1704,7 @@ class FableProcessor extends AudioWorkletProcessor {
   }
 
   onMsg(d) {
+    if (this.pauto && this.pauto.onMsg(d, this.port)) return;
     switch (d.t) {
       case 'evs': this.queueEvents(d.ev); break;
       case 'evclear':
@@ -2974,6 +2978,7 @@ class FableProcessor extends AudioWorkletProcessor {
     if (R !== L) R.fill(0);
     const n = L.length;
     const hosted = this.hosted;
+    if (this.pauto) this.pauto.tick(currentFrame, this.pautoSet);
 
     let off = 0;
     while (off < n) {

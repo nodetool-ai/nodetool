@@ -115,6 +115,9 @@ import {
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
 import { ScriptLane, ScriptLaneHeader } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
+import { AutomationAddLaneHeader, AutomationLaneHeader } from "./automation/AutomationLaneHeader";
+import { AutomationLaneView } from "./automation/AutomationLaneView";
+import { AUTOMATION_FOOTER_HEIGHT_PX } from "./automation/automationLayout";
 import { layoutTrackRows, TRACK_FOLDER_HEIGHT_PX, visibleTrackWindow } from "./trackWindow";
 import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
@@ -280,6 +283,13 @@ const trackCountChipStyles = (theme: Theme) =>
     fontSize: FONT_SIZE_MONO.caption,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0"
+  });
+
+/** The lanes side of a track's add-lane row: a strip under its last lane. */
+const automationFooterStyles = (theme: Theme) =>
+  css({
+    borderBottom: `1px solid ${theme.vars.palette.divider}`,
+    background: theme.vars.palette.background.default
   });
 
 const headerColumnStyles = (theme: Theme) =>
@@ -1837,6 +1847,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     ]);
 
     const expandedFxTrackId = useTimelineUIStore((s) => s.expandedFxTrackId);
+    const shownAutomationTrackIds = useTimelineUIStore((s) => s.shownAutomationTrackIds);
 
     // Toolbar undo/redo: the same temporal store the Ctrl+Z / Ctrl+Shift+Z
     // shortcuts drive, read reactively so the buttons disable at either end.
@@ -1858,8 +1869,18 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
     const trackLayout = useMemo(
-      () => layoutTrackRows(tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode),
-      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode]
+      () =>
+        layoutTrackRows(
+          tracks,
+          hasScript,
+          expandedFxTrackId,
+          verticalZoom,
+          trackFolders,
+          collapsedFolderIds,
+          dawMode,
+          shownAutomationTrackIds
+        ),
+      [tracks, hasScript, expandedFxTrackId, verticalZoom, trackFolders, collapsedFolderIds, dawMode, shownAutomationTrackIds]
     );
     const previousTrackLayoutRef = useRef(trackLayout);
     const previousVerticalZoomRef = useRef(verticalZoom);
@@ -2144,6 +2165,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                       aria-hidden="true"
                     />
                   )}
+                  {shownAutomationTrackIds.includes(row.track.id) && (
+                    <>
+                      {(row.track.automation ?? []).map((lane) => (
+                        <AutomationLaneHeader key={lane.id} track={row.track} lane={lane} />
+                      ))}
+                      <AutomationAddLaneHeader track={row.track} />
+                    </>
+                  )}
                 </React.Fragment>
               )
             )}
@@ -2205,6 +2234,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                       >
                         <TrackEffectsPanel trackId={row.track.id} />
                       </div>
+                    )}
+                    {shownAutomationTrackIds.includes(row.track.id) && (
+                      <>
+                        {(row.track.automation ?? []).map((lane) => (
+                          <AutomationLaneView
+                            key={lane.id}
+                            track={row.track}
+                            lane={lane}
+                            widthPx={totalWidthPx}
+                          />
+                        ))}
+                        <div
+                          style={{ height: AUTOMATION_FOOTER_HEIGHT_PX }}
+                          css={automationFooterStyles(theme)}
+                          aria-hidden="true"
+                        />
+                      </>
                     )}
                   </React.Fragment>
                 )

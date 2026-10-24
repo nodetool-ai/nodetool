@@ -54,6 +54,7 @@ import { buildTransformMatrix } from "./transform.js";
 import { resolveClipLayoutsWithDiagnostics, type ClipLayoutResolution } from "./layout.js";
 import { resolveCamera2D, sampleCamera2D } from "./spatial.js";
 import { expandTemporalClips, clipSteppedTime } from "./temporal.js";
+import { applyTrackAutomation } from "../automation.js";
 import { resolveTransition, type ResolvedTransition } from "./transition.js";
 import { clipFadeGain, resolveClipFades } from "../audioFade.js";
 
@@ -1596,7 +1597,10 @@ export function computeActiveLayersWithHorizon(
   currentTimeMs: number,
   options: ComputeActiveLayersOptions = {}
 ): ActiveLayersResult {
-  return computeActiveLayersWithHorizonBase(tracks, expandTemporalClips(clips), currentTimeMs, options);
+  // Picture automation lanes ride into each clip as one more animation, so
+  // every host that samples clip animations plays them.
+  const rendered = applyTrackAutomation(tracks, expandTemporalClips(clips)) as TimelineClip[];
+  return computeActiveLayersWithHorizonBase(tracks, rendered, currentTimeMs, options);
 }
 
 /**
