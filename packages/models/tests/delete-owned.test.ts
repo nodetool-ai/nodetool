@@ -8,6 +8,7 @@
  * not evidence about the others.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { shortResourceId } from "@nodetool-ai/protocol";
 import { ModelObserver } from "../src/base-model.js";
 import { initTestDb } from "../src/db.js";
 import { Workflow } from "../src/workflow.js";
@@ -22,6 +23,11 @@ import { ImageDocumentVersion } from "../src/image-document-version.js";
 import { Script } from "../src/script.js";
 import { Storyboard } from "../src/storyboard.js";
 import { JsScript } from "../src/js-script.js";
+import {
+  DocumentCollaborator,
+  DocumentShare,
+  type SharedDocumentType
+} from "../src/document-sharing.js";
 
 const OWNER = "u1";
 const OTHER = "u2";
@@ -326,5 +332,72 @@ describe("deleteOwned cascades", () => {
 
     await ImageDocument.deleteOwned(OWNER, doc.id);
     expect(await ImageDocumentVersion.listForDocument(doc.id)).toEqual([]);
+  });
+});
+
+/** The sharing type each document subject is granted under. */
+const SHARED_TYPES: Record<string, SharedDocumentType> = {
+  TimelineSequence: "timeline",
+  ImageDocument: "sketch",
+  Script: "script",
+  Storyboard: "storyboard",
+  JsScript: "jsscript"
+};
+
+describe("deleteOwned sharing cascade by short id", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  for (const subject of SUBJECTS) {
+    const type = SHARED_TYPES[subject.name];
+    if (!type) continue;
+
+    // Agent capabilities hand over the 12-character form. The lookup resolves
+    // it, so the grant and link cleanup has to use the resolved full id.
+    it(`${subject.name}: removes grants and links when named by a short id`, async () => {
+      const row = await subject.make(OWNER);
+      await DocumentCollaborator.upsert({
+        documentType: type,
+        documentId: row.id,
+        userId: OTHER,
+        role: "editor",
+        invitedBy: OWNER
+      });
+      await DocumentShare.ensure({
+        documentType: type,
+        documentId: row.id,
+        role: "viewer",
+        createdBy: OWNER
+      });
+      const short = shortResourceId(row.id);
+      expect(short).toHaveLength(12);
+
+      expect(await subject.remove(OWNER, short)).toBe(true);
+
+      expect(await subject.exists(row.id)).toBe(false);
+      expect(await DocumentCollaborator.listForDocument(type, row.id)).toEqual(
+        []
+      );
+      expect(await DocumentShare.listForDocument(type, row.id)).toEqual([]);
+    });
+  }
+
+  it("takes a timeline's version rows with it when named by a short id", async () => {
+    const seq = await TimelineSequence.create<TimelineSequence>({
+      user_id: OWNER,
+      project_id: "p",
+      name: "cut",
+      fps: 30,
+      width: 16,
+      height: 9,
+      duration_ms: 1,
+      document: JSON.stringify({ tracks: [], clips: [], markers: [] })
+    });
+    await TimelineSequenceVersion.snapshot(seq, { saveType: "manual" });
+
+    expect(
+      await TimelineSequence.deleteOwned(OWNER, shortResourceId(seq.id))
+    ).toBe(true);
+    expect(await TimelineSequenceVersion.listForTimeline(seq.id)).toEqual([]);
   });
 });

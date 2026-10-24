@@ -99,10 +99,12 @@ export const documentSharingRouter = router({
     .input(documentRefInput)
     .output(documentSharingGetOutput)
     .query(async ({ ctx, input }) => {
-      await requireOwner(input.type, input.id, ctx.userId);
+      // `input.id` may be a 12-character prefix. The sharing tables key on
+      // the full id, so every read and write below uses the resolved row's.
+      const document = await requireOwner(input.type, input.id, ctx.userId);
       const [collaborators, shares] = await Promise.all([
-        DocumentCollaborator.listForDocument(input.type, input.id),
-        DocumentShare.listForDocument(input.type, input.id)
+        DocumentCollaborator.listForDocument(input.type, document.id),
+        DocumentShare.listForDocument(input.type, document.id)
       ]);
       return {
         collaborators: collaborators.map(toCollaboratorItem),
@@ -114,10 +116,10 @@ export const documentSharingRouter = router({
     .input(documentSharingCreateLinkInput)
     .output(documentShareItem)
     .mutation(async ({ ctx, input }) => {
-      await requireOwner(input.type, input.id, ctx.userId);
+      const document = await requireOwner(input.type, input.id, ctx.userId);
       const share = await DocumentShare.ensure({
         documentType: input.type,
-        documentId: input.id,
+        documentId: document.id,
         role: input.role,
         createdBy: ctx.userId
       });
@@ -129,14 +131,14 @@ export const documentSharingRouter = router({
     .input(documentSharingRevokeLinkInput)
     .output(documentSharingOkOutput)
     .mutation(async ({ ctx, input }) => {
-      await requireOwner(input.type, input.id, ctx.userId);
+      const document = await requireOwner(input.type, input.id, ctx.userId);
       const share = (await DocumentShare.get(
         input.share_id
       )) as DocumentShare | null;
       if (
         !share ||
         share.document_type !== input.type ||
-        share.document_id !== input.id
+        share.document_id !== document.id
       ) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Share not found");
       }
@@ -148,10 +150,10 @@ export const documentSharingRouter = router({
     .input(documentSharingSetRoleInput)
     .output(documentCollaboratorItem)
     .mutation(async ({ ctx, input }) => {
-      await requireOwner(input.type, input.id, ctx.userId);
+      const document = await requireOwner(input.type, input.id, ctx.userId);
       const grant = await DocumentCollaborator.findFor(
         input.type,
-        input.id,
+        document.id,
         input.user_id
       );
       if (!grant) {
@@ -168,12 +170,16 @@ export const documentSharingRouter = router({
     .input(documentSharingRemoveCollaboratorInput)
     .output(documentSharingOkOutput)
     .mutation(async ({ ctx, input }) => {
-      if (input.user_id !== ctx.userId) {
-        await requireOwner(input.type, input.id, ctx.userId);
-      }
+      // The grant keys on the full document id. A collaborator leaving needs
+      // no ownership check, but a short id still has to resolve. A grant can
+      // outlive its document, so an unresolvable id falls back to the input.
+      const documentId =
+        input.user_id !== ctx.userId
+          ? (await requireOwner(input.type, input.id, ctx.userId)).id
+          : ((await loadSharedDocument(input.type, input.id))?.id ?? input.id);
       const removed = await DocumentCollaborator.remove(
         input.type,
-        input.id,
+        documentId,
         input.user_id
       );
       if (!removed) {

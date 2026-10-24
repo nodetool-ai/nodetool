@@ -225,10 +225,10 @@ export class TimelineSequence extends DBModel {
     const row = await TimelineSequence.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
-    await removeDocumentSharing("timeline", id);
+    await removeDocumentSharing("timeline", row.id);
     // Belt-and-braces with the FK cascade: version rows outliving their
     // document would be unreachable garbage.
-    await TimelineSequenceVersion.deleteForTimeline(id);
+    await TimelineSequenceVersion.deleteForTimeline(row.id);
     return true;
   }
 

@@ -585,8 +585,8 @@ export const sketchRouter = router({
       .input(listSketchVersionsInput)
       .output(z.array(sketchVersionListItem))
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id, "viewer");
-        const versions = await ImageDocumentVersion.listForDocument(input.id, {
+        const doc = await loadOwned(ctx.userId, input.id, "viewer");
+        const versions = await ImageDocumentVersion.listForDocument(doc.id, {
           limit: input.limit,
           saveType: input.saveType
         });
@@ -597,9 +597,9 @@ export const sketchRouter = router({
       .input(getSketchVersionInput)
       .output(sketchVersionResponse)
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id, "viewer");
+        const doc = await loadOwned(ctx.userId, input.id, "viewer");
         const version = await ImageDocumentVersion.findByVersion(
-          input.id,
+          doc.id,
           input.version
         );
         if (!version) {
@@ -629,7 +629,7 @@ export const sketchRouter = router({
       .mutation(async ({ ctx, input }) => {
         const doc = await loadOwned(ctx.userId, input.id, "editor");
         const version = await ImageDocumentVersion.findByVersion(
-          input.id,
+          doc.id,
           input.version
         );
         if (!version) {
@@ -667,9 +667,9 @@ export const sketchRouter = router({
       .input(deleteSketchVersionInput)
       .output(okOutput)
       .mutation(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        const doc = await loadOwned(ctx.userId, input.id);
         const version = await ImageDocumentVersion.findByVersion(
-          input.id,
+          doc.id,
           input.version
         );
         if (!version) {

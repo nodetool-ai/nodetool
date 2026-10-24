@@ -165,10 +165,10 @@ export class ImageDocument extends DBModel {
     const row = await ImageDocument.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
-    await removeDocumentSharing("sketch", id);
+    await removeDocumentSharing("sketch", row.id);
     // Belt-and-braces with the FK cascade: version rows outliving their
     // document would be unreachable garbage.
-    await ImageDocumentVersion.deleteForDocument(id);
+    await ImageDocumentVersion.deleteForDocument(row.id);
     return true;
   }
 
