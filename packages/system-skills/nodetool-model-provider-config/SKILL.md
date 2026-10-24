@@ -57,7 +57,7 @@ the user's own. Every other provider bills the user's own account.
 Other registered chat providers (any of these is valid for the CLI's `-p/--provider`):
 `groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `alibaba`
 (`DASHSCOPE_API_KEY`, Qwen via Alibaba Cloud Model Studio), `together`,
-`openrouter`, `requesty`, `opper`, `api_route`, `codex`, `claude_agent_sdk`, `lmstudio`,
+`openrouter`, `requesty`, `opper`, `cheaperinference`, `api_route`, `codex`, `claude_agent_sdk`, `lmstudio`,
 `azure_openai` (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, models from
 `AZURE_OPENAI_DEPLOYMENTS`), `bedrock` (`BEDROCK_ACCESS_KEY_ID`,
 `BEDROCK_SECRET_ACCESS_KEY`, `BEDROCK_REGION`).

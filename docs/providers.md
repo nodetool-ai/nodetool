@@ -31,6 +31,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | OpenRouter | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Requesty | ✅ | | | | | | |
 | Opper | ✅ | | | | | | |
+| Cheaper Inference | ✅ | | | | | | |
 | API Route | ✅ | | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
@@ -144,6 +145,10 @@ API Route serves hosted chat models through `https://global.api-route.com/v1`. S
 ## Opper
 
 Opper is an EU-hosted AI gateway that routes chat models from 50+ providers, including OpenAI, Anthropic, Google, DeepSeek and Moonshot, through one OpenAI-compatible endpoint, `https://api.opper.ai/v3/compat`. Text only. Cloud only, keyed by `OPPER_API_KEY`. The model picker lists Opper's pools from `/v3/compat/models?type=pool` (bare ids such as `claude-sonnet-4-6`, routed across providers) followed by the full catalog from `/v3/compat/models`, which adds `provider/model` ids that pin one route. Get a key at [Opper](https://platform.opper.ai). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+## Cheaper Inference
+
+Cheaper Inference is an AI gateway that routes chat models from several providers through one OpenAI-compatible endpoint, `https://api.cheaperinference.com/v1`. Text only. Cloud only, keyed by `CHEAPER_INFERENCE_API_KEY`. The model picker reads `/v1/models` and keeps rows whose `type` is `text`, so image and video rows in the same listing are dropped. Get a key at [Cheaper Inference](https://cheaperinference.com/signup). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Together AI
 
