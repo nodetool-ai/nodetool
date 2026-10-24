@@ -6469,7 +6469,14 @@
         "projectListLoadFailed": "Projektliste konnte nicht geladen werden",
         "couldNotLoadProjects": "Projekte konnten nicht geladen werden",
         "noMatchingProjects": "Keine passenden Projekte",
-        "noNamedProjects": "Noch keine benannten Projekte"
+        "noNamedProjects": "Noch keine benannten Projekte",
+        "documents": "Dokumente",
+        "projects": "Projekte",
+        "loadingDocuments": "Dokumente werden geladen…",
+        "couldNotLoadDocuments": "Dokumente konnten nicht geladen werden",
+        "noDocuments": "Noch keine Dokumente",
+        "noMatchingDocuments": "Keine passenden Dokumente",
+        "searchProjectsAndDocuments": "Projekte und Dokumente durchsuchen"
       },
       "rail": {
         "projects": "Projekte"

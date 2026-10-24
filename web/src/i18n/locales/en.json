@@ -6469,7 +6469,14 @@
         "projectListLoadFailed": "Project list failed to load",
         "couldNotLoadProjects": "Could not load projects",
         "noMatchingProjects": "No matching projects",
-        "noNamedProjects": "No named projects yet"
+        "noNamedProjects": "No named projects yet",
+        "documents": "Documents",
+        "projects": "Projects",
+        "loadingDocuments": "Loading documents…",
+        "couldNotLoadDocuments": "Could not load documents",
+        "noDocuments": "No documents yet",
+        "noMatchingDocuments": "No matching documents",
+        "searchProjectsAndDocuments": "Search projects and documents"
       },
       "rail": {
         "projects": "Projects"

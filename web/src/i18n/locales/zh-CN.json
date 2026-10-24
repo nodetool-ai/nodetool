@@ -6469,7 +6469,14 @@
         "projectListLoadFailed": "项目列表加载失败",
         "couldNotLoadProjects": "无法加载项目",
         "noMatchingProjects": "没有匹配的项目",
-        "noNamedProjects": "暂无命名项目"
+        "noNamedProjects": "暂无命名项目",
+        "documents": "文档",
+        "projects": "项目",
+        "loadingDocuments": "正在加载文档…",
+        "couldNotLoadDocuments": "无法加载文档",
+        "noDocuments": "暂无文档",
+        "noMatchingDocuments": "没有匹配的文档",
+        "searchProjectsAndDocuments": "搜索项目和文档"
       },
       "rail": {
         "projects": "项目"
