@@ -80,7 +80,10 @@ import { tabId, useWorkspaceTabsStore } from "../WorkspaceTabsStore";
 import { trpcClient } from "../../trpc/client";
 import useAuth from "../useAuth";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
-import { threadRuntimeUpdate } from "../../core/chat/threadRuntime";
+import {
+  DEFAULT_THREAD_RUNTIME,
+  threadRuntimeUpdate
+} from "../../core/chat/threadRuntime";
 
 jest.mock("../../trpc/client", () => ({
   trpcClient: {
@@ -229,6 +232,56 @@ describe("GlobalChatStore", () => {
     expect(loadMessages).not.toHaveBeenCalled();
   });
 
+  it("drops a thread deleted elsewhere from the list", () => {
+    const fetchThreads = jest.fn().mockResolvedValue(undefined);
+    store.setState({
+      fetchThreads,
+      threads: {
+        gone: {
+          id: "gone",
+          user_id: "u",
+          title: "Old",
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z"
+        },
+        kept: {
+          id: "kept",
+          user_id: "u",
+          title: "Kept",
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z"
+        }
+      }
+    });
+
+    handleResourceChange({
+      type: "resource_change", event: "deleted", resource_type: "thread",
+      resource: { id: "gone" }
+    });
+
+    expect(Object.keys(store.getState().threads)).toEqual(["kept"]);
+    expect(fetchThreads).not.toHaveBeenCalled();
+  });
+
+  it("does not reload a thread while its reply is streaming", () => {
+    const loadMessages = jest.fn().mockResolvedValue([]);
+    store.setState({
+      loadMessages,
+      currentThreadId: "active",
+      messageCache: { active: [] },
+      threadRuntime: {
+        active: { ...DEFAULT_THREAD_RUNTIME, status: "streaming" }
+      }
+    });
+
+    handleResourceChange({
+      type: "resource_change", event: "created", resource_type: "message",
+      resource: { id: "message-1", thread_id: "active" }
+    });
+
+    expect(loadMessages).not.toHaveBeenCalled();
+  });
+
   it("createNewThread creates thread and sets currentThreadId", async () => {
     const id = await store.getState().createNewThread();
     expect(id).toBe("id-0");
@@ -246,6 +299,14 @@ describe("GlobalChatStore", () => {
       mediaMode: "image"
     });
     expect(useMediaGenerationStore.getState().mode).toBe("image");
+  });
+
+  it("createNewThread keeps the composer mode for a background thread", async () => {
+    useMediaGenerationStore.getState().setMode("video");
+    await store.getState().createNewThread(undefined, undefined, {
+      keepMediaMode: true
+    });
+    expect(useMediaGenerationStore.getState().mode).toBe("video");
   });
 
   it("does not fetch conversations before authentication is ready", async () => {
