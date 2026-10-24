@@ -129,9 +129,11 @@ describe("per-call script clock", () => {
     const evidence = { collections, wallMs: performance.now() - wall, cpuMs: defaultScriptCallClock.now() - cpu, retained: retained.length };
     expect(expires(), JSON.stringify(evidence)).toBe(false);
 
+    // Recorded pauses can exceed the CPU the collector used when the thread was descheduled during one,
+    // so the call's own work must outlast the whole collection phase before the limit is certain to apply.
     const busy = defaultScriptCallClock.now();
     let spin = 0;
-    while (defaultScriptCallClock.now() - busy < limit * 2) { spin += 1; }
+    while (defaultScriptCallClock.now() - busy < evidence.wallMs + limit * 2) { spin += 1; }
     expect(expires(), `spin ${spin}`).toBe(true);
   });
 

@@ -52,7 +52,9 @@ function collectedMs(profiler: GcProfiler): number {
  * Starts the per-call limit. A thread's CPU time cannot exceed the wall time that passed, so the
  * wall check skips the clock read for most calls. It also stops coarse CPU accounting from ending a
  * call before `limitMs` of wall time has passed. V8 runs its collector on the calling thread when its
- * helper threads get no CPU, so pauses it records during the call are not charged to the script.
+ * helper threads get no CPU, so pauses it records during the call are not charged to the script. A
+ * pause can include time the thread waited for a processor, so a call may run past `limitMs` by that
+ * much. The wall-clock batch budget still bounds it.
  */
 export function startScriptCallTimer(clock: ScriptCallClock, limitMs: number): () => boolean {
   if (gcProfiler !== undefined) { collectedMs(gcProfiler); }
