@@ -1,3 +1,5 @@
+import { setFlagsFromString } from "node:v8";
+import { runInNewContext } from "node:vm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { QuickJSContext, QuickJSRuntime } from "quickjs-emscripten-core";
 import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
@@ -110,6 +112,27 @@ describe("per-call script clock", () => {
     expect(expired, JSON.stringify(evidence)).toBe(false);
     expect(wallExpired).toBe(true);
     expect(defaultScriptCallClock.kind).toBe("thread-cpu");
+  });
+
+  it("keeps garbage collection pauses out of the call budget but still counts the call's own CPU time", () => {
+    // On a loaded CI runner V8's parallel GC helpers get no CPU, so one scavenge pauses the main thread for 10-35 ms.
+    // A pause that landed inside a trivial 8 ms script call failed `nodetool game simulate`.
+    setFlagsFromString("--expose-gc");
+    const gc = runInNewContext("gc") as () => void;
+    const retained = Array.from({ length: 300_000 }, (_, index) => ({ index, label: `entry-${index}` }));
+    const limit = 5;
+    const expires = startScriptCallTimer(defaultScriptCallClock, limit);
+    const cpu = defaultScriptCallClock.now();
+    const wall = performance.now();
+    let collections = 0;
+    while (performance.now() - wall < limit * 3 || defaultScriptCallClock.now() - cpu < limit * 3) { gc(); collections += 1; }
+    const evidence = { collections, wallMs: performance.now() - wall, cpuMs: defaultScriptCallClock.now() - cpu, retained: retained.length };
+    expect(expires(), JSON.stringify(evidence)).toBe(false);
+
+    const busy = defaultScriptCallClock.now();
+    let spin = 0;
+    while (defaultScriptCallClock.now() - busy < limit * 2) { spin += 1; }
+    expect(expires(), `spin ${spin}`).toBe(true);
   });
 
   const input = (tick: number) => ({ tick, pressed: [], justPressed: [], events: [], world: [] });
