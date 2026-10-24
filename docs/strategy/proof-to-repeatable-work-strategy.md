@@ -35,9 +35,7 @@ sources. Their model lineage and reproduction promises cannot be interchanged.
 
 F3. Page expansion has an opportunity cost. The
 [SEO audit](../SEO_STRATEGY.md) prioritizes consolidation and improving existing
-ranked pages. [App pages](../../marketing/src/app/apps/%5Bslug%5D/page.tsx) already
-describe their input and output contracts but do not execute publicly.
-More descriptive pages would leave this conversion gap intact.
+ranked pages. More descriptive pages would leave the conversion gap intact.
 
 | Decision | Choice and consequence                                                                                                                                                                                                                                     |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -142,7 +140,7 @@ publish the reviewed partial example and record the specific product blocker.
 
 Start with Product, Video, Audio, Research, and Developer filters only where
 existing entries support them. Derive mappings from the curated
-[app data](../../marketing/src/data/miniAppEntries.generated.ts), with search
+app set (`docs/plans/example-apps.md`), with search
 over names and task descriptions. Do not invent a Brand QA category without
 matching runnable examples.
 
