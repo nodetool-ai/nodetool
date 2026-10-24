@@ -10,7 +10,15 @@
  * nothing migrates into one.
  */
 
-import { and, desc, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  notInArray
+} from "drizzle-orm";
 import {
   DBModel,
   ModelChangeEvent,
@@ -20,6 +28,27 @@ import {
 import { executeRaw, getPortableDb } from "./db.js";
 import { projects } from "./schema/projects.js";
 import { jobs } from "./schema/jobs.js";
+import {
+  workflowCollaborators,
+  workflowShares
+} from "./schema/workflow-sharing.js";
+import { workflowVersions } from "./schema/workflow-versions.js";
+import { triggerRegistrations } from "./schema/trigger-registrations.js";
+import {
+  documentCollaborators,
+  documentShares
+} from "./schema/document-sharing.js";
+import { timelineSequenceVersions } from "./schema/timeline-sequence-versions.js";
+import { imageDocumentVersions } from "./schema/image-document-versions.js";
+import { jsScriptVersions } from "./schema/js-script-versions.js";
+import { applicationVersions } from "./schema/applications.js";
+import { appInstances } from "./schema/app-instances.js";
+import { applicationDeployments } from "./schema/application-deployments.js";
+import {
+  applicationBudgets,
+  applicationInvocations
+} from "./schema/application-budgets.js";
+import type { SharedDocumentType } from "./document-sharing.js";
 import { Thread } from "./thread.js";
 
 /** The bucket documents land in when no project is active. */
@@ -33,6 +62,146 @@ export const PERSONAL_PROJECT_NAME = "Personal";
  * loose bucket. An explicit project id is a user decision and is left alone.
  */
 const LOOSE_ROW_SQL = `(project_id IS NULL OR project_id = '' OR project_id = '${LOOSE_PROJECT_ID}')`;
+
+/** Bound on the ids one `IN (...)` list carries, under every driver's limit. */
+const ID_CHUNK = 500;
+
+/** Run `remove` over `ids` in chunks small enough for one statement each. */
+async function forIdChunks(
+  ids: string[],
+  remove: (chunk: string[]) => Promise<void>
+): Promise<void> {
+  for (let i = 0; i < ids.length; i += ID_CHUNK) {
+    await remove(ids.slice(i, i + ID_CHUNK));
+  }
+}
+
+/** Ids of one owner's rows in a project. Both values arrive SQL-escaped. */
+async function projectRowIds(
+  table: string,
+  owner: string,
+  project: string
+): Promise<string[]> {
+  const { rows } = await executeRaw(
+    `SELECT id FROM ${table} WHERE user_id = '${owner}' AND project_id = '${project}'`
+  );
+  return rows.map((row) => String((row as { id: unknown }).id));
+}
+
+/**
+ * Remove what the single-item deletes cascade for a project's workflows and
+ * documents, before the bulk delete removes the rows themselves.
+ *
+ * The bulk delete is raw SQL and never runs `Workflow.deleteOwned`, the
+ * document `deleteOwned` methods or `Application.delete`. Without this, a
+ * deleted project's trigger registrations kept firing, its version rows kept
+ * full graph snapshots (secrets included), and grants and links outlived
+ * their documents. Ids are client-minted, so a grant left behind would apply
+ * to a document later recreated under the same id.
+ */
+async function removeProjectDependents(
+  owner: string,
+  project: string
+): Promise<void> {
+  const db = getPortableDb();
+
+  const workflowIds = await projectRowIds("nodetool_workflows", owner, project);
+  await forIdChunks(workflowIds, async (ids) => {
+    await db
+      .delete(triggerRegistrations)
+      .where(inArray(triggerRegistrations.workflow_id, ids));
+    await db
+      .delete(workflowVersions)
+      .where(inArray(workflowVersions.workflow_id, ids));
+    await db
+      .delete(workflowCollaborators)
+      .where(inArray(workflowCollaborators.workflow_id, ids));
+    await db
+      .delete(workflowShares)
+      .where(inArray(workflowShares.workflow_id, ids));
+  });
+
+  const documents: Array<{
+    table: string;
+    type: SharedDocumentType;
+    removeChildren?: (ids: string[]) => Promise<void>;
+  }> = [
+    { table: "storyboards", type: "storyboard" },
+    { table: "scripts", type: "script" },
+    {
+      table: "timeline_sequences",
+      type: "timeline",
+      removeChildren: async (ids) => {
+        await db
+          .delete(timelineSequenceVersions)
+          .where(inArray(timelineSequenceVersions.timeline_id, ids));
+      }
+    },
+    {
+      table: "image_documents",
+      type: "sketch",
+      removeChildren: async (ids) => {
+        await db
+          .delete(imageDocumentVersions)
+          .where(inArray(imageDocumentVersions.image_document_id, ids));
+      }
+    },
+    {
+      // The child tables `Application.delete` removes.
+      table: "applications",
+      type: "application",
+      removeChildren: async (ids) => {
+        await db
+          .delete(appInstances)
+          .where(inArray(appInstances.application_id, ids));
+        await db
+          .delete(applicationVersions)
+          .where(inArray(applicationVersions.application_id, ids));
+        await db
+          .delete(applicationInvocations)
+          .where(inArray(applicationInvocations.application_id, ids));
+        await db
+          .delete(applicationBudgets)
+          .where(inArray(applicationBudgets.application_id, ids));
+        await db
+          .delete(applicationDeployments)
+          .where(inArray(applicationDeployments.application_id, ids));
+      }
+    },
+    {
+      table: "js_scripts",
+      type: "jsscript",
+      removeChildren: async (ids) => {
+        await db
+          .delete(jsScriptVersions)
+          .where(inArray(jsScriptVersions.js_script_id, ids));
+      }
+    }
+  ];
+
+  for (const { table, type, removeChildren } of documents) {
+    const documentIds = await projectRowIds(table, owner, project);
+    await forIdChunks(documentIds, async (ids) => {
+      await removeChildren?.(ids);
+      await db
+        .delete(documentCollaborators)
+        .where(
+          and(
+            eq(documentCollaborators.document_type, type),
+            inArray(documentCollaborators.document_id, ids)
+          )
+        );
+      await db
+        .delete(documentShares)
+        .where(
+          and(
+            eq(documentShares.document_type, type),
+            inArray(documentShares.document_id, ids)
+          )
+        );
+    });
+  }
+}
 
 export interface PersonalMigrationReport {
   project: Project;
@@ -371,6 +540,7 @@ export class Project extends DBModel {
     await executeRaw(
       `DELETE FROM nodetool_memories WHERE user_id = '${owner}' AND thread_id IN (SELECT id FROM nodetool_threads WHERE user_id = '${owner}' AND project_id = '${project}') RETURNING id`
     );
+    await removeProjectDependents(owner, project);
     // This mirrors the complete ownership inventory. Global credentials,
     // templates, and copies in other projects carry no matching project id.
     for (const table of [
