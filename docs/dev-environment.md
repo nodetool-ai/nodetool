@@ -208,7 +208,7 @@ reproducible under it, which is what
 ### VST instrument host
 
 Timeline tracks play VST3 instruments only in the desktop app, through
-NodeToolVstHost, a JUCE helper in [`native/vst-host`](../native/vst-host/README.md).
+NodeToolVstHost, a JUCE helper in [`native/vst-host`](https://github.com/nodetool-ai/nodetool/blob/main/native/vst-host/README.md).
 `npm install` does not build it. Without it the app runs normally and the VST
 device view says the host is not installed.
 
@@ -237,7 +237,7 @@ a helper built elsewhere, set `NODETOOL_VST_HOST` to the executable before
 starting the app. The browser build (`npm run dev`) never hosts plug-ins.
 
 The helper scans the standard VST3 folders (listed in the
-[helper README](../native/vst-host/README.md#plug-in-folders)). With no
+[helper README](https://github.com/nodetool-ai/nodetool/blob/main/native/vst-host/README.md#plug-in-folders)). With no
 instrument installed, the test build gives you one: copy
 `native/vst-host/build/ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3`
 into your user VST3 folder (`~/.vst3` on Linux, `~/Library/Audio/Plug-Ins/VST3`
