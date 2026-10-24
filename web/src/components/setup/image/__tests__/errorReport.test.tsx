@@ -48,7 +48,11 @@ describe("image flow failures", () => {
     } as unknown as UploadFirstLayerResult;
     render(
       <ThemeProvider theme={mockTheme}>
-        <IdeaStep onStartBlank={jest.fn()} upload={upload} />
+        <IdeaStep
+          onStartBlank={jest.fn()}
+          upload={upload}
+          look={{ availability: "ready" } as never}
+        />
       </ThemeProvider>
     );
     expect(screen.getByText("The file could not be uploaded.")).toBeTruthy();

@@ -120,6 +120,7 @@ jest.mock("../../../../stores/AssetStore", () => ({
 }));
 
 import * as imageSetupFlow from "../useImageSetupFlow";
+import * as generateVariationsModule from "../../../../hooks/sketch/useGenerateVariations";
 import { useOnboardingStore } from "../../../../stores/OnboardingStore";
 import { useSketchSessionStore } from "../../../../stores/sketch/SketchSessionStore";
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -167,7 +168,7 @@ beforeEach(() => {
 });
 
 describe("resume by stage (criterion 2)", () => {
-  it.each(["idea", "useCase", "review"] as const)(
+  it.each(["useCase", "review"] as const)(
     "offers a language model picker at %s and uses the choice for refinement",
     async (stage) => {
       useGlobalChatStore.setState({ selectedModel: undefined });
@@ -182,9 +183,6 @@ describe("resume by stage (criterion 2)", () => {
       expect(useGlobalChatStore.getState().selectedModel?.id).toBe(
         "brief-model"
       );
-      if (stage === "idea") {
-        await userEvent.click(screen.getByRole("button", { name: "Continue" }));
-      }
       jest.mocked(rpcRequest).mockClear();
       await userEvent.click(
         screen.getByRole("button", {
@@ -679,7 +677,9 @@ describe("upload in flight", () => {
         new File(["bytes"], "reference.png", { type: "image/png" })
       );
       await waitFor(() => expect(createAsset).toHaveBeenCalled());
-      expect(screen.getByRole("button", { name: /^Continue/ })).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Refine step by step" })
+      ).toBeDisabled();
 
       await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
       await act(async () => {
@@ -997,5 +997,149 @@ describe("focus across the sheet", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+// The quick path: the idea step renders the sentence with the look's defaults,
+// and the full path is one click away.
+describe("quick path from the idea step", () => {
+  const MODEL = {
+    type: "image_model",
+    id: "model-1",
+    name: "Model One",
+    provider: "prov"
+  };
+
+  const spyGenerate = () => {
+    const generateVariations = jest.fn(
+      async (
+        _request: generateVariationsModule.VariationRequest,
+        _options?: generateVariationsModule.GenerateVariationsOptions
+      ): Promise<generateVariationsModule.GeneratedVariation[]> => []
+    );
+    const spy = jest
+      .spyOn(generateVariationsModule, "useGenerateVariations")
+      .mockReturnValue({ generateVariations });
+    return { generateVariations, spy };
+  };
+
+  it("generates the typed brief with the footer's model", async () => {
+    setModels([MODEL]);
+    seed({
+      stage: "idea",
+      brief: "a dripper",
+      image_provider: "prov",
+      image_model: "model-1",
+      // Written from another sentence, so it must not render.
+      refined: {
+        subject: "a teapot",
+        composition: "",
+        lighting: "",
+        style_words: "",
+        negative: ""
+      },
+      refined_from: "stale"
+    });
+    const { generateVariations, spy } = spyGenerate();
+    jest.mocked(rpcRequest).mockClear();
+    try {
+      renderOverlay();
+      expect(
+        screen.getByRole("button", { name: "Model One" })
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Generate your image" })
+      );
+      await waitFor(() => expect(generateVariations).toHaveBeenCalled());
+      expect(generateVariations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: "a dripper",
+          provider: "prov",
+          model: "model-1",
+          width: 1024,
+          height: 1024,
+          count: 1
+        }),
+        expect.anything()
+      );
+      expect(rpcRequest).not.toHaveBeenCalledWith(
+        "generate_text",
+        expect.anything(),
+        undefined,
+        expect.any(AbortSignal)
+      );
+      expect(useSketchStore.getState().document.setup?.stage).toBe("idea");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("moves the canvas to a size the model accepts", async () => {
+    setModels([{ ...MODEL, aspect_ratios: ["3:2"] } as typeof MODEL]);
+    seed({
+      stage: "idea",
+      brief: "a dripper",
+      image_provider: "prov",
+      image_model: "model-1"
+    });
+    const { generateVariations, spy } = spyGenerate();
+    try {
+      renderOverlay();
+      await userEvent.click(
+        screen.getByRole("button", { name: "Generate your image" })
+      );
+      await waitFor(() => expect(generateVariations).toHaveBeenCalled());
+      const canvas = useSketchStore.getState().document.canvas;
+      expect(canvas.width).toBeGreaterThan(canvas.height);
+      expect(generateVariations).toHaveBeenCalledWith(
+        expect.objectContaining({ aspectRatio: "3:2" }),
+        expect.anything()
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("takes the full path without a model call", async () => {
+    jest.mocked(rpcRequest).mockClear();
+    seed({ stage: "idea", brief: "a dripper" });
+    renderOverlay();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Refine step by step" })
+    );
+    expect(
+      screen.getByRole("heading", { name: "What is it for?" })
+    ).toBeInTheDocument();
+    expect(useSketchStore.getState().document.setup?.stage).toBe("useCase");
+    expect(rpcRequest).not.toHaveBeenCalled();
+  });
+
+  it("says why it cannot generate when no image provider is connected", () => {
+    seed({ stage: "idea", brief: "a dripper" });
+    renderOverlay();
+    expect(screen.getByText(/No image provider is connected/)).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Generate your image" })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Refine step by step" })
+    ).toBeEnabled();
+  });
+
+  it("asks for a brief before anything else", () => {
+    setModels([MODEL]);
+    seed({
+      stage: "idea",
+      brief: "",
+      image_provider: "prov",
+      image_model: "model-1"
+    });
+    renderOverlay();
+    expect(
+      screen.getByText("Describe the image, or upload one to edit")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Generate your image" })
+    ).toBeDisabled();
   });
 });
