@@ -5,6 +5,7 @@
  * pause/duration layout, unvoiced-line skipping, and the empty-script guard.
  */
 
+import { buildScriptTimeline } from "@nodetool-ai/timeline";
 import {
   exportScriptSubtitles,
   scriptSubtitleEntries
@@ -51,7 +52,7 @@ const draft = (lines: ScriptLine[]): ScriptDraft => ({
 });
 
 describe("scriptSubtitleEntries", () => {
-  it("keeps only voiced lines with text, in document order", () => {
+  it("keeps every voiced line, in document order", () => {
     const script = draft([
       line({
         id: "l1",
@@ -68,8 +69,42 @@ describe("scriptSubtitleEntries", () => {
       })
     ]);
     const entries = scriptSubtitleEntries(script);
-    expect(entries).toHaveLength(1);
+    // The blank line's take still plays, so it keeps its slot in the layout.
+    expect(entries).toHaveLength(2);
     expect(entries[0]).toMatchObject({ text: "Voiced.", durationMs: 1200 });
+  });
+
+  it("keeps later cues in step with the audio after a blank voiced line", () => {
+    const script = draft([
+      line({
+        id: "l1",
+        text: "First.",
+        currentTakeId: "t1",
+        takes: [take({ id: "t1", durationMs: 1000 })]
+      }),
+      line({
+        id: "l2",
+        text: "",
+        currentTakeId: "t2",
+        takes: [take({ id: "t2", durationMs: 1000 })]
+      }),
+      line({
+        id: "l3",
+        text: "Third.",
+        currentTakeId: "t3",
+        takes: [take({ id: "t3", durationMs: 1000 })]
+      })
+    ]);
+    const audio = buildScriptTimeline({
+      scriptId: script.id,
+      cast: script.cast,
+      sections: script.sections
+    });
+    const third = audio.clips.find((clip) => clip.scriptLineId === "l3");
+    expect(third?.startMs).toBe(2000);
+    const result = exportScriptSubtitles(script);
+    expect(result?.cueCount).toBe(2);
+    expect(result?.text).toContain("00:00:02,000 --> 00:00:03,000\nThird.");
   });
 });
 

@@ -950,3 +950,63 @@ describe("useScriptServerSync — notices that arrive during an in-flight save",
     rendered.unmount();
   });
 });
+
+describe("useScriptServerSync — undo after a clean reload", () => {
+  // Earlier cases leave checkpoints for the same script id behind.
+  beforeEach(() => useScriptStore.setState({ history: {} }));
+
+  const lines = (first: string, second: string) => [
+    { id: "L1", text: first, takes: [] },
+    { id: "L2", text: second, takes: [] }
+  ];
+  const response = (first: string, second: string, updatedAt: string) => ({
+    id: "script-1",
+    name: "Saved script",
+    document: { cast: [], sections: [{ id: "sec-1", lines: lines(first, second) }] },
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt
+  });
+
+  it("keeps an external edit that a clean editor reloaded when undoing its own edit", async () => {
+    getQuery.mockResolvedValue(response("one", "two", "rev-1"));
+    const rendered = renderHook(() => useScriptServerSync("script-1"));
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+
+    act(() => {
+      useScriptStore.getState().patchLine("script-1", "L1", { text: "mine" });
+    });
+    // The autosave lands, so the editor is clean again.
+    await waitFor(
+      () =>
+        expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-2"),
+      { timeout: 3000 }
+    );
+
+    // Another writer changes the other line; the clean editor reloads it.
+    getQuery.mockResolvedValue(response("mine", "agent", "rev-3"));
+    await act(async () => {
+      handleDocumentResourceChange("script", {
+        event: "updated",
+        id: "script-1",
+        updatedAt: "rev-3",
+        ops: [{ tool: "set_line_text", input: { line_id: "L2", text: "agent" } }]
+      });
+    });
+    await waitFor(() =>
+      expect(
+        useScriptStore.getState().scripts["script-1"]?.sections[0]?.lines[1]?.text
+      ).toBe("agent")
+    );
+
+    act(() => useScriptStore.getState().undo("script-1"));
+    expect(
+      useScriptStore.getState().scripts["script-1"]?.sections[0]?.lines.map(
+        (line) => line.text
+      )
+    ).toEqual(["one", "agent"]);
+
+    rendered.unmount();
+  });
+});

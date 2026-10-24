@@ -45,6 +45,7 @@ import {
   ICON_SIZE
 } from "../ui_primitives";
 import { formatDuration } from "../../utils/formatUtils";
+import { getErrorMessage } from "../../utils/errorHandling";
 import { useInStudio } from "../../studio/StudioContext";
 import {
   useScript,
@@ -427,6 +428,24 @@ const SectionBlockInner = ({
           </Box>
         )}
       </FlexRow>
+      {/* An empty section has no rows or seams to drop on: while a line is
+          dragged it shows one drop zone. */}
+      {section.lines.length === 0 && dragActive && !readOnly && (
+        <Box
+          aria-hidden
+          data-empty-section-drop={section.id}
+          onDragOver={onGapDragOver(null)}
+          onDrop={onGapDrop}
+          sx={{
+            marginLeft: `${inset}px`,
+            height: CONTROL.height.md,
+            borderRadius: BORDER_RADIUS.lg,
+            border: "1px dashed",
+            borderColor: isTarget(null) ? "primary.main" : "divider",
+            transition: MOTION.border
+          }}
+        />
+      )}
       {/* The section's lines read as one sheet, a hairline between rows. */}
       {section.lines.length > 0 && (
       <Box
@@ -646,6 +665,7 @@ const VoicingStrip = ({
     })
   );
   const [retrying, setRetrying] = useState<readonly string[]>([]);
+  const [retryError, setRetryError] = useState<string | null>(null);
   const live = useVoicingLive(scriptId);
   // Voicing refuses while a write replaces the lines.
   const writing = useScriptWriting(scriptId);
@@ -655,9 +675,18 @@ const VoicingStrip = ({
   const retry = useCallback(
     (lineIds: readonly string[]) => {
       setRetrying(lineIds);
-      void retryVoicing(scriptId, lineIds).finally(() => setRetrying([]));
+      setRetryError(null);
+      // A refused retry (another tab voicing, a write in progress) has to say
+      // so; left to `.finally` it became an unhandled rejection.
+      void retryVoicing(scriptId, lineIds)
+        .catch((error: unknown) =>
+          setRetryError(
+            getErrorMessage(error, t("i18n-next25.script.line.voicingFailed"))
+          )
+        )
+        .finally(() => setRetrying([]));
     },
-    [scriptId]
+    [scriptId, t]
   );
 
   if (!run || (run.total === 0 && run.failed.length === 0)) {
@@ -751,6 +780,7 @@ const VoicingStrip = ({
             ))}
           </FlexColumn>
         )}
+        {retryError && <Caption color="error">{retryError}</Caption>}
         {readOnly || run.failed.length < 2 ? null : (
           <FlexRow>
             <EditorButton
@@ -788,8 +818,7 @@ const ScriptDocumentPane = ({
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
   const moveLine = useScriptStore((s) => s.moveLine);
-  const insertLine = useScriptStore((s) => s.insertLine);
-  const patchLine = useScriptStore((s) => s.patchLine);
+  const splitLine = useScriptStore((s) => s.splitLine);
   const removeLine = useScriptStore((s) => s.removeLine);
   const undo = useScriptStore((s) => s.undo);
   const redo = useScriptStore((s) => s.redo);
@@ -804,6 +833,7 @@ const ScriptDocumentPane = ({
   const focusedLineId = useScriptLineFocus(scriptId, sections.length > 0);
   const highlightedLineId = currentLineId ?? focusedLineId;
   const [voicingAll, setVoicingAll] = useState(false);
+  const [voiceAllError, setVoiceAllError] = useState<string | null>(null);
   // A run started elsewhere in this page, such as the guided flow's last step,
   // is voicing these lines already: a second Voice all would pay for them twice.
   const voicingLive = useVoicingLive(scriptId);
@@ -870,27 +900,12 @@ const ScriptDocumentPane = ({
     (lineId: string, nav: LineKeyNav) => {
       const script = useScriptStore.getState().getScript(scriptId);
       if (!script) return;
-      const located = (() => {
-        for (const section of script.sections) {
-          const index = section.lines.findIndex((l) => l.id === lineId);
-          if (index >= 0) return { section, index };
-        }
-        return null;
-      })();
-      if (!located) return;
-      const { section, index } = located;
-      const line = section.lines[index];
-
       if (nav.type === "split") {
-        patchLine(scriptId, lineId, { text: nav.before });
-        const newId = insertLine(scriptId, section.id, index + 1);
-        // Continue the same speaker so a run of dialogue doesn't need
-        // re-tagging after every Enter.
-        patchLine(scriptId, newId, {
-          text: nav.after,
-          speakerId: line.speakerId ?? null
-        });
-        focusLine(newId, "start");
+        // One undo step. The new line continues the same speaker and
+        // direction, so a run of dialogue doesn't need re-tagging after
+        // every Enter.
+        const newId = splitLine(scriptId, lineId, nav.before, nav.after);
+        if (newId) focusLine(newId, "start");
         return;
       }
 
@@ -911,17 +926,23 @@ const ScriptDocumentPane = ({
       const targetId = flatLineIds[pos + nav.dir];
       if (targetId) focusLine(targetId, nav.dir < 0 ? "end" : "start");
     },
-    [scriptId, patchLine, insertLine, removeLine, focusLine]
+    [scriptId, splitLine, removeLine, focusLine]
   );
 
   const onVoiceAll = useCallback(async () => {
     setVoicingAll(true);
+    setVoiceAllError(null);
     try {
       await voiceAll(scriptId);
+    } catch (error) {
+      // voiceAll refuses while a write or another tab holds the script.
+      setVoiceAllError(
+        getErrorMessage(error, t("i18n-next25.script.line.voicingFailed"))
+      );
     } finally {
       setVoicingAll(false);
     }
-  }, [scriptId]);
+  }, [scriptId, t]);
 
   // What the click above is about to spend, over the same lines it will voice.
   const voiceCost = useVoiceCostEstimate(scriptId);
@@ -1246,6 +1267,17 @@ const ScriptDocumentPane = ({
       </Toolbar>
 
       <VoicingStrip scriptId={scriptId} readOnly={readOnly} />
+
+      {!readOnly && voiceAllError && (
+        <AlertBanner
+          severity="error"
+          compact
+          onClose={() => setVoiceAllError(null)}
+          sx={{ marginX: SPACING.md }}
+        >
+          {voiceAllError}
+        </AlertBanner>
+      )}
 
       {!readOnly && assembleError && (
         <AlertBanner

@@ -171,6 +171,59 @@ describe("duplicateLine", () => {
     store.ensureScript(SCRIPT);
     expect(store.duplicateLine(SCRIPT, "missing")).toBeNull();
   });
+
+  it("keeps the target duration", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    const lineId = firstLineId();
+    store.patchLine(SCRIPT, lineId, { text: "cue", targetDurationMs: 2400 });
+    store.duplicateLine(SCRIPT, lineId);
+    const lines = useScriptStore.getState().scripts[SCRIPT].sections[0].lines;
+    expect(lines[1].targetDurationMs).toBe(2400);
+  });
+});
+
+describe("splitLine", () => {
+  it("splits at the caret in one undo step, moving the pause to the new line", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    const lineId = firstLineId();
+    store.patchLine(SCRIPT, lineId, {
+      text: "Hello there",
+      speakerId: "spk1",
+      direction: "warm",
+      pauseAfterMs: 1000
+    });
+    store.appendTake(SCRIPT, lineId, take({ id: "t1" }));
+
+    const newId = useScriptStore
+      .getState()
+      .splitLine(SCRIPT, lineId, "Hello", " there");
+    const lines = useScriptStore.getState().scripts[SCRIPT].sections[0].lines;
+    expect(lines.map((l) => l.id)).toEqual([lineId, newId]);
+    expect(lines[0]).toMatchObject({ text: "Hello", currentTakeId: "t1" });
+    expect(lines[0].pauseAfterMs).toBeUndefined();
+    expect(lines[1]).toMatchObject({
+      text: " there",
+      speakerId: "spk1",
+      direction: "warm",
+      pauseAfterMs: 1000,
+      takes: []
+    });
+
+    useScriptStore.getState().undo(SCRIPT);
+    const restored = useScriptStore.getState().scripts[SCRIPT].sections[0].lines;
+    expect(restored).toHaveLength(1);
+    expect(restored[0]).toMatchObject({ text: "Hello there", pauseAfterMs: 1000 });
+  });
+
+  it("returns null for an unknown line", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    expect(store.splitLine(SCRIPT, "missing", "a", "b")).toBeNull();
+  });
 });
 
 describe("moveLine", () => {
@@ -290,6 +343,47 @@ describe("lineStatus", () => {
       .getState()
       .scripts[SCRIPT].sections[0].lines[0];
     expect(lineStatus(staleLine, eff)).toBe("stale");
+  });
+
+  it("goes stale when the recorded direction or pace changes", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    const lineId = firstLineId();
+    store.patchLine(SCRIPT, lineId, {
+      text: "hello",
+      direction: "warm",
+      voiceOverride: voice("alloy")
+    });
+    store.appendTake(
+      SCRIPT,
+      lineId,
+      take({ id: "t1", directionSnapshot: "warm", speedSnapshot: null })
+    );
+    const current = () => useScriptStore.getState().scripts[SCRIPT].sections[0].lines[0];
+    const eff = voice("alloy");
+    expect(lineStatus(current(), eff, null)).toBe("voiced");
+    expect(lineStatus(current(), eff, 0.85)).toBe("stale");
+
+    store.patchLine(SCRIPT, lineId, { direction: "  warm  " });
+    expect(lineStatus(current(), eff, null)).toBe("voiced");
+    store.patchLine(SCRIPT, lineId, { direction: "angry" });
+    expect(lineStatus(current(), eff, null)).toBe("stale");
+  });
+
+  it("ignores direction and pace on a take that recorded neither", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    const lineId = firstLineId();
+    store.patchLine(SCRIPT, lineId, {
+      text: "hello",
+      direction: "angry",
+      voiceOverride: voice("alloy")
+    });
+    store.appendTake(SCRIPT, lineId, take({ id: "t1" }));
+    const line = useScriptStore.getState().scripts[SCRIPT].sections[0].lines[0];
+    expect(lineStatus(line, voice("alloy"), 1.15)).toBe("voiced");
   });
 });
 

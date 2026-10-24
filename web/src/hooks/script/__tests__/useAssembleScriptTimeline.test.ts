@@ -251,6 +251,30 @@ describe("useAssembleScriptTimeline", () => {
     ]);
   });
 
+  it("creates one sequence when a second click lands while the board loads", async () => {
+    seedVoicedScript("script-1", null);
+    useScriptStore.getState().setStoryboardLink("script-1", "board-slow");
+    let rejectBoard: (error: Error) => void = () => undefined;
+    boardQuery.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectBoard = reject;
+      })
+    );
+    createMutate.mockResolvedValue({ id: "tl-new" });
+    updateMutate.mockResolvedValue({});
+
+    const { result } = renderHook(() => useAssembleScriptTimeline());
+    await act(async () => {
+      const first = result.current.assemble("script-1");
+      const second = result.current.assemble("script-1");
+      await expect(second).rejects.toThrow(/already being assembled/);
+      rejectBoard(new Error("Storyboard not found"));
+      await first;
+    });
+
+    expect(createMutate).toHaveBeenCalledTimes(1);
+  });
+
   describe("opening the timeline tab inside its project", () => {
     const openedTimelineTab = (ref: string) =>
       useWorkspaceTabsStore

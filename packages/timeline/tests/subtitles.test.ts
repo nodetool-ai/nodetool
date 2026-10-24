@@ -20,13 +20,14 @@ describe("assembleSubtitleCues", () => {
     ]);
   });
 
-  it("skips empty-text and non-positive-duration entries", () => {
+  it("gives empty-text entries no cue but keeps their time", () => {
     const cues = assembleSubtitleCues([
-      { text: "   ", durationMs: 1000 },
+      { text: "   ", durationMs: 1000, pauseAfterMs: 200 },
       { text: "Kept.", durationMs: 0 },
       { text: "Real.", durationMs: 800 }
     ]);
-    expect(cues).toEqual([{ startMs: 0, endMs: 800, text: "Real." }]);
+    // The blank entry's audio still plays, so "Real." starts after it.
+    expect(cues).toEqual([{ startMs: 1200, endMs: 2000, text: "Real." }]);
   });
 
   it("emits per-word cues in word granularity, offset by the cursor", () => {

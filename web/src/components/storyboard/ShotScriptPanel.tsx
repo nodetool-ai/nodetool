@@ -36,6 +36,7 @@ import {
 import {
   effectiveVoice,
   lineStatus,
+  useScriptSpeed,
   useLineVoicing,
   type LineStatus,
   type ScriptLine,
@@ -78,7 +79,8 @@ const ScriptLineEntry = ({
   const { t } = useTranslation();
   const voicing = useLineVoicing(line.id);
   const voice = effectiveVoice(line, cast);
-  const status = lineStatus(line, voice);
+  const speed = useScriptSpeed(scriptId);
+  const status = lineStatus(line, voice, speed);
   const meta = STATUS_META[status];
   const speaker = cast.find((s) => s.id === line.speakerId) ?? null;
   const take = line.takes.find((t) => t.id === line.currentTakeId) ?? null;

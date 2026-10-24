@@ -57,8 +57,9 @@ const MIN_CUE_MS = 1;
 
 /**
  * Lay a sequence of voiced entries onto an absolute timeline, producing subtitle
- * cues. Entries run end to end, separated by their `pauseAfterMs`. Empty-text
- * entries and entries with a non-positive duration are skipped.
+ * cues. Entries run end to end, separated by their `pauseAfterMs`. An entry
+ * with a non-positive duration is skipped. An empty-text entry gets no cue but
+ * still takes its time, since its audio still plays in the assembled mix.
  */
 export function assembleSubtitleCues(
   entries: SubtitleEntry[],
@@ -71,7 +72,11 @@ export function assembleSubtitleCues(
   for (const entry of entries) {
     const text = entry.text.trim();
     const durationMs = entry.durationMs;
-    if (!text || durationMs <= 0) continue;
+    if (durationMs <= 0) continue;
+    if (!text) {
+      cursorMs += durationMs + Math.max(0, entry.pauseAfterMs ?? 0);
+      continue;
+    }
 
     if (granularity === "word" && entry.words && entry.words.length > 0) {
       for (const word of entry.words) {

@@ -63,9 +63,9 @@ export const effectiveVoice = (
 };
 
 /**
- * Whether a line needs (re-)voicing: it has no current take, or the text or
- * voice drifted from what that take was voiced from. Staleness is derived,
- * never stored.
+ * Whether a line needs (re-)voicing: it has no current take, or the text,
+ * voice or recorded delivery note drifted from what that take was voiced from.
+ * Staleness is derived, never stored.
  */
 export const needsVoicing = (
   line: ScriptLine,
@@ -75,7 +75,11 @@ export const needsVoicing = (
   if (!take) return true;
   return (
     take.textSnapshot !== line.text ||
-    JSON.stringify(take.voiceSnapshot ?? null) !== JSON.stringify(voice)
+    JSON.stringify(take.voiceSnapshot ?? null) !== JSON.stringify(voice) ||
+    // Only a take that recorded the direction it was voiced with can drift
+    // from it; older takes and paths that send no direction record none.
+    (take.directionSnapshot !== undefined &&
+      take.directionSnapshot !== (line.direction?.trim() ?? ""))
   );
 };
 
