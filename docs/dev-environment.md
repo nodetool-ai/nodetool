@@ -1,7 +1,8 @@
 # Development environment gotchas
 
-Two setups where a plain `npm install` or a plain test run does not work:
-locked-down containers, and machines without a Vulkan driver. The everyday
+Setups where a plain `npm install` or a plain test run does not work:
+locked-down containers, machines without a Vulkan driver, and the native VST
+instrument host. The everyday
 setup is [AGENTS.md § Prerequisites](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#prerequisites).
 
 ### TypeScript compiler roles
@@ -203,3 +204,45 @@ Then run the tests as usual. Lavapipe is a software rasterizer, so it is slow
 but exact — pixel comparisons (`nodetool.compare.CompareImages`) are
 reproducible under it, which is what
 `packages/base-nodes/tests/image-examples-run.test.ts` relies on.
+
+### VST instrument host
+
+Timeline tracks play VST3 instruments only in the desktop app, through
+NodeToolVstHost, a JUCE helper in [`native/vst-host`](../native/vst-host/README.md).
+`npm install` does not build it. Without it the app runs normally and the VST
+device view says the host is not installed.
+
+Install a C++17 toolchain and CMake 3.22 or later:
+
+| Platform | Install |
+| --- | --- |
+| macOS | `xcode-select --install`, then `brew install cmake` |
+| Windows | Visual Studio 2022 with **Desktop development with C++** (it includes CMake) |
+| Linux (Debian/Ubuntu) | `sudo apt-get install -y build-essential cmake libasound2-dev libx11-dev libxext-dev libxinerama-dev libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev` |
+
+Then build it from `electron/`:
+
+```bash
+npm run build:vst-host            # build and stage electron/vst-host/NodeToolVstHost
+npm run build:vst-host -- --test  # also build and run vst_host_test
+```
+
+The first configure clones JUCE into `native/vst-host/build/`, which takes a
+few minutes. To build without network access, run CMake yourself with
+`-DJUCE_DIR=/path/to/JUCE`. On Windows, run the command from a shell where
+`cmake` is on `PATH`, such as the Developer PowerShell for VS 2022.
+
+`npm run electron:dev` finds the staged helper in `electron/vst-host/`. To use
+a helper built elsewhere, set `NODETOOL_VST_HOST` to the executable before
+starting the app. The browser build (`npm run dev`) never hosts plug-ins.
+
+The helper scans the standard VST3 folders (listed in the
+[helper README](../native/vst-host/README.md#plug-in-folders)). With no
+instrument installed, the test build gives you one: copy
+`native/vst-host/build/ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3`
+into your user VST3 folder (`~/.vst3` on Linux, `~/Library/Audio/Plug-Ins/VST3`
+on macOS), then press **Rescan** in the VST device view.
+
+On a headless Linux box, rendering works without a display, but the plug-in
+window needs an X server and a window manager. Under Xvfb, start one (for
+example `openbox`) or JUCE fails with an X `BadAtom` error.

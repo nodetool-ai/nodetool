@@ -20,14 +20,8 @@ code is in [`source/VstHost.cpp`](source/VstHost.cpp).
 
 ## Build and test
 
-Needs CMake 3.22 or later and a C++17 compiler. On Linux, install the JUCE
-build dependencies first:
-
-```bash
-sudo apt-get install -y libasound2-dev libx11-dev libxext-dev libxinerama-dev \
-  libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev
-```
-
+The toolchain per platform is in
+[Dev Environment § VST instrument host](../../docs/dev-environment.md#vst-instrument-host).
 From `electron/`:
 
 ```bash
@@ -53,6 +47,3 @@ The helper scans the standard VST3 folders:
 | macOS | `~/Library/Audio/Plug-Ins/VST3`, `/Library/Audio/Plug-Ins/VST3` |
 | Windows | `C:\Program Files\Common Files\VST3` |
 | Linux | `~/.vst3`, `/usr/lib/vst3`, `/usr/local/lib/vst3` |
-
-On Linux the plug-in window needs a running window manager. Rendering works
-without a display.
