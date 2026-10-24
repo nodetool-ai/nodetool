@@ -17502,6 +17502,7 @@
         "bypass": "{{title}} umgehen",
         "enable": "{{title}} aktivieren",
         "open": "{{title}} öffnen",
+        "remove": "{{title}} entfernen",
         "add": "Effekt zu {{channel}} hinzufügen"
       }
     }

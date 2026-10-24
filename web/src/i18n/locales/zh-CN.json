@@ -17502,6 +17502,7 @@
         "bypass": "旁通 {{title}}",
         "enable": "启用 {{title}}",
         "open": "打开 {{title}}",
+        "remove": "移除 {{title}}",
         "add": "向 {{channel}} 添加效果"
       }
     }

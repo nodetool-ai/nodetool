@@ -341,7 +341,7 @@ const AddEffectCard: React.FC<{ onAdd: (effect: TrackEffect["type"] | TrackEffec
           {FABLE_FX_KINDS.map((kind) => (
             <MenuItemPrimitive
               key={`fable:${kind}`}
-              label={`FableSynth ${FABLE_FX_LABELS[kind]}`}
+              label={FABLE_FX_LABELS[kind]}
               onClick={() => {
                 close();
                 onAdd(makeFableEffect(kind));
