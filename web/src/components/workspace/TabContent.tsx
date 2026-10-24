@@ -52,6 +52,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
           workflowId={tab.ref}
           mode={tab.mode}
           active={active}
+          tab={tab}
         />
       );
     case "image":

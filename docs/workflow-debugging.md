@@ -95,7 +95,7 @@ Every NodeTool workflow is stored as JSON. Inspecting this JSON can help debug c
 ### Exporting Workflow JSON
 
 1. Open your workflow in the editor
-2. Open the composer's **⋮** menu and choose **Download JSON**. The command menu (`Ctrl/⌘ + K`) has **Download Workflow as JSON** and **Copy Workflow as JSON**.
+2. Open the **⋮** menu in the document bar and choose **Download JSON**. The command menu (`Ctrl/⌘ + K`) has **Download Workflow as JSON** and **Copy Workflow as JSON**.
 3. Save the `.json` file
 4. Open in any text editor or JSON viewer
 
@@ -358,7 +358,7 @@ Three `nodetool` commands cover the same ground without the editor. See the [CLI
 | **Run Node / Run Selected** | Test part of a graph | Right-click a node or selection |
 | **Disable Node** | Exclude part of a graph from a run | `B` |
 | **Versions panel** | Compare or restore earlier saves | Bottom panel → Versions |
-| **JSON export** | Inspect workflow structure | ⋮ menu → Download JSON |
+| **JSON export** | Inspect workflow structure | Document bar ⋮ → Download JSON |
 | **Log Viewer** | Backend log (desktop) | Tools → Log Viewer |
 | **Debug logging** | CLI debugging | `NODETOOL_LOG_LEVEL=debug nodetool serve` |
 | **`nodetool validate` / `debug`** | Headless checks | Terminal |

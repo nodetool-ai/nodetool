@@ -9,26 +9,16 @@ import { CountBadge, Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS, SPACING,
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import BoltIcon from "@mui/icons-material/Bolt";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import LayoutIcon from "@mui/icons-material/AutoFixHigh";
-import MapIcon from "@mui/icons-material/Map";
-import SaveIcon from "@mui/icons-material/Save";
-import DownloadIcon from "@mui/icons-material/Download";
-import LinearScaleIcon from "@mui/icons-material/LinearScale";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
-import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
-import TerminalIcon from "@mui/icons-material/Terminal";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import MobilePaneMenu from "../menus/MobilePaneMenu";
@@ -39,13 +29,13 @@ import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
 import { useCanvasSideInsets } from "../../hooks/useCanvasSideInsets";
-import { useWorkflowApp } from "../../hooks/useWorkflowApp";
-import { useWorkflowScriptExport } from "../../hooks/useWorkflowScriptExport";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import useCanvasChatDockStore from "../../stores/CanvasChatDockStore";
 import { HEADER_HEIGHT } from "../../config/constants";
+import { useCanvasConversation } from "../../hooks/useCanvasConversation";
+import { DOCUMENT_BAR_HEIGHT } from "../ui_primitives";
 import CanvasChatWindow from "./CanvasChatWindow";
 import TriggerActivationButton from "./TriggerActivationButton";
 
@@ -165,29 +155,6 @@ const actionStyles = (theme: Theme) =>
 
     ".composer-stop:hover": {
       color: theme.vars.palette.warning.main
-    },
-
-    ".composer-convo": {
-      position: "relative",
-      ".convo-badge": {
-        position: "absolute",
-        top: "-2px",
-        right: "-2px",
-        minWidth: "15px",
-        height: "15px",
-        padding: `0 ${getSpacingPx(SPACING.xs)}`, // was 0 3px
-        boxSizing: "border-box",
-        borderRadius: BORDER_RADIUS.pill,
-        backgroundColor: theme.vars.palette.grey[600],
-        color: theme.vars.palette.grey[50],
-        border: `2px solid ${theme.vars.palette.divider}`,
-        fontSize: "var(--fontSizeSmaller)",
-        fontWeight: 600,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        lineHeight: 1
-      }
     }
   });
 
@@ -210,11 +177,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const {
     handleRun,
     handleStop,
-    handleSave,
-    handleDownload,
     handleAutoLayout,
     handleToggleNodeMenu,
-    handleToggleMiniMap,
     isWorkflowRunning,
     isWorkflowActive,
     runControlLabel,
@@ -224,17 +188,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     pendingRunCount
   } = useFloatingToolbarActions();
 
-  const {
-    openWorkflowApp,
-    hasApp,
-    isPending: isAppPending
-  } = useWorkflowApp();
-  const { convertToJsScript, downloadNodeScript, isExporting } =
-    useWorkflowScriptExport();
-  const appActionLabel = hasApp ? t("i18n-cont-panels-12.toolbar.openApp") : t("i18n-cont-panels-12.toolbar.makeApp");
-  const appActionTooltip = hasApp
-    ? t("i18n-cont-panels-12.toolbar.openWorkflowApp")
-    : t("i18n-cont-panels-12.toolbar.makeWorkflowApp");
   const translatedRunControlLabel = runControlLabel.startsWith("Error")
     ? t("i18n-cont-panels-12.toolbar.errorRetry")
     : runControlLabel.startsWith("Queued #")
@@ -262,17 +215,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   );
   const { left: leftPanelWidth, right: inspectorWidth } = useCanvasSideInsets();
 
-  const { instantUpdate, setInstantUpdate, editorViewMode, setEditorViewMode } =
-    useSettingsStore(
-      useShallow((state) => ({
-        instantUpdate: state.settings.instantUpdate,
-        setInstantUpdate: state.setInstantUpdate,
-        editorViewMode: state.settings.editorViewMode,
-        setEditorViewMode: state.setEditorViewMode
-      }))
-    );
-
-  const isMiniMapVisible = useMiniMapStore((state) => state.visible);
+  const { instantUpdate, setInstantUpdate, editorViewMode } = useSettingsStore(
+    useShallow((state) => ({
+      instantUpdate: state.settings.instantUpdate,
+      setInstantUpdate: state.setInstantUpdate,
+      editorViewMode: state.settings.editorViewMode
+    }))
+  );
 
   const workflow = useNodes((state) => state.workflow);
 
@@ -280,25 +229,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   // Chat window: floats over the canvas, showing the active chat thread and
   // the prompt. It opens whenever a message is sent or a generation starts,
-  // and closes back to the toolbar's chat button. Only the canvas workflow
-  // thread counts: a side-panel assistant (code, sketch, …) streams on its
-  // own thread and must not open this window.
-  const { conversationCount, chatBusy } =
-    useGlobalChatStore(
-      useShallow((state) => {
-        const threadId =
-          (workflow?.id ? state.workflowThreadId[workflow.id] : null) ??
-          state.currentThreadId;
-        const runtime = threadId ? state.threadRuntime[threadId] : undefined;
-        return {
-          conversationCount: threadId
-            ? state.messageCache[threadId]?.length ?? 0
-            : 0,
-          chatBusy:
-            runtime?.status === "loading" || runtime?.status === "streaming"
-        };
-      })
-    );
+  // and closes back to the chat toggle in the document bar.
+  const { chatBusy } = useCanvasConversation(workflow?.id);
 
   // Bind the canvas chat to the open workflow: chat threads are scoped per
   // workflow, so switching workflows switches to that workflow's most recent
@@ -333,12 +265,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   }, []);
   // The open flag lives in the dock store so the keyboard shortcut ("o") and
   // command menu can toggle the window too.
-  const { conversationCollapsed, setConversationCollapsed, toggleConversation } =
+  const { conversationCollapsed, setConversationCollapsed } =
     useCanvasChatDockStore(
       useShallow((state) => ({
         conversationCollapsed: state.conversationCollapsed,
-        setConversationCollapsed: state.setConversationCollapsed,
-        toggleConversation: state.toggleConversation
+        setConversationCollapsed: state.setConversationCollapsed
       }))
     );
   useEffect(() => {
@@ -352,11 +283,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     [setConversationCollapsed]
   );
 
-  // The window hangs from the canvas's top-right corner, clear of an open
+  // The window hangs from the canvas's top-right corner, under the document
+  // bar, clear of an open
   // inspector, and stops above the workflow toolbar.
   const toolbarBottom = toolbarPosition.bottom;
   const chatWindowAnchor = useMemo(() => {
-    const top = HEADER_HEIGHT + CHAT_WINDOW_GAP;
+    const top = HEADER_HEIGHT + DOCUMENT_BAR_HEIGHT + CHAT_WINDOW_GAP;
     return {
       top,
       right: inspectorWidth + CHAT_WINDOW_GAP,
@@ -386,10 +318,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const handleToggleInstantUpdate = useCallback(() => {
     setInstantUpdate(!instantUpdate);
   }, [instantUpdate, setInstantUpdate]);
-
-  const handleToggleViewMode = useCallback(() => {
-    setEditorViewMode(editorViewMode === "graph" ? "chain" : "graph");
-  }, [editorViewMode, setEditorViewMode]);
 
   // Shown in the legacy editor (/editor) and the unified workspace (/workspace).
   if (!path.startsWith("/editor") && !path.startsWith("/workspace")) {
@@ -431,54 +359,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           />
         )}
 
-        <ToolbarIconButton
-          className="composer-convo"
-          icon={
-            <>
-              <ForumOutlinedIcon />
-              {conversationCount > 0 && (
-                <span className="convo-badge" aria-hidden>
-                  {conversationCount}
-                </span>
-              )}
-            </>
-          }
-          tooltip={conversationOpen ? t("i18n-cont-panels-12.toolbar.hideConversation") : t("i18n-cont-panels-12.toolbar.showConversation")}
-          tooltipPlacement="top"
-          ariaLabel={t("i18n-cont-panels-12.toolbar.toggleConversation")}
-          active={conversationOpen}
-          onClick={toggleConversation}
-        />
-
-        {/* On mobile Auto Layout and Save move into the ⋮ menu to keep the
-            toolbar within a phone-width row. */}
+        {/* On mobile Auto Layout moves into the ⋮ menu to keep the toolbar
+            within a phone-width row. */}
         {editorViewMode === "graph" && !isMobile && (
           <ToolbarIconButton
             icon={<LayoutIcon />}
             tooltip={t("i18n-cont-panels-12.toolbar.autoLayout")}
             tooltipPlacement="top"
             onClick={handleAutoLayout}
-          />
-        )}
-
-        {!isMobile && (
-          <ToolbarIconButton
-            icon={<SaveIcon />}
-            tooltip={t("i18n-cont-panels-12.toolbar.save")}
-            tooltipPlacement="top"
-            ariaLabel={t("i18n-cont-panels-12.toolbar.saveWorkflow")}
-            onClick={handleSave}
-          />
-        )}
-
-        {!isMobile && (
-          <ToolbarIconButton
-            icon={<DashboardCustomizeOutlinedIcon />}
-            tooltip={appActionTooltip}
-            tooltipPlacement="top"
-            ariaLabel={appActionLabel}
-            onClick={() => void openWorkflowApp()}
-            loading={isAppPending}
           />
         )}
 
@@ -579,17 +467,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         paperSx={{ minWidth: 220, maxWidth: 280 }}
       >
         <MenuItemPrimitive
-          label={editorViewMode === "graph" ? t("i18n-cont-panels-12.toolbar.chainView") : t("i18n-cont-panels-12.toolbar.graphView")}
-          icon={
-            editorViewMode === "graph" ? (
-              <LinearScaleIcon fontSize="small" />
-            ) : (
-              <AccountTreeIcon fontSize="small" />
-            )
-          }
-          onClick={runWithClose(handleToggleViewMode)}
-        />
-        <MenuItemPrimitive
           label={t("i18n-cont-panels-12.toolbar.instantUpdate")}
           icon={<BoltIcon fontSize="small" />}
           secondary={instantUpdate ? t("i18n-cont-panels-12.toolbar.on") : t("i18n-cont-panels-12.toolbar.off")}
@@ -609,42 +486,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onClick={runWithClose(handleAutoLayout)}
           />
         )}
-        {isMobile && (
-          <MenuItemPrimitive
-            label={t("i18n-cont-panels-12.toolbar.save")}
-            icon={<SaveIcon fontSize="small" />}
-            onClick={runWithClose(handleSave)}
-          />
-        )}
-        <MenuItemPrimitive
-          label={appActionLabel}
-          icon={<DashboardCustomizeOutlinedIcon fontSize="small" />}
-          disabled={isAppPending}
-          onClick={runWithClose(() => void openWorkflowApp())}
-        />
-        <MenuItemPrimitive
-          label={t("i18n-cont-panels-12.toolbar.miniMap")}
-          icon={<MapIcon fontSize="small" />}
-          secondary={isMiniMapVisible ? t("i18n-cont-panels-12.toolbar.visible") : t("i18n-cont-panels-12.toolbar.hidden")}
-          onClick={runWithClose(handleToggleMiniMap)}
-        />
-        <MenuItemPrimitive
-          label={t("i18n-cont-panels-12.toolbar.downloadJson")}
-          icon={<DownloadIcon fontSize="small" />}
-          onClick={runWithClose(handleDownload)}
-        />
-        <MenuItemPrimitive
-          label={t("i18n-cont-panels-12.toolbar.convertToJsScript")}
-          icon={<DataObjectOutlinedIcon fontSize="small" />}
-          disabled={isExporting}
-          onClick={runWithClose(() => void convertToJsScript())}
-        />
-        <MenuItemPrimitive
-          label={t("i18n-cont-panels-12.toolbar.downloadNodeScript")}
-          icon={<TerminalIcon fontSize="small" />}
-          disabled={isExporting}
-          onClick={runWithClose(() => void downloadNodeScript())}
-        />
         {isMobile && (
           <MenuItemPrimitive
             label={t("i18n-cont-panels-12.toolbar.panels")}

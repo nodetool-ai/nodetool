@@ -10581,6 +10581,9 @@
       "enqueued": "排队中"
     },
     "toolbar": {
+      "graph": "图",
+      "chain": "链",
+      "viewMode": "编辑器视图",
       "openApp": "打开应用",
       "makeApp": "创建应用",
       "openWorkflowApp": "打开运行此工作流的应用",

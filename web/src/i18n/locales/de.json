@@ -10581,6 +10581,9 @@
       "enqueued": "Eingereiht"
     },
     "toolbar": {
+      "graph": "Graph",
+      "chain": "Kette",
+      "viewMode": "Editoransicht",
       "openApp": "App öffnen",
       "makeApp": "App erstellen",
       "openWorkflowApp": "Die App öffnen, die diesen Workflow ausführt",
