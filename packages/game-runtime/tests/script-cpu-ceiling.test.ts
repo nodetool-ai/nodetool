@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { gameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame } from "../src/sample.js";
 import { prepareGameScripts, scriptSourceKey } from "../src/scripts.js";
@@ -15,6 +15,10 @@ async function fixture() {
     x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxCommands: 8, maxTickMs: 50 };
   return { runner, call, setCpu: (value: number) => { cpu = value; } };
 }
+
+// These tests check the real limits, so they undo the suite-wide scale in vitest.config.ts.
+beforeEach(() => { vi.stubEnv("NODETOOL_GAME_SCRIPT_BUDGET_SCALE", "1"); });
+afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("host-owned script CPU ceiling", () => {
   it.each([{ requested: 50, elapsed: 21, ceiling: 20 }, { requested: Number.NaN, elapsed: 21, ceiling: 20 }, { requested: 5, elapsed: 6, ceiling: 5 }])(

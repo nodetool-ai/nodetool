@@ -1,6 +1,6 @@
 import { setFlagsFromString } from "node:v8";
 import { runInNewContext } from "node:vm";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuickJSContext, QuickJSRuntime } from "quickjs-emscripten-core";
 import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame } from "../src/sample.js";
@@ -22,7 +22,9 @@ const key = scriptSourceKey("room", "worker", 0);
 const call: GameScriptCall = { sourceKey: key, stateKey: key, entityId: "worker", source: "worker", state: null, x: 0, y: 0,
   velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 20, maxCommands: 8 };
 
-afterEach(() => { vi.restoreAllMocks(); });
+// These tests check the real limits, so they undo the suite-wide scale in vitest.config.ts.
+beforeEach(() => { vi.stubEnv("NODETOOL_GAME_SCRIPT_BUDGET_SCALE", "1"); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
 describe("per-call script budget", () => {
   it("creates a fresh context before the call budget starts and evaluates the user source inside it", async () => {
@@ -207,5 +209,21 @@ describe("per-call script clock", () => {
       // The per-call CPU budget and the independent 50 ms batch wall budget both remain enforced.
       expect(defaultScriptCallClock.now() - cpu >= limit || performance.now() - wall >= 50).toBe(true);
     } finally { runner.dispose(); }
+  });
+
+  it("multiplies the call limit by NODETOOL_GAME_SCRIPT_BUDGET_SCALE", async () => {
+    vi.stubEnv("NODETOOL_GAME_SCRIPT_BUDGET_SCALE", "3");
+    const base = fixture();
+    const looping = gameDocument.parse({ ...base, scenes: base.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) =>
+      entity.id === "worker" ? { ...entity, behaviors: [{ kind: "script", source: "({ state }) => { while (true) {} }", maxTickMs: 1, maxCommands: 8 }] } : entity) })) });
+    const runner = await prepareGameScripts(looping);
+    try {
+      expect(() => runner.run([{ ...call, maxTickMs: 1 }], input(0), 1)).toThrow(/interrupted: call 3 ms for worker at tick 0/);
+    } finally { runner.dispose(); }
+  });
+
+  it.each(["0.5", "fast", "Infinity"])("rejects NODETOOL_GAME_SCRIPT_BUDGET_SCALE=%s", async (value) => {
+    vi.stubEnv("NODETOOL_GAME_SCRIPT_BUDGET_SCALE", value);
+    await expect(prepareGameScripts(fixture())).rejects.toThrow(`NODETOOL_GAME_SCRIPT_BUDGET_SCALE must be a number of at least 1, got "${value}"`);
   });
 });
