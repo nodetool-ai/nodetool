@@ -18324,9 +18324,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "完成"
-    },
     "workspaceFile": {
       "invalidReference": "工作区文件引用无效"
     }

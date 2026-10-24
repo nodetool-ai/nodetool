@@ -35,6 +35,7 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   ConflictBanner,
+  EditorButton,
   EditorMenuItem,
   EmptyState,
   FlexColumn,
@@ -43,6 +44,7 @@ import {
   LoadingSpinner,
   Z_INDEX
 } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import SketchEditor, { type SketchEditorHandle } from "./SketchEditor";
 import SaveToFolderMenu from "../assets/SaveToFolderMenu";
@@ -75,8 +77,17 @@ const centered = { flex: 1, width: "100%", height: "100%" } as const;
 
 interface StandaloneSketchEditorProps {
   documentId: string;
-  /** Compact actions rendered inline at the trailing edge of the tool bar. */
+  /**
+   * Compact actions rendered inline at the trailing edge of the tool bar, or
+   * first in the document bar's Actions. With a document bar and none given,
+   * Export PNG takes that place.
+   */
   headerActions?: React.ReactNode;
+  /**
+   * Draws the document bar (a workspace tab). The document autosaves, so the
+   * menu's Save goes away; Cmd/Ctrl+S still forces a save.
+   */
+  documentBar?: DocumentBarRender;
   /**
    * Whether this editor is the focused/visible surface. Drives which instance
    * the singleton sketch hooks resolve to. Defaults to `true` for the
@@ -126,6 +137,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
   function StandaloneSketchEditorBody({
     documentId,
     headerActions,
+    documentBar,
     overlay,
     active = true,
     suspendKeyboardShortcuts = false
@@ -206,6 +218,27 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
       editorRef.current?.exportPng();
     };
 
+    // With a document bar, the document's own primary action (Export PNG, or
+    // the host's) sits in the bar, and Save leaves the menu (autosave).
+    const exportPngInBar = !!documentBar && !headerActions;
+    const primaryAction = documentBar
+      ? (headerActions ?? (
+          <EditorButton
+            variant="contained"
+            density="normal"
+            startIcon={<FileDownloadOutlinedIcon />}
+            onClick={handleExportPng}
+            data-testid="sketch-export-png"
+          >
+            {t("i18n-next52.sketch.document.exportPng")}
+          </EditorButton>
+        ))
+      : headerActions;
+
+    const hiddenMenuKeys = new Set([
+      ...(documentBar ? ["save"] : []),
+      ...(exportPngInBar ? ["export-png"] : [])
+    ]);
     // Document actions live in the tool bar's overflow menu so the editor
     // chrome stays one slim row. "Save as asset" opens a folder popover
     // anchored to its own menu item, so it leaves the menu open and closes
@@ -280,27 +313,34 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
         </ListItemIcon>
         <ListItemText>{t("i18n-next52.sketch.document.importPsd")}</ListItemText>
       </EditorMenuItem>
-    ];
+    ].filter((item) => !hiddenMenuKeys.has(String(item.key)));
 
     // Show the spinner until we've captured a seed for this documentId.
     // Using `seed` (not the live query state) keeps the canvas mounted across
     // any future background query state changes.
     if (!seed || seed.id !== documentId) {
+      const bar = documentBar?.({});
       if (documentQuery.isError) {
         return (
-          <FlexColumn align="center" justify="center" sx={centered}>
-            <EmptyState
-              variant="error"
-              title={t("i18n-next52.sketch.document.notFound")}
-              description={t("i18n-next52.sketch.document.notFoundDescription")}
-            />
-          </FlexColumn>
+          <>
+            {bar}
+            <FlexColumn align="center" justify="center" sx={centered}>
+              <EmptyState
+                variant="error"
+                title={t("i18n-next52.sketch.document.notFound")}
+                description={t("i18n-next52.sketch.document.notFoundDescription")}
+              />
+            </FlexColumn>
+          </>
         );
       }
       return (
-        <FlexColumn align="center" justify="center" sx={centered}>
-          <LoadingSpinner />
-        </FlexColumn>
+        <>
+          {bar}
+          <FlexColumn align="center" justify="center" sx={centered}>
+            <LoadingSpinner />
+          </FlexColumn>
+        </>
       );
     }
 
@@ -313,8 +353,9 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
           documentId={documentId}
           initialDocument={seed.document}
           initialEditorState={initialEditorState ?? undefined}
-          headerActions={headerActions}
+          headerActions={primaryAction}
           menuItems={documentMenuItems}
+          documentBar={documentBar}
           // Inactive workspace tabs stay mounted, so their window key
           // listeners must not act on keys meant for the focused tab.
           suspendKeyboardShortcuts={!active || suspendKeyboardShortcuts}

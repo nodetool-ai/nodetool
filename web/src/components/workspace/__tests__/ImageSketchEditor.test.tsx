@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ImageSketchEditor from "../ImageSketchEditor";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -31,25 +31,20 @@ beforeEach(() => {
 });
 
 describe("ImageSketchEditor", () => {
-  it("saves the strokes to the image before Done leaves the editor", async () => {
+  it("saves the strokes to the image from its one action", async () => {
     save.mockResolvedValue(true);
-    const onClose = jest.fn();
-    render(<ImageSketchEditor asset={asset} onClose={onClose} />);
+    render(<ImageSketchEditor asset={asset} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save to image" })
+    );
 
     expect(save).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
 
-  it("stays in the editor when the save fails", async () => {
-    save.mockResolvedValue(false);
-    const onClose = jest.fn();
-    render(<ImageSketchEditor asset={asset} onClose={onClose} />);
+  it("has no Done button, since View/Edit leaves the editor", () => {
+    render(<ImageSketchEditor asset={asset} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Done" }));
-
-    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
-    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
   });
 });

@@ -18324,9 +18324,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "Done"
-    },
     "workspaceFile": {
       "invalidReference": "Invalid workspace file reference"
     }

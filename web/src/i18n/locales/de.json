@@ -18324,9 +18324,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "Fertig"
-    },
     "workspaceFile": {
       "invalidReference": "Ungültiger Dateiverweis im Arbeitsbereich"
     }

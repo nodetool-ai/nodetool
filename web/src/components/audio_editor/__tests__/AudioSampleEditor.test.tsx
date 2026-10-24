@@ -1,7 +1,14 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within
+} from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import AudioSampleEditor from "../AudioSampleEditor";
+import { DocumentBar } from "../../ui_primitives";
 import type { AudioSample } from "../audioSample";
 import type { Asset } from "../../../stores/ApiTypes";
 import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
@@ -171,6 +178,63 @@ it("saves through onSaveSample and opens on the initial selection", async () => 
       0, 1, 0.5, 0.25
     ]);
     expect(mockSave).not.toHaveBeenCalled();
+  } finally {
+    window.AudioContext = originalContext;
+    global.fetch = originalFetch;
+  }
+});
+
+it("puts the save status, history and Save in the document bar", async () => {
+  const originalContext = window.AudioContext;
+  const originalFetch = global.fetch;
+  window.AudioContext = jest.fn(() => ({
+    decodeAudioData: jest.fn().mockResolvedValue({
+      sampleRate: 1,
+      numberOfChannels: 1,
+      length: 3,
+      getChannelData: () => new Float32Array([0, 0.5, 1])
+    }),
+    suspend: mockSuspend,
+    close: mockClose
+  })) as unknown as typeof AudioContext;
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    arrayBuffer: async () => new ArrayBuffer(0)
+  });
+  mockSave.mockReset();
+  const asset = {
+    id: "audio-bar",
+    get_url: "https://example.test/audio.wav"
+  } as Asset;
+  try {
+    render(
+      <AudioSampleEditor
+        asset={asset}
+        active
+        documentBar={(slots) => <DocumentBar title="take.wav" {...slots} />}
+      />,
+      {
+        wrapper: ({ children }) => (
+          <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+        )
+      }
+    );
+    await screen.findByTestId("sample");
+    const bar = screen.getByRole("toolbar", { name: "take.wav document" });
+    expect(bar).toHaveTextContent("Saved");
+    expect(within(bar).getByRole("button", { name: /save/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByText("Reverse"));
+    expect(bar).toHaveTextContent("Unsaved changes");
+
+    mockSave.mockResolvedValueOnce(false);
+    fireEvent.click(within(bar).getByRole("button", { name: /^save$/i }));
+    await waitFor(() => expect(bar).toHaveTextContent("Not saved"));
+
+    mockSave.mockResolvedValueOnce(true);
+    fireEvent.click(within(bar).getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(bar).toHaveTextContent("Saved"));
+    expect(within(bar).getByRole("button", { name: /undo/i })).toBeEnabled();
   } finally {
     window.AudioContext = originalContext;
     global.fetch = originalFetch;

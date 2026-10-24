@@ -2,6 +2,19 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import AudioSurface from "../AudioSurface";
 
+jest.mock("../WorkspaceDocumentBar", () => ({
+  __esModule: true,
+  default: ({ tab }: { tab: { title: string } }) => (
+    <div role="toolbar" aria-label={`${tab.title} document`} />
+  )
+}));
+const tab = {
+  id: "audio:audio-1",
+  type: "audio" as const,
+  ref: "audio-1",
+  mode: "edit" as const,
+  title: "Doc"
+};
 const mockAssetQuery = jest.fn();
 jest.mock("../../../serverState/useAssetById", () => ({
   useAssetById: () => mockAssetQuery()
@@ -35,11 +48,11 @@ beforeEach(() =>
 );
 
 it("keeps the same edited draft through inactive and View/Edit transitions", () => {
-  const result = render(<AudioSurface refId="audio-1" mode="edit" active />);
+  const result = render(<AudioSurface tab={tab} refId="audio-1" mode="edit" active />);
   fireEvent.change(screen.getByLabelText("Audio draft"), {
     target: { value: "trimmed sample with undo history" }
   });
-  result.rerender(<AudioSurface refId="audio-1" mode="edit" active={false} />);
+  result.rerender(<AudioSurface tab={tab} refId="audio-1" mode="edit" active={false} />);
   expect(screen.getByLabelText("Audio draft")).toHaveValue(
     "trimmed sample with undo history"
   );
@@ -47,8 +60,8 @@ it("keeps the same edited draft through inactive and View/Edit transitions", () 
     "data-active",
     "false"
   );
-  result.rerender(<AudioSurface refId="audio-1" mode="view" active />);
-  result.rerender(<AudioSurface refId="audio-1" mode="edit" active />);
+  result.rerender(<AudioSurface tab={tab} refId="audio-1" mode="view" active />);
+  result.rerender(<AudioSurface tab={tab} refId="audio-1" mode="edit" active />);
   expect(screen.getByLabelText("Audio draft")).toHaveValue(
     "trimmed sample with undo history"
   );
@@ -62,7 +75,7 @@ it("shows a settled metadata error and retries the query", () => {
     isError: true,
     refetch
   });
-  render(<AudioSurface refId="audio-1" mode="view" active />);
+  render(<AudioSurface tab={tab} refId="audio-1" mode="view" active />);
   fireEvent.click(screen.getByText("error"));
   expect(refetch).toHaveBeenCalledTimes(1);
 });
