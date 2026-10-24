@@ -58,14 +58,16 @@ interface ShotTileProps {
 const ShotTile = memo(({ boardId, shot, placement, untitled }: ShotTileProps) => {
   const { t } = useTranslation();
   const timeline = useTimelineStoreApi();
-  const name = shot.slug ?? (shot.action.slice(0, 48) || untitled);
+  // An emptied title is "", which `??` keeps, so the tile would be unnamed.
+  const title = shot.slug?.trim();
+  const name = title || shot.action.slice(0, 48) || untitled;
   const label = `${shotNumber(shot)} · ${name}`;
   const payload = useMemo<StoryboardShotDragPayload | null>(
     () =>
       placement
-        ? { boardId, shotId: shot.id, name: shot.slug ?? `Shot ${shot.index + 1}`, placement }
+        ? { boardId, shotId: shot.id, name: title || `Shot ${shot.index + 1}`, placement }
         : null,
-    [boardId, placement, shot.id, shot.index, shot.slug]
+    [boardId, placement, shot.id, shot.index, title]
   );
 
   const handleDragStart = useCallback(
