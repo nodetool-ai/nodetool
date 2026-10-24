@@ -48,6 +48,10 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { isString } from "../../lib/wire-values.js";
+import {
+  hasDocumentRole,
+  type DocumentRole
+} from "../../lib/document-access.js";
 
 /** A decoded JSON value: what a stored document or graph carries. */
 type JsonValue =
@@ -156,13 +160,21 @@ function assertValidDocument(document: unknown): void {
   }
 }
 
+/**
+ * Load a JS script the caller holds at least `minimum` on: reads take "viewer",
+ * saves "editor", and delete stays with the owner. See lib/document-access.ts.
+ */
 async function loadOwned(
   ctxUserId: string | null,
-  id: string
+  id: string,
+  minimum: DocumentRole = "owner"
 ): Promise<JsScript> {
   if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
   const script = await JsScript.findById(id);
-  if (!script || script.user_id !== ctxUserId) {
+  if (
+    !script ||
+    !(await hasDocumentRole("jsscript", script, ctxUserId, minimum))
+  ) {
     throwApiError(ApiErrorCode.NOT_FOUND, "JS script not found");
   }
   return script;
@@ -211,7 +223,7 @@ export const jsScriptsRouter = router({
     .input(idInput)
     .output(jsScriptResponse)
     .query(async ({ ctx, input }) => {
-      const script = await loadOwned(ctx.userId, input.id);
+      const script = await loadOwned(ctx.userId, input.id, "viewer");
       return jsScriptResponse.parse(script.toResponse());
     }),
 
@@ -253,7 +265,7 @@ export const jsScriptsRouter = router({
     .input(updateInput)
     .output(jsScriptResponse)
     .mutation(async ({ ctx, input }) => {
-      const script = await loadOwned(ctx.userId, input.id);
+      const script = await loadOwned(ctx.userId, input.id, "editor");
 
       // CAS on this value so the conflict check and the write are atomic. When
       // the client supplies baseUpdatedAt, honor it; otherwise fall back to the
@@ -305,7 +317,7 @@ export const jsScriptsRouter = router({
       .input(listJsScriptVersionsInput)
       .output(z.array(jsScriptVersionListItem))
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        await loadOwned(ctx.userId, input.id, "viewer");
         const versions = await JsScriptVersion.listForScript(input.id, {
           limit: input.limit,
           saveType: input.saveType
@@ -317,7 +329,7 @@ export const jsScriptsRouter = router({
       .input(getJsScriptVersionInput)
       .output(jsScriptVersionResponse)
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        await loadOwned(ctx.userId, input.id, "viewer");
         const version = await JsScriptVersion.findByVersion(
           input.id,
           input.version
@@ -335,7 +347,7 @@ export const jsScriptsRouter = router({
       .input(createJsScriptVersionInput)
       .output(jsScriptVersionListItem)
       .mutation(async ({ ctx, input }) => {
-        const script = await loadOwned(ctx.userId, input.id);
+        const script = await loadOwned(ctx.userId, input.id, "editor");
         const version = await JsScriptVersion.snapshot(script, {
           saveType: "manual",
           name: input.name ?? null
@@ -347,7 +359,7 @@ export const jsScriptsRouter = router({
       .input(restoreJsScriptVersionInput)
       .output(restoreJsScriptVersionResponse)
       .mutation(async ({ ctx, input }) => {
-        const script = await loadOwned(ctx.userId, input.id);
+        const script = await loadOwned(ctx.userId, input.id, "editor");
         const version = await JsScriptVersion.findByVersion(
           input.id,
           input.version

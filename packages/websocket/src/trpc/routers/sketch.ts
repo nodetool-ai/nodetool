@@ -61,6 +61,10 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { isString } from "../../lib/wire-values.js";
+import {
+  hasDocumentRole,
+  type DocumentRole
+} from "../../lib/document-access.js";
 
 /** A decoded JSON value: what a stored document or graph carries. */
 type JsonValue =
@@ -182,13 +186,21 @@ export function __resetSketchAutosaveVersionState(): void {
   lastAutosaveVersionTime.clear();
 }
 
+/**
+ * Load a sketch the caller holds at least `minimum` on: reads take "viewer",
+ * saves "editor", and delete stays with the owner. See lib/document-access.ts.
+ */
 async function loadOwned(
   ctxUserId: string | null,
-  id: string
+  id: string,
+  minimum: DocumentRole = "owner"
 ): Promise<ImageDocument> {
   if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
   const doc = await ImageDocument.findById(id);
-  if (!doc || doc.user_id !== ctxUserId) {
+  if (
+    !doc ||
+    !(await hasDocumentRole("sketch", doc, ctxUserId, minimum))
+  ) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
   }
   return doc;
@@ -218,13 +230,15 @@ async function mutateOwnedDocumentData<T>(
   mutator: (data: ImageDocumentData) => T | Promise<T>,
   meta?: ModelChangeMeta
 ): Promise<T> {
-  if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
+  // Editors write layers too. The role is checked against the row as loaded;
+  // the mutator then refuses a row whose owner changed underneath.
+  const { user_id: ownerId } = await loadOwned(ctxUserId, id, "editor");
 
   try {
     const mutation = await ImageDocument.mutateDocumentData(
       id,
       async (data, doc) => {
-        if (doc.user_id !== ctxUserId) {
+        if (doc.user_id !== ownerId) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
         }
         return mutator(data);
@@ -293,7 +307,7 @@ export const sketchRouter = router({
     .input(idInput)
     .output(imageDocumentResponse)
     .query(async ({ ctx, input }) => {
-      const doc = await loadOwned(ctx.userId, input.id);
+      const doc = await loadOwned(ctx.userId, input.id, "viewer");
       return doc.toResponse();
     }),
 
@@ -385,7 +399,7 @@ export const sketchRouter = router({
     .input(updateInput)
     .output(imageDocumentResponse)
     .mutation(async ({ ctx, input }) => {
-      const doc = await loadOwned(ctx.userId, input.id);
+      const doc = await loadOwned(ctx.userId, input.id, "editor");
 
       // CAS on this value so the conflict check and the write are atomic. When
       // the client supplies baseUpdatedAt, honor it; otherwise fall back to the
@@ -470,7 +484,7 @@ export const sketchRouter = router({
       .input(versionsListInput)
       .output(z.array(layerVersion))
       .query(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
+        const doc = await loadOwned(ctx.userId, input.id, "viewer");
         const data = doc.toDocumentData();
         const binding = findBinding(data, input.layerId);
         if (!binding) {
@@ -571,7 +585,7 @@ export const sketchRouter = router({
       .input(listSketchVersionsInput)
       .output(z.array(sketchVersionListItem))
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        await loadOwned(ctx.userId, input.id, "viewer");
         const versions = await ImageDocumentVersion.listForDocument(input.id, {
           limit: input.limit,
           saveType: input.saveType
@@ -583,7 +597,7 @@ export const sketchRouter = router({
       .input(getSketchVersionInput)
       .output(sketchVersionResponse)
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        await loadOwned(ctx.userId, input.id, "viewer");
         const version = await ImageDocumentVersion.findByVersion(
           input.id,
           input.version
@@ -601,7 +615,7 @@ export const sketchRouter = router({
       .input(createSketchVersionInput)
       .output(sketchVersionListItem)
       .mutation(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
+        const doc = await loadOwned(ctx.userId, input.id, "editor");
         const version = await ImageDocumentVersion.snapshot(doc, {
           saveType: "manual",
           name: input.name ?? null
@@ -613,7 +627,7 @@ export const sketchRouter = router({
       .input(restoreSketchVersionInput)
       .output(imageDocumentResponse)
       .mutation(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
+        const doc = await loadOwned(ctx.userId, input.id, "editor");
         const version = await ImageDocumentVersion.findByVersion(
           input.id,
           input.version
@@ -671,7 +685,7 @@ export const sketchRouter = router({
       .input(createLayerInput)
       .output(createLayerResponse)
       .mutation(async ({ ctx, input }) => {
-        const doc = await loadOwned(ctx.userId, input.id);
+        const doc = await loadOwned(ctx.userId, input.id, "editor");
 
         const data = doc.toDocumentData();
         if (findBinding(data, input.layerId)) {

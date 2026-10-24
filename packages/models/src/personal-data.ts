@@ -100,6 +100,10 @@ import { errorTraces } from "./schema/error-traces.js";
 import { exportRunTraceTable, eraseRunTraceTable } from "./run-trace.js";
 import { bugReports } from "./schema/bug-reports.js";
 import {
+  documentCollaborators,
+  documentShares
+} from "./schema/document-sharing.js";
+import {
   workflowCollaborators,
   workflowShares
 } from "./schema/workflow-sharing.js";
@@ -441,6 +445,29 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
     oauthCredentials.user_id
   ),
   directStep("nodetool_secrets", secrets, secrets.user_id),
+
+  // Document sharing. Only an owner mints links, so `created_by` and
+  // `invited_by` name the owner: these sweeps reach both this person's
+  // memberships elsewhere and every link and grant on their own documents.
+  directStep(
+    "nodetool_document_shares",
+    documentShares,
+    documentShares.created_by
+  ),
+  {
+    table: "nodetool_document_collaborators",
+    async run(ctx) {
+      let total = await deleteRows(
+        documentCollaborators,
+        eq(documentCollaborators.user_id, ctx.userId)
+      );
+      total += await deleteRows(
+        documentCollaborators,
+        eq(documentCollaborators.invited_by, ctx.userId)
+      );
+      return deleted("nodetool_document_collaborators", "delete", total);
+    }
+  },
 
   // Sharing, then the workflows the shares point at.
   {
@@ -838,6 +865,14 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   nodetool_user_subscriptions: directExport(
     userSubscriptions,
     userSubscriptions.user_id
+  ),
+  nodetool_document_collaborators: directExport(
+    documentCollaborators,
+    documentCollaborators.user_id
+  ),
+  nodetool_document_shares: directExport(
+    documentShares,
+    documentShares.created_by
   ),
   nodetool_workflow_collaborators: directExport(
     workflowCollaborators,

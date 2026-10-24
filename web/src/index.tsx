@@ -101,6 +101,9 @@ import { SkipLinks } from "./components/ui_primitives";
 const AcceptSharePage = React.lazy(
   () => import("./components/workflows/AcceptSharePage")
 );
+const AcceptDocumentSharePage = React.lazy(
+  () => import("./components/sharing/AcceptDocumentSharePage")
+);
 const PublicWorkflowPage = React.lazy(
   () => import("./components/workflows/PublicWorkflowPage")
 );
@@ -318,6 +321,18 @@ function getRoutes() {
         <ProtectedRoute>
           <React.Suspense fallback={<LoadingSpinner />}>
             <AcceptSharePage />
+          </React.Suspense>
+        </ProtectedRoute>
+      )
+    },
+    {
+      // Redeems a share link for a storyboard, script, timeline, sketch, app
+      // or JS script, then opens it in the workspace.
+      path: "/share/document/:token",
+      element: (
+        <ProtectedRoute>
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <AcceptDocumentSharePage />
           </React.Suspense>
         </ProtectedRoute>
       )

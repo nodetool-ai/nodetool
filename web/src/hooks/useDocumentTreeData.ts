@@ -22,10 +22,19 @@ export interface DocumentTreeLeaf {
   readonly typeLabel: string;
   readonly projectId?: string;
   readonly entity?: Entity;
+  /** Set on a document another user shared with the caller: their role. */
+  readonly sharedRole?: "viewer" | "editor";
 }
 
 export interface DocumentTreeGroup {
-  readonly id: "workflows" | "apps" | "creative" | "text" | "agents" | "entities";
+  readonly id:
+    | "workflows"
+    | "apps"
+    | "creative"
+    | "text"
+    | "agents"
+    | "entities"
+    | "shared";
   readonly label: string;
   readonly children: readonly DocumentTreeLeaf[];
 }
@@ -40,7 +49,7 @@ export interface UseDocumentTreeDataResult {
 const INDEX_STALE_TIME = 30_000;
 
 /** Fallback shown when a document was saved without a name. */
-const UNTITLED: Record<DocumentTreeLeafType, string> = {
+export const UNTITLED_DOCUMENT_NAMES: Record<DocumentTreeLeafType, string> = {
   workflow: "Untitled workflow",
   application: "Untitled app",
   sketch: "Untitled sketch",
@@ -53,7 +62,7 @@ const UNTITLED: Record<DocumentTreeLeafType, string> = {
   text: "Untitled text file"
 };
 
-const TYPE_LABELS: Record<DocumentTreeLeafType, string> = {
+export const DOCUMENT_TYPE_LABELS: Record<DocumentTreeLeafType, string> = {
   workflow: "Workflow",
   application: "App",
   sketch: "Sketch",
@@ -123,7 +132,7 @@ export const useDocumentTreeData = (
     for (const document of indexQuery.data?.documents ?? []) {
       const type = document.type;
       const key = `${type}:${document.id}`;
-      const name = document.name || UNTITLED[type];
+      const name = document.name || UNTITLED_DOCUMENT_NAMES[type];
       const cached = previous.get(key);
       const leaf =
         cached &&
@@ -135,7 +144,7 @@ export const useDocumentTreeData = (
               id: document.id,
               name,
               type,
-              typeLabel: TYPE_LABELS[type],
+              typeLabel: DOCUMENT_TYPE_LABELS[type],
               projectId,
               entity: document.entity
             };

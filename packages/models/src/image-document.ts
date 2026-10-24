@@ -14,6 +14,7 @@ import {
 import { getPortableDb } from "./db.js";
 import { imageDocuments } from "./schema/image-documents.js";
 import { ImageDocumentVersion } from "./image-document-version.js";
+import { removeDocumentSharing } from "./document-sharing.js";
 
 export interface ImageDocumentData {
   sketch: SketchDocumentLike;
@@ -164,6 +165,7 @@ export class ImageDocument extends DBModel {
     const row = await ImageDocument.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
+    await removeDocumentSharing("sketch", id);
     // Belt-and-braces with the FK cascade: version rows outliving their
     // document would be unreachable garbage.
     await ImageDocumentVersion.deleteForDocument(id);

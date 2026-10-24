@@ -13852,7 +13852,8 @@
         "creative": "创意文档",
         "text": "文本文件",
         "agents": "代理和代码",
-        "entities": "实体"
+        "entities": "实体",
+        "shared": "与我共享"
       },
       "type": {
         "workflow": "工作流",
@@ -18763,6 +18764,16 @@
       "timeline": "时间线",
       "model3d": "3D 模型",
       "script": "脚本"
+    }
+  },
+  "shareDocument": {
+    "description": "登录此服务器的任何人打开查看或编辑链接后，都会获得该链接对应的角色。查看者可以打开文档，编辑者还可以保存更改。只有你可以删除文档或更改访问权限。撤销链接后，新用户将无法加入。已加入的用户仍会列在下方。",
+    "shareAction": "共享…",
+    "shareNamed": "共享 {{name}}",
+    "accept": {
+      "invalidLink": "此共享链接无效或已被撤销。请向文档所有者索取新链接。",
+      "goToWorkspace": "前往工作区",
+      "opening": "正在打开共享文档"
     }
   }
 }

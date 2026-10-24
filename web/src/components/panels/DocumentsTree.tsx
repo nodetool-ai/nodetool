@@ -16,6 +16,8 @@ import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined
 import WorkflowIcon from "@mui/icons-material/AccountTreeOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
+import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { colorForType } from "../../config/data_types";
@@ -25,18 +27,24 @@ import {
   type DocumentTreeLeaf,
   type DocumentTreeLeafType
 } from "../../hooks/useDocumentTreeData";
+import { useSharedDocumentGroup } from "../../hooks/useSharedDocumentGroup";
 import { useDeleteDocument } from "../../serverState/useDeleteDocument";
+import { isSharedDocumentType } from "../../serverState/useDocumentSharing";
 import { useDuplicateWorkflowDocument } from "../../hooks/useDuplicateWorkflowDocument";
 import { useOpenApplication } from "../../hooks/useOpenApplication";
 import { useRenameDocument } from "../../hooks/useRenameDocument";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import type { BugReportContext } from "../../utils/bugReportBundle";
+import { openSharedDocument } from "../../lib/openSharedDocument";
 import {
   useWorkspaceTabsStore,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
 import { EntityEditorDialog } from "../entities/EntityEditorDialog";
+import ShareDocumentDialog, {
+  type ShareTarget
+} from "../sharing/ShareDocumentDialog";
 import ReportBugButton from "../support/ReportBugButton";
 import { TYPE_COLOR } from "../workspace/tabTypeIdentity";
 import { tabCanRename } from "../workspace/tabRename";
@@ -97,13 +105,20 @@ const leafCanRename = (type: DocumentTreeLeafType): boolean => {
 const leafCanDelete = (type: DocumentTreeLeafType): boolean =>
   type !== "game";
 
+/** The share target for a leaf, or null for a kind that cannot be shared. */
+const shareTargetFor = (leaf: DocumentTreeLeaf): ShareTarget | null =>
+  leaf.type === "workflow" || isSharedDocumentType(leaf.type)
+    ? { type: leaf.type, id: leaf.id, name: leaf.name }
+    : null;
+
 const GROUP_ICONS: Record<DocumentTreeGroup["id"], SvgIconComponent> = {
   workflows: WorkflowIcon,
   apps: DashboardCustomizeOutlinedIcon,
   creative: BrushOutlinedIcon,
   text: ArticleOutlinedIcon,
   agents: AutoAwesomeIcon,
-  entities: PersonOutlineOutlinedIcon
+  entities: PersonOutlineOutlinedIcon,
+  shared: PeopleOutlineIcon
 };
 
 const LEAF_ICONS: Record<DocumentTreeLeafType, SvgIconComponent> = {
@@ -147,12 +162,15 @@ interface DocumentTreeRowProps {
   readonly onDuplicate?: (document: DocumentTreeLeaf) => void;
   /** Present only for kinds that can be renamed. */
   readonly onRename?: (document: DocumentTreeLeaf, name: string) => void;
+  /** Present only for kinds the owner can share. */
+  readonly onShare?: (document: DocumentTreeLeaf) => void;
 }
 
 const ROW_ACTION_CLASSES = [
   ".documents-tree-delete",
   ".documents-tree-duplicate",
-  ".documents-tree-rename"
+  ".documents-tree-rename",
+  ".documents-tree-share"
 ];
 
 // Memoized: a save refetches the document index, and a project has hundreds of
@@ -163,7 +181,8 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
   onOpen,
   onDelete,
   onDuplicate,
-  onRename
+  onRename,
+  onShare
 }: DocumentTreeRowProps) {
   const { t } = useTranslation();
   const Icon = LEAF_ICONS[leaf.type];
@@ -183,9 +202,13 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
     setEditing(true);
   }, []);
   const handleCloseMenu = useCallback(() => setMenuPosition(null), []);
+  const handleShare = useCallback(() => {
+    setMenuPosition(null);
+    onShare?.(leaf);
+  }, [leaf, onShare]);
   const handleContextMenu = useCallback(
     (event: MouseEvent<HTMLElement>) => {
-      if (!onRename || editing) {
+      if ((!onRename && !onShare) || editing) {
         return;
       }
       event.preventDefault();
@@ -197,7 +220,7 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
       }
       setMenuPosition({ x: event.clientX, y: event.clientY });
     },
-    [editing, onRename]
+    [editing, onRename, onShare]
   );
   const handleCommitRename = useCallback(
     (name: string) => onRename?.(leaf, name),
@@ -308,6 +331,16 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
           className="documents-tree-rename"
         />
       )}
+      {onShare && (
+        <ToolbarIconButton
+          icon={<ShareOutlinedIcon fontSize="small" />}
+          tooltip={t("shareDocument.shareNamed", { name: leaf.name })}
+          aria-label={t("shareDocument.shareNamed", { name: leaf.name })}
+          onClick={handleShare}
+          size="small"
+          className="documents-tree-share"
+        />
+      )}
       {onDuplicate && (
         <ToolbarIconButton
           icon={<ContentCopyIcon fontSize="small" />}
@@ -327,13 +360,18 @@ const DocumentTreeRow = memo(function DocumentTreeRow({
           className="documents-tree-delete"
         />
       )}
-      {onRename && (
+      {(onRename || onShare) && (
         <ContextMenu
           open={menuPosition !== null}
           position={menuPosition}
           onClose={handleCloseMenu}
         >
-          <MenuItemPrimitive label={t("i18n-next31.documents.renameAction")} onClick={handleBeginRename} />
+          {onRename && (
+            <MenuItemPrimitive label={t("i18n-next31.documents.renameAction")} onClick={handleBeginRename} />
+          )}
+          {onShare && (
+            <MenuItemPrimitive label={t("shareDocument.shareAction")} onClick={handleShare} />
+          )}
         </ContextMenu>
       )}
     </FlexRow>
@@ -349,6 +387,7 @@ interface DocumentTreeGroupRowProps {
   readonly onDelete: (document: DocumentTreeLeaf) => void;
   readonly onDuplicate: (document: DocumentTreeLeaf) => void;
   readonly onRename: (document: DocumentTreeLeaf, name: string) => void;
+  readonly onShare: (document: DocumentTreeLeaf) => void;
 }
 
 const DocumentTreeGroupRow = ({
@@ -359,7 +398,8 @@ const DocumentTreeGroupRow = ({
   onOpen,
   onDelete,
   onDuplicate,
-  onRename
+  onRename,
+  onShare
 }: DocumentTreeGroupRowProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -433,19 +473,30 @@ const DocumentTreeGroupRow = ({
       </FlexRow>
       {expanded && (
         <FlexColumn role="group" gap={SPACING.micro}>
-          {group.children.map((document) => (
-            <DocumentTreeRow
-              key={`${document.type}:${document.id}`}
-              leaf={document}
-              active={activeTabId === `${document.type}:${document.id}`}
-              onOpen={onOpen}
-              onDelete={leafCanDelete(document.type) ? onDelete : undefined}
-              onDuplicate={
-                document.type === "workflow" ? onDuplicate : undefined
-              }
-              onRename={leafCanRename(document.type) ? onRename : undefined}
-            />
-          ))}
+          {group.children.map((document) =>
+            // Someone else's document: open it, nothing else from here.
+            document.sharedRole ? (
+              <DocumentTreeRow
+                key={`shared:${document.type}:${document.id}`}
+                leaf={document}
+                active={activeTabId === `${document.type}:${document.id}`}
+                onOpen={onOpen}
+              />
+            ) : (
+              <DocumentTreeRow
+                key={`${document.type}:${document.id}`}
+                leaf={document}
+                active={activeTabId === `${document.type}:${document.id}`}
+                onOpen={onOpen}
+                onDelete={leafCanDelete(document.type) ? onDelete : undefined}
+                onDuplicate={
+                  document.type === "workflow" ? onDuplicate : undefined
+                }
+                onRename={leafCanRename(document.type) ? onRename : undefined}
+                onShare={shareTargetFor(document) ? onShare : undefined}
+              />
+            )
+          )}
         </FlexColumn>
       )}
     </FlexColumn>
@@ -460,7 +511,14 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
   const setVisibility = usePanelStore((state) => state.setVisibility);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const { groups, isLoading, isError, error } = useDocumentTreeData(projectId);
+  const { groups: projectGroups, isLoading, isError, error } =
+    useDocumentTreeData(projectId);
+  const sharedGroup = useSharedDocumentGroup();
+  const groups = useMemo(
+    () => (sharedGroup ? [...projectGroups, sharedGroup] : projectGroups),
+    [projectGroups, sharedGroup]
+  );
+  const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
   const [query, setQuery] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState<
     ReadonlySet<DocumentTreeGroup["id"]>
@@ -503,6 +561,23 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
 
   const handleOpen = useCallback(
     (document: DocumentTreeLeaf) => {
+      if (document.sharedRole) {
+        const type = leafTabType(document.type);
+        if (type === null) {
+          return;
+        }
+        openSharedDocument({
+          type,
+          id: document.id,
+          name: document.name,
+          role: document.sharedRole
+        });
+        if (!location.pathname.startsWith("/workspace")) {
+          navigate("/workspace");
+        }
+        setVisibility(false);
+        return;
+      }
       if (document.type === "entity") {
         if (document.entity) {
           setEntityToEdit(document.entity);
@@ -598,6 +673,10 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
     );
   }, [addNotification, deleteDocument, documentToDelete, t]);
 
+  const handleShare = useCallback((document: DocumentTreeLeaf) => {
+    setShareTarget(shareTargetFor(document));
+  }, []);
+
   const toggleGroup = useCallback((groupId: DocumentTreeGroup["id"]) => {
     setCollapsedGroups((previous) => {
       const next = new Set(previous);
@@ -687,6 +766,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
                 onDelete={setDocumentToDelete}
                 onDuplicate={handleDuplicate}
                 onRename={handleRename}
+                onShare={handleShare}
               />
             ))}
           </FlexColumn>
@@ -705,6 +785,13 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
         confirmText={t("i18n-next31.documents.deleteAction")}
         cancelText={t("i18n-next31.documents.cancel")}
       />
+      {shareTarget && (
+        <ShareDocumentDialog
+          open
+          onClose={() => setShareTarget(null)}
+          target={shareTarget}
+        />
+      )}
       {entityToEdit && (
         <EntityEditorDialog
           open

@@ -11,6 +11,7 @@ import { externalMcpRouter } from "./routers/external-mcp.js";
 import { creditsRouter } from "./routers/credits.js";
 import { extensionRouter } from "./routers/extension.js";
 import { documentsRouter } from "./routers/documents.js";
+import { documentSharingRouter } from "./routers/document-sharing.js";
 import { filesRouter } from "./routers/files.js";
 import { agentAccessRouter } from "./routers/agent-access.js";
 import { integrationsRouter } from "./routers/integrations.js";
@@ -59,6 +60,7 @@ type AppRouterRecord = {
   credits: typeof creditsRouter;
   customProviders: typeof customProvidersRouter;
   documents: typeof documentsRouter;
+  documentSharing: typeof documentSharingRouter;
   externalMcp: typeof externalMcpRouter;
   extension: typeof extensionRouter;
   files: typeof filesRouter;
@@ -109,6 +111,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   credits: creditsRouter,
   customProviders: customProvidersRouter,
   documents: documentsRouter,
+  documentSharing: documentSharingRouter,
   externalMcp: externalMcpRouter,
   extension: extensionRouter,
   files: filesRouter,

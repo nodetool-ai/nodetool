@@ -11,6 +11,7 @@ import {
 } from "./base-model.js";
 import { getPortableDb, getDbType } from "./db.js";
 import { storyboards } from "./schema/storyboards.js";
+import { removeDocumentSharing } from "./document-sharing.js";
 
 /**
  * The persisted storyboard payload: everything the web board carries except
@@ -178,6 +179,7 @@ export class Storyboard extends DBModel {
     const row = await Storyboard.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
+    await removeDocumentSharing("storyboard", id);
     return true;
   }
 

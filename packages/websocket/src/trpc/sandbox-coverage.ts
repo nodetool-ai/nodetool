@@ -368,6 +368,47 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "`list_*` capability, and what it cannot do is ask which of them " +
       "belong together."
   },
+  "documentSharing.accept": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.createLink": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.get": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.removeCollaborator": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.revokeLink": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.setRole": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.sharedWithMe": {
+    withheld:
+      "Lists other users' documents the user was given access to, and " +
+      "their owners. A run acts on the rows its own user owns."
+  },
   "externalMcp.delete": {
     withheld:
       "External MCP servers carry commands, env vars and headers that may " +

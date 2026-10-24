@@ -159,6 +159,14 @@ export {
   type CollaboratorRole
 } from "./workflow-collaborator.js";
 export { WorkflowShare, type ShareRole } from "./workflow-share.js";
+export {
+  DocumentCollaborator,
+  DocumentShare,
+  SHARED_DOCUMENT_TYPES,
+  isSharedDocumentType,
+  removeDocumentSharing,
+  type SharedDocumentType
+} from "./document-sharing.js";
 
 export { Asset } from "./asset.js";
 export type { AssetRow, AssetInsert } from "./asset.js";
