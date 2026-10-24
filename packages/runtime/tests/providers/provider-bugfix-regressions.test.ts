@@ -104,9 +104,15 @@ describe("Anthropic – parallel tool results", () => {
     expect(userRoles).toHaveLength(2);
     const last = messages[messages.length - 1];
     expect(last.role).toBe("user");
+    // The last block also carries the conversation's cache breakpoint.
     expect(last.content).toEqual([
       { type: "tool_result", tool_use_id: "call_1", content: "one" },
-      { type: "tool_result", tool_use_id: "call_2", content: "two" }
+      {
+        type: "tool_result",
+        tool_use_id: "call_2",
+        content: "two",
+        cache_control: { type: "ephemeral" }
+      }
     ]);
   });
 
