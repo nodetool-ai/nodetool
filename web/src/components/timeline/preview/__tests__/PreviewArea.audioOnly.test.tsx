@@ -29,7 +29,8 @@ jest.mock("../PreviewCompositor", () => ({
 
 const mockResume = jest.fn().mockResolvedValue(undefined);
 jest.setTimeout(30_000);
-const mockScheduleClips = jest.fn().mockResolvedValue(undefined);
+// The clips were scheduled against context time 3.9; the context now reads 4.
+const mockScheduleClips = jest.fn().mockResolvedValue(3.9);
 
 // Other graph methods (mixer, devices) are no-ops here: the proxy answers any
 // name the preview calls with a mock.
@@ -125,7 +126,7 @@ describe("PreviewArea audio-only (DAW transport)", () => {
     await waitFor(() => expect(start).toHaveBeenCalled());
     // The audio-clock branch ran although no clip sounds.
     expect(mockScheduleClips).toHaveBeenCalled();
-    expect(start.mock.calls[0][0]).toMatchObject({ anchorMs: 0, anchorContextSec: 4, rate: 1 });
+    expect(start.mock.calls[0][0]).toMatchObject({ anchorMs: 0, anchorContextSec: 3.9, rate: 1 });
     act(() => instance.playback.getState().pause());
     start.mockRestore();
   });
