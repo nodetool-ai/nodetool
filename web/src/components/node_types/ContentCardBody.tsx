@@ -45,8 +45,9 @@ import {
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
 import AddDynamicOutputButton from "../node/AddDynamicOutputButton";
-import HandleColumn from "../node/HandleColumn";
+import HandleColumn, { handleColumnHeight } from "../node/HandleColumn";
 import NodeModelChips from "../node/NodeModelChips";
+import KeyframeTimingStrip from "../node/KeyframeTimingStrip";
 import ImageView from "../node/ImageView";
 import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
@@ -813,7 +814,12 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       data-node-sized={isNodeSized ? "true" : undefined}
       data-streaming={status === "running" ? "true" : undefined}
     >
-      <div className="preview-area">
+      <div
+        className="preview-area"
+        style={{
+          minHeight: `max(${theme.spacing(6)}, ${handleColumnHeight(handleProps.length)}px)`
+        }}
+      >
         {usesHistoryNavigator ? (
           <NodeHistoryViewer
             workflowId={workflowId}
@@ -838,6 +844,13 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       <NodeModelChips
         id={id}
         nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+      />
+
+      <KeyframeTimingStrip
+        id={id}
+        workflowId={workflowId}
         nodeMetadata={nodeMetadata}
         data={data}
       />

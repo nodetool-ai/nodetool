@@ -35,6 +35,10 @@ import {
   uploadVideoInput
 } from "./kie-base.js";
 import { buildVideoClipsFromRefs } from "./video-clip.js";
+import {
+  applyKieAccessoryParams,
+  KIE_ACCESSORY_TYPES
+} from "./kie-accessories.js";
 
 // ---------------------------------------------------------------------------
 // Manifest types — mirrors kie-codegen types.ts
@@ -55,6 +59,8 @@ interface KieFieldDef {
     | "list[int]"
     | "list[float]"
     | "list[dict]"
+    | "list[video_element]"
+    | "list[shot]"
     | "list[image]"
     | "list[video]"
     | "list[audio]";
@@ -313,6 +319,9 @@ async function buildParams(
   // Scalar and list[str] fields
   for (const field of spec.fields) {
     if (isAssetType(field.type) || clipUploads.has(field.name)) continue;
+    // Elements and shots carry media to upload; applyKieAccessoryParams
+    // shapes them below.
+    if (KIE_ACCESSORY_TYPES.has(field.type)) continue;
 
     // Image-gen nodes always produce a single output — force the count to 1
     // regardless of any saved value, since the field is no longer exposed.
@@ -405,6 +414,14 @@ async function buildParams(
       }
     }
   }
+
+  await applyKieAccessoryParams(
+    spec.fields,
+    readValue,
+    params,
+    (name) => spec.paramNames?.[name] ?? name,
+    (kind, ref) => uploadFnForKind(kind)(apiKey, ref, context)
+  );
 
   return params;
 }

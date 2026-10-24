@@ -8,6 +8,9 @@
  *   - Asset-ref types (image, video, audio, image_mask, model_3d, document,
  *     dataframe, tensor, and their list[] variants) -> `inputFields`
  *     (rendered as a handle-only port; wired from upstream).
+ *   - Structured model inputs (`list[keyframe]`, `list[video_element]`,
+ *     `list[shot]`) -> `inputFields`: the Keyframe, Element and Shot nodes
+ *     wire into them, and they have no inline editor.
  *   - Short-text properties (`str`, `text`) whose name matches a small set
  *     of "user types this directly" keys (prompt, query, code, url, ...)
  *     -> `inputFields` as well, so the prompt/text fields are exposed as
@@ -30,6 +33,12 @@ const ASSET_PROP_TYPES: ReadonlySet<string> = new Set([
   "list[image]",
   "list[video]",
   "list[audio]"
+]);
+
+const STRUCTURED_INPUT_PROP_TYPES: ReadonlySet<string> = new Set([
+  "list[keyframe]",
+  "list[video_element]",
+  "list[shot]"
 ]);
 
 const TEXT_PROP_TYPES: ReadonlySet<string> = new Set(["str", "text"]);
@@ -70,7 +79,10 @@ export function classifyFields(
   const inputFields: string[] = [];
 
   for (const field of fields) {
-    if (ASSET_PROP_TYPES.has(field.propType)) {
+    if (
+      ASSET_PROP_TYPES.has(field.propType) ||
+      STRUCTURED_INPUT_PROP_TYPES.has(field.propType)
+    ) {
       inputFields.push(field.name);
     } else if (
       TEXT_PROP_TYPES.has(field.propType) &&

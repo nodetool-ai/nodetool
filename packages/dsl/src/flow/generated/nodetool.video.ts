@@ -539,3 +539,50 @@ export interface LipSyncOutputs {
 export function lipSync(inputs: LipSyncInputs): Promise<LipSyncOutputs> {
   return callNode<LipSyncOutputs>("nodetool.video.LipSync", inputs);
 }
+
+// Keyframe — nodetool.video.Keyframe
+export type KeyframeInputs = {
+  image?: ImageRef;
+  time?: number;
+};
+
+export interface KeyframeOutputs {
+  output: unknown;
+}
+
+export function keyframe(inputs: KeyframeInputs): Promise<KeyframeOutputs> {
+  return callNode<KeyframeOutputs>("nodetool.video.Keyframe", inputs);
+}
+
+// Element — nodetool.video.Element
+export type ElementInputs = {
+  name?: string;
+  frontal_image?: ImageRef;
+  reference_images?: ImageRef[];
+  video?: VideoRef;
+  entity?: Entity;
+  voice_id?: string;
+};
+
+export interface ElementOutputs {
+  output: unknown;
+}
+
+export function element(inputs: ElementInputs): Promise<ElementOutputs> {
+  return callNode<ElementOutputs>("nodetool.video.Element", inputs);
+}
+
+// Shot — nodetool.video.Shot
+export type ShotInputs = {
+  previous?: unknown[];
+  prompt?: string;
+  duration?: number;
+};
+
+export interface ShotOutputs {
+  output: unknown[];
+}
+
+export function shot(inputs: ShotInputs): Promise<ShotOutputs> {
+  return callNode<ShotOutputs>("nodetool.video.Shot", inputs);
+}

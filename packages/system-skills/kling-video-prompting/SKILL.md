@@ -66,6 +66,11 @@ boundaries are used verbatim; with `intelligent` (or `prefer_multi_shots`) the
 model cuts the narrative itself. Pick customize whenever you know the beats.
 The provider list above gives each route's shot fields and caps.
 
+In a graph, build the shot list from Shot nodes: each takes a prompt and a
+duration in seconds, and chains to the next through its Previous input. Wire
+the last Shot into `multi_prompt`. The node sends the shots instead of the
+prompt, turns on customize, and sets the clip duration to the shots' total.
+
 On 2.5-turbo, 2.6 and O1 there is no shot list — one call is one shot, and a
 sequence is several calls cut together in the timeline. Writing three labelled
 shots into a single `prompt` there gets you one confused take.
@@ -103,6 +108,11 @@ looking up. Medium two-shot, warm window light from the left.
 Tagging is what gives Kling three or more distinct characters in one clip
 without their faces blending. Describe each element once, then refer to it by
 tag only.
+
+In a graph, connect one Element node per character to `elements`; connection
+order sets the numbering. Give an Element a name and write `@name` in the
+prompt: the node rewrites it to `@ElementN` on fal and sends the name itself
+on kie.
 
 ## Dialogue and native audio
 

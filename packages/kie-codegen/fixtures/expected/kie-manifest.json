@@ -354,7 +354,7 @@
       },
       {
         "name": "multi_prompt",
-        "type": "list[dict]",
+        "type": "list[shot]",
         "default": [],
         "title": "Multi Prompt",
         "description": "List of custom shots. When `customize_multi_shots` is `true`, this field is required, must not be empty, and supports up to 6 shots. When `customize_multi_shots` is `false`, it must be an empty array or omitted.",
@@ -363,7 +363,7 @@
       },
       {
         "name": "elements",
-        "type": "list[dict]",
+        "type": "list[video_element]",
         "default": [],
         "title": "Elements",
         "description": "List of one-time subject assets. The default is an empty array. When using only multi-image subjects, up to 7 subjects can be uploaded. When using only video character subjects, the number of video character subjects must not exceed 3. When using both video character and multi-image subjects, the number of video character subjects must not exceed 3, and the number of multi-image subjects must not exceed 4.",

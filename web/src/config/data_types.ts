@@ -185,6 +185,42 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "Person"
   },
   {
+    value: "keyframe",
+    label: "Keyframe",
+    description:
+      "An image pinned to a time in a generated video. Several keyframes connect to one keyframe model input.",
+    color: colour("video"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Timeline"
+  },
+  {
+    value: "video_element",
+    label: "Video Element",
+    description:
+      "A character or object a video model keeps consistent, given as a frontal image with extra views or as a video. The prompt refers to it as @name.",
+    color: colour("texture"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "PersonPin"
+  },
+  {
+    value: "shot",
+    label: "Shot",
+    description:
+      "One shot of a multi-shot video: a prompt and a duration. Chained Shots set the order.",
+    color: colour("video"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Movie"
+  },
+  {
     value: "game_slot",
     label: "Game Slot",
     description:
