@@ -8,15 +8,16 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { SceneClipDirection, Shot } from "@nodetool-ai/protocol";
+import type { Entity, SceneClipDirection, Shot } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
 jest.mock("../../../trpc/client", () => ({
   trpc: {},
   trpcClient: {}
 }));
+let mockEntities: Entity[] = [];
 jest.mock("../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: [] })
+  useEntities: () => ({ data: mockEntities })
 }));
 const mockStartOneTakeClip = jest.fn(async () => undefined);
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
@@ -101,6 +102,7 @@ const pick = async (field: string, option: string): Promise<void> => {
 };
 
 beforeEach(() => {
+  mockEntities = [];
   mockStartOneTakeClip.mockClear();
   useLastModelStore.setState({ byTask: {}, byKind: {} });
   seed();
@@ -148,5 +150,28 @@ describe("SceneClipDialog", () => {
     expect(data).toMatchObject({ duration: 4, model: "seedance-2" });
     expect(completion.steps).toHaveLength(2);
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("shows the entity images it sends when the board sends entities", () => {
+    mockEntities = [
+      {
+        id: "loc-1",
+        kind: "location",
+        name: "Rooftop",
+        reference_images: [{ asset_id: "loc-image" }]
+      } as unknown as Entity
+    ];
+    useStoryboardStore.getState().setEntityIds(BOARD, ["loc-1"]);
+    useStoryboardStore
+      .getState()
+      .setOneTake(BOARD, { prompt: "", reference_source: "entities" });
+    renderDialog();
+
+    expect(screen.getByTestId("scene-clip-entity-images")).toHaveTextContent(
+      "[Image 1] the location Rooftop"
+    );
+    expect(screen.getByTestId("scene-clip-summary")).toHaveTextContent(
+      "1 of 9 images"
+    );
   });
 });

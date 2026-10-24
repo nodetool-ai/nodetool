@@ -7915,6 +7915,7 @@
           "differentScenes": "The shots in this scene clip are no longer in one scene.",
           "addShot": "Add a shot to the board first.",
           "renderStill": "Render a still for at least one shot.",
+          "addEntityImage": "Give an entity on the board a reference image first.",
           "noVideoModel": "No video model chosen.",
           "imageLimit": "{{imageCount}} images is over the limit of {{limit}}. Remove {{remove}}.",
           "durationUnavailable": "{{model}} does not offer a {{duration}} clip. Pick one of {{choices}}.",

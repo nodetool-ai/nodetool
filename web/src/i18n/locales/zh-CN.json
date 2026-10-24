@@ -7911,6 +7911,7 @@
           "differentScenes": "此场景片段中的镜头已不再属于同一场景。",
           "addShot": "请先向分镜板添加镜头。",
           "renderStill": "请至少渲染一个镜头的静帧。",
+          "addEntityImage": "请先为分镜板上的一个实体添加参考图。",
           "noVideoModel": "尚未选择视频模型。",
           "imageLimit": "{{imageCount}} 张图片超过了 {{limit}} 张的上限。请移除 {{remove}} 张。",
           "durationUnavailable": "{{model}} 不支持 {{duration}} 的片段时长。请选择以下时长之一：{{choices}}。",

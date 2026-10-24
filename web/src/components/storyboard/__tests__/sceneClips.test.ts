@@ -89,4 +89,19 @@ describe("upsertSceneClip", () => {
       [clip("one", ["a", "b"]), clip("three", ["c", "d"])]
     );
   });
+
+  it("keeps the longest unbroken part of a run split in the middle", () => {
+    const long = clip("one", ["a", "b", "c", "d", "e"]);
+    // Keeping a-b and e would leave one clip whose shots are not adjacent.
+    expect(upsertSceneClip([long], clip("two", ["c", "d"]))).toEqual([
+      clip("one", ["a", "b"]),
+      clip("two", ["c", "d"])
+    ]);
+    expect(
+      upsertSceneClip(
+        [clip("one", ["a", "b", "c", "d"])],
+        clip("two", ["b", "c"])
+      )
+    ).toEqual([clip("two", ["b", "c"])]);
+  });
 });

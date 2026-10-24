@@ -529,6 +529,23 @@ describe("ShotCard media viewer", () => {
     expect(play).toBeVisible();
   });
 
+  it("does not play a take a one take replaced on a covered shot", () => {
+    renderCard(
+      makeShot({
+        status: "rendered",
+        clip: null,
+        clip_versions: [
+          { type: "video", uri: "asset://vid-9", asset_id: "vid-9" }
+        ],
+        covered_by: { shot_id: "owner", start_seconds: 2, end_seconds: 4 }
+      })
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Play clip" })
+    ).not.toBeInTheDocument();
+  });
+
   it("does not show a clip play action for an unrendered shot", () => {
     renderCard(makeShot());
     expect(

@@ -53,13 +53,15 @@ import { captureLastFrame } from "./lastFrame";
 /**
  * The clip a shot's card previews: the accepted clip, else the latest take, so
  * a rendered take can be seen before the creator accepts it. A shot that is a
- * still with motion graphics has none.
+ * still with motion graphics has none. A shot covered by another shot's clip
+ * has no latest-take fallback: its takes are the ones a one take or scene
+ * clip replaced, and the board preview plays its window instead.
  */
 export const shotPreviewClip = (shot: Shot): VideoRef | undefined =>
   resolveEffectiveProductionRequirement(undefined, shot.production)
     ?.media_strategy === "still_motion_graphics"
     ? undefined
-    : (shot.clip ?? shot.clip_versions?.at(-1));
+    : (shot.clip ?? (shot.covered_by ? undefined : shot.clip_versions?.at(-1)));
 
 interface ShotActionsProps {
   boardId: string;

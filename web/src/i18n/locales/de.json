@@ -7915,6 +7915,7 @@
           "differentScenes": "Die Einstellungen in diesem Szenenclip gehören nicht mehr zu derselben Szene.",
           "addShot": "Füge zuerst eine Einstellung zum Board hinzu.",
           "renderStill": "Rendere mindestens ein Standbild.",
+          "addEntityImage": "Gib zuerst einer Entität auf dem Board ein Referenzbild.",
           "noVideoModel": "Kein Videomodell ausgewählt.",
           "imageLimit": "{{imageCount}} Bilder überschreiten das Limit von {{limit}}. Entferne {{remove}}.",
           "durationUnavailable": "{{model}} bietet keinen {{duration}}-Clip an. Wähle eine dieser Optionen: {{choices}}.",
