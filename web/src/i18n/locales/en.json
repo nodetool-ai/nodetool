@@ -17956,7 +17956,6 @@
       },
       "status": {
         "alert": "Alert",
-        "appSaved": "App saved",
         "doneSuffix": ", done",
         "generating": "Generating…",
         "loading": "Loading",
@@ -18584,8 +18583,7 @@
       "loading": "Looking up the voices your providers offer…"
     },
     "appBuilder": {
-      "appData": "App data",
-      "back": "Back"
+      "appData": "App data"
     }
   },
   "i18n-next116": {

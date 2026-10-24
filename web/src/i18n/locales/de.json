@@ -17956,7 +17956,6 @@
       },
       "status": {
         "alert": "Warnung",
-        "appSaved": "App gespeichert",
         "doneSuffix": ", fertig",
         "generating": "Wird generiert…",
         "loading": "Wird geladen",
@@ -18584,8 +18583,7 @@
       "loading": "Stimmen der verfügbaren Anbieter werden gesucht…"
     },
     "appBuilder": {
-      "appData": "App-Daten",
-      "back": "Zurück"
+      "appData": "App-Daten"
     }
   },
   "i18n-next116": {

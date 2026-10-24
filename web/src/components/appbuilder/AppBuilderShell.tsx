@@ -16,6 +16,7 @@ import {
 } from "./puck/puckAgentBridge";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppDataPanel from "./AppDataPanel";
+import type { AppBuilderBarSlots } from "./dock/AppBuilderDock";
 import { isString } from "../../utils/typePredicates";
 
 interface AppBuilderShellProps {
@@ -53,7 +54,8 @@ interface AppBuilderShellProps {
   onSave: (document: AppDocument) => void;
   onDraftChange?: (document: AppDocument) => void;
   saving?: boolean;
-  onClose?: () => void;
+  /** Places in the workspace document bar for the builder's controls. */
+  barSlots?: AppBuilderBarSlots;
   /**
    * Project whose documents an "all of this kind" resource binding reaches.
    * The App Data form never asks for it.
@@ -84,7 +86,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   onSave,
   onDraftChange,
   saving,
-  onClose,
+  barSlots,
   projectId,
   assistantPanel
 }) => {
@@ -175,7 +177,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
           onPublish={handleSave}
           onChange={setLiveData}
           saving={saving}
-          onClose={onClose}
+          barSlots={barSlots}
           meta={meta}
           onMetaChange={setMeta}
           dataPanel={

@@ -17956,7 +17956,6 @@
       },
       "status": {
         "alert": "提示",
-        "appSaved": "应用已保存",
         "doneSuffix": "，已完成",
         "generating": "生成中…",
         "loading": "加载中",
@@ -18584,8 +18583,7 @@
       "loading": "正在查找你的提供方提供的声音…"
     },
     "appBuilder": {
-      "appData": "应用数据",
-      "back": "返回"
+      "appData": "应用数据"
     }
   },
   "i18n-next116": {

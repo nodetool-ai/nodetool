@@ -66,7 +66,7 @@ Every app below begins here.
    Then run `nodetool app debug <application_id>` to check the wiring the way the
    runtime sees it.
 
-To edit the graph while you build, open **Linked workflows** on the app tab and
+To edit the graph while you build, open **Linked workflows** in the app tab's ⋮ menu and
 click the workflow. It opens as a normal workflow tab; the app tab stays put.
 
 The assistant on the right of App Builder can read the app's workflows and

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
@@ -7,6 +7,24 @@ import ExampleAppSurface from "../ExampleAppSurface";
 
 const installExampleApp = jest.fn();
 const openTab = jest.fn();
+
+jest.mock("../WorkspaceDocumentBar", () => ({
+  __esModule: true,
+  default: ({
+    tab,
+    status,
+    actions
+  }: {
+    tab: { title: string };
+    status?: React.ReactNode;
+    actions?: React.ReactNode;
+  }) => (
+    <div role="toolbar" aria-label={`${tab.title} document`}>
+      {status}
+      {actions}
+    </div>
+  )
+}));
 
 jest.mock("../../portal/ExampleAppUseView", () => ({
   __esModule: true,
@@ -35,7 +53,17 @@ const renderSurface = () =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
-        <ExampleAppSurface slug="sku-factory" title="SKU Factory" />
+        <ExampleAppSurface
+          slug="sku-factory"
+          title="SKU Factory"
+          tab={{
+            id: "example-app:sku-factory",
+            type: "example-app",
+            ref: "sku-factory",
+            mode: "view",
+            title: "SKU Factory"
+          }}
+        />
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -46,7 +74,9 @@ describe("ExampleAppSurface", () => {
     renderSurface();
 
     expect(await screen.findByText("Using sku-factory")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Edit app" }));
+    const bar = screen.getByRole("toolbar", { name: "SKU Factory document" });
+    expect(bar).toHaveTextContent("Read only");
+    await userEvent.click(within(bar).getByRole("button", { name: "Edit app" }));
 
     await waitFor(() =>
       expect(openTab).toHaveBeenCalledWith({
