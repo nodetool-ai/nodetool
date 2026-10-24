@@ -34,12 +34,12 @@ See [Key Concepts → How everything fits together](key-concepts.md#how-everythi
 
 1. Open the **Apps** panel in the left sidebar.
 2. Click an app, or create one with **New app** or **Create app from workflow**.
-3. On the app tab, switch to **Design**.
+3. On the app tab, pick **Design** in the document bar.
 
 ![App Builder — Design view](assets/screenshots/mini-app-design.png)
 
 **Run** shows the app the way its users see it, using the released version when
-there is one. **Preview draft** runs the unpublished draft instead. **Settings**
+there is one. **Preview draft**, in the bar's ⋮ menu, runs the unpublished draft instead. **Settings**
 holds publishing, versions, the spend budget, the public link, and recent runs.
 Rename an app from the right-click menu in the Apps panel.
 
@@ -48,7 +48,7 @@ Rename an app from the right-click menu in the Apps panel.
 ## Build an app
 
 1. Check that each workflow has the Input and Output nodes the app needs. Open
-   one from the **Linked workflows** menu; it opens as its own workflow tab.
+   one from **Linked workflows** in the bar's ⋮ menu; it opens as its own workflow tab.
 2. Add fields: Text Input, Number Input, Slider, Switch, Select, or a Workflow
    Form that renders every input of an operation at once. The palette groups
    widgets as Inputs, Chat & AI, Actions, Display, and Layout.
@@ -60,8 +60,9 @@ Rename an app from the right-click menu in the Apps panel.
 
 5. Add result widgets: Text, Markdown, Image, JSON, Progress.
 6. Wire each result widget to the matching Output node.
-7. Click **Save**. The header also has **App Data**, **Back**, and the
-   phone, tablet, and fit-width preview toggle. The root settings hold the app
+7. Click **Save**. The bar shows **Unsaved changes** until you do. In Design the bar also
+   has Undo and Redo, the phone, tablet, and fit-width preview toggle, the Layout menu,
+   and the **App data** toggle. The root settings hold the app
    title and a **Theme** (Default, Centered, or Card).
 
 ## Letting the agent do it

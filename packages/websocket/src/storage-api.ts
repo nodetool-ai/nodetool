@@ -269,10 +269,13 @@ async function handleStorageRequest(
   // the legacy path when the prefixed one is missing, re-checking ownership
   // against the `assets` row since the prefix no longer vouches for it. Only
   // the local backend needs this — cloud backends resolve through the URL
-  // builder, so they require `nodetool storage migrate-keys`.
-  const legacy = assetKeyOwner(key) === userId ? legacyKeyFor(key) : null;
-  if (legacy && !(await pathExists(filePath))) {
-    if (await callerOwnsStorageKey(userId, legacy)) {
+  // builder, so they require `nodetool storage migrate-keys`. The prefix is
+  // the caller's own or, for a collaborator, that of an owner whose shared
+  // document shows the asset; either way the row must belong to that owner.
+  const keyOwner = assetKeyOwner(key);
+  const legacy = keyOwner !== null ? legacyKeyFor(key) : null;
+  if (keyOwner !== null && legacy && !(await pathExists(filePath))) {
+    if (await callerOwnsStorageKey(keyOwner, legacy)) {
       filePath = resolveStoragePath(rootDir, legacy);
     }
   }

@@ -1,16 +1,9 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
-import {
-  useWorkspaceTabsStore,
-  type WorkspaceTab
-} from "../../../stores/WorkspaceTabsStore";
+import type { WorkspaceTab } from "../../../stores/WorkspaceTabsStore";
 
-jest.mock("../../../hooks/useRenameDocument", () => ({
-  useRenameDocument: () => jest.fn()
-}));
 jest.mock("../ApplicationSurface", () => ({
   __esModule: true,
   default: () => <div>App surface</div>
@@ -30,36 +23,14 @@ const renderTab = (tab: WorkspaceTab) =>
   );
 
 describe("TabContent document bar", () => {
-  it("gives a View/Edit type a document bar with the mode switch", async () => {
-    const tab: WorkspaceTab = {
-      id: "application:a",
-      type: "application",
-      ref: "a",
-      mode: "view",
-      title: "Notes"
-    };
-    useWorkspaceTabsStore.setState({ tabs: [tab], activeTabId: tab.id });
-    const user = userEvent.setup();
+  // Every surface draws its own bar, so TabContent adds none.
+  it.each<WorkspaceTab>([
+    { id: "application:a", type: "application", ref: "a", mode: "view", title: "Notes" },
+    { id: "script:a", type: "script", ref: "a", mode: "edit", title: "Lines" }
+  ])("leaves the $type bar to its surface", async (tab) => {
     renderTab(tab);
 
-    expect(await screen.findByText("App surface")).toBeInTheDocument();
-    expect(
-      screen.getByRole("toolbar", { name: "Notes document" })
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Edit" }));
-    expect(useWorkspaceTabsStore.getState().tabs[0].mode).toBe("edit");
-  });
-
-  it("leaves a view-only type without the generic bar", async () => {
-    renderTab({
-      id: "script:a",
-      type: "script",
-      ref: "a",
-      mode: "edit",
-      title: "Lines"
-    });
-
-    expect(await screen.findByText("Script surface")).toBeInTheDocument();
+    expect(await screen.findByText(/surface/)).toBeInTheDocument();
     expect(screen.queryByRole("toolbar")).toBeNull();
   });
 });

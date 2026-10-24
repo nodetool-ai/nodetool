@@ -104,3 +104,32 @@ it("drives Puck's history from the toolbar", async () => {
   expect(mockBack).toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled();
 });
+
+it("fills the host's document bar slots in place of its own toolbar", async () => {
+  const user = userEvent.setup();
+  const history = document.createElement("div");
+  const view = document.createElement("div");
+  const actions = document.createElement("div");
+  document.body.append(history, view, actions);
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <AppBuilderDock
+        dataPanel={<div>App data fields</div>}
+        actions={<button type="button">Width</button>}
+        trailingActions={<button type="button">Save</button>}
+        barSlots={{ history, view, actions }}
+      />
+    </ThemeProvider>
+  );
+
+  await user.click(within(history).getByRole("button", { name: "Undo" }));
+  expect(mockBack).toHaveBeenCalled();
+  expect(within(view).getByRole("button", { name: "Width" })).toBeInTheDocument();
+  expect(within(view).getByRole("button", { name: "App data" })).toBeInTheDocument();
+  expect(within(actions).getByRole("button", { name: "Save" })).toBeInTheDocument();
+  // The canvas stays in the dock.
+  expect(screen.getByText("Puck preview")).toBeInTheDocument();
+  history.remove();
+  view.remove();
+  actions.remove();
+});

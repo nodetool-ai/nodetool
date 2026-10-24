@@ -10409,6 +10409,7 @@
       "emptyText": "Füge Figuren, Orte, Stile oder Requisiten hinzu, die jede Einstellung prägen."
     },
     "storyboardBoard": {
+      "renderOptions": "Render-Optionen",
       "sceneShotCaption": "Szene {{scene}} | Einstellung {{shot}}",
       "requestCost": "{{count}} Anfragen · geschätzt {{cost}}{{partial, select, true { ({{pricedCount}} mit Preis)} other {}}}",
       "requestCountUnpriced": "{{count}} Anfragen · Preis nicht verfügbar",
@@ -10581,6 +10582,9 @@
       "enqueued": "Eingereiht"
     },
     "toolbar": {
+      "graph": "Graph",
+      "chain": "Kette",
+      "viewMode": "Editoransicht",
       "openApp": "App öffnen",
       "makeApp": "App erstellen",
       "openWorkflowApp": "Die App öffnen, die diesen Workflow ausführt",
@@ -17956,7 +17960,6 @@
       },
       "status": {
         "alert": "Warnung",
-        "appSaved": "App gespeichert",
         "doneSuffix": ", fertig",
         "generating": "Wird generiert…",
         "loading": "Wird geladen",
@@ -18584,8 +18587,7 @@
       "loading": "Stimmen der verfügbaren Anbieter werden gesucht…"
     },
     "appBuilder": {
-      "appData": "App-Daten",
-      "back": "Zurück"
+      "appData": "App-Daten"
     }
   },
   "i18n-next116": {

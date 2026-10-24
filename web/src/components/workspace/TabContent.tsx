@@ -4,9 +4,8 @@ import type {
   WorkspaceTab,
   WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
-import { FlexColumn, LoadingSpinner } from "../ui_primitives";
+import { LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
-import WorkspaceDocumentBar from "./WorkspaceDocumentBar";
 
 // One surface per document type, each behind its own chunk. Imported eagerly
 // they landed in the workspace chunk together — opening the app downloaded the
@@ -40,17 +39,6 @@ const NewProjectSurface = React.lazy(
   () => import("../projects/NewProjectSurface")
 );
 
-/**
- * Types whose surface does not render its own `DocumentBar` yet. They get the
- * generic bar (title and View/Edit) above the surface, so the View/Edit switch
- * still has a place now that it left the app bar. A type leaves this set when
- * its surface renders `WorkspaceDocumentBar` itself.
- */
-const GENERIC_DOCUMENT_BAR_TYPES: ReadonlySet<WorkspaceTabType> = new Set([
-  "application",
-  "game"
-]);
-
 interface TabContentProps {
   tab: WorkspaceTab;
   active: boolean;
@@ -64,6 +52,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
           workflowId={tab.ref}
           mode={tab.mode}
           active={active}
+          tab={tab}
         />
       );
     case "image":
@@ -101,7 +90,12 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       );
     case "storyboard":
       return (
-        <StoryboardSurface refId={tab.ref} mode={tab.mode} active={active} />
+        <StoryboardSurface
+          refId={tab.ref}
+          mode={tab.mode}
+          active={active}
+          tab={tab}
+        />
       );
     case "script":
       return (
@@ -130,11 +124,11 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
         />
       );
     case "application":
-      return <ApplicationSurface refId={tab.ref} mode={tab.mode} instanceId={tab.instanceId} selectedRunId={tab.selectedRunId} />;
+      return <ApplicationSurface refId={tab.ref} mode={tab.mode} instanceId={tab.instanceId} selectedRunId={tab.selectedRunId} tab={tab} />;
     case "example-app":
-      return <ExampleAppSurface slug={tab.ref} title={tab.title} />;
+      return <ExampleAppSurface slug={tab.ref} title={tab.title} tab={tab} />;
     case "game":
-      return <GameSurface refId={tab.ref} active={active} mode={tab.mode} />;
+      return <GameSurface refId={tab.ref} active={active} mode={tab.mode} tab={tab} />;
     case "chat":
       return <ChatSurface refId={tab.ref} active={active} />;
     case "page":
@@ -174,7 +168,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
 const TabContent = ({ tab, active }: TabContentProps) => {
   const { t } = useTranslation();
 
-  const surface = (
+  return (
     <Suspense
       fallback={
         <LoadingSpinner text={t("i18n-next84.tabContent.loading")} />
@@ -182,18 +176,6 @@ const TabContent = ({ tab, active }: TabContentProps) => {
     >
       {surfaceFor(tab, active)}
     </Suspense>
-  );
-
-  if (!GENERIC_DOCUMENT_BAR_TYPES.has(tab.type)) {
-    return surface;
-  }
-  return (
-    <>
-      <WorkspaceDocumentBar tab={tab} />
-      <FlexColumn sx={{ flex: 1, minHeight: 0, position: "relative" }}>
-        {surface}
-      </FlexColumn>
-    </>
   );
 };
 

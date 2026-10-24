@@ -109,8 +109,11 @@ export class DocumentCollaborator extends DBModel {
   }
 
   /**
-   * Insert or update the grant for (document, user). Redeeming a link twice,
-   * or a second link with another role, must not fail on the unique index.
+   * Insert the grant for (document, user), or raise the existing one. Used by
+   * link redemption, so it never lowers a role: an editor who redeems a viewer
+   * link keeps "editor", and a viewer who redeems an editor link becomes
+   * "editor". Lowering a role is owner-only and goes through the router's
+   * `setRole`. Redeeming a link twice must not fail on the unique index.
    */
   static async upsert(opts: {
     documentType: SharedDocumentType;
@@ -125,8 +128,8 @@ export class DocumentCollaborator extends DBModel {
       opts.userId
     );
     if (existing) {
-      if (existing.role !== opts.role) {
-        existing.role = opts.role;
+      if (opts.role === "editor" && existing.role !== "editor") {
+        existing.role = "editor";
         await existing.save();
       }
       return existing;

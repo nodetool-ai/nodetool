@@ -117,3 +117,38 @@ it("filters sockets by owner and preserves the wire frame", () => {
   resourceChangeBus.publish(payload);
   expect(sentA).not.toHaveBeenCalled();
 });
+
+it("accepts a batch of envelopes, skips malformed entries and resyncs once on a marker", () => {
+  const bus = new ResourceChangeBus("one");
+  const seen = vi.fn();
+  bus.subscribe(seen);
+  const other = { origin: "two", payload };
+  bus.receive(
+    JSON.stringify([
+      other,
+      { origin: "two", payload: { bogus: true } },
+      "junk",
+      { origin: "one", payload },
+      other
+    ])
+  );
+  expect(seen).toHaveBeenCalledTimes(2);
+  expect(seen).toHaveBeenNthCalledWith(1, payload);
+  seen.mockClear();
+  bus.receive(
+    JSON.stringify([
+      other,
+      { type: "resource_resync" },
+      { type: "resource_resync" }
+    ])
+  );
+  expect(seen.mock.calls).toEqual([[payload], [{ type: "resource_resync" }]]);
+  seen.mockClear();
+  bus.receive(JSON.stringify({ type: "resource_resync" }));
+  expect(seen).toHaveBeenCalledExactlyOnceWith({ type: "resource_resync" });
+});
+
+it("still throws for a malformed single envelope so the channel resyncs", () => {
+  const bus = new ResourceChangeBus("one");
+  expect(() => bus.receive(JSON.stringify({ origin: "two" }))).toThrow();
+});

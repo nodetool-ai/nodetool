@@ -82,8 +82,10 @@ export class WorkflowCollaborator extends DBModel {
   }
 
   /**
-   * Insert or update the grant for (workflow, user). Accepting a share link
-   * twice, or with a different role, must not fail on the unique index.
+   * Insert the grant for (workflow, user), or raise the existing one. Used by
+   * share-link accept, so it never lowers a role: an editor who accepts a
+   * viewer link keeps "editor". Lowering a role goes through `setRole`.
+   * Accepting a link twice must not fail on the unique index.
    */
   static async upsert(opts: {
     workflowId: string;
@@ -96,8 +98,8 @@ export class WorkflowCollaborator extends DBModel {
       opts.userId
     );
     if (existing) {
-      if (existing.role !== opts.role) {
-        existing.role = opts.role;
+      if (opts.role === "editor" && existing.role !== "editor") {
+        existing.role = "editor";
         await existing.save();
       }
       return existing;

@@ -29,10 +29,17 @@ interface ScriptLinkControlProps {
   disabled?: boolean;
 }
 
-const ScriptLinkControlInner = ({
-  boardId,
-  disabled
-}: ScriptLinkControlProps) => {
+export interface ScriptLinkNotice {
+  severity: "error" | "warning";
+  message: string;
+}
+
+/**
+ * The link action alone: what the button says and does, and the notices to
+ * show near it. The document bar puts the action in its ⋮ menu and the
+ * notices over the board.
+ */
+export const useScriptLinkAction = (boardId: string, disabled?: boolean) => {
   const scriptId = useStoryboardStore(
     (state) => state.boards[boardId]?.screenplay?.script_id ?? null
   );
@@ -63,58 +70,81 @@ const ScriptLinkControlInner = ({
     });
   }, [openTab, scriptId, t]);
 
-  const issueMessages = [
-    ...linkErrors.map((issue) =>
-      issue.code === "duplicate_line_reference"
-        ? t("screens4_15.storyboard.scriptLink.issues.duplicateLine", {
-            lineId: issue.lineId ?? "",
-            shotId: issue.shotId ?? ""
-          })
-        : issue.code === "unknown_line_reference"
-          ? t("screens4_15.storyboard.scriptLink.issues.unknownLine", {
-              shotId: issue.shotId ?? "",
-              lineId: issue.lineId ?? ""
-            })
-          : t("screens4_15.storyboard.scriptLink.issues.unlinkedBoard", {
+  const notices: ScriptLinkNotice[] = [
+    ...(error ? [{ severity: "error" as const, message: error }] : []),
+    ...linkErrors.map((issue) => ({
+      severity: "warning" as const,
+      message:
+        issue.code === "duplicate_line_reference"
+          ? t("screens4_15.storyboard.scriptLink.issues.duplicateLine", {
+              lineId: issue.lineId ?? "",
               shotId: issue.shotId ?? ""
             })
-    ),
-    ...linkWarnings.map((issue) =>
-      t("screens4_15.storyboard.scriptLink.issues.missingScript", {
+          : issue.code === "unknown_line_reference"
+            ? t("screens4_15.storyboard.scriptLink.issues.unknownLine", {
+                shotId: issue.shotId ?? "",
+                lineId: issue.lineId ?? ""
+              })
+            : t("screens4_15.storyboard.scriptLink.issues.unlinkedBoard", {
+                shotId: issue.shotId ?? ""
+              })
+    })),
+    ...linkWarnings.map(() => ({
+      severity: "warning" as const,
+      message: t("screens4_15.storyboard.scriptLink.issues.missingScript", {
         scriptId: scriptId ?? ""
       })
-    )
+    }))
   ];
+
+  return {
+    label: scriptId
+      ? t("screens4_15.storyboard.scriptLink.open")
+      : extracting
+        ? t("screens4_15.storyboard.scriptLink.extracting")
+        : t("screens4_15.storyboard.scriptLink.extract"),
+    tooltip: scriptId
+      ? t("screens4_15.storyboard.scriptLink.openTooltip")
+      : t("screens4_15.storyboard.scriptLink.extractTooltip"),
+    onClick: scriptId ? onOpen : onExtract,
+    disabled: !!disabled || extracting || (!scriptId && !hasShots),
+    notices
+  };
+};
+
+/** The notices of {@link useScriptLinkAction}, one banner each. */
+export const ScriptLinkNotices = ({
+  notices
+}: {
+  notices: readonly ScriptLinkNotice[];
+}) => (
+  <>
+    {notices.map((notice) => (
+      <AlertBanner key={notice.message} severity={notice.severity} compact>
+        {notice.message}
+      </AlertBanner>
+    ))}
+  </>
+);
+
+const ScriptLinkControlInner = ({
+  boardId,
+  disabled
+}: ScriptLinkControlProps) => {
+  const action = useScriptLinkAction(boardId, disabled);
 
   return (
     <FlexColumn gap={SPACING.xs}>
       <EditorButton
         variant="outlined"
         startIcon={<DescriptionOutlinedIcon />}
-        onClick={scriptId ? onOpen : onExtract}
-        disabled={disabled || extracting || (!scriptId && !hasShots)}
-        tooltip={
-          scriptId
-            ? t("screens4_15.storyboard.scriptLink.openTooltip")
-            : t("screens4_15.storyboard.scriptLink.extractTooltip")
-        }
+        onClick={action.onClick}
+        disabled={action.disabled}
+        tooltip={action.tooltip}
       >
-        {scriptId
-          ? t("screens4_15.storyboard.scriptLink.open")
-          : extracting
-            ? t("screens4_15.storyboard.scriptLink.extracting")
-            : t("screens4_15.storyboard.scriptLink.extract")}
+        {action.label}
       </EditorButton>
-      {error && (
-        <AlertBanner severity="error" compact>
-          {error}
-        </AlertBanner>
-      )}
-      {issueMessages.map((message) => (
-        <AlertBanner key={message} severity="warning" compact>
-          {message}
-        </AlertBanner>
-      ))}
+      <ScriptLinkNotices notices={action.notices} />
     </FlexColumn>
   );
 };

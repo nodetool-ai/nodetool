@@ -24,6 +24,19 @@ export function streamedResponse(body: Readable, init: ResponseInit): Response {
 }
 
 /**
+ * Like {@link streamedResponse} for a Web `ReadableStream` body, such as an
+ * SSE stream. Cancelling the client connection cancels the web stream.
+ */
+export function streamedWebResponse(
+  body: ReadableStream<Uint8Array>,
+  init: ResponseInit
+): Response {
+  const response = new Response(body, init);
+  streamedResponses.add(response);
+  return response;
+}
+
+/**
  * Converts a Fastify request into a Web API Request, calls the handler,
  * then forwards the Web API Response back through the Fastify reply.
  * Gzip-compresses large responses (>256KB) when client accepts it.

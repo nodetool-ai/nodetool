@@ -317,8 +317,8 @@ export const jsScriptsRouter = router({
       .input(listJsScriptVersionsInput)
       .output(z.array(jsScriptVersionListItem))
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id, "viewer");
-        const versions = await JsScriptVersion.listForScript(input.id, {
+        const script = await loadOwned(ctx.userId, input.id, "viewer");
+        const versions = await JsScriptVersion.listForScript(script.id, {
           limit: input.limit,
           saveType: input.saveType
         });
@@ -329,9 +329,9 @@ export const jsScriptsRouter = router({
       .input(getJsScriptVersionInput)
       .output(jsScriptVersionResponse)
       .query(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id, "viewer");
+        const script = await loadOwned(ctx.userId, input.id, "viewer");
         const version = await JsScriptVersion.findByVersion(
-          input.id,
+          script.id,
           input.version
         );
         if (!version) {
@@ -361,7 +361,7 @@ export const jsScriptsRouter = router({
       .mutation(async ({ ctx, input }) => {
         const script = await loadOwned(ctx.userId, input.id, "editor");
         const version = await JsScriptVersion.findByVersion(
-          input.id,
+          script.id,
           input.version
         );
         if (!version) {
@@ -392,7 +392,7 @@ export const jsScriptsRouter = router({
         }
 
         const updated = await JsScript.updateFieldsIfUnchanged(
-          input.id,
+          script.id,
           script.updated_at,
           { document: JSON.stringify(document) }
         );
@@ -412,9 +412,9 @@ export const jsScriptsRouter = router({
       .input(deleteJsScriptVersionInput)
       .output(okOutput)
       .mutation(async ({ ctx, input }) => {
-        await loadOwned(ctx.userId, input.id);
+        const script = await loadOwned(ctx.userId, input.id);
         const version = await JsScriptVersion.findByVersion(
-          input.id,
+          script.id,
           input.version
         );
         if (!version) {
