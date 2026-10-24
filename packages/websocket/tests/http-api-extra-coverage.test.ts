@@ -1021,6 +1021,8 @@ interface CapturedRes {
   setHeader(key: string, value: unknown): void;
   write(chunk: Uint8Array): boolean;
   end(chunk?: Buffer): void;
+  once(event: string, listener: () => void): void;
+  off(event: string, listener: () => void): void;
 }
 
 function makeMockRes(): { res: CapturedRes; done: Promise<CapturedRes> } {
@@ -1042,7 +1044,10 @@ function makeMockRes(): { res: CapturedRes; done: Promise<CapturedRes> } {
       if (chunk) chunks.push(Buffer.from(chunk));
       this.body = chunks.length > 0 ? Buffer.concat(chunks) : undefined;
       resolve(this);
-    }
+    },
+    // The streaming path listens for a client disconnect.
+    once() {},
+    off() {}
   };
   return { res, done };
 }

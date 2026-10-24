@@ -208,3 +208,55 @@ describe("bridge", () => {
     expect(bodyNull).toBe(true);
   });
 });
+
+describe("bridge SSE streaming (F21)", () => {
+  it("sends the first SSE chunk before the provider finishes and cancel stops the provider", async () => {
+    const { createSSEStream } = await import("../src/openai-api.js");
+    const { streamedWebResponse } = await import("../src/lib/bridge.js");
+    const { Readable } = await import("node:stream");
+
+    let finished = false;
+    let signalAborted = false;
+    const provider = {
+      async *generateMessages(args: { signal?: AbortSignal }) {
+        args.signal?.addEventListener("abort", () => {
+          signalAborted = true;
+        });
+        try {
+          yield { type: "chunk", content: "one" };
+          await new Promise((r) => setTimeout(r, 200));
+          yield { type: "chunk", content: "two" };
+          await new Promise((r) => setTimeout(r, 200));
+          finished = true;
+        } finally {
+          // generator closed by return() or completion
+        }
+      }
+    };
+
+    const { reply, captured } = makeMockReply();
+    await bridge(makeMockReq({ method: "POST" }), reply, async () =>
+      streamedWebResponse(
+        createSSEStream(provider as never, [], "m"),
+        { headers: { "content-type": "text/event-stream" } }
+      )
+    );
+
+    expect(captured.sendCalled).toBe(true);
+    expect(captured.headers["content-length"]).toBeUndefined();
+    const body = captured.body as InstanceType<typeof Readable>;
+    expect(body).toBeInstanceOf(Readable);
+
+    const iter = body[Symbol.asyncIterator]();
+    const first = await iter.next();
+    expect(first.done).toBe(false);
+    expect(Buffer.from(first.value as Uint8Array).toString()).toContain("one");
+    expect(finished).toBe(false);
+
+    // Client disconnect: Fastify destroys the stream.
+    body.destroy();
+    await new Promise((r) => setTimeout(r, 500));
+    expect(signalAborted).toBe(true);
+    expect(finished).toBe(false);
+  });
+});

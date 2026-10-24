@@ -6,6 +6,13 @@ import { getPostgresClient, resolvePostgresClientOptions } from "./db.js";
 const log = createLogger("nodetool.resource-change-channel");
 const CHANNEL = "nodetool_resource_change";
 export const NOTIFY_PAYLOAD_LIMIT = 7500;
+/**
+ * Most messages held waiting for the next flush. Beyond this the oldest are
+ * dropped and one resync marker is sent so every replica refetches once.
+ */
+export const MAX_PENDING_NOTIFICATIONS = 5000;
+/** Sent in place of dropped messages. Receivers treat it as a full resync. */
+export const RESYNC_MESSAGE = JSON.stringify({ type: "resource_resync" });
 const pointerSchema = z.object({ outbox_id: z.string().uuid() });
 
 export function resolveResourceChangeListenerUrl(
@@ -19,6 +26,48 @@ export function resolveResourceChangeListenerUrl(
     );
   }
   return url;
+}
+
+/**
+ * Packs JSON messages into groups that each encode to at most `limit` bytes.
+ * A group of one stays in the original single-envelope form, so replicas that
+ * predate batching can still read it. Larger groups encode as a JSON array.
+ * A single message above the limit gets a group of its own, which the sender
+ * moves through the outbox. Order is preserved.
+ */
+export function packResourceChangeMessages(
+  messages: readonly string[],
+  limit: number = NOTIFY_PAYLOAD_LIMIT
+): string[][] {
+  const groups: string[][] = [];
+  let current: string[] = [];
+  let bytes = 2;
+  for (const message of messages) {
+    const size = Buffer.byteLength(message, "utf8");
+    const added = size + (current.length > 0 ? 1 : 0);
+    if (current.length > 0 && bytes + added > limit) {
+      groups.push(current);
+      current = [];
+      bytes = 2;
+    }
+    bytes += size + (current.length > 0 ? 1 : 0);
+    current.push(message);
+  }
+  if (current.length > 0) {
+    groups.push(current);
+  }
+  return groups;
+}
+
+/** Encodes one packed group: the bare message for one, a JSON array otherwise. */
+export function encodeResourceChangeGroup(group: readonly string[]): string {
+  return group.length === 1 ? (group[0] as string) : `[${group.join(",")}]`;
+}
+
+interface PendingMessage {
+  message: string;
+  resolve: () => void;
+  reject: (error: unknown) => void;
 }
 
 export interface ResourceChangeChannel {
@@ -47,6 +96,9 @@ export async function openResourceChangeChannel(
   let stopped = false;
   let incoming = Promise.resolve();
   let outgoing = Promise.resolve();
+  let pending: PendingMessage[] = [];
+  let flushScheduled = false;
+  let overflowed = false;
   let stopping: Promise<void> | undefined;
   const sweep = async (): Promise<void> => {
     await pool`DELETE FROM resource_change_outbox WHERE created_at < ${new Date(Date.now() - 60_000).toISOString()}`;
@@ -99,6 +151,53 @@ export async function openResourceChangeChannel(
     await listener.end({ timeout: 1 });
     throw error;
   }
+  const notify = async (group: readonly string[]): Promise<void> => {
+    const message = encodeResourceChangeGroup(group);
+    let notification = message;
+    if (Buffer.byteLength(message, "utf8") > NOTIFY_PAYLOAD_LIMIT) {
+      const id = randomUUID();
+      await pool`INSERT INTO resource_change_outbox (id, payload, created_at) VALUES (${id}, ${message}, ${new Date().toISOString()})`;
+      notification = JSON.stringify({ outbox_id: id });
+    }
+    await pool`SELECT pg_notify(${CHANNEL}, ${notification})`;
+  };
+  // Sends everything queued so far as few notifications as possible. Messages
+  // that arrive while a flush is in flight wait for the next one, so a slow
+  // database batches more instead of building a chain of single notifies.
+  const flush = async (): Promise<void> => {
+    const batch = pending;
+    pending = [];
+    const resync = overflowed;
+    overflowed = false;
+    if (batch.length === 0 && !resync) {
+      return;
+    }
+    const messages = batch.map((entry) => entry.message);
+    if (resync) {
+      messages.push(RESYNC_MESSAGE);
+    }
+    let offset = 0;
+    for (const group of packResourceChangeMessages(messages)) {
+      const entries = batch.slice(offset, offset + group.length);
+      offset += group.length;
+      try {
+        await notify(group);
+        for (const entry of entries) entry.resolve();
+      } catch (error) {
+        for (const entry of entries) entry.reject(error);
+      }
+    }
+  };
+  const scheduleFlush = (): void => {
+    if (flushScheduled) {
+      return;
+    }
+    flushScheduled = true;
+    setImmediate(() => {
+      flushScheduled = false;
+      outgoing = outgoing.then(flush, flush);
+    });
+  };
   const timer = setInterval(() => {
     void sweep().catch((error: unknown) => {
       log.error("Resource change outbox sweep failed", {
@@ -114,23 +213,27 @@ export async function openResourceChangeChannel(
   };
   return {
     publish(message: string): Promise<void> {
-      const next = outgoing.then(async () => {
-        let notification = message;
-        if (Buffer.byteLength(message, "utf8") > NOTIFY_PAYLOAD_LIMIT) {
-          const id = randomUUID();
-          await pool`INSERT INTO resource_change_outbox (id, payload, created_at) VALUES (${id}, ${message}, ${new Date().toISOString()})`;
-          notification = JSON.stringify({ outbox_id: id });
+      return new Promise<void>((resolve, reject) => {
+        pending.push({ message, resolve, reject });
+        if (pending.length > MAX_PENDING_NOTIFICATIONS) {
+          // The database is not keeping up. Drop the oldest message and have
+          // receivers resync once instead of queueing without limit.
+          pending.shift()?.resolve();
+          if (!overflowed) {
+            log.warn("Resource change queue full, dropping oldest messages", {
+              limit: MAX_PENDING_NOTIFICATIONS
+            });
+          }
+          overflowed = true;
         }
-        await pool`SELECT pg_notify(${CHANNEL}, ${notification})`;
+        scheduleFlush();
       });
-      // Keep subsequent writes moving after a failed publication.
-      outgoing = next.catch(() => {});
-      return next;
     },
     stopListening,
     async close(): Promise<void> {
       clearInterval(timer);
       await stopListening();
+      outgoing = outgoing.then(flush, flush);
       await Promise.all([incoming, outgoing]);
     }
   };

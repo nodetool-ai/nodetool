@@ -1,7 +1,12 @@
 /** Routes serialized bus events to owners and workflow collaborators. */
 
 import { createLogger } from "@nodetool-ai/config";
-import { Workflow, WorkflowCollaborator } from "@nodetool-ai/models";
+import {
+  DocumentCollaborator,
+  Workflow,
+  WorkflowCollaborator,
+  type SharedDocumentType
+} from "@nodetool-ai/models";
 import {
   resourceChangeBus,
   startResourceChangeFeeds,
@@ -27,8 +32,60 @@ export interface ResourceChangeSubscriber {
   deliver(frame: ResourceChangeFrame): void;
 }
 
+/** Most cached recipient sets per kind. The oldest entry goes first. */
+export const RECIPIENT_CACHE_LIMIT = 1000;
+
+/**
+ * Insertion-ordered map that evicts its oldest entry past `limit`. Evicting
+ * is safe: a later change re-reads the grants from the database.
+ */
+class BoundedRecipientCache {
+  private readonly entries = new Map<string, Promise<Set<string>>>();
+  constructor(private readonly limit: number) {}
+  get(key: string): Promise<Set<string>> | undefined {
+    return this.entries.get(key);
+  }
+  set(key: string, value: Promise<Set<string>>): void {
+    this.entries.delete(key);
+    this.entries.set(key, value);
+    while (this.entries.size > this.limit) {
+      const oldest = this.entries.keys().next();
+      if (oldest.done) break;
+      this.entries.delete(oldest.value);
+    }
+  }
+  delete(key: string): void {
+    this.entries.delete(key);
+  }
+  clear(): void {
+    this.entries.clear();
+  }
+  get size(): number {
+    return this.entries.size;
+  }
+}
+
+/** Test hook: the number of cached recipient sets across both caches. */
+export function recipientCacheSize(): number {
+  return workflowRecipients.size + documentRecipients.size;
+}
+
+/**
+ * `resource_type` (lowercased model class name) to the document kind that
+ * `DocumentCollaborator` grants use.
+ */
+const DOCUMENT_TYPE_BY_RESOURCE: Readonly<Record<string, SharedDocumentType>> = {
+  storyboard: "storyboard",
+  script: "script",
+  timelinesequence: "timeline",
+  imagedocument: "sketch",
+  application: "application",
+  jsscript: "jsscript"
+};
+
 const subscribers = new Set<ResourceChangeSubscriber>();
-const workflowRecipients = new Map<string, Promise<Set<string>>>();
+const workflowRecipients = new BoundedRecipientCache(RECIPIENT_CACHE_LIMIT);
+const documentRecipients = new BoundedRecipientCache(RECIPIENT_CACHE_LIMIT);
 let unsubscribeBus: (() => void) | undefined;
 
 function acceptingSubscribers(
@@ -64,12 +121,19 @@ function deliverAll(
 const onResourceChange = (payload: ResourceBusSignal): void => {
   if ("type" in payload) {
     workflowRecipients.clear();
+    documentRecipients.clear();
     deliverAll([...subscribers], payload);
     return;
   }
   if (payload.resource_type === "workflowcollaborator") {
     const workflowId = payload.resource["workflow_id"];
     if (typeof workflowId === "string") workflowRecipients.delete(workflowId);
+  }
+  // The serialized payload carries neither document_type nor document_id, so
+  // any grant change drops the whole document cache. Grant changes are rare
+  // and a miss costs one query, which is simpler than widening the payload.
+  if (payload.resource_type === "documentcollaborator") {
+    documentRecipients.clear();
   }
   const { owner_user_id, ...change } = payload;
   const ownerId = owner_user_id || null;
@@ -89,7 +153,45 @@ const onResourceChange = (payload: ResourceBusSignal): void => {
       log.error("Shared workflow change delivery failed", { error: String(error) });
     });
   }
+  const documentType = DOCUMENT_TYPE_BY_RESOURCE[payload.resource_type];
+  const documentId = payload.resource["id"];
+  if (documentType && isNonEmptyString(documentId) && ownerId) {
+    deliverDocumentChange(
+      documentType, documentId, ownerId, targets, frame,
+      payload.event === "deleted"
+    ).catch((error) => {
+      log.error("Shared document change delivery failed", { error: String(error) });
+    });
+  }
 };
+
+async function deliverDocumentChange(
+  documentType: SharedDocumentType,
+  documentId: string,
+  ownerId: string,
+  delivered: readonly ResourceChangeSubscriber[],
+  frame: ResourceChangeFrame,
+  deleted: boolean
+): Promise<void> {
+  const key = `${documentType}:${documentId}`;
+  await deliverToRecipients(
+    documentRecipients,
+    key,
+    async () => {
+      const grants = await DocumentCollaborator.listForDocument(
+        documentType,
+        documentId
+      );
+      const users = new Set(grants.map((grant) => grant.user_id));
+      users.add(ownerId);
+      return users;
+    },
+    ownerId,
+    delivered,
+    () => frame,
+    deleted
+  );
+}
 
 async function deliverWorkflowChange(
   workflowId: string,
@@ -98,53 +200,72 @@ async function deliverWorkflowChange(
   getFrame: () => ResourceChangeFrame,
   deleted: boolean
 ): Promise<void> {
-  let pending = workflowRecipients.get(workflowId);
-  if (!pending) {
-    pending = Promise.all([
-      WorkflowCollaborator.listForWorkflow(workflowId),
-      Workflow.get<Workflow>(workflowId)
-    ]).then(([grants, workflow]) => {
+  await deliverToRecipients(
+    workflowRecipients,
+    workflowId,
+    async () => {
+      const [grants, workflow] = await Promise.all([
+        WorkflowCollaborator.listForWorkflow(workflowId),
+        Workflow.get<Workflow>(workflowId)
+      ]);
       const users = new Set(grants.map((grant) => grant.user_id));
       // A version's user_id identifies its author, who may be an editor.
       if (workflow) {
         users.add(workflow.user_id);
       }
       return users;
-    });
-    workflowRecipients.set(workflowId, pending);
-  }
-  let recipients: Set<string>;
-  try {
-    recipients = await pending;
-  } catch (error) {
-    if (workflowRecipients.get(workflowId) === pending) {
-      workflowRecipients.delete(workflowId);
-    }
-    throw error;
-  }
-  if (subscribers.size === 0) {
-    return;
-  }
-  // A grant may have been revoked while the database query was pending.
-  if (workflowRecipients.get(workflowId) !== pending) {
-    await deliverWorkflowChange(
-      workflowId,
-      ownerId,
-      delivered,
-      getFrame,
-      deleted
-    );
-    return;
-  }
-  const alreadyDelivered = new Set(delivered);
-  const targets = acceptingSubscribers(ownerId, recipients).filter(
-    (subscriber) => !alreadyDelivered.has(subscriber)
+    },
+    ownerId,
+    delivered,
+    getFrame,
+    deleted
   );
-  if (targets.length > 0) {
-    deliverAll(targets, getFrame());
-  }
-  if (deleted) {
-    workflowRecipients.delete(workflowId);
+}
+
+async function deliverToRecipients(
+  cache: BoundedRecipientCache,
+  key: string,
+  resolve: () => Promise<Set<string>>,
+  ownerId: string,
+  delivered: readonly ResourceChangeSubscriber[],
+  getFrame: () => ResourceChangeFrame,
+  deleted: boolean
+): Promise<void> {
+  // At most one re-resolution after a revoke race or an eviction. The second
+  // pass delivers with the set it just resolved, so this cannot loop.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let pending = cache.get(key);
+    if (!pending) {
+      pending = resolve();
+      cache.set(key, pending);
+    }
+    let recipients: Set<string>;
+    try {
+      recipients = await pending;
+    } catch (error) {
+      if (cache.get(key) === pending) {
+        cache.delete(key);
+      }
+      throw error;
+    }
+    if (subscribers.size === 0) {
+      return;
+    }
+    // A grant may have been revoked while the database query was pending.
+    if (attempt === 0 && cache.get(key) !== pending) {
+      continue;
+    }
+    const alreadyDelivered = new Set(delivered);
+    const targets = acceptingSubscribers(ownerId, recipients).filter(
+      (subscriber) => !alreadyDelivered.has(subscriber)
+    );
+    if (targets.length > 0) {
+      deliverAll(targets, getFrame());
+    }
+    if (deleted) {
+      cache.delete(key);
+    }
+    return;
   }
 }
 
@@ -162,5 +283,6 @@ export function subscribeResourceChanges(
     unsubscribeBus?.();
     unsubscribeBus = undefined;
     workflowRecipients.clear();
+    documentRecipients.clear();
   };
 }
