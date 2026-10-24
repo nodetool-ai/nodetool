@@ -1,6 +1,7 @@
 import type { TimelineTrack, TimelineTrackFolder } from "@nodetool-ai/timeline";
 
 import { SCRIPT_LANE_HEIGHT_PX } from "./ScriptLane";
+import { automationSectionHeightPx } from "./automation/automationLayout";
 import { FX_PANEL_HEIGHT_PX, trackRowHeightPx } from "./trackHeight";
 
 export type TrackRow =
@@ -17,7 +18,8 @@ export function layoutTrackRows(
   verticalZoom = 1,
   folders: readonly TimelineTrackFolder[] = [],
   collapsedFolderIds: ReadonlySet<string> = new Set(),
-  dawMode = false
+  dawMode = false,
+  shownAutomationTrackIds: readonly string[] = []
 ): { rows: TrackRow[]; height: number } {
   const rows: TrackRow[] = [];
   const validFolders = new Map(folders.map((folder) => [folder.id, folder]));
@@ -68,7 +70,8 @@ export function layoutTrackRows(
     const track = item.track;
     const height =
       trackRowHeightPx(track, dawMode) * verticalZoom +
-      (track.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0);
+      (track.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0) +
+      automationSectionHeightPx(track, shownAutomationTrackIds);
     rows.push({ kind: "track", track, top, height });
     top += height;
   });

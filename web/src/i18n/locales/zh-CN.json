@@ -18791,5 +18791,34 @@
       "goToWorkspace": "前往工作区",
       "opening": "正在打开共享文档"
     }
+  },
+  "timelineAutomation": {
+    "groups": {
+      "mixer": "混音器",
+      "clips": "此轨道上的片段"
+    },
+    "params": {
+      "volume": "音量",
+      "pan": "声像",
+      "opacity": "不透明度",
+      "scale": "缩放",
+      "positionX": "位置 X",
+      "positionY": "位置 Y",
+      "rotation": "旋转",
+      "brightness": "亮度",
+      "contrast": "对比度",
+      "saturation": "饱和度",
+      "hue": "色相",
+      "blur": "模糊"
+    },
+    "showLanes": "显示自动化轨道",
+    "hideLanes": "隐藏自动化轨道",
+    "addLane": "自动化参数",
+    "turnOff": "关闭此轨道",
+    "turnOn": "开启此轨道",
+    "removeLane": "移除轨道",
+    "missingTarget": "已移除的设备",
+    "laneLabel": "自动化轨道：{{name}}",
+    "deletePoint": "删除点"
   }
 }

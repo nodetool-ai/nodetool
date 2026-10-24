@@ -647,6 +647,35 @@ export const clipHarmony = z.object({
 });
 export type ClipHarmony = z.infer<typeof clipHarmony>;
 
+/** How many lanes one track may hold, and points one lane. */
+export const MAX_AUTOMATION_LANES_PER_TRACK = 256;
+export const MAX_AUTOMATION_POINTS_PER_LANE = 10000;
+
+/** `AutomationTarget` in `@nodetool-ai/timeline`: the control a lane drives. */
+export const automationTarget = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("mixer"), param: z.enum(["volumeDb", "pan"]) }),
+  z.object({ kind: z.literal("device"), deviceId: z.string().min(1), param: z.string().min(1) }),
+  z.object({ kind: z.literal("clip"), property: z.string().min(1) })
+]);
+export type AutomationTarget = z.infer<typeof automationTarget>;
+
+/** `AutomationLane` in `@nodetool-ai/timeline`: one parameter's curve over document time. */
+export const automationLane = z.object({
+  id: z.string(),
+  target: automationTarget,
+  points: z
+    .array(
+      z.object({
+        timeMs: z.number().finite().min(0),
+        value: z.number().finite(),
+        easing: z.string().optional()
+      })
+    )
+    .max(MAX_AUTOMATION_POINTS_PER_LANE),
+  enabled: z.boolean().optional()
+});
+export type AutomationLane = z.infer<typeof automationLane>;
+
 export const timelineTrack = z.object({
   id: z.string(),
   name: z.string(),
@@ -667,7 +696,9 @@ export const timelineTrack = z.object({
   pan: z.number().min(-1).max(1).optional(),
   /** Chord regions of a `chord` track. Without this field Zod strips them on
    * every PATCH, so the progression disappears after one save. */
-  chords: z.array(timelineChord).max(MAX_CHORDS_PER_TRACK).optional()
+  chords: z.array(timelineChord).max(MAX_CHORDS_PER_TRACK).optional(),
+  /** Automation lanes. Without this field Zod strips them on every PATCH. */
+  automation: z.array(automationLane).max(MAX_AUTOMATION_LANES_PER_TRACK).optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
 

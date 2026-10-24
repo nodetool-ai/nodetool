@@ -267,7 +267,7 @@ export const createWt1Device: LiveDeviceFactory = async (
   if (instrument.type !== "wavetable") {
     throw new Error(`WT-1 cannot play a ${instrument.type} instrument`);
   }
-  await loadFableWorklets(ctx, ["ott", "lab", "wt1"]);
+  await loadFableWorklets(ctx, ["pauto", "ott", "lab", "wt1"]);
   const params = wt1ParamsFromInstrument(instrument as WavetableMidiInstrument);
   const tables = [...factoryTables(), ...loadUserTablePool().map((u) => u.table)];
   const events = options?.events?.length

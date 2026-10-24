@@ -17,7 +17,9 @@ import type { DynamicsMessage } from "../fablesynth/engine/dynamics";
 import type { EchoMessage } from "../fablesynth/engine/echo";
 import type { ReverbMessage } from "../fablesynth/engine/reverb";
 import type { FxTelemetryEngine } from "../fablesynth/components/panels/fxAdapter";
+import type { DeviceAutomationLane } from "../devices/liveDevice";
 import { loadFableWorklets } from "../devices/loadFableWorklets";
+import { postAutomation, syncAutomation } from "../devices/workletDevice";
 import { resolvedFableFxParams } from "./fableFxParams";
 
 export const FABLE_FX_PROCESSOR = "fable-fx";
@@ -29,7 +31,7 @@ const pending = new WeakMap<BaseAudioContext, Promise<void>>();
 export function preloadFableFx(ctx: BaseAudioContext): Promise<void> {
   let promise = pending.get(ctx);
   if (!promise) {
-    promise = loadFableWorklets(ctx, ["ott", "lab", "fx"]).then(() => {
+    promise = loadFableWorklets(ctx, ["pauto", "ott", "lab", "fx"]).then(() => {
       ready.add(ctx);
     });
     pending.set(ctx, promise);
@@ -76,8 +78,23 @@ export class FableFxHandle implements FxTelemetryEngine {
     public bpm: number
   ) {}
 
+  /** Lanes sent before the worklet existed, posted when it attaches. */
+  private automation: readonly DeviceAutomationLane[] = [];
+
+  /** Replace the automation lanes this stage plays (FableSynth param ids). */
+  setAutomation(lanes: readonly DeviceAutomationLane[]): void {
+    this.automation = lanes;
+    if (this.node) postAutomation(this.node.port, lanes, this.ctx.sampleRate);
+  }
+
+  /** Resolves once the worklet holds every lane sent before. */
+  syncAutomation(): Promise<void> {
+    return this.node ? syncAutomation(this.node.port) : Promise.resolve();
+  }
+
   attach(node: AudioWorkletNode): void {
     this.node = node;
+    if (this.automation.length > 0) postAutomation(node.port, this.automation, this.ctx.sampleRate);
     node.port.onmessage = (event: MessageEvent<TelemetryMessage>) => {
       const message = event.data;
       if (!message || typeof message !== "object") return;
