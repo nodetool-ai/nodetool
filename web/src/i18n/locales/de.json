@@ -18355,7 +18355,9 @@
       "mode": "Dokumentmodus",
       "label": "Dokument {{title}}",
       "rename": "Dokumentname",
-      "renameHint": "Zum Umbenennen doppelklicken"
+      "renameHint": "Zum Umbenennen doppelklicken",
+      "moreActions": "Weitere Aktionen",
+      "copyContents": "Inhalt kopieren"
     }
   },
   "i18n-next105": {

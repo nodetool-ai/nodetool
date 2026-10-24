@@ -48,12 +48,8 @@ const NewProjectSurface = React.lazy(
  */
 const GENERIC_DOCUMENT_BAR_TYPES: ReadonlySet<WorkspaceTabType> = new Set([
   "image",
-  "svg",
-  "skill",
   "model3d",
-  "text",
   "audio",
-  "workspace-file",
   "application",
   "game"
 ]);
@@ -76,11 +72,15 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
     case "image":
       return <ImageSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "svg":
-      return <SvgSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <SvgSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "sketch":
       return <SketchSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "text":
-      return <TextSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <TextSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "model3d":
       return <Model3DSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "audio":
@@ -105,13 +105,16 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
         <JsScriptSurface refId={tab.ref} mode={tab.mode} active={active} />
       );
     case "skill":
-      return <SkillSurface refId={tab.ref} mode={tab.mode} active={active} />;
+      return (
+        <SkillSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
+      );
     case "workspace-file":
       return (
         <WorkspaceFileSurface
           refId={tab.ref}
           mode={tab.mode}
           active={active}
+          tab={tab}
         />
       );
     case "application":

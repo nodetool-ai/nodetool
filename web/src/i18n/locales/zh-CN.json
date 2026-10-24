@@ -18355,7 +18355,9 @@
       "mode": "文档模式",
       "label": "{{title}} 文档",
       "rename": "文档名称",
-      "renameHint": "双击重命名"
+      "renameHint": "双击重命名",
+      "moreActions": "更多操作",
+      "copyContents": "复制内容"
     }
   },
   "i18n-next105": {

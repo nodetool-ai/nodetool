@@ -5,6 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import type { Asset } from "../../../stores/ApiTypes";
+import type { WorkspaceTab } from "../../../stores/WorkspaceTabsStore";
+
+jest.mock("../../../hooks/useRenameDocument", () => ({
+  useRenameDocument: () => jest.fn()
+}));
 
 // Monaco is stood in for by a textarea, so an edit is a real typed change.
 jest.mock("../MonacoPane", () => ({
@@ -51,13 +56,20 @@ import SvgSurface from "../SvgSurface";
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="4" height="4"/></svg>';
 
 const renderSurface = (mode: "view" | "edit") => {
+  const tab: WorkspaceTab = {
+    id: "svg:svg-1",
+    type: "svg",
+    ref: "svg-1",
+    mode,
+    title: "logo.svg"
+  };
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } }
   });
   return render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={mockTheme}>
-        <SvgSurface refId="svg-1" mode={mode} active />
+        <SvgSurface refId="svg-1" mode={mode} active tab={tab} />
       </ThemeProvider>
     </QueryClientProvider>
   );
@@ -118,6 +130,31 @@ describe("SvgSurface", () => {
         content_type: "image/svg+xml"
       })
     );
+  });
+
+  it("shows the save state and history in the document bar", async () => {
+    renderSurface("edit");
+    const source = await screen.findByTestId("monaco");
+    const bar = screen.getByRole("toolbar", { name: "logo.svg document" });
+    expect(bar).toHaveTextContent("Saved");
+
+    await userEvent.type(source, " ");
+
+    expect(bar).toHaveTextContent("Unsaved changes");
+    expect(
+      screen.getByRole("button", { name: /undo/i })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /save/i })).toBeEnabled();
+  });
+
+  it("keeps the view bar to the title and View/Edit", async () => {
+    renderSurface("view");
+    const bar = await screen.findByRole("toolbar", {
+      name: "logo.svg document"
+    });
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(bar).not.toHaveTextContent("Saved");
+    expect(screen.queryByRole("button", { name: /save/i })).toBeNull();
   });
 
   it("does not run script in markup it paints", async () => {
