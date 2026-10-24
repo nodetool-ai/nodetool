@@ -9207,6 +9207,10 @@
         "soundNotifications": {
           "label": "Sound notifications",
           "description": "Play a system beep sound when workflows complete, exports finish, or other important events occur."
+        },
+        "systemNotifications": {
+          "label": "Desktop notifications",
+          "description": "Show a system notification when a run or chat reply finishes while NodeTool is in the background."
         }
       },
       "updates": {

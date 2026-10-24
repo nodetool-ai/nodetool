@@ -19,12 +19,17 @@ const isStateUpdater = (
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import useResultsStore from "../../../stores/ResultsStore";
+import { notifySystem } from "../../../utils/systemNotification";
 
 jest.mock("../../../lib/tools/frontendTools", () => ({
   FrontendToolRegistry: {
     has: jest.fn(),
     call: jest.fn()
   }
+}));
+
+jest.mock("../../../utils/systemNotification", () => ({
+  notifySystem: jest.fn()
 }));
 
 jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
@@ -273,6 +278,44 @@ describe("chatProtocol", () => {
       );
 
       expect(capturedState.updateThreadTitle).not.toHaveBeenCalled();
+    });
+
+    it("announces the finished turn with a preview of the reply", async () => {
+      jest.mocked(notifySystem).mockClear();
+      let capturedState: GlobalChatState = partialChatState({
+        status: "connected",
+        currentThreadId: "thread-1",
+        threads: {
+          "thread-1": { id: "thread-1", title: "Trip plan", updated_at: new Date().toISOString() }
+        },
+        messageCache: {
+          "thread-1": [{ role: "user", type: "message", content: "Plan it" }]
+        },
+        selectedModel: { provider: "", id: "" },
+        summarizeThread: jest.fn(),
+        updateThreadTitle: jest.fn()
+      });
+      const set = jest.fn((updater) => {
+        capturedState = { ...capturedState, ...(isStateUpdater(updater) ? updater(capturedState) : updater) };
+      });
+
+      await handleChatWebSocketMessage(
+        stub<WebSocketMessage>({ type: "chunk", content: "Day one:\n\nthe coast", done: false }),
+        set,
+        () => capturedState
+      );
+      expect(notifySystem).not.toHaveBeenCalled();
+
+      await handleChatWebSocketMessage(
+        stub<WebSocketMessage>({ type: "chunk", content: "", done: true }),
+        set,
+        () => capturedState
+      );
+      expect(notifySystem).toHaveBeenCalledWith({
+        title: "Trip plan",
+        body: "Day one: the coast",
+        tag: "chat-turn-finished-thread-1"
+      });
     });
 
     it("keeps a title the user set instead of asking the server for one", async () => {

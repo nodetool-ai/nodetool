@@ -9207,6 +9207,10 @@
         "soundNotifications": {
           "label": "声音通知",
           "description": "工作流完成、导出结束或发生其他重要事件时播放系统提示音。"
+        },
+        "systemNotifications": {
+          "label": "桌面通知",
+          "description": "NodeTool 在后台时，运行或聊天回复完成后显示系统通知。"
         }
       },
       "updates": {
