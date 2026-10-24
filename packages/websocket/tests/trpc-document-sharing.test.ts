@@ -150,6 +150,50 @@ describe("documentSharing", () => {
     ).rejects.toThrow("Document not found");
   });
 
+  it("keeps an editor an editor when they redeem a viewer link", async () => {
+    const { board, link: editorLink } = await shareStoryboard("editor");
+    await guest().documentSharing.accept({ token: editorLink.token });
+    const viewerLink = await owner().documentSharing.createLink({
+      type: "storyboard",
+      id: board.id,
+      role: "viewer"
+    });
+
+    const accepted = await guest().documentSharing.accept({
+      token: viewerLink.token
+    });
+    expect(accepted.role).toBe("editor");
+
+    const sharing = await owner().documentSharing.get({
+      type: "storyboard",
+      id: board.id
+    });
+    expect(sharing.collaborators).toEqual([
+      expect.objectContaining({ user_id: GUEST, role: "editor" })
+    ]);
+    expect(
+      (await guest().storyboards.update({ id: board.id, name: "Recut" })).name
+    ).toBe("Recut");
+  });
+
+  it("raises a viewer to editor when they redeem an editor link", async () => {
+    const { board, link: viewerLink } = await shareStoryboard("viewer");
+    await guest().documentSharing.accept({ token: viewerLink.token });
+    const editorLink = await owner().documentSharing.createLink({
+      type: "storyboard",
+      id: board.id,
+      role: "editor"
+    });
+
+    const accepted = await guest().documentSharing.accept({
+      token: editorLink.token
+    });
+    expect(accepted.role).toBe("editor");
+    expect(
+      (await guest().storyboards.update({ id: board.id, name: "Recut" })).name
+    ).toBe("Recut");
+  });
+
   it("lists shared documents and drops them when the grant goes", async () => {
     const { board, link } = await shareStoryboard("viewer");
     await guest().documentSharing.accept({ token: link.token });
