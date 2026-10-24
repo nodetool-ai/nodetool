@@ -42,6 +42,12 @@ export type {
   SaveStateValue
 } from "./StatusBar";
 export type { ToolbarIconButtonProps } from "./ToolbarIconButton";
+export { DocumentBar, DOCUMENT_BAR_HEIGHT } from "./DocumentBar";
+export type { DocumentBarProps } from "./DocumentBar";
+export { SaveStatus } from "./SaveStatus";
+export type { SaveStatusProps, SaveStatusValue } from "./SaveStatus";
+export { ModeSwitch } from "./ModeSwitch";
+export type { ModeSwitchProps, ModeSwitchOption } from "./ModeSwitch";
 export { PageLayout } from "./PageLayout";
 export type { PageLayoutProps } from "./PageLayout";
 export { PageHeader } from "./PageHeader";

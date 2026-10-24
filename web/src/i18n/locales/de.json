@@ -18296,6 +18296,17 @@
       "saving": "Wird gespeichert…",
       "saved": "Gespeichert",
       "error": "Speichern fehlgeschlagen"
+    },
+    "saveStatus": {
+      "notSaved": "Nicht gespeichert",
+      "retry": "Erneut versuchen",
+      "readOnly": "Schreibgeschützt"
+    },
+    "documentBar": {
+      "mode": "Dokumentmodus",
+      "label": "Dokument {{title}}",
+      "rename": "Dokumentname",
+      "renameHint": "Zum Umbenennen doppelklicken"
     }
   },
   "i18n-next105": {

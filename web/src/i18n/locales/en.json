@@ -18296,6 +18296,17 @@
       "saving": "Saving…",
       "saved": "Saved",
       "error": "Save failed"
+    },
+    "saveStatus": {
+      "notSaved": "Not saved",
+      "retry": "Retry",
+      "readOnly": "Read only"
+    },
+    "documentBar": {
+      "mode": "Document mode",
+      "label": "{{title}} document",
+      "rename": "Document name",
+      "renameHint": "Double-click to rename"
     }
   },
   "i18n-next105": {
