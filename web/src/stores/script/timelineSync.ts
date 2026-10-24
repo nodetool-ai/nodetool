@@ -9,14 +9,30 @@
  * the change on next load. Failures are logged, never thrown — a sync miss must
  * not fail the take.
  *
+ * In a cut assembled with the storyboard the whole cut is laid out again,
+ * since each shot runs as long as its lines.
+ *
  * This mirrors the storyboard's `syncShotClipToTimeline`. Structural drift
  * (adding/removing/reordering lines) is out of scope here — it prompts a
  * re-assemble instead.
  */
 
 import { trpcClient } from "../../trpc/client";
-import { useScriptStore, type ScriptTake } from "./ScriptStore";
-import { takeCaptionWords } from "../../components/script/assembleScriptTimeline";
+import {
+  useScriptStore,
+  type ScriptDraft,
+  type ScriptTake
+} from "./ScriptStore";
+import {
+  buildScriptTimelineDocument,
+  takeCaptionWords
+} from "../../components/script/assembleScriptTimeline";
+import { loadLinkedBoard } from "../../lib/linkedAssembly";
+import { isScriptWriting } from "../../hooks/script/scriptWrites";
+import {
+  mergeIntoSequence,
+  stampBoardProvenance
+} from "../../lib/assembledSequenceMerge";
 import { makeClipVersion } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import {
@@ -55,6 +71,32 @@ export async function syncLineClipToTimeline(
         (clip) => clip.scriptLineId === lineId && clip.scriptId === scriptId
       );
       if (targetIndex < 0) return false;
+
+      // A cut assembled with the storyboard places each line inside the shot
+      // that covers it, and each shot runs as long as its lines. Moving only
+      // the voice clips left later lines outside their shots, so a linked cut
+      // is laid out again, the way Assemble does it.
+      const linkedBoardId = clips[targetIndex].storyboardBoardId;
+      if (linkedBoardId) {
+        const latest = useScriptStore.getState().getScript(scriptId);
+        const board = await loadLinkedBoard(linkedBoardId);
+        if (!latest || !board) return false;
+        const doc = buildScriptTimelineDocument(latest, board);
+        const merged = mergeIntoSequence(
+          {
+            tracks: doc.tracks,
+            clips: stampBoardProvenance(doc.clips, board.boardId)
+          },
+          { tracks: sequence.tracks, clips },
+          { scriptId, boardId: board.boardId }
+        );
+        await trpcClient.timeline.update.mutate({
+          id: timelineId,
+          baseUpdatedAt: sequence.updatedAt,
+          document: { ...merged, markers: sequence.markers ?? [] }
+        });
+        return true;
+      }
 
       if (!activeTake) {
         const next = clips.filter((_, index) => index !== targetIndex);
@@ -165,4 +207,60 @@ export async function syncLineClipToTimeline(
     }
   }
   return false;
+}
+
+/**
+ * Round-trip every line whose current take differs between two versions of a
+ * script, as undo and redo produce them. Without it, undoing a take put the old
+ * take back in the script while the assembled timeline kept the undone one.
+ */
+export function syncChangedTakesToTimeline(
+  scriptId: string,
+  before: ScriptDraft | undefined,
+  after: ScriptDraft | undefined
+): void {
+  if (!before || !after || !after.timelineId) {
+    return;
+  }
+  const previous = new Map(
+    before.sections
+      .flatMap((section) => section.lines)
+      .map((line) => [line.id, line.currentTakeId ?? null] as const)
+  );
+  for (const line of after.sections.flatMap((section) => section.lines)) {
+    const takeId = line.currentTakeId ?? null;
+    if (!previous.has(line.id) || previous.get(line.id) === takeId) {
+      continue;
+    }
+    const take = line.takes.find((candidate) => candidate.id === takeId) ?? null;
+    void syncLineClipToTimeline(scriptId, line.id, take);
+  }
+}
+
+/** Undo one step of a script, and bring its assembled timeline along. */
+export function undoScript(scriptId: string): void {
+  // A running write replaces the lines when it lands; stepping history under
+  // it would be thrown away with them.
+  if (isScriptWriting(scriptId)) return;
+  const before = useScriptStore.getState().getScript(scriptId);
+  useScriptStore.getState().undo(scriptId);
+  syncChangedTakesToTimeline(
+    scriptId,
+    before,
+    useScriptStore.getState().getScript(scriptId)
+  );
+}
+
+/** Redo one step of a script, and bring its assembled timeline along. */
+export function redoScript(scriptId: string): void {
+  // A running write replaces the lines when it lands; stepping history under
+  // it would be thrown away with them.
+  if (isScriptWriting(scriptId)) return;
+  const before = useScriptStore.getState().getScript(scriptId);
+  useScriptStore.getState().redo(scriptId);
+  syncChangedTakesToTimeline(
+    scriptId,
+    before,
+    useScriptStore.getState().getScript(scriptId)
+  );
 }

@@ -1006,6 +1006,8 @@ interface EncodedSpeechParams {
   text: string;
   voice: unknown;
   speed: unknown;
+  /** Delivery direction, for models that take one. */
+  instructions?: string;
   audioFormat: string;
 }
 
@@ -1036,6 +1038,9 @@ async function encodedSpeech(
         text: params.text,
         voice: params.voice,
         speed: params.speed,
+        ...(params.instructions !== undefined && {
+          instructions: params.instructions
+        }),
         audioFormat: params.audioFormat
       }
     });
@@ -1047,6 +1052,9 @@ async function encodedSpeech(
       model: m.model,
       voice: isString(params.voice) ? params.voice : undefined,
       speed: typeof params.speed === "number" ? params.speed : undefined,
+      ...(params.instructions !== undefined && {
+        instructions: params.instructions
+      }),
       audioFormat: params.audioFormat
     });
   }
@@ -1073,6 +1081,9 @@ async function speechAudio(
     model: m.model,
     voice: isString(params.voice) ? params.voice : undefined,
     speed: typeof params.speed === "number" ? params.speed : undefined,
+    ...(params.instructions !== undefined && {
+      instructions: params.instructions
+    }),
     audioFormat: params.audioFormat,
     signal
   };
@@ -1292,6 +1303,9 @@ const generateSpeech: CapabilityExport = {
       text,
       voice: params.voice,
       speed: params.speed,
+      ...(isNonEmptyString(params.instructions) && {
+        instructions: params.instructions
+      }),
       audioFormat: audioFormatFromOutputFile(outputFile) ?? "mp3"
     };
     const spec: MediaGeneration = {

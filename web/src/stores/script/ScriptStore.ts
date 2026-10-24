@@ -107,6 +107,8 @@ export interface ScriptDraft {
   storyboardId: string | null;
   /** Optional shared product, audience, and reference context. */
   creativeContext?: CreativeContext;
+  /** The template script this one was filled from, kept for its lineage. */
+  templateId?: string | null;
   /**
    * Where the script sits in the guided setup, and the answers each step wrote
    * (PRD § 9.5). Null on a script written before the flow existed, which is
@@ -384,6 +386,23 @@ const mapLine = (
   return changed ? { ...script, sections } : script;
 };
 
+/**
+ * A restored checkpoint with the current values of the fields that never
+ * record one. The timeline and storyboard links and the guided setup change
+ * without an undo step, so undo must not move them either: restoring the
+ * checkpoint's old link unlinked an assembled sequence, and its old setup
+ * stage put the setup flow back in place of the editor.
+ */
+const keepUntracked = (
+  restored: ScriptDraft,
+  current: ScriptDraft
+): ScriptDraft => ({
+  ...restored,
+  timelineId: current.timelineId,
+  storyboardId: current.storyboardId,
+  setup: current.setup
+});
+
 // ── Store ────────────────────────────────────────────────────────────────────
 
 export const useScriptStore = create<ScriptStoreState>((set, get) => ({
@@ -402,7 +421,10 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
       return {
         scripts: {
           ...state.scripts,
-          [scriptId]: { ...result.restored, updatedAt: Date.now() }
+          [scriptId]: {
+            ...keepUntracked(result.restored, current),
+            updatedAt: Date.now()
+          }
         },
         history: result.history
       };
@@ -417,7 +439,10 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
       return {
         scripts: {
           ...state.scripts,
-          [scriptId]: { ...result.restored, updatedAt: Date.now() }
+          [scriptId]: {
+            ...keepUntracked(result.restored, current),
+            updatedAt: Date.now()
+          }
         },
         history: result.history
       };
