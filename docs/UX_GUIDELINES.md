@@ -195,6 +195,10 @@ A side effect nobody sees is a lost result.
 - Dropping a photo inside the previous clip trimmed that clip without a word
   in 2 of 2 (`study-6-I4`). The drop now snaps to the clip's end.
 - Creating a project closed the open tabs silently (study 5 defects).
+- A new overlay track went under the full-frame video, so a title on it
+  never showed in 3 of 3 (`study-16-I1`). A new layer goes where it is seen.
+- Dragging a picture onto another to reorder replaced it in 3 of 3, and
+  people found out only by reading clip names (`study-16-I3`).
 
 Do what the person meant. Where the side effect must stay, show it with an
 undo ("Trimmed beach-morning.jpg by 1.8 s").
@@ -368,6 +372,10 @@ Conversations repeated it: 3 of 3 right-clicked or double-clicked the Chats
 row to rename, and with a rename button on the row 3 of 3 used it
 (`study-15-I3`).
 
+An editor's main additions belong in its toolbar, not only in a right-click
+menu. 6 of 6 asked to put words over a video looked in the timeline toolbar,
+and 3 of 6 never found "Add text" in the lane menu (`study-16-I2`).
+
 ### 6.2 A shortcut also has a visible control
 
 "Ctrl+D duplicate" sat in the status bar through a whole task, and 0 of 3
@@ -434,6 +442,7 @@ records the decision.
 | One search across chats, documents and files | study-7-I5 |
 | How side panels behave below about 1100 px | study-5-I8, study-6-I10 |
 | Which port names the canvas shows without hovering | study-9-I4 |
+| What a clip dropped on another clip does, and whether shortening a clip closes the gap | study-16-I3, study-16-I5 |
 
 ## 10. Checklist for a UI change
 

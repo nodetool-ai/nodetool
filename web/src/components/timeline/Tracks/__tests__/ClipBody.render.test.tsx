@@ -79,6 +79,20 @@ beforeEach(() => {
   mockThumbnails = null;
 });
 
+describe("ClipBody label", () => {
+  it("shows a text clip's words, not its default name", () => {
+    renderBody(
+      makeClip({
+        name: "Text",
+        mediaType: "text",
+        textStyle: { text: "Late ride home", fontSizePx: 96, color: "#FFFFFF" }
+      })
+    );
+    expect(screen.getByText("Late ride home")).toBeInTheDocument();
+    expect(screen.queryByText("Text")).not.toBeInTheDocument();
+  });
+});
+
 describe("ClipBody fades and transitions", () => {
   it("draws fade ramps sized to the fade durations", () => {
     renderBody(makeClip({ fadeInMs: 500, fadeOutMs: 1000 }));

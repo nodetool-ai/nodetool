@@ -161,7 +161,9 @@ playback that shows the second photo after the first.
 - "Save" and "Export video" are in the timeline's top bar. Export renders in
   the browser. The goal does not ask for it, because the runner cannot
   inspect a saved file.
-- Timelines are listed under Documents, "Creative documents".
+- Timelines are listed under Documents, "Creative documents". `--state
+  timeline` seeds "City at night" for editing tasks; it opens from the rail's
+  Documents panel or the Projects page.
 
 **Known behavior.** Until UX study 6, a photo dropped on an empty timeline
 landed one track-header width (3.4 s at 100 %) after the drop point, because
@@ -169,7 +171,13 @@ the header column had no width with no tracks. Fixed in the study 6 PR. A
 Library drop in the second half of a clip now lands at that clip's end, so the
 first clip keeps its length (study-6-I4). In Overlap mode, and in a clip's
 first half, the drop keeps the pointer's time. The guided flow's "Drop your media" places dropped photos
-in order without a drag (study-6-I5).
+in order without a drag (study-6-I5). Since UX study 16, "Add text" is also in the
+timeline toolbar and places a text clip at the playhead on the top track; a
+new video or overlay track goes on top, where it draws over the picture; a
+Library drop within 24 px after a clip's end snaps to that end; the first
+transport button goes to the start (Home); and MP4 is turned off where the
+browser has no AAC encoder, as in the test Chromium. A clip dragged onto
+another in the default Overwrite mode still replaces it.
 
 **Fakes.** Uploaded photos are real files, so this goal can complete. The
 "Timeline" guided flow and generated clips need a video model. A generated

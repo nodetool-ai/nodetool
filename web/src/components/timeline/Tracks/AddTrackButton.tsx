@@ -4,8 +4,10 @@
  *
  * Compact "+ Track" affordance in the timeline toolbar. Opens a popover with
  * the track types (video / audio / overlay / subtitle / MIDI / chord);
- * selecting one calls `TimelineStore.addTrack(type)`, which appends a new
- * track with an auto-generated name.
+ * selecting one adds a track with an auto-generated name. A picture track
+ * (video, overlay) goes to the top, because the top track draws over the
+ * ones below it: appended under a full-frame video, a title on a new
+ * overlay track would never show. Other tracks are appended.
  */
 
 import React, { memo, useCallback, useState } from "react";
@@ -118,6 +120,7 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
   const { t } = useTranslation();
   const theme = useTheme();
   const addTrack = useTimelineStore((s) => s.addTrack);
+  const insertTrack = useTimelineStore((s) => s.insertTrack);
   const addTrackFolder = useTimelineStore((s) => s.addTrackFolder);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -131,10 +134,14 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
 
   const handleSelect = useCallback(
     (type: TimelineTrack["type"]) => {
-      addTrack(type);
+      if (type === "video" || type === "overlay") {
+        insertTrack(type, 0);
+      } else {
+        addTrack(type);
+      }
       setAnchorEl(null);
     },
-    [addTrack]
+    [addTrack, insertTrack]
   );
 
   return (

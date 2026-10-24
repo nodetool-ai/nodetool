@@ -722,11 +722,14 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     })();
 
     // An adjustment clip has no name-worthy content of its own — its label is
-    // the effect chain it applies, e.g. "Adjustment · color, blur".
+    // the effect chain it applies, e.g. "Adjustment · color, blur". A text
+    // clip shows its words: every new one is named "Text", so after typing a
+    // title the lane still said "Text" (study 16).
+    const textContent = clip.mediaType === "text" ? clip.textStyle?.text.trim() : "";
     const displayName =
       clip.mediaType === "adjustment" && clip.effects && clip.effects.length > 0
         ? `${clip.name} · ${clip.effects.map((effect) => effect.type).join(", ")}`
-        : clip.name;
+        : textContent || clip.name;
 
     const showDuration = widthPx >= COMPACT_THRESHOLD_PX;
     const durationLabel = formatClipDuration(clip.durationMs);

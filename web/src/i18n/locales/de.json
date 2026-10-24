@@ -12475,6 +12475,8 @@
       "full": "Vollständig",
       "fullscreen": "Vollbild",
       "half": "Halb",
+      "goToStart": "Zum Anfang",
+      "goToEnd": "Zum Ende",
       "loop": "Schleife",
       "loopOnDescription": "Wiederholung aktiv: Die Wiedergabe wiederholt den In- bis Out-Bereich",
       "loopPlayback": "Wiedergabe wiederholen",
@@ -12526,10 +12528,10 @@
       "videoLayout": "Videolayout"
     },
     "trackHeader": {
+      "clickToRename": "Zum Umbenennen klicken",
       "custom": "Benutzerdefiniert",
       "deleteTrack": "Spur löschen",
       "deleteTrackQuestion": "Spur löschen?",
-      "doubleClickToRename": "Zum Umbenennen doppelklicken",
       "dragToReorder": "Ziehen, um die Spur neu anzuordnen",
       "duplicateTrack": "Spur duplizieren",
       "editInstrument": "Instrument bearbeiten",

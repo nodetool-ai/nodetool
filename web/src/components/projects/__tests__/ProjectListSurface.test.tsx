@@ -55,7 +55,7 @@ const assignDocument = jest.fn();
 const archiveProject = jest.fn();
 const restoreProject = jest.fn();
 const deleteProject = jest.fn();
-const openProject = jest.fn();
+const openProject = jest.fn(() => Promise.resolve(true));
 const openNewProject = jest.fn();
 const createProject = jest.fn();
 
@@ -82,8 +82,10 @@ jest.mock("../../../hooks/useProjects", () => ({
 
 const openTab = jest.fn();
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
-  useWorkspaceTabsStore: <T,>(selector: (s: { openTab: jest.Mock }) => T) =>
-    selector({ openTab })
+  useWorkspaceTabsStore: Object.assign(
+    <T,>(selector: (s: { openTab: jest.Mock }) => T) => selector({ openTab }),
+    { getState: () => ({ activeTabId: null }) }
+  )
 }));
 
 jest.mock("../../../stores/NotificationStore", () => ({
@@ -124,6 +126,17 @@ describe("ProjectListSurface", () => {
     await userEvent.click(screen.getByLabelText("Aurora Launch Spot"));
     expect(openProject).toHaveBeenCalledWith(
       expect.objectContaining({ id: "p1", name: "Aurora Launch Spot" })
+    );
+  });
+
+  it("opens the project's latest document, not an unchanged start page", async () => {
+    // Study 16: three clicks on a project card each landed back on Home.
+    renderSurface();
+    await userEvent.click(screen.getByLabelText("Aurora Launch Spot"));
+    await waitFor(() =>
+      expect(openTab).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "storyboard", ref: "b1", projectId: "p1" })
+      )
     );
   });
 

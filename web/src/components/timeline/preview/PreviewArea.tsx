@@ -1286,6 +1286,20 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       getTimeMs
     ]);
 
+    const goToStart = useCallback(() => {
+      if (isPlaying) {
+        handleStop();
+      }
+      setCurrentTimeMs(0);
+    }, [isPlaying, handleStop, setCurrentTimeMs]);
+
+    const goToEnd = useCallback(() => {
+      if (isPlaying) {
+        handleStop();
+      }
+      setCurrentTimeMs(contentEndMs || 0);
+    }, [isPlaying, handleStop, setCurrentTimeMs, contentEndMs]);
+
     const containerRef = useRef<HTMLDivElement>(null);
     const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -1426,17 +1440,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             break;
           case "Home":
             e.preventDefault();
-            if (isPlaying) {
-              handleStop();
-            }
-            setCurrentTimeMs(0);
+            goToStart();
             break;
           case "End":
             e.preventDefault();
-            if (isPlaying) {
-              handleStop();
-            }
-            setCurrentTimeMs(contentEndMs || 0);
+            goToEnd();
             break;
           default:
             break;
@@ -1447,10 +1455,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         jumpToPrevBoundary,
         jumpToNextBoundary,
         stepFrame,
-        isPlaying,
-        handleStop,
-        setCurrentTimeMs,
-        contentEndMs
+        goToStart,
+        goToEnd
       ]
     );
 
@@ -1512,13 +1518,17 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         </div>
 
         <div css={controlBarCss}>
+          {/* The skip icons read as "to the start" and "to the end", as in
+              every media player: three of three study 16 sessions pressed
+              this one to play from the beginning. Clip boundaries stay on
+              Shift+Arrow and the timeline's own keys. Never hidden, because
+              a narrow window would otherwise lose its only way back to 0. */}
           <ToolbarIconButton
             icon={<SkipPreviousIcon />}
-            tooltip={withActionShortcut(t("i18n-next6.preview.previousClipBoundary"), keyboardPreset, "prevCut")}
-            onClick={jumpToPrevBoundary}
-            aria-label={t("i18n-next6.preview.previousClipBoundary")}
+            tooltip={`${t("i18n-next6.preview.goToStart")} (Home)`}
+            onClick={goToStart}
+            aria-label={t("i18n-next6.preview.goToStart")}
             size="small"
-            className="timeline-preview__secondary-control"
           />
 
           <ToolbarIconButton
@@ -1577,9 +1587,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
           <ToolbarIconButton
             icon={<SkipNextIcon />}
-            tooltip={withActionShortcut(t("i18n-next6.preview.nextClipBoundary"), keyboardPreset, "nextCut")}
-            onClick={jumpToNextBoundary}
-            aria-label={t("i18n-next6.preview.nextClipBoundary")}
+            tooltip={`${t("i18n-next6.preview.goToEnd")} (End)`}
+            onClick={goToEnd}
+            aria-label={t("i18n-next6.preview.goToEnd")}
             size="small"
             className="timeline-preview__secondary-control"
           />

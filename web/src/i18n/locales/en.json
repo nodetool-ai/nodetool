@@ -12475,6 +12475,8 @@
       "full": "Full",
       "fullscreen": "Fullscreen",
       "half": "Half",
+      "goToStart": "Go to start",
+      "goToEnd": "Go to end",
       "loop": "Loop",
       "loopOnDescription": "Loop on: playback repeats the in to out range",
       "loopPlayback": "Loop playback",
@@ -12526,10 +12528,10 @@
       "videoLayout": "Video layout"
     },
     "trackHeader": {
+      "clickToRename": "Click to rename",
       "custom": "Custom",
       "deleteTrack": "Delete track",
       "deleteTrackQuestion": "Delete track?",
-      "doubleClickToRename": "Double-click to rename",
       "dragToReorder": "Drag to reorder track",
       "duplicateTrack": "Duplicate track",
       "editInstrument": "Edit instrument",
