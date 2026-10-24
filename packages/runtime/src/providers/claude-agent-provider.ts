@@ -1503,7 +1503,7 @@ function buildFreshPrompt(messages: Message[]): ClaudePrompt {
       blocks.push({type: "text", text: "<conversation_so_far>\n"});
       for (const message of prior) {
         blocks.push(
-          {type: "text", text: `${message.role === "assistant" ? "Assistant" : "User"}: `},
+          {type: "text", text: `${transcriptLabel(message.role)}: `},
           ...promptBlocks(message.content),
           {type: "text", text: "\n\n"}
         );
@@ -1519,7 +1519,7 @@ function buildFreshPrompt(messages: Message[]): ClaudePrompt {
     .map((m) => {
       const text = textOf(m.content);
       if (!text) return "";
-      return `${m.role === "assistant" ? "Assistant" : "User"}: ${text}`;
+      return `${transcriptLabel(m.role)}: ${text}`;
     })
     .filter(Boolean)
     .join("\n\n");
@@ -1528,6 +1528,17 @@ function buildFreshPrompt(messages: Message[]): ClaudePrompt {
     ? `<conversation_so_far>\n${transcript}\n</conversation_so_far>`
     : "";
   return [primed, newTurn].filter(Boolean).join("\n\n");
+}
+
+/**
+ * Who said a primed line. A tool result is labelled as one: under "User" the
+ * model reads tool output, which can carry untrusted text, as the user's own
+ * words.
+ */
+function transcriptLabel(role: Message["role"]): string {
+  if (role === "assistant") return "Assistant";
+  if (role === "tool") return "Tool result";
+  return "User";
 }
 
 function hasImages(messages: readonly Message[]): boolean {
