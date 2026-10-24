@@ -14745,6 +14745,8 @@
       "mp4Note": "Plays everywhere. No transparency.",
       "webmNote": "VP9 video with Opus audio.",
       "pngSequenceNote": "One PNG per frame in a zip, with a manifest.json naming the rate and size. No audio.",
+      "wav": "WAV audio (16-bit)",
+      "wavNote": "The whole timeline's audio mixdown in stereo, uncompressed at 48 kHz. No video.",
       "mp3": "MP3 audio (320 kbps)",
       "mp3Note": "The whole timeline's audio mixdown in stereo. No video.",
       "mp4Unsupported": "This browser cannot write MP4, so it is turned off.",
@@ -14756,7 +14758,8 @@
         "mp4": "MP4 carries no alpha channel. Choose WebM or a PNG sequence.",
         "webm": "Composites over a transparent ground and keeps the alpha channel.",
         "png_sequence": "Every PNG keeps its alpha channel.",
-        "mp3": "An MP3 has no picture, so there is nothing to make transparent."
+        "mp3": "An MP3 has no picture, so there is nothing to make transparent.",
+        "wav": "A WAV has no picture, so there is nothing to make transparent."
       }
     },
     "source": {

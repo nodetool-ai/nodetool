@@ -2,11 +2,11 @@
  * @jest-environment node
  */
 /**
- * The timeline MP3 export: the offline mixdown is faked, the encode is real
+ * The timeline WAV and MP3 exports: the offline mixdown is faked, the encode is real
  * (mediabunny with the LAME extension), so the frame header proves the
- * bitrate and channel layout the file carries.
+ * bitrate and channel layout the file carries, and the RIFF header the WAV's.
  */
-import { renderTimelineMp3 } from "../encodeAudio";
+import { renderTimelineAudioFile } from "../encodeAudio";
 
 const mockRender = jest.fn();
 jest.mock("../renderAudio", () => ({
@@ -69,7 +69,8 @@ afterAll(() => {
 });
 beforeEach(() => mockRender.mockReset());
 
-const options = (signal?: AbortSignal) => ({
+const options = (format: "wav" | "mp3", signal?: AbortSignal) => ({
+  format,
   clips: [],
   tracks: [],
   durationMs: 1000,
@@ -77,12 +78,12 @@ const options = (signal?: AbortSignal) => ({
   signal
 });
 
-describe("renderTimelineMp3", () => {
+describe("renderTimelineAudioFile", () => {
   it("encodes the whole mixdown as a 320 kbps stereo MP3", async () => {
     mockRender.mockResolvedValue(new FakeAudioBuffer(2, 48_000, 48_000));
     const progress = jest.fn();
-    const result = await renderTimelineMp3({
-      ...options(),
+    const result = await renderTimelineAudioFile({
+      ...options("mp3"),
       onProgress: progress
     });
 
@@ -103,10 +104,30 @@ describe("renderTimelineMp3", () => {
     );
   });
 
+  it("writes the mixdown as a 16-bit stereo 48 kHz WAV", async () => {
+    mockRender.mockResolvedValue(new FakeAudioBuffer(2, 48_000, 48_000));
+    const result = await renderTimelineAudioFile(options("wav"));
+    expect(result).toMatchObject({ mimeType: "audio/wav", extension: "wav" });
+    const bytes = result.bytes;
+    const ascii = (from: number, to: number): string =>
+      String.fromCharCode(...bytes.subarray(from, to));
+    expect(ascii(0, 4)).toBe("RIFF");
+    expect(ascii(8, 12)).toBe("WAVE");
+    const view = new DataView(bytes.buffer, bytes.byteOffset);
+    expect(view.getUint16(22, true)).toBe(2);
+    expect(view.getUint32(24, true)).toBe(48_000);
+    expect(view.getUint16(34, true)).toBe(16);
+    // One second of 2-channel 16-bit samples after the 44-byte header.
+    expect(bytes.length).toBe(44 + 48_000 * 2 * 2);
+  });
+
   it("says there is nothing to export when no clip is audible", async () => {
     mockRender.mockResolvedValue(null);
-    await expect(renderTimelineMp3(options())).rejects.toThrow(
+    await expect(renderTimelineAudioFile(options("mp3"))).rejects.toThrow(
       /no MP3 to export/
+    );
+    await expect(renderTimelineAudioFile(options("wav"))).rejects.toThrow(
+      /no WAV to export/
     );
   });
 
@@ -117,7 +138,7 @@ describe("renderTimelineMp3", () => {
       return new FakeAudioBuffer(2, 48_000, 48_000);
     });
     await expect(
-      renderTimelineMp3(options(controller.signal))
+      renderTimelineAudioFile(options("mp3", controller.signal))
     ).rejects.toMatchObject({ name: "AbortError" });
     expect(mockRender.mock.calls[0][0].signal).toBe(controller.signal);
   });
