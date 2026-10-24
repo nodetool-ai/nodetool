@@ -10581,6 +10581,9 @@
       "enqueued": "排队中"
     },
     "toolbar": {
+      "graph": "图",
+      "chain": "链",
+      "viewMode": "编辑器视图",
       "openApp": "打开应用",
       "makeApp": "创建应用",
       "openWorkflowApp": "打开运行此工作流的应用",
@@ -17956,7 +17959,6 @@
       },
       "status": {
         "alert": "提示",
-        "appSaved": "应用已保存",
         "doneSuffix": "，已完成",
         "generating": "生成中…",
         "loading": "加载中",
@@ -18584,8 +18586,7 @@
       "loading": "正在查找你的提供方提供的声音…"
     },
     "appBuilder": {
-      "appData": "应用数据",
-      "back": "返回"
+      "appData": "应用数据"
     }
   },
   "i18n-next116": {

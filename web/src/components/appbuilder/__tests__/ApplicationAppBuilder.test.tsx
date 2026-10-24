@@ -206,10 +206,8 @@ describe("ApplicationAppBuilder", () => {
         variables: EDITED.variables
       }
     });
-    expect(addNotification).toHaveBeenCalledWith({
-      type: "success",
-      content: "App saved"
-    });
+    // The document bar's save status reports the save; no toast repeats it.
+    expect(addNotification).not.toHaveBeenCalled();
   });
 
   it("reports a lost compare-and-swap instead of dropping the edit", async () => {

@@ -10581,6 +10581,9 @@
       "enqueued": "Eingereiht"
     },
     "toolbar": {
+      "graph": "Graph",
+      "chain": "Kette",
+      "viewMode": "Editoransicht",
       "openApp": "App öffnen",
       "makeApp": "App erstellen",
       "openWorkflowApp": "Die App öffnen, die diesen Workflow ausführt",
@@ -17956,7 +17959,6 @@
       },
       "status": {
         "alert": "Warnung",
-        "appSaved": "App gespeichert",
         "doneSuffix": ", fertig",
         "generating": "Wird generiert…",
         "loading": "Wird geladen",
@@ -18584,8 +18586,7 @@
       "loading": "Stimmen der verfügbaren Anbieter werden gesucht…"
     },
     "appBuilder": {
-      "appData": "App-Daten",
-      "back": "Zurück"
+      "appData": "App-Daten"
     }
   },
   "i18n-next116": {

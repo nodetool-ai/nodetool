@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useStore } from "zustand";
 import { useTranslation } from "react-i18next";
 import { Puck, createUsePuck } from "@puckeditor/core";
@@ -18,7 +19,8 @@ import {
   SPACING,
   Toolbar,
   ToolbarGroup,
-  ToolbarIconButton
+  ToolbarIconButton,
+  UndoRedoButtons
 } from "../../ui_primitives";
 import { appBuilderPanelRegistrations } from "./appBuilderPanels";
 
@@ -36,7 +38,40 @@ interface AppBuilderDockProps {
   dataPanel?: ReactNode;
   /** The app builder agent. Without it the Agent panel is left out of the dock while its place in the layout stays. */
   assistantPanel?: ReactNode;
+  /**
+   * Places in the host's document bar. Given, the dock draws no toolbar of its
+   * own and portals Undo/Redo, the view controls (`actions`, the Layout menu,
+   * the App Data toggle) and `trailingActions` into them. An element that is
+   * null leaves that part out.
+   */
+  barSlots?: AppBuilderBarSlots;
 }
+
+/** The host elements of the document bar slots the builder fills. */
+export interface AppBuilderBarSlots {
+  history: HTMLElement | null;
+  view: HTMLElement | null;
+  actions: HTMLElement | null;
+}
+
+/** Undo and redo over Puck's history, in the document bar's own look. */
+const BarHistoryControls: React.FC = () => {
+  const { t } = useTranslation();
+  const back = usePuck((s) => s.history.back);
+  const forward = usePuck((s) => s.history.forward);
+  const hasPast = usePuck((s) => s.history.hasPast);
+  const hasFuture = usePuck((s) => s.history.hasFuture);
+  return (
+    <UndoRedoButtons
+      canUndo={hasPast}
+      canRedo={hasFuture}
+      onUndo={back}
+      onRedo={forward}
+      undoTooltip={t("i18n-next8.appBuilder.dock.undo")}
+      redoTooltip={t("i18n-next8.appBuilder.dock.redo")}
+    />
+  );
+};
 
 /** Undo and redo over Puck's history, which its default header used to draw. */
 const HistoryControls: React.FC = () => {
@@ -94,7 +129,8 @@ const AppBuilderDock: React.FC<AppBuilderDockProps> = ({
   actions,
   trailingActions,
   dataPanel,
-  assistantPanel
+  assistantPanel,
+  barSlots
 }) => {
   const { t } = useTranslation();
   const store = useAppBuilderDockLayoutStore();
@@ -145,16 +181,47 @@ const AppBuilderDock: React.FC<AppBuilderDockProps> = ({
     root
   });
 
+  const layoutMenu = (
+    <DockLayoutMenu
+      store={store}
+      panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))}
+    />
+  );
+
+  if (barSlots) {
+    return (
+      <FlexColumn ref={root} gap={0} sx={{ width: "100%", height: "100%", minHeight: 0 }}>
+        {barSlots.history && createPortal(<BarHistoryControls />, barSlots.history)}
+        {barSlots.view &&
+          createPortal(
+            <>
+              {actions}
+              {layoutMenu}
+              {hasData && (
+                <ToolbarIconButton
+                  icon={<TuneIcon fontSize="small" />}
+                  tooltip={t("i18n-next115.appBuilder.appData")}
+                  active={dataOpen}
+                  aria-pressed={dataOpen}
+                  onClick={() => store.getState().togglePanels(["data"])}
+                />
+              )}
+            </>,
+            barSlots.view
+          )}
+        {barSlots.actions && createPortal(trailingActions, barSlots.actions)}
+        <DockCanvas presentation={presentation} store={store} eagerPanels={EAGER_PANELS} />
+      </FlexColumn>
+    );
+  }
+
   return (
     <FlexColumn ref={root} gap={0} sx={{ width: "100%", height: "100%", minHeight: 0 }}>
       <Toolbar>
         <HistoryControls />
         <ToolbarGroup sx={{ marginLeft: "auto", gap: SPACING.sm }}>
           {actions}
-          <DockLayoutMenu
-            store={store}
-            panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))}
-          />
+          {layoutMenu}
           {hasData && (
             <EditorButton
               size="small"
