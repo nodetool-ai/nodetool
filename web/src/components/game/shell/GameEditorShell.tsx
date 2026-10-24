@@ -4,7 +4,7 @@ import { useStore, type StoreApi } from "zustand";
 
 import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutStore";
 import { useGameShortcutStore } from "../../../stores/game/GameShortcutStore";
-import { Caption, EditorButton, EditorUiProvider, FlexColumn, FlexRow, SPACING } from "../../ui_primitives";
+import { Caption, EditorButton, EditorUiProvider, FlexColumn, FlexRow, SPACING, type DocumentBarRender } from "../../ui_primitives";
 import ErrorBanner from "../../support/ErrorBanner";
 import ReportBugButton from "../../support/ReportBugButton";
 import GameToolbar from "./GameToolbar";
@@ -49,10 +49,22 @@ interface GameEditorShellProps {
   readonly active?: boolean;
   /** The saved game, for exporting its published revision. */
   readonly exportGame?: { readonly id: string; readonly name: string };
+  /** Draws the workspace document bar in place of the title row (see `GameToolbar`). */
+  readonly documentBar?: DocumentBarRender;
 }
 
+/**
+ * A load, error or recovery state of an editor that draws the workspace
+ * document bar, so the tab keeps its title and View/Edit while it waits.
+ */
+export const withGameDocumentBar = (documentBar: DocumentBarRender | undefined, node: ReactNode): ReactNode =>
+  documentBar ? <FlexColumn sx={{ flex: 1, minHeight: 0 }}>
+    {documentBar({})}
+    <FlexColumn sx={{ flex: 1, minHeight: 0, position: "relative" }}>{node}</FlexColumn>
+  </FlexColumn> : node;
+
 export default function GameEditorShell({ dimension, toolbar, status, panels, layoutStore, registry = gamePanelRegistry,
-  notices, mobile, dialogs, commands, active = true, exportGame }: GameEditorShellProps): ReactNode {
+  notices, mobile, dialogs, commands, active = true, exportGame, documentBar }: GameEditorShellProps): ReactNode {
   const { t } = useTranslation();
   const root = useRef<HTMLDivElement | null>(null);
   const registrations = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
@@ -112,7 +124,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       if (!(event.target instanceof Node) || !root.current?.contains(event.target)) { return; }
       dispatchGameShortcut(event, { dimension, playing: toolbar.playSession, bindings, handler: commandRegistry.handler });
     }}>
-    <GameToolbar {...toolbar} onCommandPalette={() => setPaletteOpen(true)}
+    <GameToolbar {...toolbar} documentBar={documentBar} onCommandPalette={() => setPaletteOpen(true)}
       onExport={exportGame ? exporter.run : undefined} exporting={exporter.exporting !== null}
       onBuildExecutable={canBuildExecutable && !executable.building ? executable.run : undefined}
       layoutMenu={<DockLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />} />

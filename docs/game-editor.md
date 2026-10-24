@@ -73,20 +73,22 @@ There is no blank-game entry. Every new game starts from a playable starter, so 
 
 ## Editor layout
 
-The editor is a toolbar over three docks and a viewport. Drag the edge of a dock to resize it. The docks come from the dock module shared with the timeline editor, at `web/src/components/dock/`.
+The editor is the tab's document bar and a row of play controls over three docks and a viewport. Drag the edge of a dock to resize it. The docks come from the dock module shared with the timeline editor, at `web/src/components/dock/`.
 
 | Area | What it does |
 |---|---|
-| Toolbar | Play controls, **Publish**, panel toggles, save status, and a live readout of tick, score, win state, and renderer |
+| Document bar | Title, save status, Undo and Redo, View and Edit, panel toggles, the Layout menu, **Publish**, and the ⋮ menu |
+| Play controls | **Play**, **Step**, **Stop**, and **Restart**, centered under the bar |
+| Status bar (bottom) | A live readout of tick, score, win state, and renderer |
 | Scene tree (left) | The scenes and entities of the game |
 | Viewport (center) | The game canvas, where you select and move entities |
 | Inspector (right) | Properties of the selected entity, scene, or game |
 | Assistant (right) | The agent chat for this game |
 | Script pane (bottom) | A code editor, open while you edit a script |
 
-The toolbar buttons are **Play**, **Play in new tab**, **Stop**, **Step**, **Save play state**, **Load play state**, **Publish**, a scene tree toggle, an inspector toggle, and **Show assistant**. The status text reads **Draft saved**, **Saving draft**, **Unsaved changes**, or **Draft not saved**.
+The bar's toggles show the scene tree, the inspector, and the assistant. The ⋮ menu holds the export builds, **Save play state**, **Load play state**, **Play in new tab**, and **Commands**. The save status reads **Saved**, **Saving…**, **Unsaved changes**, or **Not saved**.
 
-Under the toolbar, the editor can also show:
+Under the play controls, the editor can also show:
 
 - A **Changes** list of edits the agent made, with **View in chat** and **Undo** for each group.
 - A **Retained construction** section when a game was generated from a construction program. See [Rebuild a generated game](#rebuild-a-generated-game).
@@ -319,7 +321,7 @@ A standalone build is a folder of static files for one revision. It plays withou
 
 Use one of these:
 
-- **The editor.** Choose **Export build** in the toolbar, then **Web player**. The download is a zip of the last published revision, not the draft.
+- **The editor.** Open the ⋮ menu in the document bar and choose **Web player**. The download is a zip of the last published revision, not the draft.
 - **The agent.** Ask it to build the game. It calls `build_native_game` for an owned revision and writes the folder under the project workspace, then returns the path.
 - **The CLI.** `nodetool game build game.json --out game-build` builds from a game file. See [`nodetool game`](cli.md#nodetool-game) for flags, and for `validate`, `simulate`, and `capture`, which check a game without the editor.
 
@@ -336,13 +338,13 @@ The folder holds `index.html`, `game.json`, a player script, and an `assets/` fo
 
 A desktop build wraps the standalone web player in a [Tauri](https://tauri.app) project. It compiles to a native app for Windows, macOS, and Linux that plays the published revision offline.
 
-- **The editor.** Choose **Export build**, then **Desktop app**. The zip holds a `desktop/` folder. To compile it right away, see [Build the executable in the editor](#build-the-executable-in-the-editor).
+- **The editor.** Choose **Desktop app** in the ⋮ menu. The zip holds a `desktop/` folder. To compile it right away, see [Build the executable in the editor](#build-the-executable-in-the-editor).
 - **The agent.** Ask it for a desktop build. It calls `build_native_game` with `target: "tauri"`.
 - **The CLI.** `nodetool game build game.json --out game-desktop --target tauri --name "Cave Run"`. Add `--compile` to build the executable right away.
 
 ### Build the executable in the editor
 
-The desktop app and a local server can compile the executable without leaving the editor. Choose **Export build**, then **Desktop executable**. Cargo runs on this computer and its output streams into the **Console** panel, warnings and errors included. When it finishes, the status row shows the executable's path, and the desktop app offers **Show in folder**. The executable lands in `bin/` inside the build's project folder under the project workspace. **Cancel** stops cargo. A hosted server refuses the build, because it would run a compiler on the server.
+The desktop app and a local server can compile the executable without leaving the editor. Choose **Desktop executable** in the ⋮ menu. Cargo runs on this computer and its output streams into the **Console** panel, warnings and errors included. When it finishes, the status row shows the executable's path, and the desktop app offers **Show in folder**. The executable lands in `bin/` inside the build's project folder under the project workspace. **Cancel** stops cargo. A hosted server refuses the build, because it would run a compiler on the server.
 
 Cargo comes from the **Rust** package in the Package Manager, or from a [rustup](https://rustup.rs) install. If neither is found, the editor offers to install Rust. The first build compiles Tauri itself and takes several minutes. Later builds share that work and finish much faster. The compiler also needs the platform toolchain: the Visual Studio C++ Build Tools on Windows, the Xcode Command Line Tools on macOS, and the WebKitGTK development packages on Linux.
 
@@ -358,7 +360,7 @@ WebGPU effects depend on the system web view. Where it has no WebGPU, as in WebK
 
 A mobile build is an [Expo](https://expo.dev) project for iOS and Android. The app shows the published revision full screen in a WebView and plays offline. It needs no NodeTool server.
 
-- **The editor.** Choose **Export build**, then **Mobile app**. The zip holds a `mobile/` folder.
+- **The editor.** Choose **Mobile app** in the ⋮ menu. The zip holds a `mobile/` folder.
 - **The agent.** Ask it for a mobile build. It calls `build_native_game` with `target: "expo"`.
 - **The CLI.** `nodetool game build game.json --out game-mobile --target expo --name "Cave Run"`.
 

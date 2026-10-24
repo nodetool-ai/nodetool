@@ -47,8 +47,7 @@ const NewProjectSurface = React.lazy(
  * its surface renders `WorkspaceDocumentBar` itself.
  */
 const GENERIC_DOCUMENT_BAR_TYPES: ReadonlySet<WorkspaceTabType> = new Set([
-  "application",
-  "game"
+  "application"
 ]);
 
 interface TabContentProps {
@@ -134,7 +133,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
     case "example-app":
       return <ExampleAppSurface slug={tab.ref} title={tab.title} />;
     case "game":
-      return <GameSurface refId={tab.ref} active={active} mode={tab.mode} />;
+      return <GameSurface refId={tab.ref} active={active} mode={tab.mode} tab={tab} />;
     case "chat":
       return <ChatSurface refId={tab.ref} active={active} />;
     case "page":
