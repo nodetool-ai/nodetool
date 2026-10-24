@@ -350,6 +350,10 @@ export interface ListAnimationPresetsOp {
   op: "list_animation_presets";
 }
 
+export interface ListInstrumentsOp {
+  op: "list_instruments";
+}
+
 export interface SelectClipOp {
   op: "select_clip";
   target?: string | null;
@@ -524,6 +528,7 @@ export type TimelineOp =
   | SetBakedAnimationOp
   | ClearAnimationsOp
   | ListAnimationPresetsOp
+  | ListInstrumentsOp
   | SelectClipOp
   | SeekOp
   | AddMarkerOp
@@ -595,6 +600,7 @@ export const TIMELINE_OP_NAMES = [
   "set_baked_animation",
   "clear_animations",
   "list_animation_presets",
+  "list_instruments",
   "select_clip",
   "seek",
   "add_marker",

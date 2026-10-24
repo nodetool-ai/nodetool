@@ -707,6 +707,11 @@ export const FIXTURES: Fixture[] = [
     op: { op: "list_animation_presets" }
   },
   {
+    tool: "list_instruments",
+    args: {},
+    op: { op: "list_instruments" }
+  },
+  {
     tool: "select_clip",
     args: { target: "clip_a" },
     op: { op: "select_clip", target: "clip_a" }

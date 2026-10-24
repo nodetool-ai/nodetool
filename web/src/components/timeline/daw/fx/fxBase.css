@@ -3,10 +3,10 @@
    .fablesynth root so nothing reaches NodeTool's own UI. */
 
 .fablesynth {
-  --bg: #06070b;
-  --panel-hi: #181c26;
-  --panel-lo: #0d1017;
-  --line: rgba(255, 255, 255, 0.07);
+  --bg: var(--palette-background-default);
+  --panel-hi: var(--palette-background-paper);
+  --panel-lo: var(--palette-background-paper);
+  --line: var(--palette-divider);
   --text: #dfe6f3;
   --text-dim: #6b768c;
   --text-hint: #93a0b8;
@@ -32,8 +32,8 @@
 .fablesynth .panel {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.4);
+  background: var(--palette-background-paper);
+  box-shadow: none;
   padding: 8px 12px 10px;
   min-width: 0;
   transition: opacity 0.25s;
@@ -52,16 +52,16 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: radial-gradient(circle at 40% 35%, #2a3140, #12151d);
+  border: 1px solid var(--palette-divider);
+  background: var(--palette-c_gray3);
   cursor: pointer;
   padding: 0;
   flex: none;
   transition: box-shadow 0.2s, background 0.2s;
 }
 .fablesynth .power-btn.on {
-  background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--ac) 90%, white), color-mix(in srgb, var(--ac) 55%, black));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--ac) 70%, transparent);
+  background: var(--ac);
+  box-shadow: none;
   border-color: color-mix(in srgb, var(--ac) 60%, transparent);
 }
 
@@ -88,7 +88,7 @@
   stroke: var(--ac);
   stroke-width: 5;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ac) 70%, transparent));
+  filter: none;
 }
 .fablesynth .k-ptr { stroke: #e8edf7; stroke-width: 4; stroke-linecap: round; }
 .fablesynth .k-label { font-size: 8px; letter-spacing: 0.16em; color: var(--text-dim); margin-top: 3px; }
@@ -104,7 +104,7 @@
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: #11141c;
+  background: var(--palette-background-paper);
   color: var(--text-dim);
   font-size: 9px;
   cursor: pointer;
@@ -117,7 +117,7 @@
   font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--ac);
-  background: #0a0d13;
+  background: var(--palette-background-paper);
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 3px 6px;
@@ -125,7 +125,7 @@
 
 /* One FX device: the upstream panel on the dark well it sits on in WT-1. */
 .fablesynth.fable-fx-device {
-  background: radial-gradient(900px 500px at 50% -20%, #11141d 0%, var(--bg) 60%), var(--bg);
+  background: var(--palette-background-default);
   border-radius: 14px;
   padding: 9px;
   display: grid;

@@ -2044,6 +2044,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             >
               {tracks.length}
             </span>
+            <AddTrackButton compact testId="tracks-header-add-track" />
           </div>
           <div style={{ flex: "1 1 auto", minWidth: 0 }}>
             <TimeRuler totalWidthPx={totalWidthPx} headerWidthPx={0} />

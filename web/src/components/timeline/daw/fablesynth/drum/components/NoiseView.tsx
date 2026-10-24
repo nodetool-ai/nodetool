@@ -45,11 +45,9 @@ export function NoiseView({ color }: NoiseViewProps) {
         ctx.strokeStyle = '#ffa14d';
         ctx.globalAlpha = 0.8;
         ctx.lineWidth = 1.2;
-        ctx.shadowColor = '#ffa14d';
-        ctx.shadowBlur = 5;
+
         ctx.stroke();
         ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
       }
     };
     drawRef.current = draw;

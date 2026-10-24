@@ -68,20 +68,14 @@ export function DrumEnvView({
       ctx.lineTo(w - pad, zeroY);
       ctx.lineTo(pad, zeroY);
       ctx.closePath();
-      const fill = ctx.createLinearGradient(0, Math.min(pad, zeroY), 0, Math.max(h - pad, zeroY));
-      fill.addColorStop(0, `${accent}40`);
-      fill.addColorStop(0.72, `${accent}12`);
-      fill.addColorStop(1, `${accent}36`);
-      ctx.fillStyle = fill;
+      ctx.fillStyle = `${accent}24`;
       ctx.fill();
 
       trace();
       ctx.strokeStyle = accent;
       ctx.lineWidth = 1.6;
-      ctx.shadowColor = accent;
-      ctx.shadowBlur = 6;
+
       ctx.stroke();
-      ctx.shadowBlur = 0;
 
       ctx.fillStyle = '#6b768c';
       ctx.font = "7px 'IBM Plex Mono', 'SF Mono', Menlo, monospace";
@@ -121,19 +115,14 @@ export function DrumEnvView({
     ctx.lineTo(xFor(decayEnd), yFor(0));
     ctx.lineTo(xFor(0), yFor(0));
     ctx.closePath();
-    const fill = ctx.createLinearGradient(0, pad, 0, h - pad);
-    fill.addColorStop(0, `${accent}3d`);
-    fill.addColorStop(1, `${accent}00`);
-    ctx.fillStyle = fill;
+    ctx.fillStyle = `${accent}1f`;
     ctx.fill();
 
     trace();
     ctx.strokeStyle = accent;
     ctx.lineWidth = 1.6;
-    ctx.shadowColor = accent;
-    ctx.shadowBlur = 6;
+
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }, [mode, amt, att, hold, dec, curve, accent, resizeTick]);
 
   return <canvas ref={canvasRef} className={className} />;

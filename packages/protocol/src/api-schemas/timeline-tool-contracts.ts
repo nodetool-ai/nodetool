@@ -613,6 +613,12 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       shape: {}
     },
 
+    ui_timeline_list_instruments: {
+      description:
+        "List the instruments a midi track can hold (WT-1, BL-1, DR-1, sampler, VST), each with its preset ids and names. Pick an instrument, then one of its presets, and pass that id to ui_timeline_set_track_instrument as `{\"preset\": id}`.",
+      shape: {}
+    },
+
     ui_timeline_select_clip: {
       description:
         "Select a clip in the specified timeline sequence (driving the inspector). Pass null/empty to clear the selection.",

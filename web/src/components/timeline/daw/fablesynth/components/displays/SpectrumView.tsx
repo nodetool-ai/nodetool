@@ -41,10 +41,7 @@ export function SpectrumView({ analyser, accent }: SpectrumViewProps) {
       const bars = 48;
       const sr = analyser.context.sampleRate;
       const fmin = 30, fmax = Math.min(18000, sr / 2);
-      const grad = ctx.createLinearGradient(0, h, 0, 0);
-      grad.addColorStop(0, accent + '55');
-      grad.addColorStop(1, accent);
-      ctx.fillStyle = grad;
+      ctx.fillStyle = accent + 'aa';
       for (let b = 0; b < bars; b++) {
         const f0 = fmin * Math.pow(fmax / fmin, b / bars);
         const f1 = fmin * Math.pow(fmax / fmin, (b + 1) / bars);

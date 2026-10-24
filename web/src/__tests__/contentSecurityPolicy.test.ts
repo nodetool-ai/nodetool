@@ -53,4 +53,10 @@ describe("index.html Content-Security-Policy", () => {
   it("allows the cross-origin https sources signed asset URLs use", () => {
     expect(cspDirectives().get("media-src")).toContain("https:");
   });
+
+  // Without worker-src, script-src governs workers and blocks blob: URLs, so
+  // the export's audio encoder (mediabunny's MP3 worker) fails to start.
+  it("allows workers created from blob: URLs", () => {
+    expect(cspDirectives().get("worker-src")).toEqual(["'self'", "blob:"]);
+  });
 });

@@ -3,10 +3,10 @@
    FABLESYNTH WT-1 — machined dark hardware aesthetic
    ============================================================ */
 .fablesynth {
-  --bg: #06070b;
-  --panel-hi: #181c26;
-  --panel-lo: #0d1017;
-  --line: rgba(255, 255, 255, 0.07);
+  --bg: var(--palette-background-default);
+  --panel-hi: var(--palette-background-paper);
+  --panel-lo: var(--palette-background-paper);
+  --line: var(--palette-divider);
   --text: #dfe6f3;
   --text-dim: #6b768c;
   /* Lighter than --text-dim, reserved for tiny hint/legend copy that must
@@ -26,8 +26,7 @@
 .fablesynth { margin: 0; padding: 0; }
 .fablesynth {
   background:
-    radial-gradient(1200px 700px at 50% -10%, #11141d 0%, var(--bg) 60%),
-    var(--bg);
+    var(--palette-background-default);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 12px;
@@ -61,8 +60,8 @@
   margin-bottom: 9px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.45);
+  background: var(--palette-background-paper);
+  box-shadow: none;
 }
 .fablesynth .brand {
   font-family: var(--font-disp);
@@ -85,7 +84,7 @@
   padding: 0 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #11141c;
+  background: var(--palette-background-paper);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -102,7 +101,7 @@
   padding: 0 26px 0 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #11141c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6'%3E%3Cpath d='M0 0h8L4 6z' fill='%236b768c'/%3E%3C/svg%3E") no-repeat right 10px center;
+  background: var(--palette-background-paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6'%3E%3Cpath d='M0 0h8L4 6z' fill='%236b768c'/%3E%3C/svg%3E") no-repeat right 10px center;
   color: var(--ac-a);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -116,7 +115,7 @@
   padding: 0 12px;
   border: 1px solid var(--ac-a);
   border-radius: 6px;
-  background: #0a0d13;
+  background: var(--palette-background-paper);
   color: var(--ac-a);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -132,7 +131,7 @@
   margin-left: -2px;
   border-radius: 50%;
   background: var(--ac-a);
-  box-shadow: 0 0 6px var(--ac-a);
+  box-shadow: none;
   flex: none;
 }
 .fablesynth .hud { display: flex; gap: 10px; margin-left: auto; }
@@ -142,7 +141,7 @@
   height: 46px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #07090e;
+  background: var(--palette-background-default);
   overflow: hidden;
 }
 .fablesynth .hud-cell canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -172,10 +171,10 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #232936;
-  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.7);
+  background: var(--palette-c_gray2);
+  box-shadow: none;
 }
-.fablesynth .led.on { background: var(--ac-a); box-shadow: 0 0 8px var(--ac-a); }
+.fablesynth .led.on { background: var(--ac-a); box-shadow: none; }
 .fablesynth .voice-count { color: var(--ac-b); min-width: 12px; text-align: center; }
 /* WT-1 header: one compact row. Knobs sit inline at control height, with the
    dial on the left and the label and hover value on the right. */
@@ -228,8 +227,8 @@
 .fablesynth .panel {
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 26px rgba(0, 0, 0, 0.4);
+  background: var(--palette-background-paper);
+  box-shadow: none;
   padding: 8px 12px 10px;
   min-width: 0;
   transition: opacity 0.25s;
@@ -251,7 +250,7 @@
   letter-spacing: 0.22em;
   color: var(--text);
 }
-.fablesynth .panel[data-accent] .panel-head h2 { color: var(--ac); text-shadow: 0 0 12px color-mix(in srgb, var(--ac) 45%, transparent); }
+.fablesynth .panel[data-accent] .panel-head h2 { color: var(--ac); text-shadow: none; }
 .fablesynth .ph-stepper { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
 .fablesynth .wt-edit {
   width: 18px;
@@ -259,7 +258,7 @@
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: #11141c;
+  background: var(--palette-background-paper);
   color: var(--text-dim);
   font-size: 10px;
   line-height: 1;
@@ -271,16 +270,16 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: radial-gradient(circle at 40% 35%, #2a3140, #12151d);
+  border: 1px solid var(--palette-divider);
+  background: var(--palette-c_gray3);
   cursor: pointer;
   padding: 0;
   flex: none;
   transition: box-shadow 0.2s, background 0.2s;
 }
 .fablesynth .power-btn.on {
-  background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--ac) 90%, white), color-mix(in srgb, var(--ac) 55%, black));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--ac) 70%, transparent);
+  background: var(--ac);
+  box-shadow: none;
   border-color: color-mix(in srgb, var(--ac) 60%, transparent);
 }
 /* ============ knobs ============ */
@@ -317,7 +316,7 @@
   stroke: var(--ac);
   stroke-width: 5;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--ac) 70%, transparent));
+  filter: none;
 }
 .fablesynth .k-ptr {
   stroke: #e8edf7;
@@ -352,7 +351,7 @@
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: #11141c;
+  background: var(--palette-background-paper);
   color: var(--text-dim);
   font-size: 9px;
   cursor: pointer;
@@ -365,7 +364,7 @@
   font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--ac);
-  background: #0a0d13;
+  background: var(--palette-background-paper);
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 3px 6px;
@@ -385,8 +384,7 @@
   border: 1px solid var(--line);
   border-radius: 9px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%),
-    #07090e;
+    var(--palette-c_editor_bg_color);
 }
 .fablesynth .pos-holder { grid-column: 2; grid-row: 1; }
 .fablesynth .osc-knobs {
@@ -423,7 +421,7 @@
   flex: 1;
   width: 9px;
   border-radius: 5px;
-  background: #0a0d13;
+  background: var(--palette-background-paper);
   border: 1px solid var(--line);
 }
 .fablesynth .vs-fill {
@@ -432,7 +430,7 @@
   left: 0;
   right: 0;
   border-radius: 0 0 5px 5px;
-  background: linear-gradient(180deg, var(--ac), color-mix(in srgb, var(--ac) 35%, transparent));
+  background: var(--ac);
   opacity: 0.55;
 }
 .fablesynth .vs-handle {
@@ -442,9 +440,9 @@
   height: 9px;
   transform: translate(-50%, 50%);
   border-radius: 3px;
-  background: linear-gradient(180deg, #2b3344, #161b25);
+  background: var(--palette-c_gray4);
   border: 1px solid color-mix(in srgb, var(--ac) 55%, transparent);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ac) 35%, transparent);
+  box-shadow: none;
 }
 .fablesynth .vs-ghost {
   position: absolute;
@@ -453,7 +451,7 @@
   height: 2px;
   transform: translateY(50%);
   background: var(--ac);
-  box-shadow: 0 0 6px var(--ac);
+  box-shadow: none;
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -474,7 +472,7 @@
   height: 62px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: #07090e;
+  background: var(--palette-background-default);
   margin-bottom: 8px;
 }
 .fablesynth .knob-row {
@@ -491,7 +489,7 @@
   padding: 2px;
   border: 1px solid var(--line);
   border-radius: 5px;
-  background: #0a0d13;
+  background: var(--palette-background-paper);
 }
 .fablesynth .filter-tab {
   display: inline-flex;
@@ -509,7 +507,7 @@
 }
 .fablesynth .filter-tab:hover { color: var(--text); }
 .fablesynth .filter-tab[aria-selected='true'] {
-  background: color-mix(in srgb, var(--ac-f) 13%, #11141c);
+  background: color-mix(in srgb, var(--ac-f) 13%, var(--palette-background-paper));
   color: var(--ac-f);
 }
 .fablesynth .filter-tab:focus-visible { outline: 1px solid var(--ac-f); outline-offset: 2px; }
@@ -517,9 +515,9 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #303645;
+  background: var(--palette-c_gray3);
 }
-.fablesynth .filter-tab-led.on { background: var(--ac-f); box-shadow: 0 0 5px var(--ac-f); }
+.fablesynth .filter-tab-led.on { background: var(--ac-f); box-shadow: none; }
 .fablesynth .filter-active-power { display: inline-flex; }
 .fablesynth .filter-type { display: inline-flex; }
 .fablesynth .panel-filter .filter-type .st-value { min-width: 46px; }
@@ -538,7 +536,7 @@
 .fablesynth .lfo-pick-btn {
   width: 15px; height: 16px; padding: 0;
   border: 1px solid var(--line); border-radius: 3px;
-  background: #0a0d13; color: var(--text-dim);
+  background: var(--palette-background-paper); color: var(--text-dim);
   font: 600 8px/1 var(--font-mono); cursor: pointer;
 }
 .fablesynth .lfo-pick-btn[aria-selected='true'] { color: var(--ac); border-color: color-mix(in srgb, var(--ac) 45%, var(--line)); }
@@ -551,7 +549,7 @@
   height: 62px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: #07090e;
+  background: var(--palette-background-default);
   margin-bottom: 8px;
 }
 .fablesynth .lfo-block .knob-row { justify-content: center; }
@@ -569,7 +567,7 @@
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: #11141c;
+  background: var(--palette-background-paper);
   color: var(--text-dim);
   font-family: var(--font-disp);
   font-size: 6px;
@@ -588,8 +586,8 @@
 .fablesynth .lfo-tg.on {
   color: var(--ac);
   border-color: color-mix(in srgb, var(--ac) 65%, transparent);
-  background: color-mix(in srgb, var(--ac) 12%, #11141c);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--ac) 35%, transparent);
+  background: color-mix(in srgb, var(--ac) 12%, var(--palette-background-paper));
+  box-shadow: none;
 }
 /* knob row that swaps a knob for the division stepper in the first slot */
 .fablesynth .lfo-knobs {
@@ -648,7 +646,7 @@
   padding: 0 16px 0 8px;
   border: 1px solid var(--line);
   border-radius: 5px;
-  background: #0c0f16 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5'%3E%3Cpath d='M0 0h7L3.5 5z' fill='%236b768c'/%3E%3C/svg%3E") no-repeat right 6px center;
+  background: var(--palette-background-paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='5'%3E%3Cpath d='M0 0h7L3.5 5z' fill='%236b768c'/%3E%3C/svg%3E") no-repeat right 6px center;
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 9px;
@@ -660,13 +658,13 @@
 .fablesynth .mx-amt { flex: none; cursor: ns-resize; outline: none; touch-action: none; }
 .fablesynth .mx-amt svg { display: block; width: 22px; height: 22px; overflow: visible; }
 .fablesynth .mx-amt:focus-visible svg { outline: 1px solid var(--ac-n); outline-offset: 1px; border-radius: 50%; }
-.fablesynth .mx-amt .k-arc { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ac-n) 60%, transparent)); }
+.fablesynth .mx-amt .k-arc { filter: none; }
 .fablesynth .mx-del {
   flex: none;
   width: 18px; height: 18px;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: #11141c;
+  background: var(--palette-background-paper);
   color: var(--text-dim);
   font-size: 12px;
   line-height: 1;
@@ -678,7 +676,7 @@
   width: 30px; height: 18px;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: #11141c;
+  background: var(--palette-background-paper);
   color: var(--text-dim);
   font: 8px 'IBM Plex Mono', monospace;
   letter-spacing: 0.08em;
@@ -691,7 +689,7 @@
   height: 22px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #11141c;
+  background: var(--palette-background-paper);
   color: var(--text-dim);
   font-family: var(--font-mono);
   font-size: 9px;
@@ -710,7 +708,7 @@
   padding: 0 7px;
   border: 1px solid color-mix(in srgb, var(--src) 55%, transparent);
   border-radius: 9999px;
-  background: color-mix(in srgb, var(--src) 14%, #0c0f16);
+  background: color-mix(in srgb, var(--src) 14%, var(--palette-background-paper));
   color: var(--src);
   font-size: 8px;
   font-weight: 600;
@@ -730,7 +728,7 @@
   stroke-width: 3.2;
   stroke-linecap: round;
   cursor: ns-resize;
-  filter: drop-shadow(0 0 3px color-mix(in srgb, currentColor 55%, transparent));
+  filter: none;
   opacity: 0.92;
 }
 /* live modulated-position dot on the value arc; position/opacity driven
@@ -741,7 +739,7 @@
   stroke-width: 1.4;
   pointer-events: none;
   opacity: 0;
-  filter: drop-shadow(0 0 4px currentColor);
+  filter: none;
 }
 .fablesynth .knob.mod-target svg .k-body { fill: #20283a; }
 .fablesynth .knob.mod-target svg { outline: 1px dashed var(--ac); outline-offset: 3px; border-radius: 50%; }
@@ -755,7 +753,7 @@
   background: color-mix(in srgb, var(--src) 38%, transparent);
   border-top: 1px solid var(--src);
   border-bottom: 1px solid var(--src);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--src) 45%, transparent);
+  box-shadow: none;
   cursor: ns-resize;
   z-index: 3;
 }
@@ -777,7 +775,7 @@
   border-radius: 9px;
   /* Compact utility effects below the visual processing row. */
   padding: 8px 5px 4px;
-  background: rgba(0, 0, 0, 0.18);
+  background: color-mix(in srgb, var(--palette-background-default) 18%, transparent);
   min-width: 0;
 }
 .fablesynth .fx-module .panel-head { margin-bottom: 4px; }
@@ -937,8 +935,8 @@
   .fablesynth select { min-height: 36px; }
 }
 /* Live automation: ring from the stored value to the automated value, plus a dot. */
-.fablesynth .k-auto { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; pointer-events: none; filter: drop-shadow(0 0 3px currentColor); }
-.fablesynth .k-auto-dot { fill: currentColor; stroke: #0b0e14; stroke-width: 1.4; pointer-events: none; filter: drop-shadow(0 0 3px currentColor); }
+.fablesynth .k-auto { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; pointer-events: none; filter: none; }
+.fablesynth .k-auto-dot { fill: currentColor; stroke: #0b0e14; stroke-width: 1.4; pointer-events: none; filter: none; }
 /* Standalone WT-1 pages stack to one column on phones. */
 @media (max-width: 700px) {
   .fablesynth .panels[data-page='edit'] { grid-template-areas: 'oscA' 'oscB' 'util' 'filter' 'env1' 'env2' 'lfos' 'matrix'; }
@@ -956,5 +954,5 @@
 .fablesynth .ns-btn.nav-btn:hover {
   border-color: var(--nav);
   color: var(--nav);
-  background: color-mix(in srgb, var(--nav) 14%, #11141c);
+  background: color-mix(in srgb, var(--nav) 14%, var(--palette-background-paper));
 }

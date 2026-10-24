@@ -214,6 +214,10 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
     op: "list_animation_presets",
     ...parseContract(contracts.ui_timeline_list_animation_presets, args)
   }),
+  list_instruments: (args) => ({
+    op: "list_instruments",
+    ...parseContract(contracts.ui_timeline_list_instruments, args)
+  }),
   select_clip: (args) => ({
     op: "select_clip",
     ...parseContract(contracts.ui_timeline_select_clip, args)

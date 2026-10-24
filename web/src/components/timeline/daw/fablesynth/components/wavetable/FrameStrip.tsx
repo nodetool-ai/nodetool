@@ -20,7 +20,6 @@ function FrameThumb({ frame, accent, on }: { frame: Float32Array; accent: string
     }
     ctx.strokeStyle = on ? accent : '#8893a8';
     ctx.lineWidth = 1.2;
-    if (on) { ctx.shadowColor = accent; ctx.shadowBlur = 5; }
     ctx.stroke();
   }, [frame, accent, on]);
   return <canvas ref={ref} className="wte-frame-c" width={40} height={26} />;

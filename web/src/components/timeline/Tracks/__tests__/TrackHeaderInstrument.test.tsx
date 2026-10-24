@@ -11,6 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import { findInstrumentPreset } from "@nodetool-ai/timeline";
+import { DEFAULT_TIMELINE_INSTRUMENT } from "../../../../stores/timeline/instrumentPresets";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { TimelineInstrumentsPanel } from "../../TimelineInstrumentsPanel";
@@ -49,9 +50,14 @@ const renderRegion = () =>
     </ThemeProvider>
   );
 
-/** The header's preset select — the toolbar has a combobox of its own. */
-const presetSelect = () =>
+/** The header's selects — the toolbar has a combobox of its own. */
+const instrumentSelect = () =>
   screen.getByRole("combobox", { name: /instrument for bass/i });
+const presetSelect = () =>
+  screen.getByRole("combobox", { name: /preset for bass/i });
+/** MUI pads an empty select with a zero-width space. */
+const shownValue = (select: HTMLElement) =>
+  (select.textContent ?? "").replace(/\u200b/g, "").trim();
 
 function seedMidiTrack(): string {
   act(() => {
@@ -92,11 +98,42 @@ describe("TrackHeader — midi instrument", () => {
     expect(region).toHaveStyle("--timeline-track-header-width: 336px");
   });
 
-  it("names the preset the track's voice matches", () => {
+  it("names the instrument and the preset the track's voice matches", () => {
     renderRegion();
     seedMidiTrack();
 
-    expect(presetSelect()).toHaveTextContent("WT-1 Prime Lead");
+    expect(instrumentSelect()).toHaveTextContent("WT-1 Wavetable");
+    expect(presetSelect()).toHaveTextContent("Prime Lead");
+  });
+
+  it("starts a new instrument on its first preset and lists only its presets", async () => {
+    const user = userEvent.setup();
+    renderRegion();
+    const trackId = seedMidiTrack();
+
+    await user.click(instrumentSelect());
+    await user.click(await screen.findByRole("option", { name: "DR-1 Drums" }));
+
+    expect(
+      useTimelineStore.getState().tracks.find((t) => t.id === trackId)?.instrument
+    ).toEqual(findInstrumentPreset("dr1-cinematic")?.instrument);
+    await user.click(presetSelect());
+    const options = screen.getAllByRole("option").map((option) => option.textContent);
+    expect(options.slice(0, 3)).toEqual(["Cinematic Kit", "TR-Void Kit", "Room One"]);
+    expect(options).not.toContain("Prime Lead");
+  });
+
+  it("offers no preset select for a sampler", async () => {
+    const user = userEvent.setup();
+    renderRegion();
+    seedMidiTrack();
+
+    await user.click(instrumentSelect());
+    await user.click(await screen.findByRole("option", { name: "Sampler" }));
+
+    expect(
+      screen.queryByRole("combobox", { name: /preset for bass/i })
+    ).not.toBeInTheDocument();
   });
 
   it("writes the picked preset's instrument onto the track", async () => {
@@ -105,7 +142,7 @@ describe("TrackHeader — midi instrument", () => {
     const trackId = seedMidiTrack();
 
     await user.click(presetSelect());
-    await user.click(await screen.findByRole("option", { name: "WT-1 Bloom Pad" }));
+    await user.click(await screen.findByRole("option", { name: "Bloom Pad" }));
 
     const track = useTimelineStore
       .getState()
@@ -115,7 +152,7 @@ describe("TrackHeader — midi instrument", () => {
     );
   });
 
-  it("reads Custom once the voice has been edited by hand", () => {
+  it("leaves the instrument blank for a legacy voice", () => {
     renderRegion();
     const trackId = seedMidiTrack();
 
@@ -133,7 +170,25 @@ describe("TrackHeader — midi instrument", () => {
       });
     });
 
-    expect(presetSelect()).toHaveTextContent("Custom");
+    expect(shownValue(instrumentSelect())).toBe("");
+    expect(
+      screen.queryByRole("combobox", { name: /preset for bass/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("leaves the preset blank once the voice has been edited by hand", () => {
+    renderRegion();
+    const trackId = seedMidiTrack();
+
+    act(() => {
+      useTimelineStore.getState().setTrackInstrument(trackId, {
+        ...DEFAULT_TIMELINE_INSTRUMENT,
+        gainDb: -1
+      });
+    });
+
+    expect(instrumentSelect()).toHaveTextContent("WT-1 Wavetable");
+    expect(shownValue(presetSelect())).toBe("");
   });
 
   it("edits a FableSynth voice with its own controls", async () => {
@@ -141,8 +196,8 @@ describe("TrackHeader — midi instrument", () => {
     renderRegion();
     seedMidiTrack();
 
-    await user.click(presetSelect());
-    await user.click(await screen.findByRole("option", { name: "BL-1 Acid" }));
+    await user.click(instrumentSelect());
+    await user.click(await screen.findByRole("option", { name: "BL-1 Bass" }));
     await user.click(screen.getByRole("button", { name: "Edit instrument" }));
 
     // BL-1 exposes the device's oscillator, filter, envelope, accent and glide
@@ -166,7 +221,7 @@ describe("TrackHeader — midi instrument", () => {
 
     await user.click(presetSelect());
     await user.click(
-      await screen.findByRole("option", { name: "WT-1 Prime Lead" })
+      await screen.findByRole("option", { name: "Prime Lead" })
     );
     await user.click(screen.getByRole("button", { name: "Edit instrument" }));
 
@@ -181,9 +236,11 @@ describe("TrackHeader — midi instrument", () => {
     renderRegion();
     seedMidiTrack();
 
+    await user.click(instrumentSelect());
+    await user.click(await screen.findByRole("option", { name: "DR-1 Drums" }));
     await user.click(presetSelect());
     await user.click(
-      await screen.findByRole("option", { name: "DR-1 TR-Void Kit" })
+      await screen.findByRole("option", { name: "TR-Void Kit" })
     );
     await user.click(screen.getByRole("button", { name: "Edit instrument" }));
 
@@ -232,10 +289,10 @@ describe("TrackHeader — midi instrument", () => {
     seedMidiTrack();
     await user.click(screen.getByRole("button", {name: "Edit instrument"}));
     expect(within(screen.getByTestId("tracks-region")).queryByTestId(/track-instrument-panel/)).not.toBeInTheDocument();
-    const picker = screen.getByRole("combobox", {name: "Instrument preset"});
+    const picker = screen.getByRole("combobox", {name: "Instrument"});
     await user.click(picker);
     expect(screen.queryByRole("option", {name: "Saw Lead"})).not.toBeInTheDocument();
-    await user.click(screen.getByRole("option", {name: "BL-1 Acid"}));
+    await user.click(screen.getByRole("option", {name: "BL-1 Bass"}));
     expect(useTimelineStore.getState().tracks[0].instrument?.type).toBe("bass");
     await new Promise(resolve => setTimeout(resolve, 200));
     expect(playAuditionNote).toHaveBeenCalledTimes(1);
