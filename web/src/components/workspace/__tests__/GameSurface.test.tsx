@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import GameSurface from "../GameSurface";
+import type { DocumentBarRender } from "../../ui_primitives";
 
 jest.mock("../WorkspaceDocumentBar", () => ({
   __esModule: true,
@@ -9,7 +10,7 @@ jest.mock("../WorkspaceDocumentBar", () => ({
 }));
 jest.mock("../../game/GameEditor", () => ({
   __esModule: true,
-  default: ({ documentBar }: { documentBar?: (slots: object) => React.ReactNode }) => (
+  default: ({ documentBar }: { documentBar?: DocumentBarRender }) => (
     <div>
       {documentBar?.({})}
       Game editor
