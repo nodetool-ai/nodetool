@@ -1303,8 +1303,8 @@ const generateSpeech: CapabilityExport = {
       text,
       voice: params.voice,
       speed: params.speed,
-      ...(isNonEmptyString(params.instructions) && {
-        instructions: params.instructions
+      ...(isNonBlankString(params.instructions) && {
+        instructions: params.instructions.trim()
       }),
       audioFormat: audioFormatFromOutputFile(outputFile) ?? "mp3"
     };
