@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { gameDocument } from "@nodetool-ai/protocol";
 import { createGameSession, createScriptedGameSession, createTopDownRoomGame, replayScriptedGame, validateGame } from "../src/index.js";
 import { wallScriptCallClock } from "../src/script-clock.js";
@@ -16,6 +16,10 @@ function scriptedGame(source: string) {
     }))
   });
 }
+
+// These tests check the real limits, so they undo the suite-wide scale in vitest.config.ts.
+beforeEach(() => { vi.stubEnv("NODETOOL_GAME_SCRIPT_BUDGET_SCALE", "1"); });
+afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("game scripts", () => {
   it("interrupts an infinite loop within its tick budget", async () => {
