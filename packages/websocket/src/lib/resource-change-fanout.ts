@@ -1,28 +1,12 @@
-/**
- * One process-wide listener per change feed, shared by every connection.
- *
- * Each `resource_change` frame used to be built once per connected session:
- * every session put its own callback on `ModelObserver` and `resourceEvents`,
- * and each callback ran `getEtag()` — a JSON round-trip of every JSON column
- * (a whole workflow graph) plus a sha256 — for the same write. Here the frame
- * is built once per write and handed to every session that takes it. Sessions
- * keep their own access filtering through `accepts`.
- */
+/** Routes serialized bus events to owners and workflow collaborators. */
 
 import { createLogger } from "@nodetool-ai/config";
+import { Workflow, WorkflowCollaborator } from "@nodetool-ai/models";
 import {
-  ModelObserver,
-  Workflow,
-  WorkflowVersion,
-  WorkflowCollaborator,
-  type DBModel,
-  type ModelChangeEvent,
-  type ModelChangeMeta
-} from "@nodetool-ai/models";
-import {
-  resourceEvents,
-  type ResourceChangePayload
-} from "../resource-events.js";
+  resourceChangeBus,
+  startResourceChangeFeeds,
+  type ResourceBusSignal
+} from "./resource-change-bus.js";
 import { isNonEmptyString } from "./wire-values.js";
 
 const log = createLogger("nodetool.websocket.resource-change-fanout");
@@ -43,31 +27,9 @@ export interface ResourceChangeSubscriber {
   deliver(frame: ResourceChangeFrame): void;
 }
 
-/**
- * Scope fields for resource types whose cache is keyed on a parent id
- * (Message → thread_id, WorkflowVersion → workflow_id, a document →
- * project_id). Frontend handlers use these to narrow invalidation.
- * `updated_at` rides along as the row's concurrency token: an open editor
- * compares it against the token it last saved with to tell its own write
- * apart from one made outside the browser (agent, CLI, another tab).
- */
-const FORWARDED_FIELDS = [
-  "workflow_id",
-  "thread_id",
-  "parent_id",
-  "project_id",
-  "updated_at"
-] as const;
-
 const subscribers = new Set<ResourceChangeSubscriber>();
 const workflowRecipients = new Map<string, Promise<Set<string>>>();
-
-function ownerOf(instance: DBModel): string | null {
-  // Models without a `user_id` (runtime-internal types) go to every
-  // connection.
-  const owner = instance["user_id"];
-  return isNonEmptyString(owner) ? owner : null;
-}
+let unsubscribeBus: (() => void) | undefined;
 
 function acceptingSubscribers(
   ownerId: string | null,
@@ -99,70 +61,32 @@ function deliverAll(
   }
 }
 
-export function buildModelChangeFrame(
-  instance: DBModel,
-  event: ModelChangeEvent,
-  meta?: ModelChangeMeta
-): ResourceChangeFrame {
-  const resource: Record<string, unknown> = {
-    id: instance.partitionValue(),
-    etag: instance.getEtag()
-  };
-  for (const field of FORWARDED_FIELDS) {
-    const value = instance[field];
-    if (isNonEmptyString(value)) {
-      resource[field] = value;
-    }
+const onResourceChange = (payload: ResourceBusSignal): void => {
+  if ("type" in payload) {
+    workflowRecipients.clear();
+    deliverAll([...subscribers], payload);
+    return;
   }
-  const frame: Record<string, unknown> = {
-    type: "resource_change",
-    event,
-    resource_type: instance.constructor.name.toLowerCase(),
-    resource: Object.freeze(resource)
-  };
-  if (meta?.ops && meta.ops.length > 0) {
-    frame.ops = meta.ops;
+  if (payload.resource_type === "workflowcollaborator") {
+    const workflowId = payload.resource["workflow_id"];
+    if (typeof workflowId === "string") workflowRecipients.delete(workflowId);
   }
-  return Object.freeze(frame);
-}
-
-const onModelChange = (
-  instance: DBModel,
-  event: ModelChangeEvent,
-  meta?: ModelChangeMeta
-): void => {
-  if (instance instanceof WorkflowCollaborator) {
-    workflowRecipients.delete(instance.workflow_id);
-  }
-  const ownerId = ownerOf(instance);
+  const { owner_user_id, ...change } = payload;
+  const ownerId = owner_user_id || null;
   const targets = acceptingSubscribers(ownerId);
-  let frame: ResourceChangeFrame | undefined;
-  const getFrame = (): ResourceChangeFrame => {
-    frame ??= buildModelChangeFrame(instance, event, meta);
-    return frame;
-  };
-  if (targets.length > 0) {
-    deliverAll(targets, getFrame());
-  }
-  const workflowId =
-    instance instanceof Workflow
-      ? instance.id
-      : instance instanceof WorkflowVersion
-        ? instance.workflow_id
-        : undefined;
-  if (workflowId && ownerId) {
-    // Freeze the write token before the row can change during the grant lookup.
-    getFrame();
+  const frame = Object.freeze({ type: "resource_change", ...change });
+  deliverAll(targets, frame);
+  const workflowId = payload.resource_type === "workflow"
+    ? payload.resource["id"]
+    : payload.resource_type === "workflowversion"
+      ? payload.resource["workflow_id"]
+      : undefined;
+  if (isNonEmptyString(workflowId) && ownerId) {
     deliverWorkflowChange(
-      workflowId,
-      ownerId,
-      targets,
-      getFrame,
-      instance instanceof Workflow && event === "deleted"
+      workflowId, ownerId, targets, () => frame,
+      payload.resource_type === "workflow" && payload.event === "deleted"
     ).catch((error) => {
-      log.error("Shared workflow change delivery failed", {
-        error: String(error)
-      });
+      log.error("Shared workflow change delivery failed", { error: String(error) });
     });
   }
 };
@@ -224,41 +148,19 @@ async function deliverWorkflowChange(
   }
 }
 
-const onResourceEvent = (payload: ResourceChangePayload): void => {
-  const targets = acceptingSubscribers(
-    isNonEmptyString(payload.userId) ? payload.userId : null
-  );
-  if (targets.length === 0) return;
-  deliverAll(
-    targets,
-    Object.freeze({
-      type: "resource_change",
-      event: payload.event,
-      resource_type: payload.resource_type,
-      resource: payload.resource
-    })
-  );
-};
-
-/**
- * Add a connection. The first one installs the shared listeners. The model
- * callback is put back on every call, because `ModelObserver.clear()` (test
- * setup) drops it without telling this module.
- */
+/** Subscribe a session to local and remote changes through the shared bus. */
 export function subscribeResourceChanges(
   subscriber: ResourceChangeSubscriber
 ): () => void {
+  startResourceChangeFeeds();
   if (subscribers.size === 0) {
-    resourceEvents.on("change", onResourceEvent);
+    unsubscribeBus = resourceChangeBus.subscribe(onResourceChange);
   }
   subscribers.add(subscriber);
-  ModelObserver.unsubscribe(onModelChange);
-  ModelObserver.subscribe(onModelChange);
   return () => {
-    if (!subscribers.delete(subscriber)) return;
-    if (subscribers.size > 0) return;
-    ModelObserver.unsubscribe(onModelChange);
-    resourceEvents.off("change", onResourceEvent);
+    if (!subscribers.delete(subscriber) || subscribers.size > 0) return;
+    unsubscribeBus?.();
+    unsubscribeBus = undefined;
     workflowRecipients.clear();
   };
 }
