@@ -1,0 +1,5 @@
+{
+  "submitIntervalMs.p95": 17.5,
+  "cpuMs.p95": 2,
+  "skippedSubmitsFraction": 0.01
+}
