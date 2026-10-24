@@ -100,8 +100,7 @@ export function WavetableEditor() {
     }
     ctx.strokeStyle = editorOsc ? ACCENTS[editorOsc === 'oscA' ? 'a' : 'b'] : ACCENTS.a;
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = ctx.strokeStyle as string;
-    ctx.shadowBlur = 6;
+
     ctx.stroke();
   }, [tab, drawVersion, editorOsc]);
 

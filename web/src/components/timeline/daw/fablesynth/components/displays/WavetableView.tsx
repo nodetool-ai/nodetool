@@ -77,18 +77,14 @@ export function WavetableView({ table, pos, modPos, accent, className }: Wavetab
           ctx.strokeStyle = accent;
           ctx.globalAlpha = 0.25 + near * 0.75;
           ctx.lineWidth = 1 + near * 1.4;
-          ctx.shadowColor = accent;
-          ctx.shadowBlur = near * 14;
         } else {
           ctx.strokeStyle = '#8893a8';
           ctx.globalAlpha = 0.16 + d * 0.1;
           ctx.lineWidth = 1;
-          ctx.shadowBlur = 0;
         }
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
     };
     redrawRef.current = () => {
       if (!mq.matches) return; // rAF loop already redraws every frame
