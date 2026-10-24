@@ -22,7 +22,7 @@ import {
 import { TrackEffectParams } from "../../Tracks/TrackEffectsPanel";
 import { fxView } from "../devices/deviceViews";
 import "../devices/registerDeviceViews";
-import { effectTitle, effectViewKey } from "../dock/DeviceChainView";
+import { effectTitle, effectViewKey, effectViewWidth } from "../dock/DeviceChainView";
 
 export interface OpenEffect {
   /** The track carrying the effect, or null for the master. */
@@ -91,14 +91,18 @@ export const EffectDevicePopover: React.FC<EffectDevicePopoverProps> = memo(
         anchorEl={open.anchor}
         onClose={onClose}
         placement={`${vertical}-${horizontal}`}
-        paperSx={{ width: "max-content" }}
+        // A device view has no intrinsic width; give it the width it was
+        // drawn for, as the dock's device chain does.
+        paperSx={{ width: View ? effectViewWidth(effect) : "max-content" }}
         maxWidth="100vw"
         maxHeight="90vh"
         aria-label={`${title} device`}
       >
         <FlexColumn ref={setContent} sx={{ minWidth: 0 }}>
           <PanelHeader title={title} onClose={onClose} />
-          <FlexColumn sx={{ p: SPACING.md, overflow: "auto" }}>
+          {/* A device view gets the dock card's body padding, which its
+              width allows for. */}
+          <FlexColumn sx={{ p: View ? SPACING.xs : SPACING.md, overflow: "auto" }}>
             {View ? (
               <PanelErrorBoundary panelName={`${title} device`}>
                 <Suspense fallback={<LoadingSpinner size="small" text={`Loading ${title}`} />}>

@@ -103,6 +103,15 @@ const FX_VIEW_WIDTHS: Record<FableEffectKind, number | string> = {
 };
 const FX_VIEW_WIDTH = 480;
 
+/**
+ * The width a registered effect view is drawn for. A view sizes itself by
+ * container queries, so its container must set this width: at `max-content`
+ * the view collapses to its narrowest control.
+ */
+export function effectViewWidth(effect: TrackEffect): number | string {
+  return effect.type === "fable" ? FX_VIEW_WIDTHS[effect.kind] : FX_VIEW_WIDTH;
+}
+
 const layoutStyles = (theme: Theme, mobile: boolean) =>
   css({
     display: "flex",
@@ -235,9 +244,7 @@ const EffectDevice: React.FC<{
     [ops, effect.id]
   );
   const width = View
-    ? effect.type === "fable"
-      ? FX_VIEW_WIDTHS[effect.kind]
-      : FX_VIEW_WIDTH
+    ? effectViewWidth(effect)
     : (DEVICE_WIDTHS as Record<string, number>)[effect.type] ?? "max-content";
   return (
     <DeviceCard
