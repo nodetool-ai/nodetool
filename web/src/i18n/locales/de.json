@@ -6138,7 +6138,8 @@
       "documents": {
         "title": "Dokumente",
         "regionLabel": "Dokumente im aktuellen Projekt",
-        "countAndSort": "Dokumente · {{count}} · neueste zuerst",
+        "countSubtitle_one": "1 Dokument · neueste zuerst",
+        "countSubtitle_other": "{{count}} Dokumente · neueste zuerst",
         "loadFailureSummary": "Projekt-Dokumente konnten nicht geladen werden",
         "emptyTitle": "Noch keine Dokumente in diesem Projekt",
         "previousPage": "Vorherige",

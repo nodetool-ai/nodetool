@@ -6138,7 +6138,7 @@
       "documents": {
         "title": "文档",
         "regionLabel": "当前项目文档",
-        "countAndSort": "文档 · {{count}} · 按最近更新排序",
+        "countSubtitle_other": "{{count}} 个文档 · 按最近更新排序",
         "loadFailureSummary": "无法加载项目文档",
         "emptyTitle": "此项目中还没有文档",
         "previousPage": "上一页",

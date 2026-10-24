@@ -59,6 +59,7 @@ import {
   CloseButton,
   Divider,
   EditorButton,
+  EYEBROW,
   FlexColumn,
   FlexRow,
   GAP,
@@ -2248,7 +2249,7 @@ const NewProjectSurface = ({
   // One project's work: its documents, then its latest chats, both scoped by
   // the project picker in the documents header.
   const projectWork = (
-    <FlexColumn gap={SPACING.xl}>
+    <FlexColumn sx={{ gap: { xs: SPACING.xl, sm: SPACING.xxl } }}>
       <CurrentProjectDocuments />
       <RecentChats />
     </FlexColumn>
@@ -2314,7 +2315,12 @@ const NewProjectSurface = ({
                 </Text>
                 <Text
                   color="secondary"
-                  sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
+                  // Balanced, so the second line is not one orphaned word.
+                  sx={{
+                    maxWidth: INTRO_TEXT_WIDTH,
+                    textAlign: "center",
+                    textWrap: "balance"
+                  }}
                 >
                   {t("pass3_32.projects.home.intro")}
                 </Text>
@@ -2607,10 +2613,7 @@ const NewProjectSurface = ({
         >
           <Divider />
           <FlexRow align="baseline" gap={SPACING.md} wrap>
-            <Caption
-              color="muted"
-              sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
-            >
+            <Caption sx={{ ...EYEBROW, color: "text.secondary" }}>
               {t("pass3_32.projects.home.blankDocument")}
             </Caption>
             <Caption color="muted">
