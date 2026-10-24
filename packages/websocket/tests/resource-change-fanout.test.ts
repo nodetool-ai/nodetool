@@ -295,12 +295,16 @@ describe("resource change fanout", () => {
     grants.mockResolvedValue([]);
     resourceChangeBus.receive(JSON.stringify({ origin: "peer", payload: {
       resource_type: "documentcollaborator", event: "deleted",
-      resource: { id: "grant" }, owner_user_id: "u1"
+      // A grant row belongs to the collaborator it names.
+      resource: { id: "grant" }, owner_user_id: "u2"
     } }));
     publish();
     await flush();
     expect(changeFrames(open[0].ws)).toHaveLength(2);
-    expect(changeFrames(open[1].ws)).toHaveLength(1);
+    // u2 hears its own grant's deletion, then nothing more of the storyboard.
+    expect(
+      changeFrames(open[1].ws).map((frame) => frame["resource_type"])
+    ).toEqual(["storyboard", "documentcollaborator"]);
     expect(grants).toHaveBeenCalledTimes(2);
   });
 
