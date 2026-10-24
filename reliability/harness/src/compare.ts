@@ -248,7 +248,10 @@ export async function compareJourney(
     // §4's golden fixtures: the only assertion on what the run actually
     // produced. Every surface is held to them, not just the oracle — a
     // surface can agree with the oracle frame-for-frame and still be wrong.
-    const goldens = checkGoldens(journey, record, { faultsApplied });
+    // A fault that preserves the outcome still has to produce the goldens.
+    const goldens = checkGoldens(journey, record, {
+      faultsApplied: faultsApplied.filter((name) => !getFaultModule(name)?.preservesOutcome)
+    });
     const goldenFailures = goldens.flatMap((g) => g.failures);
 
     let diff: StreamDiff | null = null;

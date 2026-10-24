@@ -18,13 +18,16 @@ export * from "./ws-proxy.js";
 export * from "./ws-faults.js";
 export * from "./bridge-faults.js";
 export * from "./host-faults.js";
+export * from "./client-faults.js";
 
 import { registerProviderFaultModules } from "./provider-faults.js";
 import { registerWsFaultModules } from "./ws-faults.js";
 import { registerBridgeFaultModules } from "./bridge-faults.js";
 import { registerHostFaultModules } from "./host-faults.js";
+import { registerClientFaultModules } from "./client-faults.js";
 
 registerProviderFaultModules();
 registerWsFaultModules();
 registerBridgeFaultModules();
 registerHostFaultModules();
+registerClientFaultModules();
