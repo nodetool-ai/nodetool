@@ -6458,6 +6458,7 @@
         "selectedProject": "当前项目：{{name}}",
         "selectProject": "选择项目",
         "projectHome": "项目主页",
+        "openProjectHome": "打开项目主页：{{name}}",
         "newProject": "新建项目",
         "searchProjects": "搜索项目",
         "loadingProjects": "正在加载项目",

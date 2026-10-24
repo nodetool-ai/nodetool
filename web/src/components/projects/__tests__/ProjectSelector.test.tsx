@@ -22,13 +22,14 @@ const projects = {
 
 const documentsQuery = jest.fn();
 const createProject = jest.fn();
+const updateProject = jest.fn();
 jest.mock("../../../trpc/client", () => {
   const invalidate = { invalidate: jest.fn() };
   return {
   trpc: {
     useUtils: () => ({
       projects: {
-        list: invalidate,
+        list: { ...invalidate, setData: jest.fn() },
         archived: invalidate,
         summaries: invalidate,
         unassigned: invalidate,
@@ -45,6 +46,7 @@ jest.mock("../../../trpc/client", () => {
   trpcClient: {
     projects: {
       documents: { query: (...args: unknown[]) => documentsQuery(...args) },
+      update: { mutate: (...args: unknown[]) => updateProject(...args) },
       restoreTabs: { query: async () => [] }
     }
   }
@@ -147,15 +149,52 @@ describe("ProjectSelector", () => {
     );
   });
 
-  it("labels the tab bar selector Project", () => {
+  it("names the project in the app bar and opens its home on click", async () => {
+    const user = userEvent.setup();
     useWorkspaceTabsStore.getState().setActiveProjectId("b");
     renderSelector();
 
+    const home = screen.getByRole("button", {
+      name: "Open project home: Beacon"
+    });
+    expect(home).toHaveTextContent("Beacon");
+    await user.click(home);
+
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
+      "project-new:new"
+    );
     expect(
-      screen.getByRole("button", { name: "Select project" })
+      screen.getByRole("button", { name: "Open project home: Beacon" })
+    ).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("names the app bar control Personal when no project is open", () => {
+    renderSelector();
+
+    expect(
+      screen.getByRole("button", { name: "Open project home: Personal" })
     ).toBeInTheDocument();
-    expect(screen.getByText("Project")).toBeInTheDocument();
-    expect(screen.queryByText("Beacon")).not.toBeInTheDocument();
+  });
+
+  it("renames the project on a double-click of its name", async () => {
+    const user = userEvent.setup();
+    updateProject.mockResolvedValue({
+      id: "b",
+      name: "Lighthouse",
+      isPersonal: false
+    });
+    useWorkspaceTabsStore.getState().setActiveProjectId("b");
+    renderSelector();
+
+    await user.dblClick(
+      screen.getByRole("button", { name: "Open project home: Beacon" })
+    );
+    const input = screen.getByRole("textbox", { name: "Project name" });
+    await user.clear(input);
+    await user.type(input, "Lighthouse{Enter}");
+
+    expect(updateProject).toHaveBeenCalledWith({ id: "b", name: "Lighthouse" });
   });
 
   it("names and creates a project from the selector menu, then opens its home", async () => {

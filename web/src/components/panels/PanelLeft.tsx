@@ -139,7 +139,7 @@ const styles = (
     flexDirection: "row",
     zIndex: theme.zIndex.appBar,
     // The container is a full-height positioning shell. Its transparent box
-    // overlaps the tab bar's empty strip above the drawer (the drawer's 40px
+    // overlaps the tab bar's empty strip above the drawer (the drawer's
     // marginTop), so it must not capture clicks — only its real children do.
     pointerEvents: "none",
 
@@ -147,8 +147,9 @@ const styles = (
       pointerEvents: drawerVisible ? "auto" : "none",
       position: "relative",
       zIndex: Z_INDEX.base,
-      marginTop: getSpacingPx(10), // 40px
-      height: "calc(100% - 40px)",
+      // Starts under the workspace app bar; legacy layouts keep 40px.
+      marginTop: `var(--workspace-header-height, ${getSpacingPx(10)})`,
+      height: "calc(100% - var(--workspace-header-height, 40px))",
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: SHADOW(theme).panelLeft,

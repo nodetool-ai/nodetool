@@ -21,22 +21,21 @@ import {
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
-import { trpc, trpcClient } from "../../trpc/client";
 import { tabCanRename } from "./tabRename";
 import { useRenameDocument } from "../../hooks/useRenameDocument";
 import { useWorkspaceDocumentClose } from "../../hooks/useWorkspaceDocumentClose";
-import { TOOLBAR_WIDTH } from "../../config/constants";
+import { HEADER_HEIGHT, TOOLBAR_WIDTH } from "../../config/constants";
+import AddIcon from "@mui/icons-material/Add";
+
 import {
   BORDER_RADIUS,
   CONTROL,
-  ContextMenu,
   focusRing,
-  InlineEditableText,
-  MenuItemPrimitive,
   MOTION,
   SPACING,
   getSpacingPx,
-  ICON_SIZE
+  ICON_SIZE,
+  ToolbarIconButton
 } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import SettingsHeaderButton from "../panels/SettingsHeaderButton";
@@ -46,9 +45,7 @@ import MobileDocumentSelector from "./MobileDocumentSelector";
 import MobileRailLauncher from "../panels/MobileRailLauncher";
 import ProjectSelector from "../projects/ProjectSelector";
 import { ActivityIndicator } from "../timeline/ActivityIndicator";
-import { PROJECT_COLOR } from "../projects/projectIdentity";
 import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
-import { useOpenNewProjectTab, useProjects } from "../../hooks/useProjects";
 import { useWorkspaceHeaderActions } from "./WorkspaceHeaderActionsContext";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
@@ -111,7 +108,7 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "stretch",
-    height: "40px",
+    height: `${HEADER_HEIGHT}px`,
     flexShrink: 0,
     // Clear the full-height left rail (PanelLeft) which now runs to top 0.
     paddingLeft: `${TOOLBAR_WIDTH}px`,
@@ -120,8 +117,11 @@ const styles = (theme: Theme) =>
     WebkitAppRegion: "drag",
     userSelect: "none",
 
+    // The strip takes only the width its tabs need, so the new-tab button
+    // follows the last tab. The spacer after it keeps the window draggable.
     "& .tabs": {
-      flex: 1,
+      flex: "0 1 auto",
+      minWidth: 0,
       display: "flex",
       flexWrap: "nowrap",
       alignItems: "stretch",
@@ -167,35 +167,6 @@ const styles = (theme: Theme) =>
       }
     },
 
-    "& .project-scope": {
-      WebkitAppRegion: "no-drag",
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.md),
-      flex: "0 0 auto",
-      maxWidth: "220px",
-      padding: `0 ${getSpacingPx(SPACING.lg)}`,
-      border: "none",
-      borderRight: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: `color-mix(in srgb, ${PROJECT_COLOR} 6%, transparent)`,
-      boxShadow: `inset 0 -2px 0 ${PROJECT_COLOR}`,
-      color: theme.vars.palette.text.primary,
-      cursor: "pointer",
-      fontSize: "var(--fontSizeSmall)",
-      "& .glyph": { color: PROJECT_COLOR },
-      "& .project-scope-name": {
-        fontWeight: 500,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      },
-      "& .project-scope-caret": {
-        fontSize: "var(--fontSizeSmaller)",
-        opacity: 0.6
-      },
-      "&:hover": { backgroundColor: theme.vars.palette.c_overlay_subtle }
-    },
-
     "& .tab-input": {
       flex: 1,
       minWidth: 0,
@@ -212,7 +183,7 @@ const styles = (theme: Theme) =>
 
     // Every tab-bar control draws the shared inset keyboard ring; the strip
     // scrolls, so a ring outside the box would be clipped.
-    "& .tab:focus-visible, & .project-scope:focus-visible, & .new-tab:focus-visible, & .home-button:focus-visible, & .mode-toggle button:focus-visible":
+    "& .tab:focus-visible, & .new-tab:focus-visible, & .mode-toggle button:focus-visible":
       focusRing(theme),
 
     "& .glyph": { flexShrink: 0, fontSize: "var(--fontSizeSmall)" },
@@ -273,36 +244,16 @@ const styles = (theme: Theme) =>
       }
     },
 
-    "& .home-button": {
+    "& .new-tab-icon": {
       WebkitAppRegion: "no-drag",
       flexShrink: 0,
-      minWidth: 0,
-      maxWidth: "220px",
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.sm),
-      padding: `0 ${getSpacingPx(SPACING.lg)}`,
-      border: "none",
-      borderRight: `1px solid ${theme.vars.palette.divider}`,
-      background: "transparent",
-      color: theme.vars.palette.text.secondary,
-      cursor: "pointer",
-      fontSize: "var(--fontSizeSmall)",
-      "& .home-button-label": {
-        minWidth: 0,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      },
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: theme.vars.palette.action.hover
-      },
-      "&.active": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: "var(--c_editor_bg_color)",
-        fontWeight: 600
-      }
+      alignSelf: "center",
+      margin: `0 ${getSpacingPx(SPACING.xs)}`
+    },
+
+    "& .tabbar-spacer": {
+      flex: 1,
+      minWidth: getSpacingPx(SPACING.xl)
     },
 
     "& .mode-toggle": {
@@ -435,22 +386,14 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   } = useWorkspaceDocumentClose();
   const setMode = useWorkspaceTabsStore((state) => state.setMode);
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
-  const trpcUtils = trpc.useUtils();
   const renameDocument = useRenameDocument();
   const headerActions = useWorkspaceHeaderActions()?.actions;
-  const openHome = useOpenNewProjectTab();
-  const { data: projects } = useProjects();
 
   const workflowManagerStore = useWorkflowManagerStore();
 
   const activeProjectId = useWorkspaceTabsStore(
     (state) => state.activeProjectId
   );
-  const activeProject = projects?.find(
-    (project) => project.id === activeProjectId
-  );
-  const homeTitle =
-    activeProject?.name ?? (activeProjectId ? "Project" : "Home");
   const visibleTabs = useMemo(
     () =>
       tabs.filter(
@@ -469,19 +412,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
-  const [editingHome, setEditingHome] = useState(false);
-  const [homeMenuPosition, setHomeMenuPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [homeTitleOverride, setHomeTitleOverride] = useState<{
-    projectId: string;
-    name: string;
-  } | null>(null);
-  const displayedHomeTitle =
-    homeTitleOverride?.projectId === activeProjectId
-      ? homeTitleOverride.name
-      : homeTitle;
   const [dropTarget, setDropTarget] = useState<{
     id: string;
     position: "left" | "right";
@@ -591,44 +521,8 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
   const handleCancelRename = useCallback(() => setEditingTabId(null), []);
 
-  const commitHomeRename = useCallback(
-    async (newName: string) => {
-      setEditingHome(false);
-      if (
-        !activeProjectId ||
-        !activeProject ||
-        newName === activeProject.name
-      ) {
-        return;
-      }
-      setHomeTitleOverride({ projectId: activeProjectId, name: newName });
-      try {
-        const updated = await trpcClient.projects.update.mutate({
-          id: activeProjectId,
-          name: newName
-        });
-        trpcUtils.projects.list.setData({}, (current) =>
-          current?.map((project) =>
-            project.id === activeProjectId ? updated : project
-          )
-        );
-        void trpcUtils.projects.list.invalidate();
-        void trpcUtils.projects.summaries.invalidate();
-      } catch {
-        // The list query still holds the previous name on a failed save.
-      } finally {
-        setHomeTitleOverride(null);
-      }
-    },
-    [
-      activeProject,
-      activeProjectId,
-      trpcUtils.projects.list,
-      trpcUtils.projects.summaries
-    ]
-  );
-
-  const newTabButton = (
+  // Phones keep the labelled "+ New" button in the document row.
+  const mobileNewTabButton = (
     <button
       ref={newTabButtonRef}
       type="button"
@@ -708,7 +602,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             onCloseAll={handleCloseAll}
           />
           {modeToggle}
-          {newTabButton}
+          {mobileNewTabButton}
         </div>
         {headerActions && (
           <div className="mobile-row actions-row">
@@ -726,51 +620,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       className={`workspace-tabbar${headerActions || (activeTab && SUPPORTS_BOTH_MODES[activeTab.type]) ? " has-document-actions" : ""}`}
     >
       <ProjectSelector />
-      {editingHome ? (
-        <div className="home-button active">
-          <InlineEditableText
-            className="tab-input"
-            ariaLabel={t("i18n-next51.tabBar.projectName")}
-            value={displayedHomeTitle}
-            editing
-            onEditingChange={setEditingHome}
-            onCommit={(name) => void commitHomeRename(name)}
-            onCancel={() => setEditingHome(false)}
-          />
-        </div>
-      ) : (
-        <button
-          type="button"
-          className={`home-button${homeIsActive ? " active" : ""}`}
-          aria-label={displayedHomeTitle}
-          aria-current={homeIsActive ? "page" : undefined}
-          onClick={openHome}
-          onDoubleClick={() => {
-            if (activeProject) setEditingHome(true);
-          }}
-          onContextMenu={(event) => {
-            if (!activeProject) return;
-            event.preventDefault();
-            setHomeMenuPosition({ x: event.clientX, y: event.clientY });
-          }}
-        >
-          <span className="home-button-label">{displayedHomeTitle}</span>
-        </button>
-      )}
-      <ContextMenu
-        open={homeMenuPosition !== null}
-        position={homeMenuPosition}
-        onClose={() => setHomeMenuPosition(null)}
-      >
-        <MenuItemPrimitive
-          label={t("i18n-next51.tabBar.rename")}
-          onClick={() => {
-            setHomeMenuPosition(null);
-            setEditingHome(true);
-          }}
-        />
-      </ContextMenu>
-      {newTabButton}
       <div className="tabs">
         {visibleTabs.map((tab) => (
           <Fragment key={tab.id}>
@@ -797,6 +646,16 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           </Fragment>
         ))}
       </div>
+      <ToolbarIconButton
+        ref={newTabButtonRef}
+        className="new-tab-icon"
+        icon={<AddIcon />}
+        tooltip={t("i18n-next51.tabBar.openOrCreateTab")}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((v) => !v)}
+      />
+      <div className="tabbar-spacer" />
 
       {openMenu}
 
