@@ -35,7 +35,9 @@ import {
 } from "../../lib/document-access.js";
 
 const listInput = z.object({
-  projectId: z.string().optional()
+  projectId: z.string().optional(),
+  /** Only the scripts linked to this timeline sequence. */
+  timelineId: z.string().optional()
 });
 
 const idInput = z.object({ id: z.string() });
@@ -87,7 +89,13 @@ export const scriptsRouter = router({
       const items = input.projectId
         ? await Script.listByProject(input.projectId, ctx.userId)
         : await Script.listByUser(ctx.userId);
-      return items.map(toListItem);
+      return items
+        .filter(
+          (script) =>
+            input.timelineId === undefined ||
+            script.timeline_id === input.timelineId
+        )
+        .map(toListItem);
     }),
 
   get: protectedProcedure

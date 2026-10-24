@@ -3897,7 +3897,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1003,
+    "total": 1004,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7117,6 +7117,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "gemini-3.1-flash-image",
             "name": "Gemini 3.1 Flash Image"
+          },
+          {
+            "id": "gemini-nano-banana-2.1",
+            "name": "Nano Banana 2.1"
           }
         ]
       },

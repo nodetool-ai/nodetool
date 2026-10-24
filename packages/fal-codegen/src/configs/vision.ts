@@ -2,6 +2,12 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "nvidia/nemotron-3-5-super/vision": {
+      className: "Nemotron35SuperVision",
+      docstring: "NVIDIA Nemotron 3.5 Super answers prompts about images.",
+      tags: ["vision", "image-to-text", "nvidia", "nemotron"]
+    },
+
     "fal-ai/arbiter/image/text": {
       className: "ArbiterImageText",
       docstring:

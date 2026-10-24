@@ -16,6 +16,88 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "ideogram/vector/image-to-vector": {
+      className: "IdeogramVectorImageToVector",
+      docstring:
+        "Ideogram Vector converts a raster image into an editable SVG, in a default mode that keeps fine detail or a simple mode with fewer shapes.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "ideogram",
+        "vector",
+        "svg",
+        "vectorize"
+      ]
+    },
+
+    "google/nano-banana-2.1/edit": {
+      className: "NanoBanana21Edit",
+      docstring:
+        "Nano Banana 2.1 (Gemini) edits images from a text instruction and reference images at 1K, 2K, or 4K.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "google",
+        "nano-banana",
+        "gemini"
+      ]
+    },
+
+    "blackforestlabs/flux-3/edit-image": {
+      className: "Flux3EditImage",
+      docstring: "FLUX 3 edits an image from a natural-language instruction.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "flux-3"]
+    },
+
+    "blackforestlabs/flux-3/klein/edit-image": {
+      className: "Flux3KleinEditImage",
+      docstring:
+        "FLUX 3 [klein] edits an image from a natural-language instruction with the small, fast FLUX 3 model.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "flux-3", "klein"]
+    },
+
+    "krea/v3/edit": {
+      className: "KreaV3Edit",
+      docstring: "Krea 3 edits an image from a text instruction.",
+      tags: ["editing", "image-to-image", "img2img", "krea"]
+    },
+
+    "bria/fibo-2/edit": {
+      className: "BriaFibo2Edit",
+      docstring: "Bria FIBO 2 edits images from a text instruction.",
+      tags: ["editing", "image-to-image", "img2img", "bria", "fibo"]
+    },
+
+    "bria/fibo-edit-1.5/expand": {
+      className: "BriaFiboEdit15Expand",
+      docstring:
+        "Bria FIBO Edit 1.5 expands an image beyond its borders (outpainting).",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bria",
+        "fibo",
+        "outpaint",
+        "expand"
+      ]
+    },
+
+    "bria/guided-remove-background": {
+      className: "BriaGuidedRemoveBackground",
+      docstring:
+        "Bria guided background removal cuts out the subject an instruction or hint points to.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "bria",
+        "background-removal"
+      ]
+    },
+
     "ideogram/v4.5/edit": {
       className: "IdeogramV45Edit",
       docstring:

@@ -187,7 +187,7 @@ mirrors the replay state into that store each frame, the same "seed the shared
 store" trick `seedCastMetadata`/`seedDemoAuth` use for the graph editor.
 
 **Timeline** (`web/src/demo/timeline/`): mounts the editor's own layout inside a
-`TimelineProvider` — `TopBar`, `PreviewArea` beside `TimelineInspector`,
+`TimelineProvider` — `TimelineDocumentBar`, `PreviewArea` beside `TimelineInspector`,
 `TracksRegion`, `BottomStatusBar` — but not the full `TimelineEditor` page,
 which also wires up autosave, generation-job subscriptions, and tRPC-backed
 sequence loading that don't apply to a hand-authored, backend-free cast. The

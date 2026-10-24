@@ -2,6 +2,25 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "mirelo-ai/sfx2.0/text-to-audio": {
+      className: "Sfx20TextToAudio",
+      docstring: "Mirelo SFX 2.0 generates sound effects from a text prompt.",
+      tags: ["audio", "text-to-audio", "sound-effects", "mirelo-ai"]
+    },
+
+    "mureka/api/generate/song": {
+      className: "MurekaSong",
+      docstring:
+        "Mureka generates a song with vocals from lyrics and a style prompt.",
+      tags: ["audio", "text-to-audio", "music", "song", "mureka"]
+    },
+
+    "mureka/api/generate/instrumental": {
+      className: "MurekaInstrumental",
+      docstring: "Mureka generates an instrumental track from a style prompt.",
+      tags: ["audio", "text-to-audio", "music", "instrumental", "mureka"]
+    },
+
     "fal-ai/ace-step/prompt-to-audio": {
       className: "ACEStepPromptToAudio",
       docstring:

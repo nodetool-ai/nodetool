@@ -50,9 +50,8 @@ describe("timeline demo chrome", () => {
   it("shows the editor's actions, inert", async () => {
     const user = userEvent.setup();
     renderChrome(0);
-    for (const name of [/^save$/i, /^export video$/i]) {
-      expect(screen.getByRole("button", { name })).toBeInTheDocument();
-    }
+    expect(screen.getByRole("button", { name: /^export$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^undo$/i })).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: /more timeline actions/i })

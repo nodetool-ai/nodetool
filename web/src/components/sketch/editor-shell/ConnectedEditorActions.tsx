@@ -108,11 +108,23 @@ function fitToViewport(): void {
   store.setPan({ x: 0, y: 0 });
 }
 
-export const ConnectedEditorActions = memo(function ConnectedEditorActions({
+/** The pieces of the action cluster, so a document bar can put them in its
+ * View and Actions slots instead of one row. */
+export interface EditorActionParts {
+  inline?: React.ReactNode;
+  generate: React.ReactNode;
+  layoutMenu?: React.ReactNode;
+  assistant: React.ReactNode;
+  more: React.ReactNode;
+  /** The Transform with workflow dialog, mounted while open. */
+  dialogs: React.ReactNode;
+}
+
+export const useEditorActionParts = ({
   inlineActions,
   menuItems,
   layoutMenu
-}: ConnectedEditorActionsProps) {
+}: ConnectedEditorActionsProps): EditorActionParts => {
   const { t } = useTranslation();
   const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
   const toggleAssistantPanel = useSketchStore((s) => s.toggleAssistantPanel);
@@ -124,7 +136,9 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
 
   const documentId = useSketchSessionStore((s) => s.documentId);
   const fitViewToScreen = useSketchCanvasRefStore((s) => s.fitViewToScreen);
-  const canFlatten = useSketchCanvasRefStore((s) => s.flattenToDataUrl !== null);
+  const canFlatten = useSketchCanvasRefStore(
+    (s) => s.flattenToDataUrl !== null
+  );
 
   const generateAnchorRef = useRef<HTMLButtonElement>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -157,7 +171,8 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
 
   // The visible composite goes to the workflow; an image it returns lands on
   // a new layer, placed through the same path the agent's placeImage uses.
-  const [transformSource, setTransformSource] = useState<TransformSource | null>(null);
+  const [transformSource, setTransformSource] =
+    useState<TransformSource | null>(null);
   const handleTransform = useCallback(() => {
     closeMenu();
     const uri = useSketchCanvasRefStore.getState().flattenToDataUrl?.();
@@ -166,7 +181,9 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
     }
     setTransformSource({
       kind: "image",
-      name: useSketchSessionStore.getState().name || t("transformWithWorkflow.sketchName"),
+      name:
+        useSketchSessionStore.getState().name ||
+        t("transformWithWorkflow.sketchName"),
       uri
     });
   }, [closeMenu, t]);
@@ -187,64 +204,65 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
     [documentId, t]
   );
 
-  return (
-    <FlexRow
-      align="center"
-      gap={0.5}
-      className="tool-top-bar__global-actions"
-      sx={{ ml: "auto", flexShrink: 0 }}
-    >
-      {inlineActions}
-
-      {documentId && (
-        <>
-          <Tooltip title={t("i18n-next13.sketch.editorActions.generatePromptTooltip")}>
-            <span>
-              <EditorButton
-                ref={generateAnchorRef}
-                variant="text"
-                size="small"
-                onClick={() => {
-                  setGenerateMounted(true);
-                  setGenerateOpen(true);
-                }}
-                startIcon={<AutoAwesomeIcon />}
-                aria-label={t("i18n-next13.sketch.editorActions.generateImage")}
-                sx={{
-                  "@container sketch-workspace (max-width: 400px)": {
-                    minWidth: 44,
-                    "& .sketch-generate-label": { display: "none" },
-                    "& .MuiButton-startIcon": { margin: 0 }
-                  }
-                }}
-                data-testid="sketch-open-generate"
-              >
-                <span className="sketch-generate-label">{t("i18n-next13.sketch.editorActions.generate")}</span>
-              </EditorButton>
+  const generate = documentId ? (
+    <>
+      <Tooltip
+        title={t("i18n-next13.sketch.editorActions.generatePromptTooltip")}
+      >
+        <span>
+          <EditorButton
+            ref={generateAnchorRef}
+            variant="text"
+            size="small"
+            onClick={() => {
+              setGenerateMounted(true);
+              setGenerateOpen(true);
+            }}
+            startIcon={<AutoAwesomeIcon />}
+            aria-label={t("i18n-next13.sketch.editorActions.generateImage")}
+            sx={{
+              "@container sketch-workspace (max-width: 400px)": {
+                minWidth: 44,
+                "& .sketch-generate-label": { display: "none" },
+                "& .MuiButton-startIcon": { margin: 0 }
+              }
+            }}
+            data-testid="sketch-open-generate"
+          >
+            <span className="sketch-generate-label">
+              {t("i18n-next13.sketch.editorActions.generate")}
             </span>
-          </Tooltip>
-          {generateMounted && (
-            <ConnectedGeneratePopover
-              open={generateOpen}
-              anchorEl={generateAnchorRef.current}
-              onClose={() => setGenerateOpen(false)}
-            />
-          )}
-        </>
+          </EditorButton>
+        </span>
+      </Tooltip>
+      {generateMounted && (
+        <ConnectedGeneratePopover
+          open={generateOpen}
+          anchorEl={generateAnchorRef.current}
+          onClose={() => setGenerateOpen(false)}
+        />
       )}
+    </>
+  ) : null;
 
-      {layoutMenu}
+  const assistant = (
+    <ToolbarIconButton
+      icon={<SmartToyOutlinedIcon />}
+      tooltip={
+        assistantPanelOpen
+          ? t("i18n-next13.sketch.editorActions.hideAssistant")
+          : t("i18n-next13.sketch.editorActions.showAssistant")
+      }
+      active={assistantPanelOpen}
+      onClick={handleAssistant}
+      aria-pressed={assistantPanelOpen}
+      data-testid="sketch-assistant-toggle"
+      nodrag={false}
+    />
+  );
 
-      <ToolbarIconButton
-        icon={<SmartToyOutlinedIcon />}
-        tooltip={assistantPanelOpen ? t("i18n-next13.sketch.editorActions.hideAssistant") : t("i18n-next13.sketch.editorActions.showAssistant")}
-        active={assistantPanelOpen}
-        onClick={handleAssistant}
-        aria-pressed={assistantPanelOpen}
-        data-testid="sketch-assistant-toggle"
-        nodrag={false}
-      />
-
+  const more = (
+    <>
       <ToolbarIconButton
         icon={<MoreVertIcon />}
         tooltip={t("i18n-next13.sketch.editorActions.editorActions")}
@@ -328,15 +346,45 @@ export const ConnectedEditorActions = memo(function ConnectedEditorActions({
         {menuItems ? <Divider key="host-divider" /> : null}
         {menuItems?.(closeMenu)}
       </EditorMenu>
+    </>
+  );
 
-      {transformSource && (
-        <TransformWithWorkflowView
-          source={transformSource}
-          onClose={() => setTransformSource(null)}
-          apply={transformApply}
-          aboveFloating
-        />
-      )}
+  const dialogs = transformSource ? (
+    <TransformWithWorkflowView
+      source={transformSource}
+      onClose={() => setTransformSource(null)}
+      apply={transformApply}
+      aboveFloating
+    />
+  ) : null;
+
+  return {
+    inline: inlineActions,
+    generate,
+    layoutMenu,
+    assistant,
+    more,
+    dialogs
+  };
+};
+
+export const ConnectedEditorActions = memo(function ConnectedEditorActions(
+  props: ConnectedEditorActionsProps
+) {
+  const parts = useEditorActionParts(props);
+  return (
+    <FlexRow
+      align="center"
+      gap={0.5}
+      className="tool-top-bar__global-actions"
+      sx={{ ml: "auto", flexShrink: 0 }}
+    >
+      {parts.inline}
+      {parts.generate}
+      {parts.layoutMenu}
+      {parts.assistant}
+      {parts.more}
+      {parts.dialogs}
     </FlexRow>
   );
 });

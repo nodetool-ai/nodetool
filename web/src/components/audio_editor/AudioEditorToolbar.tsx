@@ -48,16 +48,19 @@ interface AudioEditorToolbarProps {
   onEffect: (effectId: string) => void;
   /** Open "Transform with workflow" on the current sample. */
   onTransform?: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  onSave: () => void;
-  onDone: () => void;
+  /** Undo and Redo render only when both are given. In a workspace tab
+   * they sit in the document bar instead, with Save. */
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onSave?: () => void;
+  onDone?: () => void;
 }
 
 /**
  * The audio editor's command bar: history, selection edits, level edits, the
  * effects menu, and save. Transport and zoom live in `AudioTransportBar`
  * under the waveform. Memoized so it does not re-render on playback frames.
+ * In a workspace tab only the edits and effects stay here.
  */
 const AudioEditorToolbar = memo(function AudioEditorToolbar({
   hasSelection,
@@ -106,22 +109,26 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
       aria-label={t("batch2_16.toolbar.audioEdits")}
       sx={{ flexWrap: "wrap", py: SPACING.xs }}
     >
-      <ToolbarGroup role="group" aria-label={t("batch2_16.toolbar.history")}>
-        <ToolbarIconButton
-          icon={<UndoIcon fontSize="small" />}
-          tooltip={t("batch2_16.toolbar.undo")}
-          onClick={onUndo}
-          disabled={!canUndo}
-        />
-        <ToolbarIconButton
-          icon={<RedoIcon fontSize="small" />}
-          tooltip={t("batch2_16.toolbar.redo")}
-          onClick={onRedo}
-          disabled={!canRedo}
-        />
-      </ToolbarGroup>
+      {onUndo && onRedo && (
+        <>
+          <ToolbarGroup role="group" aria-label={t("batch2_16.toolbar.history")}>
+            <ToolbarIconButton
+              icon={<UndoIcon fontSize="small" />}
+              tooltip={t("batch2_16.toolbar.undo")}
+              onClick={onUndo}
+              disabled={!canUndo}
+            />
+            <ToolbarIconButton
+              icon={<RedoIcon fontSize="small" />}
+              tooltip={t("batch2_16.toolbar.redo")}
+              onClick={onRedo}
+              disabled={!canRedo}
+            />
+          </ToolbarGroup>
 
-      <ToolbarDivider />
+          <ToolbarDivider />
+        </>
+      )}
 
       <ToolbarGroup role="group" aria-label={t("batch2_16.toolbar.selectionEdits")}>
         <ToolbarIconButton
@@ -240,29 +247,37 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         </EditorButton>
       )}
 
-      <Box sx={{ flexGrow: 1 }} />
+      {(onDone || onSave) && (
+        <>
+          <Box sx={{ flexGrow: 1 }} />
 
-      <ToolbarGroup>
-        <EditorButton
-          variant="text"
-          color="inherit"
-          density="compact"
-          onClick={onDone}
-        >
-          {t("batch2_16.toolbar.done")}
-        </EditorButton>
-        <EditorButton
-          variant="contained"
-          density="compact"
-          disableElevation
-          onClick={onSave}
-          disabled={!canSave}
-          loading={saving}
-          disabledReason={canSave ? undefined : t("batch2_16.toolbar.saveUnavailable")}
-        >
-          {saving ? t("batch2_16.toolbar.saving") : t("batch2_16.toolbar.save")}
-        </EditorButton>
-      </ToolbarGroup>
+          <ToolbarGroup>
+            {onDone && (
+              <EditorButton
+                variant="text"
+                color="inherit"
+                density="compact"
+                onClick={onDone}
+              >
+                {t("batch2_16.toolbar.done")}
+              </EditorButton>
+            )}
+            {onSave && (
+              <EditorButton
+                variant="contained"
+                density="compact"
+                disableElevation
+                onClick={onSave}
+                disabled={!canSave}
+                loading={saving}
+                disabledReason={canSave ? undefined : t("batch2_16.toolbar.saveUnavailable")}
+              >
+                {saving ? t("batch2_16.toolbar.saving") : t("batch2_16.toolbar.save")}
+              </EditorButton>
+            )}
+          </ToolbarGroup>
+        </>
+      )}
     </Toolbar>
   );
 });

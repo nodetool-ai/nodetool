@@ -6462,6 +6462,7 @@
         "selectedProject": "Ausgewähltes Projekt: {{name}}",
         "selectProject": "Projekt auswählen",
         "projectHome": "Projektübersicht",
+        "openProjectHome": "Projektübersicht öffnen: {{name}}",
         "newProject": "Neues Projekt",
         "searchProjects": "Projekte durchsuchen",
         "loadingProjects": "Projekte werden geladen",
@@ -12505,6 +12506,10 @@
       "volume": "Lautstärke"
     },
     "topBar": {
+      "export": "Exportieren",
+      "workspace": "Arbeitsbereich",
+      "videoEditing": "Videoschnitt",
+      "audioDaw": "Audio (DAW)",
       "adaptFormat": "Format anpassen",
       "code": "Code",
       "daw": "DAW",
@@ -15807,6 +15812,7 @@
       "code": "Code",
       "run": "Ausführen",
       "script": "Skript",
+      "scriptSettings": "Skript-Einstellungen",
       "assistant": "Assistent"
     },
     "model3d": {
@@ -16905,14 +16911,41 @@
         "importFailed": "Import fehlgeschlagen: {{error}}",
         "extractFailed": "Als Skript extrahieren fehlgeschlagen: {{error}}",
         "transcriptLabel": "TRANSKRIPT",
-        "scriptLabel": "SKRIPT",
+        "wordsLabel": "WÖRTER",
         "paragraphs_one": "1 Absatz",
         "paragraphs_other": "{{count}} Absätze",
         "removeFillers": "Füllwörter entfernen ({{count}})",
         "importTooltip": "Audio oder Video zum Transkribieren importieren",
         "importLabel": "Audio oder Video importieren",
         "extractTooltip": "Dieses Transkript als bearbeitbares Skript extrahieren",
-        "extractLabel": "Als Skript extrahieren"
+        "extractLabel": "Als Skript extrahieren",
+        "editTooltip": "Transkript bearbeiten (oder auf ein Wort doppelklicken)",
+        "editLabel": "Transkript bearbeiten",
+        "doneEditingTooltip": "Bearbeitung beenden (Esc)",
+        "doneEditingLabel": "Bearbeitung beenden"
+      },
+      "linkedScript": {
+        "addLine": "Zeile hinzufügen",
+        "lineLabel": "Zeilentext",
+        "linePlaceholder": "Zeile schreiben",
+        "lines_one": "1 Zeile",
+        "lines_other": "{{count}} Zeilen",
+        "linkFailed": "Skript konnte nicht verknüpft werden: {{error}}",
+        "unlinkFailed": "Skript konnte nicht getrennt werden: {{error}}",
+        "linkLabel": "Skript verknüpfen",
+        "linkTooltip": "Ein Skript mit dieser Timeline verknüpfen",
+        "newScript": "Neues Skript",
+        "newScriptName": "Skript zu {{name}}",
+        "openLabel": "Im Skripteditor öffnen",
+        "openTooltip": "Das Skript im Skripteditor öffnen",
+        "timeline": "Timeline",
+        "unlinkLabel": "Skript trennen",
+        "unlinkTooltip": "Das Skript trennen. Seine Clips bleiben in der Timeline.",
+        "untitled": "Unbenanntes Skript",
+        "voiceDraftTooltip": "Noch nicht vertont. Diese Zeile vertonen.",
+        "voiceFailed": "Vertonung fehlgeschlagen: {{error}}",
+        "voiceLabel": "Zeile vertonen",
+        "voiceStaleTooltip": "Der Text hat sich seit der letzten Aufnahme geändert. Diese Zeile neu vertonen."
       }
     }
   },
@@ -18313,6 +18346,19 @@
       "saving": "Wird gespeichert…",
       "saved": "Gespeichert",
       "error": "Speichern fehlgeschlagen"
+    },
+    "saveStatus": {
+      "notSaved": "Nicht gespeichert",
+      "retry": "Erneut versuchen",
+      "readOnly": "Schreibgeschützt"
+    },
+    "documentBar": {
+      "mode": "Dokumentmodus",
+      "label": "Dokument {{title}}",
+      "rename": "Dokumentname",
+      "renameHint": "Zum Umbenennen doppelklicken",
+      "moreActions": "Weitere Aktionen",
+      "copyContents": "Inhalt kopieren"
     }
   },
   "i18n-next105": {
@@ -18324,9 +18370,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "Fertig"
-    },
     "workspaceFile": {
       "invalidReference": "Ungültiger Dateiverweis im Arbeitsbereich"
     }

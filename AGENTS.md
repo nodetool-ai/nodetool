@@ -417,6 +417,11 @@ verification requirements.
   The gate must compare output and fail on differences or an empty comparison.
   See [FAL codegen](packages/fal-codegen/README.md) and
   [KIE codegen](packages/kie-codegen/README.md).
+- FAL and Replicate nodes exist only for ids in their codegen `src/configs/`,
+  and Gemini image models are listed by hand. `npm run check:provider-gaps`
+  (needs provider keys) lists upstream models with no node. It runs weekly in
+  `model-watch.yml` and opens a `provider-gap` issue. Skip a model on purpose in
+  `scripts/provider-gaps/ignore.json`, with the reason.
 - Anti-slop override blocks are generated. Do not hand-edit them. The backlog
   config is report-only (`npm run lint:anti-slop`), while enforced rules run
   inside `npm run lint`. Use `lint:anti-slop:count`, `:targets`, `:write`, and

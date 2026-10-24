@@ -15,6 +15,7 @@ import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
+import { useScriptStore } from "../../../../stores/script/ScriptStore";
 
 const voicedClip = (words: CaptionWord[]): TimelineClip =>
   makeClip({
@@ -64,5 +65,55 @@ describe("ScriptLane", () => {
     });
     expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(1000);
     expect(useTimelineUIStore.getState().selectedClipIds.has("c1")).toBe(true);
+  });
+
+  it("shows a linked script line's new text on a dashed chip until it is voiced again", () => {
+    renderLane();
+    act(() => {
+      useTimelineStore.setState({ sequenceId: "seq-1" });
+      useTimelineStore.getState().setTranscriptAndClips({
+        clips: [
+          {
+            ...voicedClip([{ word: "hello", startMs: 0, endMs: 300 }]),
+            scriptId: "script-1",
+            scriptLineId: "line-1"
+          }
+        ],
+        durationMs: 1900
+      });
+      useScriptStore.getState().loadScript("script-1", {
+        title: "S",
+        cast: [],
+        timelineId: "seq-1",
+        storyboardId: null,
+        sections: [
+          {
+            id: "sec",
+            lines: [
+              {
+                id: "line-1",
+                text: "hello there",
+                currentTakeId: "t1",
+                takes: [
+                  {
+                    id: "t1",
+                    assetId: "asset-1",
+                    durationMs: 900,
+                    words: [],
+                    textSnapshot: "hello",
+                    voiceSnapshot: null,
+                    createdAt: "2026-01-01T00:00:00.000Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      });
+    });
+
+    const chip = screen.getByTestId("script-chip");
+    expect(chip).toHaveTextContent("hello there");
+    expect(chip).toHaveClass("is-stale");
   });
 });

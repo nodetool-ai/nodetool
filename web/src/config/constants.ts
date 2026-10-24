@@ -29,7 +29,7 @@ export const NOTIFICATION_TIMEOUT_MAX = 12000; // 12 seconds maximum
 export const NOTIFICATION_READING_WPM = 200; // average reading speed in words per minute
 
 // LAYOUT
-export const HEADER_HEIGHT = 40; // Workspace header toolbar height in px
+export const HEADER_HEIGHT = 36; // Workspace app bar height in px
 export const TOOLBAR_WIDTH = 50; // Vertical toolbar width in px
 export const LEFT_PANEL_MIN_DRAWER_WIDTH = 250; // Min width of the left panel drawer (excludes toolbar) in px
 

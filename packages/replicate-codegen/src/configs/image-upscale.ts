@@ -2,6 +2,10 @@ import type { ModuleConfig } from "../types.js";
 
 export const imageUpscaleConfig: ModuleConfig = {
   configs: {
+    "philz1337x/crystal-upscaler": {
+      className: "Crystal_Upscaler",
+      returnType: "image"
+    },
     "daanelson/real-esrgan-a100": {
       className: "RealEsrGan",
       returnType: "image",

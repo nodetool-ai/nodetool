@@ -269,6 +269,7 @@ exclude:
   - DEVELOPMENT_STANDARDS.md
   - WRITING_STYLE.md
   - UX_GUIDELINES.md
+  - workspace-document-bar-design.md
   - THEME.md
   - CLOUD_NODE_CURATION.md
   - CODE_NODE_COVERAGE.md

@@ -63,8 +63,10 @@ Each timeline (whether a standalone page or a workspace tab) runs in its own iso
 
 ![Video Editor — full layout](assets/screenshots/timeline-editor.png)
 
-The transcript panel on the left turns a script into beats: each line becomes a
-voiced, captioned clip on the timeline.
+The **Script** panel on the left shows the linked script's lines when the timeline
+has one, and the transcript editor when it does not. Each voiced line is a clip on
+the voiceover track, and the clip keeps the position you give it. See
+[Script Editor](script-editor.md#send-to-a-timeline).
 
 ![Transcript panel — one beat per line](assets/screenshots/studio-transcript-panel.png)
 

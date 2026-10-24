@@ -2,6 +2,88 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "kling/v4/video-to-video/edit": {
+      className: "KlingV4VideoToVideoEdit",
+      docstring: "Kling 4 edits an existing video from a text instruction.",
+      tags: ["video", "editing", "video-to-video", "vid2vid", "kling"]
+    },
+
+    "minimax/h3-max-turbo/extend-video": {
+      className: "MinimaxH3MaxTurboExtendVideo",
+      docstring:
+        "H3 Max Turbo extends an existing video with a continuation guided by a prompt.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "minimax",
+        "h3",
+        "turbo",
+        "extend"
+      ]
+    },
+
+    "minimax/h3-max/reframe-video": {
+      className: "MinimaxH3MaxReframeVideo",
+      docstring: "H3 Max reframes an existing video to a new aspect ratio.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "minimax",
+        "h3",
+        "reframe"
+      ]
+    },
+
+    "minimax/h3-max/relight": {
+      className: "MinimaxH3MaxRelight",
+      docstring: "H3 Max relights an existing video.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "minimax",
+        "h3",
+        "relight"
+      ]
+    },
+
+    "fal-ai/kandinsky6-vsr": {
+      className: "Kandinsky6Vsr",
+      docstring: "Kandinsky 6 VSR upscales video to a higher resolution.",
+      tags: [
+        "video",
+        "upscale",
+        "video-to-video",
+        "kandinsky",
+        "super-resolution"
+      ]
+    },
+
+    "fal-ai/kandinsky6-vsr/lite": {
+      className: "Kandinsky6VsrLite",
+      docstring:
+        "Kandinsky 6 VSR Lite upscales video to a higher resolution at lower cost.",
+      tags: [
+        "video",
+        "upscale",
+        "video-to-video",
+        "kandinsky",
+        "super-resolution"
+      ]
+    },
+
+    "mirelo-ai/sfx2.0/video-to-video": {
+      className: "Sfx20VideoToVideo",
+      docstring:
+        "Mirelo SFX 2.0 adds generated sound effects to a video and returns the video with audio.",
+      tags: ["video", "audio", "video-to-video", "sound-effects", "mirelo-ai"]
+    },
+
     "minimax/h3-max/insert-video": {
       className: "MinimaxH3MaxInsertVideo",
       docstring:
