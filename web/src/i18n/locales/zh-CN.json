@@ -16713,6 +16713,7 @@
       "copyName": "{{name}}（副本）",
       "createScriptAction": "创建脚本",
       "duplicateScriptAction": "复制脚本",
+      "deleteScriptAction": "删除脚本",
       "singular": "脚本",
       "plural": "脚本",
       "emptyDescription": "点击上方的 + 按钮创建新脚本。",

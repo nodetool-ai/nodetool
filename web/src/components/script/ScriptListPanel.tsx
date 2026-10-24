@@ -8,8 +8,10 @@ import { useCreateScript, useScripts } from "../../hooks/script/useScripts";
 import { usePanelStore } from "../../stores/PanelStore";
 import {
   useWorkspaceTabsStore,
-  creationProjectId
+  creationProjectId,
+  tabId
 } from "../../stores/WorkspaceTabsStore";
+import { useScriptStore } from "../../stores/script/ScriptStore";
 import type { SidebarDocumentItem } from "../../stores/SidebarDocumentActionsStore";
 import { useSidebarDocumentMenu } from "../../hooks/useSidebarDocumentMenu";
 import { trpc } from "../../trpc/client";
@@ -178,15 +180,30 @@ const ScriptListPanel = ({ projectId }: ScriptListPanelProps) => {
       return;
     }
     const { id } = itemToDelete;
-    deleteScript.mutate({ id });
-    // Downgrade every board that linked this script to unlinked, keeping the
-    // words it projected. Never blocks the delete (design §4).
-    void downgradeBoardsLinkedToScript(id).then((boardIds) => {
-      if (boardIds.length > 0) {
-        void utils.storyboards.list.invalidate();
+    deleteScript.mutate(
+      { id },
+      {
+        // Only once the script is gone. An open tab kept the script in the
+        // store, and its next load upserted the deleted script back.
+        onSuccess: () => {
+          useWorkspaceTabsStore.getState().closeTab(tabId("script", id));
+          useScriptStore.getState().removeScript(id);
+          // Downgrade every board that linked this script to unlinked, keeping
+          // the words it projected (design §4).
+          void downgradeBoardsLinkedToScript(id).then((boardIds) => {
+            if (boardIds.length > 0) {
+              void utils.storyboards.list.invalidate();
+            }
+          });
+        },
+        onError: (error) =>
+          notifyMutationError(
+            t("i18n-next62.scriptListPanel.deleteScriptAction"),
+            error
+          )
       }
-    });
-  }, [itemToDelete, deleteScript, utils]);
+    );
+  }, [itemToDelete, deleteScript, utils, t]);
 
   return (
     <DocumentListPanel

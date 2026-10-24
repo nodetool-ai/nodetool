@@ -16713,6 +16713,7 @@
       "copyName": "{{name}} (copy)",
       "createScriptAction": "create the script",
       "duplicateScriptAction": "duplicate the script",
+      "deleteScriptAction": "delete the script",
       "singular": "script",
       "plural": "scripts",
       "emptyDescription": "Create a new script with the + button above.",

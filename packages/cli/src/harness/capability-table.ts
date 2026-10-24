@@ -462,7 +462,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_speech",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "cc28002fa1f0",
+    contract: "840cb0b33149",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
