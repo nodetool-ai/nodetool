@@ -46,6 +46,7 @@ import {
 import {
   useScriptStore,
   useLineVoicing,
+  useScriptSpeed,
   lineStatus,
   effectiveVoice,
   type ScriptLine,
@@ -184,7 +185,8 @@ const ScriptLineRow = ({
   const [directionOpen, setDirectionOpen] = useState(false);
 
   const voice = effectiveVoice(line, cast);
-  const status = lineStatus(line, voice);
+  const speed = useScriptSpeed(scriptId);
+  const status = lineStatus(line, voice, speed);
   const speaker = cast.find((s) => s.id === line.speakerId) ?? null;
 
   const onTextChange = useCallback(
@@ -229,8 +231,12 @@ const ScriptLineRow = ({
   );
 
   const onDirectionChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      patchLine(scriptId, line.id, { direction: e.target.value }),
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      // Keep the field mounted while it is edited: clearing the note to
+      // retype it must not unmount the input under the caret.
+      setDirectionOpen(true);
+      patchLine(scriptId, line.id, { direction: e.target.value });
+    },
     [patchLine, scriptId, line.id]
   );
 
@@ -264,14 +270,15 @@ const ScriptLineRow = ({
   const pauseLabel = pauseMs > 0 ? formatDuration(pauseMs) : null;
 
   const toggleDirection = useCallback(() => {
-    setDirectionOpen((open) => {
-      if (open || hasDirection) {
+    if (showDirection) {
+      if (hasDirection) {
         patchLine(scriptId, line.id, { direction: "" });
-        return false;
       }
-      return true;
-    });
-  }, [hasDirection, patchLine, scriptId, line.id]);
+      setDirectionOpen(false);
+      return;
+    }
+    setDirectionOpen(true);
+  }, [showDirection, hasDirection, patchLine, scriptId, line.id]);
 
   const closeMore = useCallback(() => setMoreAnchor(null), []);
 

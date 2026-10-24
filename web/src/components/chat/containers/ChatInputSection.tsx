@@ -6,7 +6,11 @@ import { memo, useMemo } from "react";
 import { CONTROL } from "../../ui_primitives";
 import MediaChatComposer from "../composer/MediaChatComposer";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
-import { CHAT_COLUMN_MAX_WIDTH, type ChatStatus } from "../types/chat.types";
+import {
+  CHAT_COLUMN_MAX_WIDTH,
+  type ChatCommand,
+  type ChatStatus
+} from "../types/chat.types";
 import type { MediaGenerationRequest } from "../types/media.types";
 
 const styles = (_theme: Theme) =>
@@ -41,6 +45,8 @@ type ChatInputSectionProps = {
     prompt: string,
     mediaGeneration?: MediaGenerationRequest
   ) => Promise<void | boolean> | void | boolean;
+  /** Thread commands the composer's `/` menu offers. */
+  commands?: readonly ChatCommand[];
   onStop?: () => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
@@ -58,6 +64,7 @@ type ChatInputSectionProps = {
 const ChatInputSection = ({
   status,
   onSendMessage,
+  commands,
   onStop,
   selectedModel,
   onModelChange,
@@ -79,6 +86,7 @@ const ChatInputSection = ({
           isLoading={isLoading}
           isStreaming={isStreaming}
           onSendMessage={onSendMessage}
+          commands={commands}
           onStop={onStop}
           selectedModel={selectedModel}
           onModelChange={onModelChange}

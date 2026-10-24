@@ -30659,9 +30659,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include in the image. Reference in prompt as @Element1, @Element2, etc. Maximum 10 total (elements + reference images).",
         "fieldType": "input",
         "required": false
@@ -30880,9 +30880,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Optional: Elements (characters/objects) for face control. Reference in prompt as @Element1, @Element2, etc.",
         "fieldType": "input",
         "required": false
@@ -89101,9 +89101,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Optional: Elements (characters/objects) to include in the image for face control.",
         "fieldType": "input",
         "required": false
@@ -110351,9 +110351,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include in the video. Reference in prompt as @Element1, @Element2, etc. Maximum 7 total (elements + reference images + start image).",
         "fieldType": "input",
         "required": false
@@ -110513,9 +110513,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -110710,9 +110710,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -110897,9 +110897,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false
@@ -110965,9 +110965,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -111145,9 +111145,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false
@@ -111213,9 +111213,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -113249,9 +113249,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include in the video. Reference in prompt as @Element1, @Element2, etc. Maximum 7 total (elements + reference images + start image).",
         "fieldType": "input",
         "required": false
@@ -133559,9 +133559,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
         "fieldType": "input",
         "required": false
@@ -133613,9 +133613,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation. If provided, divides the video into multiple shots.",
         "fieldType": "input",
         "required": false
@@ -133785,9 +133785,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
         "fieldType": "input",
         "required": false
@@ -133839,9 +133839,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation. If provided, divides the video into multiple shots.",
         "fieldType": "input",
         "required": false
@@ -135619,9 +135619,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -135806,9 +135806,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false
@@ -135874,9 +135874,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -136062,9 +136062,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
         "fieldType": "input",
         "required": false
@@ -136116,9 +136116,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation. If provided, divides the video into multiple shots.",
         "fieldType": "input",
         "required": false
@@ -139846,9 +139846,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "Multi-shot storyboard (1-6 shots). Each shot has its own prompt and duration; the total duration must not exceed 15s. Mutually exclusive with `prompt`.",
         "fieldType": "input",
         "required": false
@@ -139995,9 +139995,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "Multi-shot storyboard (1-6 shots). Each shot has its own prompt and duration; the total duration must not exceed 15s. Mutually exclusive with `prompt`.",
         "fieldType": "input",
         "required": false
@@ -194834,9 +194834,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Optional: Elements (characters/objects) for face control. Reference in prompt as @Element1, @Element2, etc.",
         "fieldType": "input",
         "required": false
@@ -201043,9 +201043,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Optional: Elements (characters/objects) to include in the image for face control. Each element can have a frontal image and optionally reference images.",
         "fieldType": "input",
         "required": false
@@ -240833,9 +240833,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation. If provided, overrides the single prompt and divides the video into multiple shots with specified prompts and durations.",
         "fieldType": "input",
         "required": false
@@ -241064,9 +241064,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation. If provided, overrides the single prompt and divides the video into multiple shots with specified prompts and durations.",
         "fieldType": "input",
         "required": false
@@ -241245,9 +241245,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -241455,9 +241455,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -242430,9 +242430,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation.",
         "fieldType": "input",
         "required": false
@@ -242688,9 +242688,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "List of prompts for multi-shot video generation. If provided, overrides the single prompt and divides the video into multiple shots with specified prompts and durations.",
         "fieldType": "input",
         "required": false
@@ -252144,9 +252144,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "Multi-shot storyboard (1-6 shots). Each shot has its own prompt and duration; the total duration must not exceed 15s. Mutually exclusive with `prompt`.",
         "fieldType": "input",
         "required": false
@@ -252316,9 +252316,9 @@
       },
       {
         "name": "multi_prompt",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[shot]",
+        "default": [],
         "description": "Multi-shot storyboard (1-6 shots). Each shot has its own prompt and duration; the total duration must not exceed 15s. Mutually exclusive with `prompt`.",
         "fieldType": "input",
         "required": false
@@ -270967,9 +270967,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2, etc. Maximum 4 total (elements + reference images) when using video.",
         "fieldType": "input",
         "required": false
@@ -271135,9 +271135,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2, etc. Maximum 4 total (elements + reference images) when using video.",
         "fieldType": "input",
         "required": false
@@ -271223,9 +271223,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false
@@ -271430,9 +271430,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false
@@ -271527,9 +271527,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false
@@ -271734,9 +271734,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false
@@ -272835,9 +272835,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2, etc. Maximum 4 total (elements + reference images) when using video.",
         "fieldType": "input",
         "required": false
@@ -272928,9 +272928,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2, etc. Maximum 4 total (elements + reference images) when using video.",
         "fieldType": "input",
         "required": false
@@ -298403,9 +298403,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Optional element for facial consistency binding. Upload a facial element to enhance identity preservation in the generated video. Only 1 element is supported. Reference in prompt as @Element1. Element binding is only supported when character_orientation is 'video'.",
         "fieldType": "input",
         "required": false
@@ -298517,9 +298517,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Optional element for facial consistency binding. Upload a facial element to enhance identity preservation in the generated video. Only 1 element is supported. Reference in prompt as @Element1. Element binding is only supported when character_orientation is 'video'.",
         "fieldType": "input",
         "required": false
@@ -318981,8 +318981,8 @@
     "inputFields": [
       {
         "name": "keyframes",
-        "tsType": "Flux3Keyframe[]",
-        "propType": "list[Flux3Keyframe]",
+        "tsType": "object[]",
+        "propType": "list[keyframe]",
         "default": [],
         "description": "Keyframe images pinned to frame positions in the generated video. Up to 10 keyframes with unique `frame_index` values.",
         "fieldType": "input",
@@ -319252,8 +319252,8 @@
     "inputFields": [
       {
         "name": "keyframes",
-        "tsType": "Flux3Keyframe[]",
-        "propType": "list[Flux3Keyframe]",
+        "tsType": "object[]",
+        "propType": "list[keyframe]",
         "default": [],
         "description": "Keyframe images pinned to frame positions in the generated draft. Up to 10 keyframes with unique `frame_index` values.",
         "fieldType": "input",
@@ -353335,9 +353335,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false
@@ -353524,9 +353524,9 @@
       },
       {
         "name": "elements",
-        "tsType": "string",
-        "propType": "str",
-        "default": "",
+        "tsType": "object[]",
+        "propType": "list[video_element]",
+        "default": [],
         "description": "Elements (characters/objects) to include. Reference in prompt as @Element1, @Element2.",
         "fieldType": "input",
         "required": false

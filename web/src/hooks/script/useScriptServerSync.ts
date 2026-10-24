@@ -87,6 +87,18 @@ const responseToScript = (
   return draft;
 };
 
+/** The store fields a server copy does not carry, as `loadScript` fills them. */
+const emptyDraft = (id: string): ScriptDraft => ({
+  id,
+  title: "",
+  cast: [],
+  sections: [],
+  timelineId: null,
+  storyboardId: null,
+  setup: null,
+  updatedAt: Date.now()
+});
+
 const isNotFound = (error: unknown): boolean =>
   /not found/i.test(getErrorMessage(error));
 
@@ -240,7 +252,19 @@ export const useScriptServerSync = (
       statusAfter: ScriptSaveStatus | null
     ): void => {
       if (disposed) return;
-      store.getState().loadScript(scriptId, responseToScript(res));
+      const server = responseToScript(res);
+      if (store.getState().scripts[scriptId]) {
+        // A clean reload is a merge the draft contests nowhere. Going through
+        // applyMerged rebases the undo stack onto the server copy; a plain
+        // load would leave whole-document checkpoints that undo the external
+        // write along with the creator's own edit.
+        store.getState().applyMerged(scriptId, {
+          ...emptyDraft(scriptId),
+          ...server
+        });
+      } else {
+        store.getState().loadScript(scriptId, server);
+      }
       revisionRef.current = res.updatedAt;
       store.getState().setServerRevision(scriptId, res.updatedAt);
       syncedRef.current = store.getState().scripts[scriptId] ?? null;
@@ -456,6 +480,9 @@ export const useScriptServerSync = (
       }
       if (conflict.unit.kind === "field" && conflict.unit.id === "title") {
         s.setTitle(scriptId, serverScript.title);
+      }
+      if (conflict.unit.kind === "field" && conflict.unit.id === "setup") {
+        s.loadScript(scriptId, { ...draft, setup: serverScript.setup ?? null });
       }
     };
 

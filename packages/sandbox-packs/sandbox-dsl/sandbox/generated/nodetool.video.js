@@ -99,6 +99,15 @@ function videoToVideo(inputs, options) {
 function lipSync(inputs, options) {
   return createNode("nodetool.video.LipSync", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
 }
+function keyframe(inputs, options) {
+  return createNode("nodetool.video.Keyframe", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "keyframe" }, defaultOutput: "output" });
+}
+function element(inputs, options) {
+  return createNode("nodetool.video.Element", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video_element" }, defaultOutput: "output" });
+}
+function shot(inputs, options) {
+  return createNode("nodetool.video.Shot", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[shot]" }, defaultOutput: "output" });
+}
 export {
   addAudio,
   addSubtitles,
@@ -108,6 +117,7 @@ export {
   concat,
   denoise,
   easeCurve,
+  element,
   extractAudio,
   extractFrame,
   forEachFrame,
@@ -115,6 +125,7 @@ export {
   frameToVideo,
   getVideoInfo,
   imageToVideo,
+  keyframe,
   lipSync,
   loadVideoAssets,
   loadVideoFile,
@@ -128,6 +139,7 @@ export {
   saveVideoFile,
   setSpeed,
   sharpness,
+  shot,
   stabilize,
   textToVideo,
   transition,

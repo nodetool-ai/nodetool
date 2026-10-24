@@ -1373,7 +1373,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "multi_prompt",
-          "type": "list[dict]",
+          "type": "list[shot]",
           "default": [],
           "title": "Multi Prompt",
           "description": "Shot prompts. Takes effect when multi_shots is true. Used to describe the text and duration of each shot. Supports up to 5 shots. Each shot duration is 1-12 seconds. If you need to use elements, add them after the prompt.",
@@ -1383,7 +1383,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "kling_elements",
-          "type": "list[dict]",
+          "type": "list[video_element]",
           "default": [],
           "title": "Kling Elements",
           "description": "Referenced elements. Detailed information about elements referenced in the prompt. A single task can reference a maximum of three elements.",
@@ -1654,7 +1654,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "multi_prompt",
-          "type": "list[dict]",
+          "type": "list[shot]",
           "default": [],
           "title": "Multi Prompt",
           "description": "List of custom shots. When `customize_multi_shots=true`, this field is required, must not be empty, and may contain up to 6 shots. When `customize_multi_shots=false`, it must be an empty array or omitted.",
@@ -1664,7 +1664,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "elements",
-          "type": "list[dict]",
+          "type": "list[video_element]",
           "default": [],
           "title": "Elements",
           "description": "List of one-time subject assets. The default is an empty array. The number of subjects is jointly limited by the reference images, reference video, and subject types. When there is no reference video and only multi-image subjects are used, the combined number of reference images and multi-image subjects must not exceed 7. When there is no reference video and only video character subjects are used, the number of video character subjects must not exceed 3. When there is no reference video and both video character and multi-image subjects are used, the number of video character subjects must not exceed 3, and the combined number of reference images and multi-image subjects must not exceed 4.",
@@ -1784,7 +1784,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "elements",
-          "type": "list[dict]",
+          "type": "list[video_element]",
           "default": [],
           "title": "Elements",
           "description": "List of one-time subject assets. The default is an empty array. When using only multi-image subjects, up to 7 subjects can be uploaded. When using only video character subjects, the number of video character subjects must not exceed 3. When using both video character and multi-image subjects, the number of video character subjects must not exceed 3, and the number of multi-image subjects must not exceed 4.",
@@ -1896,7 +1896,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "multi_prompt",
-          "type": "list[dict]",
+          "type": "list[shot]",
           "default": [],
           "title": "Multi Prompt",
           "description": "List of custom shots. When `customize_multi_shots=true`, this field is required and may contain up to 6 shots. When `customize_multi_shots=false`, it must be an empty array or omitted.",
@@ -1906,7 +1906,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "elements",
-          "type": "list[dict]",
+          "type": "list[video_element]",
           "default": [],
           "title": "Elements",
           "description": "List of one-time subject assets. The default is an empty array, with up to 3 subjects. The subject is automatically identified as a multi-image subject or video character subject based on `element_input_urls`.",
@@ -1965,7 +1965,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "multi_prompt",
-          "type": "list[dict]",
+          "type": "list[shot]",
           "default": [],
           "title": "Multi Prompt",
           "description": "List of custom shots. When `customize_multi_shots` is `true`, this field is required, must not be empty, and supports up to 6 shots. When `customize_multi_shots` is `false`, it must be an empty array or omitted.",
@@ -1974,7 +1974,7 @@ export const videoConfig: ModuleConfig = {
         },
         {
           "name": "elements",
-          "type": "list[dict]",
+          "type": "list[video_element]",
           "default": [],
           "title": "Elements",
           "description": "List of one-time subject assets. The default is an empty array. When using only multi-image subjects, up to 7 subjects can be uploaded. When using only video character subjects, the number of video character subjects must not exceed 3. When using both video character and multi-image subjects, the number of video character subjects must not exceed 3, and the number of multi-image subjects must not exceed 4.",

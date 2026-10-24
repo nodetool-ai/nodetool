@@ -1422,8 +1422,6 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/game-nodes/",
       "packages/game-runtime/",
       "packages/game-renderer/",
-      "packages/godot/",
-      "packages/godot-templates/",
       "packages/base-nodes/tests/game-graph-chips.test.ts",
       "packages/websocket/src/trpc/routers/games.ts",
       "packages/websocket/src/trpc/routers/gameDraftHistory.ts",
@@ -1588,7 +1586,8 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli/src/commands/timeline-render.ts",
       "packages/cli/src/commands/timeline-score.ts",
       "packages/video-nodes/src/nodes/timeline/compositeRender.ts",
-      "packages/agents/src/tools/timeline-version-tools.ts",
+      "packages/agents/src/capabilities/timelines.ts",
+      "packages/agents/src/capabilities/timelines.specs.ts",
       "packages/models/src/timeline-sequence-version.ts",
       "packages/websocket/src/trpc/routers/timeline.ts",
       "scripts/motion-craft-eval.mjs"
@@ -1698,7 +1697,8 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli/src/commands/sketch-render.ts",
       "packages/cli/src/commands/sketch.ts",
       "packages/agents/src/sketch-render/",
-      "packages/agents/src/tools/sketch-version-tools.ts",
+      "packages/agents/src/capabilities/sketches.ts",
+      "packages/agents/src/capabilities/sketches.specs.ts",
       "packages/models/src/image-document-version.ts",
       "packages/websocket/src/trpc/routers/sketch.ts"
     ]
@@ -1758,7 +1758,6 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/timeline/src/linked.ts",
       "packages/agents/src/capabilities/storyboards.ts",
       "packages/agents/src/capabilities/storyboards.specs.ts",
-      "packages/agents/src/tools/storyboard-render-tools.ts",
       "packages/agents/src/evals/surfaces/storyboard.ts",
       "packages/agents/src/evals/surfaces/creative-pipeline.ts",
       "packages/models/src/schema/storyboards.ts",
@@ -1786,7 +1785,6 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/timeline/src/linked.ts",
       "packages/agents/src/capabilities/scripts.ts",
       "packages/agents/src/capabilities/scripts.specs.ts",
-      "packages/agents/src/tools/script-voice-tools.ts",
       "packages/agents/src/evals/surfaces/script.ts",
       "packages/agents/src/evals/surfaces/creative-pipeline.ts",
       "packages/models/src/schema/scripts.ts",
@@ -2275,7 +2273,18 @@ export const UNCLAIMED_PATHS: Record<string, string> = {
  * the judgement, and its reason, are already recorded above.
  */
 export function isUnclaimedPath(file: string): boolean {
-  return Object.keys(UNCLAIMED_PATHS).some((prefix) => file.startsWith(prefix));
+  const path = normalizeGatePath(file);
+  return Object.keys(UNCLAIMED_PATHS).some((prefix) => path.startsWith(prefix));
+}
+
+/**
+ * Repo-relative, forward-slashed, with no leading `./`. Surface paths are
+ * written that way; a file passed on the command line (`gate ./packages/…`,
+ * or a Windows `packages\…`) otherwise matched no prefix and failed the gate
+ * as an unmapped code file.
+ */
+function normalizeGatePath(file: string): string {
+  return file.replace(/\\/g, "/").replace(/^(\.\/)+/, "");
 }
 
 interface HarnessAuditResult {
@@ -2407,11 +2416,12 @@ export interface GatePlan {
  * since its code then runs against changed code (`viaDependency`).
  */
 export function planGate(
-  changedFiles: string[],
+  files: string[],
   harnesses: HarnessEntry[] = HARNESSES,
   surfaces: SurfaceEntry[] = SURFACES,
   packages?: PackageInfo[]
 ): GatePlan {
+  const changedFiles = [...new Set(files.map(normalizeGatePath))];
   const byId = new Map(harnesses.map((h) => [h.id, h]));
   const touched = new Map<string, string[]>();
   const viaDependency = new Set<string>();

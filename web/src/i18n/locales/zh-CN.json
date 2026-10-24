@@ -7122,14 +7122,14 @@
         "blankTitle": "从空白画布开始",
         "blankDescription": "跳过创意说明，直接开始绘制",
         "heading": "你想制作什么图片？",
-        "intro": "先描述一次。我们会完善创意说明并生成多个变体供你挑选。",
+        "intro": "描述后立即生成，或逐步完善，先选择用途、创意说明和外观。",
         "imageLabel": "你的图片",
         "placeholder": "写一句话就够了。",
         "uploadFailed": "图片上传失败",
         "promptContext": "随提示一同提供",
         "referenceImages": "参考图片",
         "entities": "实体",
-        "referencesHelp": "完善创意说明时会参考这些图片。",
+        "referencesHelp": "逐步完善时会参考这些图片。直接生成只使用你的文字。",
         "entitiesHelp": "设置期间，这些实体会保留在文档中。",
         "alternativesLabel": "其他开始方式"
       },
@@ -13261,6 +13261,7 @@
       },
       "errors": {
         "sendMessage": "无法发送消息：{{error}}",
+        "compact": "无法压缩对话：{{error}}",
         "copyConversation": "无法复制对话。",
         "rewindConversation": "无法回退对话：{{error}}"
       },
@@ -14744,6 +14745,10 @@
       "mp4Note": "可在任何地方播放。不支持透明度。",
       "webmNote": "VP9 视频，带 Opus 音频。",
       "pngSequenceNote": "压缩包中每帧一个 PNG，并通过 manifest.json 标注帧率和尺寸。不含音频。",
+      "wav": "WAV 音频（16 位）",
+      "wavNote": "整个时间线的立体声音频混音，48 kHz 无压缩。不含视频。",
+      "mp3": "MP3 音频（320 kbps）",
+      "mp3Note": "整个时间线的立体声音频混音。不含视频。",
       "mp4Unsupported": "此浏览器无法写入 MP4，因此已关闭。",
       "alphaLabel": "导出透明背景",
       "title": "导出时间线",
@@ -14752,7 +14757,9 @@
       "alphaNote": {
         "mp4": "MP4 不支持 Alpha 通道。请选择 WebM 或 PNG 序列。",
         "webm": "合成到透明背景上并保留 Alpha 通道。",
-        "png_sequence": "每个 PNG 都会保留 Alpha 通道。"
+        "png_sequence": "每个 PNG 都会保留 Alpha 通道。",
+        "mp3": "MP3 没有画面，因此无需透明处理。",
+        "wav": "WAV 没有画面，因此无需透明处理。"
       }
     },
     "source": {
@@ -17964,6 +17971,13 @@
       },
       "skills": "技能",
       "noMatchingSkills": "没有匹配的技能",
+      "commands": {
+        "compact": "总结目前的对话以释放上下文",
+        "model": "选择模型",
+        "mode": "权限：plan、default、auto",
+        "new": "开始新对话",
+        "rewind": "撤回上一条消息并编辑"
+      },
       "selectModel": "选择模型",
       "selectMusicModel": "选择音乐模型",
       "selectEditModel": "选择编辑模型",

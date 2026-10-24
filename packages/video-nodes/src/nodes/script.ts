@@ -417,8 +417,8 @@ export class ScriptToSubtitlesNode extends BaseNode {
     for (const line of allLines(doc)) {
       const take = currentTake(line);
       if (!take || !take.assetId) continue;
-      const text = line.text.trim();
-      if (!text) continue;
+      // A voiced line with no text gets no cue but keeps its slot: its take
+      // still plays in the assembled audio.
       entries.push({
         text: line.text,
         durationMs: take.durationMs > 0 ? take.durationMs : PLACEHOLDER_LINE_MS,

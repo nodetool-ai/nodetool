@@ -374,6 +374,12 @@ export interface GlobalChatState {
     message: Message | ChatOutgoingMessage,
     threadId?: string
   ) => Promise<ChatSendOutcome>;
+  /**
+   * Replace a thread's history with one summary (`/compact`). Nothing enters
+   * the thread except the summary record the server sends back. Rejects when
+   * no model is selected or the request cannot reach the socket.
+   */
+  compactThread: (threadId: string) => Promise<void>;
   resetMessages: () => void;
 
   // Thread actions
@@ -1272,6 +1278,37 @@ const useGlobalChatStore = create<GlobalChatState>()(
               sendMessageTimeoutId: null
             })
           }));
+          throw error;
+        }
+      },
+
+      compactThread: async (threadId: string) => {
+        const model = get().getSelectedModel(threadId);
+        if (!isModelSelected(model)) {
+          throw new Error(NO_MODEL_SELECTED_MESSAGE);
+        }
+        await globalWebSocketManager.ensureConnection();
+        ensureThreadSubscription(threadId, set, get);
+        set((state) =>
+          threadRuntimeUpdate(state, threadId, {
+            error: null,
+            status: "loading"
+          })
+        );
+        try {
+          await globalWebSocketManager.send({
+            command: "chat_message",
+            data: {
+              thread_id: threadId,
+              provider: model.provider,
+              model: model.id,
+              compact: true
+            }
+          });
+        } catch (error) {
+          set((state) =>
+            threadRuntimeUpdate(state, threadId, { status: "idle" })
+          );
           throw error;
         }
       },

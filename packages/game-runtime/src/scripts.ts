@@ -189,7 +189,8 @@ function assertBeforeDeadline(deadline: number, budget: string): void {
 export interface GameScriptOptions {
   /**
    * Measures each call against its `maxTickMs`, capped at 20 ms. The default is the thread's CPU time where the host
-   * reports it (Node), otherwise wall time. The batch budget and preparation limits use wall time.
+   * reports it (Node), otherwise wall time. On Node, garbage collection pauses during the call do not count.
+   * The batch budget and preparation limits use wall time.
    */
   readonly callClock?: ScriptCallClock;
   /**

@@ -37407,6 +37407,369 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
+    title: 'Keyframe',
+    description: 'Pin an image to a time in a generated video. Connect several Keyframes to a keyframe model such as FLUX 3 Keyframes To Video, which passes through each image at its time.\n' +
+      '    video, keyframe, frame, timing, interpolate, flux',
+    namespace: 'nodetool.video',
+    node_type: 'nodetool.video.Keyframe',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'image',
+        type: {
+          type: 'image',
+          type_args: []
+        },
+        required: false,
+        title: 'Image',
+        description: 'The frame the video shows at this time.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'time',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Time',
+        description: "Seconds from the start of the video. Times past the video's duration land on its last frame.",
+        min: 0,
+        max: 20,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'keyframe',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'time'
+    ],
+    input_fields: [
+      'image'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: true,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Element',
+    description: 'A character or object for a video model to keep consistent, such as Kling Elements. Give a frontal image with up to three extra views, or a video. Name it and write @name in the prompt to refer to it, or connect an Entity to use its reference images and voice.\n' +
+      '    video, element, character, object, reference, kling, consistency',
+    namespace: 'nodetool.video',
+    node_type: 'nodetool.video.Element',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'name',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Name',
+        description: 'How the prompt refers to this element, as @name. Without a name, use @Element1, @Element2 in connection order.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'frontal_image',
+        type: {
+          type: 'image',
+          type_args: []
+        },
+        required: false,
+        title: 'Frontal Image',
+        description: 'A front view of the element.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'reference_images',
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'image',
+              type_args: []
+            }
+          ]
+        },
+        required: false,
+        title: 'Reference Images',
+        description: 'Up to three more views from other angles.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'video',
+        type: {
+          type: 'video',
+          type_args: []
+        },
+        required: false,
+        title: 'Video',
+        description: 'A 3 to 30 second video of the element, used instead of the images.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'video',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null,
+          duration: null,
+          format: null
+        }
+      },
+      {
+        name: 'entity',
+        type: {
+          type: 'entity',
+          type_args: []
+        },
+        required: false,
+        title: 'Entity',
+        description: 'A library entity. Its reference images, name and voice fill whatever is left empty here.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: null
+      },
+      {
+        name: 'voice_id',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Voice ID',
+        description: 'A provider voice id bound to the element, for models that voice elements.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'video_element',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'name'
+    ],
+    input_fields: [
+      'frontal_image',
+      'reference_images',
+      'video',
+      'entity'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: true,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Shot',
+    description: "One shot of a multi-shot video, for models such as Kling 3 that take a list of shot prompts. Chain Shots through Previous to set their order, then connect the last one to the model's shot input.\n" +
+      '    video, shot, multi-shot, sequence, prompt, kling',
+    namespace: 'nodetool.video',
+    node_type: 'nodetool.video.Shot',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'previous',
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'shot',
+              type_args: []
+            }
+          ]
+        },
+        required: false,
+        title: 'Previous',
+        description: 'The shots that play before this one.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
+        name: 'prompt',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Prompt',
+        description: 'What happens in this shot.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'duration',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Duration',
+        description: 'Seconds this shot lasts.',
+        min: 1,
+        max: 15,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 5
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'shot',
+              type_args: []
+            }
+          ]
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'prompt',
+      'duration'
+    ],
+    input_fields: [
+      'previous'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: true,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
     title: 'Slice Image Grid',
     description: 'Slice an image into a grid of tiles.\n' +
       '    image, grid, slice, tiles\n' +

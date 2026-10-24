@@ -20,7 +20,11 @@ import {
   type ScriptSpeaker,
   type VoiceBinding
 } from "../../stores/script/ScriptStore";
-import { voiceLine, voiceAll } from "../../stores/script/scriptVoicing";
+import {
+  scriptSpeed,
+  voiceLine,
+  voiceAll
+} from "../../stores/script/scriptVoicing";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useAssembleScriptTimeline } from "./useAssembleScriptTimeline";
 import { useDeriveStoryboard } from "./useDeriveStoryboard";
@@ -117,7 +121,8 @@ export const useScriptAgentBridge = (scriptId: string): void => {
       line: ScriptLine,
       sectionId: string,
       index: number,
-      cast: ScriptSpeaker[]
+      cast: ScriptSpeaker[],
+      speed: number | null
     ): ScriptLineNode => {
       const voice = effectiveVoice(line, cast);
       const take = line.takes.find((t) => t.id === line.currentTakeId);
@@ -131,7 +136,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         text: line.text,
         direction: line.direction,
         pauseAfterMs: line.pauseAfterMs,
-        status: lineStatus(line, voice),
+        status: lineStatus(line, voice, speed),
         takeCount: line.takes.length,
         currentTakeDurationMs: take ? take.durationMs : null
       };
@@ -144,7 +149,13 @@ export const useScriptAgentBridge = (scriptId: string): void => {
       if (!found) {
         throw new Error(`Line ${lineId} disappeared after the edit.`);
       }
-      return toLineNode(found.line, found.sectionId, found.index, script.cast);
+      return toLineNode(
+        found.line,
+        found.sectionId,
+        found.index,
+        script.cast,
+        scriptSpeed(script)
+      );
     };
 
     const getSnapshot = (): ScriptSnapshot => {
@@ -154,7 +165,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         title: script.title,
         cast: script.cast.map(toSpeakerNode),
         lines: flatLines(script).map((f) =>
-          toLineNode(f.line, f.sectionId, f.index, script.cast)
+          toLineNode(f.line, f.sectionId, f.index, script.cast, scriptSpeed(script))
         ),
         hasTimeline: script.timelineId !== null,
         timelineId: script.timelineId,

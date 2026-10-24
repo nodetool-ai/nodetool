@@ -61,7 +61,7 @@ export class Kling30OmniTextToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "video" };
   static readonly requiredSettings = ["KIE_API_KEY"];
   static readonly inlineFields = [];
-  static readonly inputFields = ["prompt"];
+  static readonly inputFields = ["prompt","multi_prompt","elements"];
 
   @prop({ type: "str", default: "", title: "Prompt", description: "Text description of the video. It must not be empty after leading and trailing whitespace is removed, and must not exceed 3,072 characters.", min: 1, max: 3072 })
   declare prompt: any;
@@ -72,10 +72,10 @@ export class Kling30OmniTextToVideoNode extends BaseNode {
   @prop({ type: "bool", default: false, title: "Prefer Multi Shots", description: "Whether to enable intelligent shot planning. This field is mutually exclusive with 'customize_multi_shots'. Both fields may be 'false', but they cannot both be 'true'." })
   declare prefer_multi_shots: any;
 
-  @prop({ type: "list[dict]", default: [], title: "Multi Prompt", description: "List of custom shots. When 'customize_multi_shots' is 'true', this field is required, must not be empty, and supports up to 6 shots. When 'customize_multi_shots' is 'false', it must be an empty array or omitted.", max: 6 })
+  @prop({ type: "list[shot]", default: [], title: "Multi Prompt", description: "List of custom shots. When 'customize_multi_shots' is 'true', this field is required, must not be empty, and supports up to 6 shots. When 'customize_multi_shots' is 'false', it must be an empty array or omitted.", max: 6 })
   declare multi_prompt: any;
 
-  @prop({ type: "list[dict]", default: [], title: "Elements", description: "List of one-time subject assets. The default is an empty array. When using only multi-image subjects, up to 7 subjects can be uploaded. When using only video character subjects, the number of video character subjects must not exceed 3. When using both video character and multi-image subjects, the number of video character subjects must not exceed 3, and the number of multi-image subjects must not exceed 4." })
+  @prop({ type: "list[video_element]", default: [], title: "Elements", description: "List of one-time subject assets. The default is an empty array. When using only multi-image subjects, up to 7 subjects can be uploaded. When using only video character subjects, the number of video character subjects must not exceed 3. When using both video character and multi-image subjects, the number of video character subjects must not exceed 3, and the number of multi-image subjects must not exceed 4." })
   declare elements: any;
 
   @prop({ type: "bool", default: false, title: "Audio", description: "Whether to add audio to the generated video. 'true' enables audio; 'false' disables audio." })

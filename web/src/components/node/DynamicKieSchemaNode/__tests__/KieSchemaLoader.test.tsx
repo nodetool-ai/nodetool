@@ -181,7 +181,9 @@ describe("KieSchemaLoader", () => {
           video: {
             type: "video",
             optional: false,
-            type_args: []
+            values: null,
+            type_args: [],
+            type_name: null
           }
         },
         model_id: "bytedance/seedance-2"
