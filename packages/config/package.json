@@ -15,7 +15,7 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "zod": "^4.4.3",
+    "zod": "^4.6.6",
     "js-yaml": "^4.3.2"
   },
   "devDependencies": {

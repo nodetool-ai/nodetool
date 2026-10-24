@@ -24,7 +24,7 @@
     "@trpc/server": "^11.0.0",
     "js-yaml": "^4.3.2",
     "ssh2": "^1.15.0",
-    "zod": "^4.0.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

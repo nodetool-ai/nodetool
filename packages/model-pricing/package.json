@@ -17,7 +17,7 @@
   "dependencies": {
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
-    "zod": "^4.1.13"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@nodetool-ai/atlascloud-nodes": "*",

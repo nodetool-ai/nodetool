@@ -75,7 +75,7 @@
     "@nodetool-ai/protocol": "*",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "overrides": {
     "minimatch": ">=3.1.4",

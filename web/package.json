@@ -77,7 +77,7 @@
     "tabulator-tables": "^6.4.0",
     "three": "^0.185.1",
     "wavesurfer.js": "^7.12.7",
-    "zod": "^4.4.3",
+    "zod": "^4.6.6",
     "zustand": "^5.0.14"
   },
   "scripts": {
